@@ -1,0 +1,46 @@
+# The opening question, and the domains a first answer routes into.
+
+name: entry
+
+# One is chosen per session. These are copy only: every message offers the same
+# domains, so the tone can change without touching the catalogue.
+welcome:
+  - What problem are you looking to solve today?
+  - What are you trying to build?
+  - What are we designing today?
+  - What would you like to map out?
+  - What idea are you working through?
+  - What do you want to think through?
+  - Where would you like to start?
+
+placeholder: Something novel...
+
+hint: Pick one, or describe it in your own words.
+
+# Each chip names the domain that takes over once it is chosen. Free text is
+# matched to the closest id here — a domain is selected, never invented. A
+# weak match falls to freeform, which is why that entry has to exist.
+templates:
+  - id: software
+    chip: Software System
+    about: Modules, the dependencies between them, and a spec for each.
+
+  - id: website
+    chip: Build a Website
+    about: Pages, the sections inside them, and how a visitor moves between.
+
+  - id: writing
+    chip: Creative Writing
+    about: Characters, settings, and the scenes that connect them.
+
+  - id: research
+    chip: Research & Analysis
+    about: Questions, what answers them, and the claims they support.
+
+  - id: product
+    chip: Product Plan
+    about: Users, the problems they have, and the features that serve them.
+
+  - id: freeform
+    chip: Something Else
+    about: Generic decomposition, for anything the catalogue does not cover.

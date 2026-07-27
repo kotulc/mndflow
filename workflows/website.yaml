@@ -1,0 +1,25 @@
+# Websites: pages, the sections inside them, and the paths between them.
+
+name: website
+
+prompts:
+  add_root:
+    prompt: What pages does the site need?
+    hint: One at a time — each becomes a page you can lay out.
+    choices: [Home, About, Pricing, Contact]
+
+  add:
+    prompt: What sections make up "{label}"?
+    hint: Top to bottom, the way a visitor scrolls through it.
+
+  describe:
+    prompt: What is "{label}" for, and what does a visitor do there?
+    hint: One or two sentences. This becomes the page's brief.
+
+  relate_root:
+    prompt: How does a visitor move between these pages?
+    hint: For example, "the home page links to pricing".
+
+  relate:
+    prompt: Where does "{label}" lead next?
+    hint: Name the page, and what makes a visitor go there.

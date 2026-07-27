@@ -1,0 +1,28 @@
+# Research and analysis: questions, what answers them, and what the answers
+# support. Leads with `relate` — evidence points at a claim, it is not a part
+# of one, so the connection matters more than the hierarchy.
+
+name: research
+
+lead: relate
+
+prompts:
+  add_root:
+    prompt: What questions are you trying to answer?
+    hint: One per turn. Each becomes a line of enquiry you can open up.
+
+  add:
+    prompt: What smaller questions sit inside "{label}"?
+    hint: Break it down only as far as is useful.
+
+  describe:
+    prompt: What do we know about "{label}", and where did it come from?
+    hint: Findings and sources together. This becomes the document.
+
+  relate_root:
+    prompt: What connects these questions?
+    hint: For example, "the pricing study informs the churn question".
+
+  relate:
+    prompt: What supports or contradicts "{label}"?
+    hint: For example, "the 2019 survey contradicts this".

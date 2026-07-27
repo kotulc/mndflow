@@ -1,0 +1,27 @@
+# Creative writing: characters, places, scenes, and what ties them together.
+# Leads with `describe` — a character is worth knowing before being broken up.
+
+name: writing
+
+lead: describe
+
+prompts:
+  add_root:
+    prompt: Who and what is this story about?
+    hint: Characters, places, objects that matter — one at a time.
+
+  add:
+    prompt: What belongs inside "{label}"?
+    hint: Scenes, traits, moments — whatever it is made of.
+
+  describe:
+    prompt: Tell me about "{label}".
+    hint: Anything you know. This becomes the page for it.
+
+  relate_root:
+    prompt: How are these connected?
+    hint: For example, "Mira betrays Halloway".
+
+  relate:
+    prompt: What is "{label}" to the others?
+    hint: Name one, and the tie — "her brother", "arrives after".

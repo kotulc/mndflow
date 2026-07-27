@@ -1,0 +1,25 @@
+# The catch-all. Plain decomposition, for anything the catalogue does not
+# cover — and the fallback whenever a named domain has no file of its own.
+
+name: freeform
+
+prompts:
+  add_root:
+    prompt: What are the main pieces of this?
+    hint: Name them one at a time. Each becomes something you can open up.
+
+  add:
+    prompt: What is "{label}" made of?
+    hint: The parts inside it, one at a time.
+
+  describe:
+    prompt: What is "{label}"?
+    hint: Whatever you know about it. This becomes its page.
+
+  relate_root:
+    prompt: How do these relate to one another?
+    hint: Name two, and the link between them.
+
+  relate:
+    prompt: What is "{label}" connected to?
+    hint: Name the other one, and what the connection is.

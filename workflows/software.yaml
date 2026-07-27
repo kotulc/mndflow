@@ -1,0 +1,24 @@
+# Software systems: modules, what each is responsible for, and what it needs.
+
+name: software
+
+prompts:
+  add_root:
+    prompt: What are the main parts of this system?
+    hint: Name them one at a time — each becomes a module you can open up.
+
+  add:
+    prompt: What is "{label}" made of?
+    hint: The pieces inside it. Stop once the parts are obvious.
+
+  describe:
+    prompt: What is "{label}" responsible for?
+    hint: One or two sentences. This becomes its specification.
+
+  relate_root:
+    prompt: How do these parts depend on one another?
+    hint: For example, "the API gateway authenticates via the auth service".
+
+  relate:
+    prompt: What does "{label}" depend on?
+    hint: Name the other module and what it does for this one.
