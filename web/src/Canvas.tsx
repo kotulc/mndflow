@@ -1,12 +1,16 @@
-/** Graph canvas. Renders the graph scoped to the selected document, marking
- *  whatever the last turn touched so the user can see what their answer just
- *  did — the only signal that a change landed, since nothing is confirmed. */
+/** Graph canvas. Renders the graph scoped to the selected object, marking
+ *  whatever the last change touched so the user can see what just happened.
+ *
+ *  Editable throughout: drag to position, drag between handles to relate,
+ *  double-click a relation to name it, Delete to remove. Selecting here
+ *  selects in the explorer too — they are two views of one thing. */
 
 import { useMemo, useState } from "react";
 import { Background, Controls, ReactFlow, type Edge, type Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import type { Graph, Node as GraphNode } from "./api";
+import { descendsFrom } from "./core/fold";
+import type { Graph, Node as GraphNode } from "./core/types";
 
 const COLUMN = 240;
 const ROW = 110;
@@ -23,26 +27,14 @@ function depth(graph: Graph, id: string): number {
   return level;
 }
 
-/** Whether a node sits anywhere beneath `root` in the hierarchy. */
-function under(graph: Graph, node: GraphNode, root: string): boolean {
-  let cursor = node.parent;
-
-  while (cursor && graph.nodes[cursor]) {
-    if (cursor === root) return true;
-    cursor = graph.nodes[cursor].parent;
-  }
-
-  return false;
-}
-
-/** Graph reduced to one document and everything nested beneath it. A missing
- *  root — an undone node, say — falls back to showing the whole project. */
-function scoped(graph: Graph, root: string | null): Graph {
-  if (!root || !graph.nodes[root]) return graph;
-
+/** One layer: what sits directly inside the open group, and the relations
+ *  between those things. Opening a group replaces the canvas with its contents
+ *  rather than zooming into a corner of everything. */
+function layer(graph: Graph, open: string | null): Graph {
+  const here = open && graph.nodes[open] ? open : null;
   const nodes = Object.fromEntries(
     Object.values(graph.nodes)
-      .filter((node) => node.id === root || under(graph, node, root))
+      .filter((node) => (node.parent && graph.nodes[node.parent] ? node.parent : null) === here)
       .map((node) => [node.id, node]),
   );
   const edges = Object.fromEntries(
@@ -60,7 +52,7 @@ function scoped(graph: Graph, root: string | null): Graph {
 function sequence(nodes: GraphNode[], graph: Graph): GraphNode[] {
   const here = new Map(nodes.map((node) => [node.id, node]));
   const next: Record<string, string[]> = {};
-  const waiting: Record<string, number> = Object.fromEntries(nodes.map((node) => [node.id, 0]));
+  const waiting: Record<string, number> = Object.fromEntries(nodes.map((n) => [n.id, 0]));
   const seen = new Set<string>();
 
   for (const edge of Object.values(graph.edges)) {
@@ -102,37 +94,49 @@ function layout(graph: Graph): Node[] {
   return Object.entries(columns).flatMap(([level, nodes]) =>
     sequence(nodes, graph).map((node, row) => ({
       id: node.id,
-      position: {
-        x: node.x ?? Number(level) * COLUMN,
-        y: node.y ?? row * ROW,
-      },
+      position: { x: node.x ?? Number(level) * COLUMN, y: node.y ?? row * ROW },
       data: { label: node.label },
       style: {},
     })),
   );
 }
 
-function style(changed: boolean, isGroup: boolean) {
+/** Groups read as containers: dotted, translucent, and captioned with what is
+ *  inside them. Whatever the last change touched is outlined in the accent. */
+function style(node: GraphNode | undefined, changed: boolean) {
+  const group = node?.kind === "group";
+
   return {
-    border: changed ? "1px solid #4ade80" : "1px solid #1e2f28",
-    background: changed ? "#12241a" : isGroup ? "#0f1613" : "#111a16",
+    border: `1px ${group ? "dashed" : "solid"} ${changed ? "#4ade80" : "#1e2f28"}`,
+    background: changed ? "#12241a" : group ? "rgba(15,22,19,0.55)" : "#111a16",
     color: changed ? "#4ade80" : "#c8e6d0",
-    borderStyle: isGroup ? "dashed" : "solid",
     borderRadius: 2,
     padding: 8,
     fontFamily: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
     fontSize: 12,
-    width: 180,
+    width: group ? 200 : 180,
     overflowWrap: "anywhere" as const,
   };
+}
+
+/** A glyph per child, so a closed group still shows how much is inside. */
+function contents(graph: Graph, id: string): string {
+  const kids = Object.values(graph.nodes).filter((n) => n.parent === id);
+  if (!kids.length) return "";
+
+  const glyphs = kids.slice(0, 6).map((k) => (k.kind === "group" ? "▧" : "▪")).join(" ");
+
+  return `\n${glyphs}${kids.length > 6 ? ` +${kids.length - 6}` : ""}`;
 }
 
 type Props = {
   graph: Graph;
   scope: string | null;
+  view: string | null;
+  path: string[];
   touched: string[];
-  busy: boolean;
   onSelect: (id: string | null) => void;
+  onUp: () => void;
   onPlace: (id: string, x: number, y: number) => void;
   onLink: (source: string, target: string) => void;
   onRelation: (id: string, relation: string) => void;
@@ -141,46 +145,73 @@ type Props = {
 };
 
 export function Canvas(props: Props) {
-  const { graph, scope, touched, busy, onSelect, onPlace, onLink } = props;
+  const { graph, scope, view, path, touched, onSelect, onUp, onPlace, onLink } = props;
   const { onRelation, onUnlink, onDelete } = props;
   const marked = useMemo(() => new Set(touched), [touched]);
-  const view = useMemo(() => scoped(graph, scope), [graph, scope]);
+  const shown = useMemo(() => layer(graph, view), [graph, view]);
   const [naming, setNaming] = useState<string | null>(null);
 
   const nodes = useMemo(
     () =>
-      layout(view).map((node) => ({
-        ...node,
-        style: style(marked.has(node.id), view.nodes[node.id]?.kind === "group"),
-      })),
-    [view, marked],
+      layout(shown).map((node) => {
+        const source = shown.nodes[node.id];
+
+        return {
+          ...node,
+          data: {
+            label: `${source?.label ?? ""}${source ? contents(graph, source.id) : ""}`,
+          },
+          selected: node.id === scope,
+          style: style(source, marked.has(node.id)),
+        };
+      }),
+    [shown, graph, marked, scope],
   );
 
   const edges: Edge[] = useMemo(
     () =>
-      Object.values(view.edges).map((edge) => ({
+      Object.values(shown.edges).map((edge) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
         label: edge.relation,
         style: { stroke: marked.has(edge.target) ? "#4ade80" : "#2f4a3e" },
       })),
-    [view, marked],
+    [shown, marked],
   );
 
   return (
     <>
+      <div className="crumbs">
+        <button onClick={() => onSelect(null)} className={view ? "" : "here"}>
+          {graph.title || "project"}
+        </button>
+        {path.map((id, index) => (
+          <span key={id}>
+            <span className="sep">/</span>
+            <button
+              onClick={() => onSelect(id)}
+              className={index === path.length - 1 ? "here" : ""}
+            >
+              {graph.nodes[id]?.label}
+            </button>
+          </span>
+        ))}
+        {view && (
+          <button className="up" onClick={onUp} title="Up one layer">
+            ↑
+          </button>
+        )}
+      </div>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         fitView
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
-        nodesDraggable={!busy}
-        nodesConnectable={!busy}
-        elementsSelectable
         onNodeClick={(_, node) => onSelect(node.id)}
-        onPaneClick={() => (setNaming(null), onSelect(null))}
+        onPaneClick={() => setNaming(null)}
         onNodeDragStop={(_, node) => onPlace(node.id, node.position.x, node.position.y)}
         onConnect={({ source, target }) => source && target && onLink(source, target)}
         onEdgeDoubleClick={(_, edge) => setNaming(edge.id)}
@@ -196,9 +227,8 @@ export function Canvas(props: Props) {
           <span className="caret">&gt;</span>
           <input
             autoFocus
-            defaultValue={view.edges[naming]?.relation ?? ""}
+            defaultValue={shown.edges[naming]?.relation ?? ""}
             placeholder="what is this relation?"
-            disabled={busy}
             onBlur={() => setNaming(null)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {

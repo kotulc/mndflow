@@ -1,50 +1,42 @@
 # mndflow
 
-A generative system design and modelling interface, built on React Flow and a
-small local LLM.
+A nested graph editor that asks you questions, running entirely in your
+browser.
 
-mndflow is a **question machine**. You answer prompts; it builds a graph of
-documents from your answers, and shows you the graph as you go. The chat pane
-asks, the tree on the left holds the documents, the canvas on the right shows
-how they relate, and the log at the foot records every change with one undo
-behind it.
+mndflow composes grouped React Flow graphs from a conversation. You answer
+prompts; it builds a graph of objects from your answers, and shows you the
+graph as you go. Everything it builds stays editable by hand — the workflow
+suggests, it never constrains.
 
-Nothing leaves your machine. The model runs locally, and a session lives only
-as long as the server does.
+There is **no backend and no language model**. Client-side scoring routes what
+you type to the right template and the right suggestions, so a turn is instant
+and works offline.
 
 ```
-┌───────────────────────────────────────────────┐
-│  What are the main parts of this system?      │  chat: one question at a time
-│  > ________________   [chip] [chip] [chip]    │
-├──────────────┬────────────────────────────────┤
-│ Ledger/      │                                │
-│ ├── Auth     │        ( Auth ) ──▶ ( Billing ) │  canvas: the graph, editable
-│ └── Billing  │                                │
-│              ├────────────────────────────────┤
-│  tree:       │  # Auth                        │  document: the selected node's
-│  documents   │  Issues and rotates tokens.    │  text, edited in place
-├──────────────┴────────────────────────────────┤
-│ Actions                              [ Undo ] │
-└───────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┬──────────────┐
+│ What are the main parts of this system?     │ [ Module:  ] │  terminal, and the
+│ > rate limit_                               │ [ Layer:   ] │  suggestion rail
+├──────────────┬──────────────────────────────┴──────────────┤
+│ Ledger/      │  project / Edge          ↑                  │
+│ ▾ Edge/      │      ┌╌╌╌╌╌╌╌╌┐                             │  canvas: one layer,
+│   ├─ Auth    │      ┆ Edge   ┆ ──▶ ( Billing )             │  groups are dotted
+│   └─ Rate…   │      ┆ ▪ ▪    ┆                             │
+│ · Billing    ├─────────────────────────────────────────────┤
+│              │  # Auth            [Module]  [object]       │  properties
+│  explorer    │  Issues and rotates tokens.                 │
+├──────────────┴──────────────────────────┬──────────────────┤
+│ Actions                        [ Undo ] │ Matching         │  history, and live
+└─────────────────────────────────────────┴──────────────────┘  match scoring
 ```
+
+The tracked specification is [tasks.md](tasks.md).
 
 ---
 
 ## Getting started
 
-**Prerequisites**
-
-- Python 3.11+
-- Node 18+
-- A local OpenAI-compatible model server. [LM Studio](https://lmstudio.ai) with
-  a small instruct model loaded is what this is developed against.
-
-**Install and run**
-
-```sh
-pip install -e ".[dev]"
-uvicorn server.main:app --reload --port 8000
-```
+**Prerequisites:** Node 18+. That is all — there is nothing to install
+server-side and no model to download.
 
 ```sh
 cd web && npm install && npm run dev
@@ -52,76 +44,68 @@ cd web && npm install && npm run dev
 
 Then open <http://localhost:5173>.
 
-The server expects the model at `http://localhost:1234/v1`. If it is not
-running, mndflow still works — every question's chips are answered without the
-model, and only free text degrades to "no change". You can build a whole
-project by clicking.
-
-### Configuration
-
-| Variable | Default |
-|---|---|
-| `MNDFLOW_BASE_URL` | `http://localhost:1234/v1` |
-| `MNDFLOW_MODEL` | `gemma-4` |
-| `MNDFLOW_API_KEY` | `not-needed` |
-
-The web client talks to `http://localhost:8000`, and the server accepts
-requests only from `http://localhost:5173`. Change both together if you move
-either.
-
 ### Using it
 
-Answer the opening question — click a domain or describe your project in your
-own words, and the model routes free text to the closest domain. From there
-mndflow asks about whichever document is **selected in the tree**; selecting is
-how you steer the conversation.
+Answer the opening question — click a domain, or describe your project in your
+own words and it is scored against every template. From there mndflow asks
+about whichever object is **selected**, and selecting is how you steer.
 
-Everything is editable by hand at any time:
+Nothing is interpreted by a model, so answers are taken at face value: what you
+type is the name of the thing, or its text, or the far end of a relation,
+depending on what was asked. A name that matches nothing existing stops and
+asks rather than guessing.
 
 | Where | What you can do |
 |---|---|
-| Tree | `+ new`, `rename`, `delete`; drag a document onto another to re-parent it |
-| Canvas | Drag to position; drag between handles to relate; double-click a relation to name it; `Delete` to remove |
-| Document pane | Edit the selected document's text; it saves when you click away |
-| Log | One **Undo**, unwinding in the order things were applied |
+| Terminal | Answer; or type and pick an operation from the rail beside it |
+| Explorer | New object or group, rename, delete; drag to re-parent; click a group to open it |
+| Canvas | Drag to position; drag between handles to relate; double-click a relation to name it; `Delete` to remove; click a group to open it |
+| Properties | Edit the selected object's text and type, or turn it into a group |
+| Actions | One **Undo**, unwinding in the order things were applied |
+| Matching | Every template's score against what you are typing, live |
 
-A clicked chip never calls the model — it is already the exact text of an
-option the application offered, so there is nothing to interpret. Typed text
-costs one model call.
+Work is saved to `localStorage` as you go, and **export** writes the whole
+history to a file that **import** reads back.
 
 ---
 
 ## Workflows
 
-A workflow here is not a script. Three YAML files in [`workflows/`](workflows/)
-describe the conversation, and none of them contains control flow.
+A workflow is not a script. Three kinds of file in [`workflows/`](workflows/)
+describe the conversation, and none contains control flow.
 
 **[`entry.yaml`](workflows/entry.yaml)** — the opening question and the domains
-a first answer routes into. One greeting is chosen per session; the chips are
-the catalogue.
+a first answer routes into. Each carries `tags`: the words someone would
+actually use for a project of that kind, which is what free text is scored
+against.
 
 **[`operations.yaml`](workflows/operations.yaml)** — the three things the
-conversation can ask for, globally. A domain may not invent a fourth.
+conversation can ask for, globally. No domain may invent a fourth.
 
-| Operation | Intent | Asked when |
-|---|---|---|
-| `describe` | `describe_module` | the selected document has no text |
-| `add` | `add_module` | always — the default the loop returns to |
-| `relate` | `link_modules` | two or more documents are in view to connect |
+| Operation | Asked when |
+|---|---|
+| `describe` | the selected object has no text |
+| `add` | always — the default the loop returns to |
+| `relate` | two or more objects are in view to connect |
 
 **One file per domain** — [`software`](workflows/software.yaml),
 [`website`](workflows/website.yaml), [`writing`](workflows/writing.yaml),
 [`research`](workflows/research.yaml), [`product`](workflows/product.yaml),
-[`freeform`](workflows/freeform.yaml). Each supplies **wording only**:
+[`freeform`](workflows/freeform.yaml). Each supplies wording and vocabulary:
 
 ```yaml
 name: software
 
+terms:                                 # what this domain calls things
+  group: Layer
+  node: Module
+  relation: Dependency
+
 prompts:
-  add_root:                                     # asked with the project selected
+  add_root:                            # asked with the project selected
     prompt: What are the main parts of this system?
-    hint: Name them one at a time — each becomes a module you can open up.
-  add:                                          # asked with a document selected
+    hint: Name them one at a time.
+  add:                                 # asked with an object selected
     prompt: What is "{label}" made of?
   describe:
     prompt: What is "{label}" responsible for?
@@ -131,109 +115,89 @@ prompts:
     prompt: What does "{label}" depend on?
 ```
 
-`{label}` is the selected document. The `_root` variants are used when the
-project itself is selected and there is no document to name. Any prompt may
-add `choices:` to offer suggested answers as chips.
+`{label}` is the selected object. `_root` variants are used when the project
+itself is selected and there is no object to name. `prompt` may be a list, one
+of which is chosen per asking. Any prompt may add `choices:` for chips.
 
-A domain may declare `lead:` to name the operation it prefers to open with —
+`terms` is what the suggestion rail uses — typing `rate limit` inside a
+software project offers **Module: rate limit** and **Layer: rate limit**, and
+inside a novel offers **Character** and **Act**.
+
+A domain may declare `lead:` to name the operation it prefers to open with.
 `research` leads with `relate`, because evidence points at a claim rather than
 sitting inside one.
 
 ### The loop
 
-[`server/router.py`](server/router.py) picks the next question from the graph
-itself: what the selected document is missing, in the domain's preferred order.
-An operation steps aside only once it has filled the last **two** turns, so the
-conversation builds for a while and then steps back to connect what it built —
-rather than repeating itself or alternating every turn.
-
-When an answer names something that does not exist, the turn stops and asks
-which document you meant, offering the closest existing names ranked by
-trigram similarity plus the option to create it. Names are matched exactly and
-never guessed at, and each unknown name is asked about separately.
+[`core/router.ts`](web/src/core/router.ts) picks the next question from the
+graph itself: what the selected object is missing, in the domain's preferred
+order. An operation steps aside only once it has filled the last **two** turns,
+so the conversation builds for a while and then steps back to connect what it
+built — rather than repeating itself or alternating every turn.
 
 ---
 
 ## Development
 
-Full architecture notes are in [DEVELOPMENT.md](DEVELOPMENT.md); the reasoning
-behind the design is in [CONCEPTS.md](CONCEPTS.md).
+```sh
+cd web
+npm run dev            # http://localhost:5173
+npm run build          # tsc, then a production bundle
+npx tsc --noEmit       # typecheck alone
+```
 
-The short version: **the step log is the source of truth.** A graph is only
-ever derived by folding applied mutations in order, so undo needs no inverse
-operations — it flips a status and the graph is rebuilt. A document *is* a
-node: its text lives in `graph.specs[node_id]`, and the tree is the node
-hierarchy. There is no file store and nothing on disk.
+Workflow YAML is compiled in at build time by `@rollup/plugin-yaml`, so nothing
+parses it at runtime and a malformed file fails the build.
+
+**The step log is the source of truth.** A graph is only ever derived by
+folding applied mutations in order, so undo needs no inverse operations — it
+flips a status and the graph is rebuilt by the same code that built it. An
+object *is* a document: its text lives on the node, and the explorer tree is
+the node hierarchy.
 
 | Module | Purpose |
 |---|---|
-| [`server/models.py`](server/models.py) | Every shared shape: graph, intent, mutations, steps |
-| [`server/log.py`](server/log.py) | In-memory step log |
-| [`server/fold.py`](server/fold.py) | Mutation replay and touched-node highlighting |
-| [`server/mutate.py`](server/mutate.py) | Intent → mutations; label resolution and ranking |
-| [`server/interpret.py`](server/interpret.py) | Grammar-constrained JSON calls to the local model |
-| [`server/workflows.py`](server/workflows.py) | Loads the catalogue, operations, and domain wording |
-| [`server/router.py`](server/router.py) | Picks the question from the graph and the selection |
-| [`server/group.py`](server/group.py) | Fan-out heuristic for abstraction |
-| [`server/main.py`](server/main.py) | HTTP API; every response is the full app state |
+| [`core/types.ts`](web/src/core/types.ts) | Every shared shape: graph, mutations, steps |
+| [`core/fold.ts`](web/src/core/fold.ts) | Mutation replay, hierarchy walking, highlighting |
+| [`core/match.ts`](web/src/core/match.ts) | Scoring text against known options |
+| [`core/workflows.ts`](web/src/core/workflows.ts) | Loads the catalogue, operations, and domains |
+| [`core/router.ts`](web/src/core/router.ts) | Picks the question from the graph and the selection |
+| [`core/turn.ts`](web/src/core/turn.ts) | What one answer does — pure, no state |
+| [`core/suggest.ts`](web/src/core/suggest.ts) | What the chips offer as you type |
+| [`core/store.ts`](web/src/core/store.ts) | localStorage, export, import |
+| [`core/project.ts`](web/src/core/project.ts) | The `useProject` hook wiring it to React |
 
-### API
-
-Every endpoint returns the complete app state, and takes an optional `?scope=`
-naming the selected document — it is what decides which question comes back.
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /state` | Graph, question, history |
-| `POST /turn` | Answer the active question |
-| `POST /undo` | Unwind the most recent applied step |
-| `POST /project/rename` | Name the project |
-| `POST /nodes` · `DELETE /nodes/{id}` | Create and delete documents |
-| `POST /nodes/{id}/rename` · `/move` · `/body` · `/place` | Edit one document |
-| `POST /edges` · `DELETE /edges/{id}` · `POST /edges/{id}/relation` | Edit relations |
-| `POST /group` · `GET /crowded` | Abstraction |
-
-### Tests
-
-```sh
-python -m pytest
-```
-
-`tests/server/` mirrors `server/`. The `fold` and `log` tests are the
-load-bearing ones — undo correctness is what every other guarantee rests on.
-Nothing in the suite reaches the model.
-
-Two constraints shape the model-facing code, both because the model is small:
-one question per call, with the grammar pinned to the one operation being
-asked about; and the model emits **labels, never ids**, because a small model
-cannot track opaque identifiers across a conversation.
+`turn.ts` is deliberately pure: given a graph and an answer it returns the
+mutations and whatever is still unresolved, touching no state of its own.
 
 ---
 
 ## Extensions
 
-**Add a domain.** Write `workflows/<name>.yaml` with wording for each
-operation, and add a chip for it to `entry.yaml`. That is the whole job —
-control flow lives in `router.py`, so a domain declares what to say and never
-how to sequence it. An unknown domain falls back to `freeform`.
+**Add a domain.** Write `workflows/<name>.yaml` with `terms` and wording for
+each operation, and add a chip and `tags` for it to `entry.yaml`. That is the
+whole job — control flow lives in `router.ts`, so a domain declares what to say
+and never how to sequence it. An unknown domain falls back to `freeform`.
 
-**Add an operation.** Add it to `operations.yaml` with the `Intent` action it
-produces and a `when` condition, teach `router.eligible()` the condition, and
-give every domain wording for it. Deliberately more work than adding a
-domain — the operation set is meant to stay small.
+**Add an operation.** Add it to `operations.yaml` with a `when` condition,
+teach `router.eligible()` the condition, handle it in `turn.answer()`, and give
+every domain wording for it. Deliberately more work than adding a domain — the
+operation set is meant to stay small.
 
-**Add a kind of change.** Define a mutation in `models.py`, add it to the
-`Mutation` union, and handle it in `fold.apply_mutation()`. It becomes
-undoable for free, because undo is a refold rather than an inverse.
+**Add a kind of change.** Add a variant to the `Mutation` union in `types.ts`
+and handle it in `fold.apply()`. It becomes undoable for free, because undo is
+a refold rather than an inverse.
+
+**Swap in real embeddings.** Matching runs on character trigrams behind the
+`score` seam in `core/match.ts` — no dependency, no download, instant. Moving to
+a sentence-embedding model means replacing `vector()` and nothing else. The
+match scoring column exists to make that change measurable.
 
 ### Not yet built
 
-- Persistence of any kind — a session ends when the server stops
-- Streaming output; turns are request/response today
-- Wiring `group.crowded_parents()` into the turn flow to prompt for abstraction
-- Multiple projects; one log, one project, per process
-- Chips for switching operation directly — `operations.yaml` declares a `chip`
-  per operation that nothing yet renders, so the tree selection is the only
-  way to steer
-- Renaming a node from the canvas, and drag-to-re-parent on the canvas
-- Diagram types beyond the module graph: flow, class, swimlane, activity
+- Real embeddings; today's scoring is character trigrams
+- Switching template by hand once a project is under way
+- Relations crossing a layer boundary, shown on the containing group
+- Renaming from the canvas, and drag-to-re-parent on the canvas
+- Multiple projects in one browser; export/import covers moving between them
+- Diagram types beyond the object graph: flow, class, swimlane, activity

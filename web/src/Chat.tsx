@@ -1,27 +1,51 @@
-/** Chat pane: the active workflow question, typed out a character at a time,
- *  with the suggested answers appearing as chips once the line finishes. */
+/** Chat pane: the active question typed out a character at a time, with the
+ *  suggestions standing beside it.
+ *
+ *  The input carries no chrome of its own — it is a line of the terminal, and
+ *  the caret in front of it is the only thing marking where you type. */
 
-import { useState } from "react";
+import { useMemo } from "react";
 
-import type { WorkflowStep } from "./api";
+import type { Question } from "./core/router";
+import { suggest, type Suggestion } from "./core/suggest";
+import type { Graph } from "./core/types";
+import type { Terms } from "./core/workflows";
 import { useTypewriter } from "./useTypewriter";
 
 type Props = {
-  question: WorkflowStep | null;
-  busy: boolean;
+  graph: Graph;
+  question: Question | null;
+  view: string | null;
+  scope: string | null;
+  terms: Terms;
+  draft: string;
+  onDraft: (text: string) => void;
   onTurn: (input: string) => void;
+  onRun: (suggestion: Suggestion) => void;
 };
 
-export function Chat({ question, busy, onTurn }: Props) {
-  const [draft, setDraft] = useState("");
-  const { shown, done } = useTypewriter(question?.prompt ?? "What are you looking to build?");
+export function Chat(props: Props) {
+  const { graph, question, view, scope, terms, draft, onDraft, onTurn, onRun } = props;
+  const { shown, done } = useTypewriter(question?.prompt ?? "");
+
+  const chips = useMemo(
+    () => suggest(graph, question, draft, view, scope, terms),
+    [graph, question, draft, view, scope, terms],
+  );
 
   function submit() {
     const text = draft.trim();
-    if (!text || busy) return;
+    if (!text) return;
 
-    setDraft("");
+    onDraft("");
     onTurn(text);
+  }
+
+  function run(chip: Suggestion) {
+    if (chip.hint) return;
+
+    onDraft("");
+    chip.kind === "answer" ? onTurn(chip.value) : onRun(chip);
   }
 
   return (
@@ -37,32 +61,27 @@ export function Chat({ question, busy, onTurn }: Props) {
           <span className="caret">&gt;</span>
           <input
             value={draft}
-            placeholder={question?.placeholder || "Type your answer…"}
-            onChange={(event) => setDraft(event.target.value)}
+            placeholder={question?.placeholder || "type, or pick something"}
+            onChange={(event) => onDraft(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && submit()}
-            disabled={busy}
           />
-          <button onClick={submit} disabled={busy}>
-            Send
-          </button>
         </div>
       </div>
 
-      {done && question && question.choices.length > 0 && (
-        <div className="choices">
-          {question.choices.map((choice, index) => (
+      <div className="choices">
+        {done &&
+          chips.map((chip, index) => (
             <button
-              key={choice}
-              className="chip"
-              style={{ animationDelay: `${index * 60}ms` }}
-              onClick={() => onTurn(choice)}
-              disabled={busy}
+              key={chip.key}
+              className={`chip ${chip.hint ? "ghost" : ""} ${chip.kind}`}
+              style={{ animationDelay: `${index * 45}ms` }}
+              onClick={() => run(chip)}
+              disabled={chip.hint}
             >
-              {choice}
+              {chip.label}
             </button>
           ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

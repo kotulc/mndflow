@@ -5,6 +5,13 @@ name: writing
 
 lead: describe
 
+# What this domain calls things. Chips and the object explorer use these
+# instead of the generic group/object/relation.
+terms:
+  group: Act
+  node: Character
+  relation: Connection
+
 prompts:
   add_root:
     prompt: Who and what is this story about?

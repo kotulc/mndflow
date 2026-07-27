@@ -2,6 +2,13 @@
 
 name: software
 
+# What this domain calls things. Chips and the object explorer use these
+# instead of the generic group/object/relation.
+terms:
+  group: Layer
+  node: Module
+  relation: Dependency
+
 prompts:
   add_root:
     prompt: What are the main parts of this system?

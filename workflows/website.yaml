@@ -2,6 +2,13 @@
 
 name: website
 
+# What this domain calls things. Chips and the object explorer use these
+# instead of the generic group/object/relation.
+terms:
+  group: Section
+  node: Page
+  relation: Link
+
 prompts:
   add_root:
     prompt: What pages does the site need?

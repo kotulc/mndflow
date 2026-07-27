@@ -6,6 +6,13 @@ name: research
 
 lead: relate
 
+# What this domain calls things. Chips and the object explorer use these
+# instead of the generic group/object/relation.
+terms:
+  group: Theme
+  node: Question
+  relation: Bearing
+
 prompts:
   add_root:
     prompt: What questions are you trying to answer?

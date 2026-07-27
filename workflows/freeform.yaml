@@ -3,6 +3,13 @@
 
 name: freeform
 
+# What this domain calls things. Chips and the object explorer use these
+# instead of the generic group/object/relation.
+terms:
+  group: Group
+  node: Object
+  relation: Relation
+
 prompts:
   add_root:
     prompt: What are the main pieces of this?

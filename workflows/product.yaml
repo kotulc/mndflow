@@ -5,6 +5,13 @@ name: product
 
 lead: describe
 
+# What this domain calls things. Chips and the object explorer use these
+# instead of the generic group/object/relation.
+terms:
+  group: Area
+  node: Feature
+  relation: Dependency
+
 prompts:
   add_root:
     prompt: Who is this for, and what do they need?

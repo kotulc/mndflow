@@ -1,95 +1,130 @@
-/** Shell: chat at the top, file tree and graph in the middle, action log at
- *  the foot. The selected document scopes the graph and decides which question
- *  is asked next, so changing it refetches. Every turn applies on arrival —
- *  the log's undo is the way back. */
+/** Shell: terminal and suggestions at the top, object explorer and graph in the
+ *  middle, action log and match scoring at the foot.
+ *
+ *  There is no server. Everything below runs against a step log in this tab. */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
-import { api, type State } from "./api";
+import { useProject } from "./core/project";
+import type { Suggestion } from "./core/suggest";
 import { Canvas } from "./Canvas";
 import { Chat } from "./Chat";
 import { Doc } from "./Doc";
 import { Files } from "./Files";
 import { Log } from "./Log";
+import { Scores } from "./Scores";
 
 export function App() {
-  const [state, setState] = useState<State | null>(null);
-  const [scope, setScope] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const project = useProject();
+  const { graph, scope, view, path, select, question, terms } = project;
+  // Held here so the match scoring can watch it being typed.
+  const [draft, setDraft] = useState("");
 
-  const run = useCallback(async (action: () => Promise<State>) => {
-    setBusy(true);
-    setError("");
-    try {
-      const next = await action();
-      setState(next);
-      setScope(next.scope);
-    } catch (cause) {
-      setError(String(cause));
-    } finally {
-      setBusy(false);
+  /** Run a chip that is a graph operation rather than an answer. */
+  function run(chip: Suggestion) {
+    switch (chip.kind) {
+      case "add":
+        return project.create(chip.value, view, "object");
+      case "group":
+        return project.create(chip.value, view, "group");
+      case "link":
+        return scope && project.link(scope, chip.value);
+      case "open":
+        return select(chip.value);
     }
-  }, []);
-
-  useEffect(() => {
-    run(() => api.state(scope));
-  }, [run, scope]);
-
-  if (!state) return <div className="loading">{error || "Connecting…"}</div>;
+  }
 
   return (
     <div className="app">
       <header>
         <h1>mndflow</h1>
-        {state.graph.template && <span className="domain">{state.graph.template}</span>}
-        {error && <span className="error">{error}</span>}
+        {graph.template && <span className="domain">{graph.template}</span>}
+
+        <span className="tools">
+          <button onClick={project.save} disabled={!project.steps.length}>
+            export
+          </button>
+          <label className="import">
+            import
+            <input
+              type="file"
+              accept=".json"
+              onChange={async (event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file && !project.open(await file.text())) {
+                  window.alert("That file is not a mndflow project.");
+                }
+              }}
+            />
+          </label>
+          <button
+            onClick={() => window.confirm("Discard this project?") && project.reset()}
+            disabled={!project.steps.length}
+          >
+            new
+          </button>
+        </span>
       </header>
 
       <Chat
-        question={state.workflow_step}
-        busy={busy}
-        onTurn={(input) => run(() => api.turn(input, scope))}
+        graph={graph}
+        question={question}
+        view={view}
+        scope={scope}
+        terms={terms}
+        draft={draft}
+        onDraft={setDraft}
+        onTurn={project.turn}
+        onRun={run}
       />
 
       <main>
         <Files
-          graph={state.graph}
+          graph={graph}
           selected={scope}
-          busy={busy}
-          onSelect={setScope}
-          onCreate={(label, parent) => run(() => api.create(label, parent, scope))}
-          onDelete={(id) => run(() => api.remove(id, scope))}
-          onMove={(id, parent) => run(() => api.move(id, parent, scope))}
-          onRename={(id, label) => run(() => api.rename(id, label, scope))}
-          onRenameProject={(label) => run(() => api.renameProject(label, scope))}
+          path={path}
+          terms={terms}
+          onSelect={select}
+          onCreate={project.create}
+          onDelete={project.remove}
+          onMove={project.move}
+          onRename={project.rename}
+          onRenameProject={project.renameProject}
         />
 
         <section className="work">
           <div className="canvas">
             <Canvas
-              graph={state.graph}
+              graph={graph}
               scope={scope}
-              touched={state.touched}
-              busy={busy}
-              onSelect={setScope}
-              onPlace={(id, x, y) => run(() => api.place(id, x, y, scope))}
-              onLink={(source, target) => run(() => api.link(source, target, scope))}
-              onRelation={(id, relation) => run(() => api.relation(id, relation, scope))}
-              onUnlink={(id) => run(() => api.unlink(id, scope))}
-              onDelete={(id) => run(() => api.remove(id, scope))}
+              view={view}
+              path={path}
+              touched={project.touched}
+              onSelect={select}
+              onUp={project.up}
+              onPlace={project.place}
+              onLink={project.link}
+              onRelation={project.relation}
+              onUnlink={project.unlink}
+              onDelete={project.remove}
             />
           </div>
           <Doc
-            graph={state.graph}
+            graph={graph}
             scope={scope}
-            busy={busy}
-            onSave={(id, body) => run(() => api.save(id, body, scope))}
+            terms={terms}
+            onSave={project.write}
+            onRetype={project.retype}
+            onRegroup={project.regroup}
           />
         </section>
       </main>
 
-      <Log history={state.history} busy={busy} onUndo={() => run(() => api.undo(scope))} />
+      <footer>
+        <Log steps={project.steps} undoable={project.undoable} onUndo={project.undo} />
+        <Scores text={draft} active={graph.template} />
+      </footer>
     </div>
   );
 }

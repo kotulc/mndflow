@@ -56,8 +56,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Chat — a narrow column centred at the top of the page */
 
 .chat {
-  width: min(680px, 100%);
-  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 680px) 220px;
+  justify-content: center;
+  gap: 16px;
   padding: 16px;
 }
 
@@ -89,26 +91,40 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .composer input {
   flex: 1;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: var(--bg);
+  padding: 0;
+  border: none;
+  background: transparent;
   color: inherit;
   font: inherit;
+  caret-color: var(--accent);
 }
 
-.composer input:focus { outline: none; border-color: var(--accent); }
+.composer input:focus { outline: none; }
 .composer input::placeholder { color: var(--muted); }
 
-.choices { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.choices {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  min-width: 0;
+}
 
 .chip {
   color: var(--accent);
-  animation: pop 200ms ease-out backwards;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: pop 160ms ease-out backwards;
 }
 
+.chip.add, .chip.group { color: var(--text); }
+.chip.link, .chip.open { color: var(--muted); }
+.chip.ghost { color: var(--muted); border-style: dashed; opacity: 0.5; }
+
 @keyframes pop {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateX(-4px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -238,7 +254,6 @@ main {
   display: flex;
   flex-direction: column;
   height: 150px;
-  border-top: 1px solid var(--border);
   background: var(--surface);
 }
 
@@ -261,3 +276,104 @@ main {
 .line .text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .line .count { color: var(--muted); }
 .line.empty { color: var(--muted); }
+
+/* Breadcrumb over the canvas — which layer is open */
+
+.crumbs {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: rgba(15, 22, 19, 0.85);
+  font-size: 12px;
+}
+
+.crumbs button {
+  padding: 1px 5px;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+
+.crumbs button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.crumbs button.here { color: var(--accent); }
+.crumbs .sep { color: var(--border); }
+.crumbs .up { margin-left: 4px; border: 1px solid var(--border); }
+
+/* Object explorer glyphs */
+
+.files .glyph { color: var(--muted); margin-right: 4px; }
+.files .item.group > .glyph { color: var(--accent); }
+
+/* Properties pane header */
+
+.doc-bar .name { color: var(--accent); }
+.doc-bar .meta { display: flex; align-items: center; gap: 8px; }
+
+.doc-bar .type {
+  width: 9em;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+}
+
+.doc-bar .type:focus { outline: none; border-color: var(--accent); }
+.doc-bar button { padding: 0 6px; font-size: 11px; }
+
+/* Foot: the action log and the match scoring, side by side */
+
+footer {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  border-top: 1px solid var(--border);
+}
+
+.scores {
+  display: flex;
+  flex-direction: column;
+  height: 150px;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.scores .subject {
+  color: var(--muted);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.score { display: flex; align-items: center; gap: 8px; padding: 2px 12px; }
+.score .name { width: 8.5em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.score .value { width: 2.6em; text-align: right; color: var(--muted); }
+.score .bar { flex: 1; height: 6px; background: var(--divider); border-radius: 1px; }
+.score .bar i { display: block; height: 100%; background: var(--border); }
+.score.lead .bar i { background: var(--accent); }
+.score.lead .name, .score.lead .value { color: var(--text); }
+.score.active .name { color: var(--accent); }
+
+/* Header tools */
+
+header .tools { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
+
+.import {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.import:hover { background: var(--hover); border-color: var(--accent); }
+.import input { display: none; }
