@@ -1,132 +1,39 @@
-/** Graph canvas. Renders the graph scoped to the selected object, marking
- *  whatever the last change touched so the user can see what just happened.
+/** Graph canvas: one layer of the object graph, editable throughout.
  *
- *  Editable throughout: drag to position, drag between handles to relate,
- *  double-click a relation to name it, Delete to remove. Selecting here
- *  selects in the explorer too — they are two views of one thing. */
+ *  Positions are held by React Flow while a drag is in progress and committed
+ *  to the log on release — otherwise a node would not move until it landed.
+ *
+ *  Gestures: drag to position, drop one node on another to put it inside,
+ *  double-click empty space to make something, drag a link into empty space to
+ *  make and attach something, double-click a relation to name it, Delete to
+ *  remove. Selecting here selects in the explorer too. */
 
-import { useMemo, useState } from "react";
-import { Background, Controls, ReactFlow, type Edge, type Node } from "@xyflow/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Background,
+  Controls,
+  ReactFlow,
+  ReactFlowProvider,
+  useNodesState,
+  useReactFlow,
+  type Edge,
+  type Node as FlowNode,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { descendsFrom } from "./core/fold";
-import type { Graph, Node as GraphNode } from "./core/types";
+import { LEAF, place } from "./core/layout";
+import type { Graph } from "./core/types";
+import { NodeCard } from "./NodeCard";
 
-const COLUMN = 240;
-const ROW = 110;
+const nodeTypes = { card: NodeCard };
 
-function depth(graph: Graph, id: string): number {
-  let level = 0;
-  let cursor = graph.nodes[id]?.parent;
-
-  while (cursor && graph.nodes[cursor] && level < 20) {
-    level += 1;
-    cursor = graph.nodes[cursor].parent;
-  }
-
-  return level;
-}
-
-/** One layer: what sits directly inside the open group, and the relations
- *  between those things. Opening a group replaces the canvas with its contents
- *  rather than zooming into a corner of everything. */
-function layer(graph: Graph, open: string | null): Graph {
+/** Objects sitting directly inside the open group. */
+function layerOf(graph: Graph, open: string | null) {
   const here = open && graph.nodes[open] ? open : null;
-  const nodes = Object.fromEntries(
-    Object.values(graph.nodes)
-      .filter((node) => (node.parent && graph.nodes[node.parent] ? node.parent : null) === here)
-      .map((node) => [node.id, node]),
+
+  return Object.values(graph.nodes).filter(
+    (node) => (node.parent && graph.nodes[node.parent] ? node.parent : null) === here,
   );
-  const edges = Object.fromEntries(
-    Object.values(graph.edges)
-      .filter((edge) => edge.source in nodes && edge.target in nodes)
-      .map((edge) => [edge.id, edge]),
-  );
-
-  return { ...graph, nodes, edges };
-}
-
-/** Order within a column. A directed edge between two nodes in the same column
- *  puts the target after the source, so a sequence reads top to bottom.
- *  Whatever the edges leave unordered keeps its existing order. */
-function sequence(nodes: GraphNode[], graph: Graph): GraphNode[] {
-  const here = new Map(nodes.map((node) => [node.id, node]));
-  const next: Record<string, string[]> = {};
-  const waiting: Record<string, number> = Object.fromEntries(nodes.map((n) => [n.id, 0]));
-  const seen = new Set<string>();
-
-  for (const edge of Object.values(graph.edges)) {
-    const pair = `${edge.source}>${edge.target}`;
-    if (!here.has(edge.source) || !here.has(edge.target) || seen.has(pair)) continue;
-
-    seen.add(pair);
-    (next[edge.source] ??= []).push(edge.target);
-    waiting[edge.target] += 1;
-  }
-
-  const ready = nodes.filter((node) => waiting[node.id] === 0);
-  const ordered: GraphNode[] = [];
-
-  while (ready.length) {
-    const node = ready.shift()!;
-    ordered.push(node);
-
-    for (const id of next[node.id] ?? []) {
-      waiting[id] -= 1;
-      if (waiting[id] === 0) ready.push(here.get(id)!);
-    }
-  }
-
-  // A cycle leaves nodes unplaced; append them so none ever vanish.
-  return [...ordered, ...nodes.filter((node) => !ordered.includes(node))];
-}
-
-/** Column-per-depth placement — enough to read the hierarchy without a layout
- *  dependency. A node the user has dragged keeps where they put it: automatic
- *  layout should never argue with a position somebody chose. */
-function layout(graph: Graph): Node[] {
-  const columns: Record<number, GraphNode[]> = {};
-
-  for (const node of Object.values(graph.nodes)) {
-    (columns[depth(graph, node.id)] ??= []).push(node);
-  }
-
-  return Object.entries(columns).flatMap(([level, nodes]) =>
-    sequence(nodes, graph).map((node, row) => ({
-      id: node.id,
-      position: { x: node.x ?? Number(level) * COLUMN, y: node.y ?? row * ROW },
-      data: { label: node.label },
-      style: {},
-    })),
-  );
-}
-
-/** Groups read as containers: dotted, translucent, and captioned with what is
- *  inside them. Whatever the last change touched is outlined in the accent. */
-function style(node: GraphNode | undefined, changed: boolean) {
-  const group = node?.kind === "group";
-
-  return {
-    border: `1px ${group ? "dashed" : "solid"} ${changed ? "#4ade80" : "#1e2f28"}`,
-    background: changed ? "#12241a" : group ? "rgba(15,22,19,0.55)" : "#111a16",
-    color: changed ? "#4ade80" : "#c8e6d0",
-    borderRadius: 2,
-    padding: 8,
-    fontFamily: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
-    fontSize: 12,
-    width: group ? 200 : 180,
-    overflowWrap: "anywhere" as const,
-  };
-}
-
-/** A glyph per child, so a closed group still shows how much is inside. */
-function contents(graph: Graph, id: string): string {
-  const kids = Object.values(graph.nodes).filter((n) => n.parent === id);
-  if (!kids.length) return "";
-
-  const glyphs = kids.slice(0, 6).map((k) => (k.kind === "group" ? "▧" : "▪")).join(" ");
-
-  return `\n${glyphs}${kids.length > 6 ? ` +${kids.length - 6}` : ""}`;
 }
 
 type Props = {
@@ -138,46 +45,97 @@ type Props = {
   onSelect: (id: string | null) => void;
   onUp: () => void;
   onPlace: (id: string, x: number, y: number) => void;
+  onNest: (id: string, parent: string) => void;
+  onCreateAt: (label: string, x: number, y: number) => void;
+  onSprout: (from: string, label: string, x: number, y: number) => void;
   onLink: (source: string, target: string) => void;
   onRelation: (id: string, relation: string) => void;
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
 };
 
-export function Canvas(props: Props) {
-  const { graph, scope, view, path, touched, onSelect, onUp, onPlace, onLink } = props;
-  const { onRelation, onUnlink, onDelete } = props;
-  const marked = useMemo(() => new Set(touched), [touched]);
-  const shown = useMemo(() => layer(graph, view), [graph, view]);
+function Flow(props: Props) {
+  const { graph, scope, view, path, touched, onSelect, onUp, onPlace, onNest } = props;
+  const { onCreateAt, onSprout, onLink, onRelation, onUnlink, onDelete } = props;
+  const flow = useReactFlow();
   const [naming, setNaming] = useState<string | null>(null);
+  const [naming2, setNaming2] = useState<{ x: number; y: number; from?: string } | null>(null);
+  /** The node a dragged card is currently hovering over. */
+  const [dropping, setDropping] = useState<string | null>(null);
+  const dropRef = useRef<string | null>(null);
+  /** The card under the pointer right now, if any. */
+  const heldRef = useRef<string | null>(null);
 
-  const nodes = useMemo(
-    () =>
-      layout(shown).map((node) => {
-        const source = shown.nodes[node.id];
+  const members = useMemo(() => layerOf(graph, view), [graph, view]);
+  const marked = useMemo(() => new Set(touched), [touched]);
 
-        return {
-          ...node,
-          data: {
-            label: `${source?.label ?? ""}${source ? contents(graph, source.id) : ""}`,
-          },
-          selected: node.id === scope,
-          style: style(source, marked.has(node.id)),
-        };
-      }),
-    [shown, graph, marked, scope],
-  );
+  const built = useMemo<FlowNode[]>(() => {
+    const spots = place(graph, members);
 
-  const edges: Edge[] = useMemo(
-    () =>
-      Object.values(shown.edges).map((edge) => ({
+    return members.map((node) => ({
+      id: node.id,
+      type: "card",
+      position: spots[node.id] ?? { x: 0, y: 0 },
+      selected: node.id === scope,
+      data: {
+        node,
+        graph,
+        changed: marked.has(node.id),
+        dropping: dropping === node.id,
+      },
+    }));
+  }, [graph, members, placementKey(members), scope, marked, dropping]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
+
+  // React Flow owns positions during a drag; the graph owns them otherwise.
+  // The card being dragged keeps the position React Flow is giving it, or
+  // hovering over a drop target would snap it back to where it started.
+  useEffect(() => {
+    setNodes((current) => {
+      const held = heldRef.current;
+      const at = held && current.find((n) => n.id === held)?.position;
+      if (!held || !at) return built;
+
+      return built.map((n) => (n.id === held ? { ...n, position: at } : n));
+    });
+  }, [built, setNodes]);
+
+  const edges: Edge[] = useMemo(() => {
+    const here = new Set(members.map((n) => n.id));
+
+    return Object.values(graph.edges)
+      .filter((edge) => here.has(edge.source) && here.has(edge.target))
+      .map((edge) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
         label: edge.relation,
         style: { stroke: marked.has(edge.target) ? "#4ade80" : "#2f4a3e" },
-      })),
-    [shown, marked],
+      }));
+  }, [graph, members, marked]);
+
+  // Centre on whatever the explorer selected, so navigating the tree moves the
+  // canvas to match instead of leaving the user to find it.
+  useEffect(() => {
+    const shown = members.map((n) => n.id);
+    const target = scope && shown.includes(scope) ? [{ id: scope }] : undefined;
+    const timer = setTimeout(
+      () => flow.fitView({ nodes: target, duration: 350, padding: target ? 0.45 : 0.2, maxZoom: 1.3 }),
+      30,
+    );
+
+    return () => clearTimeout(timer);
+  }, [flow, view, scope]);
+
+  /** Whichever card the dragged one is sitting on top of. */
+  const overlapping = useCallback(
+    (dragged: FlowNode) => {
+      const hits = flow.getIntersectingNodes(dragged).filter((n) => n.id !== dragged.id);
+
+      return hits.length ? hits[hits.length - 1].id : null;
+    },
+    [flow],
   );
 
   return (
@@ -189,10 +147,7 @@ export function Canvas(props: Props) {
         {path.map((id, index) => (
           <span key={id}>
             <span className="sep">/</span>
-            <button
-              onClick={() => onSelect(id)}
-              className={index === path.length - 1 ? "here" : ""}
-            >
+            <button onClick={() => onSelect(id)} className={index === path.length - 1 ? "here" : ""}>
               {graph.nodes[id]?.label}
             </button>
           </span>
@@ -207,39 +162,102 @@ export function Canvas(props: Props) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        fitView
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
+        minZoom={0.15}
         onNodeClick={(_, node) => onSelect(node.id)}
-        onPaneClick={() => setNaming(null)}
-        onNodeDragStop={(_, node) => onPlace(node.id, node.position.x, node.position.y)}
+        onPaneClick={() => (setNaming(null), setNaming2(null))}
+        onDoubleClick={(event) => {
+          // Only the empty canvas makes something new; a card handles its own.
+          if ((event.target as HTMLElement).closest(".react-flow__node")) return;
+          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+          setNaming2({ x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
+        }}
+        onNodeDragStart={(_, node) => (heldRef.current = node.id)}
+        onNodeDrag={(_, node) => {
+          // Only re-render when the target actually changes, not every pixel.
+          const hit = overlapping(node);
+          if (hit === dropRef.current) return;
+
+          dropRef.current = hit;
+          setDropping(hit);
+        }}
+        onNodeDragStop={(_, node) => {
+          const into = dropRef.current;
+          dropRef.current = null;
+          heldRef.current = null;
+          setDropping(null);
+          // Dropped on another card: it becomes the container. Otherwise the
+          // card simply stays where it was let go.
+          if (into) onNest(node.id, into);
+          else onPlace(node.id, node.position.x, node.position.y);
+        }}
         onConnect={({ source, target }) => source && target && onLink(source, target)}
+        onConnectEnd={(event, state) => {
+          if (state.toNode || !state.fromNode) return;
+          const point = "clientX" in event ? event : event.changedTouches[0];
+          const at = flow.screenToFlowPosition({ x: point.clientX, y: point.clientY });
+          setNaming2({ x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2, from: state.fromNode.id });
+        }}
         onEdgeDoubleClick={(_, edge) => setNaming(edge.id)}
         onNodesDelete={(gone) => gone.forEach((node) => onDelete(node.id))}
         onEdgesDelete={(gone) => gone.forEach((edge) => onUnlink(edge.id))}
       >
-        <Background />
+        <Background gap={22} size={1} />
         <Controls />
       </ReactFlow>
 
       {naming && (
-        <div className="relation">
+        <div className="floating">
           <span className="caret">&gt;</span>
           <input
             autoFocus
-            defaultValue={shown.edges[naming]?.relation ?? ""}
+            defaultValue={graph.edges[naming]?.relation ?? ""}
             placeholder="what is this relation?"
             onBlur={() => setNaming(null)}
             onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                onRelation(naming, event.currentTarget.value);
-                setNaming(null);
+              if (event.key === "Enter") onRelation(naming, event.currentTarget.value);
+              if (event.key === "Enter" || event.key === "Escape") setNaming(null);
+            }}
+          />
+        </div>
+      )}
+
+      {naming2 && (
+        <div className="floating">
+          <span className="caret">+</span>
+          <input
+            autoFocus
+            placeholder={naming2.from ? "name the thing it connects to" : "name it"}
+            onBlur={() => setNaming2(null)}
+            onKeyDown={(event) => {
+              const text = event.currentTarget.value.trim();
+              if (event.key === "Enter" && text) {
+                naming2.from
+                  ? onSprout(naming2.from, text, naming2.x, naming2.y)
+                  : onCreateAt(text, naming2.x, naming2.y);
               }
-              if (event.key === "Escape") setNaming(null);
+              if (event.key === "Enter" || event.key === "Escape") setNaming2(null);
             }}
           />
         </div>
       )}
     </>
+  );
+}
+
+/** Identity for the placement inputs, so a re-render only reflows when a
+ *  position actually changed. */
+function placementKey(members: { id: string; x: number | null; y: number | null }[]) {
+  return members.map((n) => `${n.id}:${n.x},${n.y}`).join("|");
+}
+
+export function Canvas(props: Props) {
+  return (
+    <ReactFlowProvider>
+      <Flow {...props} />
+    </ReactFlowProvider>
   );
 }

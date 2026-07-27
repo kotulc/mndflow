@@ -29,7 +29,7 @@ and works offline.
 └─────────────────────────────────────────┴──────────────────┘  match scoring
 ```
 
-The tracked specification is [tasks.md](tasks.md).
+The tracked specification is [spec.md](spec.md).
 
 ---
 
@@ -59,7 +59,7 @@ asks rather than guessing.
 |---|---|
 | Terminal | Answer; or type and pick an operation from the rail beside it |
 | Explorer | New object or group, rename, delete; drag to re-parent; click a group to open it |
-| Canvas | Drag to position; drag between handles to relate; double-click a relation to name it; `Delete` to remove; click a group to open it |
+| Canvas | Drag to position; **drop one card on another to put it inside** — the target becomes a group; double-click empty space to make something; drag a link into empty space to make and attach something; double-click a relation to name it; `Delete` to remove |
 | Properties | Edit the selected object's text and type, or turn it into a group |
 | Actions | One **Undo**, unwinding in the order things were applied |
 | Matching | Every template's score against what you are typing, live |
@@ -158,6 +158,7 @@ the node hierarchy.
 | Module | Purpose |
 |---|---|
 | [`core/types.ts`](web/src/core/types.ts) | Every shared shape: graph, mutations, steps |
+| [`core/layout.ts`](web/src/core/layout.ts) | Card sizing, treemap tiling, layer placement |
 | [`core/fold.ts`](web/src/core/fold.ts) | Mutation replay, hierarchy walking, highlighting |
 | [`core/match.ts`](web/src/core/match.ts) | Scoring text against known options |
 | [`core/workflows.ts`](web/src/core/workflows.ts) | Loads the catalogue, operations, and domains |
@@ -195,9 +196,15 @@ match scoring column exists to make that change measurable.
 
 ### Not yet built
 
-- Real embeddings; today's scoring is character trigrams
+- Real embeddings; today's scoring is character trigrams. This matters most for
+  the group treemap, whose chip shading is meant to show how well each child
+  fits its parent — trigrams score `Invoices` against `Billing` at zero, so that
+  shading is close to meaningless until it is swapped. This matters most
+  for the group treemap, whose chip shading is meant to show how well each
+  child fits its parent — trigrams score `Invoices` against `Billing` at zero,
+  so the shading is close to meaningless until this is swapped
 - Switching template by hand once a project is under way
 - Relations crossing a layer boundary, shown on the containing group
-- Renaming from the canvas, and drag-to-re-parent on the canvas
+- Renaming from the canvas
 - Multiple projects in one browser; export/import covers moving between them
 - Diagram types beyond the object graph: flow, class, swimlane, activity

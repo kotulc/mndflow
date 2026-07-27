@@ -13,7 +13,8 @@ import { childrenOf, descendsFrom, fold, touched } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
-import { newId, node as makeNode, step as makeStep, type Kind, type Step } from "./types";
+import { newId, node as makeNode, step as makeStep,
+         type Kind, type Mutation, type Step } from "./types";
 import { getDomain } from "./workflows";
 
 /** Consecutive turns on one operation before the loop moves on. */
@@ -59,7 +60,8 @@ export function useProject() {
     (said: string) => {
       const outcome = answer(graph, question, said, scope, pending, terms);
       setPending(outcome.pending);
-      commit(makeStep(said.trim(), outcome.action, outcome.mutations, question?.id ?? ""));
+      commit(makeStep(said.trim(), outcome.action, outcome.mutations,
+                      question?.id ?? "", question?.prompt ?? ""));
     },
     [graph, question, scope, pending, terms, commit],
   );
@@ -165,6 +167,38 @@ export function useProject() {
       title.trim() &&
       commit(makeStep(`rename project: ${title}`, "project",
                       [{ op: "set_title", title: title.trim() }])),
+
+    /** Put one object inside another, promoting the target to a group in the
+     *  same step — dropping a card on a card is one action to undo, not two. */
+    nest: (id: string, parent: string) => {
+      if (id === parent || descendsFrom(graph, parent, id)) return;
+
+      const target = graph.nodes[parent];
+      const mutations: Mutation[] = [{ op: "move_node", id, parent }];
+      if (target && target.kind !== "group") {
+        mutations.push({ op: "update_node", id: parent, kind: "group", type: terms.group });
+      }
+
+      commit(makeStep(`into: ${name(parent)}`, "nest", mutations));
+    },
+
+    /** Make something where the user pointed, rather than where layout would
+     *  have put it. */
+    createAt: (label: string, x: number, y: number) =>
+      commit(makeStep(`new: ${label}`, "create", [{
+        op: "add_node",
+        node: makeNode(label, { parent: view, type: terms.node, x, y }),
+      }])),
+
+    /** A link dragged into empty space: make the far end, and attach it. */
+    sprout: (from: string, label: string, x: number, y: number) => {
+      const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
+
+      commit(makeStep(`grew: ${label}`, "sprout", [
+        { op: "add_node", node: fresh },
+        { op: "link_nodes", edge: { id: newId("e"), source: from, target: fresh.id, relation: "" } },
+      ]));
+    },
 
     save: () => store.exportSteps(steps, graph.title),
 

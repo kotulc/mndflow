@@ -53,18 +53,35 @@ for writing, Layer/Module/Dependency for software.
 
 ## Interface
 
-**Terminal.** The retro chat stays as it is, except the text entry blends into
-the terminal — no border, no field, just a caret and a line. Chips appear to
-the right of the terminal and change as the user types.
+**Terminal.** Aligned left, reading as a real session: past exchanges scroll
+away above, the current question types itself out, and the block cursor sits at
+the head of the line being written. The entry blends in — no border, no field,
+just a caret and a line.
 
-**Object explorer.** Mimics a VS Code file tree, with layers collapsing
+**Options.** A centred cluster, tiled in the same treemap shape a group uses
+for its contents. A spinner above it marks the moment the set changes under the
+user's typing, so options appearing and vanishing has a beat rather than
+happening silently.
+
+**Explorer.** Titled, with its actions as icons in the top row. Mimics a VS
+Code file tree — indentation rather than drawn connectors — and layers collapse
 automatically when the user opens a different group. Only the path from the
 project down to the open group stays expanded.
 
-**Canvas.** Groups render as semi-transparent nodes with dotted outlines and
-small glyphs for their contents. Clicking a group opens it: its contents take
-over the canvas, with a breadcrumb back up. Selecting on the canvas selects in
-the explorer and vice versa.
+**Canvas.** Groups render as semi-transparent, dotted containers holding a
+treemap grid of their contents; a child that is itself a group shows its own
+contents in miniature, so nesting is legible at every level without opening
+anything. Each child chip's fill follows how closely it relates to its parent.
+Labels appear wherever a cell has room for them.
+
+Navigating centres and zooms on the selection rather than cutting to it, and
+layout wraps into rows so no corner of the canvas carries everything.
+
+**Canvas gestures.** Drag to position — live, not on release. Drop one card on
+another to put it inside, with the target outlined while hovering; the target
+becomes a group in the same step. Double-click empty space to create. Drag a
+link from a card's anchor into empty space to create the far end and attach it.
+Double-click a relation to name it, `Delete` to remove.
 
 **Properties.** Selecting an object shows its text, its type, and whether it is
 a group — all editable.
@@ -79,9 +96,13 @@ Outstanding:
 
 - **Real embeddings.** Matching runs on character trigrams behind the `score`
   seam in `core/match.ts`; swapping in a sentence-embedding model means
-  replacing `vector()` and nothing else.
+  replacing `vector()` and nothing else. Template routing works acceptably on
+  trigrams. The treemap's affinity shading does **not** — `Invoices` scores 0.00
+  against `Billing` because they share no letters, so that shading is close to
+  meaningless until a real scorer is behind it. The feature is correct in shape
+  and waiting on the swap.
 - Switching template by hand once the project is under way.
 - Relations that cross a layer boundary are hidden rather than shown on the
   containing group.
-- Renaming from the canvas, and drag-to-re-parent on the canvas.
+- Renaming from the canvas.
 - Diagram types beyond the object graph: flow, class, swimlane, activity.

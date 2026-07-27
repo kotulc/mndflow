@@ -53,6 +53,8 @@ export type Step = {
   id: string;
   /** Id of the workflow question this answered, "" for a direct edit. */
   question: string;
+  /** The question as it was asked, so the terminal can show the exchange. */
+  prompt: string;
   /** What the user said or did, for the action log. */
   input: string;
   action: string;
@@ -88,6 +90,6 @@ export function node(label: string, extra: Partial<Node> = {}): Node {
 }
 
 export function step(input: string, action: string, mutations: Mutation[],
-                     question = ""): Step {
-  return { id: newId("s"), question, input, action, mutations, status: "applied" };
+                     question = "", prompt = ""): Step {
+  return { id: newId("s"), question, prompt, input, action, mutations, status: "applied" };
 }

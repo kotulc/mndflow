@@ -69,6 +69,7 @@ export function App() {
 
       <Chat
         graph={graph}
+        steps={project.steps}
         question={question}
         view={view}
         scope={scope}
@@ -104,6 +105,9 @@ export function App() {
               onSelect={select}
               onUp={project.up}
               onPlace={project.place}
+              onNest={project.nest}
+              onCreateAt={project.createAt}
+              onSprout={project.sprout}
               onLink={project.link}
               onRelation={project.relation}
               onUnlink={project.unlink}

@@ -117,12 +117,12 @@ export function Files(props: Props) {
     );
   }
 
-  /** Rows for one level, drawn with the connectors a terminal tree uses. */
-  function branch(parentId: string, prefix: string) {
+  /** Rows for one level. Depth is indentation rather than drawn connectors —
+   *  it keeps long names readable in a narrow pane. */
+  function branch(parentId: string, depth: number) {
     const list = kids[parentId] ?? [];
 
-    return list.map((node, index) => {
-      const last = index === list.length - 1;
+    return list.map((node) => {
       const group = node.kind === "group";
 
       return (
@@ -138,16 +138,16 @@ export function Files(props: Props) {
             onDragStart={() => setHeld(node.id)}
             onClick={() => onSelect(node.id)}
             onDoubleClick={() => setEditing(node.id)}
+            style={{ paddingLeft: 10 + depth * 14 }}
             {...dropzone(node.id, group ? node.id : node.parent)}
           >
-            <span className="rule">{prefix + (last ? "└─ " : "├─ ")}</span>
             <span className="glyph">{group ? (open.has(node.id) ? "▾" : "▸") : "·"}</span>
             {editing === node.id
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null))
-              : node.label + (group ? "/" : "")}
+              : <span className="label">{node.label}</span>}
           </div>
           {kids[node.id] && (!group || open.has(node.id)) && (
-            <ul>{branch(node.id, prefix + (last ? "   " : "│  "))}</ul>
+            <ul>{branch(node.id, depth + 1)}</ul>
           )}
         </li>
       );
@@ -157,23 +157,23 @@ export function Files(props: Props) {
   return (
     <div className="files">
       <div className="files-bar">
-        <span>objects</span>
+        <span className="title">Explorer</span>
         <span className="actions">
           <button onClick={() => setAdding("object")} title={`New ${terms.node}`}>
-            + {terms.node.toLowerCase()}
+            ＋
           </button>
           <button onClick={() => setAdding("group")} title={`New ${terms.group}`}>
-            + {terms.group.toLowerCase()}
+            ▤
           </button>
           <button onClick={() => setEditing(selected ?? ROOT)} title="Rename the selection">
-            rename
+            ✎
           </button>
           <button
             onClick={() => selected && onDelete(selected)}
             disabled={!selected}
             title="Delete the selection"
           >
-            delete
+            ✕
           </button>
         </span>
       </div>
@@ -184,16 +184,16 @@ export function Files(props: Props) {
         onDoubleClick={() => setEditing(ROOT)}
         {...dropzone(ROOT, null)}
       >
+        <span className="glyph">▾</span>
         {editing === ROOT
           ? field(title, (value) => rename(ROOT, value), () => setEditing(null))
-          : `${title}/`}
+          : <span className="label">{title}</span>}
       </div>
 
-      <ul>{branch(ROOT, "")}</ul>
+      <ul>{branch(ROOT, 0)}</ul>
 
       {adding && (
-        <div className="item new">
-          <span className="rule">└─ </span>
+        <div className="item new" style={{ paddingLeft: 24 }}>
           <span className="glyph">{adding === "group" ? "▸" : "·"}</span>
           {field("", create, () => setAdding(null))}
         </div>
