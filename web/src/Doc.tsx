@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from "react";
 
-import type { Graph, Kind } from "./core/types";
+import { isGroup } from "./core/fold";
+import type { Graph } from "./core/types";
 import type { Terms } from "./core/workflows";
 
 type Props = {
@@ -15,10 +16,9 @@ type Props = {
   terms: Terms;
   onSave: (id: string, body: string) => void;
   onRetype: (id: string, type: string) => void;
-  onRegroup: (id: string, kind: Kind) => void;
 };
 
-export function Doc({ graph, scope, terms, onSave, onRetype, onRegroup }: Props) {
+export function Doc({ graph, scope, terms, onSave, onRetype }: Props) {
   const node = scope ? graph.nodes[scope] : null;
   const body = node?.body ?? "";
   const [draft, setDraft] = useState(body);
@@ -26,7 +26,16 @@ export function Doc({ graph, scope, terms, onSave, onRetype, onRegroup }: Props)
   // Follow the selection, and whatever a turn just wrote into it.
   useEffect(() => setDraft(body), [scope, body]);
 
-  if (!node || !scope) return null;
+  if (!node || !scope) {
+    return (
+      <section className="doc">
+        <div className="doc-bar">
+          <span className="name">context</span>
+        </div>
+        <p className="nothing">Nothing selected. Pick something to see and edit it.</p>
+      </section>
+    );
+  }
 
   /** One edit is one step. Saving per keystroke would bury the action log and
    *  make undo walk back through a document character by character. */
@@ -46,12 +55,9 @@ export function Doc({ graph, scope, terms, onSave, onRetype, onRegroup }: Props)
             placeholder={terms.node}
             onChange={(event) => onRetype(scope!, event.target.value)}
           />
-          <button
-            onClick={() => onRegroup(scope!, node.kind === "group" ? "object" : "group")}
-            title={`Turn this into ${node.kind === "group" ? "an object" : "a group"}`}
-          >
-            {node.kind === "group" ? terms.group.toLowerCase() : terms.node.toLowerCase()}
-          </button>
+          <span className="holds">
+            {isGroup(graph, scope!) ? terms.group.toLowerCase() : terms.node.toLowerCase()}
+          </span>
           <span className="state">{draft === body ? "saved" : "editing…"}</span>
         </span>
       </div>

@@ -12,7 +12,7 @@ import { childrenOf } from "./fold";
 import { score } from "./match";
 import { CREATE_IT, ENTRY, classify, type Question } from "./router";
 import { newId, node as makeNode, type Graph, type Mutation } from "./types";
-import { entry, type Terms } from "./workflows";
+import { entry, getDomain, type Terms } from "./workflows";
 
 /** A relation half-built: what we know, and what we still need. */
 export type Pending = { source: string | null; wanted: string };
@@ -112,11 +112,18 @@ export function answer(graph: Graph, question: Question | null, said: string,
 
     case ENTRY: {
       const chip = entry.templates.find((t) => t.chip === text);
+      const template = classify(text);
 
       return {
         mutations: [
-          { op: "set_template", template: classify(text) },
+          { op: "set_template", template },
           { op: "set_title", title: chip ? chip.chip : text },
+          // The domain's relation kinds are seeded here, so they arrive with
+          // the project and are editable from then on.
+          ...getDomain(template).relations.map((name) => ({
+            op: "add_relation" as const,
+            name,
+          })),
         ],
         pending: null,
         action: "entry",
@@ -136,15 +143,27 @@ export function answer(graph: Graph, question: Question | null, said: string,
       return relate(graph, text, scope, null, terms);
 
     case "add": {
+      // Commas separate a list. Answering "auth, billing, ledger" is three
+      // objects in one step, which is how people actually reel off the parts
+      // of something — and one step, so one undo takes the lot back.
+      //
       // Names need only be unique among siblings: the same name can sit in two
-      // different groups quite legitimately. A twin here changes nothing, which
-      // the caller reports as a nudge.
-      const twin = childrenOf(graph, scope).some(
-        (n) => n.label.toLowerCase() === text.toLowerCase(),
-      );
-      const mutations: Mutation[] = twin
-        ? []
-        : [{ op: "add_node", node: makeNode(text, { parent: scope, type: terms.node }) }];
+      // different groups quite legitimately. A twin is skipped rather than
+      // duplicated, and an answer that is all twins changes nothing, which the
+      // caller reports as a nudge.
+      const taken = new Set(childrenOf(graph, scope).map((n) => n.label.toLowerCase()));
+      const mutations: Mutation[] = [];
+
+      for (const part of text.split(",")) {
+        const label = part.trim();
+        if (!label || taken.has(label.toLowerCase())) continue;
+
+        taken.add(label.toLowerCase());
+        mutations.push({
+          op: "add_node",
+          node: makeNode(label, { parent: scope, type: terms.node }),
+        });
+      }
 
       return { mutations, pending: null, action: "add" };
     }

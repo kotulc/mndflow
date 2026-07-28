@@ -9,6 +9,7 @@ import { useMemo } from "react";
 
 import { scoreTemplates } from "./core/router";
 import { chipFor } from "./core/workflows";
+import { useEmbeddings } from "./useEmbeddings";
 
 type Props = {
   /** What is being scored — the live draft, or the last thing answered. */
@@ -18,14 +19,19 @@ type Props = {
 };
 
 export function Scores({ text, active }: Props) {
-  const scores = useMemo(() => scoreTemplates(text), [text]);
+  // Vectors arrive after the text is typed, so the revision has to be a
+  // dependency — otherwise the first, empty scoring is the one that sticks.
+  const { revision, ready } = useEmbeddings();
+  const scores = useMemo(() => scoreTemplates(text), [text, revision]);
   const top = scores[0]?.score ?? 0;
 
   return (
     <section className="scores">
       <div className="log-bar">
         <span>Matching</span>
-        <span className="subject">{text ? `"${text}"` : "nothing typed"}</span>
+        <span className="subject">
+          {!ready ? "loading model…" : text ? `"${text}"` : "nothing typed"}
+        </span>
       </div>
 
       <div className="log-lines">

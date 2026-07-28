@@ -9,12 +9,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { childrenOf, descendsFrom, fold, touched } from "./fold";
+import * as embed from "./embed";
+import { childrenOf, descendsFrom, fold, isGroup, touched } from "./fold";
+import { arrange, type Arrangement } from "./layout";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
-import { newId, node as makeNode, step as makeStep,
-         type Kind, type Mutation, type Step } from "./types";
+import { newId, node as makeNode, step as makeStep, type Mutation, type Step } from "./types";
 import { getDomain } from "./workflows";
 
 /** Consecutive turns on one operation before the loop moves on. */
@@ -30,10 +31,20 @@ export function useProject() {
   // The log is the only thing worth saving; the graph is folded from it.
   useEffect(() => store.save(steps), [steps]);
 
+  // Warm the catalogue once, so the first thing typed is not also the first
+  // thing that waits on the model.
+  useEffect(() => embed.warm(router.templatePhrases()), []);
+
   const graph = useMemo(() => fold(steps), [steps]);
   const applied = useMemo(() => steps.filter((s) => s.status === "applied"), [steps]);
   const last = applied.length ? applied[applied.length - 1] : null;
   const terms = getDomain(graph.template).terms;
+
+  // Every name and body in the project, so suggestions and affinity have
+  // vectors ready by the time anything is scored against them.
+  useEffect(() => {
+    embed.warm(Object.values(graph.nodes).flatMap((n) => [n.label, n.body]));
+  }, [graph]);
 
   /** Questions the last few turns answered — what gives the loop its rhythm. */
   const recent = useMemo(
@@ -57,7 +68,11 @@ export function useProject() {
   const commit = useCallback((step: Step) => setSteps((prior) => [...prior, step]), []);
 
   const turn = useCallback(
-    (said: string) => {
+    async (said: string) => {
+      // Routing the opening answer needs its vector now, not on a later
+      // render — it decides the domain the whole project runs under.
+      if (question?.id === router.ENTRY) await embed.ensure([said]);
+
       const outcome = answer(graph, question, said, scope, pending, terms);
       setPending(outcome.pending);
       commit(makeStep(said.trim(), outcome.action, outcome.mutations,
@@ -74,6 +89,20 @@ export function useProject() {
       return index < 0
         ? prior
         : prior.map((s, i) => (i === index ? { ...s, status: "reverted" as const } : s));
+    });
+  }, []);
+
+  /** Re-apply what undo last unwound. Undo always takes the newest applied
+   *  step, so everything reverted sits in a run at the end and redo is simply
+   *  the first of that run. */
+  const redo = useCallback(() => {
+    setPending(null);
+    setSteps((prior) => {
+      const next = prior.map((s) => s.status).lastIndexOf("applied") + 1;
+
+      return next < prior.length && prior[next].status === "reverted"
+        ? prior.map((s, i) => (i === next ? { ...s, status: "applied" as const } : s))
+        : prior;
     });
   }, []);
 
@@ -94,16 +123,29 @@ export function useProject() {
     return trail;
   }, [graph, view]);
 
-  /** Selecting and opening are one gesture: a group is a place you go into, an
-   *  object is a thing you look at. Both views share this, which is what keeps
-   *  the explorer and the canvas pointing at the same thing. */
+  /** Selecting shows a thing among its siblings — the layer it lives in, not
+   *  the layer it contains. Going *into* a group is a separate gesture, so a
+   *  glance never costs you your place. */
   const select = useCallback(
     (id: string | null) => {
       setScope(id);
       if (!id) return setView(null);
 
       const node = graph.nodes[id];
-      if (node) setView(node.kind === "group" ? id : node.parent);
+      if (node) setView(node.parent);
+    },
+    [graph],
+  );
+
+  /** Step into a node, making its contents the layer. Only something that
+   *  holds anything can be entered — an empty one has nothing to show. */
+  const open = useCallback(
+    (id: string) => {
+      const node = graph.nodes[id];
+      if (!node) return;
+
+      setScope(id);
+      setView(isGroup(graph, id) ? id : node.parent);
     },
     [graph],
   );
@@ -116,10 +158,10 @@ export function useProject() {
   }, [graph, view]);
 
   const act = {
-    create: (label: string, parent: string | null, kind: Kind = "object") =>
+    create: (label: string, parent: string | null) =>
       commit(makeStep(`new: ${label}`, "create", [{
         op: "add_node",
-        node: makeNode(label, { parent, kind, type: kind === "group" ? terms.group : terms.node }),
+        node: makeNode(label, { parent, type: terms.node }),
       }])),
 
     remove: (id: string) => {
@@ -137,9 +179,6 @@ export function useProject() {
     retype: (id: string, type: string) =>
       commit(makeStep(`type: ${type}`, "retype", [{ op: "update_node", id, type }])),
 
-    regroup: (id: string, kind: Kind) =>
-      commit(makeStep(`${kind}: ${name(id)}`, "regroup", [{ op: "update_node", id, kind }])),
-
     move: (id: string, parent: string | null) =>
       !descendsFrom(graph, parent, id) &&
       commit(makeStep(`move: ${name(id)}`, "move", [{ op: "move_node", id, parent }])),
@@ -147,15 +186,45 @@ export function useProject() {
     place: (id: string, x: number, y: number) =>
       commit(makeStep(`place: ${name(id)}`, "place", [{ op: "place_node", id, x, y }])),
 
+    /** Several at once — a selection dragged together is one action. */
+    placeMany: (moved: { id: string; x: number; y: number }[]) =>
+      moved.length &&
+      commit(makeStep(
+        moved.length === 1 ? `place: ${name(moved[0].id)}` : `place ${moved.length} together`,
+        "place",
+        moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
+      )),
+
+    /** Lay the open layer out afresh, ignoring where things currently sit. */
+    arrange: (kind: Arrangement) => {
+      const here = childrenOf(graph, view);
+      const spots = arrange(graph, here, kind);
+      const mutations = here.map((node) => ({
+        op: "place_node" as const, id: node.id, ...spots[node.id],
+      }));
+
+      return mutations.length && commit(makeStep(`arrange: ${kind}`, "arrange", mutations));
+    },
+
     write: (id: string, body: string) =>
       commit(makeStep(`edit: ${name(id)}`, "edit", [{ op: "set_body", id, body }])),
 
-    link: (source: string, target: string) =>
+    link: (source: string, target: string, from?: string, to?: string) =>
       source !== target &&
       commit(makeStep(`link: ${name(source)}`, "link", [{
         op: "link_nodes",
-        edge: { id: newId("e"), source, target, relation: "" },
+        edge: { id: newId("e"), source, target, relation: "", from, to },
       }])),
+
+    /** Tie one end of a relation to a particular anchor. */
+    reanchor: (id: string, from?: string, to?: string) =>
+      commit(makeStep(`anchor: ${graph.edges[id]?.relation || "relation"}`, "anchor",
+                      [{ op: "reanchor_edge", id, from, to }])),
+
+    /** Turn a relation around. */
+    flip: (id: string) =>
+      commit(makeStep(`flip: ${graph.edges[id]?.relation || "relation"}`, "flip",
+                      [{ op: "flip_edge", id }])),
 
     relation: (id: string, relation: string) =>
       commit(makeStep(`relation: ${relation}`, "relation",
@@ -168,18 +237,31 @@ export function useProject() {
       commit(makeStep(`rename project: ${title}`, "project",
                       [{ op: "set_title", title: title.trim() }])),
 
-    /** Put one object inside another, promoting the target to a group in the
-     *  same step — dropping a card on a card is one action to undo, not two. */
+    /** Put one node inside another. Nothing else is needed: holding something
+     *  is what makes a node a group. */
     nest: (id: string, parent: string) => {
       if (id === parent || descendsFrom(graph, parent, id)) return;
 
-      const target = graph.nodes[parent];
-      const mutations: Mutation[] = [{ op: "move_node", id, parent }];
-      if (target && target.kind !== "group") {
-        mutations.push({ op: "update_node", id: parent, kind: "group", type: terms.group });
-      }
+      commit(makeStep(`into: ${name(parent)}`, "nest", [{ op: "move_node", id, parent }]));
+    },
 
-      commit(makeStep(`into: ${name(parent)}`, "nest", mutations));
+    /** Push a node out past the edge of the layer it is in, into whatever
+     *  contains that layer. */
+    promote: (id: string, parent: string | null) =>
+      graph.nodes[id] && graph.nodes[id].parent !== parent &&
+      commit(makeStep(`out of layer: ${name(id)}`, "promote",
+                      [{ op: "move_node", id, parent }])),
+
+    /** Take an object out of its group and set it down on the open layer. One
+     *  step, so undo puts it back where it was. */
+    lift: (id: string, x: number, y: number) => {
+      const node = graph.nodes[id];
+      if (!node || node.parent === view) return;
+
+      commit(makeStep(`out: ${name(id)}`, "lift", [
+        { op: "move_node", id, parent: view },
+        { op: "place_node", id, x, y },
+      ]));
     },
 
     /** Make something where the user pointed, rather than where layout would
@@ -200,9 +282,26 @@ export function useProject() {
       ]));
     },
 
+    /** A new kind of relation, offered from then on. */
+    addRelation: (name: string) =>
+      name.trim() && !graph.relations.includes(name.trim()) &&
+      commit(makeStep(`relation kind: ${name.trim()}`, "relations",
+                      [{ op: "add_relation", name: name.trim() }])),
+
+    /** Rename a kind, and every edge already using it, in one step. */
+    renameRelation: (from: string, to: string) =>
+      to.trim() && to.trim() !== from &&
+      commit(makeStep(`renamed "${from}" to "${to.trim()}"`, "relations",
+                      [{ op: "rename_relation", from, to: to.trim() }])),
+
+    /** Drop a kind. Edges using it stay, unnamed — deleting a label should not
+     *  quietly delete the connections it described. */
+    dropRelation: (name: string) =>
+      commit(makeStep(`dropped "${name}"`, "relations", [{ op: "drop_relation", name }])),
+
     save: () => store.exportSteps(steps, graph.title),
 
-    open: (text: string) => {
+    load: (text: string) => {
       const loaded = store.importSteps(text);
       if (!loaded) return false;
 
@@ -229,14 +328,17 @@ export function useProject() {
     view,
     path,
     select,
+    open,
     up,
     question,
     terms,
     touched: touched(last),
     undoable: applied.length > 0,
+    redoable: steps.some((s) => s.status === "reverted"),
     children: (parent: string | null) => childrenOf(graph, parent),
     turn,
     undo,
+    redo,
     ...act,
   };
 }

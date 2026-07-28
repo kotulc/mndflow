@@ -9,7 +9,7 @@
  *  question is about. Nothing here decides what to change; only what to ask. */
 
 import { childrenOf } from "./fold";
-import { best, scoreAny, type Scored } from "./match";
+import { best, FLOOR, phrasesOf, scoreAny, type Scored } from "./match";
 import type { Graph } from "./types";
 import * as workflows from "./workflows";
 
@@ -17,8 +17,6 @@ export const ENTRY = "entry";
 export const FREEFORM = "freeform";
 export const CREATE_IT = "+ create it";
 const CHIP_LIMIT = 4;
-/** How close a description must be before a domain is chosen over freeform. */
-const MATCH = 0.24;
 /** Consecutive turns on one operation before the loop moves on. */
 const RHYTHM = 2;
 
@@ -48,15 +46,17 @@ export function entryQuestion(): Question {
 }
 
 /** Each domain as the separate phrases it can be recognised by: its chip, its
- *  description, and every tag on its own. Scored individually so a long tag
- *  list does not dilute the one word that actually matched. */
+ *  description, and each tag. Scored one at a time with the best winning —
+ *  joining them into one text averages the vector into vagueness. */
 function templateOptions(): Record<string, string[]> {
   return Object.fromEntries(
-    workflows.entry.templates.map((t) => [
-      t.id,
-      [t.chip, t.about, ...t.tags.split(/\s+/).filter(Boolean)],
-    ]),
+    workflows.entry.templates.map((t) => [t.id, [t.chip, t.about, ...t.tags]]),
   );
+}
+
+/** Everything the catalogue can be recognised by, for warming the cache. */
+export function templatePhrases(): string[] {
+  return phrasesOf(templateOptions());
 }
 
 /** Every domain scored against what the user said, best first. Returned whole
@@ -73,7 +73,7 @@ export function classify(said: string): string {
   const exact = workflows.entry.templates.find((t) => t.chip.toLowerCase() === wanted);
   if (exact) return exact.id;
 
-  return best(said, templateOptions(), MATCH) || FREEFORM;
+  return best(said, templateOptions(), FLOOR) || FREEFORM;
 }
 
 /** Whether an operation has anything to ask about at this selection. */

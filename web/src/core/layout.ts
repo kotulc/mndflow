@@ -41,9 +41,9 @@ export function affinity(graph: Graph, child: Node): number {
 /** Size of one node's card. A group grows with its contents so the treemap
  *  inside it stays legible rather than shrinking towards nothing. */
 export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
-  if (node.kind !== "group") return { ...LEAF };
-
   const kids = Object.values(graph.nodes).filter((n) => n.parent === node.id).length;
+  if (!kids) return { ...LEAF };
+
   const { cols, rows } = tile(kids);
 
   return {
@@ -68,6 +68,105 @@ export function place(graph: Graph, nodes: Node[]): Record<string, { x: number; 
       continue;
     }
 
+    if (x > 0 && x + w > SPAN) {
+      x = 0;
+      y += tallest + GAP;
+      tallest = 0;
+    }
+
+    spots[node.id] = { x, y };
+    x += w + GAP;
+    tallest = Math.max(tallest, h);
+  }
+
+  return spots;
+}
+
+export type Arrangement = "grid" | "row" | "column" | "flow";
+
+/** Nodes ordered so a relation points forwards: a directed edge between two of
+ *  them puts the target after the source. Whatever the edges leave unordered
+ *  keeps the order it had, and a cycle simply stops contributing. */
+function ranked(graph: Graph, nodes: Node[]): Map<string, number> {
+  const here = new Set(nodes.map((n) => n.id));
+  const rank = new Map(nodes.map((n) => [n.id, 0]));
+
+  // Longest-path ranking: repeat until nothing moves, bounded by node count so
+  // a cycle cannot spin here.
+  for (let pass = 0; pass < nodes.length; pass += 1) {
+    let moved = false;
+
+    for (const edge of Object.values(graph.edges)) {
+      if (!here.has(edge.source) || !here.has(edge.target)) continue;
+
+      const wanted = (rank.get(edge.source) ?? 0) + 1;
+      if (wanted > (rank.get(edge.target) ?? 0)) {
+        rank.set(edge.target, wanted);
+        moved = true;
+      }
+    }
+
+    if (!moved) break;
+  }
+
+  return rank;
+}
+
+/** Positions for a whole layer, laid out afresh. Unlike `place`, this ignores
+ *  where things already sit — the point of asking for an arrangement is to
+ *  stop honouring the mess you are trying to tidy. */
+export function arrange(graph: Graph, nodes: Node[],
+                        kind: Arrangement): Record<string, { x: number; y: number }> {
+  const spots: Record<string, { x: number; y: number }> = {};
+  const size = (node: Node) => sizeOf(graph, node);
+
+  if (kind === "row" || kind === "column") {
+    let along = 0;
+
+    for (const node of nodes) {
+      const { w, h } = size(node);
+      spots[node.id] = kind === "row" ? { x: along, y: 0 } : { x: 0, y: along };
+      along += (kind === "row" ? w : h) + GAP;
+    }
+
+    return spots;
+  }
+
+  if (kind === "flow") {
+    const rank = ranked(graph, nodes);
+    const columns = new Map<number, Node[]>();
+
+    for (const node of nodes) {
+      const at = rank.get(node.id) ?? 0;
+      columns.set(at, [...(columns.get(at) ?? []), node]);
+    }
+
+    let x = 0;
+    for (const at of [...columns.keys()].sort((a, b) => a - b)) {
+      const column = columns.get(at)!;
+      let y = 0;
+      let widest = 0;
+
+      for (const node of column) {
+        const { w, h } = size(node);
+        spots[node.id] = { x, y };
+        y += h + GAP;
+        widest = Math.max(widest, w);
+      }
+
+      x += widest + GAP * 2;
+    }
+
+    return spots;
+  }
+
+  // grid — rows that wrap, the same shape the canvas falls into on its own.
+  let x = 0;
+  let y = 0;
+  let tallest = 0;
+
+  for (const node of nodes) {
+    const { w, h } = size(node);
     if (x > 0 && x + w > SPAN) {
       x = 0;
       y += tallest + GAP;

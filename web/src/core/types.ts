@@ -4,13 +4,9 @@
  *  A node *is* a document — its text lives on it, and the object explorer is
  *  the node hierarchy. There is no second representation to fall out of step. */
 
-export type Kind = "object" | "group";
-
 export type Node = {
   id: string;
   label: string;
-  /** A group holds other objects and can be opened; an object cannot. */
-  kind: Kind;
   /** Vocabulary from the active template — "Character", "Service", "Page". */
   type: string;
   parent: string | null;
@@ -25,27 +21,44 @@ export type Edge = {
   source: string;
   target: string;
   relation: string;
+  /** Which anchor each end is tied to. Empty means "wherever suits" — the
+   *  right side of the source and the left of the target. */
+  from?: string;
+  to?: string;
 };
 
 export type Graph = {
   nodes: Record<string, Node>;
   edges: Record<string, Edge>;
+  /** The kinds of relation this project uses. Seeded from the domain and
+   *  edited freely — a relation may be named anything, but the list is what
+   *  gets offered and what can be renamed across every edge at once. */
+  relations: string[];
   template: string;
   title: string;
 };
 
 export type Mutation =
   | { op: "add_node"; node: Node }
-  | { op: "update_node"; id: string; label?: string; type?: string; kind?: Kind }
+  | { op: "update_node"; id: string; label?: string; type?: string }
   | { op: "move_node"; id: string; parent: string | null }
   | { op: "place_node"; id: string; x: number; y: number }
   | { op: "delete_node"; id: string }
   | { op: "set_body"; id: string; body: string }
   | { op: "link_nodes"; edge: Edge }
   | { op: "update_edge"; id: string; relation: string }
+  /** Move one end of a relation to a different anchor. */
+  | { op: "reanchor_edge"; id: string; from?: string; to?: string }
+  /** Turn a relation around; what it says stays the same. */
+  | { op: "flip_edge"; id: string }
   | { op: "delete_edge"; id: string }
   | { op: "set_template"; template: string }
-  | { op: "set_title"; title: string };
+  | { op: "set_title"; title: string }
+  | { op: "add_relation"; name: string }
+  /** Renames the kind and every edge already using it, together. */
+  | { op: "rename_relation"; from: string; to: string }
+  /** Drops the kind; edges using it survive, unnamed. */
+  | { op: "drop_relation"; name: string };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
@@ -62,7 +75,7 @@ export type Step = {
   status: "applied" | "reverted";
 };
 
-export const EMPTY: Graph = { nodes: {}, edges: {}, template: "", title: "" };
+export const EMPTY: Graph = { nodes: {}, edges: {}, relations: [], template: "", title: "" };
 
 let counter = 0;
 
@@ -79,7 +92,6 @@ export function node(label: string, extra: Partial<Node> = {}): Node {
   return {
     id: newId("n"),
     label,
-    kind: "object",
     type: "",
     parent: null,
     body: "",

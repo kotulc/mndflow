@@ -8,9 +8,9 @@ prompts; it builds a graph of objects from your answers, and shows you the
 graph as you go. Everything it builds stays editable by hand — the workflow
 suggests, it never constrains.
 
-There is **no backend and no language model**. Client-side scoring routes what
-you type to the right template and the right suggestions, so a turn is instant
-and works offline.
+There is **no backend and no language model**. Sentence embeddings run in your
+browser over ONNX to route what you type to the right template and the right
+suggestions — everything is local, and a turn is instant.
 
 ```
 ┌─────────────────────────────────────────────┬──────────────┐
@@ -35,12 +35,20 @@ The tracked specification is [spec.md](spec.md).
 
 ## Getting started
 
-**Prerequisites:** Node 18+. That is all — there is nothing to install
-server-side and no model to download.
+**Prerequisites:** Node 18+, and [Git LFS](https://git-lfs.com) — which ships
+with Git for Windows and most Git installs.
 
 ```sh
 cd web && npm install && npm run dev
 ```
+
+The embedding model and the ONNX runtime live under
+[`web/public/`](web/public), stored in Git LFS: about 60MB of `.onnx` and
+`.wasm` that a normal clone fetches for you. Nothing is downloaded at run time,
+so the app works offline and on first load.
+
+If the header reads **model not fetched**, the clone came down without LFS —
+`git lfs install && git lfs pull` fixes it.
 
 Then open <http://localhost:5173>.
 
@@ -160,6 +168,7 @@ the node hierarchy.
 | [`core/types.ts`](web/src/core/types.ts) | Every shared shape: graph, mutations, steps |
 | [`core/layout.ts`](web/src/core/layout.ts) | Card sizing, treemap tiling, layer placement |
 | [`core/fold.ts`](web/src/core/fold.ts) | Mutation replay, hierarchy walking, highlighting |
+| [`core/embed.ts`](web/src/core/embed.ts) | MiniLM over ONNX, with a cache that fills as it goes |
 | [`core/match.ts`](web/src/core/match.ts) | Scoring text against known options |
 | [`core/workflows.ts`](web/src/core/workflows.ts) | Loads the catalogue, operations, and domains |
 | [`core/router.ts`](web/src/core/router.ts) | Picks the question from the graph and the selection |
@@ -189,10 +198,13 @@ operation set is meant to stay small.
 and handle it in `fold.apply()`. It becomes undoable for free, because undo is
 a refold rather than an inverse.
 
-**Swap in real embeddings.** Matching runs on character trigrams behind the
-`score` seam in `core/match.ts` — no dependency, no download, instant. Moving to
-a sentence-embedding model means replacing `vector()` and nothing else. The
-match scoring column exists to make that change measurable.
+**Tune the matching.** Free text is scored against each of a template's `tags`
+separately, best one winning. A tag should be a **short phrase naming something
+somebody might be making** — two to six words. Single keywords are too
+ambiguous (`shop` pulled "a bike shop" to *website*), and long descriptions
+average into vagueness: scoring one joined sentence per template measured 3/9
+against 5/9 for separate phrases. The Matching column exists to make this
+visible while you tune it.
 
 ### Not yet built
 

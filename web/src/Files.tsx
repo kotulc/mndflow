@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 
-import type { Graph, Kind, Node } from "./core/types";
+import type { Graph, Node } from "./core/types";
 import type { Terms } from "./core/workflows";
 
 const ROOT = "__root__";
@@ -23,11 +23,12 @@ function branches(graph: Graph): Record<string, Node[]> {
     (kids[parent] ??= []).push(node);
   }
 
+  // Whatever holds something sorts first; a group is nothing more than that.
   for (const list of Object.values(kids)) {
     list.sort((a, b) => {
-      if (a.kind !== b.kind) return a.kind === "group" ? -1 : 1;
+      const held = Number(Boolean(kids[b.id])) - Number(Boolean(kids[a.id]));
 
-      return a.label.localeCompare(b.label);
+      return held || a.label.localeCompare(b.label);
     });
   }
 
@@ -41,7 +42,7 @@ type Props = {
   path: string[];
   terms: Terms;
   onSelect: (id: string | null) => void;
-  onCreate: (label: string, parent: string | null, kind: Kind) => void;
+  onCreate: (label: string, parent: string | null) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
@@ -52,17 +53,30 @@ export function Files(props: Props) {
   const { graph, selected, path, terms, onSelect, onCreate, onDelete, onMove } = props;
   const { onRename, onRenameProject } = props;
   const kids = useMemo(() => branches(graph), [graph]);
-  const open = useMemo(() => new Set(path), [path]);
+  /** Groups the user has opened by hand. Any number may be open at once —
+   *  a tree that collapses everything else is only useful when there is one
+   *  thing to look at. */
+  const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
+  // Whatever layer the canvas is on stays open regardless.
+  const open = useMemo(() => new Set([...unfolded, ...path]), [unfolded, path]);
+
+  function fold(id: string) {
+    setUnfolded((prior) => {
+      const next = new Set(prior);
+      next.has(id) ? next.delete(id) : next.add(id);
+
+      return next;
+    });
+  }
   const [held, setHeld] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [adding, setAdding] = useState<Kind | null>(null);
+  const [adding, setAdding] = useState(false);
   const title = graph.title || "project";
 
-  /** Where a new thing goes: inside the selection when it can hold things,
-   *  beside it when it cannot. */
-  const target = selected && graph.nodes[selected];
-  const parent = target ? (target.kind === "group" ? target.id : target.parent) : null;
+  /** A new thing goes inside whatever is selected — which is what makes that
+   *  thing a group, if it was not one already. */
+  const parent = selected && graph.nodes[selected] ? selected : null;
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
@@ -78,9 +92,9 @@ export function Files(props: Props) {
   }
 
   function create(label: string) {
-    if (label.trim() && adding) onCreate(label.trim(), parent, adding);
+    if (label.trim()) onCreate(label.trim(), parent);
 
-    setAdding(null);
+    setAdding(false);
   }
 
   /** Finish a drag, ignoring drops that would leave the node where it is. */
@@ -123,7 +137,7 @@ export function Files(props: Props) {
     const list = kids[parentId] ?? [];
 
     return list.map((node) => {
-      const group = node.kind === "group";
+      const group = Boolean(kids[node.id]);
 
       return (
         <li key={node.id}>
@@ -139,9 +153,14 @@ export function Files(props: Props) {
             onClick={() => onSelect(node.id)}
             onDoubleClick={() => setEditing(node.id)}
             style={{ paddingLeft: 10 + depth * 14 }}
-            {...dropzone(node.id, group ? node.id : node.parent)}
+            {...dropzone(node.id, node.id)}
           >
-            <span className="glyph">{group ? (open.has(node.id) ? "▾" : "▸") : "·"}</span>
+            <span
+              className="glyph"
+              onClick={(event) => group && (event.stopPropagation(), fold(node.id))}
+            >
+              {group ? (open.has(node.id) ? "▾" : "▸") : "·"}
+            </span>
             {editing === node.id
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null))
               : <span className="label">{node.label}</span>}
@@ -159,11 +178,8 @@ export function Files(props: Props) {
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
-          <button onClick={() => setAdding("object")} title={`New ${terms.node}`}>
+          <button onClick={() => setAdding(true)} title={`New ${terms.node}`}>
             ＋
-          </button>
-          <button onClick={() => setAdding("group")} title={`New ${terms.group}`}>
-            ▤
           </button>
           <button onClick={() => setEditing(selected ?? ROOT)} title="Rename the selection">
             ✎
@@ -190,12 +206,12 @@ export function Files(props: Props) {
           : <span className="label">{title}</span>}
       </div>
 
-      <ul>{branch(ROOT, 0)}</ul>
+      <ul>{branch(ROOT, 1)}</ul>
 
       {adding && (
-        <div className="item new" style={{ paddingLeft: 24 }}>
-          <span className="glyph">{adding === "group" ? "▸" : "·"}</span>
-          {field("", create, () => setAdding(null))}
+        <div className="item new" style={{ paddingLeft: 38 }}>
+          <span className="glyph">·</span>
+          {field("", create, () => setAdding(false))}
         </div>
       )}
 

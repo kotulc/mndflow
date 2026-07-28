@@ -28,7 +28,7 @@ header {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  padding: 8px 16px;
+  padding: 8px 20px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -54,44 +54,49 @@ button:hover:not(:disabled) { background: var(--hover); border-color: var(--acce
 button:disabled { opacity: 0.4; cursor: default; }
 
 
-/* Terminal — a session on the left, the option cluster centred beside it */
+/* Terminal — no frame of its own; it is the top of the page. Past exchanges
+   rise and fade off the edge, with the live line pinned at the foot. */
 
 .chat {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 400px) minmax(0, 1fr);
-  align-items: start;
-  gap: 24px;
-  padding: 14px 20px;
-  min-height: 190px;
-}
-
-.terminal {
-  grid-column: 1;
-  justify-self: stretch;
-  max-width: 640px;
-  height: 162px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: var(--surface);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 10px 20px 22px;
+  height: 208px;
   overflow: hidden;
 }
 
-.scrollback { height: 100%; overflow-y: auto; scrollbar-width: thin; }
-.scrollback::-webkit-scrollbar { width: 6px; }
-.scrollback::-webkit-scrollbar-thumb { background: var(--border); }
+.terminal {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+  overflow: hidden;
+}
 
-.exchange { margin-bottom: 10px; line-height: 1.55; }
-.exchange:last-of-type { margin-bottom: 0; }
+.past {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 9px;
+  min-height: 0;
+  overflow: hidden;
+  /* Older lines dissolve at the top rather than meeting a hard edge. */
+  mask-image: linear-gradient(to bottom, transparent, #000 46px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 46px);
+}
+
+.now { padding-top: 9px; }
+
+.exchange { line-height: 1.5; flex: none; }
 .exchange.reverted { opacity: 0.35; text-decoration: line-through; }
 .exchange .said { color: var(--muted); }
-.exchange.live .said { color: var(--text); }
-.exchange .hint { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.now .said { color: var(--text); line-height: 1.5; }
+.now .hint { margin-top: 3px; color: var(--muted); font-size: 12px; }
 
 .typed { display: flex; align-items: baseline; gap: 8px; color: var(--text); }
-.typed .caret { color: var(--accent); }
-.typed .noop { color: var(--muted); font-size: 11px; }
-.typed.input { margin-top: 2px; cursor: text; }
+.typed .caret { color: var(--accent); flex: none; }
+.typed .noop { color: var(--muted); font-size: 11px; flex: none; }
+.typed.input { margin-top: 4px; cursor: text; }
 
 .typed.input input {
   flex: 1;
@@ -119,44 +124,56 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 @keyframes blink { 50% { opacity: 0; } }
 
-/* The option cluster, centred */
+/* The option cluster, sharing the row */
 
-.rail { grid-column: 2; display: flex; flex-direction: column; gap: 8px; }
-
-.settling {
+.rail {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  transition: color 200ms;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.settling.on { color: var(--accent); }
-.settling .spinner { width: 1em; text-align: center; }
+.settling {
+  height: 14px;
+  color: var(--accent);
+  font-size: 12px;
+  line-height: 14px;
+  opacity: 0;
+  transition: opacity 140ms;
+}
 
-.choices { display: grid; gap: 6px; }
+.settling.on { opacity: 1; }
+
+.choices { display: grid; gap: 6px; justify-content: end; max-width: 100%; }
 
 .chip {
-  min-height: 40px;
-  padding: 6px 9px;
+  min-height: 44px;
+  padding: 7px 9px;
   color: var(--accent);
   text-align: left;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
-  animation: pop 160ms ease-out backwards;
+  animation: materialize 320ms ease-out backwards;
+}
+
+/* The likeliest reading of what is typed, put forward as the default. */
+.chip.likely {
+  border-color: var(--accent);
+  background: #12241a;
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .chip.add, .chip.group { color: var(--text); }
 .chip.link, .chip.open { color: var(--muted); }
 .chip.ghost { color: var(--muted); border-style: dashed; opacity: 0.55; }
 
-@keyframes pop {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: none; }
+@keyframes materialize {
+  from { opacity: 0; filter: blur(5px); transform: translateY(3px) scale(0.98); }
+  to { opacity: 1; filter: blur(0); transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -165,7 +182,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* Explorer */
 
-.files { border-right: 1px solid var(--border); overflow: auto; padding-bottom: 8px; }
+.side {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.files { overflow: auto; padding-bottom: 8px; }
 
 .files-bar {
   position: sticky;
@@ -225,8 +249,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .card.group { border-style: dashed; background: rgba(15, 22, 19, 0.6); }
-.card.picked { border-color: var(--accent); }
-.card.changed { border-color: var(--accent); background: #12241a; }
+.card { position: relative; }
+.card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35); }
+.card.chosen { box-shadow: 0 0 0 2px var(--accent); }
+.card.changed { background: #17301f; border-color: #35614a; }
+.card.group.changed { background: rgba(23, 48, 31, 0.75); }
 .card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
 
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -256,6 +283,33 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .hollow { color: var(--muted); font-size: 10px; }
+
+/* The open group, drawn behind its contents — as though we stepped into it */
+
+.canvas .react-flow { --xy-background-color: transparent; background: transparent; }
+
+.layer-frame {
+  position: absolute;
+  inset: 40px 56px 40px 56px;
+  z-index: 0;
+  border: 1px solid #3a5c4b;
+  border-radius: 4px;
+  background: #101b16;
+  box-shadow: 0 0 0 1px rgba(10, 15, 13, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.layer-name {
+  position: absolute;
+  right: 16px;
+  top: -9px;
+  padding: 0 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+}
 
 /* Floating inputs over the canvas */
 
@@ -299,7 +353,8 @@ main {
 .files ul { list-style: none; margin: 0; padding: 0; }
 .files .empty { color: var(--muted); padding: 4px 12px; }
 
-.doc-bar .state { color: var(--muted); }
+.doc-bar .state { color: var(--muted); font-size: 11px; }
+.doc-bar .holds { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; }
 
 .files .rename {
   border: 1px solid var(--accent);
@@ -315,13 +370,14 @@ main {
 
 /* Canvas, with the selected document's text beneath it */
 
-.work { display: grid; grid-template-rows: 1fr auto; overflow: hidden; }
+.work { display: grid; overflow: hidden; }
 
 .doc {
   display: flex;
   flex-direction: column;
-  height: 180px;
-  border-top: 1px solid var(--border);
+  height: 170px;
+  min-width: 0;
+  border-left: 1px solid var(--border);
   background: var(--surface);
 }
 
@@ -329,10 +385,14 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 4px 8px 4px 12px;
   border-bottom: 1px solid var(--divider);
   color: var(--accent);
 }
+
+.doc-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-bar .meta { flex: none; }
 
 .doc textarea {
   flex: 1;
@@ -354,9 +414,12 @@ main {
 .log {
   display: flex;
   flex-direction: column;
-  height: 150px;
+  height: 170px;
+  min-width: 0;
   background: var(--surface);
 }
+
+.log-bar .actions { display: flex; gap: 5px; }
 
 .log-bar {
   display: flex;
@@ -431,14 +494,15 @@ main {
 
 footer {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--border);
 }
 
 .scores {
   display: flex;
   flex-direction: column;
-  height: 150px;
+  height: 170px;
+  min-width: 0;
   border-left: 1px solid var(--border);
   background: var(--surface);
 }
@@ -452,8 +516,15 @@ footer {
   letter-spacing: 0;
 }
 
-.score { display: flex; align-items: center; gap: 8px; padding: 2px 12px; }
-.score .name { width: 8.5em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.score { display: flex; align-items: center; gap: 8px; padding: 3px 12px; }
+.score .name {
+  width: 11.5em;
+  flex: none;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .score .value { width: 2.6em; text-align: right; color: var(--muted); }
 .score .bar { flex: 1; height: 6px; background: var(--divider); border-radius: 1px; }
 .score .bar i { display: block; height: 100%; background: var(--border); }
@@ -475,3 +546,157 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .import:hover { background: var(--hover); border-color: var(--accent); }
 .import input { display: none; }
+
+/* Model state, in the header */
+
+.model { color: var(--muted); font-size: 11px; letter-spacing: 0.08em; }
+.model.on { color: var(--accent); opacity: 0.7; }
+.model.bad { color: var(--error); }
+
+.doc .nothing { margin: 0; padding: 10px 12px; color: var(--muted); }
+
+/* Alongside the open layer — the parent's siblings, on the frame's edge */
+
+/* Link handles, big enough to aim at — missing one used to pan the canvas */
+
+.react-flow__handle {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--bg);
+  background: var(--muted);
+}
+
+.react-flow__handle:hover { background: var(--accent); }
+.card:hover .react-flow__handle { background: var(--accent); }
+
+/* Renaming in place, on a card */
+
+.card .rename {
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.card .rename:focus { outline: none; }
+.card .label { cursor: text; }
+.cell { cursor: grab; }
+.cell:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+
+/* Relation kinds, under the explorer */
+
+.relations {
+  max-height: 210px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.relations ul { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; }
+.relations .empty { color: var(--muted); padding: 2px 12px; }
+
+.relations .kind {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 2px 12px;
+}
+
+.relations .kind:hover { background: var(--hover); }
+.relations .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
+.relations .count { color: var(--muted); font-size: 11px; min-width: 1.4em; text-align: right; }
+.relations .count.unused { opacity: 0.4; }
+
+.relations .drop {
+  width: 18px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--divider);
+  line-height: 1;
+}
+
+.relations .kind:hover .drop { color: var(--muted); }
+.relations .drop:hover:not(:disabled) { color: var(--error); background: none; }
+
+.relations .rename {
+  flex: 1;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: var(--bg);
+  color: inherit;
+  font: inherit;
+}
+
+.relations .rename:focus { outline: none; }
+
+/* Relations on the canvas: selectable, directed, and marked when they reach
+   inside a group rather than across the layer */
+
+.react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.5; }
+.react-flow__edge:hover .react-flow__edge-path { stroke: var(--text); }
+.react-flow__edge-text { fill: var(--muted); font-size: 10px; }
+.react-flow__edge-textbg { fill: var(--bg); }
+.react-flow__edge.selected .react-flow__edge-text { fill: var(--accent); }
+
+/* A relation that lands on something nested is drawn differently and says so
+   in its label; the colour separates it from an ordinary one at a glance. */
+.react-flow__edge.crossing .react-flow__edge-path { stroke: #7a6cc4 !important; opacity: 0.9; }
+.react-flow__edge.crossing .react-flow__edge-text { fill: #9c8fe0; font-style: italic; }
+.react-flow__edge.crossing marker path { fill: #7a6cc4; }
+
+/* Anchors on a chip, for relating to something nested */
+
+.chip-handle {
+  width: 9px;
+  height: 9px;
+  min-width: 9px;
+  min-height: 9px;
+  border: none;
+  background: transparent;
+  opacity: 0;
+}
+
+.cell:hover .chip-handle { background: var(--accent); opacity: 1; }
+
+/* Arrangement and routing, top right of the canvas */
+
+.arrange {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 5;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: rgba(15, 22, 19, 0.9);
+}
+
+.arrange button {
+  padding: 2px 7px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.arrange button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.arrange button.on { color: var(--accent); }
+
+/* The relation editor doubles as its controls */
+
+.floating button { padding: 1px 7px; font-size: 12px; line-height: 18px; }
+
+/* Selection box */
+
+.react-flow__selection {
+  background: rgba(74, 222, 128, 0.07);
+  border: 1px solid var(--accent);
+}

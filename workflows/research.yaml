@@ -13,14 +13,23 @@ terms:
   node: Question
   relation: Bearing
 
+# The relation kinds this domain starts with. The list is editable in the
+# app; this is only where a new project begins.
+relations:
+  - supports
+  - contradicts
+  - informs
+  - cites
+  - answers
+
 prompts:
   add_root:
     prompt: What questions are you trying to answer?
-    hint: One per turn. Each becomes a line of enquiry you can open up.
+    hint: One, or several separated by commas. Each becomes a line of enquiry.
 
   add:
     prompt: What smaller questions sit inside "{label}"?
-    hint: Break it down only as far as is useful.
+    hint: Separate several with commas. Break down only as far as is useful.
 
   describe:
     prompt: What do we know about "{label}", and where did it come from?

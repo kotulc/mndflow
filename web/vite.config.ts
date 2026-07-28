@@ -6,5 +6,10 @@ export default defineConfig({
   // Workflow definitions are authored as YAML and compiled in at build time,
   // so nothing parses them at runtime.
   plugins: [react(), yaml()],
+  // onnxruntime-web ships a webpack bundle that only resolves its
+  // onnxruntime-common half once Vite has pre-bundled it. Excluding it from
+  // optimizeDeps breaks the ONNX backend at import time.
+  optimizeDeps: { include: ["@xenova/transformers"] },
+  build: { chunkSizeWarningLimit: 900 },
   server: { port: 5173 },
 });

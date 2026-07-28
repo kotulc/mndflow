@@ -56,3 +56,23 @@ export function importSteps(text: string): Step[] | null {
     return null;
   }
 }
+
+const SHAPE = "mndflow.angular.v1";
+
+/** Whether relations are drawn with right angles. A view preference, kept out
+ *  of the step log — how something is drawn is not a change to the project. */
+export const angular = (() => {
+  try {
+    return localStorage.getItem(SHAPE) === "true";
+  } catch {
+    return false;
+  }
+})();
+
+export function setAngular(on: boolean): void {
+  try {
+    localStorage.setItem(SHAPE, String(on));
+  } catch {
+    // Preference lost, nothing more.
+  }
+}

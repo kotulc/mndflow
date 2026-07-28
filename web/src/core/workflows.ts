@@ -15,8 +15,9 @@ export type Template = {
   id: string;
   chip: string;
   about: string;
-  /** Words someone would use for a project of this kind, for scoring. */
-  tags: string;
+  /** Short phrases naming what someone might be making. Each is scored
+   *  separately, so they are phrases rather than keywords. */
+  tags: string[];
 };
 
 export type Entry = {
@@ -47,6 +48,8 @@ export type Domain = {
   name: string;
   lead: string;
   terms: Terms;
+  /** Relation kinds a new project in this domain starts with. */
+  relations: string[];
   prompts: Record<string, Wording>;
 };
 
@@ -82,6 +85,7 @@ function domain(raw: any): Domain {
     name: String(raw?.name ?? "freeform"),
     lead: String(raw?.lead ?? ""),
     terms: { ...GENERIC, ...(raw?.terms ?? {}) },
+    relations: lines(raw?.relations),
     prompts,
   };
 }
@@ -100,7 +104,7 @@ export const entry: Entry = {
     id: String(t.id),
     chip: String(t.chip),
     about: String(t.about ?? ""),
-    tags: String(t.tags ?? "").trim(),
+    tags: lines(t.tags),
   })),
 };
 

@@ -9,10 +9,18 @@ terms:
   node: Page
   relation: Link
 
+# The relation kinds this domain starts with. The list is editable in the
+# app; this is only where a new project begins.
+relations:
+  - links to
+  - redirects to
+  - embeds
+  - submits to
+
 prompts:
   add_root:
     prompt: What pages does the site need?
-    hint: One at a time — each becomes a page you can lay out.
+    hint: One, or several separated by commas. Each becomes a page you can lay out.
     choices: [Home, About, Pricing, Contact]
 
   add:

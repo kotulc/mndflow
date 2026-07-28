@@ -17,47 +17,76 @@ placeholder: Something novel...
 
 hint: Pick one, or describe it in your own words.
 
-# Each chip names the domain that takes over once it is chosen. Free text is
-# scored against `tags` — the words someone would actually use to describe a
-# project of this kind, not a definition of the category. A weak match falls to
-# freeform, which is why that entry has to exist.
+# Each chip names the domain that takes over once it is chosen.
+#
+# Free text is scored against `tags`, and each tag is scored SEPARATELY with the
+# best one winning. So a tag should be a short phrase naming a thing somebody
+# might actually be making — not a keyword, and not a paragraph. Single words
+# are too ambiguous ("shop" pulled "a bike shop" to website); long descriptions
+# average out into vagueness. Two to six words is the range that works.
+#
+# A weak match falls to freeform, which is why that entry has to exist.
 templates:
   - id: software
     chip: Software System
     about: Modules, the dependencies between them, and a spec for each.
-    tags: >
-      software system app service api backend architecture module database
-      pipeline platform tool infrastructure library
+    tags:
+      - a software system
+      - a backend service or API
+      - an app or platform
+      - a database or data pipeline
+      - developer tooling or a library
+      - system architecture and modules
+      - an inventory or tracking system
 
   - id: website
     chip: Build a Website
     about: Pages, the sections inside them, and how a visitor moves between.
-    tags: >
-      website web page site landing marketing blog shop store portfolio
-      navigation layout visitor
+    tags:
+      - a website
+      - a web page or landing page
+      - a marketing or portfolio site
+      - a blog
+      - site navigation and layout
+      - an online shop front
 
   - id: writing
     chip: Creative Writing
     about: Characters, settings, and the scenes that connect them.
-    tags: >
-      story novel writing fiction screenplay script character plot scene
-      setting chapter narrative world
+    tags:
+      - a novel or short story
+      - fiction with characters
+      - a screenplay or script
+      - plot, scenes and setting
+      - worldbuilding and narrative
+      - a documentary or film
 
   - id: research
     chip: Research & Analysis
     about: Questions, what answers them, and the claims they support.
-    tags: >
-      research analysis study question evidence source finding hypothesis
-      investigate understand figure out why data
+    tags:
+      - a research question to answer
+      - analysis of data or evidence
+      - investigating why something happened
+      - a study with sources and findings
+      - understanding metrics or trends
+      - why a number went up or down
+      - comparing options to decide
 
   - id: product
     chip: Product Plan
     about: Users, the problems they have, and the features that serve them.
-    tags: >
-      product plan roadmap feature user customer requirement launch market
-      problem need business strategy
+    tags:
+      - a product plan or roadmap
+      - user needs and problems
+      - features to build and launch
+      - market and business strategy
+      - user onboarding and retention
+      - a funnel or conversion problem
 
   - id: freeform
     chip: Something Else
     about: Generic decomposition, for anything the catalogue does not cover.
-    tags: other something else general anything
+    tags:
+      - something else
+      - anything not covered by a category

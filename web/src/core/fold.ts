@@ -30,6 +30,13 @@ export function childrenOf(graph: Graph, parent: string | null): Node[] {
   });
 }
 
+/** Whether a node contains anything. There is no separate kind of thing: a
+ *  group is simply a node that has children, so emptying one stops it being a
+ *  group and filling one starts it. */
+export function isGroup(graph: Graph, id: string): boolean {
+  return Object.values(graph.nodes).some((n) => n.parent === id);
+}
+
 /** Apply one mutation in place. Unknown targets are skipped rather than
  *  thrown: an undone parent can legitimately strand a later step. */
 function apply(graph: Graph, mutation: Mutation): void {
@@ -43,7 +50,6 @@ function apply(graph: Graph, mutation: Mutation): void {
       if (!node) return;
       if (mutation.label) node.label = mutation.label;
       if (mutation.type !== undefined) node.type = mutation.type;
-      if (mutation.kind) node.kind = mutation.kind;
       break;
     }
 
@@ -95,6 +101,24 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
+    case "reanchor_edge": {
+      const edge = graph.edges[mutation.id];
+      if (edge) {
+        if (mutation.from !== undefined) edge.from = mutation.from;
+        if (mutation.to !== undefined) edge.to = mutation.to;
+      }
+      break;
+    }
+
+    case "flip_edge": {
+      const edge = graph.edges[mutation.id];
+      if (edge) {
+        [edge.source, edge.target] = [edge.target, edge.source];
+        [edge.from, edge.to] = [edge.to, edge.from];
+      }
+      break;
+    }
+
     case "delete_edge":
       delete graph.edges[mutation.id];
       break;
@@ -106,6 +130,26 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "set_title":
       graph.title = mutation.title;
       break;
+
+    case "add_relation":
+      if (!graph.relations.includes(mutation.name)) graph.relations.push(mutation.name);
+      break;
+
+    case "rename_relation": {
+      graph.relations = graph.relations.map((r) => (r === mutation.from ? mutation.to : r));
+      for (const edge of Object.values(graph.edges)) {
+        if (edge.relation === mutation.from) edge.relation = mutation.to;
+      }
+      break;
+    }
+
+    case "drop_relation": {
+      graph.relations = graph.relations.filter((r) => r !== mutation.name);
+      for (const edge of Object.values(graph.edges)) {
+        if (edge.relation === mutation.name) edge.relation = "";
+      }
+      break;
+    }
   }
 }
 
