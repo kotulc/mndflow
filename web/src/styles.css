@@ -190,6 +190,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .files { overflow: auto; padding-bottom: 8px; }
+.files:focus { outline: none; }
+.files:focus-visible { outline: 1px solid var(--divider); outline-offset: -1px; }
 
 .files-bar {
   position: sticky;

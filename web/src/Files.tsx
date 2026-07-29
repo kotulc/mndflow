@@ -173,8 +173,22 @@ export function Files(props: Props) {
     });
   }
 
+  /** Delete what is selected. The canvas has its own handling for its own
+   *  selection; this is the tree's, and the two are separate now, so the key
+   *  has to be caught where the focus actually is. */
+  function press(event: React.KeyboardEvent) {
+    if (event.key !== "Delete" && event.key !== "Backspace") return;
+    // Never while naming something — Backspace is just a character there.
+    if (editing || adding || (event.target as HTMLElement).closest("input")) return;
+    if (!selected) return;
+
+    event.preventDefault();
+    onDelete(selected);
+  }
+
   return (
-    <div className="files">
+    // Focusable so that clicking a row puts the key handler in reach.
+    <div className="files" tabIndex={0} onKeyDown={press}>
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
