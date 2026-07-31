@@ -7,90 +7,108 @@ The goal of mndflow's client-only web application is to support fluid and engagi
 of complex systems starting from simple descriptive "building block" type elements. Visual
 scope is constantly constrained to prevent overwhelming the user with too much information.
 
+The tool stays general on purpose. Hard rules are kept to the few that prevent an incoherent
+project — a node cannot contain itself — and nothing else is forbidden merely because it is
+unusual. Where a choice could be enforced or left to the user, it is left to the user.
+
 
 ## Concepts
 
 ### Vocabulary
 
-Two words carry most of the weight and are used in exactly one sense throughout:
+Two distinctions carry most of the weight:
 
-- **Container** — a node that has children. Nothing else makes a node a container; there is
-  no container type to set.
-- **Group** — a visual annotation drawn around sibling nodes. A group never changes what
-  contains what.
+- **Structural** — nodes, and only nodes. Structure is what the object explorer shows: what
+  contains what. A **container** is simply a node that has children; there is no container
+  type to set.
+- **Non-structural** — attributes, including groups and annotations. These describe nodes and
+  draw on the canvas, but never appear in the explorer and never change what contains what.
 
-The current code inverts this (`isGroup` means "has children", and the visual annotation is
-typed `Region`). The spec is the target; the rename is expected work, not a discrepancy.
+The current code inverts part of this (`isGroup` means "has children", and the visual
+annotation is typed `Region`). The spec is the target; the rename is expected work, not a
+discrepancy.
 
 
 ### Nodes
 
-The primary object. A node has children, interfaces, relationships, annotations, and
-attributes.
+The primary object, and the only structural one. A node has children, interfaces,
+relationships, and attributes.
 
-A node's **role** is derived from what it holds and where it sits, never declared: a node
-with no children is a *block*, a node with children is a *container*, and a node attached to
-a frame edge is an *interface*. Role determines only how the node draws; every node shares
-the same operations, and a node changes role simply by gaining a child or being dragged onto
-a frame edge.
+A node's **role** is derived from what it holds and where it sits, never declared:
 
-**Blocks** — nodes without children appear as simple rectangular blocks. All nodes (blocks
-included) can be nested, unnested, grouped, ungrouped, annotated, related, interfaced,
-referenced, and given descriptive attributes.
+- a node attached to its parent's frame edge is an **interface**;
+- any other node is a **block**, and a block holding one or more child blocks is a
+  **container**.
 
-**Containers** — nodes with children show an internal treemap grid of their contents. Each
-child chip's fill follows how closely it relates to its parent. Labels appear wherever a cell
-has room for them.
+Interfaces do not count towards being a container. A block with interfaces and no child
+blocks is still a block and draws as one. The two are independent — a node may freely have
+both, and each draws without affecting the other.
+
+Role determines only how the node draws; every node shares the same operations, and a node
+changes role simply by gaining a child block or being dragged onto a frame edge.
+
+**Blocks** — simple rectangles. All nodes (blocks included) can be nested, unnested, grouped,
+ungrouped, annotated, related, interfaced, referenced, and given descriptive attributes.
+
+**Containers** — an internal treemap grid of their child blocks, sized by how many there are.
+Each child chip's fill follows how closely it relates to its parent, and labels appear
+wherever a cell has room for them. Interfaces are never in the treemap; they sit on the frame
+edge, and a container draws both at once.
 
 
 ### Interfaces
 
-An interface is a node attached to its parent's frame edge, and it is **the only place a
-relationship can attach**. There are no other anchors: an edge always runs from one interface
-to another. This is what makes the SysML export target (see Notes) coherent — SysML wants
-typed blocks and ports, and an interface is the port.
+An interface is a child node attached to its parent's frame edge, and it is where a
+relationship attaches. This is what makes the SysML export target (see Notes) coherent —
+SysML wants typed blocks and ports, and an interface is the port.
 
-By default an interface draws as a small open square centered on the frame edge, with an
-optional label outside and above it.
+An interface draws as a small open square on the frame edge, with an optional label outside
+and above it. An interface holding child blocks of its own draws instead as a divided square,
+in the shape of Bootstrap Icons' `grid-1x2` or `columns-gap`, so a port with internals reads
+differently from a plain one without opening it. An interface holding only other interfaces
+gets no special mark — the divided square means child blocks specifically.
 
-**Where they come from.** One model, three ways in:
+**Where they come from.** A node starts with none. Nothing sits on a fresh block's edge until
+there is a reason for it to be there.
 
-- Every node is created with a default input interface and a default output interface, so
-  drawing a relationship never requires setup first.
-- Dragging out from a frame edge creates a new interface there and starts a relationship from
-  it in the same gesture.
-- Dragging an existing node onto a frame edge promotes it to an interface; dragging it back
-  off demotes it to an ordinary child.
-
-Drawing a relationship never silently creates an interface — it uses a default one, or the
-one the drag started from. This keeps a busy diagram from quietly filling the explorer tree
-with anchor nodes.
+- **Drawing a relationship creates them** — relating two nodes puts an interface on each end's
+  frame edge in the same step.
+- **Right-clicking a frame edge creates a bare one**, ready to be related later.
+- **Right-click-dragging from a frame edge** creates an interface and draws a relationship
+  from it in one gesture.
+- **Dragging an existing node onto a frame edge** promotes it to an interface; dragging it
+  back off demotes it to an ordinary child block. Its relationships come with it either way.
 
 **State an interface carries beyond an ordinary node:**
 
 | Field | Meaning |
 |---|---|
 | `side` | which frame edge it sits on — top, right, bottom, or left |
-| `at` | how far along that edge, 0–1, so it survives the frame resizing |
-| `flow` | `in`, `out`, or `both` |
+| `at` | how far along that edge, 0–1, so it survives its parent's frame resizing |
+| `flow` | optional, decorative: marks the interface as input, output, or both |
 
 `side` and `at` replace the absolute x/y an ordinary node carries; an interface's position is
 meaningless apart from its frame. Interfaces slide along their edge freely and may be dragged
 around a corner onto an adjacent edge.
 
-A relationship runs from an interface that is `out` or `both` to one that is `in` or `both`.
-An `out`-only interface cannot be an edge target — attempting it is rejected during the drag
-rather than after it, so the invalid target simply refuses to highlight.
+`flow` is **decorative only**. It changes how the interface draws and nothing else — any
+interface may be either end of any relationship, whatever it is marked as. Default interfaces
+carry no marking at all. Direction belongs to the relationship, not to what it attaches to,
+and marking an interface is a note to the reader rather than a constraint on the model.
 
 
 ### Relationships
 
 An edge represents a relationship between two nodes. Relationships may be typed, annotated,
-directed, undirected, and labeled.
+labeled, and given a direction.
 
-Relationships are created by dragging from an interface, or from a node's frame edge — which
-creates the interface as it goes. Dragging a link into empty space creates the far node and
-attaches it.
+**Relationships are undirected by default** — a plain line, no arrowhead, asserting only that
+the two ends are related. Direction is added deliberately, through the relationship's context
+menu or the attribute panel: one way, the other way, or both.
+
+Relationships are created by dragging from an existing interface, or by right-click-dragging
+from a node's frame edge, which creates the interface as it goes. Dragging a link into empty
+space creates the far node, with its own interface, and attaches it.
 
 **References.** A relationship whose far end lies outside the current scope is not a separate
 kind of relationship; it is the same relationship, drawn differently. It renders anchored to a
@@ -104,46 +122,45 @@ reaches.
 > that something continues off this layer.
 
 
-### Groups
-
-When two or more nodes on the same canvas are grouped — by selecting them and choosing
-**Group** from the right-click menu — they are visually linked by a semi-transparent
-background surrounding all of them. A group may be named and typed and may carry its own
-descriptive attributes.
-
-A group is an organizing visual attribute shared by its members, **not** a structural
-element. It never changes any node's parent, never appears in the object explorer, and never
-affects navigation.
-
-**Membership defines geometry, not the other way around.** The frame is derived from the
-bounds of its members plus a margin, and it follows them as they move. Dragging a node into
-or out of the frame's area does nothing to membership; membership changes only through an
-explicit add-to-group or remove-from-group action.
-
-The consequences of that choice:
-
-- Dragging the group background moves every member together — one user action, one entry in
-  the history, however many positions it changed.
-- Resizing the frame by hand pins it: the frame stops tracking its members and keeps the size
-  it was given. **Fit to contents** in its context menu unpins it.
-- Deleting a member removes it from the group and the frame re-fits. Moving a member to
-  another scope does the same, since a group only ever spans one canvas.
-- A group with fewer than two remaining members is deleted, not left invisible.
-- A node may belong to more than one group. Overlapping frames stack smallest-area on top, so
-  the tighter grouping is always the one you can click.
-
-
-### Annotations
-
-A visual attribute linked to one or more nodes at a given scope. Annotations take the form of
-a label, an icon, or a group, and move with the nodes they are attached to.
-
-
 ### Attributes
 
-A descriptive value or property of a node or edge. Attributes are defined per node and may be
-shared (groups and tags are attributes shared across their members). Attributes for the
-current scope or the current selection appear in the attribute panel below the canvas.
+A descriptive value or property, attached to a node or a relationship. Every attribute can
+carry a name, a label, and tags. An attribute may be held by one object or **shared** across
+many — sharing is what makes an attribute a grouping.
+
+Attributes are non-structural. They never appear in the object explorer and never change what
+contains what. Every attribute of the current scope or the current selection appears in the
+attribute panel below the canvas.
+
+Some attributes also draw on the canvas, as **annotations**: a label, an icon, or a group
+boundary. An annotation moves with whatever it is attached to.
+
+**Groups** are the shared-attribute case drawn as a boundary. When two or more nodes on the
+same canvas are grouped, they receive a shared attribute, and its annotation is a
+semi-transparent background surrounding all of them. Like any attribute it can be named,
+labeled, and tagged.
+
+A group is not a structural element and not an object in its own right — it is one attribute
+that several nodes have in common. Group membership is listed among a node's attributes in
+the attribute panel, and that is where a node is added to or removed from a group.
+
+The boundary follows its members and nothing else:
+
+- It is derived from the bounds of its members plus a small margin — the same margin logic the
+  canvas frame uses — so it expands and contracts as they move. **There is no manual resize.**
+- Clicking the boundary's background selects the group and highlights it. Dragging a selected
+  group's background then moves every member together: one user action, one entry in the
+  history, however many positions it changed.
+- Selecting the group and selecting elements are separate gestures. A selection box drawn from
+  inside a boundary is an ordinary selection box — it takes the elements it fully contains and
+  never sweeps in the group itself.
+- Dragging a node into or out of the boundary's area does nothing to membership. Membership is
+  an attribute, changed in the attribute panel or by the group action.
+- Deleting a member, or moving it to another scope, drops it from the group and the boundary
+  re-fits. A group only ever draws around the members on the current canvas.
+- A node may hold any number of group attributes, so boundaries overlap freely. Overlapping
+  backgrounds compound, so an area covered by several groups reads denser than one covered by
+  a single group, and the overlap is legible without any special handling.
 
 
 ## Display (UI)
@@ -154,6 +171,8 @@ The viewer is a single-page web app whose layout should feel like an intuitive, 
 IDE: a central diagram canvas, and a file-explorer-like object explorer sidebar on the left
 for navigating between hierarchically defined objects and their views. Terms are kept
 deliberately generic so the tool can apply to many domains.
+
+The visual style and theme are **frozen as built** and marked for refinement — see Status.
 
 
 ### Graph Canvas
@@ -177,8 +196,8 @@ migrating.)*
 The canvas expands — zooms out slightly — as blocks are added, always keeping a margin around
 the edges for further placement, and refits whenever the layer gains or loses something.
 
-As a layer gets crowded, the user can combine and cluster nodes into groups (visual, no
-structural change) or into deeper containers (structural, a new nested layer).
+As a layer gets crowded, the user can cluster nodes into groups (an attribute, no structural
+change) or into deeper containers (structural, a new nested layer).
 
 Navigating depth-wise — double-clicking into a node, double-clicking outside the frame to come
 back — gives the nesting-doll view of the system, and should transition fluidly between layers
@@ -215,10 +234,14 @@ dividing the background margins to make that read.
 
 ### Object Explorer
 
-The object explorer supports seemingly infinite nesting and composition. It supports the
-standard node operations — add, move, rename, delete — and dragging nodes between levels
-adjusts the relationships defined in the project's meta graph automatically. Dragging nodes
-between the explorer and the canvas is seamless in both directions.
+The object explorer shows structure, and only structure: nodes, nested to any depth. It
+supports the standard node operations — add, move, rename, delete — and dragging nodes between
+levels adjusts the relationships defined in the project's meta graph automatically. Dragging
+nodes between the explorer and the canvas is seamless in both directions.
+
+Groups, annotations, and other attributes never appear here. Interfaces do, since they are
+child nodes — under their own icon, so a port is distinguishable from a block at a glance. A
+node whose only children are interfaces still shows as a block, not a container.
 
 Visually, the explorer delineates levels with indentation and subtle tree guide lines
 connecting the contents of each branch. Each role gets its own icon — interface, block,
@@ -236,17 +259,28 @@ state per row:
 
 | Canvas selection | Panel shows |
 |---|---|
-| a node | that node's attributes, its type, and its body text, all editable |
-| an edge | that relationship's type, label, direction, and attributes |
-| a group | the group's name, type, color, attributes, and its member count |
-| nothing | the current scope's own attributes, plus tabs enumerating the scope's contents, relations, and annotations |
+| nothing | the scope node itself — the frame you are inside — with its body text, type, and attributes |
+| a child block | that block's body text, type, and attributes, including which groups it belongs to |
+| an interface | the same, for the interface |
+| a relationship | its type, label, direction, and attributes |
+| a group boundary | that shared attribute: its name, label, tags, colour, and its members |
 
-The scope always exists — the root is a scope like any other — so the "nothing selected" row
-is the panel's resting state, not an edge case. Clearing the canvas selection with `Esc`, or
-by clicking empty background, returns to it.
+Selecting a node in the explorer makes it the scope, and with nothing selected on the canvas
+the panel shows that node's own attributes — so the explorer is a way to inspect a node as
+well as to navigate into it. Selecting something on the canvas replaces that with the
+selection's own attributes; `Esc`, or a click on empty background, returns to the scope.
 
-A node's body text is edited here, in the node row, alongside its attributes. There is no
-separate document pane.
+The scope always exists — the root is a scope like any other — so the first row is the
+panel's resting state, not an edge case.
+
+A node's body text is edited here, alongside its attributes. There is no separate document
+pane.
+
+
+### Page Intelligence
+
+The contextual prompt and option terminal above the canvas is **frozen as built** and marked
+for refinement — see Status.
 
 
 ## Interaction (UX)
@@ -261,49 +295,61 @@ They change through different gestures, deliberately:
 
 - **Single click in the explorer sets the scope.** The canvas draws that node's view. This is
   the explorer's whole job — it is a navigator, and every click in it is a navigation.
-- **Single click on the canvas sets the context.** The scope does not change; the selected
-  object is highlighted, the attribute panel follows it, and zooming centers on it. Selecting
-  a thing shows it among its siblings, so a glance never costs you your place.
+- **Single click on the canvas sets the context, and never navigates.** The scope does not
+  change; the selected object is highlighted, the attribute panel follows it, and zooming
+  centers on it. Selecting a thing shows it among its siblings, so a glance never costs you
+  your place.
 
-The asymmetry is intended. Going deeper on the canvas is the deliberate second gesture below.
+The asymmetry is intended. On the canvas, going deeper is always the deliberate second
+gesture below.
 
 ### Navigation
 
 Double-click any object on the canvas to descend into its view. Double-click outside the
-current frame to return to the previous level.
+current frame to return to the previous level. Nothing else on the canvas changes the scope.
 
 ### Editing
 
 Dragging in the explorer supports rapid reorganization. Drag and drop between explorer and
-canvas is supported in both directions, except where a node would contain itself. When a move
-would break relationships or split a group, the user is asked to confirm, with the most common
-answer as the default.
+canvas is supported in both directions, except where a node would contain itself. A move is
+never confirmed first — undo is the answer to a move that went wrong, and a dialog in the way
+of every reorganization costs more than it saves.
 
-Dragging on the canvas depends on where the drag starts:
+Left-dragging on the canvas depends on where the drag starts:
 
-- **From a node's frame edge** — creates an interface there and draws a relationship from it.
-- **From an interface** — draws a relationship from that interface.
-- **From empty background** — draws a selection box. Anything it touches is selected, and
-  dragging a selection moves all of it as one action.
+- **From an interface** — draws a relationship from it.
+- **From a node** — moves the node.
+- **From a selected group's background** — moves every member of that group together.
+- **From empty background, or from an unselected group's background** — draws a selection
+  box, which takes the elements it fully contains. Dragging a selection moves all of it as one
+  action.
 
-The canvas pans with the middle button or the wheel, never with a left drag — a left drag is
-always selection or a relationship.
+Right-dragging works from a frame edge only, where it creates an interface and draws a
+relationship from it.
+
+The canvas pans with the middle button or the wheel, never with a left drag.
 
 Panning is bounded to the layer's contents plus room on every side to put something new, and
 the bound grows with the layer.
 
 ### Context menu
 
-Right-click opens the context menu, with its most common option marked as the default:
+Right-click acts on whatever is under the cursor. **For the first pass it performs the default
+action directly, with no menu drawn** — the menu is the last thing built, and until it exists
+these are the actions right-click takes:
 
-| Right-clicked | Options |
+| Right-clicked | Default action |
 |---|---|
-| empty canvas | **New object** *(default)*, Paste, Arrange |
-| a node | New object, Label, Group *(when more than one is selected)*, Delete |
-| a multi-node selection | **Group** *(default)*, Arrange, Delete |
-| a group frame | Rename, Color, Fit to contents, Add selection, Ungroup |
-| an edge | Rename, Reverse, Delete |
-| the scope's own frame | **New interface** *(default)*, Rename, Attributes |
+| empty canvas | new object |
+| a node | new object inside it |
+| a frame edge — the scope's own, or any block's | new interface |
+| a multi-node selection | group the selection |
+| a group boundary | rename the group |
+| a relationship | rename the relationship |
+
+Once the menu exists, each of these becomes its default entry and the alternatives sit beside
+it — direction and reversal for a relationship, colour and ungroup for a group, arrange and
+paste for the canvas, delete throughout.
 
 ### Keyboard
 
@@ -323,9 +369,13 @@ Shortcuts work in both the explorer and the canvas, acting on whichever has focu
 ### Hovering
 
 Hovering any context element — the scope frame, a block's contents, a block frame, a
-container's treemap children, a relationship edge, an annotation — highlights it subtly, to
+container's treemap children, a relationship, an annotation — highlights it subtly, to
 communicate that an interaction is available there. Selecting the element makes the highlight
 fixed and less subtle.
+
+A frame edge or border highlights on hover in its own right, since it becomes the context for
+the interface gestures above: right-click there for a bare interface, right-drag for one with
+a relationship attached.
 
 ### Layouts
 
@@ -346,23 +396,33 @@ of thirty nodes:
 Until that lands, placement wraps into rows and relationships route directly.
 
 
+## Status
+
+**Frozen, pending refinement.** Built and working; left alone while the graph model settles,
+and revisited deliberately rather than drifting:
+
+- **Page Intelligence** — the contextual prompt and option terminal. Its role in the tool is
+  the open question, not its implementation.
+- **Visual style and theme** — colour, type, spacing, and the overall look.
+
+**Built last.** The context menu. Until then, right-click performs the default action above.
+
+
 ## Open decisions
 
-Deliberately unsettled, recorded here rather than buried in the prose above:
+Deliberately unsettled, recorded here rather than buried in the prose:
 
 - **Explorer at depth.** The horizontal-scroll indented tree specified above is the smaller
   change. Miller columns — one pane per level, the current level always centered — handle deep
   nesting better but discard the at-a-glance view of the whole branch. Worth revisiting once
   real projects get deep enough to hurt.
-- **Interface promotion and relationships.** Promoting a node with existing relationships to
-  an interface is defined; demoting one whose interface carries relationships is not. Do the
-  relationships follow it inward, or is the demotion refused?
-- **Group attributes vs. node attributes.** A group with a name, a type, and attributes is
-  very nearly a node. It stays separate because it must not appear in the explorer or affect
-  containment — but if groups keep growing, making them nodes with a non-structural membership
-  list is the cleaner end state.
-- **Undirected relationships** are listed as supported but no gesture creates one, and the
-  attribute panel is the only place direction can be changed.
+- **Ranked layout and undirected relationships.** A layout that ranks nodes by following
+  relationships forward has nothing to follow when relationships are undirected by default. It
+  either falls back to another arrangement or considers only the relationships that have been
+  given a direction.
+- **A group with one member.** Nothing forbids it — an attribute shared by one node is still
+  an attribute — but a boundary drawn around a single node reads as noise. It may be that the
+  attribute persists while the annotation stops drawing.
 
 
 ## Notes
@@ -372,9 +432,6 @@ sample describes this application — mndflow's own components, interfaces, and 
 — and must exercise every feature above, so it cannot be authored until interfaces,
 references, and groups exist. It lives at `samples/mndflow.json` in the project's own export
 format, and loads from the viewer without setup.
-
-The "Page Intelligence" contextual prompt and option terminal is included but will be refined
-for a later use case.
 
 The ultimate goal is to support generation of common diagram types — activity, class, state,
 flow — for a given scope, and translation of the project to SysML exports.
