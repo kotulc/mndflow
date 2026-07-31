@@ -131,9 +131,11 @@ export function Files(props: Props) {
     );
   }
 
-  /** Rows for one level. Depth is indentation rather than drawn connectors —
-   *  it keeps long names readable in a narrow pane. */
-  function branch(parentId: string, depth: number) {
+  /** Rows for one level. Indentation comes from the nesting of `<ul className
+   *  ="branch">` itself, so the guide line drawn on that element and the
+   *  row's own position always agree — there is no separate depth number to
+   *  keep in step with it. */
+  function branch(parentId: string) {
     const list = kids[parentId] ?? [];
 
     return list.map((node) => {
@@ -152,7 +154,6 @@ export function Files(props: Props) {
             onDragStart={() => setHeld(node.id)}
             onClick={() => onSelect(node.id)}
             onDoubleClick={() => setEditing(node.id)}
-            style={{ paddingLeft: 10 + depth * 14 }}
             {...dropzone(node.id, node.id)}
           >
             <span
@@ -166,7 +167,7 @@ export function Files(props: Props) {
               : <span className="label">{node.label}</span>}
           </div>
           {kids[node.id] && (!group || open.has(node.id)) && (
-            <ul>{branch(node.id, depth + 1)}</ul>
+            <ul className="branch">{branch(node.id)}</ul>
           )}
         </li>
       );
@@ -220,7 +221,9 @@ export function Files(props: Props) {
           : <span className="label">{title}</span>}
       </div>
 
-      <ul>{branch(ROOT, 1)}</ul>
+      {/* Same indent step as a nested branch, without its guide line — the
+          root row isn't a foldable group for a line to hang from. */}
+      <ul style={{ paddingLeft: 14 }}>{branch(ROOT)}</ul>
 
       {adding && (
         <div className="item new" style={{ paddingLeft: 38 }}>

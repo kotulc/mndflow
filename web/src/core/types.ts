@@ -27,9 +27,24 @@ export type Edge = {
   to?: string;
 };
 
+/** A colored frame drawn around a set of nodes, for visual clustering only —
+ *  it carries no meaning for the graph itself, unlike parent/child. Sized
+ *  automatically from its members unless the user has resized it by hand. */
+export type Region = {
+  id: string;
+  label: string;
+  color: string;
+  members: string[];
+  x: number | null;
+  y: number | null;
+  w: number | null;
+  h: number | null;
+};
+
 export type Graph = {
   nodes: Record<string, Node>;
   edges: Record<string, Edge>;
+  regions: Record<string, Region>;
   /** The kinds of relation this project uses. Seeded from the domain and
    *  edited freely — a relation may be named anything, but the list is what
    *  gets offered and what can be renamed across every edge at once. */
@@ -58,7 +73,14 @@ export type Mutation =
   /** Renames the kind and every edge already using it, together. */
   | { op: "rename_relation"; from: string; to: string }
   /** Drops the kind; edges using it survive, unnamed. */
-  | { op: "drop_relation"; name: string };
+  | { op: "drop_relation"; name: string }
+  | { op: "add_region"; region: Region }
+  | { op: "recolor_region"; id: string; color: string }
+  | { op: "rename_region"; id: string; label: string }
+  /** Manual size/position from dragging the frame's own resize handles;
+   *  null in any field means "keep deriving it from the members instead". */
+  | { op: "resize_region"; id: string; x: number; y: number; w: number; h: number }
+  | { op: "delete_region"; id: string };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
@@ -75,7 +97,9 @@ export type Step = {
   status: "applied" | "reverted";
 };
 
-export const EMPTY: Graph = { nodes: {}, edges: {}, relations: [], template: "", title: "" };
+export const EMPTY: Graph = {
+  nodes: {}, edges: {}, regions: {}, relations: [], template: "", title: "",
+};
 
 let counter = 0;
 

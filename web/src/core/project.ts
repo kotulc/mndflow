@@ -27,6 +27,9 @@ export function useProject() {
   /** The group whose contents fill the canvas. null is the project itself. */
   const [view, setView] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  /** A region picked for the context pane, kept apart from a node's own
+   *  scope — the two panes never have something to show at once. */
+  const [pickedRegion, setPickedRegion] = useState<string | null>(null);
 
   // The log is the only thing worth saving; the graph is folded from it.
   useEffect(() => store.save(steps), [steps]);
@@ -128,6 +131,7 @@ export function useProject() {
    *  glance never costs you your place. */
   const select = useCallback(
     (id: string | null) => {
+      setPickedRegion(null);
       setScope(id);
       if (!id) return setView(null);
 
@@ -137,6 +141,15 @@ export function useProject() {
     [graph],
   );
 
+  /** Mark something as picked without leaving the layer it is looked at from.
+   *  A chip inside a group's treemap is already visible where it sits — a
+   *  single click on it should not also jump the canvas to its own layer. */
+  const pick = useCallback((id: string) => (setPickedRegion(null), setScope(id)), []);
+
+  /** Bring up a region's own properties instead of a node's — the two panes
+   *  never have something to show at once. */
+  const pickRegion = useCallback((id: string) => (setScope(null), setPickedRegion(id)), []);
+
   /** Step into a node, making its contents the layer. Only something that
    *  holds anything can be entered — an empty one has nothing to show. */
   const open = useCallback(
@@ -144,6 +157,7 @@ export function useProject() {
       const node = graph.nodes[id];
       if (!node) return;
 
+      setPickedRegion(null);
       setScope(id);
       setView(isGroup(graph, id) ? id : node.parent);
     },
@@ -299,6 +313,30 @@ export function useProject() {
     dropRelation: (name: string) =>
       commit(makeStep(`dropped "${name}"`, "relations", [{ op: "drop_relation", name }])),
 
+    /** Turn a box-selection into a persistent colored frame. Purely visual —
+     *  it does not touch what any node's parent is. */
+    region: (members: string[], color: string) =>
+      members.length > 1 &&
+      commit(makeStep(`group: ${members.length} nodes`, "region", [{
+        op: "add_region",
+        region: { id: newId("r"), label: "", color, members, x: null, y: null, w: null, h: null },
+      }])),
+
+    recolorRegion: (id: string, color: string) =>
+      commit(makeStep("region color", "region", [{ op: "recolor_region", id, color }])),
+
+    renameRegion: (id: string, label: string) =>
+      commit(makeStep(`name: ${label}`, "region", [{ op: "rename_region", id, label }])),
+
+    /** From dragging the frame's own resize handles. */
+    resizeRegion: (id: string, x: number, y: number, w: number, h: number) =>
+      commit(makeStep("resize group", "region", [{ op: "resize_region", id, x, y, w, h }])),
+
+    dropRegion: (id: string) => {
+      if (pickedRegion === id) setPickedRegion(null);
+      commit(makeStep("ungroup", "region", [{ op: "delete_region", id }]));
+    },
+
     save: () => store.exportSteps(steps, graph.title),
 
     load: (text: string) => {
@@ -309,6 +347,7 @@ export function useProject() {
       setScope(null);
       setView(null);
       setPending(null);
+      setPickedRegion(null);
 
       return true;
     },
@@ -318,6 +357,7 @@ export function useProject() {
       setScope(null);
       setView(null);
       setPending(null);
+      setPickedRegion(null);
     },
   };
 
@@ -328,8 +368,11 @@ export function useProject() {
     view,
     path,
     select,
+    pick,
     open,
     up,
+    pickedRegion,
+    pickRegion,
     question,
     terms,
     touched: touched(last),

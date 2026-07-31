@@ -7,24 +7,46 @@
 import { useEffect, useState } from "react";
 
 import { isGroup } from "./core/fold";
-import type { Graph } from "./core/types";
+import type { Graph, Region } from "./core/types";
 import type { Terms } from "./core/workflows";
 
 type Props = {
   graph: Graph;
   scope: string | null;
+  region: Region | null;
   terms: Terms;
   onSave: (id: string, body: string) => void;
   onRetype: (id: string, type: string) => void;
+  onRecolorRegion: (id: string, color: string) => void;
 };
 
-export function Doc({ graph, scope, terms, onSave, onRetype }: Props) {
+export function Doc({ graph, scope, region, terms, onSave, onRetype, onRecolorRegion }: Props) {
   const node = scope ? graph.nodes[scope] : null;
   const body = node?.body ?? "";
   const [draft, setDraft] = useState(body);
 
   // Follow the selection, and whatever a turn just wrote into it.
   useEffect(() => setDraft(body), [scope, body]);
+
+  if (region) {
+    return (
+      <section className="doc">
+        <div className="doc-bar">
+          <span className="name"># {region.label || "group"}</span>
+          <span className="meta">
+            <input
+              type="color"
+              value={region.color}
+              title="Frame color"
+              onChange={(event) => onRecolorRegion(region.id, event.target.value)}
+            />
+            <span className="holds">{region.members.length} nodes</span>
+          </span>
+        </div>
+        <p className="nothing">Named on the canvas — double-click its label there to change it.</p>
+      </section>
+    );
+  }
 
   if (!node || !scope) {
     return (

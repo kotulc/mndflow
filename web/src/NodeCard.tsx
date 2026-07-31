@@ -46,7 +46,11 @@ export type CardData = {
   changed: boolean;
   dropping: boolean;
   picked: boolean;
-  onSelect: (id: string) => void;
+  /** Mark a chip as the selection without changing which layer is open — a
+   *  chip is already visible where it sits. */
+  onPick: (id: string) => void;
+  /** Enter a chip's own contents. Only a double-click reaches this. */
+  onOpen: (id: string) => void;
   onRename: (id: string, label: string) => void;
 };
 
@@ -54,11 +58,12 @@ type ContentsProps = {
   graph: Graph;
   id: string;
   size: number;
-  onSelect: (id: string) => void;
+  onPick: (id: string) => void;
+  onOpen: (id: string) => void;
 };
 
 /** The contents of a group, laid out as a grid that recurses into subgroups. */
-function Contents({ graph, id, size, onSelect }: ContentsProps) {
+function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
   const kids = Object.values(graph.nodes).filter((n) => n.parent === id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
@@ -80,13 +85,16 @@ function Contents({ graph, id, size, onSelect }: ContentsProps) {
               event.dataTransfer.setData(LIFTED, kid.id);
               event.dataTransfer.effectAllowed = "move";
             }}
-            onClick={(event) => (event.stopPropagation(), onSelect(kid.id))}
+            onClick={(event) => (event.stopPropagation(), onPick(kid.id))}
+            onDoubleClick={(event) =>
+              (event.stopPropagation(), isGroup(graph, kid.id) && onOpen(kid.id))
+            }
             // Fill carries the affinity score; the floor keeps a weak match
             // visible rather than invisible.
             style={{ background: `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})` }}
           >
             {isGroup(graph, kid.id) ? (
-              <Contents graph={graph} id={kid.id} size={cell} onSelect={onSelect} />
+              <Contents graph={graph} id={kid.id} size={cell} onPick={onPick} onOpen={onOpen} />
             ) : (
               cell >= READABLE && <span className="tag">{kid.label}</span>
             )}
@@ -111,7 +119,7 @@ function Contents({ graph, id, size, onSelect }: ContentsProps) {
 }
 
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
-  const { node, graph, changed, dropping, picked, onSelect, onRename } =
+  const { node, graph, changed, dropping, picked, onPick, onOpen, onRename } =
     data as unknown as CardData;
   const [editing, setEditing] = useState(false);
   // Shading follows affinity, which is only known once vectors exist.
@@ -181,7 +189,7 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
         {node.type && !editing && <span className="kind">{node.type}</span>}
       </div>
 
-      {group && <Contents graph={graph} id={node.id} size={160} onSelect={onSelect} />}
+      {group && <Contents graph={graph} id={node.id} size={160} onPick={onPick} onOpen={onOpen} />}
     </div>
   );
 });

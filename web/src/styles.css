@@ -355,6 +355,21 @@ main {
 .files ul { list-style: none; margin: 0; padding: 0; }
 .files .empty { color: var(--muted); padding: 4px 12px; }
 
+/* Guide lines showing what is nested in what. One vertical rule per level,
+   hanging from the parent row, with a short tick into each child's own row. */
+.files ul.branch { position: relative; padding-left: 14px; border-left: 1px solid var(--divider); }
+.files ul.branch > li { position: relative; }
+
+.files ul.branch > li > .item::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  width: 12px;
+  height: 1px;
+  background: var(--divider);
+}
+
 .doc-bar .state { color: var(--muted); font-size: 11px; }
 .doc-bar .holds { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; }
 
@@ -646,6 +661,11 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .react-flow__edge-textbg { fill: var(--bg); }
 .react-flow__edge.selected .react-flow__edge-text { fill: var(--accent); }
 
+/* The name floats over the line rather than being part of what selects it —
+   the path underneath still catches the click, but the label itself does not
+   double as its own separate hit target. */
+.react-flow__edge-textwrapper { pointer-events: none; }
+
 /* A relation that lands on something nested is drawn differently and says so
    in its label; the colour separates it from an ordinary one at a glance. */
 .react-flow__edge.crossing .react-flow__edge-path { stroke: #7a6cc4 !important; opacity: 0.9; }
@@ -702,3 +722,90 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   background: rgba(74, 222, 128, 0.07);
   border: 1px solid var(--accent);
 }
+
+/* Offer to turn a box-selection into a lasting colored frame */
+
+.grouping {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.grouping button {
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.grouping button:hover { background: var(--hover); }
+
+/* The frame itself — a colored box behind its members, with a small control
+   tucked into its corner rather than a full selection outline. Sitting behind
+   the cards should not stop clicks and drags from reaching them. */
+
+.react-flow__node-region { pointer-events: none; }
+
+/* Resize handles sit inside .region too, and would otherwise inherit its
+   pointer-events: none along with everything else there. */
+.react-flow__node-region .react-flow__resize-control { pointer-events: auto; }
+
+.region {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.region-tools {
+  position: absolute;
+  top: -11px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 6px;
+  background: var(--bg);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.region-tools .name { color: var(--muted); font-size: 11px; letter-spacing: 0.04em; }
+
+.region-tools .rename {
+  width: 10em;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+}
+
+.region-tools .rename:focus { outline: none; }
+
+.region-tools button {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.region-tools button:hover { color: var(--error); }

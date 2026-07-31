@@ -150,6 +150,37 @@ function apply(graph: Graph, mutation: Mutation): void {
       }
       break;
     }
+
+    case "add_region":
+      graph.regions[mutation.region.id] = { ...mutation.region };
+      break;
+
+    case "recolor_region": {
+      const region = graph.regions[mutation.id];
+      if (region) region.color = mutation.color;
+      break;
+    }
+
+    case "rename_region": {
+      const region = graph.regions[mutation.id];
+      if (region) region.label = mutation.label;
+      break;
+    }
+
+    case "resize_region": {
+      const region = graph.regions[mutation.id];
+      if (region) {
+        region.x = mutation.x;
+        region.y = mutation.y;
+        region.w = mutation.w;
+        region.h = mutation.h;
+      }
+      break;
+    }
+
+    case "delete_region":
+      delete graph.regions[mutation.id];
+      break;
   }
 }
 

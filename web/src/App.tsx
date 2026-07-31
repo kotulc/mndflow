@@ -28,6 +28,28 @@ export function App() {
   const [angular, setAngular] = useState(store.angular);
   useEffect(() => store.setAngular(angular), [angular]);
 
+  // Ctrl/Cmd+Z and Ctrl/Cmd+Y (or Shift+Z) anywhere outside a text field —
+  // inside one, the field's own native undo should win instead.
+  useEffect(() => {
+    function press(event: KeyboardEvent) {
+      if ((event.target as HTMLElement).closest("input, textarea")) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
+
+      // Shift turns "z" into "Z", so the letter is compared case-insensitively.
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        project.undo();
+      } else if (key === "y" || (key === "z" && event.shiftKey)) {
+        event.preventDefault();
+        project.redo();
+      }
+    }
+
+    window.addEventListener("keydown", press);
+    return () => window.removeEventListener("keydown", press);
+  }, [project.undo, project.redo]);
+
   /** Run a chip that is a graph operation rather than an answer. */
   function run(chip: Suggestion) {
     switch (chip.kind) {
@@ -120,6 +142,7 @@ export function App() {
               path={path}
               touched={project.touched}
               onSelect={select}
+              onPick={project.pick}
               onOpen={project.open}
               onUp={project.up}
               onNest={project.nest}
@@ -130,6 +153,7 @@ export function App() {
               onLift={project.lift}
               onLink={project.link}
               onRelation={project.relation}
+              onReanchor={project.reanchor}
               onFlip={project.flip}
               onPlaceMany={project.placeMany}
               onArrange={project.arrange}
@@ -137,6 +161,12 @@ export function App() {
               onAngular={setAngular}
               onUnlink={project.unlink}
               onDelete={project.remove}
+              onRegion={project.region}
+              onRenameRegion={project.renameRegion}
+              onResizeRegion={project.resizeRegion}
+              onDropRegion={project.dropRegion}
+              pickedRegion={project.pickedRegion}
+              onPickRegion={project.pickRegion}
             />
           </div>
         </section>
@@ -154,9 +184,11 @@ export function App() {
         <Doc
           graph={graph}
           scope={scope}
+          region={project.pickedRegion ? graph.regions[project.pickedRegion] ?? null : null}
           terms={terms}
           onSave={project.write}
           onRetype={project.retype}
+          onRecolorRegion={project.recolorRegion}
         />
       </footer>
     </div>
