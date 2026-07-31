@@ -75,9 +75,35 @@ there is a reason for it to be there.
   frame edge in the same step.
 - **Right-clicking a frame edge creates a bare one**, ready to be related later.
 - **Right-click-dragging from a frame edge** creates an interface and draws a relationship
-  from it in one gesture.
+  from it in one gesture. Neither appears until the drag has pulled a small margin clear of
+  the edge, so a right-click that wanders by a pixel is still a right-click.
 - **Dragging an existing node onto a frame edge** promotes it to an interface; dragging it
   back off demotes it to an ordinary child block. Its relationships come with it either way.
+
+**And where they go.** Deleting a relationship deletes the interfaces at both its ends, so
+rewiring a diagram leaves no trail of empty squares behind it. Two exceptions keep that from
+taking anything with it: an interface another relationship still attaches to stays, and an
+interface holding child blocks of its own is left bare rather than deleted — its contents are
+not collateral.
+
+**Selecting and moving.** An interface selects like anything else: click to highlight it, and
+once selected it slides along its edge and around corners under a left drag. Left-dragging is
+never how a relationship is drawn — that is the right button's job, here and at the frame
+edge — so selecting a port and wiring one are never the same gesture.
+
+**Visibility.** Interfaces render on the canvas by default, and can be toggled off for a
+cleaner read of the structure alone; relationships stay drawn, meeting the frame edge where
+their interface would have been. The object explorer is the other way round — interfaces are
+hidden there by default, and a toggle reveals them.
+
+Both toggles are global to the app, not per project and not per view. They are display
+preferences: they change nothing in the project, appear in no export, and record no history.
+
+**Export.** An interface a relationship created, left at its defaults — unnamed, unmoved,
+unmarked, with no contents or attributes — is not exported. The relationship re-derives it on
+load, so writing it down would only be repeating what the relationship already says. An
+interface the user added deliberately, or one that has since been named, moved, marked, given
+contents or given attributes, is exported like any other node.
 
 **State an interface carries beyond an ordinary node:**
 
@@ -88,8 +114,7 @@ there is a reason for it to be there.
 | `flow` | optional, decorative: marks the interface as input, output, or both |
 
 `side` and `at` replace the absolute x/y an ordinary node carries; an interface's position is
-meaningless apart from its frame. Interfaces slide along their edge freely and may be dragged
-around a corner onto an adjacent edge.
+meaningless apart from its frame.
 
 `flow` is **decorative only**. It changes how the interface draws and nothing else — any
 interface may be either end of any relationship, whatever it is marked as. Default interfaces
@@ -106,9 +131,10 @@ labeled, and given a direction.
 the two ends are related. Direction is added deliberately, through the relationship's context
 menu or the attribute panel: one way, the other way, or both.
 
-Relationships are created by dragging from an existing interface, or by right-click-dragging
-from a node's frame edge, which creates the interface as it goes. Dragging a link into empty
-space creates the far node, with its own interface, and attaches it.
+Relationships are created by right-click-dragging: from an existing interface, or from a
+node's frame edge, which creates the interface as it goes. Releasing over another node
+attaches there. Releasing over empty canvas prompts for a new node and creates it with its own
+interface already attached. `Esc` cancels the whole gesture, interface included.
 
 **References.** A relationship whose far end lies outside the current scope is not a separate
 kind of relationship; it is the same relationship, drawn differently. It renders anchored to a
@@ -156,8 +182,9 @@ The boundary follows its members and nothing else:
   never sweeps in the group itself.
 - Dragging a node into or out of the boundary's area does nothing to membership. Membership is
   an attribute, changed in the attribute panel or by the group action.
-- Deleting a member, or moving it to another scope, drops it from the group and the boundary
-  re-fits. A group only ever draws around the members on the current canvas.
+- A group holds two or more members. Deleting a member, or moving it to another scope, drops
+  it from the group and the boundary re-fits; when that would leave a single member, the
+  attribute is removed altogether rather than left drawn around one node.
 - A node may hold any number of group attributes, so boundaries overlap freely. Overlapping
   backgrounds compound, so an area covered by several groups reads denser than one covered by
   a single group, and the overlap is legible without any special handling.
@@ -189,7 +216,7 @@ migrating.)*
 **Placement precedence.** Two things decide where a node sits, in this order:
 
 1. **User placement wins.** A node the user has positioned keeps that position until the user
-   moves it again or asks for an arrangement.
+   moves it again or asks for the layer to be laid out afresh.
 2. **Automatic layout fills the rest.** Unplaced nodes are laid out around the placed ones,
    starting at the center and working outward into whatever room is left.
 
@@ -239,17 +266,20 @@ supports the standard node operations — add, move, rename, delete — and drag
 levels adjusts the relationships defined in the project's meta graph automatically. Dragging
 nodes between the explorer and the canvas is seamless in both directions.
 
-Groups, annotations, and other attributes never appear here. Interfaces do, since they are
-child nodes — under their own icon, so a port is distinguishable from a block at a glance. A
-node whose only children are interfaces still shows as a block, not a container.
+Groups, annotations, and other attributes never appear here. Interfaces are child nodes and so
+belong here, but are **hidden by default** — a toggle reveals them, folded into their own
+subgroup beneath the node under their own icon, rather than mixed in among its child blocks.
+A node whose only children are interfaces still shows as a block, not a container.
 
 Visually, the explorer delineates levels with indentation and subtle tree guide lines
 connecting the contents of each branch. Each role gets its own icon — interface, block,
 container — before the name, so a node's role is identifiable without opening it. The fold
 arrow is separate from the role icon.
 
-As the user navigates deeper, the explorer scrolls horizontally to keep the current level in
-view; deep branches indent past the sidebar's width rather than being truncated or wrapped.
+Deep branches indent past the sidebar's width rather than being truncated or wrapped, and the
+explorer scrolls horizontally to follow. The scroll centres on the depth of whatever is
+selected: selecting something deep in the tree brings that depth to the middle of the sidebar,
+so the selection's own level and the levels either side of it are all in view at once.
 
 
 ### Attribute Panel
@@ -317,15 +347,20 @@ of every reorganization costs more than it saves.
 
 Left-dragging on the canvas depends on where the drag starts:
 
-- **From an interface** — draws a relationship from it.
 - **From a node** — moves the node.
+- **From a selected interface** — slides it along its frame edge.
 - **From a selected group's background** — moves every member of that group together.
 - **From empty background, or from an unselected group's background** — draws a selection
   box, which takes the elements it fully contains. Dragging a selection moves all of it as one
   action.
 
-Right-dragging works from a frame edge only, where it creates an interface and draws a
-relationship from it.
+Selection behaves the same way throughout: click to select, then drag what is selected. It is
+what makes a group movable, an interface slidable, and a multi-node selection draggable as one
+thing.
+
+Right-dragging draws relationships — from an interface, or from a frame edge, which creates
+the interface as it goes. Nothing appears until the drag pulls clear of the edge, and `Esc`
+cancels.
 
 The canvas pans with the middle button or the wheel, never with a left drag.
 
@@ -348,8 +383,8 @@ these are the actions right-click takes:
 | a relationship | rename the relationship |
 
 Once the menu exists, each of these becomes its default entry and the alternatives sit beside
-it — direction and reversal for a relationship, colour and ungroup for a group, arrange and
-paste for the canvas, delete throughout.
+it — direction and reversal for a relationship, colour and ungroup for a group, lay-out-again
+and paste for the canvas, delete throughout.
 
 ### Keyboard
 
@@ -379,21 +414,18 @@ a relationship attached.
 
 ### Layouts
 
-Every canvas view renders all its nodes, relationships, and annotations without overlap. New
-nodes are added at the center and work outward, with the default zoom expanding to keep them
-in frame. Layout prioritizes grouped and related nodes and honours user placement; everything
-else fills the room that is left.
+Layout has one job: centre the mass of blocks in the view, with no overlap and as little
+crossing as possible between relationships and blocks. There are no named arrangements to
+choose between, and no ranking of nodes by their relationships — one layout, applied
+everywhere.
 
-Automatic routing is its own milestone, separate from placement. It is done when, for a layer
-of thirty nodes:
+New nodes are added at the centre and work outward, with the default zoom expanding to keep
+them in frame. Layout keeps grouped and related nodes near each other and honours user
+placement; everything else fills the room that is left.
 
-- no two node frames overlap;
-- no relationship passes through a node frame it does not attach to;
-- relationship crossings are reduced relative to straight point-to-point routing;
-- and no relationship leaves its interface at an angle acute enough to be ambiguous about
-  which interface it belongs to.
-
-Until that lands, placement wraps into rows and relationships route directly.
+It is good enough when, for a layer of thirty nodes, no two blocks overlap, no relationship
+passes through a block it does not attach to, and relationship crossings are visibly fewer
+than straight point-to-point routing would give.
 
 
 ## Status
@@ -406,23 +438,6 @@ and revisited deliberately rather than drifting:
 - **Visual style and theme** — colour, type, spacing, and the overall look.
 
 **Built last.** The context menu. Until then, right-click performs the default action above.
-
-
-## Open decisions
-
-Deliberately unsettled, recorded here rather than buried in the prose:
-
-- **Explorer at depth.** The horizontal-scroll indented tree specified above is the smaller
-  change. Miller columns — one pane per level, the current level always centered — handle deep
-  nesting better but discard the at-a-glance view of the whole branch. Worth revisiting once
-  real projects get deep enough to hurt.
-- **Ranked layout and undirected relationships.** A layout that ranks nodes by following
-  relationships forward has nothing to follow when relationships are undirected by default. It
-  either falls back to another arrangement or considers only the relationships that have been
-  given a direction.
-- **A group with one member.** Nothing forbids it — an attribute shared by one node is still
-  an attribute — but a boundary drawn around a single node reads as noise. It may be that the
-  attribute persists while the annotation stops drawing.
 
 
 ## Notes
