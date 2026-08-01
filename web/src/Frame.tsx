@@ -17,7 +17,7 @@ import type { NodeProps } from "@xyflow/react";
 
 import { nameOf, portsOf } from "./core/fold";
 import type { Graph, Side } from "./core/types";
-import { Anchor, Port } from "./NodeCard";
+import { Anchor, Name, Port } from "./NodeCard";
 
 export type FrameData = {
   id: string;
@@ -30,6 +30,7 @@ export type FrameData = {
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onRename: (id: string, label: string) => void;
   /** True while the pointer is near the border, which is where the gestures
    *  that make interfaces live. */
   grazed: boolean;
@@ -38,14 +39,23 @@ export type FrameData = {
 export const Frame = memo(({ data }: NodeProps) => {
   const { id, graph, straddles, showPorts, pickedPort, grazed } =
     data as unknown as FrameData;
-  const { onPick, onOpen, onSlidePort } = data as unknown as FrameData;
+  const { onPick, onOpen, onSlidePort, onRename } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
   const upright = straddles === "left" || straddles === "right";
 
   return (
     <div className={`frame ${grazed ? "grazed" : ""}`}>
-      <span className="frame-name">{nameOf(graph, graph.nodes[id])}</span>
+      {/* Always live: this layer is where you already are, so there is no
+          first click to spend selecting it. */}
+      <span className="frame-name nodrag nopan">
+        <Name
+          text={nameOf(graph, graph.nodes[id])}
+          live
+          className="frame-label"
+          onRename={(label) => onRename(id, label)}
+        />
+      </span>
 
       {straddles && (
         <span className={`wall ${upright ? "upright" : "flat"}`} aria-hidden>

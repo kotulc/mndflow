@@ -9,7 +9,7 @@
  *  Interfaces sit on the frame edge instead, and never in the treemap. The two
  *  are independent: a block with ports is still a block. */
 
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 import { blocksOf, isContainer, isRef, nameOf, portsOf } from "./core/fold";
@@ -40,6 +40,82 @@ const SIDES: Record<Side, Position> = {
   left: Position.Left,
 };
 
+/** How long a click on a name waits to see whether a second one follows. On a
+ *  card a double-click descends into it, and the first of those two clicks
+ *  looks exactly like a click meaning "rename". */
+const DWELL = 260;
+
+/** A name edited where it is drawn.
+ *
+ *  One click opens it, but only when what it belongs to is already selected —
+ *  it is the second click of a rename, never the first, so a click meant only
+ *  to select still only selects. The layer's own frame is always where you
+ *  are, so its name takes the click straight away.
+ *
+ *  Shared by the card, the group boundary and the frame, because a name should
+ *  be changed the same way wherever it is written. */
+export function Name({ text, live, className = "label", onRename }: {
+  text: string;
+  /** Whether a click should open the editor rather than fall through. */
+  live: boolean;
+  className?: string;
+  onRename: (label: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const timer = useRef(0);
+
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // Losing the selection abandons a rename that had not opened yet.
+  useEffect(() => {
+    if (!live) window.clearTimeout(timer.current);
+  }, [live]);
+
+  function done(value: string) {
+    // An unnamed thing shows its role, so leaving that untouched is not a
+    // rename to the word "block".
+    if (value.trim() && value.trim() !== text) onRename(value.trim());
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        // `nodrag`/`nopan` because React Flow's own listeners are native and on
+        // the node itself — stopping the React event here would come too late.
+        className="rename nodrag nopan"
+        autoFocus
+        defaultValue={text}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onBlur={(event) => done(event.target.value)}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === "Enter") done(event.currentTarget.value);
+          if (event.key === "Escape") setEditing(false);
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={className}
+      title={live ? "click again to rename" : undefined}
+      onClick={(event) => {
+        if (!live) return;
+        event.stopPropagation();
+        window.clearTimeout(timer.current);
+        timer.current = window.setTimeout(() => setEditing(true), DWELL);
+      }}
+      // Whatever the second click meant, it was not this.
+      onDoubleClick={() => window.clearTimeout(timer.current)}
+    >
+      {text}
+    </span>
+  );
+}
+
 /** What a dragged chip carries, so the canvas knows what was let go of. */
 export const LIFTED = "application/mndflow-node";
 /** What a row dragged out of the explorer carries. Dropping it on another
@@ -67,6 +143,7 @@ export type CardData = {
   /** Enter something's own contents. Only a double-click reaches this. */
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onRename: (id: string, label: string) => void;
 };
 
 /** The face opposite a side. Used for anchors looked at from the inside, and
@@ -297,7 +374,7 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
   const { node, graph, changed, dropping, picked, showPorts, pickedPort } =
     data as unknown as CardData;
-  const { onPick, onOpen, onSlidePort } = data as unknown as CardData;
+  const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
@@ -329,10 +406,14 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
         />
       ))}
 
-      {/* The name is not editable here: on the canvas a double-click goes
-          into something, so renaming is Enter, or the explorer. */}
+      {/* Edited where it is written, once the card is selected — the second
+          click of a rename. A double-click still descends. */}
       <div className="card-head">
-        <span className="label">{nameOf(graph, node)}</span>
+        <Name
+          text={nameOf(graph, node)}
+          live={picked}
+          onRename={(label) => onRename(node.id, label)}
+        />
         {node.type && <span className="kind">{node.type}</span>}
       </div>
 

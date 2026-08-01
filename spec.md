@@ -60,22 +60,29 @@ ungrouped, annotated, related, interfaced, referenced, and given descriptive att
 **Containers** — an internal treemap of their child blocks. Interfaces are never in it; they
 sit on the frame edge, and a container draws both at once.
 
-**A cell's size follows how closely that child relates to the container**, the same relevance
-its fill is shaded by, so the two say one thing twice rather than two things at once. Cells
-come out square, wide or tall depending on what has to fit beside what — which is the point. A
-grid of equal cells says only how many children there are; a treemap says which of them the
-container is mostly made of.
+**The band is divided by a fixed pattern**, not by measurement. The unit is 1|2 — one large
+cell on the left, two stacked on the right — or two wide rows when there are only two. One
+such unit fills the band for up to three children; two sit as columns for up to six; three
+tile as left | top-right / bottom-right for up to nine. Cells come out square, wide and tall
+against each other, so the division reads as a shape rather than as a row of equal boxes, and
+a container of the same size always divides the same way.
 
-**A cell holding things of its own draws a grid inside it** — the grids-within-grids that
-makes a container read as full at a glance. That inner grid is a *count*, not a listing: one
-blank square per thing the child holds, and it stops there. Following it down turned a deep
-container into a texture, where nothing is legible and the shape says nothing at all.
+**Nine chips is the cap.** At ten or more, eight are drawn and the last slot reads `...` for
+the rest; clicking it opens the container, which is where the rest of them are anyway. Past
+that count the cells are too small to tell apart, and a card is a summary rather than a list.
 
-**Names show only for a container of one or two**, and then only in a cell with room for one.
-Past that the cells shrink and the words go, because a name in a sliver of a cell is not a
-name. How much is in here and how it is divided read perfectly well without them, and the
-treemap is for that rather than for reading off contents. Every cell names itself on hover
-regardless.
+**Relevance is carried by the fill.** Each cell's shade follows how closely that child's name
+relates to the container's, so one that has drifted off topic looks ragged rather than reading
+as tidy. Size says nothing about relevance — the packing is fixed, and the shade is where the
+question is answered.
+
+**A name shrinks to fit its cell, and hides when even the floor will not fit.** A name in a
+sliver of a cell is not a name; the partition still reads without it, and every cell names
+itself on hover.
+
+**Nesting stops at the first layer.** A child that is itself a container is marked as one and
+no further — no miniature of *its* children. Following it down turned a deep container into a
+texture, where nothing is legible and the shape says nothing at all.
 
 **A container is barely bigger than a block** — room for the treemap under its name, and no
 more. It does not swell with what it holds: the cells shrink instead. A card that grows with
@@ -185,6 +192,31 @@ carry no marking at all. Direction belongs to the relationship, not to what it a
 and marking an interface is a note to the reader rather than a constraint on the model.
 
 
+### Naming
+
+**A name is written the way it was typed, and the same way everywhere.** The explorer, a card,
+the layer's frame, the breadcrumb trail and the attribute panel all show one spelling and one
+case. Nothing lower-cases or capitalises a name on its way to being drawn: two views of the
+same object that disagree about its name read as two objects.
+
+The only names not typed by anyone are the role words an unnamed thing falls back to —
+`block`, `container`, `interface 3` — and those are lower case because they are descriptions
+rather than names. Giving something a name replaces the description entirely.
+
+**A name is edited where it is drawn.** One click opens the editor, but only on something that
+is already selected: it is the second click of a rename, never the first, so a click meant only
+to select still only selects. `Enter` commits, `Esc` abandons, and clicking away commits.
+
+- **A card** — select it, then click its name. A double-click still descends into it, so the
+  editor waits a moment to see whether a second click is coming.
+- **A group boundary** — select it, then click its name.
+- **The layer's own frame** — one click, no selecting first. This layer is where you already
+  are, so there is no first click to spend.
+
+The explorer renames on double-click, as a file tree does. Neither replaces the other: you
+rename a thing where you are looking at it.
+
+
 ### Relationships
 
 An edge represents a relationship between two nodes. Relationships may be typed, annotated,
@@ -272,14 +304,45 @@ The boundary follows its members and nothing else:
 - Selecting the group and selecting elements are separate gestures. A selection box drawn from
   inside a boundary is an ordinary selection box — it takes the elements it fully contains and
   never sweeps in the group itself.
-- Dragging a node into or out of the boundary's area does nothing to membership. Membership is
-  an attribute, changed in the attribute panel or by the group action.
 - A group holds two or more members. Deleting a member, or moving it to another scope, drops
   it from the group and the boundary re-fits; when that would leave a single member, the
   attribute is removed altogether rather than left drawn around one node.
 - A node may hold any number of group attributes, so boundaries overlap freely. Overlapping
   backgrounds compound, so an area covered by several groups reads denser than one covered by
   a single group, and the overlap is legible without any special handling.
+
+**Membership is a drag, the way a container's is.** Drop a card inside a boundary and it
+joins; take it out and it leaves. A group should behave like the thing it looks like, and it
+looks like something you can put things into.
+
+- **What decides is the card's own middle**, against the boundary drawn from the members that
+  are *standing still*. A member helps define the boundary it sits in, so measured against all
+  of them a card could never be dragged far enough to leave — it would take the boundary with
+  it. Against the ones that are not moving, joining and leaving are the same test read in
+  opposite directions.
+- **A whole group moved together stays together.** When every member is on the move there is
+  nothing to measure against and nothing to measure: the group is travelling, not being left.
+- **Dropping *on* a card is a move into that card**, not a join — that gesture is already
+  spoken for, and it is structural, so it wins. Joining is what dropping in the clear space
+  inside a boundary means. A tight group has little such space, which is the honest
+  consequence of a boundary being nothing but its members.
+- Landing in or out of a boundary is part of the same action as the move, so one undo takes
+  back both.
+- The attribute panel still lists membership and still adds and removes it. Dragging is the
+  quick way, not the only way.
+
+**None of this makes a group structural.** No node's parent changes, the object explorer still
+never shows it, and what is inside the boundary is a fact about where things sit rather than
+about what contains what. That is the whole difference between a group and a container, and it
+survives them sharing a gesture.
+
+**The boundary has no appearance of its own to set.** One faint dashed line, the same for every
+group, so a canvas of them reads as one kind of thing rather than as a palette. It brightens
+when selected, and again when a card is over it and would join. Colour, custom content and the
+rest come later; until they do there is nothing in the panel to set, because there is nothing
+to set.
+
+**Its name is edited on the canvas**, on the boundary itself — see Naming below.
 
 
 ## Display (UI)
@@ -450,7 +513,7 @@ state per row:
 | a child block | that block's body text, type, and attributes, including which groups it belongs to |
 | an interface | the same, for the interface |
 | a relationship | its type, label, direction, and attributes |
-| a group boundary | that shared attribute: its name, label, tags, colour, and its members |
+| a group boundary | that shared attribute: its name, label, tags, and its members |
 
 Selecting a node in the explorer makes it the scope, and with nothing selected on the canvas
 the panel shows that node's own attributes — so the explorer is a way to inspect a node as
@@ -505,12 +568,18 @@ of every reorganization costs more than it saves.
 Left-dragging on the canvas depends on where the drag starts:
 
 - **From a node** — moves the node. Dropped on another card it goes inside it, wherever on
-  that card it landed. A card's border is not a drop target of its own.
+  that card it landed; a card's border is not a drop target of its own. Dropped in the clear
+  space inside a group's boundary it joins that group, and dropped outside one it was in, it
+  leaves.
 - **From a selected interface** — slides it along its frame edge, and no further.
 - **From a selected group's background** — moves every member of that group together.
 - **From empty background, or from an unselected group's background** — draws a selection
   box, which takes the elements it fully contains. Dragging a selection moves all of it as one
   action.
+
+Once a selection box has caught something, the box that stays around it **reaches a little
+past what it holds** rather than hugging it exactly. Sized to the contents, its line lands on
+the cards' own borders and reads as part of them instead of as something drawn around them.
 
 Selection behaves the same way throughout: click to select, then drag what is selected. It is
 what makes a group movable, an interface slidable, and a multi-node selection draggable as one
@@ -540,8 +609,8 @@ these are the actions right-click takes:
 | a relationship | rename the relationship |
 
 Once the menu exists, each of these becomes its default entry and the alternatives sit beside
-it — direction and reversal for a relationship, colour and ungroup for a group, lay-out-again
-and paste for the canvas, delete throughout.
+it — direction and reversal for a relationship, ungroup for a group, lay-out-again and paste
+for the canvas, delete throughout.
 
 ### Keyboard
 

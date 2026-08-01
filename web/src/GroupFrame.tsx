@@ -5,59 +5,39 @@
  *  the boundary follows them with a small margin, the way the layer's own
  *  frame follows its contents.
  *
- *  Click the background to select it, then drag to move everything inside.
- *  Its name is edited here, on the canvas; its colour lives in the attribute
- *  panel, where the rest of the attribute already is. */
+ *  Membership is a drag, the way a container's is: drop a card inside the
+ *  boundary and it joins, take it out and it leaves. Click the background to
+ *  select the boundary itself, then drag to move everything inside.
+ *
+ *  It has no look of its own to set. One faint dashed line, the same for every
+ *  group, so a canvas of them reads as one kind of thing rather than as a
+ *  palette; overlapping backgrounds compound, which is all the distinction the
+ *  drawing needs. Colour and the rest come later. */
 
-import { memo, useState } from "react";
+import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
+
+import { Name } from "./NodeCard";
 
 export type GroupData = {
   label: string;
-  color: string;
   picked: boolean;
+  /** A card is being dragged over this boundary and would join it. */
+  dropping: boolean;
   onPick: () => void;
   onLabel: (label: string) => void;
 };
 
 export const GroupFrame = memo(({ data }: NodeProps) => {
-  const { label, color, picked, onPick, onLabel } = data as unknown as GroupData;
-  const [editing, setEditing] = useState(false);
-
-  function rename(value: string) {
-    onLabel(value.trim());
-    setEditing(false);
-  }
+  const { label, picked, dropping, onPick, onLabel } = data as unknown as GroupData;
 
   return (
     <div
-      className={`region ${picked ? "picked" : ""}`}
-      style={{ borderColor: color, background: `${color}1a` }}
+      className={`region ${picked ? "picked" : ""} ${dropping ? "dropping" : ""}`}
       onClick={onPick}
     >
       <div className="region-tools nodrag">
-        {editing ? (
-          <input
-            className="rename"
-            autoFocus
-            defaultValue={label}
-            onPointerDown={(event) => event.stopPropagation()}
-            onBlur={(event) => rename(event.target.value)}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === "Enter") rename(event.currentTarget.value);
-              if (event.key === "Escape") setEditing(false);
-            }}
-          />
-        ) : (
-          <span
-            className="name"
-            title="double-click to name this group"
-            onDoubleClick={(event) => (event.stopPropagation(), setEditing(true))}
-          >
-            {label || "group"}
-          </span>
-        )}
+        <Name text={label || "group"} live={picked} className="name" onRename={onLabel} />
       </div>
     </div>
   );

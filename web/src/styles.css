@@ -364,6 +364,23 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .card-head .label { overflow-wrap: anywhere; }
+/* A selected card's name is the way to rename it, so it says so on hover. */
+.card.picked .card-head .label { cursor: text; }
+
+/* Edited in place, sized and set like the name it replaces so the card does
+   not jump when the field opens. */
+.card-head .rename {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.card-head .rename:focus { outline: none; }
 .card-head .kind { color: var(--muted); font-size: 10px; letter-spacing: 0.08em; flex: none; }
 
 /* Cells are placed, not flowed: each one is a rectangle the treemap worked
@@ -445,9 +462,27 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 0.16em;
-  text-transform: lowercase;
-  pointer-events: none;
+  /* No case of its own. A name is written the way it was typed, and the same
+     way wherever it appears — the explorer, a card, the trail, and here. */
+  pointer-events: auto;
 }
+
+/* This layer is where you already are, so one click on its name edits it. */
+.frame-name .frame-label { cursor: text; }
+.frame-name .frame-label:hover { color: var(--text); }
+
+.frame-name .rename {
+  width: 12em;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.frame-name .rename:focus { outline: none; }
 
 /* Interfaces: open squares on the frame edge, on a card or on the frame */
 
@@ -1232,11 +1267,25 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .floating button { padding: 1px 7px; font-size: 12px; line-height: 18px; }
 
-/* Selection box */
+/* Selection box, while it is being drawn */
 
 .react-flow__selection {
   background: rgba(74, 222, 128, 0.07);
   border: 1px solid var(--accent);
+}
+
+/* ...and once it has caught something. The library sizes it to hug the
+   selection exactly, which leaves the line sitting on the cards' own borders
+   and reading as part of them. Content-box plus a negative margin grows the
+   drawn box past what it holds without moving it: the padding is added to the
+   stated width, and the margin takes the same amount back off the offset. */
+.react-flow__nodesselection-rect {
+  box-sizing: content-box;
+  margin: -10px;
+  padding: 10px;
+  border: 1px dashed rgba(74, 222, 128, 0.6);
+  border-radius: 4px;
+  background: rgba(74, 222, 128, 0.05);
 }
 
 /* A group's boundary — one shared attribute, drawn around its members.
@@ -1246,14 +1295,31 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
  * group. Selecting it is a click, which the canvas routes by position; once
  * selected it takes the pointer back and can be dragged. */
 
+/* One faint line, the same for every group. A canvas of them should read as
+   one kind of thing rather than as a palette, and where two overlap the
+   backgrounds compound — which is all the distinction the drawing needs. */
 .region {
   width: 100%;
   height: 100%;
-  border: 1px dashed;
-  border-radius: 6px;
+  border: 1px dashed rgba(107, 143, 125, 0.34);
+  border-radius: 8px;
+  background: rgba(107, 143, 125, 0.05);
 }
 
-.region.picked { border-style: solid; }
+.region.picked {
+  border-color: rgba(74, 222, 128, 0.55);
+  border-style: solid;
+  background: rgba(74, 222, 128, 0.05);
+}
+
+/* A card is over it and would join by being let go here — the same signal a
+   container gives, because it is the same gesture. */
+.region.dropping {
+  border-color: var(--accent);
+  border-style: solid;
+  background: rgba(74, 222, 128, 0.09);
+}
+
 .region.picked .region-tools .name { color: var(--accent); }
 
 .region-tools {
@@ -1270,6 +1336,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .region-tools .name { color: var(--muted); font-size: 11px; letter-spacing: 0.04em; }
+.region.picked .region-tools .name { cursor: text; }
 
 .region-tools .rename {
   width: 10em;

@@ -199,12 +199,9 @@ export function Panel(props: Props) {
                 placeholder="group"
                 onChange={(event) => onUpdateAttr(attr.id, { name: event.target.value })}
               />
-              <input
-                type="color"
-                value={attr.color}
-                title="Boundary colour"
-                onChange={(event) => onUpdateAttr(attr.id, { color: event.target.value })}
-              />
+              {/* No colour picker: every boundary is drawn the same way for
+                  now, so there is nothing here to set. Colour and the rest of
+                  a group's appearance come later. */}
               <span className="held">{attr.holders.length} members</span>
               <button onClick={() => onDropAttr(attr.id)} title="Ungroup">✕</button>
             </div>

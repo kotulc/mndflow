@@ -184,16 +184,29 @@ export function useProject() {
     place: (id: string, x: number, y: number) =>
       commit(makeStep(`place: ${name(id)}`, "place", [{ op: "place_node", id, x, y }])),
 
-    /** Several at once — a selection dragged together is one action, and so is
-     *  a group's members moving with its boundary. */
-    placeMany: (moved: { id: string; x: number; y: number }[], what = "") =>
-      moved.length &&
+    /** Where a drag came to rest: the positions things landed at, and any group
+     *  they joined or left by landing there.
+     *
+     *  One step, because it was one gesture — a card dropped inside a boundary
+     *  moved *and* joined, and undo should take back both. Several at once for
+     *  the same reason: a selection dragged together is one action, and so is a
+     *  group's members moving with its boundary. */
+    placeMany: (moved: { id: string; x: number; y: number }[], what = "",
+                membership: { attr: string; holder: string; join: boolean }[] = []) =>
+      (moved.length || membership.length) &&
       commit(makeStep(
-        what || (moved.length === 1
-          ? `place: ${name(moved[0].id)}`
-          : `place ${moved.length} together`),
+        what || (membership.length
+          ? `${membership[0].join ? "into" : "out of"} a group`
+          : moved.length === 1
+            ? `place: ${name(moved[0].id)}`
+            : `place ${moved.length} together`),
         "place",
-        moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
+        [
+          ...moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
+          ...membership.map(({ attr, holder, join }) => join
+            ? { op: "attach_attr" as const, id: attr, holder }
+            : { op: "detach_attr" as const, id: attr, holder }),
+        ],
       )),
 
     write: (id: string, body: string) =>

@@ -148,7 +148,10 @@ type Props = {
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
   onRelation: (id: string, relation: string) => void;
-  onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string) => void;
+  /** Where a drag came to rest, and any group each thing joined or left by
+   *  landing there — one gesture, so one action. */
+  onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string,
+                membership?: { attr: string; holder: string; join: boolean }[]) => void;
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
   onGroup: (members: string[]) => void;
@@ -172,6 +175,10 @@ function Flow(props: Props) {
   /** The card a dragged card is currently over — the one it would go inside. */
   const [dropping, setDropping] = useState<string | null>(null);
   const dropRef = useRef<string | null>(null);
+  /** Group boundaries a dragged card would land inside, so they light up the
+   *  way a container does. */
+  const [joining, setJoining] = useState<string[]>([]);
+  const joinRef = useRef("");
   /** True while the pointer is near the layer frame's border. */
   const [grazing, setGrazing] = useState(false);
   const heldRef = useRef<string | null>(null);
@@ -270,6 +277,7 @@ function Flow(props: Props) {
         onPick: (id: string) => onPick({ kind: "node", id }),
         onOpen,
         onSlidePort,
+        onRename,
       },
     })) as FlowNode[];
 
@@ -299,8 +307,8 @@ function Flow(props: Props) {
         selectable: false,
         data: {
           label: attr.name,
-          color: attr.color,
           picked: chosen,
+          dropping: joining.includes(attr.id),
           onPick: () => onPick({ kind: "attr", id: attr.id }),
           onLabel: (label: string) => onNameGroup(attr.id, label),
         },
@@ -335,6 +343,7 @@ function Flow(props: Props) {
             onPick: (id: string) => onPick({ kind: "node", id }),
             onOpen,
             onSlidePort,
+            onRename,
             grazed: grazing,
           },
         } as FlowNode]
@@ -343,8 +352,8 @@ function Flow(props: Props) {
     // Order is depth: the frame behind everything, then group boundaries, then
     // the cards — references among them, being cards like any other.
     return [...frame, ...groups, ...cards];
-  }, [graph, members, boxes, bands, frameBox, view, marked, dropping, pickedNode, picked,
-      showPorts, grazing, onPick, onOpen, onSlidePort, onNameGroup]);
+  }, [graph, members, boxes, bands, frameBox, view, marked, dropping, joining, pickedNode,
+      picked, showPorts, grazing, onPick, onOpen, onSlidePort, onRename, onNameGroup]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
@@ -509,6 +518,41 @@ function Flow(props: Props) {
       return null;
     },
     [graph, boxes],
+  );
+
+  /** Where a card has landed, in its own middle — what every drop test uses,
+   *  because you aim with the card you can see rather than with the pointer. */
+  const middleOf = useCallback((node: { id: string; position: { x: number; y: number } }) => {
+    const size = sizeOf(graph, graph.nodes[node.id]);
+
+    return { x: node.position.x + size.w / 2, y: node.position.y + size.h / 2 };
+  }, [graph]);
+
+  /** The groups a card belongs to, having come to rest at `mid`.
+   *
+   *  Each boundary is measured from the members that are *staying put*. A
+   *  member helps define the boundary it sits in, so measured against all of
+   *  them a card could never be dragged far enough to leave — it would take
+   *  the boundary with it. Against the ones standing still, joining and
+   *  leaving are the same test read in opposite directions.
+   *
+   *  When every member is on the move there is nothing to measure against, and
+   *  nothing to measure: the group is travelling rather than being left, so
+   *  whoever is in it stays in it. */
+  const enclosing = useCallback(
+    (mover: string, mid: { x: number; y: number }, moving: Set<string>) =>
+      groupsIn(graph, view)
+        .filter(({ attr, here }) => {
+          const staying = here.filter((id) => !moving.has(id));
+          if (!staying.length) return attr.holders.includes(mover);
+
+          const box = around(staying.map((id) => boxes[id]).filter(Boolean), HUG);
+
+          return box && mid.x >= box.x && mid.x <= box.x + box.w &&
+                        mid.y >= box.y && mid.y <= box.y + box.h;
+        })
+        .map(({ attr }) => attr.id),
+    [graph, view, boxes],
   );
 
   /** The card, port or frame under a screen point, as ids. The frame is
@@ -902,15 +946,25 @@ function Flow(props: Props) {
 
           heldRef.current = node.id;
         }}
-        onNodeDrag={(_, node) => {
+        onNodeDrag={(_, node, moving) => {
           if (node.type !== "card") return;
 
-          // Only re-render when the target actually changes, not every pixel.
+          // Only re-render when a target actually changes, not every pixel.
           const hit = landing(node);
-          if (hit === dropRef.current) return;
+          if (hit !== dropRef.current) {
+            dropRef.current = hit;
+            setDropping(hit);
+          }
 
-          dropRef.current = hit;
-          setDropping(hit);
+          // Dropping inside a card is a move into it, so no group is being
+          // joined at the same time — the card lands in another layer.
+          const afoot = new Set((moving?.length ? moving : [node]).map((n) => n.id));
+          const inside = hit ? [] : enclosing(node.id, middleOf(node), afoot);
+          const key = inside.join(",");
+          if (key !== joinRef.current) {
+            joinRef.current = key;
+            setJoining(inside);
+          }
         }}
         onNodeDragStop={(_, node, dragged) => {
           // A group's boundary carries its members: whatever it travelled,
@@ -934,7 +988,9 @@ function Flow(props: Props) {
           const into = node.type === "card" ? landing(node) : null;
           dropRef.current = null;
           heldRef.current = null;
+          joinRef.current = "";
           setDropping(null);
+          setJoining([]);
 
           // Dropped on another card: that card becomes its container.
           if (into) return onNest(node.id, into);
@@ -943,19 +999,31 @@ function Flow(props: Props) {
           // belongs to whatever contains this layer. The card's own middle is
           // what counts, not the pointer — you aim with the card you can see.
           if (view && frameBox) {
-            const size = sizeOf(graph, graph.nodes[node.id]);
-            const x = node.position.x + size.w / 2;
-            const y = node.position.y + size.h / 2;
+            const { x, y } = middleOf(node);
             const out = x < frameBox.x || x > frameBox.x + frameBox.w ||
                         y < frameBox.y || y > frameBox.y + frameBox.h;
             if (out) return onPromote(node.id, graph.nodes[view]?.parent ?? null);
           }
 
           // A selection dragged together lands together.
-          const moved = (dragged?.length ? dragged : [node])
-            .filter((n) => n.type === "card")
-            .map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
-          onPlaceMany(moved);
+          const cards = (dragged?.length ? dragged : [node]).filter((n) => n.type === "card");
+          const moved = cards.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
+
+          // ...and joins or leaves whatever boundaries it landed in or out of.
+          // A group takes members by drag the way a container does; what makes
+          // it a group rather than a container is that nothing's parent moves.
+          const here = groupsIn(graph, view);
+          const afoot = new Set(cards.map((n) => n.id));
+          const membership = cards.flatMap((card) => {
+            const inside = new Set(enclosing(card.id, middleOf(card), afoot));
+
+            return here
+              .filter(({ attr }) => attr.holders.includes(card.id) !== inside.has(attr.id))
+              .map(({ attr }) => ({ attr: attr.id, holder: card.id,
+                                    join: inside.has(attr.id) }));
+          });
+
+          onPlaceMany(moved, "", membership);
         }}
         onEdgeDoubleClick={(_, edge) => setPrompt({ kind: "relation", id: edge.id })}
         // A placeholder is a drawing of something elsewhere; deleting it here
