@@ -20,17 +20,48 @@ import { useEmbeddings } from "./useEmbeddings";
 /** Tag type scales between these; below the floor the name is withheld. */
 const TAG = { min: 6, max: 9, line: 1.15, pad: 4, mono: 0.62 };
 
-/** Largest font that fits the cell, or null when even the floor will not. */
-function fitTag(w: number, h: number, text: string): number | null {
+/** How many lines `text` needs at `cols` characters per line, wrapping only
+ *  on spaces. Returns null when a single word is longer than a line. */
+function wrapLines(text: string, cols: number): number | null {
+  if (cols < 1) return null;
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return 1;
+
+  let lines = 1;
+  let used = 0;
+  for (const word of words) {
+    if (word.length > cols) return null;
+    if (used === 0) {
+      used = word.length;
+    } else if (used + 1 + word.length <= cols) {
+      used += 1 + word.length;
+    } else {
+      lines += 1;
+      used = word.length;
+    }
+  }
+  return lines;
+}
+
+/** Largest font that fits the cell. Prefers space-wrapping; if a word will not
+ *  fit unbroken, falls back to one clipped line so the name still shows. */
+function fitTag(w: number, h: number, text: string): { size: number; wrap: boolean } | null {
   const aw = w - TAG.pad;
   const ah = h - TAG.pad;
   if (ah < TAG.min * TAG.line || aw < TAG.min) return null;
 
-  // Height first, then shrink for the full string; if it still will not fit at
-  // the floor, keep the floor and let ellipsis clip — better than blank.
-  let size = Math.min(TAG.max, ah / TAG.line);
+  const top = Math.min(TAG.max, ah / TAG.line);
+  for (let size = top; size >= TAG.min - 1e-6; size -= 0.25) {
+    const cols = Math.floor(aw / (size * TAG.mono));
+    const lines = wrapLines(text, cols);
+    if (lines != null && lines * size * TAG.line <= ah + 1e-6) {
+      return { size, wrap: true };
+    }
+  }
+
+  let size = top;
   if (text.length) size = Math.min(size, aw / (text.length * TAG.mono));
-  return size >= TAG.min ? size : TAG.min;
+  return { size: Math.max(size, TAG.min), wrap: false };
 }
 /** How a side maps onto React Flow's own positions. */
 const SIDES: Record<Side, Position> = {
@@ -289,7 +320,8 @@ type ContentsProps = {
  *  tile as left | top-right / bottom-right. At ten or more the bottom-right
  *  cell reads "..." for the rest — click still opens the container.
  *
- *  Names shrink to fit the cell down to a floor, then hide.
+ *  Names wrap on spaces and shrink to fit; a single long word stays on one
+ *  line and ellipsizes rather than vanishing.
  *
  *  Interfaces are never in here; they live on the frame. */
 function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
@@ -322,7 +354,7 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
       {shown.map((kid, at) => {
         const seat = tiles[at];
         const label = nameOf(graph, kid);
-        const size = fitTag(seat.w - 2, seat.h - 2, label);
+        const fit = fitTag(seat.w - 2, seat.h - 2, label);
 
         return (
           <div
@@ -339,8 +371,8 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
             onClick={(event) => (event.stopPropagation(), onPick(kid.id))}
             onDoubleClick={(event) => (event.stopPropagation(), onOpen(kid.id))}
           >
-            {size != null && (
-              <span className="tag" style={{ fontSize: size }}>
+            {fit && (
+              <span className={`tag${fit.wrap ? "" : " clip"}`} style={{ fontSize: fit.size }}>
                 {label}
               </span>
             )}
@@ -349,7 +381,7 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
       })}
       {overflow && (() => {
         const seat = tiles[CHIP_CAP - 1];
-        const size = fitTag(seat.w - 2, seat.h - 2, "...");
+        const fit = fitTag(seat.w - 2, seat.h - 2, "...");
 
         return (
           <div
@@ -359,8 +391,8 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
             onClick={(event) => (event.stopPropagation(), onOpen(id))}
             onDoubleClick={(event) => (event.stopPropagation(), onOpen(id))}
           >
-            {size != null && (
-              <span className="tag" style={{ fontSize: size }}>
+            {fit && (
+              <span className={`tag${fit.wrap ? "" : " clip"}`} style={{ fontSize: fit.size }}>
                 ...
               </span>
             )}
