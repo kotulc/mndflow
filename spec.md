@@ -243,20 +243,36 @@ children are the top-level nodes and its attributes are the project's.
 around it to show the interfaces sitting on its edge. Double-clicking outside the frame
 returns to the previous level.
 
+**Inside the frame is the canvas**, left clear to the grid — it is where the work happens.
+Everything outside it is dimmed. The frame is the boundary of the thing you are in, seen from
+within, not a panel laid over the page, so the lit area is the space you can build in and the
+dark area is merely the outside world.
+
 A node with no children still has a node view — the frame, its interfaces, and empty space to
 build in. Descending into a block is how you start giving it contents, so it must not be a
 dead end.
 
-**Interface view.** The inside of an interface. It looks like a node view, except the frame is
-embedded in its parent's frame, sitting half inside and half outside it, with a vertical line
-dividing the background margins to make that read.
+**Interface view.** The inside of an interface. An interface is a small square set into its
+parent's edge; opening it fills the canvas with that square, so the thing you were looking at
+from across the layer now surrounds you.
+
+What marks it as an interface rather than an ordinary node is **the parent's own border**,
+drawn in the dimmed margin outside the frame. It runs up to the frame from one direction and
+away from it on the other, stopping where the frame begins — the wall the port is set into,
+passing behind you. Nothing is drawn inside the frame; the interior is working canvas like any
+other.
+
+The border's direction follows the edge the interface sits on: a port on the parent's left or
+right is set into a vertical wall, so the line runs up and down; a port on its top or bottom
+is set into a horizontal one, so the line runs left and right.
 
 > Worked example. `Gateway` is a container with an interface `HTTP` on its right edge.
-> Descending into `HTTP` shows a frame straddling `Gateway`'s boundary: to the left of the
-> divider, the parts of `HTTP` that face inward — `Router`, `AuthCheck` — and to the right,
-> the parts that face the outside world — `TLS`, `RateLimit`. Relationships crossing the
-> divider are exactly the ones that cross `Gateway`'s boundary through this interface, which
-> is what makes the split worth drawing.
+> Descending into `HTTP` fills the canvas with `HTTP`'s own frame, and a vertical line
+> continues above and below it — `Gateway`'s right-hand border, seen from inside the port set
+> into it. The blocks left of that line's continuation face inward — `Router`, `AuthCheck` —
+> and the ones right of it face the outside world — `TLS`, `RateLimit`. Relationships crossing
+> the line are exactly the ones that cross `Gateway`'s boundary through this interface, which
+> is what makes the view worth drawing.
 
 
 ### Object Explorer

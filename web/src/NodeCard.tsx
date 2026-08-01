@@ -1,44 +1,41 @@
 /** One card on the canvas.
  *
- *  A group shows what is inside it as a grid of chips, and a chip that is
- *  itself a group shows its own contents in miniature — so nesting is visible
- *  at every level without opening anything. Each chip's fill follows how
- *  closely its name relates to the group's, which makes a group that has
+ *  A container shows its child blocks as a grid of chips, and a chip that is
+ *  itself a container shows its own contents in miniature — so nesting is
+ *  visible at every level without opening anything. Each chip's fill follows
+ *  how closely its name relates to the container's, which makes one that has
  *  drifted off topic look ragged rather than reading as tidy.
  *
- *  The chips are live: clicking one selects that object, and dragging one onto
- *  the canvas lifts it back out of the group. */
+ *  Interfaces sit on the frame edge instead, and never in the treemap. The two
+ *  are independent: a block with ports is still a block. */
 
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
-import { isGroup } from "./core/fold";
+import { blocksOf, isContainer, portsOf } from "./core/fold";
 import { affinity, tile } from "./core/layout";
-import type { Graph, Node } from "./core/types";
+import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
 /** Below this a chip has no room for words, only its shade. */
 const READABLE = 46;
-/** Evenly spaced offsets along one edge, as percentages. */
-function spread(count: number): number[] {
-  return Array.from({ length: count }, (_, i) => ((i + 1) / (count + 1)) * 100);
-}
+/** How a side maps onto React Flow's own positions. */
+const SIDES: Record<Side, Position> = {
+  top: Position.Top,
+  right: Position.Right,
+  bottom: Position.Bottom,
+  left: Position.Left,
+};
 
-/** Where a card can be joined: four anchors on a plain node, one per side.
- *  Something holding contents is wider than it is tall, so it gets a second
- *  anchor along the top and the bottom — six in all. */
-function anchorsFor(group: boolean) {
-  const ends = group ? 2 : 1;
-
-  return [
-    { position: Position.Left, along: spread(1), axis: "top" as const },
-    { position: Position.Right, along: spread(1), axis: "top" as const },
-    { position: Position.Top, along: spread(ends), axis: "left" as const },
-    { position: Position.Bottom, along: spread(ends), axis: "left" as const },
-  ];
-}
 /** What a dragged chip carries, so the canvas knows what was let go of. */
 export const LIFTED = "application/mndflow-node";
+
+/** Where an anchor sits on the frame, as CSS. */
+export function seat(side: Side, at: number): React.CSSProperties {
+  const along = `${Math.round(at * 100)}%`;
+
+  return side === "top" || side === "bottom" ? { left: along } : { top: along };
+}
 
 export type CardData = {
   node: Node;
@@ -46,13 +43,114 @@ export type CardData = {
   changed: boolean;
   dropping: boolean;
   picked: boolean;
-  /** Mark a chip as the selection without changing which layer is open — a
-   *  chip is already visible where it sits. */
+  /** Interfaces drawn or hidden — a display preference, global to the app. */
+  showPorts: boolean;
+  pickedPort: string | null;
+  /** Mark something as the selection without changing which layer is open. */
   onPick: (id: string) => void;
-  /** Enter a chip's own contents. Only a double-click reaches this. */
+  /** Enter something's own contents. Only a double-click reaches this. */
   onOpen: (id: string) => void;
-  onRename: (id: string, label: string) => void;
+  onSlidePort: (id: string, side: Side, at: number) => void;
 };
+
+/** A pair of handles under one name, so a relation can start or end here.
+ *  React Flow looks an endpoint up by type as well as id, so both exist. */
+export function Anchor({ name, side }: { name: string; side: Side }) {
+  const style = { position: "absolute" as const, ...seat(side, 0.5), opacity: 0 };
+
+  return (
+    <>
+      <Handle type="target" id={`${name}-t`} position={SIDES[side]} isConnectable={false}
+              style={style} />
+      <Handle type="source" id={`${name}-s`} position={SIDES[side]} isConnectable={false}
+              style={style} />
+    </>
+  );
+}
+
+export type PortProps = {
+  port: Node;
+  graph: Graph;
+  picked: boolean;
+  onPick: (id: string) => void;
+  onOpen: (id: string) => void;
+  onSlide: (id: string, side: Side, at: number) => void;
+};
+
+/** One interface on the frame edge. Click to select it; once selected it
+ *  slides along the edge and around corners, the same way a group moves only
+ *  once it has been picked.
+ *
+ *  Shared by the cards and by the layer's own frame, which carries ports the
+ *  same way — the only difference is whose edge they sit on. */
+export function Port({ port, graph, picked, onPick, onOpen, onSlide }: PortProps) {
+  const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
+  const held = useRef(false);
+  const side = drag?.side ?? port.side ?? "right";
+  const at = drag?.at ?? port.at ?? 0.5;
+  const deep = isContainer(graph, port.id);
+
+  /** Nearest edge of the card to a point, and how far along it. */
+  function nearest(event: React.PointerEvent): { side: Side; at: number } {
+    const host = (event.currentTarget as HTMLElement).closest(".card, .frame");
+    const box = host?.getBoundingClientRect();
+    if (!box) return { side, at };
+
+    const x = Math.min(Math.max(event.clientX - box.left, 0), box.width);
+    const y = Math.min(Math.max(event.clientY - box.top, 0), box.height);
+    const gaps = { left: x, right: box.width - x, top: y, bottom: box.height - y };
+    const closest = (Object.keys(gaps) as Side[])
+      .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
+    const along = closest === "top" || closest === "bottom" ? x / box.width : y / box.height;
+
+    return { side: closest, at: Math.min(Math.max(along, 0.04), 0.96) };
+  }
+
+  return (
+    <span
+      // `nodrag` keeps React Flow's own drag off this: its listener is native
+      // and on the card itself, so stopping the React event here would come
+      // too late — the card would move instead of the port sliding along it.
+      className={[
+        "port", "nodrag", "nopan", `port-${side}`, picked ? "picked" : "",
+        deep ? "deep" : "", port.flow ? `flow-${port.flow}` : "",
+      ].join(" ")}
+      style={seat(side, at)}
+      title={port.label || "interface"}
+      data-port={port.id}
+      onPointerDown={(event) => {
+        // The right button belongs to the canvas, which draws relationships
+        // from here — swallowing it would make a port the one place a relation
+        // could not start.
+        if (event.button !== 0) return;
+
+        event.stopPropagation();
+        if (!picked) return;
+
+        // Only a selected port slides, so a first click can select it without
+        // also dragging it somewhere.
+        held.current = true;
+        (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => held.current && setDrag(nearest(event))}
+      onPointerUp={(event) => {
+        if (!held.current) return;
+        held.current = false;
+        const landed = nearest(event);
+        setDrag(null);
+        if (landed.side !== port.side || landed.at !== port.at) {
+          onSlide(port.id, landed.side, landed.at);
+        }
+      }}
+      onClick={(event) => (event.stopPropagation(), onPick(port.id))}
+      onDoubleClick={(event) => (event.stopPropagation(), onOpen(port.id))}
+    >
+      <span className="mark" />
+      {port.label && <span className="port-name">{port.label}</span>}
+      <Anchor name={`port-${port.id}`} side={side} />
+    </span>
+  );
+}
 
 type ContentsProps = {
   graph: Graph;
@@ -62,9 +160,10 @@ type ContentsProps = {
   onOpen: (id: string) => void;
 };
 
-/** The contents of a group, laid out as a grid that recurses into subgroups. */
+/** The contents of a container, as a grid that recurses into sub-containers.
+ *  Child blocks only — interfaces live on the frame, not in here. */
 function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
-  const kids = Object.values(graph.nodes).filter((n) => n.parent === id);
+  const kids = blocksOf(graph, id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
   const { cols } = tile(kids.length);
@@ -77,7 +176,7 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
         return (
           <div
             key={kid.id}
-            className={`cell nodrag ${isGroup(graph, kid.id) ? "group" : "object"}`}
+            className={`cell nodrag ${isContainer(graph, kid.id) ? "group" : "object"}`}
             title={`${kid.label} — drag onto the canvas to lift it out`}
             draggable
             onDragStart={(event) => {
@@ -86,31 +185,16 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
               event.dataTransfer.effectAllowed = "move";
             }}
             onClick={(event) => (event.stopPropagation(), onPick(kid.id))}
-            onDoubleClick={(event) =>
-              (event.stopPropagation(), isGroup(graph, kid.id) && onOpen(kid.id))
-            }
+            onDoubleClick={(event) => (event.stopPropagation(), onOpen(kid.id))}
             // Fill carries the affinity score; the floor keeps a weak match
             // visible rather than invisible.
             style={{ background: `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})` }}
           >
-            {isGroup(graph, kid.id) ? (
+            {isContainer(graph, kid.id) ? (
               <Contents graph={graph} id={kid.id} size={cell} onPick={onPick} onOpen={onOpen} />
             ) : (
               cell >= READABLE && <span className="tag">{kid.label}</span>
             )}
-
-            <Handle
-              type="target"
-              id={`child:${kid.id}`}
-              position={Position.Left}
-              className="chip-handle"
-            />
-            <Handle
-              type="source"
-              id={`child:${kid.id}`}
-              position={Position.Right}
-              className="chip-handle"
-            />
           </div>
         );
       })}
@@ -119,77 +203,47 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
 }
 
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
-  const { node, graph, changed, dropping, picked, onPick, onOpen, onRename } =
+  const { node, graph, changed, dropping, picked, showPorts, pickedPort } =
     data as unknown as CardData;
-  const [editing, setEditing] = useState(false);
+  const { onPick, onOpen, onSlidePort } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
-  const group = isGroup(graph, node.id);
-  const classes = ["card", group ? "group" : "object",
+  const holds = isContainer(graph, node.id);
+  const classes = ["card", holds ? "group" : "object",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
                    changed ? "changed" : "", dropping ? "dropping" : ""].join(" ");
 
-  function rename(value: string) {
-    const wanted = value.trim();
-    if (wanted && wanted !== node.label) onRename(node.id, wanted);
-
-    setEditing(false);
-  }
-
-  const sides = anchorsFor(group);
-
   return (
     <div className={classes}>
-      {/* Every anchor is both a source and a target, so a relation can start or
-          end at any of them. */}
-      {sides.map(({ position, along, axis }) =>
-        along.map((at, index) => (
-          <span key={`${position}-${index}`}>
-            <Handle
-              type="target"
-              id={`${position}-t-${index}`}
-              position={position}
-              style={{ [axis]: `${at}%` }}
-            />
-            <Handle
-              type="source"
-              id={`${position}-s-${index}`}
-              position={position}
-              style={{ [axis]: `${at}%` }}
-            />
-          </span>
-        )),
-      )}
+      {/* One anchor per side for relations with no interface of their own —
+          derived from the relation itself, so nothing is stored and nothing is
+          left behind when it goes. */}
+      {(Object.keys(SIDES) as Side[]).map((side) => (
+        <Anchor key={side} name={`auto-${side}`} side={side} />
+      ))}
 
+      {showPorts && portsOf(graph, node.id).map((port) => (
+        <Port
+          key={port.id}
+          port={port}
+          graph={graph}
+          picked={pickedPort === port.id}
+          onPick={onPick}
+          onOpen={onOpen}
+          onSlide={onSlidePort}
+        />
+      ))}
+
+      {/* The name is not editable here: on the canvas a double-click goes
+          into something, so renaming is Enter, or the explorer. */}
       <div className="card-head">
-        {editing ? (
-          <input
-            className="rename"
-            autoFocus
-            defaultValue={node.label}
-            onPointerDown={(event) => event.stopPropagation()}
-            onBlur={(event) => rename(event.target.value)}
-            onKeyDown={(event) => {
-              event.stopPropagation();
-              if (event.key === "Enter") rename(event.currentTarget.value);
-              if (event.key === "Escape") setEditing(false);
-            }}
-          />
-        ) : (
-          <span
-            className="label"
-            title="double-click to rename"
-            onDoubleClick={(event) => (event.stopPropagation(), setEditing(true))}
-          >
-            {node.label}
-          </span>
-        )}
-        {node.type && !editing && <span className="kind">{node.type}</span>}
+        <span className="label">{node.label}</span>
+        {node.type && <span className="kind">{node.type}</span>}
       </div>
 
-      {group && <Contents graph={graph} id={node.id} size={160} onPick={onPick} onOpen={onOpen} />}
+      {holds && <Contents graph={graph} id={node.id} size={160} onPick={onPick} onOpen={onOpen} />}
     </div>
   );
 });

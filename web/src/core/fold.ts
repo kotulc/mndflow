@@ -7,6 +7,12 @@
 
 import { EMPTY, type Graph, type Mutation, type Node, type Step } from "./types";
 
+/** Whether a node sits on its parent's frame edge. That, and only that, is
+ *  what makes a node an interface. */
+export function isPort(node: Node | undefined): boolean {
+  return Boolean(node && node.side !== null);
+}
+
 /** Whether a node sits under an ancestor — the guard against a move that would
  *  make the hierarchy a cycle. */
 export function descendsFrom(graph: Graph, id: string | null, ancestor: string): boolean {
@@ -20,7 +26,7 @@ export function descendsFrom(graph: Graph, id: string | null, ancestor: string):
   return false;
 }
 
-/** Direct children of a group, or the top level for null. A node whose parent
+/** Direct children of a node, or the top level for null. A node whose parent
  *  was undone counts as top level rather than disappearing. */
 export function childrenOf(graph: Graph, parent: string | null): Node[] {
   return Object.values(graph.nodes).filter((n) => {
@@ -30,11 +36,41 @@ export function childrenOf(graph: Graph, parent: string | null): Node[] {
   });
 }
 
-/** Whether a node contains anything. There is no separate kind of thing: a
- *  group is simply a node that has children, so emptying one stops it being a
- *  group and filling one starts it. */
-export function isGroup(graph: Graph, id: string): boolean {
-  return Object.values(graph.nodes).some((n) => n.parent === id);
+/** Children that sit inside the frame — everything the treemap shows. */
+export function blocksOf(graph: Graph, parent: string | null): Node[] {
+  return childrenOf(graph, parent).filter((n) => !isPort(n));
+}
+
+/** Children that sit on the frame edge. */
+export function portsOf(graph: Graph, parent: string | null): Node[] {
+  return childrenOf(graph, parent).filter(isPort);
+}
+
+/** Whether a node holds child blocks. Interfaces do not count: a block with
+ *  ports on its edge is still a block, and draws as one. */
+export function isContainer(graph: Graph, id: string): boolean {
+  return Object.values(graph.nodes).some((n) => n.parent === id && !isPort(n));
+}
+
+/** Attributes an object carries, whether it holds them alone or shares them. */
+export function attrsOf(graph: Graph, holder: string) {
+  return Object.values(graph.attrs).filter((a) => a.holders.includes(holder));
+}
+
+/** The groups drawn on one layer: shared attributes whose members are blocks
+ *  sitting directly in it. */
+export function groupsIn(graph: Graph, layer: string | null) {
+  return Object.values(graph.attrs)
+    .filter((a) => a.group)
+    .map((a) => ({
+      attr: a,
+      here: a.holders.filter((id) => {
+        const node = graph.nodes[id];
+
+        return node && !isPort(node) && (node.parent ?? null) === layer;
+      }),
+    }))
+    .filter((g) => g.here.length > 1);
 }
 
 /** Apply one mutation in place. Unknown targets are skipped rather than
@@ -87,6 +123,23 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
+    case "set_port": {
+      const node = graph.nodes[mutation.id];
+      if (!node) return;
+      node.side = mutation.side;
+      node.at = mutation.at;
+      // Coming off the edge, it needs somewhere on the canvas to land; going
+      // onto it, its old position stops meaning anything.
+      if (mutation.side === null) node.x = node.y = null;
+      break;
+    }
+
+    case "mark_port": {
+      const node = graph.nodes[mutation.id];
+      if (node) node.flow = mutation.flow;
+      break;
+    }
+
     case "link_nodes": {
       const { edge } = mutation;
       if (graph.nodes[edge.source] && graph.nodes[edge.target]) {
@@ -107,6 +160,12 @@ function apply(graph: Graph, mutation: Mutation): void {
         if (mutation.from !== undefined) edge.from = mutation.from;
         if (mutation.to !== undefined) edge.to = mutation.to;
       }
+      break;
+    }
+
+    case "set_dir": {
+      const edge = graph.edges[mutation.id];
+      if (edge) edge.dir = mutation.dir;
       break;
     }
 
@@ -151,36 +210,48 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
-    case "add_region":
-      graph.regions[mutation.region.id] = { ...mutation.region };
+    case "add_attr":
+      graph.attrs[mutation.attr.id] = { ...mutation.attr, holders: [...mutation.attr.holders] };
       break;
 
-    case "recolor_region": {
-      const region = graph.regions[mutation.id];
-      if (region) region.color = mutation.color;
+    case "update_attr": {
+      const attr = graph.attrs[mutation.id];
+      if (!attr) return;
+      if (mutation.name !== undefined) attr.name = mutation.name;
+      if (mutation.value !== undefined) attr.value = mutation.value;
+      if (mutation.tags !== undefined) attr.tags = [...mutation.tags];
+      if (mutation.color !== undefined) attr.color = mutation.color;
       break;
     }
 
-    case "rename_region": {
-      const region = graph.regions[mutation.id];
-      if (region) region.label = mutation.label;
+    case "attach_attr": {
+      const attr = graph.attrs[mutation.id];
+      if (attr && !attr.holders.includes(mutation.holder)) attr.holders.push(mutation.holder);
       break;
     }
 
-    case "resize_region": {
-      const region = graph.regions[mutation.id];
-      if (region) {
-        region.x = mutation.x;
-        region.y = mutation.y;
-        region.w = mutation.w;
-        region.h = mutation.h;
-      }
+    case "detach_attr": {
+      const attr = graph.attrs[mutation.id];
+      if (attr) attr.holders = attr.holders.filter((h) => h !== mutation.holder);
       break;
     }
 
-    case "delete_region":
-      delete graph.regions[mutation.id];
+    case "delete_attr":
+      delete graph.attrs[mutation.id];
       break;
+  }
+}
+
+/** Drop what the graph can no longer support: holders that have been deleted,
+ *  and groups left with fewer than the two members a boundary needs.
+ *
+ *  Done here rather than in each mutation so that deleting a node cleans up
+ *  after itself however it happened — by hand, by a workflow, or by an undo
+ *  further back in the log putting the graph in a different shape. */
+function tidy(graph: Graph): void {
+  for (const [id, attr] of Object.entries(graph.attrs)) {
+    attr.holders = attr.holders.filter((h) => graph.nodes[h] || graph.edges[h]);
+    if (attr.group && attr.holders.length < 2) delete graph.attrs[id];
   }
 }
 
@@ -192,6 +263,8 @@ export function fold(steps: Step[]): Graph {
     if (step.status !== "applied") continue;
     for (const mutation of step.mutations) apply(graph, mutation);
   }
+
+  tidy(graph);
 
   return graph;
 }
@@ -211,11 +284,16 @@ export function touched(step: Step | null): string[] {
       case "place_node":
       case "delete_node":
       case "set_body":
+      case "set_port":
         ids.add(mutation.id);
         break;
       case "link_nodes":
         ids.add(mutation.edge.source);
         ids.add(mutation.edge.target);
+        break;
+      case "attach_attr":
+      case "detach_attr":
+        ids.add(mutation.holder);
         break;
     }
   }

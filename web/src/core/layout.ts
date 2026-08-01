@@ -1,12 +1,16 @@
 /** Sizing and placement for the canvas.
  *
  *  Two jobs. `tile` divides a box into a grid of child cells — the treemap a
- *  group shows its contents in. `place` lays out a whole layer, giving bigger
- *  things more room and wrapping into rows so no corner of the canvas ends up
- *  carrying everything.
+ *  container shows its contents in. `place` lays out a whole layer around the
+ *  centre, so the mass of blocks grows outward from the origin instead of
+ *  trailing off one corner.
+ *
+ *  There is one layout, applied everywhere. Nothing here ranks nodes or offers
+ *  arrangements to choose between.
  *
  *  Both are pure geometry; nothing here knows about React Flow. */
 
+import { isContainer } from "./fold";
 import { similarity } from "./match";
 import type { Graph, Node } from "./types";
 
@@ -14,8 +18,6 @@ export const LEAF = { w: 170, h: 56 };
 const CELL = 34;
 const PAD = 10;
 const GAP = 34;
-/** Rows wrap past this width so a layer spreads out instead of trailing off. */
-const SPAN = 1100;
 
 /** Columns and rows for `count` cells, kept as square as possible. */
 export function tile(count: number): { cols: number; rows: number } {
@@ -27,7 +29,7 @@ export function tile(count: number): { cols: number; rows: number } {
 }
 
 /** How strongly a child belongs to its parent, 0–1. Drives the fill of its
- *  chip, so a group reads at a glance as coherent or ragged. */
+ *  chip, so a container reads at a glance as coherent or ragged. */
 export function affinity(graph: Graph, child: Node): number {
   const parent = child.parent ? graph.nodes[child.parent] : null;
   if (!parent) return 0;
@@ -38,11 +40,12 @@ export function affinity(graph: Graph, child: Node): number {
   return Math.max(own, bodied);
 }
 
-/** Size of one node's card. A group grows with its contents so the treemap
+/** Size of one node's card. A container grows with its contents so the treemap
  *  inside it stays legible rather than shrinking towards nothing. */
 export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
-  const kids = Object.values(graph.nodes).filter((n) => n.parent === node.id).length;
-  if (!kids) return { ...LEAF };
+  const kids = Object.values(graph.nodes)
+    .filter((n) => n.parent === node.id && n.side === null).length;
+  if (!kids || !isContainer(graph, node.id)) return { ...LEAF };
 
   const { cols, rows } = tile(kids);
 
@@ -52,130 +55,101 @@ export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
   };
 }
 
-/** Row-wrapping placement for one layer. Nodes the user has dragged keep the
- *  position they were given; the rest fill the gaps around them. */
+type Box = { x: number; y: number; w: number; h: number };
+
+/** Whether two boxes touch, counting the gap that has to stay between them. */
+function collides(a: Box, b: Box): boolean {
+  return a.x < b.x + b.w + GAP && a.x + a.w + GAP > b.x &&
+         a.y < b.y + b.h + GAP && a.y + a.h + GAP > b.y;
+}
+
+/** Grid points in rings out from the origin — the order new blocks fill the
+ *  canvas in, so a layer grows evenly in every direction rather than down and
+ *  to the right. Bounded, since a layer is finite and a spiral is not. */
+function* rings(step: { x: number; y: number }, rounds: number) {
+  for (let ring = 0; ring <= rounds; ring += 1) {
+    for (let cy = -ring; cy <= ring; cy += 1) {
+      for (let cx = -ring; cx <= ring; cx += 1) {
+        if (Math.max(Math.abs(cx), Math.abs(cy)) !== ring) continue;
+        yield { x: cx * step.x, y: cy * step.y };
+      }
+    }
+  }
+}
+
+/** Nodes ordered so that whatever relates to what is already down comes next,
+ *  which keeps related blocks near each other without a ranking pass. */
+function neighbourly(graph: Graph, nodes: Node[]): Node[] {
+  const here = new Map(nodes.map((n) => [n.id, n]));
+  const links = new Map<string, string[]>();
+
+  for (const edge of Object.values(graph.edges)) {
+    if (!here.has(edge.source) || !here.has(edge.target)) continue;
+    links.set(edge.source, [...(links.get(edge.source) ?? []), edge.target]);
+    links.set(edge.target, [...(links.get(edge.target) ?? []), edge.source]);
+  }
+
+  // Busiest first, so the most connected block lands nearest the centre.
+  const queue = [...nodes].sort(
+    (a, b) => (links.get(b.id)?.length ?? 0) - (links.get(a.id)?.length ?? 0),
+  );
+  const order: Node[] = [];
+  const seen = new Set<string>();
+
+  for (const start of queue) {
+    if (seen.has(start.id)) continue;
+
+    const wave = [start];
+    seen.add(start.id);
+
+    while (wave.length) {
+      const node = wave.shift()!;
+      order.push(node);
+
+      for (const id of links.get(node.id) ?? []) {
+        if (seen.has(id) || !here.has(id)) continue;
+        seen.add(id);
+        wave.push(here.get(id)!);
+      }
+    }
+  }
+
+  return order;
+}
+
+/** Positions for one layer, centred on the origin. Nodes the user has dragged
+ *  keep the position they were given; the rest fill the room around them,
+ *  working outward from the middle and never overlapping. */
 export function place(graph: Graph, nodes: Node[]): Record<string, { x: number; y: number }> {
   const spots: Record<string, { x: number; y: number }> = {};
-  let x = 0;
-  let y = 0;
-  let tallest = 0;
+  const taken: Box[] = [];
 
   for (const node of nodes) {
+    if (node.x === null || node.y === null) continue;
+
+    const { w, h } = sizeOf(graph, node);
+    spots[node.id] = { x: node.x, y: node.y };
+    taken.push({ x: node.x, y: node.y, w, h });
+  }
+
+  const loose = neighbourly(graph, nodes.filter((n) => n.x === null || n.y === null));
+  const step = { x: LEAF.w + GAP, y: LEAF.h + GAP };
+  const rounds = nodes.length + taken.length + 2;
+
+  for (const node of loose) {
     const { w, h } = sizeOf(graph, node);
 
-    if (node.x !== null && node.y !== null) {
-      spots[node.id] = { x: node.x, y: node.y };
-      continue;
+    for (const point of rings(step, rounds)) {
+      // Grid points mark centres, so a wide card still sits on the middle.
+      const box = { x: point.x - w / 2, y: point.y - h / 2, w, h };
+      if (taken.some((other) => collides(box, other))) continue;
+
+      spots[node.id] = { x: box.x, y: box.y };
+      taken.push(box);
+      break;
     }
 
-    if (x > 0 && x + w > SPAN) {
-      x = 0;
-      y += tallest + GAP;
-      tallest = 0;
-    }
-
-    spots[node.id] = { x, y };
-    x += w + GAP;
-    tallest = Math.max(tallest, h);
-  }
-
-  return spots;
-}
-
-export type Arrangement = "grid" | "row" | "column" | "flow";
-
-/** Nodes ordered so a relation points forwards: a directed edge between two of
- *  them puts the target after the source. Whatever the edges leave unordered
- *  keeps the order it had, and a cycle simply stops contributing. */
-function ranked(graph: Graph, nodes: Node[]): Map<string, number> {
-  const here = new Set(nodes.map((n) => n.id));
-  const rank = new Map(nodes.map((n) => [n.id, 0]));
-
-  // Longest-path ranking: repeat until nothing moves, bounded by node count so
-  // a cycle cannot spin here.
-  for (let pass = 0; pass < nodes.length; pass += 1) {
-    let moved = false;
-
-    for (const edge of Object.values(graph.edges)) {
-      if (!here.has(edge.source) || !here.has(edge.target)) continue;
-
-      const wanted = (rank.get(edge.source) ?? 0) + 1;
-      if (wanted > (rank.get(edge.target) ?? 0)) {
-        rank.set(edge.target, wanted);
-        moved = true;
-      }
-    }
-
-    if (!moved) break;
-  }
-
-  return rank;
-}
-
-/** Positions for a whole layer, laid out afresh. Unlike `place`, this ignores
- *  where things already sit — the point of asking for an arrangement is to
- *  stop honouring the mess you are trying to tidy. */
-export function arrange(graph: Graph, nodes: Node[],
-                        kind: Arrangement): Record<string, { x: number; y: number }> {
-  const spots: Record<string, { x: number; y: number }> = {};
-  const size = (node: Node) => sizeOf(graph, node);
-
-  if (kind === "row" || kind === "column") {
-    let along = 0;
-
-    for (const node of nodes) {
-      const { w, h } = size(node);
-      spots[node.id] = kind === "row" ? { x: along, y: 0 } : { x: 0, y: along };
-      along += (kind === "row" ? w : h) + GAP;
-    }
-
-    return spots;
-  }
-
-  if (kind === "flow") {
-    const rank = ranked(graph, nodes);
-    const columns = new Map<number, Node[]>();
-
-    for (const node of nodes) {
-      const at = rank.get(node.id) ?? 0;
-      columns.set(at, [...(columns.get(at) ?? []), node]);
-    }
-
-    let x = 0;
-    for (const at of [...columns.keys()].sort((a, b) => a - b)) {
-      const column = columns.get(at)!;
-      let y = 0;
-      let widest = 0;
-
-      for (const node of column) {
-        const { w, h } = size(node);
-        spots[node.id] = { x, y };
-        y += h + GAP;
-        widest = Math.max(widest, w);
-      }
-
-      x += widest + GAP * 2;
-    }
-
-    return spots;
-  }
-
-  // grid — rows that wrap, the same shape the canvas falls into on its own.
-  let x = 0;
-  let y = 0;
-  let tallest = 0;
-
-  for (const node of nodes) {
-    const { w, h } = size(node);
-    if (x > 0 && x + w > SPAN) {
-      x = 0;
-      y += tallest + GAP;
-      tallest = 0;
-    }
-
-    spots[node.id] = { x, y };
-    x += w + GAP;
-    tallest = Math.max(tallest, h);
+    spots[node.id] ??= { x: 0, y: 0 };
   }
 
   return spots;

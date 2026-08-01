@@ -2,7 +2,17 @@
  *  the steps that record them.
  *
  *  A node *is* a document — its text lives on it, and the object explorer is
- *  the node hierarchy. There is no second representation to fall out of step. */
+ *  the node hierarchy. There is no second representation to fall out of step.
+ *
+ *  Structure is nodes and nothing else. Attributes describe nodes and draw on
+ *  the canvas, but never change what contains what. */
+
+/** Which frame edge an interface sits on. */
+export type Side = "top" | "right" | "bottom" | "left";
+/** Decorative marking on an interface. Constrains nothing. */
+export type Flow = "in" | "out" | "both";
+/** Which way a relationship reads. Undirected by default. */
+export type Dir = "none" | "forward" | "back" | "both";
 
 export type Node = {
   id: string;
@@ -14,6 +24,12 @@ export type Node = {
   /** Set only once the user drags it; null means lay it out automatically. */
   x: number | null;
   y: number | null;
+  /** Set when this node sits on its parent's frame edge, which is what makes
+   *  it an interface. An interface's x/y mean nothing — side and how far along
+   *  the edge take their place, so the port survives the frame resizing. */
+  side: Side | null;
+  at: number | null;
+  flow: Flow | null;
 };
 
 export type Edge = {
@@ -21,30 +37,35 @@ export type Edge = {
   source: string;
   target: string;
   relation: string;
-  /** Which anchor each end is tied to. Empty means "wherever suits" — the
-   *  right side of the source and the left of the target. */
+  /** The interface node each end is tied to. Absent means the port is derived
+   *  from this relationship instead of stored — nothing to keep, nothing to
+   *  export, and nothing left behind when the relationship goes. */
   from?: string;
   to?: string;
+  dir: Dir;
 };
 
-/** A colored frame drawn around a set of nodes, for visual clustering only —
- *  it carries no meaning for the graph itself, unlike parent/child. Sized
- *  automatically from its members unless the user has resized it by hand. */
-export type Region = {
+/** A descriptive property of a node or a relationship. Held by one object or
+ *  shared across many; sharing is what makes an attribute a grouping.
+ *
+ *  Non-structural throughout — an attribute never appears in the explorer and
+ *  never changes what contains what. */
+export type Attr = {
   id: string;
-  label: string;
+  name: string;
+  value: string;
+  tags: string[];
+  /** Node or relationship ids carrying this. More than one makes it shared. */
+  holders: string[];
+  /** A shared attribute drawn as a boundary around its holders — a group. */
+  group: boolean;
   color: string;
-  members: string[];
-  x: number | null;
-  y: number | null;
-  w: number | null;
-  h: number | null;
 };
 
 export type Graph = {
   nodes: Record<string, Node>;
   edges: Record<string, Edge>;
-  regions: Record<string, Region>;
+  attrs: Record<string, Attr>;
   /** The kinds of relation this project uses. Seeded from the domain and
    *  edited freely — a relation may be named anything, but the list is what
    *  gets offered and what can be renamed across every edge at once. */
@@ -60,10 +81,15 @@ export type Mutation =
   | { op: "place_node"; id: string; x: number; y: number }
   | { op: "delete_node"; id: string }
   | { op: "set_body"; id: string; body: string }
+  /** Put a node on its parent's frame edge, or take it off again. Promotion,
+   *  demotion and sliding along the edge are all the same change. */
+  | { op: "set_port"; id: string; side: Side | null; at: number | null }
+  | { op: "mark_port"; id: string; flow: Flow | null }
   | { op: "link_nodes"; edge: Edge }
   | { op: "update_edge"; id: string; relation: string }
-  /** Move one end of a relation to a different anchor. */
+  /** Move one end of a relation to a different interface. */
   | { op: "reanchor_edge"; id: string; from?: string; to?: string }
+  | { op: "set_dir"; id: string; dir: Dir }
   /** Turn a relation around; what it says stays the same. */
   | { op: "flip_edge"; id: string }
   | { op: "delete_edge"; id: string }
@@ -74,13 +100,12 @@ export type Mutation =
   | { op: "rename_relation"; from: string; to: string }
   /** Drops the kind; edges using it survive, unnamed. */
   | { op: "drop_relation"; name: string }
-  | { op: "add_region"; region: Region }
-  | { op: "recolor_region"; id: string; color: string }
-  | { op: "rename_region"; id: string; label: string }
-  /** Manual size/position from dragging the frame's own resize handles;
-   *  null in any field means "keep deriving it from the members instead". */
-  | { op: "resize_region"; id: string; x: number; y: number; w: number; h: number }
-  | { op: "delete_region"; id: string };
+  | { op: "add_attr"; attr: Attr }
+  | { op: "update_attr"; id: string; name?: string; value?: string; tags?: string[];
+      color?: string }
+  | { op: "attach_attr"; id: string; holder: string }
+  | { op: "detach_attr"; id: string; holder: string }
+  | { op: "delete_attr"; id: string };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
@@ -98,7 +123,7 @@ export type Step = {
 };
 
 export const EMPTY: Graph = {
-  nodes: {}, edges: {}, regions: {}, relations: [], template: "", title: "",
+  nodes: {}, edges: {}, attrs: {}, relations: [], template: "", title: "",
 };
 
 let counter = 0;
@@ -121,6 +146,28 @@ export function node(label: string, extra: Partial<Node> = {}): Node {
     body: "",
     x: null,
     y: null,
+    side: null,
+    at: null,
+    flow: null,
+    ...extra,
+  };
+}
+
+/** A relationship with the defaults filled in. Undirected unless said. */
+export function edge(source: string, target: string, extra: Partial<Edge> = {}): Edge {
+  return { id: newId("e"), source, target, relation: "", dir: "none", ...extra };
+}
+
+/** An attribute with the defaults filled in. */
+export function attr(name: string, extra: Partial<Attr> = {}): Attr {
+  return {
+    id: newId("a"),
+    name,
+    value: "",
+    tags: [],
+    holders: [],
+    group: false,
+    color: "#d9a441",
     ...extra,
   };
 }

@@ -10,26 +10,29 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
-import { childrenOf, descendsFrom, fold, isGroup, touched } from "./fold";
-import { arrange, type Arrangement } from "./layout";
+import { blocksOf, childrenOf, descendsFrom, fold, touched } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
-import { newId, node as makeNode, step as makeStep, type Mutation, type Step } from "./types";
+import {
+  attr as makeAttr, edge as makeEdge, newId, node as makeNode, step as makeStep,
+  type Dir, type Flow, type Side, type Step,
+} from "./types";
 import { getDomain } from "./workflows";
 
 /** Consecutive turns on one operation before the loop moves on. */
 const RHYTHM = 2;
 
+/** What the canvas currently has selected. The layer itself is never in here —
+ *  an empty selection is what shows the layer's own properties. */
+export type Picked = { kind: "node" | "edge" | "attr"; id: string } | null;
+
 export function useProject() {
   const [steps, setSteps] = useState<Step[]>(store.load);
-  const [scope, setScope] = useState<string | null>(null);
-  /** The group whose contents fill the canvas. null is the project itself. */
+  /** The layer the canvas is drawing. null is the project itself. */
   const [view, setView] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Picked>(null);
   const [pending, setPending] = useState<Pending | null>(null);
-  /** A region picked for the context pane, kept apart from a node's own
-   *  scope — the two panes never have something to show at once. */
-  const [pickedRegion, setPickedRegion] = useState<string | null>(null);
 
   // The log is the only thing worth saving; the graph is folded from it.
   useEffect(() => store.save(steps), [steps]);
@@ -42,6 +45,10 @@ export function useProject() {
   const applied = useMemo(() => steps.filter((s) => s.status === "applied"), [steps]);
   const last = applied.length ? applied[applied.length - 1] : null;
   const terms = getDomain(graph.template).terms;
+
+  /** Whatever the conversation should be about: the canvas selection if there
+   *  is one, otherwise the layer being looked at. */
+  const scope = picked?.kind === "node" ? picked.id : view;
 
   // Every name and body in the project, so suggestions and affinity have
   // vectors ready by the time anything is scored against them.
@@ -111,9 +118,8 @@ export function useProject() {
 
   const name = (id: string) => graph.nodes[id]?.label ?? id;
 
-  /** Groups from the project down to the open one — the breadcrumb, and the
-   *  set the explorer keeps expanded. Everything else stays collapsed, so
-   *  opening one layer closes the last. */
+  /** Nodes from the project down to the open one — the breadcrumb, and the
+   *  set the explorer keeps expanded. */
   const path = useMemo(() => {
     const trail: string[] = [];
     let cursor = view;
@@ -126,49 +132,22 @@ export function useProject() {
     return trail;
   }, [graph, view]);
 
-  /** Selecting shows a thing among its siblings — the layer it lives in, not
-   *  the layer it contains. Going *into* a group is a separate gesture, so a
-   *  glance never costs you your place. */
-  const select = useCallback(
-    (id: string | null) => {
-      setPickedRegion(null);
-      setScope(id);
-      if (!id) return setView(null);
+  /** Go into something: the explorer's every click, and the canvas's
+   *  double-click. Anything can be entered — a block with nothing in it still
+   *  has a frame, its ports, and room to start building. */
+  const open = useCallback((id: string | null) => {
+    setPicked(null);
+    setView(id && id !== "" ? id : null);
+  }, []);
 
-      const node = graph.nodes[id];
-      if (node) setView(node.parent);
-    },
-    [graph],
-  );
+  /** Select on the canvas. The layer never changes: selecting is a glance, and
+   *  going deeper is the deliberate second gesture. */
+  const pick = useCallback((next: Picked) => setPicked(next), []);
 
-  /** Mark something as picked without leaving the layer it is looked at from.
-   *  A chip inside a group's treemap is already visible where it sits — a
-   *  single click on it should not also jump the canvas to its own layer. */
-  const pick = useCallback((id: string) => (setPickedRegion(null), setScope(id)), []);
-
-  /** Bring up a region's own properties instead of a node's — the two panes
-   *  never have something to show at once. */
-  const pickRegion = useCallback((id: string) => (setScope(null), setPickedRegion(id)), []);
-
-  /** Step into a node, making its contents the layer. Only something that
-   *  holds anything can be entered — an empty one has nothing to show. */
-  const open = useCallback(
-    (id: string) => {
-      const node = graph.nodes[id];
-      if (!node) return;
-
-      setPickedRegion(null);
-      setScope(id);
-      setView(isGroup(graph, id) ? id : node.parent);
-    },
-    [graph],
-  );
-
-  /** Leave the open group for the one containing it. */
+  /** Leave the open layer for the one containing it. */
   const up = useCallback(() => {
-    const parent = view ? (graph.nodes[view]?.parent ?? null) : null;
-    setView(parent);
-    setScope(parent);
+    setPicked(null);
+    setView(view ? (graph.nodes[view]?.parent ?? null) : null);
   }, [graph, view]);
 
   const act = {
@@ -180,7 +159,7 @@ export function useProject() {
 
     remove: (id: string) => {
       // Never leave the selection or the open layer pointing at something gone.
-      if (scope && descendsFrom(graph, scope, id)) setScope(null);
+      if (picked && picked.id === id) setPicked(null);
       if (view && descendsFrom(graph, view, id)) setView(graph.nodes[id]?.parent ?? null);
       commit(makeStep(`delete: ${name(id)}`, "delete", [{ op: "delete_node", id }]));
     },
@@ -200,40 +179,65 @@ export function useProject() {
     place: (id: string, x: number, y: number) =>
       commit(makeStep(`place: ${name(id)}`, "place", [{ op: "place_node", id, x, y }])),
 
-    /** Several at once — a selection dragged together is one action. */
-    placeMany: (moved: { id: string; x: number; y: number }[]) =>
+    /** Several at once — a selection dragged together is one action, and so is
+     *  a group's members moving with its boundary. */
+    placeMany: (moved: { id: string; x: number; y: number }[], what = "") =>
       moved.length &&
       commit(makeStep(
-        moved.length === 1 ? `place: ${name(moved[0].id)}` : `place ${moved.length} together`,
+        what || (moved.length === 1
+          ? `place: ${name(moved[0].id)}`
+          : `place ${moved.length} together`),
         "place",
         moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
       )),
 
-    /** Lay the open layer out afresh, ignoring where things currently sit. */
-    arrange: (kind: Arrangement) => {
-      const here = childrenOf(graph, view);
-      const spots = arrange(graph, here, kind);
-      const mutations = here.map((node) => ({
-        op: "place_node" as const, id: node.id, ...spots[node.id],
-      }));
-
-      return mutations.length && commit(makeStep(`arrange: ${kind}`, "arrange", mutations));
-    },
-
     write: (id: string, body: string) =>
       commit(makeStep(`edit: ${name(id)}`, "edit", [{ op: "set_body", id, body }])),
 
+    /** Put a node on its parent's frame edge, or slide one already there. */
+    setPort: (id: string, side: Side | null, at: number | null) =>
+      commit(makeStep(side ? `port: ${name(id)}` : `off the edge: ${name(id)}`, "port",
+                      [{ op: "set_port", id, side, at }])),
+
+    markPort: (id: string, flow: Flow | null) =>
+      commit(makeStep(`mark: ${flow ?? "none"}`, "port", [{ op: "mark_port", id, flow }])),
+
+    /** A bare interface, from right-clicking a frame edge. Deliberate, so it
+     *  is a node of its own rather than something derived from a relation. */
+    addPort: (parent: string | null, side: Side, at: number) => {
+      const port = makeNode("", { parent, side, at });
+
+      commit(makeStep("new interface", "port", [{ op: "add_node", node: port }]));
+
+      return port.id;
+    },
+
     link: (source: string, target: string, from?: string, to?: string) =>
       source !== target &&
-      commit(makeStep(`link: ${name(source)}`, "link", [{
-        op: "link_nodes",
-        edge: { id: newId("e"), source, target, relation: "", from, to },
-      }])),
+      commit(makeStep(`link: ${name(source)}`, "link",
+                      [{ op: "link_nodes", edge: makeEdge(source, target, { from, to }) }])),
 
-    /** Tie one end of a relation to a particular anchor. */
+    /** A right drag from a frame edge: the interface it started from and the
+     *  relationship it drew, made together so undo takes back the gesture
+     *  rather than half of it. */
+    wire: (parent: string, side: Side, at: number, target: string) => {
+      if (parent === target) return;
+
+      const port = makeNode("", { parent, side, at });
+
+      commit(makeStep(`link: ${name(parent)}`, "link", [
+        { op: "add_node", node: port },
+        { op: "link_nodes", edge: makeEdge(parent, target, { from: port.id }) },
+      ]));
+    },
+
+    /** Tie one end of a relation to a particular interface. */
     reanchor: (id: string, from?: string, to?: string) =>
       commit(makeStep(`anchor: ${graph.edges[id]?.relation || "relation"}`, "anchor",
                       [{ op: "reanchor_edge", id, from, to }])),
+
+    setDir: (id: string, dir: Dir) =>
+      commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
     /** Turn a relation around. */
     flip: (id: string) =>
@@ -244,15 +248,18 @@ export function useProject() {
       commit(makeStep(`relation: ${relation}`, "relation",
                       [{ op: "update_edge", id, relation: relation.trim() }])),
 
-    unlink: (id: string) => commit(makeStep("unlink", "unlink", [{ op: "delete_edge", id }])),
+    unlink: (id: string) => {
+      if (picked?.id === id) setPicked(null);
+      commit(makeStep("unlink", "unlink", [{ op: "delete_edge", id }]));
+    },
 
     renameProject: (title: string) =>
       title.trim() &&
       commit(makeStep(`rename project: ${title}`, "project",
                       [{ op: "set_title", title: title.trim() }])),
 
-    /** Put one node inside another. Nothing else is needed: holding something
-     *  is what makes a node a group. */
+    /** Put one node inside another. Nothing else is needed: holding a block is
+     *  what makes a node a container. */
     nest: (id: string, parent: string) => {
       if (id === parent || descendsFrom(graph, parent, id)) return;
 
@@ -266,8 +273,8 @@ export function useProject() {
       commit(makeStep(`out of layer: ${name(id)}`, "promote",
                       [{ op: "move_node", id, parent }])),
 
-    /** Take an object out of its group and set it down on the open layer. One
-     *  step, so undo puts it back where it was. */
+    /** Take an object out of its container and set it down on the open layer.
+     *  One step, so undo puts it back where it was. */
     lift: (id: string, x: number, y: number) => {
       const node = graph.nodes[id];
       if (!node || node.parent === view) return;
@@ -286,21 +293,26 @@ export function useProject() {
         node: makeNode(label, { parent: view, type: terms.node, x, y }),
       }])),
 
-    /** A link dragged into empty space: make the far end, and attach it. */
-    sprout: (from: string, label: string, x: number, y: number) => {
+    /** A link dragged into empty space: make the far end, and attach it. The
+     *  near end may be an interface the same gesture is creating. */
+    sprout: (from: string, label: string, x: number, y: number, port?:
+             { parent: string; side: Side; at: number }) => {
       const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
+      const anchor = port ? makeNode("", { parent: port.parent, side: port.side, at: port.at })
+                          : null;
 
       commit(makeStep(`grew: ${label}`, "sprout", [
+        ...(anchor ? [{ op: "add_node" as const, node: anchor }] : []),
         { op: "add_node", node: fresh },
-        { op: "link_nodes", edge: { id: newId("e"), source: from, target: fresh.id, relation: "" } },
+        { op: "link_nodes", edge: makeEdge(from, fresh.id, { from: anchor?.id }) },
       ]));
     },
 
     /** A new kind of relation, offered from then on. */
-    addRelation: (name: string) =>
-      name.trim() && !graph.relations.includes(name.trim()) &&
-      commit(makeStep(`relation kind: ${name.trim()}`, "relations",
-                      [{ op: "add_relation", name: name.trim() }])),
+    addRelation: (label: string) =>
+      label.trim() && !graph.relations.includes(label.trim()) &&
+      commit(makeStep(`relation kind: ${label.trim()}`, "relations",
+                      [{ op: "add_relation", name: label.trim() }])),
 
     /** Rename a kind, and every edge already using it, in one step. */
     renameRelation: (from: string, to: string) =>
@@ -310,32 +322,41 @@ export function useProject() {
 
     /** Drop a kind. Edges using it stay, unnamed — deleting a label should not
      *  quietly delete the connections it described. */
-    dropRelation: (name: string) =>
-      commit(makeStep(`dropped "${name}"`, "relations", [{ op: "drop_relation", name }])),
+    dropRelation: (label: string) =>
+      commit(makeStep(`dropped "${label}"`, "relations", [{ op: "drop_relation", name: label }])),
 
-    /** Turn a box-selection into a persistent colored frame. Purely visual —
-     *  it does not touch what any node's parent is. */
-    region: (members: string[], color: string) =>
-      members.length > 1 &&
-      commit(makeStep(`group: ${members.length} nodes`, "region", [{
-        op: "add_region",
-        region: { id: newId("r"), label: "", color, members, x: null, y: null, w: null, h: null },
-      }])),
+    /** A property of one object, or of several. Sharing is all a group is. */
+    addAttr: (holder: string, label: string) =>
+      label.trim() &&
+      commit(makeStep(`attribute: ${label.trim()}`, "attribute",
+                      [{ op: "add_attr", attr: makeAttr(label.trim(), { holders: [holder] }) }])),
 
-    recolorRegion: (id: string, color: string) =>
-      commit(makeStep("region color", "region", [{ op: "recolor_region", id, color }])),
+    updateAttr: (id: string, patch: { name?: string; value?: string; tags?: string[];
+                                      color?: string }) =>
+      commit(makeStep(`attribute: ${patch.name ?? graph.attrs[id]?.name ?? ""}`, "attribute",
+                      [{ op: "update_attr", id, ...patch }])),
 
-    renameRegion: (id: string, label: string) =>
-      commit(makeStep(`name: ${label}`, "region", [{ op: "rename_region", id, label }])),
+    attachAttr: (id: string, holder: string) =>
+      commit(makeStep(`attribute on: ${name(holder)}`, "attribute",
+                      [{ op: "attach_attr", id, holder }])),
 
-    /** From dragging the frame's own resize handles. */
-    resizeRegion: (id: string, x: number, y: number, w: number, h: number) =>
-      commit(makeStep("resize group", "region", [{ op: "resize_region", id, x, y, w, h }])),
+    detachAttr: (id: string, holder: string) =>
+      commit(makeStep(`attribute off: ${name(holder)}`, "attribute",
+                      [{ op: "detach_attr", id, holder }])),
 
-    dropRegion: (id: string) => {
-      if (pickedRegion === id) setPickedRegion(null);
-      commit(makeStep("ungroup", "region", [{ op: "delete_region", id }]));
+    dropAttr: (id: string) => {
+      if (picked?.kind === "attr" && picked.id === id) setPicked(null);
+      commit(makeStep(`dropped attribute`, "attribute", [{ op: "delete_attr", id }]));
     },
+
+    /** Turn a selection into a group: one attribute they all hold, drawn as a
+     *  boundary. Purely visual — no node's parent changes. */
+    group: (members: string[]) =>
+      members.length > 1 &&
+      commit(makeStep(`group: ${members.length} nodes`, "group", [{
+        op: "add_attr",
+        attr: makeAttr("", { holders: members, group: true }),
+      }])),
 
     save: () => store.exportSteps(steps, graph.title),
 
@@ -344,41 +365,38 @@ export function useProject() {
       if (!loaded) return false;
 
       setSteps(loaded);
-      setScope(null);
       setView(null);
+      setPicked(null);
       setPending(null);
-      setPickedRegion(null);
 
       return true;
     },
 
     reset: () => {
       setSteps([]);
-      setScope(null);
       setView(null);
+      setPicked(null);
       setPending(null);
-      setPickedRegion(null);
     },
   };
 
   return {
     graph,
     steps,
-    scope,
     view,
+    picked,
+    scope,
     path,
-    select,
-    pick,
     open,
+    pick,
     up,
-    pickedRegion,
-    pickRegion,
     question,
     terms,
     touched: touched(last),
     undoable: applied.length > 0,
     redoable: steps.some((s) => s.status === "reverted"),
     children: (parent: string | null) => childrenOf(graph, parent),
+    blocks: (parent: string | null) => blocksOf(graph, parent),
     turn,
     undo,
     redo,

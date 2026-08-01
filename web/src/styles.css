@@ -124,16 +124,89 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 @keyframes blink { 50% { opacity: 0; } }
 
-/* The option cluster, sharing the row */
+/* The option cluster, sharing the row. Matching swaps this for the score
+   readout via a slide; the toggle sits on the rail's far-right edge. */
 
 .rail {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rail-pane {
+  grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  transition: transform 280ms ease, opacity 220ms ease;
+}
+
+.rail-pane.contexts {
   justify-content: flex-end;
   align-items: flex-end;
   gap: 7px;
-  min-width: 0;
-  overflow: hidden;
+}
+
+.rail-pane.scores-pane {
+  justify-content: stretch;
+  transform: translateX(12px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rail.matching .rail-pane.contexts {
+  transform: translateX(-18px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.rail.matching .rail-pane.scores-pane {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.match-toggle {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.match-toggle:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.match-toggle.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: #12241a;
+}
+
+.match-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 12px;
+  height: 10px;
+}
+
+.match-icon i {
+  display: block;
+  height: 1px;
+  background: currentColor;
 }
 
 .settling {
@@ -178,6 +251,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
   .cursor, .chip { animation: none; }
+  .rail-pane { transition: none; }
 }
 
 /* Explorer */
@@ -221,6 +295,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .files-bar button:hover:not(:disabled) { background: var(--hover); color: var(--accent); }
 
 .files .item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -233,9 +308,6 @@ button:disabled { opacity: 0.4; cursor: default; }
 .files .item.active { background: var(--hover); color: var(--accent); }
 .files .item.over { outline: 1px dashed var(--accent); outline-offset: -1px; }
 .files .item.root { color: var(--muted); padding-left: 10px; }
-.files .glyph { width: 1em; color: var(--border); text-align: center; }
-.files .item.group > .glyph { color: var(--accent); }
-.files .item.active > .glyph { color: var(--accent); }
 
 /* Canvas cards */
 
@@ -257,6 +329,18 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card.changed { background: #17301f; border-color: #35614a; }
 .card.group.changed { background: rgba(23, 48, 31, 0.75); }
 .card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
+
+/* A border says it is available: right-click it for an interface, right-drag
+   it for a relation. The brighter ring is the edge itself, not the card. */
+.card:hover { border-color: #5f8f73; }
+.card:hover::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 5px;
+  pointer-events: none;
+}
 
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .card-head .label { overflow-wrap: anywhere; }
@@ -286,22 +370,39 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .hollow { color: var(--muted); font-size: 10px; }
 
-/* The open group, drawn behind its contents — as though we stepped into it */
+/* The open node, drawn behind its contents — as though we stepped into it */
 
 .canvas .react-flow { --xy-background-color: transparent; background: transparent; }
+.stage { position: relative; height: 100%; }
 
-.layer-frame {
-  position: absolute;
-  inset: 40px 56px 40px 56px;
-  z-index: 0;
+/* Inside the frame is the canvas itself, left clear to the grid; everything
+   outside it is dimmed by a shadow wide enough to reach any corner. */
+.frame {
+  width: 100%;
+  height: 100%;
   border: 1px solid #3a5c4b;
   border-radius: 4px;
-  background: #101b16;
-  box-shadow: 0 0 0 1px rgba(10, 15, 13, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
+  background: transparent;
+  box-shadow: 0 0 0 9000px rgba(6, 10, 8, 0.72);
 }
 
-.layer-name {
+/* The wall this layer is set into, when the layer is an interface: the parent
+   block's own border, running through the dimmed margin on either side and
+   stopping where this frame begins. */
+.wall .before,
+.wall .after { position: absolute; background: #3a5c4b; }
+
+.wall.upright .before,
+.wall.upright .after { left: 50%; width: 1px; height: 9000px; }
+.wall.upright .before { bottom: 100%; }
+.wall.upright .after { top: 100%; }
+
+.wall.flat .before,
+.wall.flat .after { top: 50%; height: 1px; width: 9000px; }
+.wall.flat .before { right: 100%; }
+.wall.flat .after { left: 100%; }
+
+.frame-name {
   position: absolute;
   right: 16px;
   top: -9px;
@@ -312,6 +413,78 @@ button:disabled { opacity: 0.4; cursor: default; }
   letter-spacing: 0.16em;
   text-transform: lowercase;
 }
+
+/* Interfaces: open squares on the frame edge, on a card or on the frame */
+
+.port {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  /* Opts back in where its host is transparent to the pointer. */
+  pointer-events: auto;
+}
+
+.port-top { top: 0; transform: translate(-50%, -50%); }
+.port-bottom { bottom: 0; transform: translate(-50%, 50%); }
+.port-left { left: 0; transform: translate(-50%, -50%); }
+.port-right { right: 0; transform: translate(50%, -50%); }
+
+.port .mark {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* A port holding blocks of its own says so, without being opened. */
+.port.deep .mark {
+  background: linear-gradient(to right, var(--bg) 0 45%, var(--border) 45% 55%, var(--bg) 55%);
+}
+
+.port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3); }
+.port:hover .mark { border-color: var(--accent); }
+.port.flow-in .mark { border-left-width: 3px; }
+.port.flow-out .mark { border-right-width: 3px; }
+.port.flow-both .mark { border-left-width: 3px; border-right-width: 3px; }
+
+.port-name {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* The far end of a relation that leaves this layer */
+
+.ghost {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  background: rgba(20, 30, 25, 0.45);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* A relation while it is being drawn, in screen coordinates */
+
+.wiring {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.wiring line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
 
 /* Floating inputs over the canvas */
 
@@ -355,17 +528,66 @@ main {
 .files ul { list-style: none; margin: 0; padding: 0; }
 .files .empty { color: var(--muted); padding: 4px 12px; }
 
-/* Guide lines showing what is nested in what. One vertical rule per level,
-   hanging from the parent row, with a short tick into each child's own row. */
-.files ul.branch { position: relative; padding-left: 14px; border-left: 1px solid var(--divider); }
+/* Deep branches indent past the sidebar rather than wrapping; the scroll
+   follows the selection instead of truncating the tree. */
+.tree { overflow: auto; padding-bottom: 8px; }
+.tree > ul { width: max-content; min-width: 100%; }
+.tree > ul.roots {
+  /* Match a nested branch's guide inset, without drawing a line — the root
+     row is always open and is not a foldable node for a line to hang from. */
+  padding-left: calc(10px + 0.5em);
+}
+.files .item { width: max-content; min-width: 100%; }
+.files .item.new { padding-left: calc(20px + 0.5em); }
+.files .icon { width: 1em; flex: none; text-align: center; color: var(--border); }
+.files .icon.fold { cursor: pointer; }
+.files .icon.fold:hover { color: var(--accent); }
+.files .item.group > .icon { color: var(--accent); }
+.files .item.port > .icon,
+.files .item.port > .label { color: var(--muted); }
+.files .item.quiet { color: var(--muted); letter-spacing: 0.08em; cursor: default; }
+.files .item.quiet:hover { background: none; }
+
+/* Guide lines hang from an expanded parent only — collapsed nodes omit
+   `.branch` entirely. The vertical sits under the role icon; ticks are
+   positioned on the row itself so nested branches cannot shift them. */
+.files ul.branch {
+  --guide-gap: 6px;
+  position: relative;
+  margin-left: calc(10px + 0.5em);
+  padding-left: var(--guide-gap);
+}
+
 .files ul.branch > li { position: relative; }
+
+.files ul.branch > li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--guide-gap));
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--divider);
+}
+
+/* Last child's vertical stops at its own row, so an expanded nest below
+   does not stretch the parent's guide through the grandchildren. */
+.files ul.branch > li:last-child > .item::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--guide-gap));
+  top: 0;
+  width: 1px;
+  height: 50%;
+  background: var(--divider);
+}
 
 .files ul.branch > li > .item::before {
   content: "";
   position: absolute;
-  left: -14px;
+  left: calc(-1 * var(--guide-gap));
   top: 50%;
-  width: 12px;
+  width: var(--guide-gap);
   height: 1px;
   background: var(--divider);
 }
@@ -425,6 +647,85 @@ main {
 .doc textarea:focus { outline: none; }
 
 .doc textarea::placeholder { color: var(--muted); }
+
+/* The selection's attributes, under its text. A group appears here as what it
+   is — one attribute several objects share — rather than as its own kind. */
+
+.doc-bar .meta { display: flex; align-items: center; gap: 6px; }
+.doc-bar .meta select,
+.doc-bar .meta button {
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.doc-bar .meta button:hover { color: var(--accent); border-color: var(--accent); }
+
+.doc-bar .name-field {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  width: 14em;
+}
+
+.doc-bar .name-field:focus { outline: none; }
+
+.attrs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--divider);
+  overflow: auto;
+}
+
+.attr { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.attr .key { color: var(--muted); min-width: 7em; }
+.attr.shared .key { color: var(--accent); }
+.attr .held { color: var(--muted); font-size: 11px; flex: 1; }
+
+.attr input,
+.add-attr {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.attr input:focus,
+.add-attr:focus { outline: none; border-bottom-color: var(--accent); }
+.add-attr { color: var(--muted); }
+
+.attr button {
+  border: none;
+  background: none;
+  color: var(--border);
+  font-size: 10px;
+  padding: 0 2px;
+}
+
+.attr button:hover { color: var(--error); }
+
+.doc .members { list-style: none; margin: 0; padding: 6px 12px; overflow: auto; }
+.doc .members li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.doc .members button { border: none; background: none; color: var(--border); font-size: 10px; }
+.doc .members button:hover { color: var(--error); }
 
 /* Action log */
 
@@ -487,8 +788,6 @@ main {
 .crumbs .sep { color: var(--border); }
 .crumbs .up { margin-left: 4px; border: 1px solid var(--border); }
 
-/* Object explorer glyphs */
-
 /* Properties pane header */
 
 .doc-bar .name { color: var(--accent); }
@@ -507,21 +806,38 @@ main {
 .doc-bar .type:focus { outline: none; border-color: var(--accent); }
 .doc-bar button { padding: 0 6px; font-size: 11px; }
 
-/* Foot: the action log and the match scoring, side by side */
+/* Foot: the action log and the attribute panel */
 
 footer {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   border-top: 1px solid var(--border);
 }
+
+/* Matching readout — lives in the terminal rail when toggled */
 
 .scores {
   display: flex;
   flex-direction: column;
-  height: 170px;
+  flex: 1;
   min-width: 0;
-  border-left: 1px solid var(--border);
+  min-height: 0;
+  padding-right: 28px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
   background: var(--surface);
+}
+
+.scores-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--divider);
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  flex: none;
 }
 
 .scores .subject {
@@ -532,6 +848,8 @@ footer {
   white-space: nowrap;
   letter-spacing: 0;
 }
+
+.score-lines { flex: 1; overflow-y: auto; padding: 4px 0; font-size: 12px; }
 
 .score { display: flex; align-items: center; gap: 8px; padding: 3px 12px; }
 .score .name {
@@ -672,21 +990,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .react-flow__edge.crossing .react-flow__edge-text { fill: #9c8fe0; font-style: italic; }
 .react-flow__edge.crossing marker path { fill: #7a6cc4; }
 
-/* Anchors on a chip, for relating to something nested */
-
-.chip-handle {
-  width: 9px;
-  height: 9px;
-  min-width: 9px;
-  min-height: 9px;
-  border: none;
-  background: transparent;
-  opacity: 0;
-}
-
-.cell:hover .chip-handle { background: var(--accent); opacity: 1; }
-
-/* Arrangement and routing, top right of the canvas */
+/* Display toggles, top right of the canvas */
 
 .arrange {
   position: absolute;
@@ -723,53 +1027,22 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   border: 1px solid var(--accent);
 }
 
-/* Offer to turn a box-selection into a lasting colored frame */
-
-.grouping {
-  position: absolute;
-  top: 44px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  border: 1px solid var(--accent);
-  border-radius: 2px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.grouping button {
-  padding: 1px 8px;
-  border: 1px solid var(--accent);
-  border-radius: 2px;
-  background: none;
-  color: var(--accent);
-  font-size: 12px;
-}
-
-.grouping button:hover { background: var(--hover); }
-
-/* The frame itself — a colored box behind its members, with a small control
-   tucked into its corner rather than a full selection outline. Sitting behind
-   the cards should not stop clicks and drags from reaching them. */
-
-.react-flow__node-region { pointer-events: none; }
-
-/* Resize handles sit inside .region too, and would otherwise inherit its
-   pointer-events: none along with everything else there. */
-.react-flow__node-region .react-flow__resize-control { pointer-events: auto; }
+/* A group's boundary — one shared attribute, drawn around its members.
+ *
+ * Transparent to the pointer until it has been selected, so a box drawn from
+ * inside it reaches the pane and selects elements rather than sweeping in the
+ * group. Selecting it is a click, which the canvas routes by position; once
+ * selected it takes the pointer back and can be dragged. */
 
 .region {
   width: 100%;
   height: 100%;
   border: 1px dashed;
   border-radius: 6px;
-  pointer-events: none;
 }
+
+.region.picked { border-style: solid; }
+.region.picked .region-tools .name { color: var(--accent); }
 
 .region-tools {
   position: absolute;

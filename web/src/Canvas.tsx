@@ -3,10 +3,11 @@
  *  Positions are held by React Flow while a drag is in progress and committed
  *  to the log on release — otherwise a node would not move until it landed.
  *
- *  Gestures: drag to position, drop one node on another to put it inside,
- *  double-click empty space to make something, drag a link into empty space to
- *  make and attach something, double-click a relation to name it, Delete to
- *  remove. Selecting here selects in the explorer too. */
+ *  The buttons divide the work. Left selects and moves: click to select, then
+ *  drag what is selected, which is what makes a card, an interface and a group
+ *  all movable by the same gesture. Right draws relationships, and a right
+ *  click that never moves falls through to the default action for whatever is
+ *  under it. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -24,181 +25,306 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { isGroup } from "./core/fold";
-import { LEAF, place, sizeOf, type Arrangement } from "./core/layout";
-import type { Graph } from "./core/types";
+import { blocksOf, groupsIn } from "./core/fold";
+import { LEAF, place, sizeOf } from "./core/layout";
+import type { Graph, Side } from "./core/types";
+import { Frame } from "./Frame";
+import { Ghost } from "./Ghost";
+import { GroupFrame } from "./GroupFrame";
 import { LIFTED, NodeCard } from "./NodeCard";
-import { RegionFrame } from "./RegionFrame";
 
-const nodeTypes = { card: NodeCard, region: RegionFrame };
+const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame, ghost: Ghost };
 
-/** Objects sitting directly inside the open group. */
-function layerOf(graph: Graph, open: string | null) {
-  const here = open && graph.nodes[open] ? open : null;
+/** Room the layer's frame leaves around its contents, which is where the
+ *  interfaces on its edge sit. */
+const MARGIN = 96;
+/** Room a group's boundary leaves around its members. */
+const HUG = 22;
+/** How far a right drag must travel before it is a relationship rather than a
+ *  right click that wandered. */
+const THRESHOLD = 12;
+/** How near a card's border counts as being on it rather than inside it. */
+const EDGE = 14;
 
-  return Object.values(graph.nodes).filter(
-    (node) => (node.parent && graph.nodes[node.parent] ? node.parent : null) === here,
-  );
+type Box = { x: number; y: number; w: number; h: number };
+
+/** The box enclosing a set of boxes, grown by a margin. Null when there is
+ *  nothing to enclose. */
+function around(boxes: Box[], pad: number): Box | null {
+  if (!boxes.length) return null;
+
+  const x = Math.min(...boxes.map((b) => b.x)) - pad;
+  const y = Math.min(...boxes.map((b) => b.y)) - pad;
+
+  return {
+    x,
+    y,
+    w: Math.max(...boxes.map((b) => b.x + b.w)) + pad - x,
+    h: Math.max(...boxes.map((b) => b.y + b.h)) + pad - y,
+  };
 }
+
+/** Which edge of a box faces a point — the side a relationship with no
+ *  interface of its own leaves from. */
+function facing(from: Box, to: Box): Side {
+  const dx = to.x + to.w / 2 - (from.x + from.w / 2);
+  const dy = to.y + to.h / 2 - (from.y + from.h / 2);
+
+  if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? "right" : "left";
+
+  return dy > 0 ? "bottom" : "top";
+}
+
+/** Nearest edge of an element to a screen point, and how far along it. */
+function nearestEdge(box: DOMRect, x: number, y: number): { side: Side; at: number } {
+  const gaps = {
+    left: x - box.left, right: box.right - x, top: y - box.top, bottom: box.bottom - y,
+  };
+  const side = (Object.keys(gaps) as Side[])
+    .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
+  const along = side === "top" || side === "bottom"
+    ? (x - box.left) / box.width
+    : (y - box.top) / box.height;
+
+  return { side, at: Math.min(Math.max(along, 0.04), 0.96) };
+}
+
+/** What the floating input is asking for. One prompt, several errands. */
+type Prompt =
+  | { kind: "node"; x: number; y: number; parent: string | null }
+  | { kind: "sprout"; x: number; y: number; from: string; port?: string;
+      seat?: { side: Side; at: number } }
+  | { kind: "relation"; id: string }
+  | { kind: "rename"; id: string };
+
+/** A relationship being drawn, from the moment the right button goes down. */
+type Wire = {
+  from: string;
+  /** An interface that already exists, rather than one this drag will make. */
+  port?: string;
+  seat: { side: Side; at: number };
+  origin: { x: number; y: number };
+  to: { x: number; y: number };
+  live: boolean;
+};
 
 type Props = {
   graph: Graph;
-  scope: string | null;
   view: string | null;
+  picked: { kind: "node" | "edge" | "attr"; id: string } | null;
   path: string[];
   touched: string[];
-  onSelect: (id: string | null) => void;
-  onPick: (id: string) => void;
-  onOpen: (id: string) => void;
+  showPorts: boolean;
+  onShowPorts: (on: boolean) => void;
+  angular: boolean;
+  onAngular: (on: boolean) => void;
+  onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
+  onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
   onPromote: (id: string, parent: string | null) => void;
+  onCreate: (label: string, parent: string | null) => void;
   onCreateAt: (label: string, x: number, y: number) => void;
-  onSprout: (from: string, label: string, x: number, y: number) => void;
+  onSprout: (from: string, label: string, x: number, y: number,
+             port?: { parent: string; side: Side; at: number }) => void;
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
   onLink: (source: string, target: string, from?: string, to?: string) => void;
+  onWire: (parent: string, side: Side, at: number, target: string) => void;
+  onAddPort: (parent: string | null, side: Side, at: number) => void;
+  onSlidePort: (id: string, side: Side, at: number) => void;
   onRelation: (id: string, relation: string) => void;
-  onReanchor: (id: string, from?: string, to?: string) => void;
-  onFlip: (id: string) => void;
-  onPlaceMany: (moved: { id: string; x: number; y: number }[]) => void;
-  onArrange: (kind: Arrangement) => void;
-  /** Right-angled routing instead of curves. */
-  angular: boolean;
-  onAngular: (on: boolean) => void;
+  onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string) => void;
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
-  onRegion: (members: string[], color: string) => void;
-  onRenameRegion: (id: string, label: string) => void;
-  onResizeRegion: (id: string, x: number, y: number, w: number, h: number) => void;
-  onDropRegion: (id: string) => void;
-  pickedRegion: string | null;
-  onPickRegion: (id: string) => void;
+  onGroup: (members: string[]) => void;
+  onNameGroup: (id: string, label: string) => void;
 };
 
-/** Default tint for a freshly grouped selection; edited afterwards from the
- *  frame's own swatch. Distinct from the accent green (picked/changed) and
- *  the crossing-edge violet, so a region reads as its own thing. */
-const REGION_COLOR = "#d9a441";
-
 function Flow(props: Props) {
-  const { graph, scope, view, path, touched, onSelect, onPick, onOpen, onUp, onNest } = props;
-  const { onPromote, onCreateAt, onSprout, onLink, onRelation, onUnlink, onDelete } = props;
-  const { onRename, onLift, onFlip, onReanchor, onPlaceMany, onArrange, angular, onAngular } = props;
-  const { onRegion, onRenameRegion, onResizeRegion } = props;
-  const { onDropRegion, pickedRegion, onPickRegion } = props;
+  const { graph, view, picked, path, touched, showPorts, onShowPorts, angular, onAngular } = props;
+  const { onPick, onOpen, onUp, onNest, onPromote, onCreate, onCreateAt, onSprout } = props;
+  const { onRename, onLift, onLink, onWire, onAddPort, onSlidePort, onRelation } = props;
+  const { onPlaceMany, onUnlink, onDelete, onGroup, onNameGroup } = props;
   const flow = useReactFlow();
-  const [naming, setNaming] = useState<string | null>(null);
-  const [naming2, setNaming2] = useState<{ x: number; y: number; from?: string } | null>(null);
+  const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [wire, setWire] = useState<Wire | null>(null);
   /** The node a dragged card is currently hovering over. */
   const [dropping, setDropping] = useState<string | null>(null);
   const dropRef = useRef<string | null>(null);
-  /** The card under the pointer right now, if any. */
   const heldRef = useRef<string | null>(null);
-  /** The frame, so a drag can tell whether it ended outside the layer. */
-  const frameRef = useRef<HTMLDivElement>(null);
+  /** Where a group's boundary sat when its drag began, so the distance its
+   *  members travel is the distance it travelled. */
+  const groupRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  /** Where the right button went down, whatever it went down on. */
+  const pressRef = useRef<{ x: number; y: number } | null>(null);
+  const surface = useRef<HTMLDivElement>(null);
 
-  const members = useMemo(() => layerOf(graph, view), [graph, view]);
+  const members = useMemo(() => blocksOf(graph, view), [graph, view]);
   const marked = useMemo(() => new Set(touched), [touched]);
+  const pickedNode = picked?.kind === "node" ? picked.id : null;
+
+  /** Where everything in this layer sits, and how big it is — the one source
+   *  the frame, the groups and the relation anchors all measure against. */
+  const boxes = useMemo(() => {
+    const spots = place(graph, members);
+    const found: Record<string, Box> = {};
+
+    for (const node of members) {
+      const at = spots[node.id] ?? { x: 0, y: 0 };
+      const size = sizeOf(graph, node);
+      found[node.id] = { x: at.x, y: at.y, w: size.w, h: size.h };
+    }
+
+    return found;
+  }, [graph, members, placementKey(members)]);
+
+  /** The layer's own frame, with room on every side for its interfaces. */
+  const frameBox = useMemo(() => {
+    if (!view || !graph.nodes[view]) return null;
+
+    return around(Object.values(boxes), MARGIN)
+        ?? { x: -260, y: -140, w: 520, h: 280 };
+  }, [view, graph, boxes]);
+
+  /** Each group's boundary: the box round its members, plus a small margin.
+   *  Its own, never the user's — the boundary follows what is in it. */
+  const bands = useMemo(
+    () => groupsIn(graph, view)
+      .map(({ attr, here }) => ({
+        attr,
+        box: around(here.map((id) => boxes[id]).filter(Boolean), HUG)!,
+      }))
+      .filter((band) => band.box),
+    [graph, view, boxes],
+  );
 
   const built = useMemo<FlowNode[]>(() => {
-    const spots = place(graph, members);
-
-    return members.map((node) => ({
+    const cards = members.map((node) => ({
       id: node.id,
       type: "card",
-      position: spots[node.id] ?? { x: 0, y: 0 },
+      position: { x: boxes[node.id].x, y: boxes[node.id].y },
       data: {
         node,
         graph,
         changed: marked.has(node.id),
         dropping: dropping === node.id,
-        // The explorer's selection, kept apart from the canvas's own so that
-        // one card being looked at cannot cancel a box selection.
-        picked: node.id === scope,
-        onPick,
+        picked: node.id === pickedNode,
+        showPorts,
+        pickedPort: pickedNode,
+        onPick: (id: string) => onPick({ kind: "node", id }),
         onOpen,
-        onRename,
+        onSlidePort,
       },
-    }));
-  }, [graph, members, placementKey(members), scope, marked, dropping, onPick, onOpen, onRename]);
+    })) as FlowNode[];
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
+    /** Placeholders for relations that leave the layer, stacked beside
+     *  whichever end is visible so two of them never land on each other. */
+    const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
+    const tally: Record<string, number> = {};
+    const ghosts: FlowNode[] = [];
 
-  /** Cards currently box-selected — enough to offer turning them into a
-   *  region, once there is more than one. Read straight off the nodes React
-   *  Flow already tracks rather than a separate selection-change listener,
-   *  which is prone to looping against the library's own selection store. */
-  const boxed = useMemo(() => nodes.filter((n) => n.selected).map((n) => n.id), [nodes]);
+    for (const edge of Object.values(graph.edges)) {
+      const outward = here.has(edge.source) && !here.has(edge.target);
+      const inward = here.has(edge.target) && !here.has(edge.source);
+      if (!outward && !inward) continue;
 
-  /** Colored frames drawn behind the cards, one per region that still has
-   *  more than one live member in the open layer. Uses React Flow's own
-   *  measured node bounds rather than this file's own size estimate, which
-   *  is only ever an approximation for auto-layout spacing — a group card
-   *  can render wider than that estimate, and a frame built from the guess
-   *  would then clip the very card it's supposed to contain. */
-  const regionNodes = useMemo<FlowNode[]>(() => {
-    const pad = 22;
+      const anchor = outward ? edge.source : edge.target;
+      const far = outward ? edge.target : edge.source;
+      if (!graph.nodes[far]) continue;
 
-    return Object.values(graph.regions)
-      .map((region) => {
-        const here = region.members.filter((id) => graph.nodes[id]?.parent === view);
-        if (here.length < 2) return null;
+      const seat = boxes[anchor] ?? frameBox ?? { x: 0, y: 0, w: LEAF.w, h: LEAF.h };
+      const nth = (tally[anchor] = (tally[anchor] ?? 0) + 1) - 1;
 
-        // A frame the user has resized keeps that size; only an untouched
-        // one still follows its members automatically, the same way a node
-        // keeps a dragged position instead of the auto-layout's guess.
-        let box: { x: number; y: number; width: number; height: number };
-        if (region.x !== null && region.y !== null && region.w !== null && region.h !== null) {
-          box = { x: region.x, y: region.y, width: region.w, height: region.h };
-        } else {
-          const auto = flow.getNodesBounds(here);
-          if (!auto.width || !auto.height) return null;
-          box = { x: auto.x - pad, y: auto.y - pad, width: auto.width + pad * 2, height: auto.height + pad * 2 };
-        }
+      ghosts.push({
+        id: `ghost:${edge.id}`,
+        type: "ghost",
+        position: { x: seat.x + seat.w + 150, y: seat.y + nth * (LEAF.h + 16) },
+        width: LEAF.w,
+        height: LEAF.h,
+        measured: { width: LEAF.w, height: LEAF.h },
+        draggable: false,
+        selectable: false,
+        data: { label: graph.nodes[far].label, target: far, onOpen },
+      } as FlowNode);
+    }
 
-        return {
-          id: region.id,
-          type: "region",
-          position: { x: box.x, y: box.y },
-          // Stated directly rather than left for the resize observer to
-          // discover it later: we already know the size, and a node stays
-          // invisible *and unclickable* until measured — which silently ate
-          // clicks meant for the frame's own controls — while the resize
-          // handles specifically read `measured`, not `width`/`height`, as
-          // their drag baseline and would start from zero without it too.
-          width: box.width,
-          height: box.height,
-          measured: { width: box.width, height: box.height },
-          // No explicit z-index: a negative one renders behind React Flow's
-          // own pane, not just behind the cards, which swallowed clicks meant
-          // for the frame's own controls. Coming first in the nodes array
-          // already keeps it visually behind the cards that follow it.
-          style: { width: box.width, height: box.height },
+    const groups = bands.map(({ attr, box }) => {
+      const chosen = picked?.kind === "attr" && picked.id === attr.id;
+
+      return {
+        id: attr.id,
+        type: "group",
+        position: { x: box.x, y: box.y },
+        // Stated rather than measured: a node stays invisible *and unclickable*
+        // until React Flow has measured it, and a drag reads its baseline from
+        // `measured` specifically, so both are given here.
+        width: box.w,
+        height: box.h,
+        measured: { width: box.w, height: box.h },
+        // Transparent to the pointer until picked, so a box drawn inside the
+        // boundary reaches the pane and selects elements rather than sweeping
+        // the group in. Stated inline because React Flow's own stylesheet
+        // claims `pointer-events: all` on every node at the same specificity a
+        // rule of ours would have. Its label opts back in on its own.
+        style: { width: box.w, height: box.h, pointerEvents: chosen ? "all" : "none" },
+        // Only once picked, so a stray drag across the canvas cannot shift a
+        // group nobody was pointing at.
+        draggable: chosen,
+        selectable: false,
+        data: {
+          label: attr.name,
+          color: attr.color,
+          picked: chosen,
+          onPick: () => onPick({ kind: "attr", id: attr.id }),
+          onLabel: (label: string) => onNameGroup(attr.id, label),
+        },
+      } as FlowNode;
+    });
+
+    const frame: FlowNode[] = frameBox && view
+      ? [{
+          id: view,
+          type: "frame",
+          position: { x: frameBox.x, y: frameBox.y },
+          width: frameBox.w,
+          height: frameBox.h,
+          measured: { width: frameBox.w, height: frameBox.h },
+          // Transparent to the pointer, or it would cover the whole layer and
+          // no drag on empty canvas could ever reach the pane to draw a
+          // selection box. Its ports opt back in; its edge is found by
+          // position instead, in `under` below.
+          style: { width: frameBox.w, height: frameBox.h, pointerEvents: "none" },
           draggable: false,
           selectable: false,
           data: {
-            label: region.label,
-            color: region.color,
-            picked: pickedRegion === region.id,
-            onPick: () => onPickRegion(region.id),
-            onLabel: (label: string) => onRenameRegion(region.id, label),
-            onRemove: () => onDropRegion(region.id),
-            onResize: (x: number, y: number, w: number, h: number) =>
-              onResizeRegion(region.id, x, y, w, h),
+            id: view,
+            label: graph.nodes[view]?.label ?? "",
+            graph,
+            straddles: graph.nodes[view]?.side ?? null,
+            showPorts,
+            pickedPort: pickedNode,
+            onPick: (id: string) => onPick({ kind: "node", id }),
+            onOpen,
+            onSlidePort,
           },
-        } as FlowNode;
-      })
-      .filter((n): n is FlowNode => n !== null);
-  }, [graph, view, nodes, flow, pickedRegion, onPickRegion, onRenameRegion, onResizeRegion,
-      onDropRegion]);
+        } as FlowNode]
+      : [];
+
+    // Order is depth: the frame behind everything, then group boundaries, then
+    // the cards and the placeholders that stand beside them.
+    return [...frame, ...groups, ...cards, ...ghosts];
+  }, [graph, members, boxes, bands, frameBox, view, marked, dropping, pickedNode, picked,
+      showPorts, onPick, onOpen, onSlidePort, onNameGroup]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
   // React Flow owns positions during a drag; the graph owns them otherwise.
   // The card being dragged keeps the position React Flow is giving it, or
   // hovering over a drop target would snap it back to where it started.
   useEffect(() => {
     setNodes((current) => {
-      const held = heldRef.current;
+      const held = heldRef.current ?? groupRef.current?.id;
       const chosen = new Map(current.map((n) => [n.id, n.selected]));
 
       return built.map((n) => {
@@ -211,127 +337,335 @@ function Flow(props: Props) {
   }, [built, setNodes]);
 
   /** Edges as the graph describes them, before React Flow adds selection. */
-  const built_edges: Edge[] = useMemo(() => {
-    const here = new Set(members.map((n) => n.id));
+  const builtEdges: Edge[] = useMemo(() => {
+    const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
 
-    /** Whichever node in this layer stands for `id` — itself, or the group
-     *  containing it. A relation into something nested still has to be
-     *  visible from outside, or it looks as though nothing happened. */
-    const standIn = (id: string): string | null => {
-      let cursor: string | null = id;
-      while (cursor) {
-        if (here.has(cursor)) return cursor;
-        cursor = graph.nodes[cursor]?.parent ?? null;
+    /** The handle one end attaches to: its own interface where it has one,
+     *  otherwise the side of the card that faces the other end. */
+    const anchor = (owner: string, port: string | undefined, other: Box | null) => {
+      // With interfaces hidden there is no port to attach to, so the relation
+      // falls back to the side of the card facing the other end — drawn as
+      // before, meeting the frame edge where its port would have been.
+      if (showPorts && port && graph.nodes[port] && graph.nodes[port].parent === owner) {
+        return `port-${port}`;
       }
 
-      return null;
+      const mine = boxes[owner] ?? frameBox;
+      if (!mine || !other) return "auto-right";
+
+      return `auto-${facing(mine, other)}`;
     };
 
     return Object.values(graph.edges)
-      .map((edge) => ({ edge, source: standIn(edge.source), target: standIn(edge.target) }))
-      .filter((e) => e.source && e.target && e.source !== e.target)
-      .map(({ edge, source, target }) => {
-        const inner = edge.source !== source || edge.target !== target;
+      .map((edge) => {
+        const sourceHere = here.has(edge.source);
+        const targetHere = here.has(edge.target);
+        if (!sourceHere && !targetHere) return null;
 
-        // A relation into something nested says so, and names what it
-        // actually reaches — a dashed line alone does not tell you that.
-        const reaches = inner ? graph.nodes[edge.target]?.label : "";
-        const label = inner
-          ? `${edge.relation || "→"}  ↳ ${reaches}`
-          : edge.relation;
+        // One end elsewhere: the visible end keeps its anchor, the other
+        // attaches to the placeholder standing in for what it reaches.
+        const away = !sourceHere || !targetHere;
+        const source = sourceHere ? edge.source : `ghost:${edge.id}`;
+        const target = targetHere ? edge.target : `ghost:${edge.id}`;
+        if (away && !graph.nodes[sourceHere ? edge.target : edge.source]) return null;
+
+        const sourceBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
+        const targetBox = boxes[edge.target] ?? (edge.target === view ? frameBox : null);
+        const forward = edge.dir === "forward" || edge.dir === "both";
+        const back = edge.dir === "back" || edge.dir === "both";
+        const tint = marked.has(edge.target) ? "#4ade80" : "#3f6552";
+        const head = { type: MarkerType.ArrowClosed, width: 16, height: 16, color: tint };
 
         return {
           id: edge.id,
-          source: source!,
-          target: target!,
-          label,
+          source,
+          target,
+          label: edge.relation,
           type: angular ? "smoothstep" : "default",
-          markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16,
-                       color: marked.has(edge.target) ? "#4ade80" : "#3f6552" },
-          // Whatever the edge was tied to, or sensible ends when it was made
-          // by the conversation rather than by hand. Without naming them, an
-          // edge takes the first anchor — the left — and loops back on itself.
-          sourceHandle: inner ? "right-s-0" : edge.from || "right-s-0",
-          targetHandle: inner ? "left-t-0" : edge.to || "left-t-0",
+          markerEnd: forward ? head : undefined,
+          markerStart: back ? head : undefined,
+          sourceHandle: sourceHere
+            ? `${anchor(edge.source, edge.from, targetBox)}-s`
+            : "ghost-s",
+          targetHandle: targetHere
+            ? `${anchor(edge.target, edge.to, sourceBox)}-t`
+            : "ghost-t",
           // Stated on the edge rather than left to the container's defaults,
           // so a relation is always clickable and always deletable.
           selectable: true,
           focusable: true,
           interactionWidth: 18,
-          // Lets either end be dragged onto a different anchor.
-          reconnectable: true,
-          className: inner ? "crossing" : "",
+          className: away ? "crossing" : "",
+          selected: picked?.kind === "edge" && picked.id === edge.id,
           style: marked.has(edge.source) && marked.has(edge.target)
             ? { stroke: "#4ade80", strokeWidth: 2 }
-            : { stroke: "#2f4a3e", strokeDasharray: inner ? "4 3" : undefined },
-        };
-      });
-  }, [graph, members, marked, angular]);
+            : { stroke: "#2f4a3e", strokeDasharray: away ? "4 3" : undefined },
+        } as Edge;
+      })
+      .filter((e): e is Edge => e !== null);
+  }, [graph, members, boxes, frameBox, view, marked, angular, picked, showPorts]);
 
   // Edges need their own change handler for the same reason nodes do: without
-  // one React Flow has nowhere to record a selection, so clicking a relation
-  // did nothing at all.
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(built_edges);
-  useEffect(() => setEdges(built_edges), [built_edges, setEdges]);
+  // one React Flow has nowhere to record a selection.
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(builtEdges);
+  useEffect(() => setEdges(builtEdges), [builtEdges, setEdges]);
 
-
-  // Refit on a layer change, and when the layer gains or loses something —
-  // an answer, a chip, a drag between groups, an undo. Keyed on who is here
-  // rather than how many: moving between two layers of the same size would
-  // otherwise leave the viewport pointing at nothing.
-  //
-  // Deliberately *not* keyed on the selection. Selecting is a glance, and a
+  // Refit on a layer change, and when the layer gains or loses something.
+  // Deliberately *not* keyed on the selection: selecting is a glance, and a
   // canvas that chases every click is impossible to work on.
   const population = members.map((n) => n.id).sort().join(",");
   useEffect(() => {
     const timer = setTimeout(
-      () => flow.fitView({ duration: 320, padding: 0.18, maxZoom: 1.3 }),
+      () => flow.fitView({ duration: 320, padding: 0.16, maxZoom: 1.3 }),
       40,
     );
 
     return () => clearTimeout(timer);
   }, [flow, view, population]);
 
-  /** How far the canvas may be panned: everything in this layer, plus room on
-   *  every side to put something new. It grows as the layer does, so there is
-   *  always somewhere to work but never an empty void to get lost in. */
+  /** How far the canvas may be panned: the layer, plus room on every side to
+   *  put something new. It grows as the layer does. */
   const extent = useMemo<[[number, number], [number, number]]>(() => {
-    const spots = place(graph, members);
-    const boxes = members.map((node) => {
-      const at = spots[node.id] ?? { x: 0, y: 0 };
-      const size = sizeOf(graph, node);
-
-      return { x1: at.x, y1: at.y, x2: at.x + size.w, y2: at.y + size.h };
-    });
+    const outer = frameBox ?? around(Object.values(boxes), MARGIN)
+                           ?? { x: -260, y: -140, w: 520, h: 280 };
     const room = 520;
-    const left = Math.min(0, ...boxes.map((b) => b.x1)) - room;
-    const top = Math.min(0, ...boxes.map((b) => b.y1)) - room;
-    const right = Math.max(LEAF.w, ...boxes.map((b) => b.x2)) + room;
-    const bottom = Math.max(LEAF.h, ...boxes.map((b) => b.y2)) + room;
 
-    return [[left, top], [right, bottom]];
-  }, [graph, members, placementKey(members)]);
+    return [[outer.x - room, outer.y - room],
+            [outer.x + outer.w + room, outer.y + outer.h + room]];
+  }, [boxes, frameBox]);
 
-  /** Whichever card the dragged one is sitting on top of. */
+  /** Whichever card the dragged one covers most. Measured against this file's
+   *  own boxes rather than the library's intersection test, so the answer
+   *  agrees with what is drawn: the card with the largest shared area wins,
+   *  which is the one the pointer is plainly over. */
   const overlapping = useCallback(
     (dragged: FlowNode) => {
-      const hits = flow.getIntersectingNodes(dragged).filter((n) => n.id !== dragged.id);
+      const size = sizeOf(graph, graph.nodes[dragged.id]);
+      const mine = { x: dragged.position.x, y: dragged.position.y, w: size.w, h: size.h };
+      let best: { id: string; area: number } | null = null;
 
-      return hits.length ? hits[hits.length - 1].id : null;
+      for (const [id, other] of Object.entries(boxes)) {
+        if (id === dragged.id) continue;
+
+        const wide = Math.min(mine.x + mine.w, other.x + other.w) - Math.max(mine.x, other.x);
+        const tall = Math.min(mine.y + mine.h, other.y + other.h) - Math.max(mine.y, other.y);
+        if (wide <= 0 || tall <= 0) continue;
+
+        const area = wide * tall;
+        // A brush past the corner is not a drop; a third of the card is.
+        if (area < (mine.w * mine.h) / 3) continue;
+        if (!best || area > best.area) best = { id, area };
+      }
+
+      return best?.id ?? null;
     },
-    [flow],
+    [graph, boxes],
   );
 
+  /** The card, port or frame under a screen point, as ids. The frame is
+   *  transparent to the pointer, so its edge is found by measuring instead:
+   *  inside the layer's box but outside the contents it encloses. */
+  const under = useCallback((x: number, y: number) => {
+    const element = document.elementFromPoint(x, y) as HTMLElement | null;
+
+    // With several nodes selected the library lays its own rectangle over
+    // them, which answers the hit test before any card does. Pointing at it is
+    // pointing at the selection.
+    if (element?.closest(".react-flow__nodesselection")) {
+      return { id: null, kind: "selection" as const, port: null, box: null };
+    }
+
+    const port = element?.closest(".port") as HTMLElement | null;
+    const host = element?.closest(".react-flow__node") as HTMLElement | null;
+    const kind = host?.classList.contains("react-flow__node-card") ? "card"
+               : host?.classList.contains("react-flow__node-frame") ? "frame"
+               : host?.classList.contains("react-flow__node-group") ? "group"
+               : null;
+
+    if (host && kind) {
+      return { id: host.dataset.id ?? null, kind, port: port?.dataset.port ?? null,
+               box: host.getBoundingClientRect() };
+    }
+
+    // Nothing of ours under the pointer: it may still be the layer's own edge.
+    if (view && frameBox) {
+      const at = flow.screenToFlowPosition({ x, y });
+      const inside = at.x >= frameBox.x && at.x <= frameBox.x + frameBox.w &&
+                     at.y >= frameBox.y && at.y <= frameBox.y + frameBox.h;
+      const near = Math.min(at.x - frameBox.x, frameBox.x + frameBox.w - at.x,
+                            at.y - frameBox.y, frameBox.y + frameBox.h - at.y) < MARGIN;
+
+      if (inside && near) {
+        const corner = flow.flowToScreenPosition({ x: frameBox.x, y: frameBox.y });
+        const far = flow.flowToScreenPosition({ x: frameBox.x + frameBox.w,
+                                                y: frameBox.y + frameBox.h });
+
+        return {
+          id: view,
+          kind: "frame" as const,
+          port: null,
+          box: new DOMRect(corner.x, corner.y, far.x - corner.x, far.y - corner.y),
+        };
+      }
+    }
+
+    return { id: null, kind: null, port: null, box: null };
+  }, [view, frameBox, flow]);
+
+  /** What a right click does where a menu is not built yet: the default entry
+   *  of the menu that will replace it. */
+  const fallback = useCallback((x: number, y: number) => {
+    const hit = under(x, y);
+    const chosen = nodes.filter((n) => n.selected).map((n) => n.id);
+
+    // On a selection of several: group them, which is the one thing a right
+    // click on more than one node could reasonably mean. Only *on* it, though —
+    // a right click elsewhere is about whatever is under the cursor, and a
+    // selection left over from a moment ago should not swallow it.
+    const onSelection = hit.kind === "selection" || (hit.id !== null && chosen.includes(hit.id));
+    if (chosen.length > 1 && onSelection) return onGroup(chosen);
+
+    const at = flow.screenToFlowPosition({ x, y });
+
+    if (hit.kind === "card" && hit.id && hit.box) {
+      // Near the border it is the frame edge, and a frame edge makes ports.
+      const { side, at: along } = nearestEdge(hit.box, x, y);
+      const close = Math.min(x - hit.box.left, hit.box.right - x,
+                             y - hit.box.top, hit.box.bottom - y) < EDGE;
+
+      return close ? onAddPort(hit.id, side, along)
+                   : setPrompt({ kind: "node", x: at.x, y: at.y, parent: hit.id });
+    }
+
+    // The frame is only ever met at its edge — `under` says so or says nothing.
+    if (hit.kind === "frame" && hit.id && hit.box) {
+      const { side, at: along } = nearestEdge(hit.box, x, y);
+
+      return onAddPort(hit.id, side, along);
+    }
+
+    setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2, parent: null });
+  }, [under, nodes, flow, onGroup, onAddPort]);
+
+  // Shortcuts the canvas owns. Inside a field the field's own editing wins,
+  // and Esc abandons whatever is half-drawn — prompt or relationship alike.
+  useEffect(() => {
+    function press(event: KeyboardEvent) {
+      if (event.key === "Escape") return (setWire(null), setPrompt(null), onPick(null));
+      if ((event.target as HTMLElement).closest("input, textarea")) return;
+
+      const chosen = nodes.filter((n) => n.selected).map((n) => n.id);
+
+      if (event.key === "Enter" && pickedNode) {
+        event.preventDefault();
+
+        return setPrompt({ kind: "rename", id: pickedNode });
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "g") {
+        event.preventDefault();
+
+        return chosen.length > 1 ? onGroup(chosen) : undefined;
+      }
+    }
+
+    window.addEventListener("keydown", press);
+
+    return () => window.removeEventListener("keydown", press);
+  }, [nodes, pickedNode, onGroup, onPick]);
+
+  /** The right button, from press to release. Below the threshold it is a
+   *  click and falls through to the default action; past it, a relationship
+   *  is being drawn and an interface appears at the edge it started from. */
+  function rightDown(event: React.PointerEvent) {
+    if (event.button !== 2) return;
+
+    // Recorded whatever is underneath, so that a right click over empty canvas
+    // still reaches its default action even though there is nothing there to
+    // draw a relationship from.
+    pressRef.current = { x: event.clientX, y: event.clientY };
+
+    const hit = under(event.clientX, event.clientY);
+    if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
+
+    const seat = nearestEdge(hit.box!, event.clientX, event.clientY);
+    const origin = { x: event.clientX, y: event.clientY };
+
+    setWire({
+      from: hit.id,
+      port: hit.port ?? undefined,
+      seat,
+      origin,
+      to: origin,
+      live: false,
+    });
+  }
+
+  function rightMove(event: React.PointerEvent) {
+    if (!wire) return;
+
+    const to = { x: event.clientX, y: event.clientY };
+    const far = Math.hypot(to.x - wire.origin.x, to.y - wire.origin.y) > THRESHOLD;
+
+    setWire({ ...wire, to, live: wire.live || far });
+  }
+
+  function rightUp(event: React.PointerEvent) {
+    if (event.button !== 2) return;
+
+    const down = pressRef.current;
+    const held = wire;
+    pressRef.current = null;
+    setWire(null);
+
+    // Never past the threshold, or never on anything to draw from: a right
+    // click, and a right click runs the default action for what is under it.
+    if (!held?.live) {
+      const moved = down && Math.hypot(event.clientX - down.x, event.clientY - down.y);
+
+      if (down && moved! <= THRESHOLD) fallback(event.clientX, event.clientY);
+
+      return;
+    }
+
+    const hit = under(event.clientX, event.clientY);
+    const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
+
+    if (landed && landed !== held.from) {
+      return held.port
+        ? onLink(held.from, landed, held.port)
+        : onWire(held.from, held.seat.side, held.seat.at, landed);
+    }
+
+    // Nothing under it: make the far end where it was let go, and attach.
+    const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    setPrompt({
+      kind: "sprout",
+      x: at.x - LEAF.w / 2,
+      y: at.y - LEAF.h / 2,
+      from: held.from,
+      port: held.port,
+      seat: held.port ? undefined : held.seat,
+    });
+  }
+
   return (
-    <>
+    <div
+      className="stage"
+      ref={surface}
+      onPointerDown={rightDown}
+      onPointerMove={rightMove}
+      onPointerUp={rightUp}
+      onContextMenu={(event) => event.preventDefault()}
+    >
       <div className="crumbs">
-        <button onClick={() => onSelect(null)} className={view ? "" : "here"}>
+        <button onClick={() => onOpen(null)} className={view ? "" : "here"}>
           {graph.title || "project"}
         </button>
         {path.map((id, index) => (
           <span key={id}>
             <span className="sep">/</span>
-            <button onClick={() => onSelect(id)} className={index === path.length - 1 ? "here" : ""}>
+            <button onClick={() => onOpen(id)} className={index === path.length - 1 ? "here" : ""}>
               {graph.nodes[id]?.label}
             </button>
           </span>
@@ -343,18 +677,14 @@ function Flow(props: Props) {
         )}
       </div>
 
-      {view && graph.nodes[view] && (
-        <div className="layer-frame" ref={frameRef} aria-hidden>
-          <span className="layer-name">{graph.nodes[view].label}</span>
-        </div>
-      )}
-
       <div className="arrange">
-        {(["grid", "row", "column", "flow"] as const).map((kind) => (
-          <button key={kind} onClick={() => onArrange(kind)} title={`Arrange as ${kind}`}>
-            {kind}
-          </button>
-        ))}
+        <button
+          className={showPorts ? "on" : ""}
+          onClick={() => onShowPorts(!showPorts)}
+          title="Interfaces on the canvas"
+        >
+          {showPorts ? "□ interfaces" : "· interfaces"}
+        </button>
         <button
           className={angular ? "on" : ""}
           onClick={() => onAngular(!angular)}
@@ -365,7 +695,7 @@ function Flow(props: Props) {
       </div>
 
       <ReactFlow
-        nodes={[...regionNodes, ...nodes]}
+        nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
@@ -373,14 +703,21 @@ function Flow(props: Props) {
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
         minZoom={0.15}
-        // Double-click has its own meaning here — make something, or step
-        // back out — so the library's own double-click-to-zoom would fight it.
+        // Double-click has its own meaning here — step in, or step back out —
+        // so the library's own double-click-to-zoom would fight it.
         zoomOnDoubleClick={false}
         nodesDraggable
-        nodesConnectable
-        panOnDrag={[1, 2]}
+        // Relationships are the right button's business, drawn by hand below;
+        // the handles here are anchors for geometry, not grab points.
+        nodesConnectable={false}
+        // Middle button only. The right button draws relationships, and while
+        // the library also had it the pan handler captured the pointer first —
+        // the canvas slid away and no line was ever drawn.
+        panOnDrag={[1]}
         selectionOnDrag
-        selectionMode={SelectionMode.Partial}
+        // A box takes what it encloses. Anything it merely brushes past — the
+        // group boundary it was drawn inside, most of all — is left alone.
+        selectionMode={SelectionMode.Full}
         panOnScroll
         multiSelectionKeyCode={["Shift", "Meta", "Control"]}
         elementsSelectable
@@ -389,10 +726,14 @@ function Flow(props: Props) {
         // appeared to do nothing to a selected node or relation.
         deleteKeyCode={["Delete", "Backspace"]}
         translateExtent={extent}
-        // A region's own click handler picks it for the context pane; this
-        // one is for cards only, or it would immediately clear that pick.
-        onNodeClick={(_, node) => node.type !== "region" && onSelect(node.id)}
-        onNodeDoubleClick={(_, node) => isGroup(graph, node.id) && onOpen(node.id)}
+        onNodeClick={(_, node) => {
+          if (node.type === "card") return onPick({ kind: "node", id: node.id });
+          // The frame is the layer itself, and the layer is what an empty
+          // selection already shows.
+          if (node.type === "frame") return onPick(null);
+        }}
+        onNodeDoubleClick={(_, node) => node.type === "card" && onOpen(node.id)}
+        onEdgeClick={(_, edge) => onPick({ kind: "edge", id: edge.id })}
         onDragOver={(event) => {
           if (!event.dataTransfer.types.includes(LIFTED)) return;
           event.preventDefault();
@@ -406,29 +747,43 @@ function Flow(props: Props) {
           const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
           onLift(lifted, at.x - LEAF.w / 2, at.y - LEAF.h / 2);
         }}
-        onPaneClick={() => (setNaming(null), setNaming2(null))}
+        onPaneClick={(event) => {
+          setPrompt(null);
+
+          // A group's boundary is transparent to the pointer until it has been
+          // selected, so that a box drawn inside it reaches the pane instead
+          // of sweeping the group in. The click that selects it therefore
+          // arrives here, and is placed rather than caught: the tightest
+          // boundary the click lands in wins, so an inner group is always the
+          // one you can reach.
+          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+          const inside = bands
+            .filter(({ box }) => at.x >= box.x && at.x <= box.x + box.w &&
+                                 at.y >= box.y && at.y <= box.y + box.h)
+            .sort((a, b) => a.box.w * a.box.h - b.box.w * b.box.h);
+
+          onPick(inside.length ? { kind: "attr", id: inside[0].attr.id } : null);
+        }}
         onDoubleClick={(event) => {
-          // Only the empty canvas makes something new. A card renames itself
-          // and a relation names itself, and both sit inside this handler's
-          // reach — without excluding them, naming a relation also created a
-          // node underneath it.
           const on = (what: string) => (event.target as HTMLElement).closest(what);
           if (on(".react-flow__node") || on(".react-flow__edge") || on(".floating")) return;
 
-          // Outside the frame is "leave", not "make" — there is nothing to
-          // put a new node into out there, only the layer above to return to.
-          const frame = frameRef.current?.getBoundingClientRect();
-          if (view && frame) {
-            const out = event.clientX < frame.left || event.clientX > frame.right ||
-                        event.clientY < frame.top || event.clientY > frame.bottom;
-            if (out) return onUp();
+          // Outside the frame is "leave" — there is nothing out there but the
+          // layer above to return to.
+          if (view) onUp();
+        }}
+        onNodeDragStart={(_, node) => {
+          if (node.type === "group") {
+            groupRef.current = { id: node.id, x: node.position.x, y: node.position.y };
+
+            return;
           }
 
-          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-          setNaming2({ x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
+          heldRef.current = node.id;
         }}
-        onNodeDragStart={(_, node) => (heldRef.current = node.id)}
         onNodeDrag={(_, node) => {
+          if (node.type !== "card") return;
+
           // Only re-render when the target actually changes, not every pixel.
           const hit = overlapping(node);
           if (hit === dropRef.current) return;
@@ -436,7 +791,22 @@ function Flow(props: Props) {
           dropRef.current = hit;
           setDropping(hit);
         }}
-        onNodeDragStop={(event, node, dragged) => {
+        onNodeDragStop={(_, node, dragged) => {
+          // A group's boundary carries its members: whatever it travelled,
+          // they travelled, in one action.
+          const start = groupRef.current;
+          if (node.type === "group" && start && start.id === node.id) {
+            groupRef.current = null;
+            const dx = node.position.x - start.x;
+            const dy = node.position.y - start.y;
+            const mine = graph.attrs[node.id]?.holders ?? [];
+            const moved = mine
+              .filter((id) => boxes[id])
+              .map((id) => ({ id, x: boxes[id].x + dx, y: boxes[id].y + dy }));
+
+            return onPlaceMany(moved, `moved group of ${moved.length}`);
+          }
+
           const into = dropRef.current;
           dropRef.current = null;
           heldRef.current = null;
@@ -448,119 +818,105 @@ function Flow(props: Props) {
           // Pushed past the edge of the frame, while inside a layer: it
           // belongs to whatever contains this layer. The card's own middle is
           // what counts, not the pointer — you aim with the card you can see.
-          const frame = frameRef.current?.getBoundingClientRect();
-          const card = document
-            .querySelector(`.react-flow__node[data-id="${node.id}"]`)
-            ?.getBoundingClientRect();
-
-          if (view && frame && card) {
-            const x = card.left + card.width / 2;
-            const y = card.top + card.height / 2;
-            const out = x < frame.left || x > frame.right || y < frame.top || y > frame.bottom;
+          if (view && frameBox) {
+            const size = sizeOf(graph, graph.nodes[node.id]);
+            const x = node.position.x + size.w / 2;
+            const y = node.position.y + size.h / 2;
+            const out = x < frameBox.x || x > frameBox.x + frameBox.w ||
+                        y < frameBox.y || y > frameBox.y + frameBox.h;
             if (out) return onPromote(node.id, graph.nodes[view]?.parent ?? null);
           }
 
           // A selection dragged together lands together.
           const moved = (dragged?.length ? dragged : [node])
+            .filter((n) => n.type === "card")
             .map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
           onPlaceMany(moved);
         }}
-        onConnect={({ source, target, sourceHandle, targetHandle }) => {
-          // A chip's anchor names the child it belongs to, so a relation can
-          // reach inside a group; anything else is an anchor on the card.
-          const inside = (handle: string | null) => handle?.startsWith("child:");
-          const from = inside(sourceHandle) ? sourceHandle!.slice(6) : source;
-          const to = inside(targetHandle) ? targetHandle!.slice(6) : target;
-          if (!from || !to || from === to) return;
-
-          onLink(from, to,
-                 inside(sourceHandle) ? undefined : sourceHandle ?? undefined,
-                 inside(targetHandle) ? undefined : targetHandle ?? undefined);
-        }}
-        onConnectEnd={(event, state) => {
-          if (state.toNode || !state.fromNode) return;
-          const point = "clientX" in event ? event : event.changedTouches[0];
-          const at = flow.screenToFlowPosition({ x: point.clientX, y: point.clientY });
-          setNaming2({ x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2, from: state.fromNode.id });
-        }}
-        onEdgeDoubleClick={(_, edge) => setNaming(edge.id)}
+        onEdgeDoubleClick={(_, edge) => setPrompt({ kind: "relation", id: edge.id })}
         onNodesDelete={(gone) => gone.forEach((node) => onDelete(node.id))}
         onEdgesDelete={(gone) => gone.forEach((edge) => onUnlink(edge.id))}
-        onReconnect={(oldEdge, connection) => {
-          // A chip's anchor names the child it belongs to, matching onConnect.
-          const inside = (handle: string | null | undefined) => handle?.startsWith("child:");
-          const from = inside(connection.sourceHandle)
-            ? connection.sourceHandle!.slice(6) : connection.source;
-          const to = inside(connection.targetHandle)
-            ? connection.targetHandle!.slice(6) : connection.target;
-          if (!from || !to) return;
-
-          // Only the anchor may move this way — dropping on a different card
-          // would rewire what the relation actually connects, which a plain
-          // drag has no business deciding on its own.
-          if (from !== oldEdge.source || to !== oldEdge.target) return;
-
-          onReanchor(oldEdge.id,
-                     inside(connection.sourceHandle) ? undefined : connection.sourceHandle ?? undefined,
-                     inside(connection.targetHandle) ? undefined : connection.targetHandle ?? undefined);
-        }}
       >
         <Background gap={22} size={1} />
         <Controls />
       </ReactFlow>
 
-      {boxed.length > 1 && (
-        <div className="grouping">
-          <span>{boxed.length} selected</span>
-          <button onClick={() => onRegion(boxed, REGION_COLOR)}>Group</button>
-        </div>
+      {/* The relationship as it is being drawn, in screen coordinates so it
+          needs nothing from the viewport transform to stay under the cursor. */}
+      {wire?.live && (
+        <svg className="wiring">
+          <line
+            x1={wire.origin.x - (surface.current?.getBoundingClientRect().left ?? 0)}
+            y1={wire.origin.y - (surface.current?.getBoundingClientRect().top ?? 0)}
+            x2={wire.to.x - (surface.current?.getBoundingClientRect().left ?? 0)}
+            y2={wire.to.y - (surface.current?.getBoundingClientRect().top ?? 0)}
+          />
+        </svg>
       )}
 
-      {naming && (
+      {prompt?.kind === "relation" && (
         <div className="floating">
           <span className="caret">&gt;</span>
           <input
             autoFocus
-            defaultValue={graph.edges[naming]?.relation ?? ""}
+            defaultValue={graph.edges[prompt.id]?.relation ?? ""}
             placeholder="what is this relation?"
             list="relation-kinds"
             onKeyDown={(event) => {
-              if (event.key === "Enter") onRelation(naming, event.currentTarget.value);
-              if (event.key === "Enter" || event.key === "Escape") setNaming(null);
+              if (event.key === "Enter") onRelation(prompt.id, event.currentTarget.value);
+              if (event.key === "Enter" || event.key === "Escape") setPrompt(null);
             }}
           />
           <datalist id="relation-kinds">
             {graph.relations.map((name) => <option key={name} value={name} />)}
           </datalist>
-          <button onClick={() => (onFlip(naming), setNaming(null))} title="Turn it around">
-            ⇄
-          </button>
-          <button onClick={() => (onUnlink(naming), setNaming(null))} title="Remove it">
+          <button onClick={() => (onUnlink(prompt.id), setPrompt(null))} title="Remove it">
             ✕
           </button>
         </div>
       )}
 
-      {naming2 && (
+      {prompt?.kind === "rename" && (
         <div className="floating">
-          <span className="caret">+</span>
+          <span className="caret">✎</span>
           <input
             autoFocus
-            placeholder={naming2.from ? "name the thing it connects to" : "name it"}
-            onBlur={() => setNaming2(null)}
+            defaultValue={graph.nodes[prompt.id]?.label ?? ""}
+            placeholder="rename it"
+            onBlur={() => setPrompt(null)}
             onKeyDown={(event) => {
-              const text = event.currentTarget.value.trim();
-              if (event.key === "Enter" && text) {
-                naming2.from
-                  ? onSprout(naming2.from, text, naming2.x, naming2.y)
-                  : onCreateAt(text, naming2.x, naming2.y);
-              }
-              if (event.key === "Enter" || event.key === "Escape") setNaming2(null);
+              if (event.key === "Enter") onRename(prompt.id, event.currentTarget.value);
+              if (event.key === "Enter" || event.key === "Escape") setPrompt(null);
             }}
           />
         </div>
       )}
-    </>
+
+      {(prompt?.kind === "node" || prompt?.kind === "sprout") && (
+        <div className="floating">
+          <span className="caret">+</span>
+          <input
+            autoFocus
+            placeholder={prompt.kind === "sprout" ? "name the thing it connects to" : "name it"}
+            onBlur={() => setPrompt(null)}
+            onKeyDown={(event) => {
+              const text = event.currentTarget.value.trim();
+              if (event.key === "Enter" && text) {
+                if (prompt.kind === "sprout") {
+                  onSprout(prompt.from, text, prompt.x, prompt.y,
+                           prompt.seat ? { parent: prompt.from, ...prompt.seat } : undefined);
+                } else if (prompt.parent) {
+                  onCreate(text, prompt.parent);
+                } else {
+                  onCreateAt(text, prompt.x, prompt.y);
+                }
+              }
+              if (event.key === "Enter" || event.key === "Escape") setPrompt(null);
+            }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

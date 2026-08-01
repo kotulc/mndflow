@@ -5,15 +5,17 @@
  *  reads as one continuous thing with the live line always at the foot.
  *
  *  Suggestions take the other half of the row, tiled in the same treemap shape
- *  a group shows its contents in. */
+ *  a group shows its contents in. A Matching toggle on the rail's far right
+ *  swaps that context for the live template-score readout. */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { tile } from "./core/layout";
 import type { Question } from "./core/router";
 import { likeliest, suggest, type Suggestion } from "./core/suggest";
 import type { Graph, Step } from "./core/types";
 import type { Terms } from "./core/workflows";
+import { Scores } from "./Scores";
 import { useEmbeddings } from "./useEmbeddings";
 import { useSettling } from "./useSettling";
 import { useTypewriter } from "./useTypewriter";
@@ -37,6 +39,7 @@ type Props = {
 export function Chat(props: Props) {
   const { graph, steps, question, view, scope, terms, draft, onDraft, onTurn, onRun } = props;
   const { shown, done } = useTypewriter(question?.prompt ?? "");
+  const [matching, setMatching] = useState(false);
 
   /** The tail of the conversation. Only answered questions: hand edits are
    *  already listed in the action log, and repeating them here would bury the
@@ -109,31 +112,52 @@ export function Chat(props: Props) {
         </div>
       </div>
 
-      <div className="rail">
-        <div className={`settling ${settling ? "on" : ""}`}>{settling ? frame : ""}</div>
-
-        <div
-          className="choices"
-          style={{ gridTemplateColumns: `repeat(${Math.min(cols, 3)}, minmax(0, 1fr))` }}
+      <div className={`rail ${matching ? "matching" : ""}`}>
+        <button
+          type="button"
+          className={`match-toggle ${matching ? "on" : ""}`}
+          aria-pressed={matching}
+          aria-label={matching ? "Hide matching scores" : "Show matching scores"}
+          title={matching ? "Hide matching scores" : "Show matching scores"}
+          onClick={() => setMatching((open) => !open)}
         >
-          {done &&
-            chips.map((chip, index) => (
-              <button
-                key={chip.key}
-                className={[
-                  "chip",
-                  chip.kind,
-                  chip.hint ? "ghost" : "",
-                  chip.key === likely ? "likely" : "",
-                ].join(" ")}
-                style={{ animationDelay: `${index * 70}ms` }}
-                onClick={() => run(chip)}
-                disabled={chip.hint}
-                title={chip.label}
-              >
-                {chip.label}
-              </button>
-            ))}
+          <span className="match-icon" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        </button>
+
+        <div className="rail-pane contexts">
+          <div className={`settling ${settling ? "on" : ""}`}>{settling ? frame : ""}</div>
+
+          <div
+            className="choices"
+            style={{ gridTemplateColumns: `repeat(${Math.min(cols, 3)}, minmax(0, 1fr))` }}
+          >
+            {done &&
+              chips.map((chip, index) => (
+                <button
+                  key={chip.key}
+                  className={[
+                    "chip",
+                    chip.kind,
+                    chip.hint ? "ghost" : "",
+                    chip.key === likely ? "likely" : "",
+                  ].join(" ")}
+                  style={{ animationDelay: `${index * 70}ms` }}
+                  onClick={() => run(chip)}
+                  disabled={chip.hint}
+                  title={chip.label}
+                >
+                  {chip.label}
+                </button>
+              ))}
+          </div>
+        </div>
+
+        <div className="rail-pane scores-pane" aria-hidden={!matching}>
+          <Scores text={draft} active={graph.template} />
         </div>
       </div>
     </div>

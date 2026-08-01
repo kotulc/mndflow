@@ -8,7 +8,7 @@
  *  Selecting in the explorer is how the user steers — it names the object every
  *  question is about. Nothing here decides what to change; only what to ask. */
 
-import { childrenOf } from "./fold";
+import { blocksOf } from "./fold";
 import { best, FLOOR, phrasesOf, scoreAny, type Scored } from "./match";
 import type { Graph } from "./types";
 import * as workflows from "./workflows";
@@ -82,7 +82,7 @@ function eligible(operation: workflows.Operation, graph: Graph, scope: string | 
     case "no_summary":
       return scope !== null && !graph.nodes[scope]?.body.trim();
     case "has_parts":
-      return childrenOf(graph, scope).length > 1;
+      return blocksOf(graph, scope).length > 1;
     default:
       return true;
   }
@@ -111,7 +111,7 @@ function chips(graph: Graph, scope: string | null, operation: string,
                wording: workflows.Wording): string[] {
   if (wording.choices.length || operation !== "relate") return wording.choices;
 
-  const nearby = childrenOf(graph, scope);
+  const nearby = blocksOf(graph, scope);
   const pool = nearby.length ? nearby : Object.values(graph.nodes);
 
   return pool.filter((n) => n.id !== scope).map((n) => n.label).slice(0, CHIP_LIMIT);
