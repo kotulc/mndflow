@@ -52,6 +52,17 @@ export function isContainer(graph: Graph, id: string): boolean {
   return Object.values(graph.nodes).some((n) => n.parent === id && !isPort(n));
 }
 
+/** What to call a node. Something unnamed falls back to its role, so it still
+ *  says what it is rather than reading as a gap — and a name given later
+ *  simply replaces it. */
+export function nameOf(graph: Graph, node: Node | undefined): string {
+  if (!node) return "";
+  if (node.label) return node.label;
+  if (isPort(node)) return "interface";
+
+  return isContainer(graph, node.id) ? "container" : "block";
+}
+
 /** Attributes an object carries, whether it holds them alone or shares them. */
 export function attrsOf(graph: Graph, holder: string) {
   return Object.values(graph.attrs).filter((a) => a.holders.includes(holder));
@@ -166,6 +177,15 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "set_dir": {
       const edge = graph.edges[mutation.id];
       if (edge) edge.dir = mutation.dir;
+      break;
+    }
+
+    case "place_ghost": {
+      const edge = graph.edges[mutation.id];
+      if (edge) {
+        edge.gx = mutation.x;
+        edge.gy = mutation.y;
+      }
       break;
     }
 

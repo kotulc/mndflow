@@ -293,6 +293,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .files-bar button:hover:not(:disabled) { background: var(--hover); color: var(--accent); }
+.files-bar button.on { color: var(--accent); background: var(--hover); }
 
 .files .item {
   position: relative;
@@ -329,6 +330,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card.changed { background: #17301f; border-color: #35614a; }
 .card.group.changed { background: rgba(23, 48, 31, 0.75); }
 .card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
+
+/* Over the border rather than the middle: dropping here makes an interface,
+   so the border alone lights up. */
+.card.porting { outline: none; background: none; box-shadow: 0 0 0 3px var(--accent); }
 
 /* A border says it is available: right-click it for an interface, right-drag
    it for a relation. The brighter ring is the edge itself, not the card. */
@@ -385,6 +390,11 @@ button:disabled { opacity: 0.4; cursor: default; }
   background: transparent;
   box-shadow: 0 0 0 9000px rgba(6, 10, 8, 0.72);
 }
+
+/* The layer's border answers the pointer the way a card's does, since it is
+   where right-click makes an interface and right-drag draws a relation from
+   one. Tracked by the canvas: the frame takes no pointer events of its own. */
+.frame.grazed { border-color: var(--accent); }
 
 /* The wall this layer is set into, when the layer is an interface: the parent
    block's own border, running through the dimmed margin on either side and
@@ -458,11 +468,15 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--muted);
   font-size: 10px;
   white-space: nowrap;
+  opacity: 0.55;
 }
+
+.port:hover .port-name,
+.port.picked .port-name { opacity: 1; color: var(--accent); }
 
 /* The far end of a relation that leaves this layer */
 
-.ghost {
+.reference {
   width: 100%;
   height: 100%;
   display: flex;
@@ -480,8 +494,13 @@ button:disabled { opacity: 0.4; cursor: default; }
 .wiring {
   position: absolute;
   inset: 0;
+  /* An <svg> keeps its intrinsic 300x150 unless told otherwise, so `inset`
+     alone left the line drawn outside a box too small to show it. */
+  width: 100%;
+  height: 100%;
   z-index: 7;
   pointer-events: none;
+  overflow: visible;
 }
 
 .wiring line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }

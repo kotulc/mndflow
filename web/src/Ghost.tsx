@@ -21,7 +21,7 @@ export const Ghost = memo(({ data }: NodeProps) => {
 
   return (
     <div
-      className="ghost"
+      className="reference"
       title={`${label} — elsewhere in the project`}
       onDoubleClick={(event) => (event.stopPropagation(), onOpen(target))}
     >

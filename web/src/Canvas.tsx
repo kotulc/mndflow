@@ -25,7 +25,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { blocksOf, groupsIn } from "./core/fold";
+import { blocksOf, groupsIn, nameOf } from "./core/fold";
 import { LEAF, place, sizeOf } from "./core/layout";
 import type { Graph, Side } from "./core/types";
 import { Frame } from "./Frame";
@@ -45,6 +45,11 @@ const HUG = 22;
 const THRESHOLD = 12;
 /** How near a card's border counts as being on it rather than inside it. */
 const EDGE = 14;
+/** How near the layer's own border counts as being on it. Its margin is wide,
+ *  because that is where its interfaces sit, but the border is still a border:
+ *  treating the whole margin as the edge lit the frame up from halfway across
+ *  the canvas. */
+const RIM = 30;
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -130,28 +135,36 @@ type Props = {
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
   onLink: (source: string, target: string, from?: string, to?: string) => void;
-  onWire: (parent: string, side: Side, at: number, target: string) => void;
+  onWire: (parent: string, side: Side, at: number, target: string, to?: string) => void;
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onDemotePort: (id: string, x: number, y: number) => void;
+  onPromotePort: (id: string, parent: string, side: Side, at: number) => void;
   onRelation: (id: string, relation: string) => void;
   onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string) => void;
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
   onGroup: (members: string[]) => void;
   onNameGroup: (id: string, label: string) => void;
+  onDropAttr: (id: string) => void;
+  onPlaceGhost: (id: string, x: number, y: number) => void;
 };
 
 function Flow(props: Props) {
   const { graph, view, picked, path, touched, showPorts, onShowPorts, angular, onAngular } = props;
   const { onPick, onOpen, onUp, onNest, onPromote, onCreate, onCreateAt, onSprout } = props;
   const { onRename, onLift, onLink, onWire, onAddPort, onSlidePort, onRelation } = props;
-  const { onPlaceMany, onUnlink, onDelete, onGroup, onNameGroup } = props;
+  const { onDemotePort, onPromotePort } = props;
+  const { onPlaceMany, onUnlink, onDelete, onGroup, onNameGroup, onDropAttr } = props;
+  const { onPlaceGhost } = props;
   const flow = useReactFlow();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [wire, setWire] = useState<Wire | null>(null);
-  /** The node a dragged card is currently hovering over. */
-  const [dropping, setDropping] = useState<string | null>(null);
-  const dropRef = useRef<string | null>(null);
+  /** What a dragged card is currently over, and what dropping would do. */
+  const [dropping, setDropping] = useState<{ id: string; kind: "nest" | "port" } | null>(null);
+  const dropRef = useRef<{ id: string; kind: "nest" | "port"; side: Side; at: number } | null>(null);
+  /** True while the pointer is near the layer frame's border. */
+  const [grazing, setGrazing] = useState(false);
   const heldRef = useRef<string | null>(null);
   /** Where a group's boundary sat when its drag began, so the distance its
    *  members travel is the distance it travelled. */
@@ -187,6 +200,13 @@ function Flow(props: Props) {
         ?? { x: -260, y: -140, w: 520, h: 280 };
   }, [view, graph, boxes]);
 
+  /** A port dragged clear of its border lands where it was let go, so the
+   *  point the pointer reports has to become a place on the canvas. */
+  const demote = useCallback((id: string, x: number, y: number) => {
+    const at = flow.screenToFlowPosition({ x, y });
+    onDemotePort(id, at.x - LEAF.w / 2, at.y - LEAF.h / 2);
+  }, [flow, onDemotePort]);
+
   /** Each group's boundary: the box round its members, plus a small margin.
    *  Its own, never the user's — the boundary follows what is in it. */
   const bands = useMemo(
@@ -208,13 +228,15 @@ function Flow(props: Props) {
         node,
         graph,
         changed: marked.has(node.id),
-        dropping: dropping === node.id,
+        dropping: dropping?.id === node.id && dropping.kind === "nest",
+        porting: dropping?.id === node.id && dropping.kind === "port",
         picked: node.id === pickedNode,
         showPorts,
         pickedPort: pickedNode,
         onPick: (id: string) => onPick({ kind: "node", id }),
         onOpen,
         onSlidePort,
+        onDemotePort: demote,
       },
     })) as FlowNode[];
 
@@ -235,17 +257,25 @@ function Flow(props: Props) {
 
       const seat = boxes[anchor] ?? frameBox ?? { x: 0, y: 0, w: LEAF.w, h: LEAF.h };
       const nth = (tally[anchor] = (tally[anchor] ?? 0) + 1) - 1;
+      const put = edge.gx !== undefined && edge.gy !== undefined
+        ? { x: edge.gx, y: edge.gy }
+        : { x: seat.x + seat.w + 150, y: seat.y + nth * (LEAF.h + 16) };
 
       ghosts.push({
         id: `ghost:${edge.id}`,
         type: "ghost",
-        position: { x: seat.x + seat.w + 150, y: seat.y + nth * (LEAF.h + 16) },
+        position: put,
         width: LEAF.w,
         height: LEAF.h,
-        measured: { width: LEAF.w, height: LEAF.h },
-        draggable: false,
-        selectable: false,
-        data: { label: graph.nodes[far].label, target: far, onOpen },
+        // Movable like anything else on the canvas, though what it moves is
+        // only where the placeholder sits — the node it stands for lives in
+        // another layer and is not touched.
+        // Selectable so a click reaches it at all — the library routes clicks
+        // only to nodes it considers selectable. What the click selects is the
+        // node it stands for, not the stand-in.
+        draggable: true,
+        selectable: true,
+        data: { label: nameOf(graph, graph.nodes[far]), target: far, onOpen },
       } as FlowNode);
     }
 
@@ -261,7 +291,6 @@ function Flow(props: Props) {
         // `measured` specifically, so both are given here.
         width: box.w,
         height: box.h,
-        measured: { width: box.w, height: box.h },
         // Transparent to the pointer until picked, so a box drawn inside the
         // boundary reaches the pane and selects elements rather than sweeping
         // the group in. Stated inline because React Flow's own stylesheet
@@ -287,9 +316,13 @@ function Flow(props: Props) {
           id: view,
           type: "frame",
           position: { x: frameBox.x, y: frameBox.y },
+          // Stated width and height are enough to make it visible; `measured`
+          // is deliberately left for React Flow to fill in, because supplying
+          // it makes the library skip measuring the node — and measuring is
+          // also when it records where the handles are. Given one, every
+          // relation attached to this frame's interfaces silently vanished.
           width: frameBox.w,
           height: frameBox.h,
-          measured: { width: frameBox.w, height: frameBox.h },
           // Transparent to the pointer, or it would cover the whole layer and
           // no drag on empty canvas could ever reach the pane to draw a
           // selection box. Its ports opt back in; its edge is found by
@@ -299,7 +332,6 @@ function Flow(props: Props) {
           selectable: false,
           data: {
             id: view,
-            label: graph.nodes[view]?.label ?? "",
             graph,
             straddles: graph.nodes[view]?.side ?? null,
             showPorts,
@@ -307,6 +339,8 @@ function Flow(props: Props) {
             onPick: (id: string) => onPick({ kind: "node", id }),
             onOpen,
             onSlidePort,
+            onDemotePort: demote,
+            grazed: grazing,
           },
         } as FlowNode]
       : [];
@@ -315,7 +349,7 @@ function Flow(props: Props) {
     // the cards and the placeholders that stand beside them.
     return [...frame, ...groups, ...cards, ...ghosts];
   }, [graph, members, boxes, bands, frameBox, view, marked, dropping, pickedNode, picked,
-      showPorts, onPick, onOpen, onSlidePort, onNameGroup]);
+      showPorts, grazing, onPick, onOpen, onSlidePort, demote, onNameGroup]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
@@ -434,30 +468,42 @@ function Flow(props: Props) {
             [outer.x + outer.w + room, outer.y + outer.h + room]];
   }, [boxes, frameBox]);
 
-  /** Whichever card the dragged one covers most. Measured against this file's
-   *  own boxes rather than the library's intersection test, so the answer
-   *  agrees with what is drawn: the card with the largest shared area wins,
-   *  which is the one the pointer is plainly over. */
-  const overlapping = useCallback(
+  /** Where a dragged card would land: inside another card, or on its edge.
+   *
+   *  Its own middle decides, not the pointer — you aim with the card you can
+   *  see. Over the middle of another card it goes inside; over the border it
+   *  becomes an interface there, which is the same gesture the spec gives for
+   *  promoting a node onto a frame edge. */
+  const landing = useCallback(
     (dragged: FlowNode) => {
       const size = sizeOf(graph, graph.nodes[dragged.id]);
-      const mine = { x: dragged.position.x, y: dragged.position.y, w: size.w, h: size.h };
-      let best: { id: string; area: number } | null = null;
+      const mid = { x: dragged.position.x + size.w / 2, y: dragged.position.y + size.h / 2 };
 
-      for (const [id, other] of Object.entries(boxes)) {
+      for (const [id, box] of Object.entries(boxes)) {
         if (id === dragged.id) continue;
 
-        const wide = Math.min(mine.x + mine.w, other.x + other.w) - Math.max(mine.x, other.x);
-        const tall = Math.min(mine.y + mine.h, other.y + other.h) - Math.max(mine.y, other.y);
-        if (wide <= 0 || tall <= 0) continue;
+        const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
+                              box.y - mid.y, mid.y - (box.y + box.h));
+        if (near > EDGE) continue;
 
-        const area = wide * tall;
-        // A brush past the corner is not a drop; a third of the card is.
-        if (area < (mine.w * mine.h) / 3) continue;
-        if (!best || area > best.area) best = { id, area };
+        const seat = nearestEdge(
+          new DOMRect(box.x, box.y, box.w, box.h), mid.x, mid.y,
+        );
+
+        // The border is a band, not a line, so aiming at it is a gesture
+        // rather than a feat of precision — measured per axis, since a card is
+        // far wider than it is tall and one band for both would make its long
+        // sides as hard to hit as its short ones. Capped by a third of the
+        // card, so there is always a middle left to drop into.
+        const across = Math.min(mid.x - box.x, box.x + box.w - mid.x);
+        const down = Math.min(mid.y - box.y, box.y + box.h - mid.y);
+        const rim = across < Math.min(30, box.w / 3) || down < Math.min(30, box.h / 3);
+
+        return rim ? { kind: "port" as const, id, ...seat }
+                   : { kind: "nest" as const, id, side: seat.side, at: seat.at };
       }
 
-      return best?.id ?? null;
+      return null;
     },
     [graph, boxes],
   );
@@ -493,7 +539,7 @@ function Flow(props: Props) {
       const inside = at.x >= frameBox.x && at.x <= frameBox.x + frameBox.w &&
                      at.y >= frameBox.y && at.y <= frameBox.y + frameBox.h;
       const near = Math.min(at.x - frameBox.x, frameBox.x + frameBox.w - at.x,
-                            at.y - frameBox.y, frameBox.y + frameBox.h - at.y) < MARGIN;
+                            at.y - frameBox.y, frameBox.y + frameBox.h - at.y) < RIM;
 
       if (inside && near) {
         const corner = flow.flowToScreenPosition({ x: frameBox.x, y: frameBox.y });
@@ -567,6 +613,19 @@ function Flow(props: Props) {
 
         return chosen.length > 1 ? onGroup(chosen) : undefined;
       }
+
+      // The library deletes what it has selected, which is cards and relations.
+      // An interface, or a group boundary, is selected by us and not by it, so
+      // it has to be removed here or Delete would appear to do nothing.
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (picked?.kind === "attr") return (event.preventDefault(), onDropAttr(picked.id));
+        if (picked?.kind === "edge") return (event.preventDefault(), onUnlink(picked.id));
+        if (pickedNode && !nodes.some((n) => n.id === pickedNode && n.type === "card")) {
+          event.preventDefault();
+
+          return onDelete(pickedNode);
+        }
+      }
     }
 
     window.addEventListener("keydown", press);
@@ -602,6 +661,15 @@ function Flow(props: Props) {
   }
 
   function rightMove(event: React.PointerEvent) {
+    // The frame is transparent to the pointer, so :hover cannot reach it — its
+    // border lights up from here instead, the same way a card's does.
+    if (view && frameBox) {
+      const hit = under(event.clientX, event.clientY);
+      setGrazing(hit.kind === "frame");
+    } else if (grazing) {
+      setGrazing(false);
+    }
+
     if (!wire) return;
 
     const to = { x: event.clientX, y: event.clientY };
@@ -631,10 +699,15 @@ function Flow(props: Props) {
     const hit = under(event.clientX, event.clientY);
     const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
 
+    // Released on an interface: that interface is the far anchor, so a
+    // relation between two ports meets both of them rather than guessing a
+    // side for the end it landed on.
     if (landed && landed !== held.from) {
+      const to = hit.port ?? undefined;
+
       return held.port
-        ? onLink(held.from, landed, held.port)
-        : onWire(held.from, held.seat.side, held.seat.at, landed);
+        ? onLink(held.from, landed, held.port, to)
+        : onWire(held.from, held.seat.side, held.seat.at, landed, to);
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
@@ -656,6 +729,7 @@ function Flow(props: Props) {
       onPointerDown={rightDown}
       onPointerMove={rightMove}
       onPointerUp={rightUp}
+      onPointerLeave={() => setGrazing(false)}
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="crumbs">
@@ -728,6 +802,11 @@ function Flow(props: Props) {
         translateExtent={extent}
         onNodeClick={(_, node) => {
           if (node.type === "card") return onPick({ kind: "node", id: node.id });
+          // A placeholder is not a thing in itself: picking it picks whatever
+          // it reaches, so the panel shows the node and not the stand-in.
+          if (node.type === "ghost") {
+            return onPick({ kind: "node", id: (node.data as { target: string }).target });
+          }
           // The frame is the layer itself, and the layer is what an empty
           // selection already shows.
           if (node.type === "frame") return onPick(null);
@@ -767,10 +846,17 @@ function Flow(props: Props) {
         onDoubleClick={(event) => {
           const on = (what: string) => (event.target as HTMLElement).closest(what);
           if (on(".react-flow__node") || on(".react-flow__edge") || on(".floating")) return;
+          if (!view || !frameBox) return;
 
-          // Outside the frame is "leave" — there is nothing out there but the
-          // layer above to return to.
-          if (view) onUp();
+          // Only *outside* the frame is "leave". The frame is transparent to
+          // the pointer, so every double-click on empty canvas arrives here,
+          // including the ones inside the layer — which were stepping out of
+          // a layer the user was working in.
+          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+          const out = at.x < frameBox.x || at.x > frameBox.x + frameBox.w ||
+                      at.y < frameBox.y || at.y > frameBox.y + frameBox.h;
+
+          if (out) onUp();
         }}
         onNodeDragStart={(_, node) => {
           if (node.type === "group") {
@@ -785,11 +871,11 @@ function Flow(props: Props) {
           if (node.type !== "card") return;
 
           // Only re-render when the target actually changes, not every pixel.
-          const hit = overlapping(node);
-          if (hit === dropRef.current) return;
+          const hit = landing(node);
+          if (hit?.id === dropRef.current?.id && hit?.kind === dropRef.current?.kind) return;
 
           dropRef.current = hit;
-          setDropping(hit);
+          setDropping(hit && { id: hit.id, kind: hit.kind });
         }}
         onNodeDragStop={(_, node, dragged) => {
           // A group's boundary carries its members: whatever it travelled,
@@ -807,13 +893,26 @@ function Flow(props: Props) {
             return onPlaceMany(moved, `moved group of ${moved.length}`);
           }
 
-          const into = dropRef.current;
+          if (node.type === "ghost") {
+            return onPlaceGhost(node.id.slice("ghost:".length),
+                                node.position.x, node.position.y);
+          }
+
+          // Worked out again from where the card actually came to rest. The
+          // ref behind the hover indicator is a frame or two stale by now, and
+          // the last inch of a drag is exactly where the answer changes.
+          const into = node.type === "card" ? landing(node) : null;
           dropRef.current = null;
           heldRef.current = null;
           setDropping(null);
 
-          // Dropped on another card: that card becomes its container.
-          if (into) return onNest(node.id, into);
+          // On another card's border: it becomes an interface there. Inside
+          // it: that card becomes its container.
+          if (into?.kind === "port") {
+            return onPromotePort(node.id, into.id, into.side, into.at);
+          }
+
+          if (into) return onNest(node.id, into.id);
 
           // Pushed past the edge of the frame, while inside a layer: it
           // belongs to whatever contains this layer. The card's own middle is
@@ -834,7 +933,11 @@ function Flow(props: Props) {
           onPlaceMany(moved);
         }}
         onEdgeDoubleClick={(_, edge) => setPrompt({ kind: "relation", id: edge.id })}
-        onNodesDelete={(gone) => gone.forEach((node) => onDelete(node.id))}
+        // A placeholder is a drawing of something elsewhere; deleting it here
+        // would mean deleting a node in another layer, which is not what the
+        // key was pressed for.
+        onNodesDelete={(gone) =>
+          gone.filter((node) => node.type === "card").forEach((node) => onDelete(node.id))}
         onEdgesDelete={(gone) => gone.forEach((edge) => onUnlink(edge.id))}
       >
         <Background gap={22} size={1} />

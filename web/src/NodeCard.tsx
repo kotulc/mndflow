@@ -12,7 +12,7 @@
 import { memo, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
-import { blocksOf, isContainer, portsOf } from "./core/fold";
+import { blocksOf, isContainer, nameOf, portsOf } from "./core/fold";
 import { affinity, tile } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
@@ -51,18 +51,30 @@ export type CardData = {
   /** Enter something's own contents. Only a double-click reaches this. */
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onDemotePort: (id: string, x: number, y: number) => void;
+};
+
+/** The face opposite a side, for anchors that are looked at from the inside. */
+const FACING: Record<Side, Side> = {
+  top: "bottom", bottom: "top", left: "right", right: "left",
 };
 
 /** A pair of handles under one name, so a relation can start or end here.
- *  React Flow looks an endpoint up by type as well as id, so both exist. */
-export function Anchor({ name, side }: { name: string; side: Side }) {
+ *  React Flow looks an endpoint up by type as well as id, so both exist.
+ *
+ *  `inward` flips which way the curve leaves. On the layer's own frame the
+ *  contents are *inside*, so a port on the right edge has to set off leftwards
+ *  — left as it is, every relation to a child looped out around the frame and
+ *  came back in. */
+export function Anchor({ name, side, inward }: { name: string; side: Side; inward?: boolean }) {
   const style = { position: "absolute" as const, ...seat(side, 0.5), opacity: 0 };
+  const face = SIDES[inward ? FACING[side] : side];
 
   return (
     <>
-      <Handle type="target" id={`${name}-t`} position={SIDES[side]} isConnectable={false}
+      <Handle type="target" id={`${name}-t`} position={face} isConnectable={false}
               style={style} />
-      <Handle type="source" id={`${name}-s`} position={SIDES[side]} isConnectable={false}
+      <Handle type="source" id={`${name}-s`} position={face} isConnectable={false}
               style={style} />
     </>
   );
@@ -72,9 +84,14 @@ export type PortProps = {
   port: Node;
   graph: Graph;
   picked: boolean;
+  /** Set on the layer's own frame, whose contents face inward. */
+  inward?: boolean;
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlide: (id: string, side: Side, at: number) => void;
+  /** Dragged clear of the border: it stops being an interface, and lands
+   *  wherever on the canvas it was let go. */
+  onDemote: (id: string, x: number, y: number) => void;
 };
 
 /** One interface on the frame edge. Click to select it; once selected it
@@ -83,18 +100,24 @@ export type PortProps = {
  *
  *  Shared by the cards and by the layer's own frame, which carries ports the
  *  same way — the only difference is whose edge they sit on. */
-export function Port({ port, graph, picked, onPick, onOpen, onSlide }: PortProps) {
+export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide,
+                      onDemote }: PortProps) {
   const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
   const held = useRef(false);
   const side = drag?.side ?? port.side ?? "right";
   const at = drag?.at ?? port.at ?? 0.5;
   const deep = isContainer(graph, port.id);
 
-  /** Nearest edge of the card to a point, and how far along it. */
-  function nearest(event: React.PointerEvent): { side: Side; at: number } {
+  /** How far from the border a drag has gone before the port stops belonging
+   *  to the edge at all — outward off a card, or inward across a frame. */
+  const OFF = 44;
+
+  /** Nearest edge of the host to a point, how far along it, and whether the
+   *  point has left the border behind. */
+  function nearest(event: React.PointerEvent) {
     const host = (event.currentTarget as HTMLElement).closest(".card, .frame");
     const box = host?.getBoundingClientRect();
-    if (!box) return { side, at };
+    if (!box) return { side, at, gone: false };
 
     const x = Math.min(Math.max(event.clientX - box.left, 0), box.width);
     const y = Math.min(Math.max(event.clientY - box.top, 0), box.height);
@@ -102,8 +125,14 @@ export function Port({ port, graph, picked, onPick, onOpen, onSlide }: PortProps
     const closest = (Object.keys(gaps) as Side[])
       .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
     const along = closest === "top" || closest === "bottom" ? x / box.width : y / box.height;
+    // Distance from the nearest border, whichever side of it the pointer is
+    // on: dragged off a card, or dragged in across a frame, both mean the same
+    // thing — this is no longer something sitting on an edge.
+    const out = Math.max(box.left - event.clientX, event.clientX - box.right,
+                         box.top - event.clientY, event.clientY - box.bottom);
+    const away = out > 0 ? out : Math.min(x, box.width - x, y, box.height - y);
 
-    return { side: closest, at: Math.min(Math.max(along, 0.04), 0.96) };
+    return { side: closest, at: Math.min(Math.max(along, 0.04), 0.96), gone: away > OFF };
   }
 
   return (
@@ -116,7 +145,7 @@ export function Port({ port, graph, picked, onPick, onOpen, onSlide }: PortProps
         deep ? "deep" : "", port.flow ? `flow-${port.flow}` : "",
       ].join(" ")}
       style={seat(side, at)}
-      title={port.label || "interface"}
+      title={nameOf(graph, port)}
       data-port={port.id}
       onPointerDown={(event) => {
         // The right button belongs to the canvas, which draws relationships
@@ -132,12 +161,21 @@ export function Port({ port, graph, picked, onPick, onOpen, onSlide }: PortProps
         held.current = true;
         (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
       }}
-      onPointerMove={(event) => held.current && setDrag(nearest(event))}
+      onPointerMove={(event) => {
+        if (!held.current) return;
+        const now = nearest(event);
+        setDrag({ side: now.side, at: now.at });
+      }}
       onPointerUp={(event) => {
         if (!held.current) return;
         held.current = false;
         const landed = nearest(event);
         setDrag(null);
+
+        // Pulled well clear of the border: it is an ordinary child block
+        // again, and it lands where it was let go.
+        if (landed.gone) return onDemote(port.id, event.clientX, event.clientY);
+
         if (landed.side !== port.side || landed.at !== port.at) {
           onSlide(port.id, landed.side, landed.at);
         }
@@ -146,8 +184,11 @@ export function Port({ port, graph, picked, onPick, onOpen, onSlide }: PortProps
       onDoubleClick={(event) => (event.stopPropagation(), onOpen(port.id))}
     >
       <span className="mark" />
-      {port.label && <span className="port-name">{port.label}</span>}
-      <Anchor name={`port-${port.id}`} side={side} />
+      {/* Named only on the layer's own frame. A card's ports are marks on a
+          shape you are looking *at*, and labelling every one of them buries
+          the card; the frame is the one you have stepped into. */}
+      {inward && <span className="port-name">{nameOf(graph, port)}</span>}
+      <Anchor name={`port-${port.id}`} side={side} inward={inward} />
     </span>
   );
 }
@@ -177,7 +218,7 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
           <div
             key={kid.id}
             className={`cell nodrag ${isContainer(graph, kid.id) ? "group" : "object"}`}
-            title={`${kid.label} — drag onto the canvas to lift it out`}
+            title={`${nameOf(graph, kid)} — drag onto the canvas to lift it out`}
             draggable
             onDragStart={(event) => {
               event.stopPropagation();
@@ -193,7 +234,7 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
             {isContainer(graph, kid.id) ? (
               <Contents graph={graph} id={kid.id} size={cell} onPick={onPick} onOpen={onOpen} />
             ) : (
-              cell >= READABLE && <span className="tag">{kid.label}</span>
+              cell >= READABLE && <span className="tag">{nameOf(graph, kid)}</span>
             )}
           </div>
         );
@@ -205,7 +246,7 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
   const { node, graph, changed, dropping, picked, showPorts, pickedPort } =
     data as unknown as CardData;
-  const { onPick, onOpen, onSlidePort } = data as unknown as CardData;
+  const { onPick, onOpen, onSlidePort, onDemotePort } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
@@ -233,13 +274,14 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
           onPick={onPick}
           onOpen={onOpen}
           onSlide={onSlidePort}
+          onDemote={onDemotePort}
         />
       ))}
 
       {/* The name is not editable here: on the canvas a double-click goes
           into something, so renaming is Enter, or the explorer. */}
       <div className="card-head">
-        <span className="label">{node.label}</span>
+        <span className="label">{nameOf(graph, node)}</span>
         {node.type && <span className="kind">{node.type}</span>}
       </div>
 

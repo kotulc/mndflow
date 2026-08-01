@@ -10,7 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { isContainer, isPort } from "./core/fold";
+import { isContainer, isPort, nameOf } from "./core/fold";
 import type { Graph, Node } from "./core/types";
 import type { Terms } from "./core/workflows";
 
@@ -198,9 +198,9 @@ export function Files(props: Props) {
    *  step with it. Guides only exist while the branch is open: a collapsed
    *  parent omits this list entirely. */
   function branch(parentId: string) {
-    const all = kids[parentId] ?? [];
-    const blocks = all.filter((n) => !isPort(n));
-    const ports = showPorts ? all.filter(isPort) : [];
+    // Interfaces are children like any other, listed alongside the blocks and
+    // told apart by their icon; `branches` has already sorted them last.
+    const here = (kids[parentId] ?? []).filter((n) => showPorts || !isPort(n));
 
     const row = (node: Node) => {
       const holds = Boolean(kids[node.id]?.some((n) => showPorts || !isPort(n)));
@@ -240,29 +240,14 @@ export function Files(props: Props) {
             </span>
             {editing === node.id
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null))
-              : <span className="label">{node.label || "interface"}</span>}
+              : <span className="label">{nameOf(graph, node)}</span>}
           </div>
           {holds && open.has(node.id) && <ul className="branch">{branch(node.id)}</ul>}
         </li>
       );
     };
 
-    return (
-      <>
-        {blocks.map(row)}
-        {/* Interfaces are gathered rather than mixed in: they belong to the
-            frame, not to the contents. */}
-        {ports.length > 0 && (
-          <li className="ports">
-            <div className="item quiet">
-              <span className="icon">□</span>
-              <span className="label">interfaces</span>
-            </div>
-            <ul className="branch">{ports.map(row)}</ul>
-          </li>
-        )}
-      </>
-    );
+    return <>{here.map(row)}</>;
   }
 
   /** Delete what the tree has open. The canvas has its own handling for its
@@ -292,9 +277,9 @@ export function Files(props: Props) {
           <button
             className={showPorts ? "on" : ""}
             onClick={() => onShowPorts(!showPorts)}
-            title="Show interfaces"
+            title={showPorts ? "Hide interfaces" : "Show interfaces"}
           >
-            □
+            {showPorts ? "▣" : "□"}
           </button>
           <button onClick={() => view && onDelete(view)} disabled={!view} title="Delete">
             ✕

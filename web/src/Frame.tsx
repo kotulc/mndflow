@@ -15,13 +15,12 @@
 import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
 
-import { portsOf } from "./core/fold";
+import { nameOf, portsOf } from "./core/fold";
 import type { Graph, Side } from "./core/types";
 import { Anchor, Port } from "./NodeCard";
 
 export type FrameData = {
   id: string;
-  label: string;
   graph: Graph;
   /** Which edge of its parent this layer is set into, when it is an interface
    *  being looked at from the inside. Null for an ordinary node. */
@@ -31,18 +30,23 @@ export type FrameData = {
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onDemotePort: (id: string, x: number, y: number) => void;
+  /** True while the pointer is near the border, which is where the gestures
+   *  that make interfaces live. */
+  grazed: boolean;
 };
 
 export const Frame = memo(({ data }: NodeProps) => {
-  const { id, label, graph, straddles, showPorts, pickedPort } = data as unknown as FrameData;
-  const { onPick, onOpen, onSlidePort } = data as unknown as FrameData;
+  const { id, graph, straddles, showPorts, pickedPort, grazed } =
+    data as unknown as FrameData;
+  const { onPick, onOpen, onSlidePort, onDemotePort } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
   const upright = straddles === "left" || straddles === "right";
 
   return (
-    <div className="frame">
-      <span className="frame-name">{label}</span>
+    <div className={`frame ${grazed ? "grazed" : ""}`}>
+      <span className="frame-name">{nameOf(graph, graph.nodes[id])}</span>
 
       {straddles && (
         <span className={`wall ${upright ? "upright" : "flat"}`} aria-hidden>
@@ -54,7 +58,7 @@ export const Frame = memo(({ data }: NodeProps) => {
       {/* Anchors for relations reaching the frame itself without an interface
           of their own, matching the ones every card carries. */}
       {(["top", "right", "bottom", "left"] as Side[]).map((side) => (
-        <Anchor key={side} name={`auto-${side}`} side={side} />
+        <Anchor key={side} name={`auto-${side}`} side={side} inward />
       ))}
 
       {showPorts && portsOf(graph, id).map((port) => (
@@ -65,7 +69,9 @@ export const Frame = memo(({ data }: NodeProps) => {
           picked={pickedPort === port.id}
           onPick={onPick}
           onOpen={onOpen}
+          inward
           onSlide={onSlidePort}
+          onDemote={onDemotePort}
         />
       ))}
     </div>

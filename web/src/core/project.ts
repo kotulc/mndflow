@@ -202,6 +202,22 @@ export function useProject() {
     markPort: (id: string, flow: Flow | null) =>
       commit(makeStep(`mark: ${flow ?? "none"}`, "port", [{ op: "mark_port", id, flow }])),
 
+    /** Put an existing node on a frame edge, or take one off. Promotion and
+     *  demotion are the same change seen from either end, and each is one step
+     *  so undo returns the node to exactly where it was. */
+    promotePort: (id: string, parent: string, side: Side, at: number) =>
+      !descendsFrom(graph, parent, id) &&
+      commit(makeStep(`interface: ${name(id)}`, "port", [
+        { op: "move_node", id, parent },
+        { op: "set_port", id, side, at },
+      ])),
+
+    demotePort: (id: string, x: number, y: number) =>
+      commit(makeStep(`off the edge: ${name(id)}`, "port", [
+        { op: "set_port", id, side: null, at: null },
+        { op: "place_node", id, x, y },
+      ])),
+
     /** A bare interface, from right-clicking a frame edge. Deliberate, so it
      *  is a node of its own rather than something derived from a relation. */
     addPort: (parent: string | null, side: Side, at: number) => {
@@ -220,14 +236,14 @@ export function useProject() {
     /** A right drag from a frame edge: the interface it started from and the
      *  relationship it drew, made together so undo takes back the gesture
      *  rather than half of it. */
-    wire: (parent: string, side: Side, at: number, target: string) => {
+    wire: (parent: string, side: Side, at: number, target: string, to?: string) => {
       if (parent === target) return;
 
       const port = makeNode("", { parent, side, at });
 
       commit(makeStep(`link: ${name(parent)}`, "link", [
         { op: "add_node", node: port },
-        { op: "link_nodes", edge: makeEdge(parent, target, { from: port.id }) },
+        { op: "link_nodes", edge: makeEdge(parent, target, { from: port.id, to }) },
       ]));
     },
 
@@ -235,6 +251,10 @@ export function useProject() {
     reanchor: (id: string, from?: string, to?: string) =>
       commit(makeStep(`anchor: ${graph.edges[id]?.relation || "relation"}`, "anchor",
                       [{ op: "reanchor_edge", id, from, to }])),
+
+    /** Where the placeholder for a relation's far end sits in this layer. */
+    placeGhost: (id: string, x: number, y: number) =>
+      commit(makeStep("move reference", "place", [{ op: "place_ghost", id, x, y }])),
 
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),

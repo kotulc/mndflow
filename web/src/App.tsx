@@ -165,6 +165,10 @@ export function App() {
               onWire={project.wire}
               onAddPort={project.addPort}
               onSlidePort={project.setPort}
+              onDemotePort={project.demotePort}
+              onPromotePort={project.promotePort}
+              onDropAttr={project.dropAttr}
+              onPlaceGhost={project.placeGhost}
               onRelation={project.relation}
               onPlaceMany={project.placeMany}
               onUnlink={project.unlink}
