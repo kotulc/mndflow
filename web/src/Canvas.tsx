@@ -46,7 +46,7 @@ const LEAST = { w: 520, h: 320 };
 /** The band left around a layer's frame, in screen pixels. It is where you
  *  double-click to leave, and where the parent's border shows when the layer
  *  is an interface, so it is the same on every side of every layer. */
-const BAND = 34;
+const BAND = 56;
 /** Room a group's boundary leaves around its members. */
 const HUG = 22;
 /** How far a right drag must travel before it is a relationship rather than a
@@ -502,7 +502,7 @@ function Flow(props: Props) {
     const timer = setTimeout(() => {
       // At the top level there is no frame, so the contents are what is fitted.
       if (!view || !frameBox) {
-        flow.fitView({ duration: 320, padding: 0.16, maxZoom: 1.3 });
+        flow.fitView({ duration: 320, padding: 0.24, maxZoom: 1.3 });
 
         return;
       }
