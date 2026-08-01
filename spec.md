@@ -141,6 +141,12 @@ kind of relationship; it is the same relationship, drawn differently. It renders
 semi-transparent placeholder node with a dashed boundary, labeled with what it actually
 reaches.
 
+**Only at the top level, for now.** Inside a frame there is nowhere for a placeholder to go
+but outside it, and outside the frame is margin — so they pushed the frame down to a fraction
+of the panel to make room for themselves. The layer's own working area matters more than the
+reminder, so inside a frame a relationship that leaves the layer is currently not drawn at
+all. How references should read from inside a layer is an open question; see Open decisions.
+
 > This reverses an earlier decision, which attached such a relationship to whichever visible
 > ancestor contained the far end and labeled it `informs ↳ core`. The ancestor form kept the
 > diagram literal but made two different relationships into the same visible line, and gave no
@@ -240,13 +246,22 @@ user is inspecting.
 children are the top-level nodes and its attributes are the project's.
 
 **Node view.** The inside of a node: a frame carrying the node's name, with enough margin
-around it to show the interfaces sitting on its edge. Double-clicking outside the frame
+inside it to show the interfaces sitting on its edge. Double-clicking outside the frame
 returns to the previous level.
 
 **Inside the frame is the canvas**, left clear to the grid — it is where the work happens.
 Everything outside it is dimmed. The frame is the boundary of the thing you are in, seen from
 within, not a panel laid over the page, so the lit area is the space you can build in and the
 dark area is merely the outside world.
+
+**The frame fills the panel.** It is the working area, so it takes as much of the canvas as it
+can, and what is left around it is a thin margin — enough to double-click in to leave by, and
+enough to show the parent's border when the layer is an interface. Nothing else is ever drawn
+out there, and nothing drawn out there is allowed to decide how much room the layer gets.
+
+**Zoom and growth happen inside the frame.** A layer that gains a node grows its frame, and
+the view refits so the frame still fills the panel — the contents get smaller within a
+constant working area rather than the working area shrinking around them.
 
 A node with no children still has a node view — the frame, its interfaces, and empty space to
 build in. Descending into a block is how you start giving it contents, so it must not be a
@@ -454,6 +469,15 @@ and revisited deliberately rather than drifting:
 - **Visual style and theme** — colour, type, spacing, and the overall look.
 
 **Built last.** The context menu. Until then, right-click performs the default action above.
+
+
+## Open decisions
+
+- **References from inside a layer.** A relationship that leaves the layer is drawn only at the
+  top level. Inside a frame it is not drawn, because the only place to put a placeholder is the
+  margin outside the frame, and that margin belongs to leaving the layer rather than to its
+  contents. The alternatives — an interface on the frame's edge standing in for whatever lies
+  beyond it, a mark on the near node, a list off to one side — have not been settled.
 
 
 ## Notes

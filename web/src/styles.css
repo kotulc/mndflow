@@ -418,16 +418,17 @@ button:disabled { opacity: 0.4; cursor: default; }
 .wall.flat .before { right: 100%; }
 .wall.flat .after { left: 100%; }
 
+/* Inside the frame, not on its lip: the frame now reaches the top of the
+   panel, and a label hung above its border sat over the canvas toolbar. */
 .frame-name {
   position: absolute;
-  right: 16px;
-  top: -9px;
-  padding: 0 8px;
-  background: var(--bg);
+  left: 14px;
+  top: 8px;
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: lowercase;
+  pointer-events: none;
 }
 
 /* Interfaces: open squares on the frame edge, on a card or on the frame */

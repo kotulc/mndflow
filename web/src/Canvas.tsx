@@ -38,6 +38,13 @@ const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame, ghost: Ghos
 /** Room the layer's frame leaves around its contents, which is where the
  *  interfaces on its edge sit. */
 const MARGIN = 96;
+/** The least a layer's working area is ever worth, in canvas units. A frame is
+ *  drawn from its contents, so a layer holding two cards would otherwise be a
+ *  small box magnified to fill the panel — the same picture, with everything
+ *  twice the size and no more room to work in. Given a floor, it fills the
+ *  panel at its natural scale instead, and only shrinks once the layer has
+ *  grown past it. */
+const ROOM = { w: 1180, h: 660 };
 /** Room a group's boundary leaves around its members. */
 const HUG = 22;
 /** How far a right drag must travel before it is a relationship rather than a
@@ -196,8 +203,13 @@ function Flow(props: Props) {
   const frameBox = useMemo(() => {
     if (!view || !graph.nodes[view]) return null;
 
-    return around(Object.values(boxes), MARGIN)
-        ?? { x: -260, y: -140, w: 520, h: 280 };
+    const hug = around(Object.values(boxes), MARGIN) ?? { x: 0, y: 0, w: 0, h: 0 };
+    // Grown to the floor around its own middle, so a sparse layer is roomy
+    // rather than magnified.
+    const w = Math.max(hug.w, ROOM.w);
+    const h = Math.max(hug.h, ROOM.h);
+
+    return { x: hug.x + hug.w / 2 - w / 2, y: hug.y + hug.h / 2 - h / 2, w, h };
   }, [view, graph, boxes]);
 
   /** A port dragged clear of its border lands where it was let go, so the
@@ -241,12 +253,18 @@ function Flow(props: Props) {
     })) as FlowNode[];
 
     /** Placeholders for relations that leave the layer, stacked beside
-     *  whichever end is visible so two of them never land on each other. */
+     *  whichever end is visible so two of them never land on each other.
+     *
+     *  Only at the top level. Inside a frame they can only be drawn outside
+     *  it — there is nowhere else for something that is not in the layer to
+     *  go — and everything outside the frame is margin, so they pushed the
+     *  frame down to a fraction of the panel. The layer's own room matters
+     *  more than the reminder. */
     const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
     const tally: Record<string, number> = {};
     const ghosts: FlowNode[] = [];
 
-    for (const edge of Object.values(graph.edges)) {
+    for (const edge of view ? [] : Object.values(graph.edges)) {
       const outward = here.has(edge.source) && !here.has(edge.target);
       const inward = here.has(edge.target) && !here.has(edge.source);
       if (!outward && !inward) continue;
@@ -399,6 +417,8 @@ function Flow(props: Props) {
         // One end elsewhere: the visible end keeps its anchor, the other
         // attaches to the placeholder standing in for what it reaches.
         const away = !sourceHere || !targetHere;
+        // No placeholder to hang it from inside a frame, so nothing to draw.
+        if (away && view) return null;
         const source = sourceHere ? edge.source : `ghost:${edge.id}`;
         const target = targetHere ? edge.target : `ghost:${edge.id}`;
         if (away && !graph.nodes[sourceHere ? edge.target : edge.source]) return null;
@@ -449,10 +469,16 @@ function Flow(props: Props) {
   // canvas that chases every click is impossible to work on.
   const population = members.map((n) => n.id).sort().join(",");
   useEffect(() => {
-    const timer = setTimeout(
-      () => flow.fitView({ duration: 320, padding: 0.16, maxZoom: 1.3 }),
-      40,
-    );
+    const timer = setTimeout(() => {
+      // Inside a layer it is the frame that is fitted, not the contents: the
+      // frame is the working area, and what little is left around it is the
+      // margin you double-click to leave by. Fitting the contents instead let
+      // anything drawn outside — a reference, a card pushed past the edge —
+      // decide how much of the panel the layer got.
+      flow.fitView(view
+        ? { nodes: [{ id: view }], duration: 320, padding: 0.04, maxZoom: 1.15 }
+        : { duration: 320, padding: 0.16, maxZoom: 1.3 });
+    }, 40);
 
     return () => clearTimeout(timer);
   }, [flow, view, population]);
@@ -462,7 +488,9 @@ function Flow(props: Props) {
   const extent = useMemo<[[number, number], [number, number]]>(() => {
     const outer = frameBox ?? around(Object.values(boxes), MARGIN)
                            ?? { x: -260, y: -140, w: 520, h: 280 };
-    const room = 520;
+    // Inside a frame, only enough to reach past its edge — that is the gesture
+    // for pushing a card up a layer, and beyond it there is nothing to see.
+    const room = frameBox ? MARGIN * 2 : 520;
 
     return [[outer.x - room, outer.y - room],
             [outer.x + outer.w + room, outer.y + outer.h + room]];
