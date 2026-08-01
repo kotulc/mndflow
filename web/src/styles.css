@@ -19,9 +19,11 @@
 body { margin: 0; background: var(--bg); }
 
 .app {
+  position: relative;
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
   height: 100vh;
+  overflow: hidden;
 }
 
 header {
@@ -129,71 +131,70 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .rail {
   position: relative;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 7px;
   min-width: 0;
   overflow: hidden;
 }
 
 .rail-pane {
-  grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  transition: transform 280ms ease, opacity 220ms ease;
-}
-
-.rail-pane.contexts {
   justify-content: flex-end;
   align-items: flex-end;
   gap: 7px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.rail-pane.scores-pane {
-  justify-content: stretch;
-  transform: translateX(12px);
-  opacity: 0;
-  pointer-events: none;
-}
+/* The readout's own control, at the end of the header's tools — the same row
+   as export, import and new, since it is one more thing you do to the page
+   rather than to the graph. */
 
-.rail.matching .rail-pane.contexts {
-  transform: translateX(-18px);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.rail.matching .rail-pane.scores-pane {
-  transform: none;
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.match-toggle {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  z-index: 2;
-  transform: translateY(-50%);
+.readout-toggle {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 22px;
   padding: 0;
   color: var(--muted);
-  background: var(--bg);
 }
 
-.match-toggle:hover:not(:disabled) {
-  color: var(--text);
-  border-color: var(--accent);
-}
+.readout-toggle:hover:not(:disabled) { color: var(--text); }
 
-.match-toggle.on {
+.readout-toggle.on {
   color: var(--accent);
   border-color: var(--accent);
   background: #12241a;
 }
+
+/* The readout, sliding in from the right edge over the canvas rather than
+   taking a column from it. Bounded by the working area, so the terminal above
+   stays visible while it is out. */
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  width: min(360px, 46vw);
+  display: flex;
+  padding: 8px;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  transform: translateX(100%);
+  transition: transform 240ms ease;
+}
+
+.drawer.open { transform: none; }
+
+/* Its own controls stay reachable while it is out. */
+
 
 .match-icon {
   display: flex;
@@ -313,6 +314,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Canvas cards */
 
 .canvas { position: relative; min-height: 0; }
+
+/* The tray covers the foot of the canvas, so the zoom controls step above it —
+   past the bar when it is shut, past the whole panel when it is open. */
+.canvas .react-flow__controls { bottom: 44px; transition: bottom 200ms ease; }
+.canvas:has(.tray.open) .react-flow__controls { bottom: calc(40vh + 12px); }
 
 .card {
   border: 1px solid var(--border);
@@ -538,6 +544,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Panes */
 
 main {
+  position: relative;
   display: grid;
   grid-template-columns: 280px 1fr;
   border-top: 1px solid var(--border);
@@ -626,18 +633,117 @@ main {
 
 .files .rename:focus { outline: none; }
 
-/* Canvas, with the selected document's text beneath it */
+/* The canvas takes what is left; the attribute tray rides at its foot */
 
 .work { display: grid; overflow: hidden; }
 
-.doc {
+.tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
   display: flex;
   flex-direction: column;
-  height: 170px;
-  min-width: 0;
-  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
   background: var(--surface);
 }
+
+.tray-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 12px;
+  color: var(--accent);
+  cursor: default;
+}
+
+.tray-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-bar .holds { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; flex: none; }
+.tray-bar .add-attr { flex: 1; min-width: 6em; }
+.tray-bar .add-attr:disabled { color: var(--muted); opacity: 0.5; }
+
+.tray-bar .chevron {
+  flex: none;
+  width: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.tray-bar .chevron:hover { color: var(--accent); background: none; }
+
+/* Shut, it is a bar and nothing more — the canvas keeps the rest. Open, it
+   slides up to a readable height without ever taking the whole layer. */
+.tray-body {
+  display: flex;
+  flex-direction: column;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 200ms ease;
+}
+
+.tray.open .tray-body { max-height: 40vh; overflow: auto; }
+
+.tray-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--divider);
+}
+
+.tray-row select,
+.tray-row button {
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.tray-row button:hover { color: var(--accent); border-color: var(--accent); }
+.tray-row .state { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+.tray textarea {
+  min-height: 84px;
+  padding: 8px 12px;
+  border: none;
+  resize: vertical;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.tray textarea:focus { outline: none; }
+.tray textarea::placeholder { color: var(--muted); }
+
+.tray .name-field {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  width: 14em;
+}
+
+.tray .name-field:focus { outline: none; }
+
+.tray .members { list-style: none; margin: 0; padding: 6px 12px; }
+.tray .members li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tray .members button { border: none; background: none; color: var(--border); font-size: 10px; }
+.tray .members button:hover { color: var(--error); }
 
 .doc-bar {
   display: flex;
@@ -650,7 +756,7 @@ main {
 }
 
 .doc-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.doc-bar .meta { flex: none; }
+.tray-row .meta { flex: none; }
 
 .doc textarea {
   flex: 1;
@@ -670,7 +776,7 @@ main {
 /* The selection's attributes, under its text. A group appears here as what it
    is — one attribute several objects share — rather than as its own kind. */
 
-.doc-bar .meta { display: flex; align-items: center; gap: 6px; }
+.tray-row .meta { display: flex; align-items: center; gap: 6px; }
 .doc-bar .meta select,
 .doc-bar .meta button {
   border: 1px solid var(--divider);
@@ -700,7 +806,6 @@ main {
   gap: 2px;
   padding: 6px 12px 8px;
   border-top: 1px solid var(--divider);
-  overflow: auto;
 }
 
 .attr { display: flex; align-items: center; gap: 8px; font-size: 12px; }
@@ -734,7 +839,7 @@ main {
 
 .attr button:hover { color: var(--error); }
 
-.doc .members { list-style: none; margin: 0; padding: 6px 12px; overflow: auto; }
+
 .doc .members li {
   display: flex;
   justify-content: space-between;
@@ -743,8 +848,7 @@ main {
   color: var(--muted);
 }
 
-.doc .members button { border: none; background: none; color: var(--border); font-size: 10px; }
-.doc .members button:hover { color: var(--error); }
+
 
 /* Action log */
 
@@ -810,7 +914,7 @@ main {
 /* Properties pane header */
 
 .doc-bar .name { color: var(--accent); }
-.doc-bar .meta { display: flex; align-items: center; gap: 8px; }
+.tray-row .meta { display: flex; align-items: center; gap: 8px; }
 
 .doc-bar .type {
   width: 9em;
@@ -825,12 +929,52 @@ main {
 .doc-bar .type:focus { outline: none; border-color: var(--accent); }
 .doc-bar button { padding: 0 6px; font-size: 11px; }
 
-/* Foot: the action log and the attribute panel */
 
-footer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  border-top: 1px solid var(--border);
+
+/* The readout — relations, actions and matching, sharing the rail */
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.readout .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--divider); }
+
+.readout .tabs button {
+  flex: 1;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.readout .tabs button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.readout .tabs button.on { color: var(--accent); background: var(--hover); }
+
+.readout-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
+/* The three of them fill the readout rather than keeping the heights they had
+   when each sat in a column of its own. */
+.readout .log,
+.readout .relations,
+.readout .scores {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  border: none;
+  padding-right: 0;
+  overflow: auto;
 }
 
 /* Matching readout — lives in the terminal rail when toggled */

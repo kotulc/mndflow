@@ -5,17 +5,17 @@
  *  reads as one continuous thing with the live line always at the foot.
  *
  *  Suggestions take the other half of the row, tiled in the same treemap shape
- *  a group shows its contents in. A Matching toggle on the rail's far right
- *  swaps that context for the live template-score readout. */
+ *  a group shows its contents in. That is the whole of this file's business:
+ *  the readout that used to share the rail now slides in from the page's own
+ *  right edge, and knows nothing about the terminal. */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { tile } from "./core/layout";
 import type { Question } from "./core/router";
 import { likeliest, suggest, type Suggestion } from "./core/suggest";
 import type { Graph, Step } from "./core/types";
 import type { Terms } from "./core/workflows";
-import { Scores } from "./Scores";
 import { useEmbeddings } from "./useEmbeddings";
 import { useSettling } from "./useSettling";
 import { useTypewriter } from "./useTypewriter";
@@ -39,7 +39,6 @@ type Props = {
 export function Chat(props: Props) {
   const { graph, steps, question, view, scope, terms, draft, onDraft, onTurn, onRun } = props;
   const { shown, done } = useTypewriter(question?.prompt ?? "");
-  const [matching, setMatching] = useState(false);
 
   /** The tail of the conversation. Only answered questions: hand edits are
    *  already listed in the action log, and repeating them here would bury the
@@ -112,22 +111,7 @@ export function Chat(props: Props) {
         </div>
       </div>
 
-      <div className={`rail ${matching ? "matching" : ""}`}>
-        <button
-          type="button"
-          className={`match-toggle ${matching ? "on" : ""}`}
-          aria-pressed={matching}
-          aria-label={matching ? "Hide matching scores" : "Show matching scores"}
-          title={matching ? "Hide matching scores" : "Show matching scores"}
-          onClick={() => setMatching((open) => !open)}
-        >
-          <span className="match-icon" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-        </button>
-
+      <div className="rail">
         <div className="rail-pane contexts">
           <div className={`settling ${settling ? "on" : ""}`}>{settling ? frame : ""}</div>
 
@@ -155,11 +139,8 @@ export function Chat(props: Props) {
               ))}
           </div>
         </div>
-
-        <div className="rail-pane scores-pane" aria-hidden={!matching}>
-          <Scores text={draft} active={graph.template} />
-        </div>
       </div>
+
     </div>
   );
 }

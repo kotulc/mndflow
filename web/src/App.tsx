@@ -1,5 +1,10 @@
-/** Shell: terminal and suggestions at the top, object explorer and graph in the
- *  middle, action log and attributes at the foot.
+/** Shell: terminal and suggestions at the top, object explorer and graph
+ *  below.
+ *
+ *  The canvas takes everything left over. What used to sit under it — the
+ *  action log, the relation kinds, the match scoring — is a tabbed readout
+ *  behind the rail's toggle, and the attributes of whatever is selected ride
+ *  at the foot of the canvas itself.
  *
  *  There is no server. Everything below runs against a step log in this tab. */
 
@@ -12,9 +17,8 @@ import type { Suggestion } from "./core/suggest";
 import { Canvas } from "./Canvas";
 import { Chat } from "./Chat";
 import { Files } from "./Files";
-import { Log } from "./Log";
 import { Panel } from "./Panel";
-import { Relations } from "./Relations";
+import { Readout } from "./Readout";
 
 export function App() {
   const project = useProject();
@@ -22,6 +26,8 @@ export function App() {
   const { graph, view, picked, path, question, terms } = project;
   // Held here so the match scoring can watch it being typed.
   const [draft, setDraft] = useState("");
+  /** Whether the readout drawer is out. */
+  const [shelved, setShelved] = useState(false);
 
   // Display preferences: global to the app, kept apart from the project's own
   // history because how something is drawn is not a change to it.
@@ -76,6 +82,12 @@ export function App() {
         </span>
 
         <span className="tools">
+          <button onClick={project.undo} disabled={!project.undoable} title="Undo">
+            undo
+          </button>
+          <button onClick={project.redo} disabled={!project.redoable} title="Redo">
+            redo
+          </button>
           <button onClick={project.save} disabled={!project.steps.length}>
             export
           </button>
@@ -98,6 +110,21 @@ export function App() {
             disabled={!project.steps.length}
           >
             new
+          </button>
+
+          <button
+            type="button"
+            className={`readout-toggle ${shelved ? "on" : ""}`}
+            aria-pressed={shelved}
+            aria-label={shelved ? "Hide the readout" : "Show the readout"}
+            title={shelved ? "Hide the readout" : "Show relations, actions and matching"}
+            onClick={() => setShelved((out) => !out)}
+          >
+            <span className="match-icon" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
           </button>
         </span>
       </header>
@@ -130,12 +157,6 @@ export function App() {
             onMove={project.move}
             onRename={project.rename}
             onRenameProject={project.renameProject}
-          />
-          <Relations
-            graph={graph}
-            onAdd={project.addRelation}
-            onRename={project.renameRelation}
-            onDrop={project.dropRelation}
           />
         </div>
 
@@ -176,35 +197,37 @@ export function App() {
               onGroup={project.group}
               onNameGroup={(id, label) => project.updateAttr(id, { name: label })}
             />
+
+            <Panel
+              graph={graph}
+              view={view}
+              picked={picked}
+              terms={terms}
+              onSave={project.write}
+              onRetype={project.retype}
+              onMarkPort={project.markPort}
+              onAddAttr={project.addAttr}
+              onUpdateAttr={project.updateAttr}
+              onDetachAttr={project.detachAttr}
+              onDropAttr={project.dropAttr}
+              onRelation={project.relation}
+              onSetDir={project.setDir}
+              onFlip={project.flip}
+            />
           </div>
         </section>
-      </main>
 
-      <footer>
-        <Log
-          steps={project.steps}
-          undoable={project.undoable}
-          redoable={project.redoable}
-          onUndo={project.undo}
-          onRedo={project.redo}
-        />
-        <Panel
-          graph={graph}
-          view={view}
-          picked={picked}
-          terms={terms}
-          onSave={project.write}
-          onRetype={project.retype}
-          onMarkPort={project.markPort}
-          onAddAttr={project.addAttr}
-          onUpdateAttr={project.updateAttr}
-          onDetachAttr={project.detachAttr}
-          onDropAttr={project.dropAttr}
-          onRelation={project.relation}
-          onSetDir={project.setDir}
-          onFlip={project.flip}
-        />
-      </footer>
+        <aside className={`drawer ${shelved ? "open" : ""}`} aria-hidden={!shelved}>
+          <Readout
+            graph={graph}
+            steps={project.steps}
+            draft={draft}
+            onAddRelation={project.addRelation}
+            onRenameRelation={project.renameRelation}
+            onDropRelation={project.dropRelation}
+          />
+        </aside>
+      </main>
     </div>
   );
 }

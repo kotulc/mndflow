@@ -1,16 +1,23 @@
-/** Attribute panel: everything about whatever is selected.
+/** Attribute tray: everything about whatever is selected, at the foot of the
+ *  canvas rather than beside it.
  *
- *  One state per row of the spec's table. With nothing selected on the canvas
- *  it shows the layer itself — the frame you are inside — so the explorer is a
- *  way to inspect a node as well as to walk into one. Selecting a block, an
- *  interface, a relationship or a group boundary replaces that with its own.
+ *  It costs no canvas when there is nothing to say. With nothing selected on
+ *  the canvas it describes the layer itself — the frame you are inside — so
+ *  the explorer is a way to inspect a node as well as to walk into one.
+ *  Selecting a block, an interface, a relationship or a group boundary
+ *  replaces that with its own.
+ *
+ *  It opens itself when the selection carries attributes, since that is the
+ *  moment there is something to read; otherwise it stays a bar with the field
+ *  for adding one, which is the other reason to reach for it. Either way the
+ *  chevron overrides the guess for as long as the selection lasts.
  *
  *  An object and its document are the same thing, so the body text is edited
  *  here too; there is no separate document pane. */
 
 import { useEffect, useState } from "react";
 
-import { attrsOf, isContainer, isPort } from "./core/fold";
+import { attrsOf, isContainer, isPort, nameOf } from "./core/fold";
 import type { Attr, Dir, Flow, Graph } from "./core/types";
 import type { Picked } from "./core/project";
 import type { Terms } from "./core/workflows";
@@ -35,17 +42,42 @@ type Props = {
   onFlip: (id: string) => void;
 };
 
-/** The attributes an object holds, and a field for adding another. Groups are
- *  in here too — a group is one shared attribute and nothing more, so it is
- *  listed as what it is rather than as a separate kind of thing. */
-function Attrs({ graph, holder, onAdd, onUpdate, onDetach }: {
+/** The field for giving the selection an attribute. Present in the bar itself,
+ *  open or shut — adding one is the commonest reason to come here, and it
+ *  should never take a click to reach.
+ *
+ *  It stays in place with nothing selected, disabled rather than absent: the
+ *  project root is not a node and has nothing to carry an attribute, but a bar
+ *  that changes shape as you click around is harder to aim at than one that
+ *  does not. */
+function AddAttr({ holder, onAdd }: { holder: string; onAdd: (h: string, n: string) => void }) {
+  return (
+    <input
+      className="add-attr"
+      disabled={!holder}
+      placeholder="+ attribute"
+      onKeyDown={(event) => {
+        const text = event.currentTarget.value.trim();
+        if (event.key !== "Enter" || !text) return;
+        event.stopPropagation();
+        onAdd(holder, text);
+        event.currentTarget.value = "";
+      }}
+    />
+  );
+}
+
+/** The attributes an object holds. Groups are in here too — a group is one
+ *  shared attribute and nothing more, so it is listed as what it is rather
+ *  than as a separate kind of thing. */
+function Attrs({ graph, holder, onUpdate, onDetach }: {
   graph: Graph;
   holder: string;
-  onAdd: (holder: string, name: string) => void;
   onUpdate: (id: string, patch: { value?: string }) => void;
   onDetach: (id: string, holder: string) => void;
 }) {
   const mine = attrsOf(graph, holder);
+  if (!mine.length) return null;
 
   return (
     <div className="attrs">
@@ -68,17 +100,6 @@ function Attrs({ graph, holder, onAdd, onUpdate, onDetach }: {
           </button>
         </div>
       ))}
-
-      <input
-        className="add-attr"
-        placeholder="+ attribute"
-        onKeyDown={(event) => {
-          const text = event.currentTarget.value.trim();
-          if (event.key !== "Enter" || !text) return;
-          onAdd(holder, text);
-          event.currentTarget.value = "";
-        }}
-      />
     </div>
   );
 }
@@ -90,6 +111,15 @@ export function Panel(props: Props) {
 
   // With nothing picked on the canvas the layer itself is the subject.
   const subject = picked?.kind === "node" ? picked.id : picked ? null : view;
+  const holder = picked?.id ?? subject ?? "";
+  const carries = holder ? attrsOf(graph, holder).length > 0 : false;
+  /** null while the tray is following the selection; a boolean once the user
+   *  has said otherwise, until the selection changes under them. */
+  const [held, setHeld] = useState<boolean | null>(null);
+  const open = held ?? carries;
+
+  useEffect(() => setHeld(null), [holder]);
+
   const node = subject ? graph.nodes[subject] : null;
   const body = node?.body ?? "";
   const [draft, setDraft] = useState(body);
@@ -97,135 +127,133 @@ export function Panel(props: Props) {
   // Follow the selection, and whatever a turn just wrote into it.
   useEffect(() => setDraft(body), [subject, body]);
 
-  if (picked?.kind === "edge") {
-    const edge = graph.edges[picked.id];
-    if (!edge) return <Empty />;
-
-    return (
-      <section className="doc">
-        <div className="doc-bar">
-          <span className="name">
-            {graph.nodes[edge.source]?.label} — {graph.nodes[edge.target]?.label}
-          </span>
-          <span className="meta">
-            <select value={edge.dir} onChange={(e) => onSetDir(edge.id, e.target.value as Dir)}>
-              {DIRS.map((dir) => <option key={dir} value={dir}>{dir}</option>)}
-            </select>
-            <button onClick={() => onFlip(edge.id)} title="Turn it around">⇄</button>
-          </span>
-        </div>
-
-        <input
-          className="type"
-          value={edge.relation}
-          placeholder={terms.relation}
-          list="relation-kinds"
-          onChange={(event) => onRelation(edge.id, event.target.value)}
-        />
-        <Attrs
-          graph={graph} holder={edge.id}
-          onAdd={onAddAttr} onUpdate={onUpdateAttr} onDetach={onDetachAttr}
-        />
-      </section>
-    );
-  }
-
-  if (picked?.kind === "attr") {
-    const attr: Attr | undefined = graph.attrs[picked.id];
-    if (!attr) return <Empty />;
-
-    return (
-      <section className="doc">
-        <div className="doc-bar">
-          <input
-            className="name-field"
-            value={attr.name}
-            placeholder="group"
-            onChange={(event) => onUpdateAttr(attr.id, { name: event.target.value })}
-          />
-          <span className="meta">
-            <input
-              type="color"
-              value={attr.color}
-              title="Boundary colour"
-              onChange={(event) => onUpdateAttr(attr.id, { color: event.target.value })}
-            />
-            <span className="holds">{attr.holders.length} members</span>
-            <button onClick={() => onDropAttr(attr.id)} title="Ungroup">✕</button>
-          </span>
-        </div>
-
-        <ul className="members">
-          {attr.holders.map((id) => (
-            <li key={id}>
-              <span>{graph.nodes[id]?.label ?? graph.edges[id]?.relation ?? id}</span>
-              <button onClick={() => onDetachAttr(attr.id, id)} title="Out of the group">✕</button>
-            </li>
-          ))}
-        </ul>
-      </section>
-    );
-  }
-
-  if (!node || !subject) return <Empty />;
+  const edge = picked?.kind === "edge" ? graph.edges[picked.id] : null;
+  const attr: Attr | null = picked?.kind === "attr" ? graph.attrs[picked.id] ?? null : null;
+  const port = node ? isPort(node) : false;
 
   /** One edit is one step. Saving per keystroke would bury the action log and
    *  make undo walk back through a document character by character. */
   function save() {
-    if (draft !== body) onSave(subject!, draft);
+    if (subject && draft !== body) onSave(subject, draft);
   }
 
-  const port = isPort(node);
-  const role = port ? "interface" : isContainer(graph, subject) ? terms.group : terms.node;
+  const title = edge
+    ? `${nameOf(graph, graph.nodes[edge.source])} — ${nameOf(graph, graph.nodes[edge.target])}`
+    : attr
+      ? attr.name || "group"
+      : node
+        ? nameOf(graph, node)
+        : "nothing selected";
+  const role = edge ? terms.relation.toLowerCase()
+    : attr ? "group"
+    : node ? (port ? "interface" : isContainer(graph, subject!) ? "container" : "block")
+    : "";
 
   return (
-    <section className="doc">
-      <div className="doc-bar">
-        <span className="name"># {node.label || (port ? "interface" : "untitled")}</span>
+    <section className={`tray ${open ? "open" : ""}`}>
+      <div className="tray-bar" onDoubleClick={() => setHeld(!open)}>
+        <span className="name">{title}</span>
+        {role && <span className="holds">{role}</span>}
 
-        <span className="meta">
-          <input
-            className="type"
-            value={node.type}
-            placeholder={terms.node}
-            onChange={(event) => onRetype(subject!, event.target.value)}
-          />
-          {port && (
-            <select
-              value={node.flow ?? ""}
-              title="Decorative marking only"
-              onChange={(e) => onMarkPort(subject!, (e.target.value || null) as Flow | null)}
-            >
-              {FLOWS.map((f) => <option key={f ?? "none"} value={f ?? ""}>{f ?? "unmarked"}</option>)}
+        <AddAttr holder={holder} onAdd={onAddAttr} />
+
+        <button
+          className="chevron"
+          aria-expanded={open}
+          title={open ? "Collapse" : "Expand"}
+          onClick={() => setHeld(!open)}
+        >
+          {open ? "▾" : "▴"}
+        </button>
+      </div>
+
+      <div className="tray-body">
+        {edge && (
+          <div className="tray-row">
+            <input
+              className="type"
+              value={edge.relation}
+              placeholder={terms.relation}
+              list="relation-kinds"
+              onChange={(event) => onRelation(edge.id, event.target.value)}
+            />
+            <select value={edge.dir} onChange={(e) => onSetDir(edge.id, e.target.value as Dir)}>
+              {DIRS.map((dir) => <option key={dir} value={dir}>{dir}</option>)}
             </select>
-          )}
-          <span className="holds">{role.toLowerCase()}</span>
-          <span className="state">{draft === body ? "saved" : "editing…"}</span>
-        </span>
+            <button onClick={() => onFlip(edge.id)} title="Turn it around">⇄</button>
+          </div>
+        )}
+
+        {attr && (
+          <>
+            <div className="tray-row">
+              <input
+                className="name-field"
+                value={attr.name}
+                placeholder="group"
+                onChange={(event) => onUpdateAttr(attr.id, { name: event.target.value })}
+              />
+              <input
+                type="color"
+                value={attr.color}
+                title="Boundary colour"
+                onChange={(event) => onUpdateAttr(attr.id, { color: event.target.value })}
+              />
+              <span className="held">{attr.holders.length} members</span>
+              <button onClick={() => onDropAttr(attr.id)} title="Ungroup">✕</button>
+            </div>
+            <ul className="members">
+              {attr.holders.map((id) => (
+                <li key={id}>
+                  <span>{nameOf(graph, graph.nodes[id]) || graph.edges[id]?.relation || id}</span>
+                  <button onClick={() => onDetachAttr(attr.id, id)} title="Out of the group">
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {node && subject && (
+          <>
+            <div className="tray-row">
+              <input
+                className="type"
+                value={node.type}
+                placeholder={terms.node}
+                onChange={(event) => onRetype(subject, event.target.value)}
+              />
+              {port && (
+                <select
+                  value={node.flow ?? ""}
+                  title="Decorative marking only"
+                  onChange={(e) => onMarkPort(subject, (e.target.value || null) as Flow | null)}
+                >
+                  {FLOWS.map((f) => (
+                    <option key={f ?? "none"} value={f ?? ""}>{f ?? "unmarked"}</option>
+                  ))}
+                </select>
+              )}
+              <span className="state">{draft === body ? "saved" : "editing…"}</span>
+            </div>
+
+            <textarea
+              value={draft}
+              placeholder="Nothing written here yet…"
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={save}
+            />
+          </>
+        )}
+
+        {holder && (
+          <Attrs
+            graph={graph} holder={holder}
+            onUpdate={onUpdateAttr} onDetach={onDetachAttr}
+          />
+        )}
       </div>
-
-      <textarea
-        value={draft}
-        placeholder="Nothing written here yet…"
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={save}
-      />
-
-      <Attrs
-        graph={graph} holder={subject}
-        onAdd={onAddAttr} onUpdate={onUpdateAttr} onDetach={onDetachAttr}
-      />
-    </section>
-  );
-}
-
-function Empty() {
-  return (
-    <section className="doc">
-      <div className="doc-bar">
-        <span className="name">context</span>
-      </div>
-      <p className="nothing">Nothing selected. Pick something to see and edit it.</p>
     </section>
   );
 }
