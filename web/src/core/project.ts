@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
-import { blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, touched } from "./fold";
+import { blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, nextPortNum } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
@@ -223,7 +223,7 @@ export function useProject() {
     /** A bare interface, from right-clicking a frame edge. The one way to get
      *  an interface without a relationship attached to it. */
     addPort: (parent: string | null, side: Side, at: number) => {
-      const port = makeNode("", { parent, side, at });
+      const port = makeNode("", { parent, side, at, num: nextPortNum(graph, parent) });
 
       commit(makeStep("new interface", "port", [{ op: "add_node", node: port }]));
 
@@ -250,7 +250,8 @@ export function useProject() {
         if (end.port) return end.port;
         if (!end.seat) return undefined;
 
-        const port = makeNode("", { parent: end.node, ...end.seat });
+        const port = makeNode("", { parent: end.node, ...end.seat,
+                                    num: nextPortNum(graph, end.node) });
         made.push({ op: "add_node", node: port });
 
         return port.id;
@@ -371,8 +372,10 @@ export function useProject() {
     sprout: (a: End, label: string, x: number, y: number, side: Side) => {
       const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
       const near = a.port ? null
-                          : a.seat && makeNode("", { parent: a.node, ...a.seat });
-      const far = makeNode("", { parent: fresh.id, side, at: 0.5 });
+                          : a.seat && makeNode("", { parent: a.node, ...a.seat,
+                                                     num: nextPortNum(graph, a.node) });
+      // The far node is new, so its first interface is always number one.
+      const far = makeNode("", { parent: fresh.id, side, at: 0.5, num: 1 });
 
       commit(makeStep(`grew: ${label}`, "sprout", [
         ...(near ? [{ op: "add_node" as const, node: near }] : []),
@@ -467,7 +470,6 @@ export function useProject() {
     up,
     question,
     terms,
-    touched: touched(last),
     undoable: applied.length > 0,
     redoable: steps.some((s) => s.status === "reverted"),
     children: (parent: string | null) => childrenOf(graph, parent),

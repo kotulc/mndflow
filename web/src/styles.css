@@ -346,14 +346,20 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card { position: relative; }
 .card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35); }
 .card.chosen { box-shadow: 0 0 0 2px var(--accent); }
-.card.changed { background: #17301f; border-color: #35614a; }
-.card.group.changed { background: rgba(23, 48, 31, 0.75); }
 .card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
 
-/* A border says it is available: right-click it for an interface, right-drag
-   it for a relation. The brighter ring is the edge itself, not the card. */
-.card:hover { border-color: #5f8f73; }
-.card:hover::after {
+/* What the pointer is over, and only that — the canvas picks one element and
+   sets the class, since `:hover` would light the card under every interface
+   and every chip as well.
+
+   The card's inside is one context (right-click makes an object in it) and its
+   border another (right-click makes an interface), so they light differently:
+   a lift in the fill for the inside, a ring outside the line for the border. */
+.card.grazed { border-color: #3d6b53; background: #16211b; }
+.card.group.grazed { background: rgba(22, 33, 27, 0.75); }
+
+.card.rimmed { border-color: #5f8f73; }
+.card.rimmed::after {
   content: "";
   position: absolute;
   inset: -3px;
@@ -475,9 +481,11 @@ button:disabled { opacity: 0.4; cursor: default; }
   pointer-events: auto;
 }
 
-/* This layer is where you already are, so one click on its name edits it. */
+/* This layer is where you already are, so one click on its name edits it. The
+   name is part of the border rather than a target of its own, so it brightens
+   with it rather than lighting up separately. */
 .frame-name .frame-label { cursor: text; }
-.frame-name .frame-label:hover { color: var(--text); }
+.frame.grazed .frame-label { color: var(--text); }
 
 .frame-name .rename {
   width: 12em;
@@ -510,6 +518,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 .port-left { left: 0; transform: translate(-50%, -50%); }
 .port-right { right: 0; transform: translate(50%, -50%); }
 
+/* Where a hidden interface's relations still meet the border. It draws
+   nothing — it only holds the anchor in the place the interface sits. */
+.berth { position: absolute; pointer-events: none; }
+
 .port .mark {
   width: 9px;
   height: 9px;
@@ -517,13 +529,22 @@ button:disabled { opacity: 0.4; cursor: default; }
   background: var(--bg);
 }
 
+/* Filled when a relationship attaches to it, open when none does — so a
+   glance at a card says which of its ports are wired and which are only
+   describing its shape. */
+.port.wired .mark { background: #3a5c4b; }
+
 /* A port holding blocks of its own says so, without being opened. */
 .port.deep .mark {
   background: linear-gradient(to right, var(--bg) 0 45%, var(--border) 45% 55%, var(--bg) 55%);
 }
 
+.port.wired.deep .mark {
+  background: linear-gradient(to right, #3a5c4b 0 45%, var(--border) 45% 55%, #3a5c4b 55%);
+}
+
 .port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3); }
-.port:hover .mark { border-color: var(--accent); }
+.port.grazed .mark { border-color: var(--accent); }
 .port.flow-in .mark { border-left-width: 3px; }
 .port.flow-out .mark { border-right-width: 3px; }
 .port.flow-both .mark { border-left-width: 3px; border-right-width: 3px; }
@@ -539,7 +560,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   opacity: 0.55;
 }
 
-.port:hover .port-name,
+.port.grazed .port-name,
 .port.picked .port-name { opacity: 1; color: var(--accent); }
 
 /* A card standing in for a node that lives in another layer.
@@ -578,8 +599,10 @@ button:disabled { opacity: 0.4; cursor: default; }
   pointer-events: none;
 }
 
-.card.reference:hover { border-color: #587a6a; }
-.card.reference:hover::before { color: #8aa295; }
+.card.reference.grazed,
+.card.reference.rimmed { border-color: #587a6a; }
+.card.reference.grazed::before,
+.card.reference.rimmed::before { color: #8aa295; }
 
 .card.reference.picked {
   border-color: var(--accent);
@@ -1148,18 +1171,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 /* Alongside the open layer — the parent's siblings, on the frame's edge */
 
-/* Link handles, big enough to aim at — missing one used to pan the canvas */
-
-.react-flow__handle {
-  width: 9px;
-  height: 9px;
-  border: 1px solid var(--bg);
-  background: var(--muted);
-}
-
-.react-flow__handle:hover { background: var(--accent); }
-.card:hover .react-flow__handle { background: var(--accent); }
-
 /* Renaming in place, on a card */
 
 .card .rename {
@@ -1175,7 +1186,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .card .rename:focus { outline: none; }
 .card .label { cursor: text; }
 .cell { cursor: grab; }
-.cell:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+.cell.grazed { outline: 1px solid var(--accent); outline-offset: -1px; }
 
 /* Relation kinds, under the explorer */
 
@@ -1230,6 +1241,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    inside a group rather than across the layer */
 
 .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.5; }
+/* The one canvas highlight still left to `:hover`, and it can be: relations
+   are drawn under the cards, so reaching one means nothing else is in the way
+   and no second element lights with it. */
 .react-flow__edge:hover .react-flow__edge-path { stroke: var(--text); }
 .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
 .react-flow__edge-textbg { fill: var(--bg); }
@@ -1315,6 +1329,12 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   background-clip: padding-box;
 }
 
+/* The pointer is in the clear space inside it, which is where a click selects
+   it. Set by the canvas, since the boundary takes no pointer events until it
+   has been picked. */
+.region.grazed { border-color: rgba(107, 143, 125, 0.75); }
+.region.grazed .region-label { color: var(--text); }
+
 .region.picked {
   border-color: rgba(74, 222, 128, 0.6);
   background: rgba(74, 222, 128, 0.05);
@@ -1345,7 +1365,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .region.picked .region-name { color: var(--accent); }
 .region.picked .region-label { cursor: text; }
-.region-name .region-label:hover { color: var(--text); }
 
 .region-name .rename {
   width: 10em;

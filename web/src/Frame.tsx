@@ -17,7 +17,7 @@ import type { NodeProps } from "@xyflow/react";
 
 import { nameOf, portsOf } from "./core/fold";
 import type { Graph, Side } from "./core/types";
-import { Anchor, Name, Port } from "./NodeCard";
+import { Anchor, Berth, type Grazed, Name, Port } from "./NodeCard";
 
 export type FrameData = {
   id: string;
@@ -31,9 +31,9 @@ export type FrameData = {
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
-  /** True while the pointer is near the border, which is where the gestures
-   *  that make interfaces live. */
-  grazed: boolean;
+  /** What the pointer is over. The border lights up when it is this frame,
+   *  since that is where the gestures that make interfaces live. */
+  grazed: Grazed;
 };
 
 export const Frame = memo(({ data }: NodeProps) => {
@@ -45,7 +45,7 @@ export const Frame = memo(({ data }: NodeProps) => {
   const upright = straddles === "left" || straddles === "right";
 
   return (
-    <div className={`frame ${grazed ? "grazed" : ""}`}>
+    <div className={`frame ${grazed?.kind === "frame" && grazed.id === id ? "grazed" : ""}`}>
       {/* Always live: this layer is where you already are, so there is no
           first click to spend selecting it. */}
       <span className="frame-name nodrag nopan">
@@ -70,18 +70,22 @@ export const Frame = memo(({ data }: NodeProps) => {
         <Anchor key={side} name={`auto-${side}`} side={side} inward />
       ))}
 
-      {showPorts && portsOf(graph, id).map((port) => (
+      {/* Hidden, an interface still leaves its seat behind — see `Berth`. */}
+      {portsOf(graph, id).map((port) => (showPorts ? (
         <Port
           key={port.id}
           port={port}
           graph={graph}
           picked={pickedPort === port.id}
+          grazed={grazed?.kind === "port" && grazed.id === port.id}
           onPick={onPick}
           onOpen={onOpen}
           inward
           onSlide={onSlidePort}
         />
-      ))}
+      ) : (
+        <Berth key={port.id} port={port} inward />
+      )))}
     </div>
   );
 });

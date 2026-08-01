@@ -23,16 +23,21 @@ export type GroupData = {
   picked: boolean;
   /** A card is being dragged over this boundary and would join it. */
   dropping: boolean;
+  /** The pointer is in the clear space inside it, which is where a click
+   *  selects it. Worked out by the canvas, since the boundary is transparent
+   *  to the pointer until it has been picked. */
+  grazed: boolean;
   onPick: () => void;
   onLabel: (label: string) => void;
 };
 
 export const GroupFrame = memo(({ data }: NodeProps) => {
-  const { label, picked, dropping, onPick, onLabel } = data as unknown as GroupData;
+  const { label, picked, dropping, grazed, onPick, onLabel } = data as unknown as GroupData;
 
   return (
     <div
-      className={`region ${picked ? "picked" : ""} ${dropping ? "dropping" : ""}`}
+      className={["region", picked ? "picked" : "", grazed ? "grazed" : "",
+                  dropping ? "dropping" : ""].join(" ")}
       onClick={onPick}
     >
       <span className="region-name nodrag">

@@ -84,23 +84,43 @@ export function isContainer(graph: Graph, id: string): boolean {
   return Object.values(graph.nodes).some((n) => n.parent === id && !isPort(n));
 }
 
-/** What an unnamed interface is called: its number among the interfaces of the
- *  node it sits on, in the order they were made.
- *
- *  Numbered rather than left all sharing one word, because a relationship now
- *  puts an interface at each of its ends and a node soon has several — five
- *  rows in the explorer all reading "interface" name nothing. Per parent,
- *  since that is where the names are seen together; two nodes each having an
- *  `interface 1` is no more a clash than two folders each holding a `notes`.
- *
- *  The order is the log's, so it is the same on every reload. Deleting one
- *  closes the gap and the ones after it shift down — the number is a position,
- *  not an identity, and anything wanting a name of its own can be given one. */
-export function portName(graph: Graph, port: Node): string {
-  const kin = portsOf(graph, port.parent);
-  const at = kin.findIndex((p) => p.id === port.id);
+/** Whether a relationship attaches to this interface. What tells a port that
+ *  is wired to something from one that is only describing the shape. */
+export function isLinked(graph: Graph, id: string): boolean {
+  return Object.values(graph.edges).some((e) => e.from === id || e.to === id);
+}
 
-  return `interface ${at < 0 ? kin.length + 1 : at + 1}`;
+/** The number a new interface on this node takes: the lowest not already in
+ *  use among its siblings. A gap left by a deleted interface is filled by the
+ *  next one made, and no interface that already exists is renumbered. */
+export function nextPortNum(graph: Graph, parent: string | null): number {
+  const taken = new Set(portsOf(graph, parent).map((p, at) => p.num ?? at + 1));
+
+  let num = 1;
+  while (taken.has(num)) num += 1;
+
+  return num;
+}
+
+/** What an unnamed interface is called: its number among the interfaces of the
+ *  node it sits on.
+ *
+ *  Numbered rather than left all sharing one word, because a relationship puts
+ *  an interface at each of its ends and a node soon has several — five rows in
+ *  the explorer all reading "interface" name nothing. Per parent, since that is
+ *  where the names are seen together; two nodes each having an `interface 1` is
+ *  no more a clash than two folders each holding a `notes`.
+ *
+ *  The number is fixed when the interface is made, so a diagram being rewired
+ *  never renames what it is not touching. Anything wanting a name of its own
+ *  can be given one, and a name given replaces the number entirely. */
+export function portName(graph: Graph, port: Node): string {
+  // Logs written before numbers were stored fall back to counting.
+  if (port.num != null) return `interface ${port.num}`;
+
+  const at = portsOf(graph, port.parent).findIndex((p) => p.id === port.id);
+
+  return `interface ${at + 1}`;
 }
 
 /** What to call a node. Something unnamed falls back to its role, so it still
@@ -328,36 +348,4 @@ export function fold(steps: Step[]): Graph {
   tidy(graph);
 
   return graph;
-}
-
-/** Node ids a step created or changed — what the canvas highlights. */
-export function touched(step: Step | null): string[] {
-  if (!step) return [];
-
-  const ids = new Set<string>();
-  for (const mutation of step.mutations) {
-    switch (mutation.op) {
-      case "add_node":
-        ids.add(mutation.node.id);
-        break;
-      case "update_node":
-      case "move_node":
-      case "place_node":
-      case "delete_node":
-      case "set_body":
-      case "set_port":
-        ids.add(mutation.id);
-        break;
-      case "link_nodes":
-        ids.add(mutation.edge.source);
-        ids.add(mutation.edge.target);
-        break;
-      case "attach_attr":
-      case "detach_attr":
-        ids.add(mutation.holder);
-        break;
-    }
-  }
-
-  return [...ids];
 }

@@ -177,7 +177,6 @@ export function App() {
               view={view}
               picked={picked}
               path={path}
-              touched={project.touched}
               showPorts={ports}
               onShowPorts={setPorts}
               angular={angular}

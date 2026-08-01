@@ -31,7 +31,7 @@ import { LEAF, place, sizeOf } from "./core/layout";
 import type { End, Graph, Side } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
-import { FACING, LIFTED, NodeCard, REFERRED } from "./NodeCard";
+import { FACING, type Grazed, LIFTED, NodeCard, REFERRED } from "./NodeCard";
 
 const nodeTypes = { card: NodeCard, region: GroupFrame, frame: Frame };
 
@@ -94,6 +94,12 @@ function facing(from: Box, to: Box): Side {
   return dy > 0 ? "bottom" : "top";
 }
 
+/** Whether a screen point is on an element's border rather than inside it —
+ *  the difference between "new interface here" and "new object in here". */
+function onRim(box: DOMRect, x: number, y: number): boolean {
+  return Math.min(x - box.left, box.right - x, y - box.top, box.bottom - y) < EDGE;
+}
+
 /** Nearest edge of an element to a screen point, and how far along it. */
 function nearestEdge(box: DOMRect, x: number, y: number): { side: Side; at: number } {
   const gaps = {
@@ -130,7 +136,6 @@ type Props = {
   view: string | null;
   picked: { kind: "node" | "edge" | "attr"; id: string } | null;
   path: string[];
-  touched: string[];
   showPorts: boolean;
   onShowPorts: (on: boolean) => void;
   angular: boolean;
@@ -166,7 +171,7 @@ type Props = {
 };
 
 function Flow(props: Props) {
-  const { graph, view, picked, path, touched, showPorts, onShowPorts, angular, onAngular } = props;
+  const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
   const { onPick, onOpen, onUp, onNest, onPromote, onCreate, onCreateAt, onSprout } = props;
   const { onRename, onLift, onWire, onAddPort, onSlidePort, onRelation } = props;
   const { onPlaceMany, onUnlink, onDelete, onGroup, onNameGroup, onDropAttr } = props;
@@ -181,8 +186,11 @@ function Flow(props: Props) {
    *  way a container does. */
   const [joining, setJoining] = useState<string[]>([]);
   const joinRef = useRef("");
-  /** True while the pointer is near the layer frame's border. */
-  const [grazing, setGrazing] = useState(false);
+  /** The one element the pointer is over, and so the one that highlights.
+   *  Resolved here rather than by `:hover`, which lights every ancestor of
+   *  whatever is under the cursor. */
+  const [grazed, setGrazed] = useState<Grazed>(null);
+  const grazeRef = useRef("");
   const heldRef = useRef<string | null>(null);
   /** Where a group's boundary sat when its drag began, so the distance its
    *  members travel is the distance it travelled. */
@@ -209,7 +217,6 @@ function Flow(props: Props) {
   }, []);
 
   const members = useMemo(() => blocksOf(graph, view), [graph, view]);
-  const marked = useMemo(() => new Set(touched), [touched]);
   const pickedNode = picked?.kind === "node" ? picked.id : null;
 
   /** Where everything in this layer sits, and how big it is — the one source
@@ -271,9 +278,9 @@ function Flow(props: Props) {
       data: {
         node,
         graph,
-        changed: marked.has(node.id),
         dropping: dropping === node.id,
         picked: node.id === pickedNode,
+        grazed,
         showPorts,
         pickedPort: pickedNode,
         onPick: (id: string) => onPick({ kind: "node", id }),
@@ -282,8 +289,6 @@ function Flow(props: Props) {
         onRename,
       },
     })) as FlowNode[];
-
-    const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
 
     const groups = bands.map(({ attr, box }) => {
       const chosen = picked?.kind === "attr" && picked.id === attr.id;
@@ -310,6 +315,7 @@ function Flow(props: Props) {
         data: {
           label: attr.name,
           picked: chosen,
+          grazed: grazed?.kind === "group" && grazed.id === attr.id,
           dropping: joining.includes(attr.id),
           onPick: () => onPick({ kind: "attr", id: attr.id }),
           onLabel: (label: string) => onNameGroup(attr.id, label),
@@ -346,7 +352,7 @@ function Flow(props: Props) {
             onOpen,
             onSlidePort,
             onRename,
-            grazed: grazing,
+            grazed,
           },
         } as FlowNode]
       : [];
@@ -354,8 +360,8 @@ function Flow(props: Props) {
     // Order is depth: the frame behind everything, then group boundaries, then
     // the cards — references among them, being cards like any other.
     return [...frame, ...groups, ...cards];
-  }, [graph, members, boxes, bands, frameBox, view, marked, dropping, joining, pickedNode,
-      picked, showPorts, grazing, onPick, onOpen, onSlidePort, onRename, onNameGroup]);
+  }, [graph, members, boxes, bands, frameBox, view, dropping, joining, pickedNode,
+      picked, showPorts, grazed, onPick, onOpen, onSlidePort, onRename, onNameGroup]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
@@ -386,12 +392,13 @@ function Flow(props: Props) {
     const standIn = (id: string) => (here.has(id) ? id : refIn(graph, view, id)?.id ?? null);
 
     /** The handle one end attaches to: its own interface where it has one,
-     *  otherwise the side of the card that faces the other end. */
+     *  otherwise the side of the card that faces the other end.
+     *
+     *  Hiding interfaces makes no difference here. A hidden one leaves its seat
+     *  behind, so the line still meets the border where the interface sits
+     *  rather than swinging to the middle of a side as it is toggled. */
     const anchor = (owner: string, port: string | undefined, other: Box | null) => {
-      // With interfaces hidden there is no port to attach to, so the relation
-      // falls back to the side of the card facing the other end — drawn as
-      // before, meeting the frame edge where its port would have been.
-      if (showPorts && port && graph.nodes[port] && graph.nodes[port].parent === owner) {
+      if (port && graph.nodes[port] && graph.nodes[port].parent === owner) {
         return `port-${port}`;
       }
 
@@ -410,15 +417,12 @@ function Flow(props: Props) {
         // Reaching out of the layer: at least one end is drawn through a
         // placeholder, which the line says by going dotted.
         const away = source !== edge.source || target !== edge.target;
-        const sourceHere = true;
-        const targetHere = true;
 
         const sourceBox = boxes[source] ?? (source === view ? frameBox : null);
         const targetBox = boxes[target] ?? (target === view ? frameBox : null);
         const forward = edge.dir === "forward" || edge.dir === "both";
         const back = edge.dir === "back" || edge.dir === "both";
-        const tint = marked.has(edge.target) ? "#4ade80" : "#3f6552";
-        const head = { type: MarkerType.ArrowClosed, width: 16, height: 16, color: tint };
+        const head = { type: MarkerType.ArrowClosed, width: 16, height: 16, color: "#3f6552" };
 
         return {
           id: edge.id,
@@ -437,13 +441,11 @@ function Flow(props: Props) {
           interactionWidth: 18,
           className: away ? "reaching" : "",
           selected: picked?.kind === "edge" && picked.id === edge.id,
-          style: marked.has(edge.source) && marked.has(edge.target)
-            ? { stroke: "#4ade80", strokeWidth: 2, strokeDasharray: away ? "5 4" : undefined }
-            : { stroke: "#2f4a3e", strokeDasharray: away ? "5 4" : undefined },
+          style: { stroke: "#2f4a3e", strokeDasharray: away ? "5 4" : undefined },
         } as Edge;
       })
       .filter((e): e is Edge => e !== null);
-  }, [graph, members, boxes, frameBox, view, marked, angular, picked, showPorts]);
+  }, [graph, members, boxes, frameBox, view, angular, picked]);
 
   // Edges need their own change handler for the same reason nodes do: without
   // one React Flow has nowhere to record a selection.
@@ -635,20 +637,27 @@ function Flow(props: Props) {
     [graph, view, boxes],
   );
 
-  /** The card, port or frame under a screen point, as ids. The frame is
-   *  transparent to the pointer, so its edge is found by measuring instead:
-   *  inside the layer's box but outside the contents it encloses. */
+  /** The card, port, chip, relation or frame under a screen point, as ids. The
+   *  frame is transparent to the pointer, so its edge is found by measuring
+   *  instead: inside the layer's box but outside the contents it encloses. */
   const under = useCallback((x: number, y: number) => {
     const element = document.elementFromPoint(x, y) as HTMLElement | null;
+    const nothing = { id: null, port: null, cell: null, box: null };
 
     // With several nodes selected the library lays its own rectangle over
     // them, which answers the hit test before any card does. Pointing at it is
     // pointing at the selection.
     if (element?.closest(".react-flow__nodesselection")) {
-      return { id: null, kind: "selection" as const, port: null, box: null };
+      return { ...nothing, kind: "selection" as const };
     }
 
+    // A relation sits under the cards, so reaching one means it is what the
+    // pointer is on — and that the layer's own edge below is not.
+    const line = element?.closest(".react-flow__edge") as HTMLElement | null;
+    if (line) return { ...nothing, id: line.dataset.id ?? null, kind: "edge" as const };
+
     const port = element?.closest(".port") as HTMLElement | null;
+    const cell = element?.closest(".cell") as HTMLElement | null;
     const host = element?.closest(".react-flow__node") as HTMLElement | null;
     const kind = host?.classList.contains("react-flow__node-card") ? "card"
                : host?.classList.contains("react-flow__node-frame") ? "frame"
@@ -657,7 +666,7 @@ function Flow(props: Props) {
 
     if (host && kind) {
       return { id: host.dataset.id ?? null, kind, port: port?.dataset.port ?? null,
-               box: host.getBoundingClientRect() };
+               cell: cell?.dataset.cell ?? null, box: host.getBoundingClientRect() };
     }
 
     // Nothing of ours under the pointer: it may still be the layer's own edge.
@@ -674,16 +683,51 @@ function Flow(props: Props) {
                                                 y: frameBox.y + frameBox.h });
 
         return {
+          ...nothing,
           id: view,
           kind: "frame" as const,
-          port: null,
           box: new DOMRect(corner.x, corner.y, far.x - corner.x, far.y - corner.y),
         };
       }
     }
 
-    return { id: null, kind: null, port: null, box: null };
+    return { ...nothing, kind: null };
   }, [view, frameBox, flow]);
+
+  /** The one element in context under the pointer — what highlights, and what
+   *  a right-click would act on.
+   *
+   *  Innermost wins: an interface over the card it sits on, a chip over the
+   *  container holding it. A card's border and its inside are separate, since
+   *  they take separate actions. */
+  const grazedAt = useCallback((x: number, y: number): Grazed => {
+    const hit = under(x, y);
+
+    if (hit.kind === "selection") return { kind: "selection", id: "" };
+    if (hit.kind === "edge") return hit.id ? { kind: "edge", id: hit.id } : null;
+    if (hit.port) return { kind: "port", id: hit.port };
+    if (hit.cell) return { kind: "cell", id: hit.cell };
+
+    if (hit.id && hit.box && (hit.kind === "card" || hit.kind === "frame")) {
+      // The frame is only ever met at its border — `under` says so or says
+      // nothing — so it is always its own edge that is in context.
+      if (hit.kind === "frame") return { kind: "frame", id: hit.id };
+
+      return { kind: onRim(hit.box, x, y) ? "rim" : "card", id: hit.id };
+    }
+
+    // A group's boundary is transparent to the pointer until it is picked, so
+    // the clear space inside one is found by measuring instead — the same way
+    // the click that selects it is placed. The tightest boundary wins, so an
+    // inner group is always the one you can reach.
+    const at = flow.screenToFlowPosition({ x, y });
+    const inside = bands
+      .filter(({ box }) => at.x >= box.x && at.x <= box.x + box.w &&
+                           at.y >= box.y && at.y <= box.y + box.h)
+      .sort((a, b) => a.box.w * a.box.h - b.box.w * b.box.h);
+
+    return inside.length ? { kind: "group", id: inside[0].attr.id } : null;
+  }, [under, flow, bands]);
 
   /** What a right click does where a menu is not built yet: the default entry
    *  of the menu that will replace it. */
@@ -703,11 +747,10 @@ function Flow(props: Props) {
     if (hit.kind === "card" && hit.id && hit.box) {
       // Near the border it is the frame edge, and a frame edge makes ports.
       const { side, at: along } = nearestEdge(hit.box, x, y);
-      const close = Math.min(x - hit.box.left, hit.box.right - x,
-                             y - hit.box.top, hit.box.bottom - y) < EDGE;
 
-      return close ? onAddPort(hit.id, side, along)
-                   : setPrompt({ kind: "node", x: at.x, y: at.y, parent: hit.id });
+      return onRim(hit.box, x, y)
+        ? onAddPort(hit.id, side, along)
+        : setPrompt({ kind: "node", x: at.x, y: at.y, parent: hit.id });
     }
 
     // The frame is only ever met at its edge — `under` says so or says nothing.
@@ -788,13 +831,14 @@ function Flow(props: Props) {
   }
 
   function rightMove(event: React.PointerEvent) {
-    // The frame is transparent to the pointer, so :hover cannot reach it — its
-    // border lights up from here instead, the same way a card's does.
-    if (view && frameBox) {
-      const hit = under(event.clientX, event.clientY);
-      setGrazing(hit.kind === "frame");
-    } else if (grazing) {
-      setGrazing(false);
+    // What highlights is worked out here rather than left to `:hover`, which
+    // lights every ancestor of whatever is under the cursor. Only set when the
+    // answer changes, so crossing one card is not a re-render per pixel.
+    const now = grazedAt(event.clientX, event.clientY);
+    const key = now ? `${now.kind}:${now.id}` : "";
+    if (key !== grazeRef.current) {
+      grazeRef.current = key;
+      setGrazed(now);
     }
 
     if (!wire) return;
@@ -852,7 +896,7 @@ function Flow(props: Props) {
       onPointerDown={rightDown}
       onPointerMove={rightMove}
       onPointerUp={rightUp}
-      onPointerLeave={() => setGrazing(false)}
+      onPointerLeave={() => (grazeRef.current = "", setGrazed(null))}
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="crumbs">
@@ -995,16 +1039,11 @@ function Flow(props: Props) {
           // A group's boundary is transparent to the pointer until it has been
           // selected, so that a box drawn inside it reaches the pane instead
           // of sweeping the group in. The click that selects it therefore
-          // arrives here, and is placed rather than caught: the tightest
-          // boundary the click lands in wins, so an inner group is always the
-          // one you can reach.
-          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-          const inside = bands
-            .filter(({ box }) => at.x >= box.x && at.x <= box.x + box.w &&
-                                 at.y >= box.y && at.y <= box.y + box.h)
-            .sort((a, b) => a.box.w * a.box.h - b.box.w * b.box.h);
+          // arrives here, and is placed rather than caught — by the same
+          // reckoning that decides what highlights under the pointer.
+          const spot = grazedAt(event.clientX, event.clientY);
 
-          onPick(inside.length ? { kind: "attr", id: inside[0].attr.id } : null);
+          onPick(spot?.kind === "group" ? { kind: "attr", id: spot.id } : null);
         }}
         onDoubleClick={(event) => {
           const on = (what: string) => (event.target as HTMLElement).closest(what);

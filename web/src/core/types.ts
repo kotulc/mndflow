@@ -34,6 +34,10 @@ export type Node = {
   side: Side | null;
   at: number | null;
   flow: Flow | null;
+  /** An interface's number among its parent's, fixed when it is made. Stored
+   *  rather than counted, so deleting one renames none of the others: the gap
+   *  it leaves is simply what the next interface takes. */
+  num: number | null;
   /** The node this stands in for, when it is a reference — a placeholder in
    *  one layer for something that lives in another. It is an ordinary node in
    *  every other way: it sits in a layer, it moves, it relates, it carries
@@ -162,6 +166,7 @@ export function node(label: string, extra: Partial<Node> = {}): Node {
     side: null,
     at: null,
     flow: null,
+    num: null,
     ref: null,
     ...extra,
   };

@@ -100,8 +100,13 @@ An interface is a child node attached to its parent's frame edge, and it is wher
 relationship attaches. This is what makes the SysML export target (see Notes) coherent —
 SysML wants typed blocks and ports, and an interface is the port.
 
-An interface draws as a small open square on the frame edge. **Its name shows beside it only
-on the layer's own frame** — the one you have stepped inside. A card's interfaces are marks on
+An interface draws as a small square on the frame edge, **filled when a relationship attaches
+to it and open when none does**. Most are made by a relationship and are filled from the moment
+they exist; an open one is either a port somebody described before wiring it, or one left
+standing when the relationship that made it went. That is a difference worth a glance — a shape
+being described, against a shape being connected — and it costs the port nothing to say it.
+
+**Its name shows beside it only on the layer's own frame** — the one you have stepped inside. A card's interfaces are marks on
 a shape you are looking *at* from across the layer, and labelling every one of them buries the
 card; there the name comes on hover or selection. An interface holding child blocks of its own
 draws instead as a divided square,
@@ -157,14 +162,22 @@ each of its ends and a node soon has several; five rows in the explorer all read
 together — two nodes each having an `interface 1` is no more a clash than two folders each
 holding a `notes`.
 
-The number is a position, not an identity: it is derived rather than stored, so deleting one
-closes the gap and the ones after it shift down. Anything that wants a name that stays is
-given one, and a name given replaces the number entirely.
+**The number is fixed when the interface is made, and nothing renames it afterwards.** A new
+one takes the lowest number its parent is not already using, so deleting `interface 2` leaves a
+gap and the next interface made fills it.
+
+Numbers on a node that has been rewired are therefore not always consecutive, which is the
+lesser of the two costs. The alternative — numbering by position, so a deletion closes the gap
+and everything after it shifts down — renames interfaces nobody touched, and a port's name is
+what a relationship, a diagram and a reader all refer to it by. A name given replaces the
+number entirely, and anything wanting a name that means something is given one.
 
 **Visibility.** Interfaces render on the canvas by default, and can be toggled off for a
 cleaner read of the structure alone. Nothing about the relationships changes when they are
-hidden — the interfaces are still there, and the lines still meet the frame edge where they
-would have been, which is the same place an implied one would sit. The object explorer is the
+hidden: **a hidden interface leaves its seat behind**, and the lines still meet the border at
+exactly the point the square sat at. A display preference decides what is drawn, never where
+anything is — and lines that swung to the middle of a side as the toggle went off, and back as
+it went on, made a change of view look like a change to the diagram. The object explorer is the
 other way round: interfaces are hidden there by default, and a toggle reveals them.
 
 Both toggles are global to the app, not per project and not per view. They are display
@@ -182,12 +195,16 @@ relationship placed: a position somebody chose is worth keeping.
 |---|---|
 | `side` | which frame edge it sits on — top, right, bottom, or left |
 | `at` | how far along that edge, 0–1, so it survives its parent's frame resizing |
+| `num` | its number among its parent's interfaces, for the name it falls back to |
 | `flow` | optional, decorative: marks the interface as input, output, or both |
 
 `side` and `at` replace the absolute x/y an ordinary node carries; an interface's position is
 meaningless apart from its frame. They are set when it is created and changed only by sliding
 it, and `side` is never cleared — an interface that came off its border would be a block, and
 nothing turns one into the other.
+
+`num` is set once, at creation, and never changes — see Naming above. It is stored rather than
+counted precisely so that it cannot be changed by something happening to another interface.
 
 `flow` is **decorative only**. It changes how the interface draws and nothing else — any
 interface may be either end of any relationship, whatever it is marked as. Default interfaces
@@ -341,7 +358,8 @@ survives them sharing a gesture.
 
 **The boundary has no appearance of its own to set.** One faint dashed line, the same for every
 group, so a canvas of them reads as one kind of thing rather than as a palette. It brightens
-when selected, and again when a card is over it and would join. Colour, custom content and the
+when the pointer is inside it, again when selected, and again when a card is over it and would
+join. Colour, custom content and the
 rest come later; until they do there is nothing in the panel to set, because there is nothing
 to set.
 
@@ -635,20 +653,42 @@ Shortcuts work in both the explorer and the canvas, acting on whichever has focu
 
 ### Hovering
 
-Hovering any context element — the scope frame, a block's contents, a block frame, a
-container's treemap children, a relationship — highlights it subtly, to communicate that an
-interaction is available there. Selecting the element makes the highlight fixed and less
-subtle.
+**One element highlights at a time, and it is the one in context** — whatever a click or a
+right-click would act on if it happened now. The highlight is subtle; selecting the same thing
+makes it fixed and less subtle.
 
-**A group boundary is the exception, and has to be.** It is transparent to the pointer until it
-has been selected, so that a selection box drawn from inside it reaches the canvas rather than
-sweeping the group in — and something the pointer passes straight through cannot report being
-hovered. It lights up for the two things that do reach it: being selected, and a card being
-dragged over it that would join.
+That is what it is for. Right-click has no menu yet and performs its default action directly,
+so the only warning of what the button is about to do is what is lit beneath the cursor. A
+card's border and a card's inside take different actions, and light differently for it.
 
-A frame edge or border highlights on hover in its own right, since it becomes the context for
-the interface gestures above: right-click there for a bare interface, right-drag for one with
-a relationship attached.
+**The innermost thing under the pointer wins**, since that is the one the gesture reaches:
+
+| Under the pointer | What lights |
+|---|---|
+| a multi-node selection | the selection |
+| an interface | that interface |
+| a chip in a container's treemap | that chip |
+| a card, within a step of its border | the border, as a ring outside the line |
+| a card, anywhere else | the card |
+| the layer's own frame, near its border | the frame, and its name with it |
+| a relationship | the line |
+| the clear space inside a group's boundary | the boundary, and its name with it |
+
+A card is never lit at the same time as an interface sitting on it, or a chip inside it. The
+pointer is over one thing; lighting that thing and everything around it says nothing about
+which of them is about to be acted on, which was the whole complaint.
+
+**A group's boundary is found by position rather than by the pointer.** It is transparent to
+the pointer until it has been selected, so that a selection box drawn from inside it reaches
+the canvas rather than sweeping the group in — which means nothing ever reports it as hovered.
+The canvas measures instead, and the tightest boundary the pointer is inside is what lights,
+by the same reckoning that decides which group a click there selects. It brightens further for
+a card dragged over it that would join.
+
+**Nothing else on the canvas highlights.** An object a recent action created or changed
+notably does not: what was touched a moment ago is the action log's business, and marking it
+on the canvas both competed with the highlight that says where the pointer is and left the
+diagram looking edited long after the edit.
 
 ### Layouts
 
@@ -725,9 +765,12 @@ neither has been thought about deliberately.
   add one. The action exists (`attachAttr`) but is not wired to anything, so the only way into
   an existing group is the drag.
 - **Tags.** Every attribute carries them and nothing shows or edits them.
-- **The context menu**, still the last thing to build, and now with two entries that have no
-  default action to stand in for it — a group boundary and a relationship both fall through to
-  "new object", which is wrong.
+- **The context menu**, still the last thing to build, and now with three entries that have no
+  default action to stand in for it. A group boundary and a relationship both fall through to
+  "new object", which is wrong — and more visible now that both light up under the pointer. An
+  existing interface falls through to "new interface" and stacks a second one on the same spot,
+  which is wrong the same way: the port highlights, so the button looks as though it is about
+  to act on the port it is over.
 
 ### Aspirations, not descriptions
 

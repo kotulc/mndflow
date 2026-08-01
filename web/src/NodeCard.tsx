@@ -12,7 +12,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
-import { blocksOf, isContainer, isRef, nameOf, portsOf } from "./core/fold";
+import { blocksOf, isContainer, isLinked, isRef, nameOf, portsOf } from "./core/fold";
 import { affinity, CHIP_CAP, GRID, LEAF, pack } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
@@ -160,12 +160,23 @@ export function seat(side: Side, at: number): React.CSSProperties {
   return side === "top" || side === "bottom" ? { left: along } : { top: along };
 }
 
+/** What the pointer is over, worked out by the canvas rather than by `:hover`.
+ *
+ *  One thing highlights at a time, and it is the thing an interaction would
+ *  act on: the innermost wins, so a chip beats the container holding it and an
+ *  interface beats the card it sits on. `rim` is a card's border — where a
+ *  right-click makes an interface — as against `card`, its inside. */
+export type Grazed = {
+  kind: "selection" | "port" | "cell" | "rim" | "card" | "frame" | "group" | "edge";
+  id: string;
+} | null;
+
 export type CardData = {
   node: Node;
   graph: Graph;
-  changed: boolean;
   dropping: boolean;
   picked: boolean;
+  grazed: Grazed;
   /** Interfaces drawn or hidden — a display preference, global to the app. */
   showPorts: boolean;
   pickedPort: string | null;
@@ -204,10 +215,27 @@ export function Anchor({ name, side, inward }: { name: string; side: Side; inwar
   );
 }
 
+/** Where a hidden interface's relationships still meet the edge.
+ *
+ *  Turning interfaces off is a display preference and changes nothing about
+ *  the relationships: the anchor stays where the interface was, so lines meet
+ *  the border in the same place whether or not the squares are drawn. */
+export function Berth({ port, inward }: { port: Node; inward?: boolean }) {
+  const side = port.side ?? "right";
+
+  return (
+    <span className={`berth port-${side}`} style={seat(side, port.at ?? 0.5)}>
+      <Anchor name={`port-${port.id}`} side={side} inward={inward} />
+    </span>
+  );
+}
+
 export type PortProps = {
   port: Node;
   graph: Graph;
   picked: boolean;
+  /** True when this is the one thing the pointer is over. */
+  grazed: boolean;
   /** Set on the layer's own frame, whose contents face inward. */
   inward?: boolean;
   onPick: (id: string) => void;
@@ -224,14 +252,20 @@ export type PortProps = {
  *  of thing, and a drag that could silently turn one into the other made every
  *  ordinary move a hazard.
  *
+ *  It draws filled when a relationship attaches to it and open when none does,
+ *  so a glance at a card says which of its ports are wired and which are only
+ *  describing its shape.
+ *
  *  Shared by the cards and by the layer's own frame, which carries ports the
  *  same way — the only difference is whose edge they sit on. */
-export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide }: PortProps) {
+export function Port({ port, graph, picked, grazed, inward,
+                       onPick, onOpen, onSlide }: PortProps) {
   const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
   const held = useRef(false);
   const side = drag?.side ?? port.side ?? "right";
   const at = drag?.at ?? port.at ?? 0.5;
   const deep = isContainer(graph, port.id);
+  const wired = isLinked(graph, port.id);
 
   /** Nearest edge of the host to a point, and how far along it. The point is
    *  clamped to the host first, so a drag that wanders off the card still
@@ -258,7 +292,8 @@ export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide }: P
       // too late — the card would move instead of the port sliding along it.
       className={[
         "port", "nodrag", "nopan", `port-${side}`, picked ? "picked" : "",
-        deep ? "deep" : "", port.flow ? `flow-${port.flow}` : "",
+        grazed ? "grazed" : "", wired ? "wired" : "", deep ? "deep" : "",
+        port.flow ? `flow-${port.flow}` : "",
       ].join(" ")}
       style={seat(side, at)}
       title={nameOf(graph, port)}
@@ -308,6 +343,7 @@ export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide }: P
 type ContentsProps = {
   graph: Graph;
   id: string;
+  grazed: Grazed;
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
 };
@@ -324,7 +360,7 @@ type ContentsProps = {
  *  line and ellipsizes rather than vanishing.
  *
  *  Interfaces are never in here; they live on the frame. */
-function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
+function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
   const kids = blocksOf(graph, id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
@@ -359,9 +395,13 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
         return (
           <div
             key={kid.id}
-            className={`cell nodrag ${isContainer(graph, kid.id) ? "group" : "object"}`}
+            className={[
+              "cell", "nodrag", isContainer(graph, kid.id) ? "group" : "object",
+              grazed?.kind === "cell" && grazed.id === kid.id ? "grazed" : "",
+            ].join(" ")}
             style={cellStyle(seat, `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})`)}
             title={`${label} — drag onto the canvas to lift it out`}
+            data-cell={kid.id}
             draggable
             onDragStart={(event) => {
               event.stopPropagation();
@@ -385,9 +425,11 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
 
         return (
           <div
-            className="cell nodrag more"
+            className={`cell nodrag more ${grazed?.kind === "cell" && grazed.id === id
+                                           ? "grazed" : ""}`}
             style={cellStyle(seat)}
             title={`${rest} more — open to see them`}
+            data-cell={id}
             onClick={(event) => (event.stopPropagation(), onOpen(id))}
             onDoubleClick={(event) => (event.stopPropagation(), onOpen(id))}
           >
@@ -404,18 +446,22 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
 }
 
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
-  const { node, graph, changed, dropping, picked, showPorts, pickedPort } =
+  const { node, graph, dropping, picked, grazed, showPorts, pickedPort } =
     data as unknown as CardData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
   const holds = isContainer(graph, node.id);
+  // Its border and its inside are two different contexts — a right-click on
+  // the border makes an interface, and one anywhere else makes a node inside.
+  const mine = grazed?.id === node.id ? grazed.kind : null;
   const classes = ["card", holds ? "group" : "object",
                    isRef(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
-                   changed ? "changed" : "", dropping ? "dropping" : ""].join(" ");
+                   mine === "rim" ? "rimmed" : mine === "card" ? "grazed" : "",
+                   dropping ? "dropping" : ""].join(" ");
 
   return (
     <div className={classes}>
@@ -426,17 +472,23 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
         <Anchor key={side} name={`auto-${side}`} side={side} />
       ))}
 
-      {showPorts && portsOf(graph, node.id).map((port) => (
+      {/* Hidden, an interface still leaves its seat behind, so the relations
+          attached to it meet the border where it sits rather than sliding to
+          the middle of a side. */}
+      {portsOf(graph, node.id).map((port) => (showPorts ? (
         <Port
           key={port.id}
           port={port}
           graph={graph}
           picked={pickedPort === port.id}
+          grazed={grazed?.kind === "port" && grazed.id === port.id}
           onPick={onPick}
           onOpen={onOpen}
           onSlide={onSlidePort}
         />
-      ))}
+      ) : (
+        <Berth key={port.id} port={port} />
+      )))}
 
       {/* Edited where it is written, once the card is selected — the second
           click of a rename. A double-click still descends. */}
@@ -449,7 +501,9 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
         {node.type && <span className="kind">{node.type}</span>}
       </div>
 
-      {holds && <Contents graph={graph} id={node.id} onPick={onPick} onOpen={onOpen} />}
+      {holds && (
+        <Contents graph={graph} id={node.id} grazed={grazed} onPick={onPick} onOpen={onOpen} />
+      )}
     </div>
   );
 });
