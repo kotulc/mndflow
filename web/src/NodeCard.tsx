@@ -12,7 +12,7 @@
 import { memo, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
-import { blocksOf, isContainer, nameOf, portsOf } from "./core/fold";
+import { blocksOf, isContainer, isRef, nameOf, portsOf } from "./core/fold";
 import { affinity, tile } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
@@ -29,6 +29,9 @@ const SIDES: Record<Side, Position> = {
 
 /** What a dragged chip carries, so the canvas knows what was let go of. */
 export const LIFTED = "application/mndflow-node";
+/** What a row dragged out of the explorer carries. Dropping it on another
+ *  layer's canvas places a reference there rather than moving the node. */
+export const REFERRED = "application/mndflow-ref";
 
 /** Where an anchor sits on the frame, as CSS. */
 export function seat(side: Side, at: number): React.CSSProperties {
@@ -252,6 +255,7 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
 
   const holds = isContainer(graph, node.id);
   const classes = ["card", holds ? "group" : "object",
+                   isRef(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
                    changed ? "changed" : "", dropping ? "dropping" : ""].join(" ");

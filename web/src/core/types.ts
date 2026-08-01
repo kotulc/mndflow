@@ -30,6 +30,11 @@ export type Node = {
   side: Side | null;
   at: number | null;
   flow: Flow | null;
+  /** The node this stands in for, when it is a reference — a placeholder in
+   *  one layer for something that lives in another. It is an ordinary node in
+   *  every other way: it sits in a layer, it moves, it relates, it carries
+   *  attributes. What it does not have is contents of its own. */
+  ref: string | null;
 };
 
 export type Edge = {
@@ -43,12 +48,6 @@ export type Edge = {
   from?: string;
   to?: string;
   dir: Dir;
-  /** Where the placeholder sits in a layer that draws this relation as
-   *  reaching outside itself. Null until the user moves it, like a node's own
-   *  position — it is a seat on the canvas, not part of what the relation
-   *  says. */
-  gx?: number;
-  gy?: number;
 };
 
 /** A descriptive property of a node or a relationship. Held by one object or
@@ -96,8 +95,6 @@ export type Mutation =
   /** Move one end of a relation to a different interface. */
   | { op: "reanchor_edge"; id: string; from?: string; to?: string }
   | { op: "set_dir"; id: string; dir: Dir }
-  /** Move the placeholder standing in for the far end of a relation. */
-  | { op: "place_ghost"; id: string; x: number; y: number }
   /** Turn a relation around; what it says stays the same. */
   | { op: "flip_edge"; id: string }
   | { op: "delete_edge"; id: string }
@@ -157,6 +154,7 @@ export function node(label: string, extra: Partial<Node> = {}): Node {
     side: null,
     at: null,
     flow: null,
+    ref: null,
     ...extra,
   };
 }

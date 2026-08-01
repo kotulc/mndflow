@@ -10,8 +10,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { isContainer, isPort, nameOf } from "./core/fold";
+import { isContainer, isPort, isRef, nameOf } from "./core/fold";
 import type { Graph, Node } from "./core/types";
+import { REFERRED } from "./NodeCard";
 import type { Terms } from "./core/workflows";
 
 const ROOT = "__root__";
@@ -23,6 +24,8 @@ function branches(graph: Graph): Record<string, Node[]> {
   const kids: Record<string, Node[]> = {};
 
   for (const node of Object.values(graph.nodes)) {
+    if (isRef(node)) continue;
+
     const parent = node.parent && graph.nodes[node.parent] ? node.parent : ROOT;
     (kids[parent] ??= []).push(node);
   }
@@ -217,7 +220,13 @@ export function Files(props: Props) {
             ].join(" ")}
             ref={node.id === view ? marker : undefined}
             draggable={editing !== node.id}
-            onDragStart={() => setHeld(node.id)}
+            onDragStart={(event) => {
+              setHeld(node.id);
+              // Dropped on another layer's canvas this becomes a reference,
+              // which is a mention of the node rather than a move of it.
+              event.dataTransfer.setData(REFERRED, node.id);
+              event.dataTransfer.effectAllowed = "all";
+            }}
             onClick={() => onOpen(node.id)}
             onDoubleClick={() => setEditing(node.id)}
             {...dropzone(node.id, node.id)}

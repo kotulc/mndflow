@@ -25,15 +25,14 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { blocksOf, groupsIn, nameOf } from "./core/fold";
+import { blocksOf, groupsIn, isRef, refIn } from "./core/fold";
 import { LEAF, place, sizeOf } from "./core/layout";
 import type { Graph, Side } from "./core/types";
 import { Frame } from "./Frame";
-import { Ghost } from "./Ghost";
 import { GroupFrame } from "./GroupFrame";
-import { LIFTED, NodeCard } from "./NodeCard";
+import { LIFTED, NodeCard, REFERRED } from "./NodeCard";
 
-const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame, ghost: Ghost };
+const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame };
 
 /** Room the layer's frame leaves around its contents, which is where the
  *  interfaces on its edge sit. */
@@ -156,7 +155,10 @@ type Props = {
   onGroup: (members: string[]) => void;
   onNameGroup: (id: string, label: string) => void;
   onDropAttr: (id: string) => void;
-  onPlaceGhost: (id: string, x: number, y: number) => void;
+  /** Place a stand-in here for a node that lives in another layer. */
+  onRefer: (target: string, x?: number, y?: number) => void;
+  /** Go to where a node actually lives, and mark it there. */
+  onReveal: (id: string) => void;
 };
 
 function Flow(props: Props) {
@@ -165,7 +167,7 @@ function Flow(props: Props) {
   const { onRename, onLift, onLink, onWire, onAddPort, onSlidePort, onRelation } = props;
   const { onDemotePort, onPromotePort } = props;
   const { onPlaceMany, onUnlink, onDelete, onGroup, onNameGroup, onDropAttr } = props;
-  const { onPlaceGhost } = props;
+  const { onRefer, onReveal } = props;
   const flow = useReactFlow();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [wire, setWire] = useState<Wire | null>(null);
@@ -282,50 +284,7 @@ function Flow(props: Props) {
       },
     })) as FlowNode[];
 
-    /** Placeholders for relations that leave the layer, stacked beside
-     *  whichever end is visible so two of them never land on each other.
-     *
-     *  Only at the top level. Inside a frame they can only be drawn outside
-     *  it — there is nowhere else for something that is not in the layer to
-     *  go — and everything outside the frame is margin, so they pushed the
-     *  frame down to a fraction of the panel. The layer's own room matters
-     *  more than the reminder. */
     const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
-    const tally: Record<string, number> = {};
-    const ghosts: FlowNode[] = [];
-
-    for (const edge of view ? [] : Object.values(graph.edges)) {
-      const outward = here.has(edge.source) && !here.has(edge.target);
-      const inward = here.has(edge.target) && !here.has(edge.source);
-      if (!outward && !inward) continue;
-
-      const anchor = outward ? edge.source : edge.target;
-      const far = outward ? edge.target : edge.source;
-      if (!graph.nodes[far]) continue;
-
-      const seat = boxes[anchor] ?? frameBox ?? { x: 0, y: 0, w: LEAF.w, h: LEAF.h };
-      const nth = (tally[anchor] = (tally[anchor] ?? 0) + 1) - 1;
-      const put = edge.gx !== undefined && edge.gy !== undefined
-        ? { x: edge.gx, y: edge.gy }
-        : { x: seat.x + seat.w + 150, y: seat.y + nth * (LEAF.h + 16) };
-
-      ghosts.push({
-        id: `ghost:${edge.id}`,
-        type: "ghost",
-        position: put,
-        width: LEAF.w,
-        height: LEAF.h,
-        // Movable like anything else on the canvas, though what it moves is
-        // only where the placeholder sits — the node it stands for lives in
-        // another layer and is not touched.
-        // Selectable so a click reaches it at all — the library routes clicks
-        // only to nodes it considers selectable. What the click selects is the
-        // node it stands for, not the stand-in.
-        draggable: true,
-        selectable: true,
-        data: { label: nameOf(graph, graph.nodes[far]), target: far, onOpen },
-      } as FlowNode);
-    }
 
     const groups = bands.map(({ attr, box }) => {
       const chosen = picked?.kind === "attr" && picked.id === attr.id;
@@ -394,8 +353,8 @@ function Flow(props: Props) {
       : [];
 
     // Order is depth: the frame behind everything, then group boundaries, then
-    // the cards and the placeholders that stand beside them.
-    return [...frame, ...groups, ...cards, ...ghosts];
+    // the cards — references among them, being cards like any other.
+    return [...frame, ...groups, ...cards];
   }, [graph, members, boxes, bands, frameBox, view, marked, dropping, pickedNode, picked,
       showPorts, grazing, onPick, onOpen, onSlidePort, demote, onNameGroup]);
 
@@ -422,6 +381,11 @@ function Flow(props: Props) {
   const builtEdges: Edge[] = useMemo(() => {
     const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
 
+    /** What draws for one end of a relation in this layer: the node itself, or
+     *  the reference standing in for it. A relation is always between the real
+     *  nodes — the reference is only where the far one appears here. */
+    const standIn = (id: string) => (here.has(id) ? id : refIn(graph, view, id)?.id ?? null);
+
     /** The handle one end attaches to: its own interface where it has one,
      *  otherwise the side of the card that faces the other end. */
     const anchor = (owner: string, port: string | undefined, other: Box | null) => {
@@ -440,21 +404,18 @@ function Flow(props: Props) {
 
     return Object.values(graph.edges)
       .map((edge) => {
-        const sourceHere = here.has(edge.source);
-        const targetHere = here.has(edge.target);
-        if (!sourceHere && !targetHere) return null;
+        const source = standIn(edge.source);
+        const target = standIn(edge.target);
+        if (!source || !target || source === target) return null;
 
-        // One end elsewhere: the visible end keeps its anchor, the other
-        // attaches to the placeholder standing in for what it reaches.
-        const away = !sourceHere || !targetHere;
-        // No placeholder to hang it from inside a frame, so nothing to draw.
-        if (away && view) return null;
-        const source = sourceHere ? edge.source : `ghost:${edge.id}`;
-        const target = targetHere ? edge.target : `ghost:${edge.id}`;
-        if (away && !graph.nodes[sourceHere ? edge.target : edge.source]) return null;
+        // Reaching out of the layer: at least one end is drawn through a
+        // placeholder, which the line says by going dotted.
+        const away = source !== edge.source || target !== edge.target;
+        const sourceHere = true;
+        const targetHere = true;
 
-        const sourceBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
-        const targetBox = boxes[edge.target] ?? (edge.target === view ? frameBox : null);
+        const sourceBox = boxes[source] ?? (source === view ? frameBox : null);
+        const targetBox = boxes[target] ?? (target === view ? frameBox : null);
         const forward = edge.dir === "forward" || edge.dir === "both";
         const back = edge.dir === "back" || edge.dir === "both";
         const tint = marked.has(edge.target) ? "#4ade80" : "#3f6552";
@@ -468,22 +429,18 @@ function Flow(props: Props) {
           type: angular ? "smoothstep" : "default",
           markerEnd: forward ? head : undefined,
           markerStart: back ? head : undefined,
-          sourceHandle: sourceHere
-            ? `${anchor(edge.source, edge.from, targetBox)}-s`
-            : "ghost-s",
-          targetHandle: targetHere
-            ? `${anchor(edge.target, edge.to, sourceBox)}-t`
-            : "ghost-t",
+          sourceHandle: `${anchor(source, edge.from, targetBox)}-s`,
+          targetHandle: `${anchor(target, edge.to, sourceBox)}-t`,
           // Stated on the edge rather than left to the container's defaults,
           // so a relation is always clickable and always deletable.
           selectable: true,
           focusable: true,
           interactionWidth: 18,
-          className: away ? "crossing" : "",
+          className: away ? "reaching" : "",
           selected: picked?.kind === "edge" && picked.id === edge.id,
           style: marked.has(edge.source) && marked.has(edge.target)
-            ? { stroke: "#4ade80", strokeWidth: 2 }
-            : { stroke: "#2f4a3e", strokeDasharray: away ? "4 3" : undefined },
+            ? { stroke: "#4ade80", strokeWidth: 2, strokeDasharray: away ? "5 4" : undefined }
+            : { stroke: "#2f4a3e", strokeDasharray: away ? "5 4" : undefined },
         } as Edge;
       })
       .filter((e): e is Edge => e !== null);
@@ -547,11 +504,16 @@ function Flow(props: Props) {
    *  promoting a node onto a frame edge. */
   const landing = useCallback(
     (dragged: FlowNode) => {
+      // A reference is a mention, not structure: it can be put inside things,
+      // but it never becomes an interface on one.
+      const mention = isRef(graph.nodes[dragged.id]);
       const size = sizeOf(graph, graph.nodes[dragged.id]);
       const mid = { x: dragged.position.x + size.w / 2, y: dragged.position.y + size.h / 2 };
 
       for (const [id, box] of Object.entries(boxes)) {
         if (id === dragged.id) continue;
+        // A reference holds nothing, so nothing lands on or in one.
+        if (isRef(graph.nodes[id])) continue;
 
         const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
                               box.y - mid.y, mid.y - (box.y + box.h));
@@ -570,8 +532,9 @@ function Flow(props: Props) {
         const down = Math.min(mid.y - box.y, box.y + box.h - mid.y);
         const rim = across < Math.min(30, box.w / 3) || down < Math.min(30, box.h / 3);
 
-        return rim ? { kind: "port" as const, id, ...seat }
-                   : { kind: "nest" as const, id, side: seat.side, at: seat.at };
+        return rim && !mention
+          ? { kind: "port" as const, id, ...seat }
+          : { kind: "nest" as const, id, side: seat.side, at: seat.at };
       }
 
       return null;
@@ -882,20 +845,38 @@ function Flow(props: Props) {
           // selection already shows.
           if (node.type === "frame") return onPick(null);
         }}
-        onNodeDoubleClick={(_, node) => node.type === "card" && onOpen(node.id)}
+        onNodeDoubleClick={(_, node) => {
+          if (node.type !== "card") return;
+
+          // A reference has no contents of its own — going into one takes you
+          // to where the node it stands for actually lives.
+          const mine = graph.nodes[node.id];
+
+          return mine?.ref ? onReveal(mine.ref) : onOpen(node.id);
+        }}
         onEdgeClick={(_, edge) => onPick({ kind: "edge", id: edge.id })}
         onDragOver={(event) => {
-          if (!event.dataTransfer.types.includes(LIFTED)) return;
+          const kinds = event.dataTransfer.types;
+          if (!kinds.includes(LIFTED) && !kinds.includes(REFERRED)) return;
           event.preventDefault();
-          event.dataTransfer.dropEffect = "move";
+          event.dataTransfer.dropEffect = kinds.includes(LIFTED) ? "move" : "link";
         }}
         onDrop={(event) => {
           const lifted = event.dataTransfer.getData(LIFTED);
-          if (!lifted) return;
+          const referred = event.dataTransfer.getData(REFERRED);
+          if (!lifted && !referred) return;
 
           event.preventDefault();
           const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-          onLift(lifted, at.x - LEAF.w / 2, at.y - LEAF.h / 2);
+          const x = at.x - LEAF.w / 2;
+          const y = at.y - LEAF.h / 2;
+
+          // A chip out of a treemap is the node itself, moving here. A row out
+          // of the explorer is a mention of it, staying where it is.
+          if (lifted) return onLift(lifted, x, y);
+          if (referred !== view && !members.some((n) => n.id === referred)) {
+            onRefer(referred, x, y);
+          }
         }}
         onPaneClick={(event) => {
           setPrompt(null);
@@ -962,11 +943,6 @@ function Flow(props: Props) {
               .map((id) => ({ id, x: boxes[id].x + dx, y: boxes[id].y + dy }));
 
             return onPlaceMany(moved, `moved group of ${moved.length}`);
-          }
-
-          if (node.type === "ghost") {
-            return onPlaceGhost(node.id.slice("ghost:".length),
-                                node.position.x, node.position.y);
           }
 
           // Worked out again from where the card actually came to rest. The

@@ -136,22 +136,41 @@ node's frame edge, which creates the interface as it goes. Releasing over anothe
 attaches there. Releasing over empty canvas prompts for a new node and creates it with its own
 interface already attached. `Esc` cancels the whole gesture, interface included.
 
-**References.** A relationship whose far end lies outside the current scope is not a separate
-kind of relationship; it is the same relationship, drawn differently. It renders anchored to a
-semi-transparent placeholder node with a dashed boundary, labeled with what it actually
-reaches.
+**References.** A relationship between two nodes in different layers is drawn in either of
+them through a **reference**: a placeholder standing in for the far node, sitting in this layer
+as an ordinary node.
 
-**Only at the top level, for now.** Inside a frame there is nowhere for a placeholder to go
-but outside it, and outside the frame is margin — so they pushed the frame down to a fraction
-of the panel to make room for themselves. The layer's own working area matters more than the
-reminder, so inside a frame a relationship that leaves the layer is currently not drawn at
-all. How references should read from inside a layer is an open question; see Open decisions.
+A reference is a node. It sits inside the frame with everything else, it is selected, moved,
+nested, related, given interfaces and given attributes exactly as any other node is. What
+marks it out is only how it draws — grey and half there, so it reads as a mention of something
+rather than the thing itself — and that a relationship reaching it is drawn dotted rather than
+solid, since one of its ends is a mention.
 
-> This reverses an earlier decision, which attached such a relationship to whichever visible
-> ancestor contained the far end and labeled it `informs ↳ core`. The ancestor form kept the
-> diagram literal but made two different relationships into the same visible line, and gave no
-> hint where the other end lived. The dashed placeholder costs a little space and says plainly
-> that something continues off this layer.
+**It has no name of its own.** It shows whatever the node it stands for is called, and renaming
+it renames that node: there is one object being named, however many places it appears.
+
+**It has no inside of its own.** Whatever is in the node it stands for is in the node it
+stands for. Double-clicking a reference therefore goes to where that node actually lives and
+marks it there, rather than opening an empty layer. Nothing nests into a reference, and a
+reference never becomes an interface — a mention is not structure.
+
+**Where they come from.** Three ways, all of which put a real node in the layer:
+
+- **Opening a layer places what it is missing.** Any relationship with one end here and the
+  other elsewhere gets a reference for the far end the first time the layer is drawn. A
+  relationship made anywhere — by hand, by a workflow, by an import — shows up wherever it
+  lands, without having to be redrawn.
+- **Right-click-dragging onto a reference** relates to the node it stands for, like relating to
+  anything else on the canvas.
+- **Dragging a row out of the object explorer** onto another layer's canvas places a reference
+  there. Dragging a chip out of a container's treemap still *moves* that node — one is a
+  mention of something, the other is the thing itself.
+
+**Deleting one removes the placeholder only.** The node it stood for is untouched, and if a
+relationship still reaches out of the layer, opening it again places a fresh reference.
+
+**The explorer never lists them.** The tree is structure, and a reference is a second
+appearance of something already in it.
 
 
 ### Attributes
@@ -489,11 +508,9 @@ and revisited deliberately rather than drifting:
 
 ## Open decisions
 
-- **References from inside a layer.** A relationship that leaves the layer is drawn only at the
-  top level. Inside a frame it is not drawn, because the only place to put a placeholder is the
-  margin outside the frame, and that margin belongs to leaving the layer rather than to its
-  contents. The alternatives — an interface on the frame's edge standing in for whatever lies
-  beyond it, a mark on the near node, a list off to one side — have not been settled.
+- **Undoing a reference the layer placed for itself.** Opening a layer places the references it
+  is missing, so undoing that step and staying put leaves them gone, and leaving and returning
+  brings them back. Harmless, but it makes one step in the log behave unlike the rest.
 
 
 ## Notes

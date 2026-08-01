@@ -10,7 +10,36 @@ import { EMPTY, type Graph, type Mutation, type Node, type Step } from "./types"
 /** Whether a node sits on its parent's frame edge. That, and only that, is
  *  what makes a node an interface. */
 export function isPort(node: Node | undefined): boolean {
-  return Boolean(node && node.side !== null);
+  // Loosely, so a node from a log written before the field existed reads as
+  // "not set" rather than as something it never was.
+  return Boolean(node && node.side != null);
+}
+
+/** Whether a node stands in for one that lives somewhere else. */
+export function isRef(node: Node | undefined): boolean {
+  return Boolean(node && node.ref != null);
+}
+
+/** What a node really is: itself, or whatever it stands in for. A reference to
+ *  a reference is followed too, and a chain that leads nowhere gives up rather
+ *  than looping. */
+export function actual(graph: Graph, id: string | null): Node | undefined {
+  let cursor = id;
+
+  for (let hops = 0; cursor && hops < 8; hops += 1) {
+    const node = graph.nodes[cursor];
+    if (!node || node.ref == null) return node;
+    cursor = node.ref;
+  }
+
+  return undefined;
+}
+
+/** The reference in one layer standing in for a given node, if there is one. */
+export function refIn(graph: Graph, layer: string | null, target: string): Node | undefined {
+  return Object.values(graph.nodes).find(
+    (n) => n.ref === target && (n.parent ?? null) === layer,
+  );
 }
 
 /** Whether a node sits under an ancestor — the guard against a move that would
@@ -47,8 +76,11 @@ export function portsOf(graph: Graph, parent: string | null): Node[] {
 }
 
 /** Whether a node holds child blocks. Interfaces do not count: a block with
- *  ports on its edge is still a block, and draws as one. */
+ *  ports on its edge is still a block, and draws as one. Neither does a
+ *  reference ever hold anything — its contents live where it points. */
 export function isContainer(graph: Graph, id: string): boolean {
+  if (isRef(graph.nodes[id])) return false;
+
   return Object.values(graph.nodes).some((n) => n.parent === id && !isPort(n));
 }
 
@@ -57,10 +89,40 @@ export function isContainer(graph: Graph, id: string): boolean {
  *  simply replaces it. */
 export function nameOf(graph: Graph, node: Node | undefined): string {
   if (!node) return "";
+  // A reference has no name of its own: it shows whatever it stands in for,
+  // which is also what renaming it renames.
+  if (node.ref != null) {
+    const real = actual(graph, node.ref);
+
+    return real ? nameOf(graph, real) : "missing";
+  }
   if (node.label) return node.label;
   if (isPort(node)) return "interface";
 
   return isContainer(graph, node.id) ? "container" : "block";
+}
+
+/** Nodes a layer needs a reference for: the far end of every relation that
+ *  reaches out of it and has nothing here to attach to yet.
+ *
+ *  A relation between layers is still a relation between the real nodes; the
+ *  reference is only where the far one shows up here. */
+export function unreferenced(graph: Graph, layer: string | null): string[] {
+  const here = new Set(blocksOf(graph, layer).map((n) => n.id));
+  if (layer) here.add(layer);
+
+  const wanted = new Set<string>();
+  const shown = (id: string) => here.has(id) || Boolean(refIn(graph, layer, id));
+
+  for (const edge of Object.values(graph.edges)) {
+    for (const [near, far] of [[edge.source, edge.target], [edge.target, edge.source]]) {
+      if (!here.has(near) || shown(far)) continue;
+      // Nothing stands in for something that is not there at all.
+      if (graph.nodes[far] && !isPort(graph.nodes[far])) wanted.add(far);
+    }
+  }
+
+  return [...wanted];
 }
 
 /** Attributes an object carries, whether it holds them alone or shares them. */
@@ -180,15 +242,6 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
-    case "place_ghost": {
-      const edge = graph.edges[mutation.id];
-      if (edge) {
-        edge.gx = mutation.x;
-        edge.gy = mutation.y;
-      }
-      break;
-    }
-
     case "flip_edge": {
       const edge = graph.edges[mutation.id];
       if (edge) {
@@ -269,6 +322,10 @@ function apply(graph: Graph, mutation: Mutation): void {
  *  after itself however it happened — by hand, by a workflow, or by an undo
  *  further back in the log putting the graph in a different shape. */
 function tidy(graph: Graph): void {
+  for (const [id, node] of Object.entries(graph.nodes)) {
+    if (node.ref != null && !graph.nodes[node.ref]) delete graph.nodes[id];
+  }
+
   for (const [id, attr] of Object.entries(graph.attrs)) {
     attr.holders = attr.holders.filter((h) => graph.nodes[h] || graph.edges[h]);
     if (attr.group && attr.holders.length < 2) delete graph.attrs[id];

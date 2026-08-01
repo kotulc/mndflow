@@ -488,20 +488,19 @@ button:disabled { opacity: 0.4; cursor: default; }
 .port:hover .port-name,
 .port.picked .port-name { opacity: 1; color: var(--accent); }
 
-/* The far end of a relation that leaves this layer */
+/* A card standing in for a node that lives in another layer. An ordinary card
+   in every way but its weight: grey and half there, so it reads as a mention
+   of something rather than the thing itself. */
 
-.reference {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  border: 1px dashed var(--border);
-  border-radius: 3px;
-  background: rgba(20, 30, 25, 0.45);
+.card.reference {
+  border-style: dashed;
+  border-color: var(--border);
+  background: rgba(22, 30, 26, 0.5);
   color: var(--muted);
-  font-size: 12px;
 }
+
+.card.reference .card-head .label { color: var(--muted); }
+.card.reference.picked { border-color: var(--accent); color: var(--text); }
 
 /* A relation while it is being drawn, in screen coordinates */
 
@@ -1155,11 +1154,10 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    double as its own separate hit target. */
 .react-flow__edge-textwrapper { pointer-events: none; }
 
-/* A relation that lands on something nested is drawn differently and says so
-   in its label; the colour separates it from an ordinary one at a glance. */
-.react-flow__edge.crossing .react-flow__edge-path { stroke: #7a6cc4 !important; opacity: 0.9; }
-.react-flow__edge.crossing .react-flow__edge-text { fill: #9c8fe0; font-style: italic; }
-.react-flow__edge.crossing marker path { fill: #7a6cc4; }
+/* A relation drawn through a reference — one whose far end lives in another
+   layer. Dotted rather than solid, since one of its ends is a mention. */
+.react-flow__edge.reaching .react-flow__edge-path { opacity: 0.75; }
+.react-flow__edge.reaching .react-flow__edge-text { fill: var(--muted); font-style: italic; }
 
 /* Display toggles, top right of the canvas */
 

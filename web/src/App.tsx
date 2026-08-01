@@ -12,7 +12,6 @@ import { useEffect, useRef, useState } from "react";
 
 import { useProject } from "./core/project";
 import * as store from "./core/store";
-import { useEmbeddings } from "./useEmbeddings";
 import type { Suggestion } from "./core/suggest";
 import { Canvas } from "./Canvas";
 import { Chat } from "./Chat";
@@ -22,7 +21,6 @@ import { Readout } from "./Readout";
 
 export function App() {
   const project = useProject();
-  const model = useEmbeddings();
   const { graph, view, picked, path, question, terms } = project;
   // Held here so the match scoring can watch it being typed.
   const [draft, setDraft] = useState("");
@@ -93,9 +91,6 @@ export function App() {
       <header>
         <h1>mndflow</h1>
         {graph.template && <span className="domain">{graph.template}</span>}
-        <span className={`model ${model.ready ? "on" : model.problem ? "bad" : ""}`}>
-          {model.problem ? "embeddings unavailable" : model.ready ? "minilm" : "loading minilm…"}
-        </span>
 
         <span className="tools">
           <button onClick={project.undo} disabled={!project.undoable} title="Undo">
@@ -205,7 +200,8 @@ export function App() {
               onDemotePort={project.demotePort}
               onPromotePort={project.promotePort}
               onDropAttr={project.dropAttr}
-              onPlaceGhost={project.placeGhost}
+              onRefer={project.refer}
+              onReveal={project.reveal}
               onRelation={project.relation}
               onPlaceMany={project.placeMany}
               onUnlink={project.unlink}
@@ -229,6 +225,7 @@ export function App() {
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}
+              onReveal={project.reveal}
               hostRef={tray}
             />
           </div>

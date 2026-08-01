@@ -17,7 +17,7 @@
 
 import { useEffect, useState, type Ref } from "react";
 
-import { attrsOf, isContainer, isPort, nameOf } from "./core/fold";
+import { attrsOf, isContainer, isPort, isRef, nameOf } from "./core/fold";
 import type { Attr, Dir, Flow, Graph } from "./core/types";
 import type { Picked } from "./core/project";
 import type { Terms } from "./core/workflows";
@@ -40,6 +40,8 @@ type Props = {
   onRelation: (id: string, relation: string) => void;
   onSetDir: (id: string, dir: Dir) => void;
   onFlip: (id: string) => void;
+  /** Go to where a referenced node actually lives. */
+  onReveal: (id: string) => void;
   /** So the canvas can measure the tray and keep its own controls above it. */
   hostRef?: Ref<HTMLElement>;
 };
@@ -109,7 +111,7 @@ function Attrs({ graph, holder, onUpdate, onDetach }: {
 export function Panel(props: Props) {
   const { graph, view, picked, terms, onSave, onRetype, onMarkPort } = props;
   const { onAddAttr, onUpdateAttr, onDetachAttr, onDropAttr } = props;
-  const { onRelation, onSetDir, onFlip, hostRef } = props;
+  const { onRelation, onSetDir, onFlip, onReveal, hostRef } = props;
 
   // With nothing picked on the canvas the layer itself is the subject.
   const subject = picked?.kind === "node" ? picked.id : picked ? null : view;
@@ -148,7 +150,9 @@ export function Panel(props: Props) {
         : "nothing selected";
   const role = edge ? terms.relation.toLowerCase()
     : attr ? "group"
-    : node ? (port ? "interface" : isContainer(graph, subject!) ? "container" : "block")
+    : node ? (isRef(node) ? "reference"
+              : port ? "interface"
+              : isContainer(graph, subject!) ? "container" : "block")
     : "";
 
   return (
@@ -219,6 +223,15 @@ export function Panel(props: Props) {
 
         {node && subject && (
           <>
+            {isRef(node) && node.ref && (
+              <div className="tray-row">
+                <span className="held">stands in for a node in another layer</span>
+                <button onClick={() => onReveal(node.ref!)} title="Go to it">
+                  go to {nameOf(graph, graph.nodes[node.ref])} ↗
+                </button>
+              </div>
+            )}
+
             <div className="tray-row">
               <input
                 className="type"

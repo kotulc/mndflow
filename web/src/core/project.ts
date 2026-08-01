@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
-import { blocksOf, childrenOf, descendsFrom, fold, touched } from "./fold";
+import { blocksOf, childrenOf, descendsFrom, fold, isRef, touched, unreferenced } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
@@ -144,6 +144,24 @@ export function useProject() {
    *  going deeper is the deliberate second gesture. */
   const pick = useCallback((next: Picked) => setPicked(next), []);
 
+  // A relation that reaches out of a layer needs something here to reach to.
+  // Placed when the layer is opened rather than when the relation is made, so
+  // one drawn anywhere — by hand, by a workflow, by an import — still shows up
+  // wherever it lands.
+  useEffect(() => {
+    const missing = unreferenced(graph, view);
+    if (!missing.length) return;
+
+    commit(makeStep(
+      missing.length === 1 ? "reference" : `${missing.length} references`,
+      "reference",
+      missing.map((target) => ({
+        op: "add_node" as const,
+        node: makeNode("", { parent: view, ref: target }),
+      })),
+    ));
+  }, [graph, view, commit]);
+
   /** Leave the open layer for the one containing it. */
   const up = useCallback(() => {
     setPicked(null);
@@ -164,10 +182,15 @@ export function useProject() {
       commit(makeStep(`delete: ${name(id)}`, "delete", [{ op: "delete_node", id }]));
     },
 
-    rename: (id: string, label: string) =>
-      label.trim() &&
-      commit(makeStep(`rename: ${label}`, "rename",
-                      [{ op: "update_node", id, label: label.trim() }])),
+    /** A reference has no name of its own, so renaming one renames the node it
+     *  stands in for — there is only ever one thing being named. */
+    rename: (id: string, label: string) => {
+      const real = graph.nodes[id]?.ref ?? id;
+
+      return label.trim() &&
+        commit(makeStep(`rename: ${label}`, "rename",
+                        [{ op: "update_node", id: real, label: label.trim() }]));
+    },
 
     retype: (id: string, type: string) =>
       commit(makeStep(`type: ${type}`, "retype", [{ op: "update_node", id, type }])),
@@ -252,10 +275,6 @@ export function useProject() {
       commit(makeStep(`anchor: ${graph.edges[id]?.relation || "relation"}`, "anchor",
                       [{ op: "reanchor_edge", id, from, to }])),
 
-    /** Where the placeholder for a relation's far end sits in this layer. */
-    placeGhost: (id: string, x: number, y: number) =>
-      commit(makeStep("move reference", "place", [{ op: "place_ghost", id, x, y }])),
-
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
@@ -278,10 +297,33 @@ export function useProject() {
       commit(makeStep(`rename project: ${title}`, "project",
                       [{ op: "set_title", title: title.trim() }])),
 
+    /** A placeholder for something that lives elsewhere in the project. It is
+     *  an ordinary node from here on: it moves, relates, and carries
+     *  attributes of its own. */
+    refer: (target: string, x?: number, y?: number) => {
+      const spot = x === undefined || y === undefined ? {} : { x, y };
+      const stand = makeNode("", { parent: view, ref: target, ...spot });
+
+      commit(makeStep(`reference: ${name(target)}`, "reference",
+                      [{ op: "add_node", node: stand }]));
+    },
+
+    /** Go to where a node actually lives, and mark it there. What a reference
+     *  offers instead of contents of its own. */
+    reveal: (id: string) => {
+      const node = graph.nodes[id];
+      if (!node) return;
+
+      setView(node.parent);
+      setPicked({ kind: "node", id });
+    },
+
     /** Put one node inside another. Nothing else is needed: holding a block is
-     *  what makes a node a container. */
+     *  what makes a node a container. A reference holds nothing — whatever is
+     *  inside the thing it points at is inside the thing it points at. */
     nest: (id: string, parent: string) => {
       if (id === parent || descendsFrom(graph, parent, id)) return;
+      if (isRef(graph.nodes[parent])) return;
 
       commit(makeStep(`into: ${name(parent)}`, "nest", [{ op: "move_node", id, parent }]));
     },
