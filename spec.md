@@ -254,10 +254,26 @@ Everything outside it is dimmed. The frame is the boundary of the thing you are 
 within, not a panel laid over the page, so the lit area is the space you can build in and the
 dark area is merely the outside world.
 
+**The frame carries its name in its own border** — set into the line at the top left, a break
+in it rather than a caption above or a heading inside. The other corner belongs to the canvas
+toolbar.
+
 **The frame fills the panel.** It is the working area, so it takes as much of the canvas as it
-can, and what is left around it is a thin margin — enough to double-click in to leave by, and
-enough to show the parent's border when the layer is an interface. Nothing else is ever drawn
-out there, and nothing drawn out there is allowed to decide how much room the layer gets.
+can, and what is left around it is a band — enough to double-click in to leave by, and enough
+to show the parent's border when the layer is an interface. Nothing else is ever drawn out
+there, and nothing drawn out there is allowed to decide how much room the layer gets.
+
+**The band is the same on every side of every layer.** It does not vary with what the layer
+holds or with the shape of the window: stepping between two layers should not move the walls.
+That means the frame is shaped like the space it is shown in and then placed, rather than
+scaled to fit — a frame of any other shape fits by one axis and letterboxes on the other,
+which leaves one layer sitting in generous bands top and bottom while the next has almost
+none.
+
+A layer holding little still gets a full frame. Its working area has a floor that takes its
+shape from the panel, so a tall window gets a tall frame and a wide one a wide frame; without
+that floor a sparse layer was a small box magnified to fill the screen — the same picture with
+everything twice the size and no more room to work in.
 
 **Zoom and growth happen inside the frame.** A layer that gains a node grows its frame, and
 the view refits so the frame still fills the panel — the contents get smaller within a

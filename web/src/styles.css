@@ -315,10 +315,15 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .canvas { position: relative; min-height: 0; }
 
-/* The tray covers the foot of the canvas, so the zoom controls step above it —
-   past the bar when it is shut, past the whole panel when it is open. */
-.canvas .react-flow__controls { bottom: 44px; transition: bottom 200ms ease; }
-.canvas:has(.tray.open) .react-flow__controls { bottom: calc(40vh + 12px); }
+/* The tray covers the foot of the canvas, so the zoom controls sit above
+   however tall it actually is — measured and handed down, since the tray is as
+   tall as its contents up to a ceiling and guessing at the ceiling stranded
+   them halfway up a tall screen. */
+.canvas .react-flow__controls {
+  /* The library adds its own margin below this, which is the gap we want. */
+  bottom: var(--tray, 30px);
+  transition: bottom 200ms ease;
+}
 
 .card {
   border: 1px solid var(--border);
@@ -418,12 +423,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 .wall.flat .before { right: 100%; }
 .wall.flat .after { left: 100%; }
 
-/* Inside the frame, not on its lip: the frame now reaches the top of the
-   panel, and a label hung above its border sat over the canvas toolbar. */
+/* Set into the frame's own border — a break in the line rather than a caption
+   above it. Top-left, since the canvas toolbar has the other corner. */
 .frame-name {
   position: absolute;
-  left: 14px;
-  top: 8px;
+  left: 16px;
+  top: -9px;
+  padding: 0 8px;
+  background: var(--bg);
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 0.16em;

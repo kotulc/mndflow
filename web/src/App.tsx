@@ -8,7 +8,7 @@
  *
  *  There is no server. Everything below runs against a step log in this tab. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useProject } from "./core/project";
 import * as store from "./core/store";
@@ -28,6 +28,22 @@ export function App() {
   const [draft, setDraft] = useState("");
   /** Whether the readout drawer is out. */
   const [shelved, setShelved] = useState(false);
+  /** The attribute tray's real height, so the canvas can keep its own controls
+   *  clear of it. Measured rather than guessed: the tray is as tall as its
+   *  contents up to a ceiling, and a guess at the ceiling left the controls
+   *  stranded halfway up a tall screen. */
+  const tray = useRef<HTMLElement>(null);
+  const [trayHeight, setTrayHeight] = useState(0);
+
+  useEffect(() => {
+    const foot = tray.current;
+    if (!foot) return;
+
+    const watch = new ResizeObserver(([entry]) => setTrayHeight(entry.contentRect.height));
+    watch.observe(foot);
+
+    return () => watch.disconnect();
+  }, []);
 
   // Display preferences: global to the app, kept apart from the project's own
   // history because how something is drawn is not a change to it.
@@ -161,7 +177,7 @@ export function App() {
         </div>
 
         <section className="work">
-          <div className="canvas">
+          <div className="canvas" style={{ "--tray": `${trayHeight}px` } as React.CSSProperties}>
             <Canvas
               graph={graph}
               view={view}
@@ -213,6 +229,7 @@ export function App() {
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}
+              hostRef={tray}
             />
           </div>
         </section>

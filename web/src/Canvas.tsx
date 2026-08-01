@@ -38,13 +38,15 @@ const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame, ghost: Ghos
 /** Room the layer's frame leaves around its contents, which is where the
  *  interfaces on its edge sit. */
 const MARGIN = 96;
-/** The least a layer's working area is ever worth, in canvas units. A frame is
- *  drawn from its contents, so a layer holding two cards would otherwise be a
- *  small box magnified to fill the panel — the same picture, with everything
- *  twice the size and no more room to work in. Given a floor, it fills the
- *  panel at its natural scale instead, and only shrinks once the layer has
- *  grown past it. */
-const ROOM = { w: 1180, h: 660 };
+/** The least a layer's working area is ever worth, whatever the panel's shape
+ *  will not go below. A frame is drawn from its contents, so a layer holding
+ *  two cards would otherwise be a small box magnified to fill the panel — the
+ *  same picture, with everything twice the size and no more room to work in. */
+const LEAST = { w: 520, h: 320 };
+/** The band left around a layer's frame, in screen pixels. It is where you
+ *  double-click to leave, and where the parent's border shows when the layer
+ *  is an interface, so it is the same on every side of every layer. */
+const BAND = 34;
 /** Room a group's boundary leaves around its members. */
 const HUG = 22;
 /** How far a right drag must travel before it is a relationship rather than a
@@ -179,6 +181,23 @@ function Flow(props: Props) {
   /** Where the right button went down, whatever it went down on. */
   const pressRef = useRef<{ x: number; y: number } | null>(null);
   const surface = useRef<HTMLDivElement>(null);
+  /** The panel's own size, so a layer's floor takes its shape from the screen
+   *  it is drawn on — a tall window wants a tall frame, not a wide one
+   *  floating in the middle of it. */
+  const [panel, setPanel] = useState({ w: 1180, h: 660 });
+
+  useEffect(() => {
+    const stage = surface.current;
+    if (!stage) return;
+
+    const watch = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width && height) setPanel({ w: width, h: height });
+    });
+    watch.observe(stage);
+
+    return () => watch.disconnect();
+  }, []);
 
   const members = useMemo(() => blocksOf(graph, view), [graph, view]);
   const marked = useMemo(() => new Set(touched), [touched]);
@@ -204,13 +223,24 @@ function Flow(props: Props) {
     if (!view || !graph.nodes[view]) return null;
 
     const hug = around(Object.values(boxes), MARGIN) ?? { x: 0, y: 0, w: 0, h: 0 };
-    // Grown to the floor around its own middle, so a sparse layer is roomy
-    // rather than magnified.
-    const w = Math.max(hug.w, ROOM.w);
-    const h = Math.max(hug.h, ROOM.h);
+
+    // Shaped like the space it will be shown in, so that scaling it to fit
+    // leaves the same band on every side. A frame of any other shape fits by
+    // one axis and letterboxes on the other, which is why one layer sat in
+    // generous bands top and bottom while the next had almost none.
+    const shape = (panel.w - BAND * 2) / (panel.h - BAND * 2);
+    let w = Math.max(hug.w, LEAST.w);
+    let h = Math.max(hug.h, LEAST.h);
+    w / h > shape ? (h = w / shape) : (w = h * shape);
+
+    // ...and never smaller than the panel itself, so a sparse layer is roomy
+    // rather than magnified. The floor shares the shape, so this keeps it.
+    const floor = Math.max(1, (panel.w - BAND * 2) / w, (panel.h - BAND * 2) / h);
+    w *= floor;
+    h *= floor;
 
     return { x: hug.x + hug.w / 2 - w / 2, y: hug.y + hug.h / 2 - h / 2, w, h };
-  }, [view, graph, boxes]);
+  }, [view, graph, boxes, panel]);
 
   /** A port dragged clear of its border lands where it was let go, so the
    *  point the pointer reports has to become a place on the canvas. */
@@ -470,18 +500,31 @@ function Flow(props: Props) {
   const population = members.map((n) => n.id).sort().join(",");
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Inside a layer it is the frame that is fitted, not the contents: the
-      // frame is the working area, and what little is left around it is the
-      // margin you double-click to leave by. Fitting the contents instead let
-      // anything drawn outside — a reference, a card pushed past the edge —
-      // decide how much of the panel the layer got.
-      flow.fitView(view
-        ? { nodes: [{ id: view }], duration: 320, padding: 0.04, maxZoom: 1.15 }
-        : { duration: 320, padding: 0.16, maxZoom: 1.3 });
+      // At the top level there is no frame, so the contents are what is fitted.
+      if (!view || !frameBox) {
+        flow.fitView({ duration: 320, padding: 0.16, maxZoom: 1.3 });
+
+        return;
+      }
+
+      // Inside a layer it is the frame that is placed, not the contents: the
+      // frame is the working area, and the band around it is what you
+      // double-click to leave by. Set directly rather than fitted, because a
+      // fit spends its padding on one axis and lets the other take whatever is
+      // left — the band has to be the same all the way round.
+      const scale = Math.min((panel.w - BAND * 2) / frameBox.w,
+                             (panel.h - BAND * 2) / frameBox.h);
+      const zoom = Math.max(0.15, Math.min(scale, 1.6));
+
+      flow.setViewport({
+        zoom,
+        x: panel.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
+        y: panel.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
+      }, { duration: 320 });
     }, 40);
 
     return () => clearTimeout(timer);
-  }, [flow, view, population]);
+  }, [flow, view, population, panel.w, panel.h, frameBox]);
 
   /** How far the canvas may be panned: the layer, plus room on every side to
    *  put something new. It grows as the layer does. */

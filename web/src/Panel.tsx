@@ -15,7 +15,7 @@
  *  An object and its document are the same thing, so the body text is edited
  *  here too; there is no separate document pane. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Ref } from "react";
 
 import { attrsOf, isContainer, isPort, nameOf } from "./core/fold";
 import type { Attr, Dir, Flow, Graph } from "./core/types";
@@ -40,6 +40,8 @@ type Props = {
   onRelation: (id: string, relation: string) => void;
   onSetDir: (id: string, dir: Dir) => void;
   onFlip: (id: string) => void;
+  /** So the canvas can measure the tray and keep its own controls above it. */
+  hostRef?: Ref<HTMLElement>;
 };
 
 /** The field for giving the selection an attribute. Present in the bar itself,
@@ -107,7 +109,7 @@ function Attrs({ graph, holder, onUpdate, onDetach }: {
 export function Panel(props: Props) {
   const { graph, view, picked, terms, onSave, onRetype, onMarkPort } = props;
   const { onAddAttr, onUpdateAttr, onDetachAttr, onDropAttr } = props;
-  const { onRelation, onSetDir, onFlip } = props;
+  const { onRelation, onSetDir, onFlip, hostRef } = props;
 
   // With nothing picked on the canvas the layer itself is the subject.
   const subject = picked?.kind === "node" ? picked.id : picked ? null : view;
@@ -150,7 +152,7 @@ export function Panel(props: Props) {
     : "";
 
   return (
-    <section className={`tray ${open ? "open" : ""}`}>
+    <section className={`tray ${open ? "open" : ""}`} ref={hostRef}>
       <div className="tray-bar" onDoubleClick={() => setHeld(!open)}>
         <span className="name">{title}</span>
         {role && <span className="holds">{role}</span>}
