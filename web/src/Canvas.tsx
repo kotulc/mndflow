@@ -32,7 +32,7 @@ import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
 import { FACING, LIFTED, NodeCard, REFERRED } from "./NodeCard";
 
-const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame };
+const nodeTypes = { card: NodeCard, region: GroupFrame, frame: Frame };
 
 /** Room the layer's frame leaves around its contents, which is where the
  *  interfaces on its edge sit. */
@@ -46,8 +46,9 @@ const LEAST = { w: 520, h: 320 };
  *  double-click to leave, and where the parent's border shows when the layer
  *  is an interface, so it is the same on every side of every layer. */
 const BAND = 56;
-/** Room a group's boundary leaves around its members. */
-const HUG = 22;
+/** Room a group's boundary leaves around its members — same as the selection
+ *  rect's padding, so a freshly grouped set keeps the box it was drawn with. */
+const HUG = 10;
 /** How far a right drag must travel before it is a relationship rather than a
  *  right click that wandered. */
 const THRESHOLD = 12;
@@ -288,7 +289,7 @@ function Flow(props: Props) {
 
       return {
         id: attr.id,
-        type: "group",
+        type: "region",
         position: { x: box.x, y: box.y },
         // Stated rather than measured: a node stays invisible *and unclickable*
         // until React Flow has measured it, and a drag reads its baseline from
@@ -572,7 +573,7 @@ function Flow(props: Props) {
     const host = element?.closest(".react-flow__node") as HTMLElement | null;
     const kind = host?.classList.contains("react-flow__node-card") ? "card"
                : host?.classList.contains("react-flow__node-frame") ? "frame"
-               : host?.classList.contains("react-flow__node-group") ? "group"
+               : host?.classList.contains("react-flow__node-region") ? "group"
                : null;
 
     if (host && kind) {
@@ -938,7 +939,7 @@ function Flow(props: Props) {
           if (out) onUp();
         }}
         onNodeDragStart={(_, node) => {
-          if (node.type === "group") {
+          if (node.type === "region") {
             groupRef.current = { id: node.id, x: node.position.x, y: node.position.y };
 
             return;
@@ -970,7 +971,7 @@ function Flow(props: Props) {
           // A group's boundary carries its members: whatever it travelled,
           // they travelled, in one action.
           const start = groupRef.current;
-          if (node.type === "group" && start && start.id === node.id) {
+          if (node.type === "region" && start && start.id === node.id) {
             groupRef.current = null;
             const dx = node.position.x - start.x;
             const dy = node.position.y - start.y;

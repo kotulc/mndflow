@@ -1293,71 +1293,60 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
  * Transparent to the pointer until it has been selected, so a box drawn from
  * inside it reaches the pane and selects elements rather than sweeping in the
  * group. Selecting it is a click, which the canvas routes by position; once
- * selected it takes the pointer back and can be dragged. */
-
-/* One faint line, the same for every group. A canvas of them should read as
-   one kind of thing rather than as a palette, and where two overlap the
-   backgrounds compound — which is all the distinction the drawing needs. */
+ * selected it takes the pointer back and can be dragged.
+ *
+ * Sized like the selection rect (same hug), drawn like a faint selection that
+ * persisted: dashed border, fill clipped inside it, name breaking the line. */
 .region {
   width: 100%;
   height: 100%;
-  border: 1px dashed rgba(107, 143, 125, 0.34);
-  border-radius: 8px;
-  background: rgba(107, 143, 125, 0.05);
+  box-sizing: border-box;
+  border: 1px dashed rgba(107, 143, 125, 0.4);
+  border-radius: 4px;
+  background: rgba(107, 143, 125, 0.04);
+  background-clip: padding-box;
 }
 
 .region.picked {
-  border-color: rgba(74, 222, 128, 0.55);
-  border-style: solid;
+  border-color: rgba(74, 222, 128, 0.6);
   background: rgba(74, 222, 128, 0.05);
+  background-clip: padding-box;
 }
 
 /* A card is over it and would join by being let go here — the same signal a
    container gives, because it is the same gesture. */
 .region.dropping {
   border-color: var(--accent);
-  border-style: solid;
-  background: rgba(74, 222, 128, 0.09);
+  background: rgba(74, 222, 128, 0.08);
+  background-clip: padding-box;
 }
 
-.region.picked .region-tools .name { color: var(--accent); }
-
-.region-tools {
+/* Set into the border like a frame name — a break in the dashed line. */
+.region-name {
   position: absolute;
-  top: -11px;
-  left: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 1px 6px;
+  left: 12px;
+  top: -9px;
+  padding: 0 8px;
   background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.16em;
   pointer-events: auto;
   cursor: pointer;
 }
 
-.region-tools .name { color: var(--muted); font-size: 11px; letter-spacing: 0.04em; }
-.region.picked .region-tools .name { cursor: text; }
+.region.picked .region-name { color: var(--accent); }
+.region.picked .region-label { cursor: text; }
+.region-name .region-label:hover { color: var(--text); }
 
-.region-tools .rename {
+.region-name .rename {
   width: 10em;
   border: none;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
 }
 
-.region-tools .rename:focus { outline: none; }
-
-.region-tools button {
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 10px;
-  line-height: 1;
-}
-
-.region-tools button:hover { color: var(--error); }
+.region-name .rename:focus { outline: none; }
