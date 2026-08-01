@@ -30,7 +30,6 @@ export type FrameData = {
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
-  onDemotePort: (id: string, x: number, y: number) => void;
   /** True while the pointer is near the border, which is where the gestures
    *  that make interfaces live. */
   grazed: boolean;
@@ -39,7 +38,7 @@ export type FrameData = {
 export const Frame = memo(({ data }: NodeProps) => {
   const { id, graph, straddles, showPorts, pickedPort, grazed } =
     data as unknown as FrameData;
-  const { onPick, onOpen, onSlidePort, onDemotePort } = data as unknown as FrameData;
+  const { onPick, onOpen, onSlidePort } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
   const upright = straddles === "left" || straddles === "right";
@@ -71,7 +70,6 @@ export const Frame = memo(({ data }: NodeProps) => {
           onOpen={onOpen}
           inward
           onSlide={onSlidePort}
-          onDemote={onDemotePort}
         />
       ))}
     </div>

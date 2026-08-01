@@ -44,8 +44,15 @@ Interfaces do not count towards being a container. A block with interfaces and n
 blocks is still a block and draws as one. The two are independent — a node may freely have
 both, and each draws without affecting the other.
 
-Role determines only how the node draws; every node shares the same operations, and a node
-changes role simply by gaining a child block or being dragged onto a frame edge.
+Role determines only how the node draws, and every node shares the same operations. A block
+becomes a container simply by gaining a child block, and stops being one by losing them —
+that role is a running tally of what it holds.
+
+**Interface is the one role that does not change.** A node is created as an interface or it
+is not, and it stays whichever it was: a block never steps onto a border to become one, and
+an interface never steps off to become a block. That is the exception to "role is derived",
+and it is deliberate — an interface belongs to a border in a way a block does not, and a
+drag that could silently convert between them made every ordinary move a hazard.
 
 **Blocks** — simple rectangles. All nodes (blocks included) can be nested, unnested, grouped,
 ungrouped, annotated, related, interfaced, referenced, and given descriptive attributes.
@@ -64,10 +71,11 @@ makes a container read as full at a glance. That inner grid is a *count*, not a 
 blank square per thing the child holds, and it stops there. Following it down turned a deep
 container into a texture, where nothing is legible and the shape says nothing at all.
 
-**Names show only for a container of one or two.** Past that the cells shrink and the words go,
-because a name in a sliver of a cell is not a name. How much is in here and how it is divided
-read perfectly well without them, and the treemap is for that rather than for reading off
-contents.
+**Names show only for a container of one or two**, and then only in a cell with room for one.
+Past that the cells shrink and the words go, because a name in a sliver of a cell is not a
+name. How much is in here and how it is divided read perfectly well without them, and the
+treemap is for that rather than for reading off contents. Every cell names itself on hover
+regardless.
 
 **A container is barely bigger than a block** — room for the treemap under its name, and no
 more. It does not swell with what it holds: the cells shrink instead. A card that grows with
@@ -91,42 +99,72 @@ in the shape of Bootstrap Icons' `grid-1x2` or `columns-gap`, so a port with int
 differently from a plain one without opening it. An interface holding only other interfaces
 gets no special mark — the divided square means child blocks specifically.
 
-**Where they come from.** A node starts with none. Nothing sits on a fresh block's edge until
-there is a reason for it to be there.
+**A relationship has two interfaces, one at each end.** That is the rule the rest of this
+follows from. Drawing a relationship makes them both, deleting it takes them both away, and a
+relationship that has never been given either is still understood to have them — they are
+simply implied at the sides of the two cards facing each other, rather than written down.
 
-- **Drawing a relationship creates them** — relating two nodes puts an interface on each end's
-  frame edge in the same step.
-- **Right-clicking a frame edge creates a bare one**, ready to be related later.
-- **Right-click-dragging from a frame edge** creates an interface and draws a relationship
-  from it in one gesture. Neither appears until the drag has pulled a small margin clear of
-  the edge, so a right-click that wanders by a pixel is still a right-click.
-- **Dragging an existing node onto a frame edge** promotes it to an interface; dragging it
-  back off demotes it to an ordinary child block. Its relationships come with it either way.
+So there is never a question of whether an end has an interface. It has one. The only
+questions are whether it has been *placed* anywhere in particular and whether it is currently
+*drawn*, and neither of those changes what the relationship means.
+
+**Where they come from.** A node starts with none. Nothing sits on a fresh block's edge until
+there is a reason for it to be there, and a relationship is the usual reason.
+
+- **Right-click-dragging draws a relationship, and makes an interface at each end.** The near
+  one is placed where the drag started, on the border of the node it left. The far one is
+  placed where the drag was let go: released over a border, the interface sits at that point
+  on it; released anywhere else on a card, at the nearest point of the card's border.
+  Released over an interface that already exists, that one is used and no new one is made.
+  Nothing appears until the drag has pulled a small margin clear of the edge, so a right-click
+  that wanders by a pixel is still a right-click.
+- **Released over empty canvas**, the far node is created as well, and given its interface on
+  the side facing back the way the drag came, so the line between them runs straight.
+- **Right-clicking a frame edge creates a bare one**, with no relationship attached. This is
+  the one way to get an interface on its own, and it is there because a node's shape is worth
+  describing before its connections are.
+
+A relationship made any other way — from a chip, or by a workflow — leaves both its
+interfaces implied, because there was no gesture to take a position from.
 
 **And where they go.** Deleting a relationship deletes the interfaces at both its ends, so
-rewiring a diagram leaves no trail of empty squares behind it. Two exceptions keep that from
-taking anything with it: an interface another relationship still attaches to stays, and an
-interface holding child blocks of its own is left bare rather than deleted — its contents are
-not collateral.
+rewiring a diagram leaves no trail of empty squares behind it. Two things are never
+collateral: an interface another relationship still attaches to stays, and an interface with
+contents of its own is left standing, bare, rather than taking what is inside it with it.
 
 **Selecting and moving.** An interface selects like anything else: click to highlight it, and
-once selected it slides along its edge and around corners under a left drag. Left-dragging is
-never how a relationship is drawn — that is the right button's job, here and at the frame
-edge — so selecting a port and wiring one are never the same gesture.
+once selected it slides along its edge and around corners under a left drag. It stays on the
+border however far the drag goes — sliding is the only thing the gesture does. Left-dragging
+is never how a relationship is drawn either; that is the right button's job, here and at the
+frame edge, so selecting a port and wiring one are never the same gesture.
+
+**Naming.** An interface with no name of its own is called `interface 1`, `interface 2`, and
+so on — its number among the interfaces of the node it sits on, in the order they were made.
+
+Numbered rather than all sharing one word, because a relationship now puts an interface at
+each of its ends and a node soon has several; five rows in the explorer all reading
+"interface" name nothing. The count is per parent, since that is where the names are seen
+together — two nodes each having an `interface 1` is no more a clash than two folders each
+holding a `notes`.
+
+The number is a position, not an identity: it is derived rather than stored, so deleting one
+closes the gap and the ones after it shift down. Anything that wants a name that stays is
+given one, and a name given replaces the number entirely.
 
 **Visibility.** Interfaces render on the canvas by default, and can be toggled off for a
-cleaner read of the structure alone; relationships stay drawn, meeting the frame edge where
-their interface would have been. The object explorer is the other way round — interfaces are
-hidden there by default, and a toggle reveals them.
+cleaner read of the structure alone. Nothing about the relationships changes when they are
+hidden — the interfaces are still there, and the lines still meet the frame edge where they
+would have been, which is the same place an implied one would sit. The object explorer is the
+other way round: interfaces are hidden there by default, and a toggle reveals them.
 
 Both toggles are global to the app, not per project and not per view. They are display
 preferences: they change nothing in the project, appear in no export, and record no history.
 
-**Export.** An interface a relationship created, left at its defaults — unnamed, unmoved,
-unmarked, with no contents or attributes — is not exported. The relationship re-derives it on
-load, so writing it down would only be repeating what the relationship already says. An
-interface the user added deliberately, or one that has since been named, moved, marked, given
-contents or given attributes, is exported like any other node.
+**Export.** An interface a relationship implied — never placed anywhere in particular, and
+never named, marked, given contents or given attributes — is not exported. The relationship
+re-derives it on load, so writing it down would only repeat what the relationship already
+says. Every other interface is exported like any other node, including every one a drawn
+relationship placed: a position somebody chose is worth keeping.
 
 **State an interface carries beyond an ordinary node:**
 
@@ -137,7 +175,9 @@ contents or given attributes, is exported like any other node.
 | `flow` | optional, decorative: marks the interface as input, output, or both |
 
 `side` and `at` replace the absolute x/y an ordinary node carries; an interface's position is
-meaningless apart from its frame.
+meaningless apart from its frame. They are set when it is created and changed only by sliding
+it, and `side` is never cleared — an interface that came off its border would be a block, and
+nothing turns one into the other.
 
 `flow` is **decorative only**. It changes how the interface draws and nothing else — any
 interface may be either end of any relationship, whatever it is marked as. Default interfaces
@@ -154,10 +194,9 @@ labeled, and given a direction.
 the two ends are related. Direction is added deliberately, through the relationship's context
 menu or the attribute panel: one way, the other way, or both.
 
-Relationships are created by right-click-dragging: from an existing interface, or from a
-node's frame edge, which creates the interface as it goes. Releasing over another node
-attaches there. Releasing over empty canvas prompts for a new node and creates it with its own
-interface already attached. `Esc` cancels the whole gesture, interface included.
+Relationships are created by right-click-dragging, from an existing interface or from anywhere
+on a node, and they end up with an interface at each end either way — see Interfaces above for
+where each one lands. `Esc` cancels the whole gesture, interfaces included.
 
 **References.** A relationship between two nodes in different layers is drawn in either of
 them through a **reference**: a placeholder standing in for the far node, sitting in this layer
@@ -361,8 +400,9 @@ levels adjusts the relationships defined in the project's meta graph automatical
 nodes between the explorer and the canvas is seamless in both directions.
 
 Groups, annotations, and other attributes never appear here. Interfaces are child nodes and so
-belong here, but are **hidden by default** — a toggle reveals them, folded into their own
-subgroup beneath the node under their own icon, rather than mixed in among its child blocks.
+belong here, but are **hidden by default** — a toggle reveals them, listed at the same level
+as the node's child blocks and sorted after them, told apart by their own icon. They get no
+branch of their own: a wrapper around them would be a level of structure that does not exist.
 A node whose only children are interfaces still shows as a block, not a container.
 
 Visually, the explorer delineates levels with indentation and subtle tree guide lines
@@ -464,8 +504,9 @@ of every reorganization costs more than it saves.
 
 Left-dragging on the canvas depends on where the drag starts:
 
-- **From a node** — moves the node.
-- **From a selected interface** — slides it along its frame edge.
+- **From a node** — moves the node. Dropped on another card it goes inside it, wherever on
+  that card it landed. A card's border is not a drop target of its own.
+- **From a selected interface** — slides it along its frame edge, and no further.
 - **From a selected group's background** — moves every member of that group together.
 - **From empty background, or from an unselected group's background** — draws a selection
   box, which takes the elements it fully contains. Dragging a selection moves all of it as one
@@ -475,9 +516,8 @@ Selection behaves the same way throughout: click to select, then drag what is se
 what makes a group movable, an interface slidable, and a multi-node selection draggable as one
 thing.
 
-Right-dragging draws relationships — from an interface, or from a frame edge, which creates
-the interface as it goes. Nothing appears until the drag pulls clear of the edge, and `Esc`
-cancels.
+Right-dragging draws relationships, making an interface at each end as it goes. Nothing
+appears until the drag pulls clear of the edge, and `Esc` cancels.
 
 The canvas pans with the middle button or the wheel, never with a left drag.
 

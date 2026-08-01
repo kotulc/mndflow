@@ -192,12 +192,9 @@ export function App() {
               onSprout={project.sprout}
               onRename={project.rename}
               onLift={project.lift}
-              onLink={project.link}
               onWire={project.wire}
               onAddPort={project.addPort}
               onSlidePort={project.setPort}
-              onDemotePort={project.demotePort}
-              onPromotePort={project.promotePort}
               onDropAttr={project.dropAttr}
               onRefer={project.refer}
               onReveal={project.reveal}

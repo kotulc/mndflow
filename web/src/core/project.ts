@@ -10,13 +10,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
-import { blocksOf, childrenOf, descendsFrom, fold, isRef, touched } from "./fold";
+import { blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, touched } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
 import {
-  attr as makeAttr, edge as makeEdge, newId, node as makeNode, step as makeStep,
-  type Dir, type Flow, type Side, type Step,
+  attr as makeAttr, edge as makeEdge, node as makeNode, step as makeStep,
+  type Dir, type End, type Flow, type Side, type Step,
 } from "./types";
 import { getDomain } from "./workflows";
 
@@ -199,32 +199,16 @@ export function useProject() {
     write: (id: string, body: string) =>
       commit(makeStep(`edit: ${name(id)}`, "edit", [{ op: "set_body", id, body }])),
 
-    /** Put a node on its parent's frame edge, or slide one already there. */
-    setPort: (id: string, side: Side | null, at: number | null) =>
-      commit(makeStep(side ? `port: ${name(id)}` : `off the edge: ${name(id)}`, "port",
-                      [{ op: "set_port", id, side, at }])),
+    /** Slide an interface along its parent's frame edge. It never comes off:
+     *  an interface is one for as long as it exists. */
+    setPort: (id: string, side: Side, at: number) =>
+      commit(makeStep(`port: ${name(id)}`, "port", [{ op: "set_port", id, side, at }])),
 
     markPort: (id: string, flow: Flow | null) =>
       commit(makeStep(`mark: ${flow ?? "none"}`, "port", [{ op: "mark_port", id, flow }])),
 
-    /** Put an existing node on a frame edge, or take one off. Promotion and
-     *  demotion are the same change seen from either end, and each is one step
-     *  so undo returns the node to exactly where it was. */
-    promotePort: (id: string, parent: string, side: Side, at: number) =>
-      !descendsFrom(graph, parent, id) &&
-      commit(makeStep(`interface: ${name(id)}`, "port", [
-        { op: "move_node", id, parent },
-        { op: "set_port", id, side, at },
-      ])),
-
-    demotePort: (id: string, x: number, y: number) =>
-      commit(makeStep(`off the edge: ${name(id)}`, "port", [
-        { op: "set_port", id, side: null, at: null },
-        { op: "place_node", id, x, y },
-      ])),
-
-    /** A bare interface, from right-clicking a frame edge. Deliberate, so it
-     *  is a node of its own rather than something derived from a relation. */
+    /** A bare interface, from right-clicking a frame edge. The one way to get
+     *  an interface without a relationship attached to it. */
     addPort: (parent: string | null, side: Side, at: number) => {
       const port = makeNode("", { parent, side, at });
 
@@ -233,29 +217,41 @@ export function useProject() {
       return port.id;
     },
 
-    link: (source: string, target: string, from?: string, to?: string) =>
+    /** A relationship with nowhere in particular to attach: its interfaces are
+     *  implied at the sides facing each other. What a chip or a workflow makes,
+     *  where there was no gesture to take a position from. */
+    link: (source: string, target: string) =>
       source !== target &&
       commit(makeStep(`link: ${name(source)}`, "link",
-                      [{ op: "link_nodes", edge: makeEdge(source, target, { from, to }) }])),
+                      [{ op: "link_nodes", edge: makeEdge(source, target) }])),
 
-    /** A right drag from a frame edge: the interface it started from and the
-     *  relationship it drew, made together so undo takes back the gesture
-     *  rather than half of it. */
-    wire: (parent: string, side: Side, at: number, target: string, to?: string) => {
-      if (parent === target) return;
+    /** A relationship drawn by hand, and the interfaces at both its ends. Each
+     *  end is either an interface the drag landed on or a place on a border to
+     *  put one, so a relationship always has both — made in one step, so undo
+     *  takes back the whole gesture rather than half of it. */
+    wire: (a: End, b: End) => {
+      if (a.node === b.node) return;
 
-      const port = makeNode("", { parent, side, at });
+      const made: { op: "add_node"; node: ReturnType<typeof makeNode> }[] = [];
+      const anchor = (end: End) => {
+        if (end.port) return end.port;
+        if (!end.seat) return undefined;
 
-      commit(makeStep(`link: ${name(parent)}`, "link", [
-        { op: "add_node", node: port },
-        { op: "link_nodes", edge: makeEdge(parent, target, { from: port.id, to }) },
+        const port = makeNode("", { parent: end.node, ...end.seat });
+        made.push({ op: "add_node", node: port });
+
+        return port.id;
+      };
+
+      // Both before the edge, so it can name the ports it was made with.
+      const from = anchor(a);
+      const to = anchor(b);
+
+      commit(makeStep(`link: ${name(a.node)}`, "link", [
+        ...made,
+        { op: "link_nodes", edge: makeEdge(a.node, b.node, { from, to }) },
       ]));
     },
-
-    /** Tie one end of a relation to a particular interface. */
-    reanchor: (id: string, from?: string, to?: string) =>
-      commit(makeStep(`anchor: ${graph.edges[id]?.relation || "relation"}`, "anchor",
-                      [{ op: "reanchor_edge", id, from, to }])),
 
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
@@ -269,9 +265,28 @@ export function useProject() {
       commit(makeStep(`relation: ${relation}`, "relation",
                       [{ op: "update_edge", id, relation: relation.trim() }])),
 
+    /** Delete a relationship, and the interfaces it put at its ends with it —
+     *  rewiring a diagram should leave no trail of empty squares behind.
+     *
+     *  Two things are never collateral: an interface another relationship still
+     *  attaches to, and one with contents of its own. Those are left standing,
+     *  bare. */
     unlink: (id: string) => {
       if (picked?.id === id) setPicked(null);
-      commit(makeStep("unlink", "unlink", [{ op: "delete_edge", id }]));
+
+      const edge = graph.edges[id];
+      const spare = (port: string | undefined): port is string =>
+        Boolean(port) && isPort(graph.nodes[port!]) &&
+        !childrenOf(graph, port!).length &&
+        !Object.values(graph.edges)
+          .some((e) => e.id !== id && (e.from === port || e.to === port));
+
+      commit(makeStep("unlink", "unlink", [
+        { op: "delete_edge", id },
+        ...[edge?.from, edge?.to].filter(spare).map((port) => ({
+          op: "delete_node" as const, id: port,
+        })),
+      ]));
     },
 
     renameProject: (title: string) =>
@@ -337,18 +352,21 @@ export function useProject() {
         node: makeNode(label, { parent: view, type: terms.node, x, y }),
       }])),
 
-    /** A link dragged into empty space: make the far end, and attach it. The
-     *  near end may be an interface the same gesture is creating. */
-    sprout: (from: string, label: string, x: number, y: number, port?:
-             { parent: string; side: Side; at: number }) => {
+    /** A relationship dragged into empty space: make the far end, and attach.
+     *  Both ends get their interface like any drawn relationship — the near one
+     *  where the drag started, the far one on the side facing back towards it. */
+    sprout: (a: End, label: string, x: number, y: number, side: Side) => {
       const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
-      const anchor = port ? makeNode("", { parent: port.parent, side: port.side, at: port.at })
-                          : null;
+      const near = a.port ? null
+                          : a.seat && makeNode("", { parent: a.node, ...a.seat });
+      const far = makeNode("", { parent: fresh.id, side, at: 0.5 });
 
       commit(makeStep(`grew: ${label}`, "sprout", [
-        ...(anchor ? [{ op: "add_node" as const, node: anchor }] : []),
+        ...(near ? [{ op: "add_node" as const, node: near }] : []),
         { op: "add_node", node: fresh },
-        { op: "link_nodes", edge: makeEdge(from, fresh.id, { from: anchor?.id }) },
+        { op: "add_node", node: far },
+        { op: "link_nodes",
+          edge: makeEdge(a.node, fresh.id, { from: a.port ?? near?.id, to: far.id }) },
       ]));
     },
 

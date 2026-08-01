@@ -26,7 +26,11 @@ export type Node = {
   y: number | null;
   /** Set when this node sits on its parent's frame edge, which is what makes
    *  it an interface. An interface's x/y mean nothing — side and how far along
-   *  the edge take their place, so the port survives the frame resizing. */
+   *  the edge take their place, so the port survives the frame resizing.
+   *
+   *  Set once, at creation. An interface stays an interface: it slides along
+   *  the edge and around corners, but never steps off it to become a child
+   *  block, and no child block ever steps onto it. */
   side: Side | null;
   at: number | null;
   flow: Flow | null;
@@ -37,14 +41,20 @@ export type Node = {
   ref: string | null;
 };
 
+/** One end of a relationship as it is drawn: the node it lands on, and either
+ *  the interface it landed on or the seat on that node's border to put a new
+ *  one at. Every drawn relationship ends up with an interface at each end. */
+export type End = { node: string; port?: string; seat?: { side: Side; at: number } };
+
 export type Edge = {
   id: string;
   source: string;
   target: string;
   relation: string;
-  /** The interface node each end is tied to. Absent means the port is derived
-   *  from this relationship instead of stored — nothing to keep, nothing to
-   *  export, and nothing left behind when the relationship goes. */
+  /** The interface node each end is tied to. A relationship has one at each
+   *  end always; absent only means it was never placed anywhere in particular,
+   *  so it is implied at the side of the card facing the other end rather than
+   *  stored. Drawing a relationship by hand places both. */
   from?: string;
   to?: string;
   dir: Dir;
@@ -86,14 +96,12 @@ export type Mutation =
   | { op: "place_node"; id: string; x: number; y: number }
   | { op: "delete_node"; id: string }
   | { op: "set_body"; id: string; body: string }
-  /** Put a node on its parent's frame edge, or take it off again. Promotion,
-   *  demotion and sliding along the edge are all the same change. */
-  | { op: "set_port"; id: string; side: Side | null; at: number | null }
+  /** Slide an interface along its parent's frame edge, and around its corners.
+   *  It never comes off: an interface is one for as long as it exists. */
+  | { op: "set_port"; id: string; side: Side; at: number }
   | { op: "mark_port"; id: string; flow: Flow | null }
   | { op: "link_nodes"; edge: Edge }
   | { op: "update_edge"; id: string; relation: string }
-  /** Move one end of a relation to a different interface. */
-  | { op: "reanchor_edge"; id: string; from?: string; to?: string }
   | { op: "set_dir"; id: string; dir: Dir }
   /** Turn a relation around; what it says stays the same. */
   | { op: "flip_edge"; id: string }

@@ -84,6 +84,25 @@ export function isContainer(graph: Graph, id: string): boolean {
   return Object.values(graph.nodes).some((n) => n.parent === id && !isPort(n));
 }
 
+/** What an unnamed interface is called: its number among the interfaces of the
+ *  node it sits on, in the order they were made.
+ *
+ *  Numbered rather than left all sharing one word, because a relationship now
+ *  puts an interface at each of its ends and a node soon has several — five
+ *  rows in the explorer all reading "interface" name nothing. Per parent,
+ *  since that is where the names are seen together; two nodes each having an
+ *  `interface 1` is no more a clash than two folders each holding a `notes`.
+ *
+ *  The order is the log's, so it is the same on every reload. Deleting one
+ *  closes the gap and the ones after it shift down — the number is a position,
+ *  not an identity, and anything wanting a name of its own can be given one. */
+export function portName(graph: Graph, port: Node): string {
+  const kin = portsOf(graph, port.parent);
+  const at = kin.findIndex((p) => p.id === port.id);
+
+  return `interface ${at < 0 ? kin.length + 1 : at + 1}`;
+}
+
 /** What to call a node. Something unnamed falls back to its role, so it still
  *  says what it is rather than reading as a gap — and a name given later
  *  simply replaces it. */
@@ -97,7 +116,7 @@ export function nameOf(graph: Graph, node: Node | undefined): string {
     return real ? nameOf(graph, real) : "missing";
   }
   if (node.label) return node.label;
-  if (isPort(node)) return "interface";
+  if (isPort(node)) return portName(graph, node);
 
   return isContainer(graph, node.id) ? "container" : "block";
 }
@@ -178,9 +197,6 @@ function apply(graph: Graph, mutation: Mutation): void {
       if (!node) return;
       node.side = mutation.side;
       node.at = mutation.at;
-      // Coming off the edge, it needs somewhere on the canvas to land; going
-      // onto it, its old position stops meaning anything.
-      if (mutation.side === null) node.x = node.y = null;
       break;
     }
 
@@ -201,15 +217,6 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "update_edge": {
       const edge = graph.edges[mutation.id];
       if (edge) edge.relation = mutation.relation;
-      break;
-    }
-
-    case "reanchor_edge": {
-      const edge = graph.edges[mutation.id];
-      if (edge) {
-        if (mutation.from !== undefined) edge.from = mutation.from;
-        if (mutation.to !== undefined) edge.to = mutation.to;
-      }
       break;
     }
 

@@ -1,10 +1,10 @@
 /** One card on the canvas.
  *
- *  A container shows its child blocks as a grid of chips, and a chip that is
- *  itself a container shows its own contents in miniature — so nesting is
- *  visible at every level without opening anything. Each chip's fill follows
- *  how closely its name relates to the container's, which makes one that has
- *  drifted off topic look ragged rather than reading as tidy.
+ *  A container shows its child blocks as a grid of chips — only the immediate
+ *  children, so nesting past that stays for opening the container itself.
+ *  Each chip's fill follows how closely its name relates to the container's,
+ *  which makes one that has drifted off topic look ragged rather than reading
+ *  as tidy.
  *
  *  Interfaces sit on the frame edge instead, and never in the treemap. The two
  *  are independent: a block with ports is still a block. */
@@ -17,11 +17,14 @@ import { affinity, GRID, LEAF, squarify, tile } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
-/** Up to this many children, a container names them. Past it the names would
- *  be slivers of text in shrinking cells, so the grid keeps the shape and
- *  drops the words — how much is in here, and how it is divided, read fine
- *  without them. */
+/** How many children a container can name. Past this the cells shrink and the
+ *  words go: how much is in here and how it is divided read perfectly well
+ *  without them, and the treemap is for that rather than for reading contents
+ *  off. */
 const NAMED = 2;
+/** A cell this wide and tall has room for a name; smaller ones keep the
+ *  shape of the split without a label that would only be a smear. */
+const LABEL = { w: 36, h: 16 };
 /** How a side maps onto React Flow's own positions. */
 const SIDES: Record<Side, Position> = {
   top: Position.Top,
@@ -57,11 +60,11 @@ export type CardData = {
   /** Enter something's own contents. Only a double-click reaches this. */
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
-  onDemotePort: (id: string, x: number, y: number) => void;
 };
 
-/** The face opposite a side, for anchors that are looked at from the inside. */
-const FACING: Record<Side, Side> = {
+/** The face opposite a side. Used for anchors looked at from the inside, and
+ *  for seating the far end of a relationship so it faces back the way it came. */
+export const FACING: Record<Side, Side> = {
   top: "bottom", bottom: "top", left: "right", right: "left",
 };
 
@@ -95,35 +98,33 @@ export type PortProps = {
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlide: (id: string, side: Side, at: number) => void;
-  /** Dragged clear of the border: it stops being an interface, and lands
-   *  wherever on the canvas it was let go. */
-  onDemote: (id: string, x: number, y: number) => void;
 };
 
 /** One interface on the frame edge. Click to select it; once selected it
  *  slides along the edge and around corners, the same way a group moves only
  *  once it has been picked.
  *
+ *  Sliding is all it does. An interface never steps off the border to become a
+ *  child block, and no child block steps onto it — the two are different kinds
+ *  of thing, and a drag that could silently turn one into the other made every
+ *  ordinary move a hazard.
+ *
  *  Shared by the cards and by the layer's own frame, which carries ports the
  *  same way — the only difference is whose edge they sit on. */
-export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide,
-                      onDemote }: PortProps) {
+export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide }: PortProps) {
   const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
   const held = useRef(false);
   const side = drag?.side ?? port.side ?? "right";
   const at = drag?.at ?? port.at ?? 0.5;
   const deep = isContainer(graph, port.id);
 
-  /** How far from the border a drag has gone before the port stops belonging
-   *  to the edge at all — outward off a card, or inward across a frame. */
-  const OFF = 44;
-
-  /** Nearest edge of the host to a point, how far along it, and whether the
-   *  point has left the border behind. */
+  /** Nearest edge of the host to a point, and how far along it. The point is
+   *  clamped to the host first, so a drag that wanders off the card still
+   *  leaves the port somewhere sensible on its border. */
   function nearest(event: React.PointerEvent) {
     const host = (event.currentTarget as HTMLElement).closest(".card, .frame");
     const box = host?.getBoundingClientRect();
-    if (!box) return { side, at, gone: false };
+    if (!box) return { side, at };
 
     const x = Math.min(Math.max(event.clientX - box.left, 0), box.width);
     const y = Math.min(Math.max(event.clientY - box.top, 0), box.height);
@@ -131,14 +132,8 @@ export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide,
     const closest = (Object.keys(gaps) as Side[])
       .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
     const along = closest === "top" || closest === "bottom" ? x / box.width : y / box.height;
-    // Distance from the nearest border, whichever side of it the pointer is
-    // on: dragged off a card, or dragged in across a frame, both mean the same
-    // thing — this is no longer something sitting on an edge.
-    const out = Math.max(box.left - event.clientX, event.clientX - box.right,
-                         box.top - event.clientY, event.clientY - box.bottom);
-    const away = out > 0 ? out : Math.min(x, box.width - x, y, box.height - y);
 
-    return { side: closest, at: Math.min(Math.max(along, 0.04), 0.96), gone: away > OFF };
+    return { side: closest, at: Math.min(Math.max(along, 0.04), 0.96) };
   }
 
   return (
@@ -178,10 +173,6 @@ export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide,
         const landed = nearest(event);
         setDrag(null);
 
-        // Pulled well clear of the border: it is an ordinary child block
-        // again, and it lands where it was let go.
-        if (landed.gone) return onDemote(port.id, event.clientX, event.clientY);
-
         if (landed.side !== port.side || landed.at !== port.at) {
           onSlide(port.id, landed.side, landed.at);
         }
@@ -220,18 +211,19 @@ function weigh(graph: Graph, kid: Node): number {
  *  which of them the container is mostly made of, and it is the same relevance
  *  the fill already shades by.
  *
- *  A child that holds things of its own draws a grid inside its cell — the
- *  grids-within-grids that makes a container read as full at a glance. That
- *  inner grid is a count, not a listing: one blank square per thing the child
- *  holds, and it stops there. Following it down turned a deep container into a
- *  texture, where nothing is legible and the shape says nothing at all.
+ *  Nesting stops at that first layer. A child that is itself a container still
+ *  reads as one — dashed edge, no miniature of *its* children — so the card
+ *  stays a map of what this node holds, not a texture of everything below.
+ *
+ *  Names appear only in cells large enough to hold them. A dense split keeps
+ *  the partition and drops the words; the title attribute still names each
+ *  cell on hover.
  *
  *  Interfaces are never in here; they live on the frame. */
 function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
   const kids = blocksOf(graph, id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
-  const named = kids.length <= NAMED;
   // Worked out in the band's own proportions and then expressed as
   // percentages of it, so the cells follow the card without measuring it.
   const band = { w: LEAF.w, h: GRID };
@@ -243,13 +235,20 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
     // divide up whatever was left over, the band came out flat.
     <div className="treemap" style={{ height: band.h }}>
       {kids.map((kid, at) => {
-        const inside = blocksOf(graph, kid.id).length;
         const seat = tiles[at];
+        // Only a container of one or two names its children, and only where
+        // the cell has room — minus the 1px gap the layout leaves each side.
+        const named = kids.length <= NAMED &&
+                      seat.w - 2 >= LABEL.w && seat.h - 2 >= LABEL.h;
+        // What this child holds, as a count rather than a listing: one blank
+        // square each, and it stops there. Following it down turned a deep
+        // container into a texture where nothing was legible.
+        const inside = blocksOf(graph, kid.id).length;
 
         return (
           <div
             key={kid.id}
-            className={`cell nodrag ${inside ? "group" : "object"}`}
+            className={`cell nodrag ${isContainer(graph, kid.id) ? "group" : "object"}`}
             style={{
               left: `calc(${(seat.x / band.w) * 100}% + 1px)`,
               top: `calc(${(seat.y / band.h) * 100}% + 1px)`,
@@ -289,7 +288,7 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
   const { node, graph, changed, dropping, picked, showPorts, pickedPort } =
     data as unknown as CardData;
-  const { onPick, onOpen, onSlidePort, onDemotePort } = data as unknown as CardData;
+  const { onPick, onOpen, onSlidePort } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
@@ -318,7 +317,6 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
           onPick={onPick}
           onOpen={onOpen}
           onSlide={onSlidePort}
-          onDemote={onDemotePort}
         />
       ))}
 

@@ -27,10 +27,10 @@ import "@xyflow/react/dist/style.css";
 
 import { blocksOf, groupsIn, isRef, nameOf, refIn } from "./core/fold";
 import { LEAF, place, sizeOf } from "./core/layout";
-import type { Graph, Side } from "./core/types";
+import type { End, Graph, Side } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
-import { LIFTED, NodeCard, REFERRED } from "./NodeCard";
+import { FACING, LIFTED, NodeCard, REFERRED } from "./NodeCard";
 
 const nodeTypes = { card: NodeCard, group: GroupFrame, frame: Frame };
 
@@ -109,17 +109,15 @@ function nearestEdge(box: DOMRect, x: number, y: number): { side: Side; at: numb
 /** What the floating input is asking for. One prompt, several errands. */
 type Prompt =
   | { kind: "node"; x: number; y: number; parent: string | null }
-  | { kind: "sprout"; x: number; y: number; from: string; port?: string;
-      seat?: { side: Side; at: number } }
+  | { kind: "sprout"; x: number; y: number; end: End }
   | { kind: "relation"; id: string }
   | { kind: "rename"; id: string };
 
-/** A relationship being drawn, from the moment the right button goes down. */
+/** A relationship being drawn, from the moment the right button goes down.
+ *  `end` is where it started: an interface it began on, or a place on that
+ *  node's border to make one at. */
 type Wire = {
-  from: string;
-  /** An interface that already exists, rather than one this drag will make. */
-  port?: string;
-  seat: { side: Side; at: number };
+  end: End;
   origin: { x: number; y: number };
   to: { x: number; y: number };
   live: boolean;
@@ -142,16 +140,13 @@ type Props = {
   onPromote: (id: string, parent: string | null) => void;
   onCreate: (label: string, parent: string | null) => void;
   onCreateAt: (label: string, x: number, y: number) => void;
-  onSprout: (from: string, label: string, x: number, y: number,
-             port?: { parent: string; side: Side; at: number }) => void;
+  onSprout: (a: End, label: string, x: number, y: number, side: Side) => void;
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
-  onLink: (source: string, target: string, from?: string, to?: string) => void;
-  onWire: (parent: string, side: Side, at: number, target: string, to?: string) => void;
+  /** Draw a relationship, with an interface at each end. */
+  onWire: (a: End, b: End) => void;
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
-  onDemotePort: (id: string, x: number, y: number) => void;
-  onPromotePort: (id: string, parent: string, side: Side, at: number) => void;
   onRelation: (id: string, relation: string) => void;
   onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string) => void;
   onUnlink: (id: string) => void;
@@ -168,16 +163,15 @@ type Props = {
 function Flow(props: Props) {
   const { graph, view, picked, path, touched, showPorts, onShowPorts, angular, onAngular } = props;
   const { onPick, onOpen, onUp, onNest, onPromote, onCreate, onCreateAt, onSprout } = props;
-  const { onRename, onLift, onLink, onWire, onAddPort, onSlidePort, onRelation } = props;
-  const { onDemotePort, onPromotePort } = props;
+  const { onRename, onLift, onWire, onAddPort, onSlidePort, onRelation } = props;
   const { onPlaceMany, onUnlink, onDelete, onGroup, onNameGroup, onDropAttr } = props;
   const { onRefer, onReveal } = props;
   const flow = useReactFlow();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [wire, setWire] = useState<Wire | null>(null);
-  /** What a dragged card is currently over, and what dropping would do. */
-  const [dropping, setDropping] = useState<{ id: string; kind: "nest" | "port" } | null>(null);
-  const dropRef = useRef<{ id: string; kind: "nest" | "port"; side: Side; at: number } | null>(null);
+  /** The card a dragged card is currently over — the one it would go inside. */
+  const [dropping, setDropping] = useState<string | null>(null);
+  const dropRef = useRef<string | null>(null);
   /** True while the pointer is near the layer frame's border. */
   const [grazing, setGrazing] = useState(false);
   const heldRef = useRef<string | null>(null);
@@ -248,13 +242,6 @@ function Flow(props: Props) {
     return { x: hug.x + hug.w / 2 - w / 2, y: hug.y + hug.h / 2 - h / 2, w, h };
   }, [view, graph, boxes, panel]);
 
-  /** A port dragged clear of its border lands where it was let go, so the
-   *  point the pointer reports has to become a place on the canvas. */
-  const demote = useCallback((id: string, x: number, y: number) => {
-    const at = flow.screenToFlowPosition({ x, y });
-    onDemotePort(id, at.x - LEAF.w / 2, at.y - LEAF.h / 2);
-  }, [flow, onDemotePort]);
-
   /** Each group's boundary: the box round its members, plus a small margin.
    *  Its own, never the user's — the boundary follows what is in it. */
   const bands = useMemo(
@@ -276,15 +263,13 @@ function Flow(props: Props) {
         node,
         graph,
         changed: marked.has(node.id),
-        dropping: dropping?.id === node.id && dropping.kind === "nest",
-        porting: dropping?.id === node.id && dropping.kind === "port",
+        dropping: dropping === node.id,
         picked: node.id === pickedNode,
         showPorts,
         pickedPort: pickedNode,
         onPick: (id: string) => onPick({ kind: "node", id }),
         onOpen,
         onSlidePort,
-        onDemotePort: demote,
       },
     })) as FlowNode[];
 
@@ -350,7 +335,6 @@ function Flow(props: Props) {
             onPick: (id: string) => onPick({ kind: "node", id }),
             onOpen,
             onSlidePort,
-            onDemotePort: demote,
             grazed: grazing,
           },
         } as FlowNode]
@@ -360,7 +344,7 @@ function Flow(props: Props) {
     // the cards — references among them, being cards like any other.
     return [...frame, ...groups, ...cards];
   }, [graph, members, boxes, bands, frameBox, view, marked, dropping, pickedNode, picked,
-      showPorts, grazing, onPick, onOpen, onSlidePort, demote, onNameGroup]);
+      showPorts, grazing, onPick, onOpen, onSlidePort, onNameGroup]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
@@ -500,45 +484,26 @@ function Flow(props: Props) {
             [outer.x + outer.w + room, outer.y + outer.h + room]];
   }, [boxes, frameBox]);
 
-  /** Where a dragged card would land: inside another card, or on its edge.
+  /** The card a dragged card would go inside, if any.
    *
    *  Its own middle decides, not the pointer — you aim with the card you can
-   *  see. Over the middle of another card it goes inside; over the border it
-   *  becomes an interface there, which is the same gesture the spec gives for
-   *  promoting a node onto a frame edge. */
+   *  see. Anywhere on another card means inside it: a card's border is not a
+   *  drop target, because a drop there used to turn the card into an interface
+   *  and that made every ordinary move a hazard. Interfaces are made
+   *  deliberately now, and only at the border of the layer you are in. */
   const landing = useCallback(
     (dragged: FlowNode) => {
-      // A reference is a mention, not structure: it can be put inside things,
-      // but it never becomes an interface on one.
-      const mention = isRef(graph.nodes[dragged.id]);
       const size = sizeOf(graph, graph.nodes[dragged.id]);
       const mid = { x: dragged.position.x + size.w / 2, y: dragged.position.y + size.h / 2 };
 
       for (const [id, box] of Object.entries(boxes)) {
         if (id === dragged.id) continue;
-        // A reference holds nothing, so nothing lands on or in one.
+        // A reference holds nothing, so nothing lands in one.
         if (isRef(graph.nodes[id])) continue;
 
         const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
                               box.y - mid.y, mid.y - (box.y + box.h));
-        if (near > EDGE) continue;
-
-        const seat = nearestEdge(
-          new DOMRect(box.x, box.y, box.w, box.h), mid.x, mid.y,
-        );
-
-        // The border is a band, not a line, so aiming at it is a gesture
-        // rather than a feat of precision — measured per axis, since a card is
-        // far wider than it is tall and one band for both would make its long
-        // sides as hard to hit as its short ones. Capped by a third of the
-        // card, so there is always a middle left to drop into.
-        const across = Math.min(mid.x - box.x, box.x + box.w - mid.x);
-        const down = Math.min(mid.y - box.y, box.y + box.h - mid.y);
-        const rim = across < Math.min(30, box.w / 3) || down < Math.min(30, box.h / 3);
-
-        return rim && !mention
-          ? { kind: "port" as const, id, ...seat }
-          : { kind: "nest" as const, id, side: seat.side, at: seat.at };
+        if (near <= EDGE) return id;
       }
 
       return null;
@@ -685,13 +650,13 @@ function Flow(props: Props) {
     const hit = under(event.clientX, event.clientY);
     if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
 
-    const seat = nearestEdge(hit.box!, event.clientX, event.clientY);
     const origin = { x: event.clientX, y: event.clientY };
 
     setWire({
-      from: hit.id,
-      port: hit.port ?? undefined,
-      seat,
+      // An interface it started on, or the place on the border to make one at.
+      end: hit.port
+        ? { node: hit.id, port: hit.port }
+        : { node: hit.id, seat: nearestEdge(hit.box!, event.clientX, event.clientY) },
       origin,
       to: origin,
       live: false,
@@ -737,15 +702,13 @@ function Flow(props: Props) {
     const hit = under(event.clientX, event.clientY);
     const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
 
-    // Released on an interface: that interface is the far anchor, so a
-    // relation between two ports meets both of them rather than guessing a
-    // side for the end it landed on.
-    if (landed && landed !== held.from) {
-      const to = hit.port ?? undefined;
-
-      return held.port
-        ? onLink(held.from, landed, held.port, to)
-        : onWire(held.from, held.seat.side, held.seat.at, landed, to);
+    // Released on something: an interface at that end too. On an existing one,
+    // that is the anchor; anywhere else on the card, one is made at the point
+    // of its border the drag was let go over.
+    if (landed && landed !== held.end.node) {
+      return onWire(held.end, hit.port
+        ? { node: landed, port: hit.port }
+        : { node: landed, seat: nearestEdge(hit.box!, event.clientX, event.clientY) });
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
@@ -754,9 +717,7 @@ function Flow(props: Props) {
       kind: "sprout",
       x: at.x - LEAF.w / 2,
       y: at.y - LEAF.h / 2,
-      from: held.from,
-      port: held.port,
-      seat: held.port ? undefined : held.seat,
+      end: held.end,
     });
   }
 
@@ -946,10 +907,10 @@ function Flow(props: Props) {
 
           // Only re-render when the target actually changes, not every pixel.
           const hit = landing(node);
-          if (hit?.id === dropRef.current?.id && hit?.kind === dropRef.current?.kind) return;
+          if (hit === dropRef.current) return;
 
           dropRef.current = hit;
-          setDropping(hit && { id: hit.id, kind: hit.kind });
+          setDropping(hit);
         }}
         onNodeDragStop={(_, node, dragged) => {
           // A group's boundary carries its members: whatever it travelled,
@@ -975,13 +936,8 @@ function Flow(props: Props) {
           heldRef.current = null;
           setDropping(null);
 
-          // On another card's border: it becomes an interface there. Inside
-          // it: that card becomes its container.
-          if (into?.kind === "port") {
-            return onPromotePort(node.id, into.id, into.side, into.at);
-          }
-
-          if (into) return onNest(node.id, into.id);
+          // Dropped on another card: that card becomes its container.
+          if (into) return onNest(node.id, into);
 
           // Pushed past the edge of the frame, while inside a layer: it
           // belongs to whatever contains this layer. The card's own middle is
@@ -1075,8 +1031,13 @@ function Flow(props: Props) {
               const text = event.currentTarget.value.trim();
               if (event.key === "Enter" && text) {
                 if (prompt.kind === "sprout") {
-                  onSprout(prompt.from, text, prompt.x, prompt.y,
-                           prompt.seat ? { parent: prompt.from, ...prompt.seat } : undefined);
+                  // The new node's own interface faces back the way the drag
+                  // came, so the line between them runs straight.
+                  const near = prompt.end.port
+                    ? graph.nodes[prompt.end.port]?.side
+                    : prompt.end.seat?.side;
+                  onSprout(prompt.end, text, prompt.x, prompt.y,
+                           near ? FACING[near] : "left");
                 } else if (prompt.parent) {
                   onCreate(text, prompt.parent);
                 } else {
