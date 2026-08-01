@@ -50,10 +50,33 @@ changes role simply by gaining a child block or being dragged onto a frame edge.
 **Blocks** — simple rectangles. All nodes (blocks included) can be nested, unnested, grouped,
 ungrouped, annotated, related, interfaced, referenced, and given descriptive attributes.
 
-**Containers** — an internal treemap grid of their child blocks, sized by how many there are.
-Each child chip's fill follows how closely it relates to its parent, and labels appear
-wherever a cell has room for them. Interfaces are never in the treemap; they sit on the frame
-edge, and a container draws both at once.
+**Containers** — an internal treemap of their child blocks. Interfaces are never in it; they
+sit on the frame edge, and a container draws both at once.
+
+**A cell's size follows how closely that child relates to the container**, the same relevance
+its fill is shaded by, so the two say one thing twice rather than two things at once. Cells
+come out square, wide or tall depending on what has to fit beside what — which is the point. A
+grid of equal cells says only how many children there are; a treemap says which of them the
+container is mostly made of.
+
+**A cell holding things of its own draws a grid inside it** — the grids-within-grids that
+makes a container read as full at a glance. That inner grid is a *count*, not a listing: one
+blank square per thing the child holds, and it stops there. Following it down turned a deep
+container into a texture, where nothing is legible and the shape says nothing at all.
+
+**Names show only for a container of one or two.** Past that the cells shrink and the words go,
+because a name in a sliver of a cell is not a name. How much is in here and how it is divided
+read perfectly well without them, and the treemap is for that rather than for reading off
+contents.
+
+**A container is barely bigger than a block** — room for the treemap under its name, and no
+more. It does not swell with what it holds: the cells shrink instead. A card that grows with
+its contents turns a busy layer into a wall of large boxes, and says a second time what the
+treemap inside it is already saying.
+
+Nor does it need a dashed border. The treemap is signal enough, and the dashes are worth more
+elsewhere: a **reference** is dashed, and with containers solid that mark now means one thing
+only — this is not from here.
 
 
 ### Interfaces
@@ -163,10 +186,12 @@ Once a reference is there, **right-click-dragging onto it** relates to the node 
 like relating to anything else on the canvas.
 
 **Nothing places one on its own.** A relationship whose far end has no reference in this layer
-is simply not drawn here. That is deliberate: a layer would otherwise fill with placeholders
-for everything anything in it happens to touch, and constraining what is on screen is the
-whole point of the tool. A relationship is not lost by going undrawn — it is still in the
-graph, still listed against both its ends, and it appears the moment you bring the far node in.
+is simply not drawn here, and that is the point rather than a gap. **A diagram is not an
+enumeration.** The tool is for saying which relationships matter in a given layer, not for
+showing every one that happens to exist — a layer that placed a reference for everything
+anything in it touches would answer a question nobody asked. A relationship is not lost by
+going undrawn: it is still in the graph, still there against both its ends, and it appears the
+moment someone decides the far node belongs on this canvas.
 
 **Deleting one removes the placeholder only.** The node it stood for is untouched, and the
 relationships that reached it are still there; they stop being drawn in this layer, and come
@@ -345,10 +370,33 @@ connecting the contents of each branch. Each role gets its own icon — interfac
 container — before the name, so a node's role is identifiable without opening it. The fold
 arrow is separate from the role icon.
 
+**Folding is the user's, and only the user's.** A branch opens because someone opened it and
+closes because someone closed it. Walking into a layer on the canvas leaves the tree exactly as
+it was found — a tree that rearranges itself under you is one you cannot keep your place in,
+and which branches are worth having open is not something the canvas knows. One control in the
+tools opens every branch or closes every branch, whichever the tree is not already.
+
 Deep branches indent past the sidebar's width rather than being truncated or wrapped, and the
 explorer scrolls horizontally to follow. The scroll centres on the depth of whatever is
-selected: selecting something deep in the tree brings that depth to the middle of the sidebar,
-so the selection's own level and the levels either side of it are all in view at once.
+selected, so the selection's own level and the levels either side of it are all in view at
+once. It re-centres whenever the tree's shape changes as well as when the selection does — a
+branch opened by the same click that made it has not been laid out yet when the selection
+lands.
+
+The tree fills the panel, so its horizontal scrollbar sits at the foot of the sidebar rather
+than under the last row. A bar that floats up and down with the number of rows is hard to find
+and harder to aim at.
+
+
+### Breadcrumbs
+
+Above the canvas, the trail from the project down to the open layer, each step a way back to
+it. It names the project and the last three layers; anything between is collapsed to an
+ellipsis, which is itself a way back to the deepest layer it stands for and names them all in
+its tooltip.
+
+The cap is there because a trail spelled out in full stops being a trail and becomes a wall of
+names — and it is the project and the layers nearest you that tell you where you are.
 
 
 ### Attribute Panel
@@ -507,14 +555,6 @@ and revisited deliberately rather than drifting:
 - **Visual style and theme** — colour, type, spacing, and the overall look.
 
 **Built last.** The context menu. Until then, right-click performs the default action above.
-
-
-## Open decisions
-
-- **Finding a relationship that is not drawn.** With nothing placing references on its own, a
-  relationship between layers is invisible until someone brings the far node in, and there is
-  no prompt saying it is there. The attribute panel listing an object's relationships would
-  answer it, as would a count on the frame's edge; neither is built.
 
 
 ## Notes

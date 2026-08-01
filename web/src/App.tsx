@@ -158,7 +158,6 @@ export function App() {
           <Files
             graph={graph}
             view={view}
-            path={path}
             terms={terms}
             showPorts={treePorts}
             onShowPorts={setTreePorts}

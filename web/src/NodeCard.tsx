@@ -13,12 +13,15 @@ import { memo, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 import { blocksOf, isContainer, isRef, nameOf, portsOf } from "./core/fold";
-import { affinity, tile } from "./core/layout";
+import { affinity, GRID, LEAF, squarify, tile } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
-/** Below this a chip has no room for words, only its shade. */
-const READABLE = 46;
+/** Up to this many children, a container names them. Past it the names would
+ *  be slivers of text in shrinking cells, so the grid keeps the shape and
+ *  drops the words — how much is in here, and how it is divided, read fine
+ *  without them. */
+const NAMED = 2;
 /** How a side maps onto React Flow's own positions. */
 const SIDES: Record<Side, Position> = {
   top: Position.Top,
@@ -199,28 +202,63 @@ export function Port({ port, graph, picked, inward, onPick, onOpen, onSlide,
 type ContentsProps = {
   graph: Graph;
   id: string;
-  size: number;
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
 };
 
-/** The contents of a container, as a grid that recurses into sub-containers.
- *  Child blocks only — interfaces live on the frame, not in here. */
-function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
+/** How much of the container a child is worth: how closely it relates to it,
+ *  over a floor so a weak match is still a cell you can see and grab. */
+function weigh(graph: Graph, kid: Node): number {
+  return 0.45 + affinity(graph, kid);
+}
+
+/** The contents of a container: one cell per immediate child block, sized by
+ *  how strongly that child belongs to it.
+ *
+ *  Squares, wide cells and tall ones, because the areas differ — which is the
+ *  point. A uniform grid says only how many children there are; this says
+ *  which of them the container is mostly made of, and it is the same relevance
+ *  the fill already shades by.
+ *
+ *  A child that holds things of its own draws a grid inside its cell — the
+ *  grids-within-grids that makes a container read as full at a glance. That
+ *  inner grid is a count, not a listing: one blank square per thing the child
+ *  holds, and it stops there. Following it down turned a deep container into a
+ *  texture, where nothing is legible and the shape says nothing at all.
+ *
+ *  Interfaces are never in here; they live on the frame. */
+function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
   const kids = blocksOf(graph, id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
-  const { cols } = tile(kids.length);
+  const named = kids.length <= NAMED;
+  // Worked out in the band's own proportions and then expressed as
+  // percentages of it, so the cells follow the card without measuring it.
+  const band = { w: LEAF.w, h: GRID };
+  const tiles = squarify(kids.map((kid) => weigh(graph, kid)), band);
 
   return (
-    <div className="treemap" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-      {kids.map((kid) => {
-        const cell = size / cols;
+    // A definite height, not a share of the card's: the card is sized by its
+    // content, and cells placed absolutely are no content at all — left to
+    // divide up whatever was left over, the band came out flat.
+    <div className="treemap" style={{ height: band.h }}>
+      {kids.map((kid, at) => {
+        const inside = blocksOf(graph, kid.id).length;
+        const seat = tiles[at];
 
         return (
           <div
             key={kid.id}
-            className={`cell nodrag ${isContainer(graph, kid.id) ? "group" : "object"}`}
+            className={`cell nodrag ${inside ? "group" : "object"}`}
+            style={{
+              left: `calc(${(seat.x / band.w) * 100}% + 1px)`,
+              top: `calc(${(seat.y / band.h) * 100}% + 1px)`,
+              width: `calc(${(seat.w / band.w) * 100}% - 2px)`,
+              height: `calc(${(seat.h / band.h) * 100}% - 2px)`,
+              // Fill carries the affinity score; the floor keeps a weak match
+              // visible rather than invisible.
+              background: `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})`,
+            }}
             title={`${nameOf(graph, kid)} — drag onto the canvas to lift it out`}
             draggable
             onDragStart={(event) => {
@@ -230,15 +268,17 @@ function Contents({ graph, id, size, onPick, onOpen }: ContentsProps) {
             }}
             onClick={(event) => (event.stopPropagation(), onPick(kid.id))}
             onDoubleClick={(event) => (event.stopPropagation(), onOpen(kid.id))}
-            // Fill carries the affinity score; the floor keeps a weak match
-            // visible rather than invisible.
-            style={{ background: `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})` }}
           >
-            {isContainer(graph, kid.id) ? (
-              <Contents graph={graph} id={kid.id} size={cell} onPick={onPick} onOpen={onOpen} />
-            ) : (
-              cell >= READABLE && <span className="tag">{nameOf(graph, kid)}</span>
+            {inside > 0 && (
+              <div
+                className="grain"
+                aria-hidden
+                style={{ gridTemplateColumns: `repeat(${tile(inside).cols}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: inside }, (_, at) => <i key={at} />)}
+              </div>
             )}
+            {named && <span className="tag">{nameOf(graph, kid)}</span>}
           </div>
         );
       })}
@@ -289,7 +329,7 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
         {node.type && <span className="kind">{node.type}</span>}
       </div>
 
-      {holds && <Contents graph={graph} id={node.id} size={160} onPick={onPick} onOpen={onOpen} />}
+      {holds && <Contents graph={graph} id={node.id} onPick={onPick} onOpen={onOpen} />}
     </div>
   );
 });

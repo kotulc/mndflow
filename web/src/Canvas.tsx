@@ -25,7 +25,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { blocksOf, groupsIn, isRef, refIn } from "./core/fold";
+import { blocksOf, groupsIn, isRef, nameOf, refIn } from "./core/fold";
 import { LEAF, place, sizeOf } from "./core/layout";
 import type { Graph, Side } from "./core/types";
 import { Frame } from "./Frame";
@@ -53,6 +53,10 @@ const HUG = 22;
 const THRESHOLD = 12;
 /** How near a card's border counts as being on it rather than inside it. */
 const EDGE = 14;
+/** How many layers of the trail the breadcrumb spells out. Past this the
+ *  middle is elided: the project and the last few are what tell you where you
+ *  are, and a deep branch spelled out in full is a wall of names. */
+const TRAIL = 3;
 /** How near the layer's own border counts as being on it. Its margin is wide,
  *  because that is where its interfaces sit, but the border is still a border:
  *  treating the whole margin as the edge lit the frame up from halfway across
@@ -770,14 +774,32 @@ function Flow(props: Props) {
         <button onClick={() => onOpen(null)} className={view ? "" : "here"}>
           {graph.title || "project"}
         </button>
-        {path.map((id, index) => (
+
+        {/* The project, then the last few layers. Whatever is skipped is left
+            as an ellipsis that opens the deepest layer it stands for, so the
+            way back is still one click even when the trail is long. */}
+        {path.length > TRAIL && (
+          <span>
+            <span className="sep">/</span>
+            <button
+              className="elided"
+              title={path.slice(0, -TRAIL).map((id) => nameOf(graph, graph.nodes[id])).join(" / ")}
+              onClick={() => onOpen(path[path.length - TRAIL - 1])}
+            >
+              …
+            </button>
+          </span>
+        )}
+
+        {path.slice(-TRAIL).map((id, index, shown) => (
           <span key={id}>
             <span className="sep">/</span>
-            <button onClick={() => onOpen(id)} className={index === path.length - 1 ? "here" : ""}>
-              {graph.nodes[id]?.label}
+            <button onClick={() => onOpen(id)} className={index === shown.length - 1 ? "here" : ""}>
+              {nameOf(graph, graph.nodes[id])}
             </button>
           </span>
         ))}
+
         {view && (
           <button className="up" onClick={onUp} title="Up one layer">
             ↑

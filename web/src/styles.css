@@ -264,13 +264,17 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 
-.files { overflow: auto; padding-bottom: 8px; }
+.files {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
 .files:focus { outline: none; }
 .files:focus-visible { outline: 1px solid var(--divider); outline-offset: -1px; }
 
 .files-bar {
-  position: sticky;
-  top: 0;
+  flex: none;
   z-index: 1;
   display: flex;
   justify-content: space-between;
@@ -326,6 +330,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .card {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: 2px;
   background: #111a16;
@@ -334,7 +340,9 @@ button:disabled { opacity: 0.4; cursor: default; }
   min-width: 150px;
 }
 
-.card.group { border-style: dashed; background: rgba(15, 22, 19, 0.6); }
+/* No dashed border: the grid inside already says this holds something, and two
+   signals for one fact only make the canvas noisier. */
+.card.group { background: rgba(15, 22, 19, 0.6); }
 .card { position: relative; }
 .card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35); }
 .card.chosen { box-shadow: 0 0 0 2px var(--accent); }
@@ -362,9 +370,12 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card-head .label { overflow-wrap: anywhere; }
 .card-head .kind { color: var(--muted); font-size: 10px; letter-spacing: 0.08em; flex: none; }
 
-.treemap { display: grid; gap: 2px; margin-top: 6px; }
+/* Cells are placed, not flowed: each one is a rectangle the treemap worked
+   out, positioned in percentages of this box. */
+.treemap { position: relative; margin-top: 6px; flex: none; }
 
 .cell {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -374,7 +385,20 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 
-.cell.group { border: 1px dashed rgba(107, 143, 125, 0.6); padding: 2px; }
+.cell.group { border: 1px solid rgba(107, 143, 125, 0.45); }
+
+/* The grid inside a cell: one square per thing that child holds. A count of
+   what is in there, not a listing of it — it never goes a level further. */
+.grain {
+  position: absolute;
+  inset: 2px;
+  display: grid;
+  gap: 1px;
+  opacity: 0.75;
+}
+
+.grain i { background: rgba(150, 200, 170, 0.42); border-radius: 1px; }
+.cell .tag { position: relative; z-index: 1; }
 .cell .tag {
   font-size: 9px;
   line-height: 1.1;
@@ -496,7 +520,8 @@ button:disabled { opacity: 0.4; cursor: default; }
  * the corner with the arrow that means "elsewhere". */
 
 .card.reference {
-  border-color: #33413a;
+  border-style: dashed;
+  border-color: #4a5d53;
   color: var(--muted);
   background:
     repeating-linear-gradient(
@@ -594,7 +619,7 @@ main {
 
 /* Deep branches indent past the sidebar rather than wrapping; the scroll
    follows the selection instead of truncating the tree. */
-.tree { overflow: auto; padding-bottom: 8px; }
+.tree { flex: 1; min-height: 0; overflow: auto; padding-bottom: 8px; }
 .tree > ul { width: max-content; min-width: 100%; }
 .tree > ul.roots {
   /* Match a nested branch's guide inset, without drawing a line — the root

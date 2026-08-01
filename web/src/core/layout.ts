@@ -15,8 +15,11 @@ import { similarity } from "./match";
 import type { Graph, Node } from "./types";
 
 export const LEAF = { w: 170, h: 56 };
-const CELL = 34;
-const PAD = 10;
+/** How much taller a container is than a block: the band its grid sits in.
+ *  Exported because the treemap has to be worked out in the band's real shape
+ *  — tiled in a square and then stretched, every cell comes out the wrong way
+ *  round. */
+export const GRID = 52;
 const GAP = 34;
 
 /** Columns and rows for `count` cells, kept as square as possible. */
@@ -26,6 +29,90 @@ export function tile(count: number): { cols: number; rows: number } {
   const cols = Math.ceil(Math.sqrt(count));
 
   return { cols, rows: Math.ceil(count / cols) };
+}
+
+export type Tile = { x: number; y: number; w: number; h: number };
+
+/** How square a row of cells would come out, laid across `short`. The measure
+ *  the treemap minimises: lower is closer to square. */
+function squareness(sizes: number[], sum: number, short: number): number {
+  const most = Math.max(...sizes);
+  const least = Math.min(...sizes);
+  const side = short * short;
+  const span = sum * sum;
+
+  return Math.max((side * most) / span, span / (side * least));
+}
+
+/** A squarified treemap: rectangles whose areas follow their weights and whose
+ *  shapes stay as near square as the weights allow.
+ *
+ *  Cells come out square, wide or tall depending on what has to fit beside
+ *  what, which is the point — a uniform grid of equal cells says only how many
+ *  children there are, while this says which of them the container is mostly
+ *  made of. Bruls, Huizing and van Wijk's algorithm: fill the shorter side
+ *  with a row, taking cells while that keeps the row squarer, then repeat on
+ *  what is left. */
+export function squarify(weights: number[], box: { w: number; h: number }): Tile[] {
+  if (!weights.length) return [];
+
+  const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
+  const scale = (box.w * box.h) / total;
+  // Biggest first — the algorithm only squares up if it places them in order.
+  const queue = weights
+    .map((weight, at) => ({ at, area: weight * scale }))
+    .sort((a, b) => b.area - a.area);
+  const out: Tile[] = new Array(weights.length);
+
+  let { w, h } = box;
+  let x = 0;
+  let y = 0;
+  let next = 0;
+
+  while (next < queue.length && w > 0 && h > 0) {
+    const short = Math.min(w, h);
+    const row = [queue[next]];
+    let sum = row[0].area;
+    let best = squareness([sum], sum, short);
+    next += 1;
+
+    while (next < queue.length) {
+      const grown = sum + queue[next].area;
+      const trial = squareness([...row, queue[next]].map((c) => c.area), grown, short);
+      if (trial > best) break;
+
+      row.push(queue[next]);
+      sum = grown;
+      best = trial;
+      next += 1;
+    }
+
+    // The row runs the full short side; its thickness is whatever the areas
+    // need. The rest of the box is then laid out the same way.
+    const thick = sum / short;
+    let along = 0;
+
+    for (const cell of row) {
+      const span = cell.area / thick;
+      out[cell.at] = w >= h
+        ? { x, y: y + along, w: thick, h: span }
+        : { x: x + along, y, w: span, h: thick };
+      along += span;
+    }
+
+    if (w >= h) {
+      x += thick;
+      w -= thick;
+    } else {
+      y += thick;
+      h -= thick;
+    }
+  }
+
+  // Anything the loop could not place (a zero-area box) still needs a slot.
+  for (let at = 0; at < out.length; at += 1) out[at] ??= { x: 0, y: 0, w: 0, h: 0 };
+
+  return out;
 }
 
 /** How strongly a child belongs to its parent, 0–1. Drives the fill of its
@@ -40,19 +127,17 @@ export function affinity(graph: Graph, child: Node): number {
   return Math.max(own, bodied);
 }
 
-/** Size of one node's card. A container grows with its contents so the treemap
- *  inside it stays legible rather than shrinking towards nothing. */
+/** Size of one node's card.
+ *
+ *  A container is barely bigger than a block: room for the grid under its
+ *  name, and no more. It does not grow with what it holds — a card that swells
+ *  with its contents makes a busy layer into a wall of large boxes, and says
+ *  the same thing the grid inside it already says. The cells shrink instead,
+ *  which is what keeps a full container reading as full. */
 export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
-  const kids = Object.values(graph.nodes)
-    .filter((n) => n.parent === node.id && n.side === null).length;
-  if (!kids || !isContainer(graph, node.id)) return { ...LEAF };
+  if (!isContainer(graph, node.id)) return { ...LEAF };
 
-  const { cols, rows } = tile(kids);
-
-  return {
-    w: Math.min(360, Math.max(LEAF.w, cols * CELL + PAD * 2)),
-    h: Math.min(300, Math.max(LEAF.h, rows * CELL + PAD * 2 + 22)),
-  };
+  return { w: LEAF.w, h: LEAF.h + GRID };
 }
 
 type Box = { x: number; y: number; w: number; h: number };

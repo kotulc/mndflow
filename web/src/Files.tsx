@@ -58,8 +58,6 @@ type Props = {
   graph: Graph;
   /** The layer the canvas is on — what the tree marks as where you are. */
   view: string | null;
-  /** Nodes from the project down to the open one; those stay expanded. */
-  path: string[];
   terms: Terms;
   showPorts: boolean;
   onShowPorts: (on: boolean) => void;
@@ -72,72 +70,81 @@ type Props = {
 };
 
 export function Files(props: Props) {
-  const { graph, view, path, terms, showPorts, onShowPorts, onOpen, onCreate } = props;
+  const { graph, view, terms, showPorts, onShowPorts, onOpen, onCreate } = props;
   const { onDelete, onMove, onRename, onRenameProject } = props;
   const kids = useMemo(() => branches(graph), [graph]);
-  /** Nodes the user has opened by hand. Any number may be open at once — a
-   *  tree that collapses everything else is only useful when there is one
-   *  thing to look at. */
-  const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
-  /** Explicit closes win over the canvas path, so a branch on the way to the
-   *  open layer can still be folded shut. */
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const open = useMemo(() => {
-    const next = new Set(unfolded);
-    for (const id of path) {
-      if (!collapsed.has(id)) next.add(id);
-    }
-    return next;
-  }, [unfolded, path, collapsed]);
+  /** Nodes the user has opened. Nothing else opens them — walking into a layer
+   *  on the canvas leaves the tree exactly as it was found. A tree that
+   *  rearranges itself under you is a tree you cannot keep your place in, and
+   *  which branches are worth having open is not something the canvas knows. */
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const [held, setHeld] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
-  const marker = useRef<HTMLDivElement>(null);
+  const marker = useRef<HTMLSpanElement>(null);
   const title = graph.title || "project";
 
   function fold(id: string) {
-    if (open.has(id)) {
-      setUnfolded((prior) => {
-        const next = new Set(prior);
-        next.delete(id);
-        return next;
-      });
-      setCollapsed((prior) => new Set(prior).add(id));
-    } else {
-      setCollapsed((prior) => {
-        const next = new Set(prior);
-        next.delete(id);
-        return next;
-      });
-      setUnfolded((prior) => new Set(prior).add(id));
-    }
+    setOpen((prior) => {
+      const next = new Set(prior);
+      next.has(id) ? next.delete(id) : next.add(id);
+
+      return next;
+    });
   }
 
-  // Entering a layer re-opens its trail; folding along the current path is
-  // left alone until the open layer itself changes.
-  useEffect(() => {
-    setCollapsed((prior) => {
-      let changed = false;
-      const next = new Set(prior);
-      for (const id of path) {
-        if (next.delete(id)) changed = true;
-      }
-      return changed ? next : prior;
+  /** Every branch at once, or none of them. Which way it goes depends on
+   *  whether anything is open, so the one control is always the one you
+   *  want. */
+  function foldAll() {
+    setOpen((prior) => {
+      if (prior.size) return new Set();
+
+      return new Set(
+        Object.values(graph.nodes)
+          .filter((node) => (kids[node.id] ?? []).some((n) => showPorts || !isPort(n)))
+          .map((node) => node.id),
+      );
     });
-  }, [view]);
+  }
 
   // Deep branches indent past the sidebar rather than wrapping, so the scroll
   // follows the selection: whatever level it is on comes to the middle, with
   // the levels either side of it still in view.
+  //
+  // Waits a frame and runs on the tree's shape as well as the selection. A
+  // branch opened by the same click that made it has not been laid out when
+  // the effect first fires, so measuring the row then reads where it used to
+  // be — or nothing at all, if it is not on screen yet.
   useEffect(() => {
-    const box = scroller.current;
-    const row = marker.current;
-    if (!box || !row) return;
+    let frame = 0;
 
-    box.scrollTo({ left: Math.max(0, row.offsetLeft - box.clientWidth / 2), behavior: "smooth" });
-  }, [view]);
+    const centre = (tries: number) => {
+      const box = scroller.current;
+      const row = marker.current;
+
+      if (!box || !row) {
+        if (tries > 0) frame = requestAnimationFrame(() => centre(tries - 1));
+
+        return;
+      }
+
+      // Measured against the scroller, not `offsetLeft` — a row's offset
+      // parent is its own `<li>`, so that number said almost nothing about
+      // where the row sits in the tree and the scroll never moved.
+      const panel = box.getBoundingClientRect();
+      const mark = row.getBoundingClientRect();
+      const middle = box.scrollLeft + (mark.left - panel.left) - box.clientWidth / 2;
+
+      box.scrollTo({ left: Math.max(0, middle), behavior: "smooth" });
+    };
+
+    frame = requestAnimationFrame(() => centre(3));
+
+    return () => cancelAnimationFrame(frame);
+  }, [view, open, graph]);
 
   /** A new thing goes inside whatever layer is open. */
   const parent = view && graph.nodes[view] ? view : null;
@@ -218,7 +225,6 @@ export function Files(props: Props) {
               node.id === view ? "active" : "",
               over === node.id ? "over" : "",
             ].join(" ")}
-            ref={node.id === view ? marker : undefined}
             draggable={editing !== node.id}
             onDragStart={(event) => {
               setHeld(node.id);
@@ -232,6 +238,7 @@ export function Files(props: Props) {
             {...dropzone(node.id, node.id)}
           >
             <span
+              ref={node.id === view ? marker : undefined}
               className={`icon ${holds ? "fold" : ""}`}
               onMouseDown={(event) => {
                 // Keep the row's drag from swallowing the fold click.
@@ -282,6 +289,9 @@ export function Files(props: Props) {
           </button>
           <button onClick={() => setEditing(view ?? ROOT)} title="Rename what is open">
             ✎
+          </button>
+          <button onClick={foldAll} title={open.size ? "Fold everything" : "Expand everything"}>
+            {open.size ? "⊟" : "⊞"}
           </button>
           <button
             className={showPorts ? "on" : ""}
