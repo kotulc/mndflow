@@ -13,18 +13,25 @@ import { memo, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 import { blocksOf, isContainer, isRef, nameOf, portsOf } from "./core/fold";
-import { affinity, GRID, LEAF, squarify, tile } from "./core/layout";
+import { affinity, CHIP_CAP, GRID, LEAF, pack } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
-/** How many children a container can name. Past this the cells shrink and the
- *  words go: how much is in here and how it is divided read perfectly well
- *  without them, and the treemap is for that rather than for reading contents
- *  off. */
-const NAMED = 2;
-/** A cell this wide and tall has room for a name; smaller ones keep the
- *  shape of the split without a label that would only be a smear. */
-const LABEL = { w: 36, h: 16 };
+/** Tag type scales between these; below the floor the name is withheld. */
+const TAG = { min: 6, max: 9, line: 1.15, pad: 4, mono: 0.62 };
+
+/** Largest font that fits the cell, or null when even the floor will not. */
+function fitTag(w: number, h: number, text: string): number | null {
+  const aw = w - TAG.pad;
+  const ah = h - TAG.pad;
+  if (ah < TAG.min * TAG.line || aw < TAG.min) return null;
+
+  // Height first, then shrink for the full string; if it still will not fit at
+  // the floor, keep the floor and let ellipsis clip — better than blank.
+  let size = Math.min(TAG.max, ah / TAG.line);
+  if (text.length) size = Math.min(size, aw / (text.length * TAG.mono));
+  return size >= TAG.min ? size : TAG.min;
+}
 /** How a side maps onto React Flow's own positions. */
 const SIDES: Record<Side, Position> = {
   top: Position.Top,
@@ -197,68 +204,55 @@ type ContentsProps = {
   onOpen: (id: string) => void;
 };
 
-/** How much of the container a child is worth: how closely it relates to it,
- *  over a floor so a weak match is still a cell you can see and grab. */
-function weigh(graph: Graph, kid: Node): number {
-  return 0.45 + affinity(graph, kid);
-}
-
-/** The contents of a container: one cell per immediate child block, sized by
- *  how strongly that child belongs to it.
+/** The contents of a container: one cell per immediate child block, up to
+ *  {@link CHIP_CAP}.
  *
- *  Squares, wide cells and tall ones, because the areas differ — which is the
- *  point. A uniform grid says only how many children there are; this says
- *  which of them the container is mostly made of, and it is the same relevance
- *  the fill already shades by.
+ *  The unit is 1|2 (large left, two horizontal on the right), or two wide rows
+ *  when there are only two. One group fills the band; two sit as columns; three
+ *  tile as left | top-right / bottom-right. At ten or more the bottom-right
+ *  cell reads "..." for the rest — click still opens the container.
  *
- *  Nesting stops at that first layer. A child that is itself a container still
- *  reads as one — dashed edge, no miniature of *its* children — so the card
- *  stays a map of what this node holds, not a texture of everything below.
- *
- *  Names appear only in cells large enough to hold them. A dense split keeps
- *  the partition and drops the words; the title attribute still names each
- *  cell on hover.
+ *  Names shrink to fit the cell down to a floor, then hide.
  *
  *  Interfaces are never in here; they live on the frame. */
 function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
   const kids = blocksOf(graph, id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
+  // Ten or more: eight named chips and a final "…" in the bottom-right slot.
+  const overflow = kids.length >= 10;
+  const shown = kids.slice(0, overflow ? CHIP_CAP - 1 : CHIP_CAP);
+  const rest = kids.length - shown.length;
   // Worked out in the band's own proportions and then expressed as
   // percentages of it, so the cells follow the card without measuring it.
   const band = { w: LEAF.w, h: GRID };
-  const tiles = squarify(kids.map((kid) => weigh(graph, kid)), band);
+  const tiles = pack(overflow ? CHIP_CAP : shown.length, band);
+
+  function cellStyle(seat: { x: number; y: number; w: number; h: number }, fill?: string) {
+    return {
+      left: `calc(${(seat.x / band.w) * 100}% + 1px)`,
+      top: `calc(${(seat.y / band.h) * 100}% + 1px)`,
+      width: `calc(${(seat.w / band.w) * 100}% - 2px)`,
+      height: `calc(${(seat.h / band.h) * 100}% - 2px)`,
+      background: fill,
+    };
+  }
 
   return (
     // A definite height, not a share of the card's: the card is sized by its
-    // content, and cells placed absolutely are no content at all — left to
-    // divide up whatever was left over, the band came out flat.
+    // content, and cells placed absolutely are no content at all.
     <div className="treemap" style={{ height: band.h }}>
-      {kids.map((kid, at) => {
+      {shown.map((kid, at) => {
         const seat = tiles[at];
-        // Only a container of one or two names its children, and only where
-        // the cell has room — minus the 1px gap the layout leaves each side.
-        const named = kids.length <= NAMED &&
-                      seat.w - 2 >= LABEL.w && seat.h - 2 >= LABEL.h;
-        // What this child holds, as a count rather than a listing: one blank
-        // square each, and it stops there. Following it down turned a deep
-        // container into a texture where nothing was legible.
-        const inside = blocksOf(graph, kid.id).length;
+        const label = nameOf(graph, kid);
+        const size = fitTag(seat.w - 2, seat.h - 2, label);
 
         return (
           <div
             key={kid.id}
             className={`cell nodrag ${isContainer(graph, kid.id) ? "group" : "object"}`}
-            style={{
-              left: `calc(${(seat.x / band.w) * 100}% + 1px)`,
-              top: `calc(${(seat.y / band.h) * 100}% + 1px)`,
-              width: `calc(${(seat.w / band.w) * 100}% - 2px)`,
-              height: `calc(${(seat.h / band.h) * 100}% - 2px)`,
-              // Fill carries the affinity score; the floor keeps a weak match
-              // visible rather than invisible.
-              background: `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})`,
-            }}
-            title={`${nameOf(graph, kid)} — drag onto the canvas to lift it out`}
+            style={cellStyle(seat, `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})`)}
+            title={`${label} — drag onto the canvas to lift it out`}
             draggable
             onDragStart={(event) => {
               event.stopPropagation();
@@ -268,19 +262,34 @@ function Contents({ graph, id, onPick, onOpen }: ContentsProps) {
             onClick={(event) => (event.stopPropagation(), onPick(kid.id))}
             onDoubleClick={(event) => (event.stopPropagation(), onOpen(kid.id))}
           >
-            {inside > 0 && (
-              <div
-                className="grain"
-                aria-hidden
-                style={{ gridTemplateColumns: `repeat(${tile(inside).cols}, minmax(0, 1fr))` }}
-              >
-                {Array.from({ length: inside }, (_, at) => <i key={at} />)}
-              </div>
+            {size != null && (
+              <span className="tag" style={{ fontSize: size }}>
+                {label}
+              </span>
             )}
-            {named && <span className="tag">{nameOf(graph, kid)}</span>}
           </div>
         );
       })}
+      {overflow && (() => {
+        const seat = tiles[CHIP_CAP - 1];
+        const size = fitTag(seat.w - 2, seat.h - 2, "...");
+
+        return (
+          <div
+            className="cell nodrag more"
+            style={cellStyle(seat)}
+            title={`${rest} more — open to see them`}
+            onClick={(event) => (event.stopPropagation(), onOpen(id))}
+            onDoubleClick={(event) => (event.stopPropagation(), onOpen(id))}
+          >
+            {size != null && (
+              <span className="tag" style={{ fontSize: size }}>
+                ...
+              </span>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

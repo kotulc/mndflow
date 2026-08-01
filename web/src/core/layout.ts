@@ -1,9 +1,8 @@
 /** Sizing and placement for the canvas.
  *
- *  Two jobs. `tile` divides a box into a grid of child cells — the treemap a
- *  container shows its contents in. `place` lays out a whole layer around the
- *  centre, so the mass of blocks grows outward from the origin instead of
- *  trailing off one corner.
+ *  Two jobs. `pack` lays out a container's child chips as tiled 1|2 groups.
+ *  `place` lays out a whole layer around the centre, so the mass of blocks
+ *  grows outward from the origin instead of trailing off one corner.
  *
  *  There is one layout, applied everywhere. Nothing here ranks nodes or offers
  *  arrangements to choose between.
@@ -33,84 +32,83 @@ export function tile(count: number): { cols: number; rows: number } {
 
 export type Tile = { x: number; y: number; w: number; h: number };
 
-/** How square a row of cells would come out, laid across `short`. The measure
- *  the treemap minimises: lower is closer to square. */
-function squareness(sizes: number[], sum: number, short: number): number {
-  const most = Math.max(...sizes);
-  const least = Math.min(...sizes);
-  const side = short * short;
-  const span = sum * sum;
+/** How many child chips a container card will draw. Three 1|2 groups of three;
+ *  at ten or more the last slot is "..." for the overflow. */
+export const CHIP_CAP = 9;
 
-  return Math.max((side * most) / span, span / (side * least));
-}
+/** One 1|2 unit inside a region: full, two horizontal rows, or large-left with
+ *  two stacked on the right. Horizontal first for two so labels stay wide. */
+function unit(count: number, box: { w: number; h: number }): Tile[] {
+  const n = Math.min(Math.max(count, 0), 3);
+  if (n < 1) return [];
+  if (n === 1) return [{ x: 0, y: 0, w: box.w, h: box.h }];
 
-/** A squarified treemap: rectangles whose areas follow their weights and whose
- *  shapes stay as near square as the weights allow.
- *
- *  Cells come out square, wide or tall depending on what has to fit beside
- *  what, which is the point — a uniform grid of equal cells says only how many
- *  children there are, while this says which of them the container is mostly
- *  made of. Bruls, Huizing and van Wijk's algorithm: fill the shorter side
- *  with a row, taking cells while that keeps the row squarer, then repeat on
- *  what is left. */
-export function squarify(weights: number[], box: { w: number; h: number }): Tile[] {
-  if (!weights.length) return [];
-
-  const total = weights.reduce((sum, weight) => sum + weight, 0) || 1;
-  const scale = (box.w * box.h) / total;
-  // Biggest first — the algorithm only squares up if it places them in order.
-  const queue = weights
-    .map((weight, at) => ({ at, area: weight * scale }))
-    .sort((a, b) => b.area - a.area);
-  const out: Tile[] = new Array(weights.length);
-
-  let { w, h } = box;
-  let x = 0;
-  let y = 0;
-  let next = 0;
-
-  while (next < queue.length && w > 0 && h > 0) {
-    const short = Math.min(w, h);
-    const row = [queue[next]];
-    let sum = row[0].area;
-    let best = squareness([sum], sum, short);
-    next += 1;
-
-    while (next < queue.length) {
-      const grown = sum + queue[next].area;
-      const trial = squareness([...row, queue[next]].map((c) => c.area), grown, short);
-      if (trial > best) break;
-
-      row.push(queue[next]);
-      sum = grown;
-      best = trial;
-      next += 1;
-    }
-
-    // The row runs the full short side; its thickness is whatever the areas
-    // need. The rest of the box is then laid out the same way.
-    const thick = sum / short;
-    let along = 0;
-
-    for (const cell of row) {
-      const span = cell.area / thick;
-      out[cell.at] = w >= h
-        ? { x, y: y + along, w: thick, h: span }
-        : { x: x + along, y, w: span, h: thick };
-      along += span;
-    }
-
-    if (w >= h) {
-      x += thick;
-      w -= thick;
-    } else {
-      y += thick;
-      h -= thick;
-    }
+  if (n === 2) {
+    const top = box.h / 2;
+    return [
+      { x: 0, y: 0, w: box.w, h: top },
+      { x: 0, y: top, w: box.w, h: box.h - top },
+    ];
   }
 
-  // Anything the loop could not place (a zero-area box) still needs a slot.
-  for (let at = 0; at < out.length; at += 1) out[at] ??= { x: 0, y: 0, w: 0, h: 0 };
+  const left = box.w / 2;
+  const top = box.h / 2;
+  return [
+    { x: 0, y: 0, w: left, h: box.h },
+    { x: left, y: 0, w: box.w - left, h: top },
+    { x: left, y: top, w: box.w - left, h: box.h - top },
+  ];
+}
+
+/** Meta-regions: one full band, two columns, or left | top-right / bottom-right. */
+function regions(groups: 1 | 2 | 3, box: { w: number; h: number }): Tile[] {
+  if (groups === 1) return [{ x: 0, y: 0, w: box.w, h: box.h }];
+
+  const left = box.w / 2;
+  const right = box.w - left;
+  if (groups === 2) {
+    return [
+      { x: 0, y: 0, w: left, h: box.h },
+      { x: left, y: 0, w: right, h: box.h },
+    ];
+  }
+
+  const top = box.h / 2;
+  return [
+    { x: 0, y: 0, w: left, h: box.h },
+    { x: left, y: 0, w: right, h: top },
+    { x: left, y: top, w: right, h: box.h - top },
+  ];
+}
+
+/** Pack up to {@link CHIP_CAP} children into the band.
+ *
+ *  The unit is 1|2 (or two horizontal rows when there are only two). One group
+ *  uses the full band (1–3). Two sit as columns (4–6). Three tile as
+ *  left | top-right / bottom-right (7–9) — each region its own 1|2. */
+export function pack(count: number, box: { w: number; h: number }): Tile[] {
+  const n = Math.min(Math.max(count, 0), CHIP_CAP);
+  if (n < 1) return [];
+
+  const groups = (n <= 3 ? 1 : n <= 6 ? 2 : 3) as 1 | 2 | 3;
+  const sizes = Array<number>(groups).fill(0);
+  const base = Math.floor(n / groups);
+  const extra = n % groups;
+  for (let g = 0; g < groups; g += 1) sizes[g] = base + (g < extra ? 1 : 0);
+
+  const seats = regions(groups, box);
+  const out: Tile[] = [];
+  for (let g = 0; g < groups; g += 1) {
+    const local = unit(sizes[g], { w: seats[g].w, h: seats[g].h });
+    for (const cell of local) {
+      out.push({
+        x: seats[g].x + cell.x,
+        y: seats[g].y + cell.y,
+        w: cell.w,
+        h: cell.h,
+      });
+    }
+  }
 
   return out;
 }

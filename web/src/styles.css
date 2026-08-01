@@ -375,7 +375,6 @@ button:disabled { opacity: 0.4; cursor: default; }
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 18px;
   padding: 2px;
   border-radius: 1px;
   overflow: hidden;
@@ -383,24 +382,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .cell.group { border: 1px solid rgba(107, 143, 125, 0.45); }
 
-/* What a child holds, counted: one blank square each, filling its cell. It
-   never nests — a grid of grids of grids is a texture, not a map. */
-.grain {
-  position: absolute;
-  inset: 2px;
-  display: grid;
-  gap: 1px;
-  opacity: 0.75;
-}
-
-.grain i { background: rgba(150, 200, 170, 0.42); border-radius: 1px; }
-
 .cell .tag {
   position: relative;
   z-index: 1;
   max-width: 100%;
-  font-size: 9px;
-  line-height: 1.1;
+  line-height: 1.15;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -408,6 +394,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .hollow { color: var(--muted); font-size: 10px; }
+.cell.more { color: var(--muted); cursor: pointer; }
+.cell.more .tag { color: var(--muted); }
 
 /* The open node, drawn behind its contents — as though we stepped into it */
 
