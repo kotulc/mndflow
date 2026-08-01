@@ -24,9 +24,9 @@ Two distinctions carry most of the weight:
 - **Non-structural** — attributes, including groups and annotations. These describe nodes and
   draw on the canvas, but never appear in the explorer and never change what contains what.
 
-The current code inverts part of this (`isGroup` means "has children", and the visual
-annotation is typed `Region`). The spec is the target; the rename is expected work, not a
-discrepancy.
+The code follows this now: `isContainer` is the predicate, and the boundary is `GroupFrame`.
+One leftover — the boundary's CSS class is still `.region`, from when the annotation was
+called that.
 
 
 ### Nodes
@@ -100,8 +100,11 @@ An interface is a child node attached to its parent's frame edge, and it is wher
 relationship attaches. This is what makes the SysML export target (see Notes) coherent —
 SysML wants typed blocks and ports, and an interface is the port.
 
-An interface draws as a small open square on the frame edge, with an optional label outside
-and above it. An interface holding child blocks of its own draws instead as a divided square,
+An interface draws as a small open square on the frame edge. **Its name shows beside it only
+on the layer's own frame** — the one you have stepped inside. A card's interfaces are marks on
+a shape you are looking *at* from across the layer, and labelling every one of them buries the
+card; there the name comes on hover or selection. An interface holding child blocks of its own
+draws instead as a divided square,
 in the shape of Bootstrap Icons' `grid-1x2` or `columns-gap`, so a port with internals reads
 differently from a plain one without opening it. An interface holding only other interfaces
 gets no special mark — the divided square means child blocks specifically.
@@ -342,7 +345,7 @@ when selected, and again when a card is over it and would join. Colour, custom c
 rest come later; until they do there is nothing in the panel to set, because there is nothing
 to set.
 
-**Its name is edited on the canvas**, on the boundary itself — see Naming below.
+**Its name is edited on the canvas**, on the boundary itself — see Naming above.
 
 
 ## Display (UI)
@@ -364,9 +367,8 @@ the branch holding the current selection, the canvas stays centered on the mass 
 annotations, and relationships for the current level of the project tree.
 
 **Coordinates.** Node positions are stored relative to the canvas center origin, so a layer
-stays centered as it grows in any direction rather than drifting off one corner. *(This is a
-change: positions are currently stored from a top-left origin, so existing projects need
-migrating.)*
+stays centered as it grows in any direction rather than drifting off one corner. Automatic
+placement fills outward from that origin in rings.
 
 **Placement precedence.** Two things decide where a node sits, in this order:
 
@@ -470,8 +472,9 @@ A node whose only children are interfaces still shows as a block, not a containe
 
 Visually, the explorer delineates levels with indentation and subtle tree guide lines
 connecting the contents of each branch. Each role gets its own icon — interface, block,
-container — before the name, so a node's role is identifiable without opening it. The fold
-arrow is separate from the role icon.
+container — before the name, so a node's role is identifiable without opening it. **That icon
+is also the fold control** on a branch that has one: the mark that says a node holds things is
+the thing you click to see them, so there is no second arrow taking up the indent.
 
 **Folding is the user's, and only the user's.** A branch opens because someone opened it and
 closes because someone closed it. Walking into a layer on the canvas leaves the tree exactly as
@@ -605,12 +608,15 @@ these are the actions right-click takes:
 | a node | new object inside it |
 | a frame edge — the scope's own, or any block's | new interface |
 | a multi-node selection | group the selection |
-| a group boundary | rename the group |
-| a relationship | rename the relationship |
+
+A group boundary and a relationship have no right-click action. Renaming either is a click on
+its name and a double-click respectively, so there is no obvious default left for the button
+to take, and right-clicking one currently falls through to "new object" — which is wrong, and
+is listed under Next steps.
 
 Once the menu exists, each of these becomes its default entry and the alternatives sit beside
 it — direction and reversal for a relationship, ungroup for a group, lay-out-again and paste
-for the canvas, delete throughout.
+for the canvas, delete throughout. The boundary and the relationship get their menus then.
 
 ### Keyboard
 
@@ -630,9 +636,15 @@ Shortcuts work in both the explorer and the canvas, acting on whichever has focu
 ### Hovering
 
 Hovering any context element — the scope frame, a block's contents, a block frame, a
-container's treemap children, a relationship, an annotation — highlights it subtly, to
-communicate that an interaction is available there. Selecting the element makes the highlight
-fixed and less subtle.
+container's treemap children, a relationship — highlights it subtly, to communicate that an
+interaction is available there. Selecting the element makes the highlight fixed and less
+subtle.
+
+**A group boundary is the exception, and has to be.** It is transparent to the pointer until it
+has been selected, so that a selection box drawn from inside it reaches the canvas rather than
+sweeping the group in — and something the pointer passes straight through cannot report being
+hovered. It lights up for the two things that do reach it: being selected, and a card being
+dragged over it that would join.
 
 A frame edge or border highlights on hover in its own right, since it becomes the context for
 the interface gestures above: right-click there for a bare interface, right-drag for one with
@@ -664,6 +676,70 @@ and revisited deliberately rather than drifting:
 - **Visual style and theme** — colour, type, spacing, and the overall look.
 
 **Built last.** The context menu. Until then, right-click performs the default action above.
+
+
+## Next steps
+
+Everything above describes the tool as it is, except where this section says otherwise. What
+follows is the difference between the two, and the questions that have not been answered yet.
+
+### Open questions
+
+**What the export format is.** The Export paragraph under Interfaces says an implied interface
+is not written out. Nothing does this, and it is not clear it can: the export *is* the step
+log, and a log records the making of a thing rather than the thing. Filtering nodes out of it
+means either rewriting steps on the way out — which breaks undo across a save — or exporting a
+folded graph instead, which is a second format. This has to be settled before the sample
+project below is worth authoring, because that file is the format's first real user.
+
+**Whether `flow` survives.** An interface can be marked input, output or both, and the mark
+constrains nothing — it was decorative from the start. Now that relationships put an interface
+at each end automatically, most interfaces have a direction implied by the relationship they
+belong to. Either `flow` is genuinely a note to the reader worth keeping, or it is a leftover
+from the SysML port model that the tool never took up.
+
+**What an attribute is made of.** The spec says every attribute carries a name, a label and
+tags. The code has `name`, `value` and `tags` — no label, and `value` is not mentioned in the
+spec at all. Two names for one field, or two fields, is the question; the answer decides what
+the panel should show.
+
+**A member moved to another layer.** The spec says moving a node to another scope drops it
+from its groups. It does not: it stays a holder, and the boundary simply stops drawing it,
+because a boundary only gathers members sitting in the layer being drawn. So a group can hold
+a member nobody can see. Either moving out should detach, or a group should be understood to
+span layers and the spec should say what that draws.
+
+**Reference chains.** A reference can point at a reference; the code follows up to eight hops
+and gives up. A reference whose target is deleted is dropped. Neither is written down, and
+neither has been thought about deliberately.
+
+### Not built yet
+
+- **The sample project.** `samples/mndflow.json` does not exist, and the directory does not
+  either. Its stated precondition — interfaces, references and groups — is now met, so it is
+  unblocked and waiting on the export question above.
+- **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
+- **Annotations other than group boundaries.** The Attributes section promises a label or an
+  icon drawn on the canvas. Only the boundary draws; an attribute is otherwise panel-only.
+- **Adding a node to an existing group from the panel.** The panel removes members and cannot
+  add one. The action exists (`attachAttr`) but is not wired to anything, so the only way into
+  an existing group is the drag.
+- **Tags.** Every attribute carries them and nothing shows or edits them.
+- **The context menu**, still the last thing to build, and now with two entries that have no
+  default action to stand in for it — a group boundary and a relationship both fall through to
+  "new object", which is wrong.
+
+### Aspirations, not descriptions
+
+**The layout acceptance criterion.** Layout is supposed to be good enough when, for thirty
+nodes, no relationship passes through a block it does not attach to and crossings are visibly
+fewer than straight routing would give. Placement avoids overlap and keeps related blocks near
+each other, and does nothing whatever about crossings — there is no code aimed at that
+sentence. It stands as a target; it is not a description of what happens.
+
+**Fluid transitions between layers.** Stepping in and out animates the viewport, but the
+contents of the two layers cut. The nesting-doll effect the Graph Canvas section describes is
+not what is drawn.
 
 
 ## Notes
