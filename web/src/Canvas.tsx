@@ -22,6 +22,7 @@ import {
   SelectionMode,
   type Edge,
   type Node as FlowNode,
+  type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -453,12 +454,56 @@ function Flow(props: Props) {
   // Deliberately *not* keyed on the selection: selecting is a glance, and a
   // canvas that chases every click is impossible to work on.
   const population = members.map((n) => n.id).sort().join(",");
+
+  /** The resting zoom: frame (or the free cards) plus the band of margin.
+   *  Wheel zoom may go in from here, but not out past it. */
+  const floorZoom = useMemo(() => {
+    if (frameBox) {
+      const scale = Math.min(
+        (panel.w - BAND * 2) / frameBox.w,
+        (panel.h - BAND * 2) / frameBox.h,
+      );
+      return Math.max(0.15, Math.min(scale, 1.6));
+    }
+
+    const outer = around(Object.values(boxes), 0);
+    if (!outer || panel.w < 1 || panel.h < 1) return 0.15;
+
+    // Matches fitView({ padding: 0.24, maxZoom: 1.3 }) at the top level.
+    const pad = 0.24;
+    const scale = Math.min(
+      (panel.w * (1 - pad * 2)) / Math.max(outer.w, 1),
+      (panel.h * (1 - pad * 2)) / Math.max(outer.h, 1),
+    );
+    return Math.max(0.15, Math.min(scale, 1.3));
+  }, [frameBox, boxes, panel.w, panel.h]);
+
+  /** Centered resting camera at the floor zoom — frame (or free cards) with
+   *  even margin. Zoom-to-cursor leaves pan skewed when you hit the floor; this
+   *  is what we snap back to. */
+  const restViewport = useCallback((): Viewport | null => {
+    const zoom = floorZoom;
+    if (frameBox) {
+      return {
+        zoom,
+        x: panel.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
+        y: panel.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
+      };
+    }
+    const outer = around(Object.values(boxes), 0);
+    if (!outer) return null;
+    return {
+      zoom,
+      x: panel.w / 2 - (outer.x + outer.w / 2) * zoom,
+      y: panel.h / 2 - (outer.y + outer.h / 2) * zoom,
+    };
+  }, [floorZoom, frameBox, boxes, panel.w, panel.h]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       // At the top level there is no frame, so the contents are what is fitted.
       if (!view || !frameBox) {
-        flow.fitView({ duration: 320, padding: 0.24, maxZoom: 1.3 });
-
+        flow.fitView({ duration: 320, padding: 0.24, maxZoom: 1.3, minZoom: floorZoom });
         return;
       }
 
@@ -467,19 +512,53 @@ function Flow(props: Props) {
       // double-click to leave by. Set directly rather than fitted, because a
       // fit spends its padding on one axis and lets the other take whatever is
       // left — the band has to be the same all the way round.
-      const scale = Math.min((panel.w - BAND * 2) / frameBox.w,
-                             (panel.h - BAND * 2) / frameBox.h);
-      const zoom = Math.max(0.15, Math.min(scale, 1.6));
-
-      flow.setViewport({
-        zoom,
-        x: panel.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
-        y: panel.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
-      }, { duration: 320 });
+      const rest = restViewport();
+      if (rest) flow.setViewport(rest, { duration: 320 });
     }, 40);
 
     return () => clearTimeout(timer);
+    // restViewport is read for the value; population/frameBox/panel still gate
+    // when a refit runs, so dragging cards does not chase the camera.
   }, [flow, view, population, panel.w, panel.h, frameBox]);
+
+  // If the floor rises (panel shrinks, frame grows), pull the viewport up so
+  // it never sits below what wheel zoom is allowed to reach.
+  useEffect(() => {
+    const now = flow.getViewport();
+    if (now.zoom < floorZoom - 1e-4) {
+      const rest = restViewport();
+      if (rest) flow.setViewport(rest);
+      else flow.setViewport({ ...now, zoom: floorZoom });
+    }
+  }, [flow, floorZoom, restViewport]);
+
+  // Wheel zooms toward the cursor, so zooming into a corner then back out
+  // lands at the floor with pan still skewed. When zoom *arrives* at the
+  // floor from above, restore the resting center. Panning while already at
+  // the floor is left alone.
+  const zoomAboveFloor = useRef(false);
+  const settlingRest = useRef(false);
+  const onMove = useCallback(
+    (_: unknown, vp: Viewport) => {
+      if (settlingRest.current) return;
+      const atFloor = vp.zoom <= floorZoom + 1e-3;
+      if (!atFloor) {
+        zoomAboveFloor.current = true;
+        return;
+      }
+      if (!zoomAboveFloor.current) return;
+      zoomAboveFloor.current = false;
+      const rest = restViewport();
+      if (!rest) return;
+      if (Math.abs(vp.x - rest.x) < 0.5 && Math.abs(vp.y - rest.y) < 0.5) return;
+      settlingRest.current = true;
+      flow.setViewport(rest);
+      requestAnimationFrame(() => {
+        settlingRest.current = false;
+      });
+    },
+    [flow, floorZoom, restViewport],
+  );
 
   /** How far the canvas may be panned: the layer, plus room on every side to
    *  put something new. It grows as the layer does. */
@@ -838,7 +917,7 @@ function Flow(props: Props) {
         onEdgesChange={onEdgesChange}
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
-        minZoom={0.15}
+        minZoom={floorZoom}
         // Double-click has its own meaning here — step in, or step back out —
         // so the library's own double-click-to-zoom would fight it.
         zoomOnDoubleClick={false}
@@ -854,7 +933,11 @@ function Flow(props: Props) {
         // A box takes what it encloses. Anything it merely brushes past — the
         // group boundary it was drawn inside, most of all — is left alone.
         selectionMode={SelectionMode.Full}
-        panOnScroll
+        // Wheel zooms. Vertical pan is what the middle button and the track
+        // are for; scrolling alone used to shove the layer instead of scaling.
+        zoomOnScroll
+        panOnScroll={false}
+        onMove={onMove}
         multiSelectionKeyCode={["Shift", "Meta", "Control"]}
         elementsSelectable
         edgesFocusable
