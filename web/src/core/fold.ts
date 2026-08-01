@@ -102,29 +102,6 @@ export function nameOf(graph: Graph, node: Node | undefined): string {
   return isContainer(graph, node.id) ? "container" : "block";
 }
 
-/** Nodes a layer needs a reference for: the far end of every relation that
- *  reaches out of it and has nothing here to attach to yet.
- *
- *  A relation between layers is still a relation between the real nodes; the
- *  reference is only where the far one shows up here. */
-export function unreferenced(graph: Graph, layer: string | null): string[] {
-  const here = new Set(blocksOf(graph, layer).map((n) => n.id));
-  if (layer) here.add(layer);
-
-  const wanted = new Set<string>();
-  const shown = (id: string) => here.has(id) || Boolean(refIn(graph, layer, id));
-
-  for (const edge of Object.values(graph.edges)) {
-    for (const [near, far] of [[edge.source, edge.target], [edge.target, edge.source]]) {
-      if (!here.has(near) || shown(far)) continue;
-      // Nothing stands in for something that is not there at all.
-      if (graph.nodes[far] && !isPort(graph.nodes[far])) wanted.add(far);
-    }
-  }
-
-  return [...wanted];
-}
-
 /** Attributes an object carries, whether it holds them alone or shares them. */
 export function attrsOf(graph: Graph, holder: string) {
   return Object.values(graph.attrs).filter((a) => a.holders.includes(holder));

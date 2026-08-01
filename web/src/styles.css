@@ -488,19 +488,50 @@ button:disabled { opacity: 0.4; cursor: default; }
 .port:hover .port-name,
 .port.picked .port-name { opacity: 1; color: var(--accent); }
 
-/* A card standing in for a node that lives in another layer. An ordinary card
-   in every way but its weight: grey and half there, so it reads as a mention
-   of something rather than the thing itself. */
+/* A card standing in for a node that lives in another layer.
+ *
+ * It has to read as *not from here* at a glance, and a dashed border cannot
+ * say that — containers are already dashed. So it steps out of the palette
+ * instead: grey rather than green, hatched rather than filled, and marked in
+ * the corner with the arrow that means "elsewhere". */
 
 .card.reference {
-  border-style: dashed;
-  border-color: var(--border);
-  background: rgba(22, 30, 26, 0.5);
+  border-color: #33413a;
   color: var(--muted);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(120, 140, 130, 0.06) 0 5px,
+      transparent 5px 10px
+    ),
+    #101613;
 }
 
-.card.reference .card-head .label { color: var(--muted); }
-.card.reference.picked { border-color: var(--accent); color: var(--text); }
+.card.reference .card-head .label { color: #8aa295; font-style: italic; }
+.card.reference .card-head .kind { color: #4c5f55; }
+
+/* The mark for what it is: away, not here. On `::before`, because `::after`
+   is the hover ring every card gets and an element has only one of each. */
+.card.reference::before {
+  content: "↗";
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  color: #4c5f55;
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.card.reference:hover { border-color: #587a6a; }
+.card.reference:hover::before { color: #8aa295; }
+
+.card.reference.picked {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.card.reference.picked .card-head .label { color: var(--text); }
 
 /* A relation while it is being drawn, in screen coordinates */
 

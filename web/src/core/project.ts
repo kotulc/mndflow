@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
-import { blocksOf, childrenOf, descendsFrom, fold, isRef, touched, unreferenced } from "./fold";
+import { blocksOf, childrenOf, descendsFrom, fold, isRef, touched } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
@@ -143,24 +143,6 @@ export function useProject() {
   /** Select on the canvas. The layer never changes: selecting is a glance, and
    *  going deeper is the deliberate second gesture. */
   const pick = useCallback((next: Picked) => setPicked(next), []);
-
-  // A relation that reaches out of a layer needs something here to reach to.
-  // Placed when the layer is opened rather than when the relation is made, so
-  // one drawn anywhere — by hand, by a workflow, by an import — still shows up
-  // wherever it lands.
-  useEffect(() => {
-    const missing = unreferenced(graph, view);
-    if (!missing.length) return;
-
-    commit(makeStep(
-      missing.length === 1 ? "reference" : `${missing.length} references`,
-      "reference",
-      missing.map((target) => ({
-        op: "add_node" as const,
-        node: makeNode("", { parent: view, ref: target }),
-      })),
-    ));
-  }, [graph, view, commit]);
 
   /** Leave the open layer for the one containing it. */
   const up = useCallback(() => {

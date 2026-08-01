@@ -154,20 +154,23 @@ stands for. Double-clicking a reference therefore goes to where that node actual
 marks it there, rather than opening an empty layer. Nothing nests into a reference, and a
 reference never becomes an interface — a mention is not structure.
 
-**Where they come from.** Three ways, all of which put a real node in the layer:
+**Where they come from.** Only from the user, and chiefly from one gesture: **dragging a row
+out of the object explorer onto the canvas** places a reference to that node in the open
+layer. Dragging a chip out of a container's treemap still *moves* that node — one gesture is a
+mention of something, the other is the thing itself.
 
-- **Opening a layer places what it is missing.** Any relationship with one end here and the
-  other elsewhere gets a reference for the far end the first time the layer is drawn. A
-  relationship made anywhere — by hand, by a workflow, by an import — shows up wherever it
-  lands, without having to be redrawn.
-- **Right-click-dragging onto a reference** relates to the node it stands for, like relating to
-  anything else on the canvas.
-- **Dragging a row out of the object explorer** onto another layer's canvas places a reference
-  there. Dragging a chip out of a container's treemap still *moves* that node — one is a
-  mention of something, the other is the thing itself.
+Once a reference is there, **right-click-dragging onto it** relates to the node it stands for,
+like relating to anything else on the canvas.
 
-**Deleting one removes the placeholder only.** The node it stood for is untouched, and if a
-relationship still reaches out of the layer, opening it again places a fresh reference.
+**Nothing places one on its own.** A relationship whose far end has no reference in this layer
+is simply not drawn here. That is deliberate: a layer would otherwise fill with placeholders
+for everything anything in it happens to touch, and constraining what is on screen is the
+whole point of the tool. A relationship is not lost by going undrawn — it is still in the
+graph, still listed against both its ends, and it appears the moment you bring the far node in.
+
+**Deleting one removes the placeholder only.** The node it stood for is untouched, and the
+relationships that reached it are still there; they stop being drawn in this layer, and come
+back if the reference does.
 
 **The explorer never lists them.** The tree is structure, and a reference is a second
 appearance of something already in it.
@@ -508,9 +511,10 @@ and revisited deliberately rather than drifting:
 
 ## Open decisions
 
-- **Undoing a reference the layer placed for itself.** Opening a layer places the references it
-  is missing, so undoing that step and staying put leaves them gone, and leaving and returning
-  brings them back. Harmless, but it makes one step in the log behave unlike the rest.
+- **Finding a relationship that is not drawn.** With nothing placing references on its own, a
+  relationship between layers is invisible until someone brings the far node in, and there is
+  no prompt saying it is there. The attribute panel listing an object's relationships would
+  answer it, as would a count on the frame's edge; neither is built.
 
 
 ## Notes
