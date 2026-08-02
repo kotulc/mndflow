@@ -29,7 +29,11 @@ suggestions — everything is local, and a turn is instant.
 └─────────────────────────────────────────┴──────────────────┘  match scoring
 ```
 
-The tracked specification is [spec.md](spec.md).
+Three tracked documents, kept in step with the code:
+
+- [spec.md](spec.md) — what each part does, component by component. Short, scannable.
+- [design.md](design.md) — why it is that way, and what each rule was chosen over.
+- [tasks.md](tasks.md) — what is missing, and what is still undecided.
 
 ---
 
