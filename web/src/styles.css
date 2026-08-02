@@ -482,10 +482,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 /* This layer is where you already are, so one click on its name edits it. The
-   name is part of the border rather than a target of its own, so it brightens
-   with it rather than lighting up separately. */
+   name is its own target — set into the border, never part of it — so it
+   lights on its own and the border stays dark under it. */
 .frame-name .frame-label { cursor: text; }
-.frame.grazed .frame-label { color: var(--text); }
+.frame-name.grazed .frame-label { color: var(--text); }
+.frame-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
 
 .frame-name .rename {
   width: 12em;
@@ -500,7 +501,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .frame-name .rename:focus { outline: none; }
 
-/* Interfaces: open squares on the frame edge, on a card or on the frame */
+/* Interfaces: open squares on the frame edge, on a card or on the frame.
+   Above their host card's body, below relations (edges layer). */
 
 .port {
   position: absolute;
@@ -518,9 +520,24 @@ button:disabled { opacity: 0.4; cursor: default; }
 .port-left { left: 0; transform: translate(-50%, -50%); }
 .port-right { right: 0; transform: translate(50%, -50%); }
 
-/* Where a hidden interface's relations still meet the border. It draws
-   nothing — it only holds the anchor in the place the interface sits. */
+/* Where a hidden interface's relations still meet the border. It draws nothing
+   of its own — it holds the anchor in the place the interface sits. */
 .berth { position: absolute; pointer-events: none; }
+
+/* ...except while the relation tied to it, or the node it is on, is selected:
+   then it shows as a round handle, enough to see where a line is tied on
+   without turning every square on the layer back on. */
+.berth .seat {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--bg);
+  transform: translate(-50%, -50%);
+}
 
 .port .mark {
   width: 9px;
@@ -1237,13 +1254,20 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .relations .rename:focus { outline: none; }
 
+/* Hit-test precedence on the canvas: relations above everything else, then
+   cards (with interfaces above their host), then group bands. React Flow draws
+   edges and nodes in separate layers; without this, cards always win the
+   pointer even when an edge's own zIndex is higher. */
+.react-flow__edges { z-index: 4; }
+.react-flow__nodes { z-index: 2; }
+.react-flow__edgelabel-renderer { z-index: 5; pointer-events: none; }
+
 /* Relations on the canvas: selectable, directed, and marked when they reach
    inside a group rather than across the layer */
 
 .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.5; }
-/* The one canvas highlight still left to `:hover`, and it can be: relations
-   are drawn under the cards, so reaching one means nothing else is in the way
-   and no second element lights with it. */
+/* Relations sit above the cards, so hovering one lights only the line — nothing
+   under it shares the pointer. */
 .react-flow__edge:hover .react-flow__edge-path { stroke: var(--text); }
 .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
 .react-flow__edge-textbg { fill: var(--bg); }
@@ -1253,6 +1277,35 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    the path underneath still catches the click, but the label itself does not
    double as its own separate hit target. */
 .react-flow__edge-textwrapper { pointer-events: none; }
+
+/* The segments of a routed relationship. Each carries a grab band with the
+   cursor for the way it moves; the mark under the pointer says which part of
+   the line is being offered, since a run is one shape and its segments are not
+   otherwise told apart. Selecting the line shows them all faintly at once. */
+/* The band is a rectangle sized in the component, so it stays the same size on
+   screen however far the layer is zoomed out. Filled rather than stroked
+   because hit testing on a fill is the one thing every browser agrees about. */
+.leg-grab { fill: transparent; stroke: none; pointer-events: all; }
+
+/* The mark keeps its weight on screen too, so a segment reads the same at any
+   zoom rather than thinning away as the layer shrinks. */
+.leg-mark {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
+}
+
+.leg.shown .leg-mark { opacity: 0.28; }
+
+/* A curved line has no segments of its own, so hovering it shows the whole run
+   it would take rather than one piece of it floating off the curve. */
+.react-flow__edge:hover .leg.ghost .leg-mark { opacity: 0.3; }
+.leg-grab:hover + .leg-mark { opacity: 0.6; }
 
 /* A relation drawn through a reference — one whose far end lives in another
    layer. Dotted rather than solid, since one of its ends is a mention. */
@@ -1333,7 +1386,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    it. Set by the canvas, since the boundary takes no pointer events until it
    has been picked. */
 .region.grazed { border-color: rgba(107, 143, 125, 0.75); }
-.region.grazed .region-label { color: var(--text); }
 
 .region.picked {
   border-color: rgba(74, 222, 128, 0.6);
@@ -1365,6 +1417,11 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .region.picked .region-name { color: var(--accent); }
 .region.picked .region-label { cursor: text; }
+
+/* Its own target, the same as a frame's name — a click there renames rather
+   than acting on the boundary, so it lights on its own. */
+.region-name.grazed .region-label { color: var(--text); }
+.region-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
 
 .region-name .rename {
   width: 10em;

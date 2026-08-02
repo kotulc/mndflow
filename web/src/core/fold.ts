@@ -246,6 +246,12 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
+    case "route_edge": {
+      const edge = graph.edges[mutation.id];
+      if (edge) edge.route = mutation.route?.map((p) => ({ ...p })) ?? null;
+      break;
+    }
+
     case "flip_edge": {
       const edge = graph.edges[mutation.id];
       if (edge) {

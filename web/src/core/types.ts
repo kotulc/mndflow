@@ -50,6 +50,9 @@ export type Node = {
  *  one at. Every drawn relationship ends up with an interface at each end. */
 export type End = { node: string; port?: string; seat?: { side: Side; at: number } };
 
+/** A point on the canvas. */
+export type Spot = { x: number; y: number };
+
 export type Edge = {
   id: string;
   source: string;
@@ -62,6 +65,11 @@ export type Edge = {
   from?: string;
   to?: string;
   dir: Dir;
+  /** The corners of a route the user has laid out by hand, between the two
+   *  interfaces and in order. Absent leaves the routing to the canvas, which is
+   *  where most relationships stay: a route is only ever the user's, dragged
+   *  into shape to get a line out of the way. */
+  route?: Spot[] | null;
 };
 
 /** A descriptive property of a node or a relationship. Held by one object or
@@ -107,6 +115,8 @@ export type Mutation =
   | { op: "link_nodes"; edge: Edge }
   | { op: "update_edge"; id: string; relation: string }
   | { op: "set_dir"; id: string; dir: Dir }
+  /** The corners of a hand-laid route; null hands the routing back. */
+  | { op: "route_edge"; id: string; route: Spot[] | null }
   /** Turn a relation around; what it says stays the same. */
   | { op: "flip_edge"; id: string }
   | { op: "delete_edge"; id: string }

@@ -26,6 +26,8 @@ export type FrameData = {
    *  being looked at from the inside. Null for an ordinary node. */
   straddles: Side | null;
   showPorts: boolean;
+  /** Hidden interfaces whose seats still show as handles — see `Berth`. */
+  litSeats: Set<string>;
   pickedPort: string | null;
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
@@ -37,7 +39,7 @@ export type FrameData = {
 };
 
 export const Frame = memo(({ data }: NodeProps) => {
-  const { id, graph, straddles, showPorts, pickedPort, grazed } =
+  const { id, graph, straddles, showPorts, litSeats, pickedPort, grazed } =
     data as unknown as FrameData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
@@ -48,7 +50,8 @@ export const Frame = memo(({ data }: NodeProps) => {
     <div className={`frame ${grazed?.kind === "frame" && grazed.id === id ? "grazed" : ""}`}>
       {/* Always live: this layer is where you already are, so there is no
           first click to spend selecting it. */}
-      <span className="frame-name nodrag nopan">
+      <span className={`frame-name nodrag nopan${
+        grazed?.kind === "title" && grazed.id === id ? " grazed" : ""}`}>
         <Name
           text={nameOf(graph, graph.nodes[id])}
           live
@@ -84,7 +87,7 @@ export const Frame = memo(({ data }: NodeProps) => {
           onSlide={onSlidePort}
         />
       ) : (
-        <Berth key={port.id} port={port} inward />
+        <Berth key={port.id} port={port} shown={litSeats.has(port.id)} inward />
       )))}
     </div>
   );

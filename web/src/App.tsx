@@ -198,6 +198,7 @@ export function App() {
               onRefer={project.refer}
               onReveal={project.reveal}
               onRelation={project.relation}
+              onRoute={project.route}
               onPlaceMany={project.placeMany}
               onUnlink={project.unlink}
               onDelete={project.remove}

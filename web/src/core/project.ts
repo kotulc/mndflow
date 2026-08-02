@@ -16,7 +16,7 @@ import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
 import {
   attr as makeAttr, edge as makeEdge, node as makeNode, step as makeStep,
-  type Dir, type End, type Flow, type Side, type Step,
+  type Dir, type End, type Flow, type Side, type Spot, type Step,
 } from "./types";
 import { getDomain } from "./workflows";
 
@@ -269,6 +269,18 @@ export function useProject() {
 
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
+
+    /** A relationship's route as a drag left it, and any interface that moved
+     *  with it. One step, because it was one gesture: dragging the segment
+     *  that leaves an interface slides the interface, and undo should take
+     *  back the line and the port together. */
+    route: (id: string, corners: Spot[], slides: { id: string; side: Side; at: number }[]) =>
+      commit(makeStep(corners.length ? "route" : "straighten", "route", [
+        { op: "route_edge", id, route: corners.length ? corners : null },
+        ...slides.map(({ id: port, side, at }) => ({
+          op: "set_port" as const, id: port, side, at,
+        })),
+      ])),
 
     /** Turn a relation around. */
     flip: (id: string) =>

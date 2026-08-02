@@ -27,12 +27,16 @@ export type GroupData = {
    *  selects it. Worked out by the canvas, since the boundary is transparent
    *  to the pointer until it has been picked. */
   grazed: boolean;
+  /** The pointer is on its name, which is its own target: a click there edits
+   *  the name rather than acting on the boundary. */
+  titled: boolean;
   onPick: () => void;
   onLabel: (label: string) => void;
 };
 
 export const GroupFrame = memo(({ data }: NodeProps) => {
-  const { label, picked, dropping, grazed, onPick, onLabel } = data as unknown as GroupData;
+  const { label, picked, dropping, grazed, titled, onPick, onLabel } =
+    data as unknown as GroupData;
 
   return (
     <div
@@ -40,7 +44,7 @@ export const GroupFrame = memo(({ data }: NodeProps) => {
                   dropping ? "dropping" : ""].join(" ")}
       onClick={onPick}
     >
-      <span className="region-name nodrag">
+      <span className={`region-name nodrag${titled ? " grazed" : ""}`}>
         <Name
           text={label || "group"}
           live={picked}

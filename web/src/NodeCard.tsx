@@ -63,6 +63,10 @@ function fitTag(w: number, h: number, text: string): { size: number; wrap: boole
   if (text.length) size = Math.min(size, aw / (text.length * TAG.mono));
   return { size: Math.max(size, TAG.min), wrap: false };
 }
+/** How far a pointer must travel before a press becomes a drag rather than a
+ *  click that shook on the way down. */
+const NUDGE = 4;
+
 /** How a side maps onto React Flow's own positions. */
 const SIDES: Record<Side, Position> = {
   top: Position.Top,
@@ -71,9 +75,9 @@ const SIDES: Record<Side, Position> = {
   left: Position.Left,
 };
 
-/** How long a click on a name waits to see whether a second one follows. On a
- *  card a double-click descends into it, and the first of those two clicks
- *  looks exactly like a click meaning "rename". */
+/** How long a click on a name waits to see whether a second one follows. Only
+ *  a card needs it: a double-click there descends into it, and the first of
+ *  those two clicks looks exactly like a click meaning "rename". */
 const DWELL = 260;
 
 /** A name edited where it is drawn.
@@ -83,12 +87,20 @@ const DWELL = 260;
  *  to select still only selects. The layer's own frame is always where you
  *  are, so its name takes the click straight away.
  *
+ *  Where nothing else is listening for a double-click the editor opens on the
+ *  click itself, with no pause to see what comes next. That makes a rename on a
+ *  frame one click, and on a group boundary the two clicks the explorer already
+ *  uses — the first selects the boundary and the second opens the field.
+ *
  *  Shared by the card, the group boundary and the frame, because a name should
  *  be changed the same way wherever it is written. */
-export function Name({ text, live, className = "label", onRename }: {
+export function Name({ text, live, defer, className = "label", onRename }: {
   text: string;
   /** Whether a click should open the editor rather than fall through. */
   live: boolean;
+  /** Wait to see whether a second click is coming. Set only on a card, where
+   *  a double-click descends and must not be mistaken for a rename. */
+  defer?: boolean;
   className?: string;
   onRename: (label: string) => void;
 }) {
@@ -129,18 +141,29 @@ export function Name({ text, live, className = "label", onRename }: {
     );
   }
 
+  function open() {
+    window.clearTimeout(timer.current);
+    setEditing(true);
+  }
+
   return (
     <span
       className={className}
-      title={live ? "click again to rename" : undefined}
+      title={live ? "click to rename" : undefined}
       onClick={(event) => {
         if (!live) return;
         event.stopPropagation();
+        if (!defer) return open();
+
         window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(() => setEditing(true), DWELL);
+        timer.current = window.setTimeout(open, DWELL);
       }}
-      // Whatever the second click meant, it was not this.
-      onDoubleClick={() => window.clearTimeout(timer.current)}
+      onDoubleClick={(event) => {
+        // On a card the second click meant "go inside", never this.
+        if (defer || !live) return window.clearTimeout(timer.current);
+        event.stopPropagation();
+        open();
+      }}
     >
       {text}
     </span>
@@ -155,7 +178,11 @@ export const REFERRED = "application/mndflow-ref";
 
 /** Where an anchor sits on the frame, as CSS. */
 export function seat(side: Side, at: number): React.CSSProperties {
-  const along = `${Math.round(at * 100)}%`;
+  // Not rounded to whole percent. One percent of a card is a pixel or so, but
+  // one percent of the layer's own frame is eight or more — enough that a
+  // relationship dragged onto an interface landed beside it instead, leaving a
+  // bend nobody asked for and nobody could drag out again.
+  const along = `${(at * 100).toFixed(3)}%`;
 
   return side === "top" || side === "bottom" ? { left: along } : { top: along };
 }
@@ -165,9 +192,11 @@ export function seat(side: Side, at: number): React.CSSProperties {
  *  One thing highlights at a time, and it is the thing an interaction would
  *  act on: the innermost wins, so a chip beats the container holding it and an
  *  interface beats the card it sits on. `rim` is a card's border — where a
- *  right-click makes an interface — as against `card`, its inside. */
+ *  right-click makes an interface — as against `card`, its inside, and `title`
+ *  is a frame's or a boundary's name, which is set into that border and is not
+ *  it: a click there renames, and nothing there makes an interface. */
 export type Grazed = {
-  kind: "selection" | "port" | "cell" | "rim" | "card" | "frame" | "group" | "edge";
+  kind: "selection" | "port" | "cell" | "rim" | "card" | "frame" | "group" | "title" | "edge";
   id: string;
 } | null;
 
@@ -179,6 +208,9 @@ export type CardData = {
   grazed: Grazed;
   /** Interfaces drawn or hidden — a display preference, global to the app. */
   showPorts: boolean;
+  /** Hidden interfaces whose seats still show as handles, because the
+   *  relationship tied to them is selected. */
+  litSeats: Set<string>;
   pickedPort: string | null;
   /** Mark something as the selection without changing which layer is open. */
   onPick: (id: string) => void;
@@ -219,12 +251,21 @@ export function Anchor({ name, side, inward }: { name: string; side: Side; inwar
  *
  *  Turning interfaces off is a display preference and changes nothing about
  *  the relationships: the anchor stays where the interface was, so lines meet
- *  the border in the same place whether or not the squares are drawn. */
-export function Berth({ port, inward }: { port: Node; inward?: boolean }) {
+ *  the border in the same place whether or not the squares are drawn.
+ *
+ *  Normally it draws nothing at all. It shows a small round handle while the
+ *  relationship attached to it, or the node it sits on, is selected — enough to
+ *  see where a line is tied on without turning every square back on. */
+export function Berth({ port, shown, inward }: {
+  port: Node;
+  shown: boolean;
+  inward?: boolean;
+}) {
   const side = port.side ?? "right";
 
   return (
     <span className={`berth port-${side}`} style={seat(side, port.at ?? 0.5)}>
+      {shown && <span className="seat" />}
       <Anchor name={`port-${port.id}`} side={side} inward={inward} />
     </span>
   );
@@ -243,9 +284,10 @@ export type PortProps = {
   onSlide: (id: string, side: Side, at: number) => void;
 };
 
-/** One interface on the frame edge. Click to select it; once selected it
- *  slides along the edge and around corners, the same way a group moves only
- *  once it has been picked.
+/** One interface on the frame edge. Click to select it, and drag it to slide
+ *  it along the edge and around corners — one gesture, without selecting it
+ *  first. A port is a small target the pointer reports precisely, so a drag on
+ *  one can only have meant the port.
  *
  *  Sliding is all it does. An interface never steps off the border to become a
  *  child block, and no child block steps onto it — the two are different kinds
@@ -261,7 +303,9 @@ export type PortProps = {
 export function Port({ port, graph, picked, grazed, inward,
                        onPick, onOpen, onSlide }: PortProps) {
   const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
-  const held = useRef(false);
+  /** Where the button went down, until the pointer has travelled far enough
+   *  for this to be a slide rather than a click that shook. */
+  const held = useRef<{ x: number; y: number } | null>(null);
   const side = drag?.side ?? port.side ?? "right";
   const at = drag?.at ?? port.at ?? 0.5;
   const deep = isContainer(graph, port.id);
@@ -305,21 +349,24 @@ export function Port({ port, graph, picked, grazed, inward,
         if (event.button !== 0) return;
 
         event.stopPropagation();
-        if (!picked) return;
-
-        // Only a selected port slides, so a first click can select it without
-        // also dragging it somewhere.
-        held.current = true;
+        held.current = { x: event.clientX, y: event.clientY };
         (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
       }}
       onPointerMove={(event) => {
-        if (!held.current) return;
-        const now = nearest(event);
-        setDrag({ side: now.side, at: now.at });
+        const from = held.current;
+        if (!from) return;
+        // Below the threshold it is still a click, which selects and no more.
+        if (!drag && Math.hypot(event.clientX - from.x, event.clientY - from.y) < NUDGE) {
+          return;
+        }
+
+        setDrag(nearest(event));
       }}
       onPointerUp={(event) => {
         if (!held.current) return;
-        held.current = false;
+        held.current = null;
+        if (!drag) return;
+
         const landed = nearest(event);
         setDrag(null);
 
@@ -446,7 +493,7 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
 }
 
 export const NodeCard = memo(({ data, selected }: NodeProps) => {
-  const { node, graph, dropping, picked, grazed, showPorts, pickedPort } =
+  const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort } =
     data as unknown as CardData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
@@ -474,7 +521,8 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
 
       {/* Hidden, an interface still leaves its seat behind, so the relations
           attached to it meet the border where it sits rather than sliding to
-          the middle of a side. */}
+          the middle of a side — and the seat shows itself while this card or
+          the relationship tied to it is selected. */}
       {portsOf(graph, node.id).map((port) => (showPorts ? (
         <Port
           key={port.id}
@@ -487,7 +535,7 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
           onSlide={onSlidePort}
         />
       ) : (
-        <Berth key={port.id} port={port} />
+        <Berth key={port.id} port={port} shown={picked || selected || litSeats.has(port.id)} />
       )))}
 
       {/* Edited where it is written, once the card is selected — the second
@@ -496,6 +544,7 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
         <Name
           text={nameOf(graph, node)}
           live={picked}
+          defer
           onRename={(label) => onRename(node.id, label)}
         />
         {node.type && <span className="kind">{node.type}</span>}

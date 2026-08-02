@@ -147,11 +147,16 @@ rewiring a diagram leaves no trail of empty squares behind it. Two things are ne
 collateral: an interface another relationship still attaches to stays, and an interface with
 contents of its own is left standing, bare, rather than taking what is inside it with it.
 
-**Selecting and moving.** An interface selects like anything else: click to highlight it, and
-once selected it slides along its edge and around corners under a left drag. It stays on the
-border however far the drag goes — sliding is the only thing the gesture does. Left-dragging
-is never how a relationship is drawn either; that is the right button's job, here and at the
-frame edge, so selecting a port and wiring one are never the same gesture.
+**Selecting and moving.** An interface selects like anything else — click to highlight it —
+and it **slides under a left drag whether or not it was selected first**, along its edge and
+around corners. One gesture, no first click to spend: a port is a small target the pointer
+reports precisely, so a drag that begins on one can only have meant the port. That is what
+separates it from a group boundary, which is a large transparent area a drag could easily begin
+in by accident, and so still has to be selected before it moves.
+
+It stays on the border however far the drag goes — sliding is the only thing the gesture does.
+Left-dragging is never how a relationship is drawn either; that is the right button's job, here
+and at the frame edge, so moving a port and wiring one are never the same gesture.
 
 **Naming.** An interface with no name of its own is called `interface 1`, `interface 2`, and
 so on — its number among the interfaces of the node it sits on, in the order they were made.
@@ -177,8 +182,15 @@ cleaner read of the structure alone. Nothing about the relationships changes whe
 hidden: **a hidden interface leaves its seat behind**, and the lines still meet the border at
 exactly the point the square sat at. A display preference decides what is drawn, never where
 anything is — and lines that swung to the middle of a side as the toggle went off, and back as
-it went on, made a change of view look like a change to the diagram. The object explorer is the
-other way round: interfaces are hidden there by default, and a toggle reveals them.
+it went on, made a change of view look like a change to the diagram.
+
+**A seat shows itself as a small round handle when its relationship or its node is selected.**
+Hidden means quiet, not gone: having selected a line, you should be able to see where its two
+ends are tied on without turning every square on the layer back on to find out. Selecting a
+card shows the seats of all of its own. Nothing else draws them.
+
+The object explorer is the other way round: interfaces are hidden there by default, and a
+toggle reveals them.
 
 Both toggles are global to the app, not per project and not per view. They are display
 preferences: they change nothing in the project, appear in no export, and record no history.
@@ -227,11 +239,22 @@ rather than names. Giving something a name replaces the description entirely.
 is already selected: it is the second click of a rename, never the first, so a click meant only
 to select still only selects. `Enter` commits, `Esc` abandons, and clicking away commits.
 
-- **A card** — select it, then click its name. A double-click still descends into it, so the
-  editor waits a moment to see whether a second click is coming.
-- **A group boundary** — select it, then click its name.
 - **The layer's own frame** — one click, no selecting first. This layer is where you already
   are, so there is no first click to spend.
+- **A group boundary** — select it, then click its name; which taken together is the
+  double-click the explorer already renames with.
+- **A card** — select it, then click its name. A double-click still descends into it, so this
+  is the one name whose editor waits a moment to see whether a second click is coming.
+
+**The editor opens on the click, without pausing, wherever nothing else is listening for a
+second one.** Only a card has to wait, and only because a double-click there means "go inside".
+A frame and a boundary have no such competing gesture, and making every rename pay for the one
+that does left the most ordinary edit in the tool feeling like it had not registered.
+
+**A name is its own target.** It is drawn set into a border — the frame's, the boundary's — but
+it is not that border: it highlights on its own, the border stays dark under it, and a
+right-click there does nothing rather than making an interface out of the edge it is sitting in.
+A name is where you rename, and nothing else happens there.
 
 The explorer renames on double-click, as a file tree does. Neither replaces the other: you
 rename a thing where you are looking at it.
@@ -249,6 +272,67 @@ menu or the attribute panel: one way, the other way, or both.
 Relationships are created by right-click-dragging, from an existing interface or from anywhere
 on a node, and they end up with an interface at each end either way — see Interfaces above for
 where each one lands. `Esc` cancels the whole gesture, interfaces included.
+
+**A line is routed by dragging its segments.** Drawn with right angles, a relationship is a run
+of square segments between its two interfaces, and **every one of them is draggable**. Each
+moves in the one direction that means anything — a vertical segment left and right, a
+horizontal one up and down — and the corners either side follow, so the line stays square
+throughout. Sliding a segment along its own length would change nothing, and is not offered.
+
+**The segments at the two ends carry their interface with them.** The run leaving an interface
+is square to the edge it sits on, so moving that run means moving the interface: it slides along
+its frame edge exactly as a hand-dragged one does, and the same `set_port` records it. That is
+the answer to what would otherwise be the awkward case — a line detaching from the port it is
+tied to — and it is also what you want, since a line that will not go where it is wanted is
+usually saying the port is in the wrong place.
+
+**Where the interface cannot follow, a jog appears.** It stops at the end of its edge, and two
+new segments carry the drag the rest of the way: out from the interface, across to where the
+pointer asked, and on. The same happens at once for an end whose interface is only implied, or
+whose frame is in another layer and stood in for by a reference — there is nothing there to
+slide, so the line bends instead of the port moving.
+
+Dragging the line, moving the port and adding the jog are all one action and one entry in the
+history, because they were one gesture.
+
+**Every elbow is a right angle, always.** That is not a thing the router tries for and mostly
+achieves — it is a property the whole run is put through on its way to being drawn, whatever it
+came from: the plain route, a route dragged into shape, or one saved before its cards and its
+interfaces were moved about. Where two corners are off in both directions a corner goes between
+them, and where a run would leave or arrive across its frame edge rather than along it, it
+stands off the edge and turns. A relationship never has a diagonal in it.
+
+**And a line straightens when it is nearly straight.** A segment dragged to within a few units
+of level with one of the ends is taken to mean level with it, so straightening a line is a drag
+in roughly the right place rather than a hunt for the exact pixel. A route left with nothing to
+say — every corner in line with the rest — stops being a route at all, and the line goes back
+to being drawn like any other.
+
+**What can be dragged says so.** The segment under the pointer marks itself and carries the
+resize cursor for the way it moves; selecting the line shows all of its segments faintly at
+once, which is the answer to "what of this can I take hold of".
+
+**A route is the user's, and only the user's.** Layout never touches one, and a relationship has
+no route of its own until somebody drags a segment. Until then the canvas runs the line out from
+each interface and across between them — a plain route, deliberately, because every segment of
+it can be corrected in a second and a router that has to be clever is one nobody can predict.
+
+**A line that has been routed stays angular whatever the curve/angles toggle says**, the same
+precedence a node's own placement has over automatic layout. The toggle decides only how the
+rest are drawn.
+
+**A curved line is routed the same way as any other.** It has no segments of its own, so
+hovering one shows the run it would take if it had them, and taking hold of a segment makes
+that the route — the line becomes angular as it is dragged. Routing is a property of the
+relationship and the toggle is a display preference, so waiting on the toggle would have made
+the gesture unavailable on most of the canvas for no reason anybody could see.
+
+**A saved route keeps following its interfaces.** The runs at its ends stay tied to them as
+they slide and as their cards move, while the corners between them stay where they were put.
+Moved to another edge of its frame, an interface leaves the other way entirely — and rather
+than bend the corner it reaches, which would leave the line with an angle that is not square,
+the route gains a corner to take the turn. What was drawn by hand is kept; only the way in and
+out of it is worked out again.
 
 **References.** A relationship between two nodes in different layers is drawn in either of
 them through a **reference**: a placeholder standing in for the far node, sitting in this layer
@@ -592,7 +676,9 @@ Left-dragging on the canvas depends on where the drag starts:
   that card it landed; a card's border is not a drop target of its own. Dropped in the clear
   space inside a group's boundary it joins that group, and dropped outside one it was in, it
   leaves.
-- **From a selected interface** — slides it along its frame edge, and no further.
+- **From an interface** — slides it along its frame edge, and no further. No selecting first.
+- **From a segment of a relationship** — moves that segment across itself, and the interface
+  with it where the segment is one of the two at the ends.
 - **From a selected group's background** — moves every member of that group together.
 - **From empty background, or from an unselected group's background** — draws a selection
   box, which takes the elements it fully contains. Dragging a selection moves all of it as one
@@ -602,9 +688,12 @@ Once a selection box has caught something, the box that stays around it **reache
 past what it holds** rather than hugging it exactly. Sized to the contents, its line lands on
 the cards' own borders and reads as part of them instead of as something drawn around them.
 
-Selection behaves the same way throughout: click to select, then drag what is selected. It is
-what makes a group movable, an interface slidable, and a multi-node selection draggable as one
-thing.
+**Select-then-drag is for large targets, not small ones.** A group's boundary is a wide
+transparent area a drag could easily begin in by accident, so it moves only once it has been
+selected, and the same goes for a multi-node selection. An interface and a relationship's
+segments are thin, precisely reported things: a drag beginning on one could not have meant
+anything else, so it acts at once. Asking for a click first bought nothing there and cost a
+gesture every time.
 
 Right-dragging draws relationships, making an interface at each end as it goes. Nothing
 appears until the drag pulls clear of the edge, and `Esc` cancels.
@@ -625,12 +714,18 @@ these are the actions right-click takes:
 | empty canvas | new object |
 | a node | new object inside it |
 | a frame edge — the scope's own, or any block's | new interface |
+| a frame's or a boundary's name | nothing |
 | a multi-node selection | group the selection |
 
 A group boundary and a relationship have no right-click action. Renaming either is a click on
 its name and a double-click respectively, so there is no obvious default left for the button
 to take, and right-clicking one currently falls through to "new object" — which is wrong, and
 is listed under Next steps.
+
+**A name is deliberately nothing rather than something.** It sits in a frame's border, and
+right-clicking it used to make an interface out of that border, which is the one thing the
+gesture plainly did not mean. Renaming belongs to the left button, so the right one waits for
+the menu rather than borrowing an action from the element underneath.
 
 Once the menu exists, each of these becomes its default entry and the alternatives sit beside
 it — direction and reversal for a relationship, ungroup for a group, lay-out-again and paste
@@ -666,17 +761,19 @@ card's border and a card's inside take different actions, and light differently 
 | Under the pointer | What lights |
 |---|---|
 | a multi-node selection | the selection |
+| a frame's or a boundary's name | that name |
 | an interface | that interface |
 | a chip in a container's treemap | that chip |
 | a card, within a step of its border | the border, as a ring outside the line |
 | a card, anywhere else | the card |
-| the layer's own frame, near its border | the frame, and its name with it |
+| the layer's own frame, near its border | the frame |
 | a relationship | the line |
-| the clear space inside a group's boundary | the boundary, and its name with it |
+| the clear space inside a group's boundary | the boundary |
 
-A card is never lit at the same time as an interface sitting on it, or a chip inside it. The
-pointer is over one thing; lighting that thing and everything around it says nothing about
-which of them is about to be acted on, which was the whole complaint.
+A card is never lit at the same time as an interface sitting on it, or a chip inside it, and a
+border is never lit at the same time as the name set into it. The pointer is over one thing;
+lighting that thing and everything around it says nothing about which of them is about to be
+acted on, which was the whole complaint.
 
 **A group's boundary is found by position rather than by the pointer.** It is transparent to
 the pointer until it has been selected, so that a selection box drawn from inside it reaches
@@ -753,6 +850,15 @@ span layers and the spec should say what that draws.
 and gives up. A reference whose target is deleted is dropped. Neither is written down, and
 neither has been thought about deliberately.
 
+**Where a route belongs.** A relationship carries its corners on itself, in canvas coordinates,
+and a relationship can be drawn in more than one layer — once directly, and again wherever a
+reference stands in for one of its ends. The two layers place their nodes independently, so one
+set of corners cannot be right in both: route a line in one layer and it is routed, through the
+same points, in the other, where those points mean nothing. Either a route belongs to the layer
+that laid it out rather than to the relationship, or a relationship drawn through a reference is
+understood to route itself and ignore one. Untouched, because the case has not come up in
+practice yet — but it is a second appearance of the reference problem, and it will.
+
 ### Not built yet
 
 - **The sample project.** `samples/mndflow.json` does not exist, and the directory does not
@@ -765,12 +871,13 @@ neither has been thought about deliberately.
   add one. The action exists (`attachAttr`) but is not wired to anything, so the only way into
   an existing group is the drag.
 - **Tags.** Every attribute carries them and nothing shows or edits them.
-- **The context menu**, still the last thing to build, and now with three entries that have no
-  default action to stand in for it. A group boundary and a relationship both fall through to
-  "new object", which is wrong — and more visible now that both light up under the pointer. An
-  existing interface falls through to "new interface" and stacks a second one on the same spot,
-  which is wrong the same way: the port highlights, so the button looks as though it is about
-  to act on the port it is over.
+- **The context menu**, still the last thing to build, and now with several entries that have
+  no default action standing in for it. A group boundary and a relationship both fall through
+  to "new object", which is wrong — and more visible now that both light up under the pointer.
+  An existing interface falls through to "new interface" and stacks a second one on the same
+  spot, which is wrong the same way: the port highlights, so the button looks as though it is
+  about to act on the port it is over. A name does nothing at all, deliberately, and wants
+  "rename" when there is a menu to put it in.
 
 ### Aspirations, not descriptions
 
