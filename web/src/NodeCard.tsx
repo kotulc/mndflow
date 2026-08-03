@@ -9,7 +9,7 @@
  *  Interfaces sit on the frame edge instead, and never in the treemap. The two
  *  are independent: a block with ports is still a block. */
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
 import { blocksOf, isContainer, isLinked, isRef, nameOf, portsOf } from "./core/fold";
@@ -75,43 +75,24 @@ const SIDES: Record<Side, Position> = {
   left: Position.Left,
 };
 
-/** How long a click on a name waits to see whether a second one follows. Only
- *  a card needs it: a double-click there descends into it, and the first of
- *  those two clicks looks exactly like a click meaning "rename". */
-const DWELL = 260;
-
-/** A name edited where it is drawn.
+/** A name edited where it is drawn, opened by right-clicking it.
  *
- *  One click opens it, but only when what it belongs to is already selected —
- *  it is the second click of a rename, never the first, so a click meant only
- *  to select still only selects. The layer's own frame is always where you
- *  are, so its name takes the click straight away.
+ *  One rule for every name on the canvas — a card's, a group boundary's, the
+ *  layer's own frame — because a name should be changed the same way wherever
+ *  it is written.
  *
- *  Where nothing else is listening for a double-click the editor opens on the
- *  click itself, with no pause to see what comes next. That makes a rename on a
- *  frame one click, and on a group boundary the two clicks the explorer already
- *  uses — the first selects the boundary and the second opens the field.
- *
- *  Shared by the card, the group boundary and the frame, because a name should
- *  be changed the same way wherever it is written. */
-export function Name({ text, live, defer, className = "label", onRename }: {
+ *  The right button means "make the thing this place is for", and what a name
+ *  is for is being written. It collides with nothing: a name is the one place
+ *  where making a node or an interface would be meaningless. It also replaced
+ *  three rules and a timer — renaming used to be the second click on something
+ *  already selected, and on a card that click had to wait a quarter of a second
+ *  to see whether a double-click was coming to descend instead. */
+export function Name({ text, className = "label", onRename }: {
   text: string;
-  /** Whether a click should open the editor rather than fall through. */
-  live: boolean;
-  /** Wait to see whether a second click is coming. Set only on a card, where
-   *  a double-click descends and must not be mistaken for a rename. */
-  defer?: boolean;
   className?: string;
   onRename: (label: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const timer = useRef(0);
-
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-  // Losing the selection abandons a rename that had not opened yet.
-  useEffect(() => {
-    if (!live) window.clearTimeout(timer.current);
-  }, [live]);
 
   function done(value: string) {
     // An unnamed thing shows its role, so leaving that untouched is not a
@@ -141,28 +122,16 @@ export function Name({ text, live, defer, className = "label", onRename }: {
     );
   }
 
-  function open() {
-    window.clearTimeout(timer.current);
-    setEditing(true);
-  }
-
   return (
     <span
       className={className}
-      title={live ? "click to rename" : undefined}
-      onClick={(event) => {
-        if (!live) return;
+      title="right-click to rename"
+      onContextMenu={(event) => {
+        // The canvas is watching the right button too, and would otherwise make
+        // an interface out of the border this name is set into.
+        event.preventDefault();
         event.stopPropagation();
-        if (!defer) return open();
-
-        window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(open, DWELL);
-      }}
-      onDoubleClick={(event) => {
-        // On a card the second click meant "go inside", never this.
-        if (defer || !live) return window.clearTimeout(timer.current);
-        event.stopPropagation();
-        open();
+        setEditing(true);
       }}
     >
       {text}
@@ -191,12 +160,11 @@ export function seat(side: Side, at: number): React.CSSProperties {
  *
  *  One thing highlights at a time, and it is the thing an interaction would
  *  act on: the innermost wins, so a chip beats the container holding it and an
- *  interface beats the card it sits on. `rim` is a card's border — where a
- *  right-click makes an interface — as against `card`, its inside, and `title`
- *  is a frame's or a boundary's name, which is set into that border and is not
- *  it: a click there renames, and nothing there makes an interface. */
+ *  interface beats the card it sits on. A card is one target, border included.
+ *  `title` is a frame's or a boundary's name, which is set into that border and
+ *  is not it: the right button renames there, and makes nothing. */
 export type Grazed = {
-  kind: "selection" | "port" | "cell" | "rim" | "card" | "frame" | "group" | "title" | "edge";
+  kind: "selection" | "port" | "cell" | "card" | "frame" | "group" | "title" | "edge";
   id: string;
 } | null;
 
@@ -500,14 +468,11 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
   useEmbeddings();
 
   const holds = isContainer(graph, node.id);
-  // Its border and its inside are two different contexts — a right-click on
-  // the border makes an interface, and one anywhere else makes a node inside.
-  const mine = grazed?.id === node.id ? grazed.kind : null;
   const classes = ["card", holds ? "group" : "object",
                    isRef(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
-                   mine === "rim" ? "rimmed" : mine === "card" ? "grazed" : "",
+                   grazed?.kind === "card" && grazed.id === node.id ? "grazed" : "",
                    dropping ? "dropping" : ""].join(" ");
 
   return (
@@ -540,13 +505,9 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
 
       {/* Edited where it is written, once the card is selected — the second
           click of a rename. A double-click still descends. */}
-      <div className="card-head">
-        <Name
-          text={nameOf(graph, node)}
-          live={picked}
-          defer
-          onRename={(label) => onRename(node.id, label)}
-        />
+      <div className={`card-head${
+        grazed?.kind === "title" && grazed.id === node.id ? " grazed" : ""}`}>
+        <Name text={nameOf(graph, node)} onRename={(label) => onRename(node.id, label)} />
         {node.type && <span className="kind">{node.type}</span>}
       </div>
 

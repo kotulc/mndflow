@@ -186,7 +186,6 @@ export function App() {
               onUp={project.up}
               onNest={project.nest}
               onPromote={project.promote}
-              onCreate={project.create}
               onCreateAt={project.createAt}
               onSprout={project.sprout}
               onRename={project.rename}

@@ -20,19 +20,15 @@ export function isRef(node: Node | undefined): boolean {
   return Boolean(node && node.ref != null);
 }
 
-/** What a node really is: itself, or whatever it stands in for. A reference to
- *  a reference is followed too, and a chain that leads nowhere gives up rather
- *  than looping. */
+/** What a node really is: itself, or whatever it stands in for.
+ *
+ *  One hop and no more. A reference is made one way — dragging a row out of the
+ *  object explorer — and the explorer does not list references, so a reference
+ *  always points at a real node and a chain of them cannot be built. */
 export function actual(graph: Graph, id: string | null): Node | undefined {
-  let cursor = id;
+  const node = id ? graph.nodes[id] : undefined;
 
-  for (let hops = 0; cursor && hops < 8; hops += 1) {
-    const node = graph.nodes[cursor];
-    if (!node || node.ref == null) return node;
-    cursor = node.ref;
-  }
-
-  return undefined;
+  return node?.ref != null ? graph.nodes[node.ref] : node;
 }
 
 /** The reference in one layer standing in for a given node, if there is one. */
@@ -248,7 +244,10 @@ function apply(graph: Graph, mutation: Mutation): void {
 
     case "route_edge": {
       const edge = graph.edges[mutation.id];
-      if (edge) edge.route = mutation.route?.map((p) => ({ ...p })) ?? null;
+      if (!edge) return;
+      edge.route = mutation.route
+        ? { layer: mutation.layer, corners: mutation.route.map((p) => ({ ...p })) }
+        : null;
       break;
     }
 

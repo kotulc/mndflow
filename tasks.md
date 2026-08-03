@@ -38,24 +38,8 @@ tags. The code has `name`, `value` and `tags` — no label, and `value` is not m
 design at all. Two names for one field, or two fields, is the question; the answer decides what
 the panel should show.
 
-**A member moved to another layer.** Moving a node to another scope is supposed to drop it from
-its groups. It does not: it stays a holder, and the boundary simply stops drawing it, because a
-boundary only gathers members sitting in the layer being drawn. So a group can hold a member
-nobody can see. Either moving out should detach, or a group should be understood to span layers
-and the spec should say what that draws.
-
-**Reference chains.** A reference can point at a reference; the code follows up to eight hops
-and gives up. A reference whose target is deleted is dropped. Neither is written down, and
-neither has been thought about deliberately.
-
-**Where a route belongs.** A relationship carries its corners on itself, in canvas coordinates,
-and a relationship can be drawn in more than one layer — once directly, and again wherever a
-reference stands in for one of its ends. The two layers place their nodes independently, so one
-set of corners cannot be right in both: route a line in one layer and it is routed, through the
-same points, in the other, where those points mean nothing. Either a route belongs to the layer
-that laid it out rather than to the relationship, or a relationship drawn through a reference is
-understood to route itself and ignore one. Untouched, because the case has not come up in
-practice yet — but it is a second appearance of the reference problem, and it will.
+*Settled and built: what happens to a moved node's groups and relationships, reference chains,
+and which layer a route belongs to. See design.md under Relationships and References.*
 
 
 ## Not built yet
@@ -72,14 +56,21 @@ practice yet — but it is a second appearance of the reference problem, and it 
   add one. The action exists (`attachAttr`) but is not wired to anything, so the only way into
   an existing group is the drag.
 - **Tags.** Every attribute carries them and nothing shows or edits them.
-- **The context menu**, still the last thing to build, and now with several entries that have no
-  default action standing in for it:
-  - a group boundary and a relationship both fall through to "new object", which is wrong — and
-    more visible now that both light up under the pointer;
-  - an existing interface falls through to "new interface" and stacks a second one on the same
-    spot, which is wrong the same way: the port highlights, so the button looks as though it is
-    about to act on the port it is over;
-  - a name does nothing at all, deliberately, and wants "rename" when there is a menu for it.
+- **Text annotations.** Right-dragging the background should draw one: a box holding the user's
+  own text. Undecided, and to be settled before it is built —
+  - it is the first canvas object with bounds of its own, so **there is no manual resize** stops
+    being true of every annotation and becomes true only of group boundaries;
+  - whether it is an attribute (like every other annotation, but held by nothing) or a fourth
+    kind of object beside nodes, edges and attributes;
+  - whether it belongs to the layer it was drawn in, or to whatever it encloses.
+- **The context menu**, still the last thing to build. Every entry above now performs its
+  default action directly and correctly, so the menu is no longer covering for anything wrong —
+  it is only the alternatives that are missing: direction and reversal for a relationship,
+  ungroup for a group, lay-out-again and paste for the canvas, delete throughout.
+- **A menu trigger.** With the right button spent entirely on direct creation, the context menu
+  has no gesture left. The intended answer is that selecting an element reveals its options in
+  the attribute panel, which would mean the panel is the menu and no gesture is needed at all.
+  Not designed yet.
 
 
 ## Aspirations, not descriptions
@@ -97,3 +88,9 @@ is drawn.
 **Segments under a card.** Cards are drawn above the relationship layer, so a segment passing
 beneath one cannot be grabbed there. Reachable everywhere else; no decision taken on whether
 lines should sit above cards for the purpose.
+
+**The selection box takes things it does not enclose.** Dragging a box across the canvas can
+come back holding elements outside it, and the reported case involves dragging over
+relationships. Not diagnosed. The leading suspect is the invisible grab band over every
+relationship segment, which is wide and might be catching the drag — but that would explain a
+box that fails to start, not one that over-selects, so the cause is still open.

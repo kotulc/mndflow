@@ -6,6 +6,10 @@
   --text: #c8e6d0;
   --muted: #6b8f7d;
   --accent: #4ade80;
+  /* Not from here. Green is structure and amber is attributes, so a mention of
+     something living in another layer gets the one hue neither has claimed. */
+  --away: #a78bfa;
+  --away-dim: #4c3f78;
   --error: #ff6b6b;
   --hover: #16221c;
 
@@ -352,14 +356,13 @@ button:disabled { opacity: 0.4; cursor: default; }
    sets the class, since `:hover` would light the card under every interface
    and every chip as well.
 
-   The card's inside is one context (right-click makes an object in it) and its
-   border another (right-click makes an interface), so they light differently:
-   a lift in the fill for the inside, a ring outside the line for the border. */
-.card.grazed { border-color: #3d6b53; background: #16211b; }
+   One highlight for the whole card, border included: right-click makes an
+   interface wherever on it the click lands, so there is no longer a second
+   context along its edge for a second highlight to describe. */
+.card.grazed { border-color: #5f8f73; background: #16211b; }
 .card.group.grazed { background: rgba(22, 33, 27, 0.75); }
 
-.card.rimmed { border-color: #5f8f73; }
-.card.rimmed::after {
+.card.grazed::after {
   content: "";
   position: absolute;
   inset: -3px;
@@ -371,7 +374,18 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .card-head .label { overflow-wrap: anywhere; }
 /* A selected card's name is the way to rename it, so it says so on hover. */
-.card.picked .card-head .label { cursor: text; }
+/* Every name renames the same way, whatever it belongs to and whether or not
+   that thing is selected — see `Name`. Each is its own target, so it lights on
+   its own and the card or border beneath it stays as it was. */
+.card-head .label,
+.frame-name .frame-label,
+.region-name .region-label { cursor: context-menu; }
+
+.card-head.grazed .label {
+  color: #eaffef;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35);
+  border-radius: 2px;
+}
 
 /* Edited in place, sized and set like the name it replaces so the card does
    not jump when the field opens. */
@@ -484,7 +498,6 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* This layer is where you already are, so one click on its name edits it. The
    name is its own target — set into the border, never part of it — so it
    lights on its own and the border stays dark under it. */
-.frame-name .frame-label { cursor: text; }
 .frame-name.grazed .frame-label { color: var(--text); }
 .frame-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
 
@@ -616,10 +629,8 @@ button:disabled { opacity: 0.4; cursor: default; }
   pointer-events: none;
 }
 
-.card.reference.grazed,
-.card.reference.rimmed { border-color: #587a6a; }
-.card.reference.grazed::before,
-.card.reference.rimmed::before { color: #8aa295; }
+.card.reference.grazed { border-color: #587a6a; }
+.card.reference.grazed::before { color: #8aa295; }
 
 .card.reference.picked {
   border-color: var(--accent);
@@ -1201,7 +1212,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .card .rename:focus { outline: none; }
-.card .label { cursor: text; }
 .cell { cursor: grab; }
 .cell.grazed { outline: 1px solid var(--accent); outline-offset: -1px; }
 
@@ -1308,9 +1318,14 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .leg-grab:hover + .leg-mark { opacity: 0.6; }
 
 /* A relation drawn through a reference — one whose far end lives in another
-   layer. Dotted rather than solid, since one of its ends is a mention. */
-.react-flow__edge.reaching .react-flow__edge-path { opacity: 0.75; }
-.react-flow__edge.reaching .react-flow__edge-text { fill: var(--muted); font-style: italic; }
+   layer. Its own colour as well as dashed: in the same green as every other
+   line it was indistinguishable from one, and reaching out of the layer is the
+   one thing about a line whose reading depends on being noticed. */
+.react-flow__edge.reaching .react-flow__edge-text { fill: #8a7ab0; font-style: italic; }
+.react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
+.react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
+.react-flow__edge.reaching.selected .react-flow__edge-text { fill: var(--away); }
+.react-flow__edge.reaching .leg-mark { stroke: var(--away); }
 
 /* Display toggles, top right of the canvas */
 
@@ -1416,7 +1431,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .region.picked .region-name { color: var(--accent); }
-.region.picked .region-label { cursor: text; }
 
 /* Its own target, the same as a frame's name — a click there renames rather
    than acting on the boundary, so it lights on its own. */

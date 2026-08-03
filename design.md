@@ -142,9 +142,10 @@ there is a reason for it to be there, and a relationship is the usual reason.
   that wanders by a pixel is still a right-click.
 - **Released over empty canvas**, the far node is created as well, and given its interface on
   the side facing back the way the drag came, so the line between them runs straight.
-- **Right-clicking a frame edge creates a bare one**, with no relationship attached. This is
-  the one way to get an interface on its own, and it is there because a node's shape is worth
-  describing before its connections are.
+- **Right-clicking a node creates a bare one**, with no relationship attached, at the nearest
+  point of its border to the click. This is the one way to get an interface on its own, and it
+  is there because a node's shape is worth describing before its connections are. Right-clicking
+  an interface that already exists makes nothing: there is one there.
 
 A relationship made any other way — from a chip, or by a workflow — leaves both its
 interfaces implied, because there was no gesture to take a position from.
@@ -242,26 +243,25 @@ The only names not typed by anyone are the role words an unnamed thing falls bac
 `block`, `container`, `interface 3` — and those are lower case because they are descriptions
 rather than names. Giving something a name replaces the description entirely.
 
-**A name is edited where it is drawn.** One click opens the editor, but only on something that
-is already selected: it is the second click of a rename, never the first, so a click meant only
-to select still only selects. `Enter` commits, `Esc` abandons, and clicking away commits.
+**A name is edited where it is drawn, and right-clicking it is how.** One rule for every name
+on the canvas — a card's, a group boundary's, the layer's own frame. `Enter` commits, `Esc`
+abandons, and clicking away commits.
 
-- **The layer's own frame** — one click, no selecting first. This layer is where you already
-  are, so there is no first click to spend.
-- **A group boundary** — select it, then click its name; which taken together is the
-  double-click the explorer already renames with.
-- **A card** — select it, then click its name. A double-click still descends into it, so this
-  is the one name whose editor waits a moment to see whether a second click is coming.
+This replaced three rules and a timer. Renaming used to be the *second* click on something
+already selected, so that a click meant only to select still only selected; a card's editor
+then had to wait a quarter of a second to see whether a second click was coming, because a
+double-click there descends instead. Three elements, three behaviours, and the most ordinary
+edit in the tool felt like it had not registered.
 
-**The editor opens on the click, without pausing, wherever nothing else is listening for a
-second one.** Only a card has to wait, and only because a double-click there means "go inside".
-A frame and a boundary have no such competing gesture, and making every rename pay for the one
-that does left the most ordinary edit in the tool feeling like it had not registered.
+The right button already means *make the thing this place is for*, and what a name is for is
+being written. So the rename gesture is no longer an exception threaded between select and
+descend — it is the same rule as everything else the button does, and it collides with nothing,
+because a name is the one place on the canvas where creating a node or an interface would be
+meaningless.
 
 **A name is its own target.** It is drawn set into a border — the frame's, the boundary's — but
-it is not that border: it highlights on its own, the border stays dark under it, and a
-right-click there does nothing rather than making an interface out of the edge it is sitting in.
-A name is where you rename, and nothing else happens there.
+it is not that border: it highlights on its own and the border stays dark under it. A name is
+where you rename, and nothing else happens there.
 
 The explorer renames on double-click, as a file tree does. Neither replaces the other: you
 rename a thing where you are looking at it.
@@ -271,6 +271,32 @@ rename a thing where you are looking at it.
 
 An edge represents a relationship between two nodes. Relationships may be typed, annotated,
 labeled, and given a direction.
+
+**A relationship joins two nodes and anchors at an interface on each.** The two ends are
+*nodes*; the interfaces are only where the line meets them. That separation is what lets an
+interface be moved, hidden or renamed without any of it meaning something different.
+
+**An interface is the one thing drawn on both sides of a boundary.** It belongs to a node, and
+it appears on that node's card when you are looking at the layer the node sits in, and on the
+frame when you have stepped inside the node. So a relationship reaching it from outside and one
+reaching it from inside are two separate relationships, each with both ends in one layer, joined
+by the one interface they share. Neither side knows about the other, which is the point:
+external wiring and internal wiring are independent, and the interface is the coupling.
+
+This falls out with no special handling. `Client → Gateway`, anchored at `Gateway`'s `HTTP`
+interface, is drawn in the layer they share. `Router → Gateway`, anchored at the same `HTTP`,
+is drawn inside `Gateway`, where `Router` is a child and `Gateway` is the frame. One interface,
+two relationships, two layers, and nothing crossing between them.
+
+**A relationship is not obliged to go through an interface, or to stay in one layer.** That
+would be modelling hardware, where a signal really does have to cross a boundary at a connector.
+Code does not work that way — one module refers to a name in another without anything at the
+edge of either declaring it — and this tool has to describe both. So a relationship may join any
+two nodes anywhere in the project, and an interface is where the line lands rather than a gate it
+has to pass.
+
+A relationship whose two ends are in different layers is simply not drawn until somebody asks for
+it, which is what a reference is for.
 
 **Relationships are undirected by default** — a plain line, no arrowhead, asserting only that
 the two ends are related. Direction is added deliberately, through the relationship's context
@@ -319,6 +345,12 @@ to being drawn like any other.
 resize cursor for the way it moves; selecting the line shows all of its segments faintly at
 once, which is the answer to "what of this can I take hold of".
 
+**A route belongs to the layer it was laid out in.** Almost every relationship is drawn in one
+layer only, so almost every route has nowhere else to be — but a relationship reaching through
+a reference can be drawn in two, and the two layers place their nodes independently, so one set
+of corners cannot be right in both. Drawn anywhere but where it was dragged, a line routes
+itself.
+
 **A route is the user's, and only the user's.** Layout never touches one, and a relationship has
 no route of its own until somebody drags a segment. Until then the canvas runs the line out from
 each interface and across between them — a plain route, deliberately, because every segment of
@@ -345,11 +377,23 @@ out of it is worked out again.
 them through a **reference**: a placeholder standing in for the far node, sitting in this layer
 as an ordinary node.
 
+**It is a visual shortcut, and that is the whole of it.** Something living in a distant layer or
+another branch relates to something here, and rather than making the reader hold two places in
+their head at once, the far thing is drawn here as a mention. It changes nothing about the
+relationship — the relationship was already there against both real nodes, whether or not
+anybody had asked to see it.
+
 A reference is a node. It sits inside the frame with everything else, it is selected, moved,
 nested, related, given interfaces and given attributes exactly as any other node is. What
-marks it out is only how it draws — grey and half there, so it reads as a mention of something
-rather than the thing itself — and that a relationship reaching it is drawn dotted rather than
-solid, since one of its ends is a mention.
+marks it out is only how it draws — greyed and hatched, so it reads as a mention of something
+rather than the thing itself — and that **a relationship reaching it draws in its own colour**,
+violet rather than green and dashed rather than solid, since one of its ends is a mention and
+what it says about the graph is weaker than what a line between two present nodes says.
+
+The colour is doing real work. A reference relationship used to be drawn in the same dark green
+as every other line, dashed, at three-quarters opacity, which on this background was
+indistinguishable from an ordinary one. A line that reaches out of the layer is the one kind of
+line whose reading depends on knowing that it does.
 
 **It has no name of its own.** It shows whatever the node it stands for is called, and renaming
 it renames that node: there is one object being named, however many places it appears.
@@ -358,6 +402,11 @@ it renames that node: there is one object being named, however many places it ap
 stands for. Double-clicking a reference therefore goes to where that node actually lives and
 marks it there, rather than opening an empty layer. Nothing nests into a reference, and a
 reference never becomes an interface — a mention is not structure.
+
+**And it points at a real node, never at another mention.** There is one way to make a
+reference — dragging a row out of the object explorer — and the explorer does not list
+references, so a chain of them cannot be built. The code used to follow up to eight hops and
+give up, guarding a state nothing could produce.
 
 **Where they come from.** Only from the user, and chiefly from one gesture: **dragging a row
 out of the object explorer onto the canvas** places a reference to that node in the open
@@ -439,6 +488,9 @@ looks like something you can put things into.
   consequence of a boundary being nothing but its members.
 - Landing in or out of a boundary is part of the same action as the move, so one undo takes
   back both.
+- **A node made inside a boundary joins it**, by the same test a drop there passes. Right-click
+  is how a node is made, and making one in the clear space inside a group plainly means it
+  belongs there; leaving it out would draw a node sitting visibly inside a group it is not in.
 - The attribute panel still lists membership and still adds and removes it. Dragging is the
   quick way, not the only way.
 
@@ -569,9 +621,36 @@ is set into a horizontal one, so the line runs left and right.
 ### Object Explorer
 
 The object explorer shows structure, and only structure: nodes, nested to any depth. It
-supports the standard node operations — add, move, rename, delete — and dragging nodes between
-levels adjusts the relationships defined in the project's meta graph automatically. Dragging
-nodes between the explorer and the canvas is seamless in both directions.
+supports the standard node operations — add, move, rename, delete. Dragging nodes between the
+explorer and the canvas is seamless in both directions.
+
+**Moving a node to another layer sheds what does not travel with it.** Its group memberships,
+since a group is drawn from members sitting together in one layer and it is leaving that layer.
+And its **external wiring** — the relationships joining it to things staying behind, which after
+the move have one end here and one end there, and which nothing would draw.
+
+**What travels is kept whole.** The node arrives with its insides exactly as they were: its
+children, the wiring among them, and the wiring from them to its own interfaces. That last one
+matters and is easy to get wrong. A relationship from a child to one of the node's interfaces
+*names the node as its far end* — `Router → Gateway`, anchored at `HTTP` — so it looks from the
+data like a relationship the node has. It is not: an interface draws on both sides of its node,
+so that line is internal wiring, drawn inside the very layer that is moving, and it survives
+untouched. Only relationships to things outside the node's own subtree are external.
+
+Nothing is created either. No reference is placed to keep a dropped line visible; a reference is
+the user's, always, and a tool that scattered them to preserve a picture would leave a mess
+nobody asked for.
+
+**Dropping the external wiring at all is the deliberate simplification here**, and a provisional
+one. Those relationships are not incoherent after the move — they are ordinary cross-layer
+relationships, and a reference would draw them again. They are dropped because a project full of
+connections nobody can see is worse than a project that lost the ones it stopped drawing, while
+the model is still moving. Keeping them undrawn instead is a one-line change.
+
+**Interfaces are not shed.** They are the node's own children and go with it, so a node keeps
+its shape and loses only its connections outward. Nothing tidies the bare ports afterwards: a
+node's shape is worth describing before its connections are, and that holds whether the
+connections were never made or have just gone.
 
 Groups, annotations, and other attributes never appear here. Interfaces are child nodes and so
 belong here, but are **hidden by default** — a toggle reveals them, listed at the same level
@@ -702,41 +781,50 @@ segments are thin, precisely reported things: a drag beginning on one could not 
 anything else, so it acts at once. Asking for a click first bought nothing there and cost a
 gesture every time.
 
-Right-dragging draws relationships, making an interface at each end as it goes. Nothing
-appears until the drag pulls clear of the edge, and `Esc` cancels.
-
-The canvas pans with the middle button or the wheel, never with a left drag.
+The canvas pans with the middle button, with `Space` held, or with the wheel — never with a
+plain left drag, which is spent on selecting and moving.
 
 Panning is bounded to the layer's contents plus room on every side to put something new, and
 the bound grows with the layer.
 
-### Context menu
+### The two buttons
 
-Right-click acts on whatever is under the cursor. **For the first pass it performs the default
-action directly, with no menu drawn** — the menu is the last thing built, and until it exists
-these are the actions right-click takes:
+**The left button handles what already exists. The right button makes something new.** That is
+the whole division, and it is a division by *what the gesture does* rather than by what it
+happens to be over — which is what makes it possible to say in one line.
 
-| Right-clicked | Default action |
-|---|---|
-| empty canvas | new object |
-| a node | new object inside it |
-| a frame edge — the scope's own, or any block's | new interface |
-| a frame's or a boundary's name | nothing |
-| a multi-node selection | group the selection |
+Within the right button, one more distinction finishes it: **a click makes the thing that sits
+at a point, and a drag makes the thing that has extent.**
 
-A group boundary and a relationship have no right-click action. Renaming either is a click on
-its name and a double-click respectively, so there is no obvious default left for the button
-to take, and right-clicking one currently falls through to "new object" — which is wrong, and
-is listed in [tasks.md](tasks.md).
+| | right click | right drag |
+|---|---|---|
+| **on a node** | an interface — a point on its border | a relationship — from it to somewhere |
+| **on the background** | a node — a point in the layer | an annotation — an area of it |
 
-**A name is deliberately nothing rather than something.** It sits in a frame's border, and
-right-clicking it used to make an interface out of that border, which is the one thing the
-gesture plainly did not mean. Renaming belongs to the left button, so the right one waits for
-the menu rather than borrowing an action from the element underneath.
+Four creations, one rule, no exceptions to remember. A relationship being drawn with the right
+button used to be the odd gesture in the tool, justified only by the left button being busy;
+under this reading it is not an exception at all but one cell of the table, and the reason it
+uses a drag is the same reason an annotation does.
 
-Once the menu exists, each of these becomes its default entry and the alternatives sit beside
-it — direction and reversal for a relationship, ungroup for a group, lay-out-again and paste
-for the canvas, delete throughout. The boundary and the relationship get their menus then.
+**No part of a card is a separate target.** Right-clicking a card makes an interface wherever
+on the card the click lands — the position decides which point of the border it goes to, but it
+is not a test the click has to pass. This replaced a rule where a card's border made interfaces
+and its interior made child nodes, which meant aiming at a ring a few pixels wide to get the
+commoner of the two. Nothing is worth that. Making a child node instead means stepping into the
+card and right-clicking its background, which is the same act described honestly: a node is
+made in the layer you are looking at.
+
+The layer's own frame is the one exception, and unavoidably so — its interior *is* the
+background, so its border has to stay a zone. It is a large, plainly drawn target, which is
+exactly what a card's ring was not.
+
+**Nothing stacks.** Right-clicking an interface makes no second interface underneath the first,
+and right-clicking a relationship makes nothing at all. Both used to fall through to a default
+meant for something else, and both are now silent, waiting for the menu.
+
+Once the menu exists, each entry above becomes its default and the alternatives sit beside it —
+direction and reversal for a relationship, ungroup for a group, lay-out-again and paste for the
+canvas, delete throughout.
 
 ### Keyboard
 
@@ -749,9 +837,25 @@ Shortcuts work in both the explorer and the canvas, acting on whichever has focu
 | `Ctrl`/`Cmd` + `Z` | undo |
 | `Ctrl`/`Cmd` + `Y`, `Ctrl`/`Cmd` + `Shift` + `Z` | redo |
 | `Enter` | rename the selection |
+| `F` | fit the layer, or zoom to the selection if there is one |
 | `Ctrl`/`Cmd` + `A` | select everything on this layer |
 | `Ctrl`/`Cmd` + `G` | group the selection |
+| `Shift` / `Cmd` + click | add to the selection |
+| `Space` + drag | pan |
 | double-click | descend on the canvas, rename in the explorer |
+
+**`F` reads the context rather than taking an argument.** With nothing selected it fits the
+layer; with something selected it goes to that. One key for both, because "show me this" is one
+intention and which *this* is already answered by what is selected — the same reckoning the
+attribute panel and the right button both use.
+
+**`Ctrl` adds to a selection and does nothing else.** It is not an alias for the right button.
+Every right-button gesture here is a click or a drag, and `Ctrl` + left-drag would have had to
+mean two things at once; a trackpad's two-finger tap is a real right click and needs no alias.
+
+**`Space` held turns a left drag into a pan.** The middle button alone was unreachable on a
+trackpad, which made panning a wheel-only gesture on the machines most likely to be used for
+this.
 
 ### Hovering
 
@@ -760,8 +864,7 @@ right-click would act on if it happened now. The highlight is subtle; selecting 
 makes it fixed and less subtle.
 
 That is what it is for. Right-click has no menu yet and performs its default action directly,
-so the only warning of what the button is about to do is what is lit beneath the cursor. A
-card's border and a card's inside take different actions, and light differently for it.
+so the only warning of what the button is about to do is what is lit beneath the cursor.
 
 **The innermost thing under the pointer wins**, since that is the one the gesture reaches:
 
@@ -771,8 +874,7 @@ card's border and a card's inside take different actions, and light differently 
 | a frame's or a boundary's name | that name |
 | an interface | that interface |
 | a chip in a container's treemap | that chip |
-| a card, within a step of its border | the border, as a ring outside the line |
-| a card, anywhere else | the card |
+| a card | the card, its border included |
 | the layer's own frame, near its border | the frame |
 | a relationship | the line |
 | the clear space inside a group's boundary | the boundary |
@@ -781,6 +883,10 @@ A card is never lit at the same time as an interface sitting on it, or a chip in
 border is never lit at the same time as the name set into it. The pointer is over one thing;
 lighting that thing and everything around it says nothing about which of them is about to be
 acted on, which was the whole complaint.
+
+**A card lights as one thing, border and all.** It used to light its ring separately, because
+the ring took a different right-click action from the inside. Now that it does not, a second
+highlight there would be describing a distinction the tool no longer makes.
 
 **A group's boundary is found by position rather than by the pointer.** It is transparent to
 the pointer until it has been selected, so that a selection box drawn from inside it reaches

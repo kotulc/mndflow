@@ -115,12 +115,6 @@ function facing(from: Box, to: Box): Side {
   return dy > 0 ? "bottom" : "top";
 }
 
-/** Whether a screen point is on an element's border rather than inside it —
- *  the difference between "new interface here" and "new object in here". */
-function onRim(box: DOMRect, x: number, y: number): boolean {
-  return Math.min(x - box.left, box.right - x, y - box.top, box.bottom - y) < EDGE;
-}
-
 /** Nearest edge of an element to a screen point, and how far along it. */
 function nearestEdge(box: DOMRect, x: number, y: number): { side: Side; at: number } {
   const gaps = {
@@ -137,7 +131,7 @@ function nearestEdge(box: DOMRect, x: number, y: number): { side: Side; at: numb
 
 /** What the floating input is asking for. One prompt, several errands. */
 type Prompt =
-  | { kind: "node"; x: number; y: number; parent: string | null }
+  | { kind: "node"; x: number; y: number }
   | { kind: "sprout"; x: number; y: number; end: End }
   | { kind: "relation"; id: string }
   | { kind: "rename"; id: string };
@@ -166,8 +160,8 @@ type Props = {
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
   onPromote: (id: string, parent: string | null) => void;
-  onCreate: (label: string, parent: string | null) => void;
-  onCreateAt: (label: string, x: number, y: number) => void;
+  /** A node in this layer, joining any group boundaries it was made inside. */
+  onCreateAt: (label: string, x: number, y: number, groups: string[]) => void;
   onSprout: (a: End, label: string, x: number, y: number, side: Side) => void;
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
@@ -197,7 +191,7 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
-  const { onPick, onOpen, onUp, onNest, onPromote, onCreate, onCreateAt, onSprout } = props;
+  const { onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
   // Everything the cards, the frame and the lines are handed has to keep one
   // identity, or their data is rebuilt on every render — see `useSteady`.
   const onRename = useSteady(props.onRename);
@@ -515,7 +509,11 @@ function Flow(props: Props) {
         const targetBox = boxes[target] ?? (target === view ? frameBox : null);
         const forward = edge.dir === "forward" || edge.dir === "both";
         const back = edge.dir === "back" || edge.dir === "both";
-        const head = { type: MarkerType.ArrowClosed, width: 16, height: 16, color: "#3f6552" };
+        // A line reaching out of the layer carries its own colour, not just a
+        // dash — see `.reaching`. Violet is the hue nothing else has claimed.
+        const tint = away ? "#6d5aa8" : "#2f4a3e";
+        const head = { type: MarkerType.ArrowClosed, width: 16, height: 16,
+                       color: away ? "#6d5aa8" : "#3f6552" };
 
         return {
           id: edge.id,
@@ -525,7 +523,10 @@ function Flow(props: Props) {
           type: "wire",
           zIndex: DEPTH.edge,
           data: {
-            corners: edge.route ?? [],
+            // A route belongs to the layer it was dragged in; a relationship
+            // reaching through a reference draws in more than one, and corners
+            // right in one of them mean nothing in the other.
+            corners: edge.route?.layer === view ? edge.route.corners : [],
             angular,
             reach: { from: reachOf(edge.from), to: reachOf(edge.to) },
             onRoute: routed,
@@ -540,7 +541,7 @@ function Flow(props: Props) {
           focusable: true,
           className: away ? "reaching" : "",
           selected: picked?.kind === "edge" && picked.id === edge.id,
-          style: { stroke: "#2f4a3e", strokeDasharray: away ? "5 4" : undefined },
+          style: { stroke: tint, strokeDasharray: away ? "5 4" : undefined },
         } as Edge;
       })
       .filter((e): e is Edge => e !== null);
@@ -757,8 +758,9 @@ function Flow(props: Props) {
 
     const port = element?.closest(".port") as HTMLElement | null;
     const cell = element?.closest(".cell") as HTMLElement | null;
-    // A frame's or a boundary's name is set into its border and is not it.
-    const title = Boolean(element?.closest(".frame-name, .region-name"));
+    // A name is its own target wherever it is written — a card's as much as a
+    // frame's — since the right button renames there and makes nothing.
+    const title = Boolean(element?.closest(".frame-name, .region-name, .card-head .label"));
     const host = element?.closest(".react-flow__node") as HTMLElement | null;
     const kind = host?.classList.contains("react-flow__node-card") ? "card"
                : host?.classList.contains("react-flow__node-frame") ? "frame"
@@ -800,8 +802,9 @@ function Flow(props: Props) {
    *  a right-click would act on.
    *
    *  Innermost wins: an interface over the card it sits on, a chip over the
-   *  container holding it. A card's border and its inside are separate, since
-   *  they take separate actions. */
+   *  container holding it. A card is one target, border included: the whole of
+   *  it takes the same action, so lighting its ring apart would be describing a
+   *  distinction the tool no longer makes. */
   const grazedAt = useCallback((x: number, y: number): Grazed => {
     const hit = under(x, y);
 
@@ -811,12 +814,8 @@ function Flow(props: Props) {
     if (hit.port) return { kind: "port", id: hit.port };
     if (hit.cell) return { kind: "cell", id: hit.cell };
 
-    if (hit.id && hit.box && (hit.kind === "card" || hit.kind === "frame")) {
-      // The frame is only ever met at its border — `under` says so or says
-      // nothing — so it is always its own edge that is in context.
-      if (hit.kind === "frame") return { kind: "frame", id: hit.id };
-
-      return { kind: onRim(hit.box, x, y) ? "rim" : "card", id: hit.id };
+    if (hit.id && (hit.kind === "card" || hit.kind === "frame")) {
+      return { kind: hit.kind, id: hit.id };
     }
 
     // A group's boundary is transparent to the pointer until it is picked, so
@@ -845,31 +844,24 @@ function Flow(props: Props) {
     const onSelection = hit.kind === "selection" || (hit.id !== null && chosen.includes(hit.id));
     if (chosen.length > 1 && onSelection) return onGroup(chosen);
 
-    // A name is set into a border but is not one, so right-clicking it must
-    // not make an interface. There is no default action for a name — renaming
-    // is the left button's — so the button does nothing rather than the wrong
-    // thing, and waits for the menu.
-    if (hit.title) return;
+    // A name opens its own editor on the right button — see `Name` — and
+    // nothing else happens there. An interface is already one, and a relation
+    // has no default worth borrowing; both wait for the menu.
+    if (hit.title || hit.port || hit.kind === "edge") return;
 
-    const at = flow.screenToFlowPosition({ x, y });
-
-    if (hit.kind === "card" && hit.id && hit.box) {
-      // Near the border it is the frame edge, and a frame edge makes ports.
-      const { side, at: along } = nearestEdge(hit.box, x, y);
-
-      return onRim(hit.box, x, y)
-        ? onAddPort(hit.id, side, along)
-        : setPrompt({ kind: "node", x: at.x, y: at.y, parent: hit.id });
-    }
-
-    // The frame is only ever met at its edge — `under` says so or says nothing.
-    if (hit.kind === "frame" && hit.id && hit.box) {
+    // Anywhere on a card, and anywhere on the layer's own border, makes an
+    // interface. Where the click landed decides which point of the border it
+    // goes to; it is not a test the click has to pass.
+    if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box) {
       const { side, at: along } = nearestEdge(hit.box, x, y);
 
       return onAddPort(hit.id, side, along);
     }
 
-    setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2, parent: null });
+    // Empty background: a node in this layer, joining any boundary it lands in.
+    const at = flow.screenToFlowPosition({ x, y });
+
+    setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
   }, [under, nodes, flow, onGroup, onAddPort]);
 
   // Shortcuts the canvas owns. Inside a field the field's own editing wins,
@@ -893,6 +885,23 @@ function Flow(props: Props) {
         return chosen.length > 1 ? onGroup(chosen) : undefined;
       }
 
+      // Show me this. Which *this* is already answered by what is selected, so
+      // one key covers both fitting the layer and going to one thing in it.
+      if (event.key.toLowerCase() === "f" && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        const seen = pickedNode ? [pickedNode] : chosen;
+
+        if (seen.length) {
+          return flow.fitView({ nodes: seen.map((id) => ({ id })), duration: 320,
+                                padding: 0.6, maxZoom: 1.6 });
+        }
+
+        const rest = restViewport();
+
+        return rest ? flow.setViewport(rest, { duration: 320 })
+                    : flow.fitView({ duration: 320, padding: 0.24, maxZoom: 1.3 });
+      }
+
       // The library deletes what it has selected, which is cards and relations.
       // An interface, or a group boundary, is selected by us and not by it, so
       // it has to be removed here or Delete would appear to do nothing.
@@ -910,7 +919,8 @@ function Flow(props: Props) {
     window.addEventListener("keydown", press);
 
     return () => window.removeEventListener("keydown", press);
-  }, [nodes, pickedNode, onGroup, onPick]);
+  }, [nodes, pickedNode, picked, flow, restViewport, onGroup, onPick,
+      onDropAttr, onUnlink, onDelete]);
 
   /** The right button, from press to release. Below the threshold it is a
    *  click and falls through to the default action; past it, a relationship
@@ -1099,7 +1109,9 @@ function Flow(props: Props) {
         zoomOnScroll
         panOnScroll={false}
         onMove={onMove}
-        multiSelectionKeyCode={["Shift", "Meta", "Control"]}
+        // `Control` is deliberately not here: on a trackpad it is a real right
+        // click, and every right-button gesture is one of ours.
+        multiSelectionKeyCode={["Shift", "Meta"]}
         elementsSelectable
         edgesFocusable
         // Backspace alone is the library's default, which is why Delete
@@ -1346,10 +1358,11 @@ function Flow(props: Props) {
                     : prompt.end.seat?.side;
                   onSprout(prompt.end, text, prompt.x, prompt.y,
                            near ? FACING[near] : "left");
-                } else if (prompt.parent) {
-                  onCreate(text, prompt.parent);
                 } else {
-                  onCreateAt(text, prompt.x, prompt.y);
+                  // Made in the clear space inside a boundary, it joins that
+                  // group — the same test a card dropped there passes.
+                  const mid = { x: prompt.x + LEAF.w / 2, y: prompt.y + LEAF.h / 2 };
+                  onCreateAt(text, prompt.x, prompt.y, enclosing("", mid, new Set()));
                 }
               }
               if (event.key === "Enter" || event.key === "Escape") setPrompt(null);

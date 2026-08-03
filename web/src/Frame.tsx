@@ -54,7 +54,6 @@ export const Frame = memo(({ data }: NodeProps) => {
         grazed?.kind === "title" && grazed.id === id ? " grazed" : ""}`}>
         <Name
           text={nameOf(graph, graph.nodes[id])}
-          live
           className="frame-label"
           onRename={(label) => onRename(id, label)}
         />

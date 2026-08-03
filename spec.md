@@ -99,6 +99,9 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 - Add, rename, delete, and drag rows between levels.
 - Dragging a row onto the canvas places a reference to it in the open layer.
+- A move to another layer drops what does not travel: the node's group memberships, and its
+  relationships to anything staying behind. Its children, its interfaces and all the wiring
+  inside it arrive exactly as they were.
 - A move is never confirmed first; undo is the answer to a move that went wrong.
 
 
@@ -141,12 +144,18 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   - A chip's name shrinks to fit and hides when even the floor will not fit; hover names it.
   - Nesting stops at the first layer: a child container is marked as one and no further.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
-- **Reference** — a stand-in for a node living in another layer.
-  - Dashed, grey and hatched, marked `↗`; the only dashed thing on the canvas.
+- **Reference** — a stand-in for a node living in another layer, so that a relationship reaching
+  it can be seen here. A visual shortcut; it changes nothing about the relationship.
+  - Greyed, hatched and dashed, marked `↗`; the only dashed card on the canvas. The colour is on
+    the lines, not the card: **a relationship reaching a reference draws violet and dashed**,
+    label and arrowheads with it, so a line leaving the layer is told apart at a glance.
   - Shows the name of the node it stands for; renaming it renames that node.
   - Has no inside: double-clicking goes to where that node actually lives and selects it there.
   - Nothing nests into one, and it never becomes an interface.
-  - Deleting one removes the placeholder only.
+  - Points at a real node, never at another reference — the explorer is the only place one is
+    dragged from and it does not list them.
+  - Placed only by the user, never automatically. Deleting one removes the placeholder only;
+    it goes on its own when the node it stands for is deleted.
 - Chips drag out of a treemap onto the canvas to lift that node into the open layer.
 
 ### Interfaces
@@ -166,12 +175,26 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 ### Relationships
 
 - A plain line, undirected by default. Direction and reversal come from the attribute panel.
+- Joins two **nodes**, and anchors at an **interface** on each. The ends are the nodes; the
+  interfaces are only where the line meets them.
 - Drawn by right-click-dragging from anywhere on a node or from an interface; an interface lands
   at each end. Released over empty canvas, the far node is created too.
 - `Esc` cancels the whole gesture, interfaces included.
 - Double-clicking a line names its kind.
-- Drawn dotted when either end is reached through a reference.
 - Drawn curved or angular by the canvas toggle; a line that has been routed stays angular.
+
+**Where one is drawn**
+
+- In any layer holding both its ends — directly, or through a reference standing in for one.
+- An interface draws on both sides of its node's boundary: on the card from the layer outside,
+  on the frame from inside. So wiring in to it and wiring out of it are two relationships, each
+  with both ends in one layer, coupled by the one interface they share.
+- A relationship need not go through an interface, nor stay within a layer. Anything may relate
+  to anything; a cross-layer relationship is simply not drawn until a reference asks for it.
+- Moving a node to another layer drops its **external** wiring — relationships to anything not
+  travelling with it. Wiring inside it, including from its children to its own interfaces,
+  survives. Nothing is rewritten, and no reference is placed to keep a dropped line visible.
+- A route belongs to the layer it was laid out in; drawn elsewhere, the line routes itself.
 
 **Routing**
 
@@ -197,6 +220,7 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   action.
 - Dropping a card in the clear space inside joins; dropping it outside leaves. Dropping *on* a
   card is a move into that card instead.
+- A node created inside a boundary joins that group, by the same reckoning as a drop there.
 - A whole group moved together stays together.
 - Falling below two members removes the attribute rather than drawing it around one node.
 - Boundaries overlap freely and their backgrounds compound.
@@ -215,8 +239,7 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   | a frame's or a boundary's name | that name |
   | an interface | that interface |
   | a chip in a treemap | that chip |
-  | a card within a step of its border | the border, as a ring outside the line |
-  | a card anywhere else | the card |
+  | a card | the card, border included — it is one target |
   | the layer's frame near its border | the frame |
   | a relationship | the line |
   | the clear space inside a boundary | the boundary |
@@ -232,15 +255,20 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   full trail in its tooltip, plus `↑` for one layer up.
 - Canvas toolbar top-right: interfaces on the canvas, curves or angles. Both global to the app.
 - Zoom controls bottom-left, riding above the attribute tray.
-- Pan with the middle button; zoom with the wheel. Never with a left drag.
+- Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
+  left drag never pans.
 - Panning is bounded to the layer's contents plus room on every side to put something new.
 - Zoom will not go out past the frame plus its band, and re-centres when it arrives back there.
+
+**The buttons divide by what they do, not by what they are over.** The left button handles
+what already exists; the right button makes something new. Within the right button, a click
+makes the thing that sits at a point and a drag makes the thing that has extent.
 
 **Left drag**, by where it starts:
 
 | From | Does |
 |---|---|
-| a node | moves it; onto another card nests it; in or out of a boundary joins or leaves |
+| a card | moves it; onto another card nests it; in or out of a boundary joins or leaves |
 | an interface | slides it along its frame edge |
 | a relationship segment | moves that segment, and its interface where it is an end one |
 | a selected group's background | moves every member together |
@@ -249,17 +277,23 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 Small precise targets — interfaces, segments — act at once. Large ones — a boundary, a
 multi-node selection — must be selected first.
 
-**Right click**, where the menu does not exist yet:
+**Right button**, where the menu does not exist yet:
 
-| On | Default action |
-|---|---|
-| empty canvas | new object |
-| a node | new object inside it |
-| a frame edge, the layer's own or a card's | new interface |
-| a name | nothing |
-| a multi-node selection | group the selection |
+| On | Click makes | Drag makes |
+|---|---|---|
+| a card | an interface, at the nearest point of its border | a relationship |
+| the layer's frame edge | an interface on the frame | a relationship from the frame |
+| empty background | a node | a text annotation **(planned)** |
+| a name | opens it for editing | — |
+| an interface | nothing — it is already one | a relationship from it |
+| a relationship | nothing | — |
+| a multi-node selection | groups the selection | — |
 
-**Right drag** draws a relationship, from anywhere on a node or from an interface.
+- A card has no border zone: the click position decides where on the border the interface
+  lands, but anywhere on the card will do. The layer's own frame is the exception, since its
+  interior is the background.
+- Nothing appears until a right drag pulls clear of the press, so a right click that wanders by
+  a pixel is still a right click. `Esc` cancels.
 
 **Keyboard**
 
@@ -268,10 +302,13 @@ multi-node selection — must be selected first.
 | `Delete` / `Backspace` | delete the selection |
 | `Esc` | clear the selection, back to the scope |
 | `Enter` | rename the selection |
+| `F` | fit the layer, or zoom to the selection if there is one |
 | `Ctrl`/`Cmd` + `Z` | undo |
 | `Ctrl`/`Cmd` + `Y`, `Ctrl`/`Cmd` + `Shift` + `Z` | redo |
 | `Ctrl`/`Cmd` + `G` | group the selection |
 | `Ctrl`/`Cmd` + `A` | select everything on this layer **(planned)** |
+| `Shift` / `Cmd` + click | add to the selection |
+| `Space` + drag | pan |
 | double-click | descend on the canvas, rename in the explorer |
 
 ### Selection and scope
@@ -316,10 +353,10 @@ multi-node selection — must be selected first.
 - A name is written the way it was typed and shown the same way everywhere.
 - Only the role words an unnamed thing falls back to are lower case: `block`, `container`,
   `interface 3`. Giving a name replaces the description entirely.
-- A name is edited where it is drawn. `Enter` commits, `Esc` abandons, clicking away commits.
-  - **The layer's frame** — one click, no selecting first.
-  - **A group boundary** — select it, then click its name.
-  - **A card** — select it, then click its name; the editor waits a moment for a double-click,
-    which descends instead.
-- A name is its own target: it highlights on its own, and right-clicking it does nothing.
+- **A name is edited where it is drawn, by right-clicking it.** One rule for every name on the
+  canvas — a card's, a boundary's, the layer's own frame. `Enter` commits, `Esc` abandons, and
+  clicking away commits.
+- A name is its own target: it highlights on its own, and the border it is set into stays dark
+  beneath it.
+- `Enter` renames the selection, for a hand already on the keyboard.
 - The explorer renames on double-click, as a file tree does.

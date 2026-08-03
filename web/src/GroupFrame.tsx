@@ -45,12 +45,7 @@ export const GroupFrame = memo(({ data }: NodeProps) => {
       onClick={onPick}
     >
       <span className={`region-name nodrag${titled ? " grazed" : ""}`}>
-        <Name
-          text={label || "group"}
-          live={picked}
-          className="region-label"
-          onRename={onLabel}
-        />
+        <Name text={label || "group"} className="region-label" onRename={onLabel} />
       </span>
     </div>
   );

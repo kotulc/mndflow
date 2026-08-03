@@ -10,7 +10,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
-import { blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, nextPortNum } from "./fold";
+import {
+  attrsOf, blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, nextPortNum,
+} from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
@@ -118,6 +120,32 @@ export function useProject() {
 
   const name = (id: string) => graph.nodes[id]?.label ?? id;
 
+  /** What a node sheds by moving to another layer: its group memberships, and
+   *  the relationships joining it to whatever is staying behind.
+   *
+   *  Everything travelling with it is kept whole. Its children go too, and so
+   *  does the wiring among them and from them to its own interfaces — an
+   *  interface draws on both sides of its node, so a child wired to one is
+   *  internal wiring, drawn inside the very layer that is moving. What breaks
+   *  is only what had one end here and the other there. */
+  const shed = (id: string, parent: string | null) => {
+    if (!graph.nodes[id] || graph.nodes[id].parent === parent) return [];
+
+    return [
+      ...attrsOf(graph, id).filter((a) => a.group)
+        .map((a) => ({ op: "detach_attr" as const, id: a.id, holder: id })),
+      ...Object.values(graph.edges)
+        .filter((edge) => {
+          const far = edge.source === id ? edge.target
+                    : edge.target === id ? edge.source
+                    : null;
+
+          return far !== null && !descendsFrom(graph, far, id);
+        })
+        .map((edge) => ({ op: "delete_edge" as const, id: edge.id })),
+    ];
+  };
+
   /** Nodes from the project down to the open one — the breadcrumb, and the
    *  set the explorer keeps expanded. */
   const path = useMemo(() => {
@@ -179,7 +207,8 @@ export function useProject() {
 
     move: (id: string, parent: string | null) =>
       !descendsFrom(graph, parent, id) &&
-      commit(makeStep(`move: ${name(id)}`, "move", [{ op: "move_node", id, parent }])),
+      commit(makeStep(`move: ${name(id)}`, "move",
+                      [{ op: "move_node", id, parent }, ...shed(id, parent)])),
 
     place: (id: string, x: number, y: number) =>
       commit(makeStep(`place: ${name(id)}`, "place", [{ op: "place_node", id, x, y }])),
@@ -276,7 +305,7 @@ export function useProject() {
      *  back the line and the port together. */
     route: (id: string, corners: Spot[], slides: { id: string; side: Side; at: number }[]) =>
       commit(makeStep(corners.length ? "route" : "straighten", "route", [
-        { op: "route_edge", id, route: corners.length ? corners : null },
+        { op: "route_edge", id, layer: view, route: corners.length ? corners : null },
         ...slides.map(({ id: port, side, at }) => ({
           op: "set_port" as const, id: port, side, at,
         })),
@@ -348,7 +377,8 @@ export function useProject() {
       if (id === parent || descendsFrom(graph, parent, id)) return;
       if (isRef(graph.nodes[parent])) return;
 
-      commit(makeStep(`into: ${name(parent)}`, "nest", [{ op: "move_node", id, parent }]));
+      commit(makeStep(`into: ${name(parent)}`, "nest",
+                      [{ op: "move_node", id, parent }, ...shed(id, parent)]));
     },
 
     /** Push a node out past the edge of the layer it is in, into whatever
@@ -356,7 +386,7 @@ export function useProject() {
     promote: (id: string, parent: string | null) =>
       graph.nodes[id] && graph.nodes[id].parent !== parent &&
       commit(makeStep(`out of layer: ${name(id)}`, "promote",
-                      [{ op: "move_node", id, parent }])),
+                      [{ op: "move_node", id, parent }, ...shed(id, parent)])),
 
     /** Take an object out of its container and set it down on the open layer.
      *  One step, so undo puts it back where it was. */
@@ -366,17 +396,22 @@ export function useProject() {
 
       commit(makeStep(`out: ${name(id)}`, "lift", [
         { op: "move_node", id, parent: view },
+        ...shed(id, view),
         { op: "place_node", id, x, y },
       ]));
     },
 
     /** Make something where the user pointed, rather than where layout would
-     *  have put it. */
-    createAt: (label: string, x: number, y: number) =>
-      commit(makeStep(`new: ${label}`, "create", [{
-        op: "add_node",
-        node: makeNode(label, { parent: view, type: terms.node, x, y }),
-      }])),
+     *  have put it — joining any group boundaries it was made inside, since
+     *  making one in a group's clear space plainly means it belongs there. */
+    createAt: (label: string, x: number, y: number, groups: string[] = []) => {
+      const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
+
+      commit(makeStep(`new: ${label}`, "create", [
+        { op: "add_node", node: fresh },
+        ...groups.map((id) => ({ op: "attach_attr" as const, id, holder: fresh.id })),
+      ]));
+    },
 
     /** A relationship dragged into empty space: make the far end, and attach.
      *  Both ends get their interface like any drawn relationship — the near one
