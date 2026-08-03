@@ -1434,10 +1434,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 /* A group's boundary — one shared attribute, drawn around its members.
  *
- * Transparent to the pointer until it has been selected, so a box drawn from
- * inside it reaches the pane and selects elements rather than sweeping in the
- * group. Selecting it is a click, which the canvas routes by position; once
- * selected it takes the pointer back and can be dragged.
+ * The middle is transparent to the pointer so cards and selection boxes still
+ * reach through; the rim and the name take the pointer and are always
+ * draggable, so a group is as easy to take hold of as a card.
  *
  * Sized like the selection rect (same hug), drawn like a faint selection that
  * persisted: dashed border, fill clipped inside it, name breaking the line. */
@@ -1451,9 +1450,23 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   background-clip: padding-box;
 }
 
-/* The pointer is in the clear space inside it, which is where a click selects
-   it. Set by the canvas, since the boundary takes no pointer events until it
-   has been picked. */
+/* Thick enough to aim at: the hug between members and the dashed line, plus a
+   little, so the clear band around the cards is the grab surface. */
+.region-rim {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.region-rim.top,
+.region-rim.bottom { left: 0; right: 0; height: 16px; }
+.region-rim.left,
+.region-rim.right { top: 0; bottom: 0; width: 16px; }
+.region-rim.top { top: 0; }
+.region-rim.bottom { bottom: 0; }
+.region-rim.left { left: 0; }
+.region-rim.right { right: 0; }
+
 .region.grazed { border-color: rgba(107, 143, 125, 0.75); }
 
 .region.picked {
@@ -1470,24 +1483,26 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   background-clip: padding-box;
 }
 
-/* Set into the border like a frame name — a break in the dashed line. */
+/* Set into the border like a frame name — a break in the dashed line. A left
+   drag moves the group; a right click renames. */
 .region-name {
   position: absolute;
   left: 12px;
   top: -9px;
+  z-index: 1;
   padding: 0 8px;
   background: var(--bg);
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 0.16em;
   pointer-events: auto;
-  cursor: pointer;
+  cursor: grab;
 }
 
 .region.picked .region-name { color: var(--accent); }
 
-/* Its own target, the same as a frame's name — a click there renames rather
-   than acting on the boundary, so it lights on its own. */
+/* Its own target for rename highlight — a right-click there edits rather than
+   acting on the boundary. */
 .region-name.grazed .region-label { color: var(--text); }
 .region-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
 

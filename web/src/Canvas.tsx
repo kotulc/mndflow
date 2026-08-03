@@ -399,15 +399,12 @@ function Flow(props: Props) {
         // `measured` specifically, so both are given here.
         width: box.w,
         height: box.h,
-        // Transparent to the pointer until picked, so a box drawn inside the
-        // boundary reaches the pane and selects elements rather than sweeping
-        // the group in. Stated inline because React Flow's own stylesheet
-        // claims `pointer-events: all` on every node at the same specificity a
-        // rule of ours would have. Its label opts back in on its own.
-        style: { width: box.w, height: box.h, pointerEvents: chosen ? "all" : "none" },
-        // Only once picked, so a stray drag across the canvas cannot shift a
-        // group nobody was pointing at.
-        draggable: chosen,
+        // Transparent to the pointer in the middle, so a box drawn inside the
+        // boundary reaches the pane and selects cards rather than sweeping the
+        // group in. The rim and name opt back in — always, so a group is
+        // grabable without selecting it first.
+        style: { width: box.w, height: box.h, pointerEvents: "none" },
+        draggable: true,
         selectable: false,
         data: {
           label: attr.name,
@@ -927,10 +924,11 @@ function Flow(props: Props) {
     const cell = element?.closest(".cell") as HTMLElement | null;
     // A name is its own target wherever it is written — a card's as much as a
     // frame's — since the right button renames there and makes nothing. A note
-    // is written all the way through: the whole of it is its name.
+    // is written all the way through: the whole of it is its name. The group's
+    // rim is the boundary itself, not its title.
     const title = Boolean(
       element?.closest(".frame-name, .region-name, .card-head .label, .note"),
-    );
+    ) && !element?.closest(".region-rim");
     const host = element?.closest(".react-flow__node") as HTMLElement | null;
     const kind = host?.classList.contains("react-flow__node-card") ? "card"
                : host?.classList.contains("react-flow__node-frame") ? "frame"
@@ -989,10 +987,9 @@ function Flow(props: Props) {
       return { kind: hit.kind, id: hit.id };
     }
 
-    // A group's boundary is transparent to the pointer until it is picked, so
-    // the clear space inside one is found by measuring instead — the same way
-    // the click that selects it is placed. The tightest boundary wins, so an
-    // inner group is always the one you can reach.
+    // A group's middle is open to the pointer, so the clear space inside one
+    // is found by measuring — the same way a click there selects it. The
+    // tightest boundary wins, so an inner group is always the one you can reach.
     const at = flow.screenToFlowPosition({ x, y });
     const inside = bands
       .filter(({ box }) => at.x >= box.x && at.x <= box.x + box.w &&
@@ -1341,6 +1338,7 @@ function Flow(props: Props) {
         translateExtent={extent}
         onNodeClick={(_, node) => {
           if (node.type === "card") return onPick({ kind: "node", id: node.id });
+          if (node.type === "region") return onPick({ kind: "attr", id: node.id });
           // A placeholder is not a thing in itself: picking it picks whatever
           // it reaches, so the panel shows the node and not the stand-in.
           if (node.type === "ghost") {
@@ -1386,11 +1384,9 @@ function Flow(props: Props) {
         onPaneClick={(event) => {
           setPrompt(null);
 
-          // A group's boundary is transparent to the pointer until it has been
-          // selected, so that a box drawn inside it reaches the pane instead
-          // of sweeping the group in. The click that selects it therefore
-          // arrives here, and is placed rather than caught — by the same
-          // reckoning that decides what highlights under the pointer.
+          // The group's middle is open to the pointer, so a click in the clear
+          // space inside a boundary arrives here. Placed the same way highlight
+          // is — the tightest boundary under the point wins.
           const spot = grazedAt(event.clientX, event.clientY);
 
           onPick(spot?.kind === "group" ? { kind: "attr", id: spot.id } : null);
@@ -1412,6 +1408,9 @@ function Flow(props: Props) {
         }}
         onNodeDragStart={(_, node) => {
           if (node.type === "region") {
+            // Dragging is how you take hold of it; picking follows so the
+            // panel shows what is moving without a separate click first.
+            onPick({ kind: "attr", id: node.id });
             const holders = graph.attrs[node.id]?.holders ?? [];
             groupRef.current = {
               id: node.id,
