@@ -251,14 +251,18 @@ export function useProject() {
      *  the same reason: a selection dragged together is one action, and so is a
      *  group's members moving with its boundary. */
     placeMany: (moved: { id: string; x: number; y: number }[], what = "",
-                membership: { attr: string; holder: string; join: boolean }[] = []) =>
-      (moved.length || membership.length) &&
+                membership: { attr: string; holder: string; join: boolean }[] = [],
+                /** Auto-route seats to apply with the same gesture (card move). */
+                seats: { id: string; side: Side; at: number }[] = []) =>
+      (moved.length || membership.length || seats.length) &&
       commit(makeStep(
         what || (membership.length
           ? `${membership[0].join ? "into" : "out of"} a group`
           : moved.length === 1
             ? `place: ${name(moved[0].id)}`
-            : `place ${moved.length} together`),
+            : moved.length
+              ? `place ${moved.length} together`
+              : "seat"),
         "place",
         [
           ...moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
@@ -272,6 +276,7 @@ export function useProject() {
               graph.attrs[id],
               membership.filter((m) => !m.join && m.attr === id).map((m) => m.holder),
             )),
+          ...seats.map(({ id, side, at }) => ({ op: "set_port" as const, id, side, at })),
         ],
       )),
 
@@ -336,10 +341,9 @@ export function useProject() {
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
-    /** A relationship's route as a drag left it, and any interface that moved
-     *  with it. One step, because it was one gesture: dragging the segment
-     *  that leaves an interface slides the interface, and undo should take
-     *  back the line and the port together. */
+    /** A relationship's route as a middle-segment drag left it, and any seats
+     *  the auto-router is writing with the same gesture. Empty corners clear a
+     *  manual override so the line routes itself again. */
     route: (id: string, corners: Spot[], slides: { id: string; side: Side; at: number }[]) =>
       commit(makeStep(corners.length ? "route" : "straighten", "route", [
         { op: "route_edge", id, layer: view, route: corners.length ? corners : null },
@@ -347,6 +351,14 @@ export function useProject() {
           op: "set_port" as const, id: port, side, at,
         })),
       ])),
+
+    /** Seats chosen by auto-route for edges that have no manual corners — one
+     *  step so a layout pass does not flood the history. */
+    seatMany: (slides: { id: string; side: Side; at: number }[]) =>
+      slides.length > 0 &&
+      commit(makeStep("seat", "port", slides.map(({ id, side, at }) => ({
+        op: "set_port" as const, id, side, at,
+      })))),
 
     /** Turn a relation around. */
     flip: (id: string) =>

@@ -204,7 +204,9 @@ export function middled(at: { x: number; y: number }, size: { w: number; h: numb
  *  a lattice, so corner-relative seats never lined a container port up with the
  *  grid or with a block beside it. An edge only one row tall still has a single
  *  seat at its centre. */
-function seatMarks(origin: number, extent: number): number[] {
+/** Absolute canvas marks an edge may seat an interface on. Exported so the
+ *  router can pick seats the same way a drop does. */
+export function seatMarks(origin: number, extent: number): number[] {
   const last = Math.max(1, Math.floor(extent / SEAT) - 1);
   if (last <= 2) return [origin + extent / 2];
 

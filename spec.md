@@ -201,8 +201,9 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   beside it. Stored as a fraction still, so a port survives its frame being resized; the
   fractions it can take are the ones that land on a seat.
 - **No two sit in the same seat.** A drop onto an occupied one takes the next seat along.
-- An interface carried by a dragged relationship segment is *not* seated — there the line's
-  angle is what matters, and snapping the port afterwards would bend it.
+- **The route chooses seats** for relationship ends: a free lattice seat on a side that faces
+  outward toward the path. Dragging a port by hand still slides it; end segments of a line do
+  not.
 - Click selects; drag slides it along its edge and around corners, with no first click to spend.
 - Hiding them is a display preference: seats stay exactly where they were, and a seat shows as a
   round handle while its relationship or its card is selected.
@@ -233,19 +234,24 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 **Routing**
 
-- Every segment is draggable, and moves in the one direction across itself that means anything.
-- The two end segments carry their interface with them, sliding it along its frame edge.
-- Where the interface cannot follow — clamped at the end of its edge, implied, or in another
-  layer — a jog appears instead.
-- Line, port and jog are one action and one entry in the history.
+- The router owns seats and the orthogonal path: it picks outward-facing sides, free lattice
+  seats, and a min-bend path that clears other cards on the layer (with a small seat of
+  clearance). Stubs leave along the side normal only — never into the attached card.
+  Inside an open frame, the whole path stays inside the frame.
+- Middle segments are draggable and move in the one direction across themselves that means
+  anything; that override is saved as corners on the edge.
+- End segments do not carry interfaces. Seats update when cards move (or when a new line is
+  drawn) unless the edge has a saved corner override on this layer.
 - **Every elbow is a right angle**, guaranteed on the way to being drawn rather than attempted.
-- A segment dragged nearly level with an end snaps level; a route with nothing left to say stops
-  being a route.
-- A saved route follows its interfaces as they slide and their cards move; only the corners
-  between stay put.
-- Layout never touches a route.
+- A middle segment dragged nearly level with an end snaps level; a route with nothing left to
+  say stops being a route and auto-routing resumes.
+- A saved route keeps its corners while cards move; only the stubs follow their interfaces.
+  Empty / absent `route` means auto.
+- Layout never touches a *saved* route; auto edges re-seat and re-path with the cards.
+- **Right-click a relationship** to straighten it: clear any saved corners and re-route
+  min-bend around cards. Ports used only by that line may move; shared ports stay put.
 - The segment under the pointer marks itself and carries the resize cursor for its axis;
-  selecting the line shows every segment faintly.
+  selecting the line shows every middle segment faintly.
 
 ### Groups
 

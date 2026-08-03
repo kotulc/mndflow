@@ -198,6 +198,7 @@ export function App() {
               onReveal={project.reveal}
               onRelation={project.relation}
               onRoute={project.route}
+              onSeatMany={project.seatMany}
               onPlaceMany={project.placeMany}
               onUnlink={project.unlink}
               onDelete={project.remove}

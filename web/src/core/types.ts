@@ -68,11 +68,12 @@ export type Edge = {
   /** A route the user has laid out by hand: the corners between the two
    *  interfaces, in order, and the layer they were dragged in.
    *
-   *  Absent leaves the routing to the canvas, which is where most relationships
-   *  stay — a route is only ever the user's. The layer is recorded because a
-   *  relationship reaching through a reference can be drawn in two of them, and
-   *  each places its nodes independently, so corners right in one are meaningless
-   *  in the other. Drawn anywhere else, the line routes itself. */
+   *  Absent or empty means auto-route chooses seats and path. Only a
+   *  middle-segment drag writes corners here; layout never does. The layer is
+   *  recorded because a relationship reaching through a reference can be drawn
+   *  in two of them, and each places its nodes independently, so corners right
+   *  in one are meaningless in the other. Drawn anywhere else, the line routes
+   *  itself. */
   route?: { layer: string | null; corners: Spot[] } | null;
 };
 

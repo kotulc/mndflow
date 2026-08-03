@@ -29,7 +29,9 @@ import "@xyflow/react/dist/style.css";
 
 import { blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
 import { CELL, cell, LEAF, middled, place, SEAT, seatAt, sizeOf } from "./core/layout";
-import type { Move, Reach } from "./core/route";
+import {
+  route as planRoute, sameSeat, type Box, type Move, type Reach, type Seat,
+} from "./core/route";
 import type { End, Graph, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
@@ -84,8 +86,6 @@ const NOTE = { w: 168, h: 40 };
  *  cards sit over group bands, notes sit over cards, and interfaces sit over
  *  their host via CSS. */
 const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
-
-type Box = { x: number; y: number; w: number; h: number };
 
 /** A handler that keeps one identity for the life of the canvas, calling
  *  whatever it was last given.
@@ -147,6 +147,137 @@ function nearestEdge(
   return { side, at: seatAt(frac, extent, origin) };
 }
 
+/** Seats already taken on a card, excluding ports we are about to move. */
+function takenSeats(graph: Graph, parent: string | null, exclude: string[] = []): Seat[] {
+  const skip = new Set(exclude);
+
+  return portsOf(graph, parent)
+    .filter((p) => !skip.has(p.id) && p.side != null && p.at != null)
+    .map((p) => ({ side: p.side!, at: p.at! }));
+}
+
+/** Card boxes that a route must clear, excluding the two ends it attaches to. */
+function obstaclesOf(boxes: Record<string, Box>, fromId: string, toId: string): Box[] {
+  const skip = new Set([fromId, toId]);
+
+  return Object.entries(boxes)
+    .filter(([id]) => !skip.has(id))
+    .map(([, box]) => box);
+}
+
+/** Auto-route for one edge: seats + corners. `pin` locks ends to their current
+ *  seats — all, none, or per end (shared ports stay put on straighten). */
+function planEdge(
+  graph: Graph,
+  edge: { source: string; target: string; from?: string; to?: string },
+  boxes: Record<string, Box>,
+  view: string | null,
+  frameBox: Box | null,
+  pin: boolean | { from: boolean; to: boolean } = true,
+) {
+  const fromBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
+  const toBox = boxes[edge.target] ?? (edge.target === view ? frameBox : null);
+  if (!fromBox || !toBox) return null;
+
+  const fromPort = edge.from ? graph.nodes[edge.from] : null;
+  const toPort = edge.to ? graph.nodes[edge.to] : null;
+  const pinFromWanted = typeof pin === "boolean" ? pin : pin.from;
+  const pinToWanted = typeof pin === "boolean" ? pin : pin.to;
+  const pinFrom = pinFromWanted && fromPort?.side != null && fromPort.at != null
+    ? { side: fromPort.side, at: fromPort.at }
+    : undefined;
+  const pinTo = pinToWanted && toPort?.side != null && toPort.at != null
+    ? { side: toPort.side, at: toPort.at }
+    : undefined;
+
+  return planRoute(
+    fromBox,
+    toBox,
+    obstaclesOf(boxes, edge.source, edge.target),
+    {
+      pinFrom,
+      pinTo,
+      fromTaken: takenSeats(graph, fromPort?.parent ?? edge.source, edge.from ? [edge.from] : []),
+      toTaken: takenSeats(graph, toPort?.parent ?? edge.target, edge.to ? [edge.to] : []),
+      // Inside an open layer, paths stay in the frame — never skirt outside.
+      bounds: frameBox ?? undefined,
+      inwardFrom: edge.source === view,
+      inwardTo: edge.target === view,
+    },
+  );
+}
+
+/** True when another relationship also anchors at this interface. */
+function portShared(graph: Graph, port: string | undefined, edgeId: string): boolean {
+  if (!port) return false;
+
+  return Object.values(graph.edges)
+    .some((e) => e.id !== edgeId && (e.from === port || e.to === port));
+}
+
+/** Clear manual corners and re-seat exclusive ends for one edge. Shared ports
+ *  stay pinned so neighbouring lines are not yanked. */
+function straightenEdge(
+  graph: Graph,
+  edgeId: string,
+  boxes: Record<string, Box>,
+  view: string | null,
+  frameBox: Box | null,
+): { id: string; side: Side; at: number }[] {
+  const edge = graph.edges[edgeId];
+  if (!edge) return [];
+
+  const pinFrom = portShared(graph, edge.from, edgeId);
+  const pinTo = portShared(graph, edge.to, edgeId);
+  const planned = planEdge(graph, edge, boxes, view, frameBox, { from: pinFrom, to: pinTo });
+  if (!planned) return [];
+
+  const slides: { id: string; side: Side; at: number }[] = [];
+
+  for (const [portId, seat, pinned] of [
+    [edge.from, planned.from, pinFrom],
+    [edge.to, planned.to, pinTo],
+  ] as const) {
+    if (!portId || pinned) continue;
+    const port = graph.nodes[portId];
+    if (!port?.side || port.at == null) continue;
+    if (sameSeat({ side: port.side, at: port.at }, seat)) continue;
+    slides.push({ id: portId, side: seat.side, at: seat.at });
+  }
+
+  return slides;
+}
+
+/** Port seat updates so auto edges match a fresh plan (no manual corners). */
+function seatSlides(
+  graph: Graph,
+  boxes: Record<string, Box>,
+  view: string | null,
+  frameBox: Box | null,
+): { id: string; side: Side; at: number }[] {
+  const slides: { id: string; side: Side; at: number }[] = [];
+
+  for (const edge of Object.values(graph.edges)) {
+    if (edge.route?.layer === view && edge.route.corners.length > 0) continue;
+
+    const planned = planEdge(graph, edge, boxes, view, frameBox, false);
+    if (!planned) continue;
+
+    for (const [portId, seat] of [
+      [edge.from, planned.from],
+      [edge.to, planned.to],
+    ] as const) {
+      if (!portId) continue;
+      const port = graph.nodes[portId];
+      if (!port?.side || port.at == null) continue;
+      if (sameSeat({ side: port.side, at: port.at }, seat)) continue;
+      slides.push({ id: portId, side: seat.side, at: seat.at });
+    }
+  }
+
+  return slides;
+}
+
 /** What the floating input is asking for. One prompt, several errands. */
 type Prompt =
   | { kind: "node"; x: number; y: number }
@@ -202,10 +333,13 @@ type Props = {
    *  along with it — one gesture, so one action. */
   onRoute: (id: string, corners: Spot[],
             slides: { id: string; side: Side; at: number }[]) => void;
+  /** Seats from auto-route when no card moved — layout / first paint. */
+  onSeatMany: (slides: { id: string; side: Side; at: number }[]) => void;
   /** Where a drag came to rest, and any group each thing joined or left by
    *  landing there — one gesture, so one action. */
   onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string,
-                membership?: { attr: string; holder: string; join: boolean }[]) => void;
+                membership?: { attr: string; holder: string; join: boolean }[],
+                seats?: { id: string; side: Side; at: number }[]) => void;
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
   onGroup: (members: string[]) => void;
@@ -233,6 +367,7 @@ function Flow(props: Props) {
   const onSlidePort = useSteady(props.onSlidePort);
   const onNameAttr = useSteady(props.onNameAttr);
   const onRoute = useSteady(props.onRoute);
+  const onSeatMany = useSteady(props.onSeatMany);
   const { onLift, onWire, onAddPort, onRelation } = props;
   const { onPlaceMany, onUnlink, onDelete, onGroup, onDropAttr } = props;
   const { onNote, onPlaceNote, onTie, onRefer, onReveal } = props;
@@ -569,46 +704,21 @@ function Flow(props: Props) {
   );
 
   /** How far an interface may slide along its own frame edge, in canvas units.
-   *  Null where the end has no interface here to move — one that is implied,
-   *  or one whose frame is in another layer and only stood in for. */
+   *  Kept for Wire typing; end segments no longer slide ports. */
   const reachOf = useCallback((port: string | undefined): Reach => {
     const side = port ? graph.nodes[port]?.side : null;
     const box = hostBox(port);
     if (!side || !box) return null;
 
-    // As far as the first and last seats, so a port carried by a segment stops
-    // where one dragged by hand would.
     return side === "top" || side === "bottom"
       ? { lo: box.x + SEAT, hi: box.x + box.w - SEAT }
       : { lo: box.y + SEAT, hi: box.y + box.h - SEAT };
   }, [graph, hostBox]);
 
-  /** A route as a drag left it, and where each end's interface came to rest —
-   *  reported as a canvas coordinate, and turned back into a place along its
-   *  own edge here, where the frames are known. */
-  const routed = useCallback((id: string, corners: Spot[], moves: Move[]) => {
-    const edge = graph.edges[id];
-
-    const slides = moves.flatMap(({ end, at }) => {
-      const port = end === "from" ? edge?.from : edge?.to;
-      const side = port ? graph.nodes[port]?.side : null;
-      const box = hostBox(port);
-      if (!port || !side || !box) return [];
-
-      const flat = side === "top" || side === "bottom";
-      const along = flat ? (at - box.x) / box.w : (at - box.y) / box.h;
-      const span = flat ? box.w : box.h;
-
-      // Deliberately *not* seated. A segment carries its port so that the line
-      // stays straight and its elbows stay square; snapping the port to a seat
-      // afterwards would move it off the segment and put back the very bends
-      // the router exists to remove. Dragging the port itself is how it is
-      // seated — there, the port's position is what the gesture is about.
-      return [{ id: port, side, at: Math.min(Math.max(along, SEAT / span), 1 - SEAT / span) }];
-    });
-
-    onRoute(id, corners, slides);
-  }, [graph, hostBox, onRoute]);
+  /** A middle-segment drag's corners. Seats are owned by auto-route. */
+  const routed = useCallback((id: string, corners: Spot[], _moves: Move[]) => {
+    onRoute(id, corners, []);
+  }, [onRoute]);
 
   /** Edges as the graph describes them, before React Flow adds selection. */
   const builtEdges: Edge[] = useMemo(() => {
@@ -684,15 +794,20 @@ function Flow(props: Props) {
           label: edge.relation,
           type: "wire",
           zIndex: DEPTH.edge,
-          data: {
-            // A route belongs to the layer it was dragged in; a relationship
-            // reaching through a reference draws in more than one, and corners
-            // right in one of them mean nothing in the other.
-            corners: edge.route?.layer === view ? edge.route.corners : [],
-            angular,
-            reach: { from: reachOf(edge.from), to: reachOf(edge.to) },
-            onRoute: routed,
-          },
+          data: (() => {
+            const saved = edge.route?.layer === view && edge.route.corners.length > 0;
+            const planned = !saved && sourceBox && targetBox && edge.from && edge.to
+              ? planEdge(graph, { ...edge, source, target }, boxes, view, frameBox, true)
+              : null;
+
+            return {
+              corners: saved ? edge.route!.corners : (planned?.corners ?? []),
+              saved,
+              angular,
+              reach: { from: reachOf(edge.from), to: reachOf(edge.to) },
+              onRoute: routed,
+            };
+          })(),
           markerEnd: forward ? head : undefined,
           markerStart: back ? head : undefined,
           sourceHandle: `${anchor(source, edge.from, targetBox)}-s`,
@@ -715,6 +830,25 @@ function Flow(props: Props) {
   // one React Flow has nowhere to record a selection.
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(builtEdges);
   useEffect(() => setEdges(builtEdges), [builtEdges, setEdges]);
+
+  // Re-seat auto edges when cards settle (layout or load). Card drags fold
+  // seats into placeMany; this covers everything else without repeating work
+  // when seats already match the plan.
+  const boxKey = useMemo(
+    () => Object.entries(boxes)
+      .map(([id, b]) => `${id}:${Math.round(b.x)}:${Math.round(b.y)}:${Math.round(b.w)}:${Math.round(b.h)}`)
+      .sort()
+      .join("|"),
+    [boxes],
+  );
+
+  useEffect(() => {
+    const slides = seatSlides(graph, boxes, view, frameBox);
+    if (slides.length) onSeatMany(slides);
+    // Geometry only — a hand-dragged port on an auto edge must not be snapped
+    // back on the next render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- boxKey is the geometry signal
+  }, [boxKey, view, onSeatMany]);
 
   // Refit on a layer change, and when the layer gains or loses something.
   // Deliberately *not* keyed on the selection: selecting is a glance, and a
@@ -1010,10 +1144,14 @@ function Flow(props: Props) {
     const onSelection = hit.kind === "selection" || (hit.id !== null && chosen.includes(hit.id));
     if (chosen.length > 1 && onSelection) return onGroup(chosen);
 
-    // A name opens its own editor on the right button — see `Name` — and
-    // nothing else happens there. An interface is already one, and a relation
-    // has no default worth borrowing; both wait for the menu.
-    if (hit.title || hit.port || hit.kind === "edge") return;
+    // A name opens its own editor on the right button — see `Name` — and an
+    // interface is already one; both wait for the menu. A relation straightens:
+    // clear manual corners, re-seat ends this line alone owns, leave shared
+    // ports where they are.
+    if (hit.title || hit.port) return;
+    if (hit.kind === "edge" && hit.id) {
+      return onRoute(hit.id, [], straightenEdge(graph, hit.id, boxes, view, frameBox));
+    }
 
     // Anywhere on a card, and anywhere on the layer's own border, makes an
     // interface. Where the click landed decides which point of the border it
@@ -1029,7 +1167,7 @@ function Flow(props: Props) {
     const at = flow.screenToFlowPosition({ x, y });
 
     setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
-  }, [under, nodes, flow, onGroup, onAddPort]);
+  }, [under, nodes, flow, onGroup, onAddPort, onRoute, graph, boxes, view, frameBox]);
 
   // Shortcuts the canvas owns. Inside a field the field's own editing wins,
   // and Esc abandons whatever is half-drawn — prompt or relationship alike.
@@ -1204,13 +1342,45 @@ function Flow(props: Props) {
     // that is the anchor; anywhere else on the card, one is made at the point
     // of its border the drag was let go over.
     if (landed && landed !== held.end.node) {
-      const corner = hit.box
-        ? flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top })
-        : { x: 0, y: 0 };
+      const fromBox = boxes[held.end.node] ?? (held.end.node === view ? frameBox : null);
+      const toBox = boxes[landed] ?? (landed === view ? frameBox : null);
+      const planned = fromBox && toBox
+        ? planRoute(fromBox, toBox, obstaclesOf(boxes, held.end.node, landed), {
+            pinFrom: held.end.port
+              ? (() => {
+                  const p = graph.nodes[held.end.port!];
+                  return p?.side != null && p.at != null ? { side: p.side, at: p.at } : undefined;
+                })()
+              : undefined,
+            pinTo: hit.port
+              ? (() => {
+                  const p = graph.nodes[hit.port!];
+                  return p?.side != null && p.at != null ? { side: p.side, at: p.at } : undefined;
+                })()
+              : undefined,
+            fromTaken: takenSeats(graph, held.end.node, held.end.port ? [held.end.port] : []),
+            toTaken: takenSeats(graph, landed, hit.port ? [hit.port] : []),
+            bounds: frameBox ?? undefined,
+            inwardFrom: held.end.node === view,
+            inwardTo: landed === view,
+          })
+        : null;
 
-      return onWire(held.end, hit.port
+      const start: End = held.end.port
+        ? held.end
+        : { node: held.end.node, seat: planned?.from ?? held.end.seat! };
+      const finish: End = hit.port
         ? { node: landed, port: hit.port }
-        : { node: landed, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom(), corner) });
+        : { node: landed, seat: planned?.to
+            ?? (() => {
+              const corner = hit.box
+                ? flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top })
+                : { x: 0, y: 0 };
+
+              return nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom(), corner);
+            })() };
+
+      return onWire(start, finish);
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
@@ -1462,7 +1632,14 @@ function Flow(props: Props) {
             const moved = Object.entries(start.members)
               .map(([id, home]) => ({ id, x: home.x + dx, y: home.y + dy }));
 
-            return onPlaceMany(moved, `moved group of ${moved.length}`);
+            const nextBoxes = { ...boxes };
+            for (const m of moved) {
+              const prior = nextBoxes[m.id];
+              if (prior) nextBoxes[m.id] = { ...prior, x: m.x, y: m.y };
+            }
+
+            return onPlaceMany(moved, `moved group of ${moved.length}`, [],
+                               seatSlides(graph, nextBoxes, view, frameBox));
           }
 
           // A note has a place of its own, and takes nothing with it.
@@ -1513,7 +1690,14 @@ function Flow(props: Props) {
                                     join: inside.has(attr.id) }));
           });
 
-          onPlaceMany(moved, "", membership);
+          // Predict boxes after the place so auto seats ride in the same step.
+          const nextBoxes = { ...boxes };
+          for (const m of moved) {
+            const prior = nextBoxes[m.id];
+            if (prior) nextBoxes[m.id] = { ...prior, x: m.x, y: m.y };
+          }
+
+          onPlaceMany(moved, "", membership, seatSlides(graph, nextBoxes, view, frameBox));
         }}
         onEdgeDoubleClick={(_, edge) => setPrompt({ kind: "relation", id: edge.id })}
         // A placeholder is a drawing of something elsewhere; deleting it here
