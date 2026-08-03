@@ -22,12 +22,13 @@ import {
   SelectionMode,
   type Edge,
   type Node as FlowNode,
+  type NodeChange,
   type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import { blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
-import { CELL, cell, LEAF, place, SEAT, seatAt, sizeOf } from "./core/layout";
+import { CELL, cell, LEAF, middled, place, SEAT, seatAt, sizeOf } from "./core/layout";
 import type { Move, Reach } from "./core/route";
 import type { End, Graph, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
@@ -128,18 +129,22 @@ function facing(from: Box, to: Box): Side {
 
 /** Nearest edge of an element to a screen point, and the seat on it. The
  *  element is measured on screen, so its length is divided by the zoom to get
- *  the canvas units seats are counted in. */
-function nearestEdge(box: DOMRect, x: number, y: number, zoom: number):
-    { side: Side; at: number } {
+ *  the canvas units seats are counted in. `corner` is that element's top-left
+ *  in canvas units, so seats land on the absolute lattice. */
+function nearestEdge(
+  box: DOMRect, x: number, y: number, zoom: number, corner: { x: number; y: number },
+): { side: Side; at: number } {
   const gaps = {
     left: x - box.left, right: box.right - x, top: y - box.top, bottom: box.bottom - y,
   };
   const side = (Object.keys(gaps) as Side[])
     .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
   const flat = side === "top" || side === "bottom";
-  const along = flat ? (x - box.left) / box.width : (y - box.top) / box.height;
+  const frac = flat ? (x - box.left) / box.width : (y - box.top) / box.height;
+  const extent = (flat ? box.width : box.height) / (zoom || 1);
+  const origin = flat ? corner.x : corner.y;
 
-  return { side, at: seatAt(along, (flat ? box.width : box.height) / (zoom || 1)) };
+  return { side, at: seatAt(frac, extent, origin) };
 }
 
 /** What the floating input is asking for. One prompt, several errands. */
@@ -248,9 +253,14 @@ function Flow(props: Props) {
   const [grazed, setGrazed] = useState<Grazed>(null);
   const grazeRef = useRef("");
   const heldRef = useRef<string | null>(null);
-  /** Where a group's boundary sat when its drag began, so the distance its
-   *  members travel is the distance it travelled. */
-  const groupRef = useRef<{ id: string; x: number; y: number } | null>(null);
+  /** Where a group's boundary sat when its drag began, and where each member
+   *  sat — the drag moves them together by a snapped delta. */
+  const groupRef = useRef<{
+    id: string;
+    x: number;
+    y: number;
+    members: Record<string, { x: number; y: number }>;
+  } | null>(null);
   /** Where the right button went down, whatever it went down on. */
   const pressRef = useRef<Press | null>(null);
   const surface = useRef<HTMLDivElement>(null);
@@ -477,17 +487,74 @@ function Flow(props: Props) {
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
+  // Snap while the pointer moves, so the lattice under a card (or under a
+  // group's members) is the one it will settle on — free-dragging made every
+  // half-cell look like a valid drop, then release jumped to a full step.
+  // `middled` / `cell` are idempotent, so applying them to already-snapped
+  // positions is a no-op.
+  const onNodesChangeSnapped = useCallback((changes: NodeChange<FlowNode>[]) => {
+    const here = new Set(members.map((n) => n.id));
+    const start = groupRef.current;
+    const extras: NodeChange<FlowNode>[] = [];
+
+    const mapped = changes.map((change) => {
+      if (change.type !== "position" || !change.position) return change;
+
+      if (start && change.id === start.id) {
+        const dx = cell(change.position.x - start.x);
+        const dy = cell(change.position.y - start.y);
+        for (const [id, home] of Object.entries(start.members)) {
+          extras.push({
+            type: "position",
+            id,
+            position: { x: home.x + dx, y: home.y + dy },
+            dragging: change.dragging,
+          });
+        }
+
+        return { ...change, position: { x: start.x + dx, y: start.y + dy } };
+      }
+
+      if (here.has(change.id) && graph.nodes[change.id]) {
+        // Members of a group being dragged are positioned from the group's
+        // snapped delta above — leave them alone if a stray change arrives.
+        if (start?.members[change.id]) return change;
+
+        return {
+          ...change,
+          position: middled(change.position, sizeOf(graph, graph.nodes[change.id])),
+        };
+      }
+
+      if (graph.attrs[change.id]?.note) {
+        return {
+          ...change,
+          position: { x: cell(change.position.x), y: cell(change.position.y) },
+        };
+      }
+
+      return change;
+    });
+
+    onNodesChange([...mapped, ...extras]);
+  }, [onNodesChange, members, graph]);
+
   // React Flow owns positions during a drag; the graph owns them otherwise.
-  // The card being dragged keeps the position React Flow is giving it, or
-  // hovering over a drop target would snap it back to where it started.
+  // The card (or group and its members) being dragged keep the positions
+  // React Flow is giving them, or hovering over a drop target would snap
+  // them back to where they started.
   useEffect(() => {
     setNodes((current) => {
-      const held = heldRef.current ?? groupRef.current?.id;
+      const group = groupRef.current;
+      const moving = group
+        ? new Set([group.id, ...Object.keys(group.members)])
+        : heldRef.current ? new Set([heldRef.current]) : null;
       const chosen = new Map(current.map((n) => [n.id, n.selected]));
+      const now = new Map(current.map((n) => [n.id, n.position]));
 
       return built.map((n) => {
         const same = { ...n, selected: chosen.get(n.id) ?? false };
-        const at = n.id === held ? current.find((c) => c.id === held)?.position : null;
+        const at = moving?.has(n.id) ? now.get(n.id) : null;
 
         return at ? { ...same, position: at } : same;
       });
@@ -957,7 +1024,8 @@ function Flow(props: Props) {
     // interface. Where the click landed decides which point of the border it
     // goes to; it is not a test the click has to pass.
     if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box) {
-      const { side, at: along } = nearestEdge(hit.box, x, y, flow.getZoom());
+      const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
+      const { side, at: along } = nearestEdge(hit.box, x, y, flow.getZoom(), corner);
 
       return onAddPort(hit.id, side, along);
     }
@@ -1049,12 +1117,15 @@ function Flow(props: Props) {
     if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
 
     const origin = { x: event.clientX, y: event.clientY };
+    const corner = hit.box
+      ? flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top })
+      : { x: 0, y: 0 };
 
     setWire({
       // An interface it started on, or the place on the border to make one at.
       end: hit.port
         ? { node: hit.id, port: hit.port }
-        : { node: hit.id, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom()) },
+        : { node: hit.id, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom(), corner) },
       origin,
       to: origin,
       live: false,
@@ -1136,9 +1207,13 @@ function Flow(props: Props) {
     // that is the anchor; anywhere else on the card, one is made at the point
     // of its border the drag was let go over.
     if (landed && landed !== held.end.node) {
+      const corner = hit.box
+        ? flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top })
+        : { x: 0, y: 0 };
+
       return onWire(held.end, hit.port
         ? { node: landed, port: hit.port }
-        : { node: landed, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom()) });
+        : { node: landed, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom(), corner) });
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
@@ -1220,7 +1295,7 @@ function Flow(props: Props) {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={onNodesChangeSnapped}
         onEdgesChange={onEdgesChange}
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
@@ -1236,12 +1311,9 @@ function Flow(props: Props) {
         nodesDraggable
         // Deliberately *not* `snapToGrid`. The library snaps a node's corner to
         // a line, and a card is placed by its middle landing on the middle of a
-        // row — two different lattices, so what the drag showed and what the
-        // layer drew disagreed by half a cell. It was worse for a group, whose
-        // boundary is offset from its members: snapping the boundary carried
-        // every member that far off the grid, so a group could not be put down
-        // where it was aimed. `place` is the only thing that snaps, and a card
-        // settles onto the lattice as it is let go.
+        // row — two different lattices. `onNodesChangeSnapped` applies `middled`
+        // (and `cell` for notes and group deltas) while the drag moves, so what
+        // you see is what lands.
         // Relationships are the right button's business, drawn by hand below;
         // the handles here are anchors for geometry, not grab points.
         nodesConnectable={false}
@@ -1340,7 +1412,17 @@ function Flow(props: Props) {
         }}
         onNodeDragStart={(_, node) => {
           if (node.type === "region") {
-            groupRef.current = { id: node.id, x: node.position.x, y: node.position.y };
+            const holders = graph.attrs[node.id]?.holders ?? [];
+            groupRef.current = {
+              id: node.id,
+              x: node.position.x,
+              y: node.position.y,
+              members: Object.fromEntries(
+                holders
+                  .filter((id) => boxes[id])
+                  .map((id) => [id, { x: boxes[id].x, y: boxes[id].y }]),
+              ),
+            };
 
             return;
           }
@@ -1369,16 +1451,14 @@ function Flow(props: Props) {
         }}
         onNodeDragStop={(_, node, dragged) => {
           // A group's boundary carries its members: whatever it travelled,
-          // they travelled, in one action.
+          // they travelled, in one action — delta already snapped to the grid.
           const start = groupRef.current;
           if (node.type === "region" && start && start.id === node.id) {
             groupRef.current = null;
             const dx = node.position.x - start.x;
             const dy = node.position.y - start.y;
-            const mine = graph.attrs[node.id]?.holders ?? [];
-            const moved = mine
-              .filter((id) => boxes[id])
-              .map((id) => ({ id, x: boxes[id].x + dx, y: boxes[id].y + dy }));
+            const moved = Object.entries(start.members)
+              .map(([id, home]) => ({ id, x: home.x + dx, y: home.y + dy }));
 
             return onPlaceMany(moved, `moved group of ${moved.length}`);
           }

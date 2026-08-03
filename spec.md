@@ -119,10 +119,9 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   it sits squarely on that row and overhangs it evenly. Being a whole number of cells wide, its
   sides still land on grid lines; being a cell and a half tall, its top and bottom borders sit
   the same small distance outside the row — which is where the interfaces on them sit.
-- Snapping happens on release, not during the drag. One thing snaps, and it is the layer being
-  drawn.
-- Snapping happens when a layer is drawn, so a layer laid out before the grid existed comes onto
-  it. The log keeps what the user did; the grid is how it is shown.
+- Snapping follows the pointer during a drag, so the lattice under a card is the one it settles
+  on. The same snap runs when a layer is drawn, so a layer laid out before the grid existed comes
+  onto it. The log keeps what the user did; the grid is how it is shown.
 - Cards are as small as their contents allow: a block is **one grid row plus half a row of
   margin** (168 × 36), a container **three rows plus the same** (168 × 84). Nothing is held back
   for text that might arrive; a name too long for its card is clipped.
@@ -130,9 +129,11 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   it is all a size has to satisfy.
 - The container's band is two cells, so a block's middle and a container's middle are one cell
   apart and grid steps can bring them level. This is the size that is genuinely constrained.
-- A block's short edges hold 2 seats, a container's 6, and the long edges 13. A small card
-  offering few places to put an interface is the card being small, not the grid being coarse —
-  an interface is 11 units wide and seats are 12 apart.
+- Seat count follows edge length. A block is one grid row tall, so its left and
+  right edges hold **1 seat at the centre**. A container is taller, so its sides
+  hold several (6); long edges hold 13. A small card offering few places to put
+  an interface is the card being small, not the grid being coarse — an interface
+  is 11 units wide and seats are 12 apart.
 - A card is drawn at exactly the size the layout says it is; it never sizes itself to its text.
   A name too long for it is clipped.
 - **User placement wins.** A node the user has moved keeps its place.
@@ -194,11 +195,11 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - Made by drawing a relationship, or by right-clicking a frame edge for a bare one.
 - Deleting a relationship deletes the interfaces it made, sparing any another relationship still
   uses or that holds contents.
-- **Sits in a seat**: positions along an edge are every 12 units from the corner, never on one.
-  Seats are counted in units, not as a share of the edge, so the same seat is the same distance
-  down every card whatever its size — which is what makes two interfaces line up.
-- Stored as a fraction still, so a port survives its frame being resized; the fractions it can
-  take are the ones that land on a seat.
+- **Sits in a seat**: seats fall on the canvas lattice (every 12 units), never on a corner —
+  except an edge only one grid row tall, which holds a single seat at the centre. Counting from
+  the canvas rather than from each card's corner is what lines a container port up with a block
+  beside it. Stored as a fraction still, so a port survives its frame being resized; the
+  fractions it can take are the ones that land on a seat.
 - **No two sit in the same seat.** A drop onto an occupied one takes the next seat along.
 - An interface carried by a dragged relationship segment is *not* seated — there the line's
   angle is what matters, and snapping the port afterwards would bend it.

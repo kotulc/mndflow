@@ -38,13 +38,20 @@ export type FrameData = {
   grazed: Grazed;
 };
 
-export const Frame = memo(({ data }: NodeProps) => {
+export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
+                             positionAbsoluteY = 0 }: NodeProps) => {
   const { id, graph, straddles, showPorts, litSeats, pickedPort, grazed } =
     data as unknown as FrameData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
   const upright = straddles === "left" || straddles === "right";
+  const host = {
+    x: positionAbsoluteX,
+    y: positionAbsoluteY,
+    w: width ?? 0,
+    h: height ?? 0,
+  };
 
   return (
     <div className={`frame ${grazed?.kind === "frame" && grazed.id === id ? "grazed" : ""}`}>
@@ -78,6 +85,7 @@ export const Frame = memo(({ data }: NodeProps) => {
           key={port.id}
           port={port}
           graph={graph}
+          host={host}
           picked={pickedPort === port.id}
           grazed={grazed?.kind === "port" && grazed.id === port.id}
           onPick={onPick}
@@ -86,7 +94,14 @@ export const Frame = memo(({ data }: NodeProps) => {
           onSlide={onSlidePort}
         />
       ) : (
-        <Berth key={port.id} port={port} shown={litSeats.has(port.id)} inward />
+        <Berth
+          key={port.id}
+          port={port}
+          graph={graph}
+          host={host}
+          shown={litSeats.has(port.id)}
+          inward
+        />
       )))}
     </div>
   );

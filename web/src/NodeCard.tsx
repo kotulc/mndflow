@@ -13,7 +13,7 @@ import { memo, useRef, useState } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 
 import { blocksOf, isContainer, isLinked, isRef, nameOf, portsOf } from "./core/fold";
-import { affinity, CHIP_CAP, freeSeat, GRID, LEAF, pack } from "./core/layout";
+import { affinity, CHIP_CAP, freeSeat, GRID, LEAF, pack, seatAt, sizeOf } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
@@ -159,6 +159,34 @@ export const LIFTED = "application/mndflow-node";
  *  layer's canvas places a reference there rather than moving the node. */
 export const REFERRED = "application/mndflow-ref";
 
+/** Where a port sits along its host's edge, as the seated fraction. */
+function along(at: number, extent: number, origin: number): number {
+  return seatAt(at, extent, origin);
+}
+
+/** Edge length and near-end origin of a port's host in canvas units. */
+function edgeOf(
+  graph: Graph, port: Node, side: Side,
+  host?: { x: number; y: number; w: number; h: number },
+): { extent: number; origin: number } {
+  const flat = side === "top" || side === "bottom";
+
+  if (host) {
+    return {
+      extent: flat ? host.w : host.h,
+      origin: flat ? host.x : host.y,
+    };
+  }
+
+  const parent = port.parent ? graph.nodes[port.parent] : null;
+  if (!parent) {
+    return { extent: flat ? LEAF.w : LEAF.h, origin: 0 };
+  }
+
+  const size = sizeOf(graph, parent);
+  return { extent: flat ? size.w : size.h, origin: 0 };
+}
+
 /** Where an anchor sits on the frame, as CSS. */
 export function seat(side: Side, at: number): React.CSSProperties {
   // Not rounded to whole percent. One percent of a card is a pixel or so, but
@@ -238,15 +266,20 @@ export function Anchor({ name, side, inward }: { name: string; side: Side; inwar
  *  Normally it draws nothing at all. It shows a small round handle while the
  *  relationship attached to it, or the node it sits on, is selected — enough to
  *  see where a line is tied on without turning every square back on. */
-export function Berth({ port, shown, inward }: {
+export function Berth({ port, graph, shown, inward, host }: {
   port: Node;
+  graph: Graph;
   shown: boolean;
   inward?: boolean;
+  /** Host box in canvas units — seats are absolute on the canvas lattice. */
+  host?: { x: number; y: number; w: number; h: number };
 }) {
   const side = port.side ?? "right";
+  const { extent, origin } = edgeOf(graph, port, side, host);
+  const at = along(port.at ?? 0.5, extent, origin);
 
   return (
-    <span className={`berth port-${side}`} style={seat(side, port.at ?? 0.5)}>
+    <span className={`berth port-${side}`} style={seat(side, at)}>
       {shown && <span className="seat" />}
       <Anchor name={`port-${port.id}`} side={side} inward={inward} />
     </span>
@@ -261,6 +294,8 @@ export type PortProps = {
   grazed: boolean;
   /** Set on the layer's own frame, whose contents face inward. */
   inward?: boolean;
+  /** Host box in canvas units — seats are absolute on the canvas lattice. */
+  host?: { x: number; y: number; w: number; h: number };
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlide: (id: string, side: Side, at: number) => void;
@@ -282,7 +317,7 @@ export type PortProps = {
  *
  *  Shared by the cards and by the layer's own frame, which carries ports the
  *  same way — the only difference is whose edge they sit on. */
-export function Port({ port, graph, picked, grazed, inward,
+export function Port({ port, graph, picked, grazed, inward, host,
                        onPick, onOpen, onSlide }: PortProps) {
   const flow = useReactFlow();
   const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
@@ -290,7 +325,8 @@ export function Port({ port, graph, picked, grazed, inward,
    *  for this to be a slide rather than a click that shook. */
   const held = useRef<{ x: number; y: number } | null>(null);
   const side = drag?.side ?? port.side ?? "right";
-  const at = drag?.at ?? port.at ?? 0.5;
+  const { extent, origin } = edgeOf(graph, port, side, host);
+  const at = along(drag?.at ?? port.at ?? 0.5, extent, origin);
   const deep = isContainer(graph, port.id);
   const wired = isLinked(graph, port.id);
 
@@ -300,10 +336,11 @@ export function Port({ port, graph, picked, grazed, inward,
    *
    *  The host is measured on screen, so its length is divided by the zoom to
    *  get the canvas units seats are counted in. The fraction itself needs no
-   *  such correction — it is a ratio, and the zoom cancels. */
+   *  such correction — it is a ratio, and the zoom cancels. The near corner is
+   *  converted to canvas units so seats land on the absolute lattice. */
   function nearest(event: React.PointerEvent) {
-    const host = (event.currentTarget as HTMLElement).closest(".card, .frame");
-    const box = host?.getBoundingClientRect();
+    const el = (event.currentTarget as HTMLElement).closest(".card, .frame");
+    const box = el?.getBoundingClientRect();
     if (!box) return { side, at };
 
     const x = Math.min(Math.max(event.clientX - box.left, 0), box.width);
@@ -312,10 +349,13 @@ export function Port({ port, graph, picked, grazed, inward,
     const closest = (Object.keys(gaps) as Side[])
       .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
     const flat = closest === "top" || closest === "bottom";
-    const along = flat ? x / box.width : y / box.height;
-    const extent = (flat ? box.width : box.height) / (flow.getZoom() || 1);
+    const frac = flat ? x / box.width : y / box.height;
+    const zoom = flow.getZoom() || 1;
+    const span = (flat ? box.width : box.height) / zoom;
+    const corner = flow.screenToFlowPosition({ x: box.left, y: box.top });
+    const start = flat ? corner.x : corner.y;
 
-    return { side: closest, at: freeSeat(graph, port, closest, along, extent) };
+    return { side: closest, at: freeSeat(graph, port, closest, frac, span, start) };
   }
 
   return (
@@ -485,7 +525,8 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
   );
 }
 
-export const NodeCard = memo(({ data, selected }: NodeProps) => {
+export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
+                                positionAbsoluteY = 0 }: NodeProps) => {
   const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort } =
     data as unknown as CardData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
@@ -493,6 +534,8 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
   useEmbeddings();
 
   const holds = isContainer(graph, node.id);
+  const size = sizeOf(graph, node);
+  const host = { x: positionAbsoluteX, y: positionAbsoluteY, w: size.w, h: size.h };
   const classes = ["card", holds ? "group" : "object",
                    isRef(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
@@ -518,6 +561,7 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
           key={port.id}
           port={port}
           graph={graph}
+          host={host}
           picked={pickedPort === port.id}
           grazed={grazed?.kind === "port" && grazed.id === port.id}
           onPick={onPick}
@@ -525,7 +569,13 @@ export const NodeCard = memo(({ data, selected }: NodeProps) => {
           onSlide={onSlidePort}
         />
       ) : (
-        <Berth key={port.id} port={port} shown={picked || selected || litSeats.has(port.id)} />
+        <Berth
+          key={port.id}
+          port={port}
+          graph={graph}
+          host={host}
+          shown={picked || selected || litSeats.has(port.id)}
+        />
       )))}
 
       {/* Edited where it is written, once the card is selected — the second

@@ -26,12 +26,12 @@ export const cell = (n: number) => Math.round(n / CELL) * CELL;
 
 /** How far apart the seats an interface may sit in are, along its own edge.
  *
- *  Half a cell, so that even a short edge has several. Seats are counted in
- *  units from the corner rather than as a share of the edge — which is the
- *  whole point: the third seat is the same distance down every card whatever
- *  its size, so two ports meant to be level are exactly level. A share of the
- *  edge would put the middle of a block 36 down and the middle of a container
- *  60 down, and nothing could ever line the two up. */
+ *  Half a cell, on the canvas lattice — so a port on a container and a port on
+ *  a block at the same absolute place are exactly level, rather than each being
+ *  counted from its own corner (corners of differently-tall cards do not share
+ *  a lattice). How many seats an edge holds still follows its length: a block
+ *  is one grid row tall, so its sides have room for one seat at the centre; a
+ *  container is taller and holds several. */
 export const SEAT = CELL / 2;
 
 /** A block is one grid row of content and half a row of margin round it; a
@@ -197,25 +197,44 @@ export function middled(at: { x: number; y: number }, size: { w: number; h: numb
   return { x: on(at.x, size.w), y: on(at.y, size.h) };
 }
 
-/** Which seat a place along an edge belongs to, and how many there are.
+/** Absolute canvas positions along an edge that are valid seats.
  *
- *  Never the corners: seat 0 and the last one are skipped, so an interface
- *  always has a bit of edge either side of it. `extent` is the edge's length in
- *  canvas units. */
-function seats(at: number, extent: number) {
+ *  Counted on the canvas lattice (every {@link SEAT}), not as a run of offsets
+ *  from the card's own corner — corners of a block and a container do not share
+ *  a lattice, so corner-relative seats never lined a container port up with the
+ *  grid or with a block beside it. An edge only one row tall still has a single
+ *  seat at its centre. */
+function seatMarks(origin: number, extent: number): number[] {
   const last = Math.max(1, Math.floor(extent / SEAT) - 1);
+  if (last <= 2) return [origin + extent / 2];
 
-  return { last, want: Math.min(Math.max(Math.round((at * extent) / SEAT), 1), last) };
+  const lo = origin + SEAT;
+  const hi = origin + extent - SEAT;
+  const marks: number[] = [];
+  let at = Math.ceil(lo / SEAT) * SEAT;
+  for (; at <= hi + 1e-6; at += SEAT) marks.push(at);
+
+  return marks;
 }
 
 /** The nearest seat to a place along an edge, as the 0–1 fraction that gets
  *  stored. A fraction is still what an interface carries — it has to be, or the
  *  port would not survive its frame being resized — but the fractions it can
- *  take are now the ones that land on a seat. */
-export function seatAt(at: number, extent: number): number {
-  const { want } = seats(at, extent);
+ *  take are the ones that land on a seat of the canvas lattice.
+ *
+ *  `origin` is the edge's near end in canvas units (the card's left or top), so
+ *  seats are absolute rather than card-local. */
+export function seatAt(at: number, extent: number, origin = 0): number {
+  const marks = seatMarks(origin, extent);
+  if (!marks.length) return 0.5;
 
-  return (want * SEAT) / extent;
+  const abs = origin + at * extent;
+  let best = marks[0];
+  for (const mark of marks) {
+    if (Math.abs(mark - abs) < Math.abs(best - abs)) best = mark;
+  }
+
+  return (best - origin) / extent;
 }
 
 /** The nearest seat that no sibling is already sitting in, searched outward
@@ -227,22 +246,25 @@ export function seatAt(at: number, extent: number): number {
  *  next one along rather than being refused — a drag that has to be repeated to
  *  find a gap is worse than one that lands beside it. */
 export function freeSeat(graph: Graph, port: Node, side: Side, at: number,
-                         extent: number): number {
-  const { last, want } = seats(at, extent);
+                         extent: number, origin = 0): number {
+  const marks = seatMarks(origin, extent);
+  if (!marks.length) return 0.5;
+  if (marks.length === 1) return (marks[0] - origin) / extent;
+
+  const abs = origin + at * extent;
+  const key = (mark: number) => Math.round(mark / SEAT);
   const taken = new Set(
     portsOf(graph, port.parent)
       .filter((p) => p.id !== port.id && p.side === side && p.at != null)
-      .map((p) => seats(p.at!, extent).want),
+      .map((p) => key(origin + seatAt(p.at!, extent, origin) * extent)),
   );
 
-  for (let step = 0; step <= last; step += 1) {
-    for (const k of [want - step, want + step]) {
-      if (k >= 1 && k <= last && !taken.has(k)) return (k * SEAT) / extent;
-    }
+  const ordered = [...marks].sort((a, b) => Math.abs(a - abs) - Math.abs(b - abs));
+  for (const mark of ordered) {
+    if (!taken.has(key(mark))) return (mark - origin) / extent;
   }
 
-  // Every seat on this edge is spoken for; sit where asked rather than nowhere.
-  return (want * SEAT) / extent;
+  return (ordered[0] - origin) / extent;
 }
 
 type Box = { x: number; y: number; w: number; h: number };
