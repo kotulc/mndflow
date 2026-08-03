@@ -1434,9 +1434,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 /* A group's boundary — one shared attribute, drawn around its members.
  *
- * The middle is transparent to the pointer so cards and selection boxes still
- * reach through; the rim and the name take the pointer and are always
- * draggable, so a group is as easy to take hold of as a card.
+ * Empty space inside is the group's: click selects, drag moves members with
+ * it. Cards sit above and keep their own pointer. Cursor says it is grabable
+ * the same way a card is.
  *
  * Sized like the selection rect (same hug), drawn like a faint selection that
  * persisted: dashed border, fill clipped inside it, name breaking the line. */
@@ -1448,26 +1448,14 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   border-radius: 4px;
   background: rgba(107, 143, 125, 0.04);
   background-clip: padding-box;
-}
-
-/* Thick enough to aim at: the hug between members and the dashed line, plus a
-   little, so the clear band around the cards is the grab surface. */
-.region-rim {
-  position: absolute;
-  pointer-events: auto;
   cursor: grab;
 }
 
-.region-rim.top,
-.region-rim.bottom { left: 0; right: 0; height: 16px; }
-.region-rim.left,
-.region-rim.right { top: 0; bottom: 0; width: 16px; }
-.region-rim.top { top: 0; }
-.region-rim.bottom { bottom: 0; }
-.region-rim.left { left: 0; }
-.region-rim.right { right: 0; }
-
-.region.grazed { border-color: rgba(107, 143, 125, 0.75); }
+.region.grazed {
+  border-color: rgba(74, 222, 128, 0.7);
+  background: rgba(74, 222, 128, 0.06);
+  background-clip: padding-box;
+}
 
 .region.picked {
   border-color: rgba(74, 222, 128, 0.6);
@@ -1500,6 +1488,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .region.picked .region-name { color: var(--accent); }
+.region.grazed .region-name { color: var(--text); }
 
 /* Its own target for rename highlight — a right-click there edits rather than
    acting on the boundary. */

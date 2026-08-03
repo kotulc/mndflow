@@ -399,11 +399,11 @@ function Flow(props: Props) {
         // `measured` specifically, so both are given here.
         width: box.w,
         height: box.h,
-        // Transparent to the pointer in the middle, so a box drawn inside the
-        // boundary reaches the pane and selects cards rather than sweeping the
-        // group in. The rim and name opt back in — always, so a group is
-        // grabable without selecting it first.
-        style: { width: box.w, height: box.h, pointerEvents: "none" },
+        // The clear space inside takes the pointer so empty gaps drag the
+        // group; cards sit above and keep their own. Stated inline because
+        // React Flow's stylesheet claims `pointer-events: all` on every node
+        // at the same specificity a rule of ours would have.
+        style: { width: box.w, height: box.h, pointerEvents: "all" },
         draggable: true,
         selectable: false,
         data: {
@@ -924,11 +924,10 @@ function Flow(props: Props) {
     const cell = element?.closest(".cell") as HTMLElement | null;
     // A name is its own target wherever it is written — a card's as much as a
     // frame's — since the right button renames there and makes nothing. A note
-    // is written all the way through: the whole of it is its name. The group's
-    // rim is the boundary itself, not its title.
+    // is written all the way through: the whole of it is its name.
     const title = Boolean(
       element?.closest(".frame-name, .region-name, .card-head .label, .note"),
-    ) && !element?.closest(".region-rim");
+    );
     const host = element?.closest(".react-flow__node") as HTMLElement | null;
     const kind = host?.classList.contains("react-flow__node-card") ? "card"
                : host?.classList.contains("react-flow__node-frame") ? "frame"
@@ -983,13 +982,12 @@ function Flow(props: Props) {
     if (hit.port) return { kind: "port", id: hit.port };
     if (hit.cell) return { kind: "cell", id: hit.cell };
 
-    if (hit.id && (hit.kind === "card" || hit.kind === "frame")) {
+    if (hit.id && (hit.kind === "card" || hit.kind === "frame" || hit.kind === "group")) {
       return { kind: hit.kind, id: hit.id };
     }
 
-    // A group's middle is open to the pointer, so the clear space inside one
-    // is found by measuring — the same way a click there selects it. The
-    // tightest boundary wins, so an inner group is always the one you can reach.
+    // Nothing under the pointer in the DOM may still sit inside a boundary —
+    // kept as a fallback when an edge or the pane answers the hit test first.
     const at = flow.screenToFlowPosition({ x, y });
     const inside = bands
       .filter(({ box }) => at.x >= box.x && at.x <= box.x + box.w &&
@@ -1129,16 +1127,18 @@ function Flow(props: Props) {
     });
   }
 
-  function rightMove(event: React.PointerEvent) {
-    // What highlights is worked out here rather than left to `:hover`, which
-    // lights every ancestor of whatever is under the cursor. Only set when the
-    // answer changes, so crossing one card is not a re-render per pixel.
-    const now = grazedAt(event.clientX, event.clientY);
+  /** What highlights under the pointer. Worked out rather than left to `:hover`,
+   *  which lights every ancestor. Only set when the answer changes. */
+  const graze = useCallback((x: number, y: number) => {
+    const now = grazedAt(x, y);
     const key = now ? `${now.kind}:${now.id}` : "";
-    if (key !== grazeRef.current) {
-      grazeRef.current = key;
-      setGrazed(now);
-    }
+    if (key === grazeRef.current) return;
+    grazeRef.current = key;
+    setGrazed(now);
+  }, [grazedAt]);
+
+  function rightMove(event: React.PointerEvent) {
+    graze(event.clientX, event.clientY);
 
     const to = { x: event.clientX, y: event.clientY };
 
@@ -1327,6 +1327,10 @@ function Flow(props: Props) {
         zoomOnScroll
         panOnScroll={false}
         onMove={onMove}
+        onPaneMouseMove={(event) => graze(event.clientX, event.clientY)}
+        onNodeMouseMove={(event) => graze(event.clientX, event.clientY)}
+        onNodeMouseLeave={(event) => graze(event.clientX, event.clientY)}
+        onPaneMouseLeave={() => (grazeRef.current = "", setGrazed(null))}
         // `Control` is deliberately not here: on a trackpad it is a real right
         // click, and every right-button gesture is one of ours.
         multiSelectionKeyCode={["Shift", "Meta"]}
@@ -1384,9 +1388,8 @@ function Flow(props: Props) {
         onPaneClick={(event) => {
           setPrompt(null);
 
-          // The group's middle is open to the pointer, so a click in the clear
-          // space inside a boundary arrives here. Placed the same way highlight
-          // is — the tightest boundary under the point wins.
+          // Empty canvas, or a miss that still sits inside a boundary — the
+          // same reckoning that decides what highlights under the pointer.
           const spot = grazedAt(event.clientX, event.clientY);
 
           onPick(spot?.kind === "group" ? { kind: "attr", id: spot.id } : null);

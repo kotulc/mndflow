@@ -6,10 +6,10 @@
  *  when they were grouped.
  *
  *  Membership is a drag, the way a container's is: drop a card inside the
- *  boundary and it joins, take it out and it leaves. The interior is clear to
- *  the pointer so cards and selection boxes still reach through; the rim and
- *  the name are the grab points — no need to select first, and thick enough
- *  to aim at.
+ *  boundary and it joins, take it out and it leaves. Empty space inside the
+ *  boundary is the group's: click selects it, drag moves it with its members.
+ *  Cards sit above and keep their own pointer — only the clear space between
+ *  them belongs to the boundary. No need to select first.
  *
  *  Look matches the selection box that creates it: a faint dashed line and a
  *  light fill kept inside the border, with the name breaking the line the way
@@ -25,9 +25,7 @@ export type GroupData = {
   picked: boolean;
   /** A card is being dragged over this boundary and would join it. */
   dropping: boolean;
-  /** The pointer is in the clear space inside it, which is where a click
-   *  selects it. Worked out by the canvas, since the interior is transparent
-   *  to the pointer. */
+  /** The pointer is on this boundary's clear space (or its rim). */
   grazed: boolean;
   /** The pointer is on its name, which is its own target: a right-click there
    *  renames rather than acting on the boundary. */
@@ -46,15 +44,7 @@ export const GroupFrame = memo(({ data }: NodeProps) => {
                   dropping ? "dropping" : ""].join(" ")}
       onClick={onPick}
     >
-      {/* Four strips around the edge — the only parts that take the pointer —
-          so the middle stays open for cards and for drawing a selection box,
-          while the boundary itself is always thick enough to grab. */}
-      <span className="region-rim top" />
-      <span className="region-rim right" />
-      <span className="region-rim bottom" />
-      <span className="region-rim left" />
-
-      {/* Draggable with the boundary: the name is the one obvious handle, and
+      {/* Draggable with the boundary: the name is an obvious handle, and
           renaming is a right-click rather than a left one. */}
       <span className={`region-name${titled ? " grazed" : ""}`}>
         <Name text={label || "group"} className="region-label" onRename={onLabel} />
