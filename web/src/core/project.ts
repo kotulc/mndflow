@@ -11,14 +11,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
 import {
-  attrsOf, blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, nextPortNum,
+  blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, nextPortNum,
 } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
 import {
   attr as makeAttr, edge as makeEdge, node as makeNode, step as makeStep,
-  type Dir, type End, type Flow, type Side, type Spot, type Step,
+  type Attr, type Dir, type End, type Flow, type Mutation, type Side, type Spot, type Step,
 } from "./types";
 import { getDomain } from "./workflows";
 
@@ -120,7 +120,33 @@ export function useProject() {
 
   const name = (id: string) => graph.nodes[id]?.label ?? id;
 
-  /** What a node sheds by moving to another layer: its group memberships, and
+  /** Members going out of one attribute.
+   *
+   *  A group left holding a single member goes altogether rather than shrinking
+   *  around it: a boundary drawn round one card says nothing the card does not
+   *  already say, and one left over from a set that has scattered is litter.
+   *  Grouping a single block *deliberately* is a different act — a way of
+   *  marking it — and is allowed. What is refused is decaying into one. */
+  const parting = (attr: Attr | undefined, gone: string[]): Mutation[] => {
+    const out = attr ? attr.holders.filter((h) => gone.includes(h)) : [];
+    if (!attr || !out.length) return [];
+
+    if (attr.group && attr.holders.length - out.length < 2) {
+      return [{ op: "delete_attr", id: attr.id }];
+    }
+
+    return out.map((holder) => ({ op: "detach_attr", id: attr.id, holder }));
+  };
+
+  /** The same, across every annotation these objects are drawn in. Annotations
+   *  are local to a layer, so leaving one drops them; a plain attribute
+   *  describes the object itself and travels with it. */
+  const partings = (gone: string[]) =>
+    Object.values(graph.attrs)
+      .filter((a) => a.group || a.note)
+      .flatMap((a) => parting(a, gone));
+
+  /** What a node sheds by moving to another layer: its annotations, and
    *  the relationships joining it to whatever is staying behind.
    *
    *  Everything travelling with it is kept whole. Its children go too, and so
@@ -132,8 +158,7 @@ export function useProject() {
     if (!graph.nodes[id] || graph.nodes[id].parent === parent) return [];
 
     return [
-      ...attrsOf(graph, id).filter((a) => a.group)
-        .map((a) => ({ op: "detach_attr" as const, id: a.id, holder: id })),
+      ...partings([id]),
       ...Object.values(graph.edges)
         .filter((edge) => {
           const far = edge.source === id ? edge.target
@@ -189,7 +214,12 @@ export function useProject() {
       // Never leave the selection or the open layer pointing at something gone.
       if (picked && picked.id === id) setPicked(null);
       if (view && descendsFrom(graph, view, id)) setView(graph.nodes[id]?.parent ?? null);
-      commit(makeStep(`delete: ${name(id)}`, "delete", [{ op: "delete_node", id }]));
+      // Its contents go with it, so an annotation drawn round any of them loses
+      // those members in the same step — and goes itself if that empties it.
+      const gone = Object.keys(graph.nodes).filter((n) => descendsFrom(graph, n, id));
+
+      commit(makeStep(`delete: ${name(id)}`, "delete",
+                      [{ op: "delete_node", id }, ...partings(gone)]));
     },
 
     /** A reference has no name of its own, so renaming one renames the node it
@@ -232,9 +262,16 @@ export function useProject() {
         "place",
         [
           ...moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
-          ...membership.map(({ attr, holder, join }) => join
-            ? { op: "attach_attr" as const, id: attr, holder }
-            : { op: "detach_attr" as const, id: attr, holder }),
+          ...membership.filter((m) => m.join)
+            .map(({ attr, holder }) => ({ op: "attach_attr" as const, id: attr, holder })),
+          // Leaving is not simply joining in reverse: a group the drag would
+          // leave holding one member goes instead of shrinking. Taken a group
+          // at a time, since several cards can walk out of one together.
+          ...[...new Set(membership.filter((m) => !m.join).map((m) => m.attr))]
+            .flatMap((id) => parting(
+              graph.attrs[id],
+              membership.filter((m) => !m.join && m.attr === id).map((m) => m.holder),
+            )),
         ],
       )),
 
@@ -467,7 +504,7 @@ export function useProject() {
 
     detachAttr: (id: string, holder: string) =>
       commit(makeStep(`attribute off: ${name(holder)}`, "attribute",
-                      [{ op: "detach_attr", id, holder }])),
+                      parting(graph.attrs[id], [holder]))),
 
     dropAttr: (id: string) => {
       if (picked?.kind === "attr" && picked.id === id) setPicked(null);
@@ -475,13 +512,44 @@ export function useProject() {
     },
 
     /** Turn a selection into a group: one attribute they all hold, drawn as a
-     *  boundary. Purely visual — no node's parent changes. */
+     *  boundary. Purely visual — no node's parent changes.
+     *
+     *  One member is allowed. A boundary round a single block is a way of
+     *  marking it, and asking for that is unambiguous; it is only a group that
+     *  *falls* to one that gets swept up — see `parting`. */
     group: (members: string[]) =>
-      members.length > 1 &&
+      members.length > 0 &&
       commit(makeStep(`group: ${members.length} nodes`, "group", [{
         op: "add_attr",
         attr: makeAttr("", { holders: members, group: true }),
       }])),
+
+    /** A note: a card of text placed in this layer, tied by a faint leader to
+     *  whatever it describes.
+     *
+     *  Untied and unwritten to begin with — it reads "note" until it is given
+     *  something to say, the way an unnamed block reads "block". */
+    note: (x: number, y: number) =>
+      commit(makeStep("note", "note",
+                      [{ op: "add_attr", attr: makeAttr("", { note: { layer: view, x, y } }) }])),
+
+    /** Where a note came to rest. Its own place, unlike every other annotation:
+     *  a note tied to nothing has nothing else to be placed by. */
+    placeNote: (id: string, x: number, y: number) =>
+      commit(makeStep("place: note", "note", [{ op: "place_attr", id, x, y }])),
+
+    /** Tie a note to an object, or untie it — one gesture both ways, since
+     *  dragging onto something already tied can only mean undoing it. */
+    tie: (id: string, holder: string) => {
+      const attr = graph.attrs[id];
+      if (!attr?.note || !graph.nodes[holder]) return;
+
+      const tied = attr.holders.includes(holder);
+
+      commit(makeStep(tied ? `untie: ${name(holder)}` : `tie: ${name(holder)}`, "note",
+                      [tied ? { op: "detach_attr", id, holder }
+                            : { op: "attach_attr", id, holder }]));
+    },
 
     save: () => store.exportSteps(steps, graph.title),
 

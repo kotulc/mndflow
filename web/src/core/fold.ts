@@ -143,7 +143,12 @@ export function attrsOf(graph: Graph, holder: string) {
 }
 
 /** The groups drawn on one layer: shared attributes whose members are blocks
- *  sitting directly in it. */
+ *  sitting directly in it.
+ *
+ *  One member is enough. A boundary round a single block is a way of marking
+ *  it, which is a thing worth being able to do; what is refused is a group
+ *  *decaying* into one, and that is refused where the member leaves rather than
+ *  here. */
 export function groupsIn(graph: Graph, layer: string | null) {
   return Object.values(graph.attrs)
     .filter((a) => a.group)
@@ -155,7 +160,13 @@ export function groupsIn(graph: Graph, layer: string | null) {
         return node && !isPort(node) && (node.parent ?? null) === layer;
       }),
     }))
-    .filter((g) => g.here.length > 1);
+    .filter((g) => g.here.length > 0);
+}
+
+/** The notes drawn on one layer. A note is placed in a layer rather than
+ *  derived from what it is tied to, because it may be tied to nothing. */
+export function notesIn(graph: Graph, layer: string | null) {
+  return Object.values(graph.attrs).filter((a) => a.note && a.note.layer === layer);
 }
 
 /** Apply one mutation in place. Unknown targets are skipped rather than
@@ -306,6 +317,12 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
+    case "place_attr": {
+      const attr = graph.attrs[mutation.id];
+      if (attr?.note) attr.note = { ...attr.note, x: mutation.x, y: mutation.y };
+      break;
+    }
+
     case "attach_attr": {
       const attr = graph.attrs[mutation.id];
       if (attr && !attr.holders.includes(mutation.holder)) attr.holders.push(mutation.holder);
@@ -325,11 +342,16 @@ function apply(graph: Graph, mutation: Mutation): void {
 }
 
 /** Drop what the graph can no longer support: holders that have been deleted,
- *  and groups left with fewer than the two members a boundary needs.
+ *  groups left with nobody in them, and notes whose layer has gone.
  *
  *  Done here rather than in each mutation so that deleting a node cleans up
  *  after itself however it happened — by hand, by a workflow, or by an undo
- *  further back in the log putting the graph in a different shape. */
+ *  further back in the log putting the graph in a different shape.
+ *
+ *  A group down to one member is *not* swept up here. Deliberately grouping a
+ *  single block is allowed, and this cannot tell that apart from a group that
+ *  decayed — so decay is refused where it happens, in the action that takes the
+ *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
   for (const [id, node] of Object.entries(graph.nodes)) {
     if (node.ref != null && !graph.nodes[node.ref]) delete graph.nodes[id];
@@ -337,7 +359,8 @@ function tidy(graph: Graph): void {
 
   for (const [id, attr] of Object.entries(graph.attrs)) {
     attr.holders = attr.holders.filter((h) => graph.nodes[h] || graph.edges[h]);
-    if (attr.group && attr.holders.length < 2) delete graph.attrs[id];
+    if (attr.group && !attr.holders.length) delete graph.attrs[id];
+    if (attr.note?.layer && !graph.nodes[attr.note.layer]) delete graph.attrs[id];
   }
 }
 

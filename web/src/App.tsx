@@ -202,7 +202,10 @@ export function App() {
               onUnlink={project.unlink}
               onDelete={project.remove}
               onGroup={project.group}
-              onNameGroup={(id, label) => project.updateAttr(id, { name: label })}
+              onNameAttr={(id, label) => project.updateAttr(id, { name: label })}
+              onNote={project.note}
+              onPlaceNote={project.placeNote}
+              onTie={project.tie}
             />
 
             <Panel

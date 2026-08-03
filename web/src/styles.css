@@ -10,6 +10,9 @@
      something living in another layer gets the one hue neither has claimed. */
   --away: #a78bfa;
   --away-dim: #4c3f78;
+  /* Attributes, and the notes that draw them on the canvas. */
+  --note: #d9a441;
+  --note-dim: #6b5426;
   --error: #ff6b6b;
   --hover: #16221c;
 
@@ -654,6 +657,17 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .wiring line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+/* The rectangle a right drag on the background sweeps out, on its way to making
+   a note. Amber, because that is what it is about to make, and nothing like the
+   green selection box the left button draws in the same place. Dashed because
+   it is provisional — the same reason the relationship being drawn is. */
+.wiring rect.sweep {
+  fill: rgba(217, 164, 65, 0.06);
+  stroke: var(--note);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
 
 /* Floating inputs over the canvas */
 
@@ -1448,3 +1462,72 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .region-name .rename:focus { outline: none; }
+
+/* A note — the other way an attribute draws on the canvas.
+ *
+ * Amber throughout, because green is structure and amber is attributes, and a
+ * note is nothing but an attribute someone wanted to see.
+ *
+ * Solid, with a rule down the side it is read from. Dashes are spoken for: a
+ * reference card is dashed, a group's boundary is dashed, and a third dashed
+ * rectangle in a third shade is a distinction nobody can be asked to hold. The
+ * margin rule is the annotation convention off the page, and no other object on
+ * the canvas has one. Sized by its text — a fixed width, and whatever height
+ * the words need. */
+.note {
+  position: relative;
+  width: 168px;
+  padding: 6px 9px 6px 10px;
+  border: 1px solid var(--note-dim);
+  border-left: 3px solid var(--note-dim);
+  border-radius: 2px;
+  background: rgba(217, 164, 65, 0.05);
+  background-clip: padding-box;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.note-text {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: context-menu;
+}
+
+/* The whole note is its name, so it lights in one piece rather than lighting a
+   box with a target somewhere inside it. */
+.note.grazed { border-color: var(--note); color: var(--text); }
+
+.note.picked {
+  border-color: var(--note);
+  color: var(--text);
+  background: rgba(217, 164, 65, 0.09);
+  background-clip: padding-box;
+  box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.3);
+}
+
+.note .rename {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.note .rename:focus { outline: none; }
+
+/* A note's leaders. Fainter and finer than any relationship, and transparent to
+   the pointer: they are drawn *about* the diagram rather than being part of it,
+   so there is nothing to select and nothing to route. Dotted rather than
+   dashed, which is what tells them from a reference's violet dashes. */
+.react-flow__edge.tether { pointer-events: none; }
+
+.react-flow__edge.tether .react-flow__edge-path {
+  stroke: var(--note-dim);
+  stroke-width: 1;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
+}

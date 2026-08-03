@@ -26,16 +26,17 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { blocksOf, groupsIn, isRef, nameOf, portsOf, refIn } from "./core/fold";
+import { blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
 import { LEAF, place, sizeOf } from "./core/layout";
 import type { Move, Reach } from "./core/route";
 import type { End, Graph, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
 import { FACING, type Grazed, LIFTED, NodeCard, REFERRED } from "./NodeCard";
+import { Note } from "./Note";
 import { Wire } from "./Wire";
 
-const nodeTypes = { card: NodeCard, region: GroupFrame, frame: Frame };
+const nodeTypes = { card: NodeCard, region: GroupFrame, frame: Frame, note: Note };
 const edgeTypes = { wire: Wire };
 
 /** Room the layer's frame leaves around its contents, which is where the
@@ -67,11 +68,16 @@ const TRAIL = 3;
  *  treating the whole margin as the edge lit the frame up from halfway across
  *  the canvas. */
 const RIM = 30;
+/** A note's drawn size, used only to decide which of its sides a leader leaves
+ *  by. Its real height is its text's; being a few pixels out picks the same
+ *  side of four either way. */
+const NOTE = { w: 168, h: 40 };
 
 /** Stacking among canvas pieces. Edges live in their own layer and sit above
  *  every node (see `.react-flow__edges` in styles); within the node layer,
- *  cards sit over group bands, and interfaces sit over their host via CSS. */
-const DEPTH = { frame: 0, group: 1, card: 2, edge: 4 } as const;
+ *  cards sit over group bands, notes sit over cards, and interfaces sit over
+ *  their host via CSS. */
+const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
 
 type Box = { x: number; y: number; w: number; h: number };
 
@@ -146,6 +152,16 @@ type Wire = {
   live: boolean;
 };
 
+/** Where the right button went down, and whether it went down on nothing —
+ *  which is the one place a right drag makes a note. */
+type Press = { x: number; y: number; bare: boolean };
+
+/** The rectangle a right drag on the background sweeps out, once it has pulled
+ *  clear of the press. In screen coordinates, like the relationship being
+ *  drawn, so it needs nothing from the viewport transform to stay under the
+ *  cursor. */
+type Sweep = { from: { x: number; y: number }; to: { x: number; y: number } };
+
 type Props = {
   graph: Graph;
   view: string | null;
@@ -181,7 +197,14 @@ type Props = {
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
   onGroup: (members: string[]) => void;
-  onNameGroup: (id: string, label: string) => void;
+  /** Write a group's or a note's text — one action, since both are one
+   *  attribute's name drawn on the canvas. */
+  onNameAttr: (id: string, label: string) => void;
+  /** A note in this layer, at the point the gesture began. */
+  onNote: (x: number, y: number) => void;
+  onPlaceNote: (id: string, x: number, y: number) => void;
+  /** Tie a note to an object, or untie it if it is already tied. */
+  onTie: (id: string, holder: string) => void;
   onDropAttr: (id: string) => void;
   /** Place a stand-in here for a node that lives in another layer. */
   onRefer: (target: string, x?: number, y?: number) => void;
@@ -196,14 +219,15 @@ function Flow(props: Props) {
   // identity, or their data is rebuilt on every render — see `useSteady`.
   const onRename = useSteady(props.onRename);
   const onSlidePort = useSteady(props.onSlidePort);
-  const onNameGroup = useSteady(props.onNameGroup);
+  const onNameAttr = useSteady(props.onNameAttr);
   const onRoute = useSteady(props.onRoute);
   const { onLift, onWire, onAddPort, onRelation } = props;
   const { onPlaceMany, onUnlink, onDelete, onGroup, onDropAttr } = props;
-  const { onRefer, onReveal } = props;
+  const { onNote, onPlaceNote, onTie, onRefer, onReveal } = props;
   const flow = useReactFlow();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const [wire, setWire] = useState<Wire | null>(null);
+  const [sweep, setSweep] = useState<Sweep | null>(null);
   /** The card a dragged card is currently over — the one it would go inside. */
   const [dropping, setDropping] = useState<string | null>(null);
   const dropRef = useRef<string | null>(null);
@@ -221,7 +245,7 @@ function Flow(props: Props) {
    *  members travel is the distance it travelled. */
   const groupRef = useRef<{ id: string; x: number; y: number } | null>(null);
   /** Where the right button went down, whatever it went down on. */
-  const pressRef = useRef<{ x: number; y: number } | null>(null);
+  const pressRef = useRef<Press | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   /** The panel's own size, so a layer's floor takes its shape from the screen
    *  it is drawn on — a tall window wants a tall frame, not a wide one
@@ -242,6 +266,7 @@ function Flow(props: Props) {
   }, []);
 
   const members = useMemo(() => blocksOf(graph, view), [graph, view]);
+  const notes = useMemo(() => notesIn(graph, view), [graph, view]);
   const pickedNode = picked?.kind === "node" ? picked.id : null;
 
   /** Where everything in this layer sits, and how big it is — the one source
@@ -357,10 +382,30 @@ function Flow(props: Props) {
           titled: grazed?.kind === "title" && grazed.id === attr.id,
           dropping: joining.includes(attr.id),
           onPick: () => onPick({ kind: "attr", id: attr.id }),
-          onLabel: (label: string) => onNameGroup(attr.id, label),
+          onLabel: (label: string) => onNameAttr(attr.id, label),
         },
       } as FlowNode;
     });
+
+    // A note is small and precise, so it moves at once like a card rather than
+    // wanting a click first the way a boundary does. Its size is its text's:
+    // stated nowhere, measured by the library like any card.
+    const written = notes.map((attr) => ({
+      id: attr.id,
+      type: "note",
+      position: { x: attr.note!.x, y: attr.note!.y },
+      zIndex: DEPTH.note,
+      selectable: false,
+      data: {
+        text: attr.name,
+        picked: picked?.kind === "attr" && picked.id === attr.id,
+        // A note *is* its text, so it lights as a name does — there is nothing
+        // else on it to be over.
+        grazed: grazed?.kind === "title" && grazed.id === attr.id,
+        onPick: () => onPick({ kind: "attr", id: attr.id }),
+        onLabel: (text: string) => onNameAttr(attr.id, text),
+      },
+    })) as FlowNode[];
 
     const frame: FlowNode[] = frameBox && view
       ? [{
@@ -398,12 +443,12 @@ function Flow(props: Props) {
         } as FlowNode]
       : [];
 
-    // Depth within the node layer: frame, then group boundaries, then cards.
-    // Relations sit above all of these via the edges layer (DEPTH.edge).
-    return [...frame, ...groups, ...cards];
-  }, [graph, members, boxes, bands, frameBox, view, dropping, joining, pickedNode,
+    // Depth within the node layer: frame, then group boundaries, then cards,
+    // then notes. Relations sit above all of these via the edges layer.
+    return [...frame, ...groups, ...cards, ...written];
+  }, [graph, members, notes, boxes, bands, frameBox, view, dropping, joining, pickedNode,
       picked, showPorts, litSeats, grazed, onPick, onOpen, onSlidePort, onRename,
-      onNameGroup]);
+      onNameAttr]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
@@ -495,7 +540,28 @@ function Flow(props: Props) {
       return `auto-${facing(mine, other)}`;
     };
 
-    return Object.values(graph.edges)
+    /** A note's leaders: one faint line to each object it is tied to that is
+     *  drawn in this layer. Decoration, not relationships — they take no
+     *  pointer, cannot be selected, and are never routed by hand. */
+    const tethers = notes.flatMap((attr) => {
+      const mine = { x: attr.note!.x, y: attr.note!.y, w: NOTE.w, h: NOTE.h };
+
+      return attr.holders.filter((id) => boxes[id]).map((id) => ({
+        id: `tie-${attr.id}-${id}`,
+        source: attr.id,
+        target: id,
+        type: "straight",
+        zIndex: DEPTH.group,
+        sourceHandle: `auto-${facing(mine, boxes[id])}-s`,
+        targetHandle: `auto-${facing(boxes[id], mine)}-t`,
+        selectable: false,
+        focusable: false,
+        deletable: false,
+        className: "tether",
+      } as Edge));
+    });
+
+    const drawn = Object.values(graph.edges)
       .map((edge) => {
         const source = standIn(edge.source);
         const target = standIn(edge.target);
@@ -545,7 +611,9 @@ function Flow(props: Props) {
         } as Edge;
       })
       .filter((e): e is Edge => e !== null);
-  }, [graph, members, boxes, frameBox, view, angular, picked, reachOf, routed]);
+
+    return [...drawn, ...tethers];
+  }, [graph, members, notes, boxes, frameBox, view, angular, picked, reachOf, routed]);
 
   // Edges need their own change handler for the same reason nodes do: without
   // one React Flow has nowhere to record a selection.
@@ -759,12 +827,16 @@ function Flow(props: Props) {
     const port = element?.closest(".port") as HTMLElement | null;
     const cell = element?.closest(".cell") as HTMLElement | null;
     // A name is its own target wherever it is written — a card's as much as a
-    // frame's — since the right button renames there and makes nothing.
-    const title = Boolean(element?.closest(".frame-name, .region-name, .card-head .label"));
+    // frame's — since the right button renames there and makes nothing. A note
+    // is written all the way through: the whole of it is its name.
+    const title = Boolean(
+      element?.closest(".frame-name, .region-name, .card-head .label, .note"),
+    );
     const host = element?.closest(".react-flow__node") as HTMLElement | null;
     const kind = host?.classList.contains("react-flow__node-card") ? "card"
                : host?.classList.contains("react-flow__node-frame") ? "frame"
                : host?.classList.contains("react-flow__node-region") ? "group"
+               : host?.classList.contains("react-flow__node-note") ? "note"
                : null;
 
     if (host && kind) {
@@ -868,7 +940,9 @@ function Flow(props: Props) {
   // and Esc abandons whatever is half-drawn — prompt or relationship alike.
   useEffect(() => {
     function press(event: KeyboardEvent) {
-      if (event.key === "Escape") return (setWire(null), setPrompt(null), onPick(null));
+      if (event.key === "Escape") {
+        return (setWire(null), setSweep(null), setPrompt(null), onPick(null));
+      }
       if ((event.target as HTMLElement).closest("input, textarea")) return;
 
       const chosen = nodes.filter((n) => n.selected).map((n) => n.id);
@@ -879,10 +953,13 @@ function Flow(props: Props) {
         return setPrompt({ kind: "rename", id: pickedNode });
       }
 
+      // One card is enough here, where a boundary round a single block can only
+      // have been asked for. The right button keeps its own rule: on one card
+      // it still makes an interface, since that is what a card is for.
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "g") {
         event.preventDefault();
 
-        return chosen.length > 1 ? onGroup(chosen) : undefined;
+        return chosen.length ? onGroup(chosen) : undefined;
       }
 
       // Show me this. Which *this* is already answered by what is selected, so
@@ -928,12 +1005,13 @@ function Flow(props: Props) {
   function rightDown(event: React.PointerEvent) {
     if (event.button !== 2) return;
 
+    const hit = under(event.clientX, event.clientY);
     // Recorded whatever is underneath, so that a right click over empty canvas
     // still reaches its default action even though there is nothing there to
-    // draw a relationship from.
-    pressRef.current = { x: event.clientX, y: event.clientY };
+    // draw a relationship from — and so a drag knows whether it set off from
+    // nothing, which is the one place a drag makes a note.
+    pressRef.current = { x: event.clientX, y: event.clientY, bare: hit.kind === null };
 
-    const hit = under(event.clientX, event.clientY);
     // A name is set into a border but is not one, so nothing starts from it.
     if (hit.title) return;
     if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
@@ -962,12 +1040,23 @@ function Flow(props: Props) {
       setGrazed(now);
     }
 
-    if (!wire) return;
-
     const to = { x: event.clientX, y: event.clientY };
-    const far = Math.hypot(to.x - wire.origin.x, to.y - wire.origin.y) > THRESHOLD;
 
-    setWire({ ...wire, to, live: wire.live || far });
+    if (wire) {
+      const far = Math.hypot(to.x - wire.origin.x, to.y - wire.origin.y) > THRESHOLD;
+
+      return setWire({ ...wire, to, live: wire.live || far });
+    }
+
+    // A right drag on the background: show the rectangle it is sweeping out, so
+    // the gesture under way is visible while it is under way. Amber and dashed,
+    // which is a note's own look and nothing like the selection box.
+    const down = pressRef.current;
+    if (!down?.bare) return;
+
+    const far = Math.hypot(to.x - down.x, to.y - down.y) > THRESHOLD;
+
+    setSweep(far ? { from: { x: down.x, y: down.y }, to } : null);
   }
 
   function rightUp(event: React.PointerEvent) {
@@ -977,18 +1066,38 @@ function Flow(props: Props) {
     const held = wire;
     pressRef.current = null;
     setWire(null);
+    setSweep(null);
 
     // Never past the threshold, or never on anything to draw from: a right
     // click, and a right click runs the default action for what is under it.
     if (!held?.live) {
-      const moved = down && Math.hypot(event.clientX - down.x, event.clientY - down.y);
+      if (!down) return;
 
-      if (down && moved! <= THRESHOLD) fallback(event.clientX, event.clientY);
+      const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
+      if (moved <= THRESHOLD) return fallback(event.clientX, event.clientY);
+
+      // Past it, having set off from nothing: a note, in the top-left corner of
+      // the rectangle swept out — so it lands where the box that was drawn says
+      // it will, whichever way the drag ran. The rest of the rectangle is not a
+      // measurement: a note is sized by what it says, the way a boundary is
+      // sized by its members.
+      if (down.bare) {
+        const at = flow.screenToFlowPosition({ x: Math.min(down.x, event.clientX),
+                                               y: Math.min(down.y, event.clientY) });
+
+        onNote(at.x, at.y);
+      }
 
       return;
     }
 
     const hit = under(event.clientX, event.clientY);
+
+    // Let go on a note: tie what the drag set off from to it, or untie it if it
+    // was tied already. A note is not a node, so no relationship is drawn and no
+    // interface is made — the line between them is a leader.
+    if (hit.kind === "note" && hit.id) return onTie(hit.id, held.end.node);
+
     const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
 
     // Released on something: an interface at that end too. On an existing one,
@@ -1017,7 +1126,7 @@ function Flow(props: Props) {
       onPointerDown={rightDown}
       onPointerMove={rightMove}
       onPointerUp={rightUp}
-      onPointerLeave={() => (grazeRef.current = "", setGrazed(null))}
+      onPointerLeave={() => (grazeRef.current = "", setGrazed(null), setSweep(null))}
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="crumbs">
@@ -1234,6 +1343,13 @@ function Flow(props: Props) {
             return onPlaceMany(moved, `moved group of ${moved.length}`);
           }
 
+          // A note has a place of its own, and takes nothing with it.
+          if (node.type === "note") {
+            heldRef.current = null;
+
+            return onPlaceNote(node.id, node.position.x, node.position.y);
+          }
+
           // Worked out again from where the card actually came to rest. The
           // ref behind the hover indicator is a frame or two stale by now, and
           // the last inch of a drag is exactly where the answer changes.
@@ -1301,6 +1417,25 @@ function Flow(props: Props) {
           />
         </svg>
       )}
+
+      {/* The rectangle a right drag on the background is sweeping out. It says
+          which gesture is under way and where the note will land; its size is
+          not the note's, which is its text's. */}
+      {sweep && (() => {
+        const stage = surface.current?.getBoundingClientRect();
+
+        return (
+          <svg className="wiring">
+            <rect
+              className="sweep"
+              x={Math.min(sweep.from.x, sweep.to.x) - (stage?.left ?? 0)}
+              y={Math.min(sweep.from.y, sweep.to.y) - (stage?.top ?? 0)}
+              width={Math.abs(sweep.to.x - sweep.from.x)}
+              height={Math.abs(sweep.to.y - sweep.from.y)}
+            />
+          </svg>
+        );
+      })()}
 
       {prompt?.kind === "relation" && (
         <div className="floating">

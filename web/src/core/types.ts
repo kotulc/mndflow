@@ -90,6 +90,14 @@ export type Attr = {
   holders: string[];
   /** A shared attribute drawn as a boundary around its holders — a group. */
   group: boolean;
+  /** Where this is drawn as a **note**: a small card of text sitting in one
+   *  layer, tied by a faint leader to each object holding it.
+   *
+   *  Absent on everything else. A group is placed by its members and needs no
+   *  place of its own; an attribute that draws nothing is placed nowhere. A
+   *  note is the one annotation that can be tied to nothing at all, so there is
+   *  nothing else to place it by — it belongs to the layer it was drawn in. */
+  note?: { layer: string | null; x: number; y: number };
   color: string;
 };
 
@@ -134,6 +142,8 @@ export type Mutation =
   | { op: "add_attr"; attr: Attr }
   | { op: "update_attr"; id: string; name?: string; value?: string; tags?: string[];
       color?: string }
+  /** Move a note to where a drag left it. Only a note has a place of its own. */
+  | { op: "place_attr"; id: string; x: number; y: number }
   | { op: "attach_attr"; id: string; holder: string }
   | { op: "detach_attr"; id: string; holder: string }
   | { op: "delete_attr"; id: string };

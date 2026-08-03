@@ -93,6 +93,9 @@ export function Name({ text, className = "label", onRename }: {
   onRename: (label: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  /** Where the right button went down, so that a right *drag* setting off from
+   *  a name is not also read as a request to write it. */
+  const from = useRef<{ x: number; y: number } | null>(null);
 
   function done(value: string) {
     // An unnamed thing shows its role, so leaving that untouched is not a
@@ -126,11 +129,22 @@ export function Name({ text, className = "label", onRename }: {
     <span
       className={className}
       title="right-click to rename"
+      onPointerDown={(event) => {
+        if (event.button === 2) from.current = { x: event.clientX, y: event.clientY };
+      }}
       onContextMenu={(event) => {
         // The canvas is watching the right button too, and would otherwise make
         // an interface out of the border this name is set into.
         event.preventDefault();
         event.stopPropagation();
+
+        const down = from.current;
+        from.current = null;
+        // Nothing happens until a drag pulls clear of the press, and nothing
+        // happens after one either: a drag that began here meant to go
+        // somewhere, not to open an editor back where it started.
+        if (down && Math.hypot(event.clientX - down.x, event.clientY - down.y) > NUDGE) return;
+
         setEditing(true);
       }}
     >

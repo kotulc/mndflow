@@ -34,6 +34,8 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 **Attributes** — a name, value and tags, held by one object or shared by many.
 
 - Sharing is what makes an attribute a grouping; `group` marks one drawn as a boundary.
+- `note` marks one drawn as a card of text, and carries the layer and place it sits at.
+- A boundary and a note are the two ways an attribute draws; nothing is both.
 - Never structural: never in the explorer, never changing what contains what.
 
 **History** — the step log is the source of truth.
@@ -99,9 +101,9 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 - Add, rename, delete, and drag rows between levels.
 - Dragging a row onto the canvas places a reference to it in the open layer.
-- A move to another layer drops what does not travel: the node's group memberships, and its
-  relationships to anything staying behind. Its children, its interfaces and all the wiring
-  inside it arrive exactly as they were.
+- A move to another layer drops what does not travel: the node's annotations — group
+  memberships and note ties — and its relationships to anything staying behind. Its children,
+  its interfaces and all the wiring inside it arrive exactly as they were.
 - A move is never confirmed first; undo is the answer to a move that went wrong.
 
 
@@ -214,7 +216,7 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 ### Groups
 
-- Two or more nodes sharing one attribute, drawn as a faint dashed boundary around them.
+- Nodes sharing one attribute, drawn as a faint dashed boundary around them.
 - The boundary is derived from its members' bounds plus a margin. **There is no manual resize.**
 - Clicking the background selects it; dragging a selected boundary moves every member as one
   action.
@@ -222,10 +224,34 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   card is a move into that card instead.
 - A node created inside a boundary joins that group, by the same reckoning as a drop there.
 - A whole group moved together stays together.
-- Falling below two members removes the attribute rather than drawing it around one node.
+- **One member is allowed**, made deliberately — a boundary is a way of marking a single block.
+  `Ctrl`/`Cmd` + `G` makes one; right-click still makes an interface on a single card.
+- **Falling** to one member removes the attribute instead of drawing it around one node. Made
+  that way it stands; decayed to it, it goes.
 - Boundaries overlap freely and their backgrounds compound.
 - Its name is edited on the boundary itself.
 - One appearance for every group; nothing to set.
+
+### Notes
+
+- A card of text placed in a layer, tied by faint dotted leaders to whatever it describes. The
+  other way an attribute draws — amber throughout, since green is structure and amber is
+  attributes.
+- Solid, with a rule down its left side. Nothing else on the canvas carries one, and dashes are
+  already spent on references and boundaries.
+- Made by right-dragging the background. The rectangle is drawn as it is swept, in dashed amber
+  — distinct from the green selection box the left button draws in the same place.
+- **The rectangle is a gesture, not a measurement**: the note appears at its top-left corner,
+  sized by its text.
+- **There is no manual resize**, the same as a boundary. A note is as wide as every other and as
+  tall as what it says.
+- Unwritten it reads `note`; right-clicking it writes it. The note *is* its text — there is
+  nothing else on it to aim at.
+- Ties to nothing, one thing or many. Right-drag from a node onto a note ties it; the same
+  gesture over a node already tied unties it. The panel lists ties and removes them.
+- A leader takes no pointer, cannot be selected and is never routed — it is not a relationship.
+- Belongs to the layer it was drawn in, and moves within it by an ordinary drag.
+- Survives losing every tie; goes only when deleted or when its layer does.
 
 ### Context and highlighting
 
@@ -236,7 +262,7 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   | Under the pointer | What lights |
   |---|---|
   | a multi-node selection | the selection |
-  | a frame's or a boundary's name | that name |
+  | a frame's or a boundary's name, or a note | that name — a note is one all through |
   | an interface | that interface |
   | a chip in a treemap | that chip |
   | a card | the card, border included — it is one target |
@@ -269,22 +295,24 @@ makes the thing that sits at a point and a drag makes the thing that has extent.
 | From | Does |
 |---|---|
 | a card | moves it; onto another card nests it; in or out of a boundary joins or leaves |
+| a note | moves it within its layer |
 | an interface | slides it along its frame edge |
 | a relationship segment | moves that segment, and its interface where it is an end one |
 | a selected group's background | moves every member together |
 | empty background, or an unselected boundary | draws a selection box, taking what it encloses |
 
-Small precise targets — interfaces, segments — act at once. Large ones — a boundary, a
+Small precise targets — interfaces, segments, notes — act at once. Large ones — a boundary, a
 multi-node selection — must be selected first.
 
 **Right button**, where the menu does not exist yet:
 
 | On | Click makes | Drag makes |
 |---|---|---|
-| a card | an interface, at the nearest point of its border | a relationship |
+| a card | an interface, at the nearest point of its border | a relationship, or a tie if let go on a note |
 | the layer's frame edge | an interface on the frame | a relationship from the frame |
-| empty background | a node | a text annotation **(planned)** |
+| empty background | a node | a note |
 | a name | opens it for editing | — |
+| a note | opens it for editing | — |
 | an interface | nothing — it is already one | a relationship from it |
 | a relationship | nothing | — |
 | a multi-node selection | groups the selection | — |
@@ -331,6 +359,7 @@ multi-node selection — must be selected first.
   | an interface | the same, plus its flow marking |
   | a relationship | its kind, direction, reversal, and attributes |
   | a group boundary | that shared attribute: name, tags and members |
+  | a note | its text, and what it is tied to |
 
 - Body text is edited here; there is no separate document pane.
 - Attributes are added and removed here; group membership is listed and can be removed.

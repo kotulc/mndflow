@@ -28,8 +28,10 @@ Two distinctions carry most of the weight:
 - **Structural** — nodes, and only nodes. Structure is what the object explorer shows: what
   contains what. A **container** is simply a node that has children; there is no container
   type to set.
-- **Non-structural** — attributes, including groups and annotations. These describe nodes and
-  draw on the canvas, but never appear in the explorer and never change what contains what.
+- **Non-structural** — attributes. Some of them are **annotations**, meaning they draw on the
+  canvas: a **group** is one drawn as a boundary round its holders, a **note** is one drawn as a
+  card of text pointing at them. All of them describe nodes, and none of them appears in the
+  explorer or changes what contains what.
 
 The code follows this now: `isContainer` is the predicate, and the boundary is `GroupFrame`.
 One leftover — the boundary's CSS class is still `.region`, from when the annotation was
@@ -442,13 +444,12 @@ Attributes are non-structural. They never appear in the object explorer and neve
 contains what. Every attribute of the current scope or the current selection appears in the
 attribute panel below the canvas.
 
-Some attributes also draw on the canvas, as **annotations**: a label, an icon, or a group
-boundary. An annotation moves with whatever it is attached to.
+Some attributes also draw on the canvas, as **annotations**. There are two ways one draws, and
+nothing is both: a **boundary** around its holders — a group — or a **note** pointing at them.
 
-**Groups** are the shared-attribute case drawn as a boundary. When two or more nodes on the
-same canvas are grouped, they receive a shared attribute, and its annotation is a
-semi-transparent background surrounding all of them. Like any attribute it can be named,
-labeled, and tagged.
+**Groups** are the shared-attribute case drawn as a boundary. When nodes on the same canvas are
+grouped, they receive a shared attribute, and its annotation is a semi-transparent background
+surrounding all of them. Like any attribute it can be named, labeled, and tagged.
 
 A group is not a structural element and not an object in its own right — it is one attribute
 that several nodes have in common. Group membership is listed among a node's attributes in
@@ -464,9 +465,9 @@ The boundary follows its members and nothing else:
 - Selecting the group and selecting elements are separate gestures. A selection box drawn from
   inside a boundary is an ordinary selection box — it takes the elements it fully contains and
   never sweeps in the group itself.
-- A group holds two or more members. Deleting a member, or moving it to another scope, drops
-  it from the group and the boundary re-fits; when that would leave a single member, the
-  attribute is removed altogether rather than left drawn around one node.
+- Deleting a member, or moving it to another scope, drops it from the group and the boundary
+  re-fits; when that would leave a single member, the attribute is removed altogether rather
+  than left drawn around one node.
 - A node may hold any number of group attributes, so boundaries overlap freely. Overlapping
   backgrounds compound, so an area covered by several groups reads denser than one covered by
   a single group, and the overlap is legible without any special handling.
@@ -506,7 +507,102 @@ join. Colour, custom content and the
 rest come later; until they do there is nothing in the panel to set, because there is nothing
 to set.
 
+**A group of one is allowed, and a group that falls to one is not.** These look contradictory
+and are not: they are two different events, and only one of them was asked for.
+
+Grouping a single block is a deliberate act with an obvious meaning — draw a ring round this
+one, mark it, set it apart. Nothing else in the tool does that, and refusing it on the grounds
+that a group is "for several things" was arithmetic standing in for judgement. So `Ctrl`/`Cmd` +
+`G` groups whatever is selected, one card included.
+
+A group *decaying* to one is not a request at all. It is what is left after dragging cards out
+of a set, and a boundary hugging the last one says nothing that card does not already say. So it
+goes, and the collapse happens **where the member leaves** — in the action that takes it out —
+rather than in the fold. The fold cannot tell the two cases apart: by the time it sees the
+graph, a group made around one block and a group worn down to one are the same three fields. It
+keeps only the floor, sweeping up a group holding nobody.
+
+The cost is that a deliberate one-member group is not permanent: give it a second member, take
+that member away again, and it goes. This is accepted rather than solved. Solving it means
+recording *why* the group has the members it has, and that is a fact about the user's intent —
+the sort of thing that is wrong as often as it is right, and that nothing else in the model
+carries. A cheap re-grouping is a better answer than an expensive memory.
+
 **Its name is edited on the canvas**, on the boundary itself — see Naming above.
+
+### Notes
+
+A **note** is the other way an attribute draws: a small card of text sitting in a layer, tied by
+faint dotted leaders to whatever it describes. Where a boundary says *these belong together*, a
+note says something in words, about anything or about nothing in particular.
+
+**It is an attribute, not a node.** A note describes; it does not participate. Making it a node
+would put it in the object explorer, let things nest inside it, give it interfaces, and make the
+lines out of it relationships — every one of which is wrong, and none of which would be worth
+suppressing case by case. Attributes already have holders, already stay out of the explorer, and
+already never change what contains what. A note is one with a place.
+
+**A place is the one thing it needs that no other attribute does.** A group is positioned by its
+members, so it stores nothing. A note can be tied to nothing at all — that is the point of being
+able to draw one on empty canvas — so there is nothing else to place it by. It therefore carries
+the layer it was drawn in as well as its coordinates, which also answers where it belongs: to
+the layer it was drawn in, not to whatever it happens to overlap. It stays there when its ties
+go, and goes when that layer does.
+
+**The drag that makes one is a gesture, not a measurement.** Right-dragging the background makes
+a note in the top-left corner of the rectangle swept out; the rest of the rectangle is
+discarded. This looks wasteful and is deliberate. A note is sized by what it says, exactly as a
+boundary is sized by its members, so **there is still no manual resize anywhere on the canvas** —
+the rule survives the first object that could have broken it. Honouring the rectangle would have
+introduced stored bounds, a resize gesture, handles to grab, and a second thing that can
+disagree with its contents.
+
+**The rectangle is drawn while it is being swept**, in amber and dashed. This replaces drawing
+nothing at all, which was argued for on the grounds that a rectangle the tool will not honour is
+a promise it does not intend to keep. That was the wrong thing to protect. The gesture needs to
+be visible *as a gesture* — a right drag on the background is otherwise indistinguishable from a
+right click that has not finished, with no way to tell it is under way or where it will land.
+Colour is what keeps the promise honest: amber says a note is coming, and cannot be mistaken for
+the green box the left button draws in the same place for a completely different purpose. The
+note appearing at the rectangle's top-left is the other half — the box says where, even though
+it does not say how big.
+
+The drag is still the right gesture, because the right button's rule is that a click makes a
+point-thing and a drag makes an extent-thing. A note has extent; a node does not. That the
+extent is decided by the text rather than by the drag is a separate question from which button
+made it.
+
+**The note is its text, all the way through.** No head, no border zone, nothing else on it to
+aim at — so it takes the same rule every name on the canvas takes: right-click to write it.
+Unwritten it reads `note`, the way an unnamed block reads `block`.
+
+That costs one gesture: a right drag cannot set off *from* a note, because the whole of it is a
+name and names start nothing. So ties are made the other way — **right-drag from a node onto a
+note**, which is the same "connect this to that" gesture that draws a relationship, ending
+somewhere that is not a node. Over a node already tied, the same gesture unties: dragging onto
+something already connected can only mean undoing it.
+
+**A leader is not a relationship.** It takes no pointer, cannot be selected, cannot be routed by
+hand, and appears in no export as an edge — it is a drawing of an attribute's holders, and the
+holder list is where it actually lives. Dotted and thin, where a reference's line is dashed and
+violet: both say *this is not ordinary wiring*, and they have to be told apart from each other
+as well.
+
+**Amber, throughout.** The palette already said green is structure and amber is attributes, and
+had no amber in it. A note is nothing but an attribute someone wanted to see, so it is where
+that half of the palette finally gets used.
+
+**Solid, with a rule down its left side.** The note was drawn dashed to begin with, on the
+grounds that it is drawn *on* the diagram rather than being part of it, which is what a group's
+boundary says by being dashed. The reasoning was sound and the result was not: a reference card
+is already dashed, a boundary is already dashed, and a third dashed rectangle differing only in
+hue is a distinction that has to be worked out rather than seen. Dashes are spent.
+
+So the shared quality is carried by colour instead — amber, which nothing else on the canvas
+uses — and the shape says what kind of thing it is. The margin rule is the annotation convention
+off the page, and no other object here has one, so a note is identifiable at any zoom and at a
+glance. The leaders stay dotted, where nothing else is: fine dots read as *attached to* rather
+than *connected to*, which is exactly the difference between a leader and a relationship.
 
 
 ## Display (UI)
@@ -799,12 +895,17 @@ at a point, and a drag makes the thing that has extent.**
 | | right click | right drag |
 |---|---|---|
 | **on a node** | an interface — a point on its border | a relationship — from it to somewhere |
-| **on the background** | a node — a point in the layer | an annotation — an area of it |
+| **on the background** | a node — a point in the layer | a note — something with extent to say |
 
 Four creations, one rule, no exceptions to remember. A relationship being drawn with the right
 button used to be the odd gesture in the tool, justified only by the left button being busy;
 under this reading it is not an exception at all but one cell of the table, and the reason it
-uses a drag is the same reason an annotation does.
+uses a drag is the same reason a note does.
+
+**A right drag that sets off from a name does nothing at all** — it does not draw, and on
+release it does not open the editor either. Nothing appears until a drag pulls clear of the
+press, and nothing should appear afterwards either: a drag that began on a name meant to go
+somewhere, and landing it back where it started as a text cursor is the tool guessing.
 
 **No part of a card is a separate target.** Right-clicking a card makes an interface wherever
 on the card the click lands — the position decides which point of the border it goes to, but it

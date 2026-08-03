@@ -38,8 +38,10 @@ tags. The code has `name`, `value` and `tags` — no label, and `value` is not m
 design at all. Two names for one field, or two fields, is the question; the answer decides what
 the panel should show.
 
-*Settled and built: what happens to a moved node's groups and relationships, reference chains,
-and which layer a route belongs to. See design.md under Relationships and References.*
+*Settled and built: what happens to a moved node's annotations and relationships, reference
+chains, which layer a route belongs to, and what a note is made of — an attribute with a place,
+belonging to the layer it was drawn in, sized by its text so that nothing on the canvas is
+manually resized. See design.md under Relationships, References and Notes.*
 
 
 ## Not built yet
@@ -50,19 +52,20 @@ and which layer a route belongs to. See design.md under Relationships and Refere
   mndflow's own components, interfaces and data structures — exercise every feature in spec.md,
   and load from the viewer without setup.
 - **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
-- **Annotations other than group boundaries.** An attribute is supposed to be able to draw a
-  label or an icon on the canvas. Only the boundary draws; an attribute is otherwise panel-only.
+- **Icons.** An attribute is supposed to be able to draw an icon on the canvas as well as a
+  boundary or a note. Nothing draws an icon, and no icon set has been chosen.
 - **Adding a node to an existing group from the panel.** The panel removes members and cannot
   add one. The action exists (`attachAttr`) but is not wired to anything, so the only way into
   an existing group is the drag.
 - **Tags.** Every attribute carries them and nothing shows or edits them.
-- **Text annotations.** Right-dragging the background should draw one: a box holding the user's
-  own text. Undecided, and to be settled before it is built —
-  - it is the first canvas object with bounds of its own, so **there is no manual resize** stops
-    being true of every annotation and becomes true only of group boundaries;
-  - whether it is an attribute (like every other annotation, but held by nothing) or a fourth
-    kind of object beside nodes, edges and attributes;
-  - whether it belongs to the layer it was drawn in, or to whatever it encloses.
+- **Ties made from the note's side.** A note is its own name all the way through, so a right
+  drag cannot set off from one — ties are drawn node-to-note only. Fine so far; if it turns out
+  to read backwards in use, the note needs some part of it that is not its text to start from,
+  and that is exactly the tiny target the card's border zone was removed for.
+- **A note picking up what the drag enclosed.** The rectangle swept out is discarded, and it
+  could instead tie the note to everything inside it. Deliberately not done: it would make the
+  drag mean two things at once, and the size of a gesture is a poor way to state intent. Worth
+  revisiting only if tying notes one at a time proves tedious.
 - **The context menu**, still the last thing to build. Every entry above now performs its
   default action directly and correctly, so the menu is no longer covering for anything wrong —
   it is only the alternatives that are missing: direction and reversal for a relationship,
