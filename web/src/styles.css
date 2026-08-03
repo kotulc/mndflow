@@ -336,15 +336,27 @@ button:disabled { opacity: 0.4; cursor: default; }
   transition: bottom 200ms ease;
 }
 
+/* The card fills the size the canvas states for it, rather than sizing itself
+   from its text. `sizeOf` is what every other piece of geometry measures
+   against, so a card that disagreed with it put its own interfaces where the
+   lines did not expect them.
+
+   Nothing is clipped here: interfaces straddle the border and the graze ring is
+   drawn outside it, so hiding overflow on the card would cut both in half. What
+   a stated height cannot grow for is a long name, and that is clipped on the
+   head instead. */
 .card {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
   border: 1px solid var(--border);
   border-radius: 2px;
   background: #111a16;
-  padding: 7px 9px;
+  /* Tight vertically: the card is one grid row of content, and every pixel of
+     padding comes straight off the room the name has. */
+  padding: 5px 9px;
   font-size: 12px;
-  min-width: 150px;
 }
 
 /* No dashed border: the grid inside already says this holds something, and two
@@ -374,8 +386,32 @@ button:disabled { opacity: 0.4; cursor: default; }
   pointer-events: none;
 }
 
-.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.card-head .label { overflow-wrap: anywhere; }
+/* Fills whatever the card has left — all of it on a block, and the room above
+   the grid on a container — so `align-items` centres the name in it rather
+   than leaving it sitting against the top edge.
+
+   `min-height: 0` so it shrinks inside the card's stated height instead of
+   pushing past it, which is what makes the clip take effect. */
+.card-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* One line, always. A card is a long horizontal bar, and a name wrapped across
+   two lines in one is a different shape from its neighbours — a treemap cell is
+   square and wraps happily, but this is not that. Too long, and it ellipsizes.
+   `min-width: 0` is what lets a flex item shrink below its text and clip. */
+.card-head .label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 /* A selected card's name is the way to rename it, so it says so on hover. */
 /* Every name renames the same way, whatever it belongs to and whether or not
    that thing is selected — see `Name`. Each is its own target, so it lights on
@@ -408,7 +444,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* Cells are placed, not flowed: each one is a rectangle the treemap worked
    out, positioned in percentages of this box. */
-.treemap { position: relative; margin-top: 6px; flex: none; }
+/* Height and the gap above it are both set by the card, not here — see
+   `Contents`. They have to add up to exactly how much taller a container is
+   than a block, so they come from one place. */
+.treemap { position: relative; flex: none; }
 
 .cell {
   position: absolute;
@@ -1385,8 +1424,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    stated width, and the margin takes the same amount back off the offset. */
 .react-flow__nodesselection-rect {
   box-sizing: content-box;
-  margin: -10px;
-  padding: 10px;
+  /* Half a cell, the same hug a group's boundary uses — see HUG in Canvas. */
+  margin: -12px;
+  padding: 12px;
   border: 1px dashed rgba(74, 222, 128, 0.6);
   border-radius: 4px;
   background: rgba(74, 222, 128, 0.05);

@@ -27,7 +27,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
-import { LEAF, place, sizeOf } from "./core/layout";
+import { CELL, cell, LEAF, place, SEAT, seatAt, sizeOf } from "./core/layout";
 import type { Move, Reach } from "./core/route";
 import type { End, Graph, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
@@ -52,8 +52,13 @@ const LEAST = { w: 520, h: 320 };
  *  is an interface, so it is the same on every side of every layer. */
 const BAND = 56;
 /** Room a group's boundary leaves around its members — same as the selection
- *  rect's padding, so a freshly grouped set keeps the box it was drawn with. */
-const HUG = 10;
+ *  rect's padding, so a freshly grouped set keeps the box it was drawn with.
+ *
+ *  Half a cell: enough to read as a boundary round the members rather than a
+ *  second border on them. It need not be a whole cell, because nothing snaps a
+ *  boundary — the members are what land on the grid, and the boundary follows
+ *  them wherever they land. */
+const HUG = SEAT;
 /** How far a right drag must travel before it is a relationship rather than a
  *  right click that wandered. */
 const THRESHOLD = 12;
@@ -121,18 +126,20 @@ function facing(from: Box, to: Box): Side {
   return dy > 0 ? "bottom" : "top";
 }
 
-/** Nearest edge of an element to a screen point, and how far along it. */
-function nearestEdge(box: DOMRect, x: number, y: number): { side: Side; at: number } {
+/** Nearest edge of an element to a screen point, and the seat on it. The
+ *  element is measured on screen, so its length is divided by the zoom to get
+ *  the canvas units seats are counted in. */
+function nearestEdge(box: DOMRect, x: number, y: number, zoom: number):
+    { side: Side; at: number } {
   const gaps = {
     left: x - box.left, right: box.right - x, top: y - box.top, bottom: box.bottom - y,
   };
   const side = (Object.keys(gaps) as Side[])
     .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
-  const along = side === "top" || side === "bottom"
-    ? (x - box.left) / box.width
-    : (y - box.top) / box.height;
+  const flat = side === "top" || side === "bottom";
+  const along = flat ? (x - box.left) / box.width : (y - box.top) / box.height;
 
-  return { side, at: Math.min(Math.max(along, 0.04), 0.96) };
+  return { side, at: seatAt(along, (flat ? box.width : box.height) / (zoom || 1)) };
 }
 
 /** What the floating input is asking for. One prompt, several errands. */
@@ -305,7 +312,15 @@ function Flow(props: Props) {
     w *= floor;
     h *= floor;
 
-    return { x: hug.x + hug.w / 2 - w / 2, y: hug.y + hug.h / 2 - h / 2, w, h };
+    // ...and onto the grid, so the frame's own border — and every interface
+    // seated on it — lands on the same lattice the cards do. It costs the
+    // panel's proportions up to a cell in each direction, which on a frame this
+    // size is a fraction of a percent, and it stops the frame juddering by a
+    // pixel every time the window is dragged.
+    w = cell(w);
+    h = cell(h);
+
+    return { x: cell(hug.x + hug.w / 2 - w / 2), y: cell(hug.y + hug.h / 2 - h / 2), w, h };
   }, [view, graph, boxes, panel]);
 
   /** Each group's boundary: the box round its members, plus a small margin.
@@ -336,6 +351,15 @@ function Flow(props: Props) {
       type: "card",
       position: { x: boxes[node.id].x, y: boxes[node.id].y },
       zIndex: DEPTH.card,
+      // Stated, not measured. `sizeOf` is what every other piece of geometry
+      // reads — the group boundaries, which side a relation leaves by, where a
+      // port sits in canvas units — and a card left to size itself from its
+      // text agreed with none of it. A port is placed as a percentage of the
+      // card it is drawn in, so a card 150 wide while the arithmetic said 170
+      // put every one of its interfaces somewhere the lines did not expect.
+      width: boxes[node.id].w,
+      height: boxes[node.id].h,
+      style: { width: boxes[node.id].w, height: boxes[node.id].h },
       data: {
         node,
         graph,
@@ -393,7 +417,8 @@ function Flow(props: Props) {
     const written = notes.map((attr) => ({
       id: attr.id,
       type: "note",
-      position: { x: attr.note!.x, y: attr.note!.y },
+      // On the grid by being drawn, the same as a card — see `place`.
+      position: { x: cell(attr.note!.x), y: cell(attr.note!.y) },
       zIndex: DEPTH.note,
       selectable: false,
       data: {
@@ -487,9 +512,11 @@ function Flow(props: Props) {
     const box = hostBox(port);
     if (!side || !box) return null;
 
+    // As far as the first and last seats, so a port carried by a segment stops
+    // where one dragged by hand would.
     return side === "top" || side === "bottom"
-      ? { lo: box.x + box.w * 0.04, hi: box.x + box.w * 0.96 }
-      : { lo: box.y + box.h * 0.04, hi: box.y + box.h * 0.96 };
+      ? { lo: box.x + SEAT, hi: box.x + box.w - SEAT }
+      : { lo: box.y + SEAT, hi: box.y + box.h - SEAT };
   }, [graph, hostBox]);
 
   /** A route as a drag left it, and where each end's interface came to rest —
@@ -504,11 +531,16 @@ function Flow(props: Props) {
       const box = hostBox(port);
       if (!port || !side || !box) return [];
 
-      const along = side === "top" || side === "bottom"
-        ? (at - box.x) / box.w
-        : (at - box.y) / box.h;
+      const flat = side === "top" || side === "bottom";
+      const along = flat ? (at - box.x) / box.w : (at - box.y) / box.h;
+      const span = flat ? box.w : box.h;
 
-      return [{ id: port, side, at: Math.min(Math.max(along, 0.04), 0.96) }];
+      // Deliberately *not* seated. A segment carries its port so that the line
+      // stays straight and its elbows stay square; snapping the port to a seat
+      // afterwards would move it off the segment and put back the very bends
+      // the router exists to remove. Dragging the port itself is how it is
+      // seated — there, the port's position is what the gesture is about.
+      return [{ id: port, side, at: Math.min(Math.max(along, SEAT / span), 1 - SEAT / span) }];
     });
 
     onRoute(id, corners, slides);
@@ -544,7 +576,7 @@ function Flow(props: Props) {
      *  drawn in this layer. Decoration, not relationships — they take no
      *  pointer, cannot be selected, and are never routed by hand. */
     const tethers = notes.flatMap((attr) => {
-      const mine = { x: attr.note!.x, y: attr.note!.y, w: NOTE.w, h: NOTE.h };
+      const mine = { x: cell(attr.note!.x), y: cell(attr.note!.y), w: NOTE.w, h: NOTE.h };
 
       return attr.holders.filter((id) => boxes[id]).map((id) => ({
         id: `tie-${attr.id}-${id}`,
@@ -925,7 +957,7 @@ function Flow(props: Props) {
     // interface. Where the click landed decides which point of the border it
     // goes to; it is not a test the click has to pass.
     if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box) {
-      const { side, at: along } = nearestEdge(hit.box, x, y);
+      const { side, at: along } = nearestEdge(hit.box, x, y, flow.getZoom());
 
       return onAddPort(hit.id, side, along);
     }
@@ -1022,7 +1054,7 @@ function Flow(props: Props) {
       // An interface it started on, or the place on the border to make one at.
       end: hit.port
         ? { node: hit.id, port: hit.port }
-        : { node: hit.id, seat: nearestEdge(hit.box!, event.clientX, event.clientY) },
+        : { node: hit.id, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom()) },
       origin,
       to: origin,
       live: false,
@@ -1106,7 +1138,7 @@ function Flow(props: Props) {
     if (landed && landed !== held.end.node) {
       return onWire(held.end, hit.port
         ? { node: landed, port: hit.port }
-        : { node: landed, seat: nearestEdge(hit.box!, event.clientX, event.clientY) });
+        : { node: landed, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom()) });
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
@@ -1202,6 +1234,14 @@ function Flow(props: Props) {
         // so the library's own double-click-to-zoom would fight it.
         zoomOnDoubleClick={false}
         nodesDraggable
+        // Deliberately *not* `snapToGrid`. The library snaps a node's corner to
+        // a line, and a card is placed by its middle landing on the middle of a
+        // row — two different lattices, so what the drag showed and what the
+        // layer drew disagreed by half a cell. It was worse for a group, whose
+        // boundary is offset from its members: snapping the boundary carried
+        // every member that far off the grid, so a group could not be put down
+        // where it was aimed. `place` is the only thing that snaps, and a card
+        // settles onto the lattice as it is let go.
         // Relationships are the right button's business, drawn by hand below;
         // the handles here are anchors for geometry, not grab points.
         nodesConnectable={false}
@@ -1401,7 +1441,17 @@ function Flow(props: Props) {
           gone.filter((node) => node.type === "card").forEach((node) => onDelete(node.id))}
         onEdgesDelete={(gone) => gone.forEach((edge) => onUnlink(edge.id))}
       >
-        <Background gap={22} size={1} />
+        {/* The backdrop *is* the lattice things land on, so it is the same
+            spacing rather than a decoration that nearly matches it.
+
+            `offset` is given a whole cell rather than left at its default of
+            zero, which is not the no-op it reads as: the library computes the
+            pattern's shift as `offset * zoom || 1 + gap / 2`, and zero is
+            falsy, so a default offset silently displaces the dots by half a
+            cell and a pixel. Cards were landing exactly on the grid and the
+            grid was the thing drawn wrong. A whole cell is one full period of
+            the pattern, so it shifts by exactly nothing. */}
+        <Background gap={CELL} offset={CELL} size={1} />
         <Controls />
       </ReactFlow>
 

@@ -9,17 +9,56 @@
  *
  *  Both are pure geometry; nothing here knows about React Flow. */
 
-import { isContainer } from "./fold";
+import { isContainer, portsOf } from "./fold";
 import { similarity } from "./match";
-import type { Graph, Node } from "./types";
+import type { Graph, Node, Side } from "./types";
 
-export const LEAF = { w: 170, h: 56 };
+/** The canvas grid. Everything with a place of its own lands on it, so that two
+ *  things meant to line up line up exactly rather than nearly.
+ *
+ *  Applied here rather than only while dragging, so a layer laid out before
+ *  there was a grid comes onto it by being drawn — the log keeps whatever the
+ *  user actually did, and this is a fact about how it is shown. */
+export const CELL = 24;
+
+/** The nearest grid line. */
+export const cell = (n: number) => Math.round(n / CELL) * CELL;
+
+/** How far apart the seats an interface may sit in are, along its own edge.
+ *
+ *  Half a cell, so that even a short edge has several. Seats are counted in
+ *  units from the corner rather than as a share of the edge — which is the
+ *  whole point: the third seat is the same distance down every card whatever
+ *  its size, so two ports meant to be level are exactly level. A share of the
+ *  edge would put the middle of a block 36 down and the middle of a container
+ *  60 down, and nothing could ever line the two up. */
+export const SEAT = CELL / 2;
+
+/** A block is one grid row of content and half a row of margin round it; a
+ *  container is three rows and the same margin. Nothing is held back for text
+ *  that might arrive — a card that will not fit its name clips it.
+ *
+ *  Sizes are whole seats, which is all a size has to satisfy: it makes the
+ *  seats along an edge evenly spaced, finishing the same distance from the far
+ *  corner as they start from the near one. Whole *cells* would be a stronger
+ *  rule than anything needs — a card's far edge landing on the lattice aligns
+ *  it with nothing, since what a card is lined up against is another card, and
+ *  two of the same height are level wherever they sit. */
+export const LEAF = { w: 168, h: CELL + SEAT };
 /** How much taller a container is than a block: the band its grid sits in.
  *  Exported because the treemap has to be worked out in the band's real shape
  *  — tiled in a square and then stretched, every cell comes out the wrong way
- *  round. */
-export const GRID = 52;
-const GAP = 34;
+ *  round.
+ *
+ *  Two cells, and this is the size that genuinely is constrained: it is half of
+ *  it that separates a block's middle from a container's, so at two cells they
+ *  differ by one and grid steps can bring them level. At the old 52 they
+ *  differed by 26 and no amount of grid-perfect placement would ever have
+ *  squared a block against a container. */
+export const GRID = CELL * 2;
+/** Clear space kept between auto-placed cards. One cell: at two, the air
+ *  between compact cards was wider than the cards. */
+const GAP = CELL;
 
 /** Columns and rows for `count` cells, kept as square as possible. */
 export function tile(count: number): { cols: number; rows: number } {
@@ -138,6 +177,74 @@ export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
   return { w: LEAF.w, h: LEAF.h + GRID };
 }
 
+/** Put a card on the grid by its middle rather than by its corner.
+ *
+ *  A block is one row of content with a little padding round it, so it stands a
+ *  cell and a half tall. Landing its corner on a line leaves it covering one
+ *  row and half of the next: its top border sits on the grid and its bottom
+ *  border sits between lines, which is an awkward place for the interfaces
+ *  seated along it. Landing its middle on the middle of a row instead, it sits
+ *  squarely on that row and overhangs evenly, and its two horizontal borders
+ *  are the same distance from a line as each other.
+ *
+ *  Applied to both axes, and the axes come out differently because the sizes
+ *  do: a card is a whole number of cells wide, so its sides still land on
+ *  lines. */
+export function middled(at: { x: number; y: number }, size: { w: number; h: number }) {
+  // A row's middle is a line plus a seat, seats being half a cell.
+  const on = (v: number, extent: number) => cell(v + extent / 2 - SEAT) + SEAT - extent / 2;
+
+  return { x: on(at.x, size.w), y: on(at.y, size.h) };
+}
+
+/** Which seat a place along an edge belongs to, and how many there are.
+ *
+ *  Never the corners: seat 0 and the last one are skipped, so an interface
+ *  always has a bit of edge either side of it. `extent` is the edge's length in
+ *  canvas units. */
+function seats(at: number, extent: number) {
+  const last = Math.max(1, Math.floor(extent / SEAT) - 1);
+
+  return { last, want: Math.min(Math.max(Math.round((at * extent) / SEAT), 1), last) };
+}
+
+/** The nearest seat to a place along an edge, as the 0–1 fraction that gets
+ *  stored. A fraction is still what an interface carries — it has to be, or the
+ *  port would not survive its frame being resized — but the fractions it can
+ *  take are now the ones that land on a seat. */
+export function seatAt(at: number, extent: number): number {
+  const { want } = seats(at, extent);
+
+  return (want * SEAT) / extent;
+}
+
+/** The nearest seat that no sibling is already sitting in, searched outward
+ *  from the one asked for.
+ *
+ *  Seats make stacking possible for the first time: with a free fraction two
+ *  interfaces never landed on exactly the same point, and now they would. The
+ *  spec says interfaces do not stack, so a drop onto an occupied seat takes the
+ *  next one along rather than being refused — a drag that has to be repeated to
+ *  find a gap is worse than one that lands beside it. */
+export function freeSeat(graph: Graph, port: Node, side: Side, at: number,
+                         extent: number): number {
+  const { last, want } = seats(at, extent);
+  const taken = new Set(
+    portsOf(graph, port.parent)
+      .filter((p) => p.id !== port.id && p.side === side && p.at != null)
+      .map((p) => seats(p.at!, extent).want),
+  );
+
+  for (let step = 0; step <= last; step += 1) {
+    for (const k of [want - step, want + step]) {
+      if (k >= 1 && k <= last && !taken.has(k)) return (k * SEAT) / extent;
+    }
+  }
+
+  // Every seat on this edge is spoken for; sit where asked rather than nowhere.
+  return (want * SEAT) / extent;
+}
+
 type Box = { x: number; y: number; w: number; h: number };
 
 /** Whether two boxes touch, counting the gap that has to stay between them. */
@@ -210,9 +317,10 @@ export function place(graph: Graph, nodes: Node[]): Record<string, { x: number; 
   for (const node of nodes) {
     if (node.x === null || node.y === null) continue;
 
-    const { w, h } = sizeOf(graph, node);
-    spots[node.id] = { x: node.x, y: node.y };
-    taken.push({ x: node.x, y: node.y, w, h });
+    const size = sizeOf(graph, node);
+    const at = middled({ x: node.x, y: node.y }, size);
+    spots[node.id] = at;
+    taken.push({ ...at, ...size });
   }
 
   const loose = neighbourly(graph, nodes.filter((n) => n.x === null || n.y === null));
@@ -223,8 +331,10 @@ export function place(graph: Graph, nodes: Node[]): Record<string, { x: number; 
     const { w, h } = sizeOf(graph, node);
 
     for (const point of rings(step, rounds)) {
-      // Grid points mark centres, so a wide card still sits on the middle.
-      const box = { x: point.x - w / 2, y: point.y - h / 2, w, h };
+      // Grid points mark centres, so a wide card still sits on the middle —
+      // then onto the grid, before the collision test rather than after it, so
+      // what is checked for overlap is where the card will actually be.
+      const box = { ...middled({ x: point.x - w / 2, y: point.y - h / 2 }, { w, h }), w, h };
       if (taken.some((other) => collides(box, other))) continue;
 
       spots[node.id] = { x: box.x, y: box.y };

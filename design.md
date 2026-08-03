@@ -483,6 +483,11 @@ looks like something you can put things into.
   opposite directions.
 - **A whole group moved together stays together.** When every member is on the move there is
   nothing to measure against and nothing to measure: the group is travelling, not being left.
+- **The hug is half a cell** — enough to read as a boundary round the members rather than a
+  second border on them. It briefly became a whole cell to stop a group drag carrying its members
+  off the grid, but that was treating the symptom: the cause was the library snapping the
+  boundary itself, and with nothing snapping a boundary the hug is free to be whatever looks
+  right. The members are what land on the grid, and the boundary follows them.
 - **Dropping *on* a card is a move into that card**, not a join — that gesture is already
   spoken for, and it is structural, so it wins. Joining is what dropping in the clear space
   inside a boundary means. A tight group has little such space, which is the honest
@@ -1000,6 +1005,134 @@ a card dragged over it that would join.
 notably does not: what was touched a moment ago is the action log's business, and marking it
 on the canvas both competed with the highlight that says where the pointer is and left the
 diagram looking edited long after the edit.
+
+### The grid
+
+**Everything with a place of its own lands on a 24-unit grid.** Cards, notes, the layer's frame
+and automatic layout all snap to it, and the backdrop dots are the lattice rather than a
+decoration at a spacing that nearly matched it.
+
+**The backdrop had to be corrected before any of this could be judged.** React Flow computes its
+dot pattern's shift as `offset * zoom || 1 + gap / 2`, and the default offset is zero — which is
+falsy, so the fallback fires and the dots are displaced by more than half a tile at every zoom
+level. Cards were landing exactly on the grid the whole time; the grid was the thing drawn
+wrong, and the boundaries a half-cell hug put on the half-grid happened to line up with the
+displaced dots, which made the error look like the opposite of itself. Passing a whole cell as
+the offset shifts the pattern by exactly one period, which is to say by nothing.
+
+The lesson worth keeping: when placement and the thing placement is judged against are both
+suspect, check the ruler first.
+
+**Snapping happens when a layer is drawn.** The alternative was to quantise on commit, which
+leaves everything placed before the grid existed off it forever and needs a migration to fix.
+Snapping in `place` costs nothing, heals old layouts by drawing them, and keeps the division the
+tool already has: the log records what the user did, and how it is shown is derived.
+
+**It is also the only thing that snaps**, which took a second attempt to arrive at. The library's
+own `snapToGrid` was on as well, and it snaps a node's *corner* to a *line* — a different lattice
+from the one below, where a card is placed by its middle landing on the middle of a row. The two
+disagreed by half a cell, so a card jumped on release. It was worse for a group, whose boundary
+is offset from its members by the hug: snapping the boundary to a line moved it, and it carried
+every member that far off the grid, so a group could not be put down where it was aimed.
+
+Losing live snapping during the drag costs a little feedback and buys the guarantee that what
+the drag shows and what the layer draws are the same thing. A card settles onto the lattice as it
+is let go, which is a small movement and always the right one.
+
+**A card is placed by its middle, not its corner.** A block is one row of content with a little
+padding, so it stands a cell and a half tall; landing its corner on a line leaves it covering one
+row and half of the next, with its top border on the grid and its bottom border stranded between
+lines. That asymmetry is felt where interfaces sit, because the two horizontal borders are then
+in visibly different relationships to the grid. Landing its middle on the middle of a row, it
+sits squarely on that row and overhangs it evenly.
+
+The rule is applied to both axes and the axes come out differently, which is the point: a card is
+a whole number of cells wide, so its sides still land on lines; it is a cell and a half tall, so
+it overhangs. A container overhangs by the same amount, since its height differs from a block's
+by whole cells — so every card on the canvas, of either kind, has its borders the same small
+distance outside a row.
+
+**Corners on the grid were not enough, which is the part that is easy to get wrong.** Cards were
+170 × 56 and containers 170 × 108, so a block's middle sat 28 down and a container's 54 — a gap
+of 26, not a multiple of anything. No amount of grid-perfect *placement* could ever have squared
+a block against a container, because the mismatch was in the sizes.
+
+**But the fix is smaller than it first looks, and getting that wrong cost a round.** The obvious
+rule — make every card a whole number of cells — was reached for first, and it forced a block to
+48 or 72: noticeably squatter, or a third taller than it had ever been. Neither is justified,
+because *a card's far edge landing on the lattice aligns it with nothing*. What a card is lined
+up against is another card, and two of the same height with their tops on the grid are level
+wherever they sit.
+
+Two constraints do real work, and only two:
+
+- **The container band is a multiple of two cells.** Half the band is what separates a block's
+  middle from a container's, so at two cells they differ by one and grid steps can square them.
+  This is a fact about the band, not about the card.
+- **Sizes are whole seats.** That is what makes the seats along an edge evenly spaced, finishing
+  the same distance from the far corner as they start from the near one.
+
+Within those, **a card is as small as its contents allow**: a block is one grid row of content
+and half a row of margin, a container three rows and the same. 168 × 36 and 168 × 84. The card
+had been carrying slack for text that might arrive, which is space paid for on every card in the
+layer against a name that most of them do not have. A card that will not fit its name clips it,
+which is the honest consequence of a card having a size at all.
+
+The auto-layout gap came down with it, from two cells to one. At two, the air between compact
+cards was wider than the cards, which undoes the compactness rather than framing it.
+
+**What a small card costs is seats.** A block's short edges hold two interfaces, where at 60 they
+held four; the long edges hold thirteen. This is not the grid being coarse — an interface mark is
+11 units wide and seats are 12 apart, so **the seat spacing is already at its floor**. Any finer
+and two interfaces in adjacent seats would overlap, obeying the no-stacking rule in the data
+while breaking it on the screen. Two seats is simply how many interfaces fit down the side of a
+card 36 units tall, and would be true with no grid at all.
+
+**A card is drawn at the size the layout says it is.** This was the real defect behind "slight
+misalignments" and it predates the grid. `sizeOf` is what the group boundaries, the choice of
+which side a relation leaves by, and every port's canvas position are all computed from — but
+the card sized itself from its text and its `min-width`, so it was never 170 × 56 at all. A port
+is placed as a percentage of the card it is drawn in, so a card 150 wide while the arithmetic
+said 170 put its own interfaces where the lines did not expect them. Stating the size makes the
+geometry true. The cost is that a name too long for its card is clipped, which is the honest
+consequence of a card having a size at all.
+
+Nothing is clipped on the card itself, though — interfaces straddle its border and the graze
+ring is drawn outside it, so hiding overflow there would cut both in half. Only the head clips.
+
+#### Seats
+
+**An interface sits in a seat: every 12 units from the corner of its edge, never on one.** It is
+still *stored* as a 0–1 fraction, because it has to be — that is what lets a port survive its
+frame being resized — but the fractions it can take are the ones that land on a seat.
+
+The important word is *units*. Seats counted as a share of the edge would have been the obvious
+implementation and would have achieved nothing: a twelfth of the way down a block is 6 and a
+twelfth of the way down a container is 10, so two ports meant to be level would still not be.
+Counted in units from the corner, the third seat is 36 down every card whatever its size, and
+two ports line up exactly.
+
+The layer's own frame is the one place this cannot fully hold, and it is worth being clear why:
+`frameBox` is derived from the layer's contents and the panel's aspect ratio, so it is fluid by
+design. It is snapped to the grid, which puts its border and its seats on the lattice for as
+long as it does not change — but it does change, when the window is resized. That is accepted
+rather than solved, because the alternative is a frame that does not fit the panel it is drawn
+in, which is a worse fault than a port a few units out.
+
+**Seats make stacking possible for the first time.** With a free fraction two interfaces never
+landed on exactly the same point; now they would, and the spec says interfaces do not stack. A
+drop onto an occupied seat takes the next one along rather than being refused — a drag that has
+to be repeated until it finds a gap is worse than one that lands beside where it was aimed.
+
+**A port carried by a dragged relationship segment is deliberately not seated.** There, the
+port's job is to stay where the line is: the router guarantees square elbows by putting the port
+exactly where the segment ends, and snapping it to a seat afterwards would move it off the
+segment and put back the one- and two-pixel bends the router exists to remove. Dragging the port
+itself is how it gets seated, because there the port's position is what the gesture is about.
+
+**Route corners are not snapped either, for the same reason.** The router treats a corner as
+level with a port when it is within 2.5 units; quantising corners to 24 would throw them up to
+12 off, past that tolerance, and every straightened line would bend again.
 
 ### Layouts
 

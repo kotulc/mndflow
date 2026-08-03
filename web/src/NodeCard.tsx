@@ -10,10 +10,10 @@
  *  are independent: a block with ports is still a block. */
 
 import { memo, useRef, useState } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 
 import { blocksOf, isContainer, isLinked, isRef, nameOf, portsOf } from "./core/fold";
-import { affinity, CHIP_CAP, GRID, LEAF, pack } from "./core/layout";
+import { affinity, CHIP_CAP, freeSeat, GRID, LEAF, pack } from "./core/layout";
 import type { Graph, Node, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
@@ -284,6 +284,7 @@ export type PortProps = {
  *  same way — the only difference is whose edge they sit on. */
 export function Port({ port, graph, picked, grazed, inward,
                        onPick, onOpen, onSlide }: PortProps) {
+  const flow = useReactFlow();
   const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
   /** Where the button went down, until the pointer has travelled far enough
    *  for this to be a slide rather than a click that shook. */
@@ -293,9 +294,13 @@ export function Port({ port, graph, picked, grazed, inward,
   const deep = isContainer(graph, port.id);
   const wired = isLinked(graph, port.id);
 
-  /** Nearest edge of the host to a point, and how far along it. The point is
-   *  clamped to the host first, so a drag that wanders off the card still
-   *  leaves the port somewhere sensible on its border. */
+  /** Nearest free seat on the host to a point, and which edge it is on. The
+   *  point is clamped to the host first, so a drag that wanders off the card
+   *  still leaves the port somewhere sensible on its border.
+   *
+   *  The host is measured on screen, so its length is divided by the zoom to
+   *  get the canvas units seats are counted in. The fraction itself needs no
+   *  such correction — it is a ratio, and the zoom cancels. */
   function nearest(event: React.PointerEvent) {
     const host = (event.currentTarget as HTMLElement).closest(".card, .frame");
     const box = host?.getBoundingClientRect();
@@ -306,9 +311,11 @@ export function Port({ port, graph, picked, grazed, inward,
     const gaps = { left: x, right: box.width - x, top: y, bottom: box.height - y };
     const closest = (Object.keys(gaps) as Side[])
       .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
-    const along = closest === "top" || closest === "bottom" ? x / box.width : y / box.height;
+    const flat = closest === "top" || closest === "bottom";
+    const along = flat ? x / box.width : y / box.height;
+    const extent = (flat ? box.width : box.height) / (flow.getZoom() || 1);
 
-    return { side: closest, at: Math.min(Math.max(along, 0.04), 0.96) };
+    return { side: closest, at: freeSeat(graph, port, closest, along, extent) };
   }
 
   return (
@@ -398,7 +405,9 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
   const shown = kids.slice(0, overflow ? CHIP_CAP - 1 : CHIP_CAP);
   const rest = kids.length - shown.length;
   // Worked out in the band's own proportions and then expressed as
-  // percentages of it, so the cells follow the card without measuring it.
+  // percentages of it, so the cells follow the card without measuring it. The
+  // whole band, which is exactly how much taller a container is than a block —
+  // the head takes the rest, which comes to a block's worth.
   const band = { w: LEAF.w, h: GRID };
   const tiles = pack(overflow ? CHIP_CAP : shown.length, band);
 
@@ -413,8 +422,10 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
   }
 
   return (
-    // A definite height, not a share of the card's: the card is sized by its
-    // content, and cells placed absolutely are no content at all.
+    // A definite height, not a share of the card's: cells placed absolutely
+    // are no content at all, so nothing else would give the band a size. No
+    // margin above it — the name is centred in the room it has, which leaves
+    // the separation without spending height on it.
     <div className="treemap" style={{ height: band.h }}>
       {shown.map((kid, at) => {
         const seat = tiles[at];

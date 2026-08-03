@@ -92,6 +92,18 @@ is drawn.
 beneath one cannot be grabbed there. Reachable everywhere else; no decision taken on whether
 lines should sit above cards for the purpose.
 
+**The frame drifts off the grid when the window is resized.** `frameBox` is snapped, but it is
+derived from the panel's aspect ratio, so a resize moves it — and the interfaces seated on it
+with it. Cards are unaffected. Fixing it means a frame that does not fit the panel, which is
+worse; it is recorded because it is the one place seats do not hold, not because it is a bug
+with a known fix.
+
+**Route corners are still free.** They cannot be snapped while ports carried by a segment are
+free, and those cannot be seated without breaking the router's straightness guarantee. A route
+laid out by hand is therefore the one thing on the canvas not on the grid. Untangling this means
+teaching the router about seats, which is a change to the one part of the tool with a fuzz test
+behind it, and there is no evidence yet that it matters.
+
 **The selection box takes things it does not enclose.** Dragging a box across the canvas can
 come back holding elements outside it, and the reported case involves dragging over
 relationships. Not diagnosed. The leading suspect is the invisible grab band over every
