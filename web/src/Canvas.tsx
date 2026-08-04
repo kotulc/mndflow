@@ -147,13 +147,32 @@ function nearestEdge(
   return { side, at: seatAt(frac, extent, origin) };
 }
 
-/** Seats already taken on a card, excluding ports we are about to move. */
-function takenSeats(graph: Graph, parent: string | null, exclude: string[] = []): Seat[] {
+/** Seats handed out so far in one re-seating pass, by port. */
+type Claims = Record<string, Seat>;
+
+/** Where a port sits: the seat this pass has already given it, else the one the
+ *  graph records. Undefined where it has none yet. */
+function seatOf(graph: Graph, port: string | undefined, claimed: Claims): Seat | undefined {
+  if (!port) return undefined;
+  const held = claimed[port];
+  if (held) return held;
+
+  const node = graph.nodes[port];
+
+  return node?.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
+}
+
+/** Seats already taken on a card, excluding ports we are about to move. Seats
+ *  claimed earlier in the same pass count as taken — that is what keeps two
+ *  ports out of one seat. */
+function takenSeats(graph: Graph, parent: string | null, exclude: string[] = [],
+                    claimed: Claims = {}): Seat[] {
   const skip = new Set(exclude);
 
   return portsOf(graph, parent)
-    .filter((p) => !skip.has(p.id) && p.side != null && p.at != null)
-    .map((p) => ({ side: p.side!, at: p.at! }));
+    .filter((p) => !skip.has(p.id))
+    .map((p) => seatOf(graph, p.id, claimed))
+    .filter((seat): seat is Seat => seat !== undefined);
 }
 
 /** Card boxes that a route must clear, excluding the two ends it attaches to. */
@@ -166,7 +185,9 @@ function obstaclesOf(boxes: Record<string, Box>, fromId: string, toId: string): 
 }
 
 /** Auto-route for one edge: seats + corners. `pin` locks ends to their current
- *  seats — all, none, or per end (shared ports stay put on straighten). */
+ *  seats — all, none, or per end (shared ports stay put on straighten). A port
+ *  `claimed` earlier in the pass is pinned whatever `pin` says: relationships
+ *  may share a port, but a port is planned once. */
 function planEdge(
   graph: Graph,
   edge: { source: string; target: string; from?: string; to?: string },
@@ -174,6 +195,7 @@ function planEdge(
   view: string | null,
   frameBox: Box | null,
   pin: boolean | { from: boolean; to: boolean } = true,
+  claimed: Claims = {},
 ) {
   const fromBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
   const toBox = boxes[edge.target] ?? (edge.target === view ? frameBox : null);
@@ -181,13 +203,12 @@ function planEdge(
 
   const fromPort = edge.from ? graph.nodes[edge.from] : null;
   const toPort = edge.to ? graph.nodes[edge.to] : null;
-  const pinFromWanted = typeof pin === "boolean" ? pin : pin.from;
-  const pinToWanted = typeof pin === "boolean" ? pin : pin.to;
-  const pinFrom = pinFromWanted && fromPort?.side != null && fromPort.at != null
-    ? { side: fromPort.side, at: fromPort.at }
+  const wanted = typeof pin === "boolean" ? { from: pin, to: pin } : pin;
+  const pinFrom = wanted.from || (edge.from && claimed[edge.from])
+    ? seatOf(graph, edge.from, claimed)
     : undefined;
-  const pinTo = pinToWanted && toPort?.side != null && toPort.at != null
-    ? { side: toPort.side, at: toPort.at }
+  const pinTo = wanted.to || (edge.to && claimed[edge.to])
+    ? seatOf(graph, edge.to, claimed)
     : undefined;
 
   return planRoute(
@@ -197,8 +218,10 @@ function planEdge(
     {
       pinFrom,
       pinTo,
-      fromTaken: takenSeats(graph, fromPort?.parent ?? edge.source, edge.from ? [edge.from] : []),
-      toTaken: takenSeats(graph, toPort?.parent ?? edge.target, edge.to ? [edge.to] : []),
+      fromTaken: takenSeats(graph, fromPort?.parent ?? edge.source,
+                            edge.from ? [edge.from] : [], claimed),
+      toTaken: takenSeats(graph, toPort?.parent ?? edge.target,
+                          edge.to ? [edge.to] : [], claimed),
       // Inside an open layer, paths stay in the frame — never skirt outside.
       bounds: frameBox ?? undefined,
       inwardFrom: edge.source === view,
@@ -248,34 +271,44 @@ function straightenEdge(
   return slides;
 }
 
-/** Port seat updates so auto edges match a fresh plan (no manual corners). */
+/** Port seat updates so auto edges match a fresh plan (no manual corners).
+ *
+ *  One pass, each edge planned against the seats the ones before it took, so
+ *  no two ports come out of it in one seat. A port two relationships share is
+ *  planned by the first and held for the second. */
 function seatSlides(
   graph: Graph,
   boxes: Record<string, Box>,
   view: string | null,
   frameBox: Box | null,
 ): { id: string; side: Side; at: number }[] {
-  const slides: { id: string; side: Side; at: number }[] = [];
+  const claimed: Claims = {};
 
   for (const edge of Object.values(graph.edges)) {
     if (edge.route?.layer === view && edge.route.corners.length > 0) continue;
 
-    const planned = planEdge(graph, edge, boxes, view, frameBox, false);
+    const planned = planEdge(graph, edge, boxes, view, frameBox, false, claimed);
     if (!planned) continue;
 
     for (const [portId, seat] of [
       [edge.from, planned.from],
       [edge.to, planned.to],
     ] as const) {
-      if (!portId) continue;
-      const port = graph.nodes[portId];
-      if (!port?.side || port.at == null) continue;
-      if (sameSeat({ side: port.side, at: port.at }, seat)) continue;
-      slides.push({ id: portId, side: seat.side, at: seat.at });
+      if (!portId || claimed[portId] || !graph.nodes[portId]?.side) continue;
+      claimed[portId] = seat;
     }
   }
 
-  return slides;
+  // Only the ports that actually moved; the rest were planned onto where they
+  // already sat, and a seat that has not changed is not a step.
+  return Object.entries(claimed)
+    .filter(([id, seat]) => {
+      const port = graph.nodes[id];
+
+      return port?.side != null && port.at != null
+        && !sameSeat({ side: port.side, at: port.at }, seat);
+    })
+    .map(([id, seat]) => ({ id, side: seat.side, at: seat.at }));
 }
 
 /** What the floating input is asking for. One prompt, several errands. */

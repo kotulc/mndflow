@@ -5,7 +5,7 @@ alternative it was chosen over — so that changing one's mind means arguing wit
 position rather than guessing at one.
 
 - **What each part does, in short** → [spec.md](spec.md).
-- **What is missing, and what is undecided** → [tasks.md](tasks.md).
+- **What is missing, and what is undecided** → [tasks.md](tasks.md).f
 
 mndflow's primary purpose is to enable rapid construction and composition of descriptive
 visual building blocks for systems modeling tasks.

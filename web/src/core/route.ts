@@ -41,6 +41,9 @@ const NEAR = 1;
 const LEVEL = 2.5;
 /** Cost added per bend so fewer turns beat a slightly shorter path. */
 const BEND_COST = 10_000;
+/** Nudge for an exit that faces the other end. A preference between paths of
+ *  equal shape, never a rival to their length. */
+const AIM_COST = 100;
 
 const SIDES: Side[] = ["top", "right", "bottom", "left"];
 
@@ -124,9 +127,13 @@ function inBounds(a: Spot, b: Spot, bounds: Box | undefined, pad = 0): boolean {
   return contained(bounds, a, pad) && contained(bounds, b, pad);
 }
 
-/** How well a side's exit normal points toward a target. Higher is better. */
+/** How well a side's exit normal points toward a target. Higher is better.
+ *
+ *  An inward exit is measured from its own edge, not from the middle. Every
+ *  wall of a frame faces the interior, so the middle cannot say which wall a
+ *  target is nearest — measured from there, the near wall scores worst. */
 function sideScore(box: Box, side: Side, toward: Spot, inward = false): number {
-  const a = mid(box);
+  const a = inward ? attach(box, side, 0.5) : mid(box);
   const o = exitOf(side, inward);
 
   return o.x * (toward.x - a.x) + o.y * (toward.y - a.y);
@@ -620,11 +627,14 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
           );
           if (!corners || pathHits(corners, start, goal, solids, PAD, bounds)) continue;
 
+          // Prefer exits aimed at the other end's actual seat — by their sign
+          // only. A side score is a distance, so charging it whole cancelled
+          // the length it was meant to break ties within, and the run that
+          // crossed the layer to the far wall won every time.
           const cost = bendsOf(corners, start, goal) * BEND_COST
             + pathLen(corners, start, goal)
-            // Prefer exits aimed at the other end's actual seat.
-            - sideScore(fromBox, fs, attach(toBox, ts, ta), inwardFrom)
-            - sideScore(toBox, ts, attach(fromBox, fs, fa), inwardTo);
+            - AIM_COST * Math.sign(sideScore(fromBox, fs, attach(toBox, ts, ta), inwardFrom))
+            - AIM_COST * Math.sign(sideScore(toBox, ts, attach(fromBox, fs, fa), inwardTo));
 
           if (cost < bestCost) {
             bestCost = cost;
