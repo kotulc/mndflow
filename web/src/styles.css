@@ -500,6 +500,63 @@ button:disabled { opacity: 0.4; cursor: default; }
   box-shadow: 0 0 0 9000px rgba(6, 10, 8, 0.72);
 }
 
+/* The two walls a flow relationship enters and leaves by, when the layer has an
+   axis. Doubled rather than thickened, so it says "things cross here" without
+   competing with the grazed and selected states the same border carries, and so
+   it reads at any zoom. A free layer has no such walls and no mark.
+
+   The two are not the same wall. Flows arrive at one and leave by the other, so
+   the one they leave by is drawn brighter — the layer reads in the direction
+   the border brightens. */
+/* Drawn as a band *outside* the frame's own line rather than as a fat border on
+   it. Two reasons. The frame's border box is where every interface on it is
+   seated and where every line meets it, so thickening it would have moved the
+   geometry the router computes from — and it put the ports on the band's outer
+   face, with the wall reading as though it were behind them. Outside, the line
+   stays 1px, nothing moves, and the ports sit on the band's inner edge, which is
+   where a port set into a wall belongs. */
+.frame.flow-right::before,
+.frame.flow-right::after,
+.frame.flow-down::before,
+.frame.flow-down::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* One line each, not a doubled one: the frame's own border is already the first
+   of the pair, so a `double` band made three lines where two were meant.
+
+   Brighter where flows arrive, dimmer where they leave, so the layer reads in
+   the direction the wall fades. */
+.frame.flow-right::before {
+  top: -1px;
+  bottom: -1px;
+  left: -4px;
+  border-left: 2px solid #6d9a7e;
+}
+
+.frame.flow-right::after {
+  top: -1px;
+  bottom: -1px;
+  right: -4px;
+  border-right: 2px solid #395a4b;
+}
+
+.frame.flow-down::before {
+  left: -1px;
+  right: -1px;
+  top: -4px;
+  border-top: 2px solid #6d9a7e;
+}
+
+.frame.flow-down::after {
+  left: -1px;
+  right: -1px;
+  bottom: -4px;
+  border-bottom: 2px solid #395a4b;
+}
+
 /* The layer's border answers the pointer the way a card's does, since it is
    where right-click makes an interface and right-drag draws a relation from
    one. Tracked by the canvas: the frame takes no pointer events of its own. */
@@ -593,6 +650,42 @@ button:disabled { opacity: 0.4; cursor: default; }
   background: var(--bg);
   transform: translate(-50%, -50%);
 }
+
+/* What a relationship's ends are, said in how it draws. Plain is the default
+   and needs no mark of its own. A flow carries something one way, so it is
+   drawn heavier — the line that means the most is the line you see first. An
+   association is a weaker mention, so it thins and fades. Neither borrows a
+   dash: those are spent on references and boundaries. */
+.react-flow__edge.kind-flow .react-flow__edge-path { stroke-width: 2.5; }
+.react-flow__edge.kind-assoc .react-flow__edge-path { stroke-width: 1; opacity: 0.55; }
+
+/* A seat the layer worked out, rather than an interface somebody made. It draws
+   the same, because it is the same thing to look at: the place a relationship
+   meets a card. Always filled — it exists because a line put it there, and an
+   open square is what an unwired interface looks like. Right-clicking it
+   promotes it to a node of its own. */
+/* The mark takes the pointer, not the wrapper around it. The wrapper is a
+   positioning shell with no box of its own, so a right-click aimed at the seat
+   would have passed straight through it to the card underneath. */
+.berth .seat-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--border);
+  background: #3a5c4b;
+  transform: translate(-50%, -50%);
+}
+
+/* Whichever mark a derived seat is drawing — a square for a flow end, a handle
+   for an anchor that has been lit — is what gets right-clicked to promote it.
+   An anchor drawing nothing has nothing to aim at, which is why selecting the
+   line or the card is what reveals it. */
+.berth.perch .seat-mark,
+.berth.perch .seat { pointer-events: auto; cursor: context-menu; }
+.berth.perch .seat-mark:hover,
+.berth.perch .seat:hover { border-color: var(--accent); }
 
 .port .mark {
   width: 9px;
@@ -1405,6 +1498,36 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .arrange button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .arrange button.on { color: var(--accent); }
+
+/* How the layer is drawn: a column opposite the zoom controls, riding above the
+   attribute tray the same way they do. Icons only — these are settings you set
+   once and read at a glance, not labels to be scanned. */
+.shape {
+  position: absolute;
+  right: 10px;
+  bottom: calc(var(--tray, 0px) + 12px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: rgba(15, 22, 19, 0.9);
+}
+
+.shape button {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.shape button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.shape button.on { color: var(--accent); }
 
 /* The relation editor doubles as its controls */
 

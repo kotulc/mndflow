@@ -27,15 +27,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
+import { axisOf, blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
 import { CELL, cell, LEAF, middled, place, SEAT, seatAt, sizeOf } from "./core/layout";
 import {
-  route as planRoute, sameSeat, type Box, type Move, type Reach, type Seat,
+  attach, lanes, route as planRoute, runOf, type Box, type Seat,
 } from "./core/route";
-import type { End, Graph, Side, Spot } from "./core/types";
+import type { Axis, End, Graph, Kind, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
-import { FACING, type Grazed, LIFTED, NodeCard, REFERRED } from "./NodeCard";
+import { type Grazed, LIFTED, NodeCard, REFERRED, type Seated } from "./NodeCard";
 import { Note } from "./Note";
 import { Wire } from "./Wire";
 
@@ -86,6 +86,21 @@ const NOTE = { w: 168, h: 40 };
  *  cards sit over group bands, notes sit over cards, and interfaces sit over
  *  their host via CSS. */
 const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
+
+/** The arrangements, in the order the one control steps through them. */
+const AXIS_NEXT: Record<Axis, Axis> = { free: "right", right: "down", down: "free" };
+const AXIS_MARK: Record<Axis, string> = { free: "◦", right: "→", down: "↓" };
+const AXIS_TIP: Record<Axis, string> = {
+  free: "Free — fills outward from the middle",
+  right: "Across — ranked left to right",
+  down: "Down — ranked top to bottom",
+};
+
+/** What a right drag makes, in the order the one control steps through. */
+const KIND_NEXT: Record<Kind, Kind> = { untyped: "flow", flow: "assoc", assoc: "untyped" };
+const KIND_MARK: Record<Kind, string> = {
+  untyped: "— plain", flow: "⇥ flow", assoc: "⋯ assoc",
+};
 
 /** A handler that keeps one identity for the life of the canvas, calling
  *  whatever it was last given.
@@ -147,32 +162,33 @@ function nearestEdge(
   return { side, at: seatAt(frac, extent, origin) };
 }
 
-/** Seats handed out so far in one re-seating pass, by port. */
-type Claims = Record<string, Seat>;
+/** Seats already in use on one card: the ports somebody made by hand, plus
+ *  whatever this pass has derived so far. */
+type Used = Record<string, Seat[]>;
 
-/** Where a port sits: the seat this pass has already given it, else the one the
- *  graph records. Undefined where it has none yet. */
-function seatOf(graph: Graph, port: string | undefined, claimed: Claims): Seat | undefined {
-  if (!port) return undefined;
-  const held = claimed[port];
-  if (held) return held;
+/** One relationship's geometry, worked out rather than stored: the whole run,
+ *  ends included, and the edge of each card it leaves by. */
+export type Laid = {
+  points: Spot[];
+  fromSide: Side;
+  toSide: Side;
+};
 
-  const node = graph.nodes[port];
+/** Half an interface mark, in canvas units. A mark straddles the border it sits
+ *  on, so a run ending on the border runs to the middle of its own square and
+ *  pokes out inside it. Ending on the outer face instead, the line meets the
+ *  interface rather than piercing it. */
+const MARK = 5.5;
 
-  return node?.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
-}
+/** Which walls a flow relationship leaves and arrives by, given the layer's
+ *  axis. Out on the forward face, in on the one behind — the convention the
+ *  arrangement already reads by, so a flow line runs with the layer instead of
+ *  doubling back across it. A free layer imposes nothing. */
+function flowSides(axis: Axis): { from: Side; to: Side } | null {
+  if (axis === "right") return { from: "right", to: "left" };
+  if (axis === "down") return { from: "bottom", to: "top" };
 
-/** Seats already taken on a card, excluding ports we are about to move. Seats
- *  claimed earlier in the same pass count as taken — that is what keeps two
- *  ports out of one seat. */
-function takenSeats(graph: Graph, parent: string | null, exclude: string[] = [],
-                    claimed: Claims = {}): Seat[] {
-  const skip = new Set(exclude);
-
-  return portsOf(graph, parent)
-    .filter((p) => !skip.has(p.id))
-    .map((p) => seatOf(graph, p.id, claimed))
-    .filter((seat): seat is Seat => seat !== undefined);
+  return null;
 }
 
 /** Card boxes that a route must clear, excluding the two ends it attaches to. */
@@ -184,131 +200,73 @@ function obstaclesOf(boxes: Record<string, Box>, fromId: string, toId: string): 
     .map(([, box]) => box);
 }
 
-/** Auto-route for one edge: seats + corners. `pin` locks ends to their current
- *  seats — all, none, or per end (shared ports stay put on straighten). A port
- *  `claimed` earlier in the pass is pinned whatever `pin` says: relationships
- *  may share a port, but a port is planned once. */
+/** The seat a hand-made interface holds, when this end has one on this card.
+ *
+ *  A port belonging to the far node does not count where a reference is
+ *  standing in for it: the reference is a different card, and the seat means
+ *  nothing on it. */
+function pinnedAt(graph: Graph, port: string | undefined, owner: string): Seat | undefined {
+  const node = port ? graph.nodes[port] : undefined;
+  if (!node || node.parent !== owner) return undefined;
+
+  return node.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
+}
+
+/** Seats a card starts the pass with: every interface on it that somebody
+ *  placed. Everything else on that card is derived and claimed as it goes. */
+function seatsOn(graph: Graph, owner: string): Seat[] {
+  return portsOf(graph, owner)
+    .filter((p) => p.side != null && p.at != null)
+    .map((p) => ({ side: p.side!, at: p.at! }));
+}
+
+/** Where one relationship meets its two ends, and the corners between.
+ *
+ *  A hand-made interface pins its end; every other end is free, and the router
+ *  picks a seat that faces the path and that nothing else has taken. */
 function planEdge(
   graph: Graph,
-  edge: { source: string; target: string; from?: string; to?: string },
+  edge: { source: string; target: string; from?: string; to?: string; kind?: Kind;
+          fromSide?: Side; toSide?: Side },
   boxes: Record<string, Box>,
   view: string | null,
   frameBox: Box | null,
-  pin: boolean | { from: boolean; to: boolean } = true,
-  claimed: Claims = {},
+  used: Used,
+  axis: Axis = "free",
 ) {
   const fromBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
   const toBox = boxes[edge.target] ?? (edge.target === view ? frameBox : null);
   if (!fromBox || !toBox) return null;
 
-  const fromPort = edge.from ? graph.nodes[edge.from] : null;
-  const toPort = edge.to ? graph.nodes[edge.to] : null;
-  const wanted = typeof pin === "boolean" ? { from: pin, to: pin } : pin;
-  const pinFrom = wanted.from || (edge.from && claimed[edge.from])
-    ? seatOf(graph, edge.from, claimed)
-    : undefined;
-  const pinTo = wanted.to || (edge.to && claimed[edge.to])
-    ? seatOf(graph, edge.to, claimed)
-    : undefined;
+  // A flow's ends read as in and out, so they take the sides the layer's axis
+  // gives them. Not on the frame, whose walls all face inward and whose sides
+  // mean the opposite of a card's.
+  const sides = edge.kind === "flow" && edge.source !== view && edge.target !== view
+    ? flowSides(axis)
+    : null;
+
+  // A wall somebody chose beats the one the axis would have given, the same way
+  // a card the user placed beats where layout would have put it.
+  const sideFrom = edge.fromSide ?? sides?.from;
+  const sideTo = edge.toSide ?? sides?.to;
 
   return planRoute(
     fromBox,
     toBox,
     obstaclesOf(boxes, edge.source, edge.target),
     {
-      pinFrom,
-      pinTo,
-      fromTaken: takenSeats(graph, fromPort?.parent ?? edge.source,
-                            edge.from ? [edge.from] : [], claimed),
-      toTaken: takenSeats(graph, toPort?.parent ?? edge.target,
-                          edge.to ? [edge.to] : [], claimed),
+      pinFrom: pinnedAt(graph, edge.from, edge.source),
+      pinTo: pinnedAt(graph, edge.to, edge.target),
+      sideFrom,
+      sideTo,
+      fromTaken: used[edge.source] ?? [],
+      toTaken: used[edge.target] ?? [],
       // Inside an open layer, paths stay in the frame — never skirt outside.
       bounds: frameBox ?? undefined,
       inwardFrom: edge.source === view,
       inwardTo: edge.target === view,
     },
   );
-}
-
-/** True when another relationship also anchors at this interface. */
-function portShared(graph: Graph, port: string | undefined, edgeId: string): boolean {
-  if (!port) return false;
-
-  return Object.values(graph.edges)
-    .some((e) => e.id !== edgeId && (e.from === port || e.to === port));
-}
-
-/** Clear manual corners and re-seat exclusive ends for one edge. Shared ports
- *  stay pinned so neighbouring lines are not yanked. */
-function straightenEdge(
-  graph: Graph,
-  edgeId: string,
-  boxes: Record<string, Box>,
-  view: string | null,
-  frameBox: Box | null,
-): { id: string; side: Side; at: number }[] {
-  const edge = graph.edges[edgeId];
-  if (!edge) return [];
-
-  const pinFrom = portShared(graph, edge.from, edgeId);
-  const pinTo = portShared(graph, edge.to, edgeId);
-  const planned = planEdge(graph, edge, boxes, view, frameBox, { from: pinFrom, to: pinTo });
-  if (!planned) return [];
-
-  const slides: { id: string; side: Side; at: number }[] = [];
-
-  for (const [portId, seat, pinned] of [
-    [edge.from, planned.from, pinFrom],
-    [edge.to, planned.to, pinTo],
-  ] as const) {
-    if (!portId || pinned) continue;
-    const port = graph.nodes[portId];
-    if (!port?.side || port.at == null) continue;
-    if (sameSeat({ side: port.side, at: port.at }, seat)) continue;
-    slides.push({ id: portId, side: seat.side, at: seat.at });
-  }
-
-  return slides;
-}
-
-/** Port seat updates so auto edges match a fresh plan (no manual corners).
- *
- *  One pass, each edge planned against the seats the ones before it took, so
- *  no two ports come out of it in one seat. A port two relationships share is
- *  planned by the first and held for the second. */
-function seatSlides(
-  graph: Graph,
-  boxes: Record<string, Box>,
-  view: string | null,
-  frameBox: Box | null,
-): { id: string; side: Side; at: number }[] {
-  const claimed: Claims = {};
-
-  for (const edge of Object.values(graph.edges)) {
-    if (edge.route?.layer === view && edge.route.corners.length > 0) continue;
-
-    const planned = planEdge(graph, edge, boxes, view, frameBox, false, claimed);
-    if (!planned) continue;
-
-    for (const [portId, seat] of [
-      [edge.from, planned.from],
-      [edge.to, planned.to],
-    ] as const) {
-      if (!portId || claimed[portId] || !graph.nodes[portId]?.side) continue;
-      claimed[portId] = seat;
-    }
-  }
-
-  // Only the ports that actually moved; the rest were planned onto where they
-  // already sat, and a seat that has not changed is not a step.
-  return Object.entries(claimed)
-    .filter(([id, seat]) => {
-      const port = graph.nodes[id];
-
-      return port?.side != null && port.at != null
-        && !sameSeat({ side: port.side, at: port.at }, seat);
-    })
-    .map(([id, seat]) => ({ id, side: seat.side, at: seat.at }));
 }
 
 /** What the floating input is asking for. One prompt, several errands. */
@@ -347,6 +305,10 @@ type Props = {
   onShowPorts: (on: boolean) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
+  /** How this layer arranges what it holds. Its own, not the app's. */
+  onAxis: (axis: Axis) => void;
+  /** Hand this layer's blocks back to automatic placement. */
+  onRelax: () => void;
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
@@ -354,25 +316,24 @@ type Props = {
   onPromote: (id: string, parent: string | null) => void;
   /** A node in this layer, joining any group boundaries it was made inside. */
   onCreateAt: (label: string, x: number, y: number, groups: string[]) => void;
-  onSprout: (a: End, label: string, x: number, y: number, side: Side) => void;
+  onSprout: (a: End, label: string, x: number, y: number, kind: Kind) => void;
+  /** What a drag makes: the kind picked in the toolbar. */
+  kind: Kind;
+  onKind: (kind: Kind) => void;
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
   /** Draw a relationship, with an interface at each end. */
-  onWire: (a: End, b: End) => void;
+  onWire: (a: End, b: End, kind: Kind) => void;
   onAddPort: (parent: string | null, side: Side, at: number) => void;
+  /** Turn a derived seat into an interface of its own, where it sits. */
+  onPromotePort: (edge: string, end: "from" | "to", owner: string,
+                  side: Side, at: number) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
   onRelation: (id: string, relation: string) => void;
-  /** A relationship's route as a drag left it, with any interface that slid
-   *  along with it — one gesture, so one action. */
-  onRoute: (id: string, corners: Spot[],
-            slides: { id: string; side: Side; at: number }[]) => void;
-  /** Seats from auto-route when no card moved — layout / first paint. */
-  onSeatMany: (slides: { id: string; side: Side; at: number }[]) => void;
   /** Where a drag came to rest, and any group each thing joined or left by
    *  landing there — one gesture, so one action. */
   onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string,
-                membership?: { attr: string; holder: string; join: boolean }[],
-                seats?: { id: string; side: Side; at: number }[]) => void;
+                membership?: { attr: string; holder: string; join: boolean }[]) => void;
   onUnlink: (id: string) => void;
   onDelete: (id: string) => void;
   onGroup: (members: string[]) => void;
@@ -393,15 +354,16 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
-  const { onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
+  const { onAxis, onRelax, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
+  const { kind, onKind } = props;
+  const axis = axisOf(graph, view);
   // Everything the cards, the frame and the lines are handed has to keep one
   // identity, or their data is rebuilt on every render — see `useSteady`.
   const onRename = useSteady(props.onRename);
   const onSlidePort = useSteady(props.onSlidePort);
   const onNameAttr = useSteady(props.onNameAttr);
-  const onRoute = useSteady(props.onRoute);
-  const onSeatMany = useSteady(props.onSeatMany);
   const { onLift, onWire, onAddPort, onRelation } = props;
+  const onPromotePort = useSteady(props.onPromotePort);
   const { onPlaceMany, onUnlink, onDelete, onGroup, onDropAttr } = props;
   const { onNote, onPlaceNote, onTie, onRefer, onReveal } = props;
   const flow = useReactFlow();
@@ -457,7 +419,7 @@ function Flow(props: Props) {
   /** Where everything in this layer sits, and how big it is — the one source
    *  the frame, the groups and the relation anchors all measure against. */
   const boxes = useMemo(() => {
-    const spots = place(graph, members);
+    const spots = place(graph, members, axis);
     const found: Record<string, Box> = {};
 
     for (const node of members) {
@@ -467,7 +429,7 @@ function Flow(props: Props) {
     }
 
     return found;
-  }, [graph, members, placementKey(members)]);
+  }, [graph, members, axis, placementKey(members)]);
 
   /** The layer's own frame, with room on every side for its interfaces. */
   const frameBox = useMemo(() => {
@@ -517,11 +479,118 @@ function Flow(props: Props) {
    *  selected relationship. Enough to see where a line is tied on without
    *  turning every square on the layer back on. A selected card shows its own,
    *  which the card decides for itself. */
+  /** Relationships whose ends should show themselves: the selected one. An
+   *  anchor draws nothing until it is worth finding. */
+  const litEdges = useMemo(
+    () => new Set(picked?.kind === "edge" ? [picked.id] : []),
+    [picked],
+  );
+
   const litSeats = useMemo(() => {
     const edge = picked?.kind === "edge" ? graph.edges[picked.id] : null;
 
     return new Set([edge?.from, edge?.to].filter(Boolean) as string[]);
   }, [graph, picked]);
+
+  /** The node standing in for one that lives elsewhere, so a relationship
+   *  reaching out of the layer is drawn against what is actually here. */
+  const standIn = useCallback((id: string) => {
+    if (id === view || members.some((n) => n.id === id)) return id;
+
+    return refIn(graph, view, id)?.id ?? null;
+  }, [graph, members, view]);
+
+  /** Every relationship's geometry for this layer, worked out in one pass.
+   *
+   *  Seats are derived here and nowhere else. A port is a node only where
+   *  somebody made one; everywhere else, where a line meets a card is a fact
+   *  about this layer's arrangement rather than something stored, so it is
+   *  worked out afresh whenever the arrangement changes and never written to
+   *  the log. One pass, so each edge sees the seats the ones before it took and
+   *  no two ends land in the same seat. */
+  const laid = useMemo(() => {
+    const used: Used = {};
+    const runs: Record<string, Laid> = {};
+    const seats: Record<string, Seated[]> = {};
+
+    const claim = (owner: string, seat: Seat) => {
+      used[owner] ??= seatsOn(graph, owner);
+      used[owner].push(seat);
+    };
+
+    for (const edge of Object.values(graph.edges)) {
+      const source = standIn(edge.source);
+      const target = standIn(edge.target);
+      if (!source || !target || source === target) continue;
+
+      used[source] ??= seatsOn(graph, source);
+      used[target] ??= seatsOn(graph, target);
+
+      const ends = { ...edge, source, target };
+      const planned = planEdge(graph, ends, boxes, view, frameBox, used, axis);
+      if (!planned) continue;
+
+      // Only a flow end draws a square, so only a flow end has one to stop at.
+      const drawsPort = showPorts && edge.kind === "flow";
+
+      const fromBox = boxes[source] ?? frameBox!;
+      const toBox = boxes[target] ?? frameBox!;
+
+      const points = runOf(
+        attach(fromBox, planned.from.side, planned.from.at), planned.out,
+        attach(toBox, planned.to.side, planned.to.at), planned.back,
+        planned.corners,
+      );
+
+      if (drawsPort) {
+        const last = points.length - 1;
+        points[0] = { x: points[0].x + planned.out.x * MARK,
+                      y: points[0].y + planned.out.y * MARK };
+        points[last] = { x: points[last].x + planned.back.x * MARK,
+                         y: points[last].y + planned.back.y * MARK };
+      }
+
+      runs[edge.id] = {
+        points,
+        fromSide: planned.from.side,
+        toSide: planned.to.side,
+      };
+
+      for (const [owner, port, seat] of [
+        [source, edge.from, planned.from],
+        [target, edge.to, planned.to],
+      ] as const) {
+        // A hand-made interface is already on the card and already counted;
+        // only a derived seat has to be claimed and drawn.
+        if (pinnedAt(graph, port, owner)) continue;
+        claim(owner, seat);
+        (seats[owner] ??= []).push({
+          edge: edge.id, side: seat.side, at: seat.at, port: drawsPort,
+        });
+      }
+    }
+
+    // Runs sharing a line are spread apart last, once every one of them is
+    // known — two relationships going the same way have to be told apart, and
+    // no single edge can see that on its own.
+    const spread = lanes(Object.fromEntries(
+      Object.entries(runs).map(([id, run]) => [id, run.points]),
+    ));
+    for (const [id, points] of Object.entries(spread)) runs[id] = { ...runs[id], points };
+
+    return { runs, seats };
+  }, [graph, boxes, frameBox, view, axis, showPorts, standIn]);
+
+  /** Turn a derived seat into an interface of its own, where it sits. Which end
+   *  of the relationship it is follows from which card it is drawn on. */
+  const promoteSeat = useCallback((owner: string) =>
+    (edgeId: string, side: Side, at: number) => {
+      const edge = graph.edges[edgeId];
+      if (!edge) return;
+      const end = standIn(edge.source) === owner ? "from" : "to";
+
+      onPromotePort(edgeId, end, owner, side, at);
+    }, [graph, standIn, onPromotePort]);
 
   const built = useMemo<FlowNode[]>(() => {
     const cards = members.map((node) => ({
@@ -547,10 +616,13 @@ function Flow(props: Props) {
         showPorts,
         litSeats,
         pickedPort: pickedNode,
+        seats: laid.seats[node.id] ?? [],
+        litEdges,
         onPick: (id: string) => onPick({ kind: "node", id }),
         onOpen,
         onSlidePort,
         onRename,
+        onPromote: promoteSeat(node.id),
       },
     })) as FlowNode[];
 
@@ -631,13 +703,17 @@ function Flow(props: Props) {
             id: view,
             graph,
             straddles: graph.nodes[view]?.side ?? null,
+            axis,
             showPorts,
             litSeats,
             pickedPort: pickedNode,
+            seats: laid.seats[view] ?? [],
+            litEdges,
             onPick: (id: string) => onPick({ kind: "node", id }),
             onOpen,
             onSlidePort,
             onRename,
+            onPromote: promoteSeat(view),
             grazed,
           },
         } as FlowNode]
@@ -647,8 +723,8 @@ function Flow(props: Props) {
     // then notes. Relations sit above all of these via the edges layer.
     return [...frame, ...groups, ...cards, ...written];
   }, [graph, members, notes, boxes, bands, frameBox, view, dropping, joining, pickedNode,
-      picked, showPorts, litSeats, grazed, onPick, onOpen, onSlidePort, onRename,
-      onNameAttr]);
+      picked, showPorts, litSeats, litEdges, grazed, laid, promoteSeat, onPick, onOpen,
+      onSlidePort, onRename, onNameAttr]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
 
@@ -736,49 +812,8 @@ function Flow(props: Props) {
     [graph, boxes, frameBox, view],
   );
 
-  /** How far an interface may slide along its own frame edge, in canvas units.
-   *  Kept for Wire typing; end segments no longer slide ports. */
-  const reachOf = useCallback((port: string | undefined): Reach => {
-    const side = port ? graph.nodes[port]?.side : null;
-    const box = hostBox(port);
-    if (!side || !box) return null;
-
-    return side === "top" || side === "bottom"
-      ? { lo: box.x + SEAT, hi: box.x + box.w - SEAT }
-      : { lo: box.y + SEAT, hi: box.y + box.h - SEAT };
-  }, [graph, hostBox]);
-
-  /** A middle-segment drag's corners. Seats are owned by auto-route. */
-  const routed = useCallback((id: string, corners: Spot[], _moves: Move[]) => {
-    onRoute(id, corners, []);
-  }, [onRoute]);
-
   /** Edges as the graph describes them, before React Flow adds selection. */
   const builtEdges: Edge[] = useMemo(() => {
-    const here = new Set([...members.map((n) => n.id), ...(view ? [view] : [])]);
-
-    /** What draws for one end of a relation in this layer: the node itself, or
-     *  the reference standing in for it. A relation is always between the real
-     *  nodes — the reference is only where the far one appears here. */
-    const standIn = (id: string) => (here.has(id) ? id : refIn(graph, view, id)?.id ?? null);
-
-    /** The handle one end attaches to: its own interface where it has one,
-     *  otherwise the side of the card that faces the other end.
-     *
-     *  Hiding interfaces makes no difference here. A hidden one leaves its seat
-     *  behind, so the line still meets the border where the interface sits
-     *  rather than swinging to the middle of a side as it is toggled. */
-    const anchor = (owner: string, port: string | undefined, other: Box | null) => {
-      if (port && graph.nodes[port] && graph.nodes[port].parent === owner) {
-        return `port-${port}`;
-      }
-
-      const mine = boxes[owner] ?? frameBox;
-      if (!mine || !other) return "auto-right";
-
-      return `auto-${facing(mine, other)}`;
-    };
-
     /** A note's leaders: one faint line to each object it is tied to that is
      *  drawn in this layer. Decoration, not relationships — they take no
      *  pointer, cannot be selected, and are never routed by hand. */
@@ -804,14 +839,13 @@ function Flow(props: Props) {
       .map((edge) => {
         const source = standIn(edge.source);
         const target = standIn(edge.target);
-        if (!source || !target || source === target) return null;
+        const run = laid.runs[edge.id];
+        if (!source || !target || source === target || !run) return null;
 
         // Reaching out of the layer: at least one end is drawn through a
         // placeholder, which the line says by going dotted.
         const away = source !== edge.source || target !== edge.target;
 
-        const sourceBox = boxes[source] ?? (source === view ? frameBox : null);
-        const targetBox = boxes[target] ?? (target === view ? frameBox : null);
         const forward = edge.dir === "forward" || edge.dir === "both";
         const back = edge.dir === "back" || edge.dir === "both";
         // A line reaching out of the layer carries its own colour, not just a
@@ -819,6 +853,7 @@ function Flow(props: Props) {
         const tint = away ? "#6d5aa8" : "#2f4a3e";
         const head = { type: MarkerType.ArrowClosed, width: 16, height: 16,
                        color: away ? "#6d5aa8" : "#3f6552" };
+        const kind = edge.kind ?? "untyped";
 
         return {
           id: edge.id,
@@ -827,29 +862,23 @@ function Flow(props: Props) {
           label: edge.relation,
           type: "wire",
           zIndex: DEPTH.edge,
-          data: (() => {
-            const saved = edge.route?.layer === view && edge.route.corners.length > 0;
-            const planned = !saved && sourceBox && targetBox && edge.from && edge.to
-              ? planEdge(graph, { ...edge, source, target }, boxes, view, frameBox, true)
-              : null;
-
-            return {
-              corners: saved ? edge.route!.corners : (planned?.corners ?? []),
-              saved,
-              angular,
-              reach: { from: reachOf(edge.from), to: reachOf(edge.to) },
-              onRoute: routed,
-            };
-          })(),
+          // The whole run, ends included. React Flow's own handle positions are
+          // a four-a-side approximation; the layer's plan is where the line
+          // actually meets each card, so `Wire` draws from this and not from
+          // the coordinates the library hands it.
+          data: { run, angular },
           markerEnd: forward ? head : undefined,
           markerStart: back ? head : undefined,
-          sourceHandle: `${anchor(source, edge.from, targetBox)}-s`,
-          targetHandle: `${anchor(target, edge.to, sourceBox)}-t`,
+          // Bookkeeping only — the drawn endpoints come from `run`. Naming the
+          // side the plan chose keeps the library's idea of the edge and ours
+          // pointing the same way.
+          sourceHandle: `auto-${run.fromSide}-s`,
+          targetHandle: `auto-${run.toSide}-t`,
           // Stated on the edge rather than left to the container's defaults,
           // so a relation is always clickable and always deletable.
           selectable: true,
           focusable: true,
-          className: away ? "reaching" : "",
+          className: `kind-${kind}${away ? " reaching" : ""}`,
           selected: picked?.kind === "edge" && picked.id === edge.id,
           style: { stroke: tint, strokeDasharray: away ? "5 4" : undefined },
         } as Edge;
@@ -857,31 +886,16 @@ function Flow(props: Props) {
       .filter((e): e is Edge => e !== null);
 
     return [...drawn, ...tethers];
-  }, [graph, members, notes, boxes, frameBox, view, angular, picked, reachOf, routed]);
+  }, [graph, notes, boxes, laid, standIn, angular, picked]);
 
   // Edges need their own change handler for the same reason nodes do: without
   // one React Flow has nowhere to record a selection.
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(builtEdges);
   useEffect(() => setEdges(builtEdges), [builtEdges, setEdges]);
 
-  // Re-seat auto edges when cards settle (layout or load). Card drags fold
-  // seats into placeMany; this covers everything else without repeating work
-  // when seats already match the plan.
-  const boxKey = useMemo(
-    () => Object.entries(boxes)
-      .map(([id, b]) => `${id}:${Math.round(b.x)}:${Math.round(b.y)}:${Math.round(b.w)}:${Math.round(b.h)}`)
-      .sort()
-      .join("|"),
-    [boxes],
-  );
-
-  useEffect(() => {
-    const slides = seatSlides(graph, boxes, view, frameBox);
-    if (slides.length) onSeatMany(slides);
-    // Geometry only — a hand-dragged port on an auto edge must not be snapped
-    // back on the next render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- boxKey is the geometry signal
-  }, [boxKey, view, onSeatMany]);
+  // Nothing writes seats back. A card moving changes `boxes`, which changes the
+  // plan, which redraws the lines — no step, no history, and nothing to
+  // converge on over a second render.
 
   // Refit on a layer change, and when the layer gains or loses something.
   // Deliberately *not* keyed on the selection: selecting is a glance, and a
@@ -951,8 +965,10 @@ function Flow(props: Props) {
 
     return () => clearTimeout(timer);
     // restViewport is read for the value; population/frameBox/panel still gate
-    // when a refit runs, so dragging cards does not chase the camera.
-  }, [flow, view, population, panel.w, panel.h, frameBox]);
+    // when a refit runs, so dragging cards does not chase the camera. The axis
+    // is in there too: rearranging a layer moves everything at once, and a
+    // camera left where it was is looking at a corner of the new arrangement.
+  }, [flow, view, population, axis, panel.w, panel.h, frameBox]);
 
   // If the floor rises (panel shrinks, frame grows), pull the viewport up so
   // it never sits below what wheel zoom is allowed to reach.
@@ -1178,13 +1194,12 @@ function Flow(props: Props) {
     if (chosen.length > 1 && onSelection) return onGroup(chosen);
 
     // A name opens its own editor on the right button — see `Name` — and an
-    // interface is already one; both wait for the menu. A relation straightens:
-    // clear manual corners, re-seat ends this line alone owns, leave shared
-    // ports where they are.
+    // interface is already one; both wait for the menu.
     if (hit.title || hit.port) return;
-    if (hit.kind === "edge" && hit.id) {
-      return onRoute(hit.id, [], straightenEdge(graph, hit.id, boxes, view, frameBox));
-    }
+
+    // A relationship's kind is a name, and a name is written where it is drawn.
+    // The last name on the canvas that took a different gesture.
+    if (hit.kind === "edge" && hit.id) return setPrompt({ kind: "relation", id: hit.id });
 
     // Anywhere on a card, and anywhere on the layer's own border, makes an
     // interface. Where the click landed decides which point of the border it
@@ -1200,7 +1215,7 @@ function Flow(props: Props) {
     const at = flow.screenToFlowPosition({ x, y });
 
     setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
-  }, [under, nodes, flow, onGroup, onAddPort, onRoute, graph, boxes, view, frameBox]);
+  }, [under, nodes, flow, onGroup, onAddPort]);
 
   // Shortcuts the canvas owns. Inside a field the field's own editing wins,
   // and Esc abandons whatever is half-drawn — prompt or relationship alike.
@@ -1268,6 +1283,22 @@ function Flow(props: Props) {
   /** The right button, from press to release. Below the threshold it is a
    *  click and falls through to the default action; past it, a relationship
    *  is being drawn and an interface appears at the edge it started from. */
+  /** The wall a right drag named, where it named one.
+   *
+   *  Only the layer's own frame names one. A card has no border zone — a drag
+   *  from anywhere on it means "from this card", and there is no wall in the
+   *  gesture to record. The frame is the exception the spec already makes, since
+   *  its interior is the background and so its border has to stay a zone: a drag
+   *  there is necessarily *on a wall*, and which wall is what the user meant. */
+  function wallAt(hit: { kind: string | null; port: string | null; box: DOMRect | null },
+                  x: number, y: number): Side | undefined {
+    if (hit.kind !== "frame" || hit.port || !hit.box) return undefined;
+
+    const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
+
+    return nearestEdge(hit.box, x, y, flow.getZoom(), corner).side;
+  }
+
   function rightDown(event: React.PointerEvent) {
     if (event.button !== 2) return;
 
@@ -1283,15 +1314,12 @@ function Flow(props: Props) {
     if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
 
     const origin = { x: event.clientX, y: event.clientY };
-    const corner = hit.box
-      ? flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top })
-      : { x: 0, y: 0 };
 
     setWire({
-      // An interface it started on, or the place on the border to make one at.
-      end: hit.port
-        ? { node: hit.id, port: hit.port }
-        : { node: hit.id, seat: nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom(), corner) },
+      // The interface it set off from, where it set off from one, and the wall
+      // it set off through, where the gesture named one. Anywhere else on a card
+      // is just the card: where the line leaves it is the layer's to work out.
+      end: { node: hit.id, port: hit.port ?? undefined, side: wallAt(hit, origin.x, origin.y) },
       origin,
       to: origin,
       live: false,
@@ -1371,49 +1399,15 @@ function Flow(props: Props) {
 
     const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
 
-    // Released on something: an interface at that end too. On an existing one,
-    // that is the anchor; anywhere else on the card, one is made at the point
-    // of its border the drag was let go over.
+    // Released on something: the relationship, and nothing else. An interface
+    // it landed on is kept as that end's anchor; otherwise the layer decides
+    // where the line meets the card, and there is nothing to record.
     if (landed && landed !== held.end.node) {
-      const fromBox = boxes[held.end.node] ?? (held.end.node === view ? frameBox : null);
-      const toBox = boxes[landed] ?? (landed === view ? frameBox : null);
-      const planned = fromBox && toBox
-        ? planRoute(fromBox, toBox, obstaclesOf(boxes, held.end.node, landed), {
-            pinFrom: held.end.port
-              ? (() => {
-                  const p = graph.nodes[held.end.port!];
-                  return p?.side != null && p.at != null ? { side: p.side, at: p.at } : undefined;
-                })()
-              : undefined,
-            pinTo: hit.port
-              ? (() => {
-                  const p = graph.nodes[hit.port!];
-                  return p?.side != null && p.at != null ? { side: p.side, at: p.at } : undefined;
-                })()
-              : undefined,
-            fromTaken: takenSeats(graph, held.end.node, held.end.port ? [held.end.port] : []),
-            toTaken: takenSeats(graph, landed, hit.port ? [hit.port] : []),
-            bounds: frameBox ?? undefined,
-            inwardFrom: held.end.node === view,
-            inwardTo: landed === view,
-          })
-        : null;
-
-      const start: End = held.end.port
-        ? held.end
-        : { node: held.end.node, seat: planned?.from ?? held.end.seat! };
-      const finish: End = hit.port
-        ? { node: landed, port: hit.port }
-        : { node: landed, seat: planned?.to
-            ?? (() => {
-              const corner = hit.box
-                ? flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top })
-                : { x: 0, y: 0 };
-
-              return nearestEdge(hit.box!, event.clientX, event.clientY, flow.getZoom(), corner);
-            })() };
-
-      return onWire(start, finish);
+      return onWire(held.end, {
+        node: landed,
+        port: hit.port ?? undefined,
+        side: wallAt(hit, event.clientX, event.clientY),
+      }, kind);
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
@@ -1482,11 +1476,33 @@ function Flow(props: Props) {
           {showPorts ? "□ interfaces" : "· interfaces"}
         </button>
         <button
+          className={kind === "untyped" ? "" : "on"}
+          onClick={() => onKind(KIND_NEXT[kind])}
+          title="What a right drag makes"
+        >
+          {KIND_MARK[kind]}
+        </button>
+      </div>
+
+      {/* How the layer is drawn, opposite the zoom controls: the arrangement,
+          the re-arrange, and whether lines are square or curved. Kept apart
+          from the row above because that one is about what gets *made*, and
+          because two of these three belong to the layer rather than the app. */}
+      <div className="shape">
+        <button
+          className={axis === "free" ? "" : "on"}
+          onClick={() => onAxis(AXIS_NEXT[axis])}
+          title={AXIS_TIP[axis]}
+        >
+          {AXIS_MARK[axis]}
+        </button>
+        <button onClick={onRelax} title="Lay this layer out again">↻</button>
+        <button
           className={angular ? "on" : ""}
           onClick={() => onAngular(!angular)}
-          title="Right angles instead of curves"
+          title={angular ? "Right angles" : "Curves"}
         >
-          {angular ? "⌐ angles" : "~ curves"}
+          {angular ? "⌐" : "~"}
         </button>
       </div>
 
@@ -1665,14 +1681,7 @@ function Flow(props: Props) {
             const moved = Object.entries(start.members)
               .map(([id, home]) => ({ id, x: home.x + dx, y: home.y + dy }));
 
-            const nextBoxes = { ...boxes };
-            for (const m of moved) {
-              const prior = nextBoxes[m.id];
-              if (prior) nextBoxes[m.id] = { ...prior, x: m.x, y: m.y };
-            }
-
-            return onPlaceMany(moved, `moved group of ${moved.length}`, [],
-                               seatSlides(graph, nextBoxes, view, frameBox));
+            return onPlaceMany(moved, `moved group of ${moved.length}`);
           }
 
           // A note has a place of its own, and takes nothing with it.
@@ -1723,16 +1732,8 @@ function Flow(props: Props) {
                                     join: inside.has(attr.id) }));
           });
 
-          // Predict boxes after the place so auto seats ride in the same step.
-          const nextBoxes = { ...boxes };
-          for (const m of moved) {
-            const prior = nextBoxes[m.id];
-            if (prior) nextBoxes[m.id] = { ...prior, x: m.x, y: m.y };
-          }
-
-          onPlaceMany(moved, "", membership, seatSlides(graph, nextBoxes, view, frameBox));
+          onPlaceMany(moved, "", membership);
         }}
-        onEdgeDoubleClick={(_, edge) => setPrompt({ kind: "relation", id: edge.id })}
         // A placeholder is a drawing of something elsewhere; deleting it here
         // would mean deleting a node in another layer, which is not what the
         // key was pressed for.
@@ -1835,13 +1836,7 @@ function Flow(props: Props) {
               const text = event.currentTarget.value.trim();
               if (event.key === "Enter" && text) {
                 if (prompt.kind === "sprout") {
-                  // The new node's own interface faces back the way the drag
-                  // came, so the line between them runs straight.
-                  const near = prompt.end.port
-                    ? graph.nodes[prompt.end.port]?.side
-                    : prompt.end.seat?.side;
-                  onSprout(prompt.end, text, prompt.x, prompt.y,
-                           near ? FACING[near] : "left");
+                  onSprout(prompt.end, text, prompt.x, prompt.y, kind);
                 } else {
                   // Made in the clear space inside a boundary, it joins that
                   // group — the same test a card dropped there passes.

@@ -18,7 +18,8 @@ import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
 import {
   attr as makeAttr, edge as makeEdge, node as makeNode, step as makeStep,
-  type Attr, type Dir, type End, type Flow, type Mutation, type Side, type Spot, type Step,
+  type Attr, type Axis, type Dir, type End, type Flow, type Kind, type Mutation, type Side,
+  type Spot, type Step,
 } from "./types";
 import { getDomain } from "./workflows";
 
@@ -251,18 +252,14 @@ export function useProject() {
      *  the same reason: a selection dragged together is one action, and so is a
      *  group's members moving with its boundary. */
     placeMany: (moved: { id: string; x: number; y: number }[], what = "",
-                membership: { attr: string; holder: string; join: boolean }[] = [],
-                /** Auto-route seats to apply with the same gesture (card move). */
-                seats: { id: string; side: Side; at: number }[] = []) =>
-      (moved.length || membership.length || seats.length) &&
+                membership: { attr: string; holder: string; join: boolean }[] = []) =>
+      (moved.length || membership.length) &&
       commit(makeStep(
         what || (membership.length
           ? `${membership[0].join ? "into" : "out of"} a group`
           : moved.length === 1
             ? `place: ${name(moved[0].id)}`
-            : moved.length
-              ? `place ${moved.length} together`
-              : "seat"),
+            : `place ${moved.length} together`),
         "place",
         [
           ...moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
@@ -276,7 +273,6 @@ export function useProject() {
               graph.attrs[id],
               membership.filter((m) => !m.join && m.attr === id).map((m) => m.holder),
             )),
-          ...seats.map(({ id, side, at }) => ({ op: "set_port" as const, id, side, at })),
         ],
       )),
 
@@ -304,61 +300,64 @@ export function useProject() {
     /** A relationship with nowhere in particular to attach: its interfaces are
      *  implied at the sides facing each other. What a chip or a workflow makes,
      *  where there was no gesture to take a position from. */
-    link: (source: string, target: string) =>
+    link: (source: string, target: string, kind: Kind = "untyped") =>
       source !== target &&
       commit(makeStep(`link: ${name(source)}`, "link",
-                      [{ op: "link_nodes", edge: makeEdge(source, target) }])),
+                      [{ op: "link_nodes", edge: makeEdge(source, target, { kind }) }])),
 
-    /** A relationship drawn by hand, and the interfaces at both its ends. Each
-     *  end is either an interface the drag landed on or a place on a border to
-     *  put one, so a relationship always has both — made in one step, so undo
-     *  takes back the whole gesture rather than half of it. */
-    wire: (a: End, b: End) => {
-      if (a.node === b.node) return;
-
-      const made: { op: "add_node"; node: ReturnType<typeof makeNode> }[] = [];
-      const anchor = (end: End) => {
-        if (end.port) return end.port;
-        if (!end.seat) return undefined;
-
-        const port = makeNode("", { parent: end.node, ...end.seat,
-                                    num: nextPortNum(graph, end.node) });
-        made.push({ op: "add_node", node: port });
-
-        return port.id;
-      };
-
-      // Both before the edge, so it can name the ports it was made with.
-      const from = anchor(a);
-      const to = anchor(b);
-
+    /** A relationship drawn by hand.
+     *
+     *  It makes no interfaces. Where a line meets each card is worked out by
+     *  the layer it is drawn in, so there is nothing about a drawn relationship
+     *  worth writing down that the two nodes do not already say. An end that
+     *  landed on an interface somebody made keeps it — that one is a choice,
+     *  and choices are stored. */
+    wire: (a: End, b: End, kind: Kind = "untyped") =>
+      a.node !== b.node &&
       commit(makeStep(`link: ${name(a.node)}`, "link", [
-        ...made,
-        { op: "link_nodes", edge: makeEdge(a.node, b.node, { from, to }) },
+        { op: "link_nodes",
+          edge: makeEdge(a.node, b.node, {
+            from: a.port, to: b.port, kind, fromSide: a.side, toSide: b.side,
+          }) },
+      ])),
+
+    /** Pin one end of a relationship to a wall, or hand it back to the layer. */
+    setSide: (id: string, end: "from" | "to", side: Side | null) =>
+      commit(makeStep(side ? `wall: ${side}` : "wall: auto", "side",
+                      [{ op: "set_side", id, end, side }])),
+
+    /** Turn a derived seat into an interface of its own, where it sits.
+     *
+     *  The one way a relationship's end becomes a node: it is worth naming, or
+     *  worth putting something inside, or worth pinning where the arrangement
+     *  would otherwise move it. Until then it is only a place on a border. */
+    promotePort: (edge: string, end: "from" | "to", owner: string, side: Side, at: number) => {
+      const port = makeNode("", { parent: owner, side, at, num: nextPortNum(graph, owner) });
+
+      commit(makeStep("promote interface", "port", [
+        { op: "add_node", node: port },
+        { op: "set_end", id: edge, end, port: port.id },
       ]));
+
+      return port.id;
     },
+
+    /** What a relationship's ends are and how it draws. */
+    setKind: (id: string, kind: Kind) =>
+      commit(makeStep(`kind: ${kind}`, "kind", [{ op: "set_kind", id, kind }])),
 
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
-    /** A relationship's route as a middle-segment drag left it, and any seats
-     *  the auto-router is writing with the same gesture. Empty corners clear a
-     *  manual override so the line routes itself again. */
-    route: (id: string, corners: Spot[], slides: { id: string; side: Side; at: number }[]) =>
-      commit(makeStep(corners.length ? "route" : "straighten", "route", [
-        { op: "route_edge", id, layer: view, route: corners.length ? corners : null },
-        ...slides.map(({ id: port, side, at }) => ({
-          op: "set_port" as const, id: port, side, at,
-        })),
-      ])),
+    /** How the layer being looked at arranges what it holds. */
+    setAxis: (axis: Axis) =>
+      commit(makeStep(`layout: ${axis}`, "axis", [{ op: "set_axis", layer: view, axis }])),
 
-    /** Seats chosen by auto-route for edges that have no manual corners — one
-     *  step so a layout pass does not flood the history. */
-    seatMany: (slides: { id: string; side: Side; at: number }[]) =>
-      slides.length > 0 &&
-      commit(makeStep("seat", "port", slides.map(({ id, side, at }) => ({
-        op: "set_port" as const, id, side, at,
-      })))),
+    /** Hand this layer's blocks back to automatic placement. User placement
+     *  wins, so a layer arranged by hand ignores its axis until it is asked to
+     *  let go — this is the asking. */
+    relax: () =>
+      commit(makeStep("lay out again", "relax", [{ op: "relax_layer", layer: view }])),
 
     /** Turn a relation around. */
     flip: (id: string) =>
@@ -463,22 +462,15 @@ export function useProject() {
     },
 
     /** A relationship dragged into empty space: make the far end, and attach.
-     *  Both ends get their interface like any drawn relationship — the near one
-     *  where the drag started, the far one on the side facing back towards it. */
-    sprout: (a: End, label: string, x: number, y: number, side: Side) => {
+     *  No interfaces — where the line meets either card is the layer's to work
+     *  out, and the far node is placed where it was let go so the line between
+     *  them already runs the way the drag did. */
+    sprout: (a: End, label: string, x: number, y: number, kind: Kind = "untyped") => {
       const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
-      const near = a.port ? null
-                          : a.seat && makeNode("", { parent: a.node, ...a.seat,
-                                                     num: nextPortNum(graph, a.node) });
-      // The far node is new, so its first interface is always number one.
-      const far = makeNode("", { parent: fresh.id, side, at: 0.5, num: 1 });
 
       commit(makeStep(`grew: ${label}`, "sprout", [
-        ...(near ? [{ op: "add_node" as const, node: near }] : []),
         { op: "add_node", node: fresh },
-        { op: "add_node", node: far },
-        { op: "link_nodes",
-          edge: makeEdge(a.node, fresh.id, { from: a.port ?? near?.id, to: far.id }) },
+        { op: "link_nodes", edge: makeEdge(a.node, fresh.id, { from: a.port, kind }) },
       ]));
     },
 

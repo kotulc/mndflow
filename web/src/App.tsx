@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { useProject } from "./core/project";
 import * as store from "./core/store";
 import type { Suggestion } from "./core/suggest";
+import type { Kind } from "./core/types";
 import { Canvas } from "./Canvas";
 import { Chat } from "./Chat";
 import { Files } from "./Files";
@@ -48,6 +49,10 @@ export function App() {
   const [angular, setAngular] = useState(store.angular.initial);
   const [ports, setPorts] = useState(store.ports.initial);
   const [treePorts, setTreePorts] = useState(store.treePorts.initial);
+  /** What a right drag makes. A choice about the next thing created rather than
+   *  about how anything is drawn, but it lives here for the same reason: it is
+   *  the tool in hand, not part of the project. */
+  const [kind, setKind] = useState<Kind>("untyped");
   useEffect(() => store.angular.set(angular), [angular]);
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);
@@ -181,6 +186,10 @@ export function App() {
               onShowPorts={setPorts}
               angular={angular}
               onAngular={setAngular}
+              kind={kind}
+              onKind={setKind}
+              onAxis={project.setAxis}
+              onRelax={project.relax}
               onPick={project.pick}
               onOpen={project.open}
               onUp={project.up}
@@ -192,13 +201,12 @@ export function App() {
               onLift={project.lift}
               onWire={project.wire}
               onAddPort={project.addPort}
+              onPromotePort={project.promotePort}
               onSlidePort={project.setPort}
               onDropAttr={project.dropAttr}
               onRefer={project.refer}
               onReveal={project.reveal}
               onRelation={project.relation}
-              onRoute={project.route}
-              onSeatMany={project.seatMany}
               onPlaceMany={project.placeMany}
               onUnlink={project.unlink}
               onDelete={project.remove}

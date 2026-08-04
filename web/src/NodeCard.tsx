@@ -222,13 +222,23 @@ export type CardData = {
    *  relationship tied to them is selected. */
   litSeats: Set<string>;
   pickedPort: string | null;
+  /** Seats this layer worked out for relationships with no interface of their
+   *  own. Not nodes, and nowhere in the graph — geometry, recomputed. */
+  seats: Seated[];
+  /** Relationships selected right now, so their anchors show themselves. */
+  litEdges: Set<string>;
   /** Mark something as the selection without changing which layer is open. */
   onPick: (id: string) => void;
   /** Enter something's own contents. Only a double-click reaches this. */
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
+  /** Turn one of those seats into an interface of its own. */
+  onPromote: (edge: string, side: Side, at: number) => void;
 };
+
+/** One derived seat: which relationship put it there, and where it sits. */
+export type Seated = { edge: string; side: Side; at: number; port: boolean };
 
 /** The face opposite a side. Used for anchors looked at from the inside, and
  *  for seating the far end of a relationship so it faces back the way it came. */
@@ -282,6 +292,50 @@ export function Berth({ port, graph, shown, inward, host }: {
     <span className={`berth port-${side}`} style={seat(side, at)}>
       {shown && <span className="seat" />}
       <Anchor name={`port-${port.id}`} side={side} inward={inward} />
+    </span>
+  );
+}
+
+/** A seat the layer worked out for a relationship that has no interface of its
+ *  own here — the common case, now that drawing a line makes no nodes.
+ *
+ *  **A port and an anchor are not the same thing.** A `flow` relationship's ends
+ *  are typed — one is in, the other out — so they draw as interfaces, which is
+ *  what they are. Every other relationship just meets the card: its end is an
+ *  anchor, a place on the border and nothing more, and drawing a square there
+ *  would claim a port the model does not have.
+ *
+ *  An anchor still shows itself when its relationship or its card is selected,
+ *  the same way a hidden interface does, so a line's ends can always be found.
+ *  Right-clicking either promotes it to a real interface, where it sits. */
+export function Perch({ seated, side, at, port, lit, inward, onPromote }: {
+  seated: string;
+  side: Side;
+  at: number;
+  /** Draw it as an interface: a `flow` end, with interfaces turned on. */
+  port: boolean;
+  /** Its relationship or its card is selected, so an anchor shows its handle. */
+  lit: boolean;
+  inward?: boolean;
+  onPromote: (edge: string, side: Side, at: number) => void;
+}) {
+  return (
+    <span
+      className={`berth port-${side} perch`}
+      style={seat(side, at)}
+      // On the press, not on the menu event: the canvas makes an interface from
+      // its own `pointerdown`, so a `contextmenu` handler stops nothing — the
+      // card had already been given a second port by the time it fired.
+      onPointerDown={(event) => {
+        if (event.button !== 2) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onPromote(seated, side, at);
+      }}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      {port ? <span className="seat-mark" /> : lit && <span className="seat" />}
+      <Anchor name={`auto-${side}`} side={side} inward={inward} />
     </span>
   );
 }
@@ -530,6 +584,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort } =
     data as unknown as CardData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
+  const { seats, litEdges, onPromote } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
@@ -577,6 +632,20 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
           shown={picked || selected || litSeats.has(port.id)}
         />
       )))}
+
+      {/* And the seats this layer worked out for relationships with no
+          interface of their own — most of them. */}
+      {seats.map((s) => (
+        <Perch
+          key={s.edge}
+          seated={s.edge}
+          side={s.side}
+          at={s.at}
+          port={s.port}
+          lit={litEdges.has(s.edge) || selected || picked}
+          onPromote={onPromote}
+        />
+      ))}
 
       {/* Edited where it is written, once the card is selected — the second
           click of a rename. A double-click still descends. */}

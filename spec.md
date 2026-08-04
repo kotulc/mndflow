@@ -19,17 +19,24 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   **interface**; otherwise a **block**; a block holding child blocks is a **container**.
 - Interface is the one role that never changes. Nothing turns a block into one or back.
 - Interfaces do not count towards being a container.
-- A node carries `label`, `type`, `parent`, `body`, `x`/`y`, and a `ref` when it is a reference.
+- A node carries `label`, `type`, `parent`, `body`, `x`/`y`, an `axis` for when it is the open
+  layer, and a `ref` when it is a reference.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
+- **An interface is a node only where somebody made one** — a bare one, or a promoted seat.
+  A relationship makes none: where its line meets a card is worked out by the layer.
 - `num` is fixed at creation; a new interface takes the lowest number its parent is not using,
   so deleting one leaves a gap the next fills and renames nothing.
 - `flow` (in / out / both) is decorative and constrains nothing.
 
 **Edges** — a relationship between two nodes.
 
-- Carries `relation`, `dir` (none / forward / back / both), `from`/`to` interfaces, and `route`.
-- Both interfaces are implied when absent; the relationship means the same either way.
-- `route` is the corners of a hand-laid path, absent until someone drags a segment.
+- Carries `relation`, `kind`, `dir` (none / forward / back / both), and `from`/`to` interfaces.
+- `kind` is `untyped` (the default), `flow`, or `assoc`. It says what the two ends *are*;
+  `dir` still says which way the arrows point.
+- `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
+  normal case, and the layer works that end out.
+- **No relationship carries a route.** Where a line goes is derived from the layer it is drawn
+  in, every time it is drawn.
 
 **Attributes** — a name, value and tags, held by one object or shared by many.
 
@@ -137,10 +144,22 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - A card is drawn at exactly the size the layout says it is; it never sizes itself to its text.
   A name too long for it is clipped.
 - **User placement wins.** A node the user has moved keeps its place.
-- Automatic layout fills the rest, from the centre outward in rings, avoiding overlap and
-  keeping grouped and related nodes near each other.
-- The view refits when the layer gains or loses something — never on selection.
-- Layout avoids relationship crossings. **(planned)**
+- Automatic layout fills the rest, avoiding overlap and keeping related nodes near each other.
+- The view refits when the layer gains or loses something, or when its axis changes — never on
+  selection.
+
+**The layer's axis** — how it arranges what it holds. One control, three settings, its own.
+
+- `free` ranks nothing and fills outward from the middle in rings. The resting state.
+- `across` and `down` rank the layer along that direction: nothing pointing at it comes first,
+  and each rank sits one step further along.
+- Within a rank, nodes are ordered by where what they relate to sits in the rank before, swept
+  forward then back, so related blocks come out level and crossings are fewer.
+- A chain therefore comes out on **one row**, and every line along it is straight.
+- Held on the layer's own node — a pipeline and a hierarchy can sit in one project. The root's
+  is held on the project.
+- **User placement still wins**, so an axis rearranges only what nobody has placed. `arrange`
+  hands the layer's blocks back, which is what makes a new axis take effect on old work.
 
 ### Views
 
@@ -150,6 +169,12 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - **Interface view** — the inside of an interface, marked by the parent's own border running
   through the dimmed margin and stopping where the frame begins, along the edge the port sits
   on.
+- A layer with an axis draws its two **flow walls** as a doubled band just outside its own
+  border — the sides a flow relationship enters and leaves by — so which way the layer reads is
+  visible without reading a toolbar. The wall flows arrive at is brighter than the one they
+  leave by, so the layer reads in the direction the wall fades. A `free` layer has neither.
+- Interfaces sit on the frame's own line, inside the band. The band is outside the line, so
+  nothing about where a port sits or where a line lands changes when a layer gains an axis.
 - A node with no children still gets a full view; descending is how you start filling it.
 - The frame carries its name set into its top-left border, a break in the line.
 - The frame fills the panel; the band around it is the same on every side of every layer.
@@ -192,18 +217,32 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - A divided square when it holds child blocks of its own; holding only interfaces gets no mark.
 - Named beside it only on the layer's own frame; elsewhere on hover or selection.
 - Unnamed, it reads `interface 1`, `interface 2` … per parent.
-- Made by drawing a relationship, or by right-clicking a frame edge for a bare one.
-- Deleting a relationship deletes the interfaces it made, sparing any another relationship still
-  uses or that holds contents.
+- **Made only by the user.** Right-clicking a card or a frame edge makes a bare one;
+  right-clicking a seat a relationship put there promotes it to one where it sits. Drawing a
+  relationship makes none.
+- **A port and an anchor are different things.** A `flow` relationship's ends are typed — one
+  in, one out — so they draw as interfaces. Every other relationship simply meets the card: its
+  end is an **anchor**, a place on the border and no more, and draws nothing.
+- An anchor shows a small round handle while its relationship or its card is selected, the same
+  way a hidden interface does, so a line's ends can always be found.
+- A line stops at the **outer face** of the square it meets, not at the border under it, so it
+  meets an interface rather than running into it.
+- Promotion is what an end is for when it needs a name, contents, or a place of its own that the
+  arrangement will not move. Until then it is a seat and nothing else.
+- Deleting a relationship deletes nothing: there is nothing at its ends to delete.
 - **Sits in a seat**: seats fall on the canvas lattice (every 12 units), never on a corner —
   except an edge only one grid row tall, which holds a single seat at the centre. Counting from
   the canvas rather than from each card's corner is what lines a container port up with a block
   beside it. Stored as a fraction still, so a port survives its frame being resized; the
   fractions it can take are the ones that land on a seat.
 - **No two sit in the same seat.** A drop onto an occupied one takes the next seat along.
-- **The route chooses seats** for relationship ends: a free lattice seat on a side that faces
-  outward toward the path. Dragging a port by hand still slides it; end segments of a line do
-  not.
+- **The layer chooses seats** for relationship ends: a free lattice seat on a side that faces
+  the path. Dragging an interface somebody made still slides it, and that placement is kept.
+- **A right drag on the layer's frame names a wall**, and that end keeps it: the seat along it
+  is still derived, but which of the four walls the line uses is the user's. It beats the side
+  an axis would have given. `arrange` hands it back along with hand placement.
+- Only the frame names a wall. A card has no border zone — a drag from anywhere on it means
+  "from this card" — so there is no wall in the gesture to record.
 - Click selects; drag slides it along its edge and around corners, with no first click to spend.
 - Hiding them is a display preference: seats stay exactly where they were, and a seat shows as a
   round handle while its relationship or its card is selected.
@@ -216,7 +255,11 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - Drawn by right-click-dragging from anywhere on a node or from an interface; an interface lands
   at each end. Released over empty canvas, the far node is created too.
 - `Esc` cancels the whole gesture, interfaces included.
-- Double-clicking a line names its kind.
+- Right-clicking a line names its kind — a name is edited where it is drawn, and this is the
+  last name on the canvas that took a different gesture.
+- The kind a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
+- **Flow** draws heavier and takes its sides from the layer's axis; **assoc** draws thinner and
+  fainter; **plain** says only that the two are related and takes whatever side suits the path.
 - Drawn curved or angular by the canvas toggle; a line that has been routed stays angular.
 
 **Where one is drawn**
@@ -230,28 +273,26 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - Moving a node to another layer drops its **external** wiring — relationships to anything not
   travelling with it. Wiring inside it, including from its children to its own interfaces,
   survives. Nothing is rewritten, and no reference is placed to keep a dropped line visible.
-- A route belongs to the layer it was laid out in; drawn elsewhere, the line routes itself.
+- Drawn in two layers at once through a reference, it routes itself in each — the two arrange
+  their nodes independently, and neither has anything stored to disagree about.
 
 **Routing**
 
-- The router owns seats and the orthogonal path: it picks outward-facing sides, free lattice
-  seats, and a min-bend path that clears other cards on the layer (with a small seat of
-  clearance). Stubs leave along the side normal only — never into the attached card.
-  Inside an open frame, the whole path stays inside the frame.
-- Middle segments are draggable and move in the one direction across themselves that means
-  anything; that override is saved as corners on the edge.
-- End segments do not carry interfaces. Seats update when cards move (or when a new line is
-  drawn) unless the edge has a saved corner override on this layer.
+- **There is no manual routing.** Every line on a layer is worked out from that layer's
+  arrangement, in one pass, every time it is drawn. Nothing about a line is stored.
+- The pass picks each end's side and free lattice seat, then a min-bend orthogonal path that
+  clears the other cards (with a small seat of clearance). Stubs leave along the side normal
+  only — never into the attached card. Inside an open frame the whole path stays in the frame.
 - **Every elbow is a right angle**, guaranteed on the way to being drawn rather than attempted.
-- A middle segment dragged nearly level with an end snaps level; a route with nothing left to
-  say stops being a route and auto-routing resumes.
-- A saved route keeps its corners while cards move; only the stubs follow their interfaces.
-  Empty / absent `route` means auto.
-- Layout never touches a *saved* route; auto edges re-seat and re-path with the cards.
-- **Right-click a relationship** to straighten it: clear any saved corners and re-route
-  min-bend around cards. Ports used only by that line may move; shared ports stay put.
-- The segment under the pointer marks itself and carries the resize cursor for its axis;
-  selecting the line shows every middle segment faintly.
+- One pass, so each line sees the seats the ones before it took: **no two ends share a seat**,
+  and several relationships may still meet at one interface.
+- A `flow` relationship takes the sides the layer's axis gives it — out on the forward face, in
+  on the one behind — so it runs with the layer rather than doubling back across it. On a `free`
+  layer nothing is imposed.
+- **Lanes**: runs that would share a line are spread half a cell apart, centred on where they
+  would have gone, so parallel relationships stay distinct. Only the interior segments move;
+  the ends stay on their seats.
+- A card moving is what moves a line. There is no step, no history, and nothing to converge on.
 
 ### Groups
 
@@ -319,7 +360,10 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
   full trail in its tooltip, plus `↑` for one layer up.
-- Canvas toolbar top-right: interfaces on the canvas, curves or angles. Both global to the app.
+- Canvas toolbar top-right — **what gets made**: interfaces on the canvas, and the kind a right
+  drag draws. Both the app's.
+- Canvas shape controls bottom-right, opposite the zoom controls — **how the layer is drawn**:
+  its axis, `arrange`, and curves or angles. Icons only. The first two belong to the layer.
 - Zoom controls bottom-left, riding above the attribute tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
@@ -337,12 +381,11 @@ makes the thing that sits at a point and a drag makes the thing that has extent.
 | a card | moves it; onto another card nests it; in or out of a boundary joins or leaves |
 | a note | moves it within its layer |
 | an interface | slides it along its frame edge |
-| a relationship segment | moves that segment, and its interface where it is an end one |
 | a selected group's background | moves every member together |
 | empty background, or an unselected boundary | draws a selection box, taking what it encloses |
 
-Small precise targets — interfaces, segments, notes — act at once. Large ones — a boundary, a
-multi-node selection — must be selected first.
+Small precise targets — interfaces, notes — act at once. Large ones — a boundary, a multi-node
+selection — must be selected first.
 
 **Right button**, where the menu does not exist yet:
 
@@ -354,7 +397,8 @@ multi-node selection — must be selected first.
 | a name | opens it for editing | — |
 | a note | opens it for editing | — |
 | an interface | nothing — it is already one | a relationship from it |
-| a relationship | nothing | — |
+| a seat a relationship put there | an interface of its own, where it sits | — |
+| a relationship | names its kind | — |
 | a multi-node selection | groups the selection | — |
 
 - A card has no border zone: the click position decides where on the border the interface
@@ -378,6 +422,8 @@ multi-node selection — must be selected first.
 | `Shift` / `Cmd` + click | add to the selection |
 | `Space` + drag | pan |
 | double-click | descend on the canvas, rename in the explorer |
+
+A relationship has no inside, so double-clicking one does nothing.
 
 ### Selection and scope
 

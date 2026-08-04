@@ -16,8 +16,8 @@ import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
 
 import { nameOf, portsOf } from "./core/fold";
-import type { Graph, Side } from "./core/types";
-import { Anchor, Berth, type Grazed, Name, Port } from "./NodeCard";
+import type { Axis, Graph, Side } from "./core/types";
+import { Anchor, Berth, type Grazed, Name, Perch, Port, type Seated } from "./NodeCard";
 
 export type FrameData = {
   id: string;
@@ -25,14 +25,23 @@ export type FrameData = {
   /** Which edge of its parent this layer is set into, when it is an interface
    *  being looked at from the inside. Null for an ordinary node. */
   straddles: Side | null;
+  /** How this layer arranges what it holds. Its two flow walls are marked, so
+   *  which way the layer reads is visible without reading the toolbar. */
+  axis: Axis;
   showPorts: boolean;
   /** Hidden interfaces whose seats still show as handles — see `Berth`. */
   litSeats: Set<string>;
   pickedPort: string | null;
+  /** Seats this layer worked out for relationships reaching the frame itself. */
+  seats: Seated[];
+  /** Relationships selected right now, so their anchors show themselves. */
+  litEdges: Set<string>;
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
+  /** Turn one of those seats into an interface of its own. */
+  onPromote: (edge: string, side: Side, at: number) => void;
   /** What the pointer is over. The border lights up when it is this frame,
    *  since that is where the gestures that make interfaces live. */
   grazed: Grazed;
@@ -40,9 +49,10 @@ export type FrameData = {
 
 export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
                              positionAbsoluteY = 0 }: NodeProps) => {
-  const { id, graph, straddles, showPorts, litSeats, pickedPort, grazed } =
+  const { id, graph, straddles, axis, showPorts, litSeats, pickedPort, grazed } =
     data as unknown as FrameData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as FrameData;
+  const { seats, litEdges, onPromote } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
   const upright = straddles === "left" || straddles === "right";
@@ -54,7 +64,8 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
   };
 
   return (
-    <div className={`frame ${grazed?.kind === "frame" && grazed.id === id ? "grazed" : ""}`}>
+    <div className={`frame flow-${axis} ${
+      grazed?.kind === "frame" && grazed.id === id ? "grazed" : ""}`}>
       {/* Always live: this layer is where you already are, so there is no
           first click to spend selecting it. */}
       <span className={`frame-name nodrag nopan${
@@ -103,6 +114,20 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
           inward
         />
       )))}
+
+      {/* And the seats worked out for relationships with no interface here. */}
+      {seats.map((s) => (
+        <Perch
+          key={s.edge}
+          seated={s.edge}
+          side={s.side}
+          at={s.at}
+          port={s.port}
+          lit={litEdges.has(s.edge)}
+          inward
+          onPromote={onPromote}
+        />
+      ))}
     </div>
   );
 });

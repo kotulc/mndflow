@@ -5,7 +5,7 @@
  *  operations — it flips a status and the graph is rebuilt from empty, by the
  *  same code that built the original. */
 
-import { EMPTY, type Graph, type Mutation, type Node, type Step } from "./types";
+import { EMPTY, type Axis, type Graph, type Mutation, type Node, type Step } from "./types";
 
 /** Whether a node sits on its parent's frame edge. That, and only that, is
  *  what makes a node an interface. */
@@ -66,9 +66,19 @@ export function blocksOf(graph: Graph, parent: string | null): Node[] {
   return childrenOf(graph, parent).filter((n) => !isPort(n));
 }
 
-/** Children that sit on the frame edge. */
+/** Children that sit on the frame edge. Only the ones somebody made by hand:
+ *  a relationship's own ends are worked out where the layer is drawn and are
+ *  never nodes until they are promoted. */
 export function portsOf(graph: Graph, parent: string | null): Node[] {
   return childrenOf(graph, parent).filter(isPort);
+}
+
+/** How a layer arranges what it holds. Free until it has been set, so a layer
+ *  nobody has given a direction to fills outward as it always did. */
+export function axisOf(graph: Graph, layer: string | null): Axis {
+  if (layer === null) return graph.axis ?? "free";
+
+  return graph.nodes[layer]?.axis ?? "free";
 }
 
 /** Whether a node holds child blocks. Interfaces do not count: a block with
@@ -233,11 +243,44 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
+    case "set_axis": {
+      if (mutation.layer === null) graph.axis = mutation.axis;
+      else {
+        const node = graph.nodes[mutation.layer];
+        if (node) node.axis = mutation.axis;
+      }
+      break;
+    }
+
+    case "relax_layer": {
+      const here = new Set(blocksOf(graph, mutation.layer).map((n) => n.id));
+      for (const id of here) {
+        graph.nodes[id].x = null;
+        graph.nodes[id].y = null;
+      }
+
+      // A wall somebody chose is hand work on this layer's lines, the same as a
+      // position is on its cards, so letting go lets go of both.
+      const inside = (id: string) => here.has(id) || id === mutation.layer;
+      for (const edge of Object.values(graph.edges)) {
+        if (!inside(edge.source) || !inside(edge.target)) continue;
+        delete edge.fromSide;
+        delete edge.toSide;
+      }
+      break;
+    }
+
     case "link_nodes": {
       const { edge } = mutation;
       if (graph.nodes[edge.source] && graph.nodes[edge.target]) {
         graph.edges[edge.id] = { ...edge };
       }
+      break;
+    }
+
+    case "set_end": {
+      const edge = graph.edges[mutation.id];
+      if (edge && graph.nodes[mutation.port]) edge[mutation.end] = mutation.port;
       break;
     }
 
@@ -253,14 +296,26 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
-    case "route_edge": {
+    case "set_kind": {
       const edge = graph.edges[mutation.id];
-      if (!edge) return;
-      edge.route = mutation.route
-        ? { layer: mutation.layer, corners: mutation.route.map((p) => ({ ...p })) }
-        : null;
+      if (edge) edge.kind = mutation.kind;
       break;
     }
+
+    case "set_side": {
+      const edge = graph.edges[mutation.id];
+      if (!edge) return;
+      const field = mutation.end === "from" ? "fromSide" : "toSide";
+      if (mutation.side) edge[field] = mutation.side;
+      else delete edge[field];
+      break;
+    }
+
+    // A line has no route of its own any more — it is planned from the layer it
+    // is drawn in. Kept so a log written when routes were stored still folds:
+    // the corners are simply not read.
+    case "route_edge":
+      break;
 
     case "flip_edge": {
       const edge = graph.edges[mutation.id];

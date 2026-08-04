@@ -1,5 +1,5 @@
-/** Orthogonal routing for relationships: choosing seats, leaving cards
- *  outward, and what dragging a middle segment does to a saved path.
+/** Orthogonal routing for relationships: choosing seats and leaving cards
+ *  outward.
  *
  *  Pure geometry. A run is a list of points, ends included, every consecutive
  *  pair square to the last. The router owns where each end sits: it picks a
@@ -7,17 +7,14 @@
  *  orthogonal path that clears other cards. Stubs leave along the side normal
  *  only — never back into the attached card.
  *
- *  Middle segments may still be dragged to override corners. End segments do
- *  not slide ports; seats change when the route is recomputed. */
+ *  Nothing here is dragged. A relationship has no route of its own to keep:
+ *  every line on a layer is planned from that layer's arrangement, so moving a
+ *  card is what moves a line. */
 
 import { SEAT, seatMarks } from "./layout";
 import type { Side, Spot } from "./types";
 
 export type Axis = "x" | "y";
-/** @deprecated Reach is unused for end-segment slides; kept for Wire typing. */
-export type Reach = { lo: number; hi: number } | null;
-/** @deprecated End moves are no longer produced by drag. */
-export type Move = { end: "from" | "to"; at: number };
 
 export type Box = { x: number; y: number; w: number; h: number };
 export type Seat = { side: Side; at: number };
@@ -91,7 +88,8 @@ function mid(box: Box): Spot {
   return { x: box.x + box.w / 2, y: box.y + box.h / 2 };
 }
 
-function attach(box: Box, side: Side, at: number): Spot {
+/** Where a seat sits on a box, in canvas units. */
+export function attach(box: Box, side: Side, at: number): Spot {
   const t = clamp(at, 0, 1);
   if (side === "top") return { x: box.x + t * box.w, y: box.y };
   if (side === "bottom") return { x: box.x + t * box.w, y: box.y + box.h };
@@ -544,6 +542,11 @@ export type RouteOpts = {
   /** Keep this seat on the from card (e.g. user started on an interface). */
   pinFrom?: Seat;
   pinTo?: Seat;
+  /** Keep this *side*, but let the seat along it float. What a flow
+   *  relationship asks for: its ends read as in and out, so which wall they
+   *  leave by is the layer's convention rather than the path's preference. */
+  sideFrom?: Side;
+  sideTo?: Side;
   /** Open-frame interior: keep the whole path inside. */
   bounds?: Box;
   /** Frame ends leave into the interior (matches inward handles). */
@@ -574,18 +577,22 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
 
   const fromSides = opts.pinFrom
     ? [opts.pinFrom.side]
-    : [...SIDES].sort((a, b) =>
-        sideScore(fromBox, b, toAim, inwardFrom) - sideScore(fromBox, a, toAim, inwardFrom));
+    : opts.sideFrom
+      ? [opts.sideFrom]
+      : [...SIDES].sort((a, b) =>
+          sideScore(fromBox, b, toAim, inwardFrom) - sideScore(fromBox, a, toAim, inwardFrom));
   const toSides = opts.pinTo
     ? [opts.pinTo.side]
-    : [...SIDES].sort((a, b) =>
-        sideScore(toBox, b, fromAim, inwardTo) - sideScore(toBox, a, fromAim, inwardTo));
+    : opts.sideTo
+      ? [opts.sideTo]
+      : [...SIDES].sort((a, b) =>
+          sideScore(toBox, b, fromAim, inwardTo) - sideScore(toBox, a, fromAim, inwardTo));
 
   // Prefer the two best-facing sides each; with a frame try all four so an
   // inward-safe exit toward a wall port is not skipped.
   const sideBudget = bounds ? 4 : 2;
-  const fromTry = fromSides.slice(0, opts.pinFrom ? 1 : sideBudget);
-  const toTry = toSides.slice(0, opts.pinTo ? 1 : sideBudget);
+  const fromTry = fromSides.slice(0, opts.pinFrom || opts.sideFrom ? 1 : sideBudget);
+  const toTry = toSides.slice(0, opts.pinTo || opts.sideTo ? 1 : sideBudget);
 
   // Cards at the ends stay solid; the frame (inward ends) does not fill the
   // layer as an obstacle.
@@ -649,33 +656,77 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
   return best;
 }
 
-/** Whether two seat picks are the same for sync purposes. */
-export function sameSeat(a: Seat, b: Seat): boolean {
-  return a.side === b.side && Math.abs(a.at - b.at) < 1e-4;
-}
+/** How far apart runs sharing a line are pushed. Half a cell: enough to read as
+ *  two lines, little enough that a bundle still reads as one bundle. */
+const LANE = SEAT;
 
-/** The run after one of its *middle* segments has been dragged to `at` along
- *  the axis across it. End segments do not move ports; callers should not
- *  offer them. */
-export function drag(run: Spot[], seg: number, to: number, _out: Spot, _back: Spot,
-                     _reach: { from: Reach; to: Reach },
-                     snap = LEVEL): { corners: Spot[]; moves: Move[] } {
-  const axis = across(run[seg], run[seg + 1]);
-  if (!axis) return { corners: run.slice(1, -1), moves: [] };
+type Leg = { id: string; at: number; axis: Axis; lo: number; hi: number };
 
-  const ends = [run[0][axis], run[run.length - 1][axis]];
-  const level = ends.find((end) => Math.abs(end - to) < snap);
-  const at = level ?? to;
+/** Spread runs that share a line, so relationships going the same way stay
+ *  distinct instead of drawing on top of each other.
+ *
+ *  Only the interior segments move. The two at the ends are tied to their
+ *  seats, and every corner is a right angle, so shifting a segment across
+ *  itself just lengthens the perpendicular ones either side — the run stays
+ *  square with nothing else touched. Segments that do not actually overlap are
+ *  left exactly where they were. */
+export function lanes(runs: Record<string, Spot[]>): Record<string, Spot[]> {
+  const out: Record<string, Spot[]> = {};
+  for (const [id, pts] of Object.entries(runs)) out[id] = pts.map((p) => ({ ...p }));
 
-  const corners = run.slice(1, -1).map((p) => ({ ...p }));
-  const head = seg === 0;
-  const tail = seg === run.length - 2;
+  const shared = new Map<string, Leg[]>();
 
-  // End stubs are not editable via port slides — ignore head/tail grabs.
-  if (head || tail) return { corners: tidy(corners), moves: [] };
+  for (const [id, pts] of Object.entries(out)) {
+    for (let at = 1; at <= pts.length - 3; at += 1) {
+      const axis = across(pts[at], pts[at + 1]);
+      if (!axis) continue;
 
-  if (!head) corners[seg - 1][axis] = at;
-  if (!tail) corners[seg][axis] = at;
+      const fixed = axis === "x" ? pts[at].x : pts[at].y;
+      const ends = axis === "x"
+        ? [pts[at].y, pts[at + 1].y]
+        : [pts[at].x, pts[at + 1].x];
+      const key = `${axis}:${Math.round(fixed / LANE)}`;
 
-  return { corners: tidy(corners), moves: [] };
+      shared.set(key, [...(shared.get(key) ?? []), {
+        id, at, axis, lo: Math.min(...ends), hi: Math.max(...ends),
+      }]);
+    }
+  }
+
+  for (const legs of shared.values()) {
+    if (legs.length < 2) continue;
+
+    // Greedy interval colouring: a leg takes the lowest lane none of the legs
+    // it actually overlaps is already using.
+    const order = [...legs].sort((a, b) => a.lo - b.lo);
+    const lane = new Map<Leg, number>();
+
+    for (const leg of order) {
+      const clash = new Set(
+        order
+          .filter((o) => o !== leg && lane.has(o) && o.hi > leg.lo && leg.hi > o.lo)
+          .map((o) => lane.get(o)!),
+      );
+
+      let free = 0;
+      while (clash.has(free)) free += 1;
+      lane.set(leg, free);
+    }
+
+    // Centred on where the run was, so a bundle spreads either side of the line
+    // it would have drawn on rather than drifting off it.
+    const widest = Math.max(...lane.values());
+    if (!widest) continue;
+
+    for (const leg of order) {
+      const off = (lane.get(leg)! - widest / 2) * LANE;
+      const pts = out[leg.id];
+      for (const at of [leg.at, leg.at + 1]) {
+        if (leg.axis === "x") pts[at].x += off;
+        else pts[at].y += off;
+      }
+    }
+  }
+
+  return out;
 }

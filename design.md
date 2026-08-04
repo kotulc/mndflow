@@ -5,7 +5,7 @@ alternative it was chosen over — so that changing one's mind means arguing wit
 position rather than guessing at one.
 
 - **What each part does, in short** → [spec.md](spec.md).
-- **What is missing, and what is undecided** → [tasks.md](tasks.md).f
+- **What is missing, and what is undecided** → [tasks.md](tasks.md).
 
 mndflow's primary purpose is to enable rapid construction and composition of descriptive
 visual building blocks for systems modeling tasks.
@@ -132,8 +132,70 @@ So there is never a question of whether an end has an interface. It has one. The
 questions are whether it has been *placed* anywhere in particular and whether it is currently
 *drawn*, and neither of those changes what the relationship means.
 
+**A relationship's end is a seat, not a node.** Where a line meets a card is a fact about how
+the layer happens to be arranged: move a card and it changes, and none of it was ever worth
+writing down. So it is not written down. The layer works out every seat on it in one pass, and
+what gets stored is only what somebody chose.
+
+That is the same precedence the tool already applies twice over — a node the user placed keeps
+its place while layout fills the rest; a name given replaces the description. An interface was
+the exception, and is not one now.
+
+It also settles what an interface is *for*. A seat that wants a name, contents of its own, or a
+place the arrangement will not move is **promoted** — right-click it and it becomes a node,
+where it sits. Every good reason to have a port is a reason to promote one, and nothing has to
+be decided in advance.
+
+**A wall can be chosen; a seat cannot.** A right drag on the layer's frame names one of its
+four walls, and that end keeps it — the seat along the wall is still worked out, but which wall
+is the user's.
+
+This looks at first like the stored route coming back, and it is not, because of what goes
+stale. Corners were positions: move a card and they were wrong, which is what made them a
+liability. A wall is an intent. Cards move, the frame is resized, the layer is rearranged, and
+"this leaves by the north wall" is still true and still drawable. It can become *unhelpful*, and
+never becomes *incoherent* — so it needs no layer key, no reconciliation, and no repair.
+
+So it takes the standing every other user choice has: it beats the side an axis would have
+given, exactly as a node the user placed beats where layout would have put it, and `arrange`
+hands both back together. One rule, no modes, and the escape hatch was already built.
+
+**Only the frame names a wall, and that falls out of a rule already made.** A card has no border
+zone — a right drag from anywhere on it means "from this card", and the position decides only
+where an interface would land, not which face the line uses. There is no wall in that gesture to
+record. The layer's own frame is the standing exception, unavoidably so, because its interior is
+the background and its border therefore has to stay a zone. A drag there is necessarily *on a
+wall*, and which wall is precisely what the user meant.
+
+Wanting a particular face on a *card* is still answerable, and by the gesture that already
+exists: right-click that point of its border for an interface, and wire to it.
+
+**And a seat is not automatically a port.** Only a `flow` relationship's ends draw as interfaces,
+because only those ends are *typed* — one is in and the other out, which is exactly what a port
+is. Every other relationship just meets the card somewhere, and drawing a square there would
+claim a port the model does not have. So a plain or an `assoc` end is an **anchor**: a place on
+the border, drawing nothing.
+
+Squares on every end was the first attempt and it read wrong immediately — a diagram of ordinary
+associations came out looking like a wiring harness, and the mark that is supposed to mean
+"something crosses the boundary here" meant nothing at all because everything had one. An anchor
+still shows a handle when its relationship or its card is selected, which is the same courtesy a
+hidden interface gets, so nothing becomes unfindable by being quiet.
+
+**A line stops at the outer face of the square, not at the border beneath it.** A mark straddles
+the border it sits on, so a run ending on the border ran to the middle of its own port and poked
+out inside it. Half a mark shorter, the line arrives at the interface instead of piercing it —
+which is also why the inset applies only where a square is actually drawn.
+
+The saving is bigger than it looks. Drawing a relationship creates nothing, so deleting one
+destroys nothing, and the whole business of which interfaces are collateral — spare the ones
+another relationship still uses, spare the ones with contents — has no cases left to get wrong.
+And because every interface that is a *node* is one somebody placed, `side` being set still
+means exactly what it always meant: this node is an interface. Deriving the seat could have cost
+the definition of the role; keeping promotion as the only way in is what saved it.
+
 **Where they come from.** A node starts with none. Nothing sits on a fresh block's edge until
-there is a reason for it to be there, and a relationship is the usual reason.
+there is a reason for it to be there.
 
 - **Right-click-dragging draws a relationship, and makes an interface at each end.** The near
   one is placed where the drag started, on the border of the node it left. The far one is
@@ -228,10 +290,15 @@ nothing turns one into the other.
 `num` is set once, at creation, and never changes — see Naming above. It is stored rather than
 counted precisely so that it cannot be changed by something happening to another interface.
 
-`flow` is **decorative only**. It changes how the interface draws and nothing else — any
-interface may be either end of any relationship, whatever it is marked as. Default interfaces
-carry no marking at all. Direction belongs to the relationship, not to what it attaches to,
-and marking an interface is a note to the reader rather than a constraint on the model.
+`flow` is **decorative only**, and it is now the second answer to a question the relationship
+answers better. An end reads as in or out because the relationship it belongs to is a `flow` and
+because of which side of it this end is — which is a fact per layer, not per port: what arrives
+as an input from outside a node leaves as an output inside it, and an interface draws on both
+sides of its boundary. A marking stored on the port could only ever agree with one of the two.
+
+It stays because a port may want to say what it is before anything is wired to it, which is the
+same reason a bare interface exists at all. It constrains nothing: any interface may be either
+end of any relationship, whatever it is marked as.
 
 
 ### Naming
@@ -308,27 +375,31 @@ Relationships are created by right-click-dragging, from an existing interface or
 on a node, and they end up with an interface at each end either way — see Interfaces above for
 where each one lands. `Esc` cancels the whole gesture, interfaces included.
 
-**A line is routed by dragging its segments.** Drawn with right angles, a relationship is a run
-of square segments between its two interfaces, and **every one of them is draggable**. Each
-moves in the one direction that means anything — a vertical segment left and right, a
-horizontal one up and down — and the corners either side follow, so the line stays square
-throughout. Sliding a segment along its own length would change nothing, and is not offered.
+**A line is not routed by hand at all.** Every relationship on a layer is worked out from that
+layer's arrangement — sides, seats, corners and lanes — in one pass, every time it is drawn.
+Nothing about a line is stored, and there is no gesture for moving one.
 
-**The segments at the two ends carry their interface with them.** The run leaving an interface
-is square to the edge it sits on, so moving that run means moving the interface: it slides along
-its frame edge exactly as a hand-dragged one does, and the same `set_port` records it. That is
-the answer to what would otherwise be the awkward case — a line detaching from the port it is
-tied to — and it is also what you want, since a line that will not go where it is wanted is
-usually saying the port is in the wrong place.
+This replaced a full hand-routing apparatus: draggable segments, a stored route with the layer
+it was laid out in, ports carried along by the segment that left them, and a straighten action
+to undo the lot. It worked. The question it could not answer is why anyone should have to use
+it.
 
-**Where the interface cannot follow, a jog appears.** It stops at the end of its edge, and two
-new segments carry the drag the rest of the way: out from the interface, across to where the
-pointer asked, and on. The same happens at once for an end whose interface is only implied, or
-whose frame is in another layer and stood in for by a reference — there is nothing there to
-slide, so the line bends instead of the port moving.
+The three reasons to drag a line were: to straighten it, to move it clear of something, and to
+make it obey a convention like *in on the left, out on the right*. Only the middle one is
+routing. **Straightness is decided before the router runs** — two cards that do not share a row
+cannot be joined by a straight line however the path is chosen, so the fix is to put them on one
+row, which is what the layer's axis now does. And a convention is a rule, stated once; dragging
+every line into obeying it is stating it once per line.
 
-Dragging the line, moving the port and adding the jog are all one action and one entry in the
-history, because they were one gesture.
+That leaves clearing other lines, which is a real gap and which one edge cannot see on its own.
+It is answered by **lanes** rather than by a gesture: runs that would share a line spread half a
+cell apart, centred on where they would have gone. Only interior segments move, because the ends
+are on their seats and every corner is square, so shifting a segment across itself only
+lengthens the perpendicular ones either side.
+
+What this buys is not mainly the deleted code. It is that a relationship the terminal adds with
+no gesture behind it is drawn exactly as well as one somebody dragged — which is the point the
+whole tool is aimed at.
 
 **Every elbow is a right angle, always.** That is not a thing the router tries for and mostly
 achieves — it is a property the whole run is put through on its way to being drawn, whatever it
@@ -337,43 +408,31 @@ interfaces were moved about. Where two corners are off in both directions a corn
 them, and where a run would leave or arrive across its frame edge rather than along it, it
 stands off the edge and turns. A relationship never has a diagonal in it.
 
-**And a line straightens when it is nearly straight.** A segment dragged to within a few units
-of level with one of the ends is taken to mean level with it, so straightening a line is a drag
-in roughly the right place rather than a hunt for the exact pixel. A route left with nothing to
-say — every corner in line with the rest — stops being a route at all, and the line goes back
-to being drawn like any other.
+**A route belongs to nobody, which is what makes references simple.** A relationship reaching
+through a reference is drawn in two layers, and the two place their nodes independently — under
+stored corners that was a conflict needing a layer key to resolve. Derived, each layer works the
+line out for itself and there is nothing left to be in conflict.
 
-**What can be dragged says so.** The segment under the pointer marks itself and carries the
-resize cursor for the way it moves; selecting the line shows all of its segments faintly at
-once, which is the answer to "what of this can I take hold of".
+**Being cheap is a requirement, not a bonus.** A derived route runs on every render, so the
+router has to stay a router: pick sides, pick seats, find a min-bend path, spread the lanes. It
+is emphatically not allowed to get clever. A router nobody can predict is worse than a plain one
+even where its output is better, because the whole promise here is that you never have to
+correct it — and you cannot trust what you cannot anticipate.
 
-**A route belongs to the layer it was laid out in.** Almost every relationship is drawn in one
-layer only, so almost every route has nowhere else to be — but a relationship reaching through
-a reference can be drawn in two, and the two layers place their nodes independently, so one set
-of corners cannot be right in both. Drawn anywhere but where it was dragged, a line routes
-itself.
+**A kind says what a relationship's ends are; `dir` still says which way it points.** Three
+kinds and no more. `untyped` is the default and asserts only that two things are related, so its
+ends go wherever the path wants. `flow` says something travels one way, so its ends read as in
+and out and take the sides the layer's axis gives them. `assoc` is a weaker mention and draws
+thinner.
 
-**A route is the user's, and only the user's.** Layout never touches one, and a relationship has
-no route of its own until somebody drags a segment. Until then the canvas runs the line out from
-each interface and across between them — a plain route, deliberately, because every segment of
-it can be corrected in a second and a router that has to be clever is one nobody can predict.
+The two stay separate on purpose: an arrowhead is a decoration on the line, while the kind
+decides where the line *attaches*. Folded together, setting a direction would silently move both
+ends of the relationship.
 
-**A line that has been routed stays angular whatever the curve/angles toggle says**, the same
-precedence a node's own placement has over automatic layout. The toggle decides only how the
-rest are drawn.
-
-**A curved line is routed the same way as any other.** It has no segments of its own, so
-hovering one shows the run it would take if it had them, and taking hold of a segment makes
-that the route — the line becomes angular as it is dragged. Routing is a property of the
-relationship and the toggle is a display preference, so waiting on the toggle would have made
-the gesture unavailable on most of the canvas for no reason anybody could see.
-
-**A saved route keeps following its interfaces.** The runs at its ends stay tied to them as
-they slide and as their cards move, while the corners between them stay where they were put.
-Moved to another edge of its frame, an interface leaves the other way entirely — and rather
-than bend the corner it reaches, which would leave the line with an angle that is not square,
-the route gains a corner to take the turn. What was drawn by hand is kept; only the way in and
-out of it is worked out again.
+A fourth was considered and dropped. *Parallel* — several lines side by side to one interface —
+turned out to be a thing the drawing can already see for itself: once lanes exist, relationships
+arriving together are drawn together without anyone declaring it. A kind that describes what the
+renderer already knows is a setting with nothing behind it.
 
 **References.** A relationship between two nodes in different layers is drawn in either of
 them through a **reference**: a placeholder standing in for the far node, sitting in this layer
@@ -671,6 +730,29 @@ dark area is merely the outside world.
 in it rather than a caption above or a heading inside. The other corner belongs to the canvas
 toolbar.
 
+**A layer with an axis marks the two walls its flows cross.** Which way a layer reads is the
+most consequential thing about it — it decides where every card lands and which side every flow
+attaches to — and it was legible only by reading a toolbar button. Marking the walls says it on
+the drawing itself.
+
+**The mark is a band outside the frame's line, not a thicker line.** Thickening the border moved
+the geometry: the frame's border box is where every interface on it is seated and where every
+line meets it, so a six-pixel border shifted all of that by six pixels — and it left the ports
+sitting on the band's *outer* face, with the wall reading as though it were behind them rather
+than around them. Outside, the frame's own line stays one pixel, nothing moves, and a port sits
+on the inner edge of the band, which is where a port set into a wall belongs.
+
+**Doubled rather than thickened, and shaded rather than coloured.** That border already carries
+two states of its own — it brightens under the pointer and again as a gesture's target — so a
+third meaning had to avoid the same channel. A doubled line reads at any zoom without changing
+hue.
+
+**The frame's own line is one of the two**, which is easy to forget and was got wrong first
+time: a `double` band beside it made three lines where two were meant. One thin band outside the
+frame's line is the whole of it. The two walls are then told apart by shade alone — **the wall
+flows arrive at is brighter than the one they leave by** — so the layer reads in the direction
+the wall fades.
+
 **The frame fills the panel.** It is the working area, so it takes as much of the canvas as it
 can, and what is left around it is a band — enough to double-click in to leave by, and enough
 to show the parent's border when the layer is an interface. Nothing else is ever drawn out
@@ -864,8 +946,6 @@ Left-dragging on the canvas depends on where the drag starts:
   space inside a group's boundary it joins that group, and dropped outside one it was in, it
   leaves.
 - **From an interface** — slides it along its frame edge, and no further. No selecting first.
-- **From a segment of a relationship** — moves that segment across itself, and the interface
-  with it where the segment is one of the two at the ends.
 - **From a selected group's background** — moves every member of that group together.
 - **From empty background, or from an unselected group's background** — draws a selection
   box, which takes the elements it fully contains. Dragging a selection moves all of it as one
@@ -877,16 +957,31 @@ the cards' own borders and reads as part of them instead of as something drawn a
 
 **Select-then-drag is for large targets, not small ones.** A group's boundary is a wide
 transparent area a drag could easily begin in by accident, so it moves only once it has been
-selected, and the same goes for a multi-node selection. An interface and a relationship's
-segments are thin, precisely reported things: a drag beginning on one could not have meant
-anything else, so it acts at once. Asking for a click first bought nothing there and cost a
-gesture every time.
+selected, and the same goes for a multi-node selection. An interface is a thin, precisely
+reported thing: a drag beginning on one could not have meant anything else, so it acts at once.
+Asking for a click first bought nothing there and cost a gesture every time.
+
+Nothing else on the canvas is small enough to need the rule. A relationship's segments used to
+be, and are not draggable at all now.
 
 The canvas pans with the middle button, with `Space` held, or with the wheel — never with a
 plain left drag, which is spent on selecting and moving.
 
 Panning is bounded to the layer's contents plus room on every side to put something new, and
 the bound grows with the layer.
+
+### The two toolbars
+
+**They divide by what they are for.** The row top-right is about **what gets made**
+— whether interfaces are drawn, and what kind of relationship a right drag creates. The column
+bottom-right, opposite the zoom controls, is about **how the layer is drawn** — its axis, laying
+it out again, and square lines or curved ones.
+
+They were one row and should not have been. Half of it changed the project and half of it
+changed the view, two of the five belonged to the layer rather than the app, and nothing about
+their arrangement said which was which. Splitting them by purpose also puts the arrangement
+controls next to the other control that moves the camera. The shape controls are icons only:
+they are set once and read at a glance, not scanned.
 
 ### The two buttons
 
@@ -924,9 +1019,17 @@ The layer's own frame is the one exception, and unavoidably so — its interior 
 background, so its border has to stay a zone. It is a large, plainly drawn target, which is
 exactly what a card's ring was not.
 
-**Nothing stacks.** Right-clicking an interface makes no second interface underneath the first,
-and right-clicking a relationship makes nothing at all. Both used to fall through to a default
-meant for something else, and both are now silent, waiting for the menu.
+**Nothing stacks.** Right-clicking an interface makes no second interface underneath the first.
+It used to fall through to a default meant for something else, and is now silent.
+
+**Right-clicking a relationship writes its name.** That was the last name on the canvas edited
+by some other gesture — a double-click, left from before naming had one rule. Now every name on
+the canvas is written the same way and the rule has no exceptions left.
+
+It also stays inside the division rather than bending it: a relationship's kind does not exist
+until somebody writes it, and the right button is for making what is not there yet. A straighten
+action briefly lived on this gesture and was the wrong thing entirely — the left button handles
+what exists — and in any case there is no longer anything to straighten.
 
 Once the menu exists, each entry above becomes its default and the alternatives sit beside it —
 direction and reversal for a relationship, ungroup for a group, lay-out-again and paste for the
@@ -1124,26 +1227,55 @@ landed on exactly the same point; now they would, and the spec says interfaces d
 drop onto an occupied seat takes the next one along rather than being refused — a drag that has
 to be repeated until it finds a gap is worse than one that lands beside where it was aimed.
 
-**A port carried by a dragged relationship segment is deliberately not seated.** There, the
-port's job is to stay where the line is: the router guarantees square elbows by putting the port
-exactly where the segment ends, and snapping it to a seat afterwards would move it off the
-segment and put back the one- and two-pixel bends the router exists to remove. Dragging the port
-itself is how it gets seated, because there the port's position is what the gesture is about.
+**Every seat is on the lattice now, because nothing is dragged off it.** The exception used to
+be a port carried along by a dragged relationship segment: it had to stay exactly where the line
+ended or the elbows stopped being square, so it was left unseated. With hand routing gone there
+is no such port, and a seat is a seat wherever it came from.
 
-**Route corners are not snapped either, for the same reason.** The router treats a corner as
-level with a port when it is within 2.5 units; quantising corners to 24 would throw them up to
-12 off, past that tolerance, and every straightened line would bend again.
+**Route corners are still not snapped**, and now it costs nothing to say why: a corner is
+treated as level with a port within 2.5 units, and quantising to 24 would throw it up to 12 off,
+past that tolerance, so every straight line would bend again. Lanes move interior segments by
+half a cell deliberately and stay on the lattice; the corners between them are wherever the path
+found them.
 
 ### Layouts
 
-Layout has one job: centre the mass of blocks in the view, with no overlap and as little
-crossing as possible between relationships and blocks. There are no named arrangements to
-choose between, and no ranking of nodes by their relationships — one layout, applied
-everywhere.
+Layout has one job: arrange the blocks so the relationships between them read, with no overlap
+and as little crossing as possible.
 
-New nodes are added at the centre and work outward, with the default zoom expanding to keep
-them in frame. Layout keeps grouped and related nodes near each other and honours user
-placement; everything else fills the room that is left.
+**A layer's arrangement is one setting with three values**, held on the layer itself. `free`
+ranks nothing and fills outward from the middle in rings — the resting state, and what a diagram
+with no direction in it wants. `across` and `down` rank the layer along that direction.
+
+That setting is deliberately the *only* one. It is both the flow axis and the layout preference,
+because they are the same statement: saying a layer reads left to right is saying its ranks run
+left to right. Two settings would have been two ways to say one thing, with no rule for which
+wins when they disagreed.
+
+**It is per layer and not per app.** A pipeline and a hierarchy can sit in one project, and a
+choice about what a diagram *says* is not a display preference — it changes the drawing, it goes
+in the history, and it exports.
+
+**Ranking reads the drag, not the direction.** A relationship is undirected by default, so `dir`
+is empty on most of them and would rank nothing; the source-to-target pair is the only statement
+of direction most will ever carry, and it is the way somebody drew it. Cycles stop at the edge
+that closes them rather than ranking forever.
+
+**Within a rank, order is a barycentre sweep** — each node pulled toward the average position of
+what it is joined to in the rank before, forward then back. Two passes, because it is a
+heuristic for fewer crossings rather than a solution to them. What it buys is the thing that
+matters most: a chain comes out on one row, so every line along it is straight and there is
+nothing left for anyone to want to drag.
+
+**Free-form is the default**, not `across`. The tool is general first, and a diagram that is not
+a flow reads worse ranked than it does clustered. An axis is something you turn on when the
+layer means it.
+
+**An arrangement rearranges only what nobody has placed.** User placement wins, as it does
+everywhere else — which means setting an axis on a layer laid out by hand does nothing at all
+until the layer is asked to let go. That is what `arrange` is: one action, one step, handing the
+layer's blocks back. Making the axis clear placements by itself would have destroyed hand-placed
+work as a side effect of changing a view setting.
 
 It is good enough when, for a layer of thirty nodes, no two blocks overlap, no relationship
 passes through a block it does not attach to, and relationship crossings are visibly fewer

@@ -14,6 +14,24 @@ export type Flow = "in" | "out" | "both";
 /** Which way a relationship reads. Undirected by default. */
 export type Dir = "none" | "forward" | "back" | "both";
 
+/** What a relationship's ends are, and how it draws.
+ *
+ *  `untyped` is the default and says nothing beyond "these two are related":
+ *  its ends are plain seats and the layer puts them wherever the path wants.
+ *  `flow` says the relationship carries something one way, so its ends read as
+ *  in and out and take the sides the layer's axis gives them. `assoc` is a
+ *  weaker mention, drawn lighter. The kind decides the ends; `dir` still
+ *  decides which way the arrows point. */
+export type Kind = "untyped" | "flow" | "assoc";
+
+/** How a layer arranges what it holds.
+ *
+ *  `free` ranks nothing and fills outward from the middle, which is the resting
+ *  state and what a diagram with no direction in it wants. The other two rank
+ *  the layer along one axis, so a relationship reads the way the layer does.
+ *  Held per layer, because a pipeline and a hierarchy can sit in one project. */
+export type Axis = "free" | "right" | "down";
+
 export type Node = {
   id: string;
   label: string;
@@ -43,12 +61,16 @@ export type Node = {
    *  every other way: it sits in a layer, it moves, it relates, it carries
    *  attributes. What it does not have is contents of its own. */
   ref: string | null;
+  /** How this node arranges its contents when it is the layer being looked at.
+   *  Null is `free`; the root's own axis lives on the graph. */
+  axis: Axis | null;
 };
 
-/** One end of a relationship as it is drawn: the node it lands on, and either
- *  the interface it landed on or the seat on that node's border to put a new
- *  one at. Every drawn relationship ends up with an interface at each end. */
-export type End = { node: string; port?: string; seat?: { side: Side; at: number } };
+/** One end of a relationship as it is drawn: the node it lands on, the
+ *  interface it landed on where it landed on one, and the wall the gesture
+ *  named where it named one. Most ends have neither — where a line meets a card
+ *  is worked out by the layer, not stored. */
+export type End = { node: string; port?: string; side?: Side };
 
 /** A point on the canvas. */
 export type Spot = { x: number; y: number };
@@ -65,16 +87,18 @@ export type Edge = {
   from?: string;
   to?: string;
   dir: Dir;
-  /** A route the user has laid out by hand: the corners between the two
-   *  interfaces, in order, and the layer they were dragged in.
+  /** What its ends are and how it draws. Absent reads as `untyped`, so a log
+   *  written before kinds existed still folds to what it drew. */
+  kind?: Kind;
+  /** The wall an end was drawn through, where the gesture named one.
    *
-   *  Absent or empty means auto-route chooses seats and path. Only a
-   *  middle-segment drag writes corners here; layout never does. The layer is
-   *  recorded because a relationship reaching through a reference can be drawn
-   *  in two of them, and each places its nodes independently, so corners right
-   *  in one are meaningless in the other. Drawn anywhere else, the line routes
-   *  itself. */
-  route?: { layer: string | null; corners: Spot[] } | null;
+   *  A choice, so it is kept — the same standing a node's own position has over
+   *  automatic layout. Unlike a route it never goes stale: cards move, the frame
+   *  is resized, the layer is rearranged, and "this leaves by the north wall" is
+   *  still true and still drawable. The seat along that wall stays derived.
+   *  `arrange` clears these along with hand placement. */
+  fromSide?: Side;
+  toSide?: Side;
 };
 
 /** A descriptive property of a node or a relationship. Held by one object or
@@ -112,6 +136,9 @@ export type Graph = {
   relations: string[];
   template: string;
   title: string;
+  /** The root layer's axis. Every other layer keeps its own on its node; the
+   *  root has no node to keep it on. */
+  axis: Axis;
 };
 
 export type Mutation =
@@ -125,9 +152,19 @@ export type Mutation =
    *  It never comes off: an interface is one for as long as it exists. */
   | { op: "set_port"; id: string; side: Side; at: number }
   | { op: "mark_port"; id: string; flow: Flow | null }
+  /** How a layer arranges its contents. Null names the root. */
+  | { op: "set_axis"; layer: string | null; axis: Axis }
+  /** Hand a layer's blocks back to automatic placement, so a new arrangement
+   *  has something to arrange. */
+  | { op: "relax_layer"; layer: string | null }
   | { op: "link_nodes"; edge: Edge }
+  /** Tie one end of a relationship to an interface that now exists for it. */
+  | { op: "set_end"; id: string; end: "from" | "to"; port: string }
   | { op: "update_edge"; id: string; relation: string }
   | { op: "set_dir"; id: string; dir: Dir }
+  | { op: "set_kind"; id: string; kind: Kind }
+  /** Pin one end of a relationship to a wall, or hand it back to the layer. */
+  | { op: "set_side"; id: string; end: "from" | "to"; side: Side | null }
   /** A hand-laid route and the layer it was laid out in; null hands it back. */
   | { op: "route_edge"; id: string; layer: string | null; route: Spot[] | null }
   /** Turn a relation around; what it says stays the same. */
@@ -165,7 +202,7 @@ export type Step = {
 };
 
 export const EMPTY: Graph = {
-  nodes: {}, edges: {}, attrs: {}, relations: [], template: "", title: "",
+  nodes: {}, edges: {}, attrs: {}, relations: [], template: "", title: "", axis: "free",
 };
 
 let counter = 0;
@@ -193,6 +230,7 @@ export function node(label: string, extra: Partial<Node> = {}): Node {
     flow: null,
     num: null,
     ref: null,
+    axis: null,
     ...extra,
   };
 }

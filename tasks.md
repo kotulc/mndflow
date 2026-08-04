@@ -27,11 +27,11 @@ either rewriting steps on the way out — which breaks undo across a save — or
 graph instead, which is a second format. This has to be settled before the sample project below
 is worth authoring, because that file is the format's first real user.
 
-**Whether `flow` survives.** An interface can be marked input, output or both, and the mark
-constrains nothing — it was decorative from the start. Now that relationships put an interface
-at each end automatically, most interfaces have a direction implied by the relationship they
-belong to. Either `flow` is genuinely a note to the reader worth keeping, or it is a leftover
-from the SysML port model that the tool never took up.
+**How much a `flow` relationship should be allowed to say.** A `flow` kind now decides which
+sides its two ends take, from the layer's axis. Whether it should also imply a direction — so
+that setting the kind sets `dir` — is open. Keeping them apart is the current answer and the
+safer one, but it does mean a flow with no direction set draws no arrowhead, which reads oddly
+for a thing whose whole claim is that something travels one way.
 
 **What an attribute is made of.** The design says every attribute carries a name, a label and
 tags. The code has `name`, `value` and `tags` — no label, and `value` is not mentioned in the
@@ -39,9 +39,11 @@ design at all. Two names for one field, or two fields, is the question; the answ
 the panel should show.
 
 *Settled and built: what happens to a moved node's annotations and relationships, reference
-chains, which layer a route belongs to, and what a note is made of — an attribute with a place,
-belonging to the layer it was drawn in, sized by its text so that nothing on the canvas is
-manually resized. See design.md under Relationships, References and Notes.*
+chains, what a note is made of, and — the big one — that a relationship's **route** is derived
+from the layer and never stored. The one thing an end may keep is the **wall** a right drag on
+the frame named for it, which is an intent rather than a position and so never goes stale. Hand routing is gone; a port is a node only
+where somebody promoted one; a layer's axis is both its flow direction and its layout
+preference. See design.md under Relationships, Interfaces and Layouts.*
 
 
 ## Not built yet
@@ -66,6 +68,9 @@ manually resized. See design.md under Relationships, References and Notes.*
   could instead tie the note to everything inside it. Deliberately not done: it would make the
   drag mean two things at once, and the size of a gesture is a poor way to state intent. Worth
   revisiting only if tying notes one at a time proves tedious.
+- **A promoted seat cannot be un-promoted.** Right-clicking a seat makes it an interface; there
+  is no gesture that gives it back. Deleting the interface is the nearest thing and takes the
+  relationship's anchor with it.
 - **The context menu**, still the last thing to build. Every entry above now performs its
   default action directly and correctly, so the menu is no longer covering for anything wrong —
   it is only the alternatives that are missing: direction and reversal for a relationship,
@@ -98,11 +103,21 @@ with it. Cards are unaffected. Fixing it means a frame that does not fit the pan
 worse; it is recorded because it is the one place seats do not hold, not because it is a bug
 with a known fix.
 
-**Route corners are still free.** They cannot be snapped while ports carried by a segment are
-free, and those cannot be seated without breaking the router's straightness guarantee. A route
-laid out by hand is therefore the one thing on the canvas not on the grid. Untangling this means
-teaching the router about seats, which is a change to the one part of the tool with a fuzz test
-behind it, and there is no evidence yet that it matters.
+**Route corners are still free.** Every seat is on the lattice now, but the corners between them
+are wherever the path found them, and lane offsets are half a cell from there. Snapping corners
+to 24 would throw them past the 2.5-unit tolerance that decides whether a line counts as
+straight, and every straight line would bend. Recorded as the one thing on the canvas not on the
+grid, not as a bug with a known fix.
+
+**The router runs on every render, and is not cheap.** Deriving routes means re-planning every
+line on the layer whenever the arrangement changes. Measured at roughly 180 ms for twenty cards
+and twenty-five relationships before this work; the plan is now computed once per layer rather
+than once per edge per render, which helps, but nothing has been measured since and the thirty
+node target in design.md has not been checked.
+
+**Nothing here has tests.** The routing and layout code is pure geometry with no UI in it —
+`place`, `route`, `lanes` — which makes it the obvious place for a suite, and the interfaces
+have now stopped moving. There is no test file in the repo at all.
 
 **The selection box takes things it does not enclose.** Dragging a box across the canvas can
 come back holding elements outside it, and the reported case involves dragging over

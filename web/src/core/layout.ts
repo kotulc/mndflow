@@ -4,14 +4,15 @@
  *  `place` lays out a whole layer around the centre, so the mass of blocks
  *  grows outward from the origin instead of trailing off one corner.
  *
- *  There is one layout, applied everywhere. Nothing here ranks nodes or offers
- *  arrangements to choose between.
+ *  A layer arranges itself the way its axis says: ranked along one direction,
+ *  or filling outward from the middle when it has none. That is the only choice
+ *  there is — there are no named arrangements beyond it.
  *
  *  Both are pure geometry; nothing here knows about React Flow. */
 
 import { isContainer, portsOf } from "./fold";
 import { similarity } from "./match";
-import type { Graph, Node, Side } from "./types";
+import type { Axis, Graph, Node, Side } from "./types";
 
 /** The canvas grid. Everything with a place of its own lands on it, so that two
  *  things meant to line up line up exactly rather than nearly.
@@ -291,6 +292,148 @@ function* rings(step: { x: number; y: number }, rounds: number) {
   }
 }
 
+/** Relationships with both ends among these nodes, as source → target pairs.
+ *
+ *  Ranking reads the pair rather than `dir`, because a relationship is
+ *  undirected by default and the way it was drawn is the only statement of
+ *  direction most of them will ever carry. */
+function linksAmong(graph: Graph, nodes: Node[]): [string, string][] {
+  const here = new Set(nodes.map((n) => n.id));
+
+  return Object.values(graph.edges)
+    .filter((e) => here.has(e.source) && here.has(e.target) && e.source !== e.target)
+    .map((e) => [e.source, e.target] as [string, string]);
+}
+
+/** Rank each node by the longest chain of relationships reaching it.
+ *
+ *  Depth-first with the nodes on the current path marked, so a cycle stops at
+ *  the edge that closes it instead of ranking forever. A layer that is one
+ *  long cycle simply comes out in the order it was walked, which is as much as
+ *  any arrangement can say about it. */
+function ranks(nodes: Node[], links: [string, string][]): Map<string, number> {
+  const after = new Map<string, string[]>();
+  for (const [from, to] of links) after.set(from, [...(after.get(from) ?? []), to]);
+
+  const rank = new Map<string, number>();
+  const walking = new Set<string>();
+
+  const depth = (id: string): number => {
+    const known = rank.get(id);
+    if (known !== undefined) return known;
+    if (walking.has(id)) return 0;
+
+    walking.add(id);
+    let deepest = 0;
+    for (const next of after.get(id) ?? []) deepest = Math.max(deepest, depth(next) + 1);
+    walking.delete(id);
+    rank.set(id, deepest);
+
+    return deepest;
+  };
+
+  // Depth counts forward, so invert it: nothing pointing at it comes first.
+  for (const node of nodes) depth(node.id);
+  const deepest = Math.max(0, ...rank.values());
+  for (const [id, at] of rank) rank.set(id, deepest - at);
+
+  return rank;
+}
+
+/** Order the nodes within each rank so related ones sit across from each other.
+ *
+ *  Each node is pulled to the average position of what it is joined to in the
+ *  rank before, swept forward then back. Two passes is where this stops paying:
+ *  it is a heuristic for fewer crossings, not a solution to them. */
+function ordered(rows: Node[][], links: [string, string][]): Node[][] {
+  const near = new Map<string, string[]>();
+  for (const [from, to] of links) {
+    near.set(from, [...(near.get(from) ?? []), to]);
+    near.set(to, [...(near.get(to) ?? []), from]);
+  }
+
+  const rowsOut = rows.map((row) => [...row]);
+
+  const sweep = (from: number, to: number, step: number) => {
+    for (let at = from; at !== to; at += step) {
+      const anchor = new Map(rowsOut[at - step].map((n, i) => [n.id, i]));
+      const pull = new Map(rowsOut[at].map((node) => {
+        const seen = (near.get(node.id) ?? [])
+          .map((id) => anchor.get(id))
+          .filter((i): i is number => i !== undefined);
+
+        return [node.id, seen.length
+          ? seen.reduce((sum, i) => sum + i, 0) / seen.length
+          : Number.POSITIVE_INFINITY];
+      }));
+
+      rowsOut[at].sort((a, b) => (pull.get(a.id) ?? 0) - (pull.get(b.id) ?? 0));
+    }
+  };
+
+  if (rowsOut.length > 1) {
+    sweep(1, rowsOut.length, 1);
+    sweep(rowsOut.length - 2, -1, -1);
+  }
+
+  return rowsOut;
+}
+
+/** Lay a layer out in ranks along one axis, centred on the origin.
+ *
+ *  Rank decides the position along the axis, order within the rank decides the
+ *  position across it. That is what puts two related blocks on one row: they
+ *  are in neighbouring ranks and the ordering pass pulls them level, so the
+ *  relationship between them is a straight line with nothing for the router to
+ *  work around. */
+function ranked(graph: Graph, nodes: Node[],
+                axis: Axis): Record<string, { x: number; y: number }> {
+  const links = linksAmong(graph, nodes);
+  const rank = ranks(nodes, links);
+  const depth = Math.max(0, ...rank.values());
+
+  const rows: Node[][] = Array.from({ length: depth + 1 }, () => []);
+  for (const node of nodes) rows[rank.get(node.id) ?? 0].push(node);
+
+  const along = axis === "right" ? "x" : "y";
+  const across: "x" | "y" = along === "x" ? "y" : "x";
+  const spots: Record<string, { x: number; y: number }> = {};
+
+  // A rank is as deep as its deepest card, so ranks stay evenly spaced whether
+  // they hold blocks or containers.
+  const laid = ordered(rows, links);
+  const spans = laid.map((row) => Math.max(
+    0, ...row.map((n) => (along === "x" ? sizeOf(graph, n).w : sizeOf(graph, n).h)),
+  ));
+  const stride = spans.map((span) => span + LEAF.w / 2 + GAP);
+
+  let cursor = -stride.reduce((sum, s) => sum + s, 0) / 2;
+
+  laid.forEach((row, at) => {
+    const sizes = row.map((n) => sizeOf(graph, n));
+    const width = row.reduce(
+      (sum, _, i) => sum + (across === "y" ? sizes[i].h : sizes[i].w) + GAP, -GAP,
+    );
+    let run = -width / 2;
+
+    row.forEach((node, i) => {
+      const size = sizes[i];
+      const extent = across === "y" ? size.h : size.w;
+      const place = {
+        [along]: cursor + (spans[at] - (along === "x" ? size.w : size.h)) / 2,
+        [across]: run,
+      } as { x: number; y: number };
+
+      spots[node.id] = middled(place, size);
+      run += extent + GAP;
+    });
+
+    cursor += stride[at];
+  });
+
+  return spots;
+}
+
 /** Nodes ordered so that whatever relates to what is already down comes next,
  *  which keeps related blocks near each other without a ranking pass. */
 function neighbourly(graph: Graph, nodes: Node[]): Node[] {
@@ -331,10 +474,39 @@ function neighbourly(graph: Graph, nodes: Node[]): Node[] {
   return order;
 }
 
+/** Shift a whole arrangement across its axis until it clears what is already
+ *  down, so an axis set on a layer someone has hand-placed puts its ranks
+ *  beside that work rather than through it. */
+function cleared(spots: Record<string, { x: number; y: number }>, sizes: Record<string, Box>,
+                 taken: Box[], across: "x" | "y"): Record<string, { x: number; y: number }> {
+  if (!taken.length) return spots;
+
+  const step = (across === "y" ? LEAF.h : LEAF.w) + GAP;
+  const ids = Object.keys(spots);
+
+  for (let tries = 0; tries <= ids.length + taken.length; tries += 1) {
+    const off = tries * step;
+    const hits = ids.some((id) => {
+      const box = { ...sizes[id], x: spots[id].x, y: spots[id].y };
+      box[across] += off;
+
+      return taken.some((other) => collides(box, other));
+    });
+
+    if (!hits) {
+      return Object.fromEntries(ids.map((id) => [id, { ...spots[id], [across]: spots[id][across] + off }]));
+    }
+  }
+
+  return spots;
+}
+
 /** Positions for one layer, centred on the origin. Nodes the user has dragged
- *  keep the position they were given; the rest fill the room around them,
- *  working outward from the middle and never overlapping. */
-export function place(graph: Graph, nodes: Node[]): Record<string, { x: number; y: number }> {
+ *  keep the position they were given; the rest are arranged around them —
+ *  ranked along the layer's axis where it has one, and filling outward from the
+ *  middle where it does not. */
+export function place(graph: Graph, nodes: Node[],
+                      axis: Axis = "free"): Record<string, { x: number; y: number }> {
   const spots: Record<string, { x: number; y: number }> = {};
   const taken: Box[] = [];
 
@@ -347,7 +519,19 @@ export function place(graph: Graph, nodes: Node[]): Record<string, { x: number; 
     taken.push({ ...at, ...size });
   }
 
-  const loose = neighbourly(graph, nodes.filter((n) => n.x === null || n.y === null));
+  const free = nodes.filter((n) => n.x === null || n.y === null);
+
+  if (axis !== "free" && free.length) {
+    const sizes = Object.fromEntries(
+      free.map((n) => [n.id, { ...sizeOf(graph, n), x: 0, y: 0 }]),
+    );
+    const arranged = cleared(ranked(graph, free, axis), sizes, taken,
+                             axis === "right" ? "y" : "x");
+
+    return { ...spots, ...arranged };
+  }
+
+  const loose = neighbourly(graph, free);
   const step = { x: LEAF.w + GAP, y: LEAF.h + GAP };
   const rounds = nodes.length + taken.length + 2;
 
