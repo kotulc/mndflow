@@ -20,12 +20,10 @@ spec.md's table.
 
 ## Open questions
 
-**What the export format is.** The Export rule under Interfaces says an implied interface is
-not written out. Nothing does this, and it is not clear it can: the export *is* the step log,
-and a log records the making of a thing rather than the thing. Filtering nodes out of it means
-either rewriting steps on the way out — which breaks undo across a save — or exporting a folded
-graph instead, which is a second format. This has to be settled before the sample project below
-is worth authoring, because that file is the format's first real user.
+**What the export format is.** The export *is* the step log, and a log records the making of a
+thing rather than the thing. Anything wanting the graph instead — a SysML translation, a diagram
+generator — needs a second format folded from it. This has to be settled before the sample
+project below is worth authoring, because that file is the format's first real user.
 
 **How much a `flow` relationship should be allowed to say.** A `flow` kind now decides which
 sides its two ends take, from the layer's axis. Whether it should also imply a direction — so

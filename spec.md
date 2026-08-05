@@ -1,7 +1,7 @@
 # Spec
 
-Defines the project's functional specifications. What each part of mndflow does, component by component. Short statements of the current target,
-for readability.
+What each part of mndflow does, component by component — short statements of the current
+target.
 
 - **Why any of it is this way** → [design.md](design.md).
 - **What is not built, and what is undecided** → [tasks.md](tasks.md).
@@ -30,11 +30,14 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 **Edges** — a relationship between two nodes.
 
-- Carries `relation`, `kind`, `dir` (none / forward / back / both), and `from`/`to` interfaces.
+- Carries `relation`, `kind`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
+  `fromSide`/`toSide` where an end was drawn through a named wall.
 - `kind` is `untyped` (the default), `flow`, or `assoc`. It says what the two ends *are*;
   `dir` still says which way the arrows point.
 - `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
   normal case, and the layer works that end out.
+- `fromSide`/`toSide` pin an end to one of the frame's four walls. The seat along it is still
+  derived; `arrange` hands the wall back.
 - **No relationship carries a route.** Where a line goes is derived from the layer it is drawn
   in, every time it is drawn.
 
@@ -145,8 +148,8 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   A name too long for it is clipped.
 - **User placement wins.** A node the user has moved keeps its place.
 - Automatic layout fills the rest, avoiding overlap and keeping related nodes near each other.
-- The view refits when the layer gains or loses something, or when its axis changes — never on
-  selection.
+- The view refits when the layer gains or loses something, or when it is arranged afresh —
+  never on selection.
 
 **The layer's arrangement** — how it lays out what it holds. Four, each its own button, held
 on the layer.
@@ -236,7 +239,7 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 ### Interfaces
 
 - A small square on the frame edge, **filled when a relationship attaches and open when none
-  does**.
+  does** — so a glance says which ports are wired and which only describe the shape.
 - A divided square when it holds child blocks of its own; holding only interfaces gets no mark.
 - Named beside it only on the layer's own frame; elsewhere on hover or selection.
 - Unnamed, it reads `interface 1`, `interface 2` … per parent.
@@ -273,17 +276,19 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 ### Relationships
 
 - A plain line, undirected by default. Direction and reversal come from the attribute panel.
-- Joins two **nodes**, and anchors at an **interface** on each. The ends are the nodes; the
-  interfaces are only where the line meets them.
-- Drawn by right-click-dragging from anywhere on a node or from an interface; an interface lands
-  at each end. Released over empty canvas, the far node is created too.
-- `Esc` cancels the whole gesture, interfaces included.
+- Joins two **nodes** and meets each at a seat. The ends are the nodes; the seat is only where
+  the line lands.
+- Drawn by right-click-dragging from anywhere on a node, an interface, or a frame wall. It
+  creates no interfaces. An end that set off from or landed on one keeps it as its anchor; an end
+  that named a wall keeps the wall.
+- Released over empty canvas, the far node is created too.
+- `Esc` cancels the gesture.
 - Right-clicking a line names its kind — a name is edited where it is drawn, and this is the
   last name on the canvas that took a different gesture.
 - The kind a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
 - **Flow** draws heavier and takes its sides from the layer's axis; **assoc** draws thinner and
   fainter; **plain** says only that the two are related and takes whatever side suits the path.
-- Drawn curved or angular by the canvas toggle; a line that has been routed stays angular.
+- Drawn curved or angular by the canvas toggle, which is global to the app.
 
 **Where one is drawn**
 
@@ -320,14 +325,15 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 ### Groups
 
 - Nodes sharing one attribute, drawn as a faint dashed boundary around them.
-- The boundary is derived from its members' bounds plus one cell of margin, so it lands on the
-  grid when its members do. **There is no manual resize.**
+- The boundary is derived from its members' bounds plus half a cell of margin, so it lands on
+  the grid when its members do. **There is no manual resize.**
 - Clicking the background selects it; dragging a selected boundary moves every member as one
   action.
 - Dropping a card in the clear space inside joins; dropping it outside leaves. Dropping *on* a
   card is a move into that card instead.
 - A node created inside a boundary joins that group, by the same reckoning as a drop there.
-- A whole group moved together stays together.
+- A whole group moved together stays together, and layout moves one as a single unit — see
+  Coordinates and layout.
 - **One member is allowed**, made deliberately — a boundary is a way of marking a single block.
   `Ctrl`/`Cmd` + `G` makes one; right-click still makes an interface on a single card.
 - **Falling** to one member removes the attribute instead of drawing it around one node. Made

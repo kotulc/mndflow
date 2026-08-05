@@ -1,1384 +1,710 @@
 # Design
 
-Why mndflow is the way it is. Every rule here carries the reasoning that produced it, and the
-alternative it was chosen over — so that changing one's mind means arguing with a recorded
-position rather than guessing at one.
+Why mndflow is the way it is: the reasoning behind each rule, stated as it currently stands.
 
 - **What each part does, in short** → [spec.md](spec.md).
 - **What is missing, and what is undecided** → [tasks.md](tasks.md).
 
-mndflow's primary purpose is to enable rapid construction and composition of descriptive
-visual building blocks for systems modeling tasks.
+mndflow is for rapidly building and composing descriptive visual blocks into systems models. It
+is a client-only web app. Visual scope is constantly constrained, so a reader is never shown
+more than one layer's worth of anything.
 
-The goal of mndflow's client-only web application is to support fluid and engaging assembly
-of complex systems starting from simple descriptive "building block" type elements. Visual
-scope is constantly constrained to prevent overwhelming the user with too much information.
+**It stays general on purpose.** Hard rules are only the few that prevent an incoherent project
+— a node cannot contain itself. Nothing is forbidden for being unusual, and where a choice could
+be enforced or left to the user, it is left to the user.
 
-The tool stays general on purpose. Hard rules are kept to the few that prevent an incoherent
-project — a node cannot contain itself — and nothing else is forbidden merely because it is
-unusual. Where a choice could be enforced or left to the user, it is left to the user.
+**Three ideas carry most of the weight:**
+
+- **Derived beats stored.** Anything that can be worked out from the layer is worked out — seats,
+  routes, boundaries, roles. Only choices are written down.
+- **User placement wins.** What someone put somewhere stays there; automatic layout fills the
+  rest.
+- **The log is the truth.** The graph is folded from it, so undo needs no inverses.
 
 
 ## Concepts
 
 ### Vocabulary
 
-Two distinctions carry most of the weight:
-
-- **Structural** — nodes, and only nodes. Structure is what the object explorer shows: what
-  contains what. A **container** is simply a node that has children; there is no container
-  type to set.
-- **Non-structural** — attributes. Some of them are **annotations**, meaning they draw on the
-  canvas: a **group** is one drawn as a boundary round its holders, a **note** is one drawn as a
-  card of text pointing at them. All of them describe nodes, and none of them appears in the
-  explorer or changes what contains what.
-
-The code follows this now: `isContainer` is the predicate, and the boundary is `GroupFrame`.
-One leftover — the boundary's CSS class is still `.region`, from when the annotation was
-called that.
+- **Structural** — nodes, and only nodes. Structure is what the explorer shows: what contains
+  what.
+- **Non-structural** — attributes. They describe nodes, never appear in the explorer, and never
+  change what contains what.
+- **Annotations** — attributes that draw on the canvas. A **group** draws as a boundary round its
+  holders; a **note** draws as a card of text pointing at them. Nothing is both.
 
 
 ### Nodes
 
-The primary object, and the only structural one. A node has children, interfaces,
-relationships, and attributes.
+The primary object, and the only structural one. A node has children, interfaces, relationships
+and attributes.
 
-A node's **role** is derived from what it holds and where it sits, never declared:
+**Role is derived from what a node holds and where it sits, never declared:**
 
-- a node attached to its parent's frame edge is an **interface**;
-- any other node is a **block**, and a block holding one or more child blocks is a
-  **container**.
+- A node on its parent's frame edge is an **interface**.
+- Any other node is a **block**; a block holding child blocks is a **container**.
+- Interfaces do not count towards being a container — a block with ports and no child blocks is
+  still a block.
+- Role decides only how a node draws. Every node shares the same operations.
 
-Interfaces do not count towards being a container. A block with interfaces and no child
-blocks is still a block and draws as one. The two are independent — a node may freely have
-both, and each draws without affecting the other.
+**Interface is the one role that does not change.** A node is created as one or it is not. A
+block never steps onto a border and an interface never steps off, because a drag that could
+silently convert between them makes every ordinary move a hazard.
 
-Role determines only how the node draws, and every node shares the same operations. A block
-becomes a container simply by gaining a child block, and stops being one by losing them —
-that role is a running tally of what it holds.
+**A container draws a treemap of its immediate child blocks.**
 
-**Interface is the one role that does not change.** A node is created as an interface or it
-is not, and it stays whichever it was: a block never steps onto a border to become one, and
-an interface never steps off to become a block. That is the exception to "role is derived",
-and it is deliberate — an interface belongs to a border in a way a block does not, and a
-drag that could silently convert between them made every ordinary move a hazard.
-
-**Blocks** — simple rectangles. All nodes (blocks included) can be nested, unnested, grouped,
-ungrouped, annotated, related, interfaced, referenced, and given descriptive attributes.
-
-**Containers** — an internal treemap of their child blocks. Interfaces are never in it; they
-sit on the frame edge, and a container draws both at once.
-
-**The band is divided by a fixed pattern**, not by measurement. The unit is 1|2 — one large
-cell on the left, two stacked on the right — or two wide rows when there are only two. One
-such unit fills the band for up to three children; two sit as columns for up to six; three
-tile as left | top-right / bottom-right for up to nine. Cells come out square, wide and tall
-against each other, so the division reads as a shape rather than as a row of equal boxes, and
-a container of the same size always divides the same way.
-
-**Nine chips is the cap.** At ten or more, eight are drawn and the last slot reads `...` for
-the rest; clicking it opens the container, which is where the rest of them are anyway. Past
-that count the cells are too small to tell apart, and a card is a summary rather than a list.
-
-**Relevance is carried by the fill.** Each cell's shade follows how closely that child's name
-relates to the container's, so one that has drifted off topic looks ragged rather than reading
-as tidy. Size says nothing about relevance — the packing is fixed, and the shade is where the
-question is answered.
-
-**A name shrinks to fit its cell, and hides when even the floor will not fit.** A name in a
-sliver of a cell is not a name; the partition still reads without it, and every cell names
-itself on hover.
-
-**Nesting stops at the first layer.** A child that is itself a container is marked as one and
-no further — no miniature of *its* children. Following it down turned a deep container into a
-texture, where nothing is legible and the shape says nothing at all.
-
-**A container is barely bigger than a block** — room for the treemap under its name, and no
-more. It does not swell with what it holds: the cells shrink instead. A card that grows with
-its contents turns a busy layer into a wall of large boxes, and says a second time what the
-treemap inside it is already saying.
-
-Nor does it need a dashed border. The treemap is signal enough, and the dashes are worth more
-elsewhere: a **reference** is dashed, and with containers solid that mark now means one thing
-only — this is not from here.
+- **The band is divided by a fixed pattern, not by measurement**, so a container of a given size
+  always divides the same way. Cells come out square, wide and tall against each other, so the
+  division reads as a shape rather than a row of equal boxes.
+- **Nine chips is the cap.** Past that the cells are too small to tell apart, and a card is a
+  summary rather than a list. The tenth slot reads `...` and opens the container, which is where
+  the rest are anyway.
+- **Fill shade carries relevance** — how closely a child's name relates to the container's — so
+  one that has drifted off topic looks ragged. Size says nothing about it; the packing is fixed.
+- **A name shrinks to fit and hides when even the floor will not fit.** A name in a sliver of a
+  cell is not a name; the partition still reads without it, and hover names every cell.
+- **Nesting stops at the first layer.** Following it further turns a deep container into a
+  texture where nothing is legible.
+- **A container is barely bigger than a block.** It does not swell with what it holds — the cells
+  shrink instead. Cards that grow with their contents turn a busy layer into a wall of boxes and
+  repeat what the treemap already says.
+- **No dashed border.** The treemap is signal enough, and dashes are spent on references, where
+  the mark means one thing only: this is not from here.
 
 
 ### Interfaces
 
-An interface is a child node attached to its parent's frame edge, and it is where a
-relationship attaches. This is what makes the SysML export target (see Where this is going) coherent —
-SysML wants typed blocks and ports, and an interface is the port.
+An interface is a child node on its parent's frame edge, drawn as a small square. It is what
+makes the SysML export target coherent: SysML wants typed blocks and ports, and an interface is
+the port.
 
-An interface draws as a small square on the frame edge, **filled when a relationship attaches
-to it and open when none does**. Most are made by a relationship and are filled from the moment
-they exist; an open one is either a port somebody described before wiring it, or one left
-standing when the relationship that made it went. That is a difference worth a glance — a shape
-being described, against a shape being connected — and it costs the port nothing to say it.
+**A relationship's end is a seat, not a node.** Where a line meets a card is a fact about how the
+layer is arranged — move a card and it changes — so it is worked out, never stored. The layer
+computes every seat in one pass.
 
-**Its name shows beside it only on the layer's own frame** — the one you have stepped inside. A card's interfaces are marks on
-a shape you are looking *at* from across the layer, and labelling every one of them buries the
-card; there the name comes on hover or selection. An interface holding child blocks of its own
-draws instead as a divided square,
-in the shape of Bootstrap Icons' `grid-1x2` or `columns-gap`, so a port with internals reads
-differently from a plain one without opening it. An interface holding only other interfaces
-gets no special mark — the divided square means child blocks specifically.
+**An interface is a node only where somebody made one.** Two ways in, and no others:
 
-**A relationship has two interfaces, one at each end.** That is the rule the rest of this
-follows from. Drawing a relationship makes them both, deleting it takes them both away, and a
-relationship that has never been given either is still understood to have them — they are
-simply implied at the sides of the two cards facing each other, rather than written down.
+- **Right-clicking a card or frame edge** makes a bare one, because a node's shape is worth
+  describing before its connections are.
+- **Right-clicking a seat promotes it**, where it sits.
 
-So there is never a question of whether an end has an interface. It has one. The only
-questions are whether it has been *placed* anywhere in particular and whether it is currently
-*drawn*, and neither of those changes what the relationship means.
+Drawing a relationship makes none. Deleting one destroys none. That removes the whole question of
+which interfaces are collateral, and it keeps `side` meaning exactly what it always meant — every
+interface that is a node is one somebody placed.
 
-**A relationship's end is a seat, not a node.** Where a line meets a card is a fact about how
-the layer happens to be arranged: move a card and it changes, and none of it was ever worth
-writing down. So it is not written down. The layer works out every seat on it in one pass, and
-what gets stored is only what somebody chose.
+**A port and an anchor are different things.**
 
-That is the same precedence the tool already applies twice over — a node the user placed keeps
-its place while layout fills the rest; a name given replaces the description. An interface was
-the exception, and is not one now.
+- Only a `flow` relationship's ends draw as interfaces, because only those are *typed*: one in,
+  one out, which is what a port is.
+- Every other end is an **anchor** — a place on the border, drawing nothing. A square there would
+  claim a port the model does not have, and a diagram where everything has one reads as a wiring
+  harness while the mark means nothing.
+- An anchor shows a handle when its relationship or its card is selected, so nothing becomes
+  unfindable by being quiet.
+- A line stops at the **outer face** of a square, not the border beneath it, so it meets an
+  interface rather than piercing it.
 
-It also settles what an interface is *for*. A seat that wants a name, contents of its own, or a
-place the arrangement will not move is **promoted** — right-click it and it becomes a node,
-where it sits. Every good reason to have a port is a reason to promote one, and nothing has to
-be decided in advance.
+**A wall can be chosen; a seat cannot.** A right drag on the layer's frame names one of its four
+walls and that end keeps it.
 
-**A wall can be chosen; a seat cannot.** A right drag on the layer's frame names one of its
-four walls, and that end keeps it — the seat along the wall is still worked out, but which wall
-is the user's.
+- A wall is an intent, not a position. Cards move, the frame resizes, the layer is rearranged,
+  and "this leaves by the north wall" is still true and still drawable. It can become unhelpful;
+  it never becomes incoherent.
+- So it takes the standing every user choice has: it beats the side an axis would give, and an
+  arrangement hands it back along with hand placement.
+- **Only the frame names a wall.** A card has no border zone, so a drag from anywhere on it means
+  "from this card" and there is no wall in the gesture. The frame is the standing exception
+  because its interior is the background, so its border must stay a zone. Wanting a particular
+  face on a *card* is answered by right-clicking that point for an interface and wiring to it.
 
-This looks at first like the stored route coming back, and it is not, because of what goes
-stale. Corners were positions: move a card and they were wrong, which is what made them a
-liability. A wall is an intent. Cards move, the frame is resized, the layer is rearranged, and
-"this leaves by the north wall" is still true and still drawable. It can become *unhelpful*, and
-never becomes *incoherent* — so it needs no layer key, no reconciliation, and no repair.
+**Naming.** An unnamed interface is `interface 1`, `interface 2`, and so on.
 
-So it takes the standing every other user choice has: it beats the side an axis would have
-given, exactly as a node the user placed beats where layout would have put it, and `arrange`
-hands both back together. One rule, no modes, and the escape hatch was already built.
+- Numbered rather than all sharing one word: a node soon has several, and five rows reading
+  "interface" name nothing.
+- Per parent, since that is where names are seen together.
+- **The number is fixed at creation.** A new one takes the lowest its parent is not using, so
+  deleting `interface 2` leaves a gap that the next fills. Numbers are therefore not always
+  consecutive — the alternative renames ports nobody touched, and a port's name is what a
+  relationship, a diagram and a reader all refer to it by.
+- Its name shows beside it only on the layer's own frame. A card's interfaces are marks on a
+  shape seen from across the layer, and labelling every one buries the card.
+- An interface holding child blocks draws as a divided square, so a port with internals reads
+  differently without being opened. Holding only other interfaces earns no mark.
 
-**Only the frame names a wall, and that falls out of a rule already made.** A card has no border
-zone — a right drag from anywhere on it means "from this card", and the position decides only
-where an interface would land, not which face the line uses. There is no wall in that gesture to
-record. The layer's own frame is the standing exception, unavoidably so, because its interior is
-the background and its border therefore has to stay a zone. A drag there is necessarily *on a
-wall*, and which wall is precisely what the user meant.
+**Visibility is a display preference and never moves anything.** A hidden interface leaves its
+seat behind, and lines still meet the border where the square sat — lines that swung to the
+middle of a side as a toggle went off made a change of view look like a change to the diagram. A
+seat shows as a small round handle while its relationship or its node is selected.
 
-Wanting a particular face on a *card* is still answerable, and by the gesture that already
-exists: right-click that point of its border for an interface, and wire to it.
-
-**And a seat is not automatically a port.** Only a `flow` relationship's ends draw as interfaces,
-because only those ends are *typed* — one is in and the other out, which is exactly what a port
-is. Every other relationship just meets the card somewhere, and drawing a square there would
-claim a port the model does not have. So a plain or an `assoc` end is an **anchor**: a place on
-the border, drawing nothing.
-
-Squares on every end was the first attempt and it read wrong immediately — a diagram of ordinary
-associations came out looking like a wiring harness, and the mark that is supposed to mean
-"something crosses the boundary here" meant nothing at all because everything had one. An anchor
-still shows a handle when its relationship or its card is selected, which is the same courtesy a
-hidden interface gets, so nothing becomes unfindable by being quiet.
-
-**A line stops at the outer face of the square, not at the border beneath it.** A mark straddles
-the border it sits on, so a run ending on the border ran to the middle of its own port and poked
-out inside it. Half a mark shorter, the line arrives at the interface instead of piercing it —
-which is also why the inset applies only where a square is actually drawn.
-
-The saving is bigger than it looks. Drawing a relationship creates nothing, so deleting one
-destroys nothing, and the whole business of which interfaces are collateral — spare the ones
-another relationship still uses, spare the ones with contents — has no cases left to get wrong.
-And because every interface that is a *node* is one somebody placed, `side` being set still
-means exactly what it always meant: this node is an interface. Deriving the seat could have cost
-the definition of the role; keeping promotion as the only way in is what saved it.
-
-**Where they come from.** A node starts with none. Nothing sits on a fresh block's edge until
-there is a reason for it to be there.
-
-- **Right-click-dragging draws a relationship, and makes an interface at each end.** The near
-  one is placed where the drag started, on the border of the node it left. The far one is
-  placed where the drag was let go: released over a border, the interface sits at that point
-  on it; released anywhere else on a card, at the nearest point of the card's border.
-  Released over an interface that already exists, that one is used and no new one is made.
-  Nothing appears until the drag has pulled a small margin clear of the edge, so a right-click
-  that wanders by a pixel is still a right-click.
-- **Released over empty canvas**, the far node is created as well, and given its interface on
-  the side facing back the way the drag came, so the line between them runs straight.
-- **Right-clicking a node creates a bare one**, with no relationship attached, at the nearest
-  point of its border to the click. This is the one way to get an interface on its own, and it
-  is there because a node's shape is worth describing before its connections are. Right-clicking
-  an interface that already exists makes nothing: there is one there.
-
-A relationship made any other way — from a chip, or by a workflow — leaves both its
-interfaces implied, because there was no gesture to take a position from.
-
-**And where they go.** Deleting a relationship deletes the interfaces at both its ends, so
-rewiring a diagram leaves no trail of empty squares behind it. Two things are never
-collateral: an interface another relationship still attaches to stays, and an interface with
-contents of its own is left standing, bare, rather than taking what is inside it with it.
-
-**Selecting and moving.** An interface selects like anything else — click to highlight it —
-and it **slides under a left drag whether or not it was selected first**, along its edge and
-around corners. One gesture, no first click to spend: a port is a small target the pointer
-reports precisely, so a drag that begins on one can only have meant the port. That is what
-separates it from a group boundary, which is a large transparent area a drag could easily begin
-in by accident, and so still has to be selected before it moves.
-
-It stays on the border however far the drag goes — sliding is the only thing the gesture does.
-Left-dragging is never how a relationship is drawn either; that is the right button's job, here
-and at the frame edge, so moving a port and wiring one are never the same gesture.
-
-**Naming.** An interface with no name of its own is called `interface 1`, `interface 2`, and
-so on — its number among the interfaces of the node it sits on, in the order they were made.
-
-Numbered rather than all sharing one word, because a relationship now puts an interface at
-each of its ends and a node soon has several; five rows in the explorer all reading
-"interface" name nothing. The count is per parent, since that is where the names are seen
-together — two nodes each having an `interface 1` is no more a clash than two folders each
-holding a `notes`.
-
-**The number is fixed when the interface is made, and nothing renames it afterwards.** A new
-one takes the lowest number its parent is not already using, so deleting `interface 2` leaves a
-gap and the next interface made fills it.
-
-Numbers on a node that has been rewired are therefore not always consecutive, which is the
-lesser of the two costs. The alternative — numbering by position, so a deletion closes the gap
-and everything after it shifts down — renames interfaces nobody touched, and a port's name is
-what a relationship, a diagram and a reader all refer to it by. A name given replaces the
-number entirely, and anything wanting a name that means something is given one.
-
-**Visibility.** Interfaces render on the canvas by default, and can be toggled off for a
-cleaner read of the structure alone. Nothing about the relationships changes when they are
-hidden: **a hidden interface leaves its seat behind**, and the lines still meet the border at
-exactly the point the square sat at. A display preference decides what is drawn, never where
-anything is — and lines that swung to the middle of a side as the toggle went off, and back as
-it went on, made a change of view look like a change to the diagram.
-
-**A seat shows itself as a small round handle when its relationship or its node is selected.**
-Hidden means quiet, not gone: having selected a line, you should be able to see where its two
-ends are tied on without turning every square on the layer back on to find out. Selecting a
-card shows the seats of all of its own. Nothing else draws them.
-
-The object explorer is the other way round: interfaces are hidden there by default, and a
-toggle reveals them.
-
-Both toggles are global to the app, not per project and not per view. They are display
-preferences: they change nothing in the project, appear in no export, and record no history.
-
-**Export.** An interface a relationship implied — never placed anywhere in particular, and
-never named, marked, given contents or given attributes — is not exported. The relationship
-re-derives it on load, so writing it down would only repeat what the relationship already
-says. Every other interface is exported like any other node, including every one a drawn
-relationship placed: a position somebody chose is worth keeping.
-
-**State an interface carries beyond an ordinary node:**
+**Fields an interface carries beyond an ordinary node:**
 
 | Field | Meaning |
 |---|---|
-| `side` | which frame edge it sits on — top, right, bottom, or left |
-| `at` | how far along that edge, 0–1, so it survives its parent's frame resizing |
-| `num` | its number among its parent's interfaces, for the name it falls back to |
-| `flow` | optional, decorative: marks the interface as input, output, or both |
+| `side` | which frame edge it sits on |
+| `at` | how far along, 0–1, so it survives the frame resizing |
+| `num` | its number among its parent's, for the name it falls back to |
+| `flow` | optional, decorative: input, output, or both |
 
-`side` and `at` replace the absolute x/y an ordinary node carries; an interface's position is
-meaningless apart from its frame. They are set when it is created and changed only by sliding
-it, and `side` is never cleared — an interface that came off its border would be a block, and
-nothing turns one into the other.
-
-`num` is set once, at creation, and never changes — see Naming above. It is stored rather than
-counted precisely so that it cannot be changed by something happening to another interface.
-
-`flow` is **decorative only**, and it is now the second answer to a question the relationship
-answers better. An end reads as in or out because the relationship it belongs to is a `flow` and
-because of which side of it this end is — which is a fact per layer, not per port: what arrives
-as an input from outside a node leaves as an output inside it, and an interface draws on both
-sides of its boundary. A marking stored on the port could only ever agree with one of the two.
-
-It stays because a port may want to say what it is before anything is wired to it, which is the
-same reason a bare interface exists at all. It constrains nothing: any interface may be either
-end of any relationship, whatever it is marked as.
+`flow` constrains nothing. An end already reads as in or out from the relationship it belongs to
+and which side of it this end is — a fact **per layer, not per port**, since what arrives as an
+input from outside a node leaves as an output inside it. A marking stored on the port could only
+ever agree with one of the two. It stays because a port may want to say what it is before
+anything is wired to it.
 
 
 ### Naming
 
-**A name is written the way it was typed, and the same way everywhere.** The explorer, a card,
-the layer's frame, the breadcrumb trail and the attribute panel all show one spelling and one
-case. Nothing lower-cases or capitalises a name on its way to being drawn: two views of the
-same object that disagree about its name read as two objects.
-
-The only names not typed by anyone are the role words an unnamed thing falls back to —
-`block`, `container`, `interface 3` — and those are lower case because they are descriptions
-rather than names. Giving something a name replaces the description entirely.
-
-**A name is edited where it is drawn, and right-clicking it is how.** One rule for every name
-on the canvas — a card's, a group boundary's, the layer's own frame. `Enter` commits, `Esc`
-abandons, and clicking away commits.
-
-This replaced three rules and a timer. Renaming used to be the *second* click on something
-already selected, so that a click meant only to select still only selected; a card's editor
-then had to wait a quarter of a second to see whether a second click was coming, because a
-double-click there descends instead. Three elements, three behaviours, and the most ordinary
-edit in the tool felt like it had not registered.
-
-The right button already means *make the thing this place is for*, and what a name is for is
-being written. So the rename gesture is no longer an exception threaded between select and
-descend — it is the same rule as everything else the button does, and it collides with nothing,
-because a name is the one place on the canvas where creating a node or an interface would be
-meaningless.
-
-**A name is its own target.** It is drawn set into a border — the frame's, the boundary's — but
-it is not that border: it highlights on its own and the border stays dark under it. A name is
-where you rename, and nothing else happens there.
-
-The explorer renames on double-click, as a file tree does. Neither replaces the other: you
-rename a thing where you are looking at it.
+- **A name is written the way it was typed, and shown the same way everywhere.** Two views that
+  disagree about a name read as two objects.
+- The only names nobody typed are the role words an unnamed thing falls back to — `block`,
+  `container`, `interface 3` — lower case because they are descriptions. Giving a name replaces
+  the description entirely.
+- **A name is edited where it is drawn, by right-clicking it.** One rule for every name on the
+  canvas: a card's, a boundary's, the layer's frame, a relationship's kind. The right button
+  means *make the thing this place is for*, and what a name is for is being written.
+- **A name is its own target.** Drawn set into a border, it is not that border: it highlights
+  alone and the border stays dark beneath it.
+- The explorer renames on double-click, as a file tree does. You rename a thing where you are
+  looking at it.
 
 
 ### Relationships
 
-An edge represents a relationship between two nodes. Relationships may be typed, annotated,
-labeled, and given a direction.
+An edge is a relationship between two nodes. It may be typed, labelled, annotated and directed.
 
-**A relationship joins two nodes and anchors at an interface on each.** The two ends are
-*nodes*; the interfaces are only where the line meets them. That separation is what lets an
-interface be moved, hidden or renamed without any of it meaning something different.
+**A relationship joins two nodes and meets each at a seat.** The ends are *nodes*; the seat is
+only where the line lands. That separation is what lets an interface be moved, hidden or renamed
+without any of it meaning something different.
 
-**An interface is the one thing drawn on both sides of a boundary.** It belongs to a node, and
-it appears on that node's card when you are looking at the layer the node sits in, and on the
-frame when you have stepped inside the node. So a relationship reaching it from outside and one
-reaching it from inside are two separate relationships, each with both ends in one layer, joined
-by the one interface they share. Neither side knows about the other, which is the point:
-external wiring and internal wiring are independent, and the interface is the coupling.
+**An interface is the one thing drawn on both sides of a boundary.** It appears on its node's
+card from the layer outside, and on the frame from within. So wiring in to it and wiring out of
+it are two relationships, each with both ends in one layer, coupled by the one interface they
+share. Neither side knows about the other, which is the point.
 
-This falls out with no special handling. `Client → Gateway`, anchored at `Gateway`'s `HTTP`
-interface, is drawn in the layer they share. `Router → Gateway`, anchored at the same `HTTP`,
-is drawn inside `Gateway`, where `Router` is a child and `Gateway` is the frame. One interface,
-two relationships, two layers, and nothing crossing between them.
+**A relationship need not go through an interface, nor stay in one layer.** Requiring it would be
+modelling hardware, where a signal really does cross at a connector. Code does not work that way,
+and this tool describes both. A cross-layer relationship is simply not drawn until a reference
+asks for it.
 
-**A relationship is not obliged to go through an interface, or to stay in one layer.** That
-would be modelling hardware, where a signal really does have to cross a boundary at a connector.
-Code does not work that way — one module refers to a name in another without anything at the
-edge of either declaring it — and this tool has to describe both. So a relationship may join any
-two nodes anywhere in the project, and an interface is where the line lands rather than a gate it
-has to pass.
+**Undirected by default** — a plain line asserting only that two things are related. Direction is
+added deliberately.
 
-A relationship whose two ends are in different layers is simply not drawn until somebody asks for
-it, which is what a reference is for.
+**A kind says what the ends *are*; `dir` says which way it points.** Three kinds:
 
-**Relationships are undirected by default** — a plain line, no arrowhead, asserting only that
-the two ends are related. Direction is added deliberately, through the relationship's context
-menu or the attribute panel: one way, the other way, or both.
+| Kind | Ends | Draws |
+|---|---|---|
+| `untyped` | wherever the path wants | plain |
+| `flow` | in and out, on the sides the layer's axis gives | heavier |
+| `assoc` | wherever the path wants | thinner, fainter |
 
-Relationships are created by right-click-dragging, from an existing interface or from anywhere
-on a node, and they end up with an interface at each end either way — see Interfaces above for
-where each one lands. `Esc` cancels the whole gesture, interfaces included.
+The two stay separate because an arrowhead decorates the line while the kind decides where it
+*attaches* — folded together, setting a direction would silently move both ends. A *parallel*
+kind was dropped: once lanes exist, relationships arriving together are drawn together already,
+and a kind describing what the renderer can see is a setting with nothing behind it.
 
-**A line is not routed by hand at all.** Every relationship on a layer is worked out from that
-layer's arrangement — sides, seats, corners and lanes — in one pass, every time it is drawn.
-Nothing about a line is stored, and there is no gesture for moving one.
+**Nothing about a line is stored, and there is no gesture for moving one.** Every relationship is
+worked out from its layer's arrangement — sides, seats, corners, lanes — in one pass, every time.
 
-This replaced a full hand-routing apparatus: draggable segments, a stored route with the layer
-it was laid out in, ports carried along by the segment that left them, and a straighten action
-to undo the lot. It worked. The question it could not answer is why anyone should have to use
-it.
+Three things a hand-routing gesture would be for, and only the middle is routing:
 
-The three reasons to drag a line were: to straighten it, to move it clear of something, and to
-make it obey a convention like *in on the left, out on the right*. Only the middle one is
-routing. **Straightness is decided before the router runs** — two cards that do not share a row
-cannot be joined by a straight line however the path is chosen, so the fix is to put them on one
-row, which is what the layer's axis now does. And a convention is a rule, stated once; dragging
-every line into obeying it is stating it once per line.
+- **Straightness is decided before the router runs.** Two cards that do not share a row cannot be
+  joined by a straight line however the path is chosen, so the fix is the layer's arrangement.
+- **A convention is a rule, stated once.** Dragging every line into obeying it states it once per
+  line.
+- **Clearing other lines is the real gap**, and one edge cannot see it. **Lanes** answer it: runs
+  that would share a line spread half a cell apart, centred on where they would have gone. Only
+  interior segments move, so the run stays square without anything else being touched.
 
-That leaves clearing other lines, which is a real gap and which one edge cannot see on its own.
-It is answered by **lanes** rather than by a gesture: runs that would share a line spread half a
-cell apart, centred on where they would have gone. Only interior segments move, because the ends
-are on their seats and every corner is square, so shifting a segment across itself only
-lengthens the perpendicular ones either side.
+What this buys is that a relationship the terminal adds with no gesture behind it is drawn
+exactly as well as one somebody dragged.
 
-What this buys is not mainly the deleted code. It is that a relationship the terminal adds with
-no gesture behind it is drawn exactly as well as one somebody dragged — which is the point the
-whole tool is aimed at.
+- **Every elbow is a right angle** — a property the whole run is put through on its way to being
+  drawn, not something the router attempts. A relationship never has a diagonal in it.
+- **A route belongs to nobody, which is what makes references simple.** A relationship drawn in
+  two layers has each work it out independently; there is nothing to be in conflict.
+- **Being cheap is a requirement.** A derived route runs on every render, so the router stays a
+  router: pick sides, pick seats, find a min-bend path, spread the lanes. A router nobody can
+  predict is worse than a plain one even where its output is better, because the promise is that
+  you never correct it — and you cannot trust what you cannot anticipate.
 
-**Every elbow is a right angle, always.** That is not a thing the router tries for and mostly
-achieves — it is a property the whole run is put through on its way to being drawn, whatever it
-came from: the plain route, a route dragged into shape, or one saved before its cards and its
-interfaces were moved about. Where two corners are off in both directions a corner goes between
-them, and where a run would leave or arrive across its frame edge rather than along it, it
-stands off the edge and turns. A relationship never has a diagonal in it.
+**References.** A relationship whose ends are in different layers is drawn through a placeholder
+standing in for the far node.
 
-**A route belongs to nobody, which is what makes references simple.** A relationship reaching
-through a reference is drawn in two layers, and the two place their nodes independently — under
-stored corners that was a conflict needing a layer key to resolve. Derived, each layer works the
-line out for itself and there is nothing left to be in conflict.
-
-**Being cheap is a requirement, not a bonus.** A derived route runs on every render, so the
-router has to stay a router: pick sides, pick seats, find a min-bend path, spread the lanes. It
-is emphatically not allowed to get clever. A router nobody can predict is worse than a plain one
-even where its output is better, because the whole promise here is that you never have to
-correct it — and you cannot trust what you cannot anticipate.
-
-**A kind says what a relationship's ends are; `dir` still says which way it points.** Three
-kinds and no more. `untyped` is the default and asserts only that two things are related, so its
-ends go wherever the path wants. `flow` says something travels one way, so its ends read as in
-and out and take the sides the layer's axis gives them. `assoc` is a weaker mention and draws
-thinner.
-
-The two stay separate on purpose: an arrowhead is a decoration on the line, while the kind
-decides where the line *attaches*. Folded together, setting a direction would silently move both
-ends of the relationship.
-
-A fourth was considered and dropped. *Parallel* — several lines side by side to one interface —
-turned out to be a thing the drawing can already see for itself: once lanes exist, relationships
-arriving together are drawn together without anyone declaring it. A kind that describes what the
-renderer already knows is a setting with nothing behind it.
-
-**References.** A relationship between two nodes in different layers is drawn in either of
-them through a **reference**: a placeholder standing in for the far node, sitting in this layer
-as an ordinary node.
-
-**It is a visual shortcut, and that is the whole of it.** Something living in a distant layer or
-another branch relates to something here, and rather than making the reader hold two places in
-their head at once, the far thing is drawn here as a mention. It changes nothing about the
-relationship — the relationship was already there against both real nodes, whether or not
-anybody had asked to see it.
-
-A reference is a node. It sits inside the frame with everything else, it is selected, moved,
-nested, related, given interfaces and given attributes exactly as any other node is. What
-marks it out is only how it draws — greyed and hatched, so it reads as a mention of something
-rather than the thing itself — and that **a relationship reaching it draws in its own colour**,
-violet rather than green and dashed rather than solid, since one of its ends is a mention and
-what it says about the graph is weaker than what a line between two present nodes says.
-
-The colour is doing real work. A reference relationship used to be drawn in the same dark green
-as every other line, dashed, at three-quarters opacity, which on this background was
-indistinguishable from an ordinary one. A line that reaches out of the layer is the one kind of
-line whose reading depends on knowing that it does.
-
-**It has no name of its own.** It shows whatever the node it stands for is called, and renaming
-it renames that node: there is one object being named, however many places it appears.
-
-**It has no inside of its own.** Whatever is in the node it stands for is in the node it
-stands for. Double-clicking a reference therefore goes to where that node actually lives and
-marks it there, rather than opening an empty layer. Nothing nests into a reference, and a
-reference never becomes an interface — a mention is not structure.
-
-**And it points at a real node, never at another mention.** There is one way to make a
-reference — dragging a row out of the object explorer — and the explorer does not list
-references, so a chain of them cannot be built. The code used to follow up to eight hops and
-give up, guarding a state nothing could produce.
-
-**Where they come from.** Only from the user, and chiefly from one gesture: **dragging a row
-out of the object explorer onto the canvas** places a reference to that node in the open
-layer. Dragging a chip out of a container's treemap still *moves* that node — one gesture is a
-mention of something, the other is the thing itself.
-
-Once a reference is there, **right-click-dragging onto it** relates to the node it stands for,
-like relating to anything else on the canvas.
-
-**Nothing places one on its own.** A relationship whose far end has no reference in this layer
-is simply not drawn here, and that is the point rather than a gap. **A diagram is not an
-enumeration.** The tool is for saying which relationships matter in a given layer, not for
-showing every one that happens to exist — a layer that placed a reference for everything
-anything in it touches would answer a question nobody asked. A relationship is not lost by
-going undrawn: it is still in the graph, still there against both its ends, and it appears the
-moment someone decides the far node belongs on this canvas.
-
-**Deleting one removes the placeholder only.** The node it stood for is untouched, and the
-relationships that reached it are still there; they stop being drawn in this layer, and come
-back if the reference does.
-
-**The explorer never lists them.** The tree is structure, and a reference is a second
-appearance of something already in it.
+- **It is a visual shortcut and nothing more.** The relationship was already there against both
+  real nodes, whether or not anyone asked to see it.
+- A reference is an ordinary node in every way but two: it draws greyed and hatched, and **a
+  relationship reaching it draws violet and dashed** — a line whose reading depends on knowing it
+  leaves the layer.
+- **No name of its own.** It shows what it stands for; renaming it renames that node.
+- **No inside of its own.** Double-clicking goes to where the node actually lives. Nothing nests
+  into one, and it never becomes an interface — a mention is not structure.
+- **It points at a real node, never another mention.** The one way to make one is dragging a row
+  out of the explorer, and the explorer does not list references, so a chain cannot be built.
+- **Nothing places one automatically.** A **diagram is not an enumeration**: the tool is for
+  saying which relationships matter in a layer, not for showing every one that exists. A
+  relationship is not lost by going undrawn.
+- **Deleting one removes the placeholder only.**
 
 
 ### Attributes
 
-A descriptive value or property, attached to a node or a relationship. Every attribute can
-carry a name, a label, and tags. An attribute may be held by one object or **shared** across
-many — sharing is what makes an attribute a grouping.
+A descriptive value on a node or relationship, carrying a name, value and tags. **Sharing is what
+makes an attribute a grouping.** Attributes are non-structural throughout.
 
-Attributes are non-structural. They never appear in the object explorer and never change what
-contains what. Every attribute of the current scope or the current selection appears in the
-attribute panel below the canvas.
+**Groups** are the shared case, drawn as a boundary.
 
-Some attributes also draw on the canvas, as **annotations**. There are two ways one draws, and
-nothing is both: a **boundary** around its holders — a group — or a **note** pointing at them.
+- **The boundary is derived from its members' bounds plus a small margin.** There is no manual
+  resize.
+- Clicking its background selects it; dragging a selected boundary moves every member as one
+  action.
+- **Membership is a drag, the way a container's is** — a group should behave like the thing it
+  looks like.
+- **What decides is the card's own middle, against the boundary drawn from the members standing
+  still.** Measured against all of them a card could never leave — it would take the boundary
+  with it.
+- **A whole group moved together stays together.** Nothing is standing still to measure against.
+- **Dropping *on* a card is a move into that card**, not a join: that gesture is spoken for, and
+  it is structural, so it wins.
+- **A node made inside a boundary joins it**, by the same test a drop there passes.
+- Boundaries overlap freely and their backgrounds compound, so the overlap is legible with no
+  special handling.
+- **No appearance of its own to set.** One faint dashed line for every group, so a canvas of them
+  reads as one kind of thing rather than as a palette.
 
-**Groups** are the shared-attribute case drawn as a boundary. When nodes on the same canvas are
-grouped, they receive a shared attribute, and its annotation is a semi-transparent background
-surrounding all of them. Like any attribute it can be named, labeled, and tagged.
+**A group of one is allowed; a group that falls to one is not.** Two different events, and only
+one was asked for. Grouping a single block is a deliberate act with an obvious meaning. A group
+*decaying* to one is what is left after dragging cards out, and a boundary hugging the last says
+nothing that card does not. The collapse happens where the member leaves, because by the time the
+fold sees the graph the two cases are identical.
 
-A group is not a structural element and not an object in its own right — it is one attribute
-that several nodes have in common. Group membership is listed among a node's attributes in
-the attribute panel, and that is where a node is added to or removed from a group.
+The cost — a deliberate one-member group is not permanent — is accepted. Solving it means
+recording *why* a group has the members it has, which is a fact about intent, wrong as often as
+right, and nothing else in the model carries it.
 
-The boundary follows its members and nothing else:
+**None of this makes a group structural.** No parent changes and the explorer never shows one.
+What is inside a boundary is a fact about where things sit, not about what contains what.
 
-- It is derived from the bounds of its members plus a small margin — the same margin logic the
-  canvas frame uses — so it expands and contracts as they move. **There is no manual resize.**
-- Clicking the boundary's background selects the group and highlights it. Dragging a selected
-  group's background then moves every member together: one user action, one entry in the
-  history, however many positions it changed.
-- Selecting the group and selecting elements are separate gestures. A selection box drawn from
-  inside a boundary is an ordinary selection box — it takes the elements it fully contains and
-  never sweeps in the group itself.
-- Deleting a member, or moving it to another scope, drops it from the group and the boundary
-  re-fits; when that would leave a single member, the attribute is removed altogether rather
-  than left drawn around one node.
-- A node may hold any number of group attributes, so boundaries overlap freely. Overlapping
-  backgrounds compound, so an area covered by several groups reads denser than one covered by
-  a single group, and the overlap is legible without any special handling.
-
-**Membership is a drag, the way a container's is.** Drop a card inside a boundary and it
-joins; take it out and it leaves. A group should behave like the thing it looks like, and it
-looks like something you can put things into.
-
-- **What decides is the card's own middle**, against the boundary drawn from the members that
-  are *standing still*. A member helps define the boundary it sits in, so measured against all
-  of them a card could never be dragged far enough to leave — it would take the boundary with
-  it. Against the ones that are not moving, joining and leaving are the same test read in
-  opposite directions.
-- **A whole group moved together stays together.** When every member is on the move there is
-  nothing to measure against and nothing to measure: the group is travelling, not being left.
-- **The hug is half a cell** — enough to read as a boundary round the members rather than a
-  second border on them. It briefly became a whole cell to stop a group drag carrying its members
-  off the grid, but that was treating the symptom: the cause was the library snapping the
-  boundary itself, and with nothing snapping a boundary the hug is free to be whatever looks
-  right. The members are what land on the grid, and the boundary follows them.
-- **Dropping *on* a card is a move into that card**, not a join — that gesture is already
-  spoken for, and it is structural, so it wins. Joining is what dropping in the clear space
-  inside a boundary means. A tight group has little such space, which is the honest
-  consequence of a boundary being nothing but its members.
-- Landing in or out of a boundary is part of the same action as the move, so one undo takes
-  back both.
-- **A node made inside a boundary joins it**, by the same test a drop there passes. Right-click
-  is how a node is made, and making one in the clear space inside a group plainly means it
-  belongs there; leaving it out would draw a node sitting visibly inside a group it is not in.
-- The attribute panel still lists membership and still adds and removes it. Dragging is the
-  quick way, not the only way.
-
-**None of this makes a group structural.** No node's parent changes, the object explorer still
-never shows it, and what is inside the boundary is a fact about where things sit rather than
-about what contains what. That is the whole difference between a group and a container, and it
-survives them sharing a gesture.
-
-**The boundary has no appearance of its own to set.** One faint dashed line, the same for every
-group, so a canvas of them reads as one kind of thing rather than as a palette. It brightens
-when the pointer is inside it, again when selected, and again when a card is over it and would
-join. Colour, custom content and the
-rest come later; until they do there is nothing in the panel to set, because there is nothing
-to set.
-
-**A group of one is allowed, and a group that falls to one is not.** These look contradictory
-and are not: they are two different events, and only one of them was asked for.
-
-Grouping a single block is a deliberate act with an obvious meaning — draw a ring round this
-one, mark it, set it apart. Nothing else in the tool does that, and refusing it on the grounds
-that a group is "for several things" was arithmetic standing in for judgement. So `Ctrl`/`Cmd` +
-`G` groups whatever is selected, one card included.
-
-A group *decaying* to one is not a request at all. It is what is left after dragging cards out
-of a set, and a boundary hugging the last one says nothing that card does not already say. So it
-goes, and the collapse happens **where the member leaves** — in the action that takes it out —
-rather than in the fold. The fold cannot tell the two cases apart: by the time it sees the
-graph, a group made around one block and a group worn down to one are the same three fields. It
-keeps only the floor, sweeping up a group holding nobody.
-
-The cost is that a deliberate one-member group is not permanent: give it a second member, take
-that member away again, and it goes. This is accepted rather than solved. Solving it means
-recording *why* the group has the members it has, and that is a fact about the user's intent —
-the sort of thing that is wrong as often as it is right, and that nothing else in the model
-carries. A cheap re-grouping is a better answer than an expensive memory.
-
-**Its name is edited on the canvas**, on the boundary itself — see Naming above.
 
 ### Notes
 
-A **note** is the other way an attribute draws: a small card of text sitting in a layer, tied by
-faint dotted leaders to whatever it describes. Where a boundary says *these belong together*, a
-note says something in words, about anything or about nothing in particular.
+The other way an attribute draws: a card of text tied by dotted leaders to whatever it describes.
+Where a boundary says *these belong together*, a note says something in words.
 
-**It is an attribute, not a node.** A note describes; it does not participate. Making it a node
-would put it in the object explorer, let things nest inside it, give it interfaces, and make the
-lines out of it relationships — every one of which is wrong, and none of which would be worth
-suppressing case by case. Attributes already have holders, already stay out of the explorer, and
-already never change what contains what. A note is one with a place.
+- **It is an attribute, not a node.** A note describes; it does not participate. As a node it
+  would enter the explorer, take nesting, take interfaces, and turn its leaders into
+  relationships — every one of which is wrong.
+- **A place is the one thing it needs that no other attribute does.** A group is positioned by its
+  members; a note can be tied to nothing at all, so there is nothing else to place it by. It
+  carries the layer it was drawn in, which also answers where it belongs.
+- **The drag that makes one is a gesture, not a measurement.** The note appears at the
+  rectangle's top-left, sized by its text — so **nothing on the canvas is manually resized**.
+  Honouring the rectangle would introduce stored bounds, a resize gesture, handles, and a second
+  thing that can disagree with its contents.
+- **The rectangle is drawn while it is swept**, in amber and dashed. A right drag on the
+  background is otherwise indistinguishable from an unfinished right click, and amber cannot be
+  mistaken for the green selection box the left button draws in the same place.
+- **The note is its text all the way through** — no head, no border zone, nothing else to aim at
+  — so it takes the same rule every name takes: right-click to write it.
+- **Ties are made from the node's side**, since a right drag cannot set off from something that
+  is all name. The same gesture over a node already tied unties it.
+- **A leader is not a relationship.** It takes no pointer, cannot be selected or routed, and is no
+  edge in any export. Dotted and thin: fine dots read as *attached to* rather than *connected to*.
+- **Amber throughout.** Green is structure and amber is attributes; a note is where that half of
+  the palette gets used.
+- **Solid, with a rule down its left side.** A reference is dashed and a boundary is dashed, so a
+  third dashed rectangle differing only in hue is a distinction to be worked out rather than seen.
+  Dashes are spent; the margin rule is the annotation convention off the page.
 
-**A note is avoided, never arranged.** It takes up room like a card, so nothing is laid on top
-of one and no relationship is routed through one — but it is not a node, so it is not ranked and
-has no place in the arrangement. Being an obstacle is the whole of its part in layout.
+**In layout, a note is avoided but never arranged.** It takes up room like a card, so nothing is
+laid on top of one and no line is routed through one — but it is not a node, so it is not ranked.
+And **an arrangement is never slid aside for one**: a note is placed by what it describes, so
+carrying the layer clear of a note carries it away from the note's own subject. Only a card
+somebody placed justifies moving an arrangement.
 
-**And an arrangement is never slid aside for one**, which took a bug to notice. A whole ranked
-arrangement is shifted clear of things already placed, so that an arrangement set on a layer
-someone has hand-built sits beside that work rather than through it — and a note counted as such
-a thing. Since laying the layer out puts each tied note directly under what it describes, every
-arrangement then shoved the entire layer clear of the note it had just placed, leaving the note
-stranded a hundred units off with a leader stretched across the canvas. The note looked like the
-thing that had gone wrong; it was the only thing that had stayed put.
-
-Only a *card* someone placed justifies moving an arrangement. A note is placed by what it
-describes, so carrying the layer away from a note carries it away from the note's own subject.
-
-**Laying the layer out again moves a note with what it describes.** A note's coordinates are the
-user's, like a card's — and `arrange` is exactly the action that hands the user's placement back,
-so it hands a note's back too, putting it just under the bounds of what it is tied to. Left
-alone, every note stayed put while everything it described moved out from under it, and the
-leaders stretched across the whole layer.
-
-A note tied to nothing keeps its place. There is nothing for it to follow, which is the same
-reason it needed coordinates in the first place.
-
-Where it lands is worked out on the canvas rather than in the fold, because it depends on the
-arrangement the layer is about to take, and only the canvas can run that. Under, rather than
-beside: it is clear of the ranks, and it is where a reader already looks for a caption.
-
-**A place is the one thing it needs that no other attribute does.** A group is positioned by its
-members, so it stores nothing. A note can be tied to nothing at all — that is the point of being
-able to draw one on empty canvas — so there is nothing else to place it by. It therefore carries
-the layer it was drawn in as well as its coordinates, which also answers where it belongs: to
-the layer it was drawn in, not to whatever it happens to overlap. It stays there when its ties
-go, and goes when that layer does.
-
-**The drag that makes one is a gesture, not a measurement.** Right-dragging the background makes
-a note in the top-left corner of the rectangle swept out; the rest of the rectangle is
-discarded. This looks wasteful and is deliberate. A note is sized by what it says, exactly as a
-boundary is sized by its members, so **there is still no manual resize anywhere on the canvas** —
-the rule survives the first object that could have broken it. Honouring the rectangle would have
-introduced stored bounds, a resize gesture, handles to grab, and a second thing that can
-disagree with its contents.
-
-**The rectangle is drawn while it is being swept**, in amber and dashed. This replaces drawing
-nothing at all, which was argued for on the grounds that a rectangle the tool will not honour is
-a promise it does not intend to keep. That was the wrong thing to protect. The gesture needs to
-be visible *as a gesture* — a right drag on the background is otherwise indistinguishable from a
-right click that has not finished, with no way to tell it is under way or where it will land.
-Colour is what keeps the promise honest: amber says a note is coming, and cannot be mistaken for
-the green box the left button draws in the same place for a completely different purpose. The
-note appearing at the rectangle's top-left is the other half — the box says where, even though
-it does not say how big.
-
-The drag is still the right gesture, because the right button's rule is that a click makes a
-point-thing and a drag makes an extent-thing. A note has extent; a node does not. That the
-extent is decided by the text rather than by the drag is a separate question from which button
-made it.
-
-**The note is its text, all the way through.** No head, no border zone, nothing else on it to
-aim at — so it takes the same rule every name on the canvas takes: right-click to write it.
-Unwritten it reads `note`, the way an unnamed block reads `block`.
-
-That costs one gesture: a right drag cannot set off *from* a note, because the whole of it is a
-name and names start nothing. So ties are made the other way — **right-drag from a node onto a
-note**, which is the same "connect this to that" gesture that draws a relationship, ending
-somewhere that is not a node. Over a node already tied, the same gesture unties: dragging onto
-something already connected can only mean undoing it.
-
-**A leader is not a relationship.** It takes no pointer, cannot be selected, cannot be routed by
-hand, and appears in no export as an edge — it is a drawing of an attribute's holders, and the
-holder list is where it actually lives. Dotted and thin, where a reference's line is dashed and
-violet: both say *this is not ordinary wiring*, and they have to be told apart from each other
-as well.
-
-**Amber, throughout.** The palette already said green is structure and amber is attributes, and
-had no amber in it. A note is nothing but an attribute someone wanted to see, so it is where
-that half of the palette finally gets used.
-
-**Solid, with a rule down its left side.** The note was drawn dashed to begin with, on the
-grounds that it is drawn *on* the diagram rather than being part of it, which is what a group's
-boundary says by being dashed. The reasoning was sound and the result was not: a reference card
-is already dashed, a boundary is already dashed, and a third dashed rectangle differing only in
-hue is a distinction that has to be worked out rather than seen. Dashes are spent.
-
-So the shared quality is carried by colour instead — amber, which nothing else on the canvas
-uses — and the shape says what kind of thing it is. The margin rule is the annotation convention
-off the page, and no other object here has one, so a note is identifiable at any zoom and at a
-glance. The leaders stay dotted, where nothing else is: fine dots read as *attached to* rather
-than *connected to*, which is exactly the difference between a leader and a relationship.
+**Laying a layer out again moves a note with what it describes**, to just under the bounds of its
+holders — clear of the ranks, and where a reader looks for a caption. A note tied to nothing keeps
+its place; there is nothing for it to follow.
 
 
-## Display (UI)
+## Display
 
 ### Viewer
 
-The viewer is a single-page web app whose layout should feel like an intuitive, simplified
-IDE: a central diagram canvas, and a file-explorer-like object explorer sidebar on the left
-for navigating between hierarchically defined objects and their views. Terms are kept
-deliberately generic so the tool can apply to many domains.
+A single-page app laid out like a simplified IDE: a central canvas, and a file-explorer-like
+object explorer on the left. Terms are deliberately generic so the tool applies to many domains.
 
-The visual style and theme are **frozen as built** and marked for refinement — see [tasks.md](tasks.md).
+Visual style and theme are **frozen as built** — see [tasks.md](tasks.md).
 
 
-### Graph Canvas
+### Graph canvas
 
-Scalability is the viewer's main priority. Just as the object explorer pans to and expands
-the branch holding the current selection, the canvas stays centered on the mass of blocks,
-annotations, and relationships for the current level of the project tree.
+Scalability is the main priority. The canvas stays centred on the mass of the current layer.
 
-**Coordinates.** Node positions are stored relative to the canvas center origin, so a layer
-stays centered as it grows in any direction rather than drifting off one corner. Automatic
-placement fills outward from that origin in rings.
-
-**Placement precedence.** Two things decide where a node sits, in this order:
-
-1. **User placement wins.** A node the user has positioned keeps that position until the user
-   moves it again or asks for the layer to be laid out afresh.
-2. **Automatic layout fills the rest.** Unplaced nodes are laid out around the placed ones,
-   starting at the center and working outward into whatever room is left.
-
-The canvas expands — zooms out slightly — as blocks are added, always keeping a margin around
-the edges for further placement, and refits whenever the layer gains or loses something.
-
-As a layer gets crowded, the user can cluster nodes into groups (an attribute, no structural
-change) or into deeper containers (structural, a new nested layer).
-
-Navigating depth-wise — double-clicking into a node, double-clicking outside the frame to come
-back — gives the nesting-doll view of the system, and should transition fluidly between layers
-rather than cutting.
+- **Positions are stored relative to the canvas centre**, so a layer stays centred as it grows in
+  any direction rather than drifting off one corner.
+- **Placement precedence:** user placement wins; automatic layout fills the rest.
+- The canvas refits whenever the layer gains or loses something, or is arranged afresh — never on
+  selection. Selecting is a glance, and a canvas that chases every click cannot be worked on.
+- As a layer crowds, the user clusters into **groups** (an attribute, no structural change) or
+  into deeper **containers** (structural, a new layer).
 
 
-#### Diagram Views
+#### Views
 
-The canvas supports three view types, distinguished by the frame drawn around the layer the
-user is inspecting.
+Three view types, told apart by the frame drawn around the layer being inspected.
 
-**Root view.** The top level, with no parent frame. The root node is the project itself; its
-children are the top-level nodes and its attributes are the project's.
+- **Root view** — the top level, no frame. The project is the root node.
+- **Node view** — the inside of a node: a frame carrying its name, with margin for the interfaces
+  on its edge.
+- **Interface view** — the inside of an interface. Opening it fills the canvas with that square,
+  so what you were looking at from across the layer now surrounds you.
 
-**Node view.** The inside of a node: a frame carrying the node's name, with enough margin
-inside it to show the interfaces sitting on its edge. Double-clicking outside the frame
-returns to the previous level.
+**Inside the frame is the canvas**, left clear to the grid; everything outside is dimmed. The
+frame is the boundary of the thing you are in seen from within, not a panel laid over the page —
+so the lit area is where you can build and the dark area is the outside world.
 
-**Inside the frame is the canvas**, left clear to the grid — it is where the work happens.
-Everything outside it is dimmed. The frame is the boundary of the thing you are in, seen from
-within, not a panel laid over the page, so the lit area is the space you can build in and the
-dark area is merely the outside world.
+- **The frame carries its name set into its own border**, a break in the line rather than a
+  caption above or a heading inside.
+- **The frame fills the panel**, and the band around it is the same on every side of every layer:
+  stepping between two layers should not move the walls. The frame is therefore shaped like the
+  panel and then placed, rather than scaled to fit — any other shape fits by one axis and
+  letterboxes on the other.
+- **A sparse layer still gets a full frame.** Without a floor on its size, a near-empty layer is a
+  small box magnified to fill the screen: the same picture, twice the size, no more room to work.
+- **Growth happens inside the frame.** A layer that gains a node grows its frame and the view
+  refits, so contents shrink within a constant working area.
+- A node with no children still gets a full view. Descending is how you start filling it, so it
+  must not be a dead end.
 
-**The frame carries its name in its own border** — set into the line at the top left, a break
-in it rather than a caption above or a heading inside. The other corner belongs to the canvas
-toolbar.
+**A layer with an axis marks the two walls its flows cross**, as a thin band just outside the
+frame's own line.
 
-**A layer with an axis marks the two walls its flows cross.** Which way a layer reads is the
-most consequential thing about it — it decides where every card lands and which side every flow
-attaches to — and it was legible only by reading a toolbar button. Marking the walls says it on
-the drawing itself.
+- Which way a layer reads decides where every card lands and which side every flow attaches to,
+  and it should not be legible only by reading a toolbar.
+- **Outside the line, not a thicker line.** The frame's border box is where every interface is
+  seated and every line lands, so thickening it would move all of that — and would leave ports on
+  the band's outer face, with the wall reading as though it were behind them.
+- **The frame's own line is one of the pair.** One thin band beside it is the whole mark.
+- **The two are told apart by shade** — the wall flows arrive at is brighter than the one they
+  leave by, so the layer reads in the direction the wall fades. Shade rather than hue or weight,
+  because that border already brightens under the pointer and again as a gesture's target.
 
-**The mark is a band outside the frame's line, not a thicker line.** Thickening the border moved
-the geometry: the frame's border box is where every interface on it is seated and where every
-line meets it, so a six-pixel border shifted all of that by six pixels — and it left the ports
-sitting on the band's *outer* face, with the wall reading as though it were behind them rather
-than around them. Outside, the frame's own line stays one pixel, nothing moves, and a port sits
-on the inner edge of the band, which is where a port set into a wall belongs.
+**An interface view is marked by the parent's own border**, drawn in the dimmed margin, running
+up to the frame and away on the other side — the wall the port is set into, passing behind you.
+Its direction follows the edge the port sits on.
 
-**Doubled rather than thickened, and shaded rather than coloured.** That border already carries
-two states of its own — it brightens under the pointer and again as a gesture's target — so a
-third meaning had to avoid the same channel. A doubled line reads at any zoom without changing
-hue.
-
-**The frame's own line is one of the two**, which is easy to forget and was got wrong first
-time: a `double` band beside it made three lines where two were meant. One thin band outside the
-frame's line is the whole of it. The two walls are then told apart by shade alone — **the wall
-flows arrive at is brighter than the one they leave by** — so the layer reads in the direction
-the wall fades.
-
-**The frame fills the panel.** It is the working area, so it takes as much of the canvas as it
-can, and what is left around it is a band — enough to double-click in to leave by, and enough
-to show the parent's border when the layer is an interface. Nothing else is ever drawn out
-there, and nothing drawn out there is allowed to decide how much room the layer gets.
-
-**The band is the same on every side of every layer.** It does not vary with what the layer
-holds or with the shape of the window: stepping between two layers should not move the walls.
-That means the frame is shaped like the space it is shown in and then placed, rather than
-scaled to fit — a frame of any other shape fits by one axis and letterboxes on the other,
-which leaves one layer sitting in generous bands top and bottom while the next has almost
-none.
-
-A layer holding little still gets a full frame. Its working area has a floor that takes its
-shape from the panel, so a tall window gets a tall frame and a wide one a wide frame; without
-that floor a sparse layer was a small box magnified to fill the screen — the same picture with
-everything twice the size and no more room to work in.
-
-**Zoom and growth happen inside the frame.** A layer that gains a node grows its frame, and
-the view refits so the frame still fills the panel — the contents get smaller within a
-constant working area rather than the working area shrinking around them.
-
-A node with no children still has a node view — the frame, its interfaces, and empty space to
-build in. Descending into a block is how you start giving it contents, so it must not be a
-dead end.
-
-**Interface view.** The inside of an interface. An interface is a small square set into its
-parent's edge; opening it fills the canvas with that square, so the thing you were looking at
-from across the layer now surrounds you.
-
-What marks it as an interface rather than an ordinary node is **the parent's own border**,
-drawn in the dimmed margin outside the frame. It runs up to the frame from one direction and
-away from it on the other, stopping where the frame begins — the wall the port is set into,
-passing behind you. Nothing is drawn inside the frame; the interior is working canvas like any
-other.
-
-The border's direction follows the edge the interface sits on: a port on the parent's left or
-right is set into a vertical wall, so the line runs up and down; a port on its top or bottom
-is set into a horizontal one, so the line runs left and right.
-
-> Worked example. `Gateway` is a container with an interface `HTTP` on its right edge.
-> Descending into `HTTP` fills the canvas with `HTTP`'s own frame, and a vertical line
-> continues above and below it — `Gateway`'s right-hand border, seen from inside the port set
-> into it. The blocks left of that line's continuation face inward — `Router`, `AuthCheck` —
-> and the ones right of it face the outside world — `TLS`, `RateLimit`. Relationships crossing
-> the line are exactly the ones that cross `Gateway`'s boundary through this interface, which
-> is what makes the view worth drawing.
+> `Gateway` has an interface `HTTP` on its right edge. Descending into `HTTP` fills the canvas
+> with `HTTP`'s frame, and a vertical line continues above and below it — `Gateway`'s right-hand
+> border, seen from inside the port. Blocks left of that line face inward; those right of it face
+> the outside world. Relationships crossing it are exactly the ones crossing `Gateway`'s boundary
+> through this interface, which is what makes the view worth drawing.
 
 
-### Object Explorer
+### Object explorer
 
-The object explorer shows structure, and only structure: nodes, nested to any depth. It
-supports the standard node operations — add, move, rename, delete. Dragging nodes between the
-explorer and the canvas is seamless in both directions.
+Structure and only structure: nodes nested to any depth, with the standard operations. Dragging
+between explorer and canvas works both ways.
 
-**Moving a node to another layer sheds what does not travel with it.** Its group memberships,
-since a group is drawn from members sitting together in one layer and it is leaving that layer.
-And its **external wiring** — the relationships joining it to things staying behind, which after
-the move have one end here and one end there, and which nothing would draw.
+- **Interfaces are hidden by default**, revealed by a toggle, listed at the same level as child
+  blocks and sorted after them. They get no branch of their own — a wrapper would be a level of
+  structure that does not exist.
+- **Each role has its own icon, and the icon is also the fold control.** The mark that says a node
+  holds things is the thing you click to see them, so no second arrow takes up the indent.
+- **Folding is the user's alone.** Walking into a layer on the canvas leaves the tree as it was
+  found; a tree that rearranges itself under you is one you cannot keep your place in.
+- **Deep branches indent past the sidebar** and the tree scrolls horizontally, centring on the
+  depth of the selection and re-centring whenever the tree's shape changes.
+- The tree fills the panel, so its scrollbar sits at the foot of the sidebar. A bar that floats
+  with the number of rows is hard to find and harder to aim at.
 
-**What travels is kept whole.** The node arrives with its insides exactly as they were: its
-children, the wiring among them, and the wiring from them to its own interfaces. That last one
-matters and is easy to get wrong. A relationship from a child to one of the node's interfaces
-*names the node as its far end* — `Router → Gateway`, anchored at `HTTP` — so it looks from the
-data like a relationship the node has. It is not: an interface draws on both sides of its node,
-so that line is internal wiring, drawn inside the very layer that is moving, and it survives
-untouched. Only relationships to things outside the node's own subtree are external.
+**Moving a node to another layer sheds what does not travel with it** — its group memberships,
+and its **external wiring**, the relationships joining it to things staying behind.
 
-Nothing is created either. No reference is placed to keep a dropped line visible; a reference is
-the user's, always, and a tool that scattered them to preserve a picture would leave a mess
-nobody asked for.
-
-**Dropping the external wiring at all is the deliberate simplification here**, and a provisional
-one. Those relationships are not incoherent after the move — they are ordinary cross-layer
-relationships, and a reference would draw them again. They are dropped because a project full of
-connections nobody can see is worse than a project that lost the ones it stopped drawing, while
-the model is still moving. Keeping them undrawn instead is a one-line change.
-
-**Interfaces are not shed.** They are the node's own children and go with it, so a node keeps
-its shape and loses only its connections outward. Nothing tidies the bare ports afterwards: a
-node's shape is worth describing before its connections are, and that holds whether the
-connections were never made or have just gone.
-
-Groups, annotations, and other attributes never appear here. Interfaces are child nodes and so
-belong here, but are **hidden by default** — a toggle reveals them, listed at the same level
-as the node's child blocks and sorted after them, told apart by their own icon. They get no
-branch of their own: a wrapper around them would be a level of structure that does not exist.
-A node whose only children are interfaces still shows as a block, not a container.
-
-Visually, the explorer delineates levels with indentation and subtle tree guide lines
-connecting the contents of each branch. Each role gets its own icon — interface, block,
-container — before the name, so a node's role is identifiable without opening it. **That icon
-is also the fold control** on a branch that has one: the mark that says a node holds things is
-the thing you click to see them, so there is no second arrow taking up the indent.
-
-**Folding is the user's, and only the user's.** A branch opens because someone opened it and
-closes because someone closed it. Walking into a layer on the canvas leaves the tree exactly as
-it was found — a tree that rearranges itself under you is one you cannot keep your place in,
-and which branches are worth having open is not something the canvas knows. One control in the
-tools opens every branch or closes every branch, whichever the tree is not already.
-
-Deep branches indent past the sidebar's width rather than being truncated or wrapped, and the
-explorer scrolls horizontally to follow. The scroll centres on the depth of whatever is
-selected, so the selection's own level and the levels either side of it are all in view at
-once. It re-centres whenever the tree's shape changes as well as when the selection does — a
-branch opened by the same click that made it has not been laid out yet when the selection
-lands.
-
-The tree fills the panel, so its horizontal scrollbar sits at the foot of the sidebar rather
-than under the last row. A bar that floats up and down with the number of rows is hard to find
-and harder to aim at.
+- **What travels is kept whole**: children, the wiring among them, and the wiring from them to the
+  node's own interfaces. That last is easy to get wrong — such a line *names the node as its far
+  end*, but an interface draws on both sides, so it is internal wiring inside the very layer that
+  is moving.
+- **Nothing is created.** No reference is placed to keep a dropped line visible; a reference is
+  the user's, always.
+- **Interfaces are not shed.** A node keeps its shape and loses only its connections outward.
+- **Dropping external wiring is a deliberate, provisional simplification.** Those relationships
+  are not incoherent after the move, merely undrawn. They go because a project full of
+  connections nobody can see is worse than one that lost what it stopped drawing.
 
 
 ### Breadcrumbs
 
-Above the canvas, the trail from the project down to the open layer, each step a way back to
-it. It names the project and the last three layers; anything between is collapsed to an
-ellipsis, which is itself a way back to the deepest layer it stands for and names them all in
-its tooltip.
-
-The cap is there because a trail spelled out in full stops being a trail and becomes a wall of
-names — and it is the project and the layers nearest you that tell you where you are.
+The trail from the project to the open layer, each step a way back. It names the project and the
+last three layers; anything between collapses to an ellipsis that names them all in its tooltip.
+A trail spelled out in full stops being a trail and becomes a wall of names.
 
 
-### Attribute Panel
+### Attribute panel
 
-A single panel below the canvas, populated from the current scope and selection. It has one
-state per row:
+One panel below the canvas, with one state per selection. The **scope always exists** — the root
+is a scope like any other — so its resting state is the scope's own attributes rather than an edge
+case. Selecting on the canvas replaces that with the selection's.
 
-| Canvas selection | Panel shows |
-|---|---|
-| nothing | the scope node itself — the frame you are inside — with its body text, type, and attributes |
-| a child block | that block's body text, type, and attributes, including which groups it belongs to |
-| an interface | the same, for the interface |
-| a relationship | its type, label, direction, and attributes |
-| a group boundary | that shared attribute: its name, label, tags, and its members |
-
-Selecting a node in the explorer makes it the scope, and with nothing selected on the canvas
-the panel shows that node's own attributes — so the explorer is a way to inspect a node as
-well as to navigate into it. Selecting something on the canvas replaces that with the
-selection's own attributes; `Esc`, or a click on empty background, returns to the scope.
-
-The scope always exists — the root is a scope like any other — so the first row is the
-panel's resting state, not an edge case.
-
-A node's body text is edited here, alongside its attributes. There is no separate document
-pane.
+A node's body text is edited here. There is no separate document pane.
 
 
 ### Terminal rail
 
-The contextual prompt and option chips above the canvas are **frozen as built** and marked
-for refinement — see [tasks.md](tasks.md).
+The contextual prompt and option chips are **frozen as built** — see [tasks.md](tasks.md).
 
 
-## Interaction (UX)
+## Interaction
 
-Common interaction patterns should let the user rapidly navigate and modify the project
-structure. Contextual prompts should be optional and default to the most common option.
+### Scope and context
 
-### Selection, scope, and context
+- **Scope** is the layer the canvas draws. **Context** is what is selected within it.
+- **A click in the explorer sets the scope.** It is a navigator, and every click in it navigates.
+- **A click on the canvas sets the context and never navigates.** Selecting a thing shows it among
+  its siblings, so a glance never costs you your place.
+- **Descending is always the deliberate second gesture**: double-click into a card, double-click
+  outside the frame to come back.
 
-**Scope** is the layer the canvas is drawing. **Context** is what is selected within it.
-They change through different gestures, deliberately:
-
-- **Single click in the explorer sets the scope.** The canvas draws that node's view. This is
-  the explorer's whole job — it is a navigator, and every click in it is a navigation.
-- **Single click on the canvas sets the context, and never navigates.** The scope does not
-  change; the selected object is highlighted, the attribute panel follows it, and zooming
-  centers on it. Selecting a thing shows it among its siblings, so a glance never costs you
-  your place.
-
-The asymmetry is intended. On the canvas, going deeper is always the deliberate second
-gesture below.
-
-### Navigation
-
-Double-click any object on the canvas to descend into its view. Double-click outside the
-current frame to return to the previous level. Nothing else on the canvas changes the scope.
 
 ### Editing
 
-Dragging in the explorer supports rapid reorganization. Drag and drop between explorer and
-canvas is supported in both directions, except where a node would contain itself. A move is
-never confirmed first — undo is the answer to a move that went wrong, and a dialog in the way
-of every reorganization costs more than it saves.
+A move is never confirmed first. Undo is the answer to a move that went wrong, and a dialog in the
+way of every reorganisation costs more than it saves.
 
-Left-dragging on the canvas depends on where the drag starts:
+**Left drag, by where it starts:**
 
-- **From a node** — moves the node. Dropped on another card it goes inside it, wherever on
-  that card it landed; a card's border is not a drop target of its own. Dropped in the clear
-  space inside a group's boundary it joins that group, and dropped outside one it was in, it
-  leaves.
-- **From an interface** — slides it along its frame edge, and no further. No selecting first.
-- **From a selected group's background** — moves every member of that group together.
-- **From empty background, or from an unselected group's background** — draws a selection
-  box, which takes the elements it fully contains. Dragging a selection moves all of it as one
-  action.
+| From | Does |
+|---|---|
+| a card | moves it; onto another card nests it; in or out of a boundary joins or leaves |
+| a note | moves it within its layer |
+| an interface | slides it along its frame edge |
+| a selected group's background | moves every member together |
+| empty background, or an unselected boundary | draws a selection box |
 
-Once a selection box has caught something, the box that stays around it **reaches a little
-past what it holds** rather than hugging it exactly. Sized to the contents, its line lands on
-the cards' own borders and reads as part of them instead of as something drawn around them.
+**Select-then-drag is for large targets, not small ones.** A boundary is a wide transparent area a
+drag could begin in by accident, so it moves only once selected; so does a multi-node selection.
+An interface is thin and precisely reported — a drag beginning on one could not have meant
+anything else — so it acts at once.
 
-**Select-then-drag is for large targets, not small ones.** A group's boundary is a wide
-transparent area a drag could easily begin in by accident, so it moves only once it has been
-selected, and the same goes for a multi-node selection. An interface is a thin, precisely
-reported thing: a drag beginning on one could not have meant anything else, so it acts at once.
-Asking for a click first bought nothing there and cost a gesture every time.
+A selection box that has caught something **reaches a little past what it holds**. Sized exactly to
+its contents, its line lands on the cards' own borders and reads as part of them.
 
-Nothing else on the canvas is small enough to need the rule. A relationship's segments used to
-be, and are not draggable at all now.
+The canvas pans with the middle button, `Space` held, or the wheel — never a plain left drag,
+which is spent on selecting and moving. Panning is bounded to the layer's contents plus room on
+every side to put something new.
 
-The canvas pans with the middle button, with `Space` held, or with the wheel — never with a
-plain left drag, which is spent on selecting and moving.
-
-Panning is bounded to the layer's contents plus room on every side to put something new, and
-the bound grows with the layer.
 
 ### The two toolbars
 
-**They divide by what they are for.** The row top-right is about **what gets made**
-— whether interfaces are drawn, and what kind of relationship a right drag creates. The column
-bottom-right, opposite the zoom controls, is about **how the layer is drawn** — its axis, laying
-it out again, and square lines or curved ones.
+They divide by **what they are for**:
 
-They were one row and should not have been. Half of it changed the project and half of it
-changed the view, two of the five belonged to the layer rather than the app, and nothing about
-their arrangement said which was which. Splitting them by purpose also puts the arrangement
-controls next to the other control that moves the camera. The shape controls are icons only:
-they are set once and read at a glance, not scanned.
+- **Top-right — what gets made.** Whether interfaces are drawn, and what kind of relationship a
+  right drag creates. Both the app's.
+- **Bottom-right, opposite the zoom controls — how the layer is drawn.** The arrangements, then
+  curves or angles. The arrangements belong to the layer.
+
+One row holding both was half project and half view, with nothing about its arrangement saying
+which was which. Icons only on the shape controls: they are set once and read at a glance.
+
 
 ### The two buttons
 
-**The left button handles what already exists. The right button makes something new.** That is
-the whole division, and it is a division by *what the gesture does* rather than by what it
-happens to be over — which is what makes it possible to say in one line.
+**The left button handles what already exists. The right button makes something new.** A division
+by what the gesture *does*, not by what it is over — which is what makes it sayable in one line.
 
-Within the right button, one more distinction finishes it: **a click makes the thing that sits
-at a point, and a drag makes the thing that has extent.**
+Within the right button: **a click makes the thing that sits at a point, a drag makes the thing
+that has extent.**
 
 | | right click | right drag |
 |---|---|---|
 | **on a node** | an interface — a point on its border | a relationship — from it to somewhere |
 | **on the background** | a node — a point in the layer | a note — something with extent to say |
 
-Four creations, one rule, no exceptions to remember. A relationship being drawn with the right
-button used to be the odd gesture in the tool, justified only by the left button being busy;
-under this reading it is not an exception at all but one cell of the table, and the reason it
-uses a drag is the same reason a note does.
+- **No part of a card is a separate target.** Right-clicking anywhere on it makes an interface; the
+  position decides which point of the border, but it is not a test the click has to pass. Aiming
+  at a ring a few pixels wide for the commoner of two actions is worth nothing. Making a child
+  node means stepping into the card and right-clicking its background, which is the same act
+  described honestly.
+- **The layer's frame is the one exception**, unavoidably: its interior *is* the background, so
+  its border stays a zone. It is a large, plainly drawn target.
+- **Right-clicking a relationship writes its name.** A kind does not exist until somebody writes
+  it, so this is a creation like the rest, and it leaves naming with no exceptions anywhere.
+- **A right drag from a name does nothing at all** — not on the way, and not on release. A drag
+  that began on a name meant to go somewhere; landing it back as a text cursor is the tool
+  guessing.
+- **Nothing stacks.** Right-clicking an interface makes no second one beneath it.
 
-**A right drag that sets off from a name does nothing at all** — it does not draw, and on
-release it does not open the editor either. Nothing appears until a drag pulls clear of the
-press, and nothing should appear afterwards either: a drag that began on a name meant to go
-somewhere, and landing it back where it started as a text cursor is the tool guessing.
+Once the context menu exists, each entry above becomes its default and the alternatives sit beside
+it: direction and reversal for a relationship, ungroup for a group, paste for the canvas, delete
+throughout.
 
-**No part of a card is a separate target.** Right-clicking a card makes an interface wherever
-on the card the click lands — the position decides which point of the border it goes to, but it
-is not a test the click has to pass. This replaced a rule where a card's border made interfaces
-and its interior made child nodes, which meant aiming at a ring a few pixels wide to get the
-commoner of the two. Nothing is worth that. Making a child node instead means stepping into the
-card and right-clicking its background, which is the same act described honestly: a node is
-made in the layer you are looking at.
-
-The layer's own frame is the one exception, and unavoidably so — its interior *is* the
-background, so its border has to stay a zone. It is a large, plainly drawn target, which is
-exactly what a card's ring was not.
-
-**Nothing stacks.** Right-clicking an interface makes no second interface underneath the first.
-It used to fall through to a default meant for something else, and is now silent.
-
-**Right-clicking a relationship writes its name.** That was the last name on the canvas edited
-by some other gesture — a double-click, left from before naming had one rule. Now every name on
-the canvas is written the same way and the rule has no exceptions left.
-
-It also stays inside the division rather than bending it: a relationship's kind does not exist
-until somebody writes it, and the right button is for making what is not there yet. A straighten
-action briefly lived on this gesture and was the wrong thing entirely — the left button handles
-what exists — and in any case there is no longer anything to straighten.
-
-Once the menu exists, each entry above becomes its default and the alternatives sit beside it —
-direction and reversal for a relationship, ungroup for a group, lay-out-again and paste for the
-canvas, delete throughout.
 
 ### Keyboard
 
-Shortcuts work in both the explorer and the canvas, acting on whichever has focus.
+Shortcuts act on whichever of the explorer and canvas has focus. The table is in
+[spec.md](spec.md); the choices worth defending:
 
-| Key | Action |
-|---|---|
-| `Delete` / `Backspace` | delete the selection |
-| `Esc` | clear the selection, back to the scope |
-| `Ctrl`/`Cmd` + `Z` | undo |
-| `Ctrl`/`Cmd` + `Y`, `Ctrl`/`Cmd` + `Shift` + `Z` | redo |
-| `Enter` | rename the selection |
-| `F` | fit the layer, or zoom to the selection if there is one |
-| `Ctrl`/`Cmd` + `A` | select everything on this layer |
-| `Ctrl`/`Cmd` + `G` | group the selection |
-| `Shift` / `Cmd` + click | add to the selection |
-| `Space` + drag | pan |
-| double-click | descend on the canvas, rename in the explorer |
+- **`F` reads the context rather than taking an argument.** With nothing selected it fits the
+  layer, with something selected it goes to that. "Show me this" is one intention, and which
+  *this* is already answered by what is selected.
+- **`Ctrl` adds to a selection and does nothing else.** It is not an alias for the right button:
+  every right-button gesture is a click or a drag, so `Ctrl` + left-drag would mean two things at
+  once, and a trackpad's two-finger tap is a real right click.
+- **`Space` held turns a left drag into a pan.** The middle button alone is unreachable on a
+  trackpad, which made panning wheel-only on the machines most likely to be used for this.
 
-**`F` reads the context rather than taking an argument.** With nothing selected it fits the
-layer; with something selected it goes to that. One key for both, because "show me this" is one
-intention and which *this* is already answered by what is selected — the same reckoning the
-attribute panel and the right button both use.
-
-**`Ctrl` adds to a selection and does nothing else.** It is not an alias for the right button.
-Every right-button gesture here is a click or a drag, and `Ctrl` + left-drag would have had to
-mean two things at once; a trackpad's two-finger tap is a real right click and needs no alias.
-
-**`Space` held turns a left drag into a pan.** The middle button alone was unreachable on a
-trackpad, which made panning a wheel-only gesture on the machines most likely to be used for
-this.
 
 ### Hovering
 
-**One element highlights at a time, and it is the one in context** — whatever a click or a
-right-click would act on if it happened now. The highlight is subtle; selecting the same thing
-makes it fixed and less subtle.
+**One element highlights at a time, and it is the one in context** — whatever a click would act on
+now. Right-click has no menu yet and acts directly, so what is lit is the only warning of what the
+button is about to do.
 
-That is what it is for. Right-click has no menu yet and performs its default action directly,
-so the only warning of what the button is about to do is what is lit beneath the cursor.
+**The innermost thing under the pointer wins**; the table is in [spec.md](spec.md).
 
-**The innermost thing under the pointer wins**, since that is the one the gesture reaches:
+- A card is never lit at the same time as an interface on it or a chip inside it, and a border is
+  never lit with the name set into it. Lighting a thing and everything around it says nothing
+  about which is about to be acted on.
+- **A card lights as one thing, border and all**, since the border no longer takes a different
+  action from the inside.
+- **A group's boundary is found by measuring, not by the pointer.** It is transparent until
+  selected, so a selection box drawn inside it reaches the canvas rather than sweeping the group
+  in — which means nothing ever reports it as hovered. The tightest boundary the pointer is inside
+  is what lights.
+- **Nothing else highlights.** Marking what a recent action changed competes with the highlight
+  that says where the pointer is, and leaves the diagram looking edited long after the edit.
 
-| Under the pointer | What lights |
-|---|---|
-| a multi-node selection | the selection |
-| a frame's or a boundary's name | that name |
-| an interface | that interface |
-| a chip in a container's treemap | that chip |
-| a card | the card, its border included |
-| the layer's own frame, near its border | the frame |
-| a relationship | the line |
-| the clear space inside a group's boundary | the boundary |
 
-A card is never lit at the same time as an interface sitting on it, or a chip inside it, and a
-border is never lit at the same time as the name set into it. The pointer is over one thing;
-lighting that thing and everything around it says nothing about which of them is about to be
-acted on, which was the whole complaint.
-
-**A card lights as one thing, border and all.** It used to light its ring separately, because
-the ring took a different right-click action from the inside. Now that it does not, a second
-highlight there would be describing a distinction the tool no longer makes.
-
-**A group's boundary is found by position rather than by the pointer.** It is transparent to
-the pointer until it has been selected, so that a selection box drawn from inside it reaches
-the canvas rather than sweeping the group in — which means nothing ever reports it as hovered.
-The canvas measures instead, and the tightest boundary the pointer is inside is what lights,
-by the same reckoning that decides which group a click there selects. It brightens further for
-a card dragged over it that would join.
-
-**Nothing else on the canvas highlights.** An object a recent action created or changed
-notably does not: what was touched a moment ago is the action log's business, and marking it
-on the canvas both competed with the highlight that says where the pointer is and left the
-diagram looking edited long after the edit.
+## Geometry
 
 ### The grid
 
-**Everything with a place of its own lands on a 24-unit grid.** Cards, notes, the layer's frame
-and automatic layout all snap to it, and the backdrop dots are the lattice rather than a
-decoration at a spacing that nearly matched it.
+**Everything with a place of its own lands on a 24-unit grid**, and the backdrop dots are that
+lattice rather than a decoration at a spacing that nearly matches.
 
-**The backdrop had to be corrected before any of this could be judged.** React Flow computes its
-dot pattern's shift as `offset * zoom || 1 + gap / 2`, and the default offset is zero — which is
-falsy, so the fallback fires and the dots are displaced by more than half a tile at every zoom
-level. Cards were landing exactly on the grid the whole time; the grid was the thing drawn
-wrong, and the boundaries a half-cell hug put on the half-grid happened to line up with the
-displaced dots, which made the error look like the opposite of itself. Passing a whole cell as
-the offset shifts the pattern by exactly one period, which is to say by nothing.
+- **Snapping happens when a layer is drawn**, not on commit. It costs nothing, heals old layouts
+  by drawing them, and keeps the division the tool already has: the log records what the user did,
+  and how it is shown is derived.
+- **It is also the only thing that snaps.** A second snapper disagreeing by half a cell makes
+  cards jump on release, and moves a group's boundary — carrying every member off the grid with
+  it.
+- **A card is placed by its middle, not its corner.** A block is a cell and a half tall, so
+  landing its corner on a line leaves its top border on the grid and its bottom stranded between
+  lines — an asymmetry felt exactly where interfaces sit. Landing its middle on the middle of a
+  row, it sits squarely and overhangs evenly.
 
-The lesson worth keeping: when placement and the thing placement is judged against are both
-suspect, check the ruler first.
+**Two size constraints do real work, and only two:**
 
-**Snapping happens when a layer is drawn.** The alternative was to quantise on commit, which
-leaves everything placed before the grid existed off it forever and needs a migration to fix.
-Snapping in `place` costs nothing, heals old layouts by drawing them, and keeps the division the
-tool already has: the log records what the user did, and how it is shown is derived.
+- **The container band is a multiple of two cells**, so half of it — what separates a block's
+  middle from a container's — is a whole cell and grid steps can square them.
+- **Sizes are whole seats**, which is what makes the seats along an edge evenly spaced.
 
-**It is also the only thing that snaps**, which took a second attempt to arrive at. The library's
-own `snapToGrid` was on as well, and it snaps a node's *corner* to a *line* — a different lattice
-from the one below, where a card is placed by its middle landing on the middle of a row. The two
-disagreed by half a cell, so a card jumped on release. It was worse for a group, whose boundary
-is offset from its members by the hug: snapping the boundary to a line moved it, and it carried
-every member that far off the grid, so a group could not be put down where it was aimed.
+Within those, **a card is as small as its contents allow**. A card's far edge landing on the
+lattice aligns it with nothing: what a card lines up against is another card, and two of the same
+height are level wherever they sit. Slack held for text that might arrive is space paid for on
+every card against a name most of them do not have.
 
-Losing live snapping during the drag costs a little feedback and buys the guarantee that what
-the drag shows and what the layer draws are the same thing. A card settles onto the lattice as it
-is let go, which is a small movement and always the right one.
+**A card is drawn at exactly the size the layout says it is.** Group boundaries, the side a
+relationship leaves by, and every seat's position are all computed from that size, so a card that
+sizes itself from its text agrees with none of it. A name too long for its card is clipped — the
+honest consequence of a card having a size at all. Nothing else clips: interfaces straddle the
+border and the graze ring is drawn outside it.
 
-**A card is placed by its middle, not its corner.** A block is one row of content with a little
-padding, so it stands a cell and a half tall; landing its corner on a line leaves it covering one
-row and half of the next, with its top border on the grid and its bottom border stranded between
-lines. That asymmetry is felt where interfaces sit, because the two horizontal borders are then
-in visibly different relationships to the grid. Landing its middle on the middle of a row, it
-sits squarely on that row and overhangs it evenly.
-
-The rule is applied to both axes and the axes come out differently, which is the point: a card is
-a whole number of cells wide, so its sides still land on lines; it is a cell and a half tall, so
-it overhangs. A container overhangs by the same amount, since its height differs from a block's
-by whole cells — so every card on the canvas, of either kind, has its borders the same small
-distance outside a row.
-
-**Corners on the grid were not enough, which is the part that is easy to get wrong.** Cards were
-170 × 56 and containers 170 × 108, so a block's middle sat 28 down and a container's 54 — a gap
-of 26, not a multiple of anything. No amount of grid-perfect *placement* could ever have squared
-a block against a container, because the mismatch was in the sizes.
-
-**But the fix is smaller than it first looks, and getting that wrong cost a round.** The obvious
-rule — make every card a whole number of cells — was reached for first, and it forced a block to
-48 or 72: noticeably squatter, or a third taller than it had ever been. Neither is justified,
-because *a card's far edge landing on the lattice aligns it with nothing*. What a card is lined
-up against is another card, and two of the same height with their tops on the grid are level
-wherever they sit.
-
-Two constraints do real work, and only two:
-
-- **The container band is a multiple of two cells.** Half the band is what separates a block's
-  middle from a container's, so at two cells they differ by one and grid steps can square them.
-  This is a fact about the band, not about the card.
-- **Sizes are whole seats.** That is what makes the seats along an edge evenly spaced, finishing
-  the same distance from the far corner as they start from the near one.
-
-Within those, **a card is as small as its contents allow**: a block is one grid row of content
-and half a row of margin, a container three rows and the same. 168 × 36 and 168 × 84. The card
-had been carrying slack for text that might arrive, which is space paid for on every card in the
-layer against a name that most of them do not have. A card that will not fit its name clips it,
-which is the honest consequence of a card having a size at all.
-
-The auto-layout gap came down with it, from two cells to one. At two, the air between compact
-cards was wider than the cards, which undoes the compactness rather than framing it.
-
-**What a small card costs is seats.** A block's short edges hold two interfaces, where at 60 they
-held four; the long edges hold thirteen. This is not the grid being coarse — an interface mark is
-11 units wide and seats are 12 apart, so **the seat spacing is already at its floor**. Any finer
-and two interfaces in adjacent seats would overlap, obeying the no-stacking rule in the data
-while breaking it on the screen. Two seats is simply how many interfaces fit down the side of a
-card 36 units tall, and would be true with no grid at all.
-
-**A card is drawn at the size the layout says it is.** This was the real defect behind "slight
-misalignments" and it predates the grid. `sizeOf` is what the group boundaries, the choice of
-which side a relation leaves by, and every port's canvas position are all computed from — but
-the card sized itself from its text and its `min-width`, so it was never 170 × 56 at all. A port
-is placed as a percentage of the card it is drawn in, so a card 150 wide while the arithmetic
-said 170 put its own interfaces where the lines did not expect them. Stating the size makes the
-geometry true. The cost is that a name too long for its card is clipped, which is the honest
-consequence of a card having a size at all.
-
-Nothing is clipped on the card itself, though — interfaces straddle its border and the graze
-ring is drawn outside it, so hiding overflow there would cut both in half. Only the head clips.
 
 #### Seats
 
-**An interface sits in a seat: every 12 units from the corner of its edge, never on one.** It is
-still *stored* as a 0–1 fraction, because it has to be — that is what lets a port survive its
-frame being resized — but the fractions it can take are the ones that land on a seat.
+**An interface sits in a seat: every 12 units along its edge, never on a corner.** Stored as a
+0–1 fraction so a port survives its frame resizing, but only fractions landing on a seat.
 
-The important word is *units*. Seats counted as a share of the edge would have been the obvious
-implementation and would have achieved nothing: a twelfth of the way down a block is 6 and a
-twelfth of the way down a container is 10, so two ports meant to be level would still not be.
-Counted in units from the corner, the third seat is 36 down every card whatever its size, and
-two ports line up exactly.
+- **Counted in units, not as a share of the edge.** A twelfth of the way down a block is 6 and a
+  twelfth down a container is 10, so two ports meant to be level would not be. In units, the
+  third seat is 36 down every card whatever its size.
+- **No two sit in the same seat.** A drop onto an occupied one takes the next along — a drag that
+  has to be repeated until it finds a gap is worse than one landing beside where it was aimed.
+- **12 is the floor.** An interface mark is 11 units wide, so any finer and two adjacent seats
+  overlap on screen while obeying the no-stacking rule in the data.
+- **The layer's own frame is the one place this cannot fully hold.** `frameBox` is derived from
+  the layer's contents and the panel's shape, so a window resize moves it. Accepted: the
+  alternative is a frame that does not fit its panel, which is the worse fault.
+- **Route corners are not snapped.** A corner counts as level with a port within 2.5 units, and
+  quantising to 24 would throw it up to 12 off — past that tolerance, so every straight line
+  would bend again.
 
-The layer's own frame is the one place this cannot fully hold, and it is worth being clear why:
-`frameBox` is derived from the layer's contents and the panel's aspect ratio, so it is fluid by
-design. It is snapped to the grid, which puts its border and its seats on the lattice for as
-long as it does not change — but it does change, when the window is resized. That is accepted
-rather than solved, because the alternative is a frame that does not fit the panel it is drawn
-in, which is a worse fault than a port a few units out.
 
-**Seats make stacking possible for the first time.** With a free fraction two interfaces never
-landed on exactly the same point; now they would, and the spec says interfaces do not stack. A
-drop onto an occupied seat takes the next one along rather than being refused — a drag that has
-to be repeated until it finds a gap is worse than one that lands beside where it was aimed.
+### Layout
 
-**Every seat is on the lattice now, because nothing is dragged off it.** The exception used to
-be a port carried along by a dragged relationship segment: it had to stay exactly where the line
-ended or the elbows stopped being square, so it was left unseated. With hand routing gone there
-is no such port, and a seat is a seat wherever it came from.
+One job: arrange the blocks so the relationships between them read, with no overlap and as little
+crossing as possible.
 
-**Route corners are still not snapped**, and now it costs nothing to say why: a corner is
-treated as level with a port within 2.5 units, and quantising to 24 would throw it up to 12 off,
-past that tolerance, so every straight line would bend again. Lanes move interior segments by
-half a cell deliberately and stay on the lattice; the corners between them are wherever the path
-found them.
+**A layer's arrangement is one setting, held on the layer:**
 
-### Layouts
+| | Ranks by | Flow sides |
+|---|---|---|
+| `free` | nothing — clusters outward | none |
+| `grid` | nothing — tiles in reading order | none |
+| `across` | relationships, left to right | left / right |
+| `down` | relationships, top to bottom | top / bottom |
 
-Layout has one job: arrange the blocks so the relationships between them read, with no overlap
-and as little crossing as possible.
+- **It is the only such setting.** Arrangement and flow axis are the same statement: saying a
+  layer reads left to right is saying its ranks run left to right. Two settings would be two ways
+  to say one thing with no rule for which wins.
+- **`free` and `grid` both mean no flow direction**, so adding them does not split that knob back
+  apart. `grid` serves a layer that is a *collection* rather than a system — things that belong
+  together and are not wired to each other, which clustering leaves lumpy and ranking has nothing
+  to rank by. Row and column were left out: a row is a grid whose contents fit on one line.
+- **Free is the default.** The tool is general first, and a diagram that is not a flow reads worse
+  ranked than clustered.
+- **Per layer, not per app.** A pipeline and a hierarchy can sit in one project, and a choice
+  about what a diagram *says* is not a display preference — it changes the drawing, enters the
+  history, and exports.
+- **Picking an arrangement lays the layer out by it.** The button is a verb as much as a state; a
+  separate "arrange" action beside it was a verb sitting in a row of states, looking alike and
+  behaving differently. Choosing `grid` plainly means *make this a grid*, so hand placement,
+  pinned walls and tied notes are all handed back in the one step.
 
-**A layer's arrangement is one setting with three values**, held on the layer itself. `free`
-ranks nothing and fills outward from the middle in rings — the resting state, and what a diagram
-with no direction in it wants. `across` and `down` rank the layer along that direction.
+**Ranking reads the drag, not the direction.** Relationships are undirected by default, so `dir`
+would rank nothing; the source-to-target pair is the only statement of direction most will ever
+carry, and it is the way somebody drew it. Cycles stop at the edge that closes them.
 
-That setting is deliberately the *only* one. It is both the flow axis and the layout preference,
-because they are the same statement: saying a layer reads left to right is saying its ranks run
-left to right. Two settings would have been two ways to say one thing, with no rule for which
-wins when they disagreed.
+**Within a rank, order is a barycentre sweep** — each thing pulled toward the average position of
+what it is joined to in the rank before, forward then back. Two passes; it is a heuristic for
+fewer crossings, not a solution. What it buys is that a chain comes out on one row, so every line
+along it is straight and there is nothing left to want to drag.
 
-**It is per layer and not per app.** A pipeline and a hierarchy can sit in one project, and a
-choice about what a diagram *says* is not a display preference — it changes the drawing, it goes
-in the history, and it exports.
+**Ranks sit two cells apart, and things one cell apart across a rank.** The gap along the axis is
+where the lines between ranks run; the gap across has nothing to carry. Air is what a reader takes
+for *unrelatedness*, so an arrangement whose job is to show what relates to what must not be
+generous with it.
 
-**Ranking reads the drag, not the direction.** A relationship is undirected by default, so `dir`
-is empty on most of them and would rank nothing; the source-to-target pair is the only statement
-of direction most will ever carry, and it is the way somebody drew it. Cycles stop at the edge
-that closes them rather than ranking forever.
+**What layout arranges is a unit, and a group is one unit.**
 
-**Ranks sit two cells apart and cards one cell apart across them.** The gap along the axis is
-where the lines between ranks run — two stubs meet in it, with room for a lane or two beside
-them — and the gap across a rank has nothing to carry, so it is the ordinary one.
+- A boundary is nothing but its members' bounds, so members strewn across the ranks draw a
+  boundary over everything between them, and two groups strewn that way overlap however carefully
+  anything else is arranged.
+- Ranking cards individually has every reason to interleave them, because what pulls a card into
+  place is what it is *joined* to, not what it *belongs* with.
+- So a group is contracted to one object and the layer is arranged over those. **Inside a unit,
+  members keep their offsets exactly**; only the unit moves.
+- **Groups sharing a member are one unit.** The shared card pins them. Their boundaries still
+  overlap and compound, which is what overlapping groups do — they simply travel together.
+- **A unit is sized to its members plus the room its boundary needs**, or two groups end up with
+  their boundaries a hair apart, reading as one.
+- The cost is that a group's members no longer respond individually to relationships outside it,
+  so those lines run longer. The right trade: a long line is read past, while a boundary drawn
+  around the wrong things is read *wrong*, and overlapping boundaries are the one thing here that
+  compounds into illegibility.
 
-Getting this wrong is what made every arrangement look scattered, and the cause was a single
-term: rank spacing was a card's *width* halved, plus a gap, whatever the axis. Along `across`
-that put a hundred and twenty units of air between cards a hundred and sixty-eight wide; along
-`down` it put the same hundred and eight between cards thirty-six tall, so the space between
-rows was three times the rows. Air is what a reader takes for *unrelatedness*, so an arrangement
-whose whole job is to show what relates to what was saying the opposite in its spacing.
+This does not make a group structural. Layout honouring a group is the opposite — a group *is* a
+fact about where things sit, so layout that ignored it was not honouring the group at all.
 
-**Within a rank, order is a barycentre sweep** — each node pulled toward the average position of
-what it is joined to in the rank before, forward then back. Two passes, because it is a
-heuristic for fewer crossings rather than a solution to them. What it buys is the thing that
-matters most: a chain comes out on one row, so every line along it is straight and there is
-nothing left for anyone to want to drag.
-
-**What layout arranges is a unit, and a group is one unit.** A boundary is nothing but its
-members' bounds, so members strewn across the ranks draw a boundary over everything sitting
-between them — and two groups strewn that way overlap however carefully anything else is
-arranged. Ranking cards individually did exactly that: it had no reason to keep members together
-and every reason to interleave them, because what pulls a card into place is what it is *joined*
-to, not what it *belongs* with.
-
-Nudging the ordering was the first attempt — members taking their group's average pull — and it
-was not enough. It kept them contiguous *within a rank* and did nothing about a group spread
-across several, which is the common case, because relationships are exactly what ranks things
-and exactly what a group's members tend to have with each other.
-
-So a group is contracted to a single object and the layer is arranged over *those*. Inside it,
-members keep their offsets exactly and only the object moves. This does not make a group
-structural — no parent changes and the explorer still never shows it. It is the opposite: design
-already says a group is "a fact about where things sit", so layout that ignored it was not
-honouring the group at all.
-
-**Groups that share a member are one unit.** The shared card pins them; they cannot be placed
-apart however much anyone would like it. Their boundaries still overlap and compound, which is
-what overlapping groups are supposed to do — they simply travel together.
-
-**A unit is sized to its members plus the room its boundary needs.** Packed to the members'
-bounds, two groups end up with their boundaries a hair apart and reading as one.
-
-The cost is that a group's members no longer respond individually to what they are related to
-outside it, so lines in and out take longer routes than they would. That is the right trade: a
-long line is read past, while a boundary drawn around the wrong things is read *wrong*, and
-overlapping boundaries are the one thing on this canvas that compounds into illegibility.
-
-**Free-form is the default**, not `across`. The tool is general first, and a diagram that is not
-a flow reads worse ranked than it does clustered. An axis is something you turn on when the
-layer means it.
-
-**`grid` is the fourth, and it is the one that is not about flow at all.** A layer can be a
-collection rather than a system — things that belong together and are not wired to each other —
-and neither clustering nor ranking serves that: one leaves it lumpy and the other has nothing to
-rank by. Tiling in reading order does.
-
-Adding it does not un-collapse the one-knob decision. `free` and `grid` are simply two values
-that both mean *no flow direction*; the setting is still the arrangement and still the flow
-axis, and which sides a flow relationship takes still falls out of it. Row and column were left
-out: a row is a grid whose contents fit on one line, and two more values to say that is a
-setting where a shape would do.
-
-**Picking an arrangement lays the layer out by it.** The button is a verb as much as a state,
-and treating it as both is what removed a control rather than adding one. There used to be an
-arrangement toggle and a separate "arrange" action beside it, which read badly for a reason
-worth keeping: a state and a verb sitting in one row, looking alike and behaving differently.
-Once the arrangements are their own buttons the verb is already there — choosing `grid` plainly
-means *make this a grid* — so the extra button, and the icon nobody could read, are gone.
-
-The earlier objection to this was that applying on pick would destroy hand-placed work as a side
-effect of changing a *view* setting. That objection died with the premise: these are not view
-settings, they are requests to arrange.
-
-**An arrangement rearranges only what nobody has placed.** User placement wins, as it does
-everywhere else — which means setting an axis on a layer laid out by hand does nothing at all
-until the layer is asked to let go. That is what `arrange` is: one action, one step, handing the
-layer's blocks back. Making the axis clear placements by itself would have destroyed hand-placed
-work as a side effect of changing a view setting.
-
-It is good enough when, for a layer of thirty nodes, no two blocks overlap, no relationship
-passes through a block it does not attach to, and relationship crossings are visibly fewer
-than straight point-to-point routing would give.
-
+**Good enough** is: for a layer of thirty nodes, no two blocks overlap, no relationship passes
+through a block it does not attach to, and crossings are visibly fewer than straight
+point-to-point routing would give.
 
 
 ## Where this is going
 
-The ultimate goal is to support generation of common diagram types — activity, class, state,
-flow — for a given scope, and translation of the project to SysML exports. Interfaces are why
-the second is coherent: SysML wants typed blocks and ports, and an interface is the port.
+Generation of common diagram types — activity, class, state, flow — for a given scope, and
+translation of the project to SysML exports. Interfaces are why the second is coherent.
 
-A deeply nested and broad sample project ships alongside, describing this application's own
-components, interfaces and data structures, and exercising every feature in the spec.
+A deeply nested sample project ships alongside, describing this application's own components,
+interfaces and data structures, and exercising every feature in the spec.
