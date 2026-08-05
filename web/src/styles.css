@@ -1529,6 +1529,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .shape button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .shape button.on { color: var(--accent); }
 
+/* The arrangements are one set; how lines are drawn is not one of them. */
+.shape button.apart { margin-top: 5px; border-top: 1px solid var(--divider); padding-top: 4px; }
+
 /* The relation editor doubles as its controls */
 
 .floating button { padding: 1px 7px; font-size: 12px; line-height: 18px; }

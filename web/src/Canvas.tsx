@@ -28,7 +28,9 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { axisOf, blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
-import { CELL, cell, LEAF, middled, place, SEAT, seatAt, sizeOf } from "./core/layout";
+import {
+  around, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
+} from "./core/layout";
 import {
   attach, lanes, route as planRoute, runOf, type Box, type Seat,
 } from "./core/route";
@@ -61,7 +63,6 @@ const BAND = 56;
  *  second border on them. It need not be a whole cell, because nothing snaps a
  *  boundary — the members are what land on the grid, and the boundary follows
  *  them wherever they land. */
-const HUG = SEAT;
 /** How far a right drag must travel before it is a relationship rather than a
  *  right click that wandered. */
 const THRESHOLD = 12;
@@ -87,14 +88,14 @@ const NOTE = { w: 168, h: 40 };
  *  their host via CSS. */
 const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
 
-/** The arrangements, in the order the one control steps through them. */
-const AXIS_NEXT: Record<Axis, Axis> = { free: "right", right: "down", down: "free" };
-const AXIS_MARK: Record<Axis, string> = { free: "◦", right: "→", down: "↓" };
-const AXIS_TIP: Record<Axis, string> = {
-  free: "Free — fills outward from the middle",
-  right: "Across — ranked left to right",
-  down: "Down — ranked top to bottom",
-};
+/** The arrangements, each its own button. Picking one is a request to lay the
+ *  layer out that way, so it is a verb as much as a state. */
+const AXES: { axis: Axis; mark: string; tip: string }[] = [
+  { axis: "free", mark: "◦", tip: "Free" },
+  { axis: "grid", mark: "▦", tip: "Grid" },
+  { axis: "right", mark: "→", tip: "Across" },
+  { axis: "down", mark: "↓", tip: "Down" },
+];
 
 /** What a right drag makes, in the order the one control steps through. */
 const KIND_NEXT: Record<Kind, Kind> = { untyped: "flow", flow: "assoc", assoc: "untyped" };
@@ -113,22 +114,6 @@ function useSteady<A extends unknown[], R>(fn: (...args: A) => R) {
   latest.current = fn;
 
   return useCallback((...args: A) => latest.current(...args), []);
-}
-
-/** The box enclosing a set of boxes, grown by a margin. Null when there is
- *  nothing to enclose. */
-function around(boxes: Box[], pad: number): Box | null {
-  if (!boxes.length) return null;
-
-  const x = Math.min(...boxes.map((b) => b.x)) - pad;
-  const y = Math.min(...boxes.map((b) => b.y)) - pad;
-
-  return {
-    x,
-    y,
-    w: Math.max(...boxes.map((b) => b.x + b.w)) + pad - x,
-    h: Math.max(...boxes.map((b) => b.y + b.h)) + pad - y,
-  };
 }
 
 /** Which edge of a box faces a point — the side a relationship with no
@@ -233,6 +218,7 @@ function planEdge(
   frameBox: Box | null,
   used: Used,
   axis: Axis = "free",
+  solid: Box[] = [],
 ) {
   const fromBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
   const toBox = boxes[edge.target] ?? (edge.target === view ? frameBox : null);
@@ -253,7 +239,7 @@ function planEdge(
   return planRoute(
     fromBox,
     toBox,
-    obstaclesOf(boxes, edge.source, edge.target),
+    [...obstaclesOf(boxes, edge.source, edge.target), ...solid],
     {
       pinFrom: pinnedAt(graph, edge.from, edge.source),
       pinTo: pinnedAt(graph, edge.to, edge.target),
@@ -305,10 +291,8 @@ type Props = {
   onShowPorts: (on: boolean) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
-  /** How this layer arranges what it holds. Its own, not the app's. */
-  onAxis: (axis: Axis) => void;
-  /** Hand this layer's blocks back to automatic placement. */
-  onRelax: () => void;
+  /** Lay this layer out the chosen way, dropping hand placement as it goes. */
+  onRelax: (axis: Axis, notes?: { id: string; x: number; y: number }[]) => void;
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
@@ -354,7 +338,7 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
-  const { onAxis, onRelax, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
+  const { onRelax, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
   const { kind, onKind } = props;
   const axis = axisOf(graph, view);
   // Everything the cards, the frame and the lines are handed has to keep one
@@ -418,8 +402,18 @@ function Flow(props: Props) {
 
   /** Where everything in this layer sits, and how big it is — the one source
    *  the frame, the groups and the relation anchors all measure against. */
+  /** A note occupies space like a card does, so nothing is laid on top of one
+   *  and no line is drawn through one. It is not a node, so it is neither
+   *  arranged nor connected — only avoided. */
+  const noteBoxes = useMemo(
+    () => notes.map((attr) => ({
+      x: cell(attr.note!.x), y: cell(attr.note!.y), w: NOTE.w, h: NOTE.h,
+    })),
+    [notes],
+  );
+
   const boxes = useMemo(() => {
-    const spots = place(graph, members, axis);
+    const spots = place(graph, members, axis, noteBoxes);
     const found: Record<string, Box> = {};
 
     for (const node of members) {
@@ -429,7 +423,7 @@ function Flow(props: Props) {
     }
 
     return found;
-  }, [graph, members, axis, placementKey(members)]);
+  }, [graph, members, axis, noteBoxes, placementKey(members)]);
 
   /** The layer's own frame, with room on every side for its interfaces. */
   const frameBox = useMemo(() => {
@@ -527,7 +521,7 @@ function Flow(props: Props) {
       used[target] ??= seatsOn(graph, target);
 
       const ends = { ...edge, source, target };
-      const planned = planEdge(graph, ends, boxes, view, frameBox, used, axis);
+      const planned = planEdge(graph, ends, boxes, view, frameBox, used, axis, noteBoxes);
       if (!planned) continue;
 
       // Only a flow end draws a square, so only a flow end has one to stop at.
@@ -579,7 +573,42 @@ function Flow(props: Props) {
     for (const [id, points] of Object.entries(spread)) runs[id] = { ...runs[id], points };
 
     return { runs, seats };
-  }, [graph, boxes, frameBox, view, axis, showPorts, standIn]);
+  }, [graph, boxes, frameBox, view, axis, showPorts, noteBoxes, standIn]);
+
+  /** Lay this layer out the chosen way. Picking an arrangement *is* the
+   *  request to arrange by it — clicking the one already lit lays it out again,
+   *  which is what a separate button used to be for. */
+  const onArrange = useCallback((which: Axis) => {
+    onRelax(which, reNoted(which));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reNoted is stable per graph
+  }, [onRelax, graph, members, view]);
+
+  /** Where each tied note should sit once this layer is laid out afresh.
+   *
+   *  Worked out here rather than in the fold, because it needs the arrangement
+   *  the layer is about to take and only the canvas can run that. A note tied to
+   *  nothing keeps its place: there is nothing for it to follow. */
+  const reNoted = useCallback((which: Axis) => {
+    const loose = members.map((n) => ({ ...n, x: null, y: null }));
+    const spots = place(graph, loose, which);
+
+    return notesIn(graph, view).flatMap((attr) => {
+      const held = attr.holders
+        .map((id) => {
+          const at = spots[id];
+
+          return at && { ...at, ...sizeOf(graph, graph.nodes[id]) };
+        })
+        .filter(Boolean) as Box[];
+      if (!held.length) return [];
+
+      const round = around(held, 0)!;
+
+      // Just under what it describes, aligned to its left — clear of the ranks,
+      // and in the one place a reader already looks for a caption.
+      return [{ id: attr.id, x: cell(round.x), y: cell(round.y + round.h + CELL) }];
+    });
+  }, [graph, members, view]);
 
   /** Turn a derived seat into an interface of its own, where it sits. Which end
    *  of the relationship it is follows from which card it is drawn on. */
@@ -1489,18 +1518,20 @@ function Flow(props: Props) {
           from the row above because that one is about what gets *made*, and
           because two of these three belong to the layer rather than the app. */}
       <div className="shape">
+        {AXES.map(({ axis: which, mark, tip }) => (
+          <button
+            key={which}
+            className={axis === which ? "on" : ""}
+            onClick={() => onArrange(which)}
+            title={tip}
+          >
+            {mark}
+          </button>
+        ))}
         <button
-          className={axis === "free" ? "" : "on"}
-          onClick={() => onAxis(AXIS_NEXT[axis])}
-          title={AXIS_TIP[axis]}
-        >
-          {AXIS_MARK[axis]}
-        </button>
-        <button onClick={onRelax} title="Lay this layer out again">↻</button>
-        <button
-          className={angular ? "on" : ""}
+          className={`apart ${angular ? "on" : ""}`}
           onClick={() => onAngular(!angular)}
-          title={angular ? "Right angles" : "Curves"}
+          title={angular ? "Angles" : "Curves"}
         >
           {angular ? "⌐" : "~"}
         </button>

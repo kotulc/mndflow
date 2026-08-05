@@ -74,7 +74,8 @@ preference. See design.md under Relationships, Interfaces and Layouts.*
 - **The context menu**, still the last thing to build. Every entry above now performs its
   default action directly and correctly, so the menu is no longer covering for anything wrong —
   it is only the alternatives that are missing: direction and reversal for a relationship,
-  ungroup for a group, lay-out-again and paste for the canvas, delete throughout.
+  ungroup for a group, paste for the canvas, delete throughout. Laying a layer out again is no
+  longer among them — the arrangement buttons are that action.
 - **A menu trigger.** With the right button spent entirely on direct creation, the context menu
   has no gesture left. The intended answer is that selecting an element reveals its options in
   the attribute panel, which would mean the panel is the menu and no gesture is needed at all.

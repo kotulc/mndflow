@@ -148,18 +148,41 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - The view refits when the layer gains or loses something, or when its axis changes — never on
   selection.
 
-**The layer's axis** — how it arranges what it holds. One control, three settings, its own.
+**The layer's arrangement** — how it lays out what it holds. Four, each its own button, held
+on the layer.
 
-- `free` ranks nothing and fills outward from the middle in rings. The resting state.
-- `across` and `down` rank the layer along that direction: nothing pointing at it comes first,
-  and each rank sits one step further along.
-- Within a rank, nodes are ordered by where what they relate to sits in the rank before, swept
+| | Ranks by | Flow sides |
+|---|---|---|
+| `free` | nothing — clusters outward from the middle | none |
+| `grid` | nothing — tiles in reading order | none |
+| `across` | relationships, left to right | left / right |
+| `down` | relationships, top to bottom | top / bottom |
+
+- Ranked: nothing pointing at it comes first, and each rank sits one step further along.
+- Within a rank, things are ordered by where what they relate to sits in the rank before, swept
   forward then back, so related blocks come out level and crossings are fewer.
 - A chain therefore comes out on **one row**, and every line along it is straight.
 - Held on the layer's own node — a pipeline and a hierarchy can sit in one project. The root's
   is held on the project.
-- **User placement still wins**, so an axis rearranges only what nobody has placed. `arrange`
-  hands the layer's blocks back, which is what makes a new axis take effect on old work.
+
+**What gets arranged is a unit, not a card.**
+
+- A **unit** is one card, or a whole group of them. Groups sharing a member are one unit: the
+  shared card pins them together.
+- Inside a unit, members keep their positions relative to each other **exactly**; only the unit
+  moves. A group nobody has placed gets an internal arrangement of its own, laid out among its
+  own members, and that becomes its shape.
+- A unit is sized to its members plus the room its boundary needs, so two groups are spaced
+  apart rather than left with their boundaries touching.
+- **Notes are avoided, not arranged.** A note takes up room like a card, so nothing is laid on
+  top of one and no relationship is drawn through one — but an arrangement is never slid aside
+  for one.
+- Cards sit **one cell apart across a rank and two along it**, the wider gap being where the
+  lines between ranks run.
+
+**Picking an arrangement lays the layer out by it**, dropping hand placement, any walls its
+relationships were pinned to, and moving each tied note to sit under what it describes. Picking
+the one already lit lays it out again. A note tied to nothing keeps its place.
 
 ### Views
 
@@ -363,7 +386,8 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - Canvas toolbar top-right — **what gets made**: interfaces on the canvas, and the kind a right
   drag draws. Both the app's.
 - Canvas shape controls bottom-right, opposite the zoom controls — **how the layer is drawn**:
-  its axis, `arrange`, and curves or angles. Icons only. The first two belong to the layer.
+  the four arrangements, then curves or angles below a divider. Icons only. The arrangements
+  belong to the layer; the line style is the app's.
 - Zoom controls bottom-left, riding above the attribute tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.

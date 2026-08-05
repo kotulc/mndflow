@@ -349,15 +349,20 @@ export function useProject() {
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
-    /** How the layer being looked at arranges what it holds. */
-    setAxis: (axis: Axis) =>
-      commit(makeStep(`layout: ${axis}`, "axis", [{ op: "set_axis", layer: view, axis }])),
-
-    /** Hand this layer's blocks back to automatic placement. User placement
-     *  wins, so a layer arranged by hand ignores its axis until it is asked to
-     *  let go — this is the asking. */
-    relax: () =>
-      commit(makeStep("lay out again", "relax", [{ op: "relax_layer", layer: view }])),
+    /** Lay the open layer out the chosen way.
+     *
+     *  Setting the arrangement and applying it are one action, because picking
+     *  one is the request: choosing "grid" plainly means make this a grid. User
+     *  placement wins everywhere else, so this is where a layer lets go of it. */
+    relax: (axis: Axis, notes: { id: string; x: number; y: number }[] = []) =>
+      commit(makeStep(`arrange: ${axis}`, "arrange", [
+        { op: "set_axis", layer: view, axis },
+        { op: "relax_layer", layer: view },
+        // A note's place is beside what it describes, so laying the layer out
+        // again moves it with them. One tied to nothing has nothing to follow
+        // and stays where it was put.
+        ...notes.map(({ id, x, y }) => ({ op: "place_attr" as const, id, x, y })),
+      ])),
 
     /** Turn a relation around. */
     flip: (id: string) =>

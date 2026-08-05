@@ -606,6 +606,34 @@ lines out of it relationships — every one of which is wrong, and none of which
 suppressing case by case. Attributes already have holders, already stay out of the explorer, and
 already never change what contains what. A note is one with a place.
 
+**A note is avoided, never arranged.** It takes up room like a card, so nothing is laid on top
+of one and no relationship is routed through one — but it is not a node, so it is not ranked and
+has no place in the arrangement. Being an obstacle is the whole of its part in layout.
+
+**And an arrangement is never slid aside for one**, which took a bug to notice. A whole ranked
+arrangement is shifted clear of things already placed, so that an arrangement set on a layer
+someone has hand-built sits beside that work rather than through it — and a note counted as such
+a thing. Since laying the layer out puts each tied note directly under what it describes, every
+arrangement then shoved the entire layer clear of the note it had just placed, leaving the note
+stranded a hundred units off with a leader stretched across the canvas. The note looked like the
+thing that had gone wrong; it was the only thing that had stayed put.
+
+Only a *card* someone placed justifies moving an arrangement. A note is placed by what it
+describes, so carrying the layer away from a note carries it away from the note's own subject.
+
+**Laying the layer out again moves a note with what it describes.** A note's coordinates are the
+user's, like a card's — and `arrange` is exactly the action that hands the user's placement back,
+so it hands a note's back too, putting it just under the bounds of what it is tied to. Left
+alone, every note stayed put while everything it described moved out from under it, and the
+leaders stretched across the whole layer.
+
+A note tied to nothing keeps its place. There is nothing for it to follow, which is the same
+reason it needed coordinates in the first place.
+
+Where it lands is worked out on the canvas rather than in the fold, because it depends on the
+arrangement the layer is about to take, and only the canvas can run that. Under, rather than
+beside: it is clear of the ranks, and it is where a reader already looks for a caption.
+
 **A place is the one thing it needs that no other attribute does.** A group is positioned by its
 members, so it stores nothing. A note can be tied to nothing at all — that is the point of being
 able to draw one on empty canvas — so there is nothing else to place it by. It therefore carries
@@ -1261,15 +1289,78 @@ is empty on most of them and would rank nothing; the source-to-target pair is th
 of direction most will ever carry, and it is the way somebody drew it. Cycles stop at the edge
 that closes them rather than ranking forever.
 
+**Ranks sit two cells apart and cards one cell apart across them.** The gap along the axis is
+where the lines between ranks run — two stubs meet in it, with room for a lane or two beside
+them — and the gap across a rank has nothing to carry, so it is the ordinary one.
+
+Getting this wrong is what made every arrangement look scattered, and the cause was a single
+term: rank spacing was a card's *width* halved, plus a gap, whatever the axis. Along `across`
+that put a hundred and twenty units of air between cards a hundred and sixty-eight wide; along
+`down` it put the same hundred and eight between cards thirty-six tall, so the space between
+rows was three times the rows. Air is what a reader takes for *unrelatedness*, so an arrangement
+whose whole job is to show what relates to what was saying the opposite in its spacing.
+
 **Within a rank, order is a barycentre sweep** — each node pulled toward the average position of
 what it is joined to in the rank before, forward then back. Two passes, because it is a
 heuristic for fewer crossings rather than a solution to them. What it buys is the thing that
 matters most: a chain comes out on one row, so every line along it is straight and there is
 nothing left for anyone to want to drag.
 
+**What layout arranges is a unit, and a group is one unit.** A boundary is nothing but its
+members' bounds, so members strewn across the ranks draw a boundary over everything sitting
+between them — and two groups strewn that way overlap however carefully anything else is
+arranged. Ranking cards individually did exactly that: it had no reason to keep members together
+and every reason to interleave them, because what pulls a card into place is what it is *joined*
+to, not what it *belongs* with.
+
+Nudging the ordering was the first attempt — members taking their group's average pull — and it
+was not enough. It kept them contiguous *within a rank* and did nothing about a group spread
+across several, which is the common case, because relationships are exactly what ranks things
+and exactly what a group's members tend to have with each other.
+
+So a group is contracted to a single object and the layer is arranged over *those*. Inside it,
+members keep their offsets exactly and only the object moves. This does not make a group
+structural — no parent changes and the explorer still never shows it. It is the opposite: design
+already says a group is "a fact about where things sit", so layout that ignored it was not
+honouring the group at all.
+
+**Groups that share a member are one unit.** The shared card pins them; they cannot be placed
+apart however much anyone would like it. Their boundaries still overlap and compound, which is
+what overlapping groups are supposed to do — they simply travel together.
+
+**A unit is sized to its members plus the room its boundary needs.** Packed to the members'
+bounds, two groups end up with their boundaries a hair apart and reading as one.
+
+The cost is that a group's members no longer respond individually to what they are related to
+outside it, so lines in and out take longer routes than they would. That is the right trade: a
+long line is read past, while a boundary drawn around the wrong things is read *wrong*, and
+overlapping boundaries are the one thing on this canvas that compounds into illegibility.
+
 **Free-form is the default**, not `across`. The tool is general first, and a diagram that is not
 a flow reads worse ranked than it does clustered. An axis is something you turn on when the
 layer means it.
+
+**`grid` is the fourth, and it is the one that is not about flow at all.** A layer can be a
+collection rather than a system — things that belong together and are not wired to each other —
+and neither clustering nor ranking serves that: one leaves it lumpy and the other has nothing to
+rank by. Tiling in reading order does.
+
+Adding it does not un-collapse the one-knob decision. `free` and `grid` are simply two values
+that both mean *no flow direction*; the setting is still the arrangement and still the flow
+axis, and which sides a flow relationship takes still falls out of it. Row and column were left
+out: a row is a grid whose contents fit on one line, and two more values to say that is a
+setting where a shape would do.
+
+**Picking an arrangement lays the layer out by it.** The button is a verb as much as a state,
+and treating it as both is what removed a control rather than adding one. There used to be an
+arrangement toggle and a separate "arrange" action beside it, which read badly for a reason
+worth keeping: a state and a verb sitting in one row, looking alike and behaving differently.
+Once the arrangements are their own buttons the verb is already there — choosing `grid` plainly
+means *make this a grid* — so the extra button, and the icon nobody could read, are gone.
+
+The earlier objection to this was that applying on pick would destroy hand-placed work as a side
+effect of changing a *view* setting. That objection died with the premise: these are not view
+settings, they are requests to arrange.
 
 **An arrangement rearranges only what nobody has placed.** User placement wins, as it does
 everywhere else — which means setting an axis on a layer laid out by hand does nothing at all
