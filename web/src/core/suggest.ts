@@ -8,7 +8,7 @@
  *  Every suggestion carries what it does, so the chip list is an action
  *  palette rather than a list of strings the caller has to interpret. */
 
-import { childrenOf } from "./fold";
+import { blocksOf } from "./fold";
 import { FLOOR, scoreAny } from "./match";
 import type { Question } from "./router";
 import type { Graph } from "./types";
@@ -30,7 +30,7 @@ const LIMIT = 6;
 
 /** Existing objects in the open layer whose names resemble what is typed. */
 function matches(graph: Graph, view: string | null, draft: string) {
-  const here = childrenOf(graph, view);
+  const here = blocksOf(graph, view);
   const options = Object.fromEntries(here.map((n) => [n.id, [n.label]]));
 
   return scoreAny(draft, options).filter((hit) => hit.score >= FLOOR);

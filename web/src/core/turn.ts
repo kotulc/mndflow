@@ -8,10 +8,10 @@
  *  Pure on purpose: given a graph and an answer it returns the changes and the
  *  next unresolved question, touching no state of its own. */
 
-import { childrenOf } from "./fold";
+import { blocksOf } from "./fold";
 import { score } from "./match";
 import { CREATE_IT, ENTRY, classify, type Question } from "./router";
-import { newId, node as makeNode, type Graph, type Mutation } from "./types";
+import { edge as makeEdge, node as makeNode, type Graph, type Mutation } from "./types";
 import { entry, getDomain, type Terms } from "./workflows";
 
 /** A relation half-built: what we know, and what we still need. */
@@ -94,7 +94,7 @@ function relate(graph: Graph, said: string, scope: string | null,
     return { mutations, pending: { source, wanted: "" }, action: "relate" };
   }
 
-  mutations.push({ op: "link_nodes", edge: { id: newId("e"), source, target, relation: "" } });
+  mutations.push({ op: "link_nodes", edge: makeEdge(source, target) });
 
   return { mutations, pending: null, action: "relate" };
 }
@@ -151,7 +151,7 @@ export function answer(graph: Graph, question: Question | null, said: string,
       // different groups quite legitimately. A twin is skipped rather than
       // duplicated, and an answer that is all twins changes nothing, which the
       // caller reports as a nudge.
-      const taken = new Set(childrenOf(graph, scope).map((n) => n.label.toLowerCase()));
+      const taken = new Set(blocksOf(graph, scope).map((n) => n.label.toLowerCase()));
       const mutations: Mutation[] = [];
 
       for (const part of text.split(",")) {

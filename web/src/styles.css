@@ -6,6 +6,13 @@
   --text: #c8e6d0;
   --muted: #6b8f7d;
   --accent: #4ade80;
+  /* Not from here. Green is structure and amber is attributes, so a mention of
+     something living in another layer gets the one hue neither has claimed. */
+  --away: #a78bfa;
+  --away-dim: #4c3f78;
+  /* Attributes, and the notes that draw them on the canvas. */
+  --note: #d9a441;
+  --note-dim: #6b5426;
   --error: #ff6b6b;
   --hover: #16221c;
 
@@ -19,9 +26,11 @@
 body { margin: 0; background: var(--bg); }
 
 .app {
+  position: relative;
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
   height: 100vh;
+  overflow: hidden;
 }
 
 header {
@@ -124,9 +133,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 @keyframes blink { 50% { opacity: 0; } }
 
-/* The option cluster, sharing the row */
+/* The option cluster, sharing the row. Matching swaps this for the score
+   readout via a slide; the toggle sits on the rail's far-right edge. */
 
 .rail {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -134,6 +145,76 @@ button:disabled { opacity: 0.4; cursor: default; }
   gap: 7px;
   min-width: 0;
   overflow: hidden;
+}
+
+.rail-pane {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 7px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The readout's own control, at the end of the header's tools — the same row
+   as export, import and new, since it is one more thing you do to the page
+   rather than to the graph. */
+
+.readout-toggle {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  color: var(--muted);
+}
+
+.readout-toggle:hover:not(:disabled) { color: var(--text); }
+
+.readout-toggle.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: #12241a;
+}
+
+/* The readout, sliding in from the right edge over the canvas rather than
+   taking a column from it. Bounded by the working area, so the terminal above
+   stays visible while it is out. */
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  width: min(360px, 46vw);
+  display: flex;
+  padding: 8px;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  transform: translateX(100%);
+  transition: transform 240ms ease;
+}
+
+.drawer.open { transform: none; }
+
+/* Its own controls stay reachable while it is out. */
+
+
+.match-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 12px;
+  height: 10px;
+}
+
+.match-icon i {
+  display: block;
+  height: 1px;
+  background: currentColor;
 }
 
 .settling {
@@ -178,6 +259,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 @media (prefers-reduced-motion: reduce) {
   .cursor, .chip { animation: none; }
+  .rail-pane { transition: none; }
 }
 
 /* Explorer */
@@ -189,13 +271,17 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 
-.files { overflow: auto; padding-bottom: 8px; }
+.files {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
 .files:focus { outline: none; }
 .files:focus-visible { outline: 1px solid var(--divider); outline-offset: -1px; }
 
 .files-bar {
-  position: sticky;
-  top: 0;
+  flex: none;
   z-index: 1;
   display: flex;
   justify-content: space-between;
@@ -219,8 +305,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .files-bar button:hover:not(:disabled) { background: var(--hover); color: var(--accent); }
+.files-bar button.on { color: var(--accent); background: var(--hover); }
 
 .files .item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -233,84 +321,484 @@ button:disabled { opacity: 0.4; cursor: default; }
 .files .item.active { background: var(--hover); color: var(--accent); }
 .files .item.over { outline: 1px dashed var(--accent); outline-offset: -1px; }
 .files .item.root { color: var(--muted); padding-left: 10px; }
-.files .glyph { width: 1em; color: var(--border); text-align: center; }
-.files .item.group > .glyph { color: var(--accent); }
-.files .item.active > .glyph { color: var(--accent); }
 
 /* Canvas cards */
 
 .canvas { position: relative; min-height: 0; }
 
+/* The tray covers the foot of the canvas, so the zoom controls sit above
+   however tall it actually is — measured and handed down, since the tray is as
+   tall as its contents up to a ceiling and guessing at the ceiling stranded
+   them halfway up a tall screen. */
+.canvas .react-flow__controls {
+  /* The library adds its own margin below this, which is the gap we want. */
+  bottom: var(--tray, 30px);
+  transition: bottom 200ms ease;
+}
+
+/* The card fills the size the canvas states for it, rather than sizing itself
+   from its text. `sizeOf` is what every other piece of geometry measures
+   against, so a card that disagreed with it put its own interfaces where the
+   lines did not expect them.
+
+   Nothing is clipped here: interfaces straddle the border and the graze ring is
+   drawn outside it, so hiding overflow on the card would cut both in half. What
+   a stated height cannot grow for is a long name, and that is clipped on the
+   head instead. */
 .card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
   border: 1px solid var(--border);
   border-radius: 2px;
   background: #111a16;
-  padding: 7px 9px;
+  /* Tight vertically: the card is one grid row of content, and every pixel of
+     padding comes straight off the room the name has. */
+  padding: 5px 9px;
   font-size: 12px;
-  min-width: 150px;
 }
 
-.card.group { border-style: dashed; background: rgba(15, 22, 19, 0.6); }
+/* No dashed border: the grid inside already says this holds something, and two
+   signals for one fact only make the canvas noisier. */
+.card.group { background: rgba(15, 22, 19, 0.6); }
 .card { position: relative; }
 .card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35); }
 .card.chosen { box-shadow: 0 0 0 2px var(--accent); }
-.card.changed { background: #17301f; border-color: #35614a; }
-.card.group.changed { background: rgba(23, 48, 31, 0.75); }
 .card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
 
-.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.card-head .label { overflow-wrap: anywhere; }
+/* What the pointer is over, and only that — the canvas picks one element and
+   sets the class, since `:hover` would light the card under every interface
+   and every chip as well.
+
+   One highlight for the whole card, border included: right-click makes an
+   interface wherever on it the click lands, so there is no longer a second
+   context along its edge for a second highlight to describe. */
+.card.grazed { border-color: #5f8f73; background: #16211b; }
+.card.group.grazed { background: rgba(22, 33, 27, 0.75); }
+
+.card.grazed::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+/* Fills whatever the card has left — all of it on a block, and the room above
+   the grid on a container — so `align-items` centres the name in it rather
+   than leaving it sitting against the top edge.
+
+   `min-height: 0` so it shrinks inside the card's stated height instead of
+   pushing past it, which is what makes the clip take effect. */
+.card-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* One line, always. A card is a long horizontal bar, and a name wrapped across
+   two lines in one is a different shape from its neighbours — a treemap cell is
+   square and wraps happily, but this is not that. Too long, and it ellipsizes.
+   `min-width: 0` is what lets a flex item shrink below its text and clip. */
+.card-head .label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* A selected card's name is the way to rename it, so it says so on hover. */
+/* Every name renames the same way, whatever it belongs to and whether or not
+   that thing is selected — see `Name`. Each is its own target, so it lights on
+   its own and the card or border beneath it stays as it was. */
+.card-head .label,
+.frame-name .frame-label,
+.region-name .region-label { cursor: context-menu; }
+
+.card-head.grazed .label {
+  color: #eaffef;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35);
+  border-radius: 2px;
+}
+
+/* Edited in place, sized and set like the name it replaces so the card does
+   not jump when the field opens. */
+.card-head .rename {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.card-head .rename:focus { outline: none; }
 .card-head .kind { color: var(--muted); font-size: 10px; letter-spacing: 0.08em; flex: none; }
 
-.treemap { display: grid; gap: 2px; margin-top: 6px; }
+/* Cells are placed, not flowed: each one is a rectangle the treemap worked
+   out, positioned in percentages of this box. */
+/* Height and the gap above it are both set by the card, not here — see
+   `Contents`. They have to add up to exactly how much taller a container is
+   than a block, so they come from one place. */
+.treemap { position: relative; flex: none; }
 
 .cell {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 18px;
   padding: 2px;
   border-radius: 1px;
   overflow: hidden;
 }
 
-.cell.group { border: 1px dashed rgba(107, 143, 125, 0.6); padding: 2px; }
+.cell.group { border: 1px solid rgba(107, 143, 125, 0.45); }
+
 .cell .tag {
-  font-size: 9px;
-  line-height: 1.1;
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: 100%;
+  line-height: 1.15;
   color: var(--text);
+  text-align: center;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.cell .tag.clip {
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .hollow { color: var(--muted); font-size: 10px; }
+.cell.more { color: var(--muted); cursor: pointer; }
+.cell.more .tag { color: var(--muted); }
 
-/* The open group, drawn behind its contents — as though we stepped into it */
+/* The open node, drawn behind its contents — as though we stepped into it */
 
 .canvas .react-flow { --xy-background-color: transparent; background: transparent; }
+.stage { position: relative; height: 100%; }
 
-.layer-frame {
-  position: absolute;
-  inset: 40px 56px 40px 56px;
-  z-index: 0;
+/* Inside the frame is the canvas itself, left clear to the grid; everything
+   outside it is dimmed by a shadow wide enough to reach any corner. */
+.frame {
+  width: 100%;
+  height: 100%;
   border: 1px solid #3a5c4b;
   border-radius: 4px;
-  background: #101b16;
-  box-shadow: 0 0 0 1px rgba(10, 15, 13, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.5);
+  background: transparent;
+  box-shadow: 0 0 0 9000px rgba(6, 10, 8, 0.72);
+}
+
+/* The two walls a flow relationship enters and leaves by, when the layer has an
+   axis. Doubled rather than thickened, so it says "things cross here" without
+   competing with the grazed and selected states the same border carries, and so
+   it reads at any zoom. A free layer has no such walls and no mark.
+
+   The two are not the same wall. Flows arrive at one and leave by the other, so
+   the one they leave by is drawn brighter — the layer reads in the direction
+   the border brightens. */
+/* Drawn as a band *outside* the frame's own line rather than as a fat border on
+   it. Two reasons. The frame's border box is where every interface on it is
+   seated and where every line meets it, so thickening it would have moved the
+   geometry the router computes from — and it put the ports on the band's outer
+   face, with the wall reading as though it were behind them. Outside, the line
+   stays 1px, nothing moves, and the ports sit on the band's inner edge, which is
+   where a port set into a wall belongs. */
+.frame.flow-right::before,
+.frame.flow-right::after,
+.frame.flow-down::before,
+.frame.flow-down::after {
+  content: "";
+  position: absolute;
   pointer-events: none;
 }
 
-.layer-name {
+/* One line each, not a doubled one: the frame's own border is already the first
+   of the pair, so a `double` band made three lines where two were meant.
+
+   Brighter where flows arrive, dimmer where they leave, so the layer reads in
+   the direction the wall fades. */
+.frame.flow-right::before {
+  top: -1px;
+  bottom: -1px;
+  left: -4px;
+  border-left: 2px solid #6d9a7e;
+}
+
+.frame.flow-right::after {
+  top: -1px;
+  bottom: -1px;
+  right: -4px;
+  border-right: 2px solid #395a4b;
+}
+
+.frame.flow-down::before {
+  left: -1px;
+  right: -1px;
+  top: -4px;
+  border-top: 2px solid #6d9a7e;
+}
+
+.frame.flow-down::after {
+  left: -1px;
+  right: -1px;
+  bottom: -4px;
+  border-bottom: 2px solid #395a4b;
+}
+
+/* The layer's border answers the pointer the way a card's does, since it is
+   where right-click makes an interface and right-drag draws a relation from
+   one. Tracked by the canvas: the frame takes no pointer events of its own. */
+.frame.grazed { border-color: var(--accent); }
+
+/* The wall this layer is set into, when the layer is an interface: the parent
+   block's own border, running through the dimmed margin on either side and
+   stopping where this frame begins. */
+.wall .before,
+.wall .after { position: absolute; background: #3a5c4b; }
+
+.wall.upright .before,
+.wall.upright .after { left: 50%; width: 1px; height: 9000px; }
+.wall.upright .before { bottom: 100%; }
+.wall.upright .after { top: 100%; }
+
+.wall.flat .before,
+.wall.flat .after { top: 50%; height: 1px; width: 9000px; }
+.wall.flat .before { right: 100%; }
+.wall.flat .after { left: 100%; }
+
+/* Set into the frame's own border — a break in the line rather than a caption
+   above it. Top-left, since the canvas toolbar has the other corner. */
+.frame-name {
   position: absolute;
-  right: 16px;
+  left: 16px;
   top: -9px;
   padding: 0 8px;
   background: var(--bg);
   color: var(--muted);
   font-size: 12px;
   letter-spacing: 0.16em;
-  text-transform: lowercase;
+  /* No case of its own. A name is written the way it was typed, and the same
+     way wherever it appears — the explorer, a card, the trail, and here. */
+  pointer-events: auto;
+}
+
+/* This layer is where you already are, so one click on its name edits it. The
+   name is its own target — set into the border, never part of it — so it
+   lights on its own and the border stays dark under it. */
+.frame-name.grazed .frame-label { color: var(--text); }
+.frame-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
+
+.frame-name .rename {
+  width: 12em;
+  padding: 0;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.frame-name .rename:focus { outline: none; }
+
+/* Interfaces: open squares on the frame edge, on a card or on the frame.
+   Above their host card's body, below relations (edges layer). */
+
+.port {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  /* Opts back in where its host is transparent to the pointer. */
+  pointer-events: auto;
+}
+
+.port-top { top: 0; transform: translate(-50%, -50%); }
+.port-bottom { bottom: 0; transform: translate(-50%, 50%); }
+.port-left { left: 0; transform: translate(-50%, -50%); }
+.port-right { right: 0; transform: translate(50%, -50%); }
+
+/* Where a hidden interface's relations still meet the border. It draws nothing
+   of its own — it holds the anchor in the place the interface sits. */
+.berth { position: absolute; pointer-events: none; }
+
+/* ...except while the relation tied to it, or the node it is on, is selected:
+   then it shows as a round handle, enough to see where a line is tied on
+   without turning every square on the layer back on. */
+.berth .seat {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--bg);
+  transform: translate(-50%, -50%);
+}
+
+/* What a relationship's ends are, said in how it draws. Plain is the default
+   and needs no mark of its own. A flow carries something one way, so it is
+   drawn heavier — the line that means the most is the line you see first. An
+   association is a weaker mention, so it thins and fades. Neither borrows a
+   dash: those are spent on references and boundaries. */
+.react-flow__edge.kind-flow .react-flow__edge-path { stroke-width: 2.5; }
+.react-flow__edge.kind-assoc .react-flow__edge-path { stroke-width: 1; opacity: 0.55; }
+
+/* A seat the layer worked out, rather than an interface somebody made. It draws
+   the same, because it is the same thing to look at: the place a relationship
+   meets a card. Always filled — it exists because a line put it there, and an
+   open square is what an unwired interface looks like. Right-clicking it
+   promotes it to a node of its own. */
+/* The mark takes the pointer, not the wrapper around it. The wrapper is a
+   positioning shell with no box of its own, so a right-click aimed at the seat
+   would have passed straight through it to the card underneath. */
+.berth .seat-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--border);
+  background: #3a5c4b;
+  transform: translate(-50%, -50%);
+}
+
+/* Whichever mark a derived seat is drawing — a square for a flow end, a handle
+   for an anchor that has been lit — is what gets right-clicked to promote it.
+   An anchor drawing nothing has nothing to aim at, which is why selecting the
+   line or the card is what reveals it. */
+.berth.perch .seat-mark,
+.berth.perch .seat { pointer-events: auto; cursor: context-menu; }
+.berth.perch .seat-mark:hover,
+.berth.perch .seat:hover { border-color: var(--accent); }
+
+.port .mark {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* Filled when a relationship attaches to it, open when none does — so a
+   glance at a card says which of its ports are wired and which are only
+   describing its shape. */
+.port.wired .mark { background: #3a5c4b; }
+
+/* A port holding blocks of its own says so, without being opened. */
+.port.deep .mark {
+  background: linear-gradient(to right, var(--bg) 0 45%, var(--border) 45% 55%, var(--bg) 55%);
+}
+
+.port.wired.deep .mark {
+  background: linear-gradient(to right, #3a5c4b 0 45%, var(--border) 45% 55%, #3a5c4b 55%);
+}
+
+.port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3); }
+.port.grazed .mark { border-color: var(--accent); }
+.port.flow-in .mark { border-left-width: 3px; }
+.port.flow-out .mark { border-right-width: 3px; }
+.port.flow-both .mark { border-left-width: 3px; border-right-width: 3px; }
+
+.port-name {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+  opacity: 0.55;
+}
+
+.port.grazed .port-name,
+.port.picked .port-name { opacity: 1; color: var(--accent); }
+
+/* A card standing in for a node that lives in another layer.
+ *
+ * It has to read as *not from here* at a glance, and a dashed border cannot
+ * say that — containers are already dashed. So it steps out of the palette
+ * instead: grey rather than green, hatched rather than filled, and marked in
+ * the corner with the arrow that means "elsewhere". */
+
+.card.reference {
+  border-style: dashed;
+  border-color: #4a5d53;
+  color: var(--muted);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(120, 140, 130, 0.06) 0 5px,
+      transparent 5px 10px
+    ),
+    #101613;
+}
+
+.card.reference .card-head .label { color: #8aa295; font-style: italic; }
+.card.reference .card-head .kind { color: #4c5f55; }
+
+/* The mark for what it is: away, not here. On `::before`, because `::after`
+   is the hover ring every card gets and an element has only one of each. */
+.card.reference::before {
+  content: "↗";
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  color: #4c5f55;
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.card.reference.grazed { border-color: #587a6a; }
+.card.reference.grazed::before { color: #8aa295; }
+
+.card.reference.picked {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.card.reference.picked .card-head .label { color: var(--text); }
+
+/* A relation while it is being drawn, in screen coordinates */
+
+.wiring {
+  position: absolute;
+  inset: 0;
+  /* An <svg> keeps its intrinsic 300x150 unless told otherwise, so `inset`
+     alone left the line drawn outside a box too small to show it. */
+  width: 100%;
+  height: 100%;
+  z-index: 7;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.wiring line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+
+/* The rectangle a right drag on the background sweeps out, on its way to making
+   a note. Amber, because that is what it is about to make, and nothing like the
+   green selection box the left button draws in the same place. Dashed because
+   it is provisional — the same reason the relationship being drawn is. */
+.wiring rect.sweep {
+  fill: rgba(217, 164, 65, 0.06);
+  stroke: var(--note);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
 }
 
 /* Floating inputs over the canvas */
@@ -346,6 +834,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Panes */
 
 main {
+  position: relative;
   display: grid;
   grid-template-columns: 280px 1fr;
   border-top: 1px solid var(--border);
@@ -354,6 +843,70 @@ main {
 
 .files ul { list-style: none; margin: 0; padding: 0; }
 .files .empty { color: var(--muted); padding: 4px 12px; }
+
+/* Deep branches indent past the sidebar rather than wrapping; the scroll
+   follows the selection instead of truncating the tree. */
+.tree { flex: 1; min-height: 0; overflow: auto; padding-bottom: 8px; }
+.tree > ul { width: max-content; min-width: 100%; }
+.tree > ul.roots {
+  /* Match a nested branch's guide inset, without drawing a line — the root
+     row is always open and is not a foldable node for a line to hang from. */
+  padding-left: calc(10px + 0.5em);
+}
+.files .item { width: max-content; min-width: 100%; }
+.files .item.new { padding-left: calc(20px + 0.5em); }
+.files .icon { width: 1em; flex: none; text-align: center; color: var(--border); }
+.files .icon.fold { cursor: pointer; }
+.files .icon.fold:hover { color: var(--accent); }
+.files .item.group > .icon { color: var(--accent); }
+.files .item.port > .icon,
+.files .item.port > .label { color: var(--muted); }
+.files .item.quiet { color: var(--muted); letter-spacing: 0.08em; cursor: default; }
+.files .item.quiet:hover { background: none; }
+
+/* Guide lines hang from an expanded parent only — collapsed nodes omit
+   `.branch` entirely. The vertical sits under the role icon; ticks are
+   positioned on the row itself so nested branches cannot shift them. */
+.files ul.branch {
+  --guide-gap: 6px;
+  position: relative;
+  margin-left: calc(10px + 0.5em);
+  padding-left: var(--guide-gap);
+}
+
+.files ul.branch > li { position: relative; }
+
+.files ul.branch > li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--guide-gap));
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--divider);
+}
+
+/* Last child's vertical stops at its own row, so an expanded nest below
+   does not stretch the parent's guide through the grandchildren. */
+.files ul.branch > li:last-child > .item::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--guide-gap));
+  top: 0;
+  width: 1px;
+  height: 50%;
+  background: var(--divider);
+}
+
+.files ul.branch > li > .item::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--guide-gap));
+  top: 50%;
+  width: var(--guide-gap);
+  height: 1px;
+  background: var(--divider);
+}
 
 .doc-bar .state { color: var(--muted); font-size: 11px; }
 .doc-bar .holds { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; }
@@ -370,18 +923,117 @@ main {
 
 .files .rename:focus { outline: none; }
 
-/* Canvas, with the selected document's text beneath it */
+/* The canvas takes what is left; the attribute tray rides at its foot */
 
 .work { display: grid; overflow: hidden; }
 
-.doc {
+.tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
   display: flex;
   flex-direction: column;
-  height: 170px;
-  min-width: 0;
-  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
   background: var(--surface);
 }
+
+.tray-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 12px;
+  color: var(--accent);
+  cursor: default;
+}
+
+.tray-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-bar .holds { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; flex: none; }
+.tray-bar .add-attr { flex: 1; min-width: 6em; }
+.tray-bar .add-attr:disabled { color: var(--muted); opacity: 0.5; }
+
+.tray-bar .chevron {
+  flex: none;
+  width: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.tray-bar .chevron:hover { color: var(--accent); background: none; }
+
+/* Shut, it is a bar and nothing more — the canvas keeps the rest. Open, it
+   slides up to a readable height without ever taking the whole layer. */
+.tray-body {
+  display: flex;
+  flex-direction: column;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 200ms ease;
+}
+
+.tray.open .tray-body { max-height: 40vh; overflow: auto; }
+
+.tray-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--divider);
+}
+
+.tray-row select,
+.tray-row button {
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.tray-row button:hover { color: var(--accent); border-color: var(--accent); }
+.tray-row .state { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+.tray textarea {
+  min-height: 84px;
+  padding: 8px 12px;
+  border: none;
+  resize: vertical;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.tray textarea:focus { outline: none; }
+.tray textarea::placeholder { color: var(--muted); }
+
+.tray .name-field {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  width: 14em;
+}
+
+.tray .name-field:focus { outline: none; }
+
+.tray .members { list-style: none; margin: 0; padding: 6px 12px; }
+.tray .members li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tray .members button { border: none; background: none; color: var(--border); font-size: 10px; }
+.tray .members button:hover { color: var(--error); }
 
 .doc-bar {
   display: flex;
@@ -394,7 +1046,7 @@ main {
 }
 
 .doc-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.doc-bar .meta { flex: none; }
+.tray-row .meta { flex: none; }
 
 .doc textarea {
   flex: 1;
@@ -410,6 +1062,83 @@ main {
 .doc textarea:focus { outline: none; }
 
 .doc textarea::placeholder { color: var(--muted); }
+
+/* The selection's attributes, under its text. A group appears here as what it
+   is — one attribute several objects share — rather than as its own kind. */
+
+.tray-row .meta { display: flex; align-items: center; gap: 6px; }
+.doc-bar .meta select,
+.doc-bar .meta button {
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  padding: 0 4px;
+}
+
+.doc-bar .meta button:hover { color: var(--accent); border-color: var(--accent); }
+
+.doc-bar .name-field {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  width: 14em;
+}
+
+.doc-bar .name-field:focus { outline: none; }
+
+.attrs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px 8px;
+  border-top: 1px solid var(--divider);
+}
+
+.attr { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.attr .key { color: var(--muted); min-width: 7em; }
+.attr.shared .key { color: var(--accent); }
+.attr .held { color: var(--muted); font-size: 11px; flex: 1; }
+
+.attr input,
+.add-attr {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.attr input:focus,
+.add-attr:focus { outline: none; border-bottom-color: var(--accent); }
+.add-attr { color: var(--muted); }
+
+.attr button {
+  border: none;
+  background: none;
+  color: var(--border);
+  font-size: 10px;
+  padding: 0 2px;
+}
+
+.attr button:hover { color: var(--error); }
+
+
+.doc .members li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+
 
 /* Action log */
 
@@ -472,12 +1201,10 @@ main {
 .crumbs .sep { color: var(--border); }
 .crumbs .up { margin-left: 4px; border: 1px solid var(--border); }
 
-/* Object explorer glyphs */
-
 /* Properties pane header */
 
 .doc-bar .name { color: var(--accent); }
-.doc-bar .meta { display: flex; align-items: center; gap: 8px; }
+.tray-row .meta { display: flex; align-items: center; gap: 8px; }
 
 .doc-bar .type {
   width: 9em;
@@ -492,21 +1219,78 @@ main {
 .doc-bar .type:focus { outline: none; border-color: var(--accent); }
 .doc-bar button { padding: 0 6px; font-size: 11px; }
 
-/* Foot: the action log and the match scoring, side by side */
 
-footer {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--border);
+
+/* The readout — relations, actions and matching, sharing the rail */
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  overflow: hidden;
 }
+
+.readout .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--divider); }
+
+.readout .tabs button {
+  flex: 1;
+  padding: 3px 8px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.readout .tabs button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.readout .tabs button.on { color: var(--accent); background: var(--hover); }
+
+.readout-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
+/* The three of them fill the readout rather than keeping the heights they had
+   when each sat in a column of its own. */
+.readout .log,
+.readout .relations,
+.readout .scores {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  border: none;
+  padding-right: 0;
+  overflow: auto;
+}
+
+/* Matching readout — lives in the terminal rail when toggled */
 
 .scores {
   display: flex;
   flex-direction: column;
-  height: 170px;
+  flex: 1;
   min-width: 0;
-  border-left: 1px solid var(--border);
+  min-height: 0;
+  padding-right: 28px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
   background: var(--surface);
+}
+
+.scores-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--divider);
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  flex: none;
 }
 
 .scores .subject {
@@ -517,6 +1301,8 @@ footer {
   white-space: nowrap;
   letter-spacing: 0;
 }
+
+.score-lines { flex: 1; overflow-y: auto; padding: 4px 0; font-size: 12px; }
 
 .score { display: flex; align-items: center; gap: 8px; padding: 3px 12px; }
 .score .name {
@@ -559,18 +1345,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 /* Alongside the open layer — the parent's siblings, on the frame's edge */
 
-/* Link handles, big enough to aim at — missing one used to pan the canvas */
-
-.react-flow__handle {
-  width: 9px;
-  height: 9px;
-  border: 1px solid var(--bg);
-  background: var(--muted);
-}
-
-.react-flow__handle:hover { background: var(--accent); }
-.card:hover .react-flow__handle { background: var(--accent); }
-
 /* Renaming in place, on a card */
 
 .card .rename {
@@ -584,9 +1358,8 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .card .rename:focus { outline: none; }
-.card .label { cursor: text; }
 .cell { cursor: grab; }
-.cell:hover { outline: 1px solid var(--accent); outline-offset: -1px; }
+.cell.grazed { outline: 1px solid var(--accent); outline-offset: -1px; }
 
 /* Relation kinds, under the explorer */
 
@@ -637,36 +1410,70 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .relations .rename:focus { outline: none; }
 
+/* Hit-test precedence on the canvas: relations above everything else, then
+   cards (with interfaces above their host), then group bands. React Flow draws
+   edges and nodes in separate layers; without this, cards always win the
+   pointer even when an edge's own zIndex is higher. */
+.react-flow__edges { z-index: 4; }
+.react-flow__nodes { z-index: 2; }
+.react-flow__edgelabel-renderer { z-index: 5; pointer-events: none; }
+
 /* Relations on the canvas: selectable, directed, and marked when they reach
    inside a group rather than across the layer */
 
 .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.5; }
+/* Relations sit above the cards, so hovering one lights only the line — nothing
+   under it shares the pointer. */
 .react-flow__edge:hover .react-flow__edge-path { stroke: var(--text); }
 .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
 .react-flow__edge-textbg { fill: var(--bg); }
 .react-flow__edge.selected .react-flow__edge-text { fill: var(--accent); }
 
-/* A relation that lands on something nested is drawn differently and says so
-   in its label; the colour separates it from an ordinary one at a glance. */
-.react-flow__edge.crossing .react-flow__edge-path { stroke: #7a6cc4 !important; opacity: 0.9; }
-.react-flow__edge.crossing .react-flow__edge-text { fill: #9c8fe0; font-style: italic; }
-.react-flow__edge.crossing marker path { fill: #7a6cc4; }
+/* The name floats over the line rather than being part of what selects it —
+   the path underneath still catches the click, but the label itself does not
+   double as its own separate hit target. */
+.react-flow__edge-textwrapper { pointer-events: none; }
 
-/* Anchors on a chip, for relating to something nested */
+/* The segments of a routed relationship. Each carries a grab band with the
+   cursor for the way it moves; the mark under the pointer says which part of
+   the line is being offered, since a run is one shape and its segments are not
+   otherwise told apart. Selecting the line shows them all faintly at once. */
+/* The band is a rectangle sized in the component, so it stays the same size on
+   screen however far the layer is zoomed out. Filled rather than stroked
+   because hit testing on a fill is the one thing every browser agrees about. */
+.leg-grab { fill: transparent; stroke: none; pointer-events: all; }
 
-.chip-handle {
-  width: 9px;
-  height: 9px;
-  min-width: 9px;
-  min-height: 9px;
-  border: none;
-  background: transparent;
+/* The mark keeps its weight on screen too, so a segment reads the same at any
+   zoom rather than thinning away as the layer shrinks. */
+.leg-mark {
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  fill: none;
   opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms;
 }
 
-.cell:hover .chip-handle { background: var(--accent); opacity: 1; }
+.leg.shown .leg-mark { opacity: 0.28; }
 
-/* Arrangement and routing, top right of the canvas */
+/* A curved line has no segments of its own, so hovering it shows the whole run
+   it would take rather than one piece of it floating off the curve. */
+.react-flow__edge:hover .leg.ghost .leg-mark { opacity: 0.3; }
+.leg-grab:hover + .leg-mark { opacity: 0.6; }
+
+/* A relation drawn through a reference — one whose far end lives in another
+   layer. Its own colour as well as dashed: in the same green as every other
+   line it was indistinguishable from one, and reaching out of the layer is the
+   one thing about a line whose reading depends on being noticed. */
+.react-flow__edge.reaching .react-flow__edge-text { fill: #8a7ab0; font-style: italic; }
+.react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
+.react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
+.react-flow__edge.reaching.selected .react-flow__edge-text { fill: var(--away); }
+.react-flow__edge.reaching .leg-mark { stroke: var(--away); }
+
+/* Display toggles, top right of the canvas */
 
 .arrange {
   position: absolute;
@@ -692,13 +1499,205 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .arrange button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .arrange button.on { color: var(--accent); }
 
+/* How the layer is drawn: a column opposite the zoom controls, riding above the
+   attribute tray the same way they do. Icons only — these are settings you set
+   once and read at a glance, not labels to be scanned. */
+.shape {
+  position: absolute;
+  right: 10px;
+  bottom: calc(var(--tray, 0px) + 12px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: rgba(15, 22, 19, 0.9);
+}
+
+.shape button {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.shape button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.shape button.on { color: var(--accent); }
+
+/* The arrangements are one set; how lines are drawn is not one of them. */
+.shape button.apart { margin-top: 5px; border-top: 1px solid var(--divider); padding-top: 4px; }
+
 /* The relation editor doubles as its controls */
 
 .floating button { padding: 1px 7px; font-size: 12px; line-height: 18px; }
 
-/* Selection box */
+/* Selection box, while it is being drawn */
 
 .react-flow__selection {
   background: rgba(74, 222, 128, 0.07);
   border: 1px solid var(--accent);
+}
+
+/* ...and once it has caught something. The library sizes it to hug the
+   selection exactly, which leaves the line sitting on the cards' own borders
+   and reading as part of them. Content-box plus a negative margin grows the
+   drawn box past what it holds without moving it: the padding is added to the
+   stated width, and the margin takes the same amount back off the offset. */
+.react-flow__nodesselection-rect {
+  box-sizing: content-box;
+  /* Half a cell, the same hug a group's boundary uses — see HUG in Canvas. */
+  margin: -12px;
+  padding: 12px;
+  border: 1px dashed rgba(74, 222, 128, 0.6);
+  border-radius: 4px;
+  background: rgba(74, 222, 128, 0.05);
+}
+
+/* A group's boundary — one shared attribute, drawn around its members.
+ *
+ * Empty space inside is the group's: click selects, drag moves members with
+ * it. Cards sit above and keep their own pointer. Cursor says it is grabable
+ * the same way a card is.
+ *
+ * Sized like the selection rect (same hug), drawn like a faint selection that
+ * persisted: dashed border, fill clipped inside it, name breaking the line. */
+.region {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px dashed rgba(107, 143, 125, 0.4);
+  border-radius: 4px;
+  background: rgba(107, 143, 125, 0.04);
+  background-clip: padding-box;
+  cursor: grab;
+}
+
+.region.grazed {
+  border-color: rgba(74, 222, 128, 0.7);
+  background: rgba(74, 222, 128, 0.06);
+  background-clip: padding-box;
+}
+
+.region.picked {
+  border-color: rgba(74, 222, 128, 0.6);
+  background: rgba(74, 222, 128, 0.05);
+  background-clip: padding-box;
+}
+
+/* A card is over it and would join by being let go here — the same signal a
+   container gives, because it is the same gesture. */
+.region.dropping {
+  border-color: var(--accent);
+  background: rgba(74, 222, 128, 0.08);
+  background-clip: padding-box;
+}
+
+/* Set into the border like a frame name — a break in the dashed line. A left
+   drag moves the group; a right click renames. */
+.region-name {
+  position: absolute;
+  left: 12px;
+  top: -9px;
+  z-index: 1;
+  padding: 0 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.region.picked .region-name { color: var(--accent); }
+.region.grazed .region-name { color: var(--text); }
+
+/* Its own target for rename highlight — a right-click there edits rather than
+   acting on the boundary. */
+.region-name.grazed .region-label { color: var(--text); }
+.region-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
+
+.region-name .rename {
+  width: 10em;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+}
+
+.region-name .rename:focus { outline: none; }
+
+/* A note — the other way an attribute draws on the canvas.
+ *
+ * Amber throughout, because green is structure and amber is attributes, and a
+ * note is nothing but an attribute someone wanted to see.
+ *
+ * Solid, with a rule down the side it is read from. Dashes are spoken for: a
+ * reference card is dashed, a group's boundary is dashed, and a third dashed
+ * rectangle in a third shade is a distinction nobody can be asked to hold. The
+ * margin rule is the annotation convention off the page, and no other object on
+ * the canvas has one. Sized by its text — a fixed width, and whatever height
+ * the words need. */
+.note {
+  position: relative;
+  width: 168px;
+  padding: 6px 9px 6px 10px;
+  border: 1px solid var(--note-dim);
+  border-left: 3px solid var(--note-dim);
+  border-radius: 2px;
+  background: rgba(217, 164, 65, 0.05);
+  background-clip: padding-box;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.note-text {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: context-menu;
+}
+
+/* The whole note is its name, so it lights in one piece rather than lighting a
+   box with a target somewhere inside it. */
+.note.grazed { border-color: var(--note); color: var(--text); }
+
+.note.picked {
+  border-color: var(--note);
+  color: var(--text);
+  background: rgba(217, 164, 65, 0.09);
+  background-clip: padding-box;
+  box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.3);
+}
+
+.note .rename {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.note .rename:focus { outline: none; }
+
+/* A note's leaders. Fainter and finer than any relationship, and transparent to
+   the pointer: they are drawn *about* the diagram rather than being part of it,
+   so there is nothing to select and nothing to route. Dotted rather than
+   dashed, which is what tells them from a reference's violet dashes. */
+.react-flow__edge.tether { pointer-events: none; }
+
+.react-flow__edge.tether .react-flow__edge-path {
+  stroke: var(--note-dim);
+  stroke-width: 1;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
 }

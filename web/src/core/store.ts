@@ -57,22 +57,38 @@ export function importSteps(text: string): Step[] | null {
   }
 }
 
-const SHAPE = "mndflow.angular.v1";
+/** Display preferences. Global to the app rather than to a project: they
+ *  change nothing in the graph, appear in no export, and record no history,
+ *  so they have no business in the step log. */
+function flag(key: string, fallback: boolean) {
+  const name = `mndflow.${key}.v1`;
+  const initial = (() => {
+    try {
+      const raw = localStorage.getItem(name);
 
-/** Whether relations are drawn with right angles. A view preference, kept out
- *  of the step log — how something is drawn is not a change to the project. */
-export const angular = (() => {
-  try {
-    return localStorage.getItem(SHAPE) === "true";
-  } catch {
-    return false;
-  }
-})();
+      return raw === null ? fallback : raw === "true";
+    } catch {
+      return fallback;
+    }
+  })();
 
-export function setAngular(on: boolean): void {
-  try {
-    localStorage.setItem(SHAPE, String(on));
-  } catch {
-    // Preference lost, nothing more.
-  }
+  return {
+    initial,
+    set(on: boolean) {
+      try {
+        localStorage.setItem(name, String(on));
+      } catch {
+        // Preference lost, nothing more.
+      }
+    },
+  };
 }
+
+/** Right-angled relations instead of curves. */
+export const angular = flag("angular", false);
+/** Interfaces drawn on the canvas — on by default; off reads the structure
+ *  alone, with relations still meeting the frame edge where a port would be. */
+export const ports = flag("ports", true);
+/** Interfaces listed in the object explorer — off by default, since the tree
+ *  is for structure and a port per relation would bury it. */
+export const treePorts = flag("tree-ports", false);

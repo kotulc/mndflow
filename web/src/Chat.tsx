@@ -5,7 +5,9 @@
  *  reads as one continuous thing with the live line always at the foot.
  *
  *  Suggestions take the other half of the row, tiled in the same treemap shape
- *  a group shows its contents in. */
+ *  a group shows its contents in. That is the whole of this file's business:
+ *  the readout that used to share the rail now slides in from the page's own
+ *  right edge, and knows nothing about the terminal. */
 
 import { useMemo } from "react";
 
@@ -110,32 +112,35 @@ export function Chat(props: Props) {
       </div>
 
       <div className="rail">
-        <div className={`settling ${settling ? "on" : ""}`}>{settling ? frame : ""}</div>
+        <div className="rail-pane contexts">
+          <div className={`settling ${settling ? "on" : ""}`}>{settling ? frame : ""}</div>
 
-        <div
-          className="choices"
-          style={{ gridTemplateColumns: `repeat(${Math.min(cols, 3)}, minmax(0, 1fr))` }}
-        >
-          {done &&
-            chips.map((chip, index) => (
-              <button
-                key={chip.key}
-                className={[
-                  "chip",
-                  chip.kind,
-                  chip.hint ? "ghost" : "",
-                  chip.key === likely ? "likely" : "",
-                ].join(" ")}
-                style={{ animationDelay: `${index * 70}ms` }}
-                onClick={() => run(chip)}
-                disabled={chip.hint}
-                title={chip.label}
-              >
-                {chip.label}
-              </button>
-            ))}
+          <div
+            className="choices"
+            style={{ gridTemplateColumns: `repeat(${Math.min(cols, 3)}, minmax(0, 1fr))` }}
+          >
+            {done &&
+              chips.map((chip, index) => (
+                <button
+                  key={chip.key}
+                  className={[
+                    "chip",
+                    chip.kind,
+                    chip.hint ? "ghost" : "",
+                    chip.key === likely ? "likely" : "",
+                  ].join(" ")}
+                  style={{ animationDelay: `${index * 70}ms` }}
+                  onClick={() => run(chip)}
+                  disabled={chip.hint}
+                  title={chip.label}
+                >
+                  {chip.label}
+                </button>
+              ))}
+          </div>
         </div>
       </div>
+
     </div>
   );
 }

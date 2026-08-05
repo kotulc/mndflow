@@ -3,7 +3,7 @@
  *  Matching is the part of this app most in need of tuning, and tuning what
  *  you cannot see is guesswork. Every domain is listed with its score against
  *  whatever is being typed, so a bad route is visible as a near miss rather
- *  than as an inexplicable result. */
+ *  than as an inexplicable result. Lives in the terminal rail when toggled. */
 
 import { useMemo } from "react";
 
@@ -27,14 +27,14 @@ export function Scores({ text, active }: Props) {
 
   return (
     <section className="scores">
-      <div className="log-bar">
+      <div className="scores-bar">
         <span>Matching</span>
         <span className="subject">
           {!ready ? "loading model…" : text ? `"${text}"` : "nothing typed"}
         </span>
       </div>
 
-      <div className="log-lines">
+      <div className="score-lines">
         {scores.map((hit) => (
           <div
             key={hit.id}

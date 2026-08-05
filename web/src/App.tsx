@@ -1,32 +1,83 @@
-/** Shell: terminal and suggestions at the top, object explorer and graph in the
- *  middle, action log and match scoring at the foot.
+/** Shell: terminal and suggestions at the top, object explorer and graph
+ *  below.
+ *
+ *  The canvas takes everything left over. What used to sit under it — the
+ *  action log, the relation kinds, the match scoring — is a tabbed readout
+ *  behind the rail's toggle, and the attributes of whatever is selected ride
+ *  at the foot of the canvas itself.
  *
  *  There is no server. Everything below runs against a step log in this tab. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useProject } from "./core/project";
 import * as store from "./core/store";
-import { useEmbeddings } from "./useEmbeddings";
 import type { Suggestion } from "./core/suggest";
+import type { Kind } from "./core/types";
 import { Canvas } from "./Canvas";
 import { Chat } from "./Chat";
-import { Doc } from "./Doc";
 import { Files } from "./Files";
-import { Log } from "./Log";
-import { Relations } from "./Relations";
-import { Scores } from "./Scores";
+import { Panel } from "./Panel";
+import { Readout } from "./Readout";
 
 export function App() {
   const project = useProject();
-  const model = useEmbeddings();
-  const { graph, scope, view, path, select, question, terms } = project;
+  const { graph, view, picked, path, question, terms } = project;
   // Held here so the match scoring can watch it being typed.
   const [draft, setDraft] = useState("");
-  // How relations are drawn. A view preference, so it is kept apart from the
-  // project's own history — toggling it is not an edit.
-  const [angular, setAngular] = useState(store.angular);
-  useEffect(() => store.setAngular(angular), [angular]);
+  /** Whether the readout drawer is out. */
+  const [shelved, setShelved] = useState(false);
+  /** The attribute tray's real height, so the canvas can keep its own controls
+   *  clear of it. Measured rather than guessed: the tray is as tall as its
+   *  contents up to a ceiling, and a guess at the ceiling left the controls
+   *  stranded halfway up a tall screen. */
+  const tray = useRef<HTMLElement>(null);
+  const [trayHeight, setTrayHeight] = useState(0);
+
+  useEffect(() => {
+    const foot = tray.current;
+    if (!foot) return;
+
+    const watch = new ResizeObserver(([entry]) => setTrayHeight(entry.contentRect.height));
+    watch.observe(foot);
+
+    return () => watch.disconnect();
+  }, []);
+
+  // Display preferences: global to the app, kept apart from the project's own
+  // history because how something is drawn is not a change to it.
+  const [angular, setAngular] = useState(store.angular.initial);
+  const [ports, setPorts] = useState(store.ports.initial);
+  const [treePorts, setTreePorts] = useState(store.treePorts.initial);
+  /** What a right drag makes. A choice about the next thing created rather than
+   *  about how anything is drawn, but it lives here for the same reason: it is
+   *  the tool in hand, not part of the project. */
+  const [kind, setKind] = useState<Kind>("untyped");
+  useEffect(() => store.angular.set(angular), [angular]);
+  useEffect(() => store.ports.set(ports), [ports]);
+  useEffect(() => store.treePorts.set(treePorts), [treePorts]);
+
+  // Shortcuts that belong to the whole app rather than to one panel. Inside a
+  // text field the field's own editing should win instead.
+  useEffect(() => {
+    function press(event: KeyboardEvent) {
+      if ((event.target as HTMLElement).closest("input, textarea")) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
+
+      // Shift turns "z" into "Z", so the letter is compared case-insensitively.
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        project.undo();
+      } else if (key === "y" || (key === "z" && event.shiftKey)) {
+        event.preventDefault();
+        project.redo();
+      }
+    }
+
+    window.addEventListener("keydown", press);
+    return () => window.removeEventListener("keydown", press);
+  }, [project.undo, project.redo]);
 
   /** Run a chip that is a graph operation rather than an answer. */
   function run(chip: Suggestion) {
@@ -34,9 +85,9 @@ export function App() {
       case "add":
         return project.create(chip.value, view);
       case "link":
-        return scope && project.link(scope, chip.value);
+        return project.scope && project.link(project.scope, chip.value);
       case "open":
-        return select(chip.value);
+        return project.open(chip.value);
     }
   }
 
@@ -45,11 +96,14 @@ export function App() {
       <header>
         <h1>mndflow</h1>
         {graph.template && <span className="domain">{graph.template}</span>}
-        <span className={`model ${model.ready ? "on" : model.problem ? "bad" : ""}`}>
-          {model.problem ? "embeddings unavailable" : model.ready ? "minilm" : "loading minilm…"}
-        </span>
 
         <span className="tools">
+          <button onClick={project.undo} disabled={!project.undoable} title="Undo">
+            undo
+          </button>
+          <button onClick={project.redo} disabled={!project.redoable} title="Redo">
+            redo
+          </button>
           <button onClick={project.save} disabled={!project.steps.length}>
             export
           </button>
@@ -73,6 +127,21 @@ export function App() {
           >
             new
           </button>
+
+          <button
+            type="button"
+            className={`readout-toggle ${shelved ? "on" : ""}`}
+            aria-pressed={shelved}
+            aria-label={shelved ? "Hide the readout" : "Show the readout"}
+            title={shelved ? "Hide the readout" : "Show relations, actions and matching"}
+            onClick={() => setShelved((out) => !out)}
+          >
+            <span className="match-icon" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          </button>
         </span>
       </header>
 
@@ -81,7 +150,7 @@ export function App() {
         steps={project.steps}
         question={question}
         view={view}
-        scope={scope}
+        scope={project.scope}
         terms={terms}
         draft={draft}
         onDraft={setDraft}
@@ -91,35 +160,36 @@ export function App() {
 
       <main>
         <div className="side">
-        <Files
-          graph={graph}
-          selected={scope}
-          path={path}
-          terms={terms}
-          onSelect={select}
-          onCreate={project.create}
-          onDelete={project.remove}
-          onMove={project.move}
-          onRename={project.rename}
-          onRenameProject={project.renameProject}
-        />
-        <Relations
-          graph={graph}
-          onAdd={project.addRelation}
-          onRename={project.renameRelation}
-          onDrop={project.dropRelation}
-        />
+          <Files
+            graph={graph}
+            view={view}
+            terms={terms}
+            showPorts={treePorts}
+            onShowPorts={setTreePorts}
+            onOpen={project.open}
+            onCreate={project.create}
+            onDelete={project.remove}
+            onMove={project.move}
+            onRename={project.rename}
+            onRenameProject={project.renameProject}
+          />
         </div>
 
         <section className="work">
-          <div className="canvas">
+          <div className="canvas" style={{ "--tray": `${trayHeight}px` } as React.CSSProperties}>
             <Canvas
               graph={graph}
-              scope={scope}
               view={view}
+              picked={picked}
               path={path}
-              touched={project.touched}
-              onSelect={select}
+              showPorts={ports}
+              onShowPorts={setPorts}
+              angular={angular}
+              onAngular={setAngular}
+              kind={kind}
+              onKind={setKind}
+              onRelax={project.relax}
+              onPick={project.pick}
               onOpen={project.open}
               onUp={project.up}
               onNest={project.nest}
@@ -128,37 +198,56 @@ export function App() {
               onSprout={project.sprout}
               onRename={project.rename}
               onLift={project.lift}
-              onLink={project.link}
+              onWire={project.wire}
+              onAddPort={project.addPort}
+              onPromotePort={project.promotePort}
+              onSlidePort={project.setPort}
+              onDropAttr={project.dropAttr}
+              onRefer={project.refer}
+              onReveal={project.reveal}
               onRelation={project.relation}
-              onFlip={project.flip}
               onPlaceMany={project.placeMany}
-              onArrange={project.arrange}
-              angular={angular}
-              onAngular={setAngular}
               onUnlink={project.unlink}
               onDelete={project.remove}
+              onGroup={project.group}
+              onNameAttr={(id, label) => project.updateAttr(id, { name: label })}
+              onNote={project.note}
+              onPlaceNote={project.placeNote}
+              onTie={project.tie}
+            />
+
+            <Panel
+              graph={graph}
+              view={view}
+              picked={picked}
+              terms={terms}
+              onSave={project.write}
+              onRetype={project.retype}
+              onMarkPort={project.markPort}
+              onAddAttr={project.addAttr}
+              onUpdateAttr={project.updateAttr}
+              onDetachAttr={project.detachAttr}
+              onDropAttr={project.dropAttr}
+              onRelation={project.relation}
+              onSetDir={project.setDir}
+              onFlip={project.flip}
+              onReveal={project.reveal}
+              hostRef={tray}
             />
           </div>
         </section>
-      </main>
 
-      <footer>
-        <Log
-          steps={project.steps}
-          undoable={project.undoable}
-          redoable={project.redoable}
-          onUndo={project.undo}
-          onRedo={project.redo}
-        />
-        <Scores text={draft} active={graph.template} />
-        <Doc
-          graph={graph}
-          scope={scope}
-          terms={terms}
-          onSave={project.write}
-          onRetype={project.retype}
-        />
-      </footer>
+        <aside className={`drawer ${shelved ? "open" : ""}`} aria-hidden={!shelved}>
+          <Readout
+            graph={graph}
+            steps={project.steps}
+            draft={draft}
+            onAddRelation={project.addRelation}
+            onRenameRelation={project.renameRelation}
+            onDropRelation={project.dropRelation}
+          />
+        </aside>
+      </main>
     </div>
   );
 }
