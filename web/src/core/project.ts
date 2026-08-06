@@ -349,15 +349,18 @@ export function useProject() {
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
-    /** Lay the open layer out the chosen way.
+    /** Lay the open layer out the chosen way, and write down where everything
+     *  landed.
      *
-     *  Setting the arrangement and applying it are one action, because picking
-     *  one is the request: choosing "grid" plainly means make this a grid. User
-     *  placement wins everywhere else, so this is where a layer lets go of it. */
-    relax: (axis: Axis, notes: { id: string; x: number; y: number }[] = []) =>
+     *  An arrangement is an action, not a mode. What it computes becomes
+     *  ordinary placement, so a card can be dragged about afterwards like any
+     *  other — under a mode the drag would be recomputed away on the next
+     *  frame. `free` arranges nothing: it only says the layer has no axis. */
+    arrange: (axis: Axis, spots: { id: string; x: number; y: number }[] = [],
+              notes: { id: string; x: number; y: number }[] = []) =>
       commit(makeStep(`arrange: ${axis}`, "arrange", [
         { op: "set_axis", layer: view, axis },
-        { op: "relax_layer", layer: view },
+        ...spots.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
         // A note's place is beside what it describes, so laying the layer out
         // again moves it with them. One tied to nothing has nothing to follow
         // and stays where it was put.

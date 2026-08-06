@@ -146,20 +146,29 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   is 11 units wide and seats are 12 apart.
 - A card is drawn at exactly the size the layout says it is; it never sizes itself to its text.
   A name too long for it is clipped.
-- **User placement wins.** A node the user has moved keeps its place.
-- Automatic layout fills the rest, avoiding overlap and keeping related nodes near each other.
+- **A node the user has moved keeps its place until an arrangement is picked.** Picking one is
+  the request to let go of it.
+- `free` is the arrangement that honours placement and fills around it. The other three lay out
+  the whole layer.
+- A hand-made interface keeps its side and place along it whatever the arrangement does; so does
+  a wall a right drag named. Layout may change the distance between two such ends, never the
+  side.
+- A hand-made port also **leans its unit across the rank**: one on the top edge pulls its owner
+  toward the top, so its lines leave into open space. Only the two sides across the axis lean
+  anything — rank itself comes from the relationships.
 - The view refits when the layer gains or loses something, or when it is arranged afresh —
   never on selection.
 
 **The layer's arrangement** — how it lays out what it holds. Four, each its own button, held
 on the layer.
 
-| | Ranks by | Flow sides |
+| | Arranges | Flow sides |
 |---|---|---|
-| `free` | nothing — clusters outward from the middle | none |
-| `grid` | nothing — tiles in reading order | none |
-| `across` | relationships, left to right | left / right |
-| `down` | relationships, top to bottom | top / bottom |
+| `free` | **nothing at all** — every card stays where it is | none |
+| `grid` | tiles outward from the middle, cells sized to their contents | none |
+| `radial` | the busiest unit at the centre, the rest ringed around it | none |
+| `across` | ranks by relationships, left to right | left / right |
+| `down` | ranks by relationships, top to bottom | top / bottom |
 
 - Ranked: nothing pointing at it comes first, and each rank sits one step further along.
 - Within a rank, things are ordered by where what they relate to sits in the rank before, swept
@@ -170,22 +179,44 @@ on the layer.
 
 **What gets arranged is a unit, not a card.**
 
-- A **unit** is one card, or a whole group of them. Groups sharing a member are one unit: the
-  shared card pins them together.
-- Inside a unit, members keep their positions relative to each other **exactly**; only the unit
-  moves. A group nobody has placed gets an internal arrangement of its own, laid out among its
-  own members, and that becomes its shape.
+- A **unit** is anything laid out as a whole: a card, a group, or a note. Groups sharing a
+  member are one unit — the shared card pins them together.
+- Relationships draw units loosely into **clusters**, arranged as one region, with the cluster's
+  own shape following its topology — a ring stays a ring, a series stays a series. **(planned)**
+- A unit is **rigid in shape, not in size**: members keep their relative arrangement — who sits
+  beside whom, on which side — while the distances between them are layout's, so the spacing
+  tiers reach inside a unit as well as between them.
+- Each axis is read independently, so a row stays a row, a column stays a column and a diagonal
+  stays a diagonal. Members that already overlap on an axis come out aligned on it.
+- A group nobody has placed gets an internal arrangement of its own, laid out among its own
+  members, and that becomes its shape.
 - A unit is sized to its members plus the room its boundary needs, so two groups are spaced
   apart rather than left with their boundaries touching.
 - **Notes are avoided, not arranged.** A note takes up room like a card, so nothing is laid on
   top of one and no relationship is drawn through one — but an arrangement is never slid aside
   for one.
-- Cards sit **one cell apart across a rank and two along it**, the wider gap being where the
-  lines between ranks run.
+- **Space is a signal.** What matters is the contrast — tight inside a unit, open between them,
+  so a group reads as one object and the lines between units have room to spread:
 
-**Picking an arrangement lays the layer out by it**, dropping hand placement, any walls its
-relationships were pinned to, and moving each tied note to sit under what it describes. Picking
-the one already lit lays it out again. A note tied to nothing keeps its place.
+  | Between | Space |
+  |---|---|
+  | members inside one unit | half a cell |
+  | two of those with a relationship between them | two cells — room for the line |
+  | one unit and the next | two cells |
+  | one rank and the next | three cells |
+  | a boundary and its members | half a cell |
+  | one cluster and another | wider **(planned)** |
+
+**Picking an arrangement lays the layer out by it and writes down where everything landed.** It
+is an action, not a mode: afterwards every card can be dragged about like any other, and the drag
+sticks. Picking the one already lit lays it out again.
+
+- It also moves each tied note to sit under what it describes. A note tied to nothing keeps its
+  place.
+- Walls a relationship was pinned to are kept — a wall is a hard constraint, not placement.
+- **`free` moves nothing.** It drops the layer's axis and leaves every card where it is.
+- Between arrangements the layer rests: whatever is placed stays, and anything unplaced fills the
+  room around it.
 
 ### Views
 

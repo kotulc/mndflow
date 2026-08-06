@@ -259,14 +259,9 @@ function apply(graph: Graph, mutation: Mutation): void {
         graph.nodes[id].y = null;
       }
 
-      // A wall somebody chose is hand work on this layer's lines, the same as a
-      // position is on its cards, so letting go lets go of both.
-      const inside = (id: string) => here.has(id) || id === mutation.layer;
-      for (const edge of Object.values(graph.edges)) {
-        if (!inside(edge.source) || !inside(edge.target)) continue;
-        delete edge.fromSide;
-        delete edge.toSide;
-      }
+      // Walls are left alone. A wall is a hard constraint — honoured *by* an
+      // arrangement rather than replaced by one — where a card's position is
+      // merely retained until an arrangement asks for it back.
       break;
     }
 

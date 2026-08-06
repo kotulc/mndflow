@@ -26,12 +26,14 @@ export type Kind = "untyped" | "flow" | "assoc";
 
 /** How a layer arranges what it holds.
  *
- *  `free` clusters outward from the middle and `grid` tiles in reading order;
- *  neither ranks anything, and neither gives a flow relationship a side. The
- *  other two rank the layer along one axis, so a relationship reads the way the
- *  layer does. Held per layer, because a pipeline and a hierarchy can sit in one
- *  project. */
-export type Axis = "free" | "grid" | "right" | "down";
+ *  `free` arranges nothing at all — every card stays where it is. `grid` tiles
+ *  outward from the middle and `radial` puts the busiest thing at the centre
+ *  with the rest ringed around it; neither ranks anything, and none of the
+ *  three gives a flow relationship a side. The last two rank the layer along
+ *  one axis, so a relationship reads the way the layer does.
+ *
+ *  Held per layer, because a pipeline and a hierarchy can sit in one project. */
+export type Axis = "free" | "grid" | "radial" | "right" | "down";
 
 export type Node = {
   id: string;

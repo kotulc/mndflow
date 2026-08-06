@@ -1517,8 +1517,13 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .shape button {
+  display: grid;
+  place-items: center;
   width: 22px;
   height: 22px;
+  /* Reset, not inherit: the base button padding is 10px a side, which leaves a
+     two-pixel content box in a button this size and shunts every glyph right. */
+  padding: 0;
   border: none;
   background: none;
   color: var(--muted);

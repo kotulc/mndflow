@@ -29,7 +29,7 @@ import "@xyflow/react/dist/style.css";
 
 import { axisOf, blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
 import {
-  around, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
+  around, arranged, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
 } from "./core/layout";
 import {
   attach, lanes, route as planRoute, runOf, type Box, type Seat,
@@ -91,8 +91,11 @@ const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
 /** The arrangements, each its own button. Picking one is a request to lay the
  *  layer out that way, so it is a verb as much as a state. */
 const AXES: { axis: Axis; mark: string; tip: string }[] = [
-  { axis: "free", mark: "◦", tip: "Free" },
+  // Free and grid are the same square, loose and ruled — the pair reads as one
+  // choice. Radial is a middle among others, which is the shape it makes.
+  { axis: "free", mark: "⬚", tip: "Free — arrange nothing" },
   { axis: "grid", mark: "▦", tip: "Grid" },
+  { axis: "radial", mark: "⊙", tip: "Radial" },
   { axis: "right", mark: "→", tip: "Across" },
   { axis: "down", mark: "↓", tip: "Down" },
 ];
@@ -291,8 +294,9 @@ type Props = {
   onShowPorts: (on: boolean) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
-  /** Lay this layer out the chosen way, dropping hand placement as it goes. */
-  onRelax: (axis: Axis, notes?: { id: string; x: number; y: number }[]) => void;
+  /** Lay this layer out the chosen way and write down where everything went. */
+  onRelax: (axis: Axis, spots?: { id: string; x: number; y: number }[],
+            notes?: { id: string; x: number; y: number }[]) => void;
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
@@ -575,11 +579,16 @@ function Flow(props: Props) {
     return { runs, seats };
   }, [graph, boxes, frameBox, view, axis, showPorts, noteBoxes, standIn]);
 
-  /** Lay this layer out the chosen way. Picking an arrangement *is* the
-   *  request to arrange by it — clicking the one already lit lays it out again,
-   *  which is what a separate button used to be for. */
+  /** Lay this layer out the chosen way. Picking an arrangement *is* the request
+   *  to arrange by it, and clicking the one already lit lays it out again.
+   *
+   *  What it works out is committed as ordinary placement, so everything can be
+   *  dragged afterwards. `free` moves nothing — it only drops the axis. */
   const onArrange = useCallback((which: Axis) => {
-    onRelax(which, reNoted(which));
+    const spots = arranged(graph, members, which);
+    const laid = Object.entries(spots).map(([id, at]) => ({ id, x: at.x, y: at.y }));
+
+    onRelax(which, laid, which === "free" ? [] : reNoted(which, spots));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reNoted is stable per graph
   }, [onRelax, graph, members, view]);
 
@@ -588,25 +597,46 @@ function Flow(props: Props) {
    *  Worked out here rather than in the fold, because it needs the arrangement
    *  the layer is about to take and only the canvas can run that. A note tied to
    *  nothing keeps its place: there is nothing for it to follow. */
-  const reNoted = useCallback((which: Axis) => {
-    const loose = members.map((n) => ({ ...n, x: null, y: null }));
-    const spots = place(graph, loose, which);
+  const reNoted = useCallback((which: Axis, spots: Record<string, Spot>) => {
+    void which;
+
+    const boxOf = (id: string) => {
+      const at = spots[id];
+
+      return at && graph.nodes[id] ? { ...at, ...sizeOf(graph, graph.nodes[id]) } : null;
+    };
+
+    // Everything a note has to stay off: the cards, and the boundaries drawn
+    // round them — a note laid over either is worse than one sitting further
+    // down. Notes placed earlier in this pass join the list as they go.
+    const taken = [
+      ...members.map((n) => boxOf(n.id)),
+      ...groupsIn(graph, view)
+        .map(({ here }) => around(here.map(boxOf).filter(Boolean) as Box[], HUG)),
+    ].filter(Boolean) as Box[];
+
+    const clashes = (box: Box) => taken.some((other) =>
+      box.x < other.x + other.w + HUG && box.x + box.w + HUG > other.x &&
+      box.y < other.y + other.h + HUG && box.y + box.h + HUG > other.y);
 
     return notesIn(graph, view).flatMap((attr) => {
-      const held = attr.holders
-        .map((id) => {
-          const at = spots[id];
-
-          return at && { ...at, ...sizeOf(graph, graph.nodes[id]) };
-        })
-        .filter(Boolean) as Box[];
+      const held = attr.holders.map(boxOf).filter(Boolean) as Box[];
       if (!held.length) return [];
 
       const round = around(held, 0)!;
 
       // Just under what it describes, aligned to its left — clear of the ranks,
-      // and in the one place a reader already looks for a caption.
-      return [{ id: attr.id, x: cell(round.x), y: cell(round.y + round.h + CELL) }];
+      // and the one place a reader already looks for a caption. Then down a row
+      // at a time until it is clear of everything else.
+      let at = { x: cell(round.x), y: cell(round.y + round.h + CELL) };
+
+      for (let drop = 0; drop < 40 && clashes({ ...at, ...NOTE }); drop += 1) {
+        at = { x: at.x, y: at.y + CELL };
+      }
+
+      taken.push({ ...at, ...NOTE });
+
+      return [{ id: attr.id, x: at.x, y: at.y }];
     });
   }, [graph, members, view]);
 

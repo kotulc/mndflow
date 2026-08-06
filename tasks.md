@@ -44,6 +44,28 @@ where somebody promoted one; a layer's axis is both its flow direction and its l
 preference. See design.md under Relationships, Interfaces and Layouts.*
 
 
+## Agreed, not built
+
+- **Notes as units.** A note should be laid out like any other object rather than merely avoided,
+  with its ties drawn as fixed associations in the style a reference's line uses. Its position is
+  currently patched up after the fact by the arrangement.
+- **The cluster spacing tier**, which needs clusters.
+
+
+
+## Backlog
+
+**Clusters, and shapes for them.** Relationships should draw units loosely together, each cluster
+laid out by its own topology and the layer's arrangement placing the clusters relative to each
+other. Layout ranks units individually today, which flattens a ring into ranks and loses it.
+
+Deferred rather than dropped: it is the largest piece by a distance, and the machinery it needs —
+units holding a relative arrangement rather than offsets — is being built first for other
+reasons. Start with **ring and chain only**. A detector that fires on something ambiguous and
+lays five nodes out as a "ring" nobody sees is worse than no detector; hub and tree can follow
+once the machinery has proved itself.
+
+
 ## Not built yet
 
 - **The sample project.** `samples/mndflow.json` does not exist, and the directory does not
@@ -82,11 +104,12 @@ preference. See design.md under Relationships, Interfaces and Layouts.*
 
 ## Aspirations, not descriptions
 
-**The layout acceptance criterion.** Layout is supposed to be good enough when, for thirty
-nodes, no relationship passes through a block it does not attach to and crossings are visibly
-fewer than straight routing would give. Placement avoids overlap and keeps related blocks near
-each other, and does nothing whatever about crossings — there is no code aimed at that sentence.
-It stands as a target; it is not a description of what happens.
+**The layout acceptance criterion.** It says: for thirty nodes, no overlap, no relationship
+through a block it does not attach to, crossings visibly fewer than straight routing. The
+barycentre sweep aims at the last of those and nothing measures any of them. It also predates
+clusters, so it says nothing about the property that now matters most — that a shape somebody
+would recognise, a ring or a chain, comes out looking like itself. Due a rewrite once the
+cluster model is settled.
 
 **Fluid transitions between layers.** Stepping in and out animates the viewport, but the
 contents of the two layers cut. The nesting-doll effect the canvas is meant to give is not what

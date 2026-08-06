@@ -188,7 +188,7 @@ export function App() {
               onAngular={setAngular}
               kind={kind}
               onKind={setKind}
-              onRelax={project.relax}
+              onRelax={project.arrange}
               onPick={project.pick}
               onOpen={project.open}
               onUp={project.up}

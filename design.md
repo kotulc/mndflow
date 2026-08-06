@@ -17,9 +17,40 @@ be enforced or left to the user, it is left to the user.
 
 - **Derived beats stored.** Anything that can be worked out from the layer is worked out — seats,
   routes, boundaries, roles. Only choices are written down.
-- **User placement wins.** What someone put somewhere stays there; automatic layout fills the
-  rest.
+- **A hand-laid thing is a hard constraint; a derived one is not.** What somebody placed or
+  declared is honoured; everything else is the layer's to arrange. This is the rule the whole
+  layout model rests on.
 - **The log is the truth.** The graph is folded from it, so undo needs no inverses.
+
+
+### Hard constraints, and what is merely retained
+
+Two different things, easily confused:
+
+- **A hard constraint is honoured *by* an arrangement and survives it.** Only two things are
+  one: **a hand-made interface's side and place along it**, and **a wall a right drag named for
+  a relationship's end**.
+- **Retained placement is what an arrangement *replaces*.** A card's position is this. It
+  constrains nothing: an arrangement overwrites it, writes the new one down, and hands it back —
+  so the card is draggable again the moment the arrangement is done.
+
+A card someone dragged is therefore not a constraint. Only ports and walls are, because only
+they declare something an arrangement has to respect while it runs.
+
+**An edge is not hand-laid, however it was made.** A relationship drawn by hand and one the
+terminal added say the same thing about the graph, and the tool's whole aim is that they draw
+equally well. What can be hand-laid is the *port* or the *wall* at its end — those carry a
+position; the relationship itself does not.
+
+**What a hard constraint fixes, and what it does not:**
+
+- It fixes **which side** a line leaves by and **where along that side**. Layout may not move a
+  port somebody placed.
+- It does not fix **distance**. Layout is free to move the units further apart or closer
+  together.
+- Constraints can be mutually unsatisfiable — two cards joined port-to-port on the same face.
+  The side is honoured regardless and the route takes the consequence, the same way a card
+  dragged somewhere unhelpful stays there.
 
 
 ## Concepts
@@ -632,18 +663,45 @@ border and the graze ring is drawn outside it.
 
 ### Layout
 
-One job: arrange the blocks so the relationships between them read, with no overlap and as little
-crossing as possible.
+**Three jobs:**
+
+1. **Spacing** — meaningful separation, applied between parts and within them alike.
+2. **Orientation** — which way things face and sit relative to one another, honouring hand-laid
+   ports and walls.
+3. **Routability** — preferring arrangements that will route cleanly.
+
+**The third is judged by proxy, never by routing.** The pipeline runs one way — relation kind,
+port side, placement, routing, lanes — and it is cheap and predictable *because* placement reads
+topology and never geometry. Scoring a layout by running the router closes that loop. Crossings,
+rank alignment, ports facing each other, clusters not straddling one another: all of these say
+what routing would say, and none of them needs the router to have run.
 
 **A layer's arrangement is one setting, held on the layer:**
 
-| | Ranks by | Flow sides |
+| | Arranges | Flow sides |
 |---|---|---|
-| `free` | nothing — clusters outward | none |
-| `grid` | nothing — tiles in reading order | none |
-| `across` | relationships, left to right | left / right |
-| `down` | relationships, top to bottom | top / bottom |
+| `free` | **nothing at all** | none |
+| `grid` | tiles outward from the middle | none |
+| `radial` | the busiest thing at the centre, the rest ringed around | none |
+| `across` | ranks by relationships, left to right | left / right |
+| `down` | ranks by relationships, top to bottom | top / bottom |
 
+- **An arrangement is an action, not a mode.** Picking one lays the layer out and *writes down
+  where everything landed*, as ordinary placement. It does not stay switched on.
+
+  This is the whole of why: under a mode, layout recomputes on every frame, so a card dragged
+  while an arrangement was set would be thrown away on the very next one. A layout that disables
+  manual placement is not a layout, it is a cage. Writing the result down means an arrangement
+  gives you a starting point and then gets out of the way.
+
+- **`free` arranges nothing.** It is the absence of an arrangement, not a variety of one: picking
+  it drops the layer's axis and moves not a single card. Anything *unplaced* still fills the room
+  around what is placed — that is the resting layout, and it is all a render ever runs.
+- **`radial` is the shape ranks cannot show.** A hub and its attendants has one rank worth naming
+  and everything else equidistant from it, so ranking flattens the very thing that makes it
+  legible.
+- **The axis is remembered for what it still decides**: which sides a flow relationship takes,
+  and what the next arrangement will do.
 - **It is the only such setting.** Arrangement and flow axis are the same statement: saying a
   layer reads left to right is saying its ranks run left to right. Two settings would be two ways
   to say one thing with no rule for which wins.
@@ -670,12 +728,56 @@ what it is joined to in the rank before, forward then back. Two passes; it is a 
 fewer crossings, not a solution. What it buys is that a chain comes out on one row, so every line
 along it is straight and there is nothing left to want to drag.
 
-**Ranks sit two cells apart, and things one cell apart across a rank.** The gap along the axis is
-where the lines between ranks run; the gap across has nothing to carry. Air is what a reader takes
-for *unrelatedness*, so an arrangement whose job is to show what relates to what must not be
-generous with it.
+**Empty space is a signal, not a margin.** The gap between two things says how related they are,
+so spacing is a small set of tiers rather than one constant:
 
-**What layout arranges is a unit, and a group is one unit.**
+| Between | Space |
+|---|---|
+| members inside one unit | half a cell — they belong together |
+| two of those with a relationship between them | two cells — the line has to fit |
+| one unit and the next | two cells |
+| one rank and the next | three cells |
+| a boundary and its members | half a cell, enough to read as a ring round them |
+
+A reader takes air for *unrelatedness*, so uniform spacing says everything is equally related —
+the one thing the drawing should never say. What matters is the **contrast**: tight inside a unit
+and open between them, so a group reads as one object at a glance.
+
+**The open space is also where the relationships live.** Lines leave a card, spread, and are told
+apart from each other in the gaps; pack things and the lines have nowhere to go but into a knot.
+That is why the between-units tier is generous where the within-unit tier is mean — they are
+paying for different things.
+
+**Belonging together and being wired together are said differently, and want opposite things.**
+Closeness says *these belong together*; a drawn line says *these connect*. So two members of one
+group are tight — until there is a relationship between them, at which point they need room for
+it. A run leaves each end by a stub, and two stubs are two cells: closer than that and the line
+is not squeezed, it is invisible.
+
+That is the one place the spacing rule inverts, and it inverts for a good reason. A gap has to
+say something a reader can see, and a gap too small to hold the line says nothing at all.
+
+**A unit is anything laid out as a whole**: a card, a group, or a note. Relationships then draw
+units loosely together into **clusters** — a set joined by edges is arranged as one region, and
+the layer's arrangement places the clusters. **(planned)**
+
+That is what squares topology with the axis: a cluster's own shape comes from its topology — a
+ring drawn as a ring, a chain as a line — while the arrangement decides where clusters sit
+relative to each other. A ring has no reading direction, so an axis applied *inside* it means
+nothing; applied to where it sits among other things it means everything.
+
+**Rigid in shape, not in size.** What a unit or a cluster holds on to is its *relative
+arrangement* — who sits beside whom, on which side. Distances are layout's to set. Each axis is
+read on its own, so a row, a column and a diagonal all survive; what does not survive is one
+arbitrary set of distances, and near-alignment is tidied into alignment.
+
+The two halves depend on each other. Spacing is a signal at every scale, so the space inside a
+cluster has to answer to the same tiers as the space between clusters; that is only possible if
+internal distances are layout's. And a shape survives being re-spaced — a ring re-spaced is still
+a ring — so nothing is lost by giving them up. Holding exact offsets would freeze one arbitrary
+metric and make a hand-arranged group the one place on the canvas where spacing means nothing.
+
+**A group is one unit, and a hard one.**
 
 - A boundary is nothing but its members' bounds, so members strewn across the ranks draw a
   boundary over everything between them, and two groups strewn that way overlap however carefully
