@@ -46,6 +46,11 @@ preference. See design.md under Relationships, Interfaces and Layouts.*
 
 ## Agreed, not built
 
+- **Which way a layer reads should decide how a line is drawn.** It currently picks the sides a
+  `flow` relationship attaches to and nothing more. It should also bias the route — a flow on an
+  `across` layer running left to right rather than doubling back — which is the whole reason the
+  setting is worth having separately from an arrangement.
+
 - **Notes as units.** A note should be laid out like any other object rather than merely avoided,
   with its ties drawn as fixed associations in the style a reference's line uses. Its position is
   currently patched up after the fact by the arrangement.
@@ -81,13 +86,16 @@ once the machinery has proved itself.
   an existing group is the drag.
 - **Tags.** Every attribute carries them and nothing shows or edits them.
 - **Ties made from the note's side.** A note is its own name all the way through, so a right
-  drag cannot set off from one — ties are drawn node-to-note only. Fine so far; if it turns out
-  to read backwards in use, the note needs some part of it that is not its text to start from,
-  and that is exactly the tiny target the card's border zone was removed for.
-- **A note picking up what the drag enclosed.** The rectangle swept out is discarded, and it
-  could instead tie the note to everything inside it. Deliberately not done: it would make the
-  drag mean two things at once, and the size of a gesture is a poor way to state intent. Worth
-  revisiting only if tying notes one at a time proves tedious.
+  drag cannot set off from one — ties are drawn node-to-note only. The same is now true of an
+  explorer row. Fine so far; if either reads backwards in use, it needs some part that is not its
+  text to start from, and that is exactly the tiny target the card's border zone was removed for.
+- **Emptying a note leaves it reading `note`.** Creating one requires text, but clearing the text
+  afterwards is ignored the way an empty rename is, so a note can still end up blank. Cheaper
+  than a delete-on-empty rule; revisit if blank notes accumulate.
+- **A note picking up what the drag enclosed.** The rectangle now sets the note's least size, and
+  could *also* tie it to everything inside. Deliberately not done: that would make one gesture
+  mean two things, and it already means two. Worth revisiting only if tying notes one at a time
+  proves tedious.
 - **A promoted seat cannot be un-promoted.** Right-clicking a seat makes it an interface; there
   is no gesture that gives it back. Deleting the interface is the nearest thing and takes the
   relationship's anchor with it.

@@ -12,7 +12,7 @@
 
 import { isContainer, portsOf } from "./fold";
 import { similarity } from "./match";
-import type { Axis, Graph, Node, Side, Spot } from "./types";
+import type { Axis, Graph, Layout, Node, Side, Spot } from "./types";
 
 /** The canvas grid. Everything with a place of its own lands on it, so that two
  *  things meant to line up line up exactly rather than nearly.
@@ -367,9 +367,9 @@ function ranks(ids: string[], links: [string, string][]): Map<string, number> {
  *  Only the two sides *across* the axis lean anything. The two along it are the
  *  rank's own business, and rank comes from topology: a port fighting that
  *  would contradict the relationships the arrangement is drawn from. */
-function leanOf(graph: Graph, units: Unit[], axis: Axis): Map<string, number> {
-  const low: Side = axis === "right" ? "top" : "left";
-  const high: Side = axis === "right" ? "bottom" : "right";
+function leanOf(graph: Graph, units: Unit[], along: "across" | "down"): Map<string, number> {
+  const low: Side = along === "across" ? "top" : "left";
+  const high: Side = along === "across" ? "bottom" : "right";
   const lean = new Map<string, number>();
 
   for (const unit of units) {
@@ -561,7 +561,7 @@ function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
  *  A unit the user has placed keeps its members' positions exactly. One nobody
  *  has placed gets an internal arrangement of its own — laid out among its own
  *  members only — and that becomes rigid. */
-function unitsOf(graph: Graph, nodes: Node[], axis: Axis): Unit[] {
+function unitsOf(graph: Graph, nodes: Node[], shape: Layout): Unit[] {
   const home = clusters(graph, nodes);
   const held = new Map<string, Node[]>();
   for (const node of nodes) {
@@ -577,7 +577,7 @@ function unitsOf(graph: Graph, nodes: Node[], axis: Axis): Unit[] {
     const spots = placed.length
       ? Object.fromEntries(placed.map((n) => [n.id, middled({ x: n.x!, y: n.y! },
                                                             sizeOf(graph, n))]))
-      : inner(graph, members, axis);
+      : inner(graph, members, shape);
 
     // Any member the user never placed, in a unit some of whose members they
     // did: tucked below the rest rather than left at the origin.
@@ -619,16 +619,16 @@ function unitsOf(graph: Graph, nodes: Node[], axis: Axis): Unit[] {
 }
 
 /** A unit's own internal arrangement, worked out among its members alone. */
-function inner(graph: Graph, members: Node[], axis: Axis): Record<string, Spot> {
+function inner(graph: Graph, members: Node[], shape: Layout): Record<string, Spot> {
   if (members.length === 1) return { [members[0].id]: middled({ x: 0, y: 0 },
                                                               sizeOf(graph, members[0])) };
 
   const boxed = members.map((n) => ({ id: n.id, ...sizeOf(graph, n) }));
   const ids = new Set(members.map((n) => n.id));
 
-  return axis === "free" || axis === "grid"
-    ? gridded(boxed, WITHIN)
-    : rankedBoxes(boxed, linksAmong(graph, ids), axis, new Map(), WITHIN);
+  return shape === "across" || shape === "down"
+    ? rankedBoxes(boxed, linksAmong(graph, ids), shape, new Map(), WITHIN)
+    : gridded(boxed, WITHIN);
 }
 
 /** Boxes tiled in reading order, kept as square as the count allows and grown
@@ -684,7 +684,7 @@ function gridded(boxes: { id: string; w: number; h: number }[],
  *  are in neighbouring ranks and the ordering pass pulls them level, so the
  *  relationship between them is a straight line with nothing to work around. */
 function rankedBoxes(boxes: { id: string; w: number; h: number }[],
-                     links: [string, string][], axis: Axis,
+                     links: [string, string][], along: "across" | "down",
                      lean: Map<string, number> = new Map(),
                      gap = GAP): Record<string, Spot> {
   const size = new Map(boxes.map((b) => [b.id, b]));
@@ -694,13 +694,13 @@ function rankedBoxes(boxes: { id: string; w: number; h: number }[],
   const rows: string[][] = Array.from({ length: depth + 1 }, () => []);
   for (const box of boxes) rows[rank.get(box.id) ?? 0].push(box.id);
 
-  const along = axis === "right" ? "x" : "y";
-  const across: "x" | "y" = along === "x" ? "y" : "x";
+  const runs = along === "across" ? "x" : "y";
+  const across: "x" | "y" = runs === "x" ? "y" : "x";
   const spots: Record<string, Spot> = {};
 
   const laid = ordered(rows, links, lean);
   const spans = laid.map((row) => Math.max(
-    0, ...row.map((id) => (along === "x" ? size.get(id)!.w : size.get(id)!.h)),
+    0, ...row.map((id) => (runs === "x" ? size.get(id)!.w : size.get(id)!.h)),
   ));
   const stride = spans.map((span) => span + (gap === GAP ? RANK : gap));
 
@@ -715,7 +715,7 @@ function rankedBoxes(boxes: { id: string; w: number; h: number }[],
     for (const id of row) {
       const box = size.get(id)!;
       const spot = {
-        [along]: cursor + (spans[at] - (along === "x" ? box.w : box.h)) / 2,
+        [runs]: cursor + (spans[at] - (runs === "x" ? box.w : box.h)) / 2,
         [across]: run,
       } as Spot;
 
@@ -872,9 +872,9 @@ function between(graph: Graph, nodes: Node[], units: Unit[]): [string, string][]
  *  thrown away on the very next frame, which is no way to treat a drag. The
  *  axis is remembered for what it still decides: a flow's sides, and what the
  *  next arrangement will do. */
-export function place(graph: Graph, nodes: Node[], axis: Axis = "free",
+export function place(graph: Graph, nodes: Node[],
                       blocked: Box[] = []): Record<string, Spot> {
-  const units = unitsOf(graph, nodes, axis);
+  const units = unitsOf(graph, nodes, "grid");
   const links = between(graph, nodes, units);
   const taken: Box[] = [...blocked];
   const corner: Record<string, Spot> = {};
@@ -910,16 +910,14 @@ export function place(graph: Graph, nodes: Node[], axis: Axis = "free",
  *  computes. The result is written down as ordinary placement, so it can be
  *  dragged about afterwards like anything else. */
 export function arranged(graph: Graph, nodes: Node[],
-                         axis: Axis): Record<string, Spot> {
-  if (axis === "free") return {};
-
-  const units = unitsOf(graph, nodes, axis);
+                         shape: Layout): Record<string, Spot> {
+  const units = unitsOf(graph, nodes, shape);
   const links = between(graph, nodes, units);
   const boxes = units.map((u) => ({ id: u.id, w: u.w, h: u.h }));
 
-  const corner = axis === "grid" ? gridded(boxes)
-    : axis === "radial" ? radial(units, links, GAP)
-    : rankedBoxes(boxes, links, axis, leanOf(graph, units, axis));
+  const corner = shape === "grid" ? gridded(boxes)
+    : shape === "radial" ? radial(units, links, GAP)
+    : rankedBoxes(boxes, links, shape, leanOf(graph, units, shape));
 
   return spread(units, corner);
 }

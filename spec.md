@@ -95,7 +95,9 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 **Navigation**
 
 - Single click sets the scope: the canvas draws that node's view.
-- Double-click renames in place.
+- Double-click or right-click renames in place — a row is all name, so it takes the same rule
+  every name takes.
+- Right-clicking the clear space below the rows makes a node in the open layer.
 - A role icon precedes every name and doubles as the fold control where there is one.
 - Folding is the user's alone; walking into a layer on the canvas never rearranges the tree.
 - One control in the bar opens every branch or closes every branch.
@@ -162,13 +164,18 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 **The layer's arrangement** — how it lays out what it holds. Four, each its own button, held
 on the layer.
 
-| | Arranges | Flow sides |
-|---|---|---|
-| `free` | **nothing at all** — every card stays where it is | none |
-| `grid` | tiles outward from the middle, cells sized to their contents | none |
-| `radial` | the busiest unit at the centre, the rest ringed around it | none |
-| `across` | ranks by relationships, left to right | left / right |
-| `down` | ranks by relationships, top to bottom | top / bottom |
+**Arrangements** — one-time actions, four of them. None is a mode, so none is ever "current".
+
+| | Does |
+|---|---|
+| `grid` | tiles outward from the middle, cells sized to their contents |
+| `radial` | the busiest unit at the centre, the rest ringed around it |
+| `across` | ranks by relationships, left to right |
+| `down` | ranks by relationships, top to bottom |
+
+**Which way the layer reads** — `none`, `across` or `down`. A setting held on the layer. It
+decides which sides a `flow` relationship attaches to, and **(planned)** how its line is drawn.
+Arranging never changes it.
 
 - Ranked: nothing pointing at it comes first, and each rank sits one step further along.
 - Within a rank, things are ordered by where what they relate to sits in the rank before, swept
@@ -207,14 +214,13 @@ on the layer.
   | a boundary and its members | half a cell |
   | one cluster and another | wider **(planned)** |
 
-**Picking an arrangement lays the layer out by it and writes down where everything landed.** It
-is an action, not a mode: afterwards every card can be dragged about like any other, and the drag
-sticks. Picking the one already lit lays it out again.
+**An arrangement writes down where everything landed.** Afterwards every card can be dragged
+about like any other, and the drag sticks.
 
-- It also moves each tied note to sit under what it describes. A note tied to nothing keeps its
-  place.
+- It also moves each tied note to sit under what it describes, clear of the cards and boundaries.
+  A note tied to nothing keeps its place.
 - Walls a relationship was pinned to are kept — a wall is a hard constraint, not placement.
-- **`free` moves nothing.** It drops the layer's axis and leaves every card where it is.
+- It changes nothing else, and never the direction the layer reads.
 - Between arrangements the layer rests: whatever is placed stays, and anything unplaced fills the
   room around it.
 
@@ -356,8 +362,8 @@ sticks. Picking the one already lit lays it out again.
 ### Groups
 
 - Nodes sharing one attribute, drawn as a faint dashed boundary around them.
-- The boundary is derived from its members' bounds plus half a cell of margin, so it lands on
-  the grid when its members do. **There is no manual resize.**
+- The boundary is its members' bounds plus half a cell of margin, so it lands on the grid when
+  its members do — its size is a fact about what it holds.
 - Clicking the background selects it; dragging a selected boundary moves every member as one
   action.
 - Dropping a card in the clear space inside joins; dropping it outside leaves. Dropping *on* a
@@ -382,12 +388,11 @@ sticks. Picking the one already lit lays it out again.
   already spent on references and boundaries.
 - Made by right-dragging the background. The rectangle is drawn as it is swept, in dashed amber
   — distinct from the green selection box the left button draws in the same place.
-- **The rectangle is a gesture, not a measurement**: the note appears at its top-left corner,
-  sized by its text.
-- **There is no manual resize**, the same as a boundary. A note is as wide as every other and as
-  tall as what it says.
-- Unwritten it reads `note`; right-clicking it writes it. The note *is* its text — there is
-  nothing else on it to aim at.
+- **What it says is asked for before it is made**, the same as a node's name. Cancel and nothing
+  is created.
+- **The rectangle is its least size**: the note appears at the top-left corner and gets at least
+  the room swept. It is as big as the larger of that and what it says, so text always wins.
+- Right-clicking it rewrites it. The note *is* its text — there is nothing else on it to aim at.
 - Ties to nothing, one thing or many. Right-drag from a node onto a note ties it; the same
   gesture over a node already tied unties it. The panel lists ties and removes them.
 - A leader takes no pointer, cannot be selected and is never routed — it is not a relationship.
@@ -420,11 +425,11 @@ sticks. Picking the one already lit lays it out again.
 
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
   full trail in its tooltip, plus `↑` for one layer up.
-- Canvas toolbar top-right — **what gets made**: interfaces on the canvas, and the kind a right
-  drag draws. Both the app's.
-- Canvas shape controls bottom-right, opposite the zoom controls — **how the layer is drawn**:
-  the four arrangements, then curves or angles below a divider. Icons only. The arrangements
-  belong to the layer; the line style is the app's.
+- Canvas toolbar top-right — **relationships**, all settings: interfaces on the canvas, the kind
+  a right drag draws, curves or angles, and past a divider which way the layer reads. Each shows
+  what it is on.
+- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs**. Icons only, and
+  none of them is ever lit: an arrangement is something you do, not something a layer is in.
 - Zoom controls bottom-left, riding above the attribute tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
@@ -457,6 +462,8 @@ selection — must be selected first.
 | empty background | a node | a note |
 | a name | opens it for editing | — |
 | a note | opens it for editing | — |
+| an explorer row | opens it for renaming | — |
+| the space below the explorer's rows | a node in the open layer | — |
 | an interface | nothing — it is already one | a relationship from it |
 | a seat a relationship put there | an interface of its own, where it sits | — |
 | a relationship | names its kind | — |

@@ -235,6 +235,15 @@ export function Files(props: Props) {
             }}
             onClick={() => onOpen(node.id)}
             onDoubleClick={() => setEditing(node.id)}
+            onContextMenu={(event) => {
+              // A row is all name, the way a note is: an icon that folds and a
+              // label, with nothing else to aim at. So it takes the rule every
+              // name takes rather than carving out a few pixels for a second
+              // gesture. Making things happens on the empty space below.
+              event.preventDefault();
+              event.stopPropagation();
+              setEditing(node.id);
+            }}
             {...dropzone(node.id, node.id)}
           >
             <span
@@ -306,11 +315,26 @@ export function Files(props: Props) {
         </span>
       </div>
 
-      <div className="tree" ref={scroller}>
+      <div
+        className="tree"
+        ref={scroller}
+        // The clear space below the rows is this pane's background, and the
+        // right button makes something new on a background. It lands in the
+        // open layer, the same place a node made on the canvas lands.
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setAdding(true);
+        }}
+      >
         <div
           className={`item root ${view === null ? "active" : ""} ${over === ROOT ? "over" : ""}`}
           onClick={() => onOpen(null)}
           onDoubleClick={() => setEditing(ROOT)}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setEditing(ROOT);
+          }}
           {...dropzone(ROOT, null)}
         >
           {editing === ROOT

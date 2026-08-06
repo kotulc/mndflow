@@ -188,7 +188,8 @@ export function App() {
               onAngular={setAngular}
               kind={kind}
               onKind={setKind}
-              onRelax={project.arrange}
+              onArrangeLayer={project.arrange}
+              onAxis={project.setAxis}
               onPick={project.pick}
               onOpen={project.open}
               onUp={project.up}

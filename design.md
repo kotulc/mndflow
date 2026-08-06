@@ -190,9 +190,10 @@ anything is wired to it.
 - The only names nobody typed are the role words an unnamed thing falls back to — `block`,
   `container`, `interface 3` — lower case because they are descriptions. Giving a name replaces
   the description entirely.
-- **A name is edited where it is drawn, by right-clicking it.** One rule for every name on the
-  canvas: a card's, a boundary's, the layer's frame, a relationship's kind. The right button
-  means *make the thing this place is for*, and what a name is for is being written.
+- **A name is edited where it is drawn, by right-clicking it.** One rule for every name
+  anywhere: a card's, a boundary's, the layer's frame, a relationship's kind, and a row in the
+  explorer. The right button means *make the thing this place is for*, and what a name is for is
+  being written — no exceptions left in either pane.
 - **A name is its own target.** Drawn set into a border, it is not that border: it highlights
   alone and the border stays dark beneath it.
 - The explorer renames on double-click, as a file tree does. You rename a thing where you are
@@ -284,8 +285,8 @@ makes an attribute a grouping.** Attributes are non-structural throughout.
 
 **Groups** are the shared case, drawn as a boundary.
 
-- **The boundary is derived from its members' bounds plus a small margin.** There is no manual
-  resize.
+- **A boundary is its members' bounds plus a small margin**, so it expands and contracts as they
+  move. Its size is a fact about what it holds, never something set.
 - Clicking its background selects it; dragging a selected boundary moves every member as one
   action.
 - **Membership is a drag, the way a container's is** — a group should behave like the thing it
@@ -327,10 +328,17 @@ Where a boundary says *these belong together*, a note says something in words.
 - **A place is the one thing it needs that no other attribute does.** A group is positioned by its
   members; a note can be tied to nothing at all, so there is nothing else to place it by. It
   carries the layer it was drawn in, which also answers where it belongs.
-- **The drag that makes one is a gesture, not a measurement.** The note appears at the
-  rectangle's top-left, sized by its text — so **nothing on the canvas is manually resized**.
-  Honouring the rectangle would introduce stored bounds, a resize gesture, handles, and a second
-  thing that can disagree with its contents.
+- **The drag that makes one sets its least size.** The note appears at the rectangle's top-left
+  and gets at least the room that was swept — which is what somebody sweeping a big box is
+  asking for.
+- **A note is as big as the larger of what it was given and what it says.** Text always wins, so
+  the box and its contents cannot disagree.
+- **What it says is asked for before anything is made**, the same as a node's name. An unnamed
+  block is still a structural thing that exists for a reason; an empty note is litter. Cancel and
+  nothing is created.
+
+  So both halves of the gesture are used, and neither needs apologising for: **the drag says how
+  big, the prompt says what.**
 - **The rectangle is drawn while it is swept**, in amber and dashed. A right drag on the
   background is otherwise indistinguishable from an unfinished right click, and amber cannot be
   mistaken for the green selection box the left button draws in the same place.
@@ -441,6 +449,14 @@ between explorer and canvas works both ways.
   structure that does not exist.
 - **Each role has its own icon, and the icon is also the fold control.** The mark that says a node
   holds things is the thing you click to see them, so no second arrow takes up the indent.
+- **A row is all name.** An icon that folds and a label, with nothing else to aim at — the same
+  shape a note has. So it takes the same rule: right-click a row to rename it. Carving out a
+  non-name strip of a row for a second gesture would be the few-pixel ring the card's border zone
+  was deleted for.
+- **The clear space below the rows is this pane's background**, so the right button makes a node
+  there — landing in the open layer, exactly where one made on the canvas lands. That is the two
+  buttons' rule holding in the explorer as well: rows are things that exist, the space below is
+  where things are made.
 - **Folding is the user's alone.** Walking into a layer on the canvas leaves the tree as it was
   found; a tree that rearranges itself under you is one you cannot keep your place in.
 - **Deep branches indent past the sidebar** and the tree scrolls horizontally, centring on the
@@ -528,13 +544,15 @@ every side to put something new.
 
 They divide by **what they are for**:
 
-- **Top-right — what gets made.** Whether interfaces are drawn, and what kind of relationship a
-  right drag creates. Both the app's.
-- **Bottom-right, opposite the zoom controls — how the layer is drawn.** The arrangements, then
-  curves or angles. The arrangements belong to the layer.
+- **Top-right — relationships.** Whether interfaces are drawn, what kind a right drag creates,
+  square lines or curved ones, and which way the layer reads. Settings, every one, so each shows
+  what it is currently on.
+- **Bottom-right, opposite the zoom controls — arrangements.** Four verbs and nothing else. None
+  of them lights up.
 
-One row holding both was half project and half view, with nothing about its arrangement saying
-which was which. Icons only on the shape controls: they are set once and read at a glance.
+The division is **states against verbs**, which is also why the two are far apart on the screen.
+A control that does something and a control that is something look alike and behave differently,
+and putting them in one strip is what made the old arrangement toggle unreadable.
 
 
 ### The two buttons
@@ -678,46 +696,46 @@ what routing would say, and none of them needs the router to have run.
 
 **A layer's arrangement is one setting, held on the layer:**
 
-| | Arranges | Flow sides |
-|---|---|---|
-| `free` | **nothing at all** | none |
-| `grid` | tiles outward from the middle | none |
-| `radial` | the busiest thing at the centre, the rest ringed around | none |
-| `across` | ranks by relationships, left to right | left / right |
-| `down` | ranks by relationships, top to bottom | top / bottom |
+**An arrangement is an action; which way a layer reads is a setting. They are separate
+things.**
 
-- **An arrangement is an action, not a mode.** Picking one lays the layer out and *writes down
-  where everything landed*, as ordinary placement. It does not stay switched on.
+An arrangement is a verb: press it and the layer is laid out that way, once. What it works out
+is committed as ordinary placement and it then gets out of the way — so a card can be dragged
+afterwards like any other. Under a mode, layout would recompute every frame and throw that drag
+away on the next one, and *a layout that disables manual placement is not a layout, it is a
+cage*.
 
-  This is the whole of why: under a mode, layout recomputes on every frame, so a card dragged
-  while an arrangement was set would be thrown away on the very next one. A layout that disables
-  manual placement is not a layout, it is a cage. Writing the result down means an arrangement
-  gives you a starting point and then gets out of the way.
+Because it is a verb it holds no state, which is exactly why it cannot also carry the layer's
+direction. It has no lit "current" arrangement, because there is no arrangement a layer is
+*in* — only one it was last put through.
 
-- **`free` arranges nothing.** It is the absence of an arrangement, not a variety of one: picking
-  it drops the layer's axis and moves not a single card. Anything *unplaced* still fills the room
-  around what is placed — that is the resting layout, and it is all a render ever runs.
+| Arrangement | Does |
+|---|---|
+| `grid` | tiles outward from the middle |
+| `radial` | the busiest unit at the centre, the rest ringed around it |
+| `across` | ranks by relationships, left to right |
+| `down` | ranks by relationships, top to bottom |
+
 - **`radial` is the shape ranks cannot show.** A hub and its attendants has one rank worth naming
   and everything else equidistant from it, so ranking flattens the very thing that makes it
   legible.
-- **The axis is remembered for what it still decides**: which sides a flow relationship takes,
-  and what the next arrangement will do.
-- **It is the only such setting.** Arrangement and flow axis are the same statement: saying a
-  layer reads left to right is saying its ranks run left to right. Two settings would be two ways
-  to say one thing with no rule for which wins.
-- **`free` and `grid` both mean no flow direction**, so adding them does not split that knob back
-  apart. `grid` serves a layer that is a *collection* rather than a system — things that belong
+- **`grid` serves a layer that is a collection rather than a system** — things that belong
   together and are not wired to each other, which clustering leaves lumpy and ranking has nothing
   to rank by. Row and column were left out: a row is a grid whose contents fit on one line.
-- **Free is the default.** The tool is general first, and a diagram that is not a flow reads worse
-  ranked than clustered.
+- **Between arrangements the layer rests.** Whatever is placed stays; anything unplaced fills the
+  room around it. That is all a render ever runs.
+
+**Which way a layer reads is `none`, `across` or `down`.** It decides which sides a flow
+relationship attaches to, and in time how its line is drawn — so it belongs with the other
+relationship options rather than with the arrangements.
+
 - **Per layer, not per app.** A pipeline and a hierarchy can sit in one project, and a choice
-  about what a diagram *says* is not a display preference — it changes the drawing, enters the
+  about what a diagram *says* is not a display preference: it changes the drawing, enters the
   history, and exports.
-- **Picking an arrangement lays the layer out by it.** The button is a verb as much as a state; a
-  separate "arrange" action beside it was a verb sitting in a row of states, looking alike and
-  behaving differently. Choosing `grid` plainly means *make this a grid*, so hand placement,
-  pinned walls and tied notes are all handed back in the one step.
+- **`none` is the default.** The tool is general first, and most diagrams are not flows.
+- **Arranging never changes it.** Laying a layer out as a grid is no reason for it to forget
+  which way it reads — under one shared setting it did exactly that, because `grid` was a value
+  of the same enum.
 
 **Ranking reads the drag, not the direction.** Relationships are undirected by default, so `dir`
 would rank nothing; the source-to-target pair is the only statement of direction most will ever

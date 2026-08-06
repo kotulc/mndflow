@@ -73,12 +73,17 @@ export function portsOf(graph: Graph, parent: string | null): Node[] {
   return childrenOf(graph, parent).filter(isPort);
 }
 
-/** How a layer arranges what it holds. Free until it has been set, so a layer
- *  nobody has given a direction to fills outward as it always did. */
+/** Which way a layer reads. None until somebody says otherwise.
+ *
+ *  Older logs stored the arrangement here as well, back when the two were one
+ *  setting; anything that was an arrangement rather than a direction reads as
+ *  no direction, which is what it meant. */
 export function axisOf(graph: Graph, layer: string | null): Axis {
-  if (layer === null) return graph.axis ?? "free";
+  const held = (layer === null ? graph.axis : graph.nodes[layer]?.axis) ?? "none";
 
-  return graph.nodes[layer]?.axis ?? "free";
+  if (held === "across" || held === "down") return held;
+
+  return (held as string) === "right" ? "across" : "none";
 }
 
 /** Whether a node holds child blocks. Interfaces do not count: a block with

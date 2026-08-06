@@ -349,17 +349,23 @@ export function useProject() {
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
-    /** Lay the open layer out the chosen way, and write down where everything
-     *  landed.
+    /** Which way the open layer reads. A setting, so it persists: it decides
+     *  which sides a flow relationship attaches to and how its line is drawn,
+     *  and says nothing at all about where cards go. */
+    setAxis: (axis: Axis) =>
+      commit(makeStep(`reads: ${axis}`, "axis", [{ op: "set_axis", layer: view, axis }])),
+
+    /** Write down where an arrangement put everything.
      *
      *  An arrangement is an action, not a mode. What it computes becomes
      *  ordinary placement, so a card can be dragged about afterwards like any
      *  other — under a mode the drag would be recomputed away on the next
-     *  frame. `free` arranges nothing: it only says the layer has no axis. */
-    arrange: (axis: Axis, spots: { id: string; x: number; y: number }[] = [],
+     *  frame. It changes nothing else: arranging as a grid is no reason for a
+     *  layer to forget which way it reads. */
+    arrange: (spots: { id: string; x: number; y: number }[] = [],
               notes: { id: string; x: number; y: number }[] = []) =>
-      commit(makeStep(`arrange: ${axis}`, "arrange", [
-        { op: "set_axis", layer: view, axis },
+      spots.length > 0 &&
+      commit(makeStep("arrange", "arrange", [
         ...spots.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
         // A note's place is beside what it describes, so laying the layer out
         // again moves it with them. One tied to nothing has nothing to follow
@@ -541,9 +547,17 @@ export function useProject() {
      *
      *  Untied and unwritten to begin with — it reads "note" until it is given
      *  something to say, the way an unnamed block reads "block". */
-    note: (x: number, y: number) =>
-      commit(makeStep("note", "note",
-                      [{ op: "add_attr", attr: makeAttr("", { note: { layer: view, x, y } }) }])),
+    /** A note, with what it says and the least room it was asked for.
+     *
+     *  Text is required, the same as a node's name is: an empty note is not a
+     *  thing somebody meant to make, it is litter. The swept rectangle is a
+     *  minimum rather than a size, so a long description gets the room it was
+     *  given and a longer one still grows the card. */
+    note: (text: string, x: number, y: number, w?: number, h?: number) =>
+      text.trim() !== "" &&
+      commit(makeStep(`note: ${text.trim()}`, "note", [
+        { op: "add_attr", attr: makeAttr(text.trim(), { note: { layer: view, x, y, w, h } }) },
+      ])),
 
     /** Where a note came to rest. Its own place, unlike every other annotation:
      *  a note tied to nothing has nothing else to be placed by. */

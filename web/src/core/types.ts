@@ -24,16 +24,17 @@ export type Dir = "none" | "forward" | "back" | "both";
  *  decides which way the arrows point. */
 export type Kind = "untyped" | "flow" | "assoc";
 
-/** How a layer arranges what it holds.
+/** Which way a layer reads, and nothing else.
  *
- *  `free` arranges nothing at all — every card stays where it is. `grid` tiles
- *  outward from the middle and `radial` puts the busiest thing at the centre
- *  with the rest ringed around it; neither ranks anything, and none of the
- *  three gives a flow relationship a side. The last two rank the layer along
- *  one axis, so a relationship reads the way the layer does.
- *
- *  Held per layer, because a pipeline and a hierarchy can sit in one project. */
-export type Axis = "free" | "grid" | "radial" | "right" | "down";
+ *  A setting, held per layer, because a pipeline and a hierarchy can sit in one
+ *  project. It decides which sides a `flow` relationship attaches to and how
+ *  its line is drawn. It says nothing about where cards go — that is what an
+ *  arrangement does, and an arrangement is an action rather than a setting. */
+export type Axis = "none" | "across" | "down";
+
+/** What one run of an arrangement does. Never stored: picking one lays the
+ *  layer out and writes down where everything landed. */
+export type Layout = "grid" | "radial" | "across" | "down";
 
 export type Node = {
   id: string;
@@ -124,8 +125,12 @@ export type Attr = {
    *  Absent on everything else. A group is placed by its members and needs no
    *  place of its own; an attribute that draws nothing is placed nowhere. A
    *  note is the one annotation that can be tied to nothing at all, so there is
-   *  nothing else to place it by — it belongs to the layer it was drawn in. */
-  note?: { layer: string | null; x: number; y: number };
+   *  nothing else to place it by — it belongs to the layer it was drawn in.
+   *
+   *  `w`/`h` are the least room it was asked for, from the rectangle the drag
+   *  swept. A minimum and not a size: the text still grows it, so the box and
+   *  what it says can never disagree. */
+  note?: { layer: string | null; x: number; y: number; w?: number; h?: number };
   color: string;
 };
 
@@ -205,7 +210,7 @@ export type Step = {
 };
 
 export const EMPTY: Graph = {
-  nodes: {}, edges: {}, attrs: {}, relations: [], template: "", title: "", axis: "free",
+  nodes: {}, edges: {}, attrs: {}, relations: [], template: "", title: "", axis: "none",
 };
 
 let counter = 0;

@@ -515,8 +515,8 @@ button:disabled { opacity: 0.4; cursor: default; }
    face, with the wall reading as though it were behind them. Outside, the line
    stays 1px, nothing moves, and the ports sit on the band's inner edge, which is
    where a port set into a wall belongs. */
-.frame.flow-right::before,
-.frame.flow-right::after,
+.frame.flow-across::before,
+.frame.flow-across::after,
 .frame.flow-down::before,
 .frame.flow-down::after {
   content: "";
@@ -529,14 +529,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 
    Brighter where flows arrive, dimmer where they leave, so the layer reads in
    the direction the wall fades. */
-.frame.flow-right::before {
+.frame.flow-across::before {
   top: -1px;
   bottom: -1px;
   left: -4px;
   border-left: 2px solid #6d9a7e;
 }
 
-.frame.flow-right::after {
+.frame.flow-across::after {
   top: -1px;
   bottom: -1px;
   right: -4px;
@@ -1534,7 +1534,14 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .shape button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .shape button.on { color: var(--accent); }
 
-/* The arrangements are one set; how lines are drawn is not one of them. */
+/* Which way the layer reads is its own thing among the relationship options,
+   so it is fenced off. A row divides on its left, a column on its top. */
+.arrange button.apart {
+  margin-left: 5px;
+  border-left: 1px solid var(--divider);
+  padding-left: 9px;
+}
+
 .shape button.apart { margin-top: 5px; border-top: 1px solid var(--divider); padding-top: 4px; }
 
 /* The relation editor doubles as its controls */

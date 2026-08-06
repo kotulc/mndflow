@@ -34,7 +34,7 @@ import {
 import {
   attach, lanes, route as planRoute, runOf, type Box, type Seat,
 } from "./core/route";
-import type { Axis, End, Graph, Kind, Side, Spot } from "./core/types";
+import type { Axis, End, Graph, Kind, Layout, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
 import { type Grazed, LIFTED, NodeCard, REFERRED, type Seated } from "./NodeCard";
@@ -88,16 +88,21 @@ const NOTE = { w: 168, h: 40 };
  *  their host via CSS. */
 const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
 
-/** The arrangements, each its own button. Picking one is a request to lay the
- *  layer out that way, so it is a verb as much as a state. */
+/** The arrangements. Each is a one-time action — press it and the layer is laid
+ *  out that way — so none of them lights up: there is no arrangement a layer is
+ *  currently *in*. */
+const LAYOUTS: { shape: Layout; mark: string; tip: string }[] = [
+  { shape: "grid", mark: "▦", tip: "Arrange as a grid" },
+  { shape: "radial", mark: "⊙", tip: "Arrange around a hub" },
+  { shape: "across", mark: "▤", tip: "Arrange in ranks, across" },
+  { shape: "down", mark: "▥", tip: "Arrange in ranks, down" },
+];
+
+/** Which way the layer reads. A setting, so it does light up. */
 const AXES: { axis: Axis; mark: string; tip: string }[] = [
-  // Free and grid are the same square, loose and ruled — the pair reads as one
-  // choice. Radial is a middle among others, which is the shape it makes.
-  { axis: "free", mark: "⬚", tip: "Free — arrange nothing" },
-  { axis: "grid", mark: "▦", tip: "Grid" },
-  { axis: "radial", mark: "⊙", tip: "Radial" },
-  { axis: "right", mark: "→", tip: "Across" },
-  { axis: "down", mark: "↓", tip: "Down" },
+  { axis: "none", mark: "·", tip: "No flow direction" },
+  { axis: "across", mark: "→", tip: "Flows read across" },
+  { axis: "down", mark: "↓", tip: "Flows read down" },
 ];
 
 /** What a right drag makes, in the order the one control steps through. */
@@ -173,7 +178,7 @@ const MARK = 5.5;
  *  arrangement already reads by, so a flow line runs with the layer instead of
  *  doubling back across it. A free layer imposes nothing. */
 function flowSides(axis: Axis): { from: Side; to: Side } | null {
-  if (axis === "right") return { from: "right", to: "left" };
+  if (axis === "across") return { from: "right", to: "left" };
   if (axis === "down") return { from: "bottom", to: "top" };
 
   return null;
@@ -220,7 +225,7 @@ function planEdge(
   view: string | null,
   frameBox: Box | null,
   used: Used,
-  axis: Axis = "free",
+  axis: Axis = "none",
   solid: Box[] = [],
 ) {
   const fromBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
@@ -261,6 +266,7 @@ function planEdge(
 /** What the floating input is asking for. One prompt, several errands. */
 type Prompt =
   | { kind: "node"; x: number; y: number }
+  | { kind: "note"; x: number; y: number; w: number; h: number }
   | { kind: "sprout"; x: number; y: number; end: End }
   | { kind: "relation"; id: string }
   | { kind: "rename"; id: string };
@@ -294,9 +300,11 @@ type Props = {
   onShowPorts: (on: boolean) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
-  /** Lay this layer out the chosen way and write down where everything went. */
-  onRelax: (axis: Axis, spots?: { id: string; x: number; y: number }[],
-            notes?: { id: string; x: number; y: number }[]) => void;
+  /** Write down where an arrangement put everything. */
+  onArrangeLayer: (spots: { id: string; x: number; y: number }[],
+                   notes?: { id: string; x: number; y: number }[]) => void;
+  /** Which way this layer reads — a setting, not an arrangement. */
+  onAxis: (axis: Axis) => void;
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
@@ -329,7 +337,7 @@ type Props = {
    *  attribute's name drawn on the canvas. */
   onNameAttr: (id: string, label: string) => void;
   /** A note in this layer, at the point the gesture began. */
-  onNote: (x: number, y: number) => void;
+  onNote: (text: string, x: number, y: number, w: number, h: number) => void;
   onPlaceNote: (id: string, x: number, y: number) => void;
   /** Tie a note to an object, or untie it if it is already tied. */
   onTie: (id: string, holder: string) => void;
@@ -342,7 +350,7 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
-  const { onRelax, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
+  const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
   const { kind, onKind } = props;
   const axis = axisOf(graph, view);
   // Everything the cards, the frame and the lines are handed has to keep one
@@ -411,13 +419,16 @@ function Flow(props: Props) {
    *  arranged nor connected — only avoided. */
   const noteBoxes = useMemo(
     () => notes.map((attr) => ({
-      x: cell(attr.note!.x), y: cell(attr.note!.y), w: NOTE.w, h: NOTE.h,
+      x: cell(attr.note!.x),
+      y: cell(attr.note!.y),
+      w: Math.max(NOTE.w, cell(attr.note!.w ?? 0)),
+      h: Math.max(NOTE.h, cell(attr.note!.h ?? 0)),
     })),
     [notes],
   );
 
   const boxes = useMemo(() => {
-    const spots = place(graph, members, axis, noteBoxes);
+    const spots = place(graph, members, noteBoxes);
     const found: Record<string, Box> = {};
 
     for (const node of members) {
@@ -427,7 +438,7 @@ function Flow(props: Props) {
     }
 
     return found;
-  }, [graph, members, axis, noteBoxes, placementKey(members)]);
+  }, [graph, members, noteBoxes, placementKey(members)]);
 
   /** The layer's own frame, with room on every side for its interfaces. */
   const frameBox = useMemo(() => {
@@ -579,27 +590,26 @@ function Flow(props: Props) {
     return { runs, seats };
   }, [graph, boxes, frameBox, view, axis, showPorts, noteBoxes, standIn]);
 
-  /** Lay this layer out the chosen way. Picking an arrangement *is* the request
-   *  to arrange by it, and clicking the one already lit lays it out again.
+  /** Lay this layer out the chosen way.
    *
-   *  What it works out is committed as ordinary placement, so everything can be
-   *  dragged afterwards. `free` moves nothing — it only drops the axis. */
-  const onArrange = useCallback((which: Axis) => {
-    const spots = arranged(graph, members, which);
+   *  A one-time action: what it works out is committed as ordinary placement,
+   *  so everything can be dragged afterwards. It touches nothing else — which
+   *  way the layer reads is a separate setting, and arranging as a grid is no
+   *  reason to forget it. */
+  const onArrange = useCallback((shape: Layout) => {
+    const spots = arranged(graph, members, shape);
     const laid = Object.entries(spots).map(([id, at]) => ({ id, x: at.x, y: at.y }));
 
-    onRelax(which, laid, which === "free" ? [] : reNoted(which, spots));
+    onArrangeLayer(laid, reNoted(spots));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reNoted is stable per graph
-  }, [onRelax, graph, members, view]);
+  }, [onArrangeLayer, graph, members, view]);
 
   /** Where each tied note should sit once this layer is laid out afresh.
    *
    *  Worked out here rather than in the fold, because it needs the arrangement
    *  the layer is about to take and only the canvas can run that. A note tied to
    *  nothing keeps its place: there is nothing for it to follow. */
-  const reNoted = useCallback((which: Axis, spots: Record<string, Spot>) => {
-    void which;
-
+  const reNoted = useCallback((spots: Record<string, Spot>) => {
     const boxOf = (id: string) => {
       const at = spots[id];
 
@@ -718,8 +728,9 @@ function Flow(props: Props) {
     });
 
     // A note is small and precise, so it moves at once like a card rather than
-    // wanting a click first the way a boundary does. Its size is its text's:
-    // stated nowhere, measured by the library like any card.
+    // wanting a click first the way a boundary does. Its size is the larger of
+    // what its drag asked for and what its text needs — a minimum, never a
+    // measurement, so the box and what it says can never disagree.
     const written = notes.map((attr) => ({
       id: attr.id,
       type: "note",
@@ -733,6 +744,8 @@ function Flow(props: Props) {
         // A note *is* its text, so it lights as a name does — there is nothing
         // else on it to be over.
         grazed: grazed?.kind === "title" && grazed.id === attr.id,
+        least: { w: Math.max(NOTE.w, cell(attr.note!.w ?? 0)),
+                 h: Math.max(NOTE.h, cell(attr.note!.h ?? 0)) },
         onPick: () => onPick({ kind: "attr", id: attr.id }),
         onLabel: (text: string) => onNameAttr(attr.id, text),
       },
@@ -1434,16 +1447,19 @@ function Flow(props: Props) {
       const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
       if (moved <= THRESHOLD) return fallback(event.clientX, event.clientY);
 
-      // Past it, having set off from nothing: a note, in the top-left corner of
-      // the rectangle swept out — so it lands where the box that was drawn says
-      // it will, whichever way the drag ran. The rest of the rectangle is not a
-      // measurement: a note is sized by what it says, the way a boundary is
-      // sized by its members.
+      // Past it, having set off from nothing: a note. It lands in the top-left
+      // corner of the rectangle swept out, whichever way the drag ran, and the
+      // rest of the rectangle is the least room it gets — a minimum, so a long
+      // description has space and a longer one still grows the card. What it
+      // says is asked for before anything is made, the same as a node's name.
       if (down.bare) {
         const at = flow.screenToFlowPosition({ x: Math.min(down.x, event.clientX),
                                                y: Math.min(down.y, event.clientY) });
+        const far = flow.screenToFlowPosition({ x: Math.max(down.x, event.clientX),
+                                                y: Math.max(down.y, event.clientY) });
 
-        onNote(at.x, at.y);
+        setPrompt({ kind: "note", x: at.x, y: at.y,
+                    w: Math.round(far.x - at.x), h: Math.round(far.y - at.y) });
       }
 
       return;
@@ -1541,30 +1557,36 @@ function Flow(props: Props) {
         >
           {KIND_MARK[kind]}
         </button>
-      </div>
-
-      {/* How the layer is drawn, opposite the zoom controls: the arrangement,
-          the re-arrange, and whether lines are square or curved. Kept apart
-          from the row above because that one is about what gets *made*, and
-          because two of these three belong to the layer rather than the app. */}
-      <div className="shape">
-        {AXES.map(({ axis: which, mark, tip }) => (
-          <button
-            key={which}
-            className={axis === which ? "on" : ""}
-            onClick={() => onArrange(which)}
-            title={tip}
-          >
-            {mark}
-          </button>
-        ))}
         <button
-          className={`apart ${angular ? "on" : ""}`}
+          className={angular ? "on" : ""}
           onClick={() => onAngular(!angular)}
           title={angular ? "Angles" : "Curves"}
         >
           {angular ? "⌐" : "~"}
         </button>
+        {/* Which way the layer reads: a setting, and one about relationships —
+            it decides which sides a flow attaches to and how its line runs. */}
+        {AXES.map(({ axis: which, mark, tip }) => (
+          <button
+            key={which}
+            className={`${which === "none" ? "apart " : ""}${axis === which ? "on" : ""}`}
+            onClick={() => onAxis(which)}
+            title={tip}
+          >
+            {mark}
+          </button>
+        ))}
+      </div>
+
+      {/* Arrangements, opposite the zoom controls. Each is a one-time action,
+          so none of them lights up — there is no arrangement a layer is
+          currently *in*, only one it was last put through. */}
+      <div className="shape">
+        {LAYOUTS.map(({ shape, mark, tip }) => (
+          <button key={shape} onClick={() => onArrange(shape)} title={tip}>
+            {mark}
+          </button>
+        ))}
       </div>
 
       <ReactFlow
@@ -1886,18 +1908,22 @@ function Flow(props: Props) {
         </div>
       )}
 
-      {(prompt?.kind === "node" || prompt?.kind === "sprout") && (
+      {(prompt?.kind === "node" || prompt?.kind === "sprout" || prompt?.kind === "note") && (
         <div className="floating">
           <span className="caret">+</span>
           <input
             autoFocus
-            placeholder={prompt.kind === "sprout" ? "name the thing it connects to" : "name it"}
+            placeholder={prompt.kind === "sprout" ? "name the thing it connects to"
+              : prompt.kind === "note" ? "what does it say?"
+              : "name it"}
             onBlur={() => setPrompt(null)}
             onKeyDown={(event) => {
               const text = event.currentTarget.value.trim();
               if (event.key === "Enter" && text) {
                 if (prompt.kind === "sprout") {
                   onSprout(prompt.end, text, prompt.x, prompt.y, kind);
+                } else if (prompt.kind === "note") {
+                  onNote(text, prompt.x, prompt.y, prompt.w, prompt.h);
                 } else {
                   // Made in the clear space inside a boundary, it joins that
                   // group — the same test a card dropped there passes.

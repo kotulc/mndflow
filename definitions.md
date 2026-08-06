@@ -77,10 +77,9 @@ written anywhere else can be read without guessing.
 |---|---|
 | **unit** | anything laid out as a whole: a card, a group, or a note |
 | **cluster** | units drawn together by relationships, arranged as one region *(backlog)* |
-| **arrangement** | how a layer lays out what it holds: `free`, `grid`, `radial`, `across`, `down`. An **action** that writes positions, not a mode. One per layer |
-| **free** | the absence of an arrangement. Arranges nothing; every card stays where it is |
+| **arrangement** | a one-time **action** that lays the layer out and writes down where everything landed: `grid`, `radial`, `across`, `down`. Never a mode, so never "current" |
+| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a flow relationship takes; says nothing about where cards go |
 | **resting layout** | what a render runs: placed cards stay, unplaced ones fill around them |
-| **axis** | the direction an arrangement ranks along. `free`, `grid` and `radial` have none |
 | **rank** | one step along the axis. Things pointing at each other sit in successive ranks |
 | **hard constraint** | something honoured **by** an arrangement, which survives it. Ports and walls, and nothing else |
 | **retained placement** | something an arrangement **replaces** rather than honours, and which is yours again afterwards. Card positions |
