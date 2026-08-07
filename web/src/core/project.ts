@@ -437,14 +437,12 @@ export function useProject() {
 
       const spot = x === undefined || y === undefined ? {} : { x, y };
       const stand = makeElement("", {
-        element: "proxy", parent: view, num: nextNum(graph, view, "proxy"), ...spot,
+        element: "proxy", parent: view, of: target,
+        num: nextNum(graph, view, "proxy"), ...spot,
       });
 
-      // What it stands for is the reference relationship, not a field on it.
-      commit(makeStep(`reference: ${name(target)}`, "reference", [
-        { op: "add_element", element: stand },
-        { op: "link_elements", edge: makeEdge(stand.id, target, { kind: "reference" }) },
-      ]));
+      commit(makeStep(`reference: ${name(target)}`, "reference",
+                      [{ op: "add_element", element: stand }]));
     },
 
     /** Go to where a node actually lives, and mark it there. What a reference

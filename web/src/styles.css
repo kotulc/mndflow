@@ -1463,11 +1463,23 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .react-flow__edge:hover .leg.ghost .leg-mark { opacity: 0.3; }
 .leg-grab:hover + .leg-mark { opacity: 0.6; }
 
-/* A relation drawn through a reference — one whose far end lives in another
-   layer. Its own colour as well as dashed: in the same green as every other
-   line it was indistinguishable from one, and reaching out of the layer is the
-   one thing about a line whose reading depends on being noticed. */
-.react-flow__edge.reaching .react-flow__edge-text { fill: #8a7ab0; font-style: italic; }
+/* A reference — a relation with a proxy at one end, so it reaches something
+   living in another layer. Its own colour as well as dashed: in the same green
+   as every other line it was indistinguishable from one.
+
+   Held back rather than announced. Reaching out of the layer is worth noticing,
+   but it is a fact about where the far end lives and not about the relation
+   itself, so the violet sits under the green lines in weight and lets the kind
+   and the label read first. Hover and selection bring it back up to full. */
+.react-flow__edge.reaching .react-flow__edge-path { opacity: 0.55; }
+.react-flow__edge.reaching .leg-mark { opacity: 0.55; }
+.react-flow__edge.reaching:hover .react-flow__edge-path,
+.react-flow__edge.reaching.selected .react-flow__edge-path,
+.react-flow__edge.reaching:hover .leg-mark,
+.react-flow__edge.reaching.selected .leg-mark { opacity: 1; }
+.react-flow__edge.reaching .react-flow__edge-text {
+  fill: #8a7ab0; font-style: italic; opacity: 0.75;
+}
 .react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-text { fill: var(--away); }

@@ -23,15 +23,19 @@ export function isProxy(node: Element | undefined): boolean {
   return node?.element === "proxy";
 }
 
-/** What a proxy stands in for: the far end of its `reference` relationship.
- *
- *  Derived rather than held on the proxy, so the fact lives in exactly one
- *  place. A reference is a relationship like any other — it is what joining a
- *  proxy to its block *is*, not a note kept alongside one. */
+/** What a proxy stands in for. */
 export function refOf(graph: Graph, id: string): string | null {
-  const ref = Object.values(graph.edges).find((e) => e.kind === "reference" && e.source === id);
+  return graph.elements[id]?.of ?? null;
+}
 
-  return ref?.target ?? null;
+/** Whether a relationship crosses a structural boundary: one of its ends is a
+ *  proxy, so it reaches something living in another layer.
+ *
+ *  Derived, and never stored — it follows from where the ends are, so drawing a
+ *  line to a proxy makes a reference without anybody saying so. It says nothing
+ *  about the relationship's own kind, which is still plain, flow or assoc. */
+export function isReference(graph: Graph, edge: { source: string; target: string }): boolean {
+  return isProxy(graph.elements[edge.source]) || isProxy(graph.elements[edge.target]);
 }
 
 /** What an element really is: itself, or whatever it stands in for.
@@ -54,7 +58,7 @@ export function actual(graph: Graph, id: string | null): Element | undefined {
  *  nothing the first did not. */
 export function proxyIn(graph: Graph, layer: string | null, target: string): Element | undefined {
   return Object.values(graph.elements).find(
-    (n) => isProxy(n) && (n.parent ?? null) === layer && refOf(graph, n.id) === target,
+    (n) => isProxy(n) && (n.parent ?? null) === layer && n.of === target,
   );
 }
 
@@ -487,18 +491,14 @@ function legacy(graph: Graph, mutation: Mutation, waiting: Pending): void {
     case "add_node": {
       const node = (mutation as { node: Record<string, unknown> }).node;
       const id = node.id as string;
-      const stands = node.ref as string | null | undefined;
+      const stands = (node.ref as string | null | undefined) ?? null;
       graph.elements[id] = newElement((node.label as string) ?? "", {
         ...node,
         id,
         element: stands != null ? "proxy" : "block",
+        of: stands,
       } as Partial<Element>);
 
-      // What was a `ref` field is a relationship now, so an old proxy gets the
-      // reference that has always been implied by it.
-      if (stands != null) {
-        graph.edges[`ref_${id}`] = newEdge(id, stands, { id: `ref_${id}`, kind: "reference" });
-      }
       break;
     }
 
@@ -635,12 +635,9 @@ function legacy(graph: Graph, mutation: Mutation, waiting: Pending): void {
  *  decayed — so decay is refused where it happens, in the action that takes the
  *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
-  // A proxy is nothing without the block it stands for, so it goes when the
-  // reference does — whether the block was deleted or the relationship was.
+  // A proxy is nothing without the block it stands for.
   for (const [id, node] of Object.entries(graph.elements)) {
-    if (!isProxy(node)) continue;
-    const target = refOf(graph, id);
-    if (!target || !graph.elements[target]) delete graph.elements[id];
+    if (isProxy(node) && (!node.of || !graph.elements[node.of])) delete graph.elements[id];
   }
 
   for (const node of Object.values(graph.elements)) {

@@ -59,15 +59,21 @@ the project.
 - Carries `type`, `kind`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
   `fromSide`/`toSide` where an end was drawn through a named wall.
 - `type` is the free-text stereotype — what this relationship *means*.
-- `kind` is `untyped` (the default), `flow`, `assoc`, `reference` or `tie`. It says what the two
-  ends *are*; `dir` still says which way the arrows point.
+- `kind` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
+  `dir` still says which way the arrows point.
 - **Anything joining two elements is a relationship.** A kind may draw as something other than a
   routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
   drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
   one list to read them from.
-- `reference` binds a **proxy** to the block it stands for, and is the only kind that crosses
-  layers. What a proxy stands for is derived from it, never stored twice. One proxy per layer per
-  block, and never for a block already in that layer.
+- **A reference is a relationship with a proxy at one end** — it reaches something living in
+  another layer. Derived, never a kind: drawing a line onto a proxy makes one without anybody
+  saying so, and it stays plain, flow or assoc and keeps its direction. Both routes to it draw
+  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for
+  it.
+- A reference draws **violet and dashed**, held back at reduced opacity so the kind and the label
+  read first; hover and selection bring it to full.
+- What a proxy stands for is an attribute of the proxy, not a relationship: one thing appearing
+  twice rather than two things joined.
 - `tie` joins a note to what it describes.
 - **Containment is not a relationship.** The tree is `parent`, and being inside something is
   implied by it rather than stored as an edge.

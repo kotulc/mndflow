@@ -96,6 +96,16 @@ routed line — a tie is a leader — but drawing is not identity. The alternati
 to join things, with its own mutations, its own cascade and its own list, all shadowing what
 relationships already do.
 
+**A reference is derived, not a kind.** A relationship is one when a proxy sits at either end, so
+drawing a line onto a proxy makes a reference without anybody choosing it — and it stays plain,
+flow or assoc in its own right, because reaching another layer says nothing about what the
+relationship *means*. Spending a kind on it would have made the two mutually exclusive, and would
+have asked the user to declare something the graph already knows.
+
+**What a proxy stands for is an attribute of the proxy.** One thing appearing twice is a property
+of the appearance, not two things being joined — so it is not a relationship, and the references
+are the ordinary relationships that *reach* the proxy.
+
 The test for which of the two something is: **drawn as a line between two things → a
 relationship; not a line → an attribute.** A tie is a line, so it is one. Membership is not, so
 it is not.

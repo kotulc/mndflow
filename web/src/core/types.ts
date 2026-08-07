@@ -35,17 +35,20 @@ export type Elem = "block" | "note" | "group" | "proxy";
  *  its ends are plain seats and the layer puts them wherever the path wants.
  *  `flow` says the relationship carries something one way, so its ends read as
  *  in and out and take the sides the layer's axis gives them. `assoc` is a
- *  weaker mention, drawn lighter. `reference` binds a proxy to the block it
- *  stands for and is the one kind that crosses layers. `tie` joins a note to
- *  what it describes. The kind decides the ends; `dir` still decides which way
- *  the arrows point.
+ *  weaker mention, drawn lighter. `tie` joins a note to what it describes. The
+ *  kind decides the ends; `dir` still decides which way the arrows point.
+ *
+ *  **`reference` is not among them.** A relationship is a reference when one of
+ *  its ends is a proxy, which is a fact about where its ends live rather than a
+ *  kind it was given — so it is derived, and a reference is still plain, flow
+ *  or assoc in its own right.
  *
  *  A kind may draw as something other than a routed line — a tie is a leader,
  *  taking no pointer and no seats — but that is a rule about drawing, not about
  *  what it is. Anything joining two elements is a relationship, so that there
  *  is one way to join things, one cascade when an end is deleted, and one list
  *  to read them from. */
-export type Kind = "untyped" | "flow" | "assoc" | "reference" | "tie";
+export type Kind = "untyped" | "flow" | "assoc" | "tie";
 
 /** Which way a layer reads, and nothing else.
  *
@@ -116,6 +119,13 @@ export type Element = {
    *  who names it, so the two can never disagree. Membership is descriptive,
    *  not structural — a group is never a parent. */
   groups: string[];
+  /** What a proxy stands in for: the block it is a second appearance of.
+   *
+   *  Held here rather than as a relationship. A proxy standing for a block is
+   *  not two things being joined — it is one thing appearing twice, which is a
+   *  property of the appearance. The relationships that *reach* a proxy are the
+   *  references, and they are ordinary relationships drawn by hand. */
+  of: string | null;
   /** Descriptive values, addressed by name. */
   attrs: Attr[];
   color: string;
@@ -278,6 +288,7 @@ export function element(label: string, extra: Partial<Element> = {}): Element {
     num: null,
     axis: null,
     groups: [],
+    of: null,
     attrs: [],
     color: "#d9a441",
     ...extra,

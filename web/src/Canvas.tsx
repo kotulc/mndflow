@@ -28,8 +28,8 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import {
-  axisOf, blocksOf, groupsIn, isProxy, membersOf, nameOf, notesIn, portsOf, proxyIn, refOf,
-  tiesOf, titleOf,
+  axisOf, blocksOf, groupsIn, isProxy, isReference, membersOf, nameOf, notesIn, portsOf, proxyIn,
+  refOf, tiesOf, titleOf,
 } from "./core/fold";
 import {
   around, arranged, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
@@ -109,8 +109,9 @@ const AXES: { axis: Axis; mark: string; tip: string }[] = [
 ];
 
 /** What a right drag makes, in the order the one control steps through. */
-/** `reference` and `tie` are not among them: each has a gesture of its own, so
- *  neither is something this control can land on. */
+/** `tie` is not among them: it has a gesture of its own, so it is not something
+ *  this control can land on. A reference is not here either — it is derived
+ *  from an end being a proxy, and keeps whichever of these it was given. */
 const KIND_NEXT: Partial<Record<Kind, Kind>> = {
   untyped: "flow", flow: "assoc", assoc: "untyped",
 };
@@ -921,9 +922,12 @@ function Flow(props: Props) {
         const run = laid.runs[edge.id];
         if (!source || !target || source === target || !run) return null;
 
-        // Reaching out of the layer: at least one end is drawn through a
-        // placeholder, which the line says by going dotted.
-        const away = source !== edge.source || target !== edge.target;
+        // A reference: it reaches something living in another layer. Either an
+        // end was substituted by a proxy standing in for it, or an end simply
+        // is a proxy because the line was drawn straight onto one. Both are the
+        // same fact about the relationship, so both draw alike.
+        const away = source !== edge.source || target !== edge.target ||
+          isReference(graph, edge);
 
         const forward = edge.dir === "forward" || edge.dir === "both";
         const back = edge.dir === "back" || edge.dir === "both";

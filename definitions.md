@@ -34,7 +34,7 @@ join them. Everything else describes one of the two.
 | **block** | the base element, and the default: one discrete structural thing |
 | **container** | a block that holds other blocks. Derived from what it holds, so it is a way a block *looks*, not a thing it *is* — it is still called a block |
 | **interface** | a block sitting on its parent's frame edge. Also called a **port**. Derived from having a side, the same way containment is derived |
-| **proxy** | a virtual block standing in for one that lives in another layer, so a relationship can cross a structural boundary. Shows the real block's name |
+| **proxy** | a virtual block standing in for one that lives in another layer, so a relationship can cross a structural boundary. Shows the real block's name. What it stands for is an **attribute of the proxy** — one thing appearing twice, not two things joined. One per layer per block, and never for a block already in that layer |
 | **root** | the block that holds every other. Carries the project's metadata, has `parent: null`, and has no frame — a frame is a block seen from inside, and root has no outside |
 | **name** | unique among an element's siblings; position in the tree is what makes it unique in the project. An unnamed element is numbered among its own element type — `block 1`, `note 2` |
 
@@ -69,8 +69,8 @@ join them. Everything else describes one of the two.
 
 | Term | Means |
 |---|---|
-| **kind** | what a relationship's ends *are*: `untyped`, `flow`, `assoc`, `reference`, or `tie`. Closed, engine-level |
-| **reference** | the relationship binding a proxy to the block it stands for. The one kind that crosses layers. One proxy per layer per block, and never for a block already in that layer |
+| **kind** | what a relationship's ends *are*: `untyped`, `flow`, `assoc`, or `tie`. Closed, engine-level |
+| **reference** | a relationship with a **proxy at one end**, so it reaches something in another layer. **Derived, never a kind** — drawing a line to a proxy makes one, and it keeps whatever kind it was given. Drawn violet and dashed |
 | **tie** | the relationship joining a note to what it describes |
 | **direction** (`dir`) | which way its arrows point. Independent of kind |
 | **type** | the free-text name of what a relationship means — its stereotype |
@@ -123,4 +123,4 @@ element or a relationship, and never changes what contains what.
 | **mutation** | a single change within a step |
 | **the log** | the ordered list of steps. The source of truth; the graph is folded from it |
 | **fold** | rebuilding the graph by replaying every applied step |
-| **derived** | worked out rather than stored. Seats, routes, boundaries, containment, a group's member list, and what a proxy stands for |
+| **derived** | worked out rather than stored. Seats, routes, boundaries, containment, a group's member list, and whether a relationship is a reference |

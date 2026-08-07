@@ -83,10 +83,6 @@ that could change an element's type would collapse the distinction and make ever
 conditional on user data.
 
 
-- **The proxy's target is found by scanning edges.** `actual()` walks `graph.edges` for a
-  `reference` rather than reading a field, and it is called from `nameOf` on every card render.
-  Nothing at the thirty-element target notices, but it is a scan inside a render path. The fix if
-  it ever bites is an index built once per `fold`, where it cannot drift.
 - **Attributes are listed but barely editable.** The panel shows a name and a value and can drop
   one; renaming an attribute goes through a drop-and-set pair, and tags still have no UI.
 
