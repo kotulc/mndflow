@@ -71,6 +71,26 @@ lays five nodes out as a "ring" nobody sees is worse than no detector; hub and t
 once the machinery has proved itself.
 
 
+**Templates as subtypes.** Any element should be subtypable into a reusable template — a block
+given a colour, an icon and some default attributes becomes a kind of block that can be made
+again. The slot already exists: `type` is the per-element vocabulary word. What is missing is an
+identity behind it, so a type is a thing that can be defined and reused rather than a free string.
+
+**A template subtypes within an element type, never across it.** That is what keeps the two
+apart: `element` stays closed and engine-level, deciding what draws a thing and what rules reach
+it; `type` stays open and user-level, deciding how it looks and what it starts with. A template
+that could change an element's type would collapse the distinction and make every rule
+conditional on user data.
+
+
+- **The proxy's target is found by scanning edges.** `actual()` walks `graph.edges` for a
+  `reference` rather than reading a field, and it is called from `nameOf` on every card render.
+  Nothing at the thirty-element target notices, but it is a scan inside a render path. The fix if
+  it ever bites is an index built once per `fold`, where it cannot drift.
+- **Attributes are listed but barely editable.** The panel shows a name and a value and can drop
+  one; renaming an attribute goes through a drop-and-set pair, and tags still have no UI.
+
+
 ## Not built yet
 
 - **The sample project.** `samples/mndflow.json` does not exist, and the directory does not
@@ -81,8 +101,8 @@ once the machinery has proved itself.
 - **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
 - **Icons.** An attribute is supposed to be able to draw an icon on the canvas as well as a
   boundary or a note. Nothing draws an icon, and no icon set has been chosen.
-- **Adding a node to an existing group from the panel.** The panel removes members and cannot
-  add one. The action exists (`attachAttr`) but is not wired to anything, so the only way into
+- **Adding a block to an existing group from the panel.** The panel removes members and cannot
+  add one. The action exists (`joinGroup`) but is not wired to anything, so the only way into
   an existing group is the drag.
 - **Tags.** Every attribute carries them and nothing shows or edits them.
 - **Ties made from the note's side.** A note is its own name all the way through, so a right

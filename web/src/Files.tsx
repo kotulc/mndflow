@@ -10,8 +10,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { isContainer, isPort, isRef, nameOf } from "./core/fold";
-import type { Graph, Node } from "./core/types";
+import { isContainer, isPort, isProxy, nameOf, titleOf } from "./core/fold";
+import { ROOT as ROOT_ID, type Graph, type Element } from "./core/types";
 import { REFERRED } from "./NodeCard";
 import type { Terms } from "./core/workflows";
 
@@ -20,13 +20,16 @@ const ROOT = "__root__";
 /** Child nodes per parent, containers first then by label, keyed by ROOT for
  *  the top level. A node whose parent was undone sits at the top rather than
  *  vanishing from the tree. */
-function branches(graph: Graph): Record<string, Node[]> {
-  const kids: Record<string, Node[]> = {};
+function branches(graph: Graph): Record<string, Element[]> {
+  const kids: Record<string, Element[]> = {};
 
-  for (const node of Object.values(graph.nodes)) {
-    if (isRef(node)) continue;
+  for (const node of Object.values(graph.elements)) {
+    // The explorer is the tree, and the tree is blocks. A proxy is a second
+    // appearance of one; a note or a group describes rather than structures;
+    // root is the tree itself and has its own row above these.
+    if (node.id === ROOT_ID || isProxy(node) || node.element !== "block") continue;
 
-    const parent = node.parent && graph.nodes[node.parent] ? node.parent : ROOT;
+    const parent = node.parent && graph.elements[node.parent] ? node.parent : ROOT;
     (kids[parent] ??= []).push(node);
   }
 
@@ -47,7 +50,7 @@ function branches(graph: Graph): Record<string, Node[]> {
 /** The mark for a node's role, which it takes from what it holds and where it
  *  sits rather than from anything declared. Blocks are a closed square,
  *  interfaces an open one, containers a compound grid. */
-function icon(graph: Graph, node: Node): string {
+function icon(graph: Graph, node: Element): string {
   if (isPort(node)) return "□";
   if (isContainer(graph, node.id)) return "▦";
 
@@ -84,7 +87,7 @@ export function Files(props: Props) {
   const [adding, setAdding] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLSpanElement>(null);
-  const title = graph.title || "project";
+  const title = titleOf(graph) || "project";
 
   function fold(id: string) {
     setOpen((prior) => {
@@ -103,7 +106,7 @@ export function Files(props: Props) {
       if (prior.size) return new Set();
 
       return new Set(
-        Object.values(graph.nodes)
+        Object.values(graph.elements)
           .filter((node) => (kids[node.id] ?? []).some((n) => showPorts || !isPort(n)))
           .map((node) => node.id),
       );
@@ -147,13 +150,13 @@ export function Files(props: Props) {
   }, [view, open, graph]);
 
   /** A new thing goes inside whatever layer is open. */
-  const parent = view && graph.nodes[view] ? view : null;
+  const parent = view && graph.elements[view] ? view : null;
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
   function rename(id: string, label: string) {
     const wanted = label.trim();
-    const current = id === ROOT ? title : graph.nodes[id]?.label;
+    const current = id === ROOT ? title : graph.elements[id]?.label;
 
     if (wanted && wanted !== current) {
       id === ROOT ? onRenameProject(wanted) : onRename(id, wanted);
@@ -170,7 +173,7 @@ export function Files(props: Props) {
 
   /** Finish a drag, ignoring drops that would leave the node where it is. */
   function drop(into: string | null) {
-    const moved = held && held !== into && (graph.nodes[held]?.parent ?? null) !== into;
+    const moved = held && held !== into && (graph.elements[held]?.parent ?? null) !== into;
     if (moved) onMove(held!, into);
 
     setHeld(null);
@@ -212,7 +215,7 @@ export function Files(props: Props) {
     // told apart by their icon; `branches` has already sorted them last.
     const here = (kids[parentId] ?? []).filter((n) => showPorts || !isPort(n));
 
-    const row = (node: Node) => {
+    const row = (node: Element) => {
       const holds = Boolean(kids[node.id]?.some((n) => showPorts || !isPort(n)));
 
       return (
@@ -352,7 +355,7 @@ export function Files(props: Props) {
           </div>
         )}
 
-        {Object.keys(graph.nodes).length === 0 && !adding && (
+        {Object.keys(graph.elements).length === 0 && !adding && (
           <p className="empty">Nothing here yet</p>
         )}
       </div>

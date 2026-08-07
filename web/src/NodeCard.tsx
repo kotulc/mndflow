@@ -12,9 +12,9 @@
 import { memo, useRef, useState } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 
-import { blocksOf, isContainer, isLinked, isRef, nameOf, portsOf } from "./core/fold";
+import { blocksOf, isContainer, isLinked, isProxy, nameOf, portsOf } from "./core/fold";
 import { affinity, CHIP_CAP, freeSeat, GRID, LEAF, pack, seatAt, sizeOf } from "./core/layout";
-import type { Graph, Node, Side } from "./core/types";
+import type { Graph, Element, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
 /** Tag type scales between these; below the floor the name is withheld. */
@@ -166,7 +166,7 @@ function along(at: number, extent: number, origin: number): number {
 
 /** Edge length and near-end origin of a port's host in canvas units. */
 function edgeOf(
-  graph: Graph, port: Node, side: Side,
+  graph: Graph, port: Element, side: Side,
   host?: { x: number; y: number; w: number; h: number },
 ): { extent: number; origin: number } {
   const flat = side === "top" || side === "bottom";
@@ -178,7 +178,7 @@ function edgeOf(
     };
   }
 
-  const parent = port.parent ? graph.nodes[port.parent] : null;
+  const parent = port.parent ? graph.elements[port.parent] : null;
   if (!parent) {
     return { extent: flat ? LEAF.w : LEAF.h, origin: 0 };
   }
@@ -211,7 +211,7 @@ export type Grazed = {
 } | null;
 
 export type CardData = {
-  node: Node;
+  node: Element;
   graph: Graph;
   dropping: boolean;
   picked: boolean;
@@ -277,7 +277,7 @@ export function Anchor({ name, side, inward }: { name: string; side: Side; inwar
  *  relationship attached to it, or the node it sits on, is selected — enough to
  *  see where a line is tied on without turning every square back on. */
 export function Berth({ port, graph, shown, inward, host }: {
-  port: Node;
+  port: Element;
   graph: Graph;
   shown: boolean;
   inward?: boolean;
@@ -341,7 +341,7 @@ export function Perch({ seated, side, at, port, lit, inward, onPromote }: {
 }
 
 export type PortProps = {
-  port: Node;
+  port: Element;
   graph: Graph;
   picked: boolean;
   /** True when this is the one thing the pointer is over. */
@@ -592,7 +592,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   const size = sizeOf(graph, node);
   const host = { x: positionAbsoluteX, y: positionAbsoluteY, w: size.w, h: size.h };
   const classes = ["card", holds ? "group" : "object",
-                   isRef(node) ? "reference" : "",
+                   isProxy(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
                    grazed?.kind === "card" && grazed.id === node.id ? "grazed" : "",

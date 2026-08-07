@@ -13,27 +13,64 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 ## Project model
 
-**Nodes** — the only structural object. Everything else describes them.
+The graph is **elements** and **relationships**, and nothing else. An element is placed and
+drawn; a relationship joins two of them. Everything else describes one of the two.
 
-- A node's **role** is derived, never declared: on its parent's frame edge it is an
-  **interface**; otherwise a **block**; a block holding child blocks is a **container**.
-- Interface is the one role that never changes. Nothing turns a block into one or back.
-- Interfaces do not count towards being a container.
-- A node carries `label`, `type`, `parent`, `body`, `x`/`y`, an `axis` for when it is the open
-  layer, and a `ref` when it is a reference.
+**Elements** — held in `graph.elements`. "Node" is the same thing in the graph-theory register.
+
+- `element` says which of four it is: **block** (the base and the default), **note**, **group**,
+  or **proxy**. Closed and engine-level — it decides what draws an element and which rules reach
+  it.
+- `type` is the user's own subtype — a stereotype. Open-ended, and it subtypes **within** an
+  element type, never across one.
+- **Container and interface are derived, not declared**: a block holding child blocks draws as a
+  container; a block on its parent's frame edge is an interface. Both are ways a block *looks*;
+  neither is a separate element type, and both are still called blocks.
+- Interface is the one of these that never changes. Nothing turns a block into one or back, and
+  interfaces do not count towards being a container.
+- An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
+  `axis` for when it is the open layer, `groups` for its membership, `attrs`, and `color`.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
-- **An interface is a node only where somebody made one** — a bare one, or a promoted seat.
+- **An interface is an element only where somebody made one** — a bare one, or a promoted seat.
   A relationship makes none: where its line meets a card is worked out by the layer.
-- `num` is fixed at creation; a new interface takes the lowest number its parent is not using,
-  so deleting one leaves a gap the next fills and renames nothing.
 - `flow` (in / out / both) is decorative and constrains nothing.
 
-**Edges** — a relationship between two nodes.
+**Root** — the block that holds every other, under the reserved id `root`.
 
-- Carries `relation`, `kind`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
+- Carries the project's name as its `label`, plus its own axis, body and attributes.
+- `parent: null` means "in the root layer" everywhere it is written; root is told from its own
+  children by its id, which is the one place any listing has to know about it.
+- It has no frame, because a frame is a block seen from inside and root has no outside.
+
+**Names** — unique among siblings; where something sits in the tree is what makes it unique in
+the project.
+
+- An unnamed element falls back to its element type and its number among siblings of that type:
+  `block 1`, `note 2`, `interface 1`.
+- `num` is fixed at creation; a new element takes the lowest number not in use among those
+  siblings, so deleting one leaves a gap the next fills and renames nothing.
+- Container-ness is not in the name: it is derived, so a name tracking it would change the
+  moment a child was added. The icon says it instead.
+- A name already taken by a sibling is refused; creating and renaming both check first. Only
+  stored labels are compared — a fallback is a number nobody chose, and blank is not a name.
+
+**Relationships** — a join between two elements, held in `graph.edges`.
+
+- Carries `type`, `kind`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
   `fromSide`/`toSide` where an end was drawn through a named wall.
-- `kind` is `untyped` (the default), `flow`, or `assoc`. It says what the two ends *are*;
-  `dir` still says which way the arrows point.
+- `type` is the free-text stereotype — what this relationship *means*.
+- `kind` is `untyped` (the default), `flow`, `assoc`, `reference` or `tie`. It says what the two
+  ends *are*; `dir` still says which way the arrows point.
+- **Anything joining two elements is a relationship.** A kind may draw as something other than a
+  routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
+  drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
+  one list to read them from.
+- `reference` binds a **proxy** to the block it stands for, and is the only kind that crosses
+  layers. What a proxy stands for is derived from it, never stored twice. One proxy per layer per
+  block, and never for a block already in that layer.
+- `tie` joins a note to what it describes.
+- **Containment is not a relationship.** The tree is `parent`, and being inside something is
+  implied by it rather than stored as an edge.
 - `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
   normal case, and the layer works that end out.
 - `fromSide`/`toSide` pin an end to one of the frame's four walls. The seat along it is still
@@ -41,12 +78,16 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - **No relationship carries a route.** Where a line goes is derived from the layer it is drawn
   in, every time it is drawn.
 
-**Attributes** — a name, value and tags, held by one object or shared by many.
+**Attributes** — a name, value and tags on one element or relationship.
 
-- Sharing is what makes an attribute a grouping; `group` marks one drawn as a boundary.
-- `note` marks one drawn as a card of text, and carries the layer and place it sits at.
-- A boundary and a note are the two ways an attribute draws; nothing is both.
+- **No identity of its own**: an attribute is addressed by its name on the thing carrying it, and
+  setting the same name again rewrites it.
+- **Membership** is an attribute: a block names the groups it belongs to, and a group's member
+  list is derived from that, so the two can never disagree. A group is never a parent.
 - Never structural: never in the explorer, never changing what contains what.
+- The test for which of the two something is: **drawn as a line between two things → a
+  relationship; not a line → an attribute.** A tie is a line. Membership is not — a group draws a
+  boundary round its members, never a spoke to each.
 
 **History** — the step log is the source of truth.
 
@@ -89,7 +130,8 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - Groups, annotations and every other attribute never appear.
 - Interfaces are hidden behind a toggle; when shown they sit at the same level as child blocks,
   sorted after them, with their own icon and no branch of their own.
-- References are never listed — a reference is a second appearance of something already there.
+- Proxies are never listed — a proxy is a second appearance of something already there.
+- Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
 
 **Navigation**
@@ -112,7 +154,7 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 **Editing**
 
 - Add, rename, delete, and drag rows between levels.
-- Dragging a row onto the canvas places a reference to it in the open layer.
+- Dragging a row onto the canvas places a proxy for it in the open layer.
 - A move to another layer drops what does not travel: the node's annotations — group
   memberships and note ties — and its relationships to anything staying behind. Its children,
   its interfaces and all the wiring inside it arrive exactly as they were.
@@ -259,18 +301,21 @@ about like any other, and the drag sticks.
   - A chip's name shrinks to fit and hides when even the floor will not fit; hover names it.
   - Nesting stops at the first layer: a child container is marked as one and no further.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
-- **Reference** — a stand-in for a node living in another layer, so that a relationship reaching
-  it can be seen here. A visual shortcut; it changes nothing about the relationship.
+- **Proxy** — a stand-in for a block living in another layer, so that a relationship reaching
+  it can be seen here. A visual shortcut; it changes nothing about the relationship. It is an
+  element of its own, bound to its block by a `reference` relationship.
   - Greyed, hatched and dashed, marked `↗`; the only dashed card on the canvas. The colour is on
     the lines, not the card: **a relationship reaching a reference draws violet and dashed**,
     label and arrowheads with it, so a line leaving the layer is told apart at a glance.
-  - Shows the name of the node it stands for; renaming it renames that node.
-  - Has no inside: double-clicking goes to where that node actually lives and selects it there.
+  - Shows the name of the block it stands for; renaming it renames that block.
+  - Has no inside: double-clicking goes to where that block actually lives and selects it there.
   - Nothing nests into one, and it never becomes an interface.
-  - Points at a real node, never at another reference — the explorer is the only place one is
+  - Points at a real block, never at another proxy — the explorer is the only place one is
     dragged from and it does not list them.
+  - **One per layer per block**, and never for a block already in that layer — a second
+    appearance of the same thing says nothing the first did not.
   - Placed only by the user, never automatically. Deleting one removes the placeholder only;
-    it goes on its own when the node it stands for is deleted.
+    it goes on its own when its block or its reference is deleted.
 - Chips drag out of a treemap onto the canvas to lift that node into the open layer.
 
 ### Interfaces
@@ -361,7 +406,8 @@ about like any other, and the drag sticks.
 
 ### Groups
 
-- Nodes sharing one attribute, drawn as a faint dashed boundary around them.
+- An element of its own, drawn as a faint dashed boundary round the blocks that name it. Its
+  members are derived from their membership, never stored on the group.
 - The boundary is its members' bounds plus half a cell of margin, so it lands on the grid when
   its members do — its size is a fact about what it holds.
 - Clicking the background selects it; dragging a selected boundary moves every member as one
@@ -373,7 +419,7 @@ about like any other, and the drag sticks.
   Coordinates and layout.
 - **One member is allowed**, made deliberately — a boundary is a way of marking a single block.
   `Ctrl`/`Cmd` + `G` makes one; right-click still makes an interface on a single card.
-- **Falling** to one member removes the attribute instead of drawing it around one node. Made
+- **Falling** to one member removes the group instead of drawing it around one block. Made
   that way it stands; decayed to it, it goes.
 - Boundaries overlap freely and their backgrounds compound.
 - Its name is edited on the boundary itself.

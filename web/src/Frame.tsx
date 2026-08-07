@@ -71,7 +71,7 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
       <span className={`frame-name nodrag nopan${
         grazed?.kind === "title" && grazed.id === id ? " grazed" : ""}`}>
         <Name
-          text={nameOf(graph, graph.nodes[id])}
+          text={nameOf(graph, graph.elements[id])}
           className="frame-label"
           onRename={(label) => onRename(id, label)}
         />

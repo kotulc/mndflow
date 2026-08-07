@@ -10,9 +10,9 @@
  *
  *  Both are pure geometry; nothing here knows about React Flow. */
 
-import { isContainer, portsOf } from "./fold";
+import { isContainer, membersOf, portsOf } from "./fold";
 import { similarity } from "./match";
-import type { Axis, Graph, Layout, Node, Side, Spot } from "./types";
+import type { Axis, Graph, Layout, Element, Side, Spot } from "./types";
 
 /** The canvas grid. Everything with a place of its own lands on it, so that two
  *  things meant to line up line up exactly rather than nearly.
@@ -174,8 +174,8 @@ export function pack(count: number, box: { w: number; h: number }): Tile[] {
 
 /** How strongly a child belongs to its parent, 0–1. Drives the fill of its
  *  chip, so a container reads at a glance as coherent or ragged. */
-export function affinity(graph: Graph, child: Node): number {
-  const parent = child.parent ? graph.nodes[child.parent] : null;
+export function affinity(graph: Graph, child: Element): number {
+  const parent = child.parent ? graph.elements[child.parent] : null;
   if (!parent) return 0;
 
   const own = similarity(child.label, parent.label);
@@ -191,7 +191,7 @@ export function affinity(graph: Graph, child: Node): number {
  *  with its contents makes a busy layer into a wall of large boxes, and says
  *  the same thing the grid inside it already says. The cells shrink instead,
  *  which is what keeps a full container reading as full. */
-export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
+export function sizeOf(graph: Graph, node: Element): { w: number; h: number } {
   if (!isContainer(graph, node.id)) return { ...LEAF };
 
   return { w: LEAF.w, h: LEAF.h + GRID };
@@ -267,7 +267,7 @@ export function seatAt(at: number, extent: number, origin = 0): number {
  *  spec says interfaces do not stack, so a drop onto an occupied seat takes the
  *  next one along rather than being refused — a drag that has to be repeated to
  *  find a gap is worse than one that lands beside it. */
-export function freeSeat(graph: Graph, port: Node, side: Side, at: number,
+export function freeSeat(graph: Graph, port: Element, side: Side, at: number,
                          extent: number, origin = 0): number {
   const marks = seatMarks(origin, extent);
   if (!marks.length) return 0.5;
@@ -533,7 +533,7 @@ type Unit = {
  *  together, so they cannot be placed apart however much anyone would like
  *  them to be. Their boundaries still overlap and compound, which is what
  *  overlapping groups are supposed to do; they simply travel as one. */
-function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
+function clusters(graph: Graph, nodes: Element[]): Map<string, string> {
   const home = new Map<string, string>();
   const find = (id: string): string => {
     const up = home.get(id);
@@ -543,9 +543,9 @@ function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
 
   for (const node of nodes) home.set(node.id, node.id);
 
-  for (const attr of Object.values(graph.attrs)) {
-    if (!attr.group) continue;
-    const here = attr.holders.filter((id) => home.has(id));
+  for (const group of Object.values(graph.elements)) {
+    if (group.element !== "group") continue;
+    const here = membersOf(graph, group.id).map((n) => n.id).filter((id) => home.has(id));
     for (const id of here.slice(1)) {
       const a = find(here[0]);
       const b = find(id);
@@ -561,9 +561,9 @@ function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
  *  A unit the user has placed keeps its members' positions exactly. One nobody
  *  has placed gets an internal arrangement of its own — laid out among its own
  *  members only — and that becomes rigid. */
-function unitsOf(graph: Graph, nodes: Node[], shape: Layout): Unit[] {
+function unitsOf(graph: Graph, nodes: Element[], shape: Layout): Unit[] {
   const home = clusters(graph, nodes);
-  const held = new Map<string, Node[]>();
+  const held = new Map<string, Element[]>();
   for (const node of nodes) {
     const key = home.get(node.id)!;
     held.set(key, [...(held.get(key) ?? []), node]);
@@ -619,7 +619,7 @@ function unitsOf(graph: Graph, nodes: Node[], shape: Layout): Unit[] {
 }
 
 /** A unit's own internal arrangement, worked out among its members alone. */
-function inner(graph: Graph, members: Node[], shape: Layout): Record<string, Spot> {
+function inner(graph: Graph, members: Element[], shape: Layout): Record<string, Spot> {
   if (members.length === 1) return { [members[0].id]: middled({ x: 0, y: 0 },
                                                               sizeOf(graph, members[0])) };
 
@@ -850,7 +850,7 @@ function spread(units: Unit[], corner: Record<string, Spot>): Record<string, Spo
 }
 
 /** Unit-to-unit relationships, for whichever pass needs them. */
-function between(graph: Graph, nodes: Node[], units: Unit[]): [string, string][] {
+function between(graph: Graph, nodes: Element[], units: Unit[]): [string, string][] {
   const inUnit = new Map<string, string>();
   for (const unit of units) for (const id of unit.ids) inUnit.set(id, unit.id);
 
@@ -872,7 +872,7 @@ function between(graph: Graph, nodes: Node[], units: Unit[]): [string, string][]
  *  thrown away on the very next frame, which is no way to treat a drag. The
  *  axis is remembered for what it still decides: a flow's sides, and what the
  *  next arrangement will do. */
-export function place(graph: Graph, nodes: Node[],
+export function place(graph: Graph, nodes: Element[],
                       blocked: Box[] = []): Record<string, Spot> {
   const units = unitsOf(graph, nodes, "grid");
   const links = between(graph, nodes, units);
@@ -909,7 +909,7 @@ export function place(graph: Graph, nodes: Node[],
 /** Positions for the whole layer, arranged afresh — what picking an arrangement
  *  computes. The result is written down as ordinary placement, so it can be
  *  dragged about afterwards like anything else. */
-export function arranged(graph: Graph, nodes: Node[],
+export function arranged(graph: Graph, nodes: Element[],
                          shape: Layout): Record<string, Spot> {
   const units = unitsOf(graph, nodes, shape);
   const links = between(graph, nodes, units);

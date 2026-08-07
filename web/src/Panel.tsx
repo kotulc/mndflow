@@ -17,8 +17,10 @@
 
 import { useEffect, useState, type Ref } from "react";
 
-import { attrsOf, isContainer, isPort, isRef, nameOf } from "./core/fold";
-import type { Attr, Dir, Flow, Graph } from "./core/types";
+import {
+  actual, attrsOf, isContainer, isPort, isProxy, membersOf, nameOf, refOf, tiesOf,
+} from "./core/fold";
+import type { Dir, Element, Flow, Graph } from "./core/types";
 import type { Picked } from "./core/project";
 import type { Terms } from "./core/workflows";
 
@@ -34,9 +36,13 @@ type Props = {
   onRetype: (id: string, type: string) => void;
   onMarkPort: (id: string, flow: Flow | null) => void;
   onAddAttr: (holder: string, name: string) => void;
-  onUpdateAttr: (id: string, patch: { name?: string; value?: string; color?: string }) => void;
-  onDetachAttr: (id: string, holder: string) => void;
-  onDropAttr: (id: string) => void;
+  onUpdateAttr: (holder: string, was: string,
+                 patch: { name?: string; value?: string }) => void;
+  onDropAttr: (holder: string, name: string) => void;
+  /** Take a member out of a group, or untie a note from what it describes. */
+  onLeaveGroup: (id: string, group: string) => void;
+  onTie: (note: string, holder: string) => void;
+  onRename: (id: string, label: string) => void;
   onRelation: (id: string, relation: string) => void;
   onSetDir: (id: string, dir: Dir) => void;
   onFlip: (id: string) => void;
@@ -73,54 +79,56 @@ function AddAttr({ holder, onAdd }: { holder: string; onAdd: (h: string, n: stri
 
 /** What an annotation is called where it has no name of its own — the same
  *  fallback the canvas draws, so the panel and the canvas agree. */
-function roleOf(attr: Attr): string {
-  return attr.group ? "group" : attr.note ? "note" : "";
+function roleOf(node: Element | null | undefined): string {
+  return node?.element === "group" || node?.element === "note" ? node.element : "";
 }
 
-/** The attributes an object holds. Groups and notes are in here too — each is
- *  one shared attribute and nothing more, so both are listed as what they are
- *  rather than as separate kinds of thing. */
-function Attrs({ graph, holder, onUpdate, onDetach }: {
+/** The descriptive values an element holds, and the groups it belongs to.
+ *
+ *  An attribute has no identity of its own, so it is addressed by its name on
+ *  this element. Membership is listed alongside because it *is* an attribute —
+ *  what it is not is a relationship, since a group draws a boundary round its
+ *  members rather than a line to each. */
+function Attrs({ graph, holder, onUpdate, onDrop, onLeaveGroup }: {
   graph: Graph;
   holder: string;
-  onUpdate: (id: string, patch: { value?: string }) => void;
-  onDetach: (id: string, holder: string) => void;
+  onUpdate: (holder: string, was: string, patch: { value?: string }) => void;
+  onDrop: (holder: string, name: string) => void;
+  onLeaveGroup: (id: string, group: string) => void;
 }) {
   const mine = attrsOf(graph, holder);
-  if (!mine.length) return null;
+  const joined = graph.elements[holder]?.groups ?? [];
+  if (!mine.length && !joined.length) return null;
 
   return (
     <div className="attrs">
-      {mine.map((attr) => {
-        const role = roleOf(attr);
-
-        return (
-          <div className={`attr ${role ? "shared" : ""}`} key={attr.id}>
-            <span className="key" title={role ? `${role} of ${attr.holders.length}` : ""}>
-              {role ? attr.name || role : attr.name}
-            </span>
-            {role ? (
-              <span className="held">{attr.holders.length} {attr.group ? "members" : "tied"}</span>
-            ) : (
-              <input
-                value={attr.value}
-                placeholder="value"
-                onChange={(event) => onUpdate(attr.id, { value: event.target.value })}
-              />
-            )}
-            <button onClick={() => onDetach(attr.id, holder)} title="Remove from this object">
-              ✕
-            </button>
-          </div>
-        );
-      })}
+      {joined.map((id) => (
+        <div className="attr shared" key={id}>
+          <span className="key">{nameOf(graph, graph.elements[id])}</span>
+          <span className="held">{membersOf(graph, id).length} members</span>
+          <button onClick={() => onLeaveGroup(holder, id)} title="Out of the group">✕</button>
+        </div>
+      ))}
+      {mine.map((attr) => (
+        <div className="attr" key={attr.name}>
+          <span className="key">{attr.name}</span>
+          <input
+            value={attr.value}
+            placeholder="value"
+            onChange={(event) => onUpdate(holder, attr.name, { value: event.target.value })}
+          />
+          <button onClick={() => onDrop(holder, attr.name)} title="Remove from this object">
+            ✕
+          </button>
+        </div>
+      ))}
     </div>
   );
 }
 
 export function Panel(props: Props) {
   const { graph, view, picked, terms, onSave, onRetype, onMarkPort } = props;
-  const { onAddAttr, onUpdateAttr, onDetachAttr, onDropAttr } = props;
+  const { onAddAttr, onUpdateAttr, onDropAttr, onLeaveGroup, onTie, onRename } = props;
   const { onRelation, onSetDir, onFlip, onReveal, hostRef } = props;
 
   // With nothing picked on the canvas the layer itself is the subject.
@@ -134,7 +142,7 @@ export function Panel(props: Props) {
 
   useEffect(() => setHeld(null), [holder]);
 
-  const node = subject ? graph.nodes[subject] : null;
+  const node = subject ? graph.elements[subject] : null;
   const body = node?.body ?? "";
   const [draft, setDraft] = useState(body);
 
@@ -142,7 +150,9 @@ export function Panel(props: Props) {
   useEffect(() => setDraft(body), [subject, body]);
 
   const edge = picked?.kind === "edge" ? graph.edges[picked.id] : null;
-  const attr: Attr | null = picked?.kind === "attr" ? graph.attrs[picked.id] ?? null : null;
+  // A group or a note is an element like any other, so it arrives as a node
+  // pick; what it needs on top is its members or its ties.
+  const annotation = roleOf(node) ? node : null;
   const port = node ? isPort(node) : false;
 
   /** One edit is one step. Saving per keystroke would bury the action log and
@@ -152,15 +162,15 @@ export function Panel(props: Props) {
   }
 
   const title = edge
-    ? `${nameOf(graph, graph.nodes[edge.source])} — ${nameOf(graph, graph.nodes[edge.target])}`
-    : attr
-      ? attr.name || roleOf(attr)
+    ? `${nameOf(graph, graph.elements[edge.source])} — ${nameOf(graph, graph.elements[edge.target])}`
+    : annotation
+      ? nameOf(graph, annotation)
       : node
         ? nameOf(graph, node)
         : "nothing selected";
   const role = edge ? terms.relation.toLowerCase()
-    : attr ? roleOf(attr)
-    : node ? (isRef(node) ? "reference"
+    : annotation ? roleOf(annotation)
+    : node ? (isProxy(node) ? "proxy"
               : port ? "interface"
               : isContainer(graph, subject!) ? "container" : "block")
     : "";
@@ -188,7 +198,7 @@ export function Panel(props: Props) {
           <div className="tray-row">
             <input
               className="type"
-              value={edge.relation}
+              value={edge.type}
               placeholder={terms.relation}
               list="relation-kinds"
               onChange={(event) => onRelation(edge.id, event.target.value)}
@@ -200,32 +210,35 @@ export function Panel(props: Props) {
           </div>
         )}
 
-        {attr && (
+        {annotation && (
           <>
             <div className="tray-row">
               <input
                 className="name-field"
-                value={attr.name}
-                placeholder={roleOf(attr)}
-                onChange={(event) => onUpdateAttr(attr.id, { name: event.target.value })}
+                value={annotation.label}
+                placeholder={roleOf(annotation)}
+                onChange={(event) => onRename(annotation.id, event.target.value)}
               />
               {/* No colour picker: every boundary and every note is drawn the
                   same way for now, so there is nothing here to set. Colour and
                   the rest of their appearance come later. */}
               <span className="held">
-                {attr.holders.length} {attr.group ? "members" : "tied"}
+                {annotation.element === "group"
+                  ? `${membersOf(graph, annotation.id).length} members`
+                  : `${tiesOf(graph, annotation.id).length} tied`}
               </span>
-              <button onClick={() => onDropAttr(attr.id)} title={attr.group ? "Ungroup" : "Delete"}>
-                ✕
-              </button>
             </div>
             <ul className="members">
-              {attr.holders.map((id) => (
+              {(annotation.element === "group"
+                ? membersOf(graph, annotation.id).map((m) => m.id)
+                : tiesOf(graph, annotation.id)).map((id) => (
                 <li key={id}>
-                  <span>{nameOf(graph, graph.nodes[id]) || graph.edges[id]?.relation || id}</span>
+                  <span>{nameOf(graph, graph.elements[id]) || id}</span>
                   <button
-                    onClick={() => onDetachAttr(attr.id, id)}
-                    title={attr.group ? "Out of the group" : "Untie it"}
+                    onClick={() => annotation.element === "group"
+                      ? onLeaveGroup(id, annotation.id)
+                      : onTie(annotation.id, id)}
+                    title={annotation.element === "group" ? "Out of the group" : "Untie it"}
                   >
                     ✕
                   </button>
@@ -237,11 +250,11 @@ export function Panel(props: Props) {
 
         {node && subject && (
           <>
-            {isRef(node) && node.ref && (
+            {isProxy(node) && refOf(graph, node.id) && (
               <div className="tray-row">
-                <span className="held">stands in for a node in another layer</span>
-                <button onClick={() => onReveal(node.ref!)} title="Go to it">
-                  go to {nameOf(graph, graph.nodes[node.ref])} ↗
+                <span className="held">stands in for a block in another layer</span>
+                <button onClick={() => onReveal(refOf(graph, node.id)!)} title="Go to it">
+                  go to {nameOf(graph, actual(graph, node.id))} ↗
                 </button>
               </div>
             )}
@@ -279,7 +292,7 @@ export function Panel(props: Props) {
         {holder && (
           <Attrs
             graph={graph} holder={holder}
-            onUpdate={onUpdateAttr} onDetach={onDetachAttr}
+            onUpdate={onUpdateAttr} onDrop={onDropAttr} onLeaveGroup={onLeaveGroup}
           />
         )}
       </div>

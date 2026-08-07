@@ -95,7 +95,7 @@ export function App() {
     <div className="app">
       <header>
         <h1>mndflow</h1>
-        {graph.template && <span className="domain">{graph.template}</span>}
+        {graph.domain && <span className="domain">{graph.domain}</span>}
 
         <span className="tools">
           <button onClick={project.undo} disabled={!project.undoable} title="Undo">
@@ -203,7 +203,7 @@ export function App() {
               onAddPort={project.addPort}
               onPromotePort={project.promotePort}
               onSlidePort={project.setPort}
-              onDropAttr={project.dropAttr}
+              onDropAttr={project.remove}
               onRefer={project.refer}
               onReveal={project.reveal}
               onRelation={project.relation}
@@ -211,7 +211,7 @@ export function App() {
               onUnlink={project.unlink}
               onDelete={project.remove}
               onGroup={project.group}
-              onNameAttr={(id, label) => project.updateAttr(id, { name: label })}
+              onNameAttr={project.rename}
               onNote={project.note}
               onPlaceNote={project.placeNote}
               onTie={project.tie}
@@ -227,8 +227,10 @@ export function App() {
               onMarkPort={project.markPort}
               onAddAttr={project.addAttr}
               onUpdateAttr={project.updateAttr}
-              onDetachAttr={project.detachAttr}
               onDropAttr={project.dropAttr}
+              onLeaveGroup={project.leaveGroup}
+              onTie={project.tie}
+              onRename={project.rename}
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}

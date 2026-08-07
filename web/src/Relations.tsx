@@ -29,7 +29,7 @@ export function Relations({ graph, onAdd, onRename, onDrop }: Props) {
     const counts = new Map<string, number>();
     for (const name of graph.relations) counts.set(name, 0);
     for (const edge of Object.values(graph.edges)) {
-      if (edge.relation) counts.set(edge.relation, (counts.get(edge.relation) ?? 0) + 1);
+      if (edge.type) counts.set(edge.type, (counts.get(edge.type) ?? 0) + 1);
     }
 
     return [...counts.entries()];

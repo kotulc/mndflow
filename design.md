@@ -65,18 +65,58 @@ position; the relationship itself does not.
   holders; a **note** draws as a card of text pointing at them. Nothing is both.
 
 
-### Nodes
+### Elements and relationships
 
-The primary object, and the only structural one. A node has children, interfaces, relationships
-and attributes.
+Two things, and no more. An **element** is placed and drawn; a **relationship** joins two of
+them. Everything else describes one of the two.
 
-**Role is derived from what a node holds and where it sits, never declared:**
+**Everything the project holds is an element, not only its structure.** Blocks, notes, groups and
+proxies are one record with one set of operations, because they were already being placed,
+dragged, named and laid out alike — keeping annotations in a second table meant a parallel
+mechanism for each of those, and two cleanup paths where one would do.
 
-- A node on its parent's frame edge is an **interface**.
-- Any other node is a **block**; a block holding child blocks is a **container**.
+**A block is the base, and the default.** The other three are specializations of the same idea:
+a discrete thing that sits somewhere and can be described.
+
+**Container and interface are derived, never declared.**
+
+- A block on its parent's frame edge is an **interface**; a block holding child blocks draws as a
+  **container**.
 - Interfaces do not count towards being a container — a block with ports and no child blocks is
   still a block.
-- Role decides only how a node draws. Every node shares the same operations.
+- Both are ways a block *looks*, so both stay out of the element type. Naming them there would
+  make a closed engine-level set answer to something that changes the moment a child is added.
+
+**A user's subtypes go in `type` and never in `element`.** A template subtypes within an element
+type rather than across one, which is what keeps the closed set closed and stops every rule
+having to branch on user data.
+
+**Anything joining two elements is a relationship.** A kind may draw as something other than a
+routed line — a tie is a leader — but drawing is not identity. The alternative was a second way
+to join things, with its own mutations, its own cascade and its own list, all shadowing what
+relationships already do.
+
+The test for which of the two something is: **drawn as a line between two things → a
+relationship; not a line → an attribute.** A tie is a line, so it is one. Membership is not, so
+it is not.
+
+**Containment is the exception, and stays `parent`.** The tree is the one join every element has
+exactly one of, so storing it as edges would mean guarding an invariant that a field enforces for
+free.
+
+### Root
+
+**The project is a block.** It holds every other, carries the project's name, axis, body and
+attributes, and is otherwise ordinary. Before this it was not an element at all, which meant the
+project's name and axis lived on the graph as one-off fields and the panel had a case for
+"selection with nothing to carry an attribute".
+
+**It has no frame, because a frame is a block seen from inside and root has no outside.** For the
+same reason it has no interfaces: there is nothing beyond it for one to face.
+
+`parent: null` still means "in the root layer" wherever it is written, and root is told from its
+own children by its reserved id. One exclusion, in one accessor — the alternative reparented
+every top-level element and rewrote every place that asks which layer is open.
 
 **Interface is the one role that does not change.** A node is created as one or it is not. A
 block never steps onto a border and an interface never steps off, because a drag that could
@@ -280,10 +320,20 @@ standing in for the far node.
 
 ### Attributes
 
-A descriptive value on a node or relationship, carrying a name, value and tags. **Sharing is what
-makes an attribute a grouping.** Attributes are non-structural throughout.
+A descriptive value on an element or relationship, carrying a name, value and tags. Attributes
+are non-structural throughout.
 
-**Groups** are the shared case, drawn as a boundary.
+**An attribute has no identity of its own.** It is addressed by its name on the thing carrying
+it, and setting that name again rewrites it. Sharing used to be what made an attribute a
+grouping, which gave every descriptive value an id, a holder list and a lifecycle in order to
+serve the one case that needed them.
+
+**Membership is an attribute, held on the member.** A block names the groups it is in, and a
+group's member list is derived by asking who names it — so there is nothing to keep in step.
+Membership is not a relationship, because a group draws a boundary round its members rather than
+a line to each.
+
+**Groups** are elements, drawn as a boundary.
 
 - **A boundary is its members' bounds plus a small margin**, so it expands and contracts as they
   move. Its size is a fact about what it holds, never something set.

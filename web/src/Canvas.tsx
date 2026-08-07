@@ -27,7 +27,10 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { axisOf, blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
+import {
+  axisOf, blocksOf, groupsIn, isProxy, membersOf, nameOf, notesIn, portsOf, proxyIn, refOf,
+  tiesOf, titleOf,
+} from "./core/fold";
 import {
   around, arranged, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
 } from "./core/layout";
@@ -106,8 +109,12 @@ const AXES: { axis: Axis; mark: string; tip: string }[] = [
 ];
 
 /** What a right drag makes, in the order the one control steps through. */
-const KIND_NEXT: Record<Kind, Kind> = { untyped: "flow", flow: "assoc", assoc: "untyped" };
-const KIND_MARK: Record<Kind, string> = {
+/** `reference` and `tie` are not among them: each has a gesture of its own, so
+ *  neither is something this control can land on. */
+const KIND_NEXT: Partial<Record<Kind, Kind>> = {
+  untyped: "flow", flow: "assoc", assoc: "untyped",
+};
+const KIND_MARK: Partial<Record<Kind, string>> = {
   untyped: "— plain", flow: "⇥ flow", assoc: "⋯ assoc",
 };
 
@@ -199,7 +206,7 @@ function obstaclesOf(boxes: Record<string, Box>, fromId: string, toId: string): 
  *  standing in for it: the reference is a different card, and the seat means
  *  nothing on it. */
 function pinnedAt(graph: Graph, port: string | undefined, owner: string): Seat | undefined {
-  const node = port ? graph.nodes[port] : undefined;
+  const node = port ? graph.elements[port] : undefined;
   if (!node || node.parent !== owner) return undefined;
 
   return node.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
@@ -419,10 +426,10 @@ function Flow(props: Props) {
    *  arranged nor connected — only avoided. */
   const noteBoxes = useMemo(
     () => notes.map((attr) => ({
-      x: cell(attr.note!.x),
-      y: cell(attr.note!.y),
-      w: Math.max(NOTE.w, cell(attr.note!.w ?? 0)),
-      h: Math.max(NOTE.h, cell(attr.note!.h ?? 0)),
+      x: cell(attr.x!),
+      y: cell(attr.y!),
+      w: Math.max(NOTE.w, cell(attr.w ?? 0)),
+      h: Math.max(NOTE.h, cell(attr.h ?? 0)),
     })),
     [notes],
   );
@@ -442,7 +449,7 @@ function Flow(props: Props) {
 
   /** The layer's own frame, with room on every side for its interfaces. */
   const frameBox = useMemo(() => {
-    if (!view || !graph.nodes[view]) return null;
+    if (!view || !graph.elements[view]) return null;
 
     const hug = around(Object.values(boxes), MARGIN) ?? { x: 0, y: 0, w: 0, h: 0 };
 
@@ -506,7 +513,7 @@ function Flow(props: Props) {
   const standIn = useCallback((id: string) => {
     if (id === view || members.some((n) => n.id === id)) return id;
 
-    return refIn(graph, view, id)?.id ?? null;
+    return proxyIn(graph, view, id)?.id ?? null;
   }, [graph, members, view]);
 
   /** Every relationship's geometry for this layer, worked out in one pass.
@@ -613,7 +620,7 @@ function Flow(props: Props) {
     const boxOf = (id: string) => {
       const at = spots[id];
 
-      return at && graph.nodes[id] ? { ...at, ...sizeOf(graph, graph.nodes[id]) } : null;
+      return at && graph.elements[id] ? { ...at, ...sizeOf(graph, graph.elements[id]) } : null;
     };
 
     // Everything a note has to stay off: the cards, and the boundaries drawn
@@ -630,7 +637,7 @@ function Flow(props: Props) {
       box.y < other.y + other.h + HUG && box.y + box.h + HUG > other.y);
 
     return notesIn(graph, view).flatMap((attr) => {
-      const held = attr.holders.map(boxOf).filter(Boolean) as Box[];
+      const held = tiesOf(graph, attr.id).map(boxOf).filter(Boolean) as Box[];
       if (!held.length) return [];
 
       const round = around(held, 0)!;
@@ -696,7 +703,7 @@ function Flow(props: Props) {
     })) as FlowNode[];
 
     const groups = bands.map(({ attr, box }) => {
-      const chosen = picked?.kind === "attr" && picked.id === attr.id;
+      const chosen = picked?.kind === "node" && picked.id === attr.id;
 
       return {
         id: attr.id,
@@ -716,12 +723,12 @@ function Flow(props: Props) {
         draggable: true,
         selectable: false,
         data: {
-          label: attr.name,
+          label: nameOf(graph, attr),
           picked: chosen,
           grazed: grazed?.kind === "group" && grazed.id === attr.id,
           titled: grazed?.kind === "title" && grazed.id === attr.id,
           dropping: joining.includes(attr.id),
-          onPick: () => onPick({ kind: "attr", id: attr.id }),
+          onPick: () => onPick({ kind: "node", id: attr.id }),
           onLabel: (label: string) => onNameAttr(attr.id, label),
         },
       } as FlowNode;
@@ -735,18 +742,18 @@ function Flow(props: Props) {
       id: attr.id,
       type: "note",
       // On the grid by being drawn, the same as a card — see `place`.
-      position: { x: cell(attr.note!.x), y: cell(attr.note!.y) },
+      position: { x: cell(attr.x!), y: cell(attr.y!) },
       zIndex: DEPTH.note,
       selectable: false,
       data: {
-        text: attr.name,
-        picked: picked?.kind === "attr" && picked.id === attr.id,
+        text: nameOf(graph, attr),
+        picked: picked?.kind === "node" && picked.id === attr.id,
         // A note *is* its text, so it lights as a name does — there is nothing
         // else on it to be over.
         grazed: grazed?.kind === "title" && grazed.id === attr.id,
-        least: { w: Math.max(NOTE.w, cell(attr.note!.w ?? 0)),
-                 h: Math.max(NOTE.h, cell(attr.note!.h ?? 0)) },
-        onPick: () => onPick({ kind: "attr", id: attr.id }),
+        least: { w: Math.max(NOTE.w, cell(attr.w ?? 0)),
+                 h: Math.max(NOTE.h, cell(attr.h ?? 0)) },
+        onPick: () => onPick({ kind: "node", id: attr.id }),
         onLabel: (text: string) => onNameAttr(attr.id, text),
       },
     })) as FlowNode[];
@@ -774,7 +781,7 @@ function Flow(props: Props) {
           data: {
             id: view,
             graph,
-            straddles: graph.nodes[view]?.side ?? null,
+            straddles: graph.elements[view]?.side ?? null,
             axis,
             showPorts,
             litSeats,
@@ -828,18 +835,18 @@ function Flow(props: Props) {
         return { ...change, position: { x: start.x + dx, y: start.y + dy } };
       }
 
-      if (here.has(change.id) && graph.nodes[change.id]) {
+      if (here.has(change.id) && graph.elements[change.id]) {
         // Members of a group being dragged are positioned from the group's
         // snapped delta above — leave them alone if a stray change arrives.
         if (start?.members[change.id]) return change;
 
         return {
           ...change,
-          position: middled(change.position, sizeOf(graph, graph.nodes[change.id])),
+          position: middled(change.position, sizeOf(graph, graph.elements[change.id])),
         };
       }
 
-      if (graph.attrs[change.id]?.note) {
+      if (graph.elements[change.id]?.element === "note") {
         return {
           ...change,
           position: { x: cell(change.position.x), y: cell(change.position.y) },
@@ -877,7 +884,7 @@ function Flow(props: Props) {
   /** The frame an interface sits on, wherever it is drawn in this layer. */
   const hostBox = useCallback(
     (port: string | undefined) => {
-      const parent = port ? graph.nodes[port]?.parent : null;
+      const parent = port ? graph.elements[port]?.parent : null;
 
       return parent ? boxes[parent] ?? (parent === view ? frameBox : null) : null;
     },
@@ -890,9 +897,9 @@ function Flow(props: Props) {
      *  drawn in this layer. Decoration, not relationships — they take no
      *  pointer, cannot be selected, and are never routed by hand. */
     const tethers = notes.flatMap((attr) => {
-      const mine = { x: cell(attr.note!.x), y: cell(attr.note!.y), w: NOTE.w, h: NOTE.h };
+      const mine = { x: cell(attr.x!), y: cell(attr.y!), w: NOTE.w, h: NOTE.h };
 
-      return attr.holders.filter((id) => boxes[id]).map((id) => ({
+      return tiesOf(graph, attr.id).filter((id) => boxes[id]).map((id) => ({
         id: `tie-${attr.id}-${id}`,
         source: attr.id,
         target: id,
@@ -931,7 +938,7 @@ function Flow(props: Props) {
           id: edge.id,
           source,
           target,
-          label: edge.relation,
+          label: edge.type,
           type: "wire",
           zIndex: DEPTH.edge,
           // The whole run, ends included. React Flow's own handle positions are
@@ -1103,13 +1110,13 @@ function Flow(props: Props) {
    *  deliberately now, and only at the border of the layer you are in. */
   const landing = useCallback(
     (dragged: FlowNode) => {
-      const size = sizeOf(graph, graph.nodes[dragged.id]);
+      const size = sizeOf(graph, graph.elements[dragged.id]);
       const mid = { x: dragged.position.x + size.w / 2, y: dragged.position.y + size.h / 2 };
 
       for (const [id, box] of Object.entries(boxes)) {
         if (id === dragged.id) continue;
         // A reference holds nothing, so nothing lands in one.
-        if (isRef(graph.nodes[id])) continue;
+        if (isProxy(graph.elements[id])) continue;
 
         const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
                               box.y - mid.y, mid.y - (box.y + box.h));
@@ -1124,7 +1131,7 @@ function Flow(props: Props) {
   /** Where a card has landed, in its own middle — what every drop test uses,
    *  because you aim with the card you can see rather than with the pointer. */
   const middleOf = useCallback((node: { id: string; position: { x: number; y: number } }) => {
-    const size = sizeOf(graph, graph.nodes[node.id]);
+    const size = sizeOf(graph, graph.elements[node.id]);
 
     return { x: node.position.x + size.w / 2, y: node.position.y + size.h / 2 };
   }, [graph]);
@@ -1145,7 +1152,7 @@ function Flow(props: Props) {
       groupsIn(graph, view)
         .filter(({ attr, here }) => {
           const staying = here.filter((id) => !moving.has(id));
-          if (!staying.length) return attr.holders.includes(mover);
+          if (!staying.length) return here.includes(mover);
 
           const box = around(staying.map((id) => boxes[id]).filter(Boolean), HUG);
 
@@ -1336,7 +1343,7 @@ function Flow(props: Props) {
       // An interface, or a group boundary, is selected by us and not by it, so
       // it has to be removed here or Delete would appear to do nothing.
       if (event.key === "Delete" || event.key === "Backspace") {
-        if (picked?.kind === "attr") return (event.preventDefault(), onDropAttr(picked.id));
+        if (picked?.kind === "node") return (event.preventDefault(), onDropAttr(picked.id));
         if (picked?.kind === "edge") return (event.preventDefault(), onUnlink(picked.id));
         if (pickedNode && !nodes.some((n) => n.id === pickedNode && n.type === "card")) {
           event.preventDefault();
@@ -1507,7 +1514,7 @@ function Flow(props: Props) {
     >
       <div className="crumbs">
         <button onClick={() => onOpen(null)} className={view ? "" : "here"}>
-          {graph.title || "project"}
+          {titleOf(graph) || "project"}
         </button>
 
         {/* The project, then the last few layers. Whatever is skipped is left
@@ -1518,7 +1525,7 @@ function Flow(props: Props) {
             <span className="sep">/</span>
             <button
               className="elided"
-              title={path.slice(0, -TRAIL).map((id) => nameOf(graph, graph.nodes[id])).join(" / ")}
+              title={path.slice(0, -TRAIL).map((id) => nameOf(graph, graph.elements[id])).join(" / ")}
               onClick={() => onOpen(path[path.length - TRAIL - 1])}
             >
               …
@@ -1530,7 +1537,7 @@ function Flow(props: Props) {
           <span key={id}>
             <span className="sep">/</span>
             <button onClick={() => onOpen(id)} className={index === shown.length - 1 ? "here" : ""}>
-              {nameOf(graph, graph.nodes[id])}
+              {nameOf(graph, graph.elements[id])}
             </button>
           </span>
         ))}
@@ -1552,10 +1559,10 @@ function Flow(props: Props) {
         </button>
         <button
           className={kind === "untyped" ? "" : "on"}
-          onClick={() => onKind(KIND_NEXT[kind])}
+          onClick={() => onKind(KIND_NEXT[kind] ?? "untyped")}
           title="What a right drag makes"
         >
-          {KIND_MARK[kind]}
+          {KIND_MARK[kind] ?? KIND_MARK.untyped}
         </button>
         <button
           className={angular ? "on" : ""}
@@ -1644,7 +1651,7 @@ function Flow(props: Props) {
         translateExtent={extent}
         onNodeClick={(_, node) => {
           if (node.type === "card") return onPick({ kind: "node", id: node.id });
-          if (node.type === "region") return onPick({ kind: "attr", id: node.id });
+          if (node.type === "region") return onPick({ kind: "node", id: node.id });
           // A placeholder is not a thing in itself: picking it picks whatever
           // it reaches, so the panel shows the node and not the stand-in.
           if (node.type === "ghost") {
@@ -1659,9 +1666,11 @@ function Flow(props: Props) {
 
           // A reference has no contents of its own — going into one takes you
           // to where the node it stands for actually lives.
-          const mine = graph.nodes[node.id];
+          // A proxy has no inside: going into one goes to where its block
+          // actually lives, which is what the reference is for.
+          const stands = refOf(graph, node.id);
 
-          return mine?.ref ? onReveal(mine.ref) : onOpen(node.id);
+          return stands ? onReveal(stands) : onOpen(node.id);
         }}
         onEdgeClick={(_, edge) => onPick({ kind: "edge", id: edge.id })}
         onDragOver={(event) => {
@@ -1715,8 +1724,8 @@ function Flow(props: Props) {
           if (node.type === "region") {
             // Dragging is how you take hold of it; picking follows so the
             // panel shows what is moving without a separate click first.
-            onPick({ kind: "attr", id: node.id });
-            const holders = graph.attrs[node.id]?.holders ?? [];
+            onPick({ kind: "node", id: node.id });
+            const holders = membersOf(graph, node.id).map((m) => m.id);
             groupRef.current = {
               id: node.id,
               x: node.position.x,
@@ -1794,7 +1803,7 @@ function Flow(props: Props) {
             const { x, y } = middleOf(node);
             const out = x < frameBox.x || x > frameBox.x + frameBox.w ||
                         y < frameBox.y || y > frameBox.y + frameBox.h;
-            if (out) return onPromote(node.id, graph.nodes[view]?.parent ?? null);
+            if (out) return onPromote(node.id, graph.elements[view]?.parent ?? null);
           }
 
           // A selection dragged together lands together.
@@ -1810,7 +1819,7 @@ function Flow(props: Props) {
             const inside = new Set(enclosing(card.id, middleOf(card), afoot));
 
             return here
-              .filter(({ attr }) => attr.holders.includes(card.id) !== inside.has(attr.id))
+              .filter(({ attr, here }) => here.includes(card.id) !== inside.has(attr.id))
               .map(({ attr }) => ({ attr: attr.id, holder: card.id,
                                     join: inside.has(attr.id) }));
           });
@@ -1875,7 +1884,7 @@ function Flow(props: Props) {
           <span className="caret">&gt;</span>
           <input
             autoFocus
-            defaultValue={graph.edges[prompt.id]?.relation ?? ""}
+            defaultValue={graph.edges[prompt.id]?.type ?? ""}
             placeholder="what is this relation?"
             list="relation-kinds"
             onKeyDown={(event) => {
@@ -1897,7 +1906,7 @@ function Flow(props: Props) {
           <span className="caret">✎</span>
           <input
             autoFocus
-            defaultValue={graph.nodes[prompt.id]?.label ?? ""}
+            defaultValue={graph.elements[prompt.id]?.label ?? ""}
             placeholder="rename it"
             onBlur={() => setPrompt(null)}
             onKeyDown={(event) => {

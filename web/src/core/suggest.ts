@@ -60,7 +60,7 @@ export function suggest(graph: Graph, question: Question | null, draft: string,
   }
 
   const near = matches(graph, view, text);
-  const exact = near.find((hit) => graph.nodes[hit.id].label.toLowerCase() === text.toLowerCase());
+  const exact = near.find((hit) => graph.elements[hit.id].label.toLowerCase() === text.toLowerCase());
   const answers: Suggestion[] = (question?.choices ?? [])
     .filter((choice) => choice.toLowerCase().includes(text.toLowerCase()))
     .map((choice) => ({ key: choice, label: choice, kind: "answer" as const,
@@ -77,13 +77,13 @@ export function suggest(graph: Graph, question: Question | null, draft: string,
   // the list is noise, whatever the two chips would each do.
   const offered = new Set(answers.map((a) => a.label.toLowerCase()));
   const relating: Suggestion[] = near
-    .filter((hit) => hit.id !== scope && !offered.has(graph.nodes[hit.id].label.toLowerCase()))
+    .filter((hit) => hit.id !== scope && !offered.has(graph.elements[hit.id].label.toLowerCase()))
     .slice(0, 3)
     .map((hit) => ({
       key: `x-${hit.id}`,
       label: scope
-        ? `${terms.relation}: ${graph.nodes[hit.id].label}`
-        : graph.nodes[hit.id].label,
+        ? `${terms.relation}: ${graph.elements[hit.id].label}`
+        : graph.elements[hit.id].label,
       kind: scope ? ("link" as const) : ("open" as const),
       value: hit.id,
       score: hit.score,
