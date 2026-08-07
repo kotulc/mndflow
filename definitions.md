@@ -8,6 +8,16 @@ written anywhere else can be read without guessing.
 - **What is missing** → [tasks.md](tasks.md).
 
 
+## The project
+
+| Term | Means |
+|---|---|
+| **project** | its graph, its metadata, and the history that built them. Only the **history** is stored; the other two are folded from it. The test for whether something belongs to a project is whether it is in the log — which is why display preferences are not |
+| **graph** | the current state: the tree of blocks and the relationships between them. **Derived** — rebuilt by folding the log, never edited in place |
+| **metadata** | what a project says about **itself** rather than about its contents: its name, its domain, its relation vocabulary. Carried by root, which is the project as a block |
+| **history** | the log: the ordered steps that were taken, and which of them are currently applied. The one thing that is stored |
+
+
 ## The graph
 
 Two things and no more: **elements**, which are placed and drawn, and **relationships**, which
@@ -28,10 +38,11 @@ join them. Everything else describes one of the two.
 
 | Term | Means |
 |---|---|
-| **tree** | the project's structural hierarchy: blocks nested inside blocks. The organizational core the whole project hangs from |
+| **tree** | the project's core hierarchy: blocks nested inside blocks. The spine the whole project hangs from |
+| **structural** | belonging to the tree, and nothing looser. **Only blocks are structural**, and only through `parent` — a note, a group and a proxy all sit in a layer without composing it, and a relationship joins without composing. Reserved for the tree so that it stays a useful word |
 | **parent** | what an element sits inside. The tree is `parent` and nothing else |
 | **containment** | being inside something. **Implied by `parent`, never stored as a relationship** |
-| **block** | the base element, and the default: one discrete structural thing |
+| **block** | the base element, and the default: one discrete thing the tree is built from. The only structural element |
 | **container** | a block that holds other blocks. Derived from what it holds, so it is a way a block *looks*, not a thing it *is* — it is still called a block |
 | **interface** | a block sitting on its parent's frame edge. Also called a **port**. Derived from having a side, the same way containment is derived |
 | **proxy** | a virtual block standing in for one that lives in another layer, so a relationship can cross a structural boundary. Shows the real block's name. What it stands for is an **attribute of the proxy** — one thing appearing twice, not two things joined. One per layer per block, and never for a block already in that layer |
@@ -43,7 +54,7 @@ join them. Everything else describes one of the two.
 
 | Term | Means |
 |---|---|
-| **layer** | the block whose inside the canvas is drawing |
+| **layer** | a **cross-section of the tree at one block**: that block's immediate contents, seen from within. Not its whole subtree — descending a level is a different cross-section of the same branch |
 | **scope** | the layer being drawn. Set by clicking in the explorer |
 | **context** | what is selected within the layer. Set by clicking on the canvas |
 | **frame** | the border of the open layer, seen from within |
@@ -91,10 +102,10 @@ element or a relationship, and never changes what contains what.
 
 | Term | Means |
 |---|---|
-| **attribute** | a named value on an element or a relationship. Never structural |
+| **attribute** | a named value on an element or a relationship. Never structural — it never changes what contains what |
 | **membership** | the attribute naming the groups a block belongs to. Held on the block; a group's member list is derived from it, so the two can never disagree |
-| **annotation** | an element that describes rather than structures: a note or a group. Drawn on the canvas, never listed in the explorer |
-| **group** | an element drawn as a boundary round its members |
+| **annotation** | an element that describes or organizes without structuring: a note or a group. Drawn on the canvas, never listed in the explorer |
+| **group** | an **organizational element, local to one layer**: a boundary drawn round blocks in that layer to mark them as belonging together. It organizes without structuring — never a parent, and no part of the tree. A member that moves to another layer leaves the group |
 | **boundary** | the line a group draws. Its members' bounds plus a margin, so it is a fact about what it holds |
 | **note** | an element drawn as a card of text |
 | **hug** | how far a boundary reaches past its members |
@@ -119,8 +130,9 @@ element or a relationship, and never changes what contains what.
 
 | Term | Means |
 |---|---|
-| **step** | one user action and every mutation it made. One gesture is one step |
-| **mutation** | a single change within a step |
-| **the log** | the ordered list of steps. The source of truth; the graph is folded from it |
-| **fold** | rebuilding the graph by replaying every applied step |
+| **step** | one user action and every mutation it made, plus whether it is `applied` or `reverted`. One gesture is one step, and one edit of a field is one step — not one per keystroke |
+| **mutation** | a single change within a step. The smallest thing the fold knows how to apply |
+| **the log** | the ordered list of steps. The only thing stored, and the source of truth |
+| **fold** | **rebuilding the graph from empty by replaying every applied step, in order.** Runs after every change, so the graph can never drift from the record that produced it. This is why undo needs no inverses: it flips a step to `reverted` and folds again |
+| **undo** | flipping the last applied step and folding again. Redo re-applies it |
 | **derived** | worked out rather than stored. Seats, routes, boundaries, containment, a group's member list, and whether a relationship is a reference |

@@ -23,6 +23,73 @@ be enforced or left to the user, it is left to the user.
 - **The log is the truth.** The graph is folded from it, so undo needs no inverses.
 
 
+### The project, the log, and the fold
+
+Only one thing is stored: **the log**, an ordered list of steps. Everything else you can see is
+worked out from it.
+
+A **step** is one thing somebody did — make a block, drag a card, rename something — holding the
+**mutations** that action made, and a status of `applied` or `reverted`. One gesture is one step,
+however many mutations it took.
+
+The **fold** is what turns that record into something to look at: start from an empty graph and
+replay every applied step, in order. The result is the **graph** — the current state, the tree of
+blocks with the relationships between them. It is thrown away and rebuilt rather than edited in
+place, so it can never drift from the record that produced it.
+
+```
+    log  ──fold──▶  graph  ──derive──▶  what you see
+  (stored)         (current            (seats, routes,
+                    state)              boundaries, layout)
+```
+
+**So a project is what it looks like: its graph, its metadata, and the history that built them.**
+The only thing worth being careful about is which of those is *kept*. The history is; the graph
+and the metadata are folded from it every time. Nothing edits the graph directly and expects it
+to last — a change is a step or it did not happen.
+
+That gives a sharp test for whether something belongs to the project at all: **is it in the log?**
+The name of a block is, so it exports and it undoes. Whether interfaces are currently shown is
+not, so it does neither.
+
+**Why store the record rather than the result:**
+
+- **Undo needs no inverses.** Flip the last applied step to `reverted` and fold again. Nothing has
+  to know how to un-rename a block or un-delete a group, so no mutation can get its inverse
+  subtly wrong — which is the usual way undo rots.
+- **There is only one code path.** The graph that comes back from an undo was built by the same
+  fold that built the original, so there is no second, rarely-exercised route for state to arrive
+  by.
+- **Derived data cannot go stale**, because it is never kept. Seats, routes and boundaries are
+  worked out from the graph on the way to the screen, and the graph is worked out from the log.
+- **The history is honest.** It is not a log written alongside the work; it *is* the work.
+
+**What it costs, and what follows from it:**
+
+- Every change has to be expressible as a mutation. Anything that cannot be is not a change to
+  the project, which is the rule that keeps display preferences out.
+- **The log has to read as actions, not as mechanics.** A step per keystroke would be a faithful
+  record and a useless one — undo would walk back through a word one letter at a time. So a
+  field commits once, when editing ends, and the step is called `rename`.
+
+  **Dragging takes the same rule.** Nudging a card into position is half a dozen drags and one
+  decision, so successive placements of the same element replace one another rather than piling
+  up. A run ends when a different action begins — which is what makes it safe: the thing that
+  closes a run is the same thing that would have made the intermediate steps worth keeping.
+
+  Only pure placement qualifies. A drag that also joined a group changed the graph's shape, an
+  arrangement is a decision rather than an adjustment, and a reverted step has to stay put for
+  redo to find — each ends a run instead of joining it.
+- Folding runs on every change, so it stays cheap: a pass over the steps and nothing more
+  clever. Anything expensive belongs on the derive side, where it can be memoised per layer.
+  Measured at 0.3 ms for a 20,000-step log, so replay is not what limits history — storage is.
+- **The log grows without bound, and the browser will not.** At roughly 150 bytes a step the
+  quota is reached somewhere near 30,000 steps. A failed save is therefore **reported, never
+  swallowed**: the session is unharmed until the tab closes, at which point everything since the
+  failure is gone, so the one thing that must not happen is the user not knowing. The warning is
+  the export button, because exporting is the only thing that helps.
+
+
 ### Hard constraints, and what is merely retained
 
 Two different things, easily confused:

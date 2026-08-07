@@ -1745,3 +1745,13 @@ input.clash,
   padding-left: 6px;
   opacity: 0.85;
 }
+
+/* The log has stopped reaching storage. Loud, because the cost of missing it
+   is the project: everything since it appeared lives only in this tab. */
+header .unsaved {
+  border-color: var(--error);
+  color: var(--error);
+  font-weight: 600;
+}
+
+header .unsaved:hover { background: var(--error); color: #1a1d1b; }

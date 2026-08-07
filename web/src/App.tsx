@@ -97,6 +97,20 @@ export function App() {
         <h1>mndflow</h1>
         {graph.domain && <span className="domain">{graph.domain}</span>}
 
+        {/* The log has outgrown what the browser will keep. Said here rather
+            than swallowed: the session is fine until the tab closes, and then
+            everything since this appeared is gone. Export is the way out, so
+            the warning is the button. */}
+        {!project.saving && (
+          <button
+            className="unsaved"
+            onClick={project.save}
+            title="This browser will not store any more of this project. Export it to keep it."
+          >
+            ⚠ not being saved — export
+          </button>
+        )}
+
         <span className="tools">
           <button onClick={project.undo} disabled={!project.undoable} title="Undo">
             undo

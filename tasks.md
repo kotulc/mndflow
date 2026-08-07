@@ -60,6 +60,17 @@ preference. See design.md under Relationships, Interfaces and Layouts.*
 
 ## Backlog
 
+**Bounding the step log.** It grows without limit; the browser stops accepting it near 30,000
+steps (~5 MB at ~150 bytes a step). Folding is not the constraint — 0.3 ms at 20,000 steps — so
+this is about storage alone. A failed save is now reported rather than swallowed, and successive
+placements of one element now collapse into a single step, which takes out the bulk of a long
+session's growth. What is left bounds the total, and is not urgent until a real project
+approaches the ceiling.
+
+- **Checkpoint the old end.** Fold the oldest steps into a single snapshot step and drop them,
+  keeping recent history undoable and bounding the total. The proper fix, and the larger one:
+  it means a mutation that writes a whole graph, and it makes deep undo finite.
+
 **Clusters, and shapes for them.** Relationships should draw units loosely together, each cluster
 laid out by its own topology and the layer's arrangement placing the clusters relative to each
 other. Layout ranks units individually today, which flattens a ring into ranks and loses it.
@@ -85,6 +96,13 @@ conditional on user data.
 
 - **Attributes are listed but barely editable.** The panel shows a name and a value and can drop
   one; renaming an attribute goes through a drop-and-set pair, and tags still have no UI.
+
+
+- **The project's metadata lives in two places.** Root is the project as a block and carries its
+  name, body and attributes — but `domain` and `relations` still sit on `Graph`, beside
+  `elements` and `edges`. Both are things the project says about itself, so root is their home:
+  `domain` is a project-wide type and `relations` its vocabulary. Moving them costs a legacy fold
+  for `set_domain` and the three relation ops.
 
 
 ## Not built yet

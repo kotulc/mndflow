@@ -106,10 +106,16 @@ the project.
   ones in order.
 - Undo flips the last applied step and refolds; redo re-applies. No mutation needs an inverse.
 - One gesture is one step, however many things it changed.
+- **Successive placements of the same thing are one step.** Nudging a card into place writes one
+  `place`, replaced as the run goes on; a different action ends the run, and one undo takes the
+  whole run back. Moving a different element starts a new step, as does a drag that also joined
+  or left a group. An arrangement is its own step and never joins a run.
 
 **Files**
 
 - Export writes the step log as JSON; import replaces the session with one.
+- The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
+  saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
 
 

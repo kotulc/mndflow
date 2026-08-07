@@ -4,8 +4,10 @@
  *  be indistinguishable from losing the project. The log is the only thing
  *  saved, because everything else is folded from it.
  *
- *  Storage failures are never fatal: a full or blocked localStorage costs
- *  persistence, not the session. */
+ *  Storage failures are never fatal to the session — but they are never
+ *  silent either. A log that has outgrown the quota goes on working until the
+ *  tab is closed and then loses everything since the failure, so `save` reports
+ *  whether it worked and the shell says so. */
 
 import type { Step } from "./types";
 
@@ -22,11 +24,15 @@ export function load(): Step[] {
   }
 }
 
-export function save(steps: Step[]): void {
+/** Whether the log reached storage. False means out of quota or blocked by the
+ *  browser: the session carries on, and the only copy is now the tab. */
+export function save(steps: Step[]): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(steps));
+
+    return true;
   } catch {
-    // Out of quota or blocked by the browser; the session carries on regardless.
+    return false;
   }
 }
 

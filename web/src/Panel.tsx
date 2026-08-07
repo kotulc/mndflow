@@ -15,7 +15,7 @@
  *  An object and its document are the same thing, so the body text is edited
  *  here too; there is no separate document pane. */
 
-import { useEffect, useState, type Ref } from "react";
+import { useEffect, useState, type InputHTMLAttributes, type Ref } from "react";
 
 import {
   actual, attrsOf, isContainer, isPort, isProxy, membersOf, nameOf, refOf, tiesOf,
@@ -78,6 +78,44 @@ function AddAttr({ holder, onAdd }: { holder: string; onAdd: (h: string, n: stri
   );
 }
 
+/** A field that commits once, when editing ends.
+ *
+ *  **One edit is one step.** Committing per keystroke buries the action log
+ *  under a step per letter and makes undo walk back through a word one
+ *  character at a time — the log should read as the things somebody did, not
+ *  as how they typed them.
+ *
+ *  Held as a draft while the caret is in it, and followed back to the value
+ *  whenever that changes underneath — a turn writing into the selection, or the
+ *  selection moving on. `Enter` commits by blurring; `Escape` puts it back. */
+function Draft({ value, onCommit, taken, className, ...rest }: {
+  value: string;
+  onCommit: (next: string) => void;
+  /** Marks the field while what is typed is a name already spoken for. */
+  taken?: (name: string) => boolean;
+  className?: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "className">) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => setDraft(value), [value]);
+
+  const clash = Boolean(taken?.(draft));
+
+  return (
+    <input
+      {...rest}
+      className={`${className ?? ""}${clash ? " clash" : ""}`}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => (clash || draft === value ? setDraft(value) : onCommit(draft))}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur();
+        if (event.key === "Escape") setDraft(value);
+      }}
+    />
+  );
+}
+
 /** What an annotation is called where it has no name of its own — the same
  *  fallback the canvas draws, so the panel and the canvas agree. */
 function roleOf(node: Element | null | undefined): string {
@@ -113,10 +151,10 @@ function Attrs({ graph, holder, onUpdate, onDrop, onLeaveGroup }: {
       {mine.map((attr) => (
         <div className="attr" key={attr.name}>
           <span className="key">{attr.name}</span>
-          <input
+          <Draft
             value={attr.value}
             placeholder="value"
-            onChange={(event) => onUpdate(holder, attr.name, { value: event.target.value })}
+            onCommit={(next) => onUpdate(holder, attr.name, { value: next })}
           />
           <button onClick={() => onDrop(holder, attr.name)} title="Remove from this object">
             ✕
@@ -198,12 +236,12 @@ export function Panel(props: Props) {
       <div className="tray-body">
         {edge && (
           <div className="tray-row">
-            <input
+            <Draft
               className="type"
               value={edge.type}
               placeholder={terms.relation}
               list="relation-kinds"
-              onChange={(event) => onRelation(edge.id, event.target.value)}
+              onCommit={(next) => onRelation(edge.id, next)}
             />
             <select value={edge.dir} onChange={(e) => onSetDir(edge.id, e.target.value as Dir)}>
               {DIRS.map((dir) => <option key={dir} value={dir}>{dir}</option>)}
@@ -215,13 +253,12 @@ export function Panel(props: Props) {
         {annotation && (
           <>
             <div className="tray-row">
-              <input
-                className={`name-field${
-                  onNameTaken(annotation.parent ?? null, annotation.label, annotation.id)
-                    ? " clash" : ""}`}
+              <Draft
+                className="name-field"
                 value={annotation.label}
                 placeholder={roleOf(annotation)}
-                onChange={(event) => onRename(annotation.id, event.target.value)}
+                taken={(name) => onNameTaken(annotation.parent ?? null, name, annotation.id)}
+                onCommit={(next) => onRename(annotation.id, next)}
               />
               {/* No colour picker: every boundary and every note is drawn the
                   same way for now, so there is nothing here to set. Colour and
@@ -264,11 +301,11 @@ export function Panel(props: Props) {
             )}
 
             <div className="tray-row">
-              <input
+              <Draft
                 className="type"
                 value={node.type}
                 placeholder={terms.node}
-                onChange={(event) => onRetype(subject, event.target.value)}
+                onCommit={(next) => onRetype(subject, next)}
               />
               {port && (
                 <select

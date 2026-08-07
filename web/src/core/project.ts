@@ -31,6 +31,22 @@ const RHYTHM = 2;
  *  an empty selection is what shows the layer's own properties. */
 export type Picked = { kind: "node" | "edge" | "attr"; id: string } | null;
 
+/** What a step moves, when moving is *all* it does — the elements it places,
+ *  keyed so two of them can be compared. Null for anything else, which is what
+ *  ends a run: a drag that also joined a group changed the graph's shape and is
+ *  worth its own step, and so is a reverted one, which a redo has to find.
+ *
+ *  Keyed on the exact set, so dragging A then B then A again is three steps.
+ *  Only `place` qualifies — an arrangement moves everything and is a decision
+ *  in its own right, not an adjustment being carried on. */
+function placement(step: Step | undefined): string | null {
+  if (!step || step.status !== "applied" || step.action !== "place") return null;
+  if (!step.mutations.length) return null;
+  if (!step.mutations.every((m) => m.op === "place_element")) return null;
+
+  return step.mutations.map((m) => (m as { id: string }).id).sort().join(" ");
+}
+
 export function useProject() {
   const [steps, setSteps] = useState<Step[]>(store.load);
   /** The layer the canvas is drawing. null is the project itself. */
@@ -39,7 +55,10 @@ export function useProject() {
   const [pending, setPending] = useState<Pending | null>(null);
 
   // The log is the only thing worth saving; the graph is folded from it.
-  useEffect(() => store.save(steps), [steps]);
+  /** False once the log has stopped reaching storage — see `saving`. */
+  const [saving, setSaving] = useState(true);
+
+  useEffect(() => setSaving(store.save(steps)), [steps]);
 
   // Warm the catalogue once, so the first thing typed is not also the first
   // thing that waits on the model.
@@ -79,7 +98,19 @@ export function useProject() {
     return next;
   }, [graph, scope, recent, pending, last]);
 
-  const commit = useCallback((step: Step) => setSteps((prior) => [...prior, step]), []);
+  /** Append a step, or replace the one before it where the two are the same
+   *  adjustment carried on.
+   *
+   *  Nudging a card into place is half a dozen drags and one decision, and the
+   *  log should record the decision. Same rule the panel's fields follow: one
+   *  edit is one step, and the run ends when a different action begins. */
+  const commit = useCallback((step: Step) => setSteps((prior) => {
+    const carrying = placement(prior[prior.length - 1]);
+
+    return carrying !== null && carrying === placement(step)
+      ? [...prior.slice(0, -1), step]
+      : [...prior, step];
+  }), []);
 
   const turn = useCallback(
     async (said: string) => {
@@ -384,7 +415,7 @@ export function useProject() {
         // A note's place is beside what it describes, so laying the layer out
         // again moves it with them. One tied to nothing has nothing to follow
         // and stays where it was put.
-        ...notes.map(({ id, x, y }) => ({ op: "place_attr" as const, id, x, y })),
+        ...notes.map(({ id, x, y }) => ({ op: "place_element" as const, id, x, y })),
       ])),
 
     /** Turn a relation around. */
@@ -635,6 +666,10 @@ export function useProject() {
     },
 
     save: () => store.exportSteps(steps, titleOf(graph)),
+
+    /** Whether the log is still reaching storage. False means this tab holds
+     *  the only copy, and closing it loses everything since it stopped. */
+    saving,
 
     load: (text: string) => {
       const loaded = store.importSteps(text);
