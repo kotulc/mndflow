@@ -314,6 +314,8 @@ type Props = {
   /** Which way this layer reads — a setting, not an arrangement. */
   onAxis: (axis: Axis) => void;
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
+  /** Whether a name is already spoken for in a layer, so the prompt can say so. */
+  onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
   onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
@@ -358,7 +360,8 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
-  const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
+  const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt } = props;
+  const { onSprout, onNameTaken } = props;
   const { kind, onKind } = props;
   const axis = axisOf(graph, view);
   // Everything the cards, the frame and the lines are handed has to keep one
@@ -372,6 +375,8 @@ function Flow(props: Props) {
   const { onNote, onPlaceNote, onTie, onRefer, onReveal } = props;
   const flow = useReactFlow();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
+  /** Whether the name being typed is already spoken for in this layer. */
+  const [clash, setClash] = useState(false);
   const [wire, setWire] = useState<Wire | null>(null);
   const [sweep, setSweep] = useState<Sweep | null>(null);
   /** The card a dragged card is currently over — the one it would go inside. */
@@ -1910,14 +1915,24 @@ function Flow(props: Props) {
           <span className="caret">✎</span>
           <input
             autoFocus
+            className={clash ? "clash" : undefined}
             defaultValue={graph.elements[prompt.id]?.label ?? ""}
             placeholder="rename it"
-            onBlur={() => setPrompt(null)}
+            onBlur={() => (setPrompt(null), setClash(false))}
+            onChange={(event) => setClash(onNameTaken(
+              graph.elements[prompt.id]?.parent ?? null, event.target.value, prompt.id))}
             onKeyDown={(event) => {
+              const taken = onNameTaken(graph.elements[prompt.id]?.parent ?? null,
+                                        event.currentTarget.value, prompt.id);
+              if (event.key === "Enter" && taken) return setClash(true);
               if (event.key === "Enter") onRename(prompt.id, event.currentTarget.value);
-              if (event.key === "Enter" || event.key === "Escape") setPrompt(null);
+              if (event.key === "Enter" || event.key === "Escape") {
+                setPrompt(null);
+                setClash(false);
+              }
             }}
           />
+          {clash && <span className="clash-why">name already here</span>}
         </div>
       )}
 
@@ -1926,12 +1941,21 @@ function Flow(props: Props) {
           <span className="caret">+</span>
           <input
             autoFocus
+            className={clash ? "clash" : undefined}
             placeholder={prompt.kind === "sprout" ? "name the thing it connects to"
               : prompt.kind === "note" ? "what does it say?"
               : "name it"}
-            onBlur={() => setPrompt(null)}
+            onBlur={() => (setPrompt(null), setClash(false))}
+            // A note is its text and shares nothing with its neighbours; only
+            // the two that make a block have a name to keep clear of.
+            onChange={(event) => setClash(prompt.kind !== "note" &&
+              onNameTaken(view, event.target.value, null))}
             onKeyDown={(event) => {
               const text = event.currentTarget.value.trim();
+              if (event.key === "Enter" && text && prompt.kind !== "note" &&
+                  onNameTaken(view, text, null)) {
+                return setClash(true);
+              }
               if (event.key === "Enter" && text) {
                 if (prompt.kind === "sprout") {
                   onSprout(prompt.end, text, prompt.x, prompt.y, kind);

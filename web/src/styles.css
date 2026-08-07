@@ -1725,3 +1725,23 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   stroke-dasharray: 1 4;
   stroke-linecap: round;
 }
+
+/* A name that is already taken by a sibling.
+
+   The field holds instead of closing, and says why beside itself: a refused
+   name is still the name somebody meant, so the correction belongs where the
+   caret already is. Warned while typing, so Enter is never a surprise. */
+input.clash,
+.floating input.clash {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.clash-why {
+  color: var(--error);
+  font-size: 11px;
+  font-style: italic;
+  white-space: nowrap;
+  padding-left: 6px;
+  opacity: 0.85;
+}

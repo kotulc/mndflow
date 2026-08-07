@@ -168,6 +168,7 @@ export function App() {
             onShowPorts={setTreePorts}
             onOpen={project.open}
             onCreate={project.create}
+            onNameTaken={project.nameTaken}
             onDelete={project.remove}
             onMove={project.move}
             onRename={project.rename}
@@ -198,6 +199,7 @@ export function App() {
               onCreateAt={project.createAt}
               onSprout={project.sprout}
               onRename={project.rename}
+              onNameTaken={project.nameTaken}
               onLift={project.lift}
               onWire={project.wire}
               onAddPort={project.addPort}
@@ -231,6 +233,7 @@ export function App() {
               onLeaveGroup={project.leaveGroup}
               onTie={project.tie}
               onRename={project.rename}
+              onNameTaken={project.nameTaken}
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}

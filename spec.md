@@ -51,8 +51,13 @@ the project.
   siblings, so deleting one leaves a gap the next fills and renames nothing.
 - Container-ness is not in the name: it is derived, so a name tracking it would change the
   moment a child was added. The icon says it instead.
-- A name already taken by a sibling is refused; creating and renaming both check first. Only
-  stored labels are compared — a fallback is a number nobody chose, and blank is not a name.
+- A name already taken by a sibling is refused, on **every** path that makes or changes one —
+  the explorer, the canvas prompt, a relationship grown into empty space, and every rename. Only
+  stored labels are compared: a fallback is a number nobody chose, and blank is not a name.
+- **A refused name says so where it was typed.** The field marks itself as the clashing name is
+  typed and reads *name already here* beside it; `Enter` holds the field open with the typing
+  intact instead of closing on nothing. Correcting the name clears it.
+- A note is exempt: a note is its text and shares no name with its neighbours.
 
 **Relationships** — a join between two elements, held in `graph.edges`.
 
@@ -142,10 +147,13 @@ the project.
 
 **Navigation**
 
-- Single click sets the scope: the canvas draws that node's view.
+- Single click sets the scope: the canvas draws that node's view, and its branch opens — asking
+  to look inside something shows what is inside it.
 - Double-click or right-click renames in place — a row is all name, so it takes the same rule
   every name takes.
-- Right-clicking the clear space below the rows makes a node in the open layer.
+- Right-clicking the clear space below the rows makes a block **at the root**, wherever you are
+  scoped: the rows are what layers look like here, so the space around all of them is the root's
+  own background. The bar's ＋ button is the one that acts on the open layer.
 - A role icon precedes every name and doubles as the fold control where there is one.
 - Folding is the user's alone; walking into a layer on the canvas never rearranges the tree.
 - One control in the bar opens every branch or closes every branch.

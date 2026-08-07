@@ -490,11 +490,14 @@ export function useProject() {
      *  have put it — joining any group boundaries it was made inside, since
      *  making one in a group's clear space plainly means it belongs there. */
     createAt: (label: string, x: number, y: number, groups: string[] = []) => {
-      const fresh = makeElement(label, { parent: view, type: terms.node, x, y });
+      if (!nameFree(graph, view, label)) return;
+      const fresh = makeElement(label, {
+        parent: view, type: terms.node, x, y, num: nextNum(graph, view, "block"),
+      });
 
       commit(makeStep(`new: ${label}`, "create", [
         { op: "add_element", element: fresh },
-        ...groups.map((id) => ({ op: "attach_attr" as const, id, holder: fresh.id })),
+        ...groups.map((id) => ({ op: "join_group" as const, id: fresh.id, group: id })),
       ]));
     },
 
@@ -503,13 +506,22 @@ export function useProject() {
      *  out, and the far node is placed where it was let go so the line between
      *  them already runs the way the drag did. */
     sprout: (a: End, label: string, x: number, y: number, kind: Kind = "untyped") => {
-      const fresh = makeElement(label, { parent: view, type: terms.node, x, y });
+      if (!nameFree(graph, view, label)) return;
+      const fresh = makeElement(label, {
+        parent: view, type: terms.node, x, y, num: nextNum(graph, view, "block"),
+      });
 
       commit(makeStep(`grew: ${label}`, "sprout", [
         { op: "add_element", element: fresh },
         { op: "link_elements", edge: makeEdge(a.node, fresh.id, { from: a.port, kind }) },
       ]));
     },
+
+    /** Whether a name is already spoken for among a layer's children, so a
+     *  field can say why before the action refuses. The same check the actions
+     *  make; asking it early only changes when it is explained. */
+    nameTaken: (parent: string | null, label: string, except: string | null = null) =>
+      !nameFree(graph, parent, label, except),
 
     /** A new kind of relation, offered from then on. */
     addRelation: (label: string) =>

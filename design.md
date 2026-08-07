@@ -513,12 +513,35 @@ between explorer and canvas works both ways.
   shape a note has. So it takes the same rule: right-click a row to rename it. Carving out a
   non-name strip of a row for a second gesture would be the few-pixel ring the card's border zone
   was deleted for.
-- **The clear space below the rows is this pane's background**, so the right button makes a node
-  there — landing in the open layer, exactly where one made on the canvas lands. That is the two
-  buttons' rule holding in the explorer as well: rows are things that exist, the space below is
-  where things are made.
-- **Folding is the user's alone.** Walking into a layer on the canvas leaves the tree as it was
-  found; a tree that rearranges itself under you is one you cannot keep your place in.
+- **The clear space below the rows is the root's background**, so the right button makes a block
+  at the top level. The rows *are* the layers in this pane, so the space around all of them
+  belongs to the thing that holds them all — not to whichever row happens to be scoped. Landing
+  in the open layer read as a trap: the gesture points at one place and the result appears in
+  another.
+- **The bar's ＋ button is the one that acts on the open layer**, next to the button that renames
+  it. Two creation gestures with two targets, each next to what it acts on.
+- **Clicking a row opens its branch.** Asking to look inside something and being shown a shut
+  row is the pane disagreeing with itself about what you just did.
+- **Walking into a layer on the canvas leaves the tree as it was found.** A tree that rearranges
+  itself under you is one you cannot keep your place in.
+
+  The two are not in tension: folding answers to gestures *in the tree*. A click on a row is one,
+  so it may open what it entered; a step taken on the canvas is not, so it changes nothing here.
+
+### Refusing a name
+
+**A refusal is explained where it happened.** A name field that clashes marks itself and says
+*name already here*, rather than the gesture quietly doing nothing — silence reads as a broken
+button, and the rule it is enforcing is invisible until it bites.
+
+- **Warned while typing, not on `Enter`.** The clash is knowable on every keystroke, so waiting
+  until the commit turns a fact into an ambush.
+- **The field holds rather than closing.** A refused name is still the name somebody meant: the
+  correction is one keystroke away and the caret is already there, where closing would throw the
+  typing away and explain nothing.
+- **One component for every name field**, so the rule reads the same in the explorer and on the
+  canvas. Two copies would drift, and a rule explained two ways is two rules.
+- **A note is exempt**, being its own text rather than a name among siblings.
 - **Deep branches indent past the sidebar** and the tree scrolls horizontally, centring on the
   depth of the selection and re-centring whenever the tree's shape changes.
 - The tree fills the panel, so its scrollbar sits at the foot of the sidebar. A bar that floats
