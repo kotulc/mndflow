@@ -22,7 +22,12 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
   or **proxy**. Closed and engine-level — it decides what draws an element and which rules reach
   it.
 - `type` is the user's own subtype — a stereotype. Open-ended, and it subtypes **within** an
-  element type, never across one.
+  element type, never across one. **Empty until somebody sets one.**
+- **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
+  `Character`, and one day `Activity`. The fallback is derived, never stored, and is dimmed so
+  it reads as a default rather than as a distinction. A container reads `Module group`.
+- **The domain's word is not a type.** It comes from the project's domain, one set per project,
+  and nothing is written onto an element until a distinction is actually drawn.
 - **Container and interface are derived, not declared**: a block holding child blocks draws as a
   container; a block on its parent's frame edge is an interface. Both are ways a block *looks*;
   neither is a separate element type, and both are still called blocks.
@@ -105,6 +110,13 @@ the project.
 - Every change is one step holding one or more mutations; the graph is folded from the applied
   ones in order.
 - Undo flips the last applied step and refolds; redo re-applies. No mutation needs an inverse.
+- **The log is capped at 1,000 steps.** Past 1,200 the oldest are folded into a single
+  **checkpoint** step holding the whole graph, and dropped. The graph is unchanged by this; what
+  is lost is reach — undo stops at the checkpoint and cannot go further back.
+- A checkpoint is not something anybody did, so it cannot be undone. Undo reports itself spent
+  when the checkpoint is all that is left.
+- Compaction also runs on load, so an imported or long-idle log is capped before anything else
+  touches it.
 - One gesture is one step, however many things it changed.
 - **Successive placements of the same thing are one step.** Nudging a card into place writes one
   `place`, replaced as the run goes on; a different action ends the run, and one undo takes the

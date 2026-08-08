@@ -316,6 +316,9 @@ type Props = {
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
   /** Whether a name is already spoken for in a layer, so the prompt can say so. */
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** What this project calls a plain block — the fallback a card's chip shows
+   *  when nothing has given it a subtype of its own. */
+  unit: string;
   onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
@@ -359,7 +362,7 @@ type Props = {
 };
 
 function Flow(props: Props) {
-  const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
+  const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
   const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt } = props;
   const { onSprout, onNameTaken } = props;
   const { kind, onKind } = props;
@@ -695,6 +698,7 @@ function Flow(props: Props) {
         dropping: dropping === node.id,
         picked: node.id === pickedNode,
         grazed,
+        unit,
         showPorts,
         litSeats,
         pickedPort: pickedNode,
@@ -789,6 +793,7 @@ function Flow(props: Props) {
             graph,
             straddles: graph.elements[view]?.side ?? null,
             axis,
+            unit,
             showPorts,
             litSeats,
             pickedPort: pickedNode,

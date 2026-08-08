@@ -216,6 +216,11 @@ export type CardData = {
   dropping: boolean;
   picked: boolean;
   grazed: Grazed;
+  /** What this module calls a plain one of these, for a card with no subtype
+   *  of its own — "Module", "Character", and one day "Activity". Derived and
+   *  never stored: a default written onto every element would say nothing, and
+   *  would go stale the moment the domain changed. */
+  unit: string;
   /** Interfaces drawn or hidden — a display preference, global to the app. */
   showPorts: boolean;
   /** Hidden interfaces whose seats still show as handles, because the
@@ -581,7 +586,7 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
 
 export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
                                 positionAbsoluteY = 0 }: NodeProps) => {
-  const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort } =
+  const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort, unit } =
     data as unknown as CardData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
   const { seats, litEdges, onPromote } = data as unknown as CardData;
@@ -652,7 +657,13 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
       <div className={`card-head${
         grazed?.kind === "title" && grazed.id === node.id ? " grazed" : ""}`}>
         <Name text={nameOf(graph, node)} onRename={(label) => onRename(node.id, label)} />
-        {node.type && <span className="kind">{node.type}</span>}
+        {/* A subtype where one was set, otherwise what this module calls a
+            plain one. Container-ness can ride along here where it cannot ride
+            on the name: a chip describes what a card is right now, while a
+            name has to stay put when a child is added. */}
+        <span className={`kind${node.type ? "" : " plain"}`}>
+          {node.type || (isContainer(graph, node.id) ? `${unit} group` : unit)}
+        </span>
       </div>
 
       {holds && (

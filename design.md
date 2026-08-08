@@ -83,11 +83,42 @@ not, so it does neither.
 - Folding runs on every change, so it stays cheap: a pass over the steps and nothing more
   clever. Anything expensive belongs on the derive side, where it can be memoised per layer.
   Measured at 0.3 ms for a 20,000-step log, so replay is not what limits history — storage is.
-- **The log grows without bound, and the browser will not.** At roughly 150 bytes a step the
-  quota is reached somewhere near 30,000 steps. A failed save is therefore **reported, never
-  swallowed**: the session is unharmed until the tab closes, at which point everything since the
-  failure is gone, so the one thing that must not happen is the user not knowing. The warning is
-  the export button, because exporting is the only thing that helps.
+- **A failed save is reported, never swallowed.** The session is unharmed until the tab closes,
+  at which point everything since the failure is gone, so the one thing that must not happen is
+  the user not knowing. The warning is the export button, because exporting is the only thing
+  that helps.
+
+### Checkpoints
+
+**History is capped at 1,000 steps.** Past 1,200 the oldest fold into a single **checkpoint**
+step carrying the whole graph, which then replaces them.
+
+The graph is untouched by this: folding the prefix and replaying the tail is the same replay in
+the same order. What is spent is *reach* — undo cannot pass a checkpoint, and something reverted
+long ago can no longer be redone. That is the trade, and a thousand actions is far past the point
+where anyone is still unwinding by hand.
+
+- **A checkpoint is not something somebody did**, so it cannot be undone; reverting one would
+  discard everything it stands for. Undo reports itself spent when only a checkpoint remains.
+- **Steps are counted whatever their status**, so a recent run of reverted steps survives
+  compaction intact and redo still reaches all of it.
+- **It runs on load as well as on commit**, so an imported log is capped before anything else
+  sees it.
+
+**It is also how the project sheds retired ops, which is the larger reason for it.** Every schema
+change leaves behind a branch in the fold that can never be deleted, because some log somewhere
+still contains that op — a cost that otherwise grows with every refactor, in the least-exercised
+code in the repo. A checkpoint is written in the *current* schema whatever the steps behind it
+were spelled in, so old ops are carried off the end as work continues and a project stops
+containing them within a thousand actions.
+
+That does not delete the fold's legacy branches on its own; it makes deleting them a decision
+somebody can safely take, because any project reaches the current schema by being opened and
+used. Compaction is the migration path, not merely a size limit.
+
+**Why a snapshot rather than rewriting the old steps into current ops.** The snapshot is a fold
+result: if the fold is right, it is right. Translating each retired op in place would need a
+second thing to be correct, and it would be rewriting the one thing that is actually stored.
 
 
 ### Hard constraints, and what is merely retained
@@ -157,6 +188,16 @@ a discrete thing that sits somewhere and can be described.
 **A user's subtypes go in `type` and never in `element`.** A template subtypes within an element
 type rather than across one, which is what keeps the closed set closed and stops every rule
 having to branch on user data.
+
+**A default is derived, never written.** Every element used to be stamped with its domain's word
+for a block at creation, so a whole project carried `Character` on everything and discriminated
+nothing — and would have gone stale the moment the domain changed. A card falls back to that word
+where nothing has given it a subtype, exactly as an unnamed element falls back to `block 1`
+without a name being stored. Only a distinction somebody actually drew is written down.
+
+The fallback is dimmed, because it is the same word on every card that has not been told apart.
+It can also say `Module group` where the name deliberately cannot say `container`: a chip
+describes what a card is right now, while a name has to hold still when a child is added.
 
 **Anything joining two elements is a relationship.** A kind may draw as something other than a
 routed line — a tie is a leader — but drawing is not identity. The alternative was a second way
@@ -973,8 +1014,88 @@ point-to-point routing would give.
 
 ## Where this is going
 
-Generation of common diagram types — activity, class, state, flow — for a given scope, and
-translation of the project to SysML exports. Interfaces are why the second is coherent.
+*Nothing in this section is built. It is here so that the refactors leading to it are made in
+the right direction — see [tasks.md](tasks.md) for what is actually outstanding.*
 
-A deeply nested sample project ships alongside, describing this application's own components,
-interfaces and data structures, and exercising every feature in the spec.
+**The aim is rapid, general concept modelling.** Speed, simplicity and generality come first, and
+a special case never overrides them. SysML in particular is supported as a **translation layer**
+over the general model, not as a shape the general model bends to: it is cumbersome, and a
+looser tool that exports to it serves more people than one built in its image.
+
+That split is already paid for. The engine's element set is closed and the `type` on each element
+is open, so a translator maps stereotypes to SysML and changes no engine code.
+
+### Three parts
+
+| Part | Is |
+|---|---|
+| **page** | branding, navigation, and the workspace. Owns nothing about a diagram |
+| **terminal** | an optional alternate way to give input. Minimises to one line |
+| **diagram module** | a tree and a canvas for one kind of diagram — block, activity, flow |
+
+**The tree and the canvas are the diagram module.** Everything else wraps around them.
+
+### The workspace
+
+**A workspace holds several projects, the way an editor holds several folders.** Each is listed
+separately in the explorer, in the order it was added, and labelled `<project> [block]` for its
+domain.
+
+- **Each project belongs to one module, and has its own log, its own export, and its own action
+  surface.** No shared history: undo in an activity never reaches a block project.
+- **Which project a selected row belongs to is the context**, and the context decides which
+  module's actions apply. Positional rather than modal — no toggle, and no ambiguity to resolve.
+- The workspace itself — which projects are loaded, and in what order — is a fourth kind of
+  state, alongside project data, display preferences, and whatever the terminal has learned.
+  None of the four is stored with any other.
+
+### The block tree is the foundation
+
+Other modules hang off it. An activity project has a tree of its own for its own organisation,
+and *additionally* references blocks in a block project — so every module is the same shape, and
+the block module is special only in being the one everything else points at.
+
+- **A reference is a widened proxy, not a new idea.** A proxy already means "a second appearance
+  of a block that lives elsewhere"; elsewhere becomes another *project* as well as another layer,
+  and its target becomes a `(project, element)` pair. Nothing else about it changes.
+- **Projects never merge, so ids never collide** and nothing is renumbered — which is what makes
+  a workspace simpler than importing would have been.
+- **References are live, and by id.** Renaming or re-parenting the block behind a proxy flows
+  through for free and is not an event.
+- **A proxy tolerates a missing target and never records the absence.** It draws as missing and
+  the reference survives, so undoing the deletion in the other project brings it back. Logging
+  the cleanup instead would make one module's undo unable to cross into another. This is a change
+  from today, where `tidy` deletes an orphaned proxy outright.
+- **Only deletion is breaking, and only breaking changes are reported.** A rename that raised a
+  prompt would train the user to dismiss prompts.
+- **Bundling happens at export, not while working.** An activity export carries the external
+  blocks it depends on so it stands alone; in the workspace both projects are present and live,
+  so there is nothing to bundle and no divergence to reconcile.
+
+### The action surface is the seam
+
+**A module publishes its actions as data** — a name, its arguments, and when it applies — rather
+than as functions somebody has to already know about. That one interface is what makes both of
+the other two parts possible:
+
+- The **page** can host any module, because switching one is switching an action surface.
+- The **terminal** can rank and complete actions it was never written against, which is what
+  makes it reusable outside this app at all.
+
+**The dependency runs one way only.** The terminal reads the surface; no module imports anything
+from the terminal, and no log records that a terminal exists. It is an input method, and the
+project cannot tell it apart from a mouse.
+
+The terminal ranks by context and by what this user has done before, learned locally and kept out
+of every log. **`Enter` confirms the highlighted option** — highlighted, so that an adaptive
+default is always visible and the arrow keys can overrule it before it fires.
+
+Until actions are data, neither diagram modules nor a general terminal are buildable. It is the
+prerequisite, and it is not visible from the outside.
+
+### Nomenclature
+
+**The first word is the domain, the second is the thing:** block tree, block diagram, activity
+diagram, activity explorer. **`block` stays the name of the element itself, in every domain** —
+an activity diagram is built from blocks too, which is why the qualifier is load-bearing rather
+than decorative, and why a project's row carries its domain in brackets.

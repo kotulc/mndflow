@@ -83,8 +83,13 @@ export type Element = {
   /** Which of the four this is. */
   element: Elem;
   label: string;
-  /** The user's own subtype — a stereotype. Vocabulary from the domain
-   *  ("Character", "Service", "Page") or a saved template. */
+  /** The user's own subtype for this element — a stereotype, and empty until
+   *  somebody sets one.
+   *
+   *  Not the domain's word for a block: that is `terms.node` ("Module",
+   *  "Character"), one per project, and it is shown as this field's
+   *  placeholder rather than copied onto everything. A `type` is only ever a
+   *  distinction somebody drew. */
   type: string;
   parent: string | null;
   body: string;
@@ -180,6 +185,12 @@ export type Graph = {
 };
 
 export type Mutation =
+  /** A whole graph, standing in for every step that came before it.
+   *
+   *  Written by compaction, never by a gesture. It is what keeps history
+   *  bounded, and it is also how a project sheds retired ops: whatever the old
+   *  steps were spelled in, the snapshot is in the current schema. */
+  | { op: "checkpoint"; graph: Graph }
   | { op: "add_element"; element: Element }
   | { op: "update_element"; id: string; label?: string; type?: string; color?: string }
   | { op: "move_element"; id: string; parent: string | null }

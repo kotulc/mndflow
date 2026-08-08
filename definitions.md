@@ -8,6 +8,27 @@ written anywhere else can be read without guessing.
 - **What is missing** → [tasks.md](tasks.md).
 
 
+## The workspace *(planned)*
+
+Nothing here is built — see [design.md](design.md) under *Where this is going*.
+
+| Term | Means |
+|---|---|
+| **workspace** | the projects currently loaded, and their order. Held apart from all of them: neither project data, nor a display preference, nor what the terminal has learned |
+| **diagram module** | a tree and a canvas for one kind of diagram — block, activity, flow. A project belongs to exactly one, and carries its own log, export and action surface |
+| **page** | branding, navigation and the workspace. The shell a diagram module sits in |
+| **external proxy** | a **proxy** whose target lives in another project rather than another layer. How one project references a block in another: live and by id, so renaming or moving the block flows through untouched |
+| **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
+| **bundle** | to carry the external blocks an export depends on inside it, so it stands alone. Done at export; inside a workspace every project is live and nothing is bundled |
+| **action surface** | the actions a diagram module publishes as data — name, arguments, when each applies. The seam both the page and the terminal work against |
+| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and its module draws it. An activity's fork, decision or initial node. Never in the explorer |
+
+**The first word is the domain, the second is the thing:** block tree, block diagram, activity
+diagram. **`block` names the element in every domain** — an activity diagram is built from blocks
+too — so the qualifier carries the meaning, and a project's explorer row shows its domain as
+`<project> [block]`.
+
+
 ## The project
 
 | Term | Means |
@@ -29,8 +50,10 @@ join them. Everything else describes one of the two.
 | **node** | the graph-theory word for an element. The same thing; `element` is the word the code uses |
 | **relationship / edge** | a join between two elements. Not an element — it is placed by its ends, drawn as a line, and joins rather than sits |
 | **element type** | which of the four an element is: `block`, `note`, `group`, `proxy`. Closed, engine-level, and decides what draws it |
-| **type** (stereotype) | a user-defined subtype of an element or a relationship — colour, icon, defaults. Open-ended. A type subtypes **within** an element type, never across one |
-| **domain** | the project's vocabulary and starting relations, one per project. Formerly called its template |
+| **type** (stereotype) | a subtype of one element or relationship — open-ended, and **empty until somebody sets one**. A type subtypes **within** an element type, never across one. Not to be confused with the domain's *word* for a block, which is one per project |
+| **domain word** | what a project calls its blocks, groups and relations — `Module`, `Character`, `Feature`. One set per domain, shown as a placeholder, never written onto an element |
+| **domain** | **contested — see tasks.md.** Currently `graph.domain`: the project's subject matter (`software`, `writing`), supplying its words and starting relations. Intended to mean the **diagram type** instead |
+| **unit** | what a diagram calls its elementary block — `block`, and one day `activity`. A property of the **diagram type**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored |
 | **template** | a saved type, ready to be made again *(planned)* |
 
 

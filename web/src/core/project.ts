@@ -11,8 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
 import {
-  actual, blocksOf, childrenOf, descendsFrom, fold, isPort, isProxy, membersOf, nameFree, nextNum,
-  proxyIn, titleOf,
+  actual, blocksOf, childrenOf, compact, descendsFrom, fold, isCheckpoint, isPort, isProxy,
+  membersOf, nameFree, nextNum, proxyIn, titleOf,
 } from "./fold";
 import * as router from "./router";
 import * as store from "./store";
@@ -48,7 +48,9 @@ function placement(step: Step | undefined): string | null {
 }
 
 export function useProject() {
-  const [steps, setSteps] = useState<Step[]>(store.load);
+  // Compacted on the way in as well: an imported or long-idle log can arrive
+  // over the cap without this session having added a thing.
+  const [steps, setSteps] = useState<Step[]>(() => compact(store.load()));
   /** The layer the canvas is drawing. null is the project itself. */
   const [view, setView] = useState<string | null>(null);
   const [picked, setPicked] = useState<Picked>(null);
@@ -107,9 +109,11 @@ export function useProject() {
   const commit = useCallback((step: Step) => setSteps((prior) => {
     const carrying = placement(prior[prior.length - 1]);
 
-    return carrying !== null && carrying === placement(step)
+    const next = carrying !== null && carrying === placement(step)
       ? [...prior.slice(0, -1), step]
       : [...prior, step];
+
+    return compact(next);
   }), []);
 
   const turn = useCallback(
@@ -131,7 +135,9 @@ export function useProject() {
     setSteps((prior) => {
       const index = prior.map((s) => s.status).lastIndexOf("applied");
 
-      return index < 0
+      // A checkpoint is not something somebody did, so there is nothing to take
+      // back — and reverting one would drop everything it stands for.
+      return index < 0 || isCheckpoint(prior[index])
         ? prior
         : prior.map((s, i) => (i === index ? { ...s, status: "reverted" as const } : s));
     });
@@ -248,9 +254,7 @@ export function useProject() {
       nameFree(graph, parent, label) &&
       commit(makeStep(`new: ${label}`, "create", [{
         op: "add_element",
-        element: makeElement(label, {
-          parent, type: terms.node, num: nextNum(graph, parent, "block"),
-        }),
+        element: makeElement(label, { parent, num: nextNum(graph, parent, "block") }),
       }])),
 
     remove: (id: string) => {
@@ -523,7 +527,7 @@ export function useProject() {
     createAt: (label: string, x: number, y: number, groups: string[] = []) => {
       if (!nameFree(graph, view, label)) return;
       const fresh = makeElement(label, {
-        parent: view, type: terms.node, x, y, num: nextNum(graph, view, "block"),
+        parent: view, x, y, num: nextNum(graph, view, "block"),
       });
 
       commit(makeStep(`new: ${label}`, "create", [
@@ -539,7 +543,7 @@ export function useProject() {
     sprout: (a: End, label: string, x: number, y: number, kind: Kind = "untyped") => {
       if (!nameFree(graph, view, label)) return;
       const fresh = makeElement(label, {
-        parent: view, type: terms.node, x, y, num: nextNum(graph, view, "block"),
+        parent: view, x, y, num: nextNum(graph, view, "block"),
       });
 
       commit(makeStep(`grew: ${label}`, "sprout", [
@@ -703,7 +707,7 @@ export function useProject() {
     up,
     question,
     terms,
-    undoable: applied.length > 0,
+    undoable: applied.length > 0 && !isCheckpoint(applied[applied.length - 1]),
     redoable: steps.some((s) => s.status === "reverted"),
     children: (parent: string | null) => childrenOf(graph, parent),
     blocks: (parent: string | null) => blocksOf(graph, parent),

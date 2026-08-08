@@ -78,7 +78,7 @@ function relate(graph: Graph, said: string, scope: string | null,
   let other = create ? null : resolve(graph, said);
 
   if (create && known.wanted) {
-    const fresh = makeElement(known.wanted, { parent: scope, type: terms.node });
+    const fresh = makeElement(known.wanted, { parent: scope });
     mutations.push({ op: "add_element", element: fresh });
     other = fresh.id;
   }
@@ -163,7 +163,7 @@ export function answer(graph: Graph, question: Question | null, said: string,
         taken.add(label.toLowerCase());
         mutations.push({
           op: "add_element",
-          element: makeElement(label, { parent: scope, type: terms.node }),
+          element: makeElement(label, { parent: scope }),
         });
       }
 

@@ -20,6 +20,13 @@ import { Files } from "./Files";
 import { Panel } from "./Panel";
 import { Readout } from "./Readout";
 
+/** What this diagram calls its elementary unit.
+ *
+ *  A property of the **diagram type**, not of what the project is about: a
+ *  block diagram is built from blocks whether it describes software or a
+ *  story. It becomes part of a module's declaration once modules exist. */
+const UNIT = "block";
+
 export function App() {
   const project = useProject();
   const { graph, view, picked, path, question, terms } = project;
@@ -183,6 +190,7 @@ export function App() {
             onOpen={project.open}
             onCreate={project.create}
             onNameTaken={project.nameTaken}
+            unit={UNIT}
             onDelete={project.remove}
             onMove={project.move}
             onRename={project.rename}
@@ -194,6 +202,7 @@ export function App() {
           <div className="canvas" style={{ "--tray": `${trayHeight}px` } as React.CSSProperties}>
             <Canvas
               graph={graph}
+              unit={UNIT}
               view={view}
               picked={picked}
               path={path}
@@ -238,6 +247,7 @@ export function App() {
               view={view}
               picked={picked}
               terms={terms}
+              unit={UNIT}
               onSave={project.write}
               onRetype={project.retype}
               onMarkPort={project.markPort}

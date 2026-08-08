@@ -69,6 +69,8 @@ type Props = {
   onCreate: (label: string, parent: string | null) => void;
   /** Whether a name is already spoken for in a layer, so a field can say so. */
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** What this diagram calls its elementary unit. */
+  unit: string;
   onDelete: (id: string) => void;
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
@@ -76,7 +78,7 @@ type Props = {
 };
 
 export function Files(props: Props) {
-  const { graph, view, terms, showPorts, onShowPorts, onOpen, onCreate, onNameTaken } = props;
+  const { graph, view, showPorts, onShowPorts, onOpen, onCreate, onNameTaken, unit } = props;
   const { onDelete, onMove, onRename, onRenameProject } = props;
   const kids = useMemo(() => branches(graph), [graph]);
   /** Nodes the user has opened. Nothing else opens them — walking into a layer
@@ -306,7 +308,7 @@ export function Files(props: Props) {
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
-          <button onClick={() => setAdding({ parent })} title={`New ${terms.node}`}>
+          <button onClick={() => setAdding({ parent })} title={`New ${unit}`}>
             ＋
           </button>
           <button onClick={() => setEditing(view ?? ROOT)} title="Rename what is open">

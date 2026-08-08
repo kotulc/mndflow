@@ -20,6 +20,20 @@ spec.md's table.
 
 ## Open questions
 
+**`domain` now names two different things.** It currently means the project's subject matter —
+`software`, `writing`, `product` — which supplies vocabulary, starting relations and the
+terminal's prompts. It is wanted for the **diagram type** instead: block, activity, flow.
+
+- The UI has already moved. What a diagram calls its unit is a property of the diagram type, so
+  the card chip, the type placeholder and the explorer's ＋ button all read `block` now, from one
+  constant that becomes part of a module's declaration. `terms.node` no longer reaches the UI.
+- What is left of the subject-matter concept is vocabulary and workflow prompts, both consumed
+  only by the terminal — which is itself due to be reworked and renamed.
+- So the rename waits for that rework rather than happening twice. **The word to avoid in the
+  meantime is `domain`**, since it is about to change meaning.
+- `template` is not available as the replacement: it is spoken for by reusable subtypes.
+  `vocabulary` describes what actually remains of it.
+
 **What the export format is.** The export *is* the step log, and a log records the making of a
 thing rather than the thing. Anything wanting the graph instead — a SysML translation, a diagram
 generator — needs a second format folded from it. This has to be settled before the sample
@@ -46,6 +60,53 @@ preference. See design.md under Relationships, Interfaces and Layouts.*
 
 ## Agreed, not built
 
+The vision these serve is in [design.md](design.md) under *Where this is going*. Settled in
+order: workspace over import, live references, bundling at export, `block` as the base module.
+
+**The action surface, as data.** A module's actions are closures on `project` today, so nothing
+can reason about them. Published as data — name, arguments, when each applies — they become the
+seam the page hosts modules through and the terminal ranks against.
+
+**This is the prerequisite for everything else here**, and the only item on this list that is
+invisible from the outside. Neither the module system nor a reusable terminal is buildable until
+it exists, so it goes first.
+
+**Module-specific element subtypes.** A fixed engine, with each module defining what its own
+elements are.
+
+- Only the **block** diagram module writes the block tree. Every other module keeps a tree of its
+  own for its own organisation, and *additionally* references blocks in a block project.
+- **Settled: one new element type, `figure`** — placed and drawn, never in the tree or the
+  explorer, with what it *is* coming from its `type` and its module drawing it. An activity's
+  fork, decision, initial, final, merge and join are all figures.
+
+  A value per notation was rejected: element types are written into logs, so each one is
+  permanent the way a retired op is, and each would mean revisiting the 20 places that branch on
+  `element`. One generic value serves every future module instead.
+- **The criterion for the closed set:** an element type belongs in the engine only if the engine
+  must reason about it beyond placing and drawing it. `block` (the tree), `proxy` (resolution and
+  cleanup), `group` (bounds from members, membership cascade, layout unit), `note` (least size,
+  ties, layout unit) — and `figure`, which the engine only places.
+- A **swimlane is a group**, not a sixth type: a boundary round members, membership on the member.
+  Its band shape and lane layout are the activity module's rendering.
+- Still open: how a module registers renderers for its `type` values.
+
+**Workspace, references and bundling.**
+
+- Several projects loaded at once, each listed separately, in the order added, labelled
+  `<project> [block]`. The selected row's project is the context.
+- **A cross-project reference is a widened `proxy`**, whose target becomes a `(project, element)`
+  pair. No new concept. Projects never merge, so no ids collide and nothing is renumbered.
+- **A proxy must tolerate a missing target and never record the absence** — it draws as missing
+  and the reference survives, so undo in the other project restores it. Recording the cleanup
+  would stop one module's undo reaching across. **This changes today's behaviour**: `tidy`
+  currently deletes an orphaned proxy outright.
+- Only deletion is breaking, and only breaking changes are reported.
+- An export bundles the external blocks it depends on. Nothing is bundled inside a workspace.
+- Dead references accumulate, since nothing removes them automatically. Wants an explicit
+  "clear missing references" action rather than a default.
+- The workspace itself needs its own storage, separate from every project.
+
 - **Which way a layer reads should decide how a line is drawn.** It currently picks the sides a
   `flow` relationship attaches to and nothing more. It should also bias the route — a flow on an
   `across` layer running left to right rather than doubling back — which is the whole reason the
@@ -59,17 +120,6 @@ preference. See design.md under Relationships, Interfaces and Layouts.*
 
 
 ## Backlog
-
-**Bounding the step log.** It grows without limit; the browser stops accepting it near 30,000
-steps (~5 MB at ~150 bytes a step). Folding is not the constraint — 0.3 ms at 20,000 steps — so
-this is about storage alone. A failed save is now reported rather than swallowed, and successive
-placements of one element now collapse into a single step, which takes out the bulk of a long
-session's growth. What is left bounds the total, and is not urgent until a real project
-approaches the ceiling.
-
-- **Checkpoint the old end.** Fold the oldest steps into a single snapshot step and drop them,
-  keeping recent history undoable and bounding the total. The proper fix, and the larger one:
-  it means a mutation that writes a whole graph, and it makes deep undo finite.
 
 **Clusters, and shapes for them.** Relationships should draw units loosely together, each cluster
 laid out by its own topology and the layer's arrangement placing the clusters relative to each
@@ -105,7 +155,19 @@ conditional on user data.
   for `set_domain` and the three relation ops.
 
 
+- **Deleting the fold's legacy branches.** 15 retired ops, 150 lines — 23% of `fold.ts`, and the
+  least-exercised code in the repo. Checkpointing means any project reaches the current schema by
+  being opened and used, so dropping support for pre-checkpoint logs is now a safe decision
+  rather than a lossy one. Worth taking after the next round of schema churn settles, not during
+  it.
+
+
 ## Not built yet
+
+- **Arrow keys move the terminal's highlighted option.** `Enter` confirms whichever option is
+  highlighted, and the user can move the highlight while still typing. Nothing moves it today,
+  so `Enter` always takes the top suggestion — which is the version of adaptive ranking worth
+  avoiding, since the default is then invisible and changes under the user.
 
 - **The sample project.** `samples/mndflow.json` does not exist, and the directory does not
   either. Its stated precondition — interfaces, references and groups — is now met, so it is

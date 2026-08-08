@@ -442,6 +442,12 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card-head .rename:focus { outline: none; }
 .card-head .kind { color: var(--muted); font-size: 10px; letter-spacing: 0.08em; flex: none; }
 
+/* The chip is a subtype where somebody set one, and otherwise what this module
+   calls a plain block. The fallback sits back a step: it is the same word on
+   every card that has not been told apart, so it should read as a default
+   rather than as a distinction. A subtype comes forward at full weight. */
+.card-head .kind.plain { opacity: 0.45; }
+
 /* Cells are placed, not flowed: each one is a rectangle the treemap worked
    out, positioned in percentages of this box. */
 /* Height and the gap above it are both set by the card, not here — see

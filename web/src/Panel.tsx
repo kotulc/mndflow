@@ -44,6 +44,9 @@ type Props = {
   onTie: (note: string, holder: string) => void;
   onRename: (id: string, label: string) => void;
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** What this diagram calls its elementary unit — the placeholder for a
+   *  subtype nobody has set. A property of the diagram type. */
+  unit: string;
   onRelation: (id: string, relation: string) => void;
   onSetDir: (id: string, dir: Dir) => void;
   onFlip: (id: string) => void;
@@ -168,7 +171,7 @@ function Attrs({ graph, holder, onUpdate, onDrop, onLeaveGroup }: {
 export function Panel(props: Props) {
   const { graph, view, picked, terms, onSave, onRetype, onMarkPort } = props;
   const { onAddAttr, onUpdateAttr, onDropAttr, onLeaveGroup, onTie, onRename } = props;
-  const { onNameTaken } = props;
+  const { onNameTaken, unit } = props;
   const { onRelation, onSetDir, onFlip, onReveal, hostRef } = props;
 
   // With nothing picked on the canvas the layer itself is the subject.
@@ -304,7 +307,7 @@ export function Panel(props: Props) {
               <Draft
                 className="type"
                 value={node.type}
-                placeholder={terms.node}
+                placeholder={unit}
                 onCommit={(next) => onRetype(subject, next)}
               />
               {port && (

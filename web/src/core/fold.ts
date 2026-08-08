@@ -6,8 +6,8 @@
  *  same code that built the original. */
 
 import {
-  EMPTY, ROOT, edge as newEdge, element as newElement, type Attr, type Axis, type Element,
-  type Graph, type Mutation, type Step,
+  EMPTY, ROOT, edge as newEdge, element as newElement, step as makeStep, type Attr, type Axis,
+  type Element, type Graph, type Mutation, type Step,
 } from "./types";
 
 /** Whether an element sits on its parent's frame edge. That, and only that, is
@@ -281,6 +281,14 @@ type Pending = Map<string, Attr>;
  *  thrown: an undone parent can legitimately strand a later step. */
 function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
   switch (mutation.op) {
+    case "checkpoint":
+      // Everything a snapshot stands for, in place of replaying it.
+      graph.elements = structuredClone(mutation.graph.elements);
+      graph.edges = structuredClone(mutation.graph.edges);
+      graph.relations = [...mutation.graph.relations];
+      graph.domain = mutation.graph.domain;
+      break;
+
     case "add_element":
       graph.elements[mutation.element.id] = { ...mutation.element };
       break;
@@ -647,6 +655,38 @@ function tidy(graph: Graph): void {
   for (const [id, node] of Object.entries(graph.elements)) {
     if (node.element === "group" && !membersOf(graph, id).length) delete graph.elements[id];
   }
+}
+
+/** How many steps survive a compaction, and the length that triggers one.
+ *
+ *  Slack between them so that compaction happens every `COMPACT_AT - KEEP`
+ *  steps rather than on every commit once the cap is reached. */
+export const KEEP = 1000;
+export const COMPACT_AT = 1200;
+
+/** Whether this step is a snapshot rather than something somebody did. */
+export function isCheckpoint(step: Step | undefined): boolean {
+  return step?.mutations.length === 1 && step.mutations[0].op === "checkpoint";
+}
+
+/** Fold the oldest steps into a single snapshot and drop them, so history stays
+ *  bounded and old projects stop carrying retired ops.
+ *
+ *  **The graph is unchanged by this.** Folding the prefix and replaying the tail
+ *  is the same replay in the same order — the snapshot is exactly what the
+ *  dropped steps produced. What is lost is reach: undo cannot go back past a
+ *  checkpoint, and a step reverted long ago can no longer be redone.
+ *
+ *  Steps are counted whatever their status, so the tail keeps its reverted run
+ *  intact and redo still works over everything recent. */
+export function compact(steps: Step[]): Step[] {
+  if (steps.length <= COMPACT_AT) return steps;
+
+  const cut = steps.length - KEEP;
+  const graph = fold(steps.slice(0, cut));
+  const mark = makeStep("checkpoint", "checkpoint", [{ op: "checkpoint", graph }]);
+
+  return [mark, ...steps.slice(cut)];
 }
 
 /** Rebuild the graph from every applied step, in order. */
