@@ -173,19 +173,22 @@ export function useProject() {
 
   const name = (id: string) => graph.elements[id]?.label ?? id;
 
-  /** Members going out of one attribute.
+  /** Members going out of one group.
    *
-   *  A group left holding a single member goes altogether rather than shrinking
-   *  around it: a boundary drawn round one card says nothing the card does not
-   *  already say, and one left over from a set that has scattered is litter.
-   *  Grouping a single block *deliberately* is a different act — a way of
-   *  marking it — and is allowed. What is refused is decaying into one. */
+   *  A group of one is still a group. Deleting one that fell to a single member
+   *  meant reading intent — deliberate against decayed — off a graph in which
+   *  the two are identical, and throwing away the user's work where the guess
+   *  went the wrong way. Removing a group is a thing to be asked for.
+   *
+   *  Emptying it is the exception, and is not a preference: a boundary is its
+   *  members' bounds, so a group holding nobody has nothing to draw and no way
+   *  to be reached again. */
   const parting = (group: string, gone: string[]): Mutation[] => {
     const held = membersOf(graph, group).map((m) => m.id);
     const out = held.filter((h) => gone.includes(h));
     if (!out.length) return [];
 
-    if (held.length - out.length < 2) return [{ op: "delete_element", id: group }];
+    if (held.length === out.length) return [{ op: "delete_element", id: group }];
 
     return out.map((id) => ({ op: "leave_group", id, group }));
   };

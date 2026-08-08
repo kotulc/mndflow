@@ -13,7 +13,7 @@ more than one layer's worth of anything.
 — a node cannot contain itself. Nothing is forbidden for being unusual, and where a choice could
 be enforced or left to the user, it is left to the user.
 
-**Three ideas carry most of the weight:**
+**Four ideas carry most of the weight:**
 
 - **Derived beats stored.** Anything that can be worked out from the layer is worked out — seats,
   routes, boundaries, roles. Only choices are written down.
@@ -21,7 +21,13 @@ be enforced or left to the user, it is left to the user.
   declared is honoured; everything else is the layer's to arrange. This is the rule the whole
   layout model rests on.
 - **The log is the truth.** The graph is folded from it, so undo needs no inverses.
+- **An accident is the failure worth designing against.** Where a rule looks like it is protecting
+  the user, check which it is doing: preventing a slip is worth a gesture's design, and preventing
+  a choice is not. Most of the rules cut from this document were the second wearing the first's
+  clothes.
 
+
+## Foundations
 
 ### The project, the log, and the fold
 
@@ -298,27 +304,30 @@ same reason it has no interfaces: there is nothing beyond it for one to face.
 own children by its reserved id. One exclusion, in one accessor — the alternative reparented
 every top-level element and rewrote every place that asks which layer is open.
 
-**Interface is the one role that does not change.** A node is created as one or it is not. A
-block never steps onto a border and an interface never steps off, because a drag that could
-silently convert between them makes every ordinary move a hazard.
+**An interface is made, not stumbled into.** What the old rule got right is that a drag which
+silently converted a block into an interface would make every ordinary move a hazard. What it got
+wrong was forbidding the conversion outright rather than the accident — so the tool ended up with
+a gesture that creates an interface and none that undoes it. The accident is what the design has
+to prevent; the operation is the user's.
 
 **A container draws a treemap of its immediate child blocks.**
 
 - **The band is divided by a fixed pattern, not by measurement**, so a container of a given size
   always divides the same way. Cells come out square, wide and tall against each other, so the
   division reads as a shape rather than a row of equal boxes.
-- **Nine chips is the cap.** Past that the cells are too small to tell apart, and a card is a
-  summary rather than a list. The tenth slot reads `...` and opens the container, which is where
-  the rest are anyway.
+- **Nine chips is the default cap.** Past that the cells are too small to tell apart, and a card
+  is a summary rather than a list. The tenth slot reads `...` and opens the container, which is
+  where the rest are anyway. A default, since a definition may say otherwise.
 - **Fill shade carries relevance** — how closely a child's name relates to the container's — so
   one that has drifted off topic looks ragged. Size says nothing about it; the packing is fixed.
 - **A name shrinks to fit and hides when even the floor will not fit.** A name in a sliver of a
   cell is not a name; the partition still reads without it, and hover names every cell.
 - **Nesting stops at the first layer.** Following it further turns a deep container into a
   texture where nothing is legible.
-- **A container is barely bigger than a block.** It does not swell with what it holds — the cells
-  shrink instead. Cards that grow with their contents turn a busy layer into a wall of boxes and
-  repeat what the treemap already says.
+- **A container is barely bigger than a block, by default.** It does not swell with what it holds
+  — the cells shrink instead. Cards that grow with their contents turn a busy layer into a wall of
+  boxes and repeat what the treemap already says. A definition may decide otherwise for its own
+  usages.
 - **No dashed border.** The treemap is signal enough, and dashes are spent on references, where
   the mark means one thing only: this is not from here.
 
@@ -507,22 +516,34 @@ A **field** is a named, typed value on an element or relationship: a `form` — 
 presentation, and membership. Only the first survives an export and the third must never reach
 one, so the word was hiding the distinction that matters most about it.
 
-**A type is a definition; an element is a usage.** A definition declares the fields its usages
-carry — names, forms, units, defaults — along with the colour and icon they draw with. An element
-names its definition in `type` and holds only the values it gives. This is the split SysML v2 is
-built on, `part def` against `part`, and it is what finally gives `type` an identity: a subtype
-becomes something that can be defined and reused rather than a string repeated by hand.
+**A type is a definition; a thing that names it is a usage.** A definition declares the fields
+its usages carry — names, forms, units, defaults — along with how they draw. An element or a
+relationship names its definition in `type` and holds only the values it gives. This is the split
+SysML v2 is built on, `part def` against `part`, and it is what finally gives `type` an identity:
+a subtype becomes something that can be defined and reused rather than a string repeated by hand.
 
-- **Presentation belongs to the definition.** Fifty pumps look alike because their definition says
-  so — which is also what keeps presentation structurally out of an export rather than filtered
-  out of it on the way.
-- **Definitions live on root**, beside the project's relation names. Both are the project speaking
-  about itself, and neither is an element in the tree, so neither reaches the explorer.
+**One definition record serves elements and relationships alike.** A definition declares which
+form it subtypes, and that decides what it can be applied to — `block` or `figure` for an element,
+`flow` or `assoc` for a relationship. There is no second mechanism, which is why a project's
+relation vocabulary is simply the definitions whose form is a relationship form. A module ships a
+notation by shipping definitions.
+
+- **A definition has an id**, and every reference to it is by that id. A pin typed by `Signal`, a
+  flow carrying `Signal`, a data structure holding another — all three break the moment a rename
+  can orphan them, and a name is the one part of a definition a user is certain to change.
+- **A definition carries presentation.** For an element, colour and icon; for a relationship, line
+  style, arrowhead and colour. That is what lets a module draw its own notation without any engine
+  change, and it is what keeps presentation structurally absent from an export rather than
+  filtered out of one on the way.
+- **A `ref` field targets an element or a definition**, since both have ids. Typed-by and
+  points-at are the same operation once identity is uniform.
+- **Definitions live on root.** They are the project speaking about itself, and none of them is an
+  element in the tree, so none reaches the explorer.
 - **A field has no identity of its own.** It is addressed by its name on the thing carrying it,
   and setting that name again rewrites it. Sharing used to be what made an attribute a grouping,
   which gave every descriptive value an id, a holder list and a lifecycle to serve the one case
   that needed them.
-- **A `ref` field points at an element without drawing a line.** That is how a part property or a
+- **A `ref` field points at something without drawing a line.** That is how a part property or a
   satisfied requirement is stated, and it is why the line test is a test about drawing.
 
 **The value forms are enumerated, and permanent the way a retired op is.** `date` was left out
@@ -535,8 +556,14 @@ is precisely what adding a form after the fact could not do.
 groups it is in and a group's member list is derived by asking who names it, so the two can never
 disagree — and a group draws a boundary round its members rather than a line to each.
 
-**Groups** are elements, drawn as a boundary.
+**Groups** are the generic organizational element: a boundary round a set, and whatever the
+vocabulary says that set means. A swimlane, an interruptible region, a package boundary and a
+trace assertion are all groups with different definitions — which is why nothing about a set
+needs a form of its own, and why a relationship never needs more than two ends.
 
+- **The engine's part is bounds, membership and layout**; everything else is the definition's. It
+  computes the boundary from the members, cascades membership, and treats the group as one unit
+  when laying out.
 - **A boundary is its members' bounds plus a small margin**, so it expands and contracts as they
   move. Its size is a fact about what it holds, never something set.
 - Clicking its background selects it; dragging a selected boundary moves every member as one
@@ -552,18 +579,17 @@ disagree — and a group draws a boundary round its members rather than a line t
 - **A node made inside a boundary joins it**, by the same test a drop there passes.
 - Boundaries overlap freely and their backgrounds compound, so the overlap is legible with no
   special handling.
-- **No appearance of its own to set.** One faint dashed line for every group, so a canvas of them
-  reads as one kind of thing rather than as a palette.
+- **A group looks like what its definition says.** A bare group — one nobody has typed — draws as
+  one faint dashed line, which is the default and not a law. The rule that every group must look
+  identical was aimed at denying a per-boundary colour picker, and it overreached: it would have
+  made a swimlane and a trace assertion indistinguishable, and both are groups. A look belongs to
+  a vocabulary, not to fiddling with one boundary.
 
-**A group of one is allowed; a group that falls to one is not.** Two different events, and only
-one was asked for. Grouping a single block is a deliberate act with an obvious meaning. A group
-*decaying* to one is what is left after dragging cards out, and a boundary hugging the last says
-nothing that card does not. The collapse happens where the member leaves, because by the time the
-fold sees the graph the two cases are identical.
-
-The cost — a deliberate one-member group is not permanent — is accepted. Solving it means
-recording *why* a group has the members it has, which is a fact about intent, wrong as often as
-right, and nothing else in the model carries it.
+**A group of one is a group.** Auto-deleting one that fell to a single member meant reading
+intent — deliberate against decayed — from a graph in which the two are identical, and destroying
+the user's work when the guess went the wrong way. Removing a group is a thing to be asked for.
+The boundary round one block says little, and saying little is not a reason to delete something
+somebody made.
 
 **None of this makes a group structural.** No parent changes and the explorer never shows one.
 What is inside a boundary is a fact about where things sit, not about what contains what.
@@ -600,8 +626,9 @@ about. Where a boundary says *these belong together*, a note says something in w
   is all name. The same gesture over a node already tied unties it.
 - **A leader is not a relationship.** It takes no pointer, cannot be selected or routed, and is no
   edge in any export. Dotted and thin: fine dots read as *attached to* rather than *connected to*.
-- **Amber throughout.** Green is structure and amber is description; a note is where that half
-  of the palette gets used.
+- **Amber by default.** Green is structure and amber is description; a note is where that half of
+  the palette gets used. A definition's colour wins where it sets one — the palette is the answer
+  for things nobody has told apart.
 - **Solid, with a rule down its left side.** A reference is dashed and a boundary is dashed, so a
   third dashed rectangle differing only in hue is a distinction to be worked out rather than seen.
   Dashes are spent; the margin rule is the annotation convention off the page.
@@ -1146,9 +1173,90 @@ is open, so a translator maps stereotypes to SysML and changes no engine code.
 |---|---|
 | **page** | branding, navigation, and the workspace. Owns nothing about a diagram |
 | **terminal** | an optional alternate way to give input. Minimises to one line |
-| **diagram module** | a tree and a canvas for one kind of diagram — block, activity, flow |
+| **module** | one graph and the views over it |
 
-**The tree and the canvas are the diagram module.** Everything else wraps around them.
+**The tree and the canvas are the module.** Everything else wraps around them.
+
+### Two graphs, many views
+
+**There are two fundamental graphs, not one module per notation.** A **structure** graph says what
+things there are and how they are composed and connected; a **behavior** graph says what happens,
+in what order, under what conditions. Reference is not a third — it is the proxy, which is
+orthogonal and works across both.
+
+Walking every SysML notation against the model is what settled this. Block definition, internal
+block, package, parametrics and requirements are all the same shape: elements, containment, ports,
+binary relationships, fields. Parametrics in particular looked like the hard case and is not one —
+a constraint's parameters are interfaces, so a binding connector is an ordinary relationship whose
+two ends are interfaces, which `from`/`to` already do. Requirements are elements with an `id` and
+a `text` field. Neither needs anything the engine does not have.
+
+**A view is a type vocabulary, a renderer, and a layout law** — nothing else, and it holds no state
+of its own. That is the whole difference between an activity diagram and a state machine, which
+share their shape and differ in what a node *means*: in an activity, being at a node is doing; in a
+state machine, being at a node is being. Duals, not projections of one another, so a project picks
+one vocabulary and stays in it.
+
+**A sequence diagram is a projection of a behavior graph.** A lifeline is a partition, a message is
+a flow crossing one, the order down a lifeline is the flow graph's topological order, and `alt`,
+`par` and `loop` are the decision, fork and cycle already there. Two things do not survive the
+projection: trace assertions — `neg`, `assert`, `critical` — which are claims about permitted
+traces rather than behavior, and are expressible as typed groups; and lifeline left-to-right order,
+which is presentation and lives in the view. A partial order is also the more honest model: any
+total order actually meant is a chain of flows, and nothing is asserted by accident.
+
+**Views are editable, not generated.** People draw sequence diagrams *first*, before any behavior
+exists, and a read-only view would make the fastest way to think in a notation unavailable — the
+opposite of the goal. So a view publishes gestures and the action surface maps them to mutations;
+the graph is still the only thing that holds state. This raises the bar on the action surface,
+which now carries the gesture-to-mutation mapping and not merely a list of what a module can do.
+
+### One anchor for every port
+
+**An interface is the general anchor, and every port-like thing in SysML is one.** A proxy port is
+an interface typed by an interface definition; a full port is an interface that holds children,
+derived exactly the way container-ness is; a pin is an interface on an action typed by a data
+definition; a parameter is an interface on a constraint. None of them needs a form, a field, or a
+rule of its own.
+
+**`flow` stays decorative at the engine level.** In, out and both are drawn and reasoned about by
+nobody: an activity module reads an `in` interface as an input pin, a parametrics module ignores
+direction entirely. Enforcing it would hard-code one module's semantics into the engine, which is
+the same mistake as branching on user data.
+
+**A data structure is a definition, not a form.** It declares fields with forms, units and
+defaults, which is what a data structure *is* — so it costs no element form, never clutters the
+tree, and is drawn only where somebody chooses to place a block typed by it. It maps to SysML's
+value type: a structure with no identity, as against a block, which is a thing that exists.
+
+### The SysML target
+
+**SysML is a translation layer, and the translation is what proves the model is general enough.**
+Every notation it defines was walked against the engine before the schema was frozen, and the
+closed sets came through unchanged — five element forms, four relationship forms, five value
+forms. The concept-by-concept map lives in [definitions.md](definitions.md) under *The SysML map*;
+what belongs here is why the result is worth having.
+
+**A notation costs a vocabulary and a renderer, never an engine change.** Requirements are blocks
+with an `id` and a `text` field. Parametrics are constraint blocks whose parameters are interfaces,
+so a binding is an ordinary relationship. Activities are blocks and figures joined by flows. State
+machines are the same shape with a different sense of what a node means. None of them asked for a
+form, a field, or a rule of its own — which is the whole argument for keeping the engine small and
+pushing every distinction into definitions.
+
+**The order the targets are worth building in** follows what each one proves:
+
+| | Proves |
+|---|---|
+| **requirements** | that definitions carry a vocabulary — it needs nothing else, so it fails loudly if they do not work |
+| **activity** | figures, and a module drawing what the engine only places |
+| **parametrics** | interfaces as the one anchor, since a parameter is a port and a binding is a plain relationship |
+| **state machine** | that two vocabularies can share one graph without either bending |
+| **sequence** | projections, and editing a view that derives its own arrangement |
+
+**Two things are accepted losses**, both recorded rather than solved: trace assertions keep their
+claim as a typed group and lose the enclosing bracket notation, and lifeline order is presentation
+that lives in the view.
 
 ### The workspace
 
@@ -1210,7 +1318,7 @@ prerequisite, and it is not visible from the outside.
 
 ### Nomenclature
 
-**The first word is the domain, the second is the thing:** block tree, block diagram, activity
-diagram, activity explorer. **`block` stays the name of the element itself, in every domain** —
+**The first word is the module, the second is the thing:** block tree, block diagram, activity
+diagram, activity explorer. **`block` stays the name of the element itself, in every module** —
 an activity diagram is built from blocks too, which is why the qualifier is load-bearing rather
-than decorative, and why a project's row carries its domain in brackets.
+than decorative, and why a project's row carries its module in brackets.

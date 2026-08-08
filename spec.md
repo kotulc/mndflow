@@ -36,8 +36,7 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 - **Container and interface are derived, not declared**: a block holding child blocks draws as a
   container; a block on its parent's frame edge is an interface. Both are ways a block *looks*;
   neither is a separate element type, and both are still called blocks.
-- Interface is the one of these that never changes. Nothing turns a block into one or back, and
-  interfaces do not count towards being a container.
+- Interfaces do not count towards being a container.
 - An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
   `axis` for when it is the open layer, `groups` for its membership, `fields`, and `color`.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
@@ -48,9 +47,9 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 **Root** — the block that holds every other, under the reserved id `root`.
 
 - Carries the project's name as its `label`, plus its own axis, body and fields.
-- **Carries the project's own vocabulary**: its relation names and its type definitions. Both are
-  the project speaking about itself, and neither reaches the explorer. **(planned)** — they sit on
-  `graph` today.
+- **Carries the project's own vocabulary**: its definitions, which cover element types and
+  relationship types alike. The project speaking about itself, and none of it reaches the explorer.
+  **(planned)** — `domain` and `relations` sit on `graph` today.
 - `parent: null` means "in the root layer" everywhere it is written; root is told from its own
   children by its id, which is the one place any listing has to know about it.
 - It has no frame, because a frame is a block seen from inside and root has no outside.
@@ -88,7 +87,8 @@ the project.
 
 - Carries `type`, `form`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
   `fromSide`/`toSide` where an end was drawn through a named wall.
-- `type` is the free-text stereotype — what this relationship *means*.
+- `type` names the relationship's **definition** — what it *means*, plus the fields it declares
+  and how it draws. **(planned)** — free text drawn from a flat `relations` list today.
 - `form` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
   `dir` still says which way the arrows point. **(planned)** — the field is `kind` today.
 - **Anything joining two elements is a relationship.** A form may draw as something other than a
@@ -142,14 +142,24 @@ the project.
 
 **Definitions** — the reusable subtypes a project has named. Held on root. **(planned)**, in full.
 
-- **A definition declares; an element uses.** A definition names the fields its usages carry —
-  name, form, unit, default, and a `choices` list where it has one — plus the colour and icon they
-  draw with. An element names it in `type` and holds only the values it gives.
-- **Presentation lives on the definition, never on the element**, so it is structurally absent
-  from an export rather than filtered out of one.
+- **A definition declares; whatever names it uses.** It carries an `id`, a `name`, the `form` it
+  subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
+  — and how they draw.
+- **One record serves elements and relationships alike.** The `form` it subtypes decides what it
+  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `untyped`/`flow`/`assoc`/`tie`
+  for a relationship. A project's relation vocabulary is just the definitions of relationship form.
+- **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
+  flow's item, or a nested data structure.
+- **Presentation lives on the definition, never on the usage** — colour and icon for an element,
+  line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
+  export rather than filtered out of one.
 - **A definition subtypes within a form, never across one.** Nothing a user defines can change
-  what an element *is*.
+  what a thing *is*.
+- **A data structure is a definition**, not an element form: it declares fields, and a block typed
+  by it is drawn only where somebody places one.
 - Definitions are not elements: no id in `graph.elements`, no row in the explorer.
+- A `ref` field may target an element or a definition — "typed by" and "points at" are one
+  operation.
 
 **History** — the step log is the source of truth.
 
@@ -393,7 +403,7 @@ about like any other, and the drag sticks.
 - **Container** — the same, plus a treemap of its immediate child blocks.
   - Fixed 1|2 packing, not measured: one unit up to three children, two columns up to six,
     three tiles up to nine.
-  - Nine chips is the cap; at ten or more, eight are drawn and the last reads `...`, which
+  - Nine chips is the default cap; at ten or more, eight are drawn and the last reads `...`, which
     opens the container.
   - Each chip's fill shade follows how closely its name relates to the container's.
   - A chip's name shrinks to fit and hides when even the floor will not fit; hover names it.
@@ -505,8 +515,11 @@ about like any other, and the drag sticks.
 
 ### Groups
 
-- An element of its own, drawn as a faint dashed boundary round the blocks that name it. Its
-  members are derived from their membership, never stored on the group.
+- **The generic organizational element** — a boundary round a set, meaning whatever its
+  definition says. A swimlane, a region, a package boundary and a trace assertion are all groups.
+  **(planned)** — only the bare group exists today.
+- Drawn round the blocks that name it. Its members are derived from their membership, never
+  stored on the group.
 - The boundary is its members' bounds plus half a cell of margin, so it lands on the grid when
   its members do — its size is a fact about what it holds.
 - Clicking the background selects it; dragging a selected boundary moves every member as one
@@ -516,19 +529,20 @@ about like any other, and the drag sticks.
 - A node created inside a boundary joins that group, by the same reckoning as a drop there.
 - A whole group moved together stays together, and layout moves one as a single unit — see
   Coordinates and layout.
-- **One member is allowed**, made deliberately — a boundary is a way of marking a single block.
-  `Ctrl`/`Cmd` + `G` makes one; right-click still makes an interface on a single card.
-- **Falling** to one member removes the group instead of drawing it around one block. Made
-  that way it stands; decayed to it, it goes.
+- **One member is allowed**, and a group that falls to one stays a group. `Ctrl`/`Cmd` + `G`
+  makes one; right-click still makes an interface on a single card. Removing a group is the
+  user's to do — the one exception is a group emptied entirely, which has no bounds to draw and
+  no way to be reached, so it goes.
 - Boundaries overlap freely and their backgrounds compound.
 - Its name is edited on the boundary itself.
-- One appearance for every group; nothing to set.
+- **A group draws as its definition says.** A bare group — one nobody typed — is a faint dashed
+  line, which is the default rather than the rule. **(planned)**
 
 ### Notes
 
 - A card of text placed in a layer, tied by faint dotted leaders to whatever it describes. The
-  other way an element describes — amber throughout, since green is structure and amber is
-  description.
+  other way an element describes — amber by default, since green is structure and amber is
+  description. A definition's colour wins where it sets one.
 - Solid, with a rule down its left side. Nothing else on the canvas carries one, and dashes are
   already spent on references and boundaries.
 - Made by right-dragging the background. The rectangle is drawn as it is swept, in dashed amber

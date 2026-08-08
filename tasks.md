@@ -43,19 +43,43 @@ definitions*. Ordered by what the next one depends on.
 
 | # | Change | Touches |
 |---|---|---|
-| 1 | **Envelope** — a log travels as `{ format, module, steps }`. Bare array loads as format 0, module `block` | `check.ts`, `store.ts`, `project.ts` |
+| 1 | **Envelope** — a log travels as `{ format, module, steps }`; `module` is an open string. Bare array loads as format 0, module `block` | `check.ts`, `store.ts`, `project.ts` |
 | 2 | **`form` replaces `element` and `kind`** — closed and engine-level everywhere | ~20 branch sites, `types.ts`, legacy fold |
 | 3 | **`figure` joins the closed set** — placed and drawn by a module, never in the tree | `types.ts`, the listings that filter on form |
 | 4 | **`attrs` becomes `fields`** — `name`, `form`, `value`, `tags`, plus `unit` / `choices` / `many` | `types.ts`, `fold.ts`, `Panel.tsx`, `Contents.tsx` |
-| 5 | **Definitions on root** — a type declares its fields and its presentation; an element holds only values | `types.ts`, `fold.ts`, new ops |
-| 6 | **`domain` and `relations` move to root** — with a legacy fold for `set_domain` and the three relation ops | `types.ts`, `fold.ts` |
+| 5 | **Definitions on root** — one record with an `id`, the `form` it subtypes, its field declarations and its presentation. Covers element *and* relationship types, so `relations` and `domain` fold into this rather than moving separately | `types.ts`, `fold.ts`, new ops, retires `rename_relation` |
 
 **The value forms are `text`, `number`, `flag`, `choice`, `ref`**, and the set is permanent the
 way a retired op is. `date` and a general list were left out deliberately — see design.md.
 
 **Still to decide before migrating:** whether a cross-project `ref` and a cross-project proxy use
 the same widening. The working answer is an optional `project` beside the target id in both, which
-is additive and costs nothing to leave until the workspace exists.
+is additive and costs nothing to leave until the workspace exists. Project identity itself is the
+open item — see below.
+
+
+## The module walk: what it settled
+
+Every SysML notation run against the frozen shape. **The closed sets all held** — five element
+forms, four relationship forms, five value forms — which is what unblocks the migration.
+
+| Finding | |
+|---|---|
+| **Two graphs, many views** | `structure` and `behavior`. Parametrics, requirements, IBD and package are views on structure; activity, state and sequence on behavior. A view is a type vocabulary, a renderer and a layout law, holding no state |
+| **Views are editable** | A view publishes gestures; the action surface maps them to mutations. Sketching in a notation must stay possible, so nothing is generated-only |
+| **Every port is an interface** | Proxy port, full port, pin and constraint parameter — all interfaces, told apart by their `type` and by whether they hold children |
+| **Parametrics is not a hard case** | A parameter is an interface, so a binding is an ordinary relationship and `from`/`to` already reach it |
+| **Requirements need nothing** | Elements with `id` and `text` fields, related by typed relationships |
+| **Sequence is a projection** | Lifeline = partition, message = a flow crossing one, order = topological order. Editable through the view |
+| **A data structure is a definition** | Not an element form. It declares fields; a block typed by it is drawn only where somebody places one |
+| **A group is the generic set** | Swimlane, region, package boundary, trace assertion. This is why a relationship never needs more than two ends |
+
+**Deliberately dropped:** trace assertions as inline fragment notation — expressed as typed groups
+instead — and lifeline left-to-right order, which is presentation and belongs to the view.
+
+**Still open here:** how a module registers renderers for its `type` values, and whether `structure`
+and `behavior` are what the envelope's `module` says or a layer above it. Neither blocks the
+migration, since `module` is an open string.
 
 
 ## Open questions
@@ -104,20 +128,15 @@ seam the page hosts modules through and the terminal ranks against.
 invisible from the outside. Neither the module system nor a reusable terminal is buildable until
 it exists, so it goes first.
 
-**Module-specific element subtypes.** A fixed engine, with each module defining what its own
-elements are.
+**Module-specific vocabularies.** A fixed engine, with each module defining what its own things
+are — see *The module walk* above for what this now means in full.
 
-- Only the **block** diagram module writes the block tree. Every other module keeps a tree of its
-  own for its own organisation, and *additionally* references blocks in a block project.
-- **`figure` is in the freeze above**, not a separate piece of work.
+- Only the **structure** graph writes the block tree. A behavior project keeps a tree of its own
+  for its own organisation, and *additionally* references blocks in a structure project.
 - **The criterion for the closed set:** a form belongs in the engine if the engine must reason
   about it beyond placing it — `block` (the tree), `proxy` (resolution and cleanup), `group`
   (bounds from members, membership cascade, layout unit), `note` (least size, ties, layout unit) —
-  **or if the engine must know not to draw it**, which is `figure` alone. The earlier wording had
-  only the first clause and admitted `figure` as an unexplained exception.
-- A **swimlane is a group**, not a sixth form: a boundary round members, membership on the member.
-  Its band shape and lane layout are the activity module's rendering.
-- Still open: how a module registers renderers for its `type` values.
+  **or if the engine must know not to draw it**, which is `figure` alone.
 
 **Workspace, references and bundling.**
 
@@ -213,9 +232,6 @@ since it is already the table of what a project contains.
   could *also* tie it to everything inside. Deliberately not done: that would make one gesture
   mean two things, and it already means two. Worth revisiting only if tying notes one at a time
   proves tedious.
-- **A promoted seat cannot be un-promoted.** Right-clicking a seat makes it an interface; there
-  is no gesture that gives it back. Deleting the interface is the nearest thing and takes the
-  relationship's anchor with it.
 - **The context menu**, still the last thing to build. Every entry above now performs its
   default action directly and correctly, so the menu is no longer covering for anything wrong —
   it is only the alternatives that are missing: direction and reversal for a relationship,
