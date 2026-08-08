@@ -1188,17 +1188,21 @@ function Flow(props: Props) {
    *  the boundary with it. Against the ones standing still, joining and
    *  leaving are the same test read in opposite directions.
    *
-   *  When every member is on the move there is nothing to measure against, and
-   *  nothing to measure: the group is travelling rather than being left, so
-   *  whoever is in it stays in it. */
+   *  Where every member is on the move, the boundary is measured where it sat
+   *  before the drag: `boxes` comes from the graph, which does not change until
+   *  the drag commits. This is what lets a group's last member leave it — with
+   *  one member there is never anybody standing still, so the old rule that
+   *  such a group is "travelling" left it impossible to break up.
+   *
+   *  Dragging a group by its own boundary never reaches here: it commits its
+   *  members' places directly and touches no membership. */
   const enclosing = useCallback(
     (mover: string, mid: { x: number; y: number }, moving: Set<string>) =>
       groupsIn(graph, view)
-        .filter(({ attr, here }) => {
+        .filter(({ here }) => {
           const staying = here.filter((id) => !moving.has(id));
-          if (!staying.length) return here.includes(mover);
-
-          const box = around(staying.map((id) => boxes[id]).filter(Boolean), HUG);
+          const gauge = staying.length ? staying : here;
+          const box = around(gauge.map((id) => boxes[id]).filter(Boolean), HUG);
 
           return box && mid.x >= box.x && mid.x <= box.x + box.w &&
                         mid.y >= box.y && mid.y <= box.y + box.h;

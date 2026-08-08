@@ -527,8 +527,9 @@ about like any other, and the drag sticks.
 - Dropping a card in the clear space inside joins; dropping it outside leaves. Dropping *on* a
   card is a move into that card instead.
 - A node created inside a boundary joins that group, by the same reckoning as a drop there.
-- A whole group moved together stays together, and layout moves one as a single unit — see
-  Coordinates and layout.
+- Membership is decided against the boundary as it stood when the drag began — from the members
+  standing still, or from all of them where none is. Dragging the boundary itself moves the group
+  and changes no membership; layout moves one as a single unit — see Coordinates and layout.
 - **One member is allowed**, and a group that falls to one stays a group. `Ctrl`/`Cmd` + `G`
   makes one; right-click still makes an interface on a single card. Removing a group is the
   user's to do — the one exception is a group emptied entirely, which has no bounds to draw and

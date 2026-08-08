@@ -573,7 +573,15 @@ needs a form of its own, and why a relationship never needs more than two ends.
 - **What decides is the card's own middle, against the boundary drawn from the members standing
   still.** Measured against all of them a card could never leave — it would take the boundary
   with it.
-- **A whole group moved together stays together.** Nothing is standing still to measure against.
+- **A boundary is measured where it sat when the drag began.** The members standing still define
+  it where there are any; where every member is moving, the positions the graph still holds do.
+  The old rule — that a group with everybody on the move is *travelling*, and so keeps them — was
+  a limitation wearing a rule’s clothes: a one-member group never has anybody standing still, so
+  it could never be broken up.
+- **Dragging the boundary is how a group travels.** That gesture commits its members’ places
+  directly and touches no membership, so a group moved by its own boundary cannot dissolve.
+  Dragging every member instead is dragging cards, and cards landing outside the boundary leave
+  it.
 - **Dropping *on* a card is a move into that card**, not a join: that gesture is spoken for, and
   it is structural, so it wins.
 - **A node made inside a boundary joins it**, by the same test a drop there passes.
