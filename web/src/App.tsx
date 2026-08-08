@@ -15,6 +15,7 @@ import * as store from "./core/store";
 import type { Suggestion } from "./core/suggest";
 import type { Kind } from "./core/types";
 import { Canvas } from "./Canvas";
+import type { Grazed } from "./NodeCard";
 import { Chat } from "./Chat";
 import { Files } from "./Files";
 import { Panel } from "./Panel";
@@ -34,27 +35,18 @@ export function App() {
   const [draft, setDraft] = useState("");
   /** Whether the readout drawer is out. */
   const [shelved, setShelved] = useState(false);
-  /** The attribute tray's real height, so the canvas can keep its own controls
-   *  clear of it. Measured rather than guessed: the tray is as tall as its
-   *  contents up to a ceiling, and a guess at the ceiling left the controls
-   *  stranded halfway up a tall screen. */
+  /** The tray, so a click outside it can put it away. Its height no longer
+   *  needs measuring: it takes half the canvas and the drawing takes the rest,
+   *  rather than covering it. */
   const tray = useRef<HTMLElement>(null);
-  const [trayHeight, setTrayHeight] = useState(0);
-
-  useEffect(() => {
-    const foot = tray.current;
-    if (!foot) return;
-
-    const watch = new ResizeObserver(([entry]) => setTrayHeight(entry.contentRect.height));
-    watch.observe(foot);
-
-    return () => watch.disconnect();
-  }, []);
 
   // Display preferences: global to the app, kept apart from the project's own
   // history because how something is drawn is not a change to it.
   const [angular, setAngular] = useState(store.angular.initial);
   const [ports, setPorts] = useState(store.ports.initial);
+  /** Something the contents table is pointing at, lit on the canvas without
+   *  being selected. The canvas's own hover still wins where they disagree. */
+  const [hinted, setHinted] = useState<Grazed>(null);
   const [treePorts, setTreePorts] = useState(store.treePorts.initial);
   /** What a right drag makes. A choice about the next thing created rather than
    *  about how anything is drawn, but it lives here for the same reason: it is
@@ -199,10 +191,11 @@ export function App() {
         </div>
 
         <section className="work">
-          <div className="canvas" style={{ "--tray": `${trayHeight}px` } as React.CSSProperties}>
+          <div className="canvas">
             <Canvas
               graph={graph}
               unit={UNIT}
+              hinted={hinted}
               view={view}
               picked={picked}
               path={path}
@@ -246,8 +239,11 @@ export function App() {
               graph={graph}
               view={view}
               picked={picked}
-              terms={terms}
               unit={UNIT}
+              onPick={project.pick}
+              onHint={setHinted}
+              onDelete={project.remove}
+              onUnlink={project.unlink}
               onSave={project.write}
               onRetype={project.retype}
               onMarkPort={project.markPort}
@@ -255,7 +251,6 @@ export function App() {
               onUpdateAttr={project.updateAttr}
               onDropAttr={project.dropAttr}
               onLeaveGroup={project.leaveGroup}
-              onTie={project.tie}
               onRename={project.rename}
               onNameTaken={project.nameTaken}
               onRelation={project.relation}

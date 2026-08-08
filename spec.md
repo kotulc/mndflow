@@ -126,6 +126,8 @@ the project.
 **Files**
 
 - Export writes the step log as JSON; import replaces the session with one.
+- **A panel that cannot draw itself says so and stays out of the way**, rather than taking the
+  window with it. The log is unharmed, so closing the panel and carrying on is the way out.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
   saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
@@ -389,7 +391,8 @@ about like any other, and the drag sticks.
 
 ### Relationships
 
-- A plain line, undirected by default. Direction and reversal come from the attribute panel.
+- A plain line, undirected by default. Direction and reversal come from its row in the contents
+  tray.
 - Joins two **nodes** and meets each at a seat. The ends are the nodes; the seat is only where
   the line lands.
 - Drawn by right-click-dragging from anywhere on a node, an interface, or a frame wall. It
@@ -579,25 +582,47 @@ A relationship has no inside, so double-clicking one does nothing.
   outside the frame to come back.
 
 
-## Attribute panel
+## Contents tray
 
-- A bar at the foot of the canvas, opening itself when the selection carries something to read.
-- One state per selection:
+The bottom tray, and the only panel. **A table of everything the open layer holds** — blocks,
+interfaces, relationships, groups and notes together. It is the only place a relationship or an
+interface can be found without hunting for it on the drawing.
 
-  | Selected | Shows |
+**Opening and closing**
+
+- Shut until asked for: the `contents` tab in the middle of the tray bar opens it, and a click
+  anywhere outside puts it away. The bar shows which layer is being listed.
+- **Open, it takes a third of the canvas** and the drawing keeps the other two thirds — the drawing
+  shrinks and re-centres rather than being covered. Its height does not change with what it
+  lists, so filtering never moves a row out from under the pointer.
+- **The frame reshapes to the room it is left**, rather than keeping its old proportions and
+  letterboxing. How far it can grow is still bounded by the zoom ceiling, so a sparse layer keeps
+  room around it instead of being magnified.
+- It stays open while you work down it. Selecting rows is what it is for.
+
+**Reading it**
+
+- Filter chips narrow to one kind, each showing how many there are; a kind with none is disabled.
+- Sortable by kind or by name; clicking the column already sorted by turns it around.
+- **Hovering a row lights that thing on the canvas**, and shows what it says and what it carries
+  above the table. The canvas's own hover wins where the two disagree.
+- **Clicking a row selects it on the canvas.**
+
+**Changing things from a row**
+
+- Double-click a name to rename; single-click a type to subtype. Fields open rather than sitting
+  there, so a row stays clickable.
+- Row buttons appear on hover and carry whatever that kind can be told to do:
+
+  | Row | Buttons |
   |---|---|
-  | nothing | the scope node — the layer you are inside — its body, type and attributes |
-  | a block | its body, type, attributes, and the groups it belongs to |
-  | an interface | the same, plus its flow marking |
-  | a relationship | its kind, direction, reversal, and attributes |
-  | a group boundary | that shared attribute: name, tags and members |
-  | a note | its text, and what it is tied to |
+  | relationship | direction, turn it around, remove |
+  | interface | marking, what it says, delete |
+  | proxy | go to where it lives, what it says, delete |
+  | block, group, note | what it says, delete |
 
-- Body text is edited here; there is no separate document pane.
-- Attributes are added and removed here; group membership is listed and can be removed.
-- Adding to an existing group from the panel. **(planned)**
-- Tags shown and edited. **(planned)**
-
+- **What it says** opens the row out: its body, the groups it belongs to, and its attributes,
+  with a field for adding one.
 
 ## Readout drawer
 

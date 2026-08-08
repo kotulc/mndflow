@@ -319,6 +319,9 @@ type Props = {
   /** What this project calls a plain block — the fallback a card's chip shows
    *  when nothing has given it a subtype of its own. */
   unit: string;
+  /** Something outside the canvas is pointing at, lit as though hovered. The
+   *  canvas's own pointer wins where the two disagree. */
+  hinted: Grazed;
   onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
@@ -363,6 +366,7 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
+  const { hinted } = props;
   const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt } = props;
   const { onSprout, onNameTaken } = props;
   const { kind, onKind } = props;
@@ -392,7 +396,11 @@ function Flow(props: Props) {
   /** The one element the pointer is over, and so the one that highlights.
    *  Resolved here rather than by `:hover`, which lights every ancestor of
    *  whatever is under the cursor. */
-  const [grazed, setGrazed] = useState<Grazed>(null);
+  const [hovered, setHovered] = useState<Grazed>(null);
+  /** What is lit: whatever the pointer is over, or failing that whatever the
+   *  contents table is pointing at. The pointer wins, since it is the more
+   *  immediate of the two. */
+  const grazed = hovered ?? hinted;
   const grazeRef = useRef("");
   const heldRef = useRef<string | null>(null);
   /** Where a group's boundary sat when its drag began, and where each member
@@ -406,22 +414,29 @@ function Flow(props: Props) {
   /** Where the right button went down, whatever it went down on. */
   const pressRef = useRef<Press | null>(null);
   const surface = useRef<HTMLDivElement>(null);
-  /** The panel's own size, so a layer's floor takes its shape from the screen
-   *  it is drawn on — a tall window wants a tall frame, not a wide one
-   *  floating in the middle of it. */
-  const [panel, setPanel] = useState({ w: 1180, h: 660 });
+  /** The part of the canvas actually visible — what is left once the tray has
+   *  taken its half. Everything answers to this: the frame takes its shape from
+   *  the room it is shown in, and the camera fits into the same room.
+   *
+   *  A frame that kept its old proportions letterboxed itself into the strip
+   *  left over, which on a narrow window left it a third of the width it could
+   *  have had. */
+  const [seen, setSeen] = useState({ w: 1180, h: 660 });
 
   useEffect(() => {
     const stage = surface.current;
     if (!stage) return;
 
-    const watch = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      if (width && height) setPanel({ w: width, h: height });
-    });
-    watch.observe(stage);
+    const measure = (to: (size: { w: number; h: number }) => void) =>
+      new ResizeObserver(([entry]) => {
+        const { width, height } = entry.contentRect;
+        if (width && height) to({ w: width, h: height });
+      });
 
-    return () => watch.disconnect();
+    const onStage = measure(setSeen);
+    onStage.observe(stage);
+
+    return () => onStage.disconnect();
   }, []);
 
   const members = useMemo(() => blocksOf(graph, view), [graph, view]);
@@ -466,14 +481,14 @@ function Flow(props: Props) {
     // leaves the same band on every side. A frame of any other shape fits by
     // one axis and letterboxes on the other, which is why one layer sat in
     // generous bands top and bottom while the next had almost none.
-    const shape = (panel.w - BAND * 2) / (panel.h - BAND * 2);
+    const shape = (seen.w - BAND * 2) / (seen.h - BAND * 2);
     let w = Math.max(hug.w, LEAST.w);
     let h = Math.max(hug.h, LEAST.h);
     w / h > shape ? (h = w / shape) : (w = h * shape);
 
     // ...and never smaller than the panel itself, so a sparse layer is roomy
     // rather than magnified. The floor shares the shape, so this keeps it.
-    const floor = Math.max(1, (panel.w - BAND * 2) / w, (panel.h - BAND * 2) / h);
+    const floor = Math.max(1, (seen.w - BAND * 2) / w, (seen.h - BAND * 2) / h);
     w *= floor;
     h *= floor;
 
@@ -486,7 +501,7 @@ function Flow(props: Props) {
     h = cell(h);
 
     return { x: cell(hug.x + hug.w / 2 - w / 2), y: cell(hug.y + hug.h / 2 - h / 2), w, h };
-  }, [view, graph, boxes, panel]);
+  }, [view, graph, boxes, seen]);
 
   /** Each group's boundary: the box round its members, plus a small margin.
    *  Its own, never the user's — the boundary follows what is in it. */
@@ -1000,23 +1015,23 @@ function Flow(props: Props) {
   const floorZoom = useMemo(() => {
     if (frameBox) {
       const scale = Math.min(
-        (panel.w - BAND * 2) / frameBox.w,
-        (panel.h - BAND * 2) / frameBox.h,
+        (seen.w - BAND * 2) / frameBox.w,
+        (seen.h - BAND * 2) / frameBox.h,
       );
       return Math.max(0.15, Math.min(scale, 1.6));
     }
 
     const outer = around(Object.values(boxes), 0);
-    if (!outer || panel.w < 1 || panel.h < 1) return 0.15;
+    if (!outer || seen.w < 1 || seen.h < 1) return 0.15;
 
     // Matches fitView({ padding: 0.24, maxZoom: 1.3 }) at the top level.
     const pad = 0.24;
     const scale = Math.min(
-      (panel.w * (1 - pad * 2)) / Math.max(outer.w, 1),
-      (panel.h * (1 - pad * 2)) / Math.max(outer.h, 1),
+      (seen.w * (1 - pad * 2)) / Math.max(outer.w, 1),
+      (seen.h * (1 - pad * 2)) / Math.max(outer.h, 1),
     );
     return Math.max(0.15, Math.min(scale, 1.3));
-  }, [frameBox, boxes, panel.w, panel.h]);
+  }, [frameBox, boxes, seen.w, seen.h]);
 
   /** Centered resting camera at the floor zoom — frame (or free cards) with
    *  even margin. Zoom-to-cursor leaves pan skewed when you hit the floor; this
@@ -1026,18 +1041,18 @@ function Flow(props: Props) {
     if (frameBox) {
       return {
         zoom,
-        x: panel.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
-        y: panel.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
+        x: seen.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
+        y: seen.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
       };
     }
     const outer = around(Object.values(boxes), 0);
     if (!outer) return null;
     return {
       zoom,
-      x: panel.w / 2 - (outer.x + outer.w / 2) * zoom,
-      y: panel.h / 2 - (outer.y + outer.h / 2) * zoom,
+      x: seen.w / 2 - (outer.x + outer.w / 2) * zoom,
+      y: seen.h / 2 - (outer.y + outer.h / 2) * zoom,
     };
-  }, [floorZoom, frameBox, boxes, panel.w, panel.h]);
+  }, [floorZoom, frameBox, boxes, seen.w, seen.h]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1061,7 +1076,7 @@ function Flow(props: Props) {
     // when a refit runs, so dragging cards does not chase the camera. The axis
     // is in there too: rearranging a layer moves everything at once, and a
     // camera left where it was is looking at a corner of the new arrangement.
-  }, [flow, view, population, axis, panel.w, panel.h, frameBox]);
+  }, [flow, view, population, axis, seen.w, seen.h, frameBox]);
 
   // If the floor rises (panel shrinks, frame grows), pull the viewport up so
   // it never sits below what wheel zoom is allowed to reach.
@@ -1426,7 +1441,7 @@ function Flow(props: Props) {
     const key = now ? `${now.kind}:${now.id}` : "";
     if (key === grazeRef.current) return;
     grazeRef.current = key;
-    setGrazed(now);
+    setHovered(now);
   }, [grazedAt]);
 
   function rightMove(event: React.PointerEvent) {
@@ -1523,7 +1538,7 @@ function Flow(props: Props) {
       onPointerDown={rightDown}
       onPointerMove={rightMove}
       onPointerUp={rightUp}
-      onPointerLeave={() => (grazeRef.current = "", setGrazed(null), setSweep(null))}
+      onPointerLeave={() => (grazeRef.current = "", setHovered(null), setSweep(null))}
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="crumbs">
@@ -1653,7 +1668,7 @@ function Flow(props: Props) {
         onPaneMouseMove={(event) => graze(event.clientX, event.clientY)}
         onNodeMouseMove={(event) => graze(event.clientX, event.clientY)}
         onNodeMouseLeave={(event) => graze(event.clientX, event.clientY)}
-        onPaneMouseLeave={() => (grazeRef.current = "", setGrazed(null))}
+        onPaneMouseLeave={() => (grazeRef.current = "", setHovered(null))}
         // `Control` is deliberately not here: on a trackpad it is a real right
         // click, and every right-button gesture is one of ours.
         multiSelectionKeyCode={["Shift", "Meta"]}

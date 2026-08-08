@@ -202,7 +202,7 @@ conditional on user data.
   longer among them — the arrangement buttons are that action.
 - **A menu trigger.** With the right button spent entirely on direct creation, the context menu
   has no gesture left. The intended answer is that selecting an element reveals its options in
-  the attribute panel, which would mean the panel is the menu and no gesture is needed at all.
+  the contents tray, which would mean the table is the menu and no gesture is needed at all.
   Not designed yet.
 
 
@@ -234,6 +234,19 @@ are wherever the path found them, and lane offsets are half a cell from there. S
 to 24 would throw them past the 2.5-unit tolerance that decides whether a line counts as
 straight, and every straight line would bend. Recorded as the one thing on the canvas not on the
 grid, not as a bug with a known fix.
+
+**Resizing the window on a busy layer freezes it.** Measured: a layer of 80 blocks and 79
+relationships blocks the main thread for **15 seconds** in a single task on a window resize. The
+frame's shape is derived from the panel, so any change to the panel re-derives the frame, which
+re-routes every relationship in the layer.
+
+Opening the contents tray used to do the same thing — 9.6 s at 80 blocks — because it shrinks the
+drawing area. That is fixed: the frame's shape now comes from the whole canvas column and only
+the *camera* answers to the visible half, so a tray toggle reshapes nothing (78 ms). A window
+resize genuinely does change the column, so it still pays the full cost.
+
+The fix is the router cost below, not another split. Until then, a resize is the one gesture that
+can lock a busy layer.
 
 **The router runs on every render, and is not cheap.** Deriving routes means re-planning every
 line on the layer whenever the arrangement changes. Measured at roughly 180 ms for twenty cards

@@ -68,6 +68,10 @@ not, so it does neither.
 
 - Every change has to be expressible as a mutation. Anything that cannot be is not a change to
   the project, which is the rule that keeps display preferences out.
+- **A field renamed in the schema has to be healed where a log enters, not where it is read.**
+  `relation` became `type` on a relationship, and logs written either side of that both exist —
+  so `fold` normalises the two into one. The alternative was every reader asking whether the
+  field it wants is there, and the first reader that forgot took the application down.
 - **The log has to read as actions, not as mechanics.** A step per keystroke would be a faithful
   record and a useless one — undo would walk back through a word one letter at a time. So a
   field commits once, when editing ends, and the step is called `rename`.
@@ -677,13 +681,44 @@ last three layers; anything between collapses to an ellipsis that names them all
 A trail spelled out in full stops being a trail and becomes a wall of names.
 
 
-### Attribute panel
+### Contents tray
 
-One panel below the canvas, with one state per selection. The **scope always exists** — the root
-is a scope like any other — so its resting state is the scope's own attributes rather than an edge
-case. Selecting on the canvas replaces that with the selection's.
+One panel below the canvas, listing **everything the open layer holds**. It replaced a panel that
+showed the selection on its own, which said the same thing in a second shape: a table of
+everything already contains whatever is selected, so the two competed to describe one row.
 
-A node's body text is edited here. There is no separate document pane.
+**The table is how you reach what the drawing hides.** A relationship or an interface could only
+be found by hunting for it on the canvas; here they are listed beside the blocks, filterable and
+sortable. That is the whole reason for it.
+
+- **Hovering a row lights the thing on the canvas, and clicking selects it there.** The table is
+  a way *into* the drawing rather than a substitute for it, so every row points back.
+- **What a row says is shown on hover; what it does is on the row.** Reading and changing are
+  different needs — one wants to be effortless while scanning, the other wants to be deliberate.
+  So the summary follows the pointer and the buttons wait for a click.
+- **Buttons stay hidden until a row is under the pointer.** Five sets of icons down a table read
+  as a control panel rather than a list.
+- **Fields open rather than sitting there.** A column of live inputs cannot be clicked to select
+  the row behind it, and a table whose every cell is a control is a form.
+- **Body text and attributes live in the row, opened out.** They were the one thing the old panel
+  had that a table row does not, and dropping them would have made a block's specification
+  unreachable — so the row expands rather than the panel splitting in two.
+
+**The frame takes its shape from the room it is actually shown in**, so opening the tray reshapes
+it into the strip that is left rather than letterboxing the old proportions into it. On a narrow
+window that was the difference between a third of the available width and all of it.
+
+**It shares the canvas rather than covering it.** Open, it takes half and the drawing takes the
+other half, which re-fits into what is left. Overlaying hid whatever sat at the foot of a layer,
+and worse, left the camera centring content into a panel taller than the part anybody could see —
+inside a frame that put the frame and its dimming band across everything visible.
+
+**Its height is fixed at a third, not sized to its contents.** A tray that grew to fit moved every
+time a filter changed the row count, so the row being reached for was never where it was last
+seen. A third is enough to read and leaves the drawing, which is what is being described, the larger share.
+
+It is still shut until asked for. A click anywhere outside puts it away; the tab is one click
+either way.
 
 
 ### Terminal rail

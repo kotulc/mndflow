@@ -7,7 +7,7 @@
 
 import {
   EMPTY, ROOT, edge as newEdge, element as newElement, step as makeStep, type Attr, type Axis,
-  type Element, type Graph, type Mutation, type Step,
+  type Edge, type Element, type Graph, type Mutation, type Step,
 } from "./types";
 
 /** Whether an element sits on its parent's frame edge. That, and only that, is
@@ -261,6 +261,33 @@ export function notesIn(graph: Graph, layer: string | null): Element[] {
   return childrenOf(graph, layer).filter((n) => n.element === "note");
 }
 
+/** Everything drawn in one layer: its blocks and proxies, their interfaces, and
+ *  the layer itself, which the frame stands for. */
+export function drawnIn(graph: Graph, layer: string | null): Set<string> {
+  const here = new Set<string>(layer ? [layer] : []);
+
+  for (const block of blocksOf(graph, layer)) {
+    here.add(block.id);
+    for (const port of portsOf(graph, block.id)) here.add(port.id);
+  }
+  for (const port of portsOf(graph, layer)) here.add(port.id);
+
+  return here;
+}
+
+/** The relationships a layer draws: both ends reach something in it, either
+ *  directly or through a proxy standing in for something that lives elsewhere.
+ *
+ *  The same rule the canvas draws by, kept here so a second reader — the
+ *  contents table — cannot drift from it. */
+export function edgesIn(graph: Graph, layer: string | null) {
+  const here = drawnIn(graph, layer);
+  const reaches = (id: string) =>
+    here.has(id) || Boolean(proxyIn(graph, layer, actual(graph, id)?.id ?? id));
+
+  return Object.values(graph.edges).filter((e) => reaches(e.source) && reaches(e.target));
+}
+
 /** Set or drop a descriptive value on an element, addressed by its name. */
 function setAttr(node: Element, name: string, value?: string, tags?: string[]): void {
   const at = node.attrs.findIndex((a) => a.name === name);
@@ -406,7 +433,11 @@ function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
     case "link_elements": {
       const { edge } = mutation;
       if (graph.elements[edge.source] && graph.elements[edge.target]) {
-        graph.edges[edge.id] = { ...edge };
+        // `relation` was this field's name once. A log written either side of
+        // that rename folds the same way, and an edge always has a `type` —
+        // anything reading one should never have to ask whether it does.
+        const named = edge as Edge & { relation?: string };
+        graph.edges[edge.id] = { ...edge, type: named.type ?? named.relation ?? "" };
       }
       break;
     }
@@ -419,7 +450,8 @@ function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
 
     case "update_edge": {
       const edge = graph.edges[mutation.id];
-      if (edge) edge.type = mutation.type;
+      const named = mutation as { type?: string; relation?: string };
+      if (edge) edge.type = named.type ?? named.relation ?? "";
       break;
     }
 

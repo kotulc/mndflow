@@ -1,37 +1,26 @@
-/** Attribute tray: everything about whatever is selected, at the foot of the
- *  canvas rather than beside it.
+/** The bottom tray: a way in and out of the contents table.
  *
- *  It costs no canvas when there is nothing to say. With nothing selected on
- *  the canvas it describes the layer itself — the frame you are inside — so
- *  the explorer is a way to inspect a node as well as to walk into one.
- *  Selecting a block, an interface, a relationship or a group boundary
- *  replaces that with its own.
+ *  The shell and nothing else. There used to be a second view here — the
+ *  selection on its own — but a table that lists everything already contains
+ *  whatever is selected, so the two said the same thing in different shapes.
+ *  What that view could *edit* now lives on the rows; see `Contents`.
  *
- *  It opens itself when the selection carries attributes, since that is the
- *  moment there is something to read; otherwise it stays a bar with the field
- *  for adding one, which is the other reason to reach for it. Either way the
- *  chevron overrides the guess for as long as the selection lasts.
- *
- *  An object and its document are the same thing, so the body text is edited
- *  here too; there is no separate document pane. */
+ *  It stays shut until asked for. The table covers the drawing it describes,
+ *  so it opens on the tab and closes on a click anywhere else. */
 
-import { useEffect, useState, type InputHTMLAttributes, type Ref } from "react";
+import { useEffect, useState, type Ref } from "react";
 
-import {
-  actual, attrsOf, isContainer, isPort, isProxy, membersOf, nameOf, refOf, tiesOf,
-} from "./core/fold";
-import type { Dir, Element, Flow, Graph } from "./core/types";
+import { Contents } from "./Contents";
+import { Guard } from "./Guard";
 import type { Picked } from "./core/project";
-import type { Terms } from "./core/workflows";
-
-const FLOWS: (Flow | null)[] = [null, "in", "out", "both"];
-const DIRS: Dir[] = ["none", "forward", "back", "both"];
+import type { Dir, Flow, Graph } from "./core/types";
+import { nameOf } from "./core/fold";
+import type { Grazed } from "./NodeCard";
 
 type Props = {
   graph: Graph;
   view: string | null;
   picked: Picked;
-  terms: Terms;
   onSave: (id: string, body: string) => void;
   onRetype: (id: string, type: string) => void;
   onMarkPort: (id: string, flow: Flow | null) => void;
@@ -39,305 +28,68 @@ type Props = {
   onUpdateAttr: (holder: string, was: string,
                  patch: { name?: string; value?: string }) => void;
   onDropAttr: (holder: string, name: string) => void;
-  /** Take a member out of a group, or untie a note from what it describes. */
+  /** Take a member out of a group. */
   onLeaveGroup: (id: string, group: string) => void;
-  onTie: (note: string, holder: string) => void;
   onRename: (id: string, label: string) => void;
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
-  /** What this diagram calls its elementary unit — the placeholder for a
-   *  subtype nobody has set. A property of the diagram type. */
+  /** What this diagram calls its elementary unit. */
   unit: string;
+  onPick: (next: { kind: "node" | "edge"; id: string } | null) => void;
+  onHint: (next: Grazed) => void;
+  onDelete: (id: string) => void;
+  onUnlink: (id: string) => void;
   onRelation: (id: string, relation: string) => void;
   onSetDir: (id: string, dir: Dir) => void;
   onFlip: (id: string) => void;
-  /** Go to where a referenced node actually lives. */
+  /** Go to where a proxy's block actually lives. */
   onReveal: (id: string) => void;
   /** So the canvas can measure the tray and keep its own controls above it. */
   hostRef?: Ref<HTMLElement>;
 };
 
-/** The field for giving the selection an attribute. Present in the bar itself,
- *  open or shut — adding one is the commonest reason to come here, and it
- *  should never take a click to reach.
- *
- *  It stays in place with nothing selected, disabled rather than absent: the
- *  project root is not a node and has nothing to carry an attribute, but a bar
- *  that changes shape as you click around is harder to aim at than one that
- *  does not. */
-function AddAttr({ holder, onAdd }: { holder: string; onAdd: (h: string, n: string) => void }) {
-  return (
-    <input
-      className="add-attr"
-      disabled={!holder}
-      placeholder="+ attribute"
-      onKeyDown={(event) => {
-        const text = event.currentTarget.value.trim();
-        if (event.key !== "Enter" || !text) return;
-        event.stopPropagation();
-        onAdd(holder, text);
-        event.currentTarget.value = "";
-      }}
-    />
-  );
-}
-
-/** A field that commits once, when editing ends.
- *
- *  **One edit is one step.** Committing per keystroke buries the action log
- *  under a step per letter and makes undo walk back through a word one
- *  character at a time — the log should read as the things somebody did, not
- *  as how they typed them.
- *
- *  Held as a draft while the caret is in it, and followed back to the value
- *  whenever that changes underneath — a turn writing into the selection, or the
- *  selection moving on. `Enter` commits by blurring; `Escape` puts it back. */
-function Draft({ value, onCommit, taken, className, ...rest }: {
-  value: string;
-  onCommit: (next: string) => void;
-  /** Marks the field while what is typed is a name already spoken for. */
-  taken?: (name: string) => boolean;
-  className?: string;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "className">) {
-  const [draft, setDraft] = useState(value);
-
-  useEffect(() => setDraft(value), [value]);
-
-  const clash = Boolean(taken?.(draft));
-
-  return (
-    <input
-      {...rest}
-      className={`${className ?? ""}${clash ? " clash" : ""}`}
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => (clash || draft === value ? setDraft(value) : onCommit(draft))}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") event.currentTarget.blur();
-        if (event.key === "Escape") setDraft(value);
-      }}
-    />
-  );
-}
-
-/** What an annotation is called where it has no name of its own — the same
- *  fallback the canvas draws, so the panel and the canvas agree. */
-function roleOf(node: Element | null | undefined): string {
-  return node?.element === "group" || node?.element === "note" ? node.element : "";
-}
-
-/** The descriptive values an element holds, and the groups it belongs to.
- *
- *  An attribute has no identity of its own, so it is addressed by its name on
- *  this element. Membership is listed alongside because it *is* an attribute —
- *  what it is not is a relationship, since a group draws a boundary round its
- *  members rather than a line to each. */
-function Attrs({ graph, holder, onUpdate, onDrop, onLeaveGroup }: {
-  graph: Graph;
-  holder: string;
-  onUpdate: (holder: string, was: string, patch: { value?: string }) => void;
-  onDrop: (holder: string, name: string) => void;
-  onLeaveGroup: (id: string, group: string) => void;
-}) {
-  const mine = attrsOf(graph, holder);
-  const joined = graph.elements[holder]?.groups ?? [];
-  if (!mine.length && !joined.length) return null;
-
-  return (
-    <div className="attrs">
-      {joined.map((id) => (
-        <div className="attr shared" key={id}>
-          <span className="key">{nameOf(graph, graph.elements[id])}</span>
-          <span className="held">{membersOf(graph, id).length} members</span>
-          <button onClick={() => onLeaveGroup(holder, id)} title="Out of the group">✕</button>
-        </div>
-      ))}
-      {mine.map((attr) => (
-        <div className="attr" key={attr.name}>
-          <span className="key">{attr.name}</span>
-          <Draft
-            value={attr.value}
-            placeholder="value"
-            onCommit={(next) => onUpdate(holder, attr.name, { value: next })}
-          />
-          <button onClick={() => onDrop(holder, attr.name)} title="Remove from this object">
-            ✕
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function Panel(props: Props) {
-  const { graph, view, picked, terms, onSave, onRetype, onMarkPort } = props;
-  const { onAddAttr, onUpdateAttr, onDropAttr, onLeaveGroup, onTie, onRename } = props;
-  const { onNameTaken, unit } = props;
-  const { onRelation, onSetDir, onFlip, onReveal, hostRef } = props;
+  const { graph, view, hostRef } = props;
+  const [open, setOpen] = useState(false);
 
-  // With nothing picked on the canvas the layer itself is the subject.
-  const subject = picked?.kind === "node" ? picked.id : picked ? null : view;
-  const holder = picked?.id ?? subject ?? "";
-  const carries = holder ? attrsOf(graph, holder).length > 0 : false;
-  /** null while the tray is following the selection; a boolean once the user
-   *  has said otherwise, until the selection changes under them. */
-  const [held, setHeld] = useState<boolean | null>(null);
-  const open = held ?? carries;
+  /** A click anywhere outside puts it away. The table covers the drawing it is
+   *  describing, so getting back to the canvas should not need aiming at a
+   *  chevron first — and the tab is one click either way. */
+  useEffect(() => {
+    if (!open) return undefined;
 
-  useEffect(() => setHeld(null), [holder]);
+    const away = (event: PointerEvent) => {
+      const host = (hostRef as { current?: HTMLElement | null })?.current;
+      if (host && !host.contains(event.target as Node)) setOpen(false);
+    };
 
-  const node = subject ? graph.elements[subject] : null;
-  const body = node?.body ?? "";
-  const [draft, setDraft] = useState(body);
+    document.addEventListener("pointerdown", away);
 
-  // Follow the selection, and whatever a turn just wrote into it.
-  useEffect(() => setDraft(body), [subject, body]);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [open, hostRef]);
 
-  const edge = picked?.kind === "edge" ? graph.edges[picked.id] : null;
-  // A group or a note is an element like any other, so it arrives as a node
-  // pick; what it needs on top is its members or its ties.
-  const annotation = roleOf(node) ? node : null;
-  const port = node ? isPort(node) : false;
-
-  /** One edit is one step. Saving per keystroke would bury the action log and
-   *  make undo walk back through a document character by character. */
-  function save() {
-    if (subject && draft !== body) onSave(subject, draft);
-  }
-
-  const title = edge
-    ? `${nameOf(graph, graph.elements[edge.source])} — ${nameOf(graph, graph.elements[edge.target])}`
-    : annotation
-      ? nameOf(graph, annotation)
-      : node
-        ? nameOf(graph, node)
-        : "nothing selected";
-  const role = edge ? terms.relation.toLowerCase()
-    : annotation ? roleOf(annotation)
-    : node ? (isProxy(node) ? "proxy"
-              : port ? "interface"
-              : isContainer(graph, subject!) ? "container" : "block")
-    : "";
+  // Where you are, so the table's scope is never in doubt.
+  const where = view ? nameOf(graph, graph.elements[view]) : "project";
 
   return (
     <section className={`tray ${open ? "open" : ""}`} ref={hostRef}>
-      <div className="tray-bar" onDoubleClick={() => setHeld(!open)}>
-        <span className="name">{title}</span>
-        {role && <span className="holds">{role}</span>}
-
-        <AddAttr holder={holder} onAdd={onAddAttr} />
+      <div className="tray-bar">
+        <span className="name">{where}</span>
 
         <button
-          className="chevron"
+          className={`tray-tab ${open ? "on" : ""}`}
           aria-expanded={open}
-          title={open ? "Collapse" : "Expand"}
-          onClick={() => setHeld(!open)}
+          title={open ? "Hide what this layer holds" : "Everything this layer holds"}
+          onClick={() => setOpen(!open)}
         >
-          {open ? "▾" : "▴"}
+          contents {open ? "▾" : "▴"}
         </button>
       </div>
 
       <div className="tray-body">
-        {edge && (
-          <div className="tray-row">
-            <Draft
-              className="type"
-              value={edge.type}
-              placeholder={terms.relation}
-              list="relation-kinds"
-              onCommit={(next) => onRelation(edge.id, next)}
-            />
-            <select value={edge.dir} onChange={(e) => onSetDir(edge.id, e.target.value as Dir)}>
-              {DIRS.map((dir) => <option key={dir} value={dir}>{dir}</option>)}
-            </select>
-            <button onClick={() => onFlip(edge.id)} title="Turn it around">⇄</button>
-          </div>
-        )}
-
-        {annotation && (
-          <>
-            <div className="tray-row">
-              <Draft
-                className="name-field"
-                value={annotation.label}
-                placeholder={roleOf(annotation)}
-                taken={(name) => onNameTaken(annotation.parent ?? null, name, annotation.id)}
-                onCommit={(next) => onRename(annotation.id, next)}
-              />
-              {/* No colour picker: every boundary and every note is drawn the
-                  same way for now, so there is nothing here to set. Colour and
-                  the rest of their appearance come later. */}
-              <span className="held">
-                {annotation.element === "group"
-                  ? `${membersOf(graph, annotation.id).length} members`
-                  : `${tiesOf(graph, annotation.id).length} tied`}
-              </span>
-            </div>
-            <ul className="members">
-              {(annotation.element === "group"
-                ? membersOf(graph, annotation.id).map((m) => m.id)
-                : tiesOf(graph, annotation.id)).map((id) => (
-                <li key={id}>
-                  <span>{nameOf(graph, graph.elements[id]) || id}</span>
-                  <button
-                    onClick={() => annotation.element === "group"
-                      ? onLeaveGroup(id, annotation.id)
-                      : onTie(annotation.id, id)}
-                    title={annotation.element === "group" ? "Out of the group" : "Untie it"}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-
-        {node && subject && (
-          <>
-            {isProxy(node) && refOf(graph, node.id) && (
-              <div className="tray-row">
-                <span className="held">stands in for a block in another layer</span>
-                <button onClick={() => onReveal(refOf(graph, node.id)!)} title="Go to it">
-                  go to {nameOf(graph, actual(graph, node.id))} ↗
-                </button>
-              </div>
-            )}
-
-            <div className="tray-row">
-              <Draft
-                className="type"
-                value={node.type}
-                placeholder={unit}
-                onCommit={(next) => onRetype(subject, next)}
-              />
-              {port && (
-                <select
-                  value={node.flow ?? ""}
-                  title="Decorative marking only"
-                  onChange={(e) => onMarkPort(subject, (e.target.value || null) as Flow | null)}
-                >
-                  {FLOWS.map((f) => (
-                    <option key={f ?? "none"} value={f ?? ""}>{f ?? "unmarked"}</option>
-                  ))}
-                </select>
-              )}
-              <span className="state">{draft === body ? "saved" : "editing…"}</span>
-            </div>
-
-            <textarea
-              value={draft}
-              placeholder="Nothing written here yet…"
-              onChange={(event) => setDraft(event.target.value)}
-              onBlur={save}
-            />
-          </>
-        )}
-
-        {holder && (
-          <Attrs
-            graph={graph} holder={holder}
-            onUpdate={onUpdateAttr} onDrop={onDropAttr} onLeaveGroup={onLeaveGroup}
-          />
+        {open && (
+          <Guard what="This layer's contents">
+            <Contents {...props} />
+          </Guard>
         )}
       </div>
     </section>
