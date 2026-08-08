@@ -18,15 +18,26 @@ type Props = {
   taken: (name: string) => boolean;
   onCommit: (name: string) => void;
   onCancel: () => void;
+  /** Say it in full somewhere with room for it. The field itself only has room
+   *  to mark the name, which in a pane as narrow as the explorer is a word. */
+  onSay?: (message: string) => void;
 };
 
 export function NameField({ initial, className, placeholder, taken, onCommit,
-                           onCancel }: Props) {
+                           onCancel, onSay }: Props) {
   const [clash, setClash] = useState(false);
 
   /** Commit unless the name is spoken for, in which case say so and hold. */
   function attempt(value: string): void {
-    if (taken(value)) return setClash(true);
+    if (taken(value)) {
+      setClash(true);
+      // Said in full on the attempt, not on every keystroke: a message that
+      // appears as you type is noise, one that appears when you press Enter
+      // is an answer.
+      onSay?.(`"${value.trim()}" is already here. Names are unique within a layer.`);
+
+      return;
+    }
 
     onCommit(value);
   }
@@ -46,7 +57,7 @@ export function NameField({ initial, className, placeholder, taken, onCommit,
           if (event.key === "Escape") onCancel();
         }}
       />
-      {clash && <span className="clash-why">name already here</span>}
+      {clash && <span className="clash-why">taken</span>}
     </>
   );
 }

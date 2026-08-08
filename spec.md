@@ -59,9 +59,10 @@ the project.
 - A name already taken by a sibling is refused, on **every** path that makes or changes one —
   the explorer, the canvas prompt, a relationship grown into empty space, and every rename. Only
   stored labels are compared: a fallback is a number nobody chose, and blank is not a name.
-- **A refused name says so where it was typed.** The field marks itself as the clashing name is
-  typed and reads *name already here* beside it; `Enter` holds the field open with the typing
-  intact instead of closing on nothing. Correcting the name clears it.
+- **A refused name says so in two places.** The field marks itself as the clashing name is typed
+  and reads *taken* — one word, so it fits a pane as narrow as the explorer. On `Enter` the full
+  reason appears in the strip at the top of the canvas, where there is room for it, and the field
+  holds open with the typing intact. Correcting the name clears both.
 - A note is exempt: a note is its text and shares no name with its neighbours.
 
 **Relationships** — a join between two elements, held in `graph.edges`.
@@ -125,7 +126,13 @@ the project.
 
 **Files**
 
-- Export writes the step log as JSON; import replaces the session with one.
+- The log lives in the browser under one key. **Export writes it as JSON; importing one replaces
+  the session and is saved from then on** — a file is a snapshot, the browser is the working copy.
+- **Every log comes in through one door**, from storage or from a file, and is checked before it
+  is folded. What can be repaired is repaired; what cannot is dropped rather than folded into a
+  broken graph.
+- **The user is told, once**: `repaired 2, could not read 1`, in the strip at the top of the
+  canvas. Dismissable, and a clean log says nothing.
 - **A panel that cannot draw itself says so and stays out of the way**, rather than taking the
   window with it. The log is unharmed, so closing the panel and carrying on is the way out.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being

@@ -47,6 +47,9 @@ export function App() {
   /** Something the contents table is pointing at, lit on the canvas without
    *  being selected. The canvas's own hover still wins where they disagree. */
   const [hinted, setHinted] = useState<Grazed>(null);
+  /** Anything the app has to say, in one place. The door's report on a troubled
+   *  log arrives the same way a refused name does. */
+  const [notice, setNotice] = useState<string | null>(null);
   const [treePorts, setTreePorts] = useState(store.treePorts.initial);
   /** What a right drag makes. A choice about the next thing created rather than
    *  about how anything is drawn, but it lives here for the same reason: it is
@@ -182,6 +185,7 @@ export function App() {
             onOpen={project.open}
             onCreate={project.create}
             onNameTaken={project.nameTaken}
+            onSay={setNotice}
             unit={UNIT}
             onDelete={project.remove}
             onMove={project.move}
@@ -196,6 +200,8 @@ export function App() {
               graph={graph}
               unit={UNIT}
               hinted={hinted}
+              said={notice ?? project.trouble}
+              onHeard={() => (setNotice(null), project.clearTrouble())}
               view={view}
               picked={picked}
               path={path}
@@ -253,6 +259,7 @@ export function App() {
               onLeaveGroup={project.leaveGroup}
               onRename={project.rename}
               onNameTaken={project.nameTaken}
+              onSay={setNotice}
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}

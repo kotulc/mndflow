@@ -67,6 +67,7 @@ type Props = {
   onRetype: (id: string, type: string) => void;
   onRelation: (id: string, relation: string) => void;
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  onSay: (message: string) => void;
   onDelete: (id: string) => void;
   onUnlink: (id: string) => void;
   onSave: (id: string, body: string) => void;
@@ -121,7 +122,7 @@ function Draft({ value, onCommit, placeholder }: {
 
 export function Contents(props: Props) {
   const { graph, view, picked, unit, onPick, onHint, onRename, onRetype } = props;
-  const { onRelation, onNameTaken, onDelete, onUnlink, onSave, onSetDir, onFlip } = props;
+  const { onRelation, onNameTaken, onSay, onDelete, onUnlink, onSave, onSetDir, onFlip } = props;
   const { onMarkPort, onAddAttr, onUpdateAttr, onDropAttr, onLeaveGroup, onReveal } = props;
   const [only, setOnly] = useState<Sort | "all">("all");
   const [by, setBy] = useState<"name" | "sort">("sort");
@@ -379,6 +380,7 @@ export function Contents(props: Props) {
                       placeholder={row.sort === "relationship" ? "unnamed" : unit}
                       taken={(name) => !row.edge &&
                         onNameTaken(graph.elements[row.id]?.parent ?? null, name, row.id)}
+                      onSay={onSay}
                       onCommit={(name) => (setNaming(null),
                         row.edge ? onRelation(row.id, name) : onRename(row.id, name))}
                       onCancel={() => setNaming(null)}

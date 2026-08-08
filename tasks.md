@@ -18,6 +18,23 @@ and revisited deliberately rather than drifting:
 spec.md's table.
 
 
+## Agreed order of work
+
+Four, in this order. The reasoning is that a schema cannot be frozen before there is a way to
+check data against it, and cannot be scoped before there is a second module to scope for.
+
+1. **A validator at the door** — *built*. `core/check.ts`: one entry for every log, repairing
+   what it can and reporting what it cannot.
+2. **Simplify how data is loaded, saved and shown.** Where the log lives should be obvious, and
+   export/import should read as snapshot and restore.
+3. **Freeze the base schema.** Only once the scope of future diagram modules is known — element
+   types, figures, the action surface — so the freeze holds a considered shape rather than a
+   guess.
+4. **A test suite**, last. Only once a rough v1 schema and plan are settled and most bases are
+   covered: engine, element types, action surface. A suite written against a moving schema is
+   rewritten every iteration and buys nothing.
+
+
 ## Open questions
 
 **`domain` now names two different things.** It currently means the project's subject matter —

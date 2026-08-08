@@ -322,6 +322,10 @@ type Props = {
   /** Something outside the canvas is pointing at, lit as though hovered. The
    *  canvas's own pointer wins where the two disagree. */
   hinted: Grazed;
+  /** Something the app needs to say. Shown where every other message is — the
+   *  strip at the top of the canvas — so there is one place to look. */
+  said: string | null;
+  onHeard: () => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
@@ -366,7 +370,7 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
-  const { hinted } = props;
+  const { hinted, said, onHeard } = props;
   const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt } = props;
   const { onSprout, onNameTaken } = props;
   const { kind, onKind } = props;
@@ -1907,6 +1911,16 @@ function Flow(props: Props) {
           </svg>
         );
       })()}
+
+      {/* Whatever the app has to say, in the same place it asks for a name.
+          One strip for everything means never wondering where a message went. */}
+      {said && (
+        <div className="floating saying">
+          <span className="caret">!</span>
+          <span className="what">{said}</span>
+          <button onClick={onHeard} title="Dismiss">✕</button>
+        </div>
+      )}
 
       {prompt?.kind === "relation" && (
         <div className="floating">

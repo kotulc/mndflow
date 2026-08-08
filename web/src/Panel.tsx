@@ -32,6 +32,7 @@ type Props = {
   onLeaveGroup: (id: string, group: string) => void;
   onRename: (id: string, label: string) => void;
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  onSay: (message: string) => void;
   /** What this diagram calls its elementary unit. */
   unit: string;
   onPick: (next: { kind: "node" | "edge"; id: string } | null) => void;

@@ -69,6 +69,8 @@ type Props = {
   onCreate: (label: string, parent: string | null) => void;
   /** Whether a name is already spoken for in a layer, so a field can say so. */
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** Say something in full, where there is room for it. */
+  onSay: (message: string) => void;
   /** What this diagram calls its elementary unit. */
   unit: string;
   onDelete: (id: string) => void;
@@ -78,7 +80,7 @@ type Props = {
 };
 
 export function Files(props: Props) {
-  const { graph, view, showPorts, onShowPorts, onOpen, onCreate, onNameTaken, unit } = props;
+  const { graph, view, showPorts, onShowPorts, onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const { onDelete, onMove, onRename, onRenameProject } = props;
   const kids = useMemo(() => branches(graph), [graph]);
   /** Nodes the user has opened. Nothing else opens them — walking into a layer
@@ -208,6 +210,7 @@ export function Files(props: Props) {
         initial={initial}
         className="rename"
         taken={(name) => onNameTaken(within, name, except)}
+        onSay={onSay}
         onCommit={commit}
         onCancel={cancel}
       />

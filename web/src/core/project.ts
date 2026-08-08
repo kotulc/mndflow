@@ -15,6 +15,7 @@ import {
   membersOf, nameFree, nextNum, proxyIn, titleOf,
 } from "./fold";
 import * as router from "./router";
+import { entering, report } from "./check";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
 import {
@@ -50,7 +51,20 @@ function placement(step: Step | undefined): string | null {
 export function useProject() {
   // Compacted on the way in as well: an imported or long-idle log can arrive
   // over the cap without this session having added a thing.
-  const [steps, setSteps] = useState<Step[]>(() => compact(store.load()));
+  /** Anything wrong with the log that was loaded, said once, for the shell to
+   *  show. Held rather than thrown: a project that needed repairs is still a
+   *  project, and the user should hear about it rather than find out later. */
+  const [trouble, setTrouble] = useState<string | null>(null);
+
+  const [steps, setSteps] = useState<Step[]>(() => {
+    // Everything comes in through the door — storage included.
+    const came = entering(store.load());
+    if (!came) return [];
+
+    if (came.faults.length) setTimeout(() => setTrouble(report(came.faults)), 0);
+
+    return compact(came.steps);
+  });
   /** The layer the canvas is drawing. null is the project itself. */
   const [view, setView] = useState<string | null>(null);
   const [picked, setPicked] = useState<Picked>(null);
@@ -674,12 +688,16 @@ export function useProject() {
     /** Whether the log is still reaching storage. False means this tab holds
      *  the only copy, and closing it loses everything since it stopped. */
     saving,
+    trouble,
+    clearTrouble: () => setTrouble(null),
 
+    /** An imported file becomes the session, and is saved from then on. */
     load: (text: string) => {
-      const loaded = store.importSteps(text);
-      if (!loaded) return false;
+      const came = entering(store.readFile(text));
+      if (!came) return false;
 
-      setSteps(loaded);
+      setTrouble(came.faults.length ? report(came.faults) : null);
+      setSteps(compact(came.steps));
       setView(null);
       setPicked(null);
       setPending(null);

@@ -1754,12 +1754,15 @@ input.clash,
   color: var(--error);
 }
 
+/* One word, because the explorer is narrow and a sentence there is a sentence
+   with its end cut off. The sentence goes to the strip at the top instead. */
 .clash-why {
   color: var(--error);
   font-size: 11px;
   font-style: italic;
   white-space: nowrap;
   padding-left: 6px;
+  flex: none;
   opacity: 0.85;
 }
 
@@ -1957,3 +1960,11 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
 
 /* The opened row spans everything, so it is exempt from the widths above. */
 .contents-table tr.opened td { width: auto; }
+
+/* The app saying something, in the same strip it asks for a name in. Amber
+   rather than green: it is a report, not a question waiting on an answer. */
+.floating.saying { border-color: var(--error); max-width: 60%; }
+.floating.saying .caret { color: var(--error); }
+.floating.saying .what { font-size: 12px; color: var(--text); }
+.floating.saying button { color: var(--muted); padding: 0 4px; }
+.floating.saying button:hover { color: var(--error); background: none; }

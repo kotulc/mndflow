@@ -13,12 +13,12 @@ import type { Step } from "./types";
 
 const KEY = "mndflow.steps.v1";
 
-export function load(): Step[] {
+/** What storage holds, unchecked. The caller takes it through the door. */
+export function load(): unknown {
   try {
     const raw = localStorage.getItem(KEY);
-    const steps = raw ? JSON.parse(raw) : [];
 
-    return Array.isArray(steps) ? (steps as Step[]) : [];
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
@@ -52,12 +52,11 @@ export function exportSteps(steps: Step[], title: string): void {
 
 /** Read a previously exported history back. Rejects anything that is not a
  *  list of steps rather than half-loading it. */
-export function importSteps(text: string): Step[] | null {
+/** The raw contents of a file, parsed and no more. Whether it is a log this
+ *  build can read is decided at the door — see `check.entering`. */
+export function readFile(text: string): unknown {
   try {
-    const parsed = JSON.parse(text);
-    const ok = Array.isArray(parsed) && parsed.every((s) => s && Array.isArray(s.mutations));
-
-    return ok ? (parsed as Step[]) : null;
+    return JSON.parse(text);
   } catch {
     return null;
   }
