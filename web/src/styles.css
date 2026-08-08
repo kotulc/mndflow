@@ -1968,3 +1968,41 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
 .floating.saying .what { font-size: 12px; color: var(--text); }
 .floating.saying button { color: var(--muted); padding: 0 4px; }
 .floating.saying button:hover { color: var(--error); background: none; }
+
+/* The one thing you can do about what was said, where there is one. */
+.floating.saying .act {
+  border-color: var(--error);
+  color: var(--error);
+  font-size: 11px;
+  padding: 1px 8px;
+  flex: none;
+}
+
+.floating.saying .act:hover { background: var(--error); color: #1a1d1b; }
+
+/* Where the work lives, said all the time. Quiet while it is true; the same
+   control turns into the warning when the browser stops accepting the log,
+   because the answer to both is the same button. */
+header .where {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+  padding: 2px 4px;
+}
+
+header .where:hover { opacity: 1; color: var(--text); background: none; }
+
+/* Not subtle at all once it stops being true. Stated here rather than left to
+   the rule above, which is otherwise the more specific of the two. */
+header .where.unsaved {
+  opacity: 1;
+  font-size: 11px;
+  font-weight: 600;
+  border-color: var(--error);
+  color: var(--error);
+}
+
+header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }

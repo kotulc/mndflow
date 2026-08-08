@@ -10,6 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { titleOf } from "./core/fold";
 import { useProject } from "./core/project";
 import * as store from "./core/store";
 import type { Suggestion } from "./core/suggest";
@@ -49,7 +50,10 @@ export function App() {
   const [hinted, setHinted] = useState<Grazed>(null);
   /** Anything the app has to say, in one place. The door's report on a troubled
    *  log arrives the same way a refused name does. */
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] =
+    useState<{ text: string; act?: { label: string; run: () => void } } | null>(null);
+  /** Everything that used to be an `alert` or a `confirm`. */
+  const say = (text: string, act?: { label: string; run: () => void }) => setNotice({ text, act });
   const [treePorts, setTreePorts] = useState(store.treePorts.initial);
   /** What a right drag makes. A choice about the next thing created rather than
    *  about how anything is drawn, but it lives here for the same reason: it is
@@ -97,34 +101,38 @@ export function App() {
     <div className="app">
       <header>
         <h1>mndflow</h1>
-        {graph.domain && <span className="domain">{graph.domain}</span>}
+        {/* Whose project this is, where the domain used to sit — the domain is
+            a setting, and a name is what tells one project from another. */}
+        <span className="domain" title={graph.domain ? `${graph.domain} project` : undefined}>
+          {titleOf(graph) || "untitled"}
+        </span>
 
-        {/* The log has outgrown what the browser will keep. Said here rather
-            than swallowed: the session is fine until the tab closes, and then
-            everything since this appeared is gone. Export is the way out, so
-            the warning is the button. */}
-        {!project.saving && (
-          <button
-            className="unsaved"
-            onClick={project.save}
-            title="This browser will not store any more of this project. Export it to keep it."
-          >
-            ⚠ not being saved — export
-          </button>
-        )}
+        {/* Where the work actually lives, said all the time rather than only
+            when it breaks. One control, two states: normally it names the
+            working copy, and when the browser stops accepting it the same
+            control becomes the warning and the way out. */}
+        <button
+          className={`where${project.saving ? "" : " unsaved"}`}
+          onClick={project.save}
+          title={project.saving
+            ? "This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
+            : "This browser will not store any more of this project. Export it to keep it."}
+        >
+          {project.saving ? "working session" : "⚠ not being saved — export"}
+        </button>
 
         <span className="tools">
-          <button onClick={project.undo} disabled={!project.undoable} title="Undo">
-            undo
+          <button onClick={project.undo} disabled={!project.undoable} title="Undo">↤</button>
+          <button onClick={project.redo} disabled={!project.redoable} title="Redo">↦</button>
+          <button
+            onClick={project.save}
+            disabled={!project.steps.length}
+            title="Export a snapshot of this project"
+          >
+            ⤓
           </button>
-          <button onClick={project.redo} disabled={!project.redoable} title="Redo">
-            redo
-          </button>
-          <button onClick={project.save} disabled={!project.steps.length}>
-            export
-          </button>
-          <label className="import">
-            import
+          <label className="import" title="Open a snapshot, replacing what is here">
+            ⤒
             <input
               type="file"
               accept=".json"
@@ -132,16 +140,18 @@ export function App() {
                 const file = event.target.files?.[0];
                 event.target.value = "";
                 if (file && !project.load(await file.text())) {
-                  window.alert("That file is not a mndflow project.");
+                  say("That file is not a mndflow project.");
                 }
               }}
             />
           </label>
           <button
-            onClick={() => window.confirm("Discard this project?") && project.reset()}
+            onClick={() => say("Discard this project? Export it first if you want it back.",
+                              { label: "discard", run: project.reset })}
             disabled={!project.steps.length}
+            title="Start a new, empty project"
           >
-            new
+            ＋
           </button>
 
           <button
@@ -185,7 +195,7 @@ export function App() {
             onOpen={project.open}
             onCreate={project.create}
             onNameTaken={project.nameTaken}
-            onSay={setNotice}
+            onSay={say}
             unit={UNIT}
             onDelete={project.remove}
             onMove={project.move}
@@ -200,7 +210,8 @@ export function App() {
               graph={graph}
               unit={UNIT}
               hinted={hinted}
-              said={notice ?? project.trouble}
+              said={notice ?? (project.trouble ? { text: project.trouble } : null)}
+              onSay={say}
               onHeard={() => (setNotice(null), project.clearTrouble())}
               view={view}
               picked={picked}
@@ -259,7 +270,7 @@ export function App() {
               onLeaveGroup={project.leaveGroup}
               onRename={project.rename}
               onNameTaken={project.nameTaken}
-              onSay={setNotice}
+              onSay={say}
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}

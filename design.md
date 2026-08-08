@@ -68,6 +68,36 @@ not, so it does neither.
 
 - Every change has to be expressible as a mutation. Anything that cannot be is not a change to
   the project, which is the rule that keeps display preferences out.
+### Saying where the work is
+
+**The header names the project and says where it is kept.** Both were missing: the brackets held
+the domain, which is a setting rather than an identity, and nothing anywhere said that the browser
+holds the working copy — so the only way to find out was to ask.
+
+**One control, two states.** It reads `in this browser` while that is true and becomes
+`⚠ not being saved — export` when the browser stops accepting the log. The same button does the
+same thing in both — a warning that appears from nowhere is a warning nobody has learned to read,
+where one that has been sitting there naming the working copy is already understood.
+
+
+### One channel for everything the app says
+
+**Every message goes to the strip at the top of the canvas**, and the strip carries the text plus
+**at most one thing to do about it**. A repaired log, a refused name, and the question before
+discarding a project all arrive the same way.
+
+- **No `alert` and no `confirm`.** They are two more places to look, cannot be styled, cannot be
+  tested, and stop the page dead. Giving the strip an optional action was enough to retire both —
+  a question is a message with one answer attached.
+- **A refusal is said twice, at two lengths.** The field marks itself and reads *taken*, because a
+  pane as narrow as the explorer can hold a word and not a sentence; the sentence goes to the
+  strip, which has room. Neither place has to compromise.
+- **One field for every name.** A card's label, the frame's title, a group's name, an explorer
+  row, the contents table — all the same component, so a rule added to it reaches all of them.
+  When the uniqueness check was first written it reached three of the seven places a name is
+  typed, and the missing four were only found by enumerating them from the code rather than
+  from memory.
+
 - **A field renamed in the schema has to be healed where a log enters, not where it is read.**
   `relation` became `type` on a relationship, and logs written either side of that both exist —
   so `fold` normalises the two into one. The alternative was every reader asking whether the

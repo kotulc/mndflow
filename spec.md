@@ -56,14 +56,25 @@ the project.
   siblings, so deleting one leaves a gap the next fills and renames nothing.
 - Container-ness is not in the name: it is derived, so a name tracking it would change the
   moment a child was added. The icon says it instead.
-- A name already taken by a sibling is refused, on **every** path that makes or changes one —
-  the explorer, the canvas prompt, a relationship grown into empty space, and every rename. Only
-  stored labels are compared: a fallback is a number nobody chose, and blank is not a name.
+- A name already taken by a sibling is refused. The paths that make or change one, in full:
+
+  | Where | |
+  |---|---|
+  | explorer — new row, and rename | checked |
+  | canvas prompt — new block, and rename | checked |
+  | a relationship grown into empty space | checked |
+  | a card's own label, in place | checked |
+  | the frame's title | checked |
+  | a group's name | checked |
+  | contents table — name cell | checked |
+  | a note's text | **exempt** — a note *is* its text, and nothing beside it competes |
+
+  Only stored labels are compared: a fallback is a number nobody chose, and blank is not a name.
 - **A refused name says so in two places.** The field marks itself as the clashing name is typed
   and reads *taken* — one word, so it fits a pane as narrow as the explorer. On `Enter` the full
   reason appears in the strip at the top of the canvas, where there is room for it, and the field
   holds open with the typing intact. Correcting the name clears both.
-- A note is exempt: a note is its text and shares no name with its neighbours.
+- Every name on the canvas is typed into the same field, so the rule reaches all of them at once.
 
 **Relationships** — a join between two elements, held in `graph.edges`.
 
@@ -143,8 +154,15 @@ the project.
 ## Shell
 
 - One page: header, terminal rail, then explorer beside the working area.
-- Header carries the project name, the active domain, and undo / redo / export / import / new.
-- `new` confirms before discarding; import rejects a file that is not a mndflow project.
+- Header reads `mndflow [project]` — the project's own name, which is root's label. The domain is
+  its tooltip.
+- **It names the working session** — `working session`, held quiet, with the snapshot explained
+  on hover. When the browser stops accepting the log the same control becomes
+  `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
+- Controls are icons with tooltips: undo `↤`, redo `↦`, export `⤓`, import `⤒`, new `＋`.
+  Each greys out when it has nothing to do.
+- `new` asks before discarding, and import reports a file that is not a mndflow project — both
+  in the strip, like everything else the app says.
 - The readout toggle sits at the end of the same row.
 
 

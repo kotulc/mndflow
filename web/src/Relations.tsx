@@ -11,6 +11,7 @@
 import { useMemo, useState } from "react";
 
 import type { Graph } from "./core/types";
+import { NameField } from "./NameField";
 
 type Props = {
   graph: Graph;
@@ -35,18 +36,11 @@ export function Relations({ graph, onAdd, onRename, onDrop }: Props) {
     return [...counts.entries()];
   }, [graph]);
 
+  /** The same field every name in the app is typed into — nothing competes
+   *  for a relation kind, so it refuses nothing. */
   function field(initial: string, commit: (value: string) => void, cancel: () => void) {
     return (
-      <input
-        className="rename"
-        autoFocus
-        defaultValue={initial}
-        onBlur={(event) => commit(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") commit(event.currentTarget.value);
-          if (event.key === "Escape") cancel();
-        }}
-      />
+      <NameField initial={initial} className="rename" onCommit={commit} onCancel={cancel} />
     );
   }
 

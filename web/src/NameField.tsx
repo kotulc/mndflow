@@ -14,22 +14,29 @@ type Props = {
   initial: string;
   className?: string;
   placeholder?: string;
-  /** Whether this name is already taken by a sibling. */
-  taken: (name: string) => boolean;
+  /** Whether this name is already taken by a sibling. Omitted where nothing
+   *  competes for the name — a relation kind, say — and then nothing is ever
+   *  refused. */
+  taken?: (name: string) => boolean;
   onCommit: (name: string) => void;
   onCancel: () => void;
   /** Say it in full somewhere with room for it. The field itself only has room
    *  to mark the name, which in a pane as narrow as the explorer is a word. */
   onSay?: (message: string) => void;
+  /** Keep pointer and key events off the canvas underneath. React Flow listens
+   *  natively on the node, so a React handler stopping them comes too late —
+   *  the class is what actually holds the drag and pan off. */
+  guarded?: boolean;
 };
 
 export function NameField({ initial, className, placeholder, taken, onCommit,
-                           onCancel, onSay }: Props) {
+                           onCancel, onSay, guarded }: Props) {
   const [clash, setClash] = useState(false);
+  const spoken = (name: string) => Boolean(taken?.(name));
 
   /** Commit unless the name is spoken for, in which case say so and hold. */
   function attempt(value: string): void {
-    if (taken(value)) {
+    if (spoken(value)) {
       setClash(true);
       // Said in full on the attempt, not on every keystroke: a message that
       // appears as you type is noise, one that appears when you press Enter
@@ -45,14 +52,18 @@ export function NameField({ initial, className, placeholder, taken, onCommit,
   return (
     <>
       <input
-        className={`${className ?? ""}${clash ? " clash" : ""}`}
+        className={`${className ?? ""}${guarded ? " nodrag nopan" : ""}${clash ? " clash" : ""}`}
         autoFocus
         defaultValue={initial}
         placeholder={placeholder}
+        onPointerDown={guarded ? (event) => event.stopPropagation() : undefined}
+        onClick={guarded ? (event) => event.stopPropagation() : undefined}
+        onDoubleClick={guarded ? (event) => event.stopPropagation() : undefined}
         // Warned while typing, so the refusal is never a surprise at the end.
-        onChange={(event) => setClash(taken(event.target.value))}
-        onBlur={(event) => (taken(event.target.value) ? onCancel() : onCommit(event.target.value))}
+        onChange={(event) => setClash(spoken(event.target.value))}
+        onBlur={(event) => (spoken(event.target.value) ? onCancel() : onCommit(event.target.value))}
         onKeyDown={(event) => {
+          if (guarded) event.stopPropagation();
           if (event.key === "Enter") attempt(event.currentTarget.value);
           if (event.key === "Escape") onCancel();
         }}

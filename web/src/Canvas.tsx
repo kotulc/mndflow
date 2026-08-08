@@ -322,10 +322,15 @@ type Props = {
   /** Something outside the canvas is pointing at, lit as though hovered. The
    *  canvas's own pointer wins where the two disagree. */
   hinted: Grazed;
-  /** Something the app needs to say. Shown where every other message is — the
-   *  strip at the top of the canvas — so there is one place to look. */
-  said: string | null;
+  /** Whatever the app has to say, and at most one thing to do about it.
+   *
+   *  One channel for all of it — a repaired log, a refused name, a question
+   *  before something irreversible. The browser's own `alert` and `confirm`
+   *  are two more places to look and cannot be styled or tested. */
+  said: { text: string; act?: { label: string; run: () => void } } | null;
   onHeard: () => void;
+  /** Say something in full, in the strip. Handed to every name on the canvas. */
+  onSay: (message: string) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
@@ -370,7 +375,7 @@ type Props = {
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
-  const { hinted, said, onHeard } = props;
+  const { hinted, said, onHeard, onSay } = props;
   const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt } = props;
   const { onSprout, onNameTaken } = props;
   const { kind, onKind } = props;
@@ -718,6 +723,8 @@ function Flow(props: Props) {
         picked: node.id === pickedNode,
         grazed,
         unit,
+        onNameTaken,
+        onSay,
         showPorts,
         litSeats,
         pickedPort: pickedNode,
@@ -759,6 +766,8 @@ function Flow(props: Props) {
           dropping: joining.includes(attr.id),
           onPick: () => onPick({ kind: "node", id: attr.id }),
           onLabel: (label: string) => onNameAttr(attr.id, label),
+          onNameTaken: (name: string) => onNameTaken(view, name, attr.id),
+          onSay,
         },
       } as FlowNode;
     });
@@ -810,6 +819,8 @@ function Flow(props: Props) {
           data: {
             id: view,
             graph,
+            onNameTaken,
+            onSay,
             straddles: graph.elements[view]?.side ?? null,
             axis,
             unit,
@@ -1917,7 +1928,12 @@ function Flow(props: Props) {
       {said && (
         <div className="floating saying">
           <span className="caret">!</span>
-          <span className="what">{said}</span>
+          <span className="what">{said.text}</span>
+          {said.act && (
+            <button className="act" onClick={() => (said.act!.run(), onHeard())}>
+              {said.act.label}
+            </button>
+          )}
           <button onClick={onHeard} title="Dismiss">✕</button>
         </div>
       )}

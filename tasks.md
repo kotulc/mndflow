@@ -25,8 +25,10 @@ check data against it, and cannot be scoped before there is a second module to s
 
 1. **A validator at the door** — *built*. `core/check.ts`: one entry for every log, repairing
    what it can and reporting what it cannot.
-2. **Simplify how data is loaded, saved and shown.** Where the log lives should be obvious, and
-   export/import should read as snapshot and restore.
+2. **Simplify how data is loaded, saved and shown.** *Part done.* Browser dialogs are gone and
+   every message — a repaired log, a refused name, the question before discarding — goes to the
+   one strip. Still to do: make it obvious that the browser holds the working copy and a file is
+   a snapshot, and show the project's name in the header.
 3. **Freeze the base schema.** Only once the scope of future diagram modules is known — element
    types, figures, the action surface — so the freeze holds a considered shape rather than a
    guess.
@@ -177,6 +179,13 @@ conditional on user data.
   being opened and used, so dropping support for pre-checkpoint logs is now a safe decision
   rather than a lossy one. Worth taking after the next round of schema churn settles, not during
   it.
+
+
+- **Graph accessors are full scans.** `childrenOf`, `blocksOf` and `portsOf` each walk every
+  element, and they are called from inside loops — `drawnIn` and the contents rows are both
+  quadratic because of it. Not felt yet at the sizes in use; it is the same shape as the routing
+  cost that makes a window resize on a busy layer take fifteen seconds, and worth an index built
+  once per fold rather than a scan per call.
 
 
 ## Not built yet
