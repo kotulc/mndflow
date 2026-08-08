@@ -18,23 +18,28 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 
 **Elements** — held in `graph.elements`. "Node" is the same thing in the graph-theory register.
 
-- `element` says which of four it is: **block** (the base and the default), **note**, **group**,
-  or **proxy**. Closed and engine-level — it decides what draws an element and which rules reach
-  it.
-- `type` is the user's own subtype — a stereotype. Open-ended, and it subtypes **within** an
-  element type, never across one. **Empty until somebody sets one.**
+- **`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
+  elements, relationships and fields alike. **(planned)** — the field is `element` on an element
+  and `kind` on a relationship today.
+- `form` says which of five it is: **block** (the base and the default), **note**, **group**,
+  **proxy**, or **figure**. It decides what draws an element and which rules reach it.
+- **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
+  the explorer, and what it *is* comes from its `type`. An activity's fork, decision, initial,
+  final, merge and join are all figures. **(planned)**
+- `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
+  never across one. **Empty until somebody sets one.**
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
   `Character`, and one day `Activity`. The fallback is derived, never stored, and is dimmed so
   it reads as a default rather than as a distinction. A container reads `Module group`.
-- **The domain's word is not a type.** It comes from the project's domain, one set per project,
-  and nothing is written onto an element until a distinction is actually drawn.
+- **The module's word is not a type.** It is the module's name for its elementary unit, and
+  nothing is written onto an element until a distinction is actually drawn.
 - **Container and interface are derived, not declared**: a block holding child blocks draws as a
   container; a block on its parent's frame edge is an interface. Both are ways a block *looks*;
   neither is a separate element type, and both are still called blocks.
 - Interface is the one of these that never changes. Nothing turns a block into one or back, and
   interfaces do not count towards being a container.
 - An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
-  `axis` for when it is the open layer, `groups` for its membership, `attrs`, and `color`.
+  `axis` for when it is the open layer, `groups` for its membership, `fields`, and `color`.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
 - **An interface is an element only where somebody made one** — a bare one, or a promoted seat.
   A relationship makes none: where its line meets a card is worked out by the layer.
@@ -42,7 +47,10 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 
 **Root** — the block that holds every other, under the reserved id `root`.
 
-- Carries the project's name as its `label`, plus its own axis, body and attributes.
+- Carries the project's name as its `label`, plus its own axis, body and fields.
+- **Carries the project's own vocabulary**: its relation names and its type definitions. Both are
+  the project speaking about itself, and neither reaches the explorer. **(planned)** — they sit on
+  `graph` today.
 - `parent: null` means "in the root layer" everywhere it is written; root is told from its own
   children by its id, which is the one place any listing has to know about it.
 - It has no frame, because a frame is a block seen from inside and root has no outside.
@@ -50,7 +58,7 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 **Names** — unique among siblings; where something sits in the tree is what makes it unique in
 the project.
 
-- An unnamed element falls back to its element type and its number among siblings of that type:
+- An unnamed element falls back to its form and its number among siblings of that form:
   `block 1`, `note 2`, `interface 1`.
 - `num` is fixed at creation; a new element takes the lowest number not in use among those
   siblings, so deleting one leaves a gap the next fills and renames nothing.
@@ -78,23 +86,23 @@ the project.
 
 **Relationships** — a join between two elements, held in `graph.edges`.
 
-- Carries `type`, `kind`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
+- Carries `type`, `form`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
   `fromSide`/`toSide` where an end was drawn through a named wall.
 - `type` is the free-text stereotype — what this relationship *means*.
-- `kind` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
-  `dir` still says which way the arrows point.
-- **Anything joining two elements is a relationship.** A kind may draw as something other than a
+- `form` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
+  `dir` still says which way the arrows point. **(planned)** — the field is `kind` today.
+- **Anything joining two elements is a relationship.** A form may draw as something other than a
   routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
   drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
   one list to read them from.
 - **A reference is a relationship with a proxy at one end** — it reaches something living in
-  another layer. Derived, never a kind: drawing a line onto a proxy makes one without anybody
+  another layer. Derived, never a form: drawing a line onto a proxy makes one without anybody
   saying so, and it stays plain, flow or assoc and keeps its direction. Both routes to it draw
   alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for
   it.
-- A reference draws **violet and dashed**, held back at reduced opacity so the kind and the label
+- A reference draws **violet and dashed**, held back at reduced opacity so the form and the label
   read first; hover and selection bring it to full.
-- What a proxy stands for is an attribute of the proxy, not a relationship: one thing appearing
+- What a proxy stands for is a property of the appearance, not a relationship: one thing appearing
   twice rather than two things joined.
 - `tie` joins a note to what it describes.
 - **Containment is not a relationship.** The tree is `parent`, and being inside something is
@@ -106,16 +114,42 @@ the project.
 - **No relationship carries a route.** Where a line goes is derived from the layer it is drawn
   in, every time it is drawn.
 
-**Attributes** — a name, value and tags on one element or relationship.
+**Fields** — a named, typed value on one element or relationship. **(planned)** — the code has
+`attrs`, a name/value/tags triple with no form and no definition behind it.
 
-- **No identity of its own**: an attribute is addressed by its name on the thing carrying it, and
+- A field carries `name`, `form`, `value` and `tags`.
+- **`form` is one of five**, and the set is permanent:
+
+  | form | Holds | Extra on the field |
+  |---|---|---|
+  | `text` | free string, the default | — |
+  | `number` | a quantity | `unit` |
+  | `flag` | true or false | — |
+  | `choice` | one of a list the definition names | `choices` |
+  | `ref` | another element, by id | `many` |
+
+- **No identity of its own**: a field is addressed by its name on the thing carrying it, and
   setting the same name again rewrites it.
-- **Membership** is an attribute: a block names the groups it belongs to, and a group's member
-  list is derived from that, so the two can never disagree. A group is never a parent.
 - Never structural: never in the explorer, never changing what contains what.
+- **A `ref` field points at an element without drawing a line**, which is how a part property or a
+  satisfied requirement is stated.
+- **Membership is neither a field nor a relationship.** A block names the groups it belongs to in
+  `groups`, and a group's member list is derived from that, so the two can never disagree. A group
+  is never a parent.
 - The test for which of the two something is: **drawn as a line between two things → a
-  relationship; not a line → an attribute.** A tie is a line. Membership is not — a group draws a
+  relationship; not a line → a field.** A tie is a line. Membership is not — a group draws a
   boundary round its members, never a spoke to each.
+
+**Definitions** — the reusable subtypes a project has named. Held on root. **(planned)**, in full.
+
+- **A definition declares; an element uses.** A definition names the fields its usages carry —
+  name, form, unit, default, and a `choices` list where it has one — plus the colour and icon they
+  draw with. An element names it in `type` and holds only the values it gives.
+- **Presentation lives on the definition, never on the element**, so it is structurally absent
+  from an export rather than filtered out of one.
+- **A definition subtypes within a form, never across one.** Nothing a user defines can change
+  what an element *is*.
+- Definitions are not elements: no id in `graph.elements`, no row in the explorer.
 
 **History** — the step log is the source of truth.
 
@@ -139,6 +173,11 @@ the project.
 
 - The log lives in the browser under one key. **Export writes it as JSON; importing one replaces
   the session and is saved from then on** — a file is a snapshot, the browser is the working copy.
+- **A log travels in an envelope naming its format and its module** — `{ format, module, steps }`.
+  The reader needs the module before it can choose a fold, and the format to know which schema the
+  steps were written against. **(planned)**
+- **A bare array still loads**, as format 0 in the `block` module — that is every file written
+  before the freeze. **(planned)**
 - **Every log comes in through one door**, from storage or from a file, and is checked before it
   is folded. What can be repaired is repaired; what cannot is dropped rather than folded into a
   broken graph.
@@ -183,7 +222,7 @@ the project.
 **Contents**
 
 - Structure and only structure: nodes nested to any depth.
-- Groups, annotations and every other attribute never appear.
+- Groups, notes and every field never appear.
 - Interfaces are hidden behind a toggle; when shown they sit at the same level as child blocks,
   sorted after them, with their own icon and no branch of their own.
 - Proxies are never listed — a proxy is a second appearance of something already there.
@@ -425,9 +464,9 @@ about like any other, and the drag sticks.
   that named a wall keeps the wall.
 - Released over empty canvas, the far node is created too.
 - `Esc` cancels the gesture.
-- Right-clicking a line names its kind — a name is edited where it is drawn, and this is the
+- Right-clicking a line names its type — a name is edited where it is drawn, and this is the
   last name on the canvas that took a different gesture.
-- The kind a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
+- The form a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
 - **Flow** draws heavier and takes its sides from the layer's axis; **assoc** draws thinner and
   fainter; **plain** says only that the two are related and takes whatever side suits the path.
 - Drawn curved or angular by the canvas toggle, which is global to the app.
@@ -488,8 +527,8 @@ about like any other, and the drag sticks.
 ### Notes
 
 - A card of text placed in a layer, tied by faint dotted leaders to whatever it describes. The
-  other way an attribute draws — amber throughout, since green is structure and amber is
-  attributes.
+  other way an element describes — amber throughout, since green is structure and amber is
+  description.
 - Solid, with a rule down its left side. Nothing else on the canvas carries one, and dashes are
   already spent on references and boundaries.
 - Made by right-dragging the background. The rectangle is drawn as it is swept, in dashed amber
@@ -531,12 +570,12 @@ about like any other, and the drag sticks.
 
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
   full trail in its tooltip, plus `↑` for one layer up.
-- Canvas toolbar top-right — **relationships**, all settings: interfaces on the canvas, the kind
+- Canvas toolbar top-right — **relationships**, all settings: interfaces on the canvas, the form
   a right drag draws, curves or angles, and past a divider which way the layer reads. Each shows
   what it is on.
 - Canvas arrangements bottom-right, opposite the zoom controls — **four verbs**. Icons only, and
   none of them is ever lit: an arrangement is something you do, not something a layer is in.
-- Zoom controls bottom-left, riding above the attribute tray.
+- Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
 - Panning is bounded to the layer's contents plus room on every side to put something new.
@@ -572,7 +611,7 @@ selection — must be selected first.
 | the space below the explorer's rows | a node in the open layer | — |
 | an interface | nothing — it is already one | a relationship from it |
 | a seat a relationship put there | an interface of its own, where it sits | — |
-| a relationship | names its kind | — |
+| a relationship | names its type | — |
 | a multi-node selection | groups the selection | — |
 
 - A card has no border zone: the click position decides where on the border the interface
@@ -627,8 +666,8 @@ interface can be found without hunting for it on the drawing.
 
 **Reading it**
 
-- Filter chips narrow to one kind, each showing how many there are; a kind with none is disabled.
-- Sortable by kind or by name; clicking the column already sorted by turns it around.
+- Filter chips narrow to one form, each showing how many there are; a form with none is disabled.
+- Sortable by form or by name; clicking the column already sorted by turns it around.
 - **Hovering a row lights that thing on the canvas**, and shows what it says and what it carries
   above the table. The canvas's own hover wins where the two disagree.
 - **Clicking a row selects it on the canvas.**
@@ -637,7 +676,7 @@ interface can be found without hunting for it on the drawing.
 
 - Double-click a name to rename; single-click a type to subtype. Fields open rather than sitting
   there, so a row stays clickable.
-- Row buttons appear on hover and carry whatever that kind can be told to do:
+- Row buttons appear on hover and carry whatever that form can be told to do:
 
   | Row | Buttons |
   |---|---|
@@ -646,7 +685,7 @@ interface can be found without hunting for it on the drawing.
   | proxy | go to where it lives, what it says, delete |
   | block, group, note | what it says, delete |
 
-- **What it says** opens the row out: its body, the groups it belongs to, and its attributes,
+- **What it says** opens the row out: its body, the groups it belongs to, and its fields,
   with a field for adding one.
 
 ## Readout drawer

@@ -68,6 +68,22 @@ not, so it does neither.
 
 - Every change has to be expressible as a mutation. Anything that cannot be is not a change to
   the project, which is the rule that keeps display preferences out.
+
+
+### The envelope
+
+**A log travels inside an envelope naming its format and its module**, rather than as a bare
+array of steps. Two things forced it, and one rule follows from it.
+
+A reader has to know which module's fold to run *before* it runs one, and the module cannot be
+learned from the graph, because the graph is what the fold produces. So module identity cannot
+live in the log; it has to sit beside it. And a frozen schema is only enforceable if a file says
+which version of it it was written against — without that, "frozen" is a promise nobody can
+check. The envelope is the only place either fact can go, so it holds both.
+
+**A bare array still loads**, as format 0 in the block module. That is what every file written
+before the freeze is, and the door already repairs what it can rather than refusing it.
+
 ### Saying where the work is
 
 **The header names the project and says where it is kept.** Both were missing: the brackets held
@@ -189,12 +205,19 @@ position; the relationship itself does not.
 
 ### Vocabulary
 
-- **Structural** — nodes, and only nodes. Structure is what the explorer shows: what contains
+**`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds
+everywhere: an element's form is one of five the engine reasons about, a relationship's form one
+of four, a field's form one of five value types — and `type` beside it is whatever the user
+called this one. The same two layers used to be `element` and `type` on an element but `kind` and
+`type` on a relationship, so the rule could not be stated at all and *kind* meant three different
+things depending on where it was read.
+
+- **Structural** — blocks, and only blocks. Structure is what the explorer shows: what contains
   what.
-- **Non-structural** — attributes. They describe nodes, never appear in the explorer, and never
-  change what contains what.
-- **Annotations** — attributes that draw on the canvas. A **group** draws as a boundary round its
-  holders; a **note** draws as a card of text pointing at them. Nothing is both.
+- **Non-structural** — fields. They describe what carries them, never appear in the explorer, and
+  never change what contains what.
+- **Annotations** — elements that describe rather than structure. A **group** draws as a boundary
+  round its members; a **note** draws as a card of text tied to them. Nothing is both.
 
 
 ### Elements and relationships
@@ -219,9 +242,15 @@ a discrete thing that sits somewhere and can be described.
 - Both are ways a block *looks*, so both stay out of the element type. Naming them there would
   make a closed engine-level set answer to something that changes the moment a child is added.
 
-**A user's subtypes go in `type` and never in `element`.** A template subtypes within an element
-type rather than across one, which is what keeps the closed set closed and stops every rule
-having to branch on user data.
+**A user's subtypes go in `type` and never in `form`.** A definition subtypes within a form
+rather than across one, which is what keeps the closed set closed and stops every rule having to
+branch on user data.
+
+**`figure` is the form that says "not mine to draw".** An activity's fork, decision, initial,
+final, merge and join are all figures: placed and drawn by the module that understands them,
+never in the tree and never in the explorer. A value per notation was rejected because forms are
+written into logs and so are permanent, and each new one would mean revisiting every rule that
+branches on form. One generic value serves every module that will ever exist.
 
 **A default is derived, never written.** Every element used to be stamped with its domain's word
 for a block at creation, so a whole project carried `Character` on everything and discriminated
@@ -233,24 +262,23 @@ The fallback is dimmed, because it is the same word on every card that has not b
 It can also say `Module group` where the name deliberately cannot say `container`: a chip
 describes what a card is right now, while a name has to hold still when a child is added.
 
-**Anything joining two elements is a relationship.** A kind may draw as something other than a
+**Anything joining two elements is a relationship.** A form may draw as something other than a
 routed line — a tie is a leader — but drawing is not identity. The alternative was a second way
 to join things, with its own mutations, its own cascade and its own list, all shadowing what
 relationships already do.
 
-**A reference is derived, not a kind.** A relationship is one when a proxy sits at either end, so
+**A reference is derived, not a form.** A relationship is one when a proxy sits at either end, so
 drawing a line onto a proxy makes a reference without anybody choosing it — and it stays plain,
 flow or assoc in its own right, because reaching another layer says nothing about what the
-relationship *means*. Spending a kind on it would have made the two mutually exclusive, and would
+relationship *means*. Spending a form on it would have made the two mutually exclusive, and would
 have asked the user to declare something the graph already knows.
 
-**What a proxy stands for is an attribute of the proxy.** One thing appearing twice is a property
-of the appearance, not two things being joined — so it is not a relationship, and the references
-are the ordinary relationships that *reach* the proxy.
+**What a proxy stands for is a property of the appearance**, not two things being joined — so it
+is not a relationship, and the references are the ordinary relationships that *reach* the proxy.
 
 The test for which of the two something is: **drawn as a line between two things → a
-relationship; not a line → an attribute.** A tie is a line, so it is one. Membership is not, so
-it is not.
+relationship; not a line → a field.** A tie is a line, so it is one. A `ref` field is not, so it
+is not.
 
 **Containment is the exception, and stays `parent`.** The tree is the one join every element has
 exactly one of, so storing it as edges would mean guarding an invariant that a field enforces for
@@ -259,9 +287,9 @@ free.
 ### Root
 
 **The project is a block.** It holds every other, carries the project's name, axis, body and
-attributes, and is otherwise ordinary. Before this it was not an element at all, which meant the
+fields, and is otherwise ordinary. Before this it was not an element at all, which meant the
 project's name and axis lived on the graph as one-off fields and the panel had a case for
-"selection with nothing to carry an attribute".
+"selection with nothing to carry a value".
 
 **It has no frame, because a frame is a block seen from inside and root has no outside.** For the
 same reason it has no interfaces: there is nothing beyond it for one to face.
@@ -383,7 +411,7 @@ anything is wired to it.
   `container`, `interface 3` — lower case because they are descriptions. Giving a name replaces
   the description entirely.
 - **A name is edited where it is drawn, by right-clicking it.** One rule for every name
-  anywhere: a card's, a boundary's, the layer's frame, a relationship's kind, and a row in the
+  anywhere: a card's, a boundary's, the layer's frame, a relationship's type, and a row in the
   explorer. The right button means *make the thing this place is for*, and what a name is for is
   being written — no exceptions left in either pane.
 - **A name is its own target.** Drawn set into a border, it is not that border: it highlights
@@ -413,18 +441,18 @@ asks for it.
 **Undirected by default** — a plain line asserting only that two things are related. Direction is
 added deliberately.
 
-**A kind says what the ends *are*; `dir` says which way it points.** Three kinds:
+**A form says what the ends *are*; `dir` says which way it points.** Three forms:
 
-| Kind | Ends | Draws |
+| Form | Ends | Draws |
 |---|---|---|
 | `untyped` | wherever the path wants | plain |
 | `flow` | in and out, on the sides the layer's axis gives | heavier |
 | `assoc` | wherever the path wants | thinner, fainter |
 
-The two stay separate because an arrowhead decorates the line while the kind decides where it
+The two stay separate because an arrowhead decorates the line while the form decides where it
 *attaches* — folded together, setting a direction would silently move both ends. A *parallel*
-kind was dropped: once lanes exist, relationships arriving together are drawn together already,
-and a kind describing what the renderer can see is a setting with nothing behind it.
+form was dropped: once lanes exist, relationships arriving together are drawn together already,
+and a form describing what the renderer can see is a setting with nothing behind it.
 
 **Nothing about a line is stored, and there is no gesture for moving one.** Every relationship is
 worked out from its layer's arrangement — sides, seats, corners, lanes — in one pass, every time.
@@ -470,20 +498,42 @@ standing in for the far node.
 - **Deleting one removes the placeholder only.**
 
 
-### Attributes
+### Fields and definitions
 
-A descriptive value on an element or relationship, carrying a name, value and tags. Attributes
-are non-structural throughout.
+A **field** is a named, typed value on an element or relationship: a `form` — `text`, `number`,
+`flag`, `choice` or `ref` — and what this one says for it. Fields are non-structural throughout.
 
-**An attribute has no identity of its own.** It is addressed by its name on the thing carrying
-it, and setting that name again rewrites it. Sharing used to be what made an attribute a
-grouping, which gave every descriptive value an id, a holder list and a lifecycle in order to
-serve the one case that needed them.
+**"Attribute" was one word doing four jobs**: a data value, a classification, a piece of
+presentation, and membership. Only the first survives an export and the third must never reach
+one, so the word was hiding the distinction that matters most about it.
 
-**Membership is an attribute, held on the member.** A block names the groups it is in, and a
-group's member list is derived by asking who names it — so there is nothing to keep in step.
-Membership is not a relationship, because a group draws a boundary round its members rather than
-a line to each.
+**A type is a definition; an element is a usage.** A definition declares the fields its usages
+carry — names, forms, units, defaults — along with the colour and icon they draw with. An element
+names its definition in `type` and holds only the values it gives. This is the split SysML v2 is
+built on, `part def` against `part`, and it is what finally gives `type` an identity: a subtype
+becomes something that can be defined and reused rather than a string repeated by hand.
+
+- **Presentation belongs to the definition.** Fifty pumps look alike because their definition says
+  so — which is also what keeps presentation structurally out of an export rather than filtered
+  out of it on the way.
+- **Definitions live on root**, beside the project's relation names. Both are the project speaking
+  about itself, and neither is an element in the tree, so neither reaches the explorer.
+- **A field has no identity of its own.** It is addressed by its name on the thing carrying it,
+  and setting that name again rewrites it. Sharing used to be what made an attribute a grouping,
+  which gave every descriptive value an id, a holder list and a lifecycle to serve the one case
+  that needed them.
+- **A `ref` field points at an element without drawing a line.** That is how a part property or a
+  satisfied requirement is stated, and it is why the line test is a test about drawing.
+
+**The value forms are enumerated, and permanent the way a retired op is.** `date` was left out
+because a `text` field carries one and nothing reasons about it, and a general list because
+`many` on a `ref` covers what it was wanted for. Both deferrals had to pass the same test: full
+multiplicity ranges can widen `many` later without reinterpreting a value already written, which
+is precisely what adding a form after the fact could not do.
+
+**Membership is held on the member**, and is neither a field nor a relationship. A block names the
+groups it is in and a group's member list is derived by asking who names it, so the two can never
+disagree — and a group draws a boundary round its members rather than a line to each.
 
 **Groups** are elements, drawn as a boundary.
 
@@ -521,13 +571,13 @@ What is inside a boundary is a fact about where things sit, not about what conta
 
 ### Notes
 
-The other way an attribute draws: a card of text tied by dotted leaders to whatever it describes.
-Where a boundary says *these belong together*, a note says something in words.
+The other way an element describes: a card of text tied by dotted leaders to whatever it is
+about. Where a boundary says *these belong together*, a note says something in words.
 
-- **It is an attribute, not a node.** A note describes; it does not participate. As a node it
-  would enter the explorer, take nesting, take interfaces, and turn its leaders into
-  relationships — every one of which is wrong.
-- **A place is the one thing it needs that no other attribute does.** A group is positioned by its
+- **It describes, it does not structure.** A note does not participate. As a block it would enter
+  the explorer, take nesting, take interfaces, and turn its leaders into relationships — every
+  one of which is wrong.
+- **A place is the one thing it needs that no other describing element does.** A group is placed by its
   members; a note can be tied to nothing at all, so there is nothing else to place it by. It
   carries the layer it was drawn in, which also answers where it belongs.
 - **The drag that makes one sets its least size.** The note appears at the rectangle's top-left
@@ -550,8 +600,8 @@ Where a boundary says *these belong together*, a note says something in words.
   is all name. The same gesture over a node already tied unties it.
 - **A leader is not a relationship.** It takes no pointer, cannot be selected or routed, and is no
   edge in any export. Dotted and thin: fine dots read as *attached to* rather than *connected to*.
-- **Amber throughout.** Green is structure and amber is attributes; a note is where that half of
-  the palette gets used.
+- **Amber throughout.** Green is structure and amber is description; a note is where that half
+  of the palette gets used.
 - **Solid, with a rule down its left side.** A reference is dashed and a boundary is dashed, so a
   third dashed rectangle differing only in hue is a distinction to be worked out rather than seen.
   Dashes are spent; the margin rule is the annotation convention off the page.
@@ -586,7 +636,7 @@ Scalability is the main priority. The canvas stays centred on the mass of the cu
 - **Placement precedence:** user placement wins; automatic layout fills the rest.
 - The canvas refits whenever the layer gains or loses something, or is arranged afresh — never on
   selection. Selecting is a glance, and a canvas that chases every click cannot be worked on.
-- As a layer crowds, the user clusters into **groups** (an attribute, no structural change) or
+- As a layer crowds, the user clusters into **groups** (describing, no structural change) or
   into deeper **containers** (structural, a new layer).
 
 
@@ -730,7 +780,7 @@ sortable. That is the whole reason for it.
   as a control panel rather than a list.
 - **Fields open rather than sitting there.** A column of live inputs cannot be clicked to select
   the row behind it, and a table whose every cell is a control is a form.
-- **Body text and attributes live in the row, opened out.** They were the one thing the old panel
+- **Body text and fields live in the row, opened out.** They were the one thing the old panel
   had that a table row does not, and dropping them would have made a block's specification
   unreachable — so the row expands rather than the panel splitting in two.
 
@@ -800,7 +850,7 @@ every side to put something new.
 
 They divide by **what they are for**:
 
-- **Top-right — relationships.** Whether interfaces are drawn, what kind a right drag creates,
+- **Top-right — relationships.** Whether interfaces are drawn, what form a right drag creates,
   square lines or curved ones, and which way the layer reads. Settings, every one, so each shows
   what it is currently on.
 - **Bottom-right, opposite the zoom controls — arrangements.** Four verbs and nothing else. None
@@ -831,7 +881,7 @@ that has extent.**
   described honestly.
 - **The layer's frame is the one exception**, unavoidably: its interior *is* the background, so
   its border stays a zone. It is a large, plainly drawn target.
-- **Right-clicking a relationship writes its name.** A kind does not exist until somebody writes
+- **Right-clicking a relationship writes its name.** A type does not exist until somebody writes
   it, so this is a creation like the rest, and it leaves naming with no exceptions anywhere.
 - **A right drag from a name does nothing at all** — not on the way, and not on release. A drag
   that began on a name meant to go somewhere; landing it back as a text cursor is the tool
@@ -944,7 +994,7 @@ border and the graze ring is drawn outside it.
    ports and walls.
 3. **Routability** — preferring arrangements that will route cleanly.
 
-**The third is judged by proxy, never by routing.** The pipeline runs one way — relation kind,
+**The third is judged by proxy, never by routing.** The pipeline runs one way — relation form,
 port side, placement, routing, lanes — and it is cheap and predictable *because* placement reads
 topology and never geometry. Scoring a layout by running the router closes that loop. Crossings,
 rank alignment, ports facing each other, clusters not straddling one another: all of these say

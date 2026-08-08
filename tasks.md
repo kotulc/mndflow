@@ -25,49 +25,63 @@ check data against it, and cannot be scoped before there is a second module to s
 
 1. **A validator at the door** — *built*. `core/check.ts`: one entry for every log, repairing
    what it can and reporting what it cannot.
-2. **Simplify how data is loaded, saved and shown.** *Part done.* Browser dialogs are gone and
-   every message — a repaired log, a refused name, the question before discarding — goes to the
-   one strip. Still to do: make it obvious that the browser holds the working copy and a file is
-   a snapshot, and show the project's name in the header.
-3. **Freeze the base schema.** Only once the scope of future diagram modules is known — element
-   types, figures, the action surface — so the freeze holds a considered shape rather than a
-   guess.
+2. **Simplify how data is loaded, saved and shown** — *built*. Browser dialogs are gone and every
+   message — a repaired log, a refused name, the question before discarding — goes to the one
+   strip. The header names the project and says where the work is kept.
+3. **Freeze the base schema** — *decided, not migrated*. The module-scoping conversation is done;
+   the shape is below and the reasoning is in design.md. What is left is the migration.
 4. **A test suite**, last. Only once a rough v1 schema and plan are settled and most bases are
-   covered: engine, element types, action surface. A suite written against a moving schema is
+   covered: engine, element forms, action surface. A suite written against a moving schema is
    rewritten every iteration and buys nothing.
+
+
+## The freeze: decided, not migrated
+
+Every item is a schema change, so they land together or the fold has to straddle both shapes.
+Reasoning in [design.md](design.md) under *The envelope*, *Vocabulary*, and *Fields and
+definitions*. Ordered by what the next one depends on.
+
+| # | Change | Touches |
+|---|---|---|
+| 1 | **Envelope** — a log travels as `{ format, module, steps }`. Bare array loads as format 0, module `block` | `check.ts`, `store.ts`, `project.ts` |
+| 2 | **`form` replaces `element` and `kind`** — closed and engine-level everywhere | ~20 branch sites, `types.ts`, legacy fold |
+| 3 | **`figure` joins the closed set** — placed and drawn by a module, never in the tree | `types.ts`, the listings that filter on form |
+| 4 | **`attrs` becomes `fields`** — `name`, `form`, `value`, `tags`, plus `unit` / `choices` / `many` | `types.ts`, `fold.ts`, `Panel.tsx`, `Contents.tsx` |
+| 5 | **Definitions on root** — a type declares its fields and its presentation; an element holds only values | `types.ts`, `fold.ts`, new ops |
+| 6 | **`domain` and `relations` move to root** — with a legacy fold for `set_domain` and the three relation ops | `types.ts`, `fold.ts` |
+
+**The value forms are `text`, `number`, `flag`, `choice`, `ref`**, and the set is permanent the
+way a retired op is. `date` and a general list were left out deliberately — see design.md.
+
+**Still to decide before migrating:** whether a cross-project `ref` and a cross-project proxy use
+the same widening. The working answer is an optional `project` beside the target id in both, which
+is additive and costs nothing to leave until the workspace exists.
 
 
 ## Open questions
 
-**`domain` now names two different things.** It currently means the project's subject matter —
-`software`, `writing`, `product` — which supplies vocabulary, starting relations and the
-terminal's prompts. It is wanted for the **diagram type** instead: block, activity, flow.
+**What is left of `domain` needs a name.** The diagram-type meaning is settled: it is the
+**module**, it lives in the envelope, and it never enters the log. What remains of the old
+subject-matter concept — vocabulary and workflow prompts — is consumed only by the terminal, which
+is itself due to be reworked and renamed, so the rename waits for that rather than happening
+twice. `vocabulary` describes what remains; `template` is not available, being spoken for by
+definitions.
 
-- The UI has already moved. What a diagram calls its unit is a property of the diagram type, so
-  the card chip, the type placeholder and the explorer's ＋ button all read `block` now, from one
-  constant that becomes part of a module's declaration. `terms.node` no longer reaches the UI.
-- What is left of the subject-matter concept is vocabulary and workflow prompts, both consumed
-  only by the terminal — which is itself due to be reworked and renamed.
-- So the rename waits for that rework rather than happening twice. **The word to avoid in the
-  meantime is `domain`**, since it is about to change meaning.
-- `template` is not available as the replacement: it is spoken for by reusable subtypes.
-  `vocabulary` describes what actually remains of it.
+**What a graph format would look like.** The *log* format is settled — an envelope round the
+steps. But a log records the making of a thing rather than the thing, so anything wanting the
+graph instead — a SysML translation, a diagram generator — needs a second format folded from it.
+Definitions make this tractable for the first time: a SysML export needs `part def` and `part`,
+which is exactly the definition/usage split now in the schema. Settle it before authoring the
+sample project, since that file is the format's first real user.
 
-**What the export format is.** The export *is* the step log, and a log records the making of a
-thing rather than the thing. Anything wanting the graph instead — a SysML translation, a diagram
-generator — needs a second format folded from it. This has to be settled before the sample
-project below is worth authoring, because that file is the format's first real user.
-
-**How much a `flow` relationship should be allowed to say.** A `flow` kind now decides which
+**How much a `flow` relationship should be allowed to say.** A `flow` form now decides which
 sides its two ends take, from the layer's axis. Whether it should also imply a direction — so
-that setting the kind sets `dir` — is open. Keeping them apart is the current answer and the
+that setting the form sets `dir` — is open. Keeping them apart is the current answer and the
 safer one, but it does mean a flow with no direction set draws no arrowhead, which reads oddly
 for a thing whose whole claim is that something travels one way.
 
-**What an attribute is made of.** The design says every attribute carries a name, a label and
-tags. The code has `name`, `value` and `tags` — no label, and `value` is not mentioned in the
-design at all. Two names for one field, or two fields, is the question; the answer decides what
-the panel should show.
+*Settled, not built: the freeze above — the envelope, `form`, `figure`, fields, definitions on
+root. See the table.*
 
 *Settled and built: what happens to a moved node's annotations and relationships, reference
 chains, what a note is made of, and — the big one — that a relationship's **route** is derived
@@ -95,18 +109,13 @@ elements are.
 
 - Only the **block** diagram module writes the block tree. Every other module keeps a tree of its
   own for its own organisation, and *additionally* references blocks in a block project.
-- **Settled: one new element type, `figure`** — placed and drawn, never in the tree or the
-  explorer, with what it *is* coming from its `type` and its module drawing it. An activity's
-  fork, decision, initial, final, merge and join are all figures.
-
-  A value per notation was rejected: element types are written into logs, so each one is
-  permanent the way a retired op is, and each would mean revisiting the 20 places that branch on
-  `element`. One generic value serves every future module instead.
-- **The criterion for the closed set:** an element type belongs in the engine only if the engine
-  must reason about it beyond placing and drawing it. `block` (the tree), `proxy` (resolution and
-  cleanup), `group` (bounds from members, membership cascade, layout unit), `note` (least size,
-  ties, layout unit) — and `figure`, which the engine only places.
-- A **swimlane is a group**, not a sixth type: a boundary round members, membership on the member.
+- **`figure` is in the freeze above**, not a separate piece of work.
+- **The criterion for the closed set:** a form belongs in the engine if the engine must reason
+  about it beyond placing it — `block` (the tree), `proxy` (resolution and cleanup), `group`
+  (bounds from members, membership cascade, layout unit), `note` (least size, ties, layout unit) —
+  **or if the engine must know not to draw it**, which is `figure` alone. The earlier wording had
+  only the first clause and admitted `figure` as an unexplained exception.
+- A **swimlane is a group**, not a sixth form: a boundary round members, membership on the member.
   Its band shape and lane layout are the activity module's rendering.
 - Still open: how a module registers renderers for its `type` values.
 
@@ -151,27 +160,13 @@ lays five nodes out as a "ring" nobody sees is worse than no detector; hub and t
 once the machinery has proved itself.
 
 
-**Templates as subtypes.** Any element should be subtypable into a reusable template — a block
-given a colour, an icon and some default attributes becomes a kind of block that can be made
-again. The slot already exists: `type` is the per-element vocabulary word. What is missing is an
-identity behind it, so a type is a thing that can be defined and reused rather than a free string.
+**Editing definitions.** The freeze gives a project definitions; nothing yet makes or edits one.
+Needs a place to declare a type's fields, defaults and presentation — probably the contents tray,
+since it is already the table of what a project contains.
 
-**A template subtypes within an element type, never across it.** That is what keeps the two
-apart: `element` stays closed and engine-level, deciding what draws a thing and what rules reach
-it; `type` stays open and user-level, deciding how it looks and what it starts with. A template
-that could change an element's type would collapse the distinction and make every rule
-conditional on user data.
-
-
-- **Attributes are listed but barely editable.** The panel shows a name and a value and can drop
-  one; renaming an attribute goes through a drop-and-set pair, and tags still have no UI.
-
-
-- **The project's metadata lives in two places.** Root is the project as a block and carries its
-  name, body and attributes — but `domain` and `relations` still sit on `Graph`, beside
-  `elements` and `edges`. Both are things the project says about itself, so root is their home:
-  `domain` is a project-wide type and `relations` its vocabulary. Moving them costs a legacy fold
-  for `set_domain` and the three relation ops.
+- **Fields are listed but barely editable.** The panel shows a name and a value and can drop one;
+  renaming goes through a drop-and-set pair, and tags still have no UI. A typed field needs a
+  control per form — a number with a unit, a choice with its list, a ref with a target picker.
 
 
 - **Deleting the fold's legacy branches.** 15 retired ops, 150 lines — 23% of `fold.ts`, and the
@@ -201,12 +196,12 @@ conditional on user data.
   mndflow's own components, interfaces and data structures — exercise every feature in spec.md,
   and load from the viewer without setup.
 - **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
-- **Icons.** An attribute is supposed to be able to draw an icon on the canvas as well as a
+- **Icons.** A definition is supposed to be able to draw an icon on the canvas as well as a
   boundary or a note. Nothing draws an icon, and no icon set has been chosen.
 - **Adding a block to an existing group from the panel.** The panel removes members and cannot
   add one. The action exists (`joinGroup`) but is not wired to anything, so the only way into
   an existing group is the drag.
-- **Tags.** Every attribute carries them and nothing shows or edits them.
+- **Tags.** Every field carries them and nothing shows or edits them.
 - **Ties made from the note's side.** A note is its own name all the way through, so a right
   drag cannot set off from one — ties are drawn node-to-note only. The same is now true of an
   explorer row. Fine so far; if either reads backwards in use, it needs some part that is not its
