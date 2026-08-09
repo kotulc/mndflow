@@ -76,19 +76,47 @@ not, so it does neither.
   the project, which is the rule that keeps display preferences out.
 
 
-### The envelope
+### The envelope, and what a file is
 
-**A log travels inside an envelope naming its format and its module**, rather than as a bare
-array of steps. Two things forced it, and one rule follows from it.
+**A file is the graph; the log is a working copy.** The two have different jobs, and conflating
+them cost both. The log exists so that undo needs no inverses, which is a within-session concern.
+A file exists to be read, compared and kept — so it should be the size of the model rather than
+the size of the effort, and its diff should say which elements and relationships changed rather
+than replaying the actions that changed them. A log fails both: add a block, nudge it a dozen
+times, rename it twice and delete it, and fifteen lines of diff describe a net change of nothing.
 
-A reader has to know which module's fold to run *before* it runs one, and the module cannot be
-learned from the graph, because the graph is what the fold produces. So module identity cannot
-live in the log; it has to sit beside it. And a frozen schema is only enforceable if a file says
-which version of it it was written against — without that, "frozen" is a promise nobody can
-check. The envelope is the only place either fact can go, so it holds both.
+**Importing one is a checkpoint**, so this costs no new mechanism: a `checkpoint` mutation already
+carries a whole graph, and a file simply becomes a log holding one. There is no second format, no
+second reader, and no derived-graph format to keep in step with the log format — a question that
+had been open until the export stopped being a log.
+
+**What is given up is that history no longer travels with the file.** That is the honest cost, and
+it is the right trade twice over. Git is a better history than the step log for anything shared —
+named, commented, branchable — where a step log is anonymous and nearly per-keystroke. And undo is
+a thing you want *while working*, which is where the log still is. The log may ride along, capped
+and written last, for the case where undo should survive a round trip; it is off by default,
+because the clean diff is the point.
+
+**An envelope names the format and the module**, because a reader has to know which module's fold
+to run *before* it runs one, and a frozen schema is only enforceable if a file says which version
+of it it was written against. **It carries nothing else.** No id — projects are referenced by
+name, and a uuid buys robustness against file moves at the cost of a field no human can read. No
+author or timestamp — git records both, at a granularity that means something. Every additional
+field is either state that does not belong in a project or noise in every future diff.
 
 **A bare array still loads**, as format 0 in the block module. That is what every file written
 before the freeze is, and the door already repairs what it can rather than refusing it.
+
+**The layout is part of the format.** Definitions first, then the element tree, then
+relationships. Elements nest under their parents, which deletes the most-referenced id from the
+file entirely — position carries `parent` — and puts a diff hunk beside the thing it describes.
+Siblings sort by id rather than by name, so renaming is one line instead of a record moving; only
+re-parenting moves a record, which is what a structural change should look like.
+
+**An id says what it points at and never what it is called.** `block_`, `edge_`, `def_` cost
+nothing and make every remaining reference legible. A name inside an id would go stale the moment
+somebody renamed the thing, or force the id to be rewritten everywhere — which is the whole point
+of having one.
 
 ### Saying where the work is
 

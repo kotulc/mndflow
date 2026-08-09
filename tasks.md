@@ -43,19 +43,24 @@ definitions*. Ordered by what the next one depends on.
 
 | # | Change | Touches |
 |---|---|---|
-| 1 | **Envelope** — a log travels as `{ format, module, steps }`; `module` is an open string. Bare array loads as format 0, module `block` | `check.ts`, `store.ts`, `project.ts` |
+| 1 | **Envelope** — `{ format, module, graph }`; `module` is an open string, and nothing else rides in it. Bare array loads as format 0, module `block` | `check.ts`, `store.ts`, `project.ts` |
 | 2 | **`form` replaces `element` and `kind`** — closed and engine-level everywhere | ~20 branch sites, `types.ts`, legacy fold |
 | 3 | **`figure` joins the closed set** — placed and drawn by a module, never in the tree | `types.ts`, the listings that filter on form |
 | 4 | **`attrs` becomes `fields`** — `name`, `form`, `value`, `tags`, plus `unit` / `choices` / `many` | `types.ts`, `fold.ts`, `Panel.tsx`, `Contents.tsx` |
 | 5 | **Definitions on root** — one record with an `id`, the `form` it subtypes, its field declarations and its presentation. Covers element *and* relationship types, so `relations` and `domain` fold into this rather than moving separately | `types.ts`, `fold.ts`, new ops, retires `rename_relation` |
+| 6 | **The export becomes the graph** — `{ format, module, graph }`, importing one as a checkpoint. Optional capped log last, off by default | `store.ts`, `check.ts`, `project.ts` |
+| 7 | **File layout** — definitions, then the nested element tree, then relationships; siblings by id, relationships by source then target; `parent` never written | `store.ts` |
+| 8 | **Id prefixes and a wider suffix** — `block_`/`edge_`/`def_`, and enough randomness that two sessions cannot mint the same id | `types.ts` |
 
 **The value forms are `text`, `number`, `flag`, `choice`, `ref`**, and the set is permanent the
 way a retired op is. `date` and a general list were left out deliberately — see design.md.
 
-**Still to decide before migrating:** whether a cross-project `ref` and a cross-project proxy use
-the same widening. The working answer is an optional `project` beside the target id in both, which
-is additive and costs nothing to leave until the workspace exists. Project identity itself is the
-open item — see below.
+**A cross-project target is `{ project, element }`** — the project by **name**, the element by id.
+Always live: to fix a version, bundle. A `ref` field widens the same way, which is additive and
+can wait for the workspace.
+
+**Merging two divergent logs is out of scope.** Git's line merge or nothing; `check.ts` reports
+the wreckage of a bad one rather than preventing it.
 
 
 ## The module walk: what it settled
@@ -90,13 +95,6 @@ subject-matter concept — vocabulary and workflow prompts — is consumed only 
 is itself due to be reworked and renamed, so the rename waits for that rather than happening
 twice. `vocabulary` describes what remains; `template` is not available, being spoken for by
 definitions.
-
-**What a graph format would look like.** The *log* format is settled — an envelope round the
-steps. But a log records the making of a thing rather than the thing, so anything wanting the
-graph instead — a SysML translation, a diagram generator — needs a second format folded from it.
-Definitions make this tractable for the first time: a SysML export needs `part def` and `part`,
-which is exactly the definition/usage split now in the schema. Settle it before authoring the
-sample project, since that file is the format's first real user.
 
 **How much a `flow` relationship should be allowed to say.** A `flow` form now decides which
 sides its two ends take, from the layer's axis. Whether it should also imply a direction — so
@@ -210,8 +208,9 @@ since it is already the table of what a project contains.
   avoiding, since the default is then invisible and changes under the user.
 
 - **The sample project.** `samples/mndflow.json` does not exist, and the directory does not
-  either. Its stated precondition — interfaces, references and groups — is now met, so it is
-  unblocked and waiting on the export question above. It should describe this application —
+  either. Both preconditions are now met — interfaces, references and groups are built, and the
+  export format is settled — and a graph-shaped export is the thing that makes the file writable
+  by hand at all. It should describe this application —
   mndflow's own components, interfaces and data structures — exercise every feature in spec.md,
   and load from the viewer without setup.
 - **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.

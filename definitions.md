@@ -152,10 +152,13 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **view** | a type vocabulary, a renderer and a layout law over one graph — and nothing else. Holds no state of its own. Activity and state machine are views on behavior; parametrics and requirements are views on structure |
 | **projection** | a view that derives its whole arrangement from the graph. A sequence diagram is one: lifeline from partition, message from a crossing flow, order from the flow graph. Still editable, through the action surface |
 | **page** | branding, navigation and the workspace. The shell a module sits in |
-| **envelope** | what a log travels inside: `{ format, module, steps }`. The format says which schema wrote it; the module says which fold to run. Neither can live in the graph, because the graph is what the fold produces |
-| **external proxy** | a **proxy** whose target lives in another project rather than another layer. How one project references a block in another: live and by id, so renaming or moving the block flows through untouched |
+| **envelope** | what a file travels inside: `{ format, module, graph }`. The format says which schema wrote it; the module says which fold to run. Neither can live in the graph, because the graph is what the fold produces. It carries nothing else |
+| **checkpoint** | the graph cached at one step, so a fold need not replay from zero. Internal — nobody asks for one. Also what an imported file becomes |
+| **snapshot** | a project as of a step, written out. An export, and a file |
+| **bundle** | a snapshot carrying the external projects it references, so it stands alone. Done at export; inside a workspace everything is live and nothing is bundled |
+| **merge** | combining two divergent logs. **Out of scope** — git's line merge, or nothing. `check.ts` reports the wreckage of a bad one rather than preventing it |
+| **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }` — the project **by name**, the element by id, so renaming or moving the block flows through untouched. Always live; to fix a version, bundle |
 | **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
-| **bundle** | to carry the external blocks an export depends on inside it, so it stands alone. Done at export; inside a workspace every project is live and nothing is bundled |
 | **action surface** | the actions a diagram module publishes as data — name, arguments, when each applies. The seam both the page and the terminal work against |
 | **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and its module draws it. An activity's fork, decision or initial node. Never in the explorer |
 

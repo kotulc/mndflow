@@ -181,13 +181,34 @@ the project.
 
 **Files**
 
-- The log lives in the browser under one key. **Export writes it as JSON; importing one replaces
-  the session and is saved from then on** — a file is a snapshot, the browser is the working copy.
-- **A log travels in an envelope naming its format and its module** — `{ format, module, steps }`.
-  The reader needs the module before it can choose a fold, and the format to know which schema the
-  steps were written against. **(planned)**
+- The log lives in the browser under one key. **Importing a file replaces the session and is saved
+  from then on** — a file is a snapshot, the browser is the working copy.
+- **An export is the graph, not the log.** `{ format, module, graph }`, pretty-printed JSON. Its
+  size follows the model rather than how long somebody worked, and its diff shows the elements and
+  relationships that changed rather than the actions that changed them. **(planned)** — the export
+  is the raw step log today.
+- **Importing one is a checkpoint.** The file becomes a log holding a single `checkpoint` step, so
+  there is no second format and no second reader. **(planned)**
+- **The log may ride along, and does not by default** — capped at ~200 steps and written last, so
+  its diffs stay out of the way. On, undo survives a round trip; off, the file stays clean.
+  **(planned)**
+- **The envelope carries nothing else.** No id, no author, no timestamps, no display preferences —
+  each would either leak non-project state into the file or churn on every save and spoil the
+  diffs the format exists for. **(planned)**
 - **A bare array still loads**, as format 0 in the `block` module — that is every file written
   before the freeze. **(planned)**
+- **The file is laid out for reading**: definitions first, then the element tree, then
+  relationships. **(planned)**
+  - Elements **nest under their parents**, so `parent` is never written — position carries it —
+    and a diff hunk lands beside the thing it describes.
+  - Siblings sort by id, so a **rename is one line** rather than a record moving. Re-parenting does
+    move a record, which is what a structural change should look like.
+  - Relationships sort by source, then target, which clusters everything leaving a block and never
+    moves, since neither key changes.
+- **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `figure_`, `edge_`,
+  `def_`. A name is never part of an id — it would go stale on a rename or force the id to be
+  rewritten everywhere. Older `n_`/`e_`/`s_` ids stay valid; ids are opaque and nothing migrates.
+  **(planned)**
 - **Every log comes in through one door**, from storage or from a file, and is checked before it
   is folded. What can be repaired is repaired; what cannot is dropped rather than folded into a
   broken graph.
