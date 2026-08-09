@@ -90,22 +90,79 @@ carries a whole graph, and a file simply becomes a log holding one. There is no 
 second reader, and no derived-graph format to keep in step with the log format — a question that
 had been open until the export stopped being a log.
 
+**A project file is a single-owner asset**, like a `.psd` or a Figma document. Two people editing
+one produces a whole-file git conflict with no merge path, and hand-merging model JSON is not
+reasonable work. This is a normal way for teams to operate, and saying so is better than letting
+somebody discover it. The real answer to genuine multi-user editing is a live store rather than a
+merge algorithm, which is a different product decision and not one this format should pretend to.
+
 **What is given up is that history no longer travels with the file.** That is the honest cost, and
 it is the right trade twice over. Git is a better history than the step log for anything shared —
 named, commented, branchable — where a step log is anonymous and nearly per-keystroke. And undo is
-a thing you want *while working*, which is where the log still is. The log may ride along, capped
-and written last, for the case where undo should survive a round trip; it is off by default,
-because the clean diff is the point.
+a thing you want *while working*, which is where the log still is. The log does not ride along at all: it was
+briefly going to, capped and optional, but that is an advanced team feature dressed as a
+convenience, and one format is worth more than the round trip it would buy.
 
-**An envelope names the format and the module**, because a reader has to know which module's fold
-to run *before* it runs one, and a frozen schema is only enforceable if a file says which version
-of it it was written against. **It carries nothing else.** No id — projects are referenced by
-name, and a uuid buys robustness against file moves at the cost of a field no human can read. No
-author or timestamp — git records both, at a granularity that means something. Every additional
-field is either state that does not belong in a project or noise in every future diff.
+**The base of the envelope is whatever cannot be ignored; the rest is `meta`.** That one test is
+what keeps an envelope from becoming a drawer. A reader that skips `schema` cannot know whether it
+understands the file; one that skips `id` cannot resolve a reference into the project; one that
+skips `module` has to guess what it is looking at and draws it wrong. Everything else — how many
+steps went into it, and whatever a later feature wants to carry — can be dropped with no effect on
+what the project *is*, so it goes in a free-form bucket that readers take what they recognise from.
 
-**A bare array still loads**, as format 0 in the block module. That is what every file written
-before the freeze is, and the door already repairs what it can rather than refusing it.
+**The module's original justification was wrong, and it survives on a better one.** It was in the
+envelope because a reader had to know which fold to run before running one — but that was an
+argument about exporting a *log*. A file is a graph now, installed as a checkpoint, and a
+checkpoint folds without knowing anything. What keeps `module` in the base is the ignorability
+test: it says what kind of thing this is. When the structure/behavior split becomes real, the base
+carries which of the two graphs it is and the preferred view drops to `meta`, since a view is a
+hint and a graph is not.
+
+**`schema` rather than `format`, and `"1.0"` rather than `1`.** *Format* is ambiguous about what it
+versions — JSON against YAML, as easily as one field shape against another. And a bare *version*
+beside a step count invites the question "version of what?", which is exactly the confusion the
+step count was renamed to avoid. Two parts buy a compatibility rule rather than a yes or no: major
+must match, a higher minor is readable, so additive changes to the base cost a minor bump instead
+of a break.
+
+**No author and no timestamp.** Git records both, at a granularity that means something.
+
+**A bare array still loads**, as a legacy log in the block module — it has no envelope at all, so
+its absence is the signal rather than a version number standing in for one. That is what every
+file written before the freeze is, and the door already repairs what it can rather than refusing
+it.
+
+**A count of work is not a version, and calling it one invited the misuse.** `meta.steps` is every
+step ever taken. It orders nothing between two copies that diverged, composes across no set of
+projects, and changes how nothing is read — so the word *version* was doing active harm, promising
+a guarantee the number cannot make. It is a count, and it is named one.
+
+**A two-part `<era>.<steps>` was tried and dropped** on the way there. It read like a version
+number, but the era could only ever count compactions — an internal storage event — so it carried
+nothing the total did not, in a form that merely looked meaningful. Worse, it stops comparing
+between people the moment compaction is anything but automatic, since the same work done in
+different sittings lands in different eras.
+
+**Nothing tallies while you work.** A checkpoint records the count of steps before it, because
+compaction discards what came earlier and leaves nothing to count from; the rest is derived at
+load and export. A version maintained as you worked would be an action counter watching over the
+user's shoulder, which is not what a version is for.
+
+**The project id came back after a team walkthrough, having been dropped once.** On its own it
+looked like a field no human could read, buying robustness against file moves that this app cannot
+suffer. What changed the answer is that a *team* renames things: a project renamed by one person
+silently breaks proxies in a project owned by another, and the file name and the project name
+drift apart with nothing keeping them in step. An id makes both harmless, and the second problem
+is separately worth fixing by having the suggested filename follow the project's name.
+
+**Exporting changes nothing**, so re-exporting an unchanged project produces a byte-identical
+file — which is the whole reason the layout is canonical.
+
+**The content hash is computed and never stored.** Storing it would break the rule the whole
+project rests on: it is derived, and a derived value written down disagrees with what it describes
+the moment anybody hand-edits the file, at which point it lies rather than merely being stale. It
+is also redundant twice over, since git hashes the file already and does it better. Computed on
+load, shown on hover, absent from the file.
 
 **The layout is part of the format.** Definitions first, then the element tree, then
 relationships. Elements nest under their parents, which deletes the most-referenced id from the
@@ -273,8 +330,8 @@ a discrete thing that sits somewhere and can be described.
   **container**.
 - Interfaces do not count towards being a container — a block with ports and no child blocks is
   still a block.
-- Both are ways a block *looks*, so both stay out of the element type. Naming them there would
-  make a closed engine-level set answer to something that changes the moment a child is added.
+- Both are ways a block *looks*, so both stay out of `form`. Naming them there would make a
+  closed engine-level set answer to something that changes the moment a child is added.
 
 **A user's subtypes go in `type` and never in `form`.** A definition subtypes within a form
 rather than across one, which is what keeps the closed set closed and stops every rule having to
@@ -286,11 +343,11 @@ never in the tree and never in the explorer. A value per notation was rejected b
 written into logs and so are permanent, and each new one would mean revisiting every rule that
 branches on form. One generic value serves every module that will ever exist.
 
-**A default is derived, never written.** Every element used to be stamped with its domain's word
+**A default is derived, never written.** Every element used to be stamped with its module's word
 for a block at creation, so a whole project carried `Character` on everything and discriminated
-nothing — and would have gone stale the moment the domain changed. A card falls back to that word
-where nothing has given it a subtype, exactly as an unnamed element falls back to `block 1`
-without a name being stored. Only a distinction somebody actually drew is written down.
+nothing — and would have gone stale the moment that word changed. A card falls back to it where
+nothing has given it a type, exactly as an unnamed element falls back to `block 1` without a name
+being stored. Only a distinction somebody actually drew is written down.
 
 The fallback is dimmed, because it is the same word on every card that has not been told apart.
 It can also say `Module group` where the name deliberately cannot say `container`: a chip
@@ -568,7 +625,7 @@ notation by shipping definitions.
 - **Definitions live on root.** They are the project speaking about itself, and none of them is an
   element in the tree, so none reaches the explorer.
 - **A field has no identity of its own.** It is addressed by its name on the thing carrying it,
-  and setting that name again rewrites it. Sharing used to be what made an attribute a grouping,
+  and setting that name again rewrites it. Sharing used to be what made one a grouping,
   which gave every descriptive value an id, a holder list and a lifecycle to serve the one case
   that needed them.
 - **A `ref` field points at something without drawing a line.** That is how a part property or a
@@ -1298,7 +1355,7 @@ that lives in the view.
 
 **A workspace holds several projects, the way an editor holds several folders.** Each is listed
 separately in the explorer, in the order it was added, and labelled `<project> [block]` for its
-domain.
+module.
 
 - **Each project belongs to one module, and has its own log, its own export, and its own action
   surface.** No shared history: undo in an activity never reaches a block project.
@@ -1349,7 +1406,7 @@ The terminal ranks by context and by what this user has done before, learned loc
 of every log. **`Enter` confirms the highlighted option** — highlighted, so that an adaptive
 default is always visible and the arrow keys can overrule it before it fires.
 
-Until actions are data, neither diagram modules nor a general terminal are buildable. It is the
+Until actions are data, neither modules nor a general terminal are buildable. It is the
 prerequisite, and it is not visible from the outside.
 
 ### Nomenclature

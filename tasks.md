@@ -7,6 +7,9 @@ questions that have not been answered yet. Reasoning for any of it lives in
 
 ## Status
 
+**The schema freeze is decided and not yet migrated** — see *Agreed order of work* and *The
+freeze* below. Nine changes, landing together.
+
 **Frozen, pending refinement.** Built and working; left alone while the graph model settles,
 and revisited deliberately rather than drifting:
 
@@ -20,19 +23,31 @@ spec.md's table.
 
 ## Agreed order of work
 
-Four, in this order. The reasoning is that a schema cannot be frozen before there is a way to
-check data against it, and cannot be scoped before there is a second module to scope for.
+Four, in this order. A schema cannot be frozen before there is a way to check data against it,
+and cannot be scoped before the modules it must serve are known.
 
 1. **A validator at the door** — *built*. `core/check.ts`: one entry for every log, repairing
    what it can and reporting what it cannot.
 2. **Simplify how data is loaded, saved and shown** — *built*. Browser dialogs are gone and every
    message — a repaired log, a refused name, the question before discarding — goes to the one
    strip. The header names the project and says where the work is kept.
-3. **Freeze the base schema** — *decided, not migrated*. The module-scoping conversation is done;
-   the shape is below and the reasoning is in design.md. What is left is the migration.
-4. **A test suite**, last. Only once a rough v1 schema and plan are settled and most bases are
-   covered: engine, element forms, action surface. A suite written against a moving schema is
-   rewritten every iteration and buys nothing.
+3. **Freeze the base schema** — *decided, migrating next*. Every question it waited on is
+   answered: the modules were walked, the file format settled, the vocabulary agreed. The nine
+   changes are in *The freeze* below; the reasoning is in design.md.
+4. **A test suite**, last. The schema stops moving at the end of step 3, which is the condition
+   this was always waiting on. Engine, element forms, action surface — and the pure geometry in
+   `place`, `route` and `lanes`, which has stopped changing already.
+
+**What settled step 3**, each recorded in its own section below or in design.md:
+
+| | |
+|---|---|
+| the module walk | five element forms, four relationship forms, five value forms — the closed sets held against every SysML notation |
+| two graphs, many views | `structure` and `behavior`; everything else is a vocabulary, a renderer and a layout law |
+| one definition record | element and relationship types are the same thing, differing in the form they subtype |
+| the file is the graph | not the log — bounded size, and a diff that names what changed |
+| the envelope's base | whatever cannot be safely ignored; the rest is `meta` |
+| working as a team | one owner per file, merging out of scope, and the gaps that follow from it |
 
 
 ## The freeze: decided, not migrated
@@ -43,48 +58,62 @@ definitions*. Ordered by what the next one depends on.
 
 | # | Change | Touches |
 |---|---|---|
-| 1 | **Envelope** — `{ format, module, graph }`; `module` is an open string, and nothing else rides in it. Bare array loads as format 0, module `block` | `check.ts`, `store.ts`, `project.ts` |
+| 1 | **Envelope** — `{ schema, id, module, graph, meta }`. Base is what cannot be ignored; `meta` is free-form and ignorable. A bare array has no envelope and reads as legacy | `check.ts`, `store.ts`, `project.ts` |
 | 2 | **`form` replaces `element` and `kind`** — closed and engine-level everywhere | ~20 branch sites, `types.ts`, legacy fold |
 | 3 | **`figure` joins the closed set** — placed and drawn by a module, never in the tree | `types.ts`, the listings that filter on form |
 | 4 | **`attrs` becomes `fields`** — `name`, `form`, `value`, `tags`, plus `unit` / `choices` / `many` | `types.ts`, `fold.ts`, `Panel.tsx`, `Contents.tsx` |
 | 5 | **Definitions on root** — one record with an `id`, the `form` it subtypes, its field declarations and its presentation. Covers element *and* relationship types, so `relations` and `domain` fold into this rather than moving separately | `types.ts`, `fold.ts`, new ops, retires `rename_relation` |
-| 6 | **The export becomes the graph** — `{ format, module, graph }`, importing one as a checkpoint. Optional capped log last, off by default | `store.ts`, `check.ts`, `project.ts` |
+| 6 | **The export becomes the graph**, imported as a checkpoint. The log never rides along | `store.ts`, `check.ts`, `project.ts` |
 | 7 | **File layout** — definitions, then the nested element tree, then relationships; siblings by id, relationships by source then target; `parent` never written | `store.ts` |
 | 8 | **Id prefixes and a wider suffix** — `block_`/`edge_`/`def_`, and enough randomness that two sessions cannot mint the same id | `types.ts` |
+| 9 | **`schema` `"1.0"`, `id`, `meta.steps`** — major must match and a higher minor is readable; project id for life; steps counted, not called a version. `checkpoint.at` holds the count before it. The content hash is **computed on load, never stored** | `types.ts`, `store.ts`, `check.ts` |
 
 **The value forms are `text`, `number`, `flag`, `choice`, `ref`**, and the set is permanent the
 way a retired op is. `date` and a general list were left out deliberately — see design.md.
 
-**A cross-project target is `{ project, element }`** — the project by **name**, the element by id.
-Always live: to fix a version, bundle. A `ref` field widens the same way, which is additive and
-can wait for the workspace.
+**A cross-project target is `{ project, element }`**, both by id. Always live: to fix a version,
+bundle. A `ref` field widens the same way, which is additive and can wait for the workspace.
 
 **Merging two divergent logs is out of scope.** Git's line merge or nothing; `check.ts` reports
 the wreckage of a bad one rather than preventing it.
 
 
-## The module walk: what it settled
+## Working as a team: what it needs
 
-Every SysML notation run against the frozen shape. **The closed sets all held** — five element
-forms, four relationship forms, five value forms — which is what unblocks the migration.
+Walked as a team would hit it — clone a repo of project files, import, work, export, commit.
+**A project file is a single-owner asset**, like a `.psd`; merging is out of scope and recorded as
+such in design.md. What is missing beyond that:
 
-| Finding | |
-|---|---|
-| **Two graphs, many views** | `structure` and `behavior`. Parametrics, requirements, IBD and package are views on structure; activity, state and sequence on behavior. A view is a type vocabulary, a renderer and a layout law, holding no state |
-| **Views are editable** | A view publishes gestures; the action surface maps them to mutations. Sketching in a notation must stay possible, so nothing is generated-only |
-| **Every port is an interface** | Proxy port, full port, pin and constraint parameter — all interfaces, told apart by their `type` and by whether they hold children |
-| **Parametrics is not a hard case** | A parameter is an interface, so a binding is an ordinary relationship and `from`/`to` already reach it |
-| **Requirements need nothing** | Elements with `id` and `text` fields, related by typed relationships |
-| **Sequence is a projection** | Lifeline = partition, message = a flow crossing one, order = topological order. Editable through the view |
-| **A data structure is a definition** | Not an element form. It declares fields; a block typed by it is drawn only where somebody places one |
-| **A group is the generic set** | Swimlane, region, package boundary, trace assertion. This is why a relationship never needs more than two ends |
+- **The browser working copy is invisible to the file on disk.** Pull, forget to re-import, keep
+  editing a stale session, export over somebody's work — nothing can currently notice. **The
+  intended fix is the File System Access API**: hold a live handle and say so when the file
+  changes underneath. One integration, and the whole class of problem goes.
+- **The suggested filename should follow the project's name**, so a file called
+  `pump-assembly.json` cannot hold a project called `pumps`.
+- **Shared definitions.** A house vocabulary — the relationship types, stereotypes and field
+  declarations everybody uses — is re-declared per project today and drifts. A definition
+  reference widens to `{ project, def }` exactly as a proxy target does, so the shared vocabulary
+  is one project the others reference. Anticipated, not built, and not freeze-blocking.
+- **Reviewing a model change as JSON is poor**, even nested and sorted. Committing a rendered SVG
+  beside the source makes a pull request readable. Costs an export path and nothing structural.
+- **The version does not compose.** Eight project files carry eight versions and there is no
+  aggregate; the repo's version is the git commit. Documented so no release process is built on
+  the field.
 
-**Deliberately dropped:** trace assertions as inline fragment notation — expressed as typed groups
-instead — and lifeline left-to-right order, which is presentation and belongs to the view.
 
-**Still open here:** how a module registers renderers for its `type` values, and whether `structure`
-and `behavior` are what the envelope's `module` says or a layer above it. Neither blocks the
-migration, since `module` is an open string.
+## The module walk: what is still open
+
+What it **settled** is in [definitions.md](definitions.md) under *The SysML map* and *What the
+module walk settled* — the closed sets held against every notation, which is what unblocks the
+migration. What it left open:
+
+- **How a module registers renderers** for its `type` values.
+- **Whether `structure` and `behavior` are what `module` names**, or a layer above it. The base
+  should eventually carry which graph a project is, with the preferred view dropping to `meta`.
+- **Deliberately dropped, not open:** trace assertions as inline fragment notation — the claim
+  survives as a typed group — and lifeline left-to-right order, which belongs to the view.
+
+None of it blocks the migration, since `module` is an open string.
 
 
 ## Open questions
@@ -103,20 +132,21 @@ safer one, but it does mean a flow with no direction set draws no arrowhead, whi
 for a thing whose whole claim is that something travels one way.
 
 *Settled, not built: the freeze above — the envelope, `form`, `figure`, fields, definitions on
-root. See the table.*
+root, and the file format. See the table.*
 
 *Settled and built: what happens to a moved node's annotations and relationships, reference
 chains, what a note is made of, and — the big one — that a relationship's **route** is derived
-from the layer and never stored. The one thing an end may keep is the **wall** a right drag on
-the frame named for it, which is an intent rather than a position and so never goes stale. Hand routing is gone; a port is a node only
-where somebody promoted one; a layer's axis is both its flow direction and its layout
-preference. See design.md under Relationships, Interfaces and Layouts.*
+from the layer and never stored. The one thing an end may keep is the **wall** a right drag on the
+frame named for it, an intent rather than a position, so it never goes stale. Hand routing is
+gone; a port is a node only where somebody promoted one; a layer's axis is both its flow
+direction and its layout preference. See design.md under Relationships, Interfaces and Layouts.*
 
 
 ## Agreed, not built
 
 The vision these serve is in [design.md](design.md) under *Where this is going*. Settled in
-order: workspace over import, live references, bundling at export, `block` as the base module.
+order: workspace over import, live references, bundling at export, `block` as the base module,
+and actions as data returning mutations.
 
 **The action surface, as data.** A module's actions are closures on `project` today, so nothing
 can reason about them. Published as data — name, arguments, when each applies — they become the
@@ -139,7 +169,9 @@ are — see *The module walk* above for what this now means in full.
 **Workspace, references and bundling.**
 
 - Several projects loaded at once, each listed separately, in the order added, labelled
-  `<project> [block]`. The selected row's project is the context.
+  `<project> [block]` — name and module, and nothing more. **The id, step count and computed hash
+  live in the row's tooltip**, so the list stays scannable and none of it competes with the name.
+  The selected row's project is the context.
 - **A cross-project reference is a widened `proxy`**, whose target becomes a `(project, element)`
   pair. No new concept. Projects never merge, so no ids collide and nothing is renumbered.
 - **A proxy must tolerate a missing target and never record the absence** — it draws as missing
@@ -165,6 +197,13 @@ are — see *The module walk* above for what this now means in full.
 
 
 ## Backlog
+
+**A live store, for real multi-user work.** Files plus git give one-owner-at-a-time, which is
+honest but is not collaboration. Genuine concurrent editing wants a shared store and presence, not
+a merge algorithm over exported JSON — a different product decision, recorded here so that the
+file format is never bent toward pretending to solve it. Team management — who owns what, who may
+change it — belongs with it rather than in the file.
+
 
 **Clusters, and shapes for them.** Relationships should draw units loosely together, each cluster
 laid out by its own topology and the layer's arrangement placing the clusters relative to each

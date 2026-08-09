@@ -31,11 +31,11 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
   `Character`, and one day `Activity`. The fallback is derived, never stored, and is dimmed so
   it reads as a default rather than as a distinction. A container reads `Module group`.
-- **The module's word is not a type.** It is the module's name for its elementary unit, and
+- **The module's word is not a type.** It is what the module calls its elementary block, and
   nothing is written onto an element until a distinction is actually drawn.
 - **Container and interface are derived, not declared**: a block holding child blocks draws as a
   container; a block on its parent's frame edge is an interface. Both are ways a block *looks*;
-  neither is a separate element type, and both are still called blocks.
+  neither is a separate form, and both are still called blocks.
 - Interfaces do not count towards being a container.
 - An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
   `axis` for when it is the open layer, `groups` for its membership, `fields`, and `color`.
@@ -183,20 +183,42 @@ the project.
 
 - The log lives in the browser under one key. **Importing a file replaces the session and is saved
   from then on** — a file is a snapshot, the browser is the working copy.
-- **An export is the graph, not the log.** `{ format, module, graph }`, pretty-printed JSON. Its
-  size follows the model rather than how long somebody worked, and its diff shows the elements and
-  relationships that changed rather than the actions that changed them. **(planned)** — the export
-  is the raw step log today.
+- **An export is the graph, not the log.** `{ schema, id, module, graph, meta }`, pretty-printed
+  JSON. Its size follows the model rather than how long somebody worked, and its diff shows the
+  elements and relationships that changed rather than the actions that changed them.
+  **(planned)** — the export is the raw step log today.
 - **Importing one is a checkpoint.** The file becomes a log holding a single `checkpoint` step, so
   there is no second format and no second reader. **(planned)**
-- **The log may ride along, and does not by default** — capped at ~200 steps and written last, so
-  its diffs stay out of the way. On, undo survives a round trip; off, the file stays clean.
+- **The log never rides along.** Undo is a working-copy concern; history across machines is git's.
   **(planned)**
-- **The envelope carries nothing else.** No id, no author, no timestamps, no display preferences —
-  each would either leak non-project state into the file or churn on every save and spoil the
-  diffs the format exists for. **(planned)**
-- **A bare array still loads**, as format 0 in the `block` module — that is every file written
-  before the freeze. **(planned)**
+- **A project carries an `id`**, minted once and kept for life. It is what a cross-project
+  reference points at, so renaming a project — or its file — breaks nothing. **(planned)**
+- **The suggested filename follows the project's name**, so the two stop drifting apart.
+  **(planned)**
+- **The base is what cannot be ignored**, and everything else is `meta`. **(planned)**
+
+  | | Says |
+  |---|---|
+  | `schema` | which shape the file is — `"1.0"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
+  | `id` | which project this is, for life. Cross-project references resolve against it |
+  | `module` | what kind of thing this is. A reader that ignores it has to guess, and renders it wrong |
+  | `graph` | the content |
+  | `meta` | free-form, unversioned, **safely ignorable**. Absent when empty |
+
+  - **The test for the base is whether dropping a field changes what the project *is*.** That is
+    what stops `meta` becoming a bucket anything may be added to.
+  - **`meta.steps` is every step ever taken** — a count of work, not a version, and it orders
+    nothing across two copies that diverged. `checkpoint.at` holds the count before it and the
+    rest is derived, so nothing tallies while you work.
+  - **The content hash is computed, never stored.** A stored hash disagrees with its own graph the
+    moment anyone hand-edits the file, and git already hashes the file better.
+  - **Exporting changes nothing**, so re-exporting an unchanged project produces a byte-identical
+    file. That property is what the canonical layout exists for.
+  - **Nothing in `meta` affects how a file is read.** Only `schema` does.
+- **Display preferences stay out**, `meta` included: opening somebody's file must not rearrange
+  your own toggles. A deliberately saved view is a different feature, and not one of these fields.
+- **A bare array has no envelope**, so its absence reads as legacy rather than as a version.
+  **(planned)**
 - **The file is laid out for reading**: definitions first, then the element tree, then
   relationships. **(planned)**
   - Elements **nest under their parents**, so `parent` is never written — position carries it —
@@ -224,8 +246,7 @@ the project.
 ## Shell
 
 - One page: header, terminal rail, then explorer beside the working area.
-- Header reads `mndflow [project]` — the project's own name, which is root's label. The domain is
-  its tooltip.
+- Header reads `mndflow [project]` — the project's own name, which is root's label.
 - **It names the working session** — `working session`, held quiet, with the snapshot explained
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
@@ -731,7 +752,7 @@ interface can be found without hunting for it on the drawing.
   - **relations** — the kinds this project uses, each with how many edges carry it. Add, rename
     (renaming every edge with it), or drop (leaving those edges unnamed).
   - **actions** — one line per step, newest first, reverted ones struck through.
-  - **matching** — how each domain template scores against what is being typed.
+  - **matching** — how each workflow scores against what is being typed.
 
 
 ## Naming

@@ -30,7 +30,7 @@ join them. Everything else describes one of the two.
 | **relationship / edge** | a join between **exactly two** elements. Not an element — it is placed by its ends, drawn as a line, and joins rather than sits. Anything about a *set* is a group |
 | **form** | **closed and the engine's.** Which of five an element is — `block`, `note`, `group`, `proxy`, `figure` — or which of four a relationship is: `untyped`, `flow`, `assoc`, `tie`. It decides what draws a thing and which rules reach it |
 | **type** | **open and the user's.** The definition a thing names. It subtypes **within** a form, never across one, which is what keeps engine rules off user data. Empty until somebody sets one |
-| **unit** | what a module calls its elementary block — `block`, and one day `activity`. A property of the **module**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored |
+| **the module's word** | what a module calls its elementary block — `block`, and one day `activity`. A property of the **module**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored. Not called a *unit*, which is spoken for twice over — by layout, and by a `number` field's unit of measure |
 | **vocabulary** | what is left of the old `domain`: the words and starting relations a subject matter supplies. Consumed only by the terminal — see tasks.md |
 
 
@@ -116,7 +116,7 @@ named value carried by an element or a relationship, and never changes what cont
 
 | Term | Means |
 |---|---|
-| **unit** | anything laid out as a whole: a card, a group, or a note |
+| **unit** | anything laid out as a whole: a card, a group, or a note. Layout's word; a `number` field's `unit` is its unit of measure, and the two never meet |
 | **cluster** | units drawn together by relationships, arranged as one region *(backlog)* |
 | **arrangement** | a one-time **action** that lays the layer out and writes down where everything landed: `grid`, `radial`, `across`, `down`. Never a mode, so never "current" |
 | **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a flow relationship takes; says nothing about where cards go |
@@ -152,14 +152,19 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **view** | a type vocabulary, a renderer and a layout law over one graph — and nothing else. Holds no state of its own. Activity and state machine are views on behavior; parametrics and requirements are views on structure |
 | **projection** | a view that derives its whole arrangement from the graph. A sequence diagram is one: lifeline from partition, message from a crossing flow, order from the flow graph. Still editable, through the action surface |
 | **page** | branding, navigation and the workspace. The shell a module sits in |
-| **envelope** | what a file travels inside: `{ format, module, graph }`. The format says which schema wrote it; the module says which fold to run. Neither can live in the graph, because the graph is what the fold produces. It carries nothing else |
-| **checkpoint** | the graph cached at one step, so a fold need not replay from zero. Internal — nobody asks for one. Also what an imported file becomes |
+| **envelope** | what a file travels inside: `{ schema, id, module, graph, meta }`. **The base is what cannot be ignored** — drop any of it and the file cannot be read, resolved or drawn correctly |
+| **meta** | the free-form, unversioned part of an envelope. **Safely ignorable**: if dropping it changes what the project *is*, it does not belong here. Never display preferences, never the log |
+| **schema** | which shape a file is, as `"1.0"`. Major must match; a higher minor is readable. The only field that changes how a file is read |
+| **checkpoint** | the graph cached at one step, so a fold need not replay from zero. Internal — nobody asks for one. Also what an imported file becomes. Carries the count of steps before it, which is what makes `version` survive truncation |
+| **steps** | how much work is in a project: every step ever taken, carried in `meta`. `checkpoint.at` holds the count before it and the rest is derived, so nothing tallies while you work. **Not a version** — it orders nothing across two copies that diverged |
+| **project id** | which project a file is, minted once and kept for life. What a cross-project reference points at, so renaming a project or its file breaks nothing |
+| **state hash** | a short hash of the canonical serialization, telling apart two copies with the same step count. **Computed on load, never stored** — a written-down hash lies as soon as somebody edits the file by hand |
 | **snapshot** | a project as of a step, written out. An export, and a file |
 | **bundle** | a snapshot carrying the external projects it references, so it stands alone. Done at export; inside a workspace everything is live and nothing is bundled |
 | **merge** | combining two divergent logs. **Out of scope** — git's line merge, or nothing. `check.ts` reports the wreckage of a bad one rather than preventing it |
-| **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }` — the project **by name**, the element by id, so renaming or moving the block flows through untouched. Always live; to fix a version, bundle |
+| **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }`, both by id, so renaming or moving either flows through untouched. Always live; to fix a version, bundle |
 | **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
-| **action surface** | the actions a diagram module publishes as data — name, arguments, when each applies. The seam both the page and the terminal work against |
+| **action surface** | the actions a module publishes as data — name, arguments, when each applies, and the mutations each returns. **An action returns mutations rather than applying them**, which is what makes it rankable, hostable and testable. The seam both the page and the terminal work against |
 | **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and its module draws it. An activity's fork, decision or initial node. Never in the explorer |
 
 **The first word is the module, the second is the thing:** block tree, block diagram, activity
