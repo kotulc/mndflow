@@ -1267,6 +1267,14 @@ looser tool that exports to it serves more people than one built in its image.
 That split is already paid for. The engine's element set is closed and the `type` on each element
 is open, so a translator maps stereotypes to SysML and changes no engine code.
 
+**Nobody should have to learn a notation to use one.** A person describing a system says what the
+parts are, what they are made of, what flows between them and what has to be true — and that is
+already the whole base model. The specialised vocabulary and symbols of a standard are a layer
+somebody chooses to put on top, not a toll on the way in: the same graph reads as plain blocks and
+flows to one person and as a parametric diagram to another, because what changed is the names and
+the drawing, never the structure. **A notation that cannot be reached this way is a notation this
+tool does not do**, which is a better answer than bending the base model until it can.
+
 ### Three parts
 
 | Part | Is |
@@ -1297,13 +1305,12 @@ share their shape and differ in what a node *means*: in an activity, being at a 
 state machine, being at a node is being. Duals, not projections of one another, so a project picks
 one vocabulary and stays in it.
 
-**A sequence diagram is a projection of a behavior graph.** A lifeline is a partition, a message is
-a flow crossing one, the order down a lifeline is the flow graph's topological order, and `alt`,
-`par` and `loop` are the decision, fork and cycle already there. Two things do not survive the
-projection: trace assertions — `neg`, `assert`, `critical` — which are claims about permitted
-traces rather than behavior, and are expressible as typed groups; and lifeline left-to-right order,
-which is presentation and lives in the view. A partial order is also the more honest model: any
-total order actually meant is a chain of flows, and nothing is asserted by accident.
+**A sequence diagram is a behavior graph seen along its edges.** A lifeline is a block's behavioral
+edge, an occurrence on it is an interface seated along that edge, a message is a relationship
+between two occurrences, and `alt`, `par` and `loop` are the decision, fork and cycle already
+there. One thing does not survive: trace assertions — `neg`, `assert`, `critical` — which are
+claims about permitted traces rather than behavior, and are expressible as typed groups. Lifeline
+left-to-right order is presentation and lives in the view.
 
 **Views are editable, not generated.** People draw sequence diagrams *first*, before any behavior
 exists, and a read-only view would make the fastest way to think in a notation unavailable — the
@@ -1395,26 +1402,98 @@ the block module is special only in being the one everything else points at.
   blocks it depends on so it stands alone; in the workspace both projects are present and live,
   so there is nothing to bundle and no divergence to reconcile.
 
-### The action surface is the seam
+### The view is the module seam
 
-**A module publishes its actions as data** — a name, its arguments, and when it applies — rather
-than as functions somebody has to already know about. That one interface is what makes both of
-the other two parts possible:
+**A module is a vocabulary, a set of renderers, a layout law and a gesture map.** Nothing else
+varies, because nothing else needs to: every notation walked against the model — requirements,
+activity, parametrics, state machines, sequence — asks for **no action and no form the engine does
+not already have**. What differs between an activity diagram and a state machine is what a node
+means and how it is drawn, and both of those are the view's.
 
-- The **page** can host any module, because switching one is switching an action surface.
-- The **terminal** can rank and complete actions it was never written against, which is what
-  makes it reusable outside this app at all.
+That is the strongest evidence the closed sets are the right size. A set that had been drawn too
+small would have shown it here, as a notation that could not be said without widening it.
 
-**The dependency runs one way only.** The terminal reads the surface; no module imports anything
-from the terminal, and no log records that a terminal exists. It is an input method, and the
-project cannot tell it apart from a mouse.
+**A view declares which adjustments it accepts**, and may accept none. A sequence view takes only
+one: a column is a lifeline and the axis down it is time, so the sole thing worth dragging is where
+an occurrence sits on its own lifeline — which is a seat, the same adjustment a port already has.
+Nothing there has a free position. The fewer adjustments a view accepts, the more the engine owns,
+which is the direction a general modeller should be moving in.
+
+### The action surface is the input seam
+
+**A module publishes its actions as data** — a name, its arguments, and when it applies — so that
+something which was never written against this app can still drive it. That is what the terminal
+is, and what a menu built from the selection is: the surface is how input methods talk to a
+project, not how modules plug into a page.
+
+**Two tiers, divided by whether a thing can be said.** An action names something somebody meant —
+create, relate, group, describe — and is offered everywhere. An **adjustment** is positional and
+unsayable: where a card came to rest, how big a note is, where along an edge an interface sits.
+Both write mutations and both undo; only actions are named, ranked and listed. **A thing that
+cannot be typed as a sentence is not an action**, and the ambition is that adjustments stay rare —
+what the engine can decide, it should.
+
+**Arguments are typed, and eligibility falls out of them.** A position cannot come from a
+sentence, so an action needing one is reachable only by gesture; an action whose position is
+optional is reachable from both, with the layer placing it. Nothing has to be marked as
+terminal-eligible, which is what keeps a second list from drifting out of step with the first.
+
+**An action refuses in words.** A name already taken, a node moved inside itself, a proxy for
+something already here — each is a sentence the strip can say, not a silent no-op. The same
+sentence is what lets a ranked list put an inapplicable action last rather than hiding it.
+
+**The dependency runs one way only.** An input method reads the surface; no module imports
+anything from the terminal, and no log records that a terminal exists. The project cannot tell one
+input method apart from another.
 
 The terminal ranks by context and by what this user has done before, learned locally and kept out
 of every log. **`Enter` confirms the highlighted option** — highlighted, so that an adaptive
 default is always visible and the arrow keys can overrule it before it fires.
 
-Until actions are data, neither modules nor a general terminal are buildable. It is the
-prerequisite, and it is not visible from the outside.
+### Packages and modules
+
+**A package is data; a module is code.** A package is a set of definitions somebody ships — what
+things are called plainly, what they are called formally, the fields they carry, how they draw, and
+what each maps to in a standard. It costs nothing to add and nobody has to write any. A module is a
+view: renderers, a layout law, a gesture map, and the adjustments it accepts. It costs an owner.
+
+**A package maps names and presentation, never structure.** That is the line between the two, and
+it is what keeps a mapping a table. The moment a mapping has to rearrange a graph to export it, it
+has become a program, and a program living in data is a second engine nobody agreed to build — so
+a notation needing structural change is a module, and one needing only vocabulary is a package.
+
+Most of SysML turns out to be the second kind. Requirements is a definition declaring an `id` and a
+`text` plus five relationship types, and asks for no renderer, no layout law and no gesture — so it
+is not a module at all, which is a sharper way of saying that it proves definitions carry a
+vocabulary.
+
+### Rules the notations settled
+
+**A lifeline is a block's behavioral edge, the way its frame is its structural one.** An interface
+is a place on a block's boundary where relationships attach — derived until somebody names it, and
+seated along that boundary. An occurrence on a lifeline is that same place in time, and so it is
+the same thing: an interface. A message is a relationship between two of them, which is the shape a
+parametric binding already has. Nothing about a sequence diagram is new — the seats, the promotion
+rule and the ordering along an edge all exist, and twenty occurrences stay out of the tree for the
+same reason twenty ports do.
+
+**A swimlane is a block whose children belong to it.** A group would have been the closer word, but
+a group's bounds are its members' bounds, so an empty one has nothing to draw and no way to be
+reached again. A block holds children, draws when empty, and is already the tree.
+
+**Binding to a value promotes it to an interface.** A parametric binding connects a constraint's
+parameter to a value property, and a value is a field, which deliberately has no identity for a
+relationship to end on. Promotion is the rule that already governs a relationship's seat becoming
+a node, and it is what SysML asks for anyway: a value takes part in wiring at the point somebody
+says it does.
+
+**Causality is a chain; local order is a seat.** Through a graph, order comes from flows: two steps
+with nothing between them are genuinely unordered, and saying otherwise costs a flow somebody has
+to draw, which is honest. Down a lifeline it is `at` along an edge, authored the way a port's
+position is — because a lifeline *is* an edge, and an edge has always ordered what sits on it.
+The two never disagree in storage, because they store different things: a message says which
+occurrences are related, and the seat says where one sits on its own lifeline. That a message
+should not run backwards in time is a check a view makes, not a second thing written down.
 
 ### Nomenclature
 

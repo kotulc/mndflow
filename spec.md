@@ -152,6 +152,16 @@ the project.
 - **Presentation lives on the definition, never on the usage** — colour and icon for an element,
   line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
   export rather than filtered out of one.
+- **(planned)** A definition may declare a `size`, which is what lets the engine place a `figure`
+  it does not draw — a fork bar long and thin, a decision small and square. Absent means the
+  ordinary card size.
+- **(planned)** A definition may carry a **formal name** beside its plain one, and what it **maps
+  to** in a standard. Plain is what the user reads and types; formal and the mapping are what an
+  export writes. Absent means the plain name serves for both.
+- **(planned)** A **package** is a set of definitions somebody ships — plain names, formal names,
+  fields, presentation and mappings. It is data, adds no code, and **maps names and presentation
+  but never structure**; a notation needing structural change is a module instead. See
+  [design.md](design.md) under *Packages and modules*.
 - **A definition subtypes within a form, never across one.** Nothing a user defines can change
   what a thing *is*.
 - **A data structure is a definition**, not an element form: it declares fields, and a block typed
@@ -250,6 +260,51 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
   tuning would change — the suite pins what must stay true, not what happens to be true.
 - The terminal, the embedding modules and the `project` hook are deliberately uncovered; see
   [tasks.md](tasks.md) under *The suite* for why each.
+
+
+## Action surface
+
+*(planned) — the whole section. Today's actions are closures on the `project` hook.*
+
+Everything that changes a project is a **record**, not a function somebody has to know about. One
+registry, read by every input method: gestures, the contents tray, and later the terminal.
+
+- Each record carries a **name**, a **label** the vocabulary may override, the **scope** it applies
+  to — element, relationship, layer or project — its **arguments**, and a **run** returning
+  mutations.
+- **Arguments are typed**: text, element, choice, number, or a canvas position. An input method
+  offers whatever it can fill, so eligibility is derived rather than declared.
+- **A position can only come from a gesture.** An action needing one is reachable only that way;
+  one where it is optional is reachable from anywhere, and the layer places what it was not given.
+- **Running an action returns mutations, and may also ask** for a layer to be opened, a selection
+  to be moved, or a line to be said. It changes nothing itself.
+- **`when` decides whether an action is shown; `check` decides what happens when it runs.** They
+  are not the same test — `when` asks whether this is a thing here at all, `check` asks whether
+  these particular arguments would work, and cannot be answered until they are filled.
+- **What does not apply is not shown.** Greying out is for a fixed row of controls whose positions
+  are worth learning, like the header's; a list built from the selection has no positions to keep,
+  so an entry that cannot run is only noise.
+- **An action refuses in words**, and the refusal goes to the strip like everything else the app
+  says. A name already taken, a node moved inside itself, a second proxy for the same block.
+- **One step per action**, whatever it took to do it — a card dropped in a group moved and joined,
+  and undo takes back both.
+
+**Two tiers.**
+
+| | Is | Offered by |
+|---|---|---|
+| **action** | something somebody meant, and could say — create, rename, relate, group, note, refer, arrange | gestures, the tray, the terminal |
+| **adjustment** | positional and unsayable — where a card rests, how big a note is, where an interface sits on its edge, which wall an end leaves by | gestures only. Never named or ranked |
+
+- **A view declares which adjustments it accepts**, and may accept none — in which case the engine
+  owns every position on it and a drag means something else.
+- **Queries are not on the surface.** Whether a name is free, how many steps a project has, its
+  hash and whether it is saving are readable state, not things to do.
+- **Files are the page's, not a module's** — export, import, new, and later the workspace.
+
+**Modules add no actions.** Requirements, activity, parametrics, state machines and sequence were
+each walked against the surface and none of them needed one: a module is a vocabulary, renderers, a
+layout law and a gesture map. See [design.md](design.md) under *The view is the module seam*.
 
 
 ## Shell
