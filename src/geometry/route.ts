@@ -588,33 +588,20 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
       : [...SIDES].sort((a, b) =>
           sideScore(toBox, b, fromAim, inwardTo) - sideScore(toBox, a, fromAim, inwardTo));
 
-  // Prefer the two best-facing sides each; with a frame try all four so an
-  // inward-safe exit toward a wall port is not skipped.
-  const sideBudget = bounds ? 4 : 2;
-  const fromTry = fromSides.slice(0, opts.pinFrom || opts.sideFrom ? 1 : sideBudget);
-  const toTry = toSides.slice(0, opts.pinTo || opts.sideTo ? 1 : sideBudget);
-
   // Cards at the ends stay solid; the frame (inward ends) does not fill the
   // layer as an obstacle.
-  const solids = [
-    ...obstacles,
+  const ends = [
     ...(inwardFrom ? [] : [fromBox]),
     ...(inwardTo ? [] : [toBox]),
   ];
+  const solids = [...obstacles, ...ends];
 
-  /** The best legal path within a given boundary, or nothing if there is none.
-   *
-   *  Run twice where the layer has a frame. Staying inside it is a rule about
-   *  tidiness, and a short frame can leave a line no way round a card that sits
-   *  between its two ends — at which point honouring the frame would mean not
-   *  drawing the relationship at all. A line that clips outside its frame is a
-   *  much smaller wrong than one that is missing, so the frame is given up
-   *  rather than the relationship.
-   *
-   *  This is what made relationships vanish as the contents tray opened: the
-   *  tray reshapes the frame, and every route that no longer fitted was
-   *  silently dropped. */
-  const search = (within?: Box): Planned | null => {
+  /** The best legal path under a given set of constraints, or nothing if there
+   *  is none. `budget` is how many sides each end may try — two that face the
+   *  other end, or all four when the easy answer has already failed. */
+  const search = (within: Box | undefined, avoid: Box[], budget: number): Planned | null => {
+    const fromTry = fromSides.slice(0, opts.pinFrom || opts.sideFrom ? 1 : budget);
+    const toTry = toSides.slice(0, opts.pinTo || opts.sideTo ? 1 : budget);
     let best: Planned | null = null;
     let bestCost = Number.POSITIVE_INFINITY;
 
@@ -637,15 +624,15 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
             // Stub must leave into the open layer, never through the frame wall.
             if (within && (!contained(within, start) || !contained(within, goal))) continue;
 
-            const found = pathCorners(start, goal, solids, PAD, within);
+            const found = pathCorners(start, goal, avoid, PAD, within);
             const fallback = plain(attach(fromBox, fs, fa), out, attach(toBox, ts, ta), back);
             const corners = found ?? (
               pathInside(fallback, start, goal, within)
-              && !pathHits(fallback, start, goal, solids, PAD, within)
+              && !pathHits(fallback, start, goal, avoid, PAD, within)
                 ? fallback
                 : null
             );
-            if (!corners || pathHits(corners, start, goal, solids, PAD, within)) continue;
+            if (!corners || pathHits(corners, start, goal, avoid, PAD, within)) continue;
 
             // Prefer exits aimed at the other end's actual seat — by their sign
             // only. A side score is a distance, so charging it whole cancelled
@@ -669,7 +656,18 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
     return best;
   };
 
-  return search(bounds) ?? (bounds ? search(undefined) : null);
+  // **A relationship that exists must be drawn.** Each constraint is given up
+  // in turn rather than the line, because every one of them is about tidiness
+  // and none is worth making a relationship invisible for.
+  //
+  // Both failures were real and neither was visible as an error: a frame
+  // reshaped by the contents tray could leave no way round a card between the
+  // two ends, and a card hemmed in by its neighbours on a busy layer could
+  // leave no legal path at all. In both cases the search returned nothing and
+  // the canvas simply dropped the line.
+  return search(bounds, solids, bounds ? 4 : 2)   // tidy: inside the frame, around the cards
+    ?? search(undefined, solids, 4)                // give up the frame
+    ?? search(undefined, ends, 4);                 // give up the cards, but never its own ends
 }
 
 /** How far apart runs sharing a line are pushed. Half a cell: enough to read as

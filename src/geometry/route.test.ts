@@ -58,9 +58,26 @@ describe("route", () => {
     }
   });
 
-  it("goes around a block it does not attach to", () => {
+  it("goes around a block it does not attach to, where it can", () => {
     for (const point of drawn(route(a, b, [wall])!, a, b)) {
       expect(inside(point, wall)).toBe(false);
+    }
+  });
+
+  it("never routes through the cards at its own ends", () => {
+    // The one solid that is never given up: a line that cut back through the
+    // block it left would read as leaving the wrong face.
+    const hemmed: Box[] = [
+      { x: 216, y: 168, w: 216, h: 48 }, { x: 216, y: 300, w: 216, h: 48 },
+      { x: 144, y: 216, w: 48, h: 96 }, { x: 432, y: 216, w: 48, h: 96 },
+    ];
+    const from: Box = { x: 240, y: 240, w: 168, h: 36 };
+    const to: Box = { x: 720, y: 240, w: 168, h: 36 };
+    const points = drawn(route(from, to, hemmed)!, from, to);
+
+    for (const point of points.slice(1, -1)) {
+      expect(inside(point, from)).toBe(false);
+      expect(inside(point, to)).toBe(false);
     }
   });
 
@@ -77,6 +94,32 @@ describe("route", () => {
 
       expect(route(a, b, [wall], { bounds }), `frame ${h} tall`).not.toBeNull();
     }
+  });
+
+  it("draws a line for any two cards, however hemmed in", () => {
+    // The property that matters, over layouts nobody chose. Constraints are
+    // given up in turn — the frame first, then the other cards — because each
+    // is about tidiness and none is worth an invisible relationship.
+    //
+    // Seeded, so a failure is reproducible rather than a flake. Before the
+    // fallbacks existed this failed on roughly half of these.
+    let seed = 12345;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const pick = (lo: number, hi: number) => lo + Math.floor(rnd() * (hi - lo));
+    const box = (): Box => ({ x: pick(0, 600), y: pick(0, 400), w: pick(48, 200),
+                              h: pick(24, 120) });
+    let missing = 0;
+
+    for (let round = 0; round < 120; round += 1) {
+      const obstacles = Array.from({ length: pick(0, 9) }, box);
+      const bounds = rnd() < 0.6
+        ? { x: pick(-100, 50), y: pick(-100, 50), w: pick(200, 900), h: pick(120, 700) }
+        : undefined;
+
+      if (!route(box(), box(), obstacles, { bounds })) missing += 1;
+    }
+
+    expect(missing).toBe(0);
   });
 
   it("prefers to stay inside the frame when it can", () => {

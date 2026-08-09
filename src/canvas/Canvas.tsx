@@ -43,6 +43,7 @@ import { GroupFrame } from "./GroupFrame";
 import { NodeCard } from "./NodeCard";
 import { type Grazed, LIFTED, REFERRED, type Seated } from "./card";
 import { Note } from "./Note";
+import { restated } from "./sync";
 import { Wire } from "./Wire";
 
 const nodeTypes = { card: NodeCard, region: GroupFrame, frame: Frame, note: Note };
@@ -911,15 +912,8 @@ function Flow(props: Props) {
       const moving = group
         ? new Set([group.id, ...Object.keys(group.members)])
         : heldRef.current ? new Set([heldRef.current]) : null;
-      const chosen = new Map(current.map((n) => [n.id, n.selected]));
-      const now = new Map(current.map((n) => [n.id, n.position]));
 
-      return built.map((n) => {
-        const same = { ...n, selected: chosen.get(n.id) ?? false };
-        const at = moving?.has(n.id) ? now.get(n.id) : null;
-
-        return at ? { ...same, position: at } : same;
-      });
+      return restated(current, built, moving);
     });
   }, [built, setNodes]);
 

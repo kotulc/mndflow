@@ -346,12 +346,30 @@ cluster model is settled.
 contents of the two layers cut. The nesting-doll effect the canvas is meant to give is not what
 is drawn.
 
-**Relationships vanished when the contents tray opened** — *fixed*. The tray reshapes the frame,
-and `route` treated staying inside it as a hard requirement: where a short frame left no way round
-a card sitting between the two ends, the search returned nothing and the canvas dropped the line
-outright. The frame is a rule about tidiness, so it is now given up rather than the relationship —
-the search runs again unbounded before failing. A line clipping outside its frame is a much smaller
-wrong than one that is missing. Covered by a test in `geometry/route.test.ts`.
+**Relationships vanished from the canvas** — *fixed*. `route` treated its tidiness rules as hard
+requirements and returned nothing when it could not satisfy them, at which point the canvas dropped
+the line outright — no error, no warning, just a missing relationship. **Three independent causes**,
+which is why it seemed to come and go:
+
+- **The frame.** Opening the contents tray reshapes it, and a short frame can leave no way round a
+  card sitting between the two ends.
+- **Density.** A card hemmed in by its neighbours leaves no legal path at all, which is why
+  navigating into busier layers set it off.
+
+**A third cause, and the one actually reported: the node rebuild dropped React Flow's
+measurements.** Hovering a row in the contents tray changes what is lit, which rebuilds every node
+on the layer. The rebuild carried `selected` and a dragged `position` across but not `measured` —
+and the library records where a node's handles are when it measures it, so an edge whose handles it
+cannot find is not drawn. It re-measures from a `ResizeObserver`, so a node whose element never
+actually changed size may never be measured again: the lines stay gone until a layer change forces
+a remount, which is exactly the reported behaviour. The same failure had already been hit once on
+the frame — see the comment in `Canvas.tsx` about supplying `measured` — and the lesson was not
+carried to the rebuild. Now in `canvas/sync.ts`, with tests.
+
+**Every constraint is now given up in turn rather than the line** — the frame first, then the other
+cards, never its own two ends. A line clipping a frame or crossing a card is a much smaller wrong
+than one that is missing. Measured over 4,000 random layouts: **46% drew no line before, none
+after.** Covered by a seeded property test in `geometry/route.test.ts`, plus one test per cause.
 
 
 **Segments under a card.** Cards are drawn above the relationship layer, so a segment passing
