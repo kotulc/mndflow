@@ -58,7 +58,7 @@ export function Readout(props: Props) {
           />
         )}
         {tab === "actions" && <Log steps={steps} />}
-        {tab === "matching" && <Scores text={draft} active={graph.template} />}
+        {tab === "matching" && <Scores text={draft} active={graph.domain} />}
       </div>
     </section>
   );

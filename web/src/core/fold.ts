@@ -5,89 +5,135 @@
  *  operations — it flips a status and the graph is rebuilt from empty, by the
  *  same code that built the original. */
 
-import { EMPTY, type Axis, type Graph, type Mutation, type Node, type Step } from "./types";
+import {
+  EMPTY, ROOT, edge as newEdge, element as newElement, step as makeStep, type Attr, type Axis,
+  type Edge, type Element, type Graph, type Mutation, type Step,
+} from "./types";
 
-/** Whether a node sits on its parent's frame edge. That, and only that, is
- *  what makes a node an interface. */
-export function isPort(node: Node | undefined): boolean {
-  // Loosely, so a node from a log written before the field existed reads as
-  // "not set" rather than as something it never was.
+/** Whether an element sits on its parent's frame edge. That, and only that, is
+ *  what makes a block an interface. */
+export function isPort(node: Element | undefined): boolean {
+  // Loosely, so an element from a log written before the field existed reads
+  // as "not set" rather than as something it never was.
   return Boolean(node && node.side != null);
 }
 
-/** Whether a node stands in for one that lives somewhere else. */
-export function isRef(node: Node | undefined): boolean {
-  return Boolean(node && node.ref != null);
+/** Whether an element stands in for a block living somewhere else. */
+export function isProxy(node: Element | undefined): boolean {
+  return node?.element === "proxy";
 }
 
-/** What a node really is: itself, or whatever it stands in for.
+/** What a proxy stands in for. */
+export function refOf(graph: Graph, id: string): string | null {
+  return graph.elements[id]?.of ?? null;
+}
+
+/** Whether a relationship crosses a structural boundary: one of its ends is a
+ *  proxy, so it reaches something living in another layer.
  *
- *  One hop and no more. A reference is made one way — dragging a row out of the
- *  object explorer — and the explorer does not list references, so a reference
- *  always points at a real node and a chain of them cannot be built. */
-export function actual(graph: Graph, id: string | null): Node | undefined {
-  const node = id ? graph.nodes[id] : undefined;
-
-  return node?.ref != null ? graph.nodes[node.ref] : node;
+ *  Derived, and never stored — it follows from where the ends are, so drawing a
+ *  line to a proxy makes a reference without anybody saying so. It says nothing
+ *  about the relationship's own kind, which is still plain, flow or assoc. */
+export function isReference(graph: Graph, edge: { source: string; target: string }): boolean {
+  return isProxy(graph.elements[edge.source]) || isProxy(graph.elements[edge.target]);
 }
 
-/** The reference in one layer standing in for a given node, if there is one. */
-export function refIn(graph: Graph, layer: string | null, target: string): Node | undefined {
-  return Object.values(graph.nodes).find(
-    (n) => n.ref === target && (n.parent ?? null) === layer,
+/** What an element really is: itself, or whatever it stands in for.
+ *
+ *  One hop and no more. A proxy is made one way — dragging a row out of the
+ *  object explorer — and the explorer does not list proxies, so a proxy always
+ *  points at a real block and a chain of them cannot be built. */
+export function actual(graph: Graph, id: string | null): Element | undefined {
+  const node = id ? graph.elements[id] : undefined;
+  if (!node || !isProxy(node)) return node;
+
+  const target = refOf(graph, node.id);
+
+  return target ? graph.elements[target] : undefined;
+}
+
+/** The proxy in one layer standing in for a given block, if there is one.
+ *
+ *  At most one: a second appearance of the same block in the same layer says
+ *  nothing the first did not. */
+export function proxyIn(graph: Graph, layer: string | null, target: string): Element | undefined {
+  return Object.values(graph.elements).find(
+    (n) => isProxy(n) && (n.parent ?? null) === layer && n.of === target,
   );
 }
 
-/** Whether a node sits under an ancestor — the guard against a move that would
- *  make the hierarchy a cycle. */
+/** Whether an element sits under an ancestor — the guard against a move that
+ *  would make the tree a cycle. */
 export function descendsFrom(graph: Graph, id: string | null, ancestor: string): boolean {
   let cursor = id;
 
   while (cursor) {
     if (cursor === ancestor) return true;
-    cursor = graph.nodes[cursor]?.parent ?? null;
+    cursor = graph.elements[cursor]?.parent ?? null;
   }
 
   return false;
 }
 
-/** Direct children of a node, or the top level for null. A node whose parent
- *  was undone counts as top level rather than disappearing. */
-export function childrenOf(graph: Graph, parent: string | null): Node[] {
-  return Object.values(graph.nodes).filter((n) => {
-    const actual = n.parent && graph.nodes[n.parent] ? n.parent : null;
+/** Direct children of an element, or the root layer for null. An element whose
+ *  parent was undone counts as top level rather than disappearing.
+ *
+ *  Root is skipped by id: it carries `parent: null` like everything in the root
+ *  layer, and this is the one place that has to tell it from its own children. */
+export function childrenOf(graph: Graph, parent: string | null): Element[] {
+  return Object.values(graph.elements).filter((n) => {
+    if (n.id === ROOT) return false;
+    const held = n.parent && graph.elements[n.parent] ? n.parent : null;
 
-    return actual === parent;
+    return held === parent;
   });
 }
 
-/** Children that sit inside the frame — everything the treemap shows. */
-export function blocksOf(graph: Graph, parent: string | null): Node[] {
-  return childrenOf(graph, parent).filter((n) => !isPort(n));
+/** Children that sit inside the frame — everything the treemap shows. Blocks
+ *  and proxies only: a note or a group is drawn in the layer, not held by it. */
+export function blocksOf(graph: Graph, parent: string | null): Element[] {
+  return childrenOf(graph, parent).filter(
+    (n) => !isPort(n) && (n.element === "block" || n.element === "proxy"),
+  );
 }
 
 /** Children that sit on the frame edge. Only the ones somebody made by hand:
  *  a relationship's own ends are worked out where the layer is drawn and are
- *  never nodes until they are promoted. */
-export function portsOf(graph: Graph, parent: string | null): Node[] {
+ *  never elements until they are promoted. */
+export function portsOf(graph: Graph, parent: string | null): Element[] {
   return childrenOf(graph, parent).filter(isPort);
 }
 
-/** How a layer arranges what it holds. Free until it has been set, so a layer
- *  nobody has given a direction to fills outward as it always did. */
-export function axisOf(graph: Graph, layer: string | null): Axis {
-  if (layer === null) return graph.axis ?? "free";
-
-  return graph.nodes[layer]?.axis ?? "free";
+/** The root block, which every project has. */
+export function rootOf(graph: Graph): Element {
+  return graph.elements[ROOT] ?? newElement("", { id: ROOT });
 }
 
-/** Whether a node holds child blocks. Interfaces do not count: a block with
- *  ports on its edge is still a block, and draws as one. Neither does a
- *  reference ever hold anything — its contents live where it points. */
-export function isContainer(graph: Graph, id: string): boolean {
-  if (isRef(graph.nodes[id])) return false;
+/** The project's name. Root's label, like any other element's. */
+export function titleOf(graph: Graph): string {
+  return rootOf(graph).label;
+}
 
-  return Object.values(graph.nodes).some((n) => n.parent === id && !isPort(n));
+/** Which way a layer reads. None until somebody says otherwise.
+ *
+ *  Older logs stored the arrangement here as well, back when the two were one
+ *  setting; anything that was an arrangement rather than a direction reads as
+ *  no direction, which is what it meant. */
+export function axisOf(graph: Graph, layer: string | null): Axis {
+  const held = (layer === null ? rootOf(graph).axis : graph.elements[layer]?.axis) ?? "none";
+
+  if (held === "across" || held === "down") return held;
+
+  return (held as string) === "right" ? "across" : "none";
+}
+
+/** Whether a block holds children of its own. Interfaces do not count: a block
+ *  with ports on its edge is still a block, and draws as one. Neither does a
+ *  proxy ever hold anything — its contents live where it points. */
+export function isContainer(graph: Graph, id: string): boolean {
+  if (isProxy(graph.elements[id])) return false;
+
+  return blocksOf(graph, id).length > 0;
 }
 
 /** Whether a relationship attaches to this interface. What tells a port that
@@ -96,11 +142,14 @@ export function isLinked(graph: Graph, id: string): boolean {
   return Object.values(graph.edges).some((e) => e.from === id || e.to === id);
 }
 
-/** The number a new interface on this node takes: the lowest not already in
- *  use among its siblings. A gap left by a deleted interface is filled by the
- *  next one made, and no interface that already exists is renumbered. */
-export function nextPortNum(graph: Graph, parent: string | null): number {
-  const taken = new Set(portsOf(graph, parent).map((p, at) => p.num ?? at + 1));
+/** The number a new element takes among its siblings of the same element type:
+ *  the lowest not already in use. A gap left by a deletion is filled by the
+ *  next one made, and nothing that already exists is renumbered. */
+export function nextNum(graph: Graph, parent: string | null, kind: Element["element"],
+                        port = false): number {
+  const siblings = childrenOf(graph, parent)
+    .filter((n) => n.element === kind && isPort(n) === port);
+  const taken = new Set(siblings.map((n, at) => n.num ?? at + 1));
 
   let num = 1;
   while (taken.has(num)) num += 1;
@@ -108,103 +157,188 @@ export function nextPortNum(graph: Graph, parent: string | null): number {
   return num;
 }
 
-/** What an unnamed interface is called: its number among the interfaces of the
- *  node it sits on.
+/** What an unnamed element is called: its element type and its number among
+ *  its siblings of that type.
  *
  *  Numbered rather than left all sharing one word, because a relationship puts
- *  an interface at each of its ends and a node soon has several — five rows in
- *  the explorer all reading "interface" name nothing. Per parent, since that is
- *  where the names are seen together; two nodes each having an `interface 1` is
- *  no more a clash than two folders each holding a `notes`.
+ *  an interface at each of its ends and a block soon has several — five rows
+ *  in the explorer all reading "interface" name nothing. Per parent, since that
+ *  is where the names are seen together; two blocks each having an `interface
+ *  1` is no more a clash than two folders each holding a `notes`.
  *
- *  The number is fixed when the interface is made, so a diagram being rewired
+ *  The number is fixed when the element is made, so a diagram being rewired
  *  never renames what it is not touching. Anything wanting a name of its own
  *  can be given one, and a name given replaces the number entirely. */
-export function portName(graph: Graph, port: Node): string {
+export function numberedName(graph: Graph, node: Element): string {
+  const word = isPort(node) ? "interface" : node.element;
+
   // Logs written before numbers were stored fall back to counting.
-  if (port.num != null) return `interface ${port.num}`;
+  if (node.num != null) return `${word} ${node.num}`;
 
-  const at = portsOf(graph, port.parent).findIndex((p) => p.id === port.id);
+  const at = childrenOf(graph, node.parent)
+    .filter((n) => n.element === node.element && isPort(n) === isPort(node))
+    .findIndex((n) => n.id === node.id);
 
-  return `interface ${at + 1}`;
+  return `${word} ${at + 1}`;
 }
 
-/** What to call a node. Something unnamed falls back to its role, so it still
- *  says what it is rather than reading as a gap — and a name given later
- *  simply replaces it. */
-export function nameOf(graph: Graph, node: Node | undefined): string {
+/** What to call an element. Something unnamed falls back to its element type
+ *  and number, so it still says what it is rather than reading as a gap — and
+ *  a name given later simply replaces it.
+ *
+ *  Container-ness is not in the name: it is derived from what a block holds, so
+ *  a name that tracked it would change the moment a child was added. The icon
+ *  says it instead. */
+export function nameOf(graph: Graph, node: Element | undefined): string {
   if (!node) return "";
-  // A reference has no name of its own: it shows whatever it stands in for,
-  // which is also what renaming it renames.
-  if (node.ref != null) {
-    const real = actual(graph, node.ref);
+  // A proxy has no name of its own: it shows whatever it stands in for, which
+  // is also what renaming it renames.
+  if (isProxy(node)) {
+    const real = actual(graph, node.id);
 
     return real ? nameOf(graph, real) : "missing";
   }
   if (node.label) return node.label;
-  if (isPort(node)) return portName(graph, node);
 
-  return isContainer(graph, node.id) ? "container" : "block";
+  return numberedName(graph, node);
 }
 
-/** Attributes an object carries, whether it holds them alone or shares them. */
-export function attrsOf(graph: Graph, holder: string) {
-  return Object.values(graph.attrs).filter((a) => a.holders.includes(holder));
+/** Whether a name is free among an element's siblings.
+ *
+ *  Unique locally, so that where something sits in the tree is what makes it
+ *  unique in the project. Only stored labels are compared: a fallback is a
+ *  number nobody chose, and blank is not a name. */
+export function nameFree(graph: Graph, parent: string | null, label: string,
+                         except: string | null = null): boolean {
+  const wanted = label.trim().toLowerCase();
+  if (!wanted) return true;
+
+  return !childrenOf(graph, parent).some(
+    (n) => n.id !== except && n.label.trim().toLowerCase() === wanted,
+  );
 }
 
-/** The groups drawn on one layer: shared attributes whose members are blocks
- *  sitting directly in it.
+/** Descriptive values an element or a relationship carries. */
+export function attrsOf(graph: Graph, holder: string): Attr[] {
+  return graph.elements[holder]?.attrs ?? [];
+}
+
+/** The groups drawn on one layer, each with the members it has there.
+ *
+ *  A group is an element sitting in the layer; its members are whoever names
+ *  it. Held one way round only, so the two can never disagree.
  *
  *  One member is enough. A boundary round a single block is a way of marking
  *  it, which is a thing worth being able to do; what is refused is a group
  *  *decaying* into one, and that is refused where the member leaves rather than
  *  here. */
 export function groupsIn(graph: Graph, layer: string | null) {
-  return Object.values(graph.attrs)
-    .filter((a) => a.group)
-    .map((a) => ({
-      attr: a,
-      here: a.holders.filter((id) => {
-        const node = graph.nodes[id];
-
-        return node && !isPort(node) && (node.parent ?? null) === layer;
-      }),
+  return childrenOf(graph, layer)
+    .filter((n) => n.element === "group")
+    .map((group) => ({
+      attr: group,
+      here: membersOf(graph, group.id).filter((n) => (n.parent ?? null) === layer).map((n) => n.id),
     }))
     .filter((g) => g.here.length > 0);
 }
 
-/** The notes drawn on one layer. A note is placed in a layer rather than
- *  derived from what it is tied to, because it may be tied to nothing. */
-export function notesIn(graph: Graph, layer: string | null) {
-  return Object.values(graph.attrs).filter((a) => a.note && a.note.layer === layer);
+/** Everything naming a given group. Derived, never stored on the group. */
+export function membersOf(graph: Graph, group: string): Element[] {
+  return Object.values(graph.elements).filter((n) => n.groups.includes(group) && !isPort(n));
 }
+
+/** What a note describes: the far end of each of its ties. Derived from the
+ *  relationships, because a tie is one. */
+export function tiesOf(graph: Graph, note: string): string[] {
+  return Object.values(graph.edges)
+    .filter((e) => e.kind === "tie" && e.source === note)
+    .map((e) => e.target);
+}
+
+/** The notes drawn on one layer. A note sits in a layer rather than being
+ *  derived from what it is tied to, because it may be tied to nothing. */
+export function notesIn(graph: Graph, layer: string | null): Element[] {
+  return childrenOf(graph, layer).filter((n) => n.element === "note");
+}
+
+/** Everything drawn in one layer: its blocks and proxies, their interfaces, and
+ *  the layer itself, which the frame stands for. */
+export function drawnIn(graph: Graph, layer: string | null): Set<string> {
+  const here = new Set<string>(layer ? [layer] : []);
+
+  for (const block of blocksOf(graph, layer)) {
+    here.add(block.id);
+    for (const port of portsOf(graph, block.id)) here.add(port.id);
+  }
+  for (const port of portsOf(graph, layer)) here.add(port.id);
+
+  return here;
+}
+
+/** The relationships a layer draws: both ends reach something in it, either
+ *  directly or through a proxy standing in for something that lives elsewhere.
+ *
+ *  The same rule the canvas draws by, kept here so a second reader — the
+ *  contents table — cannot drift from it. */
+export function edgesIn(graph: Graph, layer: string | null) {
+  const here = drawnIn(graph, layer);
+  const reaches = (id: string) =>
+    here.has(id) || Boolean(proxyIn(graph, layer, actual(graph, id)?.id ?? id));
+
+  return Object.values(graph.edges).filter((e) => reaches(e.source) && reaches(e.target));
+}
+
+/** Set or drop a descriptive value on an element, addressed by its name. */
+function setAttr(node: Element, name: string, value?: string, tags?: string[]): void {
+  const at = node.attrs.findIndex((a) => a.name === name);
+  const was = at >= 0 ? node.attrs[at] : { name, value: "", tags: [] };
+  const next = { ...was, value: value ?? was.value, tags: tags ? [...tags] : was.tags };
+
+  if (at >= 0) node.attrs[at] = next;
+  else node.attrs.push(next);
+}
+
+/** Plain attributes seen in a retired `add_attr`, waiting for the
+ *  `attach_attr` that says who carries them. They have no element of their own
+ *  — an attribute is a value on its holder now — so the name has to be held
+ *  until the holder is known. Fold-local, and empty again by the next fold. */
+type Pending = Map<string, Attr>;
 
 /** Apply one mutation in place. Unknown targets are skipped rather than
  *  thrown: an undone parent can legitimately strand a later step. */
-function apply(graph: Graph, mutation: Mutation): void {
+function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
   switch (mutation.op) {
-    case "add_node":
-      graph.nodes[mutation.node.id] = { ...mutation.node };
+    case "checkpoint":
+      // Everything a snapshot stands for, in place of replaying it.
+      graph.elements = structuredClone(mutation.graph.elements);
+      graph.edges = structuredClone(mutation.graph.edges);
+      graph.relations = [...mutation.graph.relations];
+      graph.domain = mutation.graph.domain;
       break;
 
-    case "update_node": {
-      const node = graph.nodes[mutation.id];
+    case "add_element":
+      graph.elements[mutation.element.id] = { ...mutation.element };
+      break;
+
+    case "update_element": {
+      const node = graph.elements[mutation.id];
       if (!node) return;
       if (mutation.label) node.label = mutation.label;
       if (mutation.type !== undefined) node.type = mutation.type;
+      if (mutation.color !== undefined) node.color = mutation.color;
       break;
     }
 
-    case "move_node": {
-      const node = graph.nodes[mutation.id];
-      if (node && !descendsFrom(graph, mutation.parent, mutation.id)) {
+    case "move_element": {
+      const node = graph.elements[mutation.id];
+      if (node && mutation.id !== ROOT && !descendsFrom(graph, mutation.parent, mutation.id)) {
         node.parent = mutation.parent;
       }
       break;
     }
 
-    case "place_node": {
-      const node = graph.nodes[mutation.id];
+    case "place_element": {
+      const node = graph.elements[mutation.id];
       if (node) {
         node.x = mutation.x;
         node.y = mutation.y;
@@ -212,11 +346,21 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
-    case "delete_node": {
-      const gone = Object.keys(graph.nodes).filter((id) =>
+    case "size_element": {
+      const node = graph.elements[mutation.id];
+      if (node) {
+        node.w = mutation.w;
+        node.h = mutation.h;
+      }
+      break;
+    }
+
+    case "delete_element": {
+      if (mutation.id === ROOT) return;
+      const gone = Object.keys(graph.elements).filter((id) =>
         descendsFrom(graph, id, mutation.id),
       );
-      for (const id of gone) delete graph.nodes[id];
+      for (const id of gone) delete graph.elements[id];
       for (const [id, edge] of Object.entries(graph.edges)) {
         if (gone.includes(edge.source) || gone.includes(edge.target)) delete graph.edges[id];
       }
@@ -224,13 +368,13 @@ function apply(graph: Graph, mutation: Mutation): void {
     }
 
     case "set_body": {
-      const node = graph.nodes[mutation.id];
+      const node = graph.elements[mutation.id];
       if (node) node.body = mutation.body;
       break;
     }
 
     case "set_port": {
-      const node = graph.nodes[mutation.id];
+      const node = graph.elements[mutation.id];
       if (!node) return;
       node.side = mutation.side;
       node.at = mutation.at;
@@ -238,55 +382,76 @@ function apply(graph: Graph, mutation: Mutation): void {
     }
 
     case "mark_port": {
-      const node = graph.nodes[mutation.id];
+      const node = graph.elements[mutation.id];
       if (node) node.flow = mutation.flow;
       break;
     }
 
     case "set_axis": {
-      if (mutation.layer === null) graph.axis = mutation.axis;
-      else {
-        const node = graph.nodes[mutation.layer];
-        if (node) node.axis = mutation.axis;
-      }
+      const node = graph.elements[mutation.layer ?? ROOT];
+      if (node) node.axis = mutation.axis;
       break;
     }
 
     case "relax_layer": {
-      const here = new Set(blocksOf(graph, mutation.layer).map((n) => n.id));
-      for (const id of here) {
-        graph.nodes[id].x = null;
-        graph.nodes[id].y = null;
+      for (const node of childrenOf(graph, mutation.layer)) {
+        if (isPort(node)) continue;
+        node.x = null;
+        node.y = null;
       }
 
-      // A wall somebody chose is hand work on this layer's lines, the same as a
-      // position is on its cards, so letting go lets go of both.
-      const inside = (id: string) => here.has(id) || id === mutation.layer;
-      for (const edge of Object.values(graph.edges)) {
-        if (!inside(edge.source) || !inside(edge.target)) continue;
-        delete edge.fromSide;
-        delete edge.toSide;
-      }
+      // Walls are left alone. A wall is a hard constraint — honoured *by* an
+      // arrangement rather than replaced by one — where a card's position is
+      // merely retained until an arrangement asks for it back.
       break;
     }
 
-    case "link_nodes": {
+    case "join_group": {
+      const node = graph.elements[mutation.id];
+      if (node && !node.groups.includes(mutation.group)) node.groups.push(mutation.group);
+      break;
+    }
+
+    case "leave_group": {
+      const node = graph.elements[mutation.id];
+      if (node) node.groups = node.groups.filter((g) => g !== mutation.group);
+      break;
+    }
+
+    case "set_attr": {
+      const node = graph.elements[mutation.id];
+      if (node) setAttr(node, mutation.name, mutation.value, mutation.tags);
+      break;
+    }
+
+    case "drop_attr": {
+      const node = graph.elements[mutation.id];
+      if (node) node.attrs = node.attrs.filter((a) => a.name !== mutation.name);
+      break;
+    }
+
+    case "link_elements": {
       const { edge } = mutation;
-      if (graph.nodes[edge.source] && graph.nodes[edge.target]) {
-        graph.edges[edge.id] = { ...edge };
+      if (graph.elements[edge.source] && graph.elements[edge.target]) {
+        // `relation` was this field's name once. A log written either side of
+        // that rename folds the same way, and an edge always has a `type` —
+        // anything reading one should never have to ask whether it does.
+        const named = edge as Edge & { relation?: string };
+        graph.edges[edge.id] = { ...edge, type: named.type ?? named.relation ?? "" };
       }
       break;
     }
 
     case "set_end": {
       const edge = graph.edges[mutation.id];
-      if (edge && graph.nodes[mutation.port]) edge[mutation.end] = mutation.port;
+      if (edge && graph.elements[mutation.port]) edge[mutation.end] = mutation.port;
       break;
     }
 
     case "update_edge": {
       const edge = graph.edges[mutation.id];
-      if (edge) edge.relation = mutation.relation;
+      const named = mutation as { type?: string; relation?: string };
+      if (edge) edge.type = named.type ?? named.relation ?? "";
       break;
     }
 
@@ -311,12 +476,6 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
     }
 
-    // A line has no route of its own any more — it is planned from the layer it
-    // is drawn in. Kept so a log written when routes were stored still folds:
-    // the corners are simply not read.
-    case "route_edge":
-      break;
-
     case "flip_edge": {
       const edge = graph.edges[mutation.id];
       if (edge) {
@@ -330,12 +489,8 @@ function apply(graph: Graph, mutation: Mutation): void {
       delete graph.edges[mutation.id];
       break;
 
-    case "set_template":
-      graph.template = mutation.template;
-      break;
-
-    case "set_title":
-      graph.title = mutation.title;
+    case "set_domain":
+      graph.domain = mutation.domain;
       break;
 
     case "add_relation":
@@ -345,7 +500,7 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "rename_relation": {
       graph.relations = graph.relations.map((r) => (r === mutation.from ? mutation.to : r));
       for (const edge of Object.values(graph.edges)) {
-        if (edge.relation === mutation.from) edge.relation = mutation.to;
+        if (edge.type === mutation.from) edge.type = mutation.to;
       }
       break;
     }
@@ -353,53 +508,165 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "drop_relation": {
       graph.relations = graph.relations.filter((r) => r !== mutation.name);
       for (const edge of Object.values(graph.edges)) {
-        if (edge.relation === mutation.name) edge.relation = "";
+        if (edge.type === mutation.name) edge.type = "";
       }
       break;
     }
 
-    case "add_attr":
-      graph.attrs[mutation.attr.id] = { ...mutation.attr, holders: [...mutation.attr.holders] };
-      break;
+    default:
+      legacy(graph, mutation, waiting);
+  }
+}
 
-    case "update_attr": {
-      const attr = graph.attrs[mutation.id];
-      if (!attr) return;
-      if (mutation.name !== undefined) attr.name = mutation.name;
-      if (mutation.value !== undefined) attr.value = mutation.value;
-      if (mutation.tags !== undefined) attr.tags = [...mutation.tags];
-      if (mutation.color !== undefined) attr.color = mutation.color;
+/** Fold an operation no longer written, into what it drew at the time.
+ *
+ *  Kept separate so the live set above reads as the current schema and nothing
+ *  else. Attributes are the substantial case: a group and a note are elements
+ *  now, so an old `add_attr` becomes whichever element it was drawing, and its
+ *  holders become membership, ties, or a plain value depending on which. */
+function legacy(graph: Graph, mutation: Mutation, waiting: Pending): void {
+  const old = mutation as Record<string, string | number | null | undefined> & { op: string };
+
+  switch (old.op) {
+    case "add_node": {
+      const node = (mutation as { node: Record<string, unknown> }).node;
+      const id = node.id as string;
+      const stands = (node.ref as string | null | undefined) ?? null;
+      graph.elements[id] = newElement((node.label as string) ?? "", {
+        ...node,
+        id,
+        element: stands != null ? "proxy" : "block",
+        of: stands,
+      } as Partial<Element>);
+
       break;
     }
 
-    case "place_attr": {
-      const attr = graph.attrs[mutation.id];
-      if (attr?.note) attr.note = { ...attr.note, x: mutation.x, y: mutation.y };
+    case "update_node":
+      apply(graph, { ...(mutation as object), op: "update_element" } as Mutation, waiting);
+      break;
+
+    case "move_node":
+      apply(graph, { ...(mutation as object), op: "move_element" } as Mutation, waiting);
+      break;
+
+    case "place_node":
+    case "place_attr":
+      apply(graph, { ...(mutation as object), op: "place_element" } as Mutation, waiting);
+      break;
+
+    case "delete_node":
+    case "delete_attr":
+      apply(graph, { op: "delete_element", id: old.id as string }, waiting);
+      break;
+
+    case "link_nodes": {
+      const edge = (mutation as { edge: Record<string, unknown> }).edge;
+      apply(graph, {
+        op: "link_elements",
+        edge: { ...edge, type: (edge.relation as string) ?? "" },
+      } as Mutation, waiting);
+      break;
+    }
+
+    case "set_template":
+      graph.domain = old.template as string;
+      break;
+
+    case "set_title":
+      rootOf(graph).label = old.title as string;
+      break;
+
+    case "add_attr": {
+      const attr = (mutation as { attr: Record<string, unknown> }).attr;
+      const id = attr.id as string;
+      const note = attr.note as { layer: string | null; x: number; y: number;
+                                  w?: number; h?: number } | undefined;
+
+      if (attr.group || note) {
+        graph.elements[id] = newElement((attr.name as string) ?? "", {
+          id,
+          element: note ? "note" : "group",
+          parent: note ? note.layer : null,
+          x: note?.x ?? null,
+          y: note?.y ?? null,
+          w: note?.w ?? null,
+          h: note?.h ?? null,
+          color: (attr.color as string) ?? "#d9a441",
+        });
+      }
+      else {
+        // A plain attribute has no element of its own; it waits here for the
+        // `attach_attr` that says who carries it.
+        waiting.set(id, { name: (attr.name as string) ?? "", value: (attr.value as string) ?? "",
+                          tags: (attr.tags as string[]) ?? [] });
+      }
+      for (const holder of ((attr.holders as string[]) ?? [])) {
+        apply(graph, { op: "attach_attr", id, holder } as Mutation, waiting);
+      }
+      break;
+    }
+
+    case "update_attr": {
+      const node = graph.elements[old.id as string];
+      if (!node) return;
+      if (old.name !== undefined) node.label = old.name as string;
+      if (old.color !== undefined) node.color = old.color as string;
       break;
     }
 
     case "attach_attr": {
-      const attr = graph.attrs[mutation.id];
-      if (attr && !attr.holders.includes(mutation.holder)) attr.holders.push(mutation.holder);
+      const id = old.id as string;
+      const holder = graph.elements[old.holder as string];
+      const annotation = graph.elements[id];
+      if (!holder) return;
+
+      // A note's tie is a relationship now; a group's membership is not.
+      if (annotation?.element === "group") {
+        // A group used to take its layer from its members. It is an element in
+        // one now, so the first member it gets is what says which.
+        annotation.parent = holder.parent;
+        apply(graph, { op: "join_group", id: holder.id, group: id }, waiting);
+      } else if (annotation?.element === "note") {
+        const tie = `tie_${id}_${holder.id}`;
+        graph.edges[tie] = newEdge(id, holder.id, { id: tie, kind: "tie" });
+      } else {
+        const held = waiting.get(id);
+        if (held) setAttr(holder, held.name, held.value, held.tags);
+      }
       break;
     }
 
     case "detach_attr": {
-      const attr = graph.attrs[mutation.id];
-      if (attr) attr.holders = attr.holders.filter((h) => h !== mutation.holder);
+      const id = old.id as string;
+      const holder = old.holder as string;
+      const annotation = graph.elements[id];
+
+      if (annotation?.element === "group") {
+        apply(graph, { op: "leave_group", id: holder, group: id }, waiting);
+      } else if (annotation?.element === "note") {
+        delete graph.edges[`tie_${id}_${holder}`];
+      } else {
+        const held = waiting.get(id);
+        const on = graph.elements[holder];
+        if (held && on) on.attrs = on.attrs.filter((a) => a.name !== held.name);
+      }
       break;
     }
 
-    case "delete_attr":
-      delete graph.attrs[mutation.id];
+    // A line has no route of its own any more — it is planned from the layer it
+    // is drawn in. Kept so a log written when routes were stored still folds:
+    // the corners are simply not read.
+    case "route_edge":
       break;
   }
 }
 
-/** Drop what the graph can no longer support: holders that have been deleted,
- *  groups left with nobody in them, and notes whose layer has gone.
+/** Drop what the graph can no longer support: membership and ties pointing at
+ *  things that have gone, groups left with nobody in them, and proxies whose
+ *  block has been deleted.
  *
- *  Done here rather than in each mutation so that deleting a node cleans up
+ *  Done here rather than in each mutation so that deleting an element cleans up
  *  after itself however it happened — by hand, by a workflow, or by an undo
  *  further back in the log putting the graph in a different shape.
  *
@@ -408,24 +675,60 @@ function apply(graph: Graph, mutation: Mutation): void {
  *  decayed — so decay is refused where it happens, in the action that takes the
  *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
-  for (const [id, node] of Object.entries(graph.nodes)) {
-    if (node.ref != null && !graph.nodes[node.ref]) delete graph.nodes[id];
+  // A proxy is nothing without the block it stands for.
+  for (const [id, node] of Object.entries(graph.elements)) {
+    if (isProxy(node) && (!node.of || !graph.elements[node.of])) delete graph.elements[id];
   }
 
-  for (const [id, attr] of Object.entries(graph.attrs)) {
-    attr.holders = attr.holders.filter((h) => graph.nodes[h] || graph.edges[h]);
-    if (attr.group && !attr.holders.length) delete graph.attrs[id];
-    if (attr.note?.layer && !graph.nodes[attr.note.layer]) delete graph.attrs[id];
+  for (const node of Object.values(graph.elements)) {
+    node.groups = node.groups.filter((g) => graph.elements[g]);
   }
+
+  for (const [id, node] of Object.entries(graph.elements)) {
+    if (node.element === "group" && !membersOf(graph, id).length) delete graph.elements[id];
+  }
+}
+
+/** How many steps survive a compaction, and the length that triggers one.
+ *
+ *  Slack between them so that compaction happens every `COMPACT_AT - KEEP`
+ *  steps rather than on every commit once the cap is reached. */
+export const KEEP = 1000;
+export const COMPACT_AT = 1200;
+
+/** Whether this step is a snapshot rather than something somebody did. */
+export function isCheckpoint(step: Step | undefined): boolean {
+  return step?.mutations.length === 1 && step.mutations[0].op === "checkpoint";
+}
+
+/** Fold the oldest steps into a single snapshot and drop them, so history stays
+ *  bounded and old projects stop carrying retired ops.
+ *
+ *  **The graph is unchanged by this.** Folding the prefix and replaying the tail
+ *  is the same replay in the same order — the snapshot is exactly what the
+ *  dropped steps produced. What is lost is reach: undo cannot go back past a
+ *  checkpoint, and a step reverted long ago can no longer be redone.
+ *
+ *  Steps are counted whatever their status, so the tail keeps its reverted run
+ *  intact and redo still works over everything recent. */
+export function compact(steps: Step[]): Step[] {
+  if (steps.length <= COMPACT_AT) return steps;
+
+  const cut = steps.length - KEEP;
+  const graph = fold(steps.slice(0, cut));
+  const mark = makeStep("checkpoint", "checkpoint", [{ op: "checkpoint", graph }]);
+
+  return [mark, ...steps.slice(cut)];
 }
 
 /** Rebuild the graph from every applied step, in order. */
 export function fold(steps: Step[]): Graph {
   const graph: Graph = structuredClone(EMPTY);
+  const waiting: Pending = new Map();
 
   for (const step of steps) {
     if (step.status !== "applied") continue;
-    for (const mutation of step.mutations) apply(graph, mutation);
+    for (const mutation of step.mutations) apply(graph, mutation, waiting);
   }
 
   tidy(graph);

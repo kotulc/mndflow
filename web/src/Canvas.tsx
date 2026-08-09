@@ -27,14 +27,17 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { axisOf, blocksOf, groupsIn, isRef, nameOf, notesIn, portsOf, refIn } from "./core/fold";
 import {
-  around, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
+  axisOf, blocksOf, groupsIn, isProxy, isReference, membersOf, nameOf, notesIn, portsOf, proxyIn,
+  refOf, tiesOf, titleOf,
+} from "./core/fold";
+import {
+  around, arranged, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
 } from "./core/layout";
 import {
   attach, lanes, route as planRoute, runOf, type Box, type Seat,
 } from "./core/route";
-import type { Axis, End, Graph, Kind, Side, Spot } from "./core/types";
+import type { Axis, End, Graph, Kind, Layout, Side, Spot } from "./core/types";
 import { Frame } from "./Frame";
 import { GroupFrame } from "./GroupFrame";
 import { type Grazed, LIFTED, NodeCard, REFERRED, type Seated } from "./NodeCard";
@@ -88,18 +91,31 @@ const NOTE = { w: 168, h: 40 };
  *  their host via CSS. */
 const DEPTH = { frame: 0, group: 1, card: 2, note: 3, edge: 4 } as const;
 
-/** The arrangements, each its own button. Picking one is a request to lay the
- *  layer out that way, so it is a verb as much as a state. */
+/** The arrangements. Each is a one-time action — press it and the layer is laid
+ *  out that way — so none of them lights up: there is no arrangement a layer is
+ *  currently *in*. */
+const LAYOUTS: { shape: Layout; mark: string; tip: string }[] = [
+  { shape: "grid", mark: "▦", tip: "Arrange as a grid" },
+  { shape: "radial", mark: "⊙", tip: "Arrange around a hub" },
+  { shape: "across", mark: "▤", tip: "Arrange in ranks, across" },
+  { shape: "down", mark: "▥", tip: "Arrange in ranks, down" },
+];
+
+/** Which way the layer reads. A setting, so it does light up. */
 const AXES: { axis: Axis; mark: string; tip: string }[] = [
-  { axis: "free", mark: "◦", tip: "Free" },
-  { axis: "grid", mark: "▦", tip: "Grid" },
-  { axis: "right", mark: "→", tip: "Across" },
-  { axis: "down", mark: "↓", tip: "Down" },
+  { axis: "none", mark: "·", tip: "No flow direction" },
+  { axis: "across", mark: "→", tip: "Flows read across" },
+  { axis: "down", mark: "↓", tip: "Flows read down" },
 ];
 
 /** What a right drag makes, in the order the one control steps through. */
-const KIND_NEXT: Record<Kind, Kind> = { untyped: "flow", flow: "assoc", assoc: "untyped" };
-const KIND_MARK: Record<Kind, string> = {
+/** `tie` is not among them: it has a gesture of its own, so it is not something
+ *  this control can land on. A reference is not here either — it is derived
+ *  from an end being a proxy, and keeps whichever of these it was given. */
+const KIND_NEXT: Partial<Record<Kind, Kind>> = {
+  untyped: "flow", flow: "assoc", assoc: "untyped",
+};
+const KIND_MARK: Partial<Record<Kind, string>> = {
   untyped: "— plain", flow: "⇥ flow", assoc: "⋯ assoc",
 };
 
@@ -170,7 +186,7 @@ const MARK = 5.5;
  *  arrangement already reads by, so a flow line runs with the layer instead of
  *  doubling back across it. A free layer imposes nothing. */
 function flowSides(axis: Axis): { from: Side; to: Side } | null {
-  if (axis === "right") return { from: "right", to: "left" };
+  if (axis === "across") return { from: "right", to: "left" };
   if (axis === "down") return { from: "bottom", to: "top" };
 
   return null;
@@ -191,7 +207,7 @@ function obstaclesOf(boxes: Record<string, Box>, fromId: string, toId: string): 
  *  standing in for it: the reference is a different card, and the seat means
  *  nothing on it. */
 function pinnedAt(graph: Graph, port: string | undefined, owner: string): Seat | undefined {
-  const node = port ? graph.nodes[port] : undefined;
+  const node = port ? graph.elements[port] : undefined;
   if (!node || node.parent !== owner) return undefined;
 
   return node.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
@@ -217,7 +233,7 @@ function planEdge(
   view: string | null,
   frameBox: Box | null,
   used: Used,
-  axis: Axis = "free",
+  axis: Axis = "none",
   solid: Box[] = [],
 ) {
   const fromBox = boxes[edge.source] ?? (edge.source === view ? frameBox : null);
@@ -258,6 +274,7 @@ function planEdge(
 /** What the floating input is asking for. One prompt, several errands. */
 type Prompt =
   | { kind: "node"; x: number; y: number }
+  | { kind: "note"; x: number; y: number; w: number; h: number }
   | { kind: "sprout"; x: number; y: number; end: End }
   | { kind: "relation"; id: string }
   | { kind: "rename"; id: string };
@@ -291,9 +308,29 @@ type Props = {
   onShowPorts: (on: boolean) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
-  /** Lay this layer out the chosen way, dropping hand placement as it goes. */
-  onRelax: (axis: Axis, notes?: { id: string; x: number; y: number }[]) => void;
+  /** Write down where an arrangement put everything. */
+  onArrangeLayer: (spots: { id: string; x: number; y: number }[],
+                   notes?: { id: string; x: number; y: number }[]) => void;
+  /** Which way this layer reads — a setting, not an arrangement. */
+  onAxis: (axis: Axis) => void;
   onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
+  /** Whether a name is already spoken for in a layer, so the prompt can say so. */
+  onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** What this project calls a plain block — the fallback a card's chip shows
+   *  when nothing has given it a subtype of its own. */
+  unit: string;
+  /** Something outside the canvas is pointing at, lit as though hovered. The
+   *  canvas's own pointer wins where the two disagree. */
+  hinted: Grazed;
+  /** Whatever the app has to say, and at most one thing to do about it.
+   *
+   *  One channel for all of it — a repaired log, a refused name, a question
+   *  before something irreversible. The browser's own `alert` and `confirm`
+   *  are two more places to look and cannot be styled or tested. */
+  said: { text: string; act?: { label: string; run: () => void } } | null;
+  onHeard: () => void;
+  /** Say something in full, in the strip. Handed to every name on the canvas. */
+  onSay: (message: string) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
   onNest: (id: string, parent: string) => void;
@@ -325,7 +362,7 @@ type Props = {
    *  attribute's name drawn on the canvas. */
   onNameAttr: (id: string, label: string) => void;
   /** A note in this layer, at the point the gesture began. */
-  onNote: (x: number, y: number) => void;
+  onNote: (text: string, x: number, y: number, w: number, h: number) => void;
   onPlaceNote: (id: string, x: number, y: number) => void;
   /** Tie a note to an object, or untie it if it is already tied. */
   onTie: (id: string, holder: string) => void;
@@ -337,8 +374,10 @@ type Props = {
 };
 
 function Flow(props: Props) {
-  const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular } = props;
-  const { onRelax, onPick, onOpen, onUp, onNest, onPromote, onCreateAt, onSprout } = props;
+  const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
+  const { hinted, said, onHeard, onSay } = props;
+  const { onArrangeLayer, onAxis, onPick, onOpen, onUp, onNest, onPromote, onCreateAt } = props;
+  const { onSprout, onNameTaken } = props;
   const { kind, onKind } = props;
   const axis = axisOf(graph, view);
   // Everything the cards, the frame and the lines are handed has to keep one
@@ -352,6 +391,8 @@ function Flow(props: Props) {
   const { onNote, onPlaceNote, onTie, onRefer, onReveal } = props;
   const flow = useReactFlow();
   const [prompt, setPrompt] = useState<Prompt | null>(null);
+  /** Whether the name being typed is already spoken for in this layer. */
+  const [clash, setClash] = useState(false);
   const [wire, setWire] = useState<Wire | null>(null);
   const [sweep, setSweep] = useState<Sweep | null>(null);
   /** The card a dragged card is currently over — the one it would go inside. */
@@ -364,7 +405,11 @@ function Flow(props: Props) {
   /** The one element the pointer is over, and so the one that highlights.
    *  Resolved here rather than by `:hover`, which lights every ancestor of
    *  whatever is under the cursor. */
-  const [grazed, setGrazed] = useState<Grazed>(null);
+  const [hovered, setHovered] = useState<Grazed>(null);
+  /** What is lit: whatever the pointer is over, or failing that whatever the
+   *  contents table is pointing at. The pointer wins, since it is the more
+   *  immediate of the two. */
+  const grazed = hovered ?? hinted;
   const grazeRef = useRef("");
   const heldRef = useRef<string | null>(null);
   /** Where a group's boundary sat when its drag began, and where each member
@@ -378,22 +423,29 @@ function Flow(props: Props) {
   /** Where the right button went down, whatever it went down on. */
   const pressRef = useRef<Press | null>(null);
   const surface = useRef<HTMLDivElement>(null);
-  /** The panel's own size, so a layer's floor takes its shape from the screen
-   *  it is drawn on — a tall window wants a tall frame, not a wide one
-   *  floating in the middle of it. */
-  const [panel, setPanel] = useState({ w: 1180, h: 660 });
+  /** The part of the canvas actually visible — what is left once the tray has
+   *  taken its half. Everything answers to this: the frame takes its shape from
+   *  the room it is shown in, and the camera fits into the same room.
+   *
+   *  A frame that kept its old proportions letterboxed itself into the strip
+   *  left over, which on a narrow window left it a third of the width it could
+   *  have had. */
+  const [seen, setSeen] = useState({ w: 1180, h: 660 });
 
   useEffect(() => {
     const stage = surface.current;
     if (!stage) return;
 
-    const watch = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      if (width && height) setPanel({ w: width, h: height });
-    });
-    watch.observe(stage);
+    const measure = (to: (size: { w: number; h: number }) => void) =>
+      new ResizeObserver(([entry]) => {
+        const { width, height } = entry.contentRect;
+        if (width && height) to({ w: width, h: height });
+      });
 
-    return () => watch.disconnect();
+    const onStage = measure(setSeen);
+    onStage.observe(stage);
+
+    return () => onStage.disconnect();
   }, []);
 
   const members = useMemo(() => blocksOf(graph, view), [graph, view]);
@@ -407,13 +459,16 @@ function Flow(props: Props) {
    *  arranged nor connected — only avoided. */
   const noteBoxes = useMemo(
     () => notes.map((attr) => ({
-      x: cell(attr.note!.x), y: cell(attr.note!.y), w: NOTE.w, h: NOTE.h,
+      x: cell(attr.x!),
+      y: cell(attr.y!),
+      w: Math.max(NOTE.w, cell(attr.w ?? 0)),
+      h: Math.max(NOTE.h, cell(attr.h ?? 0)),
     })),
     [notes],
   );
 
   const boxes = useMemo(() => {
-    const spots = place(graph, members, axis, noteBoxes);
+    const spots = place(graph, members, noteBoxes);
     const found: Record<string, Box> = {};
 
     for (const node of members) {
@@ -423,11 +478,11 @@ function Flow(props: Props) {
     }
 
     return found;
-  }, [graph, members, axis, noteBoxes, placementKey(members)]);
+  }, [graph, members, noteBoxes, placementKey(members)]);
 
   /** The layer's own frame, with room on every side for its interfaces. */
   const frameBox = useMemo(() => {
-    if (!view || !graph.nodes[view]) return null;
+    if (!view || !graph.elements[view]) return null;
 
     const hug = around(Object.values(boxes), MARGIN) ?? { x: 0, y: 0, w: 0, h: 0 };
 
@@ -435,14 +490,14 @@ function Flow(props: Props) {
     // leaves the same band on every side. A frame of any other shape fits by
     // one axis and letterboxes on the other, which is why one layer sat in
     // generous bands top and bottom while the next had almost none.
-    const shape = (panel.w - BAND * 2) / (panel.h - BAND * 2);
+    const shape = (seen.w - BAND * 2) / (seen.h - BAND * 2);
     let w = Math.max(hug.w, LEAST.w);
     let h = Math.max(hug.h, LEAST.h);
     w / h > shape ? (h = w / shape) : (w = h * shape);
 
     // ...and never smaller than the panel itself, so a sparse layer is roomy
     // rather than magnified. The floor shares the shape, so this keeps it.
-    const floor = Math.max(1, (panel.w - BAND * 2) / w, (panel.h - BAND * 2) / h);
+    const floor = Math.max(1, (seen.w - BAND * 2) / w, (seen.h - BAND * 2) / h);
     w *= floor;
     h *= floor;
 
@@ -455,7 +510,7 @@ function Flow(props: Props) {
     h = cell(h);
 
     return { x: cell(hug.x + hug.w / 2 - w / 2), y: cell(hug.y + hug.h / 2 - h / 2), w, h };
-  }, [view, graph, boxes, panel]);
+  }, [view, graph, boxes, seen]);
 
   /** Each group's boundary: the box round its members, plus a small margin.
    *  Its own, never the user's — the boundary follows what is in it. */
@@ -491,7 +546,7 @@ function Flow(props: Props) {
   const standIn = useCallback((id: string) => {
     if (id === view || members.some((n) => n.id === id)) return id;
 
-    return refIn(graph, view, id)?.id ?? null;
+    return proxyIn(graph, view, id)?.id ?? null;
   }, [graph, members, view]);
 
   /** Every relationship's geometry for this layer, worked out in one pass.
@@ -575,38 +630,63 @@ function Flow(props: Props) {
     return { runs, seats };
   }, [graph, boxes, frameBox, view, axis, showPorts, noteBoxes, standIn]);
 
-  /** Lay this layer out the chosen way. Picking an arrangement *is* the
-   *  request to arrange by it — clicking the one already lit lays it out again,
-   *  which is what a separate button used to be for. */
-  const onArrange = useCallback((which: Axis) => {
-    onRelax(which, reNoted(which));
+  /** Lay this layer out the chosen way.
+   *
+   *  A one-time action: what it works out is committed as ordinary placement,
+   *  so everything can be dragged afterwards. It touches nothing else — which
+   *  way the layer reads is a separate setting, and arranging as a grid is no
+   *  reason to forget it. */
+  const onArrange = useCallback((shape: Layout) => {
+    const spots = arranged(graph, members, shape);
+    const laid = Object.entries(spots).map(([id, at]) => ({ id, x: at.x, y: at.y }));
+
+    onArrangeLayer(laid, reNoted(spots));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reNoted is stable per graph
-  }, [onRelax, graph, members, view]);
+  }, [onArrangeLayer, graph, members, view]);
 
   /** Where each tied note should sit once this layer is laid out afresh.
    *
    *  Worked out here rather than in the fold, because it needs the arrangement
    *  the layer is about to take and only the canvas can run that. A note tied to
    *  nothing keeps its place: there is nothing for it to follow. */
-  const reNoted = useCallback((which: Axis) => {
-    const loose = members.map((n) => ({ ...n, x: null, y: null }));
-    const spots = place(graph, loose, which);
+  const reNoted = useCallback((spots: Record<string, Spot>) => {
+    const boxOf = (id: string) => {
+      const at = spots[id];
+
+      return at && graph.elements[id] ? { ...at, ...sizeOf(graph, graph.elements[id]) } : null;
+    };
+
+    // Everything a note has to stay off: the cards, and the boundaries drawn
+    // round them — a note laid over either is worse than one sitting further
+    // down. Notes placed earlier in this pass join the list as they go.
+    const taken = [
+      ...members.map((n) => boxOf(n.id)),
+      ...groupsIn(graph, view)
+        .map(({ here }) => around(here.map(boxOf).filter(Boolean) as Box[], HUG)),
+    ].filter(Boolean) as Box[];
+
+    const clashes = (box: Box) => taken.some((other) =>
+      box.x < other.x + other.w + HUG && box.x + box.w + HUG > other.x &&
+      box.y < other.y + other.h + HUG && box.y + box.h + HUG > other.y);
 
     return notesIn(graph, view).flatMap((attr) => {
-      const held = attr.holders
-        .map((id) => {
-          const at = spots[id];
-
-          return at && { ...at, ...sizeOf(graph, graph.nodes[id]) };
-        })
-        .filter(Boolean) as Box[];
+      const held = tiesOf(graph, attr.id).map(boxOf).filter(Boolean) as Box[];
       if (!held.length) return [];
 
       const round = around(held, 0)!;
 
       // Just under what it describes, aligned to its left — clear of the ranks,
-      // and in the one place a reader already looks for a caption.
-      return [{ id: attr.id, x: cell(round.x), y: cell(round.y + round.h + CELL) }];
+      // and the one place a reader already looks for a caption. Then down a row
+      // at a time until it is clear of everything else.
+      let at = { x: cell(round.x), y: cell(round.y + round.h + CELL) };
+
+      for (let drop = 0; drop < 40 && clashes({ ...at, ...NOTE }); drop += 1) {
+        at = { x: at.x, y: at.y + CELL };
+      }
+
+      taken.push({ ...at, ...NOTE });
+
+      return [{ id: attr.id, x: at.x, y: at.y }];
     });
   }, [graph, members, view]);
 
@@ -642,6 +722,9 @@ function Flow(props: Props) {
         dropping: dropping === node.id,
         picked: node.id === pickedNode,
         grazed,
+        unit,
+        onNameTaken,
+        onSay,
         showPorts,
         litSeats,
         pickedPort: pickedNode,
@@ -656,7 +739,7 @@ function Flow(props: Props) {
     })) as FlowNode[];
 
     const groups = bands.map(({ attr, box }) => {
-      const chosen = picked?.kind === "attr" && picked.id === attr.id;
+      const chosen = picked?.kind === "node" && picked.id === attr.id;
 
       return {
         id: attr.id,
@@ -676,34 +759,39 @@ function Flow(props: Props) {
         draggable: true,
         selectable: false,
         data: {
-          label: attr.name,
+          label: nameOf(graph, attr),
           picked: chosen,
           grazed: grazed?.kind === "group" && grazed.id === attr.id,
           titled: grazed?.kind === "title" && grazed.id === attr.id,
           dropping: joining.includes(attr.id),
-          onPick: () => onPick({ kind: "attr", id: attr.id }),
+          onPick: () => onPick({ kind: "node", id: attr.id }),
           onLabel: (label: string) => onNameAttr(attr.id, label),
+          onNameTaken: (name: string) => onNameTaken(view, name, attr.id),
+          onSay,
         },
       } as FlowNode;
     });
 
     // A note is small and precise, so it moves at once like a card rather than
-    // wanting a click first the way a boundary does. Its size is its text's:
-    // stated nowhere, measured by the library like any card.
+    // wanting a click first the way a boundary does. Its size is the larger of
+    // what its drag asked for and what its text needs — a minimum, never a
+    // measurement, so the box and what it says can never disagree.
     const written = notes.map((attr) => ({
       id: attr.id,
       type: "note",
       // On the grid by being drawn, the same as a card — see `place`.
-      position: { x: cell(attr.note!.x), y: cell(attr.note!.y) },
+      position: { x: cell(attr.x!), y: cell(attr.y!) },
       zIndex: DEPTH.note,
       selectable: false,
       data: {
-        text: attr.name,
-        picked: picked?.kind === "attr" && picked.id === attr.id,
+        text: nameOf(graph, attr),
+        picked: picked?.kind === "node" && picked.id === attr.id,
         // A note *is* its text, so it lights as a name does — there is nothing
         // else on it to be over.
         grazed: grazed?.kind === "title" && grazed.id === attr.id,
-        onPick: () => onPick({ kind: "attr", id: attr.id }),
+        least: { w: Math.max(NOTE.w, cell(attr.w ?? 0)),
+                 h: Math.max(NOTE.h, cell(attr.h ?? 0)) },
+        onPick: () => onPick({ kind: "node", id: attr.id }),
         onLabel: (text: string) => onNameAttr(attr.id, text),
       },
     })) as FlowNode[];
@@ -731,8 +819,11 @@ function Flow(props: Props) {
           data: {
             id: view,
             graph,
-            straddles: graph.nodes[view]?.side ?? null,
+            onNameTaken,
+            onSay,
+            straddles: graph.elements[view]?.side ?? null,
             axis,
+            unit,
             showPorts,
             litSeats,
             pickedPort: pickedNode,
@@ -785,18 +876,18 @@ function Flow(props: Props) {
         return { ...change, position: { x: start.x + dx, y: start.y + dy } };
       }
 
-      if (here.has(change.id) && graph.nodes[change.id]) {
+      if (here.has(change.id) && graph.elements[change.id]) {
         // Members of a group being dragged are positioned from the group's
         // snapped delta above — leave them alone if a stray change arrives.
         if (start?.members[change.id]) return change;
 
         return {
           ...change,
-          position: middled(change.position, sizeOf(graph, graph.nodes[change.id])),
+          position: middled(change.position, sizeOf(graph, graph.elements[change.id])),
         };
       }
 
-      if (graph.attrs[change.id]?.note) {
+      if (graph.elements[change.id]?.element === "note") {
         return {
           ...change,
           position: { x: cell(change.position.x), y: cell(change.position.y) },
@@ -834,7 +925,7 @@ function Flow(props: Props) {
   /** The frame an interface sits on, wherever it is drawn in this layer. */
   const hostBox = useCallback(
     (port: string | undefined) => {
-      const parent = port ? graph.nodes[port]?.parent : null;
+      const parent = port ? graph.elements[port]?.parent : null;
 
       return parent ? boxes[parent] ?? (parent === view ? frameBox : null) : null;
     },
@@ -847,9 +938,9 @@ function Flow(props: Props) {
      *  drawn in this layer. Decoration, not relationships — they take no
      *  pointer, cannot be selected, and are never routed by hand. */
     const tethers = notes.flatMap((attr) => {
-      const mine = { x: cell(attr.note!.x), y: cell(attr.note!.y), w: NOTE.w, h: NOTE.h };
+      const mine = { x: cell(attr.x!), y: cell(attr.y!), w: NOTE.w, h: NOTE.h };
 
-      return attr.holders.filter((id) => boxes[id]).map((id) => ({
+      return tiesOf(graph, attr.id).filter((id) => boxes[id]).map((id) => ({
         id: `tie-${attr.id}-${id}`,
         source: attr.id,
         target: id,
@@ -871,9 +962,12 @@ function Flow(props: Props) {
         const run = laid.runs[edge.id];
         if (!source || !target || source === target || !run) return null;
 
-        // Reaching out of the layer: at least one end is drawn through a
-        // placeholder, which the line says by going dotted.
-        const away = source !== edge.source || target !== edge.target;
+        // A reference: it reaches something living in another layer. Either an
+        // end was substituted by a proxy standing in for it, or an end simply
+        // is a proxy because the line was drawn straight onto one. Both are the
+        // same fact about the relationship, so both draw alike.
+        const away = source !== edge.source || target !== edge.target ||
+          isReference(graph, edge);
 
         const forward = edge.dir === "forward" || edge.dir === "both";
         const back = edge.dir === "back" || edge.dir === "both";
@@ -888,7 +982,7 @@ function Flow(props: Props) {
           id: edge.id,
           source,
           target,
-          label: edge.relation,
+          label: edge.type,
           type: "wire",
           zIndex: DEPTH.edge,
           // The whole run, ends included. React Flow's own handle positions are
@@ -936,23 +1030,23 @@ function Flow(props: Props) {
   const floorZoom = useMemo(() => {
     if (frameBox) {
       const scale = Math.min(
-        (panel.w - BAND * 2) / frameBox.w,
-        (panel.h - BAND * 2) / frameBox.h,
+        (seen.w - BAND * 2) / frameBox.w,
+        (seen.h - BAND * 2) / frameBox.h,
       );
       return Math.max(0.15, Math.min(scale, 1.6));
     }
 
     const outer = around(Object.values(boxes), 0);
-    if (!outer || panel.w < 1 || panel.h < 1) return 0.15;
+    if (!outer || seen.w < 1 || seen.h < 1) return 0.15;
 
     // Matches fitView({ padding: 0.24, maxZoom: 1.3 }) at the top level.
     const pad = 0.24;
     const scale = Math.min(
-      (panel.w * (1 - pad * 2)) / Math.max(outer.w, 1),
-      (panel.h * (1 - pad * 2)) / Math.max(outer.h, 1),
+      (seen.w * (1 - pad * 2)) / Math.max(outer.w, 1),
+      (seen.h * (1 - pad * 2)) / Math.max(outer.h, 1),
     );
     return Math.max(0.15, Math.min(scale, 1.3));
-  }, [frameBox, boxes, panel.w, panel.h]);
+  }, [frameBox, boxes, seen.w, seen.h]);
 
   /** Centered resting camera at the floor zoom — frame (or free cards) with
    *  even margin. Zoom-to-cursor leaves pan skewed when you hit the floor; this
@@ -962,18 +1056,18 @@ function Flow(props: Props) {
     if (frameBox) {
       return {
         zoom,
-        x: panel.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
-        y: panel.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
+        x: seen.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
+        y: seen.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
       };
     }
     const outer = around(Object.values(boxes), 0);
     if (!outer) return null;
     return {
       zoom,
-      x: panel.w / 2 - (outer.x + outer.w / 2) * zoom,
-      y: panel.h / 2 - (outer.y + outer.h / 2) * zoom,
+      x: seen.w / 2 - (outer.x + outer.w / 2) * zoom,
+      y: seen.h / 2 - (outer.y + outer.h / 2) * zoom,
     };
-  }, [floorZoom, frameBox, boxes, panel.w, panel.h]);
+  }, [floorZoom, frameBox, boxes, seen.w, seen.h]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -997,7 +1091,7 @@ function Flow(props: Props) {
     // when a refit runs, so dragging cards does not chase the camera. The axis
     // is in there too: rearranging a layer moves everything at once, and a
     // camera left where it was is looking at a corner of the new arrangement.
-  }, [flow, view, population, axis, panel.w, panel.h, frameBox]);
+  }, [flow, view, population, axis, seen.w, seen.h, frameBox]);
 
   // If the floor rises (panel shrinks, frame grows), pull the viewport up so
   // it never sits below what wheel zoom is allowed to reach.
@@ -1060,13 +1154,13 @@ function Flow(props: Props) {
    *  deliberately now, and only at the border of the layer you are in. */
   const landing = useCallback(
     (dragged: FlowNode) => {
-      const size = sizeOf(graph, graph.nodes[dragged.id]);
+      const size = sizeOf(graph, graph.elements[dragged.id]);
       const mid = { x: dragged.position.x + size.w / 2, y: dragged.position.y + size.h / 2 };
 
       for (const [id, box] of Object.entries(boxes)) {
         if (id === dragged.id) continue;
         // A reference holds nothing, so nothing lands in one.
-        if (isRef(graph.nodes[id])) continue;
+        if (isProxy(graph.elements[id])) continue;
 
         const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
                               box.y - mid.y, mid.y - (box.y + box.h));
@@ -1081,7 +1175,7 @@ function Flow(props: Props) {
   /** Where a card has landed, in its own middle — what every drop test uses,
    *  because you aim with the card you can see rather than with the pointer. */
   const middleOf = useCallback((node: { id: string; position: { x: number; y: number } }) => {
-    const size = sizeOf(graph, graph.nodes[node.id]);
+    const size = sizeOf(graph, graph.elements[node.id]);
 
     return { x: node.position.x + size.w / 2, y: node.position.y + size.h / 2 };
   }, [graph]);
@@ -1094,17 +1188,21 @@ function Flow(props: Props) {
    *  the boundary with it. Against the ones standing still, joining and
    *  leaving are the same test read in opposite directions.
    *
-   *  When every member is on the move there is nothing to measure against, and
-   *  nothing to measure: the group is travelling rather than being left, so
-   *  whoever is in it stays in it. */
+   *  Where every member is on the move, the boundary is measured where it sat
+   *  before the drag: `boxes` comes from the graph, which does not change until
+   *  the drag commits. This is what lets a group's last member leave it — with
+   *  one member there is never anybody standing still, so the old rule that
+   *  such a group is "travelling" left it impossible to break up.
+   *
+   *  Dragging a group by its own boundary never reaches here: it commits its
+   *  members' places directly and touches no membership. */
   const enclosing = useCallback(
     (mover: string, mid: { x: number; y: number }, moving: Set<string>) =>
       groupsIn(graph, view)
-        .filter(({ attr, here }) => {
+        .filter(({ here }) => {
           const staying = here.filter((id) => !moving.has(id));
-          if (!staying.length) return attr.holders.includes(mover);
-
-          const box = around(staying.map((id) => boxes[id]).filter(Boolean), HUG);
+          const gauge = staying.length ? staying : here;
+          const box = around(gauge.map((id) => boxes[id]).filter(Boolean), HUG);
 
           return box && mid.x >= box.x && mid.x <= box.x + box.w &&
                         mid.y >= box.y && mid.y <= box.y + box.h;
@@ -1293,7 +1391,7 @@ function Flow(props: Props) {
       // An interface, or a group boundary, is selected by us and not by it, so
       // it has to be removed here or Delete would appear to do nothing.
       if (event.key === "Delete" || event.key === "Backspace") {
-        if (picked?.kind === "attr") return (event.preventDefault(), onDropAttr(picked.id));
+        if (picked?.kind === "node") return (event.preventDefault(), onDropAttr(picked.id));
         if (picked?.kind === "edge") return (event.preventDefault(), onUnlink(picked.id));
         if (pickedNode && !nodes.some((n) => n.id === pickedNode && n.type === "card")) {
           event.preventDefault();
@@ -1362,7 +1460,7 @@ function Flow(props: Props) {
     const key = now ? `${now.kind}:${now.id}` : "";
     if (key === grazeRef.current) return;
     grazeRef.current = key;
-    setGrazed(now);
+    setHovered(now);
   }, [grazedAt]);
 
   function rightMove(event: React.PointerEvent) {
@@ -1404,16 +1502,19 @@ function Flow(props: Props) {
       const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
       if (moved <= THRESHOLD) return fallback(event.clientX, event.clientY);
 
-      // Past it, having set off from nothing: a note, in the top-left corner of
-      // the rectangle swept out — so it lands where the box that was drawn says
-      // it will, whichever way the drag ran. The rest of the rectangle is not a
-      // measurement: a note is sized by what it says, the way a boundary is
-      // sized by its members.
+      // Past it, having set off from nothing: a note. It lands in the top-left
+      // corner of the rectangle swept out, whichever way the drag ran, and the
+      // rest of the rectangle is the least room it gets — a minimum, so a long
+      // description has space and a longer one still grows the card. What it
+      // says is asked for before anything is made, the same as a node's name.
       if (down.bare) {
         const at = flow.screenToFlowPosition({ x: Math.min(down.x, event.clientX),
                                                y: Math.min(down.y, event.clientY) });
+        const far = flow.screenToFlowPosition({ x: Math.max(down.x, event.clientX),
+                                                y: Math.max(down.y, event.clientY) });
 
-        onNote(at.x, at.y);
+        setPrompt({ kind: "note", x: at.x, y: at.y,
+                    w: Math.round(far.x - at.x), h: Math.round(far.y - at.y) });
       }
 
       return;
@@ -1456,12 +1557,12 @@ function Flow(props: Props) {
       onPointerDown={rightDown}
       onPointerMove={rightMove}
       onPointerUp={rightUp}
-      onPointerLeave={() => (grazeRef.current = "", setGrazed(null), setSweep(null))}
+      onPointerLeave={() => (grazeRef.current = "", setHovered(null), setSweep(null))}
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="crumbs">
         <button onClick={() => onOpen(null)} className={view ? "" : "here"}>
-          {graph.title || "project"}
+          {titleOf(graph) || "project"}
         </button>
 
         {/* The project, then the last few layers. Whatever is skipped is left
@@ -1472,7 +1573,7 @@ function Flow(props: Props) {
             <span className="sep">/</span>
             <button
               className="elided"
-              title={path.slice(0, -TRAIL).map((id) => nameOf(graph, graph.nodes[id])).join(" / ")}
+              title={path.slice(0, -TRAIL).map((id) => nameOf(graph, graph.elements[id])).join(" / ")}
               onClick={() => onOpen(path[path.length - TRAIL - 1])}
             >
               …
@@ -1484,7 +1585,7 @@ function Flow(props: Props) {
           <span key={id}>
             <span className="sep">/</span>
             <button onClick={() => onOpen(id)} className={index === shown.length - 1 ? "here" : ""}>
-              {nameOf(graph, graph.nodes[id])}
+              {nameOf(graph, graph.elements[id])}
             </button>
           </span>
         ))}
@@ -1506,35 +1607,41 @@ function Flow(props: Props) {
         </button>
         <button
           className={kind === "untyped" ? "" : "on"}
-          onClick={() => onKind(KIND_NEXT[kind])}
+          onClick={() => onKind(KIND_NEXT[kind] ?? "untyped")}
           title="What a right drag makes"
         >
-          {KIND_MARK[kind]}
+          {KIND_MARK[kind] ?? KIND_MARK.untyped}
         </button>
-      </div>
-
-      {/* How the layer is drawn, opposite the zoom controls: the arrangement,
-          the re-arrange, and whether lines are square or curved. Kept apart
-          from the row above because that one is about what gets *made*, and
-          because two of these three belong to the layer rather than the app. */}
-      <div className="shape">
-        {AXES.map(({ axis: which, mark, tip }) => (
-          <button
-            key={which}
-            className={axis === which ? "on" : ""}
-            onClick={() => onArrange(which)}
-            title={tip}
-          >
-            {mark}
-          </button>
-        ))}
         <button
-          className={`apart ${angular ? "on" : ""}`}
+          className={angular ? "on" : ""}
           onClick={() => onAngular(!angular)}
           title={angular ? "Angles" : "Curves"}
         >
           {angular ? "⌐" : "~"}
         </button>
+        {/* Which way the layer reads: a setting, and one about relationships —
+            it decides which sides a flow attaches to and how its line runs. */}
+        {AXES.map(({ axis: which, mark, tip }) => (
+          <button
+            key={which}
+            className={`${which === "none" ? "apart " : ""}${axis === which ? "on" : ""}`}
+            onClick={() => onAxis(which)}
+            title={tip}
+          >
+            {mark}
+          </button>
+        ))}
+      </div>
+
+      {/* Arrangements, opposite the zoom controls. Each is a one-time action,
+          so none of them lights up — there is no arrangement a layer is
+          currently *in*, only one it was last put through. */}
+      <div className="shape">
+        {LAYOUTS.map(({ shape, mark, tip }) => (
+          <button key={shape} onClick={() => onArrange(shape)} title={tip}>
+            {mark}
+          </button>
+        ))}
       </div>
 
       <ReactFlow
@@ -1580,7 +1687,7 @@ function Flow(props: Props) {
         onPaneMouseMove={(event) => graze(event.clientX, event.clientY)}
         onNodeMouseMove={(event) => graze(event.clientX, event.clientY)}
         onNodeMouseLeave={(event) => graze(event.clientX, event.clientY)}
-        onPaneMouseLeave={() => (grazeRef.current = "", setGrazed(null))}
+        onPaneMouseLeave={() => (grazeRef.current = "", setHovered(null))}
         // `Control` is deliberately not here: on a trackpad it is a real right
         // click, and every right-button gesture is one of ours.
         multiSelectionKeyCode={["Shift", "Meta"]}
@@ -1592,7 +1699,7 @@ function Flow(props: Props) {
         translateExtent={extent}
         onNodeClick={(_, node) => {
           if (node.type === "card") return onPick({ kind: "node", id: node.id });
-          if (node.type === "region") return onPick({ kind: "attr", id: node.id });
+          if (node.type === "region") return onPick({ kind: "node", id: node.id });
           // A placeholder is not a thing in itself: picking it picks whatever
           // it reaches, so the panel shows the node and not the stand-in.
           if (node.type === "ghost") {
@@ -1607,9 +1714,11 @@ function Flow(props: Props) {
 
           // A reference has no contents of its own — going into one takes you
           // to where the node it stands for actually lives.
-          const mine = graph.nodes[node.id];
+          // A proxy has no inside: going into one goes to where its block
+          // actually lives, which is what the reference is for.
+          const stands = refOf(graph, node.id);
 
-          return mine?.ref ? onReveal(mine.ref) : onOpen(node.id);
+          return stands ? onReveal(stands) : onOpen(node.id);
         }}
         onEdgeClick={(_, edge) => onPick({ kind: "edge", id: edge.id })}
         onDragOver={(event) => {
@@ -1663,8 +1772,8 @@ function Flow(props: Props) {
           if (node.type === "region") {
             // Dragging is how you take hold of it; picking follows so the
             // panel shows what is moving without a separate click first.
-            onPick({ kind: "attr", id: node.id });
-            const holders = graph.attrs[node.id]?.holders ?? [];
+            onPick({ kind: "node", id: node.id });
+            const holders = membersOf(graph, node.id).map((m) => m.id);
             groupRef.current = {
               id: node.id,
               x: node.position.x,
@@ -1742,7 +1851,7 @@ function Flow(props: Props) {
             const { x, y } = middleOf(node);
             const out = x < frameBox.x || x > frameBox.x + frameBox.w ||
                         y < frameBox.y || y > frameBox.y + frameBox.h;
-            if (out) return onPromote(node.id, graph.nodes[view]?.parent ?? null);
+            if (out) return onPromote(node.id, graph.elements[view]?.parent ?? null);
           }
 
           // A selection dragged together lands together.
@@ -1758,7 +1867,7 @@ function Flow(props: Props) {
             const inside = new Set(enclosing(card.id, middleOf(card), afoot));
 
             return here
-              .filter(({ attr }) => attr.holders.includes(card.id) !== inside.has(attr.id))
+              .filter(({ attr, here }) => here.includes(card.id) !== inside.has(attr.id))
               .map(({ attr }) => ({ attr: attr.id, holder: card.id,
                                     join: inside.has(attr.id) }));
           });
@@ -1818,12 +1927,27 @@ function Flow(props: Props) {
         );
       })()}
 
+      {/* Whatever the app has to say, in the same place it asks for a name.
+          One strip for everything means never wondering where a message went. */}
+      {said && (
+        <div className="floating saying">
+          <span className="caret">!</span>
+          <span className="what">{said.text}</span>
+          {said.act && (
+            <button className="act" onClick={() => (said.act!.run(), onHeard())}>
+              {said.act.label}
+            </button>
+          )}
+          <button onClick={onHeard} title="Dismiss">✕</button>
+        </div>
+      )}
+
       {prompt?.kind === "relation" && (
         <div className="floating">
           <span className="caret">&gt;</span>
           <input
             autoFocus
-            defaultValue={graph.edges[prompt.id]?.relation ?? ""}
+            defaultValue={graph.edges[prompt.id]?.type ?? ""}
             placeholder="what is this relation?"
             list="relation-kinds"
             onKeyDown={(event) => {
@@ -1845,29 +1969,52 @@ function Flow(props: Props) {
           <span className="caret">✎</span>
           <input
             autoFocus
-            defaultValue={graph.nodes[prompt.id]?.label ?? ""}
+            className={clash ? "clash" : undefined}
+            defaultValue={graph.elements[prompt.id]?.label ?? ""}
             placeholder="rename it"
-            onBlur={() => setPrompt(null)}
+            onBlur={() => (setPrompt(null), setClash(false))}
+            onChange={(event) => setClash(onNameTaken(
+              graph.elements[prompt.id]?.parent ?? null, event.target.value, prompt.id))}
             onKeyDown={(event) => {
+              const taken = onNameTaken(graph.elements[prompt.id]?.parent ?? null,
+                                        event.currentTarget.value, prompt.id);
+              if (event.key === "Enter" && taken) return setClash(true);
               if (event.key === "Enter") onRename(prompt.id, event.currentTarget.value);
-              if (event.key === "Enter" || event.key === "Escape") setPrompt(null);
+              if (event.key === "Enter" || event.key === "Escape") {
+                setPrompt(null);
+                setClash(false);
+              }
             }}
           />
+          {clash && <span className="clash-why">name already here</span>}
         </div>
       )}
 
-      {(prompt?.kind === "node" || prompt?.kind === "sprout") && (
+      {(prompt?.kind === "node" || prompt?.kind === "sprout" || prompt?.kind === "note") && (
         <div className="floating">
           <span className="caret">+</span>
           <input
             autoFocus
-            placeholder={prompt.kind === "sprout" ? "name the thing it connects to" : "name it"}
-            onBlur={() => setPrompt(null)}
+            className={clash ? "clash" : undefined}
+            placeholder={prompt.kind === "sprout" ? "name the thing it connects to"
+              : prompt.kind === "note" ? "what does it say?"
+              : "name it"}
+            onBlur={() => (setPrompt(null), setClash(false))}
+            // A note is its text and shares nothing with its neighbours; only
+            // the two that make a block have a name to keep clear of.
+            onChange={(event) => setClash(prompt.kind !== "note" &&
+              onNameTaken(view, event.target.value, null))}
             onKeyDown={(event) => {
               const text = event.currentTarget.value.trim();
+              if (event.key === "Enter" && text && prompt.kind !== "note" &&
+                  onNameTaken(view, text, null)) {
+                return setClash(true);
+              }
               if (event.key === "Enter" && text) {
                 if (prompt.kind === "sprout") {
                   onSprout(prompt.end, text, prompt.x, prompt.y, kind);
+                } else if (prompt.kind === "note") {
+                  onNote(text, prompt.x, prompt.y, prompt.w, prompt.h);
                 } else {
                   // Made in the clear space inside a boundary, it joins that
                   // group — the same test a card dropped there passes.

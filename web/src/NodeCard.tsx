@@ -12,9 +12,10 @@
 import { memo, useRef, useState } from "react";
 import { Handle, Position, useReactFlow, type NodeProps } from "@xyflow/react";
 
-import { blocksOf, isContainer, isLinked, isRef, nameOf, portsOf } from "./core/fold";
+import { blocksOf, isContainer, isLinked, isProxy, nameOf, portsOf } from "./core/fold";
+import { NameField } from "./NameField";
 import { affinity, CHIP_CAP, freeSeat, GRID, LEAF, pack, seatAt, sizeOf } from "./core/layout";
-import type { Graph, Node, Side } from "./core/types";
+import type { Graph, Element, Side } from "./core/types";
 import { useEmbeddings } from "./useEmbeddings";
 
 /** Tag type scales between these; below the floor the name is withheld. */
@@ -87,10 +88,14 @@ const SIDES: Record<Side, Position> = {
  *  three rules and a timer — renaming used to be the second click on something
  *  already selected, and on a card that click had to wait a quarter of a second
  *  to see whether a double-click was coming to descend instead. */
-export function Name({ text, className = "label", onRename }: {
+export function Name({ text, className = "label", onRename, taken, onSay }: {
   text: string;
   className?: string;
   onRename: (label: string) => void;
+  /** Whether a name is already spoken for beside this one. Left off where
+   *  nothing competes for it — a note is its own text. */
+  taken?: (name: string) => boolean;
+  onSay?: (message: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   /** Where the right button went down, so that a right *drag* setting off from
@@ -105,22 +110,17 @@ export function Name({ text, className = "label", onRename }: {
   }
 
   if (editing) {
+    // `guarded` because this one sits on the canvas: React Flow listens
+    // natively on the node, so the events have to be held off there too.
     return (
-      <input
-        // `nodrag`/`nopan` because React Flow's own listeners are native and on
-        // the node itself — stopping the React event here would come too late.
-        className="rename nodrag nopan"
-        autoFocus
-        defaultValue={text}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
-        onDoubleClick={(event) => event.stopPropagation()}
-        onBlur={(event) => done(event.target.value)}
-        onKeyDown={(event) => {
-          event.stopPropagation();
-          if (event.key === "Enter") done(event.currentTarget.value);
-          if (event.key === "Escape") setEditing(false);
-        }}
+      <NameField
+        initial={text}
+        className="rename"
+        guarded
+        taken={taken}
+        onSay={onSay}
+        onCommit={done}
+        onCancel={() => setEditing(false)}
       />
     );
   }
@@ -166,7 +166,7 @@ function along(at: number, extent: number, origin: number): number {
 
 /** Edge length and near-end origin of a port's host in canvas units. */
 function edgeOf(
-  graph: Graph, port: Node, side: Side,
+  graph: Graph, port: Element, side: Side,
   host?: { x: number; y: number; w: number; h: number },
 ): { extent: number; origin: number } {
   const flat = side === "top" || side === "bottom";
@@ -178,7 +178,7 @@ function edgeOf(
     };
   }
 
-  const parent = port.parent ? graph.nodes[port.parent] : null;
+  const parent = port.parent ? graph.elements[port.parent] : null;
   if (!parent) {
     return { extent: flat ? LEAF.w : LEAF.h, origin: 0 };
   }
@@ -211,11 +211,19 @@ export type Grazed = {
 } | null;
 
 export type CardData = {
-  node: Node;
+  node: Element;
   graph: Graph;
   dropping: boolean;
   picked: boolean;
   grazed: Grazed;
+  /** Whether a name is already taken beside this card, and where to say so. */
+  onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  onSay: (message: string) => void;
+  /** What this module calls a plain one of these, for a card with no subtype
+   *  of its own — "Module", "Character", and one day "Activity". Derived and
+   *  never stored: a default written onto every element would say nothing, and
+   *  would go stale the moment the domain changed. */
+  unit: string;
   /** Interfaces drawn or hidden — a display preference, global to the app. */
   showPorts: boolean;
   /** Hidden interfaces whose seats still show as handles, because the
@@ -277,7 +285,7 @@ export function Anchor({ name, side, inward }: { name: string; side: Side; inwar
  *  relationship attached to it, or the node it sits on, is selected — enough to
  *  see where a line is tied on without turning every square back on. */
 export function Berth({ port, graph, shown, inward, host }: {
-  port: Node;
+  port: Element;
   graph: Graph;
   shown: boolean;
   inward?: boolean;
@@ -341,7 +349,7 @@ export function Perch({ seated, side, at, port, lit, inward, onPromote }: {
 }
 
 export type PortProps = {
-  port: Node;
+  port: Element;
   graph: Graph;
   picked: boolean;
   /** True when this is the one thing the pointer is over. */
@@ -581,8 +589,9 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
 
 export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
                                 positionAbsoluteY = 0 }: NodeProps) => {
-  const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort } =
+  const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort, unit } =
     data as unknown as CardData;
+  const { onNameTaken, onSay } = data as unknown as CardData;
   const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
   const { seats, litEdges, onPromote } = data as unknown as CardData;
   // Shading follows affinity, which is only known once vectors exist.
@@ -592,7 +601,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   const size = sizeOf(graph, node);
   const host = { x: positionAbsoluteX, y: positionAbsoluteY, w: size.w, h: size.h };
   const classes = ["card", holds ? "group" : "object",
-                   isRef(node) ? "reference" : "",
+                   isProxy(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
                    grazed?.kind === "card" && grazed.id === node.id ? "grazed" : "",
@@ -651,8 +660,19 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
           click of a rename. A double-click still descends. */}
       <div className={`card-head${
         grazed?.kind === "title" && grazed.id === node.id ? " grazed" : ""}`}>
-        <Name text={nameOf(graph, node)} onRename={(label) => onRename(node.id, label)} />
-        {node.type && <span className="kind">{node.type}</span>}
+        <Name
+          text={nameOf(graph, node)}
+          onRename={(label) => onRename(node.id, label)}
+          taken={(name) => onNameTaken(node.parent ?? null, name, node.id)}
+          onSay={onSay}
+        />
+        {/* A subtype where one was set, otherwise what this module calls a
+            plain one. Container-ness can ride along here where it cannot ride
+            on the name: a chip describes what a card is right now, while a
+            name has to stay put when a child is added. */}
+        <span className={`kind${node.type ? "" : " plain"}`}>
+          {node.type || (isContainer(graph, node.id) ? `${unit} group` : unit)}
+        </span>
       </div>
 
       {holds && (

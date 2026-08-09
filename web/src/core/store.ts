@@ -4,29 +4,35 @@
  *  be indistinguishable from losing the project. The log is the only thing
  *  saved, because everything else is folded from it.
  *
- *  Storage failures are never fatal: a full or blocked localStorage costs
- *  persistence, not the session. */
+ *  Storage failures are never fatal to the session — but they are never
+ *  silent either. A log that has outgrown the quota goes on working until the
+ *  tab is closed and then loses everything since the failure, so `save` reports
+ *  whether it worked and the shell says so. */
 
 import type { Step } from "./types";
 
 const KEY = "mndflow.steps.v1";
 
-export function load(): Step[] {
+/** What storage holds, unchecked. The caller takes it through the door. */
+export function load(): unknown {
   try {
     const raw = localStorage.getItem(KEY);
-    const steps = raw ? JSON.parse(raw) : [];
 
-    return Array.isArray(steps) ? (steps as Step[]) : [];
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export function save(steps: Step[]): void {
+/** Whether the log reached storage. False means out of quota or blocked by the
+ *  browser: the session carries on, and the only copy is now the tab. */
+export function save(steps: Step[]): boolean {
   try {
     localStorage.setItem(KEY, JSON.stringify(steps));
+
+    return true;
   } catch {
-    // Out of quota or blocked by the browser; the session carries on regardless.
+    return false;
   }
 }
 
@@ -46,12 +52,11 @@ export function exportSteps(steps: Step[], title: string): void {
 
 /** Read a previously exported history back. Rejects anything that is not a
  *  list of steps rather than half-loading it. */
-export function importSteps(text: string): Step[] | null {
+/** The raw contents of a file, parsed and no more. Whether it is a log this
+ *  build can read is decided at the door — see `check.entering`. */
+export function readFile(text: string): unknown {
   try {
-    const parsed = JSON.parse(text);
-    const ok = Array.isArray(parsed) && parsed.every((s) => s && Array.isArray(s.mutations));
-
-    return ok ? (parsed as Step[]) : null;
+    return JSON.parse(text);
   } catch {
     return null;
   }

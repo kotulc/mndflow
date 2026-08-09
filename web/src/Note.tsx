@@ -7,8 +7,12 @@
  *
  *  The note *is* its text. There is no head, no border zone and nothing else on
  *  it to aim at, so it takes the same rule every other name on the canvas takes:
- *  right-click it to write it. Its size is its text's, not the user's — the
- *  drag that makes one is a gesture and not a measurement. */
+ *  right-click it to write it.
+ *
+ *  Its size is the larger of what the drag that made it asked for and what its
+ *  text needs. A minimum rather than a measurement: there are no handles and
+ *  nothing is resized after it is made, and the box can never disagree with
+ *  what it says, because what it says always wins. */
 
 import { memo } from "react";
 import type { NodeProps } from "@xyflow/react";
@@ -21,6 +25,8 @@ export type NoteData = {
   picked: boolean;
   /** The pointer is on it, which is what a right-click would write. */
   grazed: boolean;
+  /** The least room it was asked for, from the drag that made it. */
+  least: { w: number; h: number };
   onPick: () => void;
   onLabel: (text: string) => void;
 };
@@ -28,11 +34,12 @@ export type NoteData = {
 const SIDES: Side[] = ["top", "right", "bottom", "left"];
 
 export const Note = memo(({ data }: NodeProps) => {
-  const { text, picked, grazed, onPick, onLabel } = data as unknown as NoteData;
+  const { text, picked, grazed, least, onPick, onLabel } = data as unknown as NoteData;
 
   return (
     <div
       className={["note", picked ? "picked" : "", grazed ? "grazed" : ""].join(" ")}
+      style={{ minWidth: least.w, minHeight: least.h }}
       onClick={onPick}
     >
       {/* One anchor per side, so a leader leaves by whichever faces what it is

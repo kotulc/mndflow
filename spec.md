@@ -13,27 +13,100 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 
 ## Project model
 
-**Nodes** — the only structural object. Everything else describes them.
+The graph is **elements** and **relationships**, and nothing else. An element is placed and
+drawn; a relationship joins two of them. Everything else describes one of the two.
 
-- A node's **role** is derived, never declared: on its parent's frame edge it is an
-  **interface**; otherwise a **block**; a block holding child blocks is a **container**.
-- Interface is the one role that never changes. Nothing turns a block into one or back.
+**Elements** — held in `graph.elements`. "Node" is the same thing in the graph-theory register.
+
+- **`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
+  elements, relationships and fields alike. **(planned)** — the field is `element` on an element
+  and `kind` on a relationship today.
+- `form` says which of five it is: **block** (the base and the default), **note**, **group**,
+  **proxy**, or **figure**. It decides what draws an element and which rules reach it.
+- **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
+  the explorer, and what it *is* comes from its `type`. An activity's fork, decision, initial,
+  final, merge and join are all figures. **(planned)**
+- `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
+  never across one. **Empty until somebody sets one.**
+- **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
+  `Character`, and one day `Activity`. The fallback is derived, never stored, and is dimmed so
+  it reads as a default rather than as a distinction. A container reads `Module group`.
+- **The module's word is not a type.** It is what the module calls its elementary block, and
+  nothing is written onto an element until a distinction is actually drawn.
+- **Container and interface are derived, not declared**: a block holding child blocks draws as a
+  container; a block on its parent's frame edge is an interface. Both are ways a block *looks*;
+  neither is a separate form, and both are still called blocks.
 - Interfaces do not count towards being a container.
-- A node carries `label`, `type`, `parent`, `body`, `x`/`y`, an `axis` for when it is the open
-  layer, and a `ref` when it is a reference.
+- An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
+  `axis` for when it is the open layer, `groups` for its membership, `fields`, and `color`.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
-- **An interface is a node only where somebody made one** — a bare one, or a promoted seat.
+- **An interface is an element only where somebody made one** — a bare one, or a promoted seat.
   A relationship makes none: where its line meets a card is worked out by the layer.
-- `num` is fixed at creation; a new interface takes the lowest number its parent is not using,
-  so deleting one leaves a gap the next fills and renames nothing.
 - `flow` (in / out / both) is decorative and constrains nothing.
 
-**Edges** — a relationship between two nodes.
+**Root** — the block that holds every other, under the reserved id `root`.
 
-- Carries `relation`, `kind`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
+- Carries the project's name as its `label`, plus its own axis, body and fields.
+- **Carries the project's own vocabulary**: its definitions, which cover element types and
+  relationship types alike. The project speaking about itself, and none of it reaches the explorer.
+  **(planned)** — `domain` and `relations` sit on `graph` today.
+- `parent: null` means "in the root layer" everywhere it is written; root is told from its own
+  children by its id, which is the one place any listing has to know about it.
+- It has no frame, because a frame is a block seen from inside and root has no outside.
+
+**Names** — unique among siblings; where something sits in the tree is what makes it unique in
+the project.
+
+- An unnamed element falls back to its form and its number among siblings of that form:
+  `block 1`, `note 2`, `interface 1`.
+- `num` is fixed at creation; a new element takes the lowest number not in use among those
+  siblings, so deleting one leaves a gap the next fills and renames nothing.
+- Container-ness is not in the name: it is derived, so a name tracking it would change the
+  moment a child was added. The icon says it instead.
+- A name already taken by a sibling is refused. The paths that make or change one, in full:
+
+  | Where | |
+  |---|---|
+  | explorer — new row, and rename | checked |
+  | canvas prompt — new block, and rename | checked |
+  | a relationship grown into empty space | checked |
+  | a card's own label, in place | checked |
+  | the frame's title | checked |
+  | a group's name | checked |
+  | contents table — name cell | checked |
+  | a note's text | **exempt** — a note *is* its text, and nothing beside it competes |
+
+  Only stored labels are compared: a fallback is a number nobody chose, and blank is not a name.
+- **A refused name says so in two places.** The field marks itself as the clashing name is typed
+  and reads *taken* — one word, so it fits a pane as narrow as the explorer. On `Enter` the full
+  reason appears in the strip at the top of the canvas, where there is room for it, and the field
+  holds open with the typing intact. Correcting the name clears both.
+- Every name on the canvas is typed into the same field, so the rule reaches all of them at once.
+
+**Relationships** — a join between two elements, held in `graph.edges`.
+
+- Carries `type`, `form`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
   `fromSide`/`toSide` where an end was drawn through a named wall.
-- `kind` is `untyped` (the default), `flow`, or `assoc`. It says what the two ends *are*;
-  `dir` still says which way the arrows point.
+- `type` names the relationship's **definition** — what it *means*, plus the fields it declares
+  and how it draws. **(planned)** — free text drawn from a flat `relations` list today.
+- `form` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
+  `dir` still says which way the arrows point. **(planned)** — the field is `kind` today.
+- **Anything joining two elements is a relationship.** A form may draw as something other than a
+  routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
+  drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
+  one list to read them from.
+- **A reference is a relationship with a proxy at one end** — it reaches something living in
+  another layer. Derived, never a form: drawing a line onto a proxy makes one without anybody
+  saying so, and it stays plain, flow or assoc and keeps its direction. Both routes to it draw
+  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for
+  it.
+- A reference draws **violet and dashed**, held back at reduced opacity so the form and the label
+  read first; hover and selection bring it to full.
+- What a proxy stands for is a property of the appearance, not a relationship: one thing appearing
+  twice rather than two things joined.
+- `tie` joins a note to what it describes.
+- **Containment is not a relationship.** The tree is `parent`, and being inside something is
+  implied by it rather than stored as an edge.
 - `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
   normal case, and the layer works that end out.
 - `fromSide`/`toSide` pin an end to one of the frame's four walls. The seat along it is still
@@ -41,31 +114,146 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 - **No relationship carries a route.** Where a line goes is derived from the layer it is drawn
   in, every time it is drawn.
 
-**Attributes** — a name, value and tags, held by one object or shared by many.
+**Fields** — a named, typed value on one element or relationship. **(planned)** — the code has
+`attrs`, a name/value/tags triple with no form and no definition behind it.
 
-- Sharing is what makes an attribute a grouping; `group` marks one drawn as a boundary.
-- `note` marks one drawn as a card of text, and carries the layer and place it sits at.
-- A boundary and a note are the two ways an attribute draws; nothing is both.
+- A field carries `name`, `form`, `value` and `tags`.
+- **`form` is one of five**, and the set is permanent:
+
+  | form | Holds | Extra on the field |
+  |---|---|---|
+  | `text` | free string, the default | — |
+  | `number` | a quantity | `unit` |
+  | `flag` | true or false | — |
+  | `choice` | one of a list the definition names | `choices` |
+  | `ref` | another element, by id | `many` |
+
+- **No identity of its own**: a field is addressed by its name on the thing carrying it, and
+  setting the same name again rewrites it.
 - Never structural: never in the explorer, never changing what contains what.
+- **A `ref` field points at an element without drawing a line**, which is how a part property or a
+  satisfied requirement is stated.
+- **Membership is neither a field nor a relationship.** A block names the groups it belongs to in
+  `groups`, and a group's member list is derived from that, so the two can never disagree. A group
+  is never a parent.
+- The test for which of the two something is: **drawn as a line between two things → a
+  relationship; not a line → a field.** A tie is a line. Membership is not — a group draws a
+  boundary round its members, never a spoke to each.
+
+**Definitions** — the reusable subtypes a project has named. Held on root. **(planned)**, in full.
+
+- **A definition declares; whatever names it uses.** It carries an `id`, a `name`, the `form` it
+  subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
+  — and how they draw.
+- **One record serves elements and relationships alike.** The `form` it subtypes decides what it
+  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `untyped`/`flow`/`assoc`/`tie`
+  for a relationship. A project's relation vocabulary is just the definitions of relationship form.
+- **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
+  flow's item, or a nested data structure.
+- **Presentation lives on the definition, never on the usage** — colour and icon for an element,
+  line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
+  export rather than filtered out of one.
+- **A definition subtypes within a form, never across one.** Nothing a user defines can change
+  what a thing *is*.
+- **A data structure is a definition**, not an element form: it declares fields, and a block typed
+  by it is drawn only where somebody places one.
+- Definitions are not elements: no id in `graph.elements`, no row in the explorer.
+- A `ref` field may target an element or a definition — "typed by" and "points at" are one
+  operation.
 
 **History** — the step log is the source of truth.
 
 - Every change is one step holding one or more mutations; the graph is folded from the applied
   ones in order.
 - Undo flips the last applied step and refolds; redo re-applies. No mutation needs an inverse.
+- **The log is capped at 1,000 steps.** Past 1,200 the oldest are folded into a single
+  **checkpoint** step holding the whole graph, and dropped. The graph is unchanged by this; what
+  is lost is reach — undo stops at the checkpoint and cannot go further back.
+- A checkpoint is not something anybody did, so it cannot be undone. Undo reports itself spent
+  when the checkpoint is all that is left.
+- Compaction also runs on load, so an imported or long-idle log is capped before anything else
+  touches it.
 - One gesture is one step, however many things it changed.
+- **Successive placements of the same thing are one step.** Nudging a card into place writes one
+  `place`, replaced as the run goes on; a different action ends the run, and one undo takes the
+  whole run back. Moving a different element starts a new step, as does a drag that also joined
+  or left a group. An arrangement is its own step and never joins a run.
 
 **Files**
 
-- Export writes the step log as JSON; import replaces the session with one.
+- The log lives in the browser under one key. **Importing a file replaces the session and is saved
+  from then on** — a file is a snapshot, the browser is the working copy.
+- **An export is the graph, not the log.** `{ schema, id, module, graph, meta }`, pretty-printed
+  JSON. Its size follows the model rather than how long somebody worked, and its diff shows the
+  elements and relationships that changed rather than the actions that changed them.
+  **(planned)** — the export is the raw step log today.
+- **Importing one is a checkpoint.** The file becomes a log holding a single `checkpoint` step, so
+  there is no second format and no second reader. **(planned)**
+- **The log never rides along.** Undo is a working-copy concern; history across machines is git's.
+  **(planned)**
+- **A project carries an `id`**, minted once and kept for life. It is what a cross-project
+  reference points at, so renaming a project — or its file — breaks nothing. **(planned)**
+- **The suggested filename follows the project's name**, so the two stop drifting apart.
+  **(planned)**
+- **The base is what cannot be ignored**, and everything else is `meta`. **(planned)**
+
+  | | Says |
+  |---|---|
+  | `schema` | which shape the file is — `"1.0"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
+  | `id` | which project this is, for life. Cross-project references resolve against it |
+  | `module` | what kind of thing this is. A reader that ignores it has to guess, and renders it wrong |
+  | `graph` | the content |
+  | `meta` | free-form, unversioned, **safely ignorable**. Absent when empty |
+
+  - **The test for the base is whether dropping a field changes what the project *is*.** That is
+    what stops `meta` becoming a bucket anything may be added to.
+  - **`meta.steps` is every step ever taken** — a count of work, not a version, and it orders
+    nothing across two copies that diverged. `checkpoint.at` holds the count before it and the
+    rest is derived, so nothing tallies while you work.
+  - **The content hash is computed, never stored.** A stored hash disagrees with its own graph the
+    moment anyone hand-edits the file, and git already hashes the file better.
+  - **Exporting changes nothing**, so re-exporting an unchanged project produces a byte-identical
+    file. That property is what the canonical layout exists for.
+  - **Nothing in `meta` affects how a file is read.** Only `schema` does.
+- **Display preferences stay out**, `meta` included: opening somebody's file must not rearrange
+  your own toggles. A deliberately saved view is a different feature, and not one of these fields.
+- **A bare array has no envelope**, so its absence reads as legacy rather than as a version.
+  **(planned)**
+- **The file is laid out for reading**: definitions first, then the element tree, then
+  relationships. **(planned)**
+  - Elements **nest under their parents**, so `parent` is never written — position carries it —
+    and a diff hunk lands beside the thing it describes.
+  - Siblings sort by id, so a **rename is one line** rather than a record moving. Re-parenting does
+    move a record, which is what a structural change should look like.
+  - Relationships sort by source, then target, which clusters everything leaving a block and never
+    moves, since neither key changes.
+- **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `figure_`, `edge_`,
+  `def_`. A name is never part of an id — it would go stale on a rename or force the id to be
+  rewritten everywhere. Older `n_`/`e_`/`s_` ids stay valid; ids are opaque and nothing migrates.
+  **(planned)**
+- **Every log comes in through one door**, from storage or from a file, and is checked before it
+  is folded. What can be repaired is repaired; what cannot is dropped rather than folded into a
+  broken graph.
+- **The user is told, once**: `repaired 2, could not read 1`, in the strip at the top of the
+  canvas. Dismissable, and a clean log says nothing.
+- **A panel that cannot draw itself says so and stays out of the way**, rather than taking the
+  window with it. The log is unharmed, so closing the panel and carrying on is the way out.
+- The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
+  saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
 
 
 ## Shell
 
 - One page: header, terminal rail, then explorer beside the working area.
-- Header carries the project name, the active domain, and undo / redo / export / import / new.
-- `new` confirms before discarding; import rejects a file that is not a mndflow project.
+- Header reads `mndflow [project]` — the project's own name, which is root's label.
+- **It names the working session** — `working session`, held quiet, with the snapshot explained
+  on hover. When the browser stops accepting the log the same control becomes
+  `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
+- Controls are icons with tooltips: undo `↤`, redo `↦`, export `⤓`, import `⤒`, new `＋`.
+  Each greys out when it has nothing to do.
+- `new` asks before discarding, and import reports a file that is not a mndflow project — both
+  in the strip, like everything else the app says.
 - The readout toggle sits at the end of the same row.
 
 
@@ -86,16 +274,22 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 **Contents**
 
 - Structure and only structure: nodes nested to any depth.
-- Groups, annotations and every other attribute never appear.
+- Groups, notes and every field never appear.
 - Interfaces are hidden behind a toggle; when shown they sit at the same level as child blocks,
   sorted after them, with their own icon and no branch of their own.
-- References are never listed — a reference is a second appearance of something already there.
+- Proxies are never listed — a proxy is a second appearance of something already there.
+- Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
 
 **Navigation**
 
-- Single click sets the scope: the canvas draws that node's view.
-- Double-click renames in place.
+- Single click sets the scope: the canvas draws that node's view, and its branch opens — asking
+  to look inside something shows what is inside it.
+- Double-click or right-click renames in place — a row is all name, so it takes the same rule
+  every name takes.
+- Right-clicking the clear space below the rows makes a block **at the root**, wherever you are
+  scoped: the rows are what layers look like here, so the space around all of them is the root's
+  own background. The bar's ＋ button is the one that acts on the open layer.
 - A role icon precedes every name and doubles as the fold control where there is one.
 - Folding is the user's alone; walking into a layer on the canvas never rearranges the tree.
 - One control in the bar opens every branch or closes every branch.
@@ -110,7 +304,7 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
 **Editing**
 
 - Add, rename, delete, and drag rows between levels.
-- Dragging a row onto the canvas places a reference to it in the open layer.
+- Dragging a row onto the canvas places a proxy for it in the open layer.
 - A move to another layer drops what does not travel: the node's annotations — group
   memberships and note ties — and its relationships to anything staying behind. Its children,
   its interfaces and all the wiring inside it arrive exactly as they were.
@@ -146,20 +340,34 @@ blocks. There is no server: a step log lives in the tab, and the graph is folded
   is 11 units wide and seats are 12 apart.
 - A card is drawn at exactly the size the layout says it is; it never sizes itself to its text.
   A name too long for it is clipped.
-- **User placement wins.** A node the user has moved keeps its place.
-- Automatic layout fills the rest, avoiding overlap and keeping related nodes near each other.
+- **A node the user has moved keeps its place until an arrangement is picked.** Picking one is
+  the request to let go of it.
+- `free` is the arrangement that honours placement and fills around it. The other three lay out
+  the whole layer.
+- A hand-made interface keeps its side and place along it whatever the arrangement does; so does
+  a wall a right drag named. Layout may change the distance between two such ends, never the
+  side.
+- A hand-made port also **leans its unit across the rank**: one on the top edge pulls its owner
+  toward the top, so its lines leave into open space. Only the two sides across the axis lean
+  anything — rank itself comes from the relationships.
 - The view refits when the layer gains or loses something, or when it is arranged afresh —
   never on selection.
 
 **The layer's arrangement** — how it lays out what it holds. Four, each its own button, held
 on the layer.
 
-| | Ranks by | Flow sides |
-|---|---|---|
-| `free` | nothing — clusters outward from the middle | none |
-| `grid` | nothing — tiles in reading order | none |
-| `across` | relationships, left to right | left / right |
-| `down` | relationships, top to bottom | top / bottom |
+**Arrangements** — one-time actions, four of them. None is a mode, so none is ever "current".
+
+| | Does |
+|---|---|
+| `grid` | tiles outward from the middle, cells sized to their contents |
+| `radial` | the busiest unit at the centre, the rest ringed around it |
+| `across` | ranks by relationships, left to right |
+| `down` | ranks by relationships, top to bottom |
+
+**Which way the layer reads** — `none`, `across` or `down`. A setting held on the layer. It
+decides which sides a `flow` relationship attaches to, and **(planned)** how its line is drawn.
+Arranging never changes it.
 
 - Ranked: nothing pointing at it comes first, and each rank sits one step further along.
 - Within a rank, things are ordered by where what they relate to sits in the rank before, swept
@@ -170,22 +378,43 @@ on the layer.
 
 **What gets arranged is a unit, not a card.**
 
-- A **unit** is one card, or a whole group of them. Groups sharing a member are one unit: the
-  shared card pins them together.
-- Inside a unit, members keep their positions relative to each other **exactly**; only the unit
-  moves. A group nobody has placed gets an internal arrangement of its own, laid out among its
-  own members, and that becomes its shape.
+- A **unit** is anything laid out as a whole: a card, a group, or a note. Groups sharing a
+  member are one unit — the shared card pins them together.
+- Relationships draw units loosely into **clusters**, arranged as one region, with the cluster's
+  own shape following its topology — a ring stays a ring, a series stays a series. **(planned)**
+- A unit is **rigid in shape, not in size**: members keep their relative arrangement — who sits
+  beside whom, on which side — while the distances between them are layout's, so the spacing
+  tiers reach inside a unit as well as between them.
+- Each axis is read independently, so a row stays a row, a column stays a column and a diagonal
+  stays a diagonal. Members that already overlap on an axis come out aligned on it.
+- A group nobody has placed gets an internal arrangement of its own, laid out among its own
+  members, and that becomes its shape.
 - A unit is sized to its members plus the room its boundary needs, so two groups are spaced
   apart rather than left with their boundaries touching.
 - **Notes are avoided, not arranged.** A note takes up room like a card, so nothing is laid on
   top of one and no relationship is drawn through one — but an arrangement is never slid aside
   for one.
-- Cards sit **one cell apart across a rank and two along it**, the wider gap being where the
-  lines between ranks run.
+- **Space is a signal.** What matters is the contrast — tight inside a unit, open between them,
+  so a group reads as one object and the lines between units have room to spread:
 
-**Picking an arrangement lays the layer out by it**, dropping hand placement, any walls its
-relationships were pinned to, and moving each tied note to sit under what it describes. Picking
-the one already lit lays it out again. A note tied to nothing keeps its place.
+  | Between | Space |
+  |---|---|
+  | members inside one unit | half a cell |
+  | two of those with a relationship between them | two cells — room for the line |
+  | one unit and the next | two cells |
+  | one rank and the next | three cells |
+  | a boundary and its members | half a cell |
+  | one cluster and another | wider **(planned)** |
+
+**An arrangement writes down where everything landed.** Afterwards every card can be dragged
+about like any other, and the drag sticks.
+
+- It also moves each tied note to sit under what it describes, clear of the cards and boundaries.
+  A note tied to nothing keeps its place.
+- Walls a relationship was pinned to are kept — a wall is a hard constraint, not placement.
+- It changes nothing else, and never the direction the layer reads.
+- Between arrangements the layer rests: whatever is placed stays, and anything unplaced fills the
+  room around it.
 
 ### Views
 
@@ -216,24 +445,27 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 - **Container** — the same, plus a treemap of its immediate child blocks.
   - Fixed 1|2 packing, not measured: one unit up to three children, two columns up to six,
     three tiles up to nine.
-  - Nine chips is the cap; at ten or more, eight are drawn and the last reads `...`, which
+  - Nine chips is the default cap; at ten or more, eight are drawn and the last reads `...`, which
     opens the container.
   - Each chip's fill shade follows how closely its name relates to the container's.
   - A chip's name shrinks to fit and hides when even the floor will not fit; hover names it.
   - Nesting stops at the first layer: a child container is marked as one and no further.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
-- **Reference** — a stand-in for a node living in another layer, so that a relationship reaching
-  it can be seen here. A visual shortcut; it changes nothing about the relationship.
+- **Proxy** — a stand-in for a block living in another layer, so that a relationship reaching
+  it can be seen here. A visual shortcut; it changes nothing about the relationship. It is an
+  element of its own, bound to its block by a `reference` relationship.
   - Greyed, hatched and dashed, marked `↗`; the only dashed card on the canvas. The colour is on
     the lines, not the card: **a relationship reaching a reference draws violet and dashed**,
     label and arrowheads with it, so a line leaving the layer is told apart at a glance.
-  - Shows the name of the node it stands for; renaming it renames that node.
-  - Has no inside: double-clicking goes to where that node actually lives and selects it there.
+  - Shows the name of the block it stands for; renaming it renames that block.
+  - Has no inside: double-clicking goes to where that block actually lives and selects it there.
   - Nothing nests into one, and it never becomes an interface.
-  - Points at a real node, never at another reference — the explorer is the only place one is
+  - Points at a real block, never at another proxy — the explorer is the only place one is
     dragged from and it does not list them.
+  - **One per layer per block**, and never for a block already in that layer — a second
+    appearance of the same thing says nothing the first did not.
   - Placed only by the user, never automatically. Deleting one removes the placeholder only;
-    it goes on its own when the node it stands for is deleted.
+    it goes on its own when its block or its reference is deleted.
 - Chips drag out of a treemap onto the canvas to lift that node into the open layer.
 
 ### Interfaces
@@ -275,7 +507,8 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 
 ### Relationships
 
-- A plain line, undirected by default. Direction and reversal come from the attribute panel.
+- A plain line, undirected by default. Direction and reversal come from its row in the contents
+  tray.
 - Joins two **nodes** and meets each at a seat. The ends are the nodes; the seat is only where
   the line lands.
 - Drawn by right-click-dragging from anywhere on a node, an interface, or a frame wall. It
@@ -283,9 +516,9 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
   that named a wall keeps the wall.
 - Released over empty canvas, the far node is created too.
 - `Esc` cancels the gesture.
-- Right-clicking a line names its kind — a name is edited where it is drawn, and this is the
+- Right-clicking a line names its type — a name is edited where it is drawn, and this is the
   last name on the canvas that took a different gesture.
-- The kind a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
+- The form a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
 - **Flow** draws heavier and takes its sides from the layer's axis; **assoc** draws thinner and
   fainter; **plain** says only that the two are related and takes whatever side suits the path.
 - Drawn curved or angular by the canvas toggle, which is global to the app.
@@ -324,39 +557,44 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 
 ### Groups
 
-- Nodes sharing one attribute, drawn as a faint dashed boundary around them.
-- The boundary is derived from its members' bounds plus half a cell of margin, so it lands on
-  the grid when its members do. **There is no manual resize.**
+- **The generic organizational element** — a boundary round a set, meaning whatever its
+  definition says. A swimlane, a region, a package boundary and a trace assertion are all groups.
+  **(planned)** — only the bare group exists today.
+- Drawn round the blocks that name it. Its members are derived from their membership, never
+  stored on the group.
+- The boundary is its members' bounds plus half a cell of margin, so it lands on the grid when
+  its members do — its size is a fact about what it holds.
 - Clicking the background selects it; dragging a selected boundary moves every member as one
   action.
 - Dropping a card in the clear space inside joins; dropping it outside leaves. Dropping *on* a
   card is a move into that card instead.
 - A node created inside a boundary joins that group, by the same reckoning as a drop there.
-- A whole group moved together stays together, and layout moves one as a single unit — see
-  Coordinates and layout.
-- **One member is allowed**, made deliberately — a boundary is a way of marking a single block.
-  `Ctrl`/`Cmd` + `G` makes one; right-click still makes an interface on a single card.
-- **Falling** to one member removes the attribute instead of drawing it around one node. Made
-  that way it stands; decayed to it, it goes.
+- Membership is decided against the boundary as it stood when the drag began — from the members
+  standing still, or from all of them where none is. Dragging the boundary itself moves the group
+  and changes no membership; layout moves one as a single unit — see Coordinates and layout.
+- **One member is allowed**, and a group that falls to one stays a group. `Ctrl`/`Cmd` + `G`
+  makes one; right-click still makes an interface on a single card. Removing a group is the
+  user's to do — the one exception is a group emptied entirely, which has no bounds to draw and
+  no way to be reached, so it goes.
 - Boundaries overlap freely and their backgrounds compound.
 - Its name is edited on the boundary itself.
-- One appearance for every group; nothing to set.
+- **A group draws as its definition says.** A bare group — one nobody typed — is a faint dashed
+  line, which is the default rather than the rule. **(planned)**
 
 ### Notes
 
 - A card of text placed in a layer, tied by faint dotted leaders to whatever it describes. The
-  other way an attribute draws — amber throughout, since green is structure and amber is
-  attributes.
+  other way an element describes — amber by default, since green is structure and amber is
+  description. A definition's colour wins where it sets one.
 - Solid, with a rule down its left side. Nothing else on the canvas carries one, and dashes are
   already spent on references and boundaries.
 - Made by right-dragging the background. The rectangle is drawn as it is swept, in dashed amber
   — distinct from the green selection box the left button draws in the same place.
-- **The rectangle is a gesture, not a measurement**: the note appears at its top-left corner,
-  sized by its text.
-- **There is no manual resize**, the same as a boundary. A note is as wide as every other and as
-  tall as what it says.
-- Unwritten it reads `note`; right-clicking it writes it. The note *is* its text — there is
-  nothing else on it to aim at.
+- **What it says is asked for before it is made**, the same as a node's name. Cancel and nothing
+  is created.
+- **The rectangle is its least size**: the note appears at the top-left corner and gets at least
+  the room swept. It is as big as the larger of that and what it says, so text always wins.
+- Right-clicking it rewrites it. The note *is* its text — there is nothing else on it to aim at.
 - Ties to nothing, one thing or many. Right-drag from a node onto a note ties it; the same
   gesture over a node already tied unties it. The panel lists ties and removes them.
 - A leader takes no pointer, cannot be selected and is never routed — it is not a relationship.
@@ -389,12 +627,12 @@ the one already lit lays it out again. A note tied to nothing keeps its place.
 
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
   full trail in its tooltip, plus `↑` for one layer up.
-- Canvas toolbar top-right — **what gets made**: interfaces on the canvas, and the kind a right
-  drag draws. Both the app's.
-- Canvas shape controls bottom-right, opposite the zoom controls — **how the layer is drawn**:
-  the four arrangements, then curves or angles below a divider. Icons only. The arrangements
-  belong to the layer; the line style is the app's.
-- Zoom controls bottom-left, riding above the attribute tray.
+- Canvas toolbar top-right — **relationships**, all settings: interfaces on the canvas, the form
+  a right drag draws, curves or angles, and past a divider which way the layer reads. Each shows
+  what it is on.
+- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs**. Icons only, and
+  none of them is ever lit: an arrangement is something you do, not something a layer is in.
+- Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
 - Panning is bounded to the layer's contents plus room on every side to put something new.
@@ -426,9 +664,11 @@ selection — must be selected first.
 | empty background | a node | a note |
 | a name | opens it for editing | — |
 | a note | opens it for editing | — |
+| an explorer row | opens it for renaming | — |
+| the space below the explorer's rows | a node in the open layer | — |
 | an interface | nothing — it is already one | a relationship from it |
 | a seat a relationship put there | an interface of its own, where it sits | — |
-| a relationship | names its kind | — |
+| a relationship | names its type | — |
 | a multi-node selection | groups the selection | — |
 
 - A card has no border zone: the click position decides where on the border the interface
@@ -463,25 +703,47 @@ A relationship has no inside, so double-clicking one does nothing.
   outside the frame to come back.
 
 
-## Attribute panel
+## Contents tray
 
-- A bar at the foot of the canvas, opening itself when the selection carries something to read.
-- One state per selection:
+The bottom tray, and the only panel. **A table of everything the open layer holds** — blocks,
+interfaces, relationships, groups and notes together. It is the only place a relationship or an
+interface can be found without hunting for it on the drawing.
 
-  | Selected | Shows |
+**Opening and closing**
+
+- Shut until asked for: the `contents` tab in the middle of the tray bar opens it, and a click
+  anywhere outside puts it away. The bar shows which layer is being listed.
+- **Open, it takes a third of the canvas** and the drawing keeps the other two thirds — the drawing
+  shrinks and re-centres rather than being covered. Its height does not change with what it
+  lists, so filtering never moves a row out from under the pointer.
+- **The frame reshapes to the room it is left**, rather than keeping its old proportions and
+  letterboxing. How far it can grow is still bounded by the zoom ceiling, so a sparse layer keeps
+  room around it instead of being magnified.
+- It stays open while you work down it. Selecting rows is what it is for.
+
+**Reading it**
+
+- Filter chips narrow to one form, each showing how many there are; a form with none is disabled.
+- Sortable by form or by name; clicking the column already sorted by turns it around.
+- **Hovering a row lights that thing on the canvas**, and shows what it says and what it carries
+  above the table. The canvas's own hover wins where the two disagree.
+- **Clicking a row selects it on the canvas.**
+
+**Changing things from a row**
+
+- Double-click a name to rename; single-click a type to subtype. Fields open rather than sitting
+  there, so a row stays clickable.
+- Row buttons appear on hover and carry whatever that form can be told to do:
+
+  | Row | Buttons |
   |---|---|
-  | nothing | the scope node — the layer you are inside — its body, type and attributes |
-  | a block | its body, type, attributes, and the groups it belongs to |
-  | an interface | the same, plus its flow marking |
-  | a relationship | its kind, direction, reversal, and attributes |
-  | a group boundary | that shared attribute: name, tags and members |
-  | a note | its text, and what it is tied to |
+  | relationship | direction, turn it around, remove |
+  | interface | marking, what it says, delete |
+  | proxy | go to where it lives, what it says, delete |
+  | block, group, note | what it says, delete |
 
-- Body text is edited here; there is no separate document pane.
-- Attributes are added and removed here; group membership is listed and can be removed.
-- Adding to an existing group from the panel. **(planned)**
-- Tags shown and edited. **(planned)**
-
+- **What it says** opens the row out: its body, the groups it belongs to, and its fields,
+  with a field for adding one.
 
 ## Readout drawer
 
@@ -490,7 +752,7 @@ A relationship has no inside, so double-clicking one does nothing.
   - **relations** — the kinds this project uses, each with how many edges carry it. Add, rename
     (renaming every edge with it), or drop (leaving those edges unnamed).
   - **actions** — one line per step, newest first, reverted ones struck through.
-  - **matching** — how each domain template scores against what is being typed.
+  - **matching** — how each workflow scores against what is being typed.
 
 
 ## Naming

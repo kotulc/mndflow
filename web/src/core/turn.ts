@@ -11,7 +11,9 @@
 import { blocksOf } from "./fold";
 import { score } from "./match";
 import { CREATE_IT, ENTRY, classify, type Question } from "./router";
-import { edge as makeEdge, node as makeNode, type Graph, type Mutation } from "./types";
+import {
+  ROOT, edge as makeEdge, element as makeElement, type Graph, type Mutation,
+} from "./types";
 import { entry, getDomain, type Terms } from "./workflows";
 
 /** A relation half-built: what we know, and what we still need. */
@@ -29,23 +31,23 @@ export function resolve(graph: Graph, label: string): string | null {
   const wanted = label.trim().toLowerCase();
   if (!wanted) return null;
 
-  return Object.values(graph.nodes).find((n) => n.label.toLowerCase() === wanted)?.id ?? null;
+  return Object.values(graph.elements).find((n) => n.label.toLowerCase() === wanted)?.id ?? null;
 }
 
 /** Existing names most like the one given — options to offer, not an answer. */
 export function nearest(graph: Graph, label: string, limit = 4): string[] {
-  const options = Object.fromEntries(Object.values(graph.nodes).map((n) => [n.id, n.label]));
+  const options = Object.fromEntries(Object.values(graph.elements).map((n) => [n.id, n.label]));
 
   return score(label, options)
     .filter((hit) => hit.score > 0)
     .slice(0, limit)
-    .map((hit) => graph.nodes[hit.id].label);
+    .map((hit) => graph.elements[hit.id].label);
 }
 
 /** The question a half-built relation asks. */
 export function pendingQuestion(graph: Graph, pending: Pending): Question {
   const named = pending.wanted.trim();
-  const others = Object.values(graph.nodes)
+  const others = Object.values(graph.elements)
     .filter((n) => n.id !== pending.source)
     .map((n) => n.label);
 
@@ -76,8 +78,8 @@ function relate(graph: Graph, said: string, scope: string | null,
   let other = create ? null : resolve(graph, said);
 
   if (create && known.wanted) {
-    const fresh = makeNode(known.wanted, { parent: scope, type: terms.node });
-    mutations.push({ op: "add_node", node: fresh });
+    const fresh = makeElement(known.wanted, { parent: scope });
+    mutations.push({ op: "add_element", element: fresh });
     other = fresh.id;
   }
 
@@ -94,7 +96,7 @@ function relate(graph: Graph, said: string, scope: string | null,
     return { mutations, pending: { source, wanted: "" }, action: "relate" };
   }
 
-  mutations.push({ op: "link_nodes", edge: makeEdge(source, target) });
+  mutations.push({ op: "link_elements", edge: makeEdge(source, target) });
 
   return { mutations, pending: null, action: "relate" };
 }
@@ -116,8 +118,8 @@ export function answer(graph: Graph, question: Question | null, said: string,
 
       return {
         mutations: [
-          { op: "set_template", template },
-          { op: "set_title", title: chip ? chip.chip : text },
+          { op: "set_domain", domain: template },
+          { op: "update_element", id: ROOT, label: chip ? chip.chip : text },
           // The domain's relation kinds are seeded here, so they arrive with
           // the project and are editable from then on.
           ...getDomain(template).relations.map((name) => ({
@@ -160,8 +162,8 @@ export function answer(graph: Graph, question: Question | null, said: string,
 
         taken.add(label.toLowerCase());
         mutations.push({
-          op: "add_node",
-          node: makeNode(label, { parent: scope, type: terms.node }),
+          op: "add_element",
+          element: makeElement(label, { parent: scope }),
         });
       }
 

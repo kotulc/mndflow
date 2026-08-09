@@ -324,17 +324,13 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* Canvas cards */
 
-.canvas { position: relative; min-height: 0; }
+/* The drawing and the tray share the height rather than the tray covering the
+   drawing. Overlaying hid whatever sat at the foot of the layer — including,
+   inside a frame, most of the frame — and left the camera fitting to a panel
+   taller than the part you could actually see. */
+.canvas { position: relative; min-height: 0; display: flex; flex-direction: column; }
 
-/* The tray covers the foot of the canvas, so the zoom controls sit above
-   however tall it actually is — measured and handed down, since the tray is as
-   tall as its contents up to a ceiling and guessing at the ceiling stranded
-   them halfway up a tall screen. */
-.canvas .react-flow__controls {
-  /* The library adds its own margin below this, which is the gap we want. */
-  bottom: var(--tray, 30px);
-  transition: bottom 200ms ease;
-}
+.canvas .react-flow__controls { bottom: 30px; }
 
 /* The card fills the size the canvas states for it, rather than sizing itself
    from its text. `sizeOf` is what every other piece of geometry measures
@@ -442,6 +438,12 @@ button:disabled { opacity: 0.4; cursor: default; }
 .card-head .rename:focus { outline: none; }
 .card-head .kind { color: var(--muted); font-size: 10px; letter-spacing: 0.08em; flex: none; }
 
+/* The chip is a subtype where somebody set one, and otherwise what this module
+   calls a plain block. The fallback sits back a step: it is the same word on
+   every card that has not been told apart, so it should read as a default
+   rather than as a distinction. A subtype comes forward at full weight. */
+.card-head .kind.plain { opacity: 0.45; }
+
 /* Cells are placed, not flowed: each one is a rectangle the treemap worked
    out, positioned in percentages of this box. */
 /* Height and the gap above it are both set by the card, not here — see
@@ -487,7 +489,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* The open node, drawn behind its contents — as though we stepped into it */
 
 .canvas .react-flow { --xy-background-color: transparent; background: transparent; }
-.stage { position: relative; height: 100%; }
+.stage { position: relative; flex: 1; min-height: 0; }
 
 /* Inside the frame is the canvas itself, left clear to the grid; everything
    outside it is dimmed by a shadow wide enough to reach any corner. */
@@ -515,8 +517,8 @@ button:disabled { opacity: 0.4; cursor: default; }
    face, with the wall reading as though it were behind them. Outside, the line
    stays 1px, nothing moves, and the ports sit on the band's inner edge, which is
    where a port set into a wall belongs. */
-.frame.flow-right::before,
-.frame.flow-right::after,
+.frame.flow-across::before,
+.frame.flow-across::after,
 .frame.flow-down::before,
 .frame.flow-down::after {
   content: "";
@@ -529,14 +531,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 
    Brighter where flows arrive, dimmer where they leave, so the layer reads in
    the direction the wall fades. */
-.frame.flow-right::before {
+.frame.flow-across::before {
   top: -1px;
   bottom: -1px;
   left: -4px;
   border-left: 2px solid #6d9a7e;
 }
 
-.frame.flow-right::after {
+.frame.flow-across::after {
   top: -1px;
   bottom: -1px;
   right: -4px;
@@ -927,17 +929,21 @@ main {
 
 .work { display: grid; overflow: hidden; }
 
+/* A third of the canvas when open, whatever it holds. A tray that grew to its
+   contents moved every time a filter changed the row count, so the row you
+   were reaching for was never where you last saw it — and a third leaves the
+   drawing the larger share, which is what is being described. */
 .tray {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 6;
+  flex: none;
   display: flex;
   flex-direction: column;
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
+
+.tray.open { height: 33%; }
 
 .tray-bar {
   display: flex;
@@ -967,15 +973,26 @@ main {
 
 /* Shut, it is a bar and nothing more — the canvas keeps the rest. Open, it
    slides up to a readable height without ever taking the whole layer. */
-.tray-body {
-  display: flex;
-  flex-direction: column;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 200ms ease;
+.tray-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+.tray.open .tray-body { flex: 1; }
+
+/* The table scrolls **down** inside the tray, never sideways: the row buttons
+   live in the last column, and a sideways scroll put them past the edge where
+   nothing could reach them. Columns are given widths and long text is cut
+   instead. The filters and the summary stay put above it. */
+.tray.open .contents { flex: 1; min-height: 0; }
+
+.tray.open .contents-table {
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
-.tray.open .tray-body { max-height: 40vh; overflow: auto; }
+.tray.open .contents-table thead,
+.tray.open .contents-table tbody { display: table; width: 100%; table-layout: fixed; }
 
 .tray-row {
   display: flex;
@@ -1463,11 +1480,23 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .react-flow__edge:hover .leg.ghost .leg-mark { opacity: 0.3; }
 .leg-grab:hover + .leg-mark { opacity: 0.6; }
 
-/* A relation drawn through a reference — one whose far end lives in another
-   layer. Its own colour as well as dashed: in the same green as every other
-   line it was indistinguishable from one, and reaching out of the layer is the
-   one thing about a line whose reading depends on being noticed. */
-.react-flow__edge.reaching .react-flow__edge-text { fill: #8a7ab0; font-style: italic; }
+/* A reference — a relation with a proxy at one end, so it reaches something
+   living in another layer. Its own colour as well as dashed: in the same green
+   as every other line it was indistinguishable from one.
+
+   Held back rather than announced. Reaching out of the layer is worth noticing,
+   but it is a fact about where the far end lives and not about the relation
+   itself, so the violet sits under the green lines in weight and lets the kind
+   and the label read first. Hover and selection bring it back up to full. */
+.react-flow__edge.reaching .react-flow__edge-path { opacity: 0.55; }
+.react-flow__edge.reaching .leg-mark { opacity: 0.55; }
+.react-flow__edge.reaching:hover .react-flow__edge-path,
+.react-flow__edge.reaching.selected .react-flow__edge-path,
+.react-flow__edge.reaching:hover .leg-mark,
+.react-flow__edge.reaching.selected .leg-mark { opacity: 1; }
+.react-flow__edge.reaching .react-flow__edge-text {
+  fill: #8a7ab0; font-style: italic; opacity: 0.75;
+}
 .react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-text { fill: var(--away); }
@@ -1505,7 +1534,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .shape {
   position: absolute;
   right: 10px;
-  bottom: calc(var(--tray, 0px) + 12px);
+  bottom: 12px;
   z-index: 5;
   display: flex;
   flex-direction: column;
@@ -1517,8 +1546,13 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 }
 
 .shape button {
+  display: grid;
+  place-items: center;
   width: 22px;
   height: 22px;
+  /* Reset, not inherit: the base button padding is 10px a side, which leaves a
+     two-pixel content box in a button this size and shunts every glyph right. */
+  padding: 0;
   border: none;
   background: none;
   color: var(--muted);
@@ -1529,7 +1563,14 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .shape button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .shape button.on { color: var(--accent); }
 
-/* The arrangements are one set; how lines are drawn is not one of them. */
+/* Which way the layer reads is its own thing among the relationship options,
+   so it is fenced off. A row divides on its left, a column on its top. */
+.arrange button.apart {
+  margin-left: 5px;
+  border-left: 1px solid var(--divider);
+  padding-left: 9px;
+}
+
 .shape button.apart { margin-top: 5px; border-top: 1px solid var(--divider); padding-top: 4px; }
 
 /* The relation editor doubles as its controls */
@@ -1701,3 +1742,267 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   stroke-dasharray: 1 4;
   stroke-linecap: round;
 }
+
+/* A name that is already taken by a sibling.
+
+   The field holds instead of closing, and says why beside itself: a refused
+   name is still the name somebody meant, so the correction belongs where the
+   caret already is. Warned while typing, so Enter is never a surprise. */
+input.clash,
+.floating input.clash {
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* One word, because the explorer is narrow and a sentence there is a sentence
+   with its end cut off. The sentence goes to the strip at the top instead. */
+.clash-why {
+  color: var(--error);
+  font-size: 11px;
+  font-style: italic;
+  white-space: nowrap;
+  padding-left: 6px;
+  flex: none;
+  opacity: 0.85;
+}
+
+/* The log has stopped reaching storage. Loud, because the cost of missing it
+   is the project: everything since it appeared lives only in this tab. */
+header .unsaved {
+  border-color: var(--error);
+  color: var(--error);
+  font-weight: 600;
+}
+
+header .unsaved:hover { background: var(--error); color: #1a1d1b; }
+
+/* Two ways of reading the same layer, on the one bottom surface: what is
+   selected, and everything there is. Tabs rather than a second panel — the
+   bottom edge only has room for one thing, and two would have fought. */
+/* The one way in. Centred, because it is the handle for a surface that spans
+   the whole bottom edge rather than a control belonging to either side. */
+.tray-tab {
+  margin: 0 auto;
+  flex: none;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 2px 14px;
+}
+
+.tray-tab:hover { color: var(--text); border-color: var(--border); }
+.tray-tab.on { color: var(--accent); border-color: var(--border); }
+
+/* The contents table. Dense on purpose: it is a list to scan, and every row
+   that fits is one less scroll between the reader and what they are after. */
+.contents { display: flex; flex-direction: column; min-height: 0; }
+
+.contents-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.contents-tabs button { font-size: 11px; padding: 2px 8px; color: var(--muted); }
+.contents-tabs button:hover:not(:disabled) { color: var(--text); }
+.contents-tabs button.on { color: var(--accent); border-color: var(--accent); }
+.contents-tabs button:disabled { opacity: 0.35; }
+/* The count carries the weight a label cannot: how much is actually there. */
+.contents-tabs button i { font-style: normal; opacity: 0.6; margin-left: 2px; }
+
+.contents-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+
+.contents-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.contents-table th.sortable { cursor: pointer; user-select: none; }
+.contents-table th.sortable:hover { color: var(--text); }
+.contents-table th.sortable.on { color: var(--accent); }
+
+.contents-table td { padding: 1px 10px; border-bottom: 1px solid var(--line, #1f2623); }
+.contents-table tr { cursor: pointer; }
+.contents-table tbody tr:hover { background: var(--raised, rgba(255, 255, 255, 0.03)); }
+.contents-table tr.picked { background: rgba(122, 168, 143, 0.12); }
+
+.contents-table td.sort { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; }
+.contents-table td.what { color: var(--muted); }
+.contents-table td.type .none { color: var(--muted); opacity: 0.4; }
+.contents-table td.name input,
+.contents-table td.type input {
+  width: 100%;
+  min-width: 4em;
+  border-color: transparent;
+  background: none;
+  padding: 2px 4px;
+}
+
+.contents-table td.name input:hover,
+.contents-table td.type input:hover { border-color: var(--border); }
+.contents-table td.name input:focus,
+.contents-table td.type input:focus { border-color: var(--accent); background: var(--surface); }
+
+.contents-table td.doing { text-align: right; width: 1%; white-space: nowrap; }
+.contents-table td.doing button { color: var(--muted); padding: 0 6px; }
+.contents-table td.doing button:hover { color: var(--error); background: none; }
+
+.contents .empty { color: var(--muted); padding: 16px 10px; text-align: center; }
+
+
+/* What the pointer is over, said in full. Sits above the table rather than
+   floating over it: the row being described must stay visible, and a tooltip
+   that covers its own subject is worse than none. */
+.contents-tip {
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--raised, rgba(255, 255, 255, 0.03));
+  font-size: 11px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.contents-tip b { color: var(--accent); font-weight: 500; flex: none; }
+.contents-tip p { margin: 0; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+.contents-tip span { color: var(--muted); flex: none; }
+
+/* A row opened out: what it says, and what it carries. */
+.contents-table tr.opened td { padding: 6px 10px 10px 10px; background: var(--surface); }
+
+.contents-table tr.opened textarea {
+  width: 100%;
+  min-height: 3.5em;
+  resize: vertical;
+  font: inherit;
+  margin-bottom: 6px;
+}
+
+.carries { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+
+.carries .held {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 1px 4px 1px 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.carries .held input { border-color: transparent; background: none; width: 7em; padding: 0 2px; }
+.carries .held input:focus { border-color: var(--accent); }
+.carries .held button { color: var(--muted); padding: 0 2px; }
+.carries .held button:hover { color: var(--error); background: none; }
+.carries .add-attr { min-width: 8em; font-size: 11px; }
+
+/* Row buttons sit quiet until the row is under the pointer: five sets of icons
+   down the table would read as a control panel rather than a list. */
+.contents-table td.doing button { opacity: 0; transition: opacity 120ms ease; }
+.contents-table tr:hover td.doing button,
+.contents-table tr.picked td.doing button,
+.contents-table td.doing button.on { opacity: 1; }
+.contents-table td.doing button.on { color: var(--accent); }
+
+/* A panel that could not draw itself. Says so and stays out of the way, rather
+   than taking the window down with it. */
+.broke {
+  margin: 0;
+  padding: 16px 12px;
+  color: var(--error);
+  font-size: 12px;
+}
+
+
+/* Widths, so the columns are the same down the whole table and the buttons at
+   the end are always where the pointer expects them. `what` takes whatever is
+   left, being the one that can be cut without losing the row's identity. */
+/* In pixels, not `em`: the head is set smaller than the body, so the same
+   `em` resolved to two different widths and the two tables drifted apart. */
+.contents-table th:nth-child(1), .contents-table td:nth-child(1) { width: 84px; }
+.contents-table th:nth-child(2), .contents-table td:nth-child(2) { width: 26%; }
+.contents-table th:nth-child(4), .contents-table td:nth-child(4) { width: 20%; }
+.contents-table th:nth-child(5), .contents-table td:nth-child(5) { width: 84px; }
+
+/* Cut long text rather than widening the column. Not `display: block` on a
+   cell: that takes it out of the table's layout altogether and its column
+   stops honouring any width at all. `table-layout: fixed` makes the ellipsis
+   work on the cell as it stands. */
+.contents-table td.sort,
+.contents-table td.what {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contents-table td.name > span,
+.contents-table td.type > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The opened row spans everything, so it is exempt from the widths above. */
+.contents-table tr.opened td { width: auto; }
+
+/* The app saying something, in the same strip it asks for a name in. Amber
+   rather than green: it is a report, not a question waiting on an answer. */
+.floating.saying { border-color: var(--error); max-width: 60%; }
+.floating.saying .caret { color: var(--error); }
+.floating.saying .what { font-size: 12px; color: var(--text); }
+.floating.saying button { color: var(--muted); padding: 0 4px; }
+.floating.saying button:hover { color: var(--error); background: none; }
+
+/* The one thing you can do about what was said, where there is one. */
+.floating.saying .act {
+  border-color: var(--error);
+  color: var(--error);
+  font-size: 11px;
+  padding: 1px 8px;
+  flex: none;
+}
+
+.floating.saying .act:hover { background: var(--error); color: #1a1d1b; }
+
+/* Where the work lives, said all the time. Quiet while it is true; the same
+   control turns into the warning when the browser stops accepting the log,
+   because the answer to both is the same button. */
+header .where {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+  padding: 2px 4px;
+}
+
+header .where:hover { opacity: 1; color: var(--text); background: none; }
+
+/* Not subtle at all once it stops being true. Stated here rather than left to
+   the rule above, which is otherwise the more specific of the two. */
+header .where.unsaved {
+  opacity: 1;
+  font-size: 11px;
+  font-weight: 600;
+  border-color: var(--error);
+  color: var(--error);
+}
+
+header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }

@@ -10,15 +10,24 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { titleOf } from "./core/fold";
 import { useProject } from "./core/project";
 import * as store from "./core/store";
 import type { Suggestion } from "./core/suggest";
 import type { Kind } from "./core/types";
 import { Canvas } from "./Canvas";
+import type { Grazed } from "./NodeCard";
 import { Chat } from "./Chat";
 import { Files } from "./Files";
 import { Panel } from "./Panel";
 import { Readout } from "./Readout";
+
+/** What this diagram calls its elementary unit.
+ *
+ *  A property of the **diagram type**, not of what the project is about: a
+ *  block diagram is built from blocks whether it describes software or a
+ *  story. It becomes part of a module's declaration once modules exist. */
+const UNIT = "block";
 
 export function App() {
   const project = useProject();
@@ -27,27 +36,24 @@ export function App() {
   const [draft, setDraft] = useState("");
   /** Whether the readout drawer is out. */
   const [shelved, setShelved] = useState(false);
-  /** The attribute tray's real height, so the canvas can keep its own controls
-   *  clear of it. Measured rather than guessed: the tray is as tall as its
-   *  contents up to a ceiling, and a guess at the ceiling left the controls
-   *  stranded halfway up a tall screen. */
+  /** The tray, so a click outside it can put it away. Its height no longer
+   *  needs measuring: it takes half the canvas and the drawing takes the rest,
+   *  rather than covering it. */
   const tray = useRef<HTMLElement>(null);
-  const [trayHeight, setTrayHeight] = useState(0);
-
-  useEffect(() => {
-    const foot = tray.current;
-    if (!foot) return;
-
-    const watch = new ResizeObserver(([entry]) => setTrayHeight(entry.contentRect.height));
-    watch.observe(foot);
-
-    return () => watch.disconnect();
-  }, []);
 
   // Display preferences: global to the app, kept apart from the project's own
   // history because how something is drawn is not a change to it.
   const [angular, setAngular] = useState(store.angular.initial);
   const [ports, setPorts] = useState(store.ports.initial);
+  /** Something the contents table is pointing at, lit on the canvas without
+   *  being selected. The canvas's own hover still wins where they disagree. */
+  const [hinted, setHinted] = useState<Grazed>(null);
+  /** Anything the app has to say, in one place. The door's report on a troubled
+   *  log arrives the same way a refused name does. */
+  const [notice, setNotice] =
+    useState<{ text: string; act?: { label: string; run: () => void } } | null>(null);
+  /** Everything that used to be an `alert` or a `confirm`. */
+  const say = (text: string, act?: { label: string; run: () => void }) => setNotice({ text, act });
   const [treePorts, setTreePorts] = useState(store.treePorts.initial);
   /** What a right drag makes. A choice about the next thing created rather than
    *  about how anything is drawn, but it lives here for the same reason: it is
@@ -95,20 +101,38 @@ export function App() {
     <div className="app">
       <header>
         <h1>mndflow</h1>
-        {graph.template && <span className="domain">{graph.template}</span>}
+        {/* Whose project this is, where the domain used to sit — the domain is
+            a setting, and a name is what tells one project from another. */}
+        <span className="domain" title={graph.domain ? `${graph.domain} project` : undefined}>
+          {titleOf(graph) || "untitled"}
+        </span>
+
+        {/* Where the work actually lives, said all the time rather than only
+            when it breaks. One control, two states: normally it names the
+            working copy, and when the browser stops accepting it the same
+            control becomes the warning and the way out. */}
+        <button
+          className={`where${project.saving ? "" : " unsaved"}`}
+          onClick={project.save}
+          title={project.saving
+            ? "This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
+            : "This browser will not store any more of this project. Export it to keep it."}
+        >
+          {project.saving ? "working session" : "⚠ not being saved — export"}
+        </button>
 
         <span className="tools">
-          <button onClick={project.undo} disabled={!project.undoable} title="Undo">
-            undo
+          <button onClick={project.undo} disabled={!project.undoable} title="Undo">↤</button>
+          <button onClick={project.redo} disabled={!project.redoable} title="Redo">↦</button>
+          <button
+            onClick={project.save}
+            disabled={!project.steps.length}
+            title="Export a snapshot of this project"
+          >
+            ⤓
           </button>
-          <button onClick={project.redo} disabled={!project.redoable} title="Redo">
-            redo
-          </button>
-          <button onClick={project.save} disabled={!project.steps.length}>
-            export
-          </button>
-          <label className="import">
-            import
+          <label className="import" title="Open a snapshot, replacing what is here">
+            ⤒
             <input
               type="file"
               accept=".json"
@@ -116,16 +140,18 @@ export function App() {
                 const file = event.target.files?.[0];
                 event.target.value = "";
                 if (file && !project.load(await file.text())) {
-                  window.alert("That file is not a mndflow project.");
+                  say("That file is not a mndflow project.");
                 }
               }}
             />
           </label>
           <button
-            onClick={() => window.confirm("Discard this project?") && project.reset()}
+            onClick={() => say("Discard this project? Export it first if you want it back.",
+                              { label: "discard", run: project.reset })}
             disabled={!project.steps.length}
+            title="Start a new, empty project"
           >
-            new
+            ＋
           </button>
 
           <button
@@ -168,6 +194,9 @@ export function App() {
             onShowPorts={setTreePorts}
             onOpen={project.open}
             onCreate={project.create}
+            onNameTaken={project.nameTaken}
+            onSay={say}
+            unit={UNIT}
             onDelete={project.remove}
             onMove={project.move}
             onRename={project.rename}
@@ -176,9 +205,14 @@ export function App() {
         </div>
 
         <section className="work">
-          <div className="canvas" style={{ "--tray": `${trayHeight}px` } as React.CSSProperties}>
+          <div className="canvas">
             <Canvas
               graph={graph}
+              unit={UNIT}
+              hinted={hinted}
+              said={notice ?? (project.trouble ? { text: project.trouble } : null)}
+              onSay={say}
+              onHeard={() => (setNotice(null), project.clearTrouble())}
               view={view}
               picked={picked}
               path={path}
@@ -188,7 +222,8 @@ export function App() {
               onAngular={setAngular}
               kind={kind}
               onKind={setKind}
-              onRelax={project.relax}
+              onArrangeLayer={project.arrange}
+              onAxis={project.setAxis}
               onPick={project.pick}
               onOpen={project.open}
               onUp={project.up}
@@ -197,12 +232,13 @@ export function App() {
               onCreateAt={project.createAt}
               onSprout={project.sprout}
               onRename={project.rename}
+              onNameTaken={project.nameTaken}
               onLift={project.lift}
               onWire={project.wire}
               onAddPort={project.addPort}
               onPromotePort={project.promotePort}
               onSlidePort={project.setPort}
-              onDropAttr={project.dropAttr}
+              onDropAttr={project.remove}
               onRefer={project.refer}
               onReveal={project.reveal}
               onRelation={project.relation}
@@ -210,7 +246,7 @@ export function App() {
               onUnlink={project.unlink}
               onDelete={project.remove}
               onGroup={project.group}
-              onNameAttr={(id, label) => project.updateAttr(id, { name: label })}
+              onNameAttr={project.rename}
               onNote={project.note}
               onPlaceNote={project.placeNote}
               onTie={project.tie}
@@ -220,14 +256,21 @@ export function App() {
               graph={graph}
               view={view}
               picked={picked}
-              terms={terms}
+              unit={UNIT}
+              onPick={project.pick}
+              onHint={setHinted}
+              onDelete={project.remove}
+              onUnlink={project.unlink}
               onSave={project.write}
               onRetype={project.retype}
               onMarkPort={project.markPort}
               onAddAttr={project.addAttr}
               onUpdateAttr={project.updateAttr}
-              onDetachAttr={project.detachAttr}
               onDropAttr={project.dropAttr}
+              onLeaveGroup={project.leaveGroup}
+              onRename={project.rename}
+              onNameTaken={project.nameTaken}
+              onSay={say}
               onRelation={project.relation}
               onSetDir={project.setDir}
               onFlip={project.flip}

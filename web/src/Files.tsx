@@ -10,8 +10,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { isContainer, isPort, isRef, nameOf } from "./core/fold";
-import type { Graph, Node } from "./core/types";
+import { isContainer, isPort, isProxy, nameOf, titleOf } from "./core/fold";
+import { NameField } from "./NameField";
+import { ROOT as ROOT_ID, type Graph, type Element } from "./core/types";
 import { REFERRED } from "./NodeCard";
 import type { Terms } from "./core/workflows";
 
@@ -20,13 +21,16 @@ const ROOT = "__root__";
 /** Child nodes per parent, containers first then by label, keyed by ROOT for
  *  the top level. A node whose parent was undone sits at the top rather than
  *  vanishing from the tree. */
-function branches(graph: Graph): Record<string, Node[]> {
-  const kids: Record<string, Node[]> = {};
+function branches(graph: Graph): Record<string, Element[]> {
+  const kids: Record<string, Element[]> = {};
 
-  for (const node of Object.values(graph.nodes)) {
-    if (isRef(node)) continue;
+  for (const node of Object.values(graph.elements)) {
+    // The explorer is the tree, and the tree is blocks. A proxy is a second
+    // appearance of one; a note or a group describes rather than structures;
+    // root is the tree itself and has its own row above these.
+    if (node.id === ROOT_ID || isProxy(node) || node.element !== "block") continue;
 
-    const parent = node.parent && graph.nodes[node.parent] ? node.parent : ROOT;
+    const parent = node.parent && graph.elements[node.parent] ? node.parent : ROOT;
     (kids[parent] ??= []).push(node);
   }
 
@@ -47,7 +51,7 @@ function branches(graph: Graph): Record<string, Node[]> {
 /** The mark for a node's role, which it takes from what it holds and where it
  *  sits rather than from anything declared. Blocks are a closed square,
  *  interfaces an open one, containers a compound grid. */
-function icon(graph: Graph, node: Node): string {
+function icon(graph: Graph, node: Element): string {
   if (isPort(node)) return "□";
   if (isContainer(graph, node.id)) return "▦";
 
@@ -63,6 +67,12 @@ type Props = {
   onShowPorts: (on: boolean) => void;
   onOpen: (id: string | null) => void;
   onCreate: (label: string, parent: string | null) => void;
+  /** Whether a name is already spoken for in a layer, so a field can say so. */
+  onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** Say something in full, where there is room for it. */
+  onSay: (message: string) => void;
+  /** What this diagram calls its elementary unit. */
+  unit: string;
   onDelete: (id: string) => void;
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
@@ -70,7 +80,7 @@ type Props = {
 };
 
 export function Files(props: Props) {
-  const { graph, view, terms, showPorts, onShowPorts, onOpen, onCreate } = props;
+  const { graph, view, showPorts, onShowPorts, onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const { onDelete, onMove, onRename, onRenameProject } = props;
   const kids = useMemo(() => branches(graph), [graph]);
   /** Nodes the user has opened. Nothing else opens them — walking into a layer
@@ -81,10 +91,14 @@ export function Files(props: Props) {
   const [held, setHeld] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  /** Null when nothing is being named; otherwise the layer the new element
+   *  lands in. Held rather than read from the scope, because the two creation
+   *  gestures mean different places: the bar's button acts on what is open,
+   *  and the clear space below the rows is the root's own background. */
+  const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLSpanElement>(null);
-  const title = graph.title || "project";
+  const title = titleOf(graph) || "project";
 
   function fold(id: string) {
     setOpen((prior) => {
@@ -103,7 +117,7 @@ export function Files(props: Props) {
       if (prior.size) return new Set();
 
       return new Set(
-        Object.values(graph.nodes)
+        Object.values(graph.elements)
           .filter((node) => (kids[node.id] ?? []).some((n) => showPorts || !isPort(n)))
           .map((node) => node.id),
       );
@@ -147,13 +161,13 @@ export function Files(props: Props) {
   }, [view, open, graph]);
 
   /** A new thing goes inside whatever layer is open. */
-  const parent = view && graph.nodes[view] ? view : null;
+  const parent = view && graph.elements[view] ? view : null;
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
   function rename(id: string, label: string) {
     const wanted = label.trim();
-    const current = id === ROOT ? title : graph.nodes[id]?.label;
+    const current = id === ROOT ? title : graph.elements[id]?.label;
 
     if (wanted && wanted !== current) {
       id === ROOT ? onRenameProject(wanted) : onRename(id, wanted);
@@ -163,14 +177,14 @@ export function Files(props: Props) {
   }
 
   function create(label: string) {
-    if (label.trim()) onCreate(label.trim(), parent);
+    if (label.trim() && adding) onCreate(label.trim(), adding.parent);
 
-    setAdding(false);
+    setAdding(null);
   }
 
   /** Finish a drag, ignoring drops that would leave the node where it is. */
   function drop(into: string | null) {
-    const moved = held && held !== into && (graph.nodes[held]?.parent ?? null) !== into;
+    const moved = held && held !== into && (graph.elements[held]?.parent ?? null) !== into;
     if (moved) onMove(held!, into);
 
     setHeld(null);
@@ -186,18 +200,19 @@ export function Files(props: Props) {
     };
   }
 
-  /** Text field shared by renaming and naming something new. */
-  function field(initial: string, commit: (value: string) => void, cancel: () => void) {
+  /** Text field shared by renaming and naming something new. `within` is the
+   *  layer the name has to be free in, and `except` the element already
+   *  holding it when this is a rename. */
+  function field(initial: string, commit: (value: string) => void, cancel: () => void,
+                 within: string | null = null, except: string | null = null) {
     return (
-      <input
+      <NameField
+        initial={initial}
         className="rename"
-        autoFocus
-        defaultValue={initial}
-        onBlur={(event) => commit(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") commit(event.currentTarget.value);
-          if (event.key === "Escape") cancel();
-        }}
+        taken={(name) => onNameTaken(within, name, except)}
+        onSay={onSay}
+        onCommit={commit}
+        onCancel={cancel}
       />
     );
   }
@@ -212,7 +227,7 @@ export function Files(props: Props) {
     // told apart by their icon; `branches` has already sorted them last.
     const here = (kids[parentId] ?? []).filter((n) => showPorts || !isPort(n));
 
-    const row = (node: Node) => {
+    const row = (node: Element) => {
       const holds = Boolean(kids[node.id]?.some((n) => showPorts || !isPort(n)));
 
       return (
@@ -233,8 +248,19 @@ export function Files(props: Props) {
               event.dataTransfer.setData(REFERRED, node.id);
               event.dataTransfer.effectAllowed = "all";
             }}
-            onClick={() => onOpen(node.id)}
+            // Entering a layer opens it: what you asked to look inside of
+            // should show you what is inside it.
+            onClick={() => (setOpen((prior) => new Set(prior).add(node.id)), onOpen(node.id))}
             onDoubleClick={() => setEditing(node.id)}
+            onContextMenu={(event) => {
+              // A row is all name, the way a note is: an icon that folds and a
+              // label, with nothing else to aim at. So it takes the rule every
+              // name takes rather than carving out a few pixels for a second
+              // gesture. Making things happens on the empty space below.
+              event.preventDefault();
+              event.stopPropagation();
+              setEditing(node.id);
+            }}
             {...dropzone(node.id, node.id)}
           >
             <span
@@ -255,7 +281,8 @@ export function Files(props: Props) {
               {icon(graph, node)}
             </span>
             {editing === node.id
-              ? field(node.label, (value) => rename(node.id, value), () => setEditing(null))
+              ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
+                      node.parent ?? null, node.id)
               : <span className="label">{nameOf(graph, node)}</span>}
           </div>
           {holds && open.has(node.id) && <ul className="branch">{branch(node.id)}</ul>}
@@ -284,7 +311,7 @@ export function Files(props: Props) {
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
-          <button onClick={() => setAdding(true)} title={`New ${terms.node}`}>
+          <button onClick={() => setAdding({ parent })} title={`New ${unit}`}>
             ＋
           </button>
           <button onClick={() => setEditing(view ?? ROOT)} title="Rename what is open">
@@ -306,11 +333,27 @@ export function Files(props: Props) {
         </span>
       </div>
 
-      <div className="tree" ref={scroller}>
+      <div
+        className="tree"
+        ref={scroller}
+        // The clear space below the rows is the *root's* background, not the
+        // open layer's — the rows are what layers look like here, and this is
+        // the space around all of them. So it makes something at the top level,
+        // wherever you happen to be scoped.
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setAdding({ parent: null });
+        }}
+      >
         <div
           className={`item root ${view === null ? "active" : ""} ${over === ROOT ? "over" : ""}`}
           onClick={() => onOpen(null)}
           onDoubleClick={() => setEditing(ROOT)}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setEditing(ROOT);
+          }}
           {...dropzone(ROOT, null)}
         >
           {editing === ROOT
@@ -324,11 +367,11 @@ export function Files(props: Props) {
 
         {adding && (
           <div className="item new">
-            {field("", create, () => setAdding(false))}
+            {field("", create, () => setAdding(null), adding.parent)}
           </div>
         )}
 
-        {Object.keys(graph.nodes).length === 0 && !adding && (
+        {!(kids[ROOT] ?? []).length && !adding && (
           <p className="empty">Nothing here yet</p>
         )}
       </div>

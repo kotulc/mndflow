@@ -1,11 +1,13 @@
 /** Every shared shape in one place: the graph, the changes that build it, and
  *  the steps that record them.
  *
- *  A node *is* a document — its text lives on it, and the object explorer is
- *  the node hierarchy. There is no second representation to fall out of step.
+ *  The graph is **elements** and **relationships**, and nothing else. An
+ *  element is placed and drawn; a relationship joins two of them. Everything
+ *  else describes one of the two.
  *
- *  Structure is nodes and nothing else. Attributes describe nodes and draw on
- *  the canvas, but never change what contains what. */
+ *  An element *is* a document — its text lives on it, and the object explorer
+ *  is the tree of blocks. There is no second representation to fall out of
+ *  step. */
 
 /** Which frame edge an interface sits on. */
 export type Side = "top" | "right" | "bottom" | "left";
@@ -14,36 +16,92 @@ export type Flow = "in" | "out" | "both";
 /** Which way a relationship reads. Undirected by default. */
 export type Dir = "none" | "forward" | "back" | "both";
 
+/** Which of the four an element is.
+ *
+ *  Closed and engine-level: it decides what draws an element and which rules
+ *  reach it. `block` is the base and the default — the discrete structural
+ *  thing the tree is built from. `note` and `group` describe rather than
+ *  structure. `proxy` stands in for a block living in another layer.
+ *
+ *  A user's own subtypes go in `type` and subtype **within** one of these,
+ *  never across one, so this set stays closed and no rule has to branch on
+ *  user data. Container and interface are not here: both are derived, from
+ *  what a block holds and from whether it sits on a frame edge. */
+export type Elem = "block" | "note" | "group" | "proxy";
+
 /** What a relationship's ends are, and how it draws.
  *
  *  `untyped` is the default and says nothing beyond "these two are related":
  *  its ends are plain seats and the layer puts them wherever the path wants.
  *  `flow` says the relationship carries something one way, so its ends read as
  *  in and out and take the sides the layer's axis gives them. `assoc` is a
- *  weaker mention, drawn lighter. The kind decides the ends; `dir` still
- *  decides which way the arrows point. */
-export type Kind = "untyped" | "flow" | "assoc";
-
-/** How a layer arranges what it holds.
+ *  weaker mention, drawn lighter. `tie` joins a note to what it describes. The
+ *  kind decides the ends; `dir` still decides which way the arrows point.
  *
- *  `free` clusters outward from the middle and `grid` tiles in reading order;
- *  neither ranks anything, and neither gives a flow relationship a side. The
- *  other two rank the layer along one axis, so a relationship reads the way the
- *  layer does. Held per layer, because a pipeline and a hierarchy can sit in one
- *  project. */
-export type Axis = "free" | "grid" | "right" | "down";
+ *  **`reference` is not among them.** A relationship is a reference when one of
+ *  its ends is a proxy, which is a fact about where its ends live rather than a
+ *  kind it was given — so it is derived, and a reference is still plain, flow
+ *  or assoc in its own right.
+ *
+ *  A kind may draw as something other than a routed line — a tie is a leader,
+ *  taking no pointer and no seats — but that is a rule about drawing, not about
+ *  what it is. Anything joining two elements is a relationship, so that there
+ *  is one way to join things, one cascade when an end is deleted, and one list
+ *  to read them from. */
+export type Kind = "untyped" | "flow" | "assoc" | "tie";
 
-export type Node = {
+/** Which way a layer reads, and nothing else.
+ *
+ *  A setting, held per layer, because a pipeline and a hierarchy can sit in one
+ *  project. It decides which sides a `flow` relationship attaches to and how
+ *  its line is drawn. It says nothing about where cards go — that is what an
+ *  arrangement does, and an arrangement is an action rather than a setting. */
+export type Axis = "none" | "across" | "down";
+
+/** What one run of an arrangement does. Never stored: picking one lays the
+ *  layer out and writes down where everything landed. */
+export type Layout = "grid" | "radial" | "across" | "down";
+
+/** The block that holds every other.
+ *
+ *  A reserved id rather than a shape of its own, so root is an ordinary
+ *  element carrying the project's name, axis, body and attributes. `parent:
+ *  null` still means "in the root layer" everywhere it is written; root is
+ *  told from its own children by this id alone, which is the one place any
+ *  listing has to know about it. */
+export const ROOT = "root";
+
+/** A descriptive value carried by an element or a relationship.
+ *
+ *  No identity of its own — an attribute is a name and a value on the thing
+ *  that carries it, addressed by that name. Never structural: an attribute
+ *  never appears in the explorer and never changes what contains what. */
+export type Attr = { name: string; value: string; tags: string[] };
+
+export type Element = {
   id: string;
+  /** Which of the four this is. */
+  element: Elem;
   label: string;
-  /** Vocabulary from the active template — "Character", "Service", "Page". */
+  /** The user's own subtype for this element — a stereotype, and empty until
+   *  somebody sets one.
+   *
+   *  Not the domain's word for a block: that is `terms.node` ("Module",
+   *  "Character"), one per project, and it is shown as this field's
+   *  placeholder rather than copied onto everything. A `type` is only ever a
+   *  distinction somebody drew. */
   type: string;
   parent: string | null;
   body: string;
   /** Set only once the user drags it; null means lay it out automatically. */
   x: number | null;
   y: number | null;
-  /** Set when this node sits on its parent's frame edge, which is what makes
+  /** The least room a note was asked for, from the rectangle its drag swept.
+   *  A minimum and not a size: the text still grows it, so the box and what it
+   *  says can never disagree. Null on everything else. */
+  w: number | null;
+  h: number | null;
+  /** Set when this block sits on its parent's frame edge, which is what makes
    *  it an interface. An interface's x/y mean nothing — side and how far along
    *  the edge take their place, so the port survives the frame resizing.
    *
@@ -53,21 +111,32 @@ export type Node = {
   side: Side | null;
   at: number | null;
   flow: Flow | null;
-  /** An interface's number among its parent's, fixed when it is made. Stored
-   *  rather than counted, so deleting one renames none of the others: the gap
-   *  it leaves is simply what the next interface takes. */
+  /** This element's number among its siblings of the same kind, fixed when it
+   *  is made. Stored rather than counted, so deleting one renames none of the
+   *  others: the gap it leaves is simply what the next one takes. */
   num: number | null;
-  /** The node this stands in for, when it is a reference — a placeholder in
-   *  one layer for something that lives in another. It is an ordinary node in
-   *  every other way: it sits in a layer, it moves, it relates, it carries
-   *  attributes. What it does not have is contents of its own. */
-  ref: string | null;
-  /** How this node arranges its contents when it is the layer being looked at.
-   *  Null is `free`; the root's own axis lives on the graph. */
+  /** How this element arranges its contents when it is the layer being looked
+   *  at. Null reads as `none`. */
   axis: Axis | null;
+  /** The groups this element belongs to — its membership.
+   *
+   *  Held here and nowhere else: a group's member list is derived by asking
+   *  who names it, so the two can never disagree. Membership is descriptive,
+   *  not structural — a group is never a parent. */
+  groups: string[];
+  /** What a proxy stands in for: the block it is a second appearance of.
+   *
+   *  Held here rather than as a relationship. A proxy standing for a block is
+   *  not two things being joined — it is one thing appearing twice, which is a
+   *  property of the appearance. The relationships that *reach* a proxy are the
+   *  references, and they are ordinary relationships drawn by hand. */
+  of: string | null;
+  /** Descriptive values, addressed by name. */
+  attrs: Attr[];
+  color: string;
 };
 
-/** One end of a relationship as it is drawn: the node it lands on, the
+/** One end of a relationship as it is drawn: the element it lands on, the
  *  interface it landed on where it landed on one, and the wall the gesture
  *  named where it named one. Most ends have neither — where a line meets a card
  *  is worked out by the layer, not stored. */
@@ -80,9 +149,11 @@ export type Edge = {
   id: string;
   source: string;
   target: string;
-  relation: string;
-  /** The interface node each end is tied to. A relationship has one at each
-   *  end always; absent only means it was never placed anywhere in particular,
+  /** What this relationship means — its stereotype. Free text, offered from
+   *  the project's list and renameable across every edge at once. */
+  type: string;
+  /** The interface each end is tied to. A relationship has one at each end
+   *  always; absent only means it was never placed anywhere in particular,
    *  so it is implied at the side of the card facing the other end rather than
    *  stored. Drawing a relationship by hand places both. */
   from?: string;
@@ -93,61 +164,40 @@ export type Edge = {
   kind?: Kind;
   /** The wall an end was drawn through, where the gesture named one.
    *
-   *  A choice, so it is kept — the same standing a node's own position has over
-   *  automatic layout. Unlike a route it never goes stale: cards move, the frame
-   *  is resized, the layer is rearranged, and "this leaves by the north wall" is
-   *  still true and still drawable. The seat along that wall stays derived.
-   *  `arrange` clears these along with hand placement. */
+   *  A choice, so it is kept — the same standing an element's own position has
+   *  over automatic layout. Unlike a route it never goes stale: cards move, the
+   *  frame is resized, the layer is rearranged, and "this leaves by the north
+   *  wall" is still true and still drawable. The seat along that wall stays
+   *  derived. `arrange` clears these along with hand placement. */
   fromSide?: Side;
   toSide?: Side;
 };
 
-/** A descriptive property of a node or a relationship. Held by one object or
- *  shared across many; sharing is what makes an attribute a grouping.
- *
- *  Non-structural throughout — an attribute never appears in the explorer and
- *  never changes what contains what. */
-export type Attr = {
-  id: string;
-  name: string;
-  value: string;
-  tags: string[];
-  /** Node or relationship ids carrying this. More than one makes it shared. */
-  holders: string[];
-  /** A shared attribute drawn as a boundary around its holders — a group. */
-  group: boolean;
-  /** Where this is drawn as a **note**: a small card of text sitting in one
-   *  layer, tied by a faint leader to each object holding it.
-   *
-   *  Absent on everything else. A group is placed by its members and needs no
-   *  place of its own; an attribute that draws nothing is placed nowhere. A
-   *  note is the one annotation that can be tied to nothing at all, so there is
-   *  nothing else to place it by — it belongs to the layer it was drawn in. */
-  note?: { layer: string | null; x: number; y: number };
-  color: string;
-};
-
 export type Graph = {
-  nodes: Record<string, Node>;
+  elements: Record<string, Element>;
   edges: Record<string, Edge>;
-  attrs: Record<string, Attr>;
   /** The kinds of relation this project uses. Seeded from the domain and
    *  edited freely — a relation may be named anything, but the list is what
    *  gets offered and what can be renamed across every edge at once. */
   relations: string[];
-  template: string;
-  title: string;
-  /** The root layer's axis. Every other layer keeps its own on its node; the
-   *  root has no node to keep it on. */
-  axis: Axis;
+  /** The project's vocabulary and starting relations. One per project. */
+  domain: string;
 };
 
 export type Mutation =
-  | { op: "add_node"; node: Node }
-  | { op: "update_node"; id: string; label?: string; type?: string }
-  | { op: "move_node"; id: string; parent: string | null }
-  | { op: "place_node"; id: string; x: number; y: number }
-  | { op: "delete_node"; id: string }
+  /** A whole graph, standing in for every step that came before it.
+   *
+   *  Written by compaction, never by a gesture. It is what keeps history
+   *  bounded, and it is also how a project sheds retired ops: whatever the old
+   *  steps were spelled in, the snapshot is in the current schema. */
+  | { op: "checkpoint"; graph: Graph }
+  | { op: "add_element"; element: Element }
+  | { op: "update_element"; id: string; label?: string; type?: string; color?: string }
+  | { op: "move_element"; id: string; parent: string | null }
+  | { op: "place_element"; id: string; x: number; y: number }
+  /** The least room a note was asked for, from the rectangle its drag swept. */
+  | { op: "size_element"; id: string; w: number; h: number }
+  | { op: "delete_element"; id: string }
   | { op: "set_body"; id: string; body: string }
   /** Slide an interface along its parent's frame edge, and around its corners.
    *  It never comes off: an interface is one for as long as it exists. */
@@ -158,34 +208,52 @@ export type Mutation =
   /** Hand a layer's blocks back to automatic placement, so a new arrangement
    *  has something to arrange. */
   | { op: "relax_layer"; layer: string | null }
-  | { op: "link_nodes"; edge: Edge }
+  /** Join or leave a group. Membership is held on the member, and is not a
+   *  relationship: a group draws a boundary round its members rather than a
+   *  line to each. */
+  | { op: "join_group"; id: string; group: string }
+  | { op: "leave_group"; id: string; group: string }
+  /** Set or drop a descriptive value, addressed by its name. */
+  | { op: "set_attr"; id: string; name: string; value?: string; tags?: string[] }
+  | { op: "drop_attr"; id: string; name: string }
+  | { op: "link_elements"; edge: Edge }
   /** Tie one end of a relationship to an interface that now exists for it. */
   | { op: "set_end"; id: string; end: "from" | "to"; port: string }
-  | { op: "update_edge"; id: string; relation: string }
+  | { op: "update_edge"; id: string; type: string }
   | { op: "set_dir"; id: string; dir: Dir }
   | { op: "set_kind"; id: string; kind: Kind }
   /** Pin one end of a relationship to a wall, or hand it back to the layer. */
   | { op: "set_side"; id: string; end: "from" | "to"; side: Side | null }
-  /** A hand-laid route and the layer it was laid out in; null hands it back. */
-  | { op: "route_edge"; id: string; layer: string | null; route: Spot[] | null }
   /** Turn a relation around; what it says stays the same. */
   | { op: "flip_edge"; id: string }
   | { op: "delete_edge"; id: string }
-  | { op: "set_template"; template: string }
-  | { op: "set_title"; title: string }
+  | { op: "set_domain"; domain: string }
   | { op: "add_relation"; name: string }
   /** Renames the kind and every edge already using it, together. */
   | { op: "rename_relation"; from: string; to: string }
   /** Drops the kind; edges using it survive, unnamed. */
   | { op: "drop_relation"; name: string }
-  | { op: "add_attr"; attr: Attr }
+  | Legacy;
+
+/** Operations no longer written, still folded so that a log recorded before a
+ *  rename or a merge replays to what it drew at the time. */
+export type Legacy =
+  | { op: "add_node"; node: Record<string, unknown> }
+  | { op: "update_node"; id: string; label?: string; type?: string }
+  | { op: "move_node"; id: string; parent: string | null }
+  | { op: "place_node"; id: string; x: number; y: number }
+  | { op: "delete_node"; id: string }
+  | { op: "link_nodes"; edge: Record<string, unknown> }
+  | { op: "set_template"; template: string }
+  | { op: "set_title"; title: string }
+  | { op: "add_attr"; attr: Record<string, unknown> }
   | { op: "update_attr"; id: string; name?: string; value?: string; tags?: string[];
       color?: string }
-  /** Move a note to where a drag left it. Only a note has a place of its own. */
   | { op: "place_attr"; id: string; x: number; y: number }
   | { op: "attach_attr"; id: string; holder: string }
   | { op: "detach_attr"; id: string; holder: string }
-  | { op: "delete_attr"; id: string };
+  | { op: "delete_attr"; id: string }
+  | { op: "route_edge"; id: string; layer: string | null; route: Spot[] | null };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
@@ -202,10 +270,6 @@ export type Step = {
   status: "applied" | "reverted";
 };
 
-export const EMPTY: Graph = {
-  nodes: {}, edges: {}, attrs: {}, relations: [], template: "", title: "", axis: "free",
-};
-
 let counter = 0;
 
 /** Short readable id. Monotonic within a session, which keeps the action log
@@ -216,43 +280,49 @@ export function newId(prefix: string): string {
   return `${prefix}_${counter.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-/** A node with the defaults filled in, so callers only state what differs. */
-export function node(label: string, extra: Partial<Node> = {}): Node {
+/** An element with the defaults filled in, so callers only state what differs. */
+export function element(label: string, extra: Partial<Element> = {}): Element {
   return {
     id: newId("n"),
+    element: "block",
     label,
     type: "",
     parent: null,
     body: "",
     x: null,
     y: null,
+    w: null,
+    h: null,
     side: null,
     at: null,
     flow: null,
     num: null,
-    ref: null,
     axis: null,
-    ...extra,
-  };
-}
-
-/** A relationship with the defaults filled in. Undirected unless said. */
-export function edge(source: string, target: string, extra: Partial<Edge> = {}): Edge {
-  return { id: newId("e"), source, target, relation: "", dir: "none", ...extra };
-}
-
-/** An attribute with the defaults filled in. */
-export function attr(name: string, extra: Partial<Attr> = {}): Attr {
-  return {
-    id: newId("a"),
-    name,
-    value: "",
-    tags: [],
-    holders: [],
-    group: false,
+    groups: [],
+    of: null,
+    attrs: [],
     color: "#d9a441",
     ...extra,
   };
+}
+
+/** The root block: the one element every project starts with. */
+export function rootElement(title = ""): Element {
+  return element(title, { id: ROOT, axis: "none" });
+}
+
+export const EMPTY: Graph = {
+  elements: { [ROOT]: rootElement() }, edges: {}, relations: [], domain: "",
+};
+
+/** A relationship with the defaults filled in. Undirected unless said. */
+export function edge(source: string, target: string, extra: Partial<Edge> = {}): Edge {
+  return { id: newId("e"), source, target, type: "", dir: "none", ...extra };
+}
+
+/** A descriptive value with the defaults filled in. */
+export function attr(name: string, extra: Partial<Attr> = {}): Attr {
+  return { name, value: "", tags: [], ...extra };
 }
 
 export function step(input: string, action: string, mutations: Mutation[],

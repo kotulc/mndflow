@@ -11,14 +11,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "./embed";
 import {
-  blocksOf, childrenOf, descendsFrom, fold, isPort, isRef, nextPortNum,
+  actual, blocksOf, childrenOf, compact, descendsFrom, fold, isCheckpoint, isPort, isProxy,
+  membersOf, nameFree, nextNum, proxyIn, titleOf,
 } from "./fold";
 import * as router from "./router";
+import { entering, report } from "./check";
 import * as store from "./store";
 import { answer, pendingQuestion, type Pending } from "./turn";
 import {
-  attr as makeAttr, edge as makeEdge, node as makeNode, step as makeStep,
-  type Attr, type Axis, type Dir, type End, type Flow, type Kind, type Mutation, type Side,
+  ROOT, edge as makeEdge, element as makeElement, step as makeStep,
+  type Axis, type Dir, type End, type Flow, type Kind, type Mutation, type Side,
   type Spot, type Step,
 } from "./types";
 import { getDomain } from "./workflows";
@@ -30,15 +32,49 @@ const RHYTHM = 2;
  *  an empty selection is what shows the layer's own properties. */
 export type Picked = { kind: "node" | "edge" | "attr"; id: string } | null;
 
+/** What a step moves, when moving is *all* it does — the elements it places,
+ *  keyed so two of them can be compared. Null for anything else, which is what
+ *  ends a run: a drag that also joined a group changed the graph's shape and is
+ *  worth its own step, and so is a reverted one, which a redo has to find.
+ *
+ *  Keyed on the exact set, so dragging A then B then A again is three steps.
+ *  Only `place` qualifies — an arrangement moves everything and is a decision
+ *  in its own right, not an adjustment being carried on. */
+function placement(step: Step | undefined): string | null {
+  if (!step || step.status !== "applied" || step.action !== "place") return null;
+  if (!step.mutations.length) return null;
+  if (!step.mutations.every((m) => m.op === "place_element")) return null;
+
+  return step.mutations.map((m) => (m as { id: string }).id).sort().join(" ");
+}
+
 export function useProject() {
-  const [steps, setSteps] = useState<Step[]>(store.load);
+  // Compacted on the way in as well: an imported or long-idle log can arrive
+  // over the cap without this session having added a thing.
+  /** Anything wrong with the log that was loaded, said once, for the shell to
+   *  show. Held rather than thrown: a project that needed repairs is still a
+   *  project, and the user should hear about it rather than find out later. */
+  const [trouble, setTrouble] = useState<string | null>(null);
+
+  const [steps, setSteps] = useState<Step[]>(() => {
+    // Everything comes in through the door — storage included.
+    const came = entering(store.load());
+    if (!came) return [];
+
+    if (came.faults.length) setTimeout(() => setTrouble(report(came.faults)), 0);
+
+    return compact(came.steps);
+  });
   /** The layer the canvas is drawing. null is the project itself. */
   const [view, setView] = useState<string | null>(null);
   const [picked, setPicked] = useState<Picked>(null);
   const [pending, setPending] = useState<Pending | null>(null);
 
   // The log is the only thing worth saving; the graph is folded from it.
-  useEffect(() => store.save(steps), [steps]);
+  /** False once the log has stopped reaching storage — see `saving`. */
+  const [saving, setSaving] = useState(true);
+
+  useEffect(() => setSaving(store.save(steps)), [steps]);
 
   // Warm the catalogue once, so the first thing typed is not also the first
   // thing that waits on the model.
@@ -47,7 +83,7 @@ export function useProject() {
   const graph = useMemo(() => fold(steps), [steps]);
   const applied = useMemo(() => steps.filter((s) => s.status === "applied"), [steps]);
   const last = applied.length ? applied[applied.length - 1] : null;
-  const terms = getDomain(graph.template).terms;
+  const terms = getDomain(graph.domain).terms;
 
   /** Whatever the conversation should be about: the canvas selection if there
    *  is one, otherwise the layer being looked at. */
@@ -56,7 +92,7 @@ export function useProject() {
   // Every name and body in the project, so suggestions and affinity have
   // vectors ready by the time anything is scored against them.
   useEffect(() => {
-    embed.warm(Object.values(graph.nodes).flatMap((n) => [n.label, n.body]));
+    embed.warm(Object.values(graph.elements).flatMap((n) => [n.label, n.body]));
   }, [graph]);
 
   /** Questions the last few turns answered — what gives the loop its rhythm. */
@@ -78,7 +114,21 @@ export function useProject() {
     return next;
   }, [graph, scope, recent, pending, last]);
 
-  const commit = useCallback((step: Step) => setSteps((prior) => [...prior, step]), []);
+  /** Append a step, or replace the one before it where the two are the same
+   *  adjustment carried on.
+   *
+   *  Nudging a card into place is half a dozen drags and one decision, and the
+   *  log should record the decision. Same rule the panel's fields follow: one
+   *  edit is one step, and the run ends when a different action begins. */
+  const commit = useCallback((step: Step) => setSteps((prior) => {
+    const carrying = placement(prior[prior.length - 1]);
+
+    const next = carrying !== null && carrying === placement(step)
+      ? [...prior.slice(0, -1), step]
+      : [...prior, step];
+
+    return compact(next);
+  }), []);
 
   const turn = useCallback(
     async (said: string) => {
@@ -99,7 +149,9 @@ export function useProject() {
     setSteps((prior) => {
       const index = prior.map((s) => s.status).lastIndexOf("applied");
 
-      return index < 0
+      // A checkpoint is not something somebody did, so there is nothing to take
+      // back — and reverting one would drop everything it stands for.
+      return index < 0 || isCheckpoint(prior[index])
         ? prior
         : prior.map((s, i) => (i === index ? { ...s, status: "reverted" as const } : s));
     });
@@ -119,33 +171,40 @@ export function useProject() {
     });
   }, []);
 
-  const name = (id: string) => graph.nodes[id]?.label ?? id;
+  const name = (id: string) => graph.elements[id]?.label ?? id;
 
-  /** Members going out of one attribute.
+  /** Members going out of one group.
    *
-   *  A group left holding a single member goes altogether rather than shrinking
-   *  around it: a boundary drawn round one card says nothing the card does not
-   *  already say, and one left over from a set that has scattered is litter.
-   *  Grouping a single block *deliberately* is a different act — a way of
-   *  marking it — and is allowed. What is refused is decaying into one. */
-  const parting = (attr: Attr | undefined, gone: string[]): Mutation[] => {
-    const out = attr ? attr.holders.filter((h) => gone.includes(h)) : [];
-    if (!attr || !out.length) return [];
+   *  A group of one is still a group. Deleting one that fell to a single member
+   *  meant reading intent — deliberate against decayed — off a graph in which
+   *  the two are identical, and throwing away the user's work where the guess
+   *  went the wrong way. Removing a group is a thing to be asked for.
+   *
+   *  Emptying it is the exception, and is not a preference: a boundary is its
+   *  members' bounds, so a group holding nobody has nothing to draw and no way
+   *  to be reached again. */
+  const parting = (group: string, gone: string[]): Mutation[] => {
+    const held = membersOf(graph, group).map((m) => m.id);
+    const out = held.filter((h) => gone.includes(h));
+    if (!out.length) return [];
 
-    if (attr.group && attr.holders.length - out.length < 2) {
-      return [{ op: "delete_attr", id: attr.id }];
-    }
+    if (held.length === out.length) return [{ op: "delete_element", id: group }];
 
-    return out.map((holder) => ({ op: "detach_attr", id: attr.id, holder }));
+    return out.map((id) => ({ op: "leave_group", id, group }));
   };
 
   /** The same, across every annotation these objects are drawn in. Annotations
    *  are local to a layer, so leaving one drops them; a plain attribute
    *  describes the object itself and travels with it. */
-  const partings = (gone: string[]) =>
-    Object.values(graph.attrs)
-      .filter((a) => a.group || a.note)
-      .flatMap((a) => parting(a, gone));
+  const partings = (gone: string[]): Mutation[] => [
+    ...Object.values(graph.elements)
+      .filter((e) => e.element === "group")
+      .flatMap((g) => parting(g.id, gone)),
+    // A tie is a relationship, so letting one go is deleting it.
+    ...Object.values(graph.edges)
+      .filter((e) => e.kind === "tie" && gone.includes(e.target))
+      .map((e) => ({ op: "delete_edge" as const, id: e.id })),
+  ];
 
   /** What a node sheds by moving to another layer: its annotations, and
    *  the relationships joining it to whatever is staying behind.
@@ -156,7 +215,7 @@ export function useProject() {
    *  internal wiring, drawn inside the very layer that is moving. What breaks
    *  is only what had one end here and the other there. */
   const shed = (id: string, parent: string | null) => {
-    if (!graph.nodes[id] || graph.nodes[id].parent === parent) return [];
+    if (!graph.elements[id] || graph.elements[id].parent === parent) return [];
 
     return [
       ...partings([id]),
@@ -178,9 +237,9 @@ export function useProject() {
     const trail: string[] = [];
     let cursor = view;
 
-    while (cursor && graph.nodes[cursor]) {
+    while (cursor && graph.elements[cursor]) {
       trail.unshift(cursor);
-      cursor = graph.nodes[cursor].parent;
+      cursor = graph.elements[cursor].parent;
     }
 
     return trail;
@@ -201,48 +260,53 @@ export function useProject() {
   /** Leave the open layer for the one containing it. */
   const up = useCallback(() => {
     setPicked(null);
-    setView(view ? (graph.nodes[view]?.parent ?? null) : null);
+    setView(view ? (graph.elements[view]?.parent ?? null) : null);
   }, [graph, view]);
 
   const act = {
+    /** A name has to be free among its siblings: where something sits in the
+     *  tree is what makes it unique in the project, so two things in one layer
+     *  cannot share a name. */
     create: (label: string, parent: string | null) =>
+      nameFree(graph, parent, label) &&
       commit(makeStep(`new: ${label}`, "create", [{
-        op: "add_node",
-        node: makeNode(label, { parent, type: terms.node }),
+        op: "add_element",
+        element: makeElement(label, { parent, num: nextNum(graph, parent, "block") }),
       }])),
 
     remove: (id: string) => {
       // Never leave the selection or the open layer pointing at something gone.
       if (picked && picked.id === id) setPicked(null);
-      if (view && descendsFrom(graph, view, id)) setView(graph.nodes[id]?.parent ?? null);
+      if (view && descendsFrom(graph, view, id)) setView(graph.elements[id]?.parent ?? null);
       // Its contents go with it, so an annotation drawn round any of them loses
       // those members in the same step — and goes itself if that empties it.
-      const gone = Object.keys(graph.nodes).filter((n) => descendsFrom(graph, n, id));
+      const gone = Object.keys(graph.elements).filter((n) => descendsFrom(graph, n, id));
 
       commit(makeStep(`delete: ${name(id)}`, "delete",
-                      [{ op: "delete_node", id }, ...partings(gone)]));
+                      [{ op: "delete_element", id }, ...partings(gone)]));
     },
 
     /** A reference has no name of its own, so renaming one renames the node it
      *  stands in for — there is only ever one thing being named. */
     rename: (id: string, label: string) => {
-      const real = graph.nodes[id]?.ref ?? id;
+      const real = actual(graph, id)?.id ?? id;
+      const parent = graph.elements[real]?.parent ?? null;
 
-      return label.trim() &&
+      return label.trim() && nameFree(graph, parent, label, real) &&
         commit(makeStep(`rename: ${label}`, "rename",
-                        [{ op: "update_node", id: real, label: label.trim() }]));
+                        [{ op: "update_element", id: real, label: label.trim() }]));
     },
 
     retype: (id: string, type: string) =>
-      commit(makeStep(`type: ${type}`, "retype", [{ op: "update_node", id, type }])),
+      commit(makeStep(`type: ${type}`, "retype", [{ op: "update_element", id, type }])),
 
     move: (id: string, parent: string | null) =>
       !descendsFrom(graph, parent, id) &&
       commit(makeStep(`move: ${name(id)}`, "move",
-                      [{ op: "move_node", id, parent }, ...shed(id, parent)])),
+                      [{ op: "move_element", id, parent }, ...shed(id, parent)])),
 
     place: (id: string, x: number, y: number) =>
-      commit(makeStep(`place: ${name(id)}`, "place", [{ op: "place_node", id, x, y }])),
+      commit(makeStep(`place: ${name(id)}`, "place", [{ op: "place_element", id, x, y }])),
 
     /** Where a drag came to rest: the positions things landed at, and any group
      *  they joined or left by landing there.
@@ -262,15 +326,15 @@ export function useProject() {
             : `place ${moved.length} together`),
         "place",
         [
-          ...moved.map(({ id, x, y }) => ({ op: "place_node" as const, id, x, y })),
+          ...moved.map(({ id, x, y }) => ({ op: "place_element" as const, id, x, y })),
           ...membership.filter((m) => m.join)
-            .map(({ attr, holder }) => ({ op: "attach_attr" as const, id: attr, holder })),
+            .map(({ attr, holder }) => ({ op: "join_group" as const, id: holder, group: attr })),
           // Leaving is not simply joining in reverse: a group the drag would
           // leave holding one member goes instead of shrinking. Taken a group
           // at a time, since several cards can walk out of one together.
           ...[...new Set(membership.filter((m) => !m.join).map((m) => m.attr))]
             .flatMap((id) => parting(
-              graph.attrs[id],
+              id,
               membership.filter((m) => !m.join && m.attr === id).map((m) => m.holder),
             )),
         ],
@@ -290,9 +354,9 @@ export function useProject() {
     /** A bare interface, from right-clicking a frame edge. The one way to get
      *  an interface without a relationship attached to it. */
     addPort: (parent: string | null, side: Side, at: number) => {
-      const port = makeNode("", { parent, side, at, num: nextPortNum(graph, parent) });
+      const port = makeElement("", { parent, side, at, num: nextNum(graph, parent, "block", true) });
 
-      commit(makeStep("new interface", "port", [{ op: "add_node", node: port }]));
+      commit(makeStep("new interface", "port", [{ op: "add_element", element: port }]));
 
       return port.id;
     },
@@ -303,7 +367,7 @@ export function useProject() {
     link: (source: string, target: string, kind: Kind = "untyped") =>
       source !== target &&
       commit(makeStep(`link: ${name(source)}`, "link",
-                      [{ op: "link_nodes", edge: makeEdge(source, target, { kind }) }])),
+                      [{ op: "link_elements", edge: makeEdge(source, target, { kind }) }])),
 
     /** A relationship drawn by hand.
      *
@@ -315,7 +379,7 @@ export function useProject() {
     wire: (a: End, b: End, kind: Kind = "untyped") =>
       a.node !== b.node &&
       commit(makeStep(`link: ${name(a.node)}`, "link", [
-        { op: "link_nodes",
+        { op: "link_elements",
           edge: makeEdge(a.node, b.node, {
             from: a.port, to: b.port, kind, fromSide: a.side, toSide: b.side,
           }) },
@@ -332,10 +396,12 @@ export function useProject() {
      *  worth putting something inside, or worth pinning where the arrangement
      *  would otherwise move it. Until then it is only a place on a border. */
     promotePort: (edge: string, end: "from" | "to", owner: string, side: Side, at: number) => {
-      const port = makeNode("", { parent: owner, side, at, num: nextPortNum(graph, owner) });
+      const port = makeElement("", {
+        parent: owner, side, at, num: nextNum(graph, owner, "block", true),
+      });
 
       commit(makeStep("promote interface", "port", [
-        { op: "add_node", node: port },
+        { op: "add_element", element: port },
         { op: "set_end", id: edge, end, port: port.id },
       ]));
 
@@ -349,29 +415,38 @@ export function useProject() {
     setDir: (id: string, dir: Dir) =>
       commit(makeStep(`direction: ${dir}`, "direction", [{ op: "set_dir", id, dir }])),
 
-    /** Lay the open layer out the chosen way.
+    /** Which way the open layer reads. A setting, so it persists: it decides
+     *  which sides a flow relationship attaches to and how its line is drawn,
+     *  and says nothing at all about where cards go. */
+    setAxis: (axis: Axis) =>
+      commit(makeStep(`reads: ${axis}`, "axis", [{ op: "set_axis", layer: view, axis }])),
+
+    /** Write down where an arrangement put everything.
      *
-     *  Setting the arrangement and applying it are one action, because picking
-     *  one is the request: choosing "grid" plainly means make this a grid. User
-     *  placement wins everywhere else, so this is where a layer lets go of it. */
-    relax: (axis: Axis, notes: { id: string; x: number; y: number }[] = []) =>
-      commit(makeStep(`arrange: ${axis}`, "arrange", [
-        { op: "set_axis", layer: view, axis },
-        { op: "relax_layer", layer: view },
+     *  An arrangement is an action, not a mode. What it computes becomes
+     *  ordinary placement, so a card can be dragged about afterwards like any
+     *  other — under a mode the drag would be recomputed away on the next
+     *  frame. It changes nothing else: arranging as a grid is no reason for a
+     *  layer to forget which way it reads. */
+    arrange: (spots: { id: string; x: number; y: number }[] = [],
+              notes: { id: string; x: number; y: number }[] = []) =>
+      spots.length > 0 &&
+      commit(makeStep("arrange", "arrange", [
+        ...spots.map(({ id, x, y }) => ({ op: "place_element" as const, id, x, y })),
         // A note's place is beside what it describes, so laying the layer out
         // again moves it with them. One tied to nothing has nothing to follow
         // and stays where it was put.
-        ...notes.map(({ id, x, y }) => ({ op: "place_attr" as const, id, x, y })),
+        ...notes.map(({ id, x, y }) => ({ op: "place_element" as const, id, x, y })),
       ])),
 
     /** Turn a relation around. */
     flip: (id: string) =>
-      commit(makeStep(`flip: ${graph.edges[id]?.relation || "relation"}`, "flip",
+      commit(makeStep(`flip: ${graph.edges[id]?.type || "relation"}`, "flip",
                       [{ op: "flip_edge", id }])),
 
     relation: (id: string, relation: string) =>
       commit(makeStep(`relation: ${relation}`, "relation",
-                      [{ op: "update_edge", id, relation: relation.trim() }])),
+                      [{ op: "update_edge", id, type: relation.trim() }])),
 
     /** Delete a relationship, and the interfaces it put at its ends with it —
      *  rewiring a diagram should leave no trail of empty squares behind.
@@ -384,7 +459,7 @@ export function useProject() {
 
       const edge = graph.edges[id];
       const spare = (port: string | undefined): port is string =>
-        Boolean(port) && isPort(graph.nodes[port!]) &&
+        Boolean(port) && isPort(graph.elements[port!]) &&
         !childrenOf(graph, port!).length &&
         !Object.values(graph.edges)
           .some((e) => e.id !== id && (e.from === port || e.to === port));
@@ -392,7 +467,7 @@ export function useProject() {
       commit(makeStep("unlink", "unlink", [
         { op: "delete_edge", id },
         ...[edge?.from, edge?.to].filter(spare).map((port) => ({
-          op: "delete_node" as const, id: port,
+          op: "delete_element" as const, id: port,
         })),
       ]));
     },
@@ -400,23 +475,32 @@ export function useProject() {
     renameProject: (title: string) =>
       title.trim() &&
       commit(makeStep(`rename project: ${title}`, "project",
-                      [{ op: "set_title", title: title.trim() }])),
+                      [{ op: "update_element", id: ROOT, label: title.trim() }])),
 
     /** A placeholder for something that lives elsewhere in the project. It is
      *  an ordinary node from here on: it moves, relates, and carries
      *  attributes of its own. */
     refer: (target: string, x?: number, y?: number) => {
+      // One proxy per layer per block: a second appearance of the same thing
+      // in the same layer says nothing the first did not. Nor is a proxy for
+      // something already in this layer meaningful.
+      if ((graph.elements[target]?.parent ?? null) === view) return;
+      if (proxyIn(graph, view, target)) return;
+
       const spot = x === undefined || y === undefined ? {} : { x, y };
-      const stand = makeNode("", { parent: view, ref: target, ...spot });
+      const stand = makeElement("", {
+        element: "proxy", parent: view, of: target,
+        num: nextNum(graph, view, "proxy"), ...spot,
+      });
 
       commit(makeStep(`reference: ${name(target)}`, "reference",
-                      [{ op: "add_node", node: stand }]));
+                      [{ op: "add_element", element: stand }]));
     },
 
     /** Go to where a node actually lives, and mark it there. What a reference
      *  offers instead of contents of its own. */
     reveal: (id: string) => {
-      const node = graph.nodes[id];
+      const node = graph.elements[id];
       if (!node) return;
 
       setView(node.parent);
@@ -428,29 +512,29 @@ export function useProject() {
      *  inside the thing it points at is inside the thing it points at. */
     nest: (id: string, parent: string) => {
       if (id === parent || descendsFrom(graph, parent, id)) return;
-      if (isRef(graph.nodes[parent])) return;
+      if (isProxy(graph.elements[parent])) return;
 
       commit(makeStep(`into: ${name(parent)}`, "nest",
-                      [{ op: "move_node", id, parent }, ...shed(id, parent)]));
+                      [{ op: "move_element", id, parent }, ...shed(id, parent)]));
     },
 
     /** Push a node out past the edge of the layer it is in, into whatever
      *  contains that layer. */
     promote: (id: string, parent: string | null) =>
-      graph.nodes[id] && graph.nodes[id].parent !== parent &&
+      graph.elements[id] && graph.elements[id].parent !== parent &&
       commit(makeStep(`out of layer: ${name(id)}`, "promote",
-                      [{ op: "move_node", id, parent }, ...shed(id, parent)])),
+                      [{ op: "move_element", id, parent }, ...shed(id, parent)])),
 
     /** Take an object out of its container and set it down on the open layer.
      *  One step, so undo puts it back where it was. */
     lift: (id: string, x: number, y: number) => {
-      const node = graph.nodes[id];
+      const node = graph.elements[id];
       if (!node || node.parent === view) return;
 
       commit(makeStep(`out: ${name(id)}`, "lift", [
-        { op: "move_node", id, parent: view },
+        { op: "move_element", id, parent: view },
         ...shed(id, view),
-        { op: "place_node", id, x, y },
+        { op: "place_element", id, x, y },
       ]));
     },
 
@@ -458,11 +542,14 @@ export function useProject() {
      *  have put it — joining any group boundaries it was made inside, since
      *  making one in a group's clear space plainly means it belongs there. */
     createAt: (label: string, x: number, y: number, groups: string[] = []) => {
-      const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
+      if (!nameFree(graph, view, label)) return;
+      const fresh = makeElement(label, {
+        parent: view, x, y, num: nextNum(graph, view, "block"),
+      });
 
       commit(makeStep(`new: ${label}`, "create", [
-        { op: "add_node", node: fresh },
-        ...groups.map((id) => ({ op: "attach_attr" as const, id, holder: fresh.id })),
+        { op: "add_element", element: fresh },
+        ...groups.map((id) => ({ op: "join_group" as const, id: fresh.id, group: id })),
       ]));
     },
 
@@ -471,13 +558,22 @@ export function useProject() {
      *  out, and the far node is placed where it was let go so the line between
      *  them already runs the way the drag did. */
     sprout: (a: End, label: string, x: number, y: number, kind: Kind = "untyped") => {
-      const fresh = makeNode(label, { parent: view, type: terms.node, x, y });
+      if (!nameFree(graph, view, label)) return;
+      const fresh = makeElement(label, {
+        parent: view, x, y, num: nextNum(graph, view, "block"),
+      });
 
       commit(makeStep(`grew: ${label}`, "sprout", [
-        { op: "add_node", node: fresh },
-        { op: "link_nodes", edge: makeEdge(a.node, fresh.id, { from: a.port, kind }) },
+        { op: "add_element", element: fresh },
+        { op: "link_elements", edge: makeEdge(a.node, fresh.id, { from: a.port, kind }) },
       ]));
     },
+
+    /** Whether a name is already spoken for among a layer's children, so a
+     *  field can say why before the action refuses. The same check the actions
+     *  make; asking it early only changes when it is explained. */
+    nameTaken: (parent: string | null, label: string, except: string | null = null) =>
+      !nameFree(graph, parent, label, except),
 
     /** A new kind of relation, offered from then on. */
     addRelation: (label: string) =>
@@ -496,29 +592,40 @@ export function useProject() {
     dropRelation: (label: string) =>
       commit(makeStep(`dropped "${label}"`, "relations", [{ op: "drop_relation", name: label }])),
 
-    /** A property of one object, or of several. Sharing is all a group is. */
+    /** A descriptive value on one element, addressed by its name. An attribute
+     *  has no identity of its own — setting the same name again rewrites it. */
     addAttr: (holder: string, label: string) =>
       label.trim() &&
       commit(makeStep(`attribute: ${label.trim()}`, "attribute",
-                      [{ op: "add_attr", attr: makeAttr(label.trim(), { holders: [holder] }) }])),
+                      [{ op: "set_attr", id: holder, name: label.trim() }])),
 
-    updateAttr: (id: string, patch: { name?: string; value?: string; tags?: string[];
-                                      color?: string }) =>
-      commit(makeStep(`attribute: ${patch.name ?? graph.attrs[id]?.name ?? ""}`, "attribute",
-                      [{ op: "update_attr", id, ...patch }])),
+    updateAttr: (holder: string, was: string,
+                 patch: { name?: string; value?: string; tags?: string[] }) => {
+      const renamed = patch.name !== undefined && patch.name !== was;
+      const held = graph.elements[holder]?.attrs.find((a) => a.name === was);
 
-    attachAttr: (id: string, holder: string) =>
-      commit(makeStep(`attribute on: ${name(holder)}`, "attribute",
-                      [{ op: "attach_attr", id, holder }])),
-
-    detachAttr: (id: string, holder: string) =>
-      commit(makeStep(`attribute off: ${name(holder)}`, "attribute",
-                      parting(graph.attrs[id], [holder]))),
-
-    dropAttr: (id: string) => {
-      if (picked?.kind === "attr" && picked.id === id) setPicked(null);
-      commit(makeStep(`dropped attribute`, "attribute", [{ op: "delete_attr", id }]));
+      commit(makeStep(`attribute: ${patch.name ?? was}`, "attribute", [
+        ...(renamed ? [{ op: "drop_attr" as const, id: holder, name: was }] : []),
+        { op: "set_attr", id: holder, name: patch.name ?? was,
+          value: patch.value ?? held?.value, tags: patch.tags ?? held?.tags },
+      ]));
     },
+
+    dropAttr: (holder: string, label: string) =>
+      commit(makeStep(`dropped attribute`, "attribute",
+                      [{ op: "drop_attr", id: holder, name: label }])),
+
+    /** Join a group, or leave one. Leaving goes through `parting`, so a group
+     *  that would fall to a single member goes instead of shrinking. */
+    joinGroup: (id: string, group: string) =>
+      commit(makeStep(`group: ${name(id)}`, "group", [{ op: "join_group", id, group }])),
+
+    leaveGroup: (id: string, group: string) =>
+      commit(makeStep(`ungroup: ${name(id)}`, "group", parting(group, [id]))),
+
+    /** Recolour or rename a group or a note — both are elements now. */
+    paint: (id: string, color: string) =>
+      commit(makeStep("colour", "attribute", [{ op: "update_element", id, color }])),
 
     /** Turn a selection into a group: one attribute they all hold, drawn as a
      *  boundary. Purely visual — no node's parent changes.
@@ -526,47 +633,74 @@ export function useProject() {
      *  One member is allowed. A boundary round a single block is a way of
      *  marking it, and asking for that is unambiguous; it is only a group that
      *  *falls* to one that gets swept up — see `parting`. */
-    group: (members: string[]) =>
-      members.length > 0 &&
-      commit(makeStep(`group: ${members.length} nodes`, "group", [{
-        op: "add_attr",
-        attr: makeAttr("", { holders: members, group: true }),
-      }])),
+    group: (members: string[]) => {
+      if (!members.length) return false;
+      const box = makeElement("", { element: "group", parent: view,
+                                    num: nextNum(graph, view, "group") });
+
+      return commit(makeStep(`group: ${members.length} elements`, "group", [
+        { op: "add_element", element: box },
+        ...members.map((id) => ({ op: "join_group" as const, id, group: box.id })),
+      ]));
+    },
 
     /** A note: a card of text placed in this layer, tied by a faint leader to
      *  whatever it describes.
      *
      *  Untied and unwritten to begin with — it reads "note" until it is given
      *  something to say, the way an unnamed block reads "block". */
-    note: (x: number, y: number) =>
-      commit(makeStep("note", "note",
-                      [{ op: "add_attr", attr: makeAttr("", { note: { layer: view, x, y } }) }])),
+    /** A note, with what it says and the least room it was asked for.
+     *
+     *  Text is required, the same as a node's name is: an empty note is not a
+     *  thing somebody meant to make, it is litter. The swept rectangle is a
+     *  minimum rather than a size, so a long description gets the room it was
+     *  given and a longer one still grows the card. */
+    note: (text: string, x: number, y: number, w?: number, h?: number) =>
+      text.trim() !== "" &&
+      commit(makeStep(`note: ${text.trim()}`, "note", [
+        { op: "add_element", element: makeElement(text.trim(), {
+            element: "note", parent: view, x, y, w: w ?? null, h: h ?? null,
+            num: nextNum(graph, view, "note"),
+          }) },
+      ])),
 
     /** Where a note came to rest. Its own place, unlike every other annotation:
      *  a note tied to nothing has nothing else to be placed by. */
     placeNote: (id: string, x: number, y: number) =>
-      commit(makeStep("place: note", "note", [{ op: "place_attr", id, x, y }])),
+      commit(makeStep("place: note", "note", [{ op: "place_element", id, x, y }])),
 
     /** Tie a note to an object, or untie it — one gesture both ways, since
      *  dragging onto something already tied can only mean undoing it. */
     tie: (id: string, holder: string) => {
-      const attr = graph.attrs[id];
-      if (!attr?.note || !graph.nodes[holder]) return;
+      const note = graph.elements[id];
+      if (note?.element !== "note" || !graph.elements[holder]) return;
 
-      const tied = attr.holders.includes(holder);
+      // A tie is a relationship, so tying is drawing one and untying is
+      // deleting it — no second mechanism for joining two things.
+      const tied = Object.values(graph.edges)
+        .find((e) => e.kind === "tie" && e.source === id && e.target === holder);
 
       commit(makeStep(tied ? `untie: ${name(holder)}` : `tie: ${name(holder)}`, "note",
-                      [tied ? { op: "detach_attr", id, holder }
-                            : { op: "attach_attr", id, holder }]));
+                      [tied ? { op: "delete_edge", id: tied.id }
+                            : { op: "link_elements",
+                                edge: makeEdge(id, holder, { kind: "tie" }) }]));
     },
 
-    save: () => store.exportSteps(steps, graph.title),
+    save: () => store.exportSteps(steps, titleOf(graph)),
 
+    /** Whether the log is still reaching storage. False means this tab holds
+     *  the only copy, and closing it loses everything since it stopped. */
+    saving,
+    trouble,
+    clearTrouble: () => setTrouble(null),
+
+    /** An imported file becomes the session, and is saved from then on. */
     load: (text: string) => {
-      const loaded = store.importSteps(text);
-      if (!loaded) return false;
+      const came = entering(store.readFile(text));
+      if (!came) return false;
 
-      setSteps(loaded);
+      setTrouble(came.faults.length ? report(came.faults) : null);
+      setSteps(compact(came.steps));
       setView(null);
       setPicked(null);
       setPending(null);
@@ -594,7 +728,7 @@ export function useProject() {
     up,
     question,
     terms,
-    undoable: applied.length > 0,
+    undoable: applied.length > 0 && !isCheckpoint(applied[applied.length - 1]),
     redoable: steps.some((s) => s.status === "reverted"),
     children: (parent: string | null) => childrenOf(graph, parent),
     blocks: (parent: string | null) => blocksOf(graph, parent),

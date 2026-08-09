@@ -40,6 +40,8 @@ export type FrameData = {
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
+  onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  onSay: (message: string) => void;
   /** Turn one of those seats into an interface of its own. */
   onPromote: (edge: string, side: Side, at: number) => void;
   /** What the pointer is over. The border lights up when it is this frame,
@@ -51,7 +53,8 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
                              positionAbsoluteY = 0 }: NodeProps) => {
   const { id, graph, straddles, axis, showPorts, litSeats, pickedPort, grazed } =
     data as unknown as FrameData;
-  const { onPick, onOpen, onSlidePort, onRename } = data as unknown as FrameData;
+  const { onPick, onOpen, onSlidePort, onRename, onNameTaken, onSay } =
+    data as unknown as FrameData;
   const { seats, litEdges, onPromote } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
@@ -71,9 +74,11 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
       <span className={`frame-name nodrag nopan${
         grazed?.kind === "title" && grazed.id === id ? " grazed" : ""}`}>
         <Name
-          text={nameOf(graph, graph.nodes[id])}
+          text={nameOf(graph, graph.elements[id])}
           className="frame-label"
           onRename={(label) => onRename(id, label)}
+          taken={(name) => onNameTaken(graph.elements[id]?.parent ?? null, name, id)}
+          onSay={onSay}
         />
       </span>
 

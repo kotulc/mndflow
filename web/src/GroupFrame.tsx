@@ -32,10 +32,12 @@ export type GroupData = {
   titled: boolean;
   onPick: () => void;
   onLabel: (label: string) => void;
+  onNameTaken: (name: string) => boolean;
+  onSay: (message: string) => void;
 };
 
 export const GroupFrame = memo(({ data }: NodeProps) => {
-  const { label, picked, dropping, grazed, titled, onPick, onLabel } =
+  const { label, picked, dropping, grazed, titled, onPick, onLabel, onNameTaken, onSay } =
     data as unknown as GroupData;
 
   return (
@@ -47,7 +49,8 @@ export const GroupFrame = memo(({ data }: NodeProps) => {
       {/* Draggable with the boundary: the name is an obvious handle, and
           renaming is a right-click rather than a left one. */}
       <span className={`region-name${titled ? " grazed" : ""}`}>
-        <Name text={label || "group"} className="region-label" onRename={onLabel} />
+        <Name text={label || "group"} className="region-label" onRename={onLabel}
+              taken={onNameTaken} onSay={onSay} />
       </span>
     </div>
   );

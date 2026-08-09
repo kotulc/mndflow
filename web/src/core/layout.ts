@@ -10,9 +10,9 @@
  *
  *  Both are pure geometry; nothing here knows about React Flow. */
 
-import { isContainer, portsOf } from "./fold";
+import { isContainer, membersOf, portsOf } from "./fold";
 import { similarity } from "./match";
-import type { Axis, Graph, Node, Side, Spot } from "./types";
+import type { Axis, Graph, Layout, Element, Side, Spot } from "./types";
 
 /** The canvas grid. Everything with a place of its own lands on it, so that two
  *  things meant to line up line up exactly rather than nearly.
@@ -57,15 +57,22 @@ export const LEAF = { w: 168, h: CELL + SEAT };
  *  differed by 26 and no amount of grid-perfect placement would ever have
  *  squared a block against a container. */
 export const GRID = CELL * 2;
-/** Clear space kept between auto-placed cards. One cell: at two, the air
- *  between compact cards was wider than the cards. */
-const GAP = CELL;
+/** Clear space kept between one unit and the next. Two cells: this is where
+ *  the lines between them run, and where they are told apart. */
+const GAP = CELL * 2;
+
+/** Clear space inside one unit, between members that belong together.
+ *
+ *  Half of what sits between units, and the contrast is the point: tight inside
+ *  and open between is what makes a group read as one object rather than as
+ *  several near each other. */
+const WITHIN = SEAT;
 
 /** Clear space kept between one rank and the next. Wider than the gap across a
  *  rank, because this is the space the lines between them run in: two stubs
  *  meet in it, and a lane or two beside them. Not wider than that — air between
  *  ranks is what makes an arrangement read as scattered. */
-const RANK = GAP * 2;
+const RANK = CELL * 3;
 
 /** How far a group's boundary reaches past its members. Layout has to know it:
  *  a group is placed as one object, and the boundary is part of that object's
@@ -167,8 +174,8 @@ export function pack(count: number, box: { w: number; h: number }): Tile[] {
 
 /** How strongly a child belongs to its parent, 0–1. Drives the fill of its
  *  chip, so a container reads at a glance as coherent or ragged. */
-export function affinity(graph: Graph, child: Node): number {
-  const parent = child.parent ? graph.nodes[child.parent] : null;
+export function affinity(graph: Graph, child: Element): number {
+  const parent = child.parent ? graph.elements[child.parent] : null;
   if (!parent) return 0;
 
   const own = similarity(child.label, parent.label);
@@ -184,7 +191,7 @@ export function affinity(graph: Graph, child: Node): number {
  *  with its contents makes a busy layer into a wall of large boxes, and says
  *  the same thing the grid inside it already says. The cells shrink instead,
  *  which is what keeps a full container reading as full. */
-export function sizeOf(graph: Graph, node: Node): { w: number; h: number } {
+export function sizeOf(graph: Graph, node: Element): { w: number; h: number } {
   if (!isContainer(graph, node.id)) return { ...LEAF };
 
   return { w: LEAF.w, h: LEAF.h + GRID };
@@ -260,7 +267,7 @@ export function seatAt(at: number, extent: number, origin = 0): number {
  *  spec says interfaces do not stack, so a drop onto an occupied seat takes the
  *  next one along rather than being refused — a drag that has to be repeated to
  *  find a gap is worse than one that lands beside it. */
-export function freeSeat(graph: Graph, port: Node, side: Side, at: number,
+export function freeSeat(graph: Graph, port: Element, side: Side, at: number,
                          extent: number, origin = 0): number {
   const marks = seatMarks(origin, extent);
   if (!marks.length) return 0.5;
@@ -350,12 +357,42 @@ function ranks(ids: string[], links: [string, string][]): Map<string, number> {
   return rank;
 }
 
+/** Which way hand-laid ports lean a unit across its rank.
+ *
+ *  A port somebody placed says which face its relationships leave by, and
+ *  layout may not move it. The least it can do is put the unit where that face
+ *  is useful — a port on the top edge pulls its owner toward the top of its
+ *  rank, so its lines leave into open space rather than back across the layer.
+ *
+ *  Only the two sides *across* the axis lean anything. The two along it are the
+ *  rank's own business, and rank comes from topology: a port fighting that
+ *  would contradict the relationships the arrangement is drawn from. */
+function leanOf(graph: Graph, units: Unit[], along: "across" | "down"): Map<string, number> {
+  const low: Side = along === "across" ? "top" : "left";
+  const high: Side = along === "across" ? "bottom" : "right";
+  const lean = new Map<string, number>();
+
+  for (const unit of units) {
+    let tilt = 0;
+    for (const id of unit.ids) {
+      for (const port of portsOf(graph, id)) {
+        if (port.side === low) tilt -= 1;
+        if (port.side === high) tilt += 1;
+      }
+    }
+    if (tilt) lean.set(unit.id, Math.sign(tilt));
+  }
+
+  return lean;
+}
+
 /** Order the members of each rank so related ones sit across from each other.
  *
  *  Each is pulled toward the average position of what it is joined to in the
  *  rank before, swept forward then back. Two passes is where this stops paying:
  *  it is a heuristic for fewer crossings, not a solution to them. */
-function ordered(rows: string[][], links: [string, string][]): string[][] {
+function ordered(rows: string[][], links: [string, string][],
+                 lean: Map<string, number> = new Map()): string[][] {
   const near = new Map<string, string[]>();
   for (const [from, to] of links) {
     near.set(from, [...(near.get(from) ?? []), to]);
@@ -377,7 +414,12 @@ function ordered(rows: string[][], links: [string, string][]): string[][] {
           : Number.POSITIVE_INFINITY];
       }));
 
-      rowsOut[at].sort((a, b) => (pull.get(a) ?? 0) - (pull.get(b) ?? 0));
+      // A hand-laid port leans its owner by about one place: enough to settle
+      // which of two neighbours goes first, never enough to leapfrog the
+      // barycentre that put the rank in order.
+      const rank = (id: string) => (pull.get(id) ?? 0) + (lean.get(id) ?? 0);
+
+      rowsOut[at].sort((a, b) => rank(a) - rank(b));
     }
   };
 
@@ -402,6 +444,68 @@ export function around(boxes: Box[], pad: number): Box | null {
     w: Math.max(...boxes.map((b) => b.x + b.w)) + pad - x,
     h: Math.max(...boxes.map((b) => b.y + b.h)) + pad - y,
   };
+}
+
+type Sized = { id: string; x: number; y: number; w: number; h: number };
+
+/** Members gathered into tracks along one axis: everything overlapping shares a
+ *  track, and tracks come out in the order they were in. The new coordinate for
+ *  each track is the tracks before it, laid end to end at `gap`. */
+function tracked(items: { id: string; start: number; extent: number }[],
+                 gap: number, wide: number,
+                 joined: (a: string, b: string) => boolean): Record<string, number> {
+  const lanes: { end: number; size: number; ids: string[] }[] = [];
+
+  for (const item of [...items].sort((a, b) => a.start - b.start)) {
+    const lane = lanes[lanes.length - 1];
+
+    if (lane && item.start < lane.end) {
+      lane.end = Math.max(lane.end, item.start + item.extent);
+      lane.size = Math.max(lane.size, item.extent);
+      lane.ids.push(item.id);
+    } else {
+      lanes.push({ end: item.start + item.extent, size: item.extent, ids: [item.id] });
+    }
+  }
+
+  const out: Record<string, number> = {};
+  let cursor = 0;
+  let prior: string[] | null = null;
+
+  for (const lane of lanes) {
+    // Neighbours with a relationship between them need room for it. Belonging
+    // together is said by closeness; being wired together is said by a line,
+    // and a line squeezed into nothing says neither.
+    if (prior) {
+      cursor += prior.some((a) => lane.ids.some((b) => joined(a, b))) ? wide : gap;
+    }
+
+    for (const id of lane.ids) out[id] = cursor;
+    cursor += lane.size;
+    prior = lane.ids;
+  }
+
+  return out;
+}
+
+/** Re-space a unit's members without rearranging them.
+ *
+ *  A unit is rigid in shape, not in size: who sits beside whom is kept, and the
+ *  distances are layout's. Each axis is read independently into tracks, so a
+ *  row stays a row, a column stays a column, and a diagonal stays a diagonal —
+ *  only the space between tracks is replaced. Members that already overlap on
+ *  an axis come out aligned on it, which reads as the tidying it is.
+ *
+ *  Two members with a relationship between them are given the wider gap, so the
+ *  line has somewhere to be drawn. */
+function respaced(items: Sized[], gap: number, wide: number,
+                  joined: (a: string, b: string) => boolean): Record<string, Spot> {
+  const across = tracked(items.map((i) => ({ id: i.id, start: i.x, extent: i.w })),
+                         gap, wide, joined);
+  const down = tracked(items.map((i) => ({ id: i.id, start: i.y, extent: i.h })),
+                       gap, wide, joined);
+
+  return Object.fromEntries(items.map((i) => [i.id, { x: across[i.id], y: down[i.id] }]));
 }
 
 /** One thing layout moves as a whole: a single card, or a set of cards a group
@@ -429,7 +533,7 @@ type Unit = {
  *  together, so they cannot be placed apart however much anyone would like
  *  them to be. Their boundaries still overlap and compound, which is what
  *  overlapping groups are supposed to do; they simply travel as one. */
-function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
+function clusters(graph: Graph, nodes: Element[]): Map<string, string> {
   const home = new Map<string, string>();
   const find = (id: string): string => {
     const up = home.get(id);
@@ -439,9 +543,9 @@ function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
 
   for (const node of nodes) home.set(node.id, node.id);
 
-  for (const attr of Object.values(graph.attrs)) {
-    if (!attr.group) continue;
-    const here = attr.holders.filter((id) => home.has(id));
+  for (const group of Object.values(graph.elements)) {
+    if (group.element !== "group") continue;
+    const here = membersOf(graph, group.id).map((n) => n.id).filter((id) => home.has(id));
     for (const id of here.slice(1)) {
       const a = find(here[0]);
       const b = find(id);
@@ -457,9 +561,9 @@ function clusters(graph: Graph, nodes: Node[]): Map<string, string> {
  *  A unit the user has placed keeps its members' positions exactly. One nobody
  *  has placed gets an internal arrangement of its own — laid out among its own
  *  members only — and that becomes rigid. */
-function unitsOf(graph: Graph, nodes: Node[], axis: Axis): Unit[] {
+function unitsOf(graph: Graph, nodes: Element[], shape: Layout): Unit[] {
   const home = clusters(graph, nodes);
-  const held = new Map<string, Node[]>();
+  const held = new Map<string, Element[]>();
   for (const node of nodes) {
     const key = home.get(node.id)!;
     held.set(key, [...(held.get(key) ?? []), node]);
@@ -473,7 +577,7 @@ function unitsOf(graph: Graph, nodes: Node[], axis: Axis): Unit[] {
     const spots = placed.length
       ? Object.fromEntries(placed.map((n) => [n.id, middled({ x: n.x!, y: n.y! },
                                                             sizeOf(graph, n))]))
-      : inner(graph, members, axis);
+      : inner(graph, members, shape);
 
     // Any member the user never placed, in a unit some of whose members they
     // did: tucked below the rest rather than left at the origin.
@@ -485,51 +589,88 @@ function unitsOf(graph: Graph, nodes: Node[], axis: Axis): Unit[] {
                                sizeOf(graph, node));
     }
 
-    const boxes = members.map((n) => ({ ...spots[n.id], ...sizeOf(graph, n) }));
-    const bounds = around(boxes, pad)!;
+    // Where it sits now, before its members are re-spaced — that is what a
+    // placed unit holds on to.
+    const was = around(members.map((n) => ({ ...spots[n.id], ...sizeOf(graph, n) })), pad)!;
+
+    const wired = new Set(
+      linksAmong(graph, new Set(members.map((n) => n.id)))
+        .flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]),
+    );
+    const tidy = respaced(
+      members.map((n) => ({ id: n.id, ...spots[n.id], ...sizeOf(graph, n) })),
+      WITHIN, GAP, (a, b) => wired.has(`${a}|${b}`),
+    );
+    const bounds = around(
+      members.map((n) => ({ ...tidy[n.id], ...sizeOf(graph, n) })), pad,
+    )!;
 
     return {
       id,
       ids: members.map((n) => n.id),
       offsets: Object.fromEntries(
-        members.map((n) => [n.id, { x: spots[n.id].x - bounds.x, y: spots[n.id].y - bounds.y }]),
+        members.map((n) => [n.id, { x: tidy[n.id].x - bounds.x, y: tidy[n.id].y - bounds.y }]),
       ),
       w: bounds.w,
       h: bounds.h,
-      at: placed.length ? { x: bounds.x, y: bounds.y } : null,
+      at: placed.length ? { x: was.x, y: was.y } : null,
     };
   });
 }
 
 /** A unit's own internal arrangement, worked out among its members alone. */
-function inner(graph: Graph, members: Node[], axis: Axis): Record<string, Spot> {
+function inner(graph: Graph, members: Element[], shape: Layout): Record<string, Spot> {
   if (members.length === 1) return { [members[0].id]: middled({ x: 0, y: 0 },
                                                               sizeOf(graph, members[0])) };
 
   const boxed = members.map((n) => ({ id: n.id, ...sizeOf(graph, n) }));
   const ids = new Set(members.map((n) => n.id));
 
-  return axis === "free" || axis === "grid"
-    ? gridded(boxed)
-    : rankedBoxes(boxed, linksAmong(graph, ids), axis);
+  return shape === "across" || shape === "down"
+    ? rankedBoxes(boxed, linksAmong(graph, ids), shape, new Map(), WITHIN)
+    : gridded(boxed, WITHIN);
 }
 
-/** Boxes tiled in reading order, kept as square as the count allows. */
-function gridded(boxes: { id: string; w: number; h: number }[]): Record<string, Spot> {
-  const { cols } = tile(boxes.length);
-  const step = {
-    x: Math.max(...boxes.map((b) => b.w)) + GAP,
-    y: Math.max(...boxes.map((b) => b.h)) + GAP,
+/** Boxes tiled in reading order, kept as square as the count allows and grown
+ *  outward from the middle.
+ *
+ *  Columns and rows are sized from what is actually in them. One tall unit
+ *  among cards would otherwise make every row as tall as itself, which is the
+ *  spread a grid is supposed to avoid. */
+function gridded(boxes: { id: string; w: number; h: number }[],
+                 gap = GAP): Record<string, Spot> {
+  const cols = Math.max(1, tile(boxes.length).cols);
+  const rows = Math.max(1, Math.ceil(boxes.length / cols));
+  const wide = Array<number>(cols).fill(0);
+  const tall = Array<number>(rows).fill(0);
+
+  boxes.forEach((box, at) => {
+    wide[at % cols] = Math.max(wide[at % cols], box.w);
+    tall[Math.floor(at / cols)] = Math.max(tall[Math.floor(at / cols)], box.h);
+  });
+
+  const runs = (sizes: number[]) => {
+    const total = sizes.reduce((sum, size) => sum + size + gap, -gap);
+    const out: number[] = [];
+    let cursor = -total / 2;
+    for (const size of sizes) {
+      out.push(cursor);
+      cursor += size + gap;
+    }
+
+    return out;
   };
-  const rows = Math.ceil(boxes.length / Math.max(cols, 1));
+
+  const xs = runs(wide);
+  const ys = runs(tall);
   const spots: Record<string, Spot> = {};
 
   boxes.forEach((box, at) => {
     const col = at % cols;
     const row = Math.floor(at / cols);
     spots[box.id] = middled({
-      x: (col - (cols - 1) / 2) * step.x - box.w / 2,
-      y: (row - (rows - 1) / 2) * step.y - box.h / 2,
+      x: xs[col] + (wide[col] - box.w) / 2,
+      y: ys[row] + (tall[row] - box.h) / 2,
     }, box);
   });
 
@@ -543,7 +684,9 @@ function gridded(boxes: { id: string; w: number; h: number }[]): Record<string, 
  *  are in neighbouring ranks and the ordering pass pulls them level, so the
  *  relationship between them is a straight line with nothing to work around. */
 function rankedBoxes(boxes: { id: string; w: number; h: number }[],
-                     links: [string, string][], axis: Axis): Record<string, Spot> {
+                     links: [string, string][], along: "across" | "down",
+                     lean: Map<string, number> = new Map(),
+                     gap = GAP): Record<string, Spot> {
   const size = new Map(boxes.map((b) => [b.id, b]));
   const rank = ranks(boxes.map((b) => b.id), links);
   const depth = Math.max(0, ...rank.values());
@@ -551,33 +694,33 @@ function rankedBoxes(boxes: { id: string; w: number; h: number }[],
   const rows: string[][] = Array.from({ length: depth + 1 }, () => []);
   for (const box of boxes) rows[rank.get(box.id) ?? 0].push(box.id);
 
-  const along = axis === "right" ? "x" : "y";
-  const across: "x" | "y" = along === "x" ? "y" : "x";
+  const runs = along === "across" ? "x" : "y";
+  const across: "x" | "y" = runs === "x" ? "y" : "x";
   const spots: Record<string, Spot> = {};
 
-  const laid = ordered(rows, links);
+  const laid = ordered(rows, links, lean);
   const spans = laid.map((row) => Math.max(
-    0, ...row.map((id) => (along === "x" ? size.get(id)!.w : size.get(id)!.h)),
+    0, ...row.map((id) => (runs === "x" ? size.get(id)!.w : size.get(id)!.h)),
   ));
-  const stride = spans.map((span) => span + RANK);
+  const stride = spans.map((span) => span + (gap === GAP ? RANK : gap));
 
   let cursor = -stride.reduce((sum, s) => sum + s, 0) / 2;
 
   laid.forEach((row, at) => {
     const width = row.reduce(
-      (sum, id) => sum + (across === "y" ? size.get(id)!.h : size.get(id)!.w) + GAP, -GAP,
+      (sum, id) => sum + (across === "y" ? size.get(id)!.h : size.get(id)!.w) + gap, -gap,
     );
     let run = -width / 2;
 
     for (const id of row) {
       const box = size.get(id)!;
       const spot = {
-        [along]: cursor + (spans[at] - (along === "x" ? box.w : box.h)) / 2,
+        [runs]: cursor + (spans[at] - (runs === "x" ? box.w : box.h)) / 2,
         [across]: run,
       } as Spot;
 
       spots[id] = middled(spot, box);
-      run += (across === "y" ? box.h : box.w) + GAP;
+      run += (across === "y" ? box.h : box.w) + gap;
     }
 
     cursor += stride[at];
@@ -624,73 +767,78 @@ function neighbourly(units: Unit[], links: [string, string][]): Unit[] {
   return order;
 }
 
-/** Positions for one layer, centred on the origin.
+/** A hub and its spokes, growing outward from the middle.
  *
- *  Units the user has placed keep their positions; the rest are arranged around
- *  them the way the layer's axis says. `blocked` is space already spoken for by
- *  something that is not a card — a note — so nothing is laid on top of it. */
-export function place(graph: Graph, nodes: Node[], axis: Axis = "free",
-                      blocked: Box[] = []): Record<string, Spot> {
-  // `blocked` is space a note holds. Cards fill around one, but an arrangement
-  // is never slid aside for one: a note sits where what it describes sits, so
-  // moving the whole layer to clear it only carries the layer away from it.
-  const units = unitsOf(graph, nodes, axis);
-  const inUnit = new Map<string, string>();
-  for (const unit of units) for (const id of unit.ids) inUnit.set(id, unit.id);
-
-  const links = [...new Set(
-    linksAmong(graph, new Set(nodes.map((n) => n.id)))
-      .map(([a, b]) => [inUnit.get(a)!, inUnit.get(b)!])
-      .filter(([a, b]) => a !== b)
-      .map(([a, b]) => `${a}|${b}`),
-  )].map((k) => k.split("|") as [string, string]);
-
-  const taken: Box[] = [...blocked];
-  const fixed: Box[] = [];
-  const corner: Record<string, Spot> = {};
-
-  for (const unit of units) {
-    if (!unit.at) continue;
-    corner[unit.id] = unit.at;
-    fixed.push({ ...unit.at, w: unit.w, h: unit.h });
-    taken.push({ ...unit.at, w: unit.w, h: unit.h });
+ *  The busiest unit takes the centre, whatever it joins rings around it, and
+ *  what is left rings beyond that. For a layer that is one thing and its
+ *  attendants — the shape ranks cannot show, because there is only one rank
+ *  worth naming and everything else is equidistant from it. */
+function radial(units: Unit[], links: [string, string][],
+                gap: number): Record<string, Spot> {
+  const near = new Map<string, Set<string>>();
+  for (const [from, to] of links) {
+    (near.get(from) ?? near.set(from, new Set()).get(from)!).add(to);
+    (near.get(to) ?? near.set(to, new Set()).get(to)!).add(from);
   }
 
-  const loose = units.filter((u) => !u.at);
-
-  if (loose.length && axis !== "free") {
-    const boxes = loose.map((u) => ({ id: u.id, w: u.w, h: u.h }));
-    const spots = axis === "grid"
-      ? gridded(boxes)
-      : rankedBoxes(boxes, links.filter(([a, b]) =>
-          !corner[a] && !corner[b]), axis);
-
-    // Slid clear of anything already down, as a block, so an arrangement set on
-    // a layer somebody has hand-placed sits beside that work rather than in it.
-    const shift = clearance(spots, loose, fixed, axis === "right" ? "y" : "x");
-    for (const unit of loose) {
-      corner[unit.id] = { x: spots[unit.id].x + shift.x, y: spots[unit.id].y + shift.y };
-    }
-  } else {
-    const step = { x: LEAF.w + GAP, y: LEAF.h + GAP };
-    const rounds = units.length + taken.length + 2;
-
-    for (const unit of neighbourly(loose, links)) {
-      for (const point of rings(step, rounds)) {
-        const box = { ...middled({ x: point.x - unit.w / 2, y: point.y - unit.h / 2 },
-                                 { w: unit.w, h: unit.h }), w: unit.w, h: unit.h };
-        if (taken.some((other) => collides(box, other))) continue;
-
-        corner[unit.id] = { x: box.x, y: box.y };
-        taken.push(box);
-        break;
-      }
-
-      corner[unit.id] ??= { x: 0, y: 0 };
-    }
-  }
-
+  const busiest = [...units].sort(
+    (a, b) => (near.get(b.id)?.size ?? 0) - (near.get(a.id)?.size ?? 0),
+  );
+  const hub = busiest[0];
   const spots: Record<string, Spot> = {};
+  if (!hub) return spots;
+
+  spots[hub.id] = middled({ x: -hub.w / 2, y: -hub.h / 2 }, hub);
+
+  const seen = new Set([hub.id]);
+  let ring = [...(near.get(hub.id) ?? [])]
+    .map((id) => units.find((u) => u.id === id))
+    .filter((u): u is Unit => Boolean(u));
+  let reach = Math.max(hub.w, hub.h) / 2;
+
+  while (ring.length) {
+    for (const unit of ring) seen.add(unit.id);
+
+    // Wide enough that the ring's members sit clear of one another on it.
+    const span = Math.max(...ring.map((u) => Math.max(u.w, u.h)));
+    reach += span / 2 + gap;
+    reach = Math.max(reach, (ring.length * (span + gap)) / (2 * Math.PI));
+
+    ring.forEach((unit, at) => {
+      const turn = (at / ring.length) * 2 * Math.PI - Math.PI / 2;
+      spots[unit.id] = middled({
+        x: Math.cos(turn) * reach - unit.w / 2,
+        y: Math.sin(turn) * reach - unit.h / 2,
+      }, unit);
+    });
+
+    reach += span / 2;
+    const next = new Map<string, Unit>();
+    for (const unit of ring) {
+      for (const id of near.get(unit.id) ?? []) {
+        if (seen.has(id) || next.has(id)) continue;
+        const found = units.find((u) => u.id === id);
+        if (found) next.set(id, found);
+      }
+    }
+
+    // Anything the hub does not reach at all still has to go somewhere.
+    if (!next.size) {
+      for (const unit of units) {
+        if (!seen.has(unit.id) && !next.has(unit.id)) next.set(unit.id, unit);
+      }
+    }
+
+    ring = [...next.values()];
+  }
+
+  return spots;
+}
+
+/** Members spread out from their unit's corner. */
+function spread(units: Unit[], corner: Record<string, Spot>): Record<string, Spot> {
+  const spots: Record<string, Spot> = {};
+
   for (const unit of units) {
     const at = corner[unit.id] ?? { x: 0, y: 0 };
     for (const id of unit.ids) {
@@ -701,26 +849,76 @@ export function place(graph: Graph, nodes: Node[], axis: Axis = "free",
   return spots;
 }
 
-/** How far a fresh arrangement has to move across itself to clear what is
- *  already on the layer. */
-function clearance(spots: Record<string, Spot>, units: Unit[], taken: Box[],
-                   across: "x" | "y"): Spot {
-  const off = { x: 0, y: 0 };
-  if (!taken.length) return off;
+/** Unit-to-unit relationships, for whichever pass needs them. */
+function between(graph: Graph, nodes: Element[], units: Unit[]): [string, string][] {
+  const inUnit = new Map<string, string>();
+  for (const unit of units) for (const id of unit.ids) inUnit.set(id, unit.id);
 
-  const step = (across === "y" ? LEAF.h : LEAF.w) + GAP;
+  return [...new Set(
+    linksAmong(graph, new Set(nodes.map((n) => n.id)))
+      .map(([a, b]) => [inUnit.get(a)!, inUnit.get(b)!])
+      .filter(([a, b]) => a !== b)
+      .map(([a, b]) => `${a}|${b}`),
+  )].map((k) => k.split("|") as [string, string]);
+}
 
-  for (let tries = 0; tries <= units.length + taken.length; tries += 1) {
-    const shift = tries * step;
-    const hits = units.some((unit) => {
-      const box = { ...spots[unit.id], w: unit.w, h: unit.h };
-      box[across] += shift;
+/** Positions for one layer as it rests.
+ *
+ *  Everything somebody placed stays exactly where it is; anything unplaced
+ *  fills the room around it. This is the *only* thing a render runs.
+ *
+ *  An arrangement is an action that writes positions, never a mode that keeps
+ *  recomputing them — under a mode, a card dragged while one was set would be
+ *  thrown away on the very next frame, which is no way to treat a drag. The
+ *  axis is remembered for what it still decides: a flow's sides, and what the
+ *  next arrangement will do. */
+export function place(graph: Graph, nodes: Element[],
+                      blocked: Box[] = []): Record<string, Spot> {
+  const units = unitsOf(graph, nodes, "grid");
+  const links = between(graph, nodes, units);
+  const taken: Box[] = [...blocked];
+  const corner: Record<string, Spot> = {};
 
-      return taken.some((other) => collides(box, other));
-    });
-
-    if (!hits) return { ...off, [across]: shift };
+  for (const unit of units) {
+    if (!unit.at) continue;
+    corner[unit.id] = unit.at;
+    taken.push({ ...unit.at, w: unit.w, h: unit.h });
   }
 
-  return off;
+  const loose = units.filter((u) => !u.at);
+  const step = { x: LEAF.w + GAP, y: LEAF.h + GAP };
+  const rounds = units.length + taken.length + 2;
+
+  for (const unit of neighbourly(loose, links)) {
+    for (const point of rings(step, rounds)) {
+      const box = { ...middled({ x: point.x - unit.w / 2, y: point.y - unit.h / 2 },
+                               { w: unit.w, h: unit.h }), w: unit.w, h: unit.h };
+      if (taken.some((other) => collides(box, other))) continue;
+
+      corner[unit.id] = { x: box.x, y: box.y };
+      taken.push(box);
+      break;
+    }
+
+    corner[unit.id] ??= { x: 0, y: 0 };
+  }
+
+  return spread(units, corner);
 }
+
+/** Positions for the whole layer, arranged afresh — what picking an arrangement
+ *  computes. The result is written down as ordinary placement, so it can be
+ *  dragged about afterwards like anything else. */
+export function arranged(graph: Graph, nodes: Element[],
+                         shape: Layout): Record<string, Spot> {
+  const units = unitsOf(graph, nodes, shape);
+  const links = between(graph, nodes, units);
+  const boxes = units.map((u) => ({ id: u.id, w: u.w, h: u.h }));
+
+  const corner = shape === "grid" ? gridded(boxes)
+    : shape === "radial" ? radial(units, links, GAP)
+    : rankedBoxes(boxes, links, shape, leanOf(graph, units, shape));
+
+  return spread(units, corner);
+}
+

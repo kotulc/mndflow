@@ -80,7 +80,7 @@ export function classify(said: string): string {
 function eligible(operation: workflows.Operation, graph: Graph, scope: string | null): boolean {
   switch (operation.when) {
     case "no_summary":
-      return scope !== null && !graph.nodes[scope]?.body.trim();
+      return scope !== null && !graph.elements[scope]?.body.trim();
     case "has_parts":
       return blocksOf(graph, scope).length > 1;
     default:
@@ -112,7 +112,7 @@ function chips(graph: Graph, scope: string | null, operation: string,
   if (wording.choices.length || operation !== "relate") return wording.choices;
 
   const nearby = blocksOf(graph, scope);
-  const pool = nearby.length ? nearby : Object.values(graph.nodes);
+  const pool = nearby.length ? nearby : Object.values(graph.elements);
 
   return pool.filter((n) => n.id !== scope).map((n) => n.label).slice(0, CHIP_LIMIT);
 }
@@ -120,19 +120,19 @@ function chips(graph: Graph, scope: string | null, operation: string,
 /** The next question: the opening one until a domain is chosen, then the loop
  *  over whichever object is selected. */
 export function question(graph: Graph, scope: string | null, recent: string[]): Question | null {
-  if (!graph.template) return entryQuestion();
+  if (!graph.domain) return entryQuestion();
 
-  const domain = workflows.getDomain(graph.template);
+  const domain = workflows.getDomain(graph.domain);
   const operation = pick(domain, graph, scope, recent);
   const wording = operation && workflows.getWording(domain, operation.id, scope === null);
   if (!operation || !wording) return null;
 
-  const label = (scope && graph.nodes[scope]?.label) || "";
+  const label = (scope && graph.elements[scope]?.label) || "";
   const fill = (text: string) => text.replaceAll("{label}", label);
 
   return {
     id: operation.id,
-    prompt: fill(pickOne(wording.prompt, recent.length + Object.keys(graph.nodes).length)),
+    prompt: fill(pickOne(wording.prompt, recent.length + Object.keys(graph.elements).length)),
     hint: fill(wording.hint),
     choices: chips(graph, scope, operation.id, wording),
     placeholder: "",
