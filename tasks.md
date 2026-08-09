@@ -7,8 +7,8 @@ questions that have not been answered yet. Reasoning for any of it lives in
 
 ## Status
 
-**The schema freeze is decided and not yet migrated** — see *Agreed order of work* and *The
-freeze* below. Nine changes, landing together.
+**The schema freeze, the test suite and the source reorganisation are built.** `src` is now
+grouped by what a thing is for, and dependencies run one way — see README.md for the map.
 
 **Frozen, pending refinement.** Built and working; left alone while the graph model settles,
 and revisited deliberately rather than drifting:
@@ -26,17 +26,16 @@ spec.md's table.
 Four, in this order. A schema cannot be frozen before there is a way to check data against it,
 and cannot be scoped before the modules it must serve are known.
 
-1. **A validator at the door** — *built*. `core/check.ts`: one entry for every log, repairing
+1. **A validator at the door** — *built*. `graph/check.ts`: one entry for every log, repairing
    what it can and reporting what it cannot.
 2. **Simplify how data is loaded, saved and shown** — *built*. Browser dialogs are gone and every
    message — a repaired log, a refused name, the question before discarding — goes to the one
    strip. The header names the project and says where the work is kept.
-3. **Freeze the base schema** — *decided, migrating next*. Every question it waited on is
-   answered: the modules were walked, the file format settled, the vocabulary agreed. The nine
-   changes are in *The freeze* below; the reasoning is in design.md.
-4. **A test suite**, last. The schema stops moving at the end of step 3, which is the condition
-   this was always waiting on. Engine, element forms, action surface — and the pure geometry in
-   `place`, `route` and `lanes`, which has stopped changing already.
+3. **Freeze the base schema** — *built*. All nine changes landed together; what differed from
+   the plan is recorded in *The freeze* below.
+4. **A test suite** — *built*. 95 tests in about half a second, over the fold, the door, the file
+   format, the geometry and one whole-lifecycle pass. See *The suite* below for what it covers and
+   what it deliberately does not.
 
 **What settled step 3**, each recorded in its own section below or in design.md:
 
@@ -50,32 +49,85 @@ and cannot be scoped before the modules it must serve are known.
 | working as a team | one owner per file, merging out of scope, and the gaps that follow from it |
 
 
-## The freeze: decided, not migrated
+## The freeze: migrated
 
-Every item is a schema change, so they land together or the fold has to straddle both shapes.
-Reasoning in [design.md](design.md) under *The envelope*, *Vocabulary*, and *Fields and
-definitions*. Ordered by what the next one depends on.
+All nine landed together, in one pass. The shape is in [spec.md](spec.md) and the reasoning in
+[design.md](design.md); what is recorded here is where the code ended up differing from the plan.
 
-| # | Change | Touches |
-|---|---|---|
-| 1 | **Envelope** — `{ schema, id, module, graph, meta }`. Base is what cannot be ignored; `meta` is free-form and ignorable. A bare array has no envelope and reads as legacy | `check.ts`, `store.ts`, `project.ts` |
-| 2 | **`form` replaces `element` and `kind`** — closed and engine-level everywhere | ~20 branch sites, `types.ts`, legacy fold |
-| 3 | **`figure` joins the closed set** — placed and drawn by a module, never in the tree | `types.ts`, the listings that filter on form |
-| 4 | **`attrs` becomes `fields`** — `name`, `form`, `value`, `tags`, plus `unit` / `choices` / `many` | `types.ts`, `fold.ts`, `Panel.tsx`, `Contents.tsx` |
-| 5 | **Definitions on root** — one record with an `id`, the `form` it subtypes, its field declarations and its presentation. Covers element *and* relationship types, so `relations` and `domain` fold into this rather than moving separately | `types.ts`, `fold.ts`, new ops, retires `rename_relation` |
-| 6 | **The export becomes the graph**, imported as a checkpoint. The log never rides along | `store.ts`, `check.ts`, `project.ts` |
-| 7 | **File layout** — definitions, then the nested element tree, then relationships; siblings by id, relationships by source then target; `parent` never written | `store.ts` |
-| 8 | **Id prefixes and a wider suffix** — `block_`/`edge_`/`def_`, and enough randomness that two sessions cannot mint the same id | `types.ts` |
-| 9 | **`schema` `"1.0"`, `id`, `meta.steps`** — major must match and a higher minor is readable; project id for life; steps counted, not called a version. `checkpoint.at` holds the count before it. The content hash is **computed on load, never stored** | `types.ts`, `store.ts`, `check.ts` |
+| Deviation | Why |
+|---|---|
+| **Definitions are `graph.defs`, not a field on root** | A vocabulary is a collection, like elements and relationships, where a name is a property. The file also wants definitions as a section rather than nested inside root's record |
+| **`domain` became `graph.vocabulary`, not a definition** | It keys the terminal's words and prompts — it is not a subtype, so it could not fold into one. Renamed to the agreed word and left where the terminal can reach it, pending that rework |
+| **A `type` naming no definition is minted into one** | The bridge from free text. Its id is derived from the name, because minting runs on every fold and a random id would never settle |
+| **Nothing at its default is written to a file** | Not planned, and it is what makes the format readable — no nulls, no empty lists, no colour every card already has |
 
-**The value forms are `text`, `number`, `flag`, `choice`, `ref`**, and the set is permanent the
-way a retired op is. `date` and a general list were left out deliberately — see design.md.
+**Op names now**: `set_form`, `set_field`, `drop_field`, `set_def`, `drop_def`, `set_vocabulary`.
+**Still folded, never written**: `set_kind`, `set_attr`, `drop_attr`, `set_domain`,
+`add_relation`, `rename_relation`, `drop_relation` — beside the fifteen already retired.
+
+**A pre-freeze log still opens.** `check.ts` heals `element` to `form`, `kind` to `form`, and
+`attrs` to text `fields`, inside a checkpoint's whole graph as well as in a single mutation, and
+reports what it did in the strip.
 
 **A cross-project target is `{ project, element }`**, both by id. Always live: to fix a version,
 bundle. A `ref` field widens the same way, which is additive and can wait for the workspace.
 
 **Merging two divergent logs is out of scope.** Git's line merge or nothing; `check.ts` reports
 the wreckage of a bad one rather than preventing it.
+
+**Not yet exercised in a browser.** The migration was verified by typecheck, build, and a headless
+harness covering the fold, the round trip, byte-stability of a re-export, and a pre-freeze log.
+Clicking through the canvas is the check still owed.
+
+
+## The suite
+
+**One test file per module, beside the module**, so moving a module moves its test. That paid for
+itself immediately: the source reorganisation moved every file and not one test path needed
+touching. The one integration test sits apart in `tests/`, since it belongs to no single module.
+
+| | Holds it to |
+|---|---|
+| `types` | an id says what it points at; a factory leaves nothing undefined |
+| `fold` | replay is a pure function of the log; a reverted step leaves no trace; a mutation with nowhere to land is skipped; `tidy` removes only what cannot exist; a free-text type becomes a definition with a stable id |
+| `check` | every old shape still arrives as the current one, inside a checkpoint as well as a mutation; what cannot be read is dropped and counted |
+| `file` | a round trip loses nothing; the same graph always writes the same bytes; nothing at its default is written; the schema gate lets a minor through and stops a major |
+| `layout` | placement repeats; nothing overlaps; a hand-laid position cannot be moved by anything else on the layer; a seat lands on the lattice |
+| `route` | a line starts and ends on its cards, turns only at right angles, and goes around a block it does not attach to |
+| `lifecycle` | work → save → open → work again, and a pre-freeze log opening and saving out current |
+
+**Nothing asserts a coordinate, an id, a message or a count that tuning would change.** The suite
+is about properties, because the values are still moving.
+
+**Deliberately untested:** the terminal — `router`, `turn`, `workflows` — which is frozen pending a
+rework, so a suite over it would be rewritten with it; `embed`, `match` and `suggest`, which need a
+model and would cost more than the suite is worth; and `project`, a React hook whose actions are
+thin wrappers over the mutations `fold` already covers. Each is a judgement to revisit, not an
+oversight.
+
+**Two bugs it caught on the way in**, both invisible to the compiler: the step count double-counted
+the checkpoint step, and a `set_field` mutation copied its own `op` and `id` into the field.
+
+
+## To go through next
+
+Two things parked deliberately, each wanting its own pass rather than a line in
+a table.
+
+**What `domain` actually meant, and what replaces it.** It became `graph.vocabulary` in the
+migration — a rename that keeps the terminal working without deciding anything. What it *is* was
+never settled: it currently keys a set of words, a set of starting relations, and a set of workflow
+prompts, which are three concerns under one key. Now that a project's relations are definitions,
+the "starting relations" half is arguably just a definition set somebody could ship — which would
+leave only the prompts, and those belong to the terminal that is due to be reworked and renamed.
+Worth taking apart before the terminal is touched, not after.
+
+**What a file looks like now.** The format is built and round-trips, but only two people have read
+one. Worth reading a real project's export line by line and asking what a reviewer would want:
+whether the nesting reads at depth, whether relationship records want the names of their ends
+beside the ids, whether `meta` should carry anything else, and whether a hand-authored file — the
+sample project — is actually pleasant to write. That last is the real test, and it is now
+unblocked.
 
 
 ## Working as a team: what it needs
@@ -293,6 +345,14 @@ cluster model is settled.
 **Fluid transitions between layers.** Stepping in and out animates the viewport, but the
 contents of the two layers cut. The nesting-doll effect the canvas is meant to give is not what
 is drawn.
+
+**Relationships vanished when the contents tray opened** — *fixed*. The tray reshapes the frame,
+and `route` treated staying inside it as a hard requirement: where a short frame left no way round
+a card sitting between the two ends, the search returned nothing and the canvas dropped the line
+outright. The frame is a rule about tidiness, so it is now given up rather than the relationship —
+the search runs again unbounded before failing. A line clipping outside its frame is a much smaller
+wrong than one that is missing. Covered by a test in `geometry/route.test.ts`.
+
 
 **Segments under a card.** Cards are drawn above the relationship layer, so a segment passing
 beneath one cannot be grabbed there. Reachable everywhere else; no decision taken on whether

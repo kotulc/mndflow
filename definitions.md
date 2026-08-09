@@ -75,7 +75,7 @@ named value carried by an element or a relationship, and never changes what cont
 |---|---|
 | **field** | a named, typed value on an element or a relationship. Never structural |
 | **value form** | what a field holds: `text`, `number`, `flag`, `choice` or `ref`. Closed and permanent, since a field's form is written into logs |
-| **definition** | a reusable subtype, held on root. Carries an `id`, a name, the **form** it subtypes, the fields its usages have, and how they draw. **One record for element and relationship types alike** — a project's relation vocabulary is the definitions of relationship form |
+| **definition** | a reusable subtype, held in `graph.defs`. Carries an `id`, a name, the **form** it subtypes, the fields its usages have, and how they draw. **One record for element and relationship types alike** — a project's relation vocabulary is the definitions of relationship form |
 | **usage** | anything naming a definition in its `type`. The definition declares; the usage holds only the values it gives. `part def` against `part` |
 | **data structure** | a definition whose fields *are* the structure. Not an element form: a block typed by it is drawn only where somebody places one |
 | **membership** | the groups a block belongs to. Held on the block; a group's member list is derived from it, so the two can never disagree. Neither a field nor a relationship |

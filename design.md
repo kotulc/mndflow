@@ -622,8 +622,15 @@ notation by shipping definitions.
   filtered out of one on the way.
 - **A `ref` field targets an element or a definition**, since both have ids. Typed-by and
   points-at are the same operation once identity is uniform.
-- **Definitions live on root.** They are the project speaking about itself, and none of them is an
-  element in the tree, so none reaches the explorer.
+- **A `type` naming no definition is minted into one, deterministically.** Free text is what a
+  relation typed onto the canvas is, and what every log written before definitions holds — so the
+  fold turns it into a real definition rather than treating it as a second kind of type. The id
+  comes from the name because this runs on every fold: a freshly minted one would differ each time
+  and the graph would never settle.
+- **Definitions sit beside elements and relationships, as a third bag.** They are the project
+  speaking about itself, like its name — but a name is a property and a vocabulary is a
+  collection, so root carries the one and `graph.defs` the other. That is also what the file wants:
+  definitions are a section of it, not something nested inside the tree's first record.
 - **A field has no identity of its own.** It is addressed by its name on the thing carrying it,
   and setting that name again rewrites it. Sharing used to be what made one a grouping,
   which gave every descriptive value an id, a holder list and a lifecycle to serve the one case

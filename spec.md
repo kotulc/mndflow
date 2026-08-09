@@ -19,13 +19,13 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 **Elements** — held in `graph.elements`. "Node" is the same thing in the graph-theory register.
 
 - **`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
-  elements, relationships and fields alike. **(planned)** — the field is `element` on an element
-  and `kind` on a relationship today.
+  elements, relationships and fields alike.
 - `form` says which of five it is: **block** (the base and the default), **note**, **group**,
   **proxy**, or **figure**. It decides what draws an element and which rules reach it.
 - **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
   the explorer, and what it *is* comes from its `type`. An activity's fork, decision, initial,
-  final, merge and join are all figures. **(planned)**
+  final, merge and join are all figures. In the closed set; nothing makes one until a module
+  does.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
   never across one. **Empty until somebody sets one.**
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
@@ -47,9 +47,9 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 **Root** — the block that holds every other, under the reserved id `root`.
 
 - Carries the project's name as its `label`, plus its own axis, body and fields.
-- **Carries the project's own vocabulary**: its definitions, which cover element types and
-  relationship types alike. The project speaking about itself, and none of it reaches the explorer.
-  **(planned)** — `domain` and `relations` sit on `graph` today.
+- Carries the project's name, body and fields. Its **definitions** are the project speaking about
+  itself too, but they are a collection rather than a property, so they sit beside `elements` and
+  `edges` as `graph.defs` — out of the tree and out of the explorer just the same.
 - `parent: null` means "in the root layer" everywhere it is written; root is told from its own
   children by its id, which is the one place any listing has to know about it.
 - It has no frame, because a frame is a block seen from inside and root has no outside.
@@ -88,9 +88,9 @@ the project.
 - Carries `type`, `form`, `dir` (none / forward / back / both), `from`/`to` interfaces, and
   `fromSide`/`toSide` where an end was drawn through a named wall.
 - `type` names the relationship's **definition** — what it *means*, plus the fields it declares
-  and how it draws. **(planned)** — free text drawn from a flat `relations` list today.
+  and how it draws.
 - `form` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
-  `dir` still says which way the arrows point. **(planned)** — the field is `kind` today.
+  `dir` still says which way the arrows point.
 - **Anything joining two elements is a relationship.** A form may draw as something other than a
   routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
   drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
@@ -114,8 +114,7 @@ the project.
 - **No relationship carries a route.** Where a line goes is derived from the layer it is drawn
   in, every time it is drawn.
 
-**Fields** — a named, typed value on one element or relationship. **(planned)** — the code has
-`attrs`, a name/value/tags triple with no form and no definition behind it.
+**Fields** — a named, typed value on one element or relationship.
 
 - A field carries `name`, `form`, `value` and `tags`.
 - **`form` is one of five**, and the set is permanent:
@@ -140,7 +139,7 @@ the project.
   relationship; not a line → a field.** A tie is a line. Membership is not — a group draws a
   boundary round its members, never a spoke to each.
 
-**Definitions** — the reusable subtypes a project has named. Held on root. **(planned)**, in full.
+**Definitions** — the reusable subtypes a project has named, in `graph.defs`.
 
 - **A definition declares; whatever names it uses.** It carries an `id`, a `name`, the `form` it
   subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
@@ -160,6 +159,10 @@ the project.
 - Definitions are not elements: no id in `graph.elements`, no row in the explorer.
 - A `ref` field may target an element or a definition — "typed by" and "points at" are one
   operation.
+- **A `type` naming no definition is minted into one**, under an id derived from its name. That is
+  how a relation typed onto the canvas becomes something declarable, and how a log written before
+  definitions folds into one. Derived from the name rather than freshly minted, because this runs
+  on every fold and a random id would never settle.
 
 **History** — the step log is the source of truth.
 
@@ -186,16 +189,15 @@ the project.
 - **An export is the graph, not the log.** `{ schema, id, module, graph, meta }`, pretty-printed
   JSON. Its size follows the model rather than how long somebody worked, and its diff shows the
   elements and relationships that changed rather than the actions that changed them.
-  **(planned)** — the export is the raw step log today.
 - **Importing one is a checkpoint.** The file becomes a log holding a single `checkpoint` step, so
-  there is no second format and no second reader. **(planned)**
+  there is no second format and no second reader.
 - **The log never rides along.** Undo is a working-copy concern; history across machines is git's.
-  **(planned)**
 - **A project carries an `id`**, minted once and kept for life. It is what a cross-project
-  reference points at, so renaming a project — or its file — breaks nothing. **(planned)**
+  reference points at, so renaming a project — or its file — breaks nothing.
 - **The suggested filename follows the project's name**, so the two stop drifting apart.
-  **(planned)**
-- **The base is what cannot be ignored**, and everything else is `meta`. **(planned)**
+- **Nothing still at its default is written.** No nulls, no empty lists, no colour every card
+  already has — a file the size of the choices in it.
+- **The base is what cannot be ignored**, and everything else is `meta`.
 
   | | Says |
   |---|---|
@@ -218,9 +220,8 @@ the project.
 - **Display preferences stay out**, `meta` included: opening somebody's file must not rearrange
   your own toggles. A deliberately saved view is a different feature, and not one of these fields.
 - **A bare array has no envelope**, so its absence reads as legacy rather than as a version.
-  **(planned)**
 - **The file is laid out for reading**: definitions first, then the element tree, then
-  relationships. **(planned)**
+  relationships.
   - Elements **nest under their parents**, so `parent` is never written — position carries it —
     and a diff hunk lands beside the thing it describes.
   - Siblings sort by id, so a **rename is one line** rather than a record moving. Re-parenting does
@@ -228,9 +229,9 @@ the project.
   - Relationships sort by source, then target, which clusters everything leaving a block and never
     moves, since neither key changes.
 - **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `figure_`, `edge_`,
-  `def_`. A name is never part of an id — it would go stale on a rename or force the id to be
-  rewritten everywhere. Older `n_`/`e_`/`s_` ids stay valid; ids are opaque and nothing migrates.
-  **(planned)**
+  `def_`, `step_`, `proj_`. A name is never part of an id — it would go stale on a rename or force
+  the id to be rewritten everywhere. Older `n_`/`e_`/`s_` ids stay valid; ids are opaque and
+  nothing migrates.
 - **Every log comes in through one door**, from storage or from a file, and is checked before it
   is folded. What can be repaired is repaired; what cannot is dropped rather than folded into a
   broken graph.
@@ -241,6 +242,14 @@ the project.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
   saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
+
+**Tests** — one file per module, beside the module, so a module and its test move together. One
+integration test in `tests/` for the whole lifecycle. `npm test` at the root.
+
+- **Properties, never values.** Nothing asserts a coordinate, an id, a message or a count that
+  tuning would change — the suite pins what must stay true, not what happens to be true.
+- The terminal, the embedding modules and the `project` hook are deliberately uncovered; see
+  [tasks.md](tasks.md) under *The suite* for why each.
 
 
 ## Shell

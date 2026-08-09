@@ -43,11 +43,11 @@ Three tracked documents, kept in step with the code:
 with Git for Windows and most Git installs.
 
 ```sh
-cd web && npm install && npm run dev
+npm install && npm run dev
 ```
 
 The embedding model and the ONNX runtime live under
-[`web/public/`](web/public), stored in Git LFS: about 60MB of `.onnx` and
+[`public/`](public), stored in Git LFS: about 60MB of `.onnx` and
 `.wasm` that a normal clone fetches for you. Nothing is downloaded at run time,
 so the app works offline and on first load.
 
@@ -141,7 +141,7 @@ sitting inside one.
 
 ### The loop
 
-[`core/router.ts`](web/src/core/router.ts) picks the next question from the
+[`terminal/router.ts`](src/terminal/router.ts) picks the next question from the
 graph itself: what the selected object is missing, in the domain's preferred
 order. An operation steps aside only once it has filled the last **two** turns,
 so the conversation builds for a while and then steps back to connect what it
@@ -152,9 +152,9 @@ built — rather than repeating itself or alternating every turn.
 ## Development
 
 ```sh
-cd web
 npm run dev            # http://localhost:5173
 npm run build          # tsc, then a production bundle
+npm test               # the suite, in under a second
 npx tsc --noEmit       # typecheck alone
 ```
 
@@ -167,22 +167,40 @@ flips a status and the graph is rebuilt by the same code that built it. An
 object *is* a document: its text lives on the node, and the explorer tree is
 the node hierarchy.
 
+`src` is organised by what a thing is *for*, in the words the design documents
+already use. **Dependencies run one way**, and a folder that reaches upward is a
+design problem you can see rather than one you have to trace.
+
+| Folder | Is | Depends on |
+|---|---|---|
+| [`graph/`](src/graph) | the project: log, fold, schema, files | nothing |
+| [`embed/`](src/embed) | MiniLM over ONNX, and scoring text against it | nothing |
+| [`geometry/`](src/geometry) | sizing, placement and routing, derived from the graph | `graph` |
+| [`canvas/`](src/canvas) | the diagram module — the drawing half | `graph`, `geometry`, `embed` |
+| [`page/`](src/page) | the shell a module sits in | `graph`, `canvas`, `terminal` |
+| [`terminal/`](src/terminal) | the optional way to give input | `graph`, `geometry`, `embed` |
+| [`project.ts`](src/project.ts) | the seam: state, and every action | `graph`, `terminal` |
+
 | Module | Purpose |
 |---|---|
-| [`core/types.ts`](web/src/core/types.ts) | Every shared shape: graph, mutations, steps |
-| [`core/layout.ts`](web/src/core/layout.ts) | Card sizing, treemap tiling, layer placement |
-| [`core/fold.ts`](web/src/core/fold.ts) | Mutation replay, hierarchy walking, highlighting |
-| [`core/embed.ts`](web/src/core/embed.ts) | MiniLM over ONNX, with a cache that fills as it goes |
-| [`core/match.ts`](web/src/core/match.ts) | Scoring text against known options |
-| [`core/workflows.ts`](web/src/core/workflows.ts) | Loads the catalogue, operations, and domains |
-| [`core/router.ts`](web/src/core/router.ts) | Picks the question from the graph and the selection |
-| [`core/turn.ts`](web/src/core/turn.ts) | What one answer does — pure, no state |
-| [`core/suggest.ts`](web/src/core/suggest.ts) | What the chips offer as you type |
-| [`core/store.ts`](web/src/core/store.ts) | localStorage, export, import |
-| [`core/project.ts`](web/src/core/project.ts) | The `useProject` hook wiring it to React |
+| [`graph/types.ts`](src/graph/types.ts) | Every shared shape: graph, mutations, steps, definitions |
+| [`graph/fold.ts`](src/graph/fold.ts) | Mutation replay, hierarchy walking, derived accessors |
+| [`graph/check.ts`](src/graph/check.ts) | The one door a log comes in through |
+| [`graph/file.ts`](src/graph/file.ts) | The envelope, the canonical layout, the state hash |
+| [`graph/store.ts`](src/graph/store.ts) | localStorage, and handing a file to the user |
+| [`geometry/layout.ts`](src/geometry/layout.ts) | Card sizing, treemap tiling, layer placement |
+| [`geometry/route.ts`](src/geometry/route.ts) | Where a line goes, and the lanes it shares |
+| [`canvas/card.tsx`](src/canvas/card.tsx) | The pieces every drawn thing is built from |
+| [`terminal/router.ts`](src/terminal/router.ts) | Picks the question from the graph and the selection |
+| [`terminal/turn.ts`](src/terminal/turn.ts) | What one answer does — pure, no state |
+| [`terminal/workflows.ts`](src/terminal/workflows.ts) | Loads the catalogue, operations and vocabularies |
 
 `turn.ts` is deliberately pure: given a graph and an answer it returns the
 mutations and whatever is still unresolved, touching no state of its own.
+
+**One known violation, left visible.** `project.ts` imports the terminal, where
+the design says the dependency runs one way and nothing imports it. Publishing
+the action surface as data is what fixes it — see tasks.md.
 
 ---
 
