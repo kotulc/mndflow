@@ -158,6 +158,9 @@ the project.
 - **(planned)** A definition may carry a **formal name** beside its plain one, and what it **maps
   to** in a standard. Plain is what the user reads and types; formal and the mapping are what an
   export writes. Absent means the plain name serves for both.
+- **(planned)** A definition carries a **`body`**, the way an element does: what this kind of thing
+  is, in a sentence. It is what the tray shows and what a typed word is matched against — so no
+  definition needs a list of keywords beside it.
 - **(planned)** A **package** is a set of definitions somebody ships — plain names, formal names,
   fields, presentation and mappings. It is data, adds no code, and **maps names and presentation
   but never structure**; a notation needing structural change is a module instead. See
@@ -269,11 +272,20 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 Everything that changes a project is a **record**, not a function somebody has to know about. One
 registry, read by every input method: gestures, the contents tray, and later the terminal.
 
-- Each record carries a **name**, a **label** the vocabulary may override, the **scope** it applies
-  to — element, relationship, layer or project — its **arguments**, and a **run** returning
-  mutations.
+- Each record carries a **name**, a **label** the vocabulary may override, a **sentence saying what
+  it does**, the **scope** it applies to, its **arguments**, and a **run** returning mutations.
+- **The sentence is what gets matched**, so that "lay it out" reaches `arrange`. Names and labels
+  are too short to score against.
+- **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray,
+  or selected when somebody types. It names a form where that matters: `dissolve` applies to a
+  group, `tie` to a note, `mark` to an interface.
 - **Arguments are typed**: text, element, choice, number, or a canvas position. An input method
   offers whatever it can fill, so eligibility is derived rather than declared.
+- **Eligibility is not order.** `describe` and `rename` take the same arguments; what separates them
+  is that a sentence is prose and a short phrase is a name. Types decide what is offered, never in
+  what order.
+- **An action writing no mutations is navigation** — `open`, `up`, `reveal`. It writes no step, has
+  nothing to undo, and a text interface never offers it.
 - **A position can only come from a gesture.** An action needing one is reachable only that way;
   one where it is optional is reachable from anywhere, and the layer places what it was not given.
 - **Running an action returns mutations, and may also ask** for a layer to be opened, a selection
@@ -361,7 +373,7 @@ one undoes nothing.
 
 ## Terminal rail
 
-*Frozen pending refinement — see tasks.md.*
+*Frozen pending refinement — see tasks.md, stream Z.*
 
 - A contextual prompt and a typed answer at the top of the page, with no frame of its own.
 - Past exchanges rise and fade off the top edge; the live line stays at the foot.
@@ -369,6 +381,20 @@ one undoes nothing.
 - Suggestion chips fill the other half of the row, tiled in the same treemap shape a container
   uses, with the likeliest reading marked as the default.
 - A chip either answers the question or runs a graph operation directly — add, link, open.
+
+**(planned) Two functions, told apart by whether it is open.** Reasoning in
+[design.md](design.md) under *The terminal*.
+
+- **Collapsed** — the app's primary text entry point. Typing ranks the actions available in the
+  current context; it asks nothing.
+- **Expanded** — guidance: the question worth answering next, nudges, documentation for what is in
+  front of you, and a tutorial walking somebody through a diagram of a given kind over a sample
+  project.
+- **It reads context and never changes it.** No action it can reach opens a layer or moves the
+  selection — the explorer and the pointer navigate.
+- **Filtering the explorer is a mode, not an action.**
+- `Enter` confirms the **highlighted** option; arrow keys move the highlight, and overruling the
+  default is the feedback the ranking learns from.
 
 
 ## Object explorer

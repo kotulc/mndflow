@@ -1438,6 +1438,22 @@ sentence, so an action needing one is reachable only by gesture; an action whose
 optional is reachable from both, with the layer placing it. Nothing has to be marked as
 terminal-eligible, which is what keeps a second list from drifting out of step with the first.
 
+**Eligibility is not ranking.** Two actions can want exactly the same arguments and mean entirely
+different things — describing a block and renaming it both take an element and some text. What
+separates them is the shape of what was typed: a short noun phrase is a name, a sentence is prose.
+So types decide what may be offered and never in what order, which is why ranking is a heuristic
+over a learned weight rather than anything the surface declares.
+
+**An action that writes no mutations is navigation.** Going into a layer, coming back out, and
+revealing where a proxy's block really lives change what is being looked at and nothing about the
+project. One property carries all three consequences: no step is written, there is nothing to
+undo, and a text interface never offers it. Nothing has to be flagged.
+
+**Scope is the same question a gesture asks.** What is under the pointer, what is selected in the
+tray, and what is selected when somebody types are one question in three phrasings, so they are one
+field. It names a form where the distinction matters — dissolving applies to a group, tying to a
+note, marking to an interface — and then a single test serves every consumer.
+
 **An action refuses in words.** A name already taken, a node moved inside itself, a proxy for
 something already here — each is a sentence the strip can say, not a silent no-op. The same
 sentence is what lets a ranked list put an inapplicable action last rather than hiding it.
@@ -1446,9 +1462,44 @@ sentence is what lets a ranked list put an inapplicable action last rather than 
 anything from the terminal, and no log records that a terminal exists. The project cannot tell one
 input method apart from another.
 
-The terminal ranks by context and by what this user has done before, learned locally and kept out
-of every log. **`Enter` confirms the highlighted option** — highlighted, so that an adaptive
-default is always visible and the arrow keys can overrule it before it fires.
+### The terminal
+
+**One goal: an interactive, context-aware, text interface to the application.** Not a chat, not a
+script — a way to say what you want in the words you already have, with the engine doing the
+placing and aligning.
+
+**Two functions, kept apart by whether it is open.**
+
+| | Is |
+|---|---|
+| **collapsed** | the primary text entry point. You type; the rail ranks the actions available right here. It asks nothing |
+| **expanded** | guidance. The question worth answering next, a nudge, the documentation for whatever is in front of you, and a live tutorial walking somebody through a diagram of a given kind over a sample project |
+
+They are separated because they serve opposite people: somebody who knows what they want, and
+somebody who does not. Mixed together, the first is interrupted and the second is abandoned. One
+component, because it is one conversation and one place to look.
+
+**Context is read and never changed.** What the terminal can offer follows from the open layer and
+the selection — and navigating is the explorer's job and the pointer's, so no action a text
+interface can reach ever opens a layer or moves the selection. Typing a list of names makes
+siblings, because nothing selected the last one.
+
+**Finding is a mode, not an action.** Filtering the explorer writes nothing and goes nowhere, so it
+is neither. The terminal is one way to drive it; the explorer owns it.
+
+**Words come from the model, not from a vocabulary somebody maintains.** Every label and body in a
+project is already embedded, so a definition that says what it is in a sentence is already matched
+by whatever words someone reaches for. A list of keywords beside it would be a second mechanism
+doing the first one's job, and one that goes stale. Actions earn their own sentence for the same
+reason: "lay it out" finds `arrange` through what it does, not through its name.
+
+**Ranking is learned in two tiers**, both local and out of every log. What was typed exactly gets a
+remembered default; the *shape* of the situation — an element selected, the words naming something
+that already exists — gets a weight. Only the second transfers, because the literal words rarely
+come back.
+
+**`Enter` confirms the highlighted option** — highlighted, so that an adaptive default is always
+visible and the arrow keys can overrule it before it fires. Overruling it is the feedback.
 
 ### Packages and modules
 

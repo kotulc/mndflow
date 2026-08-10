@@ -108,7 +108,7 @@ Three small ones, each unblocking a whole stream. Worth taking with the seams.
 | **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | — |
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
-| **Z** Terminal | `terminal/` | **everything above** |
+| **Z** Terminal | `terminal/` | **everything above**, H especially |
 
 **Startable today, before any seam:** D, F, H.
 
@@ -144,9 +144,12 @@ regardless: it is the proof that a package works at all, and it fails loudly if 
   message is a relationship between two interfaces, and order down a lifeline is `at` along an
   edge. Sequence needs no layout law of its own.
 - **A swimlane is a block whose children belong to it** — not a group, which cannot be empty.
-- **Three optional `Definition` fields** land before this stream: `size`, a formal name, and what a
-  type maps to in a standard. All additive and unwritten at default, so no existing file changes —
-  the first post-freeze schema additions.
+- **Four optional `Definition` fields** land before this stream, as one change: `size`, a formal
+  name, what a type maps to in a standard, and a `body` — what this kind of thing is, in a
+  sentence, the way an element has one. All additive and unwritten at default, so no existing file
+  changes. The first post-freeze schema additions.
+- **`body` is why there is no keyword list.** Every label and body is already embedded, so a
+  definition that says what it is is already found by whatever word somebody reaches for.
 
 ### B — workspace
 
@@ -205,6 +208,8 @@ Split out of the terminal because a module needs it and the terminal does not ga
   prompts.
 - **The prompts belong to Z**, and so does the rename, so it happens once. `vocabulary` describes
   what remains; `template` is spoken for by definitions.
+- **Keep `terms` and one opening hint per domain**; the rest of each YAML serves a question loop
+  that only Z's expanded half still needs. Do not invest in the prompt sets.
 
 ### E — definitions and fields
 
@@ -250,6 +255,8 @@ Split out of the terminal because a module needs it and the terminal does not ga
   `fold` and nothing emits either — a layer cannot be handed back to automatic placement, and a
   note cannot be resized after it is made. `dissolve` has no op missing, only a path. All three are
   rows in [actions.md](actions.md) with nothing to replace.
+- **`relax` first among them.** It is the thing somebody most wants to type after naming ten
+  things — the engine takes the layer back — so it is worth having before Z rather than after.
 - **`/favicon.ico` 404s.** `index.html` declares no icon.
 - **Adding a block to an existing group from the panel.** `joinGroup` exists and is wired to
   nothing, so the only way into an existing group is the drag.
@@ -268,6 +275,8 @@ Split out of the terminal because a module needs it and the terminal does not ga
 - **`samples/mndflow.json` does not exist**, nor the directory. Both preconditions are now met —
   interfaces, references and groups are built, the export format is settled. It should describe
   this application, exercise every feature in spec.md, and load from the viewer without setup.
+- **Z's tutorial is walked over a sample**, so this stream decides what a first project looks like
+  as well as proving the format. Worth one sample per module eventually, not just this one.
 - **Read a real export line by line.** The format round-trips but only two people have read one.
   Ask what a reviewer would want: whether the nesting reads at depth, whether relationship records
   want the names of their ends beside the ids, whether `meta` should carry anything else. **Whether
@@ -276,17 +285,27 @@ Split out of the terminal because a module needs it and the terminal does not ga
 ### Z — terminal
 
 *Last, and the acceptance test for everything above.* Frozen until then, so it is not touched by
-any other stream.
+any other stream. What it is for is settled — see design.md under *The terminal*; what remains is
+building it.
 
-- **What the terminal is for is the open question**, not how it is built. It is a command line over
-  the action surface: it offers what it can fill from a sentence, and an action that cannot be said
-  is not one it shows.
-- **Rank by context and by what this user has done before**, learned locally and kept out of every
-  log.
+- **Two functions, split by whether it is open.** Collapsed is the app's primary text entry point
+  and asks nothing. Expanded is guidance: the next question worth answering, nudges, documentation
+  for whatever is in front of you, and a tutorial over a sample project.
+- **The guided half needs H.** A live onboarding tutorial walks somebody through a diagram of a
+  given kind, which means there has to be one to walk through — so the sample project is a
+  dependency, not a nicety.
+- **Ranking**: eligibility from argument types, order from the shape of what was typed and a
+  two-tier learned weight — the literal entry remembered, the situation's shape weighted. Local,
+  and out of every log.
 - **Arrow keys move the highlighted option.** Nothing moves it today, so `Enter` always takes the
   top suggestion — the version of adaptive ranking worth avoiding, since the default is then
-  invisible and changes under the user.
-- **The rename**, once what it is has been decided.
+  invisible and changes under the user. Overruling it is the feedback.
+- **`router.ts` loses its centre.** Question selection, the operation set and the `RHYTHM` rule
+  serve the expanded half only; the collapsed half asks nothing and ranks instead. What survives of
+  `workflows/*.yaml` is `terms` — which D takes — and one opening hint per domain.
+- **Documentation surfacing** has no home yet: where the text lives, and how it is keyed to
+  context.
+- **The rename**, once all of the above is built.
 
 
 ## Open questions

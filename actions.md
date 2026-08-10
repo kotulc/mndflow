@@ -12,8 +12,14 @@ shape is in [design.md](design.md) under *The action surface is the input seam*.
 
 ## Actions
 
-Thirty. Every one is sayable, which is the test for being here at all. Scope is what it needs to
-be offered: `layer` means the open layer is enough, `element` means one is selected.
+Thirty. Every one is sayable, which is the test for being here at all.
+
+**Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
+selected when somebody types. `layer` means the open layer is enough; `element` means one is
+selected; a form after it means only that form will do.
+
+**Each also carries a sentence saying what it does**, which is what a typed word is matched
+against. Names and labels are too short to score. Not tabled here — it belongs beside the code.
 
 ### Elements
 
@@ -33,14 +39,18 @@ layer above, the open layer, or a named one.
 
 ### Navigation
 
-Sayable, and writes nothing — the effect channel alone. **An action returning no mutations writes
-no step**, which is what keeps navigation out of undo.
+**Writing no mutations is what makes an action navigation** — nothing is flagged. One property,
+three consequences: no step is written, there is nothing to undo, and **the terminal never offers
+these**. The explorer and the pointer navigate.
 
 | | Scope | Arguments | Effect | Replaces |
 |---|---|---|---|---|
 | `open` | element | id | `open` | `open` |
 | `up` | layer | — | `open` | `up` |
-| `reveal` | element | id | `open` + `focus` | `reveal` |
+| `reveal` | element, proxy | id | `open` + `focus` | `reveal` |
+
+**No other action returns `open` or `focus` when a text interface reached it.** Typing three names
+makes three siblings, because creating one selected nothing.
 
 ### Interfaces
 
@@ -68,9 +78,9 @@ that end about it, which is the same action with two more arguments.
 |---|---|---|---|---|
 | `group` | layer | members, into? | `add_element{group}` + `join_group`… | `group`, `joinGroup` |
 | `leave` | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
-| `dissolve` | group | id | `delete_element` | **not built** |
+| `dissolve` | element `group` | id | `delete_element` | **not built** |
 | `note` | layer | text, spot?, size? | `add_element{note}` | `note` |
-| `tie` | note | note, holder | `link_elements{tie}` / `delete_edge` | `tie` |
+| `tie` | element `note` | note, holder | `link_elements{tie}` / `delete_edge` | `tie` |
 
 **`group` absorbs joining**: with `into`, it adds to that group; without, it makes one.
 
@@ -164,6 +174,9 @@ already exists; the right button makes something new.**
 **Queries** — readable state, not things to do. Off the registry entirely.
 
 `nameTaken`, `stepCount`, `state`, `saving`, `trouble`.
+
+**Finding** — filtering the explorer writes nothing and goes nowhere, so it is neither an action
+nor navigation. It is a mode the terminal can drive and the explorer owns.
 
 **Display preferences** — held outside the log, and outside both tiers. Toggling one changes what
 you see and nothing about the project.
