@@ -19,8 +19,10 @@ Built and stable: the validator, the one message strip, the frozen schema, and a
 **One known dependency violation**, left visible: `project.ts` imports the terminal. Seam S1
 is what fixes it.
 
-**Not yet exercised in a browser.** The schema migration was verified by typecheck, build and the
-suite. Clicking through the canvas is the check still owed.
+**Exercised in a browser.** A fresh session, a pre-freeze log, the canvas gestures, import and
+export all check out — the round trip is byte-identical and a pre-freeze log draws, repairs and
+saves out current. Two things it turned up: `/favicon.ico` 404s, and **README names the wrong
+gesture for making a block** (it says double-click; the right button makes, double-click descends).
 
 
 ## Phase 0: the seams
@@ -45,12 +47,12 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
 
 - **Gestures are not on the descriptor.** A view owns its gesture map and binds a gesture to an
   action name, so S1 and S2 stay disjoint and two views can bind one action differently.
+- **Every action is enumerated in [actions.md](actions.md)** — name, scope, arguments, the
+  mutations it writes, and which of today's closures it replaces. Build against that table, not
+  against `project.ts`.
 - **Collapse the duplicates as part of the extraction**, so nothing later is written against a
-  surface that then changes. 52 entries in `act` become ~26 actions, 4 adjustments, the page's file
-  actions, and 5 queries that leave the surface entirely. Each of these pairs is one action with an
-  optional argument: `create`/`createAt`, `link`/`wire`, `place`/`placeMany`/`placeNote`,
-  `move`/`nest`/`promote`/`lift`, `addPort`/`promotePort`, `addField`/`updateField`,
-  `addRelation`/`renameRelation`.
+  surface that then changes. 52 entries in `act` become **30 actions**, 4 adjustments, 5 page
+  actions and 5 queries that leave the surface entirely.
 - **`check` is required wherever an action can refuse**, and the refusal reaches the strip. Today
   `nameFree(...) && commit(...)` returns false silently — a class of invisible no-op.
 - **The `act.foo(...)` methods stay, generated from the registry**, so no call site in `page/` or
@@ -60,9 +62,10 @@ Unlocks E and the tray menu in G; prerequisite for the terminal.
 
 ### S2 — the view registry
 
-**A module is a vocabulary, renderers, a layout law and a gesture map**, plus the set of
-adjustments it accepts — which may be empty. `Canvas.tsx` splits three ways: gesture handling,
-composition, and `views/`. This answers the question the module walk left open.
+The five declarations a view makes are specced in [spec.md](spec.md) under *Views*, and **every
+gesture the canvas binds today is inventoried in [actions.md](actions.md)** — which is what the
+first gesture map is written from. `Canvas.tsx` splits three ways: gesture handling, composition,
+and `views/`.
 
 **This, not S1, is what gates the module work**: five notations were walked against the engine and
 none of them adds an action or a form.
@@ -75,7 +78,8 @@ Touches only `fold.ts`, so it runs alongside S1 and S2.
 
 - **Delete the retired ops.** 15 of them, ~150 lines, 23% of the file, and the least-exercised code
   in the repo. Checkpointing means any project reaches the current schema by being opened, so this
-  is now safe rather than lossy.
+  is now safe rather than lossy. **`relax_layer` and `size_element` are not among them** — they are
+  current ops that nothing emits yet, and G wires both.
 - **Split `apply()` by family** — element, edge, group, field, definition — so two owners adding
   ops do not edit one switch.
 - **Index once per fold.** `childrenOf`, `blocksOf` and `portsOf` are full scans called from inside
@@ -242,6 +246,11 @@ Split out of the terminal because a module needs it and the terminal does not ga
   invisible grab band over relationship segments, but that would explain a box that fails to start,
   not one that over-selects, so the cause is open.
 - **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
+- **Three actions have no way in.** `relax_layer` and `size_element` are in the schema and in
+  `fold` and nothing emits either — a layer cannot be handed back to automatic placement, and a
+  note cannot be resized after it is made. `dissolve` has no op missing, only a path. All three are
+  rows in [actions.md](actions.md) with nothing to replace.
+- **`/favicon.ico` 404s.** `index.html` declares no icon.
 - **Adding a block to an existing group from the panel.** `joinGroup` exists and is wired to
   nothing, so the only way into an existing group is the drag.
 - **Fluid transitions between layers.** The viewport animates; the contents of the two layers cut,

@@ -306,6 +306,44 @@ registry, read by every input method: gestures, the contents tray, and later the
 each walked against the surface and none of them needed one: a module is a vocabulary, renderers, a
 layout law and a gesture map. See [design.md](design.md) under *The view is the module seam*.
 
+**Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
+
+
+## Views
+
+*(planned) — the whole section. Today there is one view, written into the canvas.*
+
+A **view** is how one notation is worked in. It is the only thing that varies between modules, and
+it holds **no state of its own** — everything it shows is the graph, derived, or a display
+preference the log never sees.
+
+Five declarations, and nothing else:
+
+| | Is |
+|---|---|
+| **vocabulary** | what this notation calls a block, a group, a relationship, an interface — and which definitions it offers |
+| **renderers** | how to draw, keyed by an element's or relationship's `type` |
+| **layout law** | sizes, and either positions or nothing |
+| **gesture map** | which gesture reaches which action, and where its arguments come from |
+| **adjustments** | which of the four positional adjustments it accepts |
+
+- **A view names actions; it never writes mutations.** That is what keeps one input method
+  indistinguishable from another, and what lets two views bind one action to different gestures.
+- **An unregistered `type` falls back to the engine's card.** A view declares what it draws
+  differently, not everything it draws — so a half-built one is usable.
+- **A `figure` has no fallback**: the engine places it and never draws it, so a view that offers a
+  figure type must render it. Its size comes from the definition.
+- **A layout law may decline to place**, and then the layer arranges as it does today — stored
+  positions held, everything else filled in around them.
+- **A view that accepts no adjustments** is one where the engine owns every position. Sequence
+  accepts one, `seat`, because the only thing worth dragging there is where an occurrence sits on
+  its own lifeline.
+- **Which graph a view is over** — `structure` or `behavior` — is the view's, and a project in one
+  never opens in the other.
+
+**Which view is showing is display state**, not project state: it is not in the log, and switching
+one undoes nothing.
+
 
 ## Shell
 
