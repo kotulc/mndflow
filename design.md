@@ -27,6 +27,37 @@ be enforced or left to the user, it is left to the user.
   clothes.
 
 
+## The words
+
+Each does one job. Where two could be said, the shorter one wins.
+
+| | Is | |
+|---|---|---|
+| **workspace** | everything loaded together, and how it is filed. Itself a project | data |
+| **project** | the unit of work: one id, one log, one file, one scope of ids | data |
+| **graph** | a project's folded contents — elements, relationships, definitions | data |
+| **view** | a project whose elements are **proxies**: it presents what is owned elsewhere | data |
+| **package** | a project whose elements are **definitions**: it supplies vocabulary to others | data |
+| **module** | how a graph is drawn and worked — vocabulary, renderers, layout law, gesture map, and the adjustments it accepts | code |
+| **translator** | reads a project and emits an artifact. One way, and it never writes back | code |
+| **artifact** | what a translator emits: code, a drawing, a standard's file. Not a graph | output |
+
+**Nothing declares which of these a project is.** A project that holds only proxies is a view; one
+that holds only definitions is a package; one that holds its own objects is neither. It is visible
+from what it has, so there is no field to keep true — and a project is free to become something
+else by being worked on.
+
+**What its things mean comes from the package it draws definitions from**, not from a class. A
+project using the behavior package is what would elsewhere be called a behavior model. That is one
+idea doing the work two would have done badly.
+
+**Three words are deliberately absent.** *Namespace*, because every project already scopes its own
+ids and a property shared by all of them is not a sort of thing. *Kind*, because what a project is
+is already answered twice over, by what it owns and by the package it uses. *Structure* and
+*behavior* as classifiers, for the same reason — they survive as ordinary description and the
+engine never reads them.
+
+
 ## Foundations
 
 ### The project, the log, and the fold
@@ -1281,16 +1312,55 @@ tool does not do**, which is a better answer than bending the base model until i
 |---|---|
 | **page** | branding, navigation, and the workspace. Owns nothing about a diagram |
 | **terminal** | an optional alternate way to give input. Minimises to one line |
-| **module** | one graph and the views over it |
+| **module** | how a graph is drawn and worked — see *The words* |
 
-**The tree and the canvas are the module.** Everything else wraps around them.
+**The tree and the canvas are the block module.** Everything else wraps around them.
 
-### Two graphs, many views
+### One graph, and a view is one too
 
-**There are two fundamental graphs, not one module per notation.** A **structure** graph says what
-things there are and how they are composed and connected; a **behavior** graph says what happens,
-in what order, under what conditions. Reference is not a third — it is the proxy, which is
-orthogonal and works across both.
+**There is one shape: a graph of objects, and views over it.** A **structure** says what things
+there are and how they are composed and connected; a **behavior** says what happens, in what
+order, under what conditions; a **matrix** says which of them relate. All three are graphs, and
+what tells them apart is only how much of what they hold they own:
+
+| | Its graph holds |
+|---|---|
+| structure | its own objects |
+| matrix, table | proxies only |
+| behavior | its own actions, plus proxies of the participants |
+
+**So the asymmetry needs no classifier.** "This one leans on another" is what a proxy has always
+meant, widened to reach across a workspace rather than across a layer. A project that owns nothing
+is a view; one that owns everything is a structure; most are somewhere between, and none of them
+had to say so.
+
+**A view being a graph is what lets one be read two ways.** The same set of proxies is a grid or a
+diagram depending on what is drawing it, because there was never a second kind of thing to
+convert. A compact list of members would have been cheaper in bytes and would have cost exactly
+that.
+
+**Where a change is written follows the element, not the view.** A view's own graph holds its
+proxies, so dragging a block into a matrix touches nothing but the view. A relationship is written
+to the log of the project that owns its ends, resolved through those proxies — so a cell filled
+in on a matrix is a real relationship in the real project, and a behavior's flows between its own
+actions stay its own. One rule, and no arbitration: an element belongs to exactly one graph.
+
+**Undo therefore reaches wherever the work landed.** Reverting a step is still a status flip in one
+log; which log is decided by what was changed rather than by where somebody was standing.
+
+**A relationship across two projects is a proxy and an ordinary edge**, both in the project of the
+end that makes the claim. Relating a block here to one over there brings a proxy of the far block
+into this project and draws the line to that — which is what a proxy has always been for, so no
+relationship ever spans two logs and nothing had to be forbidden. Its ends stay plain ids, which
+matters: `fold`, `layout`, `route` and the canvas all read them, and widening an edge's ends would
+have reached every one of those. Only the proxy's target widens. A side effect worth having is
+that the dependency becomes visible from inside, drawn as a reference on the layer that owns it.
+
+**The workspace is a project too, and needs nothing new to be one.** Every graph has a root
+element, so a proxy targeting another project's root refers to that whole project; folders are
+ordinary blocks holding those proxies. It has its own log, so filing something is undoable, and it
+draws as a block diagram like anything else — with the dependencies between projects derived
+rather than drawn, since one project depends on another exactly when it holds a proxy into it.
 
 Walking every SysML notation against the model is what settled this. Block definition, internal
 block, package, parametrics and requirements are all the same shape: elements, containment, ports,
@@ -1299,11 +1369,11 @@ a constraint's parameters are interfaces, so a binding connector is an ordinary 
 two ends are interfaces, which `from`/`to` already do. Requirements are elements with an `id` and
 a `text` field. Neither needs anything the engine does not have.
 
-**A view is a type vocabulary, a renderer, and a layout law** — nothing else, and it holds no state
-of its own. That is the whole difference between an activity diagram and a state machine, which
-share their shape and differ in what a node *means*: in an activity, being at a node is doing; in a
-state machine, being at a node is being. Duals, not projections of one another, so a project picks
-one vocabulary and stays in it.
+**How a view draws is a type vocabulary, a renderer and a layout law, and nothing else.** That is
+the whole difference between an activity diagram and a state machine, which share their shape and
+differ in what a node *means*: in an activity, being at a node is doing; in a state machine, being
+at a node is being. Duals, not projections of one another, so a graph picks one vocabulary and
+stays in it.
 
 **A sequence diagram is a behavior graph seen along its edges.** A lifeline is a block's behavioral
 edge, an occurrence on it is an interface seated along that edge, a message is a relationship
@@ -1314,8 +1384,9 @@ left-to-right order is presentation and lives in the view.
 
 **Views are editable, not generated.** People draw sequence diagrams *first*, before any behavior
 exists, and a read-only view would make the fastest way to think in a notation unavailable — the
-opposite of the goal. So a view publishes gestures and the action surface maps them to mutations;
-the graph is still the only thing that holds state. This raises the bar on the action surface,
+opposite of the goal. So a view publishes gestures and the action surface maps them to mutations,
+and every change still lands in the log of whichever graph owns what it touched. This raises the
+bar on the action surface,
 which now carries the gesture-to-mutation mapping and not merely a list of what a module can do.
 
 ### One anchor for every port
@@ -1371,8 +1442,12 @@ that lives in the view.
 separately in the explorer, in the order it was added, and labelled `<project> [block]` for its
 module.
 
-- **Each project belongs to one module, and has its own log, its own export, and its own action
-  surface.** No shared history: undo in an activity never reaches a block project.
+- **Each graph has its own log and its own export**, and a workspace export gathers them. The unit
+  of work is the graph, not the workspace, so one can be opened, shared or imported alone.
+- **A change is recorded where its element lives, not where the user was standing.** Working in a
+  behavior view and adding a relationship between two structure blocks writes to that structure's
+  log — so undo from the behavior view reverts it there, and everything derived from it refolds.
+  Ownership is what routes it, and nothing is ever branched or merged.
 - **Which project a selected row belongs to is the context**, and the context decides which
   module's actions apply. Positional rather than modal — no toggle, and no ambiguity to resolve.
 - The workspace itself — which projects are loaded, and in what order — is a fourth kind of
@@ -1381,9 +1456,10 @@ module.
 
 ### The block tree is the foundation
 
-Other modules hang off it. An activity project has a tree of its own for its own organisation,
-and *additionally* references blocks in a block project — so every module is the same shape, and
-the block module is special only in being the one everything else points at.
+Everything else hangs off it. A project using the activity package owns a tree of its own for its
+own organisation, and *additionally* holds proxies of blocks living elsewhere — so every project is
+the same shape, and the ones full of blocks are special only in being what everything else points
+at.
 
 - **A reference is a widened proxy, not a new idea.** A proxy already means "a second appearance
   of a block that lives elsewhere"; elsewhere becomes another *project* as well as another layer,

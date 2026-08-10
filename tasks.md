@@ -4,7 +4,7 @@ The difference between what [spec.md](spec.md) describes and what the code does,
 questions that have not been answered yet. Reasoning for any of it lives in
 [design.md](design.md).
 
-Organised so that work can run in parallel. **Phase 0** cuts the seams; **Phase 1** is eight
+Organised so that work can run in parallel. **Phase 0** cuts four seams; **Phase 1** is eight
 streams, one owner each. A stream names the files it owns, so two owners never edit one file.
 
 
@@ -28,8 +28,8 @@ gesture for making a block** (it says double-click; the right button makes, doub
 ## Phase 0: the seams
 
 Five files absorb almost every planned feature, so almost every feature waits on another. Cutting
-these three is what turns three concurrent streams into eight. **They touch disjoint files and can
-be cut in parallel with each other.**
+these is what turns three concurrent streams into eight. **S1, S2 and S3 touch disjoint files and
+can be cut in parallel with each other**; S4 is new ground and is parallel to all three.
 
 | | Lines | Absorbs |
 |---|---|---|
@@ -85,38 +85,61 @@ Touches only `fold.ts`, so it runs alongside S1 and S2.
 - **Index once per fold.** `childrenOf`, `blocksOf` and `portsOf` are full scans called from inside
   loops, which makes `drawnIn` and the contents rows quadratic.
 
-### Enabling changes
+### S4 — the workspace
 
-Three small ones, each unblocking a whole stream. Worth taking with the seams.
+**Promoted out of the streams.** A view is a project of proxies, and it needs the projects it
+points at to be open — so matrices, requirements views and every behavior model depend on this
+existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) under *The words*.
 
-| | Unblocks |
-|---|---|
-| `useProject(projectId)` — parameterise the hook; the page picks the project | B |
-| A proxy tolerates a missing target; `tidy` stops deleting orphans | B |
-| Proxy target and definition ref widen to `{ project, id }` — additive | B, and shared definitions |
+- Several projects loaded at once, each with its own log and its own export; a **workspace export
+  gathers them** and is the everyday one. A single project can still be opened, shared or imported
+  alone, without the views that lean on it.
+- **A proxy's target widens to `{ project, element }`**, and a definition ref the same way. **An
+  edge's ends stay plain ids** — widening those would reach `fold`, `layout`, `route` and the
+  canvas, and nothing needs it.
+- **A proxy tolerates a missing target and never records the absence** — `tidy` stops deleting
+  orphans, so undoing a deletion in one project brings the reference back in another.
+- **A change is recorded where its element lives.** Filling in a matrix cell writes to the project
+  that owns both ends. Ownership routes it, and nothing branches or merges.
+- **A relationship across two projects is a proxy plus an ordinary edge**, both in the project of
+  the end making the claim. No relationship ever spans two logs.
+- **The workspace is itself a project**, and needs no new schema to be one: its elements are
+  proxies of other projects' **roots**, and folders are ordinary blocks. Filing is undoable, and it
+  draws as a block diagram with dependencies derived from who holds proxies into whom.
+- **Guard against a workspace proxying itself.**
+- `useProject(projectId)` — parameterise the hook; the page picks which project is in context.
+- Projects listed in the tree they were filed into; id, step count and hash in the row's tooltip.
+  The selected row's project is the context.
+- **Only deletion is breaking, and only breaking changes are reported.** Dead references
+  accumulate; wants an explicit *clear missing references* action rather than a default.
+- **An export of one graph bundles the external blocks it depends on**, so it stands alone.
+  Nothing is bundled inside a workspace.
+- **The workspace needs its own storage**, separate from every graph.
+- **Shared definitions.** A house vocabulary is re-declared per project today and drifts. A
+  definition ref widens the same way a proxy target does, so the shared vocabulary is one graph
+  the others reference — which is what a **package** is.
 
 
 ## Phase 1: the streams
 
 | | Owns | Waits on |
 |---|---|---|
-| **A** Modules and views | `views/` | S2 |
-| **B** Workspace | `workspace/`, `graph/store.ts` | the enabling changes |
+| **A** Modules and views | `views/` | S2, S4 |
 | **C** Geometry | `geometry/` | S3 (perf only) |
 | **D** Vocabulary | `terminal/workflows.ts`, `graph.vocabulary` | — |
-| **E** Definitions and fields | `page/Contents.tsx`, `page/Relations.tsx` | S1 |
-| **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | — |
+| **E** Definitions, fields, packages | `page/Contents.tsx`, `page/Relations.tsx` | S1 |
+| **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | S4 for the workspace export |
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
 | **Z** Terminal | `terminal/` | **everything above**, H especially |
 
-**Startable today, before any seam:** D, F, H.
+**Startable today, before any seam:** D, F, H, and G's relationship filter.
 
 **The terminal goes last, deliberately.** It ranks and completes whatever the surface offers, so
 building it against a surface still moving means building it twice. It is also the one stream whose
 value depends on the rest being mature — which makes it the acceptance test for all of them.
 
-**B and F both reach `store.ts`.** B's first commit should split project storage from workspace
+**S4 and F both reach `store.ts`.** S4's first commit should split graph storage from workspace
 storage, after which they are disjoint.
 
 ### A — modules and views
@@ -136,8 +159,9 @@ form.** Two of them turn out not to be modules at all — see design.md under *P
 definitions somebody authors, not views somebody builds. Requirements is the one to do first
 regardless: it is the proof that a package works at all, and it fails loudly if definitions do not.
 
-- Only the **structure** graph writes the block tree. A behavior project keeps a tree of its own
-  and *additionally* references blocks in a structure project.
+- **A project owns its own tree.** One using the behavior package owns its actions and holds
+  proxies of the participants; it never writes into the project those participants live in except
+  through the ownership rule in S4.
 - **Views are editable, not generated.** A view binds gestures to actions; the graph still holds
   all the state.
 - **A lifeline is a block's behavioral edge, and an occurrence on it is an interface** — so a
@@ -150,20 +174,6 @@ regardless: it is the proof that a package works at all, and it fails loudly if 
   changes. The first post-freeze schema additions.
 - **`body` is why there is no keyword list.** Every label and body is already embedded, so a
   definition that says what it is is already found by whatever word somebody reaches for.
-
-### B — workspace
-
-- Several projects loaded at once, listed in the order added, labelled `<project> [block]`. Id,
-  step count and hash live in the row's tooltip. The selected row's project is the context.
-- **A cross-project reference is a widened proxy** — target becomes `(project, element)`. No new
-  concept, and projects never merge, so no ids collide.
-- **Only deletion is breaking, and only breaking changes are reported.**
-- Dead references accumulate; wants an explicit *clear missing references* action, not a default.
-- **An export bundles the external blocks it depends on.** Nothing is bundled inside a workspace.
-- **The workspace needs its own storage**, separate from every project.
-- **Shared definitions.** A house vocabulary is re-declared per project today and drifts. A
-  definition ref widens to `{ project, def }` exactly as a proxy target does, so the shared
-  vocabulary is one project the others reference.
 
 ### C — geometry
 
@@ -250,6 +260,9 @@ Split out of the terminal because a module needs it and the terminal does not ga
 - **The selection box takes things it does not enclose.** Not diagnosed. The leading suspect is the
   invisible grab band over relationship segments, but that would explain a box that fails to start,
   not one that over-selects, so the cause is open.
+- **Filter relationships by type on the canvas** — show only `satisfy`. A display preference, no
+  new concept, and the cheap read on how much of the clutter problem a different view would need to
+  solve. **Do this before any matrix.**
 - **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
 - **Three actions have no way in.** `relax_layer` and `size_element` are in the schema and in
   `fold` and nothing emits either — a layer cannot be handed back to automatic placement, and a
@@ -310,9 +323,13 @@ building it.
 
 ## Open questions
 
-- **Whether `structure` and `behavior` are what `module` names**, or a layer above it. The base
-  should eventually carry which graph a project is, with the preferred view dropping to `meta`.
-  Blocks nothing — `module` is an open string.
+- **`module` demotes from the base to `meta`.** It named a classifier that no longer exists; what
+  is left is a preference — which module a project would like to be opened in. Settled in
+  principle, wants doing with S4.
+- **How a proxy carries changes of its own**, for the case where somebody wants a behavior view to
+  hold a local variation without writing to the structure. Deferred deliberately: it is a
+  multi-user and enterprise concern, and the individual user this is built for should not pay an
+  extra step for the common case. See the backlog.
 - **Which standards are worth a package**, beyond the two the walk found. Each is only a table, so
   the question is who wants one rather than what it costs.
 - **How much a `flow` relationship should say.** A `flow` form decides which sides its ends take,
@@ -326,6 +343,10 @@ building it.
 
 - **Merging two divergent logs.** A project file is a single-owner asset, like a `.psd`. Git's line
   merge or nothing; `check.ts` reports the wreckage of a bad merge rather than preventing it.
+- **Local variation on a proxy, for multi-user work.** A proxy already carries fields of its own, so
+  a view could hold changes that never reach the structure — with an explicit promotion later. That
+  is an enterprise and multi-user concern; for one user it is an extra step on the commonest path,
+  so writes go straight home instead. An extension to add when there is somebody to add it for.
 - **A live store for real multi-user work.** Files plus git give one-owner-at-a-time, which is
   honest but is not collaboration. Genuine concurrent editing wants a shared store and presence,
   not a merge algorithm over exported JSON — a different product decision, recorded here so the

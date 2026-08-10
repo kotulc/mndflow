@@ -325,14 +325,27 @@ layout law and a gesture map. See [design.md](design.md) under *The view is the 
 
 *(planned) — the whole section. Today there is one view, written into the canvas.*
 
-A **view** is how one notation is worked in. It is the only thing that varies between modules, and
-it holds **no state of its own** — everything it shows is the graph, derived, or a display
-preference the log never sees.
+**A view is a graph.** Its elements are **proxies** of what it shows, plus whatever objects it owns
+itself — a behavior owns its actions, a matrix owns nothing. It has its own log and its own export,
+like any graph, and it appears in the workspace as its own entry.
+
+- **Adding something to a view creates a proxy in the view**, and touches nothing else. Dragging a
+  block into a matrix does not write to that block's project.
+- **A relationship goes to the log of the project that owns its ends**, resolved through the
+  proxies — so filling in a matrix cell is a real relationship in the real project, while a view's
+  flows between its own elements stay in its own log.
+- **A relationship across two projects is a proxy and an ordinary edge**, both in the project of the
+  end making the claim. An edge's ends stay plain ids; only a proxy's target widens.
+- **Undo reverts wherever the work landed**, not where the user was standing.
+- **A view may hold proxies into as many projects as it likes.** Nothing limits it to one.
+
+How it *draws* is the second half, and it varies between modules:
 
 Five declarations, and nothing else:
 
 | | Is |
 |---|---|
+| **scope** | a **layer** — one element's contents — or a **set**, which is whatever it holds proxies of |
 | **vocabulary** | what this notation calls a block, a group, a relationship, an interface — and which definitions it offers |
 | **renderers** | how to draw, keyed by an element's or relationship's `type` |
 | **layout law** | sizes, and either positions or nothing |
@@ -350,11 +363,12 @@ Five declarations, and nothing else:
 - **A view that accepts no adjustments** is one where the engine owns every position. Sequence
   accepts one, `seat`, because the only thing worth dragging there is where an occurrence sits on
   its own lifeline.
-- **Which graph a view is over** — `structure` or `behavior` — is the view's, and a project in one
-  never opens in the other.
+- **There is no structure/behavior classifier.** A graph that owns its objects is a structure, one
+  that owns none is a matrix, one that owns some is a behavior — visible from what it holds, so
+  nothing declares it.
 
-**Which view is showing is display state**, not project state: it is not in the log, and switching
-one undoes nothing.
+**Which view you have open is display state.** The view itself is not: it is a graph with a log,
+and making one is an ordinary change.
 
 
 ## Shell
