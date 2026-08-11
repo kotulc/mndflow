@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { edge, element, field, definition, newId, rootElement, ROOT, EMPTY,
+import { edge, element, field, definition, newId, refAt, refTo, rootElement, ROOT, EMPTY,
          type ElemForm } from "./types";
 
 const FORMS: ElemForm[] = ["block", "note", "group", "proxy", "figure"];
@@ -58,4 +58,23 @@ describe("the empty project", () => {
     expect(rootElement().id).toBe(ROOT);
     expect(rootElement().parent).toBeNull();
   });
+});
+
+describe("a reference that may leave the project", () => {
+  it("stays a bare id when it does not, so everything written before still reads", () => {
+    expect(refTo("def_pump")).toBe("def_pump");
+    expect(refAt("def_pump")).toEqual({ id: "def_pump" });
+  });
+
+  it("round-trips a reference into another project", () => {
+    const held = refTo("def_pump", "proj_a9f");
+
+    expect(refAt(held)).toEqual({ project: "proj_a9f", id: "def_pump" });
+  });
+
+  it.each(["of", "type", "a ref field's value"])(
+    "reads the same wherever one is held — %s", () => {
+      expect(refAt(refTo("block_1", "proj_2")).id).toBe("block_1");
+    },
+  );
 });

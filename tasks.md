@@ -32,10 +32,8 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-- **An imported project nobody has touched does not survive a reload.** A key appears only on the
-  first change, and there is no handle to re-read from until the File System Access work lands — so
-  it is simply gone. Probably fine, since nothing was lost but the importing; worth deciding
-  whether the workspace should remember the names so it can offer them back.
+*Nothing is blocking. The last of them closed with the workspace keeping its own list of imported
+projects, which is what an untouched import is remembered by.*
 
 *Recently closed: undo restores the graph and never the context; storage is keyed per project and
 lazily, with the untouched checkpointed under pressure; packages are a list in import order and
@@ -263,8 +261,6 @@ Split out of the terminal because a module needs it and the terminal does not ga
   editing a stale session, export over somebody's work — nothing can notice. **The fix is the File
   System Access API**: hold a live handle and say so when the file changes underneath. One
   integration, and the whole class of problem goes.
-- **The suggested filename should follow the project's name**, so `pump-assembly.json` cannot hold
-  a project called `pumps`.
 - **Reviewing a model change as JSON is poor.** Committing a rendered SVG beside the source makes a
   pull request readable. Costs an export path and nothing structural.
 

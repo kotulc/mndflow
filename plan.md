@@ -17,7 +17,7 @@ four different answers.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **W0.1** | Type the schema change: the five `Definition` fields (`size`, formal name, mapping, `body`, `shows`), the widened proxy target, the widened definition ref, `vocabulary` as a **list of package ids in import order**, `module` to optional `meta`. **The schema is not frozen** — change it as the design requires | spec.md, `graph/types.ts` | ⊘ |
+| ~~**W0.1**~~ | ~~Type the schema change~~ — **done**, in spec.md. Four new `Definition` fields (`body`, `size`, `shows`, `formal`), cross-project references as a **path** rather than new fields, `module` to `meta`, schema `1.1`. `vocabulary` deliberately left to D.2, which owns the terminal it would break | spec.md | — |
 
 *Everything else Wave 0 held is answered and recorded in spec.md: undo restores the graph and never
 the context; storage is keyed per project and lazily, the untouched checkpointed under pressure;
@@ -44,7 +44,7 @@ Build against [actions.md](actions.md), not against `project.ts`.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **S1.1** | The `Action`, `Arg` and `Effect` types, the registry, and a dispatcher that commits one step per action and none when there are no mutations | `actions/index.ts` | ⊘ |
+| ~~**S1.1**~~ | ~~Types, registry, dispatcher~~ — **done**, `actions/index.ts`. Scope decides what is shown, `check` what happens on commit, `sayable` falls out of the argument types, `writes` gates the step. 12 tests | `actions/index.ts` | — |
 | **S1.2** | Port the 8 element actions and the 3 navigation ones | `actions/elements.ts` | S1.1 |
 | **S1.3** | Port the 2 interface and 5 relationship actions | `actions/edges.ts` | S1.1 |
 | **S1.4** | Port the 5 group-and-note and 4 field-and-definition actions | `actions/groups.ts`, `actions/fields.ts` | S1.1 |
@@ -78,7 +78,7 @@ Build against [actions.md](actions.md), not against `project.ts`.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **SC.1** | Land the five `Definition` fields, both widenings and the `module` demotion as **one** change | `graph/types.ts`, `graph/file.ts` | W0.1 |
+| ~~**SC.1**~~ | ~~Land the schema change~~ — **done**: four `Definition` fields, `refTo`/`refAt` for cross-project paths, `module` in `meta`, schema `1.1`, and a file written either way still reads. 12 tests | `graph/types.ts`, `graph/file.ts` | — |
 
 
 ## Wave 1b — startable today, no seam needed
@@ -86,13 +86,13 @@ Build against [actions.md](actions.md), not against `project.ts`.
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **G.1** | Filter relationships by type on the canvas — a display preference. **Before any matrix** | `canvas/` | ⊘ |
-| **G.8** | A favicon; `index.html` declares none | `index.html`, `public/` | ⊘ |
-| **F.1** | The suggested filename follows the project's name | `graph/store.ts` | ⊘ |
+| ~~**G.8**~~ | ~~A favicon~~ — **done**: the header's `▚` inline as an SVG data URI, so nothing is fetched | `index.html` | — |
+| ~~**F.1**~~ | ~~Filename follows the project's name~~ — **already built**; `store.download` derives it from the title and the browser run exported `software-system.mndflow.json`. tasks.md was stale | — | — |
 | **F.2** | File System Access: hold a live handle and say when the file changes underneath. Chromium only; the download path stays the fallback | `graph/store.ts`, `page/Files.tsx` | ⊘ |
 | **H.1** | `samples/mndflow.json` — describes this app, exercises every feature in spec.md, loads without setup | `samples/` | ⊘ |
 | **H.2** | Read a real export line by line and report what a reviewer would want | — | H.1 |
 | **D.1** | Split `terms` out of the workflow YAML from the prompt sets | `terminal/workflows.ts`, `workflows/` | ⊘ |
-| **CI** | `tsc` and `vitest` on push. ~20 lines, and it is what keeps eight streams honest | `.github/` | ⊘ |
+| ~~**CI**~~ | ~~`tsc` and `vitest` on push~~ — **done**, `.github/workflows/check.yml`. LFS skipped: the model is needed to run the app, not to check it | `.github/` | — |
 
 
 ## Wave 2 — the streams

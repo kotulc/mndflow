@@ -102,6 +102,58 @@ describe("what is written", () => {
   });
 });
 
+describe("the module preference", () => {
+  const { graph, steps } = sample();
+
+  it("is written to meta, not to the base — it is a preference, not a classifier", () => {
+    const held = JSON.parse(write(graph, "proj_test", steps));
+
+    expect(held.module).toBeUndefined();
+    expect(held.meta.module).toBeTruthy();
+  });
+
+  it("is still read from a file that carried it in the base", () => {
+    const held = JSON.parse(write(graph, "proj_test", steps));
+    const { module: _gone, ...meta } = held.meta;
+
+    expect(read({ ...held, meta, module: "activity" })!.meta?.module).toBe("activity");
+  });
+
+  it("falls back rather than failing when a file names none", () => {
+    const held = JSON.parse(write(graph, "proj_test", steps));
+
+    expect(read({ ...held, meta: { steps: 1 } })!.meta?.module).toBeTruthy();
+  });
+});
+
+describe("what a definition declares", () => {
+  /** Everything a definition can say, so the round trip has all of it to lose. */
+  const spoken: Mutation[] = [
+    { op: "set_def", id: "def_decision", name: "decision", form: "figure",
+      body: "a branch in a flow", size: { w: 48, h: 48 }, formal: "DecisionNode",
+      shows: ["guard"], color: "#d9a441" },
+  ];
+  const graph = fold([step("", "test", spoken)]);
+  const text = write(graph, "proj_test", 1);
+
+  it("keeps every field it declares through a round trip", () => {
+    expect(read(JSON.parse(text))!.graph.defs.def_decision).toMatchObject({
+      body: "a branch in a flow", size: { w: 48, h: 48 },
+      formal: "DecisionNode", shows: ["guard"],
+    });
+  });
+
+  it("writes none of them when a definition says nothing", () => {
+    const bare = fold([step("", "test",
+                            [{ op: "set_def", id: "def_part", name: "part", form: "block" }])]);
+    const written = write(bare, "proj_test", 1);
+
+    for (const said of ["body", "size", "shows", "formal", "icon"]) {
+      expect(written).not.toContain(`"${said}"`);
+    }
+  });
+});
+
 describe("the schema gate", () => {
   it("reads its own", () => {
     expect(readable(SCHEMA)).toBe(true);

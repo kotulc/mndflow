@@ -221,6 +221,12 @@ export type Definition = {
   form: ElemForm | EdgeForm;
   /** What its usages carry, declared. A usage's own `fields` hold the values. */
   fields: Field[];
+  /** What this kind of thing is, in a sentence — the way an element has one.
+   *
+   *  Shown where a type is chosen, and matched against whatever somebody types,
+   *  which is why a definition needs no list of keywords beside it: the words
+   *  are already here and already embedded. */
+  body?: string;
   /** How its usages draw. Presentation lives here and never on a usage, which
    *  is what keeps it structurally out of an export rather than filtered from
    *  one on the way. */
@@ -228,6 +234,21 @@ export type Definition = {
   icon?: string;
   line?: "solid" | "dashed" | "dotted";
   head?: "none" | "open" | "filled" | "hollow";
+  /** The room a `figure` needs. The engine places what it never draws, so the
+   *  one thing it has to be told is how big — a fork bar long and thin, a
+   *  decision small and square. Absent is the ordinary card. */
+  size?: { w: number; h: number };
+  /** Which of a usage's fields draw on its card, in this order. Absent draws
+   *  none: a card with eight fields on it is unreadable, so which one matters
+   *  is a thing somebody says rather than a thing derived. */
+  shows?: string[];
+  /** What a standard calls this — `«requirement»`, `DecisionNode`.
+   *
+   *  `name` is what the user reads and types; this is what an export writes, so
+   *  nobody has to learn a notation to use one. One field rather than a name
+   *  and a mapping: a package belongs to one standard, and a translator needing
+   *  more than a name is code and can carry its own table. */
+  formal?: string;
 };
 
 export type Graph = {
@@ -294,7 +315,8 @@ export type Mutation =
   | { op: "delete_edge"; id: string }
   /** Make or amend a definition. Everything but the id is a patch. */
   | { op: "set_def"; id: string; name?: string; form?: ElemForm | EdgeForm; fields?: Field[];
-      color?: string; icon?: string; line?: Definition["line"]; head?: Definition["head"] }
+      body?: string; color?: string; icon?: string; line?: Definition["line"];
+      head?: Definition["head"]; size?: Definition["size"]; shows?: string[]; formal?: string }
   /** Drop it; usages survive, their `type` pointing at nothing. */
   | { op: "drop_def"; id: string }
   | { op: "set_vocabulary"; vocabulary: string }
@@ -366,6 +388,25 @@ export function newId(prefix: string): string {
   counter += 1;
 
   return `${prefix}_${counter.toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Where a reference points, when it may point outside this project.
+ *
+ *  Written as a path — `proj_a9f/def_pump` — and a bare id means "here", so
+ *  every reference written before projects could see one another still reads.
+ *  One convention for all three places a reference is held: a proxy's `of`, an
+ *  element's `type`, and a `ref` field's value. Ids never contain a slash, so
+ *  there is nothing to escape and nothing ambiguous. */
+export function refTo(id: string, project?: string | null): string {
+  return project ? `${project}/${id}` : id;
+}
+
+/** The two halves of one, with `project` absent for anything local. */
+export function refAt(ref: string): { project?: string; id: string } {
+  const cut = ref.indexOf("/");
+  if (cut < 0) return { id: ref };
+
+  return { project: ref.slice(0, cut), id: ref.slice(cut + 1) };
 }
 
 /** An element with the defaults filled in, so callers only state what differs. */

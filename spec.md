@@ -152,12 +152,19 @@ the project.
 - **Presentation lives on the definition, never on the usage** — colour and icon for an element,
   line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
   export rather than filtered out of one.
-- **(planned)** A definition may declare a `size`, which is what lets the engine place a `figure`
-  it does not draw — a fork bar long and thin, a decision small and square. Absent means the
-  ordinary card size.
-- **(planned)** A definition may carry a **formal name** beside its plain one, and what it **maps
-  to** in a standard. Plain is what the user reads and types; formal and the mapping are what an
-  export writes. Absent means the plain name serves for both.
+- **(planned)** Four more optional fields, each unwritten at its default so no existing file
+  changes by a byte:
+
+  | | Is |
+  |---|---|
+  | `body: string` | what this kind of thing is, in a sentence — the way an element has one. What the tray shows, and what a typed word is matched against, which is why no definition needs a list of keywords beside it |
+  | `size: { w, h }` | the room a `figure` needs, since the engine places what it does not draw — a fork bar long and thin, a decision small and square. Absent means the ordinary card |
+  | `shows: string[]` | which of a usage's fields draw on its card, and in what order. Absent draws none, which is what happens today |
+  | `formal: string` | what a standard calls this — `«requirement»`, `DecisionNode`. `name` is what the user reads and types; `formal` is what an export writes |
+
+  **One `formal`, not a name and a mapping**: a package belongs to one standard, so a definition
+  in it has one formal name — and a translator needing more than a name is code, and can carry its
+  own table.
 - **(planned)** A project draws definitions from a **list of packages, in the order imported**.
   Order decides only what is offered first: **every reference is by id**, so two packages naming a
   thing alike mint two ids and neither shadows the other. There is nothing to resolve.
@@ -167,9 +174,11 @@ the project.
   following the copy.
 - **(planned) Locked is the workspace's word, not the file's.** The same project is a package you
   are using or one you are writing depending on which you are doing, so nothing in it says.
-- **(planned)** A definition carries a **`body`**, the way an element does: what this kind of thing
-  is, in a sentence. It is what the tray shows and what a typed word is matched against — so no
-  definition needs a list of keywords beside it.
+- **(planned) A reference reaching another project is written as a path**, `proj_a9f/def_pump` —
+  the project, a slash, then the id inside it. An id alone means this project, so every reference
+  written so far still reads. One convention serves all three places one is held: a proxy's `of`,
+  an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
+  ambiguous, and a reader splits on the first one or does not have to split at all.
 - **(planned)** A **package** is a set of definitions somebody ships — plain names, formal names,
   fields, presentation and mappings. It is data, adds no code, and **maps names and presentation
   but never structure**; a notation needing structural change is a module instead. See
@@ -223,11 +232,16 @@ the project.
 
   | | Says |
   |---|---|
-  | `schema` | which shape the file is — `"1.0"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
+  | `schema` | which shape the file is — `"1.1"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
   | `id` | which project this is, for life. Cross-project references resolve against it |
-  | `module` | what kind of thing this is. A reader that ignores it has to guess, and renders it wrong |
   | `graph` | the content |
   | `meta` | free-form, unversioned, **safely ignorable**. Absent when empty |
+
+  - **(planned) `module` moved from the base to `meta` in 1.1.** It named a classifier that no
+    longer exists — what a project is is visible from what it holds — and what is left is a
+    preference for which module to open it in, which a reader may ignore. Both directions still
+    read: a 1.0 file carries it at the top and a 1.0 reader finding it absent falls back, so the
+    move costs a minor rather than a break.
 
   - **The test for the base is whether dropping a field changes what the project *is*.** That is
     what stops `meta` becoming a bucket anything may be added to.
@@ -273,6 +287,8 @@ the project.
     checkpointed** — history for the untouched, which is the cheapest thing to give up, and the
     strip says so. That is a different message from the one that means nothing is being saved at
     all.
+  - **The workspace keeps its own list of what has been imported**, which is what an untouched
+    project is remembered by when it has no key of its own.
   - Today storage holds exactly one, and the code assumes it.
 
 **Tests** — one file per module, beside the module, so a module and its test move together. One
