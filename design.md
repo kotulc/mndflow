@@ -1397,10 +1397,13 @@ derived exactly the way container-ness is; a pin is an interface on an action ty
 definition; a parameter is an interface on a constraint. None of them needs a form, a field, or a
 rule of its own.
 
-**`flow` stays decorative at the engine level.** In, out and both are drawn and reasoned about by
-nobody: an activity module reads an `in` interface as an input pin, a parametrics module ignores
-direction entirely. Enforcing it would hard-code one module's semantics into the engine, which is
-the same mistake as branching on user data.
+**A flow guides the engine; a package gives it meaning.** What the engine takes from a `flow` is
+where things should go — it biases placement as well as which sides a line attaches to, which is
+the whole reason a layer's axis is worth setting apart from an arrangement. What in, out and both
+*mean*, and whether setting the form should set a direction, is the package's: an activity reads
+an `in` interface as an input pin, a parametrics ignores direction entirely. Splitting it this way
+is what keeps one notation's semantics out of the engine while still letting a flow do the one
+thing every notation agrees on, which is point somewhere.
 
 **A data structure is a definition, not a form.** It declares fields with forms, units and
 defaults, which is what a data structure *is* — so it costs no element form, never clutters the

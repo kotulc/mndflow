@@ -1,13 +1,18 @@
 # The surface
 
-Reference for [S1 and S2](tasks.md). Three tables: every **action** the engine offers, every
-**gesture** that reaches one, and what is deliberately **not** on the surface.
+Reference for [S1, S2 and S4](tasks.md). Every **action** the engine offers, every **gesture** that
+reaches one, and what is deliberately **not** on the surface.
 
 The shape each record takes is in [spec.md](spec.md) under *Action surface*; why it takes that
-shape is in [design.md](design.md) under *The action surface is the input seam*.
+shape is in [design.md](design.md) under *The action surface is the input seam*. The words used
+here — project, view, package, module — are defined in design.md under *The words*.
 
 *Nothing here is built. It is the target the extraction is measured against — `project.ts` holds
 52 closures today, and the third column says which of them each row replaces.*
+
+**Every action acts within one project.** Where an argument names something in another, it is a
+proxy that brings it into this one — see *Across projects* below. No action ever writes to two
+logs.
 
 
 ## Actions
@@ -33,6 +38,10 @@ against. Names and labels are too short to score. Not tabled here — it belongs
 | `colour` | element | id, colour | `update_element{color}` | `paint` |
 | `move` | element | id, parent, spot? | `move_element` + shed (+ `place_element`) | `move`, `nest`, `promote`, `lift` |
 | `refer` | layer | target, spot? | `add_element{proxy}` | `refer` |
+
+**`refer`'s target widens with S4** to `{ project, element }`, and nothing else about it changes.
+A proxy of another project's **root** refers to that whole project, which is what the workspace's
+own elements are.
 
 **`move` absorbs four** because they differ only in where the parent comes from: a sibling, the
 layer above, the open layer, or a named one.
@@ -102,6 +111,24 @@ that end about it, which is the same action with two more arguments.
 | `relax` | layer | layer | `relax_layer` | **op exists, unwired** |
 | `vocabulary` | project | name | `set_vocabulary` | the entry turn |
 
+**`vocabulary` changes shape with D**, from a subject-matter string to which package or packages a
+project draws its definitions from. The action stays one; its argument becomes a list of ids.
+
+
+### Across projects
+
+*(not built — S4.)* Nothing new here: each is an existing action with a widened argument.
+
+| | Scope | Does |
+|---|---|---|
+| `refer` | layer | brings a proxy of an element in another project into this layer |
+| `relate` | layer | relating to something elsewhere refers to it first, then draws an ordinary edge to the proxy — so the edge's ends stay plain ids and one log takes both mutations |
+| `define` | project | a definition ref may name another project's, which is how a package is used |
+
+**The workspace is a project**, so working in it uses these same actions: filing something is
+`create` (a folder is a block) and `move`; adding a project to the workspace is `refer` at its
+root. It has no actions of its own.
+
 
 ## Adjustments
 
@@ -169,7 +196,9 @@ already exists; the right button makes something new.**
 
 **Page actions** — the shell's, not a module's, per design.md's three parts.
 
-`export`, `import`, `new`, `undo`, `redo`. The workspace adds to this list and nothing else does.
+`export`, `import`, `new`, `undo`, `redo`, and with S4 `open project`, `close project` and
+`export workspace`. **`undo` applies to the project in context**, since that is where the step
+was written.
 
 **Queries** — readable state, not things to do. Off the registry entirely.
 
@@ -192,7 +221,7 @@ draws. The breadcrumb and the arrange buttons are not among them: those reach `o
 | entries in `act` today | 52 |
 | actions | 30 |
 | adjustments | 4 |
-| page actions | 5 |
+| page actions | 5, and 8 after S4 |
 | queries, off the surface | 5 |
 
 Thirty rather than the twenty-six estimated in tasks.md: `move` and `group` absorbed more than

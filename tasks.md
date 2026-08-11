@@ -2,7 +2,7 @@
 
 The difference between what [spec.md](spec.md) describes and what the code does, plus the
 questions that have not been answered yet. Reasoning for any of it lives in
-[design.md](design.md).
+[design.md](design.md); the queue of work itself is [plan.md](plan.md).
 
 Organised so that work can run in parallel. **Phase 0** cuts four seams; **Phase 1** is eight
 streams, one owner each. A stream names the files it owns, so two owners never edit one file.
@@ -10,7 +10,7 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 
 ## Status
 
-Built and stable: the validator, the one message strip, the frozen schema, and a 106-test suite.
+Built and stable: the validator, the one message strip, the schema and a 106-test suite.
 `src` is grouped by what a thing is for and dependencies run one way — see README.md for the map.
 
 **Frozen, pending refinement.** Left alone deliberately while the graph model settles: the
@@ -23,6 +23,25 @@ is what fixes it.
 export all check out — the round trip is byte-identical and a pre-freeze log draws, repairs and
 saves out current. Two things it turned up: `/favicon.ico` 404s, and **README names the wrong
 gesture for making a block** (it says double-click; the right button makes, double-click descends).
+
+**The schema is no longer frozen.** It is changed as the design requires, and a file still opens
+through `check.ts` whatever it was written by.
+
+
+## Open questions
+
+*Kept at the front. Everything here blocks something in [plan.md](plan.md).*
+
+- **An imported project nobody has touched does not survive a reload.** A key appears only on the
+  first change, and there is no handle to re-read from until the File System Access work lands — so
+  it is simply gone. Probably fine, since nothing was lost but the importing; worth deciding
+  whether the workspace should remember the names so it can offer them back.
+
+*Recently closed: undo restores the graph and never the context; storage is keyed per project and
+lazily, with the untouched checkpointed under pressure; packages are a list in import order and
+never shadow, since references are by id; a package resists editing until unlocked or forked; a
+proxy owns its appearance and the block owns the thing; a project opened alone is read in
+isolation.*
 
 
 ## Phase 0: the seams
@@ -168,10 +187,10 @@ regardless: it is the proof that a package works at all, and it fails loudly if 
   message is a relationship between two interfaces, and order down a lifeline is `at` along an
   edge. Sequence needs no layout law of its own.
 - **A swimlane is a block whose children belong to it** — not a group, which cannot be empty.
-- **Four optional `Definition` fields** land before this stream, as one change: `size`, a formal
-  name, what a type maps to in a standard, and a `body` — what this kind of thing is, in a
-  sentence, the way an element has one. All additive and unwritten at default, so no existing file
-  changes. The first post-freeze schema additions.
+- **Five optional `Definition` fields** land before this stream, as one change: `size`, a formal
+  name, what a type maps to in a standard, `shows` — which fields draw on the card — and a `body`,
+  what this kind of thing is, in a sentence, the way an element has one. All additive and unwritten
+  at default, so no existing file changes.
 - **`body` is why there is no keyword list.** Every label and body is already embedded, so a
   definition that says what it is is already found by whatever word somebody reaches for.
 
@@ -321,32 +340,15 @@ building it.
 - **The rename**, once all of the above is built.
 
 
-## Open questions
-
-- **`module` demotes from the base to `meta`.** It named a classifier that no longer exists; what
-  is left is a preference — which module a project would like to be opened in. Settled in
-  principle, wants doing with S4.
-- **How a proxy carries changes of its own**, for the case where somebody wants a behavior view to
-  hold a local variation without writing to the structure. Deferred deliberately: it is a
-  multi-user and enterprise concern, and the individual user this is built for should not pay an
-  extra step for the common case. See the backlog.
-- **Which standards are worth a package**, beyond the two the walk found. Each is only a table, so
-  the question is who wants one rather than what it costs.
-- **How much a `flow` relationship should say.** A `flow` form decides which sides its ends take,
-  from the layer's axis. Whether it should also imply a direction — so setting the form sets `dir`
-  — is open. Keeping them apart is the current answer and the safer one, but a flow with no
-  direction draws no arrowhead, which reads oddly for a thing whose whole claim is that something
-  travels one way.
-
-
 ## Out of scope, recorded so nothing is built on it
 
 - **Merging two divergent logs.** A project file is a single-owner asset, like a `.psd`. Git's line
   merge or nothing; `check.ts` reports the wreckage of a bad merge rather than preventing it.
-- **Local variation on a proxy, for multi-user work.** A proxy already carries fields of its own, so
-  a view could hold changes that never reach the structure — with an explicit promotion later. That
-  is an enterprise and multi-user concern; for one user it is an extra step on the commonest path,
-  so writes go straight home instead. An extension to add when there is somebody to add it for.
+- **Local variation, for multi-user work.** Somewhere for a view to hold a change that never
+  reaches the project it read — with an explicit promotion later. It cannot hang off a proxy: a
+  proxy carries nothing but where it sits, so it would need a mechanism of its own. An enterprise
+  and multi-user concern; for one user it is an extra step on the commonest path, so writes go
+  straight home instead. An extension to add when there is somebody to add it for.
 - **A live store for real multi-user work.** Files plus git give one-owner-at-a-time, which is
   honest but is not collaboration. Genuine concurrent editing wants a shared store and presence,
   not a merge algorithm over exported JSON — a different product decision, recorded here so the
@@ -358,7 +360,7 @@ building it.
   in the view.
 
 
-## Schema notes still live after the freeze
+## Schema notes still live
 
 **Op names now**: `set_form`, `set_field`, `drop_field`, `set_def`, `drop_def`, `set_vocabulary`.
 **Still folded, never written**: `set_kind`, `set_attr`, `drop_attr`, `set_domain`, `add_relation`,

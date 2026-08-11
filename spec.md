@@ -158,6 +158,15 @@ the project.
 - **(planned)** A definition may carry a **formal name** beside its plain one, and what it **maps
   to** in a standard. Plain is what the user reads and types; formal and the mapping are what an
   export writes. Absent means the plain name serves for both.
+- **(planned)** A project draws definitions from a **list of packages, in the order imported**.
+  Order decides only what is offered first: **every reference is by id**, so two packages naming a
+  thing alike mint two ids and neither shadows the other. There is nothing to resolve.
+- **(planned) A package resists editing.** Changing one is refused with the reason, and the way
+  through is deliberate: **unlock** it, or **fork** it and change the copy. A fork takes a new
+  project id, so anything pointing at the original keeps pointing there rather than quietly
+  following the copy.
+- **(planned) Locked is the workspace's word, not the file's.** The same project is a package you
+  are using or one you are writing depending on which you are doing, so nothing in it says.
 - **(planned)** A definition carries a **`body`**, the way an element does: what this kind of thing
   is, in a sentence. It is what the tray shows and what a typed word is matched against — so no
   definition needs a list of keywords beside it.
@@ -255,6 +264,16 @@ the project.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
   saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
+- **(planned)** Storage is keyed, **one entry per project**, the workspace included — it is a
+  project like any other.
+  - **A key appears when a project is first changed, not when it is opened.** A checkpoint is not
+    something anybody did, so an imported project nobody has touched is stored by nothing and
+    costs nothing.
+  - **When storage fills, the projects being worked in keep their logs and the rest are
+    checkpointed** — history for the untouched, which is the cheapest thing to give up, and the
+    strip says so. That is a different message from the one that means nothing is being saved at
+    all.
+  - Today storage holds exactly one, and the code assumes it.
 
 **Tests** — one file per module, beside the module, so a module and its test move together. One
 integration test in `tests/` for the whole lifecycle. `npm test` at the root.
@@ -290,6 +309,8 @@ registry, read by every input method: gestures, the contents tray, and later the
   one where it is optional is reachable from anywhere, and the layer places what it was not given.
 - **Running an action returns mutations, and may also ask** for a layer to be opened, a selection
   to be moved, or a line to be said. It changes nothing itself.
+- **Undo restores the graph, never the context.** A delete that cleared the selection leaves it
+  cleared when undone: where you are looking is the user's, not the log's.
 - **`when` decides whether an action is shown; `check` decides what happens when it runs.** They
   are not the same test — `when` asks whether this is a thing here at all, `check` asks whether
   these particular arguments would work, and cannot be answered until they are filled.
@@ -338,6 +359,10 @@ like any graph, and it appears in the workspace as its own entry.
   end making the claim. An edge's ends stay plain ids; only a proxy's target widens.
 - **Undo reverts wherever the work landed**, not where the user was standing.
 - **A view may hold proxies into as many projects as it likes.** Nothing limits it to one.
+- **A project opened alone is read in isolation** — its own root, its own contents, and nothing
+  about who imported it. A proxy is a one-way import, so the project it points at never needs to
+  know. Cross-project relationships are read in the **workspace** view, where the workspace's root
+  is the root, every project below it is a block, and the lines between them are the imports.
 
 How it *draws* is the second half, and it varies between modules:
 
@@ -375,6 +400,9 @@ and making one is an ordinary change.
 
 - One page: header, terminal rail, then explorer beside the working area.
 - Header reads `mndflow [project]` — the project's own name, which is root's label.
+- **(planned)** With several projects open, the header names the one **in context** — the project
+  the selected explorer row belongs to — and the explorer lists them all in the tree they were
+  filed into.
 - **It names the working session** — `working session`, held quiet, with the snapshot explained
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
@@ -422,6 +450,11 @@ and making one is an ordinary change.
 - Proxies are never listed — a proxy is a second appearance of something already there.
 - Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
+- **(planned)** Every open project is a root in the same tree, filed into the folders the workspace
+  keeps. **The project a selected row belongs to is the context**, which is what decides where a
+  change is written — positional, so there is no mode and nothing to switch.
+- **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
+  is the one place a proxy *is* listed, because in a view there is nothing else to list.
 
 **Navigation**
 
@@ -594,8 +627,14 @@ about like any other, and the drag sticks.
   - Nesting stops at the first layer: a child container is marked as one and no further.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
 - **Proxy** — a stand-in for a block living in another layer, so that a relationship reaching
-  it can be seen here. A visual shortcut; it changes nothing about the relationship. It is an
-  element of its own, bound to its block by a `reference` relationship.
+  it can be seen here. A visual shortcut; it changes nothing about the relationship.
+  - **It is bound to its block by `of`, a field — never by a relationship.** A proxy is not two
+    things joined, it is one thing appearing twice, which is a property of the appearance.
+  - **An appearance is the proxy's; the thing is the block's.** Where it sits, how it draws and
+    its colour are its own, because they are true only of this layer. Its name, body, fields,
+    interfaces, children and type are the block's, because there is only one thing to have them.
+  - **A relationship drawn to a proxy is stored here and reaches the block.** That is all
+    "reference" means, and it is derived from where the ends live rather than given as a form.
   - Greyed, hatched and dashed, marked `↗`; the only dashed card on the canvas. The colour is on
     the lines, not the card: **a relationship reaching a reference draws violet and dashed**,
     label and arrowheads with it, so a line leaving the layer is told apart at a glance.
