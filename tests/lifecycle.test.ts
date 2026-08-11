@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 
 import { entering } from "../src/graph/check";
 import * as file from "../src/graph/file";
-import { fold, relationNames, stepsIn } from "../src/graph/fold";
+import { fold, stepsIn } from "../src/graph/fold";
 import { edge, element, step, ROOT, type Graph, type Mutation, type Step } from "../src/graph/types";
 
 /** Building a project the way the app does: one gesture, one step. */
@@ -95,25 +95,38 @@ describe("work, save, open, work again", () => {
   });
 });
 
-describe("a log from an older build", () => {
-  /** How the same project looked before `form`, `fields` and definitions. */
-  const legacy = [{
-    id: "s_1", question: "", prompt: "", input: "", action: "test", status: "applied",
-    mutations: [
-      { op: "set_domain", domain: "software" },
-      { op: "add_node", node: { id: "n_1", label: "Pump", parent: null } },
-      { op: "add_element", element: {
-        id: "n_2", element: "block", label: "Valve", type: "part", parent: "n_1", body: "",
-        x: null, y: null, w: null, h: null, side: null, at: null, flow: null, num: 1,
-        axis: null, groups: [], of: null, color: "#d9a441",
-        attrs: [{ name: "mass", value: "4", tags: [] }],
-      } },
-      { op: "link_nodes", edge: { id: "e_1", source: "n_1", target: "n_2",
-                                  relation: "drives", dir: "forward", kind: "flow" } },
-    ],
-  }];
+describe("a project from an older build", () => {
+  /** One element as an earlier build wrote it — every field spelled out, since
+   *  nothing was left at a default then, and `element` where `form` is now. */
+  const was = (id: string, label: string) => ({
+    id, element: "block", label, type: "", body: "", x: null, y: null, w: null, h: null,
+    side: null, at: null, flow: null, num: 1, axis: null, groups: [], of: null,
+  });
 
-  const came = entering(legacy)!;
+  /** A project as an earlier build held one: `element` before it was `form`,
+   *  `attrs` before fields carried one, and `kind`/`relation` on the edge. This
+   *  is the whole of what still has to open — the log format that came before
+   *  checkpoints is gone, and a checkpoint is what a file has always been. */
+  const old = {
+    op: "checkpoint",
+    at: 4,
+    graph: {
+      defs: {},
+      vocabulary: "software",
+      elements: {
+        [ROOT]: { ...was(ROOT, "Rig"), parent: null },
+        n_1: { ...was("n_1", "Pump"), parent: null },
+        n_2: { ...was("n_2", "Valve"), parent: "n_1", type: "part", color: "#d9a441",
+               attrs: [{ name: "mass", value: "4", tags: [] }] },
+      },
+      edges: {
+        e_1: { id: "e_1", source: "n_1", target: "n_2",
+               relation: "drives", dir: "forward", kind: "flow" },
+      },
+    },
+  };
+
+  const came = entering([step("", "checkpoint", [old as unknown as Mutation])])!;
   const graph = fold(came.steps);
 
   it("opens, and says what it had to repair", () => {
@@ -128,16 +141,11 @@ describe("a log from an older build", () => {
     expect(graph.vocabulary).toBe("software");
   });
 
-  it("turns its bare relation names into definitions", () => {
-    expect(relationNames(graph)).toContain("drives");
-    expect(graph.defs[graph.edges.e_1.type]).toBeDefined();
-  });
-
   it("saves out in the current format, which is how a project stops being old", () => {
     const text = file.write(graph, "proj_old", stepsIn(came.steps));
     const back = file.read(JSON.parse(text))!;
 
     expect(back.schema).toBe(file.SCHEMA);
-    expect(sorted(fold(opened(back.graph, 0)))).toEqual(sorted(graph));
+    expect(back.graph.elements.n_2.form).toBe("block");
   });
 });

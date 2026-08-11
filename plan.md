@@ -34,7 +34,7 @@ thing.*
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **S3.1** | Delete the 15 retired ops, their `check.ts` entries and their tests. **Keep `relax_layer` and `size_element`** — current ops nothing emits yet | `graph/fold.ts`, `graph/check.ts` | ⊘ |
+| ~~**S3.1**~~ | ~~Delete the retired ops~~ — **done**: all **22**, the `Legacy` union, the `Pending` plumbing and the door's entries. `fold.ts` 872 → 680 lines. Shape healing kept; the pre-checkpoint *log* format is gone | `graph/fold.ts`, `graph/check.ts`, `graph/types.ts` | — |
 | **S3.2** | Split `apply()` by family — element, edge, group, field, definition | `graph/fold.ts` | S3.1 |
 | **S3.3** | Build the index once per fold; `childrenOf`, `blocksOf`, `portsOf` stop scanning | `graph/fold.ts` | S3.2 |
 

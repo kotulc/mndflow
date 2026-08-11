@@ -30,11 +30,6 @@ const KNOWN = new Set([
   "relax_layer", "join_group", "leave_group", "set_field", "drop_field", "link_elements",
   "set_end", "update_edge", "set_dir", "set_form", "set_side", "flip_edge", "delete_edge",
   "set_def", "drop_def", "set_vocabulary",
-  // Retired, still folded.
-  "add_node", "update_node", "move_node", "place_node", "delete_node", "link_nodes",
-  "set_template", "set_title", "add_attr", "update_attr", "place_attr", "attach_attr",
-  "detach_attr", "delete_attr", "route_edge", "set_kind", "set_attr", "drop_attr",
-  "set_domain", "add_relation", "rename_relation", "drop_relation",
 ]);
 
 /** The closed sets were `element` on an element and `kind` on a relationship

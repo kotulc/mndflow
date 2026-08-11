@@ -102,6 +102,35 @@ describe("what is written", () => {
   });
 });
 
+describe("a file written by an earlier build", () => {
+  const { graph, steps } = sample();
+  /** Exactly what 1.0 wrote: the module in the base, and no field 1.1 added. */
+  const before = (() => {
+    const held = JSON.parse(write(graph, "proj_old", steps));
+    const { module: _new, ...meta } = held.meta;
+
+    return { ...held, schema: "1.0", module: "block", meta };
+  })();
+
+  it("still opens — the gate compares the major, so a lower minor is fine", () => {
+    expect(readable("1.0")).toBe(true);
+    expect(read(before)).not.toBeNull();
+  });
+
+  it("comes back holding everything it held", () => {
+    expect(sorted(read(before)!.graph)).toEqual(sorted(graph));
+  });
+
+  it("saves back out current, so opening one is how a project catches up", () => {
+    const back = read(before)!;
+    const again = JSON.parse(write(back.graph, back.id, back.meta?.steps ?? 0));
+
+    expect(again.schema).toBe(SCHEMA);
+    expect(again.module).toBeUndefined();
+    expect(again.meta.module).toBeTruthy();
+  });
+});
+
 describe("the module preference", () => {
   const { graph, steps } = sample();
 

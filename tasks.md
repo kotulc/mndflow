@@ -93,10 +93,10 @@ Unlocks A, and the context menu in G.
 
 Touches only `fold.ts`, so it runs alongside S1 and S2.
 
-- **Delete the retired ops.** 15 of them, ~150 lines, 23% of the file, and the least-exercised code
-  in the repo. Checkpointing means any project reaches the current schema by being opened, so this
-  is now safe rather than lossy. **`relax_layer` and `size_element` are not among them** — they are
-  current ops that nothing emits yet, and G wires both.
+- **Delete the retired ops** — *done*. All 22, not the 15 counted: seven were living in the current
+  switch rather than the legacy one. `fold.ts` fell 872 → 680 lines, and `types.ts` lost the
+  `Legacy` union. **`relax_layer` and `size_element` were not among them** — current ops that
+  nothing emits yet, and G wires both.
 - **Split `apply()` by family** — element, edge, group, field, definition — so two owners adding
   ops do not edit one switch.
 - **Index once per fold.** `childrenOf`, `blocksOf` and `portsOf` are full scans called from inside
@@ -359,14 +359,19 @@ building it.
 ## Schema notes still live
 
 **Op names now**: `set_form`, `set_field`, `drop_field`, `set_def`, `drop_def`, `set_vocabulary`.
-**Still folded, never written**: `set_kind`, `set_attr`, `drop_attr`, `set_domain`, `add_relation`,
-`rename_relation`, `drop_relation`, beside the fifteen already retired — all of which S3 deletes.
+**All 22 retired ops are gone**, with the `Legacy` union and the door's entries. An op this build
+does not know is now reported at the door and skipped by the fold rather than guessed at.
 
-**A pre-freeze log still opens.** `check.ts` heals `element` to `form`, `kind` to `form` and
-`attrs` to text `fields`, inside a checkpoint's whole graph as well as a single mutation.
+**Shapes still heal; the old log format does not.** `check.ts` reads `element` as `form`, `kind` as
+`form` and `attrs` as text `fields`, inside a checkpoint's whole graph as well as a single
+mutation — so a *file* from before still opens. A pre-checkpoint **log** does not, which is the
+capability S3.1 deliberately dropped. `relation` as `type` heals only where a relationship is
+linked, never inside a checkpoint; nothing was built to close that, since the format it served is
+no longer supported.
 
-**A cross-project target is `{ project, element }`**, both by id, and always live; to fix a version,
-bundle.
+**A cross-project reference is a path** — `proj_a9f/def_pump`, a bare id meaning here. One
+convention for a proxy's `of`, an element's `type` and a `ref` field's value; `refTo` and `refAt`
+in `types.ts`. An edge's ends stay plain ids and never cross.
 
 **Nothing at its default is written to a file.** Not planned, and it is what makes the format
 readable.

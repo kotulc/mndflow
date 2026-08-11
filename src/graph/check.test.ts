@@ -54,8 +54,8 @@ describe("healing old shapes", () => {
   it("reads a relationship's `kind` as its form, and its `relation` as its type", () => {
     const came = entering(logged(
       { op: "add_element", element: oldElement() },
-      { op: "link_nodes", edge: { id: "e_1", source: "n_1", target: "n_1",
-                                  relation: "holds", dir: "none", kind: "assoc" } },
+      { op: "link_elements", edge: { id: "e_1", source: "n_1", target: "n_1",
+                                     relation: "holds", dir: "none", kind: "assoc" } },
     ))!;
     const held = fold(came.steps).edges.e_1;
 

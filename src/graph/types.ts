@@ -319,39 +319,7 @@ export type Mutation =
       head?: Definition["head"]; size?: Definition["size"]; shows?: string[]; formal?: string }
   /** Drop it; usages survive, their `type` pointing at nothing. */
   | { op: "drop_def"; id: string }
-  | { op: "set_vocabulary"; vocabulary: string }
-  | Legacy;
-
-/** Operations no longer written, still folded so that a log recorded before a
- *  rename or a merge replays to what it drew at the time. */
-export type Legacy =
-  | { op: "add_node"; node: Record<string, unknown> }
-  | { op: "update_node"; id: string; label?: string; type?: string }
-  | { op: "move_node"; id: string; parent: string | null }
-  | { op: "place_node"; id: string; x: number; y: number }
-  | { op: "delete_node"; id: string }
-  | { op: "link_nodes"; edge: Record<string, unknown> }
-  | { op: "set_template"; template: string }
-  | { op: "set_title"; title: string }
-  | { op: "add_attr"; attr: Record<string, unknown> }
-  | { op: "update_attr"; id: string; name?: string; value?: string; tags?: string[];
-      color?: string }
-  | { op: "place_attr"; id: string; x: number; y: number }
-  | { op: "attach_attr"; id: string; holder: string }
-  | { op: "detach_attr"; id: string; holder: string }
-  | { op: "delete_attr"; id: string }
-  | { op: "route_edge"; id: string; layer: string | null; route: Spot[] | null }
-  /** `element` and `kind` were the closed sets before both became `form`. */
-  | { op: "set_kind"; id: string; kind: EdgeForm }
-  /** Fields were untyped attributes before they carried a form. */
-  | { op: "set_attr"; id: string; name: string; value?: string; tags?: string[] }
-  | { op: "drop_attr"; id: string; name: string }
-  /** A project's relation names were a bare list before they were definitions,
-   *  and its vocabulary was called its domain. */
-  | { op: "set_domain"; domain: string }
-  | { op: "add_relation"; name: string }
-  | { op: "rename_relation"; from: string; to: string }
-  | { op: "drop_relation"; name: string };
+  | { op: "set_vocabulary"; vocabulary: string };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
