@@ -9,7 +9,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { compact, fold, membersOf, relationNames, stepsIn, COMPACT_AT } from "./fold";
+import { compact, fold, isReference, isTie, membersOf, relationNames, stepsIn, tiesOf,
+         COMPACT_AT } from "./fold";
 import { edge, element, step, ROOT, type Mutation, type Step } from "./types";
 
 /** One step holding whatever mutations a case needs. */
@@ -194,5 +195,51 @@ describe("compaction", () => {
 
     expect(compact(few)).toBe(few);
     expect(stepsIn(few)).toBe(3);
+  });
+});
+
+describe("the two derived relation forms", () => {
+  /** A note tied to a block, and a proxy pointing at one — the two ends that
+   *  make a relationship something without anybody saying so. */
+  function layer() {
+    const block = element("Pump", { parent: null });
+    const note = element("watch", { form: "note", parent: null });
+    const stand = element("", { form: "proxy", parent: null, of: block.id });
+    const tie = edge(note.id, block.id);
+    const ref = edge(stand.id, block.id);
+    const plain = edge(block.id, block.id);
+    const mutations: Mutation[] = [
+      ...[block, note, stand].map((it) => ({ op: "add_element" as const, element: it })),
+      ...[tie, ref, plain].map((it) => ({ op: "link_elements" as const, edge: it })),
+    ];
+
+    return { graph: fold([step("", "test", mutations)]), tie, ref, plain };
+  }
+
+  it("reads a tie from a note being at an end, not from a stored word", () => {
+    const { graph, tie, plain } = layer();
+
+    expect(isTie(graph, graph.edges[tie.id])).toBe(true);
+    expect(isTie(graph, graph.edges[plain.id])).toBe(false);
+  });
+
+  it("reads a reference from a proxy being at an end", () => {
+    const { graph, ref, plain } = layer();
+
+    expect(isReference(graph, graph.edges[ref.id])).toBe(true);
+    expect(isReference(graph, graph.edges[plain.id])).toBe(false);
+  });
+
+  it("keeps its declared form either way — derived says nothing about that", () => {
+    const { graph, tie, ref } = layer();
+
+    expect(graph.edges[tie.id].form ?? "line").toBe("line");
+    expect(graph.edges[ref.id].form ?? "line").toBe("line");
+  });
+
+  it("finds what a note describes without a form to filter on", () => {
+    const { graph, tie } = layer();
+
+    expect(tiesOf(graph, graph.edges[tie.id].source)).toEqual([graph.edges[tie.id].target]);
   });
 });

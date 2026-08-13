@@ -58,7 +58,7 @@ export function App() {
   /** What a right drag makes. A choice about the next thing created rather than
    *  about how anything is drawn, but it lives here for the same reason: it is
    *  the tool in hand, not part of the project. */
-  const [form, setForm] = useState<EdgeForm>("untyped");
+  const [form, setForm] = useState<EdgeForm>("line");
   useEffect(() => store.angular.set(angular), [angular]);
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);

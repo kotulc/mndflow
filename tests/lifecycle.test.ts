@@ -30,7 +30,7 @@ function built(): Step[] {
     one({ op: "add_element", element: valve }),
     one({ op: "add_element", element: port }),
     one({ op: "add_element", element: note }),
-    one({ op: "link_elements", edge: edge(pump.id, valve.id, { type: "drives", form: "flow" }) }),
+    one({ op: "link_elements", edge: edge(pump.id, valve.id, { type: "drives", form: "directed" }) }),
     one({ op: "set_field", id: pump.id, name: "mass", form: "number", value: "4", unit: "kg" }),
   ];
 }
@@ -137,7 +137,7 @@ describe("a project from an older build", () => {
   it("arrives in the shape this build reads", () => {
     expect(graph.elements.n_2.form).toBe("block");
     expect(graph.elements.n_2.fields[0]).toMatchObject({ name: "mass", form: "text" });
-    expect(graph.edges.e_1.form).toBe("flow");
+    expect(graph.edges.e_1.form).toBe("directed");
     expect(graph.vocabulary).toBe("software");
   });
 

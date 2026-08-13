@@ -114,12 +114,8 @@ const AXES: { axis: Axis; mark: string; tip: string }[] = [
 /** `tie` is not among them: it has a gesture of its own, so it is not something
  *  this control can land on. A reference is not here either — it is derived
  *  from an end being a proxy, and keeps whichever of these it was given. */
-const FORM_NEXT: Partial<Record<EdgeForm, EdgeForm>> = {
-  untyped: "flow", flow: "assoc", assoc: "untyped",
-};
-const FORM_MARK: Partial<Record<EdgeForm, string>> = {
-  untyped: "— plain", flow: "⇥ flow", assoc: "⋯ assoc",
-};
+const FORM_NEXT: Record<EdgeForm, EdgeForm> = { line: "directed", directed: "line" };
+const FORM_MARK: Record<EdgeForm, string> = { line: "— plain", directed: "⇥ directed" };
 
 /** A handler that keeps one identity for the life of the canvas, calling
  *  whatever it was last given.
@@ -245,7 +241,7 @@ function planEdge(
   // A flow's ends read as in and out, so they take the sides the layer's axis
   // gives them. Not on the frame, whose walls all face inward and whose sides
   // mean the opposite of a card's.
-  const sides = edge.form === "flow" && edge.source !== view && edge.target !== view
+  const sides = edge.form === "directed" && edge.source !== view && edge.target !== view
     ? flowSides(axis)
     : null;
 
@@ -582,7 +578,7 @@ function Flow(props: Props) {
       if (!planned) continue;
 
       // Only a flow end draws a square, so only a flow end has one to stop at.
-      const drawsPort = showPorts && edge.form === "flow";
+      const drawsPort = showPorts && edge.form === "directed";
 
       const fromBox = boxes[source] ?? frameBox!;
       const toBox = boxes[target] ?? frameBox!;
@@ -971,7 +967,7 @@ function Flow(props: Props) {
         const tint = away ? "#6d5aa8" : "#2f4a3e";
         const head = { type: MarkerType.ArrowClosed, width: 16, height: 16,
                        color: away ? "#6d5aa8" : "#3f6552" };
-        const form = edge.form ?? "untyped";
+        const form = edge.form ?? "line";
 
         return {
           id: edge.id,
@@ -1601,11 +1597,11 @@ function Flow(props: Props) {
           {showPorts ? "□ interfaces" : "· interfaces"}
         </button>
         <button
-          className={form === "untyped" ? "" : "on"}
-          onClick={() => onForm(FORM_NEXT[form] ?? "untyped")}
+          className={form === "line" ? "" : "on"}
+          onClick={() => onForm(FORM_NEXT[form])}
           title="What a right drag makes"
         >
-          {FORM_MARK[form] ?? FORM_MARK.untyped}
+          {FORM_MARK[form]}
         </button>
         <button
           className={angular ? "on" : ""}

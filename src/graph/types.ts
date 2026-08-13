@@ -32,26 +32,25 @@ export type Dir = "none" | "forward" | "back" | "both";
  *  what a block holds and from whether it sits on a frame edge. */
 export type ElemForm = "block" | "note" | "group" | "proxy" | "figure";
 
-/** What a relationship's ends are, and how it draws — its **form**.
+/** What a relationship's ends are — its **form**. Two, and both are declared.
  *
- *  `untyped` is the default and says nothing beyond "these two are related":
- *  its ends are plain seats and the layer puts them wherever the path wants.
- *  `flow` says the relationship carries something one way, so its ends read as
- *  in and out and take the sides the layer's axis gives them. `assoc` is a
- *  weaker mention, drawn lighter. `tie` joins a note to what it describes. The
- *  form decides the ends; `dir` still decides which way the arrows point.
+ *  `line` is the default and says nothing beyond "these two are related": its
+ *  ends are plain seats and the layer puts them wherever the path wants.
+ *  `directed` says it goes one way, so its ends take the sides the layer's axis
+ *  gives them and it biases placement. The form decides the ends; `dir` still
+ *  decides which way the arrows point.
  *
- *  **`reference` is not among them.** A relationship is a reference when one of
- *  its ends is a proxy, which is a fact about where its ends live rather than a
- *  form it was given — so it is derived, and a reference is still plain, flow
- *  or assoc in its own right.
+ *  **`reference` and `tie` are not among them, because nobody has to say so.** A
+ *  relationship is a reference when an end is a proxy and a tie when an end is a
+ *  note — facts about where its ends live rather than forms it was given. Being
+ *  derived does not make either less the engine's business: a tie still draws as
+ *  a leader taking no seats. It only means the engine works it out.
  *
- *  A form may draw as something other than a routed line — a tie is a leader,
- *  taking no pointer and no seats — but that is a rule about drawing, not about
- *  what it is. Anything joining two elements is a relationship, so that there
- *  is one way to join things, one cascade when an end is deleted, and one list
- *  to read them from. */
-export type EdgeForm = "untyped" | "flow" | "assoc" | "tie";
+ *  A weaker mention drawn lighter is not a form either — that is presentation,
+ *  and presentation is a definition's. Anything joining two elements is a
+ *  relationship, so there is one way to join things, one cascade when an end is
+ *  deleted, and one list to read them from. */
+export type EdgeForm = "line" | "directed";
 
 /** Which way a layer reads, and nothing else.
  *
@@ -186,8 +185,8 @@ export type Edge = {
   from?: string;
   to?: string;
   dir: Dir;
-  /** What its ends are and how it draws. Absent reads as `untyped`, so a log
-   *  written before forms existed still folds to what it drew. */
+  /** What its ends are. Absent reads as `line`, so an edge that was never
+   *  told anything still folds to what it drew. */
   form?: EdgeForm;
   /** The wall an end was drawn through, where the gesture named one.
    *
@@ -429,7 +428,7 @@ export function defIdFor(name: string): string {
 
 /** A definition with the defaults filled in. */
 export function definition(name: string, extra: Partial<Definition> = {}): Definition {
-  return { id: newId("def"), name, form: "untyped", fields: [], ...extra };
+  return { id: newId("def"), name, form: "line", fields: [], ...extra };
 }
 
 /** A relationship with the defaults filled in. Undirected unless said. */

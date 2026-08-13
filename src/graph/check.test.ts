@@ -59,7 +59,8 @@ describe("healing old shapes", () => {
     ))!;
     const held = fold(came.steps).edges.e_1;
 
-    expect(held.form).toBe("assoc");
+    // `assoc` was presentation, so it heals to the plain form and loses its weight.
+    expect(held.form).toBe("line");
     expect(fold(came.steps).defs[held.type].name).toBe("holds");
   });
 
@@ -77,7 +78,36 @@ describe("healing old shapes", () => {
 
     expect(graph.elements.n_1.form).toBe("block");
     expect(graph.elements.n_1.fields).toHaveLength(1);
-    expect(graph.edges.e_1.form).toBe("flow");
+    expect(graph.edges.e_1.form).toBe("directed");
+  });
+});
+
+describe("the relation forms that became two", () => {
+  const linked = (form: string) => entering(logged(
+    { op: "add_element", element: oldElement() },
+    { op: "link_elements", edge: { id: "e_1", source: "n_1", target: "n_1", type: "t",
+                                   dir: "none", form } },
+  ))!;
+
+  it.each([["flow", "directed"], ["untyped", "line"], ["assoc", "line"], ["tie", "line"]])(
+    "reads a retired form — %s becomes %s", (was, now) => {
+      expect(fold(linked(was).steps).edges.e_1.form).toBe(now);
+    },
+  );
+
+  it("says so, since a form that vanished is worth one line", () => {
+    expect(linked("assoc").faults.some((f) => f.healed)).toBe(true);
+  });
+
+  it("heals a form set after the fact as well as one given at creation", () => {
+    const came = entering(logged(
+      { op: "add_element", element: oldElement() },
+      { op: "link_elements", edge: { id: "e_1", source: "n_1", target: "n_1", type: "t",
+                                     dir: "none" } },
+      { op: "set_form", id: "e_1", form: "flow" },
+    ))!;
+
+    expect(fold(came.steps).edges.e_1.form).toBe("directed");
   });
 });
 

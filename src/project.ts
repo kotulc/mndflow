@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import * as embed from "./embed/model";
 import {
   actual, blocksOf, childrenOf, compact, descendsFrom, fold, isCheckpoint, isPort, isProxy,
-  fieldsOf, membersOf, nameFree, nextNum, proxyIn, relationNames, stepsIn, titleOf,
+  fieldsOf, isTie, membersOf, nameFree, nextNum, proxyIn, relationNames, stepsIn, titleOf,
 } from "./graph/fold";
 import * as router from "./terminal/router";
 import { entering, report } from "./graph/check";
@@ -209,7 +209,7 @@ export function useProject() {
       .flatMap((g) => parting(g.id, gone)),
     // A tie is a relationship, so letting one go is deleting it.
     ...Object.values(graph.edges)
-      .filter((e) => e.form === "tie" && gone.includes(e.target))
+      .filter((e) => isTie(graph, e) && gone.includes(e.target))
       .map((e) => ({ op: "delete_edge" as const, id: e.id })),
   ];
 
@@ -371,7 +371,7 @@ export function useProject() {
     /** A relationship with nowhere in particular to attach: its interfaces are
      *  implied at the sides facing each other. What a chip or a workflow makes,
      *  where there was no gesture to take a position from. */
-    link: (source: string, target: string, form: EdgeForm = "untyped") =>
+    link: (source: string, target: string, form: EdgeForm = "line") =>
       source !== target &&
       commit(makeStep(`link: ${name(source)}`, "link",
                       [{ op: "link_elements", edge: makeEdge(source, target, { form }) }])),
@@ -383,7 +383,7 @@ export function useProject() {
      *  worth writing down that the two nodes do not already say. An end that
      *  landed on an interface somebody made keeps it — that one is a choice,
      *  and choices are stored. */
-    wire: (a: End, b: End, form: EdgeForm = "untyped") =>
+    wire: (a: End, b: End, form: EdgeForm = "line") =>
       a.node !== b.node &&
       commit(makeStep(`link: ${name(a.node)}`, "link", [
         { op: "link_elements",
@@ -564,7 +564,7 @@ export function useProject() {
      *  No interfaces — where the line meets either card is the layer's to work
      *  out, and the far node is placed where it was let go so the line between
      *  them already runs the way the drag did. */
-    sprout: (a: End, label: string, x: number, y: number, form: EdgeForm = "untyped") => {
+    sprout: (a: End, label: string, x: number, y: number, form: EdgeForm = "line") => {
       if (!nameFree(graph, view, label)) return;
       const fresh = makeElement(label, {
         parent: view, x, y, num: nextNum(graph, view, "block"),
@@ -587,7 +587,7 @@ export function useProject() {
       label.trim() && !relationNames(graph).includes(label.trim()) &&
       commit(makeStep(`relation: ${label.trim()}`, "relations",
                       [{ op: "set_def", id: defIdFor(label.trim()), name: label.trim(),
-                         form: "untyped" }])),
+                         form: "line" }])),
 
     /** Rename a definition. Usages point at its id, so nothing else moves —
      *  which is the whole reason a definition has one. */
@@ -689,12 +689,12 @@ export function useProject() {
       // A tie is a relationship, so tying is drawing one and untying is
       // deleting it — no second mechanism for joining two things.
       const tied = Object.values(graph.edges)
-        .find((e) => e.form === "tie" && e.source === id && e.target === holder);
+        .find((e) => e.source === id && e.target === holder && isTie(graph, e));
 
       commit(makeStep(tied ? `untie: ${name(holder)}` : `tie: ${name(holder)}`, "note",
                       [tied ? { op: "delete_edge", id: tied.id }
                             : { op: "link_elements",
-                                edge: makeEdge(id, holder, { form: "tie" }) }]));
+                                edge: makeEdge(id, holder) }]));
     },
 
     /** The project as a file: the graph, laid out canonically. Changes nothing,

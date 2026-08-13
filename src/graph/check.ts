@@ -45,6 +45,27 @@ function healForm(it: Record<string, unknown>, was: string): boolean {
   return true;
 }
 
+/** A relationship's forms were four before two of them turned out to be derived
+ *  and one to be presentation.
+ *
+ *  `flow` is `directed` under the name of the thing the engine actually reasons
+ *  about; `untyped` is `line`; `assoc` was a weaker mention drawn lighter, which
+ *  is a definition's business, so it becomes a plain line and loses its weight;
+ *  and `tie` is worked out from a note being at one end, so the stored word goes
+ *  and nothing is lost. */
+const EDGE_WAS: Record<string, string> = {
+  flow: "directed", untyped: "line", assoc: "line", tie: "line",
+};
+
+function healEdgeForm(it: Record<string, unknown>): boolean {
+  const held = typeof it.form === "string" ? EDGE_WAS[it.form] : undefined;
+  if (!held) return false;
+
+  it.form = held;
+
+  return true;
+}
+
 /** An attribute was a field before a field carried a form, and was held under
  *  `attrs`. Everything written then was text, which is what it becomes. */
 function healFields(it: Record<string, unknown>): boolean {
@@ -69,6 +90,7 @@ function healGraph(graph: Record<string, unknown>): boolean {
 
       const it = raw as Record<string, unknown>;
       healed = healForm(it, was) || healed;
+      if (held === "edges") healed = healEdgeForm(it) || healed;
       healed = healFields(it) || healed;
     }
   }
@@ -114,6 +136,16 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
     if (healForm(edge, "kind")) {
       faults.push({ step, op, why: "relationship had a `kind`; read it as its form", healed: true });
     }
+    if (healEdgeForm(edge)) {
+      faults.push({ step, op, why: "relationship named a retired form; read it as a current one",
+                    healed: true });
+    }
+  }
+
+  // The same rename, where a form is set rather than given at creation.
+  if (op === "set_form" && healEdgeForm(it)) {
+    faults.push({ step, op, why: "relationship named a retired form; read it as a current one",
+                  healed: true });
   }
 
   if (op === "add_element" && it.element && typeof it.element === "object") {

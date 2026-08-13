@@ -26,6 +26,16 @@ resists editing until unlocked or forked; a proxy owns its appearance and the bl
 thing.*
 
 
+## Landed out of band
+
+| | Does | |
+|---|---|---|
+| ~~**RF.1**~~ | Relation forms reduced to **`line` \| `directed`**; `reference` and `tie` derived; `assoc` retired to a definition. Healed at the door both ways, docs and 10 tests, verified in a browser | done |
+
+The element and view base sets are settled in [redesign.md](redesign.md) and unchanged in
+membership; only the relations moved.
+
+
 ## Wave 1 — the seams
 
 **S1, S2, S3 and S4 touch disjoint files and run in parallel.**

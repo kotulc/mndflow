@@ -209,7 +209,7 @@ export function read(raw: unknown): Envelope | null {
           .map(([at, d]) => {
             const raw = d as Record<string, unknown>;
 
-            return [at, { name: "", form: "untyped", ...raw, id: at,
+            return [at, { name: "", form: "line", ...raw, id: at,
                           fields: fieldsIn(raw.fields) } as Definition];
           }),
       ),

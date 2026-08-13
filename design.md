@@ -470,7 +470,7 @@ interface that is a node is one somebody placed.
 
 **A port and an anchor are different things.**
 
-- Only a `flow` relationship's ends draw as interfaces, because only those are *typed*: one in,
+- Only a `directed` relationship's ends draw as interfaces, because only those are *typed*: one in,
   one out, which is what a port is.
 - Every other end is an **anchor** — a place on the border, drawing nothing. A square there would
   claim a port the model does not have, and a diagram where everything has one reads as a wiring
@@ -566,13 +566,19 @@ asks for it.
 **Undirected by default** — a plain line asserting only that two things are related. Direction is
 added deliberately.
 
-**A form says what the ends *are*; `dir` says which way it points.** Three forms:
+**A form says what the ends *are*; `dir` says which way it points.** Two, and both declared:
 
-| Form | Ends | Draws |
-|---|---|---|
-| `untyped` | wherever the path wants | plain |
-| `flow` | in and out, on the sides the layer's axis gives | heavier |
-| `assoc` | wherever the path wants | thinner, fainter |
+| Form | Ends | 
+|---|---|
+| `line` | wherever the path wants |
+| `directed` | in and out, on the sides the layer's axis gives |
+
+**Two more are derived**, from where the ends live rather than from anything given: a
+**reference** has a proxy at an end, a **tie** has a note. Deriving them makes them no less the
+engine's business — a tie still draws as a leader taking no seats — it only means nobody had to
+say so. **A weaker mention drawn lighter is not a form at all**: that is presentation, so it is a
+definition subtyping `line`, which is what stops the set growing every time somebody wants a
+lighter stroke.
 
 The two stay separate because an arrowhead decorates the line while the form decides where it
 *attaches* — folded together, setting a direction would silently move both ends. A *parallel*
@@ -640,7 +646,7 @@ a subtype becomes something that can be defined and reused rather than a string 
 
 **One definition record serves elements and relationships alike.** A definition declares which
 form it subtypes, and that decides what it can be applied to — `block` or `figure` for an element,
-`flow` or `assoc` for a relationship. There is no second mechanism, which is why a project's
+`line` or `directed` for a relationship. There is no second mechanism, which is why a project's
 relation vocabulary is simply the definitions whose form is a relationship form. A module ships a
 notation by shipping definitions.
 
@@ -1414,7 +1420,7 @@ value type: a structure with no identity, as against a block, which is a thing t
 
 **SysML is a translation layer, and the translation is what proves the model is general enough.**
 Every notation it defines was walked against the engine before the schema was frozen, and the
-closed sets came through unchanged — five element forms, four relationship forms, five value
+closed sets came through unchanged — five element forms, two relationship forms, five value
 forms. The concept-by-concept map lives in [definitions.md](definitions.md) under *The SysML map*;
 what belongs here is why the result is worth having.
 

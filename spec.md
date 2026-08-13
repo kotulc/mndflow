@@ -89,22 +89,27 @@ the project.
   `fromSide`/`toSide` where an end was drawn through a named wall.
 - `type` names the relationship's **definition** — what it *means*, plus the fields it declares
   and how it draws.
-- `form` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
-  `dir` still says which way the arrows point.
-- **Anything joining two elements is a relationship.** A form may draw as something other than a
+- **`form` is `line` (the default) or `directed`, and that is the whole set.** It says what the two
+  ends *are*: a line's are plain seats the layer places, and a directed one's take the sides the
+  layer's axis gives them. `dir` still says which way the arrows point.
+- **Anything joining two elements is a relationship.** One may draw as something other than a
   routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
   drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
   one list to read them from.
-- **A reference is a relationship with a proxy at one end** — it reaches something living in
-  another layer. Derived, never a form: drawing a line onto a proxy makes one without anybody
-  saying so, and it stays plain, flow or assoc and keeps its direction. Both routes to it draw
-  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for
-  it.
-- A reference draws **violet and dashed**, held back at reduced opacity so the form and the label
-  read first; hover and selection bring it to full.
+- **Two more are derived, because nobody has to say them.** Being derived makes neither less the
+  engine's business; it only means the engine works it out.
+
+  | | Derived from | Draws |
+  |---|---|---|
+  | **reference** | an end is a **proxy** — it reaches something in another layer or project | violet and dashed, held back at reduced opacity so the form and the label read first; hover and selection bring it to full |
+  | **tie** | an end is a **note** — a note relates to what it describes and to nothing else | a faint leader, no pointer and no seats |
+
+- A reference keeps whichever form it was given and keeps its direction. Both routes to one draw
+  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for it.
 - What a proxy stands for is a property of the appearance, not a relationship: one thing appearing
   twice rather than two things joined.
-- `tie` joins a note to what it describes.
+- **A weaker mention drawn lighter is not a form** — that is presentation, so it is a definition
+  subtyping `line`.
 - **Containment is not a relationship.** The tree is `parent`, and being inside something is
   implied by it rather than stored as an edge.
 - `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
@@ -145,7 +150,7 @@ the project.
   subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
   — and how they draw.
 - **One record serves elements and relationships alike.** The `form` it subtypes decides what it
-  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `untyped`/`flow`/`assoc`/`tie`
+  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `line`/`directed`
   for a relationship. A project's relation vocabulary is just the definitions of relationship form.
 - **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
   flow's item, or a nested data structure.
@@ -557,7 +562,7 @@ on the layer.
 | `down` | ranks by relationships, top to bottom |
 
 **Which way the layer reads** — `none`, `across` or `down`. A setting held on the layer. It
-decides which sides a `flow` relationship attaches to, and **(planned)** how its line is drawn.
+decides which sides a `directed` relationship attaches to, and **(planned)** how its line is drawn.
 Arranging never changes it.
 
 - Ranked: nothing pointing at it comes first, and each rank sits one step further along.
@@ -675,7 +680,7 @@ about like any other, and the drag sticks.
 - **Made only by the user.** Right-clicking a card or a frame edge makes a bare one;
   right-clicking a seat a relationship put there promotes it to one where it sits. Drawing a
   relationship makes none.
-- **A port and an anchor are different things.** A `flow` relationship's ends are typed — one
+- **A port and an anchor are different things.** A `directed` relationship's ends are typed — one
   in, one out — so they draw as interfaces. Every other relationship simply meets the card: its
   end is an **anchor**, a place on the border and no more, and draws nothing.
 - An anchor shows a small round handle while its relationship or its card is selected, the same
@@ -744,7 +749,7 @@ about like any other, and the drag sticks.
 - **Every elbow is a right angle**, guaranteed on the way to being drawn rather than attempted.
 - One pass, so each line sees the seats the ones before it took: **no two ends share a seat**,
   and several relationships may still meet at one interface.
-- A `flow` relationship takes the sides the layer's axis gives it — out on the forward face, in
+- A `directed` relationship takes the sides the layer's axis gives it — out on the forward face, in
   on the one behind — so it runs with the layer rather than doubling back across it. On a `free`
   layer nothing is imposed.
 - **Lanes**: runs that would share a line are spread half a cell apart, centred on where they

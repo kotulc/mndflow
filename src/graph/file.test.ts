@@ -28,7 +28,7 @@ function sample(): { graph: Graph; steps: number } {
     { op: "add_element", element: note },
     { op: "add_element", element: group },
     { op: "join_group", id: a.id, group: group.id },
-    { op: "link_elements", edge: edge(a.id, b.id, { type: "drives", form: "flow" }) },
+    { op: "link_elements", edge: edge(a.id, b.id, { type: "drives", form: "directed" }) },
     { op: "set_field", id: a.id, name: "mass", form: "number", value: "4", unit: "kg" },
   ];
 

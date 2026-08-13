@@ -15,7 +15,7 @@ import {
 /** The two form families, so a definition can be sorted into the one it
  *  subtypes without either set being restated where it is used. */
 const ELEM_FORMS = ["block", "note", "group", "proxy", "figure"] as const;
-const EDGE_FORMS = ["untyped", "flow", "assoc", "tie"] as const;
+const EDGE_FORMS = ["line", "directed"] as const;
 
 /** Whether an element sits on its parent's frame edge. That, and only that, is
  *  what makes a block an interface. */
@@ -248,7 +248,7 @@ export function relationNames(graph: Graph): string[] {
  *  a relation typed onto the canvas becomes something that can be declared
  *  against, and how a log written before definitions folds into one. */
 export function defineNamed(graph: Graph, name: string,
-                            form: Definition["form"] = "untyped"): string {
+                            form: Definition["form"] = "line"): string {
   const id = defIdFor(name);
   if (!graph.defs[id]) graph.defs[id] = newDefinition(name, { id, form });
 
@@ -285,11 +285,22 @@ export function membersOf(graph: Graph, group: string): Element[] {
   return Object.values(graph.elements).filter((n) => n.groups.includes(group) && !isPort(n));
 }
 
+/** Whether a relationship is a note's leader.
+ *
+ *  Derived, and never stored, exactly as {@link isReference} is: a note relates
+ *  to what it describes and to nothing else, so an edge with a note at an end
+ *  *is* a tie and nobody has to say so. Being derived makes it no less the
+ *  engine's business — a tie still draws as a leader and takes no seats. */
+export function isTie(graph: Graph, edge: { source: string; target: string }): boolean {
+  return graph.elements[edge.source]?.form === "note" ||
+         graph.elements[edge.target]?.form === "note";
+}
+
 /** What a note describes: the far end of each of its ties. Derived from the
  *  relationships, because a tie is one. */
 export function tiesOf(graph: Graph, note: string): string[] {
   return Object.values(graph.edges)
-    .filter((e) => e.form === "tie" && e.source === note)
+    .filter((e) => e.source === note && isTie(graph, e))
     .map((e) => e.target);
 }
 
@@ -593,7 +604,7 @@ function tidy(graph: Graph): void {
   // this runs on every fold and a random id would never settle.
   for (const edge of Object.values(graph.edges)) {
     if (edge.type && !graph.defs[edge.type]) {
-      edge.type = defineNamed(graph, edge.type, edge.form ?? "untyped");
+      edge.type = defineNamed(graph, edge.type, edge.form ?? "line");
     }
   }
 
