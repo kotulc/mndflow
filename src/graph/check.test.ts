@@ -82,6 +82,24 @@ describe("healing old shapes", () => {
   });
 });
 
+describe("an element's own colour, now its definition's", () => {
+  it("is dropped rather than carried, so it is not written back out forever", () => {
+    const came = entering(logged({ op: "add_element", element: oldElement() }))!;
+
+    expect(fold(came.steps).elements.n_1).not.toHaveProperty("color");
+    expect(came.faults.some((f) => f.healed)).toBe(true);
+  });
+
+  it("is dropped inside a checkpoint too, which is what a file arrives as", () => {
+    const came = entering(logged({
+      op: "checkpoint",
+      graph: { elements: { n_1: oldElement() }, edges: {}, defs: {}, vocabulary: "" },
+    }))!;
+
+    expect(fold(came.steps).elements.n_1).not.toHaveProperty("color");
+  });
+});
+
 describe("the relation forms that became two", () => {
   const linked = (form: string) => entering(logged(
     { op: "add_element", element: oldElement() },

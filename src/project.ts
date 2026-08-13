@@ -634,10 +634,6 @@ export function useProject() {
     leaveGroup: (id: string, group: string) =>
       commit(makeStep(`ungroup: ${name(id)}`, "group", parting(group, [id]))),
 
-    /** Recolour or rename a group or a note — both are elements now. */
-    paint: (id: string, color: string) =>
-      commit(makeStep("colour", "attribute", [{ op: "update_element", id, color }])),
-
     /** Turn a selection into a group: one attribute they all hold, drawn as a
      *  boundary. Purely visual — no node's parent changes.
      *

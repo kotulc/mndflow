@@ -66,6 +66,17 @@ function healEdgeForm(it: Record<string, unknown>): boolean {
   return true;
 }
 
+/** An element carried a colour of its own before presentation belonged to the
+ *  definition it names. Dropped rather than carried: nothing reads it, and a
+ *  field nothing reads is written back out on every save forever. */
+function healColour(it: Record<string, unknown>): boolean {
+  if (!("color" in it)) return false;
+
+  delete it.color;
+
+  return true;
+}
+
 /** An attribute was a field before a field carried a form, and was held under
  *  `attrs`. Everything written then was text, which is what it becomes. */
 function healFields(it: Record<string, unknown>): boolean {
@@ -91,6 +102,7 @@ function healGraph(graph: Record<string, unknown>): boolean {
       const it = raw as Record<string, unknown>;
       healed = healForm(it, was) || healed;
       if (held === "edges") healed = healEdgeForm(it) || healed;
+      if (held === "elements") healed = healColour(it) || healed;
       healed = healFields(it) || healed;
     }
   }
@@ -153,6 +165,10 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
 
     if (healForm(made, "element")) {
       faults.push({ step, op, why: "element named its own `element`; read it as its form",
+                    healed: true });
+    }
+    if (healColour(made)) {
+      faults.push({ step, op, why: "element carried its own colour; presentation is its definition's",
                     healed: true });
     }
     if (healFields(made)) {

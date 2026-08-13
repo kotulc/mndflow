@@ -15,7 +15,7 @@ be built in parallel.
 |---|---|
 | **module** | **code**, belonging to the engine. Some are open to configuration, and those implement and support components |
 | **component** | a configurable capability a module provides, switched on and shaped by a definition |
-| **view** | a projection from one or more block structures, reading them through proxies |
+| **view** | a projection over one or more block structures: it **presents proxies** of blocks that live in them |
 | **view module** | the engine code behind a base view type — **diagram, table, matrix** — configurable by its own definitions, exactly as a block is |
 | **package** | data: definitions for blocks, relations **and views** |
 
@@ -103,8 +103,7 @@ types are all blocks of some kind — several of them derived rather than declar
 interfaces, containers, proxies. A custom block inherits one of the fixed behaviours and adds
 optional component configuration.
 
-**Relations have four fixed base forms**: `line`, `directed` (derived by anchors), `reference`
-(a relationship reaching a proxy), and `tie` (a note's leader, the simplest).
+*(Superseded by* The base sets *above: two declared, two derived.)*
 
 ### Example subtypes
 
@@ -166,8 +165,8 @@ delivered.
   a relation* holds here too, and the earlier rule stands unbroken: nothing about a view enters the
   object tree it reads.
 - **Components are configured per definition, never per element.** Every usage of a subtype shares
-  them. `Element.color` is the one per-usage exception left, and it is a wart to retire rather than
-  a precedent.
+  them. `Element.color` was the one per-usage exception and has been **removed** — nothing read it
+  and nothing set it, so it was written back out on every save forever.
 
 ## Still open
 

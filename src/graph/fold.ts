@@ -379,7 +379,6 @@ function apply(graph: Graph, mutation: Mutation): void {
       if (!node) return;
       if (mutation.label) node.label = mutation.label;
       if (mutation.type !== undefined) node.type = mutation.type;
-      if (mutation.color !== undefined) node.color = mutation.color;
       break;
     }
 

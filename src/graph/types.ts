@@ -159,7 +159,6 @@ export type Element = {
   of: string | null;
   /** Descriptive values, addressed by name. */
   fields: Field[];
-  color: string;
 };
 
 /** One end of a relationship as it is drawn: the element it lands on, the
@@ -275,7 +274,7 @@ export type Mutation =
        *  before it was counted. */
       at?: number }
   | { op: "add_element"; element: Element }
-  | { op: "update_element"; id: string; label?: string; type?: string; color?: string }
+  | { op: "update_element"; id: string; label?: string; type?: string }
   | { op: "move_element"; id: string; parent: string | null }
   | { op: "place_element"; id: string; x: number; y: number }
   /** The least room a note was asked for, from the rectangle its drag swept. */
@@ -401,7 +400,6 @@ export function element(label: string, extra: Partial<Element> = {}): Element {
     groups: [],
     of: null,
     fields: [],
-    color: "#d9a441",
     ...extra,
   };
 }

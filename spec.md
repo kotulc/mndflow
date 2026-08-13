@@ -38,7 +38,10 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
   neither is a separate form, and both are still called blocks.
 - Interfaces do not count towards being a container.
 - An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
-  `axis` for when it is the open layer, `groups` for its membership, `fields`, and `color`.
+  `axis` for when it is the open layer, `groups` for its membership, and `fields`.
+- **An element carries no presentation of its own.** Colour, shape and the rest are its
+  definition's, so two things looking alike is two things being alike rather than a coincidence
+  somebody has to maintain.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
 - **An interface is an element only where somebody made one** — a bare one, or a promoted seat.
   A relationship makes none: where its line meets a card is worked out by the layer.
