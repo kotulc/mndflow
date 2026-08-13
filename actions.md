@@ -17,7 +17,8 @@ logs.
 
 ## Actions
 
-Thirty. Every one is sayable, which is the test for being here at all.
+Twenty-nine. Every one is sayable, which is the test for being here at all. `colour` was a
+thirtieth until an element's own presentation was removed — colour is its definition's.
 
 **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
 selected when somebody types. `layer` means the open layer is enough; `element` means one is
@@ -35,7 +36,6 @@ against. Names and labels are too short to score. Not tabled here — it belongs
 | `rename` | element | id, label | `update_element{label}` | `rename`, `renameProject` |
 | `retype` | element, edge | id, type | `update_element{type}` / `update_edge` | `retype`, `relation` |
 | `describe` | element | id, body | `set_body` | `write` |
-| `colour` | element | id, colour | `update_element{color}` | `paint` |
 | `move` | element | id, parent, spot? | `move_element` + shed (+ `place_element`) | `move`, `nest`, `promote`, `lift` |
 | `refer` | layer | target, spot? | `add_element{proxy}` | `refer` |
 
@@ -89,7 +89,7 @@ that end about it, which is the same action with two more arguments.
 | `leave` | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
 | `dissolve` | element `group` | id | `delete_element` | **not built** |
 | `note` | layer | text, spot?, size? | `add_element{note}` | `note` |
-| `tie` | element `note` | note, holder | `link_elements{tie}` / `delete_edge` | `tie` |
+| `tie` | element `note` | note, holder | `link_elements` / `delete_edge` — tie-ness is derived | `tie` |
 
 **`group` absorbs joining**: with `into`, it adds to that group; without, it makes one.
 
@@ -132,7 +132,7 @@ root. It has no actions of its own.
 
 ## Adjustments
 
-Four. Positional, unsayable, gesture-only — never named, ranked or listed. **A view declares which
+Four. Positional, unsayable, gesture-only — never named, ranked or listed. **A diagram declares which
 of these it accepts**, and may accept none.
 
 | | Scope | Arguments | Writes | Replaces |
@@ -219,12 +219,12 @@ draws. The breadcrumb and the arrange buttons are not among them: those reach `o
 | | |
 |---|---|
 | entries in `act` today | 52 |
-| actions | 30 |
+| actions | 29 |
 | adjustments | 4 |
 | page actions | 5, and 8 after S4 |
 | queries, off the surface | 5 |
 
-Thirty rather than the twenty-six estimated in tasks.md: `move` and `group` absorbed more than
+Twenty-nine rather than the twenty-six estimated in tasks.md: `move` and `group` absorbed more than
 expected, but navigation turned out to be three actions rather than none, and `relax`, `dissolve`
 and `vocabulary` had no closure to be counted in the first place.
 

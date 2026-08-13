@@ -10,37 +10,22 @@ owns so two owners never collide.
 `⊘` marks a chunk nothing blocks. Everything else names what it waits on.
 
 
-## Wave 0 — close the specification gaps
+## Done
 
-Doc-only, an hour each, and every later wave reads them. Do these first or agents will invent
-four different answers.
-
-| | Does | Owns | Waits |
-|---|---|---|---|
-| ~~**W0.1**~~ | ~~Type the schema change~~ — **done**, in spec.md. Four new `Definition` fields (`body`, `size`, `shows`, `formal`), cross-project references as a **path** rather than new fields, `module` to `meta`, schema `1.1`. `vocabulary` deliberately left to D.2, which owns the terminal it would break | spec.md | — |
-
-*Everything else Wave 0 held is answered and recorded in spec.md: undo restores the graph and never
-the context; storage is keyed per project and lazily, the untouched checkpointed under pressure;
-packages are a list in import order and never shadow, since every reference is by id; a package
-resists editing until unlocked or forked; a proxy owns its appearance and the block owns the
-thing.*
-
-
-## Landed out of band
-
-| | Does | |
-|---|---|---|
-| ~~**RF.1**~~ | Relation forms reduced to **`line` \| `directed`**; `reference` and `tie` derived; `assoc` retired to a definition. Healed at the door both ways, docs and 10 tests, verified in a browser | done |
-
-| ~~**RF.2**~~ | `Element.color` removed — nothing read it, nothing set it, and it was written back into every file forever. Healed away at the door | done |
-
-The base sets and the component model are now in [design.md](design.md); the working re-design is
-merged and gone.
-
+| | |
+|---|---|
+| **W0** | The specification gaps. Undo restores the graph and never the context; storage is keyed per project and lazily, the untouched checkpointed under pressure; packages are a list in import order and never shadow, since references are by id; a package resists editing until unlocked or forked; a proxy owns its appearance and the block owns the thing |
+| **SC.1** | Schema `1.1`: `body`, `size`, `names`, `components` on a definition; cross-project references as a **path**; `module` demoted to `meta`. A 1.0 file still opens, keeps everything, and saves out current |
+| **S1.1** | The action registry — types, scope, `check`, `sayable`, `writes` |
+| **S3.1** | All **22** retired ops deleted, with the `Legacy` union and the door's entries. `fold.ts` 872 → 680 |
+| **RF.1** | Relation forms reduced to `line` \| `directed`; `reference` and `tie` derived; `assoc` retired to a definition. Healed at the door, verified in a browser |
+| **RF.2** | `Element.color` removed — nothing read it, and it was written back into every file forever |
+| **G.8 · F.1 · CI** | Favicon; the filename already followed the project name; `tsc` and `vitest` on push |
 
 ## Wave 1 — the seams
 
-**S1, S2, S3 and S4 touch disjoint files and run in parallel.**
+**S1, S2, S3, S4, S5 and A0 touch disjoint files and run in parallel** — S5 waits on S2.2 and A0
+on nothing.
 
 ### S3 — fold hygiene
 
@@ -64,14 +49,48 @@ Build against [actions.md](actions.md), not against `project.ts`.
 | **S1.6** | Generate the `act.*` wrappers, move the 5 queries off the surface, delete the old closures | `project.ts` | S1.2–5 |
 | **S1.7** | `check` on every action that can refuse, wired to the strip | `actions/*` | S1.6 |
 
-### S2 — the view registry
+### S2 — the component surface
+
+`Canvas.tsx` is 2041 lines and the base diagram is hard-wired into it. **The test this seam is
+measured against**: if the default cannot be expressed as one configuration among others, the
+component boundaries are in the wrong place.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **S2.1** | Extract gesture handling out of `Canvas.tsx` into its own module, behaviour unchanged | `canvas/gestures.ts` | ⊘ |
-| **S2.2** | The view contract: scope, vocabulary, renderers, layout law, gesture map, adjustments | `views/index.ts` | S2.1 |
-| **S2.3** | Move today's canvas in as the **block module**, registered rather than hard-wired | `views/block/` | S2.2 |
-| **S2.4** | Wire the gesture map from actions.md's inventory; a view declares the adjustments it takes | `views/block/`, `canvas/gestures.ts` | S2.3, S1.6 |
+| **S2.1** | Extract gesture handling out of `Canvas.tsx`, behaviour unchanged | `canvas/gestures.ts` | ⊘ |
+| **S2.2** | The component contract: a module publishes components, each validating its own key under a definition's `components`, and registering its validator with the door | `modules/index.ts`, `graph/check.ts` | S2.1 |
+| **S2.3** | The **card** component — the six standard layouts, shape from a closed set, label placement, `shows` | `modules/card/` | S2.2 |
+| **S2.4** | The **style** component — a style set by name over the portable typed fields | `modules/style/`, `assets/styles/` | S2.2, A0.1 |
+| **S2.5** | The **view** component and the view-module registry: `diagram`, `table`, `matrix` | `modules/view/` | S2.2 |
+| **S2.6** | Move today's canvas in as the **base diagram**, configured rather than hard-wired | `modules/view/diagram/` | S2.5, S2.3 |
+| **S2.7** | Wire the gesture map from actions.md's inventory; a diagram declares the adjustments it takes | `modules/view/diagram/`, `canvas/gestures.ts` | S2.6, S1.6 |
+
+### S5 — constraints and rules
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **S5.1** | The **constraints** component — `required` | `modules/constraints/` | S2.2 |
+| **S5.2** | The **rules** component — `ends` (with port direction), `holds`, `degree`, `match`. Each reaches every subtype, via `isa` | `modules/rules/` | S2.2, SC.2 |
+| **S5.3** | Reporting: violations advise in the tray and the strip, and **never refuse** | `page/Contents.tsx` | S5.2 |
+| **S5.4** | A module's `validate` hook — the escape hatch for what the five cannot say | `modules/index.ts` | S5.2 |
+| **S5.5** | **`figure` takes no interfaces** — the `interface` action refuses on one, with the reason. The first rule the engine enforces rather than advises | `actions/elements.ts` | S1.7 |
+
+### Schema
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| ~~**SC.2**~~ | ~~`extends` on a definition, and `isa` to walk the chain~~ — **done**: one parent, cycle-guarded, a missing parent ends the walk. 5 tests | `graph/types.ts`, `graph/fold.ts` | — |
+| **SC.3** | Resolve a subtype: fields union, `components` merge per key, and the resolved view cached per fold | `graph/fold.ts` | SC.2, S3.3 |
+| **SC.4** | Two definitions loaded under one name are offered with their packages beside them | `page/Contents.tsx` | A0.3 |
+
+### A0 — assets
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **A0.1** | The `assets/` layout: `packages/` for data, `modules/` for code, `styles/` for stylesheets | `assets/` | ⊘ |
+| **A0.2** | `assets/packages/core` — the relation seeds now living in `workflows/*.yaml`, which have nothing to do with the terminal | `assets/packages/core/`, `workflows/` | A0.1, D.1 |
+| **A0.3** | Loading a package: definitions in, by id, never shadowing | `workspace/` | A0.1, S4.4 |
+| **A0.4** | Preset registration, so a diagram names a tested set rather than recombining freely | `modules/index.ts` | S2.5 |
 
 ### S4 — the workspace
 
@@ -116,13 +135,10 @@ Build against [actions.md](actions.md), not against `project.ts`.
 | **C.3** | A flow biases **placement** as well as routing — not just the sides it attaches to. What in/out *mean* stays the package's | `geometry/layout.ts`, `geometry/route.ts` | ⊘ |
 | **C.4** | Router cost — a window resize on 80 blocks blocks the main thread for 15s | `geometry/route.ts` | S3.3 |
 | **C.5** | Rewrite the layout acceptance criterion around clusters, and measure it | `geometry/*.test.ts` | C.1 |
-| **D.2** | `vocabulary` becomes the list of packages a project uses | `graph/types.ts`, `terminal/` | SC.1 |
+| **D.2** | `vocabulary` becomes the list of packages a project uses, in import order | `graph/types.ts`, `terminal/` | A0.3 |
 | **E.1** | Editing definitions in the contents tray — fields, defaults, presentation | `page/Contents.tsx` | S1.6 |
 | **E.2** | A control per field form — number with unit, choice with list, ref with picker | `page/Contents.tsx` | E.1 |
 | **E.3** | Tags: shown and editable | `page/Contents.tsx` | E.2 |
-| **E.4** | **Requirements as a package** — `requirement` with `id`/`text`, five relationship definitions, `shows` on the card. The proof a package needs no code | `packages/` | SC.1, E.1 |
-| **E.5** | **Parametrics as a package** — a constraint definition with `size` and a colour | `packages/` | E.4 |
-| **E.6** | **UML, SysML v2 and UAF as packages** — the named starting targets. Each is a table of definitions and mappings, no code | `packages/` | E.5 |
 | **G.2** | `relax` — hand a layer back to the engine. The op exists and nothing emits it | `actions/layer.ts`, `canvas/` | S1.5 |
 | **G.3** | `size` — resize a note after it is made. Same, unwired | `actions/layer.ts`, `canvas/` | S1.5 |
 | **G.4** | `dissolve` — ungroup a whole group | `actions/groups.ts` | S1.4 |
@@ -130,12 +146,19 @@ Build against [actions.md](actions.md), not against `project.ts`.
 | **G.6** | Add a block to an existing group from the panel — `joinGroup` is wired to nothing | `page/Panel.tsx` | S1.4 |
 | **G.7** | The selection box takes things it does not enclose. Undiagnosed | `canvas/gestures.ts` | S2.1 |
 | **G.9** | The context menu, and a trigger for it — selecting an element lists its actions in the tray | `page/Contents.tsx`, `canvas/` | S1.6, S2.4 |
-| **F.3** | Export a rendered SVG beside the source. Needs a renderer that is not React Flow | `views/block/` | S2.3 |
-| **A.1** | The **matrix module** — a view over a set, cells are relationships, no adjustments | `views/matrix/` | S2.3, S4.4 |
-| **A.2** | The **activity module** — figure renderers, `Definition.size` in use | `views/activity/` | S2.3, SC.1 |
-| **A.3** | The **state machine module** — activity's shape, its own vocabulary | `views/state/` | A.2 |
-| **A.4** | The **sequence module** — occurrences as interfaces seated down a lifeline; accepts only `seat` | `views/sequence/` | A.2 |
-| **A.5** | The **IBD layout law** — rank by connectivity rather than containment, ports shown | `views/block/` | A.1 |
+| **F.3** | Export a rendered SVG beside the source. Needs a renderer that is not React Flow | `modules/view/diagram/` | S2.6 |
+| **A.1** | The **table** view module — proxies drawn as rows | `modules/view/table/` | S2.5, S4.4 |
+| **A.2** | The **matrix** view module — two axes, relationships in the cells, no adjustments | `modules/view/matrix/` | A.1 |
+| **A.3** | **requirements** package — `id` and `text`, five relationship definitions, `shows` on the card. The proof a package needs no code | `assets/packages/requirements/` | A0.2, S2.3 |
+| **A.4** | **parametrics** package — a constraint definition with a size and a style | `assets/packages/parametrics/` | A.3 |
+| **A.5** | **flow** package — `directed` subtypes and the words for them | `assets/packages/flow/` | A0.2 |
+| **A.6** | *Engine capability*: a **shape drawn inside a card**, which is what activity's figures need | `modules/card/` | S2.3 |
+| **A.7** | **activity** package — figures, guards as edge fields, partitions as blocks | `assets/packages/activity/` | A.6, S5.2 |
+| **A.8** | **state machine** package — activity's shape, its own vocabulary | `assets/packages/state/` | A.7 |
+| **A.9** | *Engine capability*: the **lifeline arrangement** — a column per participant, order down each | `modules/view/diagram/` | S2.6 |
+| **A.10** | **sequence** package — occurrences as interfaces seated down a lifeline; accepts only `seat` | `assets/packages/sequence/` | A.9 |
+| **A.11** | **UML, SysML v2 and UAF** packages — tables of definitions, `names`, and mappings | `assets/packages/` | A.7 |
+| **A.12** | The **IBD layout law** — rank by connectivity rather than containment, ports shown | `modules/view/diagram/` | A.2 |
 
 
 ## Wave 3 — the terminal

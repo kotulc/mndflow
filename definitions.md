@@ -1,11 +1,11 @@
 # Definitions
 
-The words mndflow uses, and exactly what each one means. One entry per term, so that a rule
-written anywhere else can be read without guessing.
+**The canonical vocabulary.** One entry per term, so that a rule written anywhere else can be read
+without guessing. Where any other document uses a word, this is what it means.
 
 - **What each part does** → [spec.md](spec.md).
 - **Why it is that way** → [design.md](design.md).
-- **What is missing** → [tasks.md](tasks.md).
+- **What is missing** → [tasks.md](tasks.md). **The queue** → [plan.md](plan.md).
 
 
 ## The project
@@ -28,7 +28,8 @@ join them. Everything else describes one of the two.
 | **element** | anything the graph holds as an object: a block, a note, a group, a proxy, a figure. Placed, drawn, carries fields. Held in `graph.elements` |
 | **node** | the graph-theory word for an element. The same thing; `element` is the word the code uses |
 | **relationship / edge** | a join between **exactly two** elements. Not an element — it is placed by its ends, drawn as a line, and joins rather than sits. Anything about a *set* is a group |
-| **form** | **closed and the engine's.** Which of five an element is — `block`, `note`, `group`, `proxy`, `figure` — or which of four a relationship is: `untyped`, `flow`, `assoc`, `tie`. It decides what draws a thing and which rules reach it |
+| **form** | **closed and the engine's.** Which of five an element is — `block`, `note`, `group`, `proxy`, `figure` — or which of two a relationship is: `line`, `directed`. It decides what draws a thing and which rules reach it. A form is earned when the engine must know something about placement or behaviour **and cannot tell from a field** |
+| **derived** | a fact the engine works out rather than being told: an **interface** from `side` being set, a **container** from holding blocks, a **reference** from a proxy at an end, a **tie** from a note at an end. Derived does not mean the engine is ignorant of it — only that nobody had to say it |
 | **type** | **open and the user's.** The definition a thing names. It subtypes **within** a form, never across one, which is what keeps engine rules off user data. Empty until somebody sets one |
 | **the module's word** | what a module calls its elementary block — `block`, and one day `activity`. A property of the **module**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored. Not called a *unit*, which is spoken for twice over — by layout, and by a `number` field's unit of measure |
 | **vocabulary** | what is left of the old `domain`: the words and starting relations a subject matter supplies. Consumed only by the terminal — see tasks.md |
@@ -146,15 +147,25 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | Term | Means |
 |---|---|
 | **workspace** | the projects currently loaded, and their order. Held apart from all of them: neither project data, nor a display preference, nor what the terminal has learned |
-| **module** | one graph and the views over it. A project belongs to exactly one, and carries its own log, export and action surface |
-| **structure** | one of the two fundamental graphs: what things there are, and how they are composed and connected |
-| **behavior** | the other: what happens, in what order, under what conditions |
-| **view** | a type vocabulary, a renderer and a layout law over one graph — and nothing else. Holds no state of its own. Activity and state machine are views on behavior; parametrics and requirements are views on structure |
-| **projection** | a view that derives its whole arrangement from the graph. A sequence diagram is one: lifeline from partition, message from a crossing flow, order from the flow graph. Still editable, through the action surface |
-| **page** | branding, navigation and the workspace. The shell a module sits in |
-| **envelope** | what a file travels inside: `{ schema, id, module, graph, meta }`. **The base is what cannot be ignored** — drop any of it and the file cannot be read, resolved or drawn correctly |
+| **module** | **engine code.** An *open* module publishes components; a closed one simply does its job. Layout, routing, rules, constraints and each view type are modules |
+| **component** | a capability an open module offers, switched on and shaped by a definition. Configured **per definition, never per element** |
+| **view module** | the engine code behind one way of presenting: `diagram`, `table` or `matrix`. Three, and closed |
+| **structure** | ordinary description, never a classifier: a project that owns its objects. What things there are, and how they are composed and connected |
+| **behavior** | the same, for a project that owns its actions and holds proxies of the participants: what happens, in what order, under what conditions |
+| **view** | a project holding **diagrams**, arranged in folders of its own. Nothing about it ever enters the project it reads |
+| **diagram** | one presentation: a block whose definition names a view module, holding proxies of what it shows. A table and a matrix are the same thing drawn differently |
+| **package** | a project whose elements are **definitions**. Data: it costs no code, and it must be useful with portable presentation alone |
+| **extends** | the definition another refines, by reference. **Subtyping, never overriding** — a package's own definitions are never altered. One parent; fields union, components merge per key, and a rule naming a definition reaches everything below it |
+| **translator** | code that reads a project and emits an **artifact** — source, a drawing, a standard's file. One way, and it never writes back |
+| **artifact** | what a translator emits. Not a graph |
+| **asset** | a stylesheet, renderer, layout law, gesture map or validation hook, held in the repo and added at **build time** |
+| **preset** | a coherent set of component choices, shipped and tested together. Components configure independently; arbitrary recombination is possible and unsupported |
+| **constraint** | a rule bounding a thing in itself — `required` |
+| **rule** | a rule governing how things interact — `ends`, `holds`, `degree`, `match`. Both advise while modelling and refuse only at translation |
+| **page** | branding, navigation and the workspace. The shell everything else sits in |
+| **envelope** | what a file travels inside: `{ schema, id, graph, meta }`. **The base is what cannot be ignored** — drop any of it and the file cannot be read, resolved or drawn correctly |
 | **meta** | the free-form, unversioned part of an envelope. **Safely ignorable**: if dropping it changes what the project *is*, it does not belong here. Never display preferences, never the log |
-| **schema** | which shape a file is, as `"1.0"`. Major must match; a higher minor is readable. The only field that changes how a file is read |
+| **schema** | which shape a file is, as `"1.1"`. Major must match; a higher minor is readable. The only field that changes how a file is read |
 | **checkpoint** | the graph cached at one step, so a fold need not replay from zero. Internal — nobody asks for one. Also what an imported file becomes. Carries the count of steps before it, which is what makes `version` survive truncation |
 | **steps** | how much work is in a project: every step ever taken, carried in `meta`. `checkpoint.at` holds the count before it and the rest is derived, so nothing tallies while you work. **Not a version** — it orders nothing across two copies that diverged |
 | **project id** | which project a file is, minted once and kept for life. What a cross-project reference points at, so renaming a project or its file breaks nothing |
@@ -164,13 +175,18 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **merge** | combining two divergent logs. **Out of scope** — git's line merge, or nothing. `check.ts` reports the wreckage of a bad one rather than preventing it |
 | **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }`, both by id, so renaming or moving either flows through untouched. Always live; to fix a version, bundle |
 | **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
-| **action surface** | the actions a module publishes as data — name, arguments, when each applies, and the mutations each returns. **An action returns mutations rather than applying them**, which is what makes it rankable, hostable and testable. The seam both the page and the terminal work against |
-| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and its module draws it. An activity's fork, decision or initial node. Never in the explorer |
+| **action surface** | the actions the engine publishes as data — name, arguments, when each applies, and the mutations each returns. **An action returns mutations rather than applying them**, which is what makes it rankable, hostable and testable. The seam both the page and the terminal work against |
+| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and a module draws it. An activity's fork, decision or initial node. Never in the explorer, and **takes no interfaces** |
 
-**The first word is the module, the second is the thing:** block tree, block diagram, activity
-diagram. **`block` names the element in every module** — an activity diagram is built from blocks
-too — so the qualifier carries the meaning, and a project's explorer row shows its module as
-`<project> [block]`.
+**Three words are deliberately absent.** *Namespace*, because every project already scopes its own
+ids and a property shared by all of them is not a sort of thing. *Kind*, because what a project is
+is answered twice over — by what it owns and by the packages it draws on. *Structure* and
+*behavior* **as classifiers**, for the same reason; they survive above as ordinary description and
+the engine never reads them.
+
+**The first word is what it is, the second is the thing:** block tree, block diagram, activity
+diagram. **`block` names the element throughout** — an activity diagram is built from blocks too —
+so the qualifier carries the meaning.
 
 
 ## The SysML map *(planned)*
@@ -193,8 +209,8 @@ already made of. Nothing in the right column is a special case.
 | full port | **interface** holding children | derived, the way container-ness is |
 | pin | **interface** on an action | `flow` in/out, typed by a data definition |
 | constraint parameter | **interface** on a constraint block | so a binding is an ordinary relationship |
-| binding connector | **relationship**, form `assoc` | both ends are interfaces |
-| connector | **relationship**, form `assoc` | |
+| binding connector | **relationship**, form `line` | both ends are interfaces |
+| connector | **relationship**, form `line` | |
 | item flow | **field on a `flow` relationship** | a `ref` to the definition that travels |
 | association / composition | **relationship** + definition | direction and ends from the definition |
 | requirement | **block** + `id` and `text` fields | no new anything |
@@ -222,7 +238,8 @@ left-to-right order, which is presentation and belongs to the view.
 ## What the module walk settled
 
 Every notation above run against the model, to find out whether the closed sets could be frozen.
-**They held**: five element forms, four relationship forms, five value forms, no additions.
+**They held**: five element forms, five value forms, and no additions. The relationship forms
+later *shrank* from four to two, which is the same result read from the other side.
 
 | | |
 |---|---|

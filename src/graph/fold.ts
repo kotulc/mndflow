@@ -225,6 +225,30 @@ export function nameFree(graph: Graph, parent: string | null, label: string,
   );
 }
 
+/** Whether one definition is the other, or refines it however distantly.
+ *
+ *  What makes an imported standard worth importing: a rule naming
+ *  `sysml/requirement` has to reach the safety requirement somebody subtyped
+ *  from it, or it matches only the package's own definitions and nothing anyone
+ *  models. So the chain is walked rather than the parent copied.
+ *
+ *  Guarded against a cycle the way the tree is — a definition refining itself,
+ *  however many hops around, simply stops rather than hanging. A parent that is
+ *  not loaded ends the walk: what was inherited is unavailable, which the door
+ *  reports, and the subtype still stands on its own declarations. */
+export function isa(graph: Graph, def: string, ancestor: string): boolean {
+  const seen = new Set<string>();
+  let cursor: string | undefined = def;
+
+  while (cursor && !seen.has(cursor)) {
+    if (cursor === ancestor) return true;
+    seen.add(cursor);
+    cursor = graph.defs[cursor]?.extends;
+  }
+
+  return false;
+}
+
 /** Definitions of one form family: element subtypes, or relationship ones. */
 export function defsOf(graph: Graph, edges: boolean): Definition[] {
   const of = new Set<string>(edges ? EDGE_FORMS : ELEM_FORMS);

@@ -4,13 +4,13 @@ The difference between what [spec.md](spec.md) describes and what the code does,
 questions that have not been answered yet. Reasoning for any of it lives in
 [design.md](design.md); the queue of work itself is [plan.md](plan.md).
 
-Organised so that work can run in parallel. **Phase 0** cuts four seams; **Phase 1** is eight
+Organised so that work can run in parallel. **Phase 0** cuts six seams; **Phase 1** is eight
 streams, one owner each. A stream names the files it owns, so two owners never edit one file.
 
 
 ## Status
 
-Built and stable: the validator, the one message strip, the schema and a 106-test suite.
+Built and stable: the validator, the one message strip, the schema and a 142-test suite.
 `src` is grouped by what a thing is for and dependencies run one way — see README.md for the map.
 
 **Frozen, pending refinement.** Left alone deliberately while the graph model settles: the
@@ -32,17 +32,11 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-- **Where component configuration lives on a definition** — one open bag keyed by component, or a
-  named field each. Deferred deliberately: it is a decision about readability and typing that the
-  first two real components will answer better than reasoning will. Blocks nothing until one is
-  built.
-- **Package extension** — a package referencing another and overriding its definitions. It likely
-  wants an `extends` on a definition: the overriding one keeps its own id and declares what it
-  refines, so a picker prefers it while nothing already pointing at the original is silently
-  redirected. Shadowing by name stays impossible either way. Not needed until a second package
-  builds on a first.
+*Nothing is blocking.*
 
-*Recently closed: undo restores the graph and never the context; storage is keyed per project and
+*Recently closed: extension is subtyping and never overriding, one parent, with rules reaching
+every subtype; component configuration lives in one `components` bag keyed by component; undo
+restores the graph and never the context; storage is keyed per project and
 lazily, with the untouched checkpointed under pressure; packages are a list in import order and
 never shadow, since references are by id; a package resists editing until unlocked or forked; a
 proxy owns its appearance and the block owns the thing; a project opened alone is read in
@@ -52,8 +46,8 @@ isolation.*
 ## Phase 0: the seams
 
 Five files absorb almost every planned feature, so almost every feature waits on another. Cutting
-these is what turns three concurrent streams into eight. **S1, S2 and S3 touch disjoint files and
-can be cut in parallel with each other**; S4 is new ground and is parallel to all three.
+these is what turns three concurrent streams into eight. **S1, S2, S3, S4, S5 and A0 touch disjoint
+files and run in parallel** — S5 waits on S2's contract and A0 on nothing.
 
 | | Lines | Absorbs |
 |---|---|---|
@@ -75,7 +69,7 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
   mutations it writes, and which of today's closures it replaces. Build against that table, not
   against `project.ts`.
 - **Collapse the duplicates as part of the extraction**, so nothing later is written against a
-  surface that then changes. 52 entries in `act` become **30 actions**, 4 adjustments, 5 page
+  surface that then changes. 52 entries in `act` become **29 actions**, 4 adjustments, 5 page
   actions and 5 queries that leave the surface entirely.
 - **`check` is required wherever an action can refuse**, and the refusal reaches the strip. Today
   `nameFree(...) && commit(...)` returns false silently — a class of invisible no-op.
@@ -84,17 +78,34 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
 
 Unlocks E and the tray menu in G; prerequisite for the terminal.
 
-### S2 — the view registry
+### S2 — the component surface
 
-The five declarations a view makes are specced in [spec.md](spec.md) under *Views*, and **every
-gesture the canvas binds today is inventoried in [actions.md](actions.md)** — which is what the
-first gesture map is written from. `Canvas.tsx` splits three ways: gesture handling, composition,
-and `views/`.
+An **open module publishes components**, and a definition configures them under its `components`
+key — specced in [spec.md](spec.md) under *Project model*. `Canvas.tsx` splits three ways: gesture
+handling, composition, and `modules/`.
 
-**This, not S1, is what gates the module work**: five notations were walked against the engine and
-none of them adds an action or a form.
+- **Each component validates its own key and reads no other's**, registering its validator with the
+  door so an unrecognised key is unvalidated rather than wrong.
+- **The test this seam is measured against**: if the base diagram cannot be expressed as one
+  configuration among others, the component boundaries are in the wrong place.
+- **Every gesture the canvas binds today is inventoried in [actions.md](actions.md)**, which is
+  what the first gesture map is written from.
 
-Unlocks A, and the context menu in G.
+Unlocks A and S5, and the context menu in G.
+
+### S5 — constraints and rules
+
+Two components, and the first rules the engine applies rather than infers. `required` bounds a
+thing in itself; `ends`, `holds`, `degree` and `match` govern how things interact. **They advise
+while modelling and refuse only at translation**, and a rule the five cannot say is a module's
+`validate` hook in code — never a language.
+
+### A0 — assets
+
+`assets/packages/` for data, `assets/modules/` for code, `assets/styles/` for stylesheets.
+Build-time, so extending means editing the repo and rebuilding. **The base ships as a package**,
+which is the test of whether the package idea is strong enough — and it is where the relation seeds
+now living in `workflows/*.yaml` belong.
 
 ### S3 — fold hygiene
 
@@ -148,10 +159,10 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 
 | | Owns | Waits on |
 |---|---|---|
-| **A** Modules and views | `views/` | S2, S4 |
+| **A** Views and packages | `modules/view/`, `assets/packages/` | S2, S4 |
 | **C** Geometry | `geometry/` | S3 (perf only) |
 | **D** Vocabulary | `terminal/workflows.ts`, `graph.vocabulary` | — |
-| **E** Definitions, fields, packages | `page/Contents.tsx`, `page/Relations.tsx` | S1 |
+| **E** Definitions and fields | `page/Contents.tsx`, `page/Relations.tsx` | S1 |
 | **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | S4 for the workspace export |
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
@@ -166,38 +177,33 @@ value depends on the rest being mature — which makes it the acceptance test fo
 **S4 and F both reach `store.ts`.** S4's first commit should split graph storage from workspace
 storage, after which they are disjoint.
 
-### A — modules and views
+### A — views and packages
 
-All five notations have now been walked against the engine, and **none of them adds an action or a
-form.** Two of them turn out not to be modules at all — see design.md under *Packages and modules*.
+All five notations were walked against the engine and **none adds an action or a form.** Most turn
+out not to need code at all — see design.md under *Packages and modules*.
 
-| | Kind | Costs |
-|---|---|---|
-| requirements | **package** | a definition declaring `id` and `text`, and five relationship definitions. No code |
-| parametrics | **package** | a constraint definition with a `size` and a colour. No code |
-| activity | module | figure renderers, and `Definition.size` before it |
-| state machine | module | a vocabulary over activity's shape; no renderer it does not share |
-| sequence | module | a gesture map where drag reseats an occurrence |
+| | Costs |
+|---|---|
+| requirements | a package. No code |
+| parametrics | a package, once a constraint can draw from a size and a style |
+| flow | a package of `directed` subtypes |
+| activity | a package, **plus** one engine capability: a shape drawn inside a card |
+| state machine | a package over activity's shape |
+| sequence | a package, **plus** one engine capability: the lifeline arrangement |
+| UML, SysML v2, UAF | packages — tables of definitions, names and mappings |
 
-**So stream A is three modules, not five**, and the two packages belong with E — they are
-definitions somebody authors, not views somebody builds. Requirements is the one to do first
-regardless: it is the proof that a package works at all, and it fails loudly if definitions do not.
+**Only `table` and `matrix` are new view modules.** Everything else is configuration, and the two
+engine capabilities above are single components rather than folders of their own. That is the
+whole claim the component model makes, and the first package is what tests it.
 
 - **A project owns its own tree.** One using the behavior package owns its actions and holds
   proxies of the participants; it never writes into the project those participants live in except
   through the ownership rule in S4.
-- **Views are editable, not generated.** A view binds gestures to actions; the graph still holds
-  all the state.
+- **A diagram binds gestures to actions**; the graph still holds all the state.
 - **A lifeline is a block's behavioral edge, and an occurrence on it is an interface** — so a
   message is a relationship between two interfaces, and order down a lifeline is `at` along an
-  edge. Sequence needs no layout law of its own.
+  edge. Sequence needs an arrangement, not a layout law of its own.
 - **A swimlane is a block whose children belong to it** — not a group, which cannot be empty.
-- **Five optional `Definition` fields** land before this stream, as one change: `size`, a formal
-  name, what a type maps to in a standard, `shows` — which fields draw on the card — and a `body`,
-  what this kind of thing is, in a sentence, the way an element has one. All additive and unwritten
-  at default, so no existing file changes.
-- **`body` is why there is no keyword list.** Every label and body is already embedded, so a
-  definition that says what it is is already found by whatever word somebody reaches for.
 
 ### C — geometry
 

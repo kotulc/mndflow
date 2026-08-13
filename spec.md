@@ -169,16 +169,57 @@ the project.
   | | Is |
   |---|---|
   | `body: string` | what this kind of thing is, in a sentence — the way an element has one. What the tray shows, and what a typed word is matched against, which is why no definition needs a list of keywords beside it |
-  | `size: { w, h }` | the room a `figure` needs, since the engine places what it does not draw — a fork bar long and thin, a decision small and square. Absent means the ordinary card |
-  | `shows: string[]` | which of a usage's fields draw on its card, and in what order. Absent draws none, which is what happens today |
-  | `formal: string` | what a standard calls this — `«requirement»`, `DecisionNode`. `name` is what the user reads and types; `formal` is what an export writes |
+  | `size: { w, h }` | the room a usage needs, since the engine places before anything renders — a fork bar long and thin, a decision small and square. Absent means the ordinary card |
+  | `names: Record<string, string>` | what other vocabularies call it, keyed by vocabulary — `{ sysml: "«requirement»" }`. `name` is what the user reads and types; these are what an export writes. A map rather than one field, so a core definition can answer to SysML *and* UML |
+  | `components: Record<string, object>` | **how each open component behaves for usages of this**, keyed by component |
 
-  **One `formal`, not a name and a mapping**: a package belongs to one standard, so a definition
-  in it has one formal name — and a translator needing more than a name is code, and can carry its
-  own table.
+- **(planned) `components` is the one place the schema grows.** A new component adds a key under
+  it, never a field beside it — which is what stops every capability costing a schema change, and
+  what makes *unknown configuration is ignored, never fatal* implementable rather than aspirational.
+
+  ```
+  "components": {
+    "card":        { "layout": "shape", "shape": "diamond" },
+    "style":       { "set": "sysml" },
+    "constraints": { "required": ["guard"] },
+    "rules":       { "degree": { "in": [1, 1], "out": [2, null] } }
+  }
+  ```
+
+  - **Each component validates its own key**, and one absent from the build validates nothing —
+    so its configuration is *unvalidated* rather than *wrong*, which is how an older build opens a
+    newer package. Problems are reported at the door as faults, like everything else read in.
+  - **A component reads its own key and no other's.** They share one element and one log, so this
+    is what makes them separable in fact rather than only in file layout.
+  - `size` stays outside it: `layout` reads it for every element on every pass, and reaching into
+    component configuration from the engine would invert the dependency.
+
+- **(planned) The components an open module publishes**, and what each key holds:
+
+  | | Holds |
+  |---|---|
+  | `card` | which standard layout draws a usage — name, name and type, name and fields, compartments, icon and name, shape and caption — plus its shape from a closed set, where its label sits, and `shows`: which fields draw on it, in order |
+  | `style` | a style set by name, plus the portable typed fields — colour, line, arrowhead — that render without it |
+  | `constraints` | `required` |
+  | `rules` | `ends`, `holds`, `degree`, `match` |
+  | `view` | for a diagram's definition: which view module, and its arrangement |
+
+  **Card layouts and style sets are open** — extended by a code change, additively. The forms, the
+  ops and the actions are closed. Confusing the two is what turns an engine into a plugin host.
+- **(planned)** A definition may **`extend`** one other, by reference — usually one a package
+  ships. Fields union with the subtype's winning by name; `components` merge per key, and a key it
+  does not mention it inherits whole. **One parent**, cycles stop, and a parent that is not loaded
+  ends the chain with the subtype standing on its own declarations.
+- **(planned) Extension is subtyping, never overriding.** A package's definitions are never
+  altered; refining one means making a new definition that *is* it.
+- **(planned) A rule naming a definition means it or anything below it.** Without that, an imported
+  standard's rules would reach only its own definitions and nothing anybody models.
 - **(planned)** A project draws definitions from a **list of packages, in the order imported**.
-  Order decides only what is offered first: **every reference is by id**, so two packages naming a
-  thing alike mint two ids and neither shadows the other. There is nothing to resolve.
+  **Nothing shadows**: every reference is a path, so two packages naming a thing alike are two
+  different definitions and importing one can never change what an existing element means.
+- **(planned) Two definitions loaded under one name are shown with their packages**, and import
+  order decides which is offered first. Ambiguity in a picker is not shadowing — neither is
+  hidden — and the answer to it is presentation, not resolution.
 - **(planned) A package resists editing.** Changing one is refused with the reason, and the way
   through is deliberate: **unlock** it, or **fork** it and change the copy. A fork takes a new
   project id, so anything pointing at the original keeps pointing there rather than quietly
@@ -356,7 +397,7 @@ registry, read by every input method: gestures, the contents tray, and later the
 | **action** | something somebody meant, and could say — create, rename, relate, group, note, refer, arrange | gestures, the tray, the terminal |
 | **adjustment** | positional and unsayable — where a card rests, how big a note is, where an interface sits on its edge, which wall an end leaves by | gestures only. Never named or ranked |
 
-- **A view declares which adjustments it accepts**, and may accept none — in which case the engine
+- **A diagram declares which adjustments it accepts**, and may accept none — in which case the engine
   owns every position on it and a drag means something else.
 - **Queries are not on the surface.** Whether a name is free, how many steps a project has, its
   hash and whether it is saving are readable state, not things to do.

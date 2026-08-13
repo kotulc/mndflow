@@ -159,8 +159,10 @@ describe("what a definition declares", () => {
   /** Everything a definition can say, so the round trip has all of it to lose. */
   const spoken: Mutation[] = [
     { op: "set_def", id: "def_decision", name: "decision", form: "figure",
-      body: "a branch in a flow", size: { w: 48, h: 48 }, formal: "DecisionNode",
-      shows: ["guard"], color: "#d9a441" },
+      body: "a branch in a flow", size: { w: 48, h: 48 },
+      names: { sysml: "DecisionNode" },
+      components: { card: { layout: "shape", shape: "diamond" },
+                    rules: { degree: { in: [1, 1] } } } },
   ];
   const graph = fold([step("", "test", spoken)]);
   const text = write(graph, "proj_test", 1);
@@ -168,7 +170,9 @@ describe("what a definition declares", () => {
   it("keeps every field it declares through a round trip", () => {
     expect(read(JSON.parse(text))!.graph.defs.def_decision).toMatchObject({
       body: "a branch in a flow", size: { w: 48, h: 48 },
-      formal: "DecisionNode", shows: ["guard"],
+      names: { sysml: "DecisionNode" },
+      components: { card: { layout: "shape", shape: "diamond" },
+                    rules: { degree: { in: [1, 1] } } },
     });
   });
 
@@ -177,7 +181,7 @@ describe("what a definition declares", () => {
                             [{ op: "set_def", id: "def_part", name: "part", form: "block" }])]);
     const written = write(bare, "proj_test", 1);
 
-    for (const said of ["body", "size", "shows", "formal", "icon"]) {
+    for (const said of ["body", "size", "names", "components", "icon"]) {
       expect(written).not.toContain(`"${said}"`);
     }
   });

@@ -29,35 +29,14 @@ be enforced or left to the user, it is left to the user.
 
 ## The words
 
-Each does one job. Where two could be said, the shorter one wins.
+**Every term is defined in [definitions.md](definitions.md)**, which is the canonical vocabulary.
+What belongs here is only the reasoning behind the shape of it.
 
-| | Is | |
-|---|---|---|
-| **workspace** | everything loaded together, and how it is filed. Itself a project | data |
-| **project** | the unit of work: one id, one log, one file, one scope of ids | data |
-| **graph** | a project's folded contents — elements, relationships, definitions | data |
-| **module** | engine code. Some are open, and an open one publishes **components** | code |
-| **component** | a capability a module offers, switched on and shaped by a definition | code, configured by data |
-| **view** | a project holding **diagrams** — the things that present what other projects own | data |
-| **diagram** | one presentation: a block whose definition names a view module, holding proxies of what it shows. Table and matrix are the same thing drawn differently | data |
-| **package** | a project whose elements are **definitions**: it supplies vocabulary to others | data |
-| **translator** | reads a project and emits an artifact. One way, and it never writes back | code |
-| **artifact** | what a translator emits: code, a drawing, a standard's file. Not a graph | output |
-
-**Nothing declares which of these a project is.** A project that holds only proxies is a view; one
-that holds only definitions is a package; one that holds its own objects is neither. It is visible
-from what it has, so there is no field to keep true — and a project is free to become something
-else by being worked on.
-
-**What its things mean comes from the package it draws definitions from**, not from a class. A
-project using the behavior package is what would elsewhere be called a behavior model. That is one
-idea doing the work two would have done badly.
-
-**Three words are deliberately absent.** *Namespace*, because every project already scopes its own
-ids and a property shared by all of them is not a sort of thing. *Kind*, because what a project is
-is already answered twice over, by what it owns and by the package it uses. *Structure* and
-*behavior* as classifiers, for the same reason — they survive as ordinary description and the
-engine never reads them.
+**Nothing declares what a project is.** One holding only proxies is a view, one holding only
+definitions is a package, one holding its own objects is neither. It is visible from what it has,
+so there is no field to keep true — and a project is free to become something else by being worked
+on. What its things *mean* comes from the packages it draws definitions from, not from a class:
+one idea doing the work two would have done badly.
 
 **Everything is a block or a relationship.** Those two are the fundamental units and there is no
 third: a folder in a workspace is a block, a diagram is a block, a note is a block, a swimlane is a
@@ -1689,6 +1668,33 @@ needs a shape drawn inside a card. Each is *one engine capability plus a package
 together. Saying so plainly is what stops "just write a package" being promised and not delivered,
 and it is the honest price of not having built a rule language: a package can only ask for what
 some component already knows how to do.
+
+### Extending a package
+
+**Extension is subtyping, and never overriding.** A package's own definitions are never altered:
+one somebody can silently change in their own workspace has stopped being a standard, and a file
+referencing it becomes unreadable without knowing what else was loaded. So refining SysML's
+requirement means making a **safety requirement that is one**, and the original keeps meaning what
+it meant.
+
+**A definition names one parent, by reference, and the chain is real.** Fields union with the
+subtype's winning by name; components merge per key, and a key it does not mention it inherits
+whole. One parent, so there are no diamonds and no merge order to argue about; a cycle stops the
+way the tree's does; a parent that is not loaded ends the walk, and the subtype still stands on its
+own declarations.
+
+**A rule naming a definition means it or anything below it**, and that is what forces the chain to
+be walked rather than the parent copied. SysML's `satisfy` says its far end is a requirement — if a
+subtype were a copy, that rule would match only the package's own definitions and nothing anybody
+actually models. An imported standard has to reach the things you made from it or importing it was
+pointless.
+
+**Shadowing is impossible; ambiguity is not.** Every reference is a path, so `pkg_sysml/def_req`
+and `pkg_uaf/def_req` are two different definitions however alike their names, and importing
+something can never change what an existing element means. What two packages *can* do is offer two
+candidates called "requirement" — which is not shadowing, since neither is hidden, but is a choice
+somebody has to make. **The answer is presentation**: where two loaded definitions share a name,
+both are shown with the package they came from, and import order decides which is offered first.
 
 ### Constraints and rules
 

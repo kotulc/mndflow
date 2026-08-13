@@ -236,17 +236,44 @@ export type Definition = {
    *  one thing it has to be told is how big — a fork bar long and thin, a
    *  decision small and square. Absent is the ordinary card. */
   size?: { w: number; h: number };
-  /** Which of a usage's fields draw on its card, in this order. Absent draws
-   *  none: a card with eight fields on it is unreadable, so which one matters
-   *  is a thing somebody says rather than a thing derived. */
-  shows?: string[];
-  /** What a standard calls this — `«requirement»`, `DecisionNode`.
+  /** The definition this one refines, by reference — usually one shipped in a
+   *  package, `pkg_sysml/def_requirement`.
    *
-   *  `name` is what the user reads and types; this is what an export writes, so
-   *  nobody has to learn a notation to use one. One field rather than a name
-   *  and a mapping: a package belongs to one standard, and a translator needing
-   *  more than a name is code and can carry its own table. */
-  formal?: string;
+   *  **Extension is subtyping, never overriding.** A package's own definitions
+   *  are never altered: a standard somebody can silently change in their own
+   *  workspace has stopped being a standard, and every file referencing it
+   *  becomes unreadable without knowing what else was loaded. So a refinement
+   *  is a new definition that *is a* the old one, and the original keeps
+   *  meaning what it meant.
+   *
+   *  Fields union with the subtype's winning by name; `components` merge per
+   *  key, and a key it does not mention it inherits whole. **A rule naming a
+   *  definition means it or anything below it** — without that, an imported
+   *  standard's rules would match only its own definitions and nothing anybody
+   *  actually models, which is what makes the chain worth walking rather than
+   *  copying. One parent, so there are no diamonds and no merge order to
+   *  specify; a missing one degrades rather than throwing. */
+  extends?: string;
+  /** What other vocabularies call this, keyed by vocabulary —
+   *  `{ sysml: "«requirement»" }`.
+   *
+   *  `name` is what the user reads and types; these are what an export writes,
+   *  so nobody has to learn a notation to use one. A map rather than a single
+   *  field, so one definition can answer to SysML *and* UML. */
+  names?: Record<string, string>;
+  /** How each open component behaves for usages of this, keyed by component.
+   *
+   *  **The one place the schema grows.** A new capability adds a key here
+   *  rather than a field beside it, which is what stops every component
+   *  costing a schema change — and what makes "unknown configuration is
+   *  ignored, never fatal" implementable rather than aspirational.
+   *
+   *  Each component validates its own key and reads no other's; one absent from
+   *  the build validates nothing, so its configuration is unvalidated rather
+   *  than wrong. `size` is deliberately not in here: layout reads it for every
+   *  element on every pass, and the engine reaching into component
+   *  configuration would invert the dependency. */
+  components?: Record<string, Record<string, unknown>>;
 };
 
 export type Graph = {
@@ -314,7 +341,9 @@ export type Mutation =
   /** Make or amend a definition. Everything but the id is a patch. */
   | { op: "set_def"; id: string; name?: string; form?: ElemForm | EdgeForm; fields?: Field[];
       body?: string; color?: string; icon?: string; line?: Definition["line"];
-      head?: Definition["head"]; size?: Definition["size"]; shows?: string[]; formal?: string }
+      head?: Definition["head"]; size?: Definition["size"];
+      names?: Record<string, string>; components?: Record<string, Record<string, unknown>>;
+      extends?: string }
   /** Drop it; usages survive, their `type` pointing at nothing. */
   | { op: "drop_def"; id: string }
   | { op: "set_vocabulary"; vocabulary: string };
