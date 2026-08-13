@@ -10,7 +10,7 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 
 ## Status
 
-Built and stable: the validator, the one message strip, the schema and a 142-test suite.
+Built and stable: the validator, the one message strip, the schema and a 147-test suite.
 `src` is grouped by what a thing is for and dependencies run one way — see README.md for the map.
 
 **Frozen, pending refinement.** Left alone deliberately while the graph model settles: the

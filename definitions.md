@@ -137,7 +137,7 @@ named value carried by an element or a relationship, and never changes what cont
 | **the log** | the ordered list of steps. The only thing stored, and the source of truth |
 | **fold** | **rebuilding the graph from empty by replaying every applied step, in order.** Runs after every change, so the graph can never drift from the record that produced it. This is why undo needs no inverses: it flips a step to `reverted` and folds again |
 | **undo** | flipping the last applied step and folding again. Redo re-applies it |
-| **derived** | worked out rather than stored. Seats, routes, boundaries, containment, a group's member list, and whether a relationship is a reference |
+| **derived** | worked out rather than stored — seats, routes, boundaries, containment, a group's member list. See *the graph* above for the forms it decides |
 
 
 ## The workspace *(planned)*
@@ -160,8 +160,8 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **artifact** | what a translator emits. Not a graph |
 | **asset** | a stylesheet, renderer, layout law, gesture map or validation hook, held in the repo and added at **build time** |
 | **preset** | a coherent set of component choices, shipped and tested together. Components configure independently; arbitrary recombination is possible and unsupported |
-| **constraint** | a rule bounding a thing in itself — `required` |
-| **rule** | a rule governing how things interact — `ends`, `holds`, `degree`, `match`. Both advise while modelling and refuse only at translation |
+| **constraint** | a check bounding a thing in itself. One kind: `required` |
+| **rule** | a check governing how things interact. Four kinds: `ends`, `holds`, `degree`, `match` |
 | **page** | branding, navigation and the workspace. The shell everything else sits in |
 | **envelope** | what a file travels inside: `{ schema, id, graph, meta }`. **The base is what cannot be ignored** — drop any of it and the file cannot be read, resolved or drawn correctly |
 | **meta** | the free-form, unversioned part of an envelope. **Safely ignorable**: if dropping it changes what the project *is*, it does not belong here. Never display preferences, never the log |
@@ -188,6 +188,61 @@ the engine never reads them.
 diagram. **`block` names the element throughout** — an activity diagram is built from blocks too —
 so the qualifier carries the meaning.
 
+
+## Rules, constraints and components *(planned)*
+
+Nothing here is built — see [design.md](design.md) under *Constraints and rules*.
+
+**Declared on a definition, holding over every usage of it**, and reaching that subtype's fields,
+its interfaces and the relationships at it. **A rule naming a definition means it or anything
+below it**, so an imported standard reaches what you subtyped from it.
+
+**They advise while modelling and refuse only at translation.** A model is legitimately
+unfinished, so a violation is a note in the tray; a translator asks the same checks at the moment
+it emits and declines to write a non-compliant file.
+
+| Kind | Says | Example |
+|---|---|---|
+| **`required`** | which of a usage's fields must carry a value. The one **constraint**: it is about a thing in itself | a requirement must have an `id` |
+| **`ends`** | which definitions may sit at each end of a *relationship* definition — `from` and `to`, each a list — and optionally which **port direction** an end must be | `satisfy` runs from a design element to a requirement; a flow leaves an `out` and enters an `in` |
+| **`holds`** | which definitions this one may contain, as children in the tree | a package holds blocks; a lifeline holds occurrences |
+| **`degree`** | how many relationships may meet a usage, as least and most, counted `in` and `out` separately. Either bound may be absent for "no limit" | an initial pseudostate takes no incoming transition: `in: [0, 0]` |
+| **`match`** | field names that must **agree across a relationship's two ends** — the one comparison, and the reason no expression language is needed | an item flow's `type` matches the `type` of both ports it runs between |
+
+**Five, and nothing composes**: every one is a lookup, a count, or a single fixed comparison.
+There is nothing to parse and no operators. **What the five cannot say is a `validate` hook** —
+code a module supplies, written by somebody who has already accepted writing code.
+
+| Term | Means |
+|---|---|
+| **`validate` hook** | a module's own check, in code, for what the five kinds cannot express. The deliberate escape hatch, and deliberately not a language |
+| **`components`** | the field on a definition holding one entry per component, keyed by component name. **The one place the schema grows** — a new capability adds a key rather than a field |
+| **`card`** | the component drawing a usage: which **card layout**, its **shape**, where its label sits, and `shows` |
+| **`style`** | the component colouring a usage: a **style set** by name, over the portable typed fields that render without one |
+| **`view`** | the component on a diagram's definition: which **view module**, and its arrangement |
+| **card layout** | one of the standard ways a card is composed — `name`, `type` (label and subtype chip), `fields`, `compartments`, `icon`, `shape` (a shape drawn in the box, label beneath). **Open**: extended by a code change, additively |
+| **shape** | what is drawn inside a card's box: `rect`, `round`, `diamond`, `ellipse`, `hex`. The engine always places a **rectangle** — every seat, route and port reads the box — so a shape changes what is drawn and never where anything attaches |
+| **label placement** | `inside`, `below`, or `none`. A diamond's middle is narrow, so its text usually sits under it |
+| **`shows`** | which of a usage's fields draw on its card, in that order. Absent draws none: a card with eight fields on it is unreadable |
+| **`names`** | what other vocabularies call a definition, keyed by vocabulary. `name` is what the user reads and types; these are what an export writes |
+| **style set** | a named collection of styles shipped as an **asset**, referenced by a definition. Absent, a usage still draws on its portable fields |
+
+**Per definition, never per element.** Every usage of a subtype is configured alike; where two must
+differ they differ in what they **hold** and in their **fields**, both of which are content.
+
+## The surface *(planned)*
+
+The full enumeration is in [actions.md](actions.md).
+
+| Term | Means |
+|---|---|
+| **action** | something somebody meant and could say — create, relate, group, describe. Named, ranked and listed everywhere |
+| **adjustment** | something positional and unsayable — where a card rests, how big a note is, where an interface sits on its edge, which wall an end leaves by. Four of them, gesture-only, never named or ranked. **A diagram declares which it accepts**, and may accept none |
+| **navigation** | an action writing **no mutations** — `open`, `up`, `reveal`. One property, three consequences: no step, nothing to undo, and a text interface never offers it |
+| **page action** | the shell's rather than a project's: export, import, new, undo, redo, and the workspace's |
+| **sayable** | whether an input method taking words can reach an action, **derived** from its argument types rather than declared. A position cannot come from a sentence |
+| **`when`** | whether an action is worth offering here at all. Decides what is **shown** |
+| **`check`** | why an action would refuse, in words. Decides what happens **on commit**, and never what is shown — it cannot be answered until the arguments are in hand |
 
 ## The SysML map *(planned)*
 
@@ -243,16 +298,16 @@ later *shrank* from four to two, which is the same result read from the other si
 
 | | |
 |---|---|
-| **Two graphs, many views** | `structure` and `behavior` are the only graphs. Everything else is a view — a type vocabulary, a renderer and a layout law |
+| **One shape, many views** | Every project is a graph of objects with views over it. `structure` and `behavior` describe what one holds; neither is a classifier the engine reads |
 | **Views are editable** | A view publishes gestures and the action surface maps them to mutations. Nothing is generated-only: people sketch in a notation before the model behind it exists |
 | **Every port is an interface** | Proxy port, full port, pin, parameter. Told apart by `type` and by whether they hold children |
 | **Parametrics is not a hard case** | A parameter is an interface, so a binding is an ordinary relationship and `from`/`to` already reach it |
 | **Requirements need nothing new** | Elements with fields, related by typed relationships |
-| **Sequence is a projection** | Lifeline from partition, message from a crossing flow, order from the flow graph — and still editable |
+| **A lifeline is a behavioral edge** | What a frame is to a block structurally: an occurrence on one is an **interface**, a message is a relationship between two, and order down it is `at` along an edge |
 | **A data structure is a definition** | Not a form. It never clutters the tree, and it is drawn only where somebody places one |
 | **A group is the generic set** | Which is why a relationship never needs more than two ends |
 | **One definition record** | Element types and relationship types are the same thing, differing in the form they subtype |
 | **Definitions have ids** | Typed-by and points-at are one operation, and a rename orphans nothing |
 
-**Two graphs, not two dozen modules** is the result that matters: a notation costs a vocabulary
-and a renderer, not an engine.
+**Configuration, not two dozen modules** is the result that matters: a notation costs a package,
+and at most one engine capability beside it.

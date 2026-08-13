@@ -1702,13 +1702,8 @@ Two components, told apart by what they are about: a **constraint** bounds a thi
 **rule** governs how things interact. Both are declared on a definition and hold over every usage
 of it, reaching that subtype's fields, its interfaces and the relationships at it.
 
-| | Is | Answers |
-|---|---|---|
-| `required` | field names a usage must carry | a requirement must have an `id` |
-| `ends` | which definitions may sit at each end of a relationship, and optionally which port direction | a flow leaves an `out` and enters an `in`; satisfy runs from a design element to a requirement |
-| `holds` | which definitions this may contain | a package holds blocks |
-| `degree` | how many relationships may meet an element, least and most, in and out | an initial pseudostate takes no incoming transition |
-| `match` | field names that must **agree** across a relationship's two ends | an item flow's type matches both ports |
+**One constraint and four rules** — `required`, `ends`, `holds`, `degree`, `match` — each defined
+in [definitions.md](definitions.md) under *Rules, constraints and components*.
 
 **Five, and nothing composes.** There are no operators, no predicates and nothing to parse — every
 one is a lookup, a count or a single fixed comparison. `match` is the interesting one: it buys the

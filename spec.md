@@ -198,14 +198,32 @@ the project.
 
   | | Holds |
   |---|---|
-  | `card` | which standard layout draws a usage — name, name and type, name and fields, compartments, icon and name, shape and caption — plus its shape from a closed set, where its label sits, and `shows`: which fields draw on it, in order |
-  | `style` | a style set by name, plus the portable typed fields — colour, line, arrowhead — that render without it |
+  | `card` | `layout` — one of `name`, `type`, `fields`, `compartments`, `icon`, `shape`; `shape` — one of `rect`, `round`, `diamond`, `ellipse`, `hex`; `label` — `inside`, `below` or `none`; and `shows`, which fields draw on it and in what order |
+  | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one |
   | `constraints` | `required` |
   | `rules` | `ends`, `holds`, `degree`, `match` |
-  | `view` | for a diagram's definition: which view module, and its arrangement |
+  | `view` | on a diagram's definition: which view module, and its arrangement |
 
-  **Card layouts and style sets are open** — extended by a code change, additively. The forms, the
-  ops and the actions are closed. Confusing the two is what turns an engine into a plugin host.
+  Each is defined in [definitions.md](definitions.md) under *Rules, constraints and components*.
+
+  - **The engine always places a rectangle.** Every seat, route and interface reads the box, so a
+    shape changes what is **drawn** and never where anything attaches. A line meeting the box near
+    a diamond's corner appears to touch empty space; a renderer may draw its own port marks to
+    soften that.
+  - **Card layouts and style sets are open** — extended by a code change, additively. The forms,
+    the ops and the actions are closed. Confusing the two is what turns an engine into a plugin
+    host.
+
+- **(planned) A constraint bounds a thing in itself; a rule governs how things interact.** Both are
+  declared on a definition and hold over every usage of it, reaching that subtype's fields, its
+  interfaces and the relationships at it. **A rule naming a definition reaches everything below
+  it.**
+- **(planned) They advise while modelling and refuse only at translation.** A violation is a note
+  in the tray, never a refused change: a model is legitimately unfinished. A **translator** asks
+  the same checks as it emits, and declines to write a non-compliant file.
+- **(planned) What the five cannot say is a module's `validate` hook**, in code. There is no rule
+  language, and local checks certify wiring rather than a whole model — whether every requirement
+  is satisfied is a global walk, which is a translator's to make.
 - **(planned)** A definition may **`extend`** one other, by reference — usually one a package
   ships. Fields union with the subtype's winning by name; `components` merge per key, and a key it
   does not mention it inherits whole. **One parent**, cycles stop, and a parent that is not loaded
@@ -269,7 +287,7 @@ the project.
 
 - The log lives in the browser under one key. **Importing a file replaces the session and is saved
   from then on** — a file is a snapshot, the browser is the working copy.
-- **An export is the graph, not the log.** `{ schema, id, module, graph, meta }`, pretty-printed
+- **An export is the graph, not the log.** `{ schema, id, graph, meta }`, pretty-printed
   JSON. Its size follows the model rather than how long somebody worked, and its diff shows the
   elements and relationships that changed rather than the actions that changed them.
 - **Importing one is a checkpoint.** The file becomes a log holding a single `checkpoint` step, so
