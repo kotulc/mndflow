@@ -32,8 +32,10 @@ thing.*
 |---|---|---|
 | ~~**RF.1**~~ | Relation forms reduced to **`line` \| `directed`**; `reference` and `tie` derived; `assoc` retired to a definition. Healed at the door both ways, docs and 10 tests, verified in a browser | done |
 
-The element and view base sets are settled in [redesign.md](redesign.md) and unchanged in
-membership; only the relations moved.
+| ~~**RF.2**~~ | `Element.color` removed — nothing read it, nothing set it, and it was written back into every file forever. Healed away at the door | done |
+
+The base sets and the component model are now in [design.md](design.md); the working re-design is
+merged and gone.
 
 
 ## Wave 1 — the seams

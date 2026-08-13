@@ -26,6 +26,9 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
   the explorer, and what it *is* comes from its `type`. An activity's fork, decision, initial,
   final, merge and join are all figures. In the closed set; nothing makes one until a module
   does.
+- **(planned) A figure takes no interfaces**, which is what earns it a form: only a block and the
+  things derived from it do. The action that makes one refuses on a figure, and says why. This is
+  the first rule the engine enforces rather than advises.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
   never across one. **Empty until somebody sets one.**
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
@@ -370,12 +373,23 @@ layout law and a gesture map. See [design.md](design.md) under *The view is the 
 
 *(planned) — the whole section. Today there is one view, written into the canvas.*
 
-**A view is a graph.** Its elements are **proxies** of what it shows, plus whatever objects it owns
-itself — a behavior owns its actions, a matrix owns nothing. It has its own log and its own export,
-like any graph, and it appears in the workspace as its own entry.
+**A view is a project holding diagrams.** Its own tree is folders and diagrams, so a view can be
+organised by behaviour, by requirement, by function — whatever the work is about. It has its own
+log and its own export, like any project, and it appears in the workspace as its own entry.
 
+- **A diagram is a block whose definition names a view module** — `diagram`, `table` or `matrix`.
+  A folder beside it is an ordinary block. Neither costs a concept.
+- **Everything a diagram shows is a proxy**, whatever it looks like: a card, a table row, a label
+  along a matrix axis. How one draws is its subtype's, so a table is the same objects as a diagram
+  drawn differently rather than a second kind of thing.
+- **Things arrive by being put there** — a block, a selection of them, or a whole project by its
+  root, which is how a diagram comes to be about a project rather than a handful of its parts.
 - **Adding something to a view creates a proxy in the view**, and touches nothing else. Dragging a
   block into a matrix does not write to that block's project.
+- **A diagram's own variation is its contents and its fields**, never configuration: its definition
+  configures every diagram of that subtype alike, so two matrices differ in what they hold and what
+  their fields say.
+- **Nothing about a view enters the project it reads.**
 - **A relationship goes to the log of the project that owns its ends**, resolved through the
   proxies — so filling in a matrix cell is a real relationship in the real project, while a view's
   flows between its own elements stay in its own log.
@@ -388,9 +402,8 @@ like any graph, and it appears in the workspace as its own entry.
   know. Cross-project relationships are read in the **workspace** view, where the workspace's root
   is the root, every project below it is a block, and the lines between them are the imports.
 
-How it *draws* is the second half, and it varies between modules:
-
-Five declarations, and nothing else:
+**How it draws** is the second half, and it is what a diagram's definition configures — six
+components, and nothing else:
 
 | | Is |
 |---|---|
@@ -401,20 +414,24 @@ Five declarations, and nothing else:
 | **gesture map** | which gesture reaches which action, and where its arguments come from |
 | **adjustments** | which of the four positional adjustments it accepts |
 
-- **A view names actions; it never writes mutations.** That is what keeps one input method
-  indistinguishable from another, and what lets two views bind one action to different gestures.
-- **An unregistered `type` falls back to the engine's card.** A view declares what it draws
+- **A diagram names actions; it never writes mutations.** That is what keeps one input method
+  indistinguishable from another, and what lets two diagrams bind one action to different gestures.
+- **An unregistered `type` falls back to the engine's card.** A diagram declares what it draws
   differently, not everything it draws — so a half-built one is usable.
-- **A `figure` has no fallback**: the engine places it and never draws it, so a view that offers a
+- **A `figure` has no fallback**: the engine places it and never draws it, so a diagram that offers a
   figure type must render it. Its size comes from the definition.
 - **A layout law may decline to place**, and then the layer arranges as it does today — stored
   positions held, everything else filled in around them.
-- **A view that accepts no adjustments** is one where the engine owns every position. Sequence
+- **A diagram that accepts no adjustments** is one where the engine owns every position. Sequence
   accepts one, `seat`, because the only thing worth dragging there is where an occurrence sits on
   its own lifeline.
-- **There is no structure/behavior classifier.** A graph that owns its objects is a structure, one
-  that owns none is a matrix, one that owns some is a behavior — visible from what it holds, so
-  nothing declares it.
+- **There is no structure/behavior classifier.** A project that owns its objects is a structure, one
+  that owns only diagrams is a view, one that owns some of each is a behavior — visible from what it
+  holds, so nothing declares it.
+- **Components are configured per definition and never per element**, so every diagram of a subtype
+  behaves alike. Where two must differ they differ in contents and fields.
+- **A component reads its own configuration and no other's.** They share one element and one log, so
+  this is what makes them separable in fact and not only in file layout.
 
 **Which view you have open is display state.** The view itself is not: it is a graph with a log,
 and making one is an ordinary change.

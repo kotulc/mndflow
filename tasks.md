@@ -32,8 +32,15 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-*Nothing is blocking. The last of them closed with the workspace keeping its own list of imported
-projects, which is what an untouched import is remembered by.*
+- **Where component configuration lives on a definition** — one open bag keyed by component, or a
+  named field each. Deferred deliberately: it is a decision about readability and typing that the
+  first two real components will answer better than reasoning will. Blocks nothing until one is
+  built.
+- **Package extension** — a package referencing another and overriding its definitions. It likely
+  wants an `extends` on a definition: the overriding one keeps its own id and declares what it
+  refines, so a picker prefers it while nothing already pointing at the original is silently
+  redirected. Shadowing by name stays impossible either way. Not needed until a second package
+  builds on a first.
 
 *Recently closed: undo restores the graph and never the context; storage is keyed per project and
 lazily, with the untouched checkpointed under pressure; packages are a list in import order and

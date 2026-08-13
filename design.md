@@ -36,9 +36,11 @@ Each does one job. Where two could be said, the shorter one wins.
 | **workspace** | everything loaded together, and how it is filed. Itself a project | data |
 | **project** | the unit of work: one id, one log, one file, one scope of ids | data |
 | **graph** | a project's folded contents — elements, relationships, definitions | data |
-| **view** | a project whose elements are **proxies**: it presents what is owned elsewhere | data |
+| **module** | engine code. Some are open, and an open one publishes **components** | code |
+| **component** | a capability a module offers, switched on and shaped by a definition | code, configured by data |
+| **view** | a project holding **diagrams** — the things that present what other projects own | data |
+| **diagram** | one presentation: a block whose definition names a view module, holding proxies of what it shows. Table and matrix are the same thing drawn differently | data |
 | **package** | a project whose elements are **definitions**: it supplies vocabulary to others | data |
-| **module** | how a graph is drawn and worked — vocabulary, renderers, layout law, gesture map, and the adjustments it accepts | code |
 | **translator** | reads a project and emits an artifact. One way, and it never writes back | code |
 | **artifact** | what a translator emits: code, a drawing, a standard's file. Not a graph | output |
 
@@ -56,6 +58,65 @@ ids and a property shared by all of them is not a sort of thing. *Kind*, because
 is already answered twice over, by what it owns and by the package it uses. *Structure* and
 *behavior* as classifiers, for the same reason — they survive as ordinary description and the
 engine never reads them.
+
+**Everything is a block or a relationship.** Those two are the fundamental units and there is no
+third: a folder in a workspace is a block, a diagram is a block, a note is a block, a swimlane is a
+group of them. What varies is which form one takes, what its definition configures, and what it
+holds — never what sort of thing it fundamentally is. That is the property the whole model is built
+to keep, because every rule that has to ask *"but what if it is one of those instead"* is a rule
+that will be wrong about something later.
+
+
+## The engine and what configures it
+
+Four tiers, and the boundary between the middle two is the one that matters: **what the engine
+must know goes in data; what only a person needs to see goes in assets.**
+
+| | Holds | Changed by |
+|---|---|---|
+| **engine** | the forms, the tree, containment, membership, placement, routing, seats, the grid, the log and the fold, ids and references, the action surface | nobody. This is the closed part |
+| **definition** | name, other vocabularies' names, a body, fields, the room a usage needs, and the configuration of every open component | data, shipped in a package |
+| **assets** | stylesheets, renderers, layout laws, gesture maps, validation hooks | code, at build time |
+| **never** | a sixth element form, a new mutation op, a new adjustment | — anything the engine would have to *reason* about |
+
+**The engine never branches on user data.** It reads the closed forms and the derived facts, and
+nothing else — which is why `figure` earns a form for taking no ports while a lighter stroke does
+not earn one at all. Configuration changes what a thing looks like and what is valid on it; it
+never changes how the engine places it.
+
+**Per-subtype is configuration; per-instance is content.** A definition configures components for
+every usage of it, and no element carries configuration of its own. Where two usages must differ —
+two matrices showing different things — they differ in what they **hold** and in their **fields**,
+both of which are ordinary content. That is what keeps presentation from scattering across a
+project one element at a time.
+
+**A component owns its configuration key and reads no other's.** They share one element and one
+log, so separate code is not separate state, and this is the only thing that makes the isolation
+real rather than nominal.
+
+**Components ship as presets.** They configure independently, which multiplies quickly, and most
+combinations are untested; a view names a coherent set rather than inviting recombination. Anything
+else is possible and unsupported — the alternative is infinite configurability that nobody can
+answer a question about.
+
+**Assets are build-time.** Somebody extending them edits the repo and rebuilds. That is real
+extensibility and costs nothing; a runtime plugin loader means sandboxing untrusted code inside a
+page holding the user's whole workspace, which is a different decision and not one to smuggle in.
+It follows that **a package must be useful with portable presentation alone** — an imported package
+brings its data and renders on the simple typed fields, gaining its custom look only when its
+assets are present. It degrades rather than breaks.
+
+**A subtype keeps the behaviour of the form it subtypes.** A decision is a figure with a shape
+drawn in it, a swimlane is a group with a segmented style, a lifeline is a block laid out along an
+edge — each inherits placement wholesale and configures only what it looks like and what is valid
+on it. That is what makes a package safe to install: it can change how a project reads and never
+how it behaves.
+
+**Two sets, and telling them apart is the whole discipline.** Card layouts, style sets, rule kinds,
+arrangements, routing strategies and view modules are **open** — extended by a code change, and
+additively. The element forms, the relationship forms, the value forms, the mutation ops and the
+action set are **closed**, and every argument in this document rests on their being so. If
+"extensible" leaks into the second column the engine stops being general and becomes a plugin host.
 
 
 ## Foundations
@@ -1318,22 +1379,36 @@ tool does not do**, which is a better answer than bending the base model until i
 |---|---|
 | **page** | branding, navigation, and the workspace. Owns nothing about a diagram |
 | **terminal** | an optional alternate way to give input. Minimises to one line |
-| **module** | how a graph is drawn and worked — see *The words* |
+| **module** | engine code, and what a diagram configures — see *The words* |
 
-**The tree and the canvas are the block module.** Everything else wraps around them.
+**The tree and the canvas are the base diagram.** Everything else wraps around them.
 
 ### One graph, and a view is one too
 
 **There is one shape: a graph of objects, and views over it.** A **structure** says what things
 there are and how they are composed and connected; a **behavior** says what happens, in what
-order, under what conditions; a **matrix** says which of them relate. All three are graphs, and
-what tells them apart is only how much of what they hold they own:
+order, under what conditions; a **view** says how some of it is to be looked at. All are graphs,
+and what tells them apart is only how much of what they hold they own:
 
 | | Its graph holds |
 |---|---|
 | structure | its own objects |
-| matrix, table | proxies only |
 | behavior | its own actions, plus proxies of the participants |
+| view | folders and **diagrams**; each diagram holds proxies of what it presents |
+
+**A view has a tree of its own**, which is what lets somebody group diagrams by behaviour, by
+requirement, by function — whatever the work is organised around. A folder in it is an ordinary
+block and a diagram is a block whose definition names a view module, so the tree costs no concept.
+**Nothing about a view ever enters the structure it reads.**
+
+**Everything a diagram shows is a proxy**, whatever it looks like. A card, a table row, an axis
+label along a matrix — one mechanism, and how it draws is its subtype's component rather than a
+second kind of thing. So a table is not a different sort of object from a diagram; it is the same
+objects drawn as rows.
+
+**Things arrive by being put there** — a block, a selection of them, or a whole project by its
+root. Dragging in a root is how a diagram comes to be about a project rather than about a handful
+of its parts, and it is still one proxy.
 
 **So the asymmetry needs no classifier.** "This one leans on another" is what a proxy has always
 meant, widened to reach across a workspace rather than across a layer. A project that owns nothing
@@ -1487,13 +1562,18 @@ at.
   blocks it depends on so it stands alone; in the workspace both projects are present and live,
   so there is nothing to bundle and no divergence to reconcile.
 
-### The view is the module seam
+### The view is where a notation plugs in
 
-**A module is a vocabulary, a set of renderers, a layout law and a gesture map.** Nothing else
-varies, because nothing else needs to: every notation walked against the model — requirements,
-activity, parametrics, state machines, sequence — asks for **no action and no form the engine does
-not already have**. What differs between an activity diagram and a state machine is what a node
-means and how it is drawn, and both of those are the view's.
+**A notation is a vocabulary, a set of renderers, a layout law and a gesture map** — configuration
+of components the engine already publishes. Nothing else varies, because nothing else needs to:
+every notation walked against the model — requirements, activity, parametrics, state machines,
+sequence — asks for **no action and no form the engine does not already have**. What differs
+between an activity diagram and a state machine is what a node means and how it is drawn, and both
+of those belong to the diagram rather than to the engine.
+
+**The base diagram is the block tree as it stands**, and every other diagram is a re-configuration
+of it. That is the claim worth testing early: if the default cannot be expressed as one
+configuration among others, the component boundaries are in the wrong place.
 
 That is the strongest evidence the closed sets are the right size. A set that had been drawn too
 small would have shown it here, as a notation that could not be said without widening it.
@@ -1589,9 +1669,9 @@ visible and the arrow keys can overrule it before it fires. Overruling it is the
 ### Packages and modules
 
 **A package is data; a module is code.** A package is a set of definitions somebody ships — what
-things are called plainly, what they are called formally, the fields they carry, how they draw, and
-what each maps to in a standard. It costs nothing to add and nobody has to write any. A module is a
-view: renderers, a layout law, a gesture map, and the adjustments it accepts. It costs an owner.
+things are called plainly, what a standard calls them, the fields they carry, how they draw, what
+is valid on them. It costs nothing to add and nobody has to write any. A module is engine code, and
+an open one publishes the components a definition configures. It costs an owner.
 
 **A package maps names and presentation, never structure.** That is the line between the two, and
 it is what keeps a mapping a table. The moment a mapping has to rearrange a graph to export it, it
@@ -1602,6 +1682,44 @@ Most of SysML turns out to be the second kind. Requirements is a definition decl
 `text` plus five relationship types, and asks for no renderer, no layout law and no gesture — so it
 is not a module at all, which is a sharper way of saying that it proves definitions carry a
 vocabulary.
+
+**A package is data, but enabling one is sometimes an engine change.** A sequence diagram needs an
+arrangement — columns by lifeline, order down each — that no component implements; an activity
+needs a shape drawn inside a card. Each is *one engine capability plus a package*, and the two ship
+together. Saying so plainly is what stops "just write a package" being promised and not delivered,
+and it is the honest price of not having built a rule language: a package can only ask for what
+some component already knows how to do.
+
+### Constraints and rules
+
+Two components, told apart by what they are about: a **constraint** bounds a thing in itself, and a
+**rule** governs how things interact. Both are declared on a definition and hold over every usage
+of it, reaching that subtype's fields, its interfaces and the relationships at it.
+
+| | Is | Answers |
+|---|---|---|
+| `required` | field names a usage must carry | a requirement must have an `id` |
+| `ends` | which definitions may sit at each end of a relationship, and optionally which port direction | a flow leaves an `out` and enters an `in`; satisfy runs from a design element to a requirement |
+| `holds` | which definitions this may contain | a package holds blocks |
+| `degree` | how many relationships may meet an element, least and most, in and out | an initial pseudostate takes no incoming transition |
+| `match` | field names that must **agree** across a relationship's two ends | an item flow's type matches both ports |
+
+**Five, and nothing composes.** There are no operators, no predicates and nothing to parse — every
+one is a lookup, a count or a single fixed comparison. `match` is the interesting one: it buys the
+type-compatibility case that would otherwise force an expression language, by being one named
+comparison instead of an arbitrary one. **A rule the five cannot express is a validation hook in a
+module**, written in code by somebody who has already accepted writing code. That is the escape
+hatch, and it is deliberately not a language.
+
+**They advise while you work and refuse only at translation.** A model is legitimately unfinished —
+blocking a change because a requirement has no id yet would make the thing unusable — so a
+violation is a note, not a refusal. A **translator** asks the same rules at the moment it emits and
+declines to write a non-compliant file, which is where "is this projectable?" gets its answer.
+
+**Local rules cannot certify a model**, only its wiring. Whether every requirement is satisfied,
+whether the flow graph is acyclic — those are global questions, and a translator walks the graph to
+answer them because it is code and can. The five catch the common errors; they were never going to
+catch the rest, and claiming otherwise would be the more expensive mistake.
 
 ### Rules the notations settled
 
