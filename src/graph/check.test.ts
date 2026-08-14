@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { entering, report } from "./check";
+import { entering, report, validating } from "./check";
 import { fold } from "./fold";
 
 /** A log as some earlier build would have written it. */
@@ -149,6 +149,68 @@ describe("what cannot be read", () => {
     const came = entering([{ ...logged()[0], status: "whatever" }])!;
 
     expect(came.steps[0].status).toBe("applied");
+  });
+});
+
+describe("a definition's component configuration", () => {
+  /** One definition arriving with whatever `components` bag is given. */
+  const defined = (components: unknown) =>
+    entering(logged({ op: "set_def", id: "def_1", name: "requirement", form: "block",
+                      components }))!;
+
+  const kept = (came: ReturnType<typeof defined>) =>
+    (fold(came.steps).defs.def_1?.components ?? {});
+
+  it("lets a key no component in this build claims through untouched", () => {
+    const came = defined({ nothing_here_yet: { set: "sysml" } });
+
+    expect(kept(came).nothing_here_yet).toEqual({ set: "sysml" });
+    expect(came.faults).toHaveLength(0);
+  });
+
+  it("keeps what a registered component accepts", () => {
+    validating("keen", () => null);
+    const came = defined({ keen: { layout: "shape" } });
+
+    expect(kept(came).keen).toEqual({ layout: "shape" });
+    expect(came.faults).toHaveLength(0);
+  });
+
+  it("drops what a registered component refuses, and says the component's reason", () => {
+    validating("fussy", () => "a card layout has to be one of the six");
+    const came = defined({ fussy: { layout: "invented" } });
+
+    expect(kept(came).fussy).toBeUndefined();
+    expect(came.faults.some((f) => f.healed && f.why.includes("one of the six"))).toBe(true);
+  });
+
+  it("drops only the key that was refused, never the definition", () => {
+    validating("fussy", () => "no");
+    const came = defined({ fussy: {}, nobody_claims_this: { a: 1 } });
+    const def = fold(came.steps).defs.def_1;
+
+    expect(def.name).toBe("requirement");
+    expect(def.components).toEqual({ nobody_claims_this: { a: 1 } });
+  });
+
+  it("refuses configuration that is not a record whether or not anybody claims the key", () => {
+    for (const config of [[], "sysml", 4, null]) {
+      const came = defined({ unclaimed: config });
+
+      expect(kept(came).unclaimed).toBeUndefined();
+      expect(came.faults.some((f) => f.healed)).toBe(true);
+    }
+  });
+
+  it("reads the definitions inside a checkpoint the same way", () => {
+    validating("fussy", () => "no");
+    const def = { id: "def_1", name: "requirement", form: "block", fields: [],
+                  components: { fussy: {}, unclaimed: { a: 1 } } };
+    const came = entering(logged({ op: "checkpoint", at: 0, graph: {
+      defs: { def_1: def }, elements: {}, edges: {}, vocabulary: "" } }))!;
+
+    expect(fold(came.steps).defs.def_1.components).toEqual({ unclaimed: { a: 1 } });
+    expect(came.faults.some((f) => f.healed)).toBe(true);
   });
 });
 

@@ -11,7 +11,8 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 ## Status
 
 Built and stable: the validator, the one message strip, the schema and a 147-test suite.
-`src` is grouped by what a thing is for and dependencies run one way — see README.md for the map.
+`src` is grouped by what a thing is for and dependencies run one way — see
+[README.md](../README.md) for the map.
 
 **Frozen, pending refinement.** Left alone deliberately while the graph model settles: the
 **terminal rail** (its role is the open question, not its implementation) and the **visual style**.
@@ -85,7 +86,8 @@ key — specced in [spec.md](spec.md) under *Project model*. `Canvas.tsx` splits
 handling — *done* — composition, and `modules/`.
 
 - **Each component validates its own key and reads no other's**, registering its validator with the
-  door so an unrecognised key is unvalidated rather than wrong.
+  door so an unrecognised key is unvalidated rather than wrong — *done*. The registry is empty until
+  S2.3 publishes the first component.
 - **The test this seam is measured against**: if the base diagram cannot be expressed as one
   configuration among others, the component boundaries are in the wrong place.
 - **Every gesture the canvas binds today is inventoried in [actions.md](actions.md)**, which is
@@ -402,7 +404,7 @@ integration test sits in `tests/`, belonging to no single module.
 |---|---|
 | `types` | an id says what it points at; a factory leaves nothing undefined |
 | `fold` | replay is pure; a reverted step leaves no trace; a mutation with nowhere to land is skipped; `tidy` removes only what cannot exist; a free-text type becomes a definition with a stable id |
-| `check` | every old shape arrives as the current one; what cannot be read is dropped and counted |
+| `check` | every old shape arrives as the current one; what cannot be read is dropped and counted; a component key nobody claims arrives untouched, and one its component refuses goes alone |
 | `file` | a round trip loses nothing; the same graph writes the same bytes; the schema gate lets a minor through and stops a major |
 | `layout` | placement repeats; nothing overlaps; a hand-laid position cannot be moved; a seat lands on the lattice |
 | `route` | a line starts and ends on its cards, turns only at right angles, and goes around a block it does not attach to |

@@ -29,11 +29,14 @@ suggestions — everything is local, and a turn is instant.
 └─────────────────────────────────────────┴──────────────────┘  match scoring
 ```
 
-Three tracked documents, kept in step with the code:
+The tracked documents live in [`docs/`](docs), kept in step with the code:
 
-- [spec.md](spec.md) — what each part does, component by component. Short, scannable.
-- [design.md](design.md) — why it is that way, and what each rule was chosen over.
-- [tasks.md](tasks.md) — what is missing, and what is still undecided.
+- [spec.md](docs/spec.md) — what each part does, component by component. Short, scannable.
+- [design.md](docs/design.md) — why it is that way, and what each rule was chosen over.
+- [tasks.md](docs/tasks.md) — what is missing, and what is still undecided.
+- [plan.md](docs/plan.md) — the queue: one row, one chunk of work.
+- [actions.md](docs/actions.md) — every action, adjustment and gesture.
+- [definitions.md](docs/definitions.md) — the vocabulary each of them is written in.
 
 ---
 
@@ -177,6 +180,7 @@ design problem you can see rather than one you have to trace.
 | [`embed/`](src/embed) | MiniLM over ONNX, and scoring text against it | nothing |
 | [`geometry/`](src/geometry) | sizing, placement and routing, derived from the graph | `graph` |
 | [`canvas/`](src/canvas) | the diagram module — the drawing half | `graph`, `geometry`, `embed` |
+| [`modules/`](src/modules) | what open modules publish: the components a definition configures | `graph` |
 | [`page/`](src/page) | the shell a module sits in | `graph`, `canvas`, `terminal` |
 | [`terminal/`](src/terminal) | the optional way to give input | `graph`, `geometry`, `embed` |
 | [`project.ts`](src/project.ts) | the seam: state, and every action | `graph`, `terminal` |
@@ -191,6 +195,7 @@ design problem you can see rather than one you have to trace.
 | [`geometry/layout.ts`](src/geometry/layout.ts) | Card sizing, treemap tiling, layer placement |
 | [`geometry/route.ts`](src/geometry/route.ts) | Where a line goes, and the lanes it shares |
 | [`canvas/card.tsx`](src/canvas/card.tsx) | The pieces every drawn thing is built from |
+| [`modules/index.ts`](src/modules/index.ts) | The component contract: what a module publishes, and the key each owns |
 | [`canvas/gestures.ts`](src/canvas/gestures.ts) | What the pointer and the keyboard mean, and which action that reaches |
 | [`canvas/Canvas.tsx`](src/canvas/Canvas.tsx) | The layer composed: where things sit, what draws them, the controls |
 | [`terminal/router.ts`](src/terminal/router.ts) | Picks the question from the graph and the selection |

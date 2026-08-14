@@ -163,8 +163,7 @@ the project.
 - **Presentation lives on the definition, never on the usage** — colour and icon for an element,
   line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
   export rather than filtered out of one.
-- **(planned)** Four more optional fields, each unwritten at its default so no existing file
-  changes by a byte:
+- Four more optional fields, each unwritten at its default so no existing file changes by a byte:
 
   | | Is |
   |---|---|
@@ -173,9 +172,9 @@ the project.
   | `names: Record<string, string>` | what other vocabularies call it, keyed by vocabulary — `{ sysml: "«requirement»" }`. `name` is what the user reads and types; these are what an export writes. A map rather than one field, so a core definition can answer to SysML *and* UML |
   | `components: Record<string, object>` | **how each open component behaves for usages of this**, keyed by component |
 
-- **(planned) `components` is the one place the schema grows.** A new component adds a key under
-  it, never a field beside it — which is what stops every capability costing a schema change, and
-  what makes *unknown configuration is ignored, never fatal* implementable rather than aspirational.
+- **`components` is the one place the schema grows.** A new component adds a key under it, never a
+  field beside it — which is what stops every capability costing a schema change, and what makes
+  *unknown configuration is ignored, never fatal* implementable rather than aspirational.
 
   ```
   "components": {
@@ -189,12 +188,18 @@ the project.
   - **Each component validates its own key**, and one absent from the build validates nothing —
     so its configuration is *unvalidated* rather than *wrong*, which is how an older build opens a
     newer package. Problems are reported at the door as faults, like everything else read in.
+  - **A module publishes its components and registers each validator with the door**, which is why
+    the door needs to know nothing about what a card or a style means.
+  - **What a component refuses is dropped, and only that key.** The definition arrives whole and the
+    component falls back to what it does for every definition that never mentioned it. A key whose
+    configuration is not a record goes the same way, claimed or not.
   - **A component reads its own key and no other's.** They share one element and one log, so this
     is what makes them separable in fact rather than only in file layout.
   - `size` stays outside it: `layout` reads it for every element on every pass, and reaching into
     component configuration from the engine would invert the dependency.
 
-- **(planned) The components an open module publishes**, and what each key holds:
+- **(planned) The components an open module publishes**, and what each key holds. The contract is
+  built; none of the five is:
 
   | | Holds |
   |---|---|

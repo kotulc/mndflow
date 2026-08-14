@@ -58,7 +58,7 @@ wrong place.
 | | Does | Owns | Waits |
 |---|---|---|---|
 | ~~**S2.1**~~ | ~~Extract gesture handling out of `Canvas.tsx`~~ — **done**: `useGestures(reach, stage)`, 867 lines out of a 2041-line file. Hit testing, both buttons, the keyboard and the drag snap; it reaches actions and writes no mutation. Verified in a browser | `canvas/gestures.ts` | — |
-| **S2.2** | The component contract: a module publishes components, each validating its own key under a definition's `components`, and registering its validator with the door | `modules/index.ts`, `graph/check.ts` | S2.1 |
+| ~~**S2.2**~~ | ~~The component contract~~ — **done**: `publish` registers each component's validator with the door, which drops only a key its component refuses and reports the reason. An unclaimed key is unvalidated, never wrong. 6 tests | `modules/index.ts`, `graph/check.ts` | — |
 | **S2.3** | The **card** component — the six standard layouts, shape from a closed set, label placement, `shows` | `modules/card/` | S2.2 |
 | **S2.4** | The **style** component — a style set by name over the portable typed fields | `modules/style/`, `assets/styles/` | S2.2, A0.1 |
 | **S2.5** | The **view** component and the view-module registry: `diagram`, `table`, `matrix` | `modules/view/` | S2.2 |

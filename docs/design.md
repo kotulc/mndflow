@@ -1606,6 +1606,15 @@ sentence is what lets a ranked list put an inapplicable action last rather than 
 anything from the terminal, and no log records that a terminal exists. The project cannot tell one
 input method apart from another.
 
+**A gesture layer names an action and never writes a mutation.** Interpreting input is one job —
+what is under the pointer, which button did what — and it ends at naming what was meant. The
+alternative is what a canvas normally becomes: a drag that knows a card's parent is being changed
+emits the parenting mutation itself, and every rule about that change now has two homes and drifts
+between them. Held to naming, the layer stays a thing a view can swap: two diagrams bind one action
+to different gestures, and a diagram that declines an adjustment gives its drag another meaning
+without the engine hearing about it. It is also what makes the pointer answerable to the same
+refusals as a typed sentence, since both arrive at the same record.
+
 ### The terminal
 
 **One goal: an interactive, context-aware, text interface to the application.** Not a chat, not a
