@@ -23,9 +23,11 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 - `form` says which of five it is: **block** (the base and the default), **note**, **group**,
   **proxy**, or **figure**. It decides what draws an element and which rules reach it.
 - **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
-  the explorer, and what it *is* comes from its `type`. An activity's fork, decision, initial,
-  final, merge and join are all figures. In the closed set; nothing makes one until a module
-  does.
+  the explorer, and what it *is* comes from its `type`. In the closed set; nothing makes one until a
+  module does, and **(planned)** nothing in the core ever will: an activity's fork, decision,
+  initial, final, merge and join are all **derived from counting relationships and guards**, so a
+  module draws them and the graph stores none. What is left for a figure is ornament a package
+  ships — a legacy symbol that means nothing to the engine.
 - **(planned) A figure takes no interfaces**, which is what earns it a form: only a block and the
   things derived from it do. The action that makes one refuses on a figure, and says why. This is
   the first rule the engine enforces rather than advises.
@@ -439,9 +441,15 @@ registry, read by every input method: gestures, the contents tray, and later the
   hash and whether it is saving are readable state, not things to do.
 - **Files are the page's, not a module's** — export, import, new, and later the workspace.
 
-**Modules add no actions.** Requirements, activity, parametrics, state machines and sequence were
-each walked against the surface and none of them needed one: a module is a vocabulary, renderers, a
-layout law and a gesture map. See [design.md](design.md) under *The view is the module seam*.
+**A module adds no action for anything it draws.** Requirements, activity, parametrics, state
+machines and sequence were each walked against the surface and not one needed an action to *render*
+or to *edit* — a module is a vocabulary, renderers, a layout law and a gesture map.
+
+**(planned) Behavior adds two, and they are the engine's rather than a module's**, because both
+change a project wholesale and neither is about drawing: **`scope`**, which points a behavior
+project at one or more structures and seeds it, and **`promote`**, which turns a derived state
+machine into blocks. Both are sayable, both write mutations, and both are on the one registry like
+everything else.
 
 **Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
 

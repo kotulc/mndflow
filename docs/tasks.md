@@ -10,7 +10,7 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 
 ## Status
 
-Built and stable: the validator, the one message strip, the schema and a 153-test suite.
+Built and stable: the validator, the one message strip, the schema and a 166-test suite.
 `src` is grouped by what a thing is for and dependencies run one way — see
 [README.md](../README.md) for the map.
 
@@ -33,13 +33,14 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-- **What does a behavior actually write on a participant?** Settled that it writes — through the
-  ref, to the block, like any proxy. Not settled is *what*: a field, a port, an interface, a
-  relationship, or some of each, per interaction kind. **Blocks A.7**, and a worked example would
-  pin it down faster than an argument would.
-- **Is re-seeding an action or a page action?** Sync is settled as an action rather than a binding;
-  where it is *offered* is not. It reaches every layer of a project at once, which no action on the
-  surface does today. **Blocks A.7's second half, not its first.**
+- **Does a `figure` ever get placed?** Every control node is derived, so nothing in the core creates
+  one. It survives for ornament a package ships. **If A.7–A.9 land with nothing having placed one,
+  reconsider the form** — it is one of the five, and S5.5 exists to guard it.
+
+*Recently closed: states are derived from the activity until somebody **promotes** them, and
+promotion replaces rather than copies — the value naming a resulting state becomes a ref to the
+state block, so one object is pointed at from both sides and the two notations cannot disagree.
+Structure, then activity, then state, each resting on the one before.*
 
 *Recently closed: the shipped layout is two folders at the root, `packages/` for data and `styles/`
 for stylesheets, with no wrapper — module code is `src/modules/`, where it already lives; and a
@@ -58,16 +59,18 @@ isolation.*
 ## Phase 0: the seams
 
 Five files absorb almost every planned feature, so almost every feature waits on another. Cutting
-these is what turns three concurrent streams into eight. **S1, S2, S3, S4, S5 and A0 touch disjoint
-files and run in parallel** — S5 waits on S2's contract and A0 on nothing.
+these is what turns three concurrent streams into eight. **S1, S2, S3, S5 and A0 touch disjoint
+files and run in parallel** — S5 waits on S2's contract and A0 on nothing. **S4 is the exception**:
+it reaches `fold.ts` and `store.ts`, which S3 and F also own. plan.md carries the order to take
+them in.
 
 | | Lines | Absorbs |
 |---|---|---|
-| `canvas/Canvas.tsx` | 1314 | every renderer. **The gestures are out** — `canvas/gestures.ts`, S2.1 |
-| `project.ts` | 776 | one `act` literal — every feature adds an action to it |
-| `graph/fold.ts` | 872 | one `apply()` switch — every new op |
+| `canvas/Canvas.tsx` | 1304 | every renderer. **The gestures are out** — `canvas/gestures.ts`, S2.1 |
+| `project.ts` | 772 | one `act` literal — every feature adds an action to it |
+| `graph/fold.ts` | 714 | one `apply()` switch — every new op. Was 872 before S3.1 |
 | `geometry/layout.ts` | 915 | clusters, notes-as-units and axis bias all land here |
-| `graph/types.ts` | 440 | every schema change — append-only, so tolerable as it is |
+| `graph/types.ts` | 475 | every schema change — append-only, so tolerable as it is |
 
 ### S1 — the action registry
 
@@ -245,31 +248,34 @@ storage, after which they are disjoint.
 
 ### A — views and packages
 
-All five notations were walked against the engine and **none adds an action or a form.** Most turn
-out not to need code at all — see design.md under *Packages and modules*.
+All five notations were walked against the engine and **none adds a form.** The structural ones need
+no code at all; the behavioural ones need a module each, because they project the same layer three
+different ways — see design.md under *Structure and behavior*.
 
 | | Costs |
 |---|---|
 | requirements | a package. No code |
 | parametrics | a package, once a constraint can draw from a size and a style |
 | flow | a package of `directed` subtypes |
-| activity | a package, **plus** one engine capability: a shape drawn inside a card |
-| state machine | a package over activity's shape |
-| sequence | a package, **plus** one engine capability: the lifeline arrangement |
+| activity | a **view module**, plus a package of words. A behavior layer's default reading |
+| state machine | a **view module** over the same layer, and `promote` where somebody wants real state blocks |
+| sequence | a **view module** over the same layer. Messages are derived, not drawn |
 | UML, SysML v2, UAF | packages — tables of definitions, names and mappings |
 
-**Only `table` and `matrix` are new view modules.** Everything else is configuration, and the two
-engine capabilities above are single components rather than folders of their own. That is the
-whole claim the component model makes, and the first package is what tests it.
+**Six view modules**: `block`, `table`, `matrix` for a structure and `activity`, `sequence`, `state`
+for a behavior. Everything else is configuration or data. **Behaviour is what added actions** —
+`scope` and `promote`, both the engine's — and it added no form and no mutation op.
 
-- **A project owns its own tree.** One using the behavior package owns its actions and holds
-  proxies of the participants; it never writes into the project those participants live in except
-  through the ownership rule in S4.
+- **A behavior project owns its own tree.** It holds its actions and states, and **refs** to the
+  participants; what it learns about a participant is written through the ref to the block, which is
+  the ownership rule in S4 and not an exception to it.
 - **A diagram binds gestures to actions**; the graph still holds all the state.
-- **A lifeline is a block's behavioral edge, and an occurrence on it is an interface** — so a
-  message is a relationship between two interfaces, and order down a lifeline is `at` along an
-  edge. Sequence needs an arrangement, not a layout law of its own.
-- **A swimlane is a block whose children belong to it** — not a group, which cannot be empty.
+- **A lifeline is a column, and an occurrence on it is an action.** Which column follows from who
+  `performs` the action, and **a message is derived**: an order relationship whose two ends are
+  performed by different participants. Sequence needs an arrangement, not a layout law of its own,
+  and needs nothing drawn that the activity did not already say.
+- **A swimlane is derived from `performs`** — the participants an action names are the lanes. Not a
+  group, which cannot be empty, and not something anybody draws.
 
 ### C — geometry
 

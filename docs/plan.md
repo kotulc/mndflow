@@ -166,7 +166,7 @@ wrong place.
 | **A.3** | **requirements** package — `id` and `text`, five relationship definitions, `shows` on the card. The proof a package needs no code | `packages/requirements/` | A0.2, S2.3 |
 | **A.4** | **parametrics** package — a constraint definition with a size and a style | `packages/parametrics/` | A.3 |
 | **A.5** | **flow** package — `directed` subtypes and the words for them | `packages/flow/` | A0.2 |
-| **A.6** | *Engine capability*: a **shape drawn inside a card**, which is what activity's figures need | `modules/card/` | S2.3 |
+| **A.6** | *Engine capability*: a **shape drawn inside a card** — what a derived decision or fork is drawn as. Nothing stores one; the module draws what it counted | `modules/card/` | S2.3 |
 | **A.7** `◆` | The **activity** view module — a behavior layer's default projection. Figures, guards as edge fields, partitions as blocks. Seeding makes one behavior block per container, holding refs to its children and the interactions implied between them; **sync is an action, never a binding**, so a process may cut across containers. **One open question first**: what an interaction writes on a participant — see tasks.md | `modules/view/activity/` | A.6, S5.2 |
 | **A.8** | The **state** view module — the same behavior layer projected as states and transitions. Its own module because it projects differently; not its own model | `modules/view/state/` | A.7 |
 | **A.9** | The **sequence** view module — a column per participant, order running down each. Explicit order from directed relations first, implied from position along the axis as the fallback | `modules/view/sequence/` | A.7 |

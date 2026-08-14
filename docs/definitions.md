@@ -148,6 +148,8 @@ named value carried by an element or a relationship, and never changes what cont
 | **diagram** | **what a layer looks like drawn on the canvas** — the picture, not a module. Every view module that draws on the canvas produces one |
 | **structure project** *(planned)* | a project whose blocks are the truth: parts, fields and the relations between them. Its layer views are **block**, **table** and **matrix**, block being the default |
 | **behavior project** *(planned)* | a project that scopes to one or more structures and describes what happens over them — activities, actions and states as its own blocks, holding **refs** to the participants. An overlay, never a second copy. Its layer views are **activity**, **sequence** and **state**, activity being the default |
+| **seeding** *(planned)* | filling a new behavior project with one behavior block per **container** in the structure it scopes to, each holding refs to that container's children and the interactions implied between them. **One step, doing the whole job**, and declinable; it happens once, and the behavior tree is its own from then on |
+| **promotion** *(planned)* | turning a **derived** state machine into real state blocks, which is what buys nesting and entry/exit behaviour. **Replaces, never copies**: the derived reading is the seed and then it is gone, and the value naming a resulting state becomes a **ref** to the state block, so activity and machine point at one object and cannot disagree |
 | **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block |
 | **explicit order** *(planned)* | sequence stated by a **directed relation** between two blocks. Read first, and it wins |
 | **implied order** *(planned)* | sequence read from where blocks sit along the layer's **axis** — left to right, or top to bottom. The fallback where no directed relation says otherwise, so laying things out in a row states an order without drawing an arrow |
@@ -206,7 +208,7 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }`, both by id, so renaming or moving either flows through untouched. Always live; to fix a version, bundle |
 | **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
 | **action surface** | the actions the engine publishes as data — name, arguments, when each applies, and the mutations each returns. **An action returns mutations rather than applying them**, which is what makes it rankable, hostable and testable. The seam both the page and the terminal work against |
-| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and a module draws it. An activity's fork, decision or initial node. Never in the explorer, and **takes no interfaces** |
+| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and a module draws it. Never in the explorer, and **takes no interfaces**. *(planned)* For **ornament a package ships**: an activity's control nodes are derived rather than placed, so nothing in the core makes one |
 
 **Three words are deliberately absent.** *Namespace*, because every project already scopes its own
 ids and a property shared by all of them is not a sort of thing. *Kind*, because what a project is
@@ -301,7 +303,7 @@ already made of. Nothing in the right column is a special case.
 | requirement | **block** + `id` and `text` fields | no new anything |
 | satisfy / verify / derive | **relationship** + definition | dashed, hollow head, from the definition |
 | action | **block** in a behavior project | |
-| control node (fork, join, decision, merge, initial, final) | **figure** | the engine places, the module draws |
+| control node (fork, join, decision, merge, initial, final) | **derived** | counted from the relationships and their guards; the module draws one and nothing stores it |
 | object node | **interface** or **block**, by where it sits | |
 | control flow / object flow | **relationship**, form `flow` | |
 | state | **block** in a behavior project | doing against being is the vocabulary, not the shape |

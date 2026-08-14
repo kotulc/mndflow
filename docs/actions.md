@@ -18,8 +18,9 @@ logs.
 
 ## Actions
 
-Twenty-nine. Every one is sayable, which is the test for being here at all. `colour` was a
-thirtieth until an element's own presentation was removed — colour is its definition's.
+Thirty-one. Every one is sayable, which is the test for being here at all. `colour` was a
+candidate until an element's own presentation was removed — colour is its definition's. The last
+two, `scope` and `promote`, arrived with behaviour and are **not built**.
 
 **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
 selected when somebody types. `layer` means the open layer is enough; `element` means one is
@@ -102,6 +103,29 @@ that end about it, which is the same action with two more arguments.
 | `unfield` | element, edge | holder, name | `drop_field` | `dropField` |
 | `define` | project | id?, name, form?, patch | `set_def` | `addRelation`, `renameRelation` |
 | `undefine` | project | id | `drop_def` | `dropRelation` |
+
+### Behavior *(not built — A.7)*
+
+Two, and they are the engine's rather than any module's: both change a project wholesale, and
+neither is about drawing. Nothing else about behaviour needs an action — an activity is blocks and
+relationships, and the ordinary ones make those.
+
+| | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|
+| `scope` | project | structures[], seed? | `add_element{proxy}`… + `link_elements`… | **not built** |
+| `promote` | element `proxy` | id | `add_element{block}`… + `set_field` per transition | **not built** |
+
+**`scope` seeds unless told not to**: one behavior block per container in the structures named,
+each holding refs to that container's children and the interactions implied between them. One step,
+and it happens once — nothing re-syncs afterwards.
+
+**`promote` replaces the derived machine**, so the value naming a resulting state becomes a ref to
+the state block it made. Activity and machine then point at one object.
+
+**`promote` means one thing wherever it appears**: turning something derived into something
+declared. A seat becomes an interface, a read machine becomes state blocks — same act, so the same
+word. The old `promote` closure meant *move up a layer* and is absorbed by `move`, which frees the
+name for what it should always have said.
 
 ### The layer and the project
 
@@ -220,14 +244,15 @@ draws. The breadcrumb and the arrange buttons are not among them: those reach `o
 | | |
 |---|---|
 | entries in `act` today | 52 |
-| actions | 29 |
+| actions | 31 — 29 replacing a closure, 2 new with behaviour |
 | adjustments | 4 |
 | page actions | 5, and 8 after S4 |
 | queries, off the surface | 5 |
 
 Twenty-nine rather than the twenty-six estimated in tasks.md: `move` and `group` absorbed more than
 expected, but navigation turned out to be three actions rather than none, and `relax`, `dissolve`
-and `vocabulary` had no closure to be counted in the first place.
+and `vocabulary` had no closure to be counted in the first place. `scope` and `promote` are the
+thirtieth and thirty-first, and the only two the behaviour walk added to the surface.
 
 **Three ops are reachable from nothing**: `relax_layer` and `size_element` are in the schema and in
 `fold`, and no code emits either; `dissolve` has no op of its own but no path to `delete_element`

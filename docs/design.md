@@ -13,10 +13,15 @@ more than one layer's worth of anything.
 — a node cannot contain itself. Nothing is forbidden for being unusual, and where a choice could
 be enforced or left to the user, it is left to the user.
 
-**Four ideas carry most of the weight:**
+**Five ideas carry most of the weight:**
 
 - **Derived beats stored.** Anything that can be worked out from the layer is worked out — seats,
   routes, boundaries, roles. Only choices are written down.
+- **The model grows itself as it is described.** Describing behaviour over a structure is how that
+  structure learns what it needs: the states a thing can be in, the interfaces it has to offer, the
+  actions it performs. Somebody draws what happens and the definitions fill in behind them, so the
+  work of modelling is spent saying things once rather than restating them in a second notation.
+  What can be inferred is inferred and shown for confirmation, never asked for twice.
 - **A hand-laid thing is a hard constraint; a derived one is not.** What somebody placed or
   declared is honoured; everything else is the layer's to arrange. This is the rule the whole
   layout model rests on.
@@ -1642,9 +1647,52 @@ the structure's shape has nowhere to put it. That is the case behavior modelling
 mirror that cannot hold it is the wrong shape however convenient it is on the first day. Deleting a
 container would also take real work with it, which no amount of convenience pays for.
 
-So **sync is an action, not a constraint**: seeding can be run again to bring in containers added
-since, and what somebody has built is never rearranged by a change to the other tree. That keeps
-everything the inference was for and costs only a button.
+**Seeding is one step, and it does the whole job.** Scoping a behavior project produces a complete
+inferred project — every container a behavior block, every implied interaction drawn — and then
+somebody reads it and adjusts what is wrong. It is not a sequence of confirmations: a question
+asked before anything exists is asked in the abstract, and the same question asked over a drawn
+model answers itself. That is the posture everything else here already takes — no confirm before a
+move, because undo is the recovery — and a session preference turns off what prompting remains.
+
+So **seeding happens once, at scoping, and can be declined.** What somebody has built is never
+rearranged by a change to the other tree. Bringing in containers added since is an obvious later
+convenience and deliberately not built: it is easy to add when somebody wants it and impossible to
+take back once a tree has been reshaped underneath them.
+
+**One chain of inference: structure, then activity, then state.** Each rests on the one before, and
+each is harder to write from nothing than the one before it — which is the argument for the order.
+A structure is what somebody already has in their head; an activity over it is a first guess the
+seed can make; a state machine is the reading of that activity from one participant's point of
+view, and it is the notation most people find hardest to start from a blank page.
+
+**States are derived until somebody promotes them, and then they are blocks.** The derived machine
+is a reading — the actions that affect a participant, ordered, with the states as the gaps between
+them. Promoting one turns those gaps into real state blocks, which is what buys nesting, entry and
+exit behaviour, and transitions carrying their own trigger and guard.
+
+**Promotion replaces; it never copies.** The derived machine is the seed and then it is gone, so
+there are never two versions to reconcile. What makes that watertight is that the value naming a
+resulting state becomes a **ref to the state block** — one object, pointed at from the activity and
+composed by the machine. Adding an action afterwards either points at a state that exists or makes
+one; it cannot invent a state the machine has not heard of. The two notations cannot disagree
+because there is nothing for them to disagree about.
+
+**References never drift; membership does, deliberately.** A ref points at the block itself, so
+renaming, moving or re-typing a participant flows through untouched. What is *not* kept in step is
+which participants a behavior project holds refs to — that was seeded once, on purpose, so a
+process may cut across containers and outlive a change to the tree it came from.
+
+**A control node is drawn, never stored.** Two outgoing orders with different guards is a decision;
+two without is a fork; two arriving is a merge or a join; an action nothing precedes is initial and
+one nothing follows is final. Every one of them is a count, so the module draws what it works out
+and the graph holds none of it. Whether the bars and diamonds appear at all is the **package's**
+call — a SysML reading draws them because a reader expects them, and a lean one leaves the
+relationships to say it — which is presentation, exactly where a package's authority already ends.
+
+**`figure` survives for ornament somebody places**, and for nothing else: a legacy symbol a notation
+needs on the page that means nothing to the engine. If A.7–A.9 land and nothing has ever placed
+one, that is worth knowing — a closed-set form with no user is a form to reconsider, and quietly
+keeping it would be the kind of thing this document exists to prevent.
 
 **None of this needs a schema change**, which is the test that it belongs. An activity is a block,
 its parent is the activity above it, an instance is a proxy or a `ref`, the sequence is `dir` on
