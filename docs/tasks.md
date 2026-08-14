@@ -33,10 +33,18 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-- **What is left in `assets/modules/`?** A0 was written before module code existed; it now lives in
-  `src/modules/` and two components are already there. If nothing else is coming, `assets/` is data
-  and stylesheets — `packages/` and `styles/` — and the layout is two folders rather than three.
-  **Blocks A0.1**, and A0.1 blocks S2.4, A0.2 and A0.3.
+- **What does a behavior actually write on a participant?** Settled that it writes — through the
+  ref, to the block, like any proxy. Not settled is *what*: a field, a port, an interface, a
+  relationship, or some of each, per interaction kind. **Blocks A.7**, and a worked example would
+  pin it down faster than an argument would.
+- **Is re-seeding an action or a page action?** Sync is settled as an action rather than a binding;
+  where it is *offered* is not. It reaches every layer of a project at once, which no action on the
+  surface does today. **Blocks A.7's second half, not its first.**
+
+*Recently closed: the shipped layout is two folders at the root, `packages/` for data and `styles/`
+for stylesheets, with no wrapper — module code is `src/modules/`, where it already lives; and a
+**layer view** is the projection of a layer through the rules and packages in scope, so what it
+takes to show a layer at all belongs to the view module and not to any component.*
 
 *Recently closed: extension is subtyping and never overriding, one parent, with rules reaching
 every subtype; component configuration lives in one `components` bag keyed by component; undo
@@ -126,10 +134,17 @@ thing drawn in it:**
   draws are held by the page and read by the canvas. They are per-diagram, not per-page — a matrix
   has no interfaces toggle — and with three view modules there is nobody to hold them.
 
-**The reading.** The six components describe what is drawn **inside** a layer and say nothing about
-the layer as a place to work. Either `view` is doing more than its one line admits and should say
-so, or there is a seventh concern. **This is the S2.6 decision**, and it wants answering before
-S2.4 and S2.5 build against the current six.
+**Answered.** They are not a seventh component: they are the **projection surface**, which is the
+view module's and never a definition's — see design.md under *The view is where a notation plugs
+in*. A layer is the current scope; a **layer view** is that layer projected through the rules and
+packages in scope and rendered by one of the three modules. So the frame, the camera, the chrome
+and where a gesture asks are the diagram module's answer to *how do you show a layer at all*, and a
+table answers the same question with rows, no frame and a scrollbar.
+
+Derived presentation is the one of the five that does not simply move: a reference, a tie and a
+proxy card draw as they do because of what their ends **are**. That is the engine's own reading of
+the graph, so it stays with the engine and is offered to the module as a fact, not configured on a
+definition that does not exist.
 
 **Also found**: `Canvas.tsx`'s Props is 50 entries. Most collapse into one dispatch with S1.6;
 about a dozen are the genuine contract a swappable view module would implement, and that dozen is
@@ -151,12 +166,12 @@ thing in itself; `ends`, `holds`, `degree` and `match` govern how things interac
 while modelling and refuse only at translation**, and a rule the five cannot say is a module's
 `validate` hook in code — never a language.
 
-### A0 — assets
+### A0 — packages and styles
 
-`assets/packages/` for data, `assets/modules/` for code, `assets/styles/` for stylesheets.
-Build-time, so extending means editing the repo and rebuilding. **The base ships as a package**,
-which is the test of whether the package idea is strong enough — and it is where the relation seeds
-now living in `workflows/*.yaml` belong.
+`packages/` for definition data and `styles/` for stylesheets, both at the root; module code is
+`src/modules/`, where it already lives. Build-time, so extending means editing the repo and
+rebuilding. **The base ships as a package**, which is the test of whether the package idea is
+strong enough — and it is where the relation seeds now living in `workflows/*.yaml` belong.
 
 ### S3 — fold hygiene
 
@@ -210,7 +225,7 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 
 | | Owns | Waits on |
 |---|---|---|
-| **A** Views and packages | `modules/view/`, `assets/packages/` | S2, S4 |
+| **A** Views and packages | `modules/view/`, `packages/` | S2, S4 |
 | **C** Geometry | `geometry/` | S3 (perf only) |
 | **D** Vocabulary | `terminal/workflows.ts`, `graph.vocabulary` | — |
 | **E** Definitions and fields | `page/Contents.tsx`, `page/Relations.tsx` | S1 |

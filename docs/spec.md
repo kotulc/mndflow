@@ -454,8 +454,21 @@ layout law and a gesture map. See [design.md](design.md) under *The view is the 
 organised by behaviour, by requirement, by function — whatever the work is about. It has its own
 log and its own export, like any project, and it appears in the workspace as its own entry.
 
-- **A diagram is a block whose definition names a view module** — `diagram`, `table` or `matrix`.
-  A folder beside it is an ordinary block. Neither costs a concept.
+- **A diagram is a block whose definition names a view module.** A folder beside it is an ordinary
+  block. Neither costs a concept. *Diagram* is what a layer looks like drawn on the canvas, so it
+  names no module of its own.
+- **Six view modules, three per kind of project**, and the kind is visible from what is being drawn
+  rather than declared:
+
+  | | Object structures | Behavior structures |
+  |---|---|---|
+  | default | **block** | **activity** |
+  | others | **table**, **matrix** | **sequence**, **state** |
+
+  - **A behavior is not offered a table or a matrix**, because what it holds is tied to the objects
+    interacting and those already have both. Nothing structural stops one — a module reads a layer,
+    and a behavior layer is a layer — so this is what is *offered*, and an allocation matrix of
+    participants against actions is the obvious thing to reconsider it for.
 - **Everything a diagram shows is a proxy**, whatever it looks like: a card, a table row, a label
   along a matrix axis. How one draws is its subtype's, so a table is the same objects as a diagram
   drawn differently rather than a second kind of thing.
@@ -466,7 +479,11 @@ log and its own export, like any project, and it appears in the workspace as its
 - **A diagram's own variation is its contents and its fields**, never configuration: its definition
   configures every diagram of that subtype alike, so two matrices differ in what they hold and what
   their fields say.
-- **Nothing about a view enters the project it reads.**
+- **Nothing about *how a view looks* enters the project it reads** — its contents, its arrangement
+  and its fields are its own. **What is done through a proxy does reach home**, and always did: a
+  proxy is a stand-in, so renaming one renames the block, and a behavior acting on one modifies the
+  block it stands for. That is one rule, not an exception — the change is written where the element
+  lives.
 - **A relationship goes to the log of the project that owns its ends**, resolved through the
   proxies — so filling in a matrix cell is a real relationship in the real project, while a view's
   flows between its own elements stay in its own log.
@@ -491,6 +508,21 @@ components, and nothing else:
 | **gesture map** | which gesture reaches which action, and where its arguments come from |
 | **adjustments** | which of the four positional adjustments it accepts |
 
+**What a view module provides** is the other half, and it is the module's rather than any
+definition's — the **projection surface**. A layer is the current scope; a **layer view** is that
+layer projected through the rules and packages in scope and rendered by one of the three modules.
+
+| | Is |
+|---|---|
+| **the surround** | a frame and its walls, or nothing. The diagram draws a border with interfaces seated on it; a table has rows and no frame |
+| **the viewport** | a camera, or a scrollbar. What "fit" and "go to this" mean here |
+| **the chrome** | which controls a view offers — a breadcrumb, the arrangements, the axis, the toggles that only make sense in it |
+| **asking** | where a gesture puts a question, since one asks for a name before anything is made |
+
+- **Per module, never per definition.** Every diagram has a frame because diagrams project onto a
+  plane, not because a definition asked for one. This is the line the components do not cross: they
+  configure the things *in* a layer, and a component that reached the frame would give every table
+  a border it cannot draw.
 - **A diagram names actions; it never writes mutations.** That is what keeps one input method
   indistinguishable from another, and what lets two diagrams bind one action to different gestures.
 - **An unregistered `type` falls back to the engine's card.** A diagram declares what it draws

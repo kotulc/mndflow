@@ -49,14 +49,14 @@ that will be wrong about something later.
 ## The engine and what configures it
 
 Four tiers, and the boundary between the middle two is the one that matters: **what the engine
-must know goes in data; what only a person needs to see goes in assets.**
+must know goes in data; what only a person needs to see is shipped beside it.**
 
-| | Holds | Changed by |
-|---|---|---|
-| **engine** | the forms, the tree, containment, membership, placement, routing, seats, the grid, the log and the fold, ids and references, the action surface | nobody. This is the closed part |
-| **definition** | name, other vocabularies' names, a body, fields, the room a usage needs, and the configuration of every open component | data, shipped in a package |
-| **assets** | stylesheets, renderers, layout laws, gesture maps, validation hooks | code, at build time |
-| **never** | a sixth element form, a new mutation op, a new adjustment | — anything the engine would have to *reason* about |
+| | Holds | Changed by | Lives in |
+|---|---|---|---|
+| **engine** | the forms, the tree, containment, membership, placement, routing, seats, the grid, the log and the fold, ids and references, the action surface | nobody. This is the closed part | `src/graph`, `src/geometry` |
+| **definition** | name, other vocabularies' names, a body, fields, the room a usage needs, and the configuration of every open component | data, shipped in a package | `packages/` |
+| **module** | renderers, layout laws, gesture maps, validation hooks, the projection surface | code, at build time | `src/modules/`, with stylesheets in `styles/` |
+| **never** | a sixth element form, a new mutation op, a new adjustment | — anything the engine would have to *reason* about | — |
 
 **The engine never branches on user data.** It reads the closed forms and the derived facts, and
 nothing else — which is why `figure` earns a form for taking no ports while a lighter stroke does
@@ -82,8 +82,8 @@ answer a question about.
 extensibility and costs nothing; a runtime plugin loader means sandboxing untrusted code inside a
 page holding the user's whole workspace, which is a different decision and not one to smuggle in.
 It follows that **a package must be useful with portable presentation alone** — an imported package
-brings its data and renders on the simple typed fields, gaining its custom look only when its
-assets are present. It degrades rather than breaks.
+brings its data and renders on the simple typed fields, gaining its custom look only where the
+module and stylesheet it names are in the build. It degrades rather than breaks.
 
 **A subtype keeps the behaviour of the form it subtypes.** A decision is a figure with a shape
 drawn in it, a swimlane is a group with a segmented style, a lifeline is a block laid out along an
@@ -1557,11 +1557,99 @@ configuration among others, the component boundaries are in the wrong place.
 That is the strongest evidence the closed sets are the right size. A set that had been drawn too
 small would have shown it here, as a notation that could not be said without widening it.
 
+**The layer is what is looked at; the layer view is the looking.** A layer is a cross-section of
+the tree — the current scope, and nothing about presentation. A **layer view** is that layer
+projected through the rules and packages in scope and handed to one of the three base view modules
+to render. The same layer read twice through different packages is two projections of one thing,
+which is what stops a diagram ever being the place a fact is stored.
+
+**So a view module owns the projection surface, and the components own what is in it.** The
+distinction is which question each answers. A component — card, style, constraints, rules — is
+configured **per definition** and says what a *thing* is like wherever it appears. A projection
+surface is **per module** and says what it takes to show a layer at all: a frame or no frame, a
+camera or a scrollbar, where the chrome sits, where a gesture asks for a name. The diagram's frame
+is not a card that happens to be big, and its camera is not a style; both exist because a diagram
+projects onto a plane, and a table projecting onto rows needs neither.
+
+Getting this the wrong way round is the expensive mistake, because it is invisible at first: put
+the frame in a component and every table definition inherits a border it cannot draw, and the
+engine ends up branching on what kind of view is asking — which is exactly the reasoning the
+component surface exists to remove.
+
 **A view declares which adjustments it accepts**, and may accept none. A sequence view takes only
 one: a column is a lifeline and the axis down it is time, so the sole thing worth dragging is where
 an occurrence sits on its own lifeline — which is a seat, the same adjustment a port already has.
 Nothing there has a free position. The fewer adjustments a view accepts, the more the engine owns,
 which is the direction a general modeller should be moving in.
+
+### Structure and behavior
+
+**Behavior is an overlay on a structure, not a second model of it.** A structure project is the
+truth: its blocks, their parts, their fields, and the relations between them. A behavior project
+scopes to one or more of those structures and describes what happens *over* them — activities,
+actions and states as its own blocks, bound to the structural blocks they act on. Two projects, one
+truth, and the overlay never becomes a second place a fact lives.
+
+**A usage leans on something else in one of three ways**, and the words are SysML v2's because the
+distinction is the same one: a **part** the tree owns, a **ref** to something it does not own, an
+**import** of an external definition. A behavior project holds **refs** — never parts — of the
+structure it acts on, which is precisely why its tree stays its own.
+
+**A ref is a proxy, and writing through a proxy writes home.** That is not a new rule for behavior;
+it is the rule proxies have always had. Renaming a proxy renames the block, and an interaction
+recorded against one modifies the block it stands for. So the behavior project owns its actions and
+its own arrangement, and everything it *learns about a participant* lands in the project where that
+participant lives. One mechanism, one cascade, one log per fact.
+
+**Only behavior blocks are in the behavior tree.** An object block never becomes a child of an
+action: it appears inside a behavior *layer* as a proxy, which is an appearance and not composition.
+The tree of a behavior project is activities and the actions and states under them, and nothing
+else — so the two trees never interleave and neither can drift into being a copy of the other.
+
+**Order is read from the model, and only guessed at as a fallback.** A directed relation between
+two blocks *is* the sequence — the explicit statement, and it wins. Where none exists, position
+along the layer's own axis says the same thing: left to right on an `across` layer, top to bottom
+on a `down` one, which is what the flow walls already draw. So a sequence is projected from
+explicit order first and implied order second, and somebody who has laid ten blocks out in a row has
+already said what happens in what order without drawing a single arrow.
+
+That fallback is the reason the axis was worth having as a setting separate from an arrangement.
+It also means the cheapest possible modelling gesture — putting things next to each other — carries
+meaning, which is what *rapid* has to mean if it means anything.
+
+**Activity, sequence and state are three projections of one behavior layer**, not three models and
+not three packages. The layer holds the same blocks and the same directed relations however it is
+drawn; what differs is the projection surface — a plane of actions, a column per participant with
+order running down it, or states with transitions between them. A behavior layer toggles between
+them the way a structural layer toggles to a table.
+
+Each is still its own **module**, because each projects differently enough to need code; what they
+are not is separate *models*. That is the saving: one behavior block encodes the interaction, and
+three modules read it three ways. A perspective that needed its own copy of the facts would be a
+second model wearing a view's clothes.
+
+**A behavior project is seeded, not built by hand.** Scoping one to a structure fills it with a
+behavior block per **container** — the non-leaf blocks — because a thing with parts inside it is
+overwhelmingly the thing that has behaviour worth describing, and a leaf usually participates rather
+than acts. Each seeded block arrives holding refs to that container's children and the interactions
+already implied between them, so the first thing somebody sees is their own system with a first
+guess drawn over it rather than an empty canvas.
+
+**Seeded, and then its own.** The behavior tree is not bound to the structure tree afterwards, and
+the reason is the case that matters most: a process worth modelling usually **cuts across**
+containers — order fulfilment touching billing, the warehouse and shipping — and a tree pinned to
+the structure's shape has nowhere to put it. That is the case behavior modelling exists for, so a
+mirror that cannot hold it is the wrong shape however convenient it is on the first day. Deleting a
+container would also take real work with it, which no amount of convenience pays for.
+
+So **sync is an action, not a constraint**: seeding can be run again to bring in containers added
+since, and what somebody has built is never rearranged by a change to the other tree. That keeps
+everything the inference was for and costs only a button.
+
+**None of this needs a schema change**, which is the test that it belongs. An activity is a block,
+its parent is the activity above it, an instance is a proxy or a `ref`, the sequence is `dir` on
+ordinary relationships, the implied order is `x`/`y` against the layer's `axis`, and a partition is
+a group. What is new is inference and projection — code — and never a field.
 
 ### The action surface is the input seam
 

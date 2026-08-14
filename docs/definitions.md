@@ -40,6 +40,8 @@ join them. Everything else describes one of the two.
 | Term | Means |
 |---|---|
 | **tree** | the project's core hierarchy: blocks nested inside blocks. The spine the whole project hangs from |
+| **structure tree** *(planned)* | the tree of a **structure project**: the things themselves, and the truth about them |
+| **behavior tree** *(planned)* | the tree of a **behavior project**: activities, and the actions and states under them. **Only behavior blocks are in it** — a participant appears inside a behavior *layer* as a ref, never as a child |
 | **structural** | belonging to the tree, and nothing looser. **Only blocks are structural**, and only through `parent` — a note, a group and a proxy all sit in a layer without composing it, and a relationship joins without composing. Reserved for the tree so that it stays a useful word |
 | **parent** | what an element sits inside. The tree is `parent` and nothing else |
 | **containment** | being inside something. **Implied by `parent`, never stored as a relationship** |
@@ -49,6 +51,26 @@ join them. Everything else describes one of the two.
 | **proxy** | a virtual block standing in for one that lives in another layer, so a relationship can cross a structural boundary. Shows the real block's name. What it stands for is a property of the **appearance** — one thing appearing twice, not two things joined. One per layer per block, and never for a block already in that layer |
 | **root** | the block that holds every other. Carries the project's metadata and its definitions, has `parent: null`, and has no frame — a frame is a block seen from inside, and root has no outside |
 | **name** | unique among an element's siblings; position in the tree is what makes it unique in the project. An unnamed element is numbered among its own form — `block 1`, `note 2` |
+
+**Definition and usage are the spine**, and the words are SysML v2's, which draws exactly this
+distinction: `part def Engine` declares, `part engine : Engine` uses. A **usage** is an element that
+names a definition, and mndflow has meant that all along.
+
+**Three ways a usage leans on something else** *(planned)*, none interchangeable:
+
+| Term | Standard | Is | mndflow already has |
+|---|---|---|---|
+| **part** | SysML v2 `part`; UML part property, composition | a usage the tree **owns** — has-a, and deleting the whole deletes it | `parent`, and nothing else |
+| **ref** | SysML v2 `ref part` | a usage that **points at** something it does not own — the participant an interaction acts on | the **proxy**, and the `ref` field form |
+| **import** | UML `ElementImport`; SysML v2 `import` | bringing an external **definition** into scope | the path `proj_a9f/def_pump`, and the package list |
+
+- **`part` and `ref` differ by ownership, not by distance.** A part is in the tree; a ref names
+  something the tree does not compose. That is the one distinction every notation draws and the
+  only one worth a word.
+- **A behavior project holds refs, never parts, of the structure it acts on** — which is why its
+  tree stays its own and an object block never appears in it.
+- **`reference` stays what it already is**: a *relationship* with a proxy at one end, derived and
+  drawn violet. A `ref` is the usage; a reference is the line that reaches one.
 
 
 ## Relationships
@@ -91,10 +113,12 @@ named value carried by an element or a relationship, and never changes what cont
 
 | Term | Means |
 |---|---|
-| **layer** | a **cross-section of the tree at one block**: that block's immediate contents, seen from within. Not its whole subtree — descending a level is a different cross-section of the same branch |
+| **layer** | a **cross-section of the tree at one block**: that block's immediate contents, seen from within. Not its whole subtree — descending a level is a different cross-section of the same branch. The layer is the current **scope** |
+| **layer view** *(planned)* | the **projection** of a layer: what that layer looks like once the rules and packages in scope are applied to it, rendered by one of the three base view modules. The layer is what is being looked at; the layer view is the looking. A layer is scoped to one or more **structures**, its own project's or an imported package's |
+| **projection surface** *(planned)* | what a view module must provide to show a layer at all — the frame or its equivalent, the viewport, the chrome, and the place a gesture asks a question. **Per module, never per definition**: a diagram has a frame and a camera, a table scrolls and has neither. Not one of the components, which configure the things *in* a layer |
 | **scope** | the layer being drawn. Set by clicking in the explorer |
 | **context** | what is selected within the layer. Set by clicking on the canvas |
-| **frame** | the border of the open layer, seen from within |
+| **frame** | the border of the open layer, seen from within. The diagram module's answer to the projection surface; a table has no frame |
 | **wall** | one of the frame's four sides. **Only the frame has walls** — a card's sides are never named, because a card has no border zone for a gesture to land on |
 | **band** | the dimmed margin between the frame and the edge of the panel |
 | **card** | a block as drawn on the canvas |
@@ -120,7 +144,13 @@ named value carried by an element or a relationship, and never changes what cont
 | **unit** | anything laid out as a whole: a card, a group, or a note. Layout's word; a `number` field's `unit` is its unit of measure, and the two never meet |
 | **cluster** | units drawn together by relationships, arranged as one region *(backlog)* |
 | **arrangement** | a one-time **action** that lays the layer out and writes down where everything landed: `grid`, `radial`, `across`, `down`. Never a mode, so never "current" |
-| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a flow relationship takes; says nothing about where cards go |
+| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a flow relationship takes; says nothing about where cards go. **(planned)** Also the fallback the implied order is read along |
+| **diagram** | **what a layer looks like drawn on the canvas** — the picture, not a module. Every view module that draws on the canvas produces one |
+| **structure project** *(planned)* | a project whose blocks are the truth: parts, fields and the relations between them. Its layer views are **block**, **table** and **matrix**, block being the default |
+| **behavior project** *(planned)* | a project that scopes to one or more structures and describes what happens over them — activities, actions and states as its own blocks, holding **refs** to the participants. An overlay, never a second copy. Its layer views are **activity**, **sequence** and **state**, activity being the default |
+| **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block |
+| **explicit order** *(planned)* | sequence stated by a **directed relation** between two blocks. Read first, and it wins |
+| **implied order** *(planned)* | sequence read from where blocks sit along the layer's **axis** — left to right, or top to bottom. The fallback where no directed relation says otherwise, so laying things out in a row states an order without drawing an arrow |
 | **resting layout** | what a render runs: placed elements stay, unplaced ones fill around them |
 | **rank** | one step along the axis. Things pointing at each other sit in successive ranks |
 | **hard constraint** | something honoured **by** an arrangement, which survives it. Ports and walls, and nothing else |

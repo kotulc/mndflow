@@ -74,9 +74,9 @@ wrong place.
 | ~~**S2.1**~~ | ~~Extract gesture handling out of `Canvas.tsx`~~ — **done**: `useGestures(reach, stage)`, 867 lines out of a 2041-line file. Hit testing, both buttons, the keyboard and the drag snap; it reaches actions and writes no mutation. Verified in a browser | `canvas/gestures.ts` | — |
 | ~~**S2.2**~~ | ~~The component contract~~ — **done**: `publish` registers each component's validator with the door, which drops only a key its component refuses and reports the reason. An unclaimed key is unvalidated, never wrong. 6 tests | `modules/index.ts`, `graph/check.ts` | — |
 | ~~**S2.3**~~ | ~~The **card** component~~ — **done**: the six layouts, five shapes, three label placements and `shows`, refused from data and closed to it. `PLAIN` is today's card written down as one configuration; `cardOf` resolves a usage. Published by `modules/base.ts` at startup, so the door refuses `card.shape: trapezium` in the component's own words. 13 tests. **Nothing draws from it yet** — that is S2.6 | `modules/card/`, `modules/base.ts`, `main.tsx` | — |
-| **S2.4** | The **style** component — a style set by name over the portable typed fields. **Publish it in `modules/base.ts`**, or the door validates its key silently | `modules/style/`, `assets/styles/`, `modules/base.ts` | S2.2, A0.1 |
-| **S2.5** | The **view** component and the view-module registry: `diagram`, `table`, `matrix`. **Publish it in `modules/base.ts`**, or the door validates its key silently. `modules/card/` is the pattern | `modules/view/`, `modules/base.ts` | S2.2 |
-| **S2.6** `◆` | Move today's canvas in as the **base diagram**, configured rather than hard-wired. **Bigger than one sitting, and the verdict on the whole seam.** Already walked without moving code — five things resisted, all of them the layer *as a workspace*: the frame, the camera, derived presentation, the prompt loop, per-diagram display preferences. See tasks.md under S2. **Answer that before S2.4 and S2.5 build against the current six** | `modules/view/diagram/` | S2.5, S2.3 |
+| **S2.4** | The **style** component — a style set by name over the portable typed fields. **Publish it in `modules/base.ts`**, or the door validates its key silently | `modules/style/`, `styles/`, `modules/base.ts` | S2.2, A0.1 |
+| **S2.5** | The **view** component and the view-module registry. **Six modules, three per kind**: `block` (default), `table`, `matrix` for a structure; `activity` (default), `sequence`, `state` for a behavior. `diagram` names no module — it is what a layer looks like drawn. Register the set; the modules themselves are S2.6 and A.7–A.9. **Publish it in `modules/base.ts`**, or the door validates its key silently; `modules/card/` is the pattern | `modules/view/`, `modules/base.ts` | S2.2 |
+| **S2.6** | Move today's canvas in as the **`block` view module** — the base diagram. Two halves now, and the split is decided: what a definition configures goes to the components, and what it takes to *show a layer at all* — the frame, the camera, the chrome, where a gesture asks — is the diagram module's **projection surface**. **Bigger than one sitting**; land the surface first, then the configured half | `modules/view/diagram/` | S2.5, S2.3 |
 | **S2.7** | Wire the gesture map from actions.md's inventory; a diagram declares the adjustments it takes | `modules/view/diagram/`, `canvas/gestures.ts` | S2.6, S1.6 |
 
 ### S5 — constraints and rules
@@ -97,12 +97,12 @@ wrong place.
 | **SC.3** | Resolve a subtype: fields union, `components` merge per key, and the resolved view cached per fold | `graph/fold.ts` | SC.2, S3.3 |
 | **SC.4** | Two definitions loaded under one name are offered with their packages beside them | `page/Contents.tsx` | A0.3 |
 
-### A0 — assets
+### A0 — packages and styles
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **A0.1** `◆` | The `assets/` layout. **`src/modules/` already holds module code** (S2.2, S2.3), so `assets/modules/` may have nothing left to hold — decide whether `assets/` is data and stylesheets only, `packages/` and `styles/`. Blocks S2.4, A0.2, A0.3 | `assets/` | ⊘ |
-| **A0.2** | `assets/packages/core` — the relation seeds now living in `workflows/*.yaml`, which have nothing to do with the terminal | `assets/packages/core/`, `workflows/` | A0.1, D.1 |
+| **A0.1** | Two folders at the root: **`packages/`** for definition data, **`styles/`** for stylesheets. No wrapper folder, and nothing for module code — that is `src/modules/`, where it already lives. Blocks S2.4, A0.2, A0.3 | `packages/`, `styles/` | ⊘ |
+| **A0.2** | `packages/core` — the relation seeds now living in `workflows/*.yaml`, which have nothing to do with the terminal | `packages/core/`, `workflows/` | A0.1, D.1 |
 | **A0.3** | Loading a package: definitions in, by id, never shadowing | `workspace/` | A0.1, S4.4 |
 | **A0.4** | Preset registration, so a diagram names a tested set rather than recombining freely | `modules/index.ts` | S2.5 |
 
@@ -163,15 +163,15 @@ wrong place.
 | **F.3** | Export a rendered SVG beside the source. Needs a renderer that is not React Flow | `modules/view/diagram/` | S2.6 |
 | **A.1** | The **table** view module — proxies drawn as rows | `modules/view/table/` | S2.5, S4.4 |
 | **A.2** | The **matrix** view module — two axes, relationships in the cells, no adjustments | `modules/view/matrix/` | A.1 |
-| **A.3** | **requirements** package — `id` and `text`, five relationship definitions, `shows` on the card. The proof a package needs no code | `assets/packages/requirements/` | A0.2, S2.3 |
-| **A.4** | **parametrics** package — a constraint definition with a size and a style | `assets/packages/parametrics/` | A.3 |
-| **A.5** | **flow** package — `directed` subtypes and the words for them | `assets/packages/flow/` | A0.2 |
+| **A.3** | **requirements** package — `id` and `text`, five relationship definitions, `shows` on the card. The proof a package needs no code | `packages/requirements/` | A0.2, S2.3 |
+| **A.4** | **parametrics** package — a constraint definition with a size and a style | `packages/parametrics/` | A.3 |
+| **A.5** | **flow** package — `directed` subtypes and the words for them | `packages/flow/` | A0.2 |
 | **A.6** | *Engine capability*: a **shape drawn inside a card**, which is what activity's figures need | `modules/card/` | S2.3 |
-| **A.7** | **activity** package — figures, guards as edge fields, partitions as blocks | `assets/packages/activity/` | A.6, S5.2 |
-| **A.8** | **state machine** package — activity's shape, its own vocabulary | `assets/packages/state/` | A.7 |
-| **A.9** | *Engine capability*: the **lifeline arrangement** — a column per participant, order down each | `modules/view/diagram/` | S2.6 |
-| **A.10** | **sequence** package — occurrences as interfaces seated down a lifeline; accepts only `seat` | `assets/packages/sequence/` | A.9 |
-| **A.11** | **UML, SysML v2 and UAF** packages — tables of definitions, `names`, and mappings | `assets/packages/` | A.7 |
+| **A.7** `◆` | The **activity** view module — a behavior layer's default projection. Figures, guards as edge fields, partitions as blocks. Seeding makes one behavior block per container, holding refs to its children and the interactions implied between them; **sync is an action, never a binding**, so a process may cut across containers. **One open question first**: what an interaction writes on a participant — see tasks.md | `modules/view/activity/` | A.6, S5.2 |
+| **A.8** | The **state** view module — the same behavior layer projected as states and transitions. Its own module because it projects differently; not its own model | `modules/view/state/` | A.7 |
+| **A.9** | The **sequence** view module — a column per participant, order running down each. Explicit order from directed relations first, implied from position along the axis as the fallback | `modules/view/sequence/` | A.7 |
+| **A.10** | **Vocabulary packages** for the three behavior projections — what each calls an action, a state, a message. Data only; the projecting is A.7–A.9 | `packages/behavior/` | A.9 |
+| **A.11** | **UML, SysML v2 and UAF** packages — tables of definitions, `names`, and mappings | `packages/` | A.7 |
 | **A.12** | The **IBD layout law** — rank by connectivity rather than containment, ports shown | `modules/view/diagram/` | A.2 |
 
 
