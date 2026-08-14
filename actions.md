@@ -145,7 +145,7 @@ of these it accepts**, and may accept none.
 
 ## Gestures
 
-What reaches an action today, read out of `canvas/Canvas.tsx`. **The left button works what
+What reaches an action today, read out of `canvas/gestures.ts`. **The left button works what
 already exists; the right button makes something new.**
 
 ### Left button

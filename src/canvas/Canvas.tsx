@@ -3,11 +3,8 @@
  *  Positions are held by React Flow while a drag is in progress and committed
  *  to the log on release — otherwise a node would not move until it landed.
  *
- *  The buttons divide the work. Left selects and moves: click to select, then
- *  drag what is selected, which is what makes a card, an interface and a group
- *  all movable by the same gesture. Right draws relationships, and a right
- *  click that never moves falls through to the default action for whatever is
- *  under it. */
+ *  What the pointer and the keyboard *mean* is `gestures.ts`. This composes the
+ *  layer: where everything sits, what draws it, and the controls around it. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -27,21 +24,21 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
+import type { Picked } from "../actions";
 import {
-  axisOf, blocksOf, groupsIn, isProxy, isReference, membersOf, nameOf, notesIn, portsOf, proxyIn,
-  refOf, relationNames, tiesOf, titleOf, typeName,
+  axisOf, blocksOf, groupsIn, isReference, nameOf, notesIn, portsOf, proxyIn,
+  relationNames, tiesOf, titleOf, typeName,
 } from "../graph/fold";
-import {
-  around, arranged, CELL, cell, HUG, LEAF, middled, place, SEAT, seatAt, sizeOf,
-} from "../geometry/layout";
+import { around, arranged, CELL, cell, HUG, LEAF, place, sizeOf } from "../geometry/layout";
 import {
   attach, lanes, route as planRoute, runOf, type Box, type Seat,
 } from "../geometry/route";
 import type { Axis, EdgeForm, End, Graph, Layout, Side, Spot } from "../graph/types";
 import { Frame } from "./Frame";
+import { useGestures, type Prompt } from "./gestures";
 import { GroupFrame } from "./GroupFrame";
 import { NodeCard } from "./NodeCard";
-import { type Grazed, LIFTED, REFERRED, type Seated } from "./card";
+import { type Grazed, type Seated } from "./card";
 import { Note } from "./Note";
 import { restated } from "./sync";
 import { Wire } from "./Wire";
@@ -68,20 +65,10 @@ const BAND = 56;
  *  second border on them. It need not be a whole cell, because nothing snaps a
  *  boundary — the members are what land on the grid, and the boundary follows
  *  them wherever they land. */
-/** How far a right drag must travel before it is a relationship rather than a
- *  right click that wandered. */
-const THRESHOLD = 12;
-/** How near a card's border counts as being on it rather than inside it. */
-const EDGE = 14;
 /** How many layers of the trail the breadcrumb spells out. Past this the
  *  middle is elided: the project and the last few are what tell you where you
  *  are, and a deep branch spelled out in full is a wall of names. */
 const TRAIL = 3;
-/** How near the layer's own border counts as being on it. Its margin is wide,
- *  because that is where its interfaces sit, but the border is still a border:
- *  treating the whole margin as the edge lit the frame up from halfway across
- *  the canvas. */
-const RIM = 30;
 /** A note's drawn size, used only to decide which of its sides a leader leaves
  *  by. Its real height is its text's; being a few pixels out picks the same
  *  side of four either way. */
@@ -139,26 +126,6 @@ function facing(from: Box, to: Box): Side {
   if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? "right" : "left";
 
   return dy > 0 ? "bottom" : "top";
-}
-
-/** Nearest edge of an element to a screen point, and the seat on it. The
- *  element is measured on screen, so its length is divided by the zoom to get
- *  the canvas units seats are counted in. `corner` is that element's top-left
- *  in canvas units, so seats land on the absolute lattice. */
-function nearestEdge(
-  box: DOMRect, x: number, y: number, zoom: number, corner: { x: number; y: number },
-): { side: Side; at: number } {
-  const gaps = {
-    left: x - box.left, right: box.right - x, top: y - box.top, bottom: box.bottom - y,
-  };
-  const side = (Object.keys(gaps) as Side[])
-    .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
-  const flat = side === "top" || side === "bottom";
-  const frac = flat ? (x - box.left) / box.width : (y - box.top) / box.height;
-  const extent = (flat ? box.width : box.height) / (zoom || 1);
-  const origin = flat ? corner.x : corner.y;
-
-  return { side, at: seatAt(frac, extent, origin) };
 }
 
 /** Seats already in use on one card: the ports somebody made by hand, plus
@@ -269,38 +236,10 @@ function planEdge(
   );
 }
 
-/** What the floating input is asking for. One prompt, several errands. */
-type Prompt =
-  | { kind: "node"; x: number; y: number }
-  | { kind: "note"; x: number; y: number; w: number; h: number }
-  | { kind: "sprout"; x: number; y: number; end: End }
-  | { kind: "relation"; id: string }
-  | { kind: "rename"; id: string };
-
-/** A relationship being drawn, from the moment the right button goes down.
- *  `end` is where it started: an interface it began on, or a place on that
- *  node's border to make one at. */
-type Wire = {
-  end: End;
-  origin: { x: number; y: number };
-  to: { x: number; y: number };
-  live: boolean;
-};
-
-/** Where the right button went down, and whether it went down on nothing —
- *  which is the one place a right drag makes a note. */
-type Press = { x: number; y: number; bare: boolean };
-
-/** The rectangle a right drag on the background sweeps out, once it has pulled
- *  clear of the press. In screen coordinates, like the relationship being
- *  drawn, so it needs nothing from the viewport transform to stay under the
- *  cursor. */
-type Sweep = { from: { x: number; y: number }; to: { x: number; y: number } };
-
 type Props = {
   graph: Graph;
   view: string | null;
-  picked: { kind: "node" | "edge" | "attr"; id: string } | null;
+  picked: Picked;
   path: string[];
   showPorts: boolean;
   onShowPorts: (on: boolean) => void;
@@ -311,7 +250,7 @@ type Props = {
                    notes?: { id: string; x: number; y: number }[]) => void;
   /** Which way this layer reads — a setting, not an arrangement. */
   onAxis: (axis: Axis) => void;
-  onPick: (next: { kind: "node" | "edge" | "attr"; id: string } | null) => void;
+  onPick: (next: Picked) => void;
   /** Whether a name is already spoken for in a layer, so the prompt can say so. */
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
   /** What this project calls a plain block — the fallback a card's chip shows
@@ -391,36 +330,14 @@ function Flow(props: Props) {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   /** Whether the name being typed is already spoken for in this layer. */
   const [clash, setClash] = useState(false);
-  const [wire, setWire] = useState<Wire | null>(null);
-  const [sweep, setSweep] = useState<Sweep | null>(null);
-  /** The card a dragged card is currently over — the one it would go inside. */
-  const [dropping, setDropping] = useState<string | null>(null);
-  const dropRef = useRef<string | null>(null);
-  /** Group boundaries a dragged card would land inside, so they light up the
-   *  way a container does. */
-  const [joining, setJoining] = useState<string[]>([]);
-  const joinRef = useRef("");
-  /** The one element the pointer is over, and so the one that highlights.
-   *  Resolved here rather than by `:hover`, which lights every ancestor of
-   *  whatever is under the cursor. */
-  const [hovered, setHovered] = useState<Grazed>(null);
-  /** What is lit: whatever the pointer is over, or failing that whatever the
-   *  contents table is pointing at. The pointer wins, since it is the more
-   *  immediate of the two. */
-  const grazed = hovered ?? hinted;
-  const grazeRef = useRef("");
-  const heldRef = useRef<string | null>(null);
-  /** Where a group's boundary sat when its drag began, and where each member
-   *  sat — the drag moves them together by a snapped delta. */
-  const groupRef = useRef<{
-    id: string;
-    x: number;
-    y: number;
-    members: Record<string, { x: number; y: number }>;
-  } | null>(null);
-  /** Where the right button went down, whatever it went down on. */
-  const pressRef = useRef<Press | null>(null);
   const surface = useRef<HTMLDivElement>(null);
+  /** The nodes as React Flow has them. Held by reference because the two ends
+   *  of this cannot both be passed forwards: the gestures read what is
+   *  selected, and what is built to be selected is drawn from what they
+   *  highlight. Applying a change to them is steadied for the same reason —
+   *  the handler is built below what wants it. */
+  const flowNodes = useRef<FlowNode[]>([]);
+  const changeNodes = useSteady((changes: NodeChange<FlowNode>[]) => onNodesChange(changes));
   /** The part of the canvas actually visible — what is left once the tray has
    *  taken its half. Everything answers to this: the frame takes its shape from
    *  the room it is shown in, and the camera fits into the same room.
@@ -627,6 +544,69 @@ function Flow(props: Props) {
 
     return { runs, seats };
   }, [graph, boxes, frameBox, view, axis, showPorts, noteBoxes, standIn]);
+
+  /** The resting zoom: frame (or the free cards) plus the band of margin.
+   *  Wheel zoom may go in from here, but not out past it. */
+  const floorZoom = useMemo(() => {
+    if (frameBox) {
+      const scale = Math.min(
+        (seen.w - BAND * 2) / frameBox.w,
+        (seen.h - BAND * 2) / frameBox.h,
+      );
+      return Math.max(0.15, Math.min(scale, 1.6));
+    }
+
+    const outer = around(Object.values(boxes), 0);
+    if (!outer || seen.w < 1 || seen.h < 1) return 0.15;
+
+    // Matches fitView({ padding: 0.24, maxZoom: 1.3 }) at the top level.
+    const pad = 0.24;
+    const scale = Math.min(
+      (seen.w * (1 - pad * 2)) / Math.max(outer.w, 1),
+      (seen.h * (1 - pad * 2)) / Math.max(outer.h, 1),
+    );
+    return Math.max(0.15, Math.min(scale, 1.3));
+  }, [frameBox, boxes, seen.w, seen.h]);
+
+  /** Centered resting camera at the floor zoom — frame (or free cards) with
+   *  even margin. Zoom-to-cursor leaves pan skewed when you hit the floor; this
+   *  is what we snap back to. */
+  const restViewport = useCallback((): Viewport | null => {
+    const zoom = floorZoom;
+    if (frameBox) {
+      return {
+        zoom,
+        x: seen.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
+        y: seen.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
+      };
+    }
+    const outer = around(Object.values(boxes), 0);
+    if (!outer) return null;
+    return {
+      zoom,
+      x: seen.w / 2 - (outer.x + outer.w / 2) * zoom,
+      y: seen.h / 2 - (outer.y + outer.h / 2) * zoom,
+    };
+  }, [floorZoom, frameBox, boxes, seen.w, seen.h]);
+
+  /** What the pointer and the keyboard mean here. It reads the layer as worked
+   *  out above and reaches the actions the canvas was handed; the props go in
+   *  whole, since every one it can reach is among them. */
+  const gestures = useGestures(props, {
+    nodes: flowNodes,
+    members,
+    boxes,
+    frameBox,
+    bands,
+    onNodesChange: changeNodes,
+    setPrompt,
+    restViewport,
+  });
+  const { dropping, joining, wire, sweep, moving, enclosing } = gestures;
+  /** What is lit: whatever the pointer is over, or failing that whatever the
+   *  contents table is pointing at. The pointer wins, since it is the more
+   *  immediate of the two. */
+  const grazed = gestures.hovered ?? hinted;
 
   /** Lay this layer out the chosen way.
    *
@@ -845,73 +825,15 @@ function Flow(props: Props) {
       onSlidePort, onRename, onNameAttr]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>(built);
-
-  // Snap while the pointer moves, so the lattice under a card (or under a
-  // group's members) is the one it will settle on — free-dragging made every
-  // half-cell look like a valid drop, then release jumped to a full step.
-  // `middled` / `cell` are idempotent, so applying them to already-snapped
-  // positions is a no-op.
-  const onNodesChangeSnapped = useCallback((changes: NodeChange<FlowNode>[]) => {
-    const here = new Set(members.map((n) => n.id));
-    const start = groupRef.current;
-    const extras: NodeChange<FlowNode>[] = [];
-
-    const mapped = changes.map((change) => {
-      if (change.type !== "position" || !change.position) return change;
-
-      if (start && change.id === start.id) {
-        const dx = cell(change.position.x - start.x);
-        const dy = cell(change.position.y - start.y);
-        for (const [id, home] of Object.entries(start.members)) {
-          extras.push({
-            type: "position",
-            id,
-            position: { x: home.x + dx, y: home.y + dy },
-            dragging: change.dragging,
-          });
-        }
-
-        return { ...change, position: { x: start.x + dx, y: start.y + dy } };
-      }
-
-      if (here.has(change.id) && graph.elements[change.id]) {
-        // Members of a group being dragged are positioned from the group's
-        // snapped delta above — leave them alone if a stray change arrives.
-        if (start?.members[change.id]) return change;
-
-        return {
-          ...change,
-          position: middled(change.position, sizeOf(graph, graph.elements[change.id])),
-        };
-      }
-
-      if (graph.elements[change.id]?.form === "note") {
-        return {
-          ...change,
-          position: { x: cell(change.position.x), y: cell(change.position.y) },
-        };
-      }
-
-      return change;
-    });
-
-    onNodesChange([...mapped, ...extras]);
-  }, [onNodesChange, members, graph]);
+  flowNodes.current = nodes;
 
   // React Flow owns positions during a drag; the graph owns them otherwise.
   // The card (or group and its members) being dragged keep the positions
   // React Flow is giving them, or hovering over a drop target would snap
   // them back to where they started.
   useEffect(() => {
-    setNodes((current) => {
-      const group = groupRef.current;
-      const moving = group
-        ? new Set([group.id, ...Object.keys(group.members)])
-        : heldRef.current ? new Set([heldRef.current]) : null;
-
-      return restated(current, built, moving);
-    });
-  }, [built, setNodes]);
+    setNodes((current) => restated(current, built, moving()));
+  }, [built, setNodes, moving]);
 
   /** The frame an interface sits on, wherever it is drawn in this layer. */
   const hostBox = useCallback(
@@ -1016,50 +938,6 @@ function Flow(props: Props) {
   // canvas that chases every click is impossible to work on.
   const population = members.map((n) => n.id).sort().join(",");
 
-  /** The resting zoom: frame (or the free cards) plus the band of margin.
-   *  Wheel zoom may go in from here, but not out past it. */
-  const floorZoom = useMemo(() => {
-    if (frameBox) {
-      const scale = Math.min(
-        (seen.w - BAND * 2) / frameBox.w,
-        (seen.h - BAND * 2) / frameBox.h,
-      );
-      return Math.max(0.15, Math.min(scale, 1.6));
-    }
-
-    const outer = around(Object.values(boxes), 0);
-    if (!outer || seen.w < 1 || seen.h < 1) return 0.15;
-
-    // Matches fitView({ padding: 0.24, maxZoom: 1.3 }) at the top level.
-    const pad = 0.24;
-    const scale = Math.min(
-      (seen.w * (1 - pad * 2)) / Math.max(outer.w, 1),
-      (seen.h * (1 - pad * 2)) / Math.max(outer.h, 1),
-    );
-    return Math.max(0.15, Math.min(scale, 1.3));
-  }, [frameBox, boxes, seen.w, seen.h]);
-
-  /** Centered resting camera at the floor zoom — frame (or free cards) with
-   *  even margin. Zoom-to-cursor leaves pan skewed when you hit the floor; this
-   *  is what we snap back to. */
-  const restViewport = useCallback((): Viewport | null => {
-    const zoom = floorZoom;
-    if (frameBox) {
-      return {
-        zoom,
-        x: seen.w / 2 - (frameBox.x + frameBox.w / 2) * zoom,
-        y: seen.h / 2 - (frameBox.y + frameBox.h / 2) * zoom,
-      };
-    }
-    const outer = around(Object.values(boxes), 0);
-    if (!outer) return null;
-    return {
-      zoom,
-      x: seen.w / 2 - (outer.x + outer.w / 2) * zoom,
-      y: seen.h / 2 - (outer.y + outer.h / 2) * zoom,
-    };
-  }, [floorZoom, frameBox, boxes, seen.w, seen.h]);
-
   useEffect(() => {
     const timer = setTimeout(() => {
       // At the top level there is no frame, so the contents are what is fitted.
@@ -1136,421 +1014,8 @@ function Flow(props: Props) {
             [outer.x + outer.w + room, outer.y + outer.h + room]];
   }, [boxes, frameBox]);
 
-  /** The card a dragged card would go inside, if any.
-   *
-   *  Its own middle decides, not the pointer — you aim with the card you can
-   *  see. Anywhere on another card means inside it: a card's border is not a
-   *  drop target, because a drop there used to turn the card into an interface
-   *  and that made every ordinary move a hazard. Interfaces are made
-   *  deliberately now, and only at the border of the layer you are in. */
-  const landing = useCallback(
-    (dragged: FlowNode) => {
-      const size = sizeOf(graph, graph.elements[dragged.id]);
-      const mid = { x: dragged.position.x + size.w / 2, y: dragged.position.y + size.h / 2 };
-
-      for (const [id, box] of Object.entries(boxes)) {
-        if (id === dragged.id) continue;
-        // A reference holds nothing, so nothing lands in one.
-        if (isProxy(graph.elements[id])) continue;
-
-        const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
-                              box.y - mid.y, mid.y - (box.y + box.h));
-        if (near <= EDGE) return id;
-      }
-
-      return null;
-    },
-    [graph, boxes],
-  );
-
-  /** Where a card has landed, in its own middle — what every drop test uses,
-   *  because you aim with the card you can see rather than with the pointer. */
-  const middleOf = useCallback((node: { id: string; position: { x: number; y: number } }) => {
-    const size = sizeOf(graph, graph.elements[node.id]);
-
-    return { x: node.position.x + size.w / 2, y: node.position.y + size.h / 2 };
-  }, [graph]);
-
-  /** The groups a card belongs to, having come to rest at `mid`.
-   *
-   *  Each boundary is measured from the members that are *staying put*. A
-   *  member helps define the boundary it sits in, so measured against all of
-   *  them a card could never be dragged far enough to leave — it would take
-   *  the boundary with it. Against the ones standing still, joining and
-   *  leaving are the same test read in opposite directions.
-   *
-   *  Where every member is on the move, the boundary is measured where it sat
-   *  before the drag: `boxes` comes from the graph, which does not change until
-   *  the drag commits. This is what lets a group's last member leave it — with
-   *  one member there is never anybody standing still, so the old rule that
-   *  such a group is "travelling" left it impossible to break up.
-   *
-   *  Dragging a group by its own boundary never reaches here: it commits its
-   *  members' places directly and touches no membership. */
-  const enclosing = useCallback(
-    (mover: string, mid: { x: number; y: number }, moving: Set<string>) =>
-      groupsIn(graph, view)
-        .filter(({ here }) => {
-          const staying = here.filter((id) => !moving.has(id));
-          const gauge = staying.length ? staying : here;
-          const box = around(gauge.map((id) => boxes[id]).filter(Boolean), HUG);
-
-          return box && mid.x >= box.x && mid.x <= box.x + box.w &&
-                        mid.y >= box.y && mid.y <= box.y + box.h;
-        })
-        .map(({ attr }) => attr.id),
-    [graph, view, boxes],
-  );
-
-  /** The card, port, chip, relation or frame under a screen point, as ids. The
-   *  frame is transparent to the pointer, so its edge is found by measuring
-   *  instead: inside the layer's box but outside the contents it encloses. */
-  const under = useCallback((x: number, y: number) => {
-    const element = document.elementFromPoint(x, y) as HTMLElement | null;
-    const nothing = { id: null, port: null, cell: null, title: false, box: null };
-
-    // With several nodes selected the library lays its own rectangle over
-    // them, which answers the hit test before any card does. Pointing at it is
-    // pointing at the selection.
-    if (element?.closest(".react-flow__nodesselection")) {
-      return { ...nothing, kind: "selection" as const };
-    }
-
-    // A relation sits above the cards, so reaching one means it is what the
-    // pointer is on — segment grabs win over the block or interface below.
-    const line = element?.closest(".react-flow__edge") as HTMLElement | null;
-    if (line) return { ...nothing, id: line.dataset.id ?? null, kind: "edge" as const };
-
-    const port = element?.closest(".port") as HTMLElement | null;
-    const cell = element?.closest(".cell") as HTMLElement | null;
-    // A name is its own target wherever it is written — a card's as much as a
-    // frame's — since the right button renames there and makes nothing. A note
-    // is written all the way through: the whole of it is its name.
-    const title = Boolean(
-      element?.closest(".frame-name, .region-name, .card-head .label, .note"),
-    );
-    const host = element?.closest(".react-flow__node") as HTMLElement | null;
-    const kind = host?.classList.contains("react-flow__node-card") ? "card"
-               : host?.classList.contains("react-flow__node-frame") ? "frame"
-               : host?.classList.contains("react-flow__node-region") ? "group"
-               : host?.classList.contains("react-flow__node-note") ? "note"
-               : null;
-
-    if (host && kind) {
-      return { id: host.dataset.id ?? null, kind, port: port?.dataset.port ?? null,
-               cell: cell?.dataset.cell ?? null, title,
-               box: host.getBoundingClientRect() };
-    }
-
-    // Nothing of ours under the pointer: it may still be the layer's own edge.
-    if (view && frameBox) {
-      const at = flow.screenToFlowPosition({ x, y });
-      const inside = at.x >= frameBox.x && at.x <= frameBox.x + frameBox.w &&
-                     at.y >= frameBox.y && at.y <= frameBox.y + frameBox.h;
-      const near = Math.min(at.x - frameBox.x, frameBox.x + frameBox.w - at.x,
-                            at.y - frameBox.y, frameBox.y + frameBox.h - at.y) < RIM;
-
-      if (inside && near) {
-        const corner = flow.flowToScreenPosition({ x: frameBox.x, y: frameBox.y });
-        const far = flow.flowToScreenPosition({ x: frameBox.x + frameBox.w,
-                                                y: frameBox.y + frameBox.h });
-
-        return {
-          ...nothing,
-          id: view,
-          kind: "frame" as const,
-          box: new DOMRect(corner.x, corner.y, far.x - corner.x, far.y - corner.y),
-        };
-      }
-    }
-
-    return { ...nothing, kind: null };
-  }, [view, frameBox, flow]);
-
-  /** The one element in context under the pointer — what highlights, and what
-   *  a right-click would act on.
-   *
-   *  Innermost wins: an interface over the card it sits on, a chip over the
-   *  container holding it. A card is one target, border included: the whole of
-   *  it takes the same action, so lighting its ring apart would be describing a
-   *  distinction the tool no longer makes. */
-  const grazedAt = useCallback((x: number, y: number): Grazed => {
-    const hit = under(x, y);
-
-    if (hit.kind === "selection") return { kind: "selection", id: "" };
-    if (hit.kind === "edge") return hit.id ? { kind: "edge", id: hit.id } : null;
-    if (hit.title && hit.id) return { kind: "title", id: hit.id };
-    if (hit.port) return { kind: "port", id: hit.port };
-    if (hit.cell) return { kind: "cell", id: hit.cell };
-
-    if (hit.id && (hit.kind === "card" || hit.kind === "frame" || hit.kind === "group")) {
-      return { kind: hit.kind, id: hit.id };
-    }
-
-    // Nothing under the pointer in the DOM may still sit inside a boundary —
-    // kept as a fallback when an edge or the pane answers the hit test first.
-    const at = flow.screenToFlowPosition({ x, y });
-    const inside = bands
-      .filter(({ box }) => at.x >= box.x && at.x <= box.x + box.w &&
-                           at.y >= box.y && at.y <= box.y + box.h)
-      .sort((a, b) => a.box.w * a.box.h - b.box.w * b.box.h);
-
-    return inside.length ? { kind: "group", id: inside[0].attr.id } : null;
-  }, [under, flow, bands]);
-
-  /** What a right click does where a menu is not built yet: the default entry
-   *  of the menu that will replace it. */
-  const fallback = useCallback((x: number, y: number) => {
-    const hit = under(x, y);
-    const chosen = nodes.filter((n) => n.selected).map((n) => n.id);
-
-    // On a selection of several: group them, which is the one thing a right
-    // click on more than one node could reasonably mean. Only *on* it, though —
-    // a right click elsewhere is about whatever is under the cursor, and a
-    // selection left over from a moment ago should not swallow it.
-    const onSelection = hit.kind === "selection" || (hit.id !== null && chosen.includes(hit.id));
-    if (chosen.length > 1 && onSelection) return onGroup(chosen);
-
-    // A name opens its own editor on the right button — see `Name` — and an
-    // interface is already one; both wait for the menu.
-    if (hit.title || hit.port) return;
-
-    // A relationship's kind is a name, and a name is written where it is drawn.
-    // The last name on the canvas that took a different gesture.
-    if (hit.kind === "edge" && hit.id) return setPrompt({ kind: "relation", id: hit.id });
-
-    // Anywhere on a card, and anywhere on the layer's own border, makes an
-    // interface. Where the click landed decides which point of the border it
-    // goes to; it is not a test the click has to pass.
-    if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box) {
-      const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
-      const { side, at: along } = nearestEdge(hit.box, x, y, flow.getZoom(), corner);
-
-      return onAddPort(hit.id, side, along);
-    }
-
-    // Empty background: a node in this layer, joining any boundary it lands in.
-    const at = flow.screenToFlowPosition({ x, y });
-
-    setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
-  }, [under, nodes, flow, onGroup, onAddPort]);
-
-  // Shortcuts the canvas owns. Inside a field the field's own editing wins,
-  // and Esc abandons whatever is half-drawn — prompt or relationship alike.
-  useEffect(() => {
-    function press(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        return (setWire(null), setSweep(null), setPrompt(null), onPick(null));
-      }
-      if ((event.target as HTMLElement).closest("input, textarea")) return;
-
-      const chosen = nodes.filter((n) => n.selected).map((n) => n.id);
-
-      if (event.key === "Enter" && pickedNode) {
-        event.preventDefault();
-
-        return setPrompt({ kind: "rename", id: pickedNode });
-      }
-
-      // One card is enough here, where a boundary round a single block can only
-      // have been asked for. The right button keeps its own rule: on one card
-      // it still makes an interface, since that is what a card is for.
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "g") {
-        event.preventDefault();
-
-        return chosen.length ? onGroup(chosen) : undefined;
-      }
-
-      // Show me this. Which *this* is already answered by what is selected, so
-      // one key covers both fitting the layer and going to one thing in it.
-      if (event.key.toLowerCase() === "f" && !event.ctrlKey && !event.metaKey) {
-        event.preventDefault();
-        const seen = pickedNode ? [pickedNode] : chosen;
-
-        if (seen.length) {
-          return flow.fitView({ nodes: seen.map((id) => ({ id })), duration: 320,
-                                padding: 0.6, maxZoom: 1.6 });
-        }
-
-        const rest = restViewport();
-
-        return rest ? flow.setViewport(rest, { duration: 320 })
-                    : flow.fitView({ duration: 320, padding: 0.24, maxZoom: 1.3 });
-      }
-
-      // The library deletes what it has selected, which is cards and relations.
-      // An interface, or a group boundary, is selected by us and not by it, so
-      // it has to be removed here or Delete would appear to do nothing.
-      if (event.key === "Delete" || event.key === "Backspace") {
-        if (picked?.kind === "node") return (event.preventDefault(), onDropAttr(picked.id));
-        if (picked?.kind === "edge") return (event.preventDefault(), onUnlink(picked.id));
-        if (pickedNode && !nodes.some((n) => n.id === pickedNode && n.type === "card")) {
-          event.preventDefault();
-
-          return onDelete(pickedNode);
-        }
-      }
-    }
-
-    window.addEventListener("keydown", press);
-
-    return () => window.removeEventListener("keydown", press);
-  }, [nodes, pickedNode, picked, flow, restViewport, onGroup, onPick,
-      onDropAttr, onUnlink, onDelete]);
-
-  /** The right button, from press to release. Below the threshold it is a
-   *  click and falls through to the default action; past it, a relationship
-   *  is being drawn and an interface appears at the edge it started from. */
-  /** The wall a right drag named, where it named one.
-   *
-   *  Only the layer's own frame names one. A card has no border zone — a drag
-   *  from anywhere on it means "from this card", and there is no wall in the
-   *  gesture to record. The frame is the exception the spec already makes, since
-   *  its interior is the background and so its border has to stay a zone: a drag
-   *  there is necessarily *on a wall*, and which wall is what the user meant. */
-  function wallAt(hit: { kind: string | null; port: string | null; box: DOMRect | null },
-                  x: number, y: number): Side | undefined {
-    if (hit.kind !== "frame" || hit.port || !hit.box) return undefined;
-
-    const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
-
-    return nearestEdge(hit.box, x, y, flow.getZoom(), corner).side;
-  }
-
-  function rightDown(event: React.PointerEvent) {
-    if (event.button !== 2) return;
-
-    const hit = under(event.clientX, event.clientY);
-    // Recorded whatever is underneath, so that a right click over empty canvas
-    // still reaches its default action even though there is nothing there to
-    // draw a relationship from — and so a drag knows whether it set off from
-    // nothing, which is the one place a drag makes a note.
-    pressRef.current = { x: event.clientX, y: event.clientY, bare: hit.kind === null };
-
-    // A name is set into a border but is not one, so nothing starts from it.
-    if (hit.title) return;
-    if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
-
-    const origin = { x: event.clientX, y: event.clientY };
-
-    setWire({
-      // The interface it set off from, where it set off from one, and the wall
-      // it set off through, where the gesture named one. Anywhere else on a card
-      // is just the card: where the line leaves it is the layer's to work out.
-      end: { node: hit.id, port: hit.port ?? undefined, side: wallAt(hit, origin.x, origin.y) },
-      origin,
-      to: origin,
-      live: false,
-    });
-  }
-
-  /** What highlights under the pointer. Worked out rather than left to `:hover`,
-   *  which lights every ancestor. Only set when the answer changes. */
-  const graze = useCallback((x: number, y: number) => {
-    const now = grazedAt(x, y);
-    const key = now ? `${now.kind}:${now.id}` : "";
-    if (key === grazeRef.current) return;
-    grazeRef.current = key;
-    setHovered(now);
-  }, [grazedAt]);
-
-  function rightMove(event: React.PointerEvent) {
-    graze(event.clientX, event.clientY);
-
-    const to = { x: event.clientX, y: event.clientY };
-
-    if (wire) {
-      const far = Math.hypot(to.x - wire.origin.x, to.y - wire.origin.y) > THRESHOLD;
-
-      return setWire({ ...wire, to, live: wire.live || far });
-    }
-
-    // A right drag on the background: show the rectangle it is sweeping out, so
-    // the gesture under way is visible while it is under way. Amber and dashed,
-    // which is a note's own look and nothing like the selection box.
-    const down = pressRef.current;
-    if (!down?.bare) return;
-
-    const far = Math.hypot(to.x - down.x, to.y - down.y) > THRESHOLD;
-
-    setSweep(far ? { from: { x: down.x, y: down.y }, to } : null);
-  }
-
-  function rightUp(event: React.PointerEvent) {
-    if (event.button !== 2) return;
-
-    const down = pressRef.current;
-    const held = wire;
-    pressRef.current = null;
-    setWire(null);
-    setSweep(null);
-
-    // Never past the threshold, or never on anything to draw from: a right
-    // click, and a right click runs the default action for what is under it.
-    if (!held?.live) {
-      if (!down) return;
-
-      const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
-      if (moved <= THRESHOLD) return fallback(event.clientX, event.clientY);
-
-      // Past it, having set off from nothing: a note. It lands in the top-left
-      // corner of the rectangle swept out, whichever way the drag ran, and the
-      // rest of the rectangle is the least room it gets — a minimum, so a long
-      // description has space and a longer one still grows the card. What it
-      // says is asked for before anything is made, the same as a node's name.
-      if (down.bare) {
-        const at = flow.screenToFlowPosition({ x: Math.min(down.x, event.clientX),
-                                               y: Math.min(down.y, event.clientY) });
-        const far = flow.screenToFlowPosition({ x: Math.max(down.x, event.clientX),
-                                                y: Math.max(down.y, event.clientY) });
-
-        setPrompt({ kind: "note", x: at.x, y: at.y,
-                    w: Math.round(far.x - at.x), h: Math.round(far.y - at.y) });
-      }
-
-      return;
-    }
-
-    const hit = under(event.clientX, event.clientY);
-
-    // Let go on a note: tie what the drag set off from to it, or untie it if it
-    // was tied already. A note is not a node, so no relationship is drawn and no
-    // interface is made — the line between them is a leader.
-    if (hit.kind === "note" && hit.id) return onTie(hit.id, held.end.node);
-
-    const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
-
-    // Released on something: the relationship, and nothing else. An interface
-    // it landed on is kept as that end's anchor; otherwise the layer decides
-    // where the line meets the card, and there is nothing to record.
-    if (landed && landed !== held.end.node) {
-      return onWire(held.end, {
-        node: landed,
-        port: hit.port ?? undefined,
-        side: wallAt(hit, event.clientX, event.clientY),
-      }, form);
-    }
-
-    // Nothing under it: make the far end where it was let go, and attach.
-    const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    setPrompt({
-      kind: "sprout",
-      x: at.x - LEAF.w / 2,
-      y: at.y - LEAF.h / 2,
-      end: held.end,
-    });
-  }
-
   return (
-    <div
-      className="stage"
-      ref={surface}
-      onPointerDown={rightDown}
-      onPointerMove={rightMove}
-      onPointerUp={rightUp}
-      onPointerLeave={() => (grazeRef.current = "", setHovered(null), setSweep(null))}
-      onContextMenu={(event) => event.preventDefault()}
-    >
+    <div className="stage" ref={surface} {...gestures.surface}>
       <div className="crumbs">
         <button onClick={() => onOpen(null)} className={view ? "" : "here"}>
           {titleOf(graph) || "project"}
@@ -1640,7 +1105,6 @@ function Flow(props: Props) {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChangeSnapped}
         onEdgesChange={onEdgesChange}
         colorMode="dark"
         proOptions={{ hideAttribution: true }}
@@ -1656,9 +1120,8 @@ function Flow(props: Props) {
         nodesDraggable
         // Deliberately *not* `snapToGrid`. The library snaps a node's corner to
         // a line, and a card is placed by its middle landing on the middle of a
-        // row — two different lattices. `onNodesChangeSnapped` applies `middled`
-        // (and `cell` for notes and group deltas) while the drag moves, so what
-        // you see is what lands.
+        // row — two different lattices. The gestures' own `onNodesChange`
+        // snaps while the drag moves, so what you see is what lands.
         // Relationships are the right button's business, drawn by hand below;
         // the handles here are anchors for geometry, not grab points.
         nodesConnectable={false}
@@ -1675,10 +1138,6 @@ function Flow(props: Props) {
         zoomOnScroll
         panOnScroll={false}
         onMove={onMove}
-        onPaneMouseMove={(event) => graze(event.clientX, event.clientY)}
-        onNodeMouseMove={(event) => graze(event.clientX, event.clientY)}
-        onNodeMouseLeave={(event) => graze(event.clientX, event.clientY)}
-        onPaneMouseLeave={() => (grazeRef.current = "", setHovered(null))}
         // `Control` is deliberately not here: on a trackpad it is a real right
         // click, and every right-button gesture is one of ours.
         multiSelectionKeyCode={["Shift", "Meta"]}
@@ -1688,189 +1147,7 @@ function Flow(props: Props) {
         // appeared to do nothing to a selected node or relation.
         deleteKeyCode={["Delete", "Backspace"]}
         translateExtent={extent}
-        onNodeClick={(_, node) => {
-          if (node.type === "card") return onPick({ kind: "node", id: node.id });
-          if (node.type === "region") return onPick({ kind: "node", id: node.id });
-          // A placeholder is not a thing in itself: picking it picks whatever
-          // it reaches, so the panel shows the node and not the stand-in.
-          if (node.type === "ghost") {
-            return onPick({ kind: "node", id: (node.data as { target: string }).target });
-          }
-          // The frame is the layer itself, and the layer is what an empty
-          // selection already shows.
-          if (node.type === "frame") return onPick(null);
-        }}
-        onNodeDoubleClick={(_, node) => {
-          if (node.type !== "card") return;
-
-          // A reference has no contents of its own — going into one takes you
-          // to where the node it stands for actually lives.
-          // A proxy has no inside: going into one goes to where its block
-          // actually lives, which is what the reference is for.
-          const stands = refOf(graph, node.id);
-
-          return stands ? onReveal(stands) : onOpen(node.id);
-        }}
-        onEdgeClick={(_, edge) => onPick({ kind: "edge", id: edge.id })}
-        onDragOver={(event) => {
-          const kinds = event.dataTransfer.types;
-          if (!kinds.includes(LIFTED) && !kinds.includes(REFERRED)) return;
-          event.preventDefault();
-          event.dataTransfer.dropEffect = kinds.includes(LIFTED) ? "move" : "link";
-        }}
-        onDrop={(event) => {
-          const lifted = event.dataTransfer.getData(LIFTED);
-          const referred = event.dataTransfer.getData(REFERRED);
-          if (!lifted && !referred) return;
-
-          event.preventDefault();
-          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-          const x = at.x - LEAF.w / 2;
-          const y = at.y - LEAF.h / 2;
-
-          // A chip out of a treemap is the node itself, moving here. A row out
-          // of the explorer is a mention of it, staying where it is.
-          if (lifted) return onLift(lifted, x, y);
-          if (referred !== view && !members.some((n) => n.id === referred)) {
-            onRefer(referred, x, y);
-          }
-        }}
-        onPaneClick={(event) => {
-          setPrompt(null);
-
-          // Empty canvas, or a miss that still sits inside a boundary — the
-          // same reckoning that decides what highlights under the pointer.
-          const spot = grazedAt(event.clientX, event.clientY);
-
-          onPick(spot?.kind === "group" ? { kind: "attr", id: spot.id } : null);
-        }}
-        onDoubleClick={(event) => {
-          const on = (what: string) => (event.target as HTMLElement).closest(what);
-          if (on(".react-flow__node") || on(".react-flow__edge") || on(".floating")) return;
-          if (!view || !frameBox) return;
-
-          // Only *outside* the frame is "leave". The frame is transparent to
-          // the pointer, so every double-click on empty canvas arrives here,
-          // including the ones inside the layer — which were stepping out of
-          // a layer the user was working in.
-          const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-          const out = at.x < frameBox.x || at.x > frameBox.x + frameBox.w ||
-                      at.y < frameBox.y || at.y > frameBox.y + frameBox.h;
-
-          if (out) onUp();
-        }}
-        onNodeDragStart={(_, node) => {
-          if (node.type === "region") {
-            // Dragging is how you take hold of it; picking follows so the
-            // panel shows what is moving without a separate click first.
-            onPick({ kind: "node", id: node.id });
-            const holders = membersOf(graph, node.id).map((m) => m.id);
-            groupRef.current = {
-              id: node.id,
-              x: node.position.x,
-              y: node.position.y,
-              members: Object.fromEntries(
-                holders
-                  .filter((id) => boxes[id])
-                  .map((id) => [id, { x: boxes[id].x, y: boxes[id].y }]),
-              ),
-            };
-
-            return;
-          }
-
-          heldRef.current = node.id;
-        }}
-        onNodeDrag={(_, node, moving) => {
-          if (node.type !== "card") return;
-
-          // Only re-render when a target actually changes, not every pixel.
-          const hit = landing(node);
-          if (hit !== dropRef.current) {
-            dropRef.current = hit;
-            setDropping(hit);
-          }
-
-          // Dropping inside a card is a move into it, so no group is being
-          // joined at the same time — the card lands in another layer.
-          const afoot = new Set((moving?.length ? moving : [node]).map((n) => n.id));
-          const inside = hit ? [] : enclosing(node.id, middleOf(node), afoot);
-          const key = inside.join(",");
-          if (key !== joinRef.current) {
-            joinRef.current = key;
-            setJoining(inside);
-          }
-        }}
-        onNodeDragStop={(_, node, dragged) => {
-          // A group's boundary carries its members: whatever it travelled,
-          // they travelled, in one action — delta already snapped to the grid.
-          const start = groupRef.current;
-          if (node.type === "region" && start && start.id === node.id) {
-            groupRef.current = null;
-            const dx = node.position.x - start.x;
-            const dy = node.position.y - start.y;
-            const moved = Object.entries(start.members)
-              .map(([id, home]) => ({ id, x: home.x + dx, y: home.y + dy }));
-
-            return onPlaceMany(moved, `moved group of ${moved.length}`);
-          }
-
-          // A note has a place of its own, and takes nothing with it.
-          if (node.type === "note") {
-            heldRef.current = null;
-
-            return onPlaceNote(node.id, node.position.x, node.position.y);
-          }
-
-          // Worked out again from where the card actually came to rest. The
-          // ref behind the hover indicator is a frame or two stale by now, and
-          // the last inch of a drag is exactly where the answer changes.
-          const into = node.type === "card" ? landing(node) : null;
-          dropRef.current = null;
-          heldRef.current = null;
-          joinRef.current = "";
-          setDropping(null);
-          setJoining([]);
-
-          // Dropped on another card: that card becomes its container.
-          if (into) return onNest(node.id, into);
-
-          // Pushed past the edge of the frame, while inside a layer: it
-          // belongs to whatever contains this layer. The card's own middle is
-          // what counts, not the pointer — you aim with the card you can see.
-          if (view && frameBox) {
-            const { x, y } = middleOf(node);
-            const out = x < frameBox.x || x > frameBox.x + frameBox.w ||
-                        y < frameBox.y || y > frameBox.y + frameBox.h;
-            if (out) return onPromote(node.id, graph.elements[view]?.parent ?? null);
-          }
-
-          // A selection dragged together lands together.
-          const cards = (dragged?.length ? dragged : [node]).filter((n) => n.type === "card");
-          const moved = cards.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y }));
-
-          // ...and joins or leaves whatever boundaries it landed in or out of.
-          // A group takes members by drag the way a container does; what makes
-          // it a group rather than a container is that nothing's parent moves.
-          const here = groupsIn(graph, view);
-          const afoot = new Set(cards.map((n) => n.id));
-          const membership = cards.flatMap((card) => {
-            const inside = new Set(enclosing(card.id, middleOf(card), afoot));
-
-            return here
-              .filter(({ attr, here }) => here.includes(card.id) !== inside.has(attr.id))
-              .map(({ attr }) => ({ attr: attr.id, holder: card.id,
-                                    join: inside.has(attr.id) }));
-          });
-
-          onPlaceMany(moved, "", membership);
-        }}
-        // A placeholder is a drawing of something elsewhere; deleting it here
-        // would mean deleting a node in another layer, which is not what the
-        // key was pressed for.
-        onNodesDelete={(gone) =>
-          gone.filter((node) => node.type === "card").forEach((node) => onDelete(node.id))}
-        onEdgesDelete={(gone) => gone.forEach((edge) => onUnlink(edge.id))}
+        {...gestures.board}
       >
         {/* The backdrop *is* the lattice things land on, so it is the same
             spacing rather than a decoration that nearly matches it.

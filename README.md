@@ -191,6 +191,8 @@ design problem you can see rather than one you have to trace.
 | [`geometry/layout.ts`](src/geometry/layout.ts) | Card sizing, treemap tiling, layer placement |
 | [`geometry/route.ts`](src/geometry/route.ts) | Where a line goes, and the lanes it shares |
 | [`canvas/card.tsx`](src/canvas/card.tsx) | The pieces every drawn thing is built from |
+| [`canvas/gestures.ts`](src/canvas/gestures.ts) | What the pointer and the keyboard mean, and which action that reaches |
+| [`canvas/Canvas.tsx`](src/canvas/Canvas.tsx) | The layer composed: where things sit, what draws them, the controls |
 | [`terminal/router.ts`](src/terminal/router.ts) | Picks the question from the graph and the selection |
 | [`terminal/turn.ts`](src/terminal/turn.ts) | What one answer does — pure, no state |
 | [`terminal/workflows.ts`](src/terminal/workflows.ts) | Loads the catalogue, operations and vocabularies |

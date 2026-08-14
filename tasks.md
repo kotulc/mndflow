@@ -51,7 +51,7 @@ files and run in parallel** — S5 waits on S2's contract and A0 on nothing.
 
 | | Lines | Absorbs |
 |---|---|---|
-| `canvas/Canvas.tsx` | 2041 | every gesture *and* every renderer |
+| `canvas/Canvas.tsx` | 1314 | every renderer. **The gestures are out** — `canvas/gestures.ts`, S2.1 |
 | `project.ts` | 776 | one `act` literal — every feature adds an action to it |
 | `graph/fold.ts` | 872 | one `apply()` switch — every new op |
 | `geometry/layout.ts` | 915 | clusters, notes-as-units and axis bias all land here |
@@ -82,7 +82,7 @@ Unlocks E and the tray menu in G; prerequisite for the terminal.
 
 An **open module publishes components**, and a definition configures them under its `components`
 key — specced in [spec.md](spec.md) under *Project model*. `Canvas.tsx` splits three ways: gesture
-handling, composition, and `modules/`.
+handling — *done* — composition, and `modules/`.
 
 - **Each component validates its own key and reads no other's**, registering its validator with the
   door so an unrecognised key is unvalidated rather than wrong.
@@ -90,6 +90,9 @@ handling, composition, and `modules/`.
   configuration among others, the component boundaries are in the wrong place.
 - **Every gesture the canvas binds today is inventoried in [actions.md](actions.md)**, which is
   what the first gesture map is written from.
+- **The gestures are one hook, not yet a map.** `useGestures` takes what it may reach and what the
+  layer worked out, and returns the handlers plus the state a half-finished gesture is in. Every
+  binding is still written into it; S2.7 is what turns them into a declared map.
 
 Unlocks A and S5, and the context menu in G.
 
