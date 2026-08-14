@@ -33,7 +33,10 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-*Nothing is blocking.*
+- **What is left in `assets/modules/`?** A0 was written before module code existed; it now lives in
+  `src/modules/` and two components are already there. If nothing else is coming, `assets/` is data
+  and stylesheets — `packages/` and `styles/` — and the layout is two folders rather than three.
+  **Blocks A0.1**, and A0.1 blocks S2.4, A0.2 and A0.3.
 
 *Recently closed: extension is subtyping and never overriding, one parent, with rules reaching
 every subtype; component configuration lives in one `components` bag keyed by component; undo
@@ -91,6 +94,46 @@ handling — *done* — composition, and `modules/`.
 - **The plain card is the claim in miniature.** `PLAIN` says today's card as a configuration and
   nothing reads it yet; S2.6 is where the canvas draws from it, and where whatever will not go into
   a component is the answer about the boundaries.
+
+**S2.6 walked in advance, without moving any code.** Every part of `Canvas.tsx` put against the six
+components. Most of it goes somewhere; what does not is below, and it is one shape rather than five
+unrelated leftovers.
+
+| Goes to | What |
+|---|---|
+| engine, unmoved | `place`, the group bands, `planEdge` + `lanes`, `reNoted`, proxy substitution |
+| `card` | name and chip, the container's treemap — `PLAIN` already says it |
+| `style` | the relationship's colour, dash and arrowhead; stacking |
+| `view` | the form→renderer map, the layout law declining to place, all four adjustments, the gesture map, the layer as scope, the module's word for a block |
+
+**What resisted — five things, and every one of them is the layer as a workspace rather than a
+thing drawn in it:**
+
+- **The frame is nobody's.** `frameBox` derives the layer's own border from the panel's shape, its
+  contents, a floor and the grid, and seats interfaces on it. `card` composes a *usage* and the
+  frame is not one; `view.scope` says *which* layer, not how it draws. A table and a matrix have no
+  frame at all, so it cannot fall back to the engine either.
+- **The camera is nobody's.** `floorZoom`, `restViewport`, `extent`, the refit effects and the
+  zoom-floor snap-back — about 180 lines. A diagram has a viewport; a table scrolls.
+- **Derived presentation has nowhere to hang.** A **reference** draws violet and dashed, a **tie**
+  draws as a faint leader, a **proxy** card is grey and hatched. All three are derived from what the
+  ends *are*, deliberately — so none has a definition to carry a `style`, which is configured per
+  definition. Either `style` grows a notion of derived states, or these stay the engine's own.
+- **The prompt loop.** A gesture asks for a name before anything is made — four floating inputs, the
+  clash check, the strip. Every view module that can create needs it; it is not one of the six and
+  it is not page chrome, since it sits over the stage.
+- **Display preferences pass through.** `showPorts`, `angular` and which form the next right drag
+  draws are held by the page and read by the canvas. They are per-diagram, not per-page — a matrix
+  has no interfaces toggle — and with three view modules there is nobody to hold them.
+
+**The reading.** The six components describe what is drawn **inside** a layer and say nothing about
+the layer as a place to work. Either `view` is doing more than its one line admits and should say
+so, or there is a seventh concern. **This is the S2.6 decision**, and it wants answering before
+S2.4 and S2.5 build against the current six.
+
+**Also found**: `Canvas.tsx`'s Props is 50 entries. Most collapse into one dispatch with S1.6;
+about a dozen are the genuine contract a swappable view module would implement, and that dozen is
+worth naming while S2.6 is being decided.
 - **The test this seam is measured against**: if the base diagram cannot be expressed as one
   configuration among others, the component boundaries are in the wrong place.
 - **Every gesture the canvas binds today is inventoried in [actions.md](actions.md)**, which is

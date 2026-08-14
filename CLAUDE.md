@@ -27,21 +27,38 @@ the marker, and never leave one on something you just built.
 ## Subagents
 
 Specialists live in [`.claude/agents/`](.claude/agents/). Cursor reads that
-tree as well. Invoke with `/name`, or delegate when the job matches. The
-`run` skill stays the browser procedure; `validate` is who runs it.
+tree as well. **This session launches them**; each starts cold, so hand it the
+facts it needs rather than making it rediscover them. The `run` skill is the
+browser procedure; `validate` is who runs it.
 
-| Agent | Owns |
-|---|---|
-| [`vision`](.claude/agents/vision.md) | long-term aim, queue alignment, when to ask Clay |
-| [`project-state`](.claude/agents/project-state.md) | definitions, design intent, current-state summary |
-| [`tasking`](.claude/agents/tasking.md) | interpret / order plan+tasks, propose delegation |
-| [`structure-review`](.claude/agents/structure-review.md) | style, structure, consistency, modularity — is it legal |
-| [`simplify`](.claude/agents/simplify.md) | simplest pattern, anti-over-engineering, no scope creep — is it necessary |
-| [`validate`](.claude/agents/validate.md) | tsc, vitest, browser drive |
-| [`ux`](.claude/agents/ux.md) | usability, flow, layout, CSS — in the browser |
-| [`docs`](.claude/agents/docs.md) | keep docs/ in step with landed behaviour |
+| Agent | Asks | Runs |
+|---|---|---|
+| [`tasking`](.claude/agents/tasking.md) | which row, in what order, who does it | starting a sitting |
+| [`implement`](.claude/agents/implement.md) | the row itself, owned files only | every row |
+| [`validate`](.claude/agents/validate.md) | does it run, and can a person use it | every row |
+| [`docs`](.claude/agents/docs.md) | is `docs/` still true | every row |
+| [`structure-review`](.claude/agents/structure-review.md) | is it legal — style, imports, closed sets | structural diffs |
+| [`necessity`](.claude/agents/necessity.md) | is it necessary — or is it too much code | structural diffs |
+| [`project-state`](.claude/agents/project-state.md) | what does this term mean; built or planned | on demand |
+| [`vision`](.claude/agents/vision.md) | does this still serve the aim; must Clay decide | **only when a gate trips** |
 
-Typical sitting: `vision` → `tasking` → implement → `structure-review` + `simplify` → `validate` → `ux` → `docs`.
+**The sequence.** `tasking` → `implement` → `validate` → `docs`. Add
+`structure-review` + `necessity` between implement and validate when the diff
+is structural — a new module, a seam cut, a moved boundary — and not when a row
+only fills in what a seam already decided.
+
+**`vision` is a gate, not a stage.** Call it when one of these trips, and never
+out of habit: a `◆` row, work that is not a plan row, a closed set that would
+grow, a frozen surface, a design decision in question, or a chunk outgrowing
+its row. Ordinary queued work does not need it.
+
+**`docs` is handed the facts.** `implement` reports what landed and what
+deliberately did not; `validate` reports whether it was proven. `docs` writes
+those down — it does not work them out from the diff, because a diff cannot
+say what was left out on purpose.
+
+**When `validate` comes back `not proven`**, the row goes back to `implement`
+with the failure — not to `docs`. Nothing is struck through on a red verdict.
 
 ## Finishing a chunk
 
@@ -76,6 +93,12 @@ higher layer register with the lower one instead. `graph/check.ts`'s
 
 A new capability adds a key under a definition's `components`, never a field
 beside it. If you find yourself widening a closed set, stop and ask.
+
+**A new component must be published in `src/modules/base.ts`.** Writing the
+folder is not enough: unpublished, its validator never reaches the door, every
+configuration under its key is accepted unchecked, and nothing anywhere fails.
+`modules/card/` is the pattern to copy — the component, its `check`, its
+resolver, and the line in `base.ts`.
 
 **Presentation lives on the definition, never on an element.** An element
 carrying its own colour was removed once already.

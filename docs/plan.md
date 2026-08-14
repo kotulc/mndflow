@@ -29,8 +29,17 @@ through with one line on what actually landed. See [CLAUDE.md](../CLAUDE.md).
 
 ## Wave 1 — the seams
 
-**S1, S2, S3, S4, S5 and A0 touch disjoint files and run in parallel** — S5 waits on S2.2 and A0
+**S1, S2, S3, S5 and A0 touch disjoint files and run in parallel** — S5 waits on S2.2 and A0
 on nothing.
+
+**S4 is the exception, and matters if two owners run at once.** Three files are wanted by rows that
+are startable at the same moment, so take them in this order rather than together:
+
+| File | Contended by | Order |
+|---|---|---|
+| `graph/fold.ts` | S3.2, S3.3, S4.3, SC.3 | S3.2 → S3.3 first; S4.3 and SC.3 build on the split |
+| `graph/store.ts` | S4.1, S4.7, F.2 | S4.1 first — it splits graph storage from workspace storage, after which they are disjoint |
+| `canvas/gestures.ts` | S2.7, G.5, G.7 | either of G.5 / G.7, then the other. Both are small |
 
 ### S3 — fold hygiene
 
@@ -65,17 +74,17 @@ wrong place.
 | ~~**S2.1**~~ | ~~Extract gesture handling out of `Canvas.tsx`~~ — **done**: `useGestures(reach, stage)`, 867 lines out of a 2041-line file. Hit testing, both buttons, the keyboard and the drag snap; it reaches actions and writes no mutation. Verified in a browser | `canvas/gestures.ts` | — |
 | ~~**S2.2**~~ | ~~The component contract~~ — **done**: `publish` registers each component's validator with the door, which drops only a key its component refuses and reports the reason. An unclaimed key is unvalidated, never wrong. 6 tests | `modules/index.ts`, `graph/check.ts` | — |
 | ~~**S2.3**~~ | ~~The **card** component~~ — **done**: the six layouts, five shapes, three label placements and `shows`, refused from data and closed to it. `PLAIN` is today's card written down as one configuration; `cardOf` resolves a usage. Published by `modules/base.ts` at startup, so the door refuses `card.shape: trapezium` in the component's own words. 13 tests. **Nothing draws from it yet** — that is S2.6 | `modules/card/`, `modules/base.ts`, `main.tsx` | — |
-| **S2.4** | The **style** component — a style set by name over the portable typed fields | `modules/style/`, `assets/styles/` | S2.2, A0.1 |
-| **S2.5** | The **view** component and the view-module registry: `diagram`, `table`, `matrix` | `modules/view/` | S2.2 |
-| **S2.6** `◆` | Move today's canvas in as the **base diagram**, configured rather than hard-wired. **Bigger than one sitting, and the verdict on the whole seam**: whatever will not go into a component is the answer to whether the boundaries are right. Report what resisted before forcing it | `modules/view/diagram/` | S2.5, S2.3 |
+| **S2.4** | The **style** component — a style set by name over the portable typed fields. **Publish it in `modules/base.ts`**, or the door validates its key silently | `modules/style/`, `assets/styles/`, `modules/base.ts` | S2.2, A0.1 |
+| **S2.5** | The **view** component and the view-module registry: `diagram`, `table`, `matrix`. **Publish it in `modules/base.ts`**, or the door validates its key silently. `modules/card/` is the pattern | `modules/view/`, `modules/base.ts` | S2.2 |
+| **S2.6** `◆` | Move today's canvas in as the **base diagram**, configured rather than hard-wired. **Bigger than one sitting, and the verdict on the whole seam.** Already walked without moving code — five things resisted, all of them the layer *as a workspace*: the frame, the camera, derived presentation, the prompt loop, per-diagram display preferences. See tasks.md under S2. **Answer that before S2.4 and S2.5 build against the current six** | `modules/view/diagram/` | S2.5, S2.3 |
 | **S2.7** | Wire the gesture map from actions.md's inventory; a diagram declares the adjustments it takes | `modules/view/diagram/`, `canvas/gestures.ts` | S2.6, S1.6 |
 
 ### S5 — constraints and rules
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **S5.1** | The **constraints** component — `required` | `modules/constraints/` | S2.2 |
-| **S5.2** | The **rules** component — `ends` (with port direction), `holds`, `degree`, `match`. Each reaches every subtype, via `isa` | `modules/rules/` | S2.2, SC.2 |
+| **S5.1** | The **constraints** component — `required`. Publish it in `modules/base.ts` | `modules/constraints/`, `modules/base.ts` | S2.2 |
+| **S5.2** | The **rules** component — `ends` (with port direction), `holds`, `degree`, `match`. Each reaches every subtype, via `isa`. Publish it in `modules/base.ts` | `modules/rules/`, `modules/base.ts` | S2.2, SC.2 |
 | **S5.3** | Reporting: violations advise in the tray and the strip, and **never refuse** | `page/Contents.tsx` | S5.2 |
 | **S5.4** | A module's `validate` hook — the escape hatch for what the five cannot say | `modules/index.ts` | S5.2 |
 | **S5.5** | **`figure` takes no interfaces** — the `interface` action refuses on one, with the reason. The first rule the engine enforces rather than advises | `actions/elements.ts` | S1.7 |
@@ -92,7 +101,7 @@ wrong place.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **A0.1** | The `assets/` layout: `packages/` for data, `modules/` for code, `styles/` for stylesheets | `assets/` | ⊘ |
+| **A0.1** `◆` | The `assets/` layout. **`src/modules/` already holds module code** (S2.2, S2.3), so `assets/modules/` may have nothing left to hold — decide whether `assets/` is data and stylesheets only, `packages/` and `styles/`. Blocks S2.4, A0.2, A0.3 | `assets/` | ⊘ |
 | **A0.2** | `assets/packages/core` — the relation seeds now living in `workflows/*.yaml`, which have nothing to do with the terminal | `assets/packages/core/`, `workflows/` | A0.1, D.1 |
 | **A0.3** | Loading a package: definitions in, by id, never shadowing | `workspace/` | A0.1, S4.4 |
 | **A0.4** | Preset registration, so a diagram names a tested set rather than recombining freely | `modules/index.ts` | S2.5 |

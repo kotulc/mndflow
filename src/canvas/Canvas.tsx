@@ -835,16 +835,6 @@ function Flow(props: Props) {
     setNodes((current) => restated(current, built, moving()));
   }, [built, setNodes, moving]);
 
-  /** The frame an interface sits on, wherever it is drawn in this layer. */
-  const hostBox = useCallback(
-    (port: string | undefined) => {
-      const parent = port ? graph.elements[port]?.parent : null;
-
-      return parent ? boxes[parent] ?? (parent === view ? frameBox : null) : null;
-    },
-    [graph, boxes, frameBox, view],
-  );
-
   /** Edges as the graph describes them, before React Flow adds selection. */
   const builtEdges: Edge[] = useMemo(() => {
     /** A note's leaders: one faint line to each object it is tied to that is
