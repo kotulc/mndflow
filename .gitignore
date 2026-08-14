@@ -3,4 +3,4 @@ dist/
 .vite/
 *.code-workspace
 .claude/
-CLAUDE.
+CLAUDE.md
