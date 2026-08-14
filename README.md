@@ -74,7 +74,7 @@ asks rather than guessing.
 |---|---|
 | Terminal | Answer; or type and pick an operation from the rail beside it |
 | Explorer | New object or group, rename, delete; drag to re-parent; click a group to open it |
-| Canvas | Drag to position; **drop one card on another to put it inside** — the target becomes a group; double-click empty space to make something; drag a link into empty space to make and attach something; double-click a relation to name it; `Delete` to remove |
+| Canvas | **The left button works what is there; the right button makes something new.** Left: drag to position, drop one card on another to put it inside, double-click a card to go into it and the space outside the frame to come back out. Right: click empty space for a block, click a card for an interface, click a relation to name it, drag card to card for a relationship, drag on empty space for a note. `Delete` removes |
 | Properties | Edit the selected object's text and type, or turn it into a group |
 | Actions | One **Undo**, unwinding in the order things were applied |
 | Matching | Every template's score against what you are typing, live |
@@ -196,6 +196,7 @@ design problem you can see rather than one you have to trace.
 | [`geometry/route.ts`](src/geometry/route.ts) | Where a line goes, and the lanes it shares |
 | [`canvas/card.tsx`](src/canvas/card.tsx) | The pieces every drawn thing is built from |
 | [`modules/index.ts`](src/modules/index.ts) | The component contract: what a module publishes, and the key each owns |
+| [`modules/card/`](src/modules/card) | The card component: how a usage is composed — layout, shape, label, `shows` |
 | [`canvas/gestures.ts`](src/canvas/gestures.ts) | What the pointer and the keyboard mean, and which action that reaches |
 | [`canvas/Canvas.tsx`](src/canvas/Canvas.tsx) | The layer composed: where things sit, what draws them, the controls |
 | [`terminal/router.ts`](src/terminal/router.ts) | Picks the question from the graph and the selection |

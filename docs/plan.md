@@ -8,6 +8,11 @@ owns so two owners never collide.
 - **What is missing and undecided** → [tasks.md](tasks.md).
 
 `⊘` marks a chunk nothing blocks. Everything else names what it waits on.
+`◆` marks one that **needs a decision before any code** — take it to the user first.
+
+**A row is done when** the suite and `tsc` pass, the app has been driven in a browser
+(`.claude/skills/run/SKILL.md`), spec.md and tasks.md say what is now true, and the row is struck
+through with one line on what actually landed. See [CLAUDE.md](../CLAUDE.md).
 
 
 ## Done
@@ -59,10 +64,10 @@ wrong place.
 |---|---|---|---|
 | ~~**S2.1**~~ | ~~Extract gesture handling out of `Canvas.tsx`~~ — **done**: `useGestures(reach, stage)`, 867 lines out of a 2041-line file. Hit testing, both buttons, the keyboard and the drag snap; it reaches actions and writes no mutation. Verified in a browser | `canvas/gestures.ts` | — |
 | ~~**S2.2**~~ | ~~The component contract~~ — **done**: `publish` registers each component's validator with the door, which drops only a key its component refuses and reports the reason. An unclaimed key is unvalidated, never wrong. 6 tests | `modules/index.ts`, `graph/check.ts` | — |
-| **S2.3** | The **card** component — the six standard layouts, shape from a closed set, label placement, `shows` | `modules/card/` | S2.2 |
+| ~~**S2.3**~~ | ~~The **card** component~~ — **done**: the six layouts, five shapes, three label placements and `shows`, refused from data and closed to it. `PLAIN` is today's card written down as one configuration; `cardOf` resolves a usage. Published by `modules/base.ts` at startup, so the door refuses `card.shape: trapezium` in the component's own words. 13 tests. **Nothing draws from it yet** — that is S2.6 | `modules/card/`, `modules/base.ts`, `main.tsx` | — |
 | **S2.4** | The **style** component — a style set by name over the portable typed fields | `modules/style/`, `assets/styles/` | S2.2, A0.1 |
 | **S2.5** | The **view** component and the view-module registry: `diagram`, `table`, `matrix` | `modules/view/` | S2.2 |
-| **S2.6** | Move today's canvas in as the **base diagram**, configured rather than hard-wired | `modules/view/diagram/` | S2.5, S2.3 |
+| **S2.6** `◆` | Move today's canvas in as the **base diagram**, configured rather than hard-wired. **Bigger than one sitting, and the verdict on the whole seam**: whatever will not go into a component is the answer to whether the boundaries are right. Report what resisted before forcing it | `modules/view/diagram/` | S2.5, S2.3 |
 | **S2.7** | Wire the gesture map from actions.md's inventory; a diagram declares the adjustments it takes | `modules/view/diagram/`, `canvas/gestures.ts` | S2.6, S1.6 |
 
 ### S5 — constraints and rules
@@ -133,7 +138,7 @@ wrong place.
 | **C.1** | Clusters: **ring and chain only**, each laid out by its own topology | `geometry/layout.ts` | S3.3 |
 | **C.2** | Notes as layout units, ties drawn as fixed associations | `geometry/layout.ts` | C.1 |
 | **C.3** | A flow biases **placement** as well as routing — not just the sides it attaches to. What in/out *mean* stays the package's | `geometry/layout.ts`, `geometry/route.ts` | ⊘ |
-| **C.4** | Router cost — a window resize on 80 blocks blocks the main thread for 15s | `geometry/route.ts` | S3.3 |
+| **C.4** | Router cost — a window resize on 80 blocks blocks the main thread for 15s. **Measure first and say what the number is**; the cause is the router, not another split | `geometry/route.ts` | S3.3 |
 | **C.5** | Rewrite the layout acceptance criterion around clusters, and measure it | `geometry/*.test.ts` | C.1 |
 | **D.2** | `vocabulary` becomes the list of packages a project uses, in import order | `graph/types.ts`, `terminal/` | A0.3 |
 | **E.1** | Editing definitions in the contents tray — fields, defaults, presentation | `page/Contents.tsx` | S1.6 |
@@ -144,8 +149,8 @@ wrong place.
 | **G.4** | `dissolve` — ungroup a whole group | `actions/groups.ts` | S1.4 |
 | **G.5** | `Ctrl`/`Cmd` + `A` | `canvas/gestures.ts` | S2.1 |
 | **G.6** | Add a block to an existing group from the panel — `joinGroup` is wired to nothing | `page/Panel.tsx` | S1.4 |
-| **G.7** | The selection box takes things it does not enclose. Undiagnosed | `canvas/gestures.ts` | S2.1 |
-| **G.9** | The context menu, and a trigger for it — selecting an element lists its actions in the tray | `page/Contents.tsx`, `canvas/` | S1.6, S2.4 |
+| **G.7** | The selection box takes things it does not enclose. **Undiagnosed — find the cause and report it before fixing.** The leading suspect explains a box that fails to start, not one that over-selects | `canvas/gestures.ts` | S2.1 |
+| **G.9** `◆` | The context menu, and a trigger for it — selecting an element lists its actions in the tray. **The trigger is not designed**: the right button is spent on direct creation, so the menu has no gesture left | `page/Contents.tsx`, `canvas/` | S1.6, S2.4 |
 | **F.3** | Export a rendered SVG beside the source. Needs a renderer that is not React Flow | `modules/view/diagram/` | S2.6 |
 | **A.1** | The **table** view module — proxies drawn as rows | `modules/view/table/` | S2.5, S4.4 |
 | **A.2** | The **matrix** view module — two axes, relationships in the cells, no adjustments | `modules/view/matrix/` | A.1 |
@@ -172,7 +177,7 @@ Last, and the acceptance test for everything above. See tasks.md, stream Z.
 | **Z.3** | Two-tier learning — the literal entry remembered, the situation's shape weighted. Local, never logged | `terminal/` | Z.2 |
 | **Z.4** | Expanded mode: the next question worth answering, and nudges | `terminal/` | Z.1 |
 | **Z.5** | The tutorial, walked over a sample project | `terminal/`, `samples/` | Z.4, H.1 |
-| **Z.6** | Surfacing documentation, keyed to context. **No home yet — needs designing** | `terminal/` | Z.4 |
+| **Z.6** `◆` | Surfacing documentation, keyed to context. **No home yet — needs designing**: where the text lives, and how it is keyed | `terminal/` | Z.4 |
 | **Z.7** | The rename, once all of it is built | everywhere | Z.6 |
 
 

@@ -198,8 +198,8 @@ the project.
   - `size` stays outside it: `layout` reads it for every element on every pass, and reaching into
     component configuration from the engine would invert the dependency.
 
-- **(planned) The components an open module publishes**, and what each key holds. The contract is
-  built; none of the five is:
+- **The components an open module publishes**, and what each key holds. **(planned)** — all but
+  `card`, and `card` is declared and validated rather than drawn from:
 
   | | Holds |
   |---|---|
@@ -210,6 +210,14 @@ the project.
   | `view` | on a diagram's definition: which view module, and its arrangement |
 
   Each is defined in [definitions.md](definitions.md) under *Rules, constraints and components*.
+
+  - **The plain card is the default written down** — `type` layout, `rect`, label inside, showing
+    no fields — which is today's card said as one configuration among others. **(planned)** The
+    canvas still draws it hard-wired; reading the configuration is the diagram's, and is what
+    tests whether the boundary holds.
+  - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
+    refused. That is the opposite of an unrecognised *component*, which is left alone: one is a
+    misspelling this build can see, the other may be a newer build's.
 
   - **The engine always places a rectangle.** Every seat, route and interface reads the box, so a
     shape changes what is **drawn** and never where anything attaches. A line meeting the box near
@@ -229,10 +237,12 @@ the project.
 - **(planned) What the five cannot say is a module's `validate` hook**, in code. There is no rule
   language, and local checks certify wiring rather than a whole model — whether every requirement
   is satisfied is a global walk, which is a translator's to make.
-- **(planned)** A definition may **`extend`** one other, by reference — usually one a package
-  ships. Fields union with the subtype's winning by name; `components` merge per key, and a key it
-  does not mention it inherits whole. **One parent**, cycles stop, and a parent that is not loaded
-  ends the chain with the subtype standing on its own declarations.
+- A definition may **`extend`** one other, by reference — usually one a package ships. **One
+  parent**, cycles stop, and a parent that is not loaded ends the chain with the subtype standing
+  on its own declarations. `isa` walks it, which is how a rule reaches every subtype.
+- **(planned)** Resolving one: fields union with the subtype's winning by name, and `components`
+  merge per key, a key it does not mention inherited whole. Today a subtype's own declarations are
+  read and the chain is walked only to answer *is it one of these*.
 - **(planned) Extension is subtyping, never overriding.** A package's definitions are never
   altered; refining one means making a new definition that *is* it.
 - **(planned) A rule naming a definition means it or anything below it.** Without that, an imported
@@ -249,11 +259,13 @@ the project.
   following the copy.
 - **(planned) Locked is the workspace's word, not the file's.** The same project is a package you
   are using or one you are writing depending on which you are doing, so nothing in it says.
-- **(planned) A reference reaching another project is written as a path**, `proj_a9f/def_pump` —
-  the project, a slash, then the id inside it. An id alone means this project, so every reference
+- **A reference reaching another project is written as a path**, `proj_a9f/def_pump` — the
+  project, a slash, then the id inside it. An id alone means this project, so every reference
   written so far still reads. One convention serves all three places one is held: a proxy's `of`,
   an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
-  ambiguous, and a reader splits on the first one or does not have to split at all.
+  ambiguous, and a reader splits on the first one or does not have to split at all. `refTo` and
+  `refAt` are the two ends of it. **(planned)** Nothing writes a path yet: that is the workspace,
+  which is what makes another project reachable.
 - **(planned)** A **package** is a set of definitions somebody ships — plain names, formal names,
   fields, presentation and mappings. It is data, adds no code, and **maps names and presentation
   but never structure**; a notation needing structural change is a module instead. See
@@ -312,7 +324,7 @@ the project.
   | `graph` | the content |
   | `meta` | free-form, unversioned, **safely ignorable**. Absent when empty |
 
-  - **(planned) `module` moved from the base to `meta` in 1.1.** It named a classifier that no
+  - **`module` moved from the base to `meta` in 1.1.** It named a classifier that no
     longer exists — what a project is is visible from what it holds — and what is left is a
     preference for which module to open it in, which a reader may ignore. Both directions still
     read: a 1.0 file carries it at the top and a 1.0 reader finding it absent falls back, so the
@@ -377,7 +389,8 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 
 ## Action surface
 
-*(planned) — the whole section. Today's actions are closures on the `project` hook.*
+*The registry is built — `actions/index.ts`, with scope, `check`, `sayable` and `writes`.* **(planned)
+— every action in it.** All 52 are still closures on the `project` hook, and S1.2–S1.7 move them.
 
 Everything that changes a project is a **record**, not a function somebody has to know about. One
 registry, read by every input method: gestures, the contents tray, and later the terminal.

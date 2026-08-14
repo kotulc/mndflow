@@ -10,7 +10,7 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 
 ## Status
 
-Built and stable: the validator, the one message strip, the schema and a 147-test suite.
+Built and stable: the validator, the one message strip, the schema and a 153-test suite.
 `src` is grouped by what a thing is for and dependencies run one way — see
 [README.md](../README.md) for the map.
 
@@ -20,10 +20,10 @@ Built and stable: the validator, the one message strip, the schema and a 147-tes
 **One known dependency violation**, left visible: `project.ts` imports the terminal. Seam S1
 is what fixes it.
 
-**Exercised in a browser.** A fresh session, a pre-freeze log, the canvas gestures, import and
-export all check out — the round trip is byte-identical and a pre-freeze log draws, repairs and
-saves out current. Two things it turned up: `/favicon.ico` 404s, and **README names the wrong
-gesture for making a block** (it says double-click; the right button makes, double-click descends).
+**Exercised in a browser**, and every seam is exercised there before it is called done — see
+`.claude/skills/run/SKILL.md` for how. A fresh session, a pre-freeze log, the canvas gestures,
+import and export all check out: the round trip is byte-identical and a pre-freeze log draws,
+repairs and saves out current. What it turned up has been fixed.
 
 **The schema is no longer frozen.** It is changed as the design requires, and a file still opens
 through `check.ts` whatever it was written by.
@@ -86,8 +86,11 @@ key — specced in [spec.md](spec.md) under *Project model*. `Canvas.tsx` splits
 handling — *done* — composition, and `modules/`.
 
 - **Each component validates its own key and reads no other's**, registering its validator with the
-  door so an unrecognised key is unvalidated rather than wrong — *done*. The registry is empty until
-  S2.3 publishes the first component.
+  door so an unrecognised key is unvalidated rather than wrong — *done*, and `card` is the first
+  published, refused at the door in its own words.
+- **The plain card is the claim in miniature.** `PLAIN` says today's card as a configuration and
+  nothing reads it yet; S2.6 is where the canvas draws from it, and where whatever will not go into
+  a component is the answer about the boundaries.
 - **The test this seam is measured against**: if the base diagram cannot be expressed as one
   configuration among others, the component boundaries are in the wrong place.
 - **Every gesture the canvas binds today is inventoried in [actions.md](actions.md)**, which is
@@ -303,7 +306,6 @@ Split out of the terminal because a module needs it and the terminal does not ga
   rows in [actions.md](actions.md) with nothing to replace.
 - **`relax` first among them.** It is the thing somebody most wants to type after naming ten
   things — the engine takes the layer back — so it is worth having before Z rather than after.
-- **`/favicon.ico` 404s.** `index.html` declares no icon.
 - **Adding a block to an existing group from the panel.** `joinGroup` exists and is wired to
   nothing, so the only way into an existing group is the drag.
 - **Fluid transitions between layers.** The viewport animates; the contents of the two layers cut,

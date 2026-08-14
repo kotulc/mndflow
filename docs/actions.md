@@ -7,8 +7,9 @@ The shape each record takes is in [spec.md](spec.md) under *Action surface*; why
 shape is in [design.md](design.md) under *The action surface is the input seam*. The words used
 here — project, view, package, module — are defined in design.md under *The words*.
 
-*Nothing here is built. It is the target the extraction is measured against — `project.ts` holds
-52 closures today, and the third column says which of them each row replaces.*
+*The registry these go into is built — `actions/index.ts`, S1.1. **No action is in it yet**:
+`project.ts` still holds all 52 closures, and the third column says which of them each row
+replaces. This table is the target the extraction is measured against.*
 
 **Every action acts within one project.** Where an argument names something in another, it is a
 proxy that brings it into this one — see *Across projects* below. No action ever writes to two
