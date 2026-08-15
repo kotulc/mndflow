@@ -3,4 +3,5 @@ dist/
 .vite/
 *.code-workspace
 .claude/
+.cursor/
 CLAUDE.md
