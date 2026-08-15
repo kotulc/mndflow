@@ -15,7 +15,7 @@ import {
 /** The two form families, so a definition can be sorted into the one it
  *  subtypes without either set being restated where it is used. */
 const ELEM_FORMS = ["block", "note", "group", "proxy", "figure"] as const;
-const EDGE_FORMS = ["untyped", "flow", "assoc", "tie"] as const;
+const EDGE_FORMS = ["line", "directed"] as const;
 
 /** Whether an element sits on its parent's frame edge. That, and only that, is
  *  what makes a block an interface. */
@@ -225,6 +225,30 @@ export function nameFree(graph: Graph, parent: string | null, label: string,
   );
 }
 
+/** Whether one definition is the other, or refines it however distantly.
+ *
+ *  What makes an imported standard worth importing: a rule naming
+ *  `sysml/requirement` has to reach the safety requirement somebody subtyped
+ *  from it, or it matches only the package's own definitions and nothing anyone
+ *  models. So the chain is walked rather than the parent copied.
+ *
+ *  Guarded against a cycle the way the tree is — a definition refining itself,
+ *  however many hops around, simply stops rather than hanging. A parent that is
+ *  not loaded ends the walk: what was inherited is unavailable, which the door
+ *  reports, and the subtype still stands on its own declarations. */
+export function isa(graph: Graph, def: string, ancestor: string): boolean {
+  const seen = new Set<string>();
+  let cursor: string | undefined = def;
+
+  while (cursor && !seen.has(cursor)) {
+    if (cursor === ancestor) return true;
+    seen.add(cursor);
+    cursor = graph.defs[cursor]?.extends;
+  }
+
+  return false;
+}
+
 /** Definitions of one form family: element subtypes, or relationship ones. */
 export function defsOf(graph: Graph, edges: boolean): Definition[] {
   const of = new Set<string>(edges ? EDGE_FORMS : ELEM_FORMS);
@@ -248,7 +272,7 @@ export function relationNames(graph: Graph): string[] {
  *  a relation typed onto the canvas becomes something that can be declared
  *  against, and how a log written before definitions folds into one. */
 export function defineNamed(graph: Graph, name: string,
-                            form: Definition["form"] = "untyped"): string {
+                            form: Definition["form"] = "line"): string {
   const id = defIdFor(name);
   if (!graph.defs[id]) graph.defs[id] = newDefinition(name, { id, form });
 
@@ -285,11 +309,22 @@ export function membersOf(graph: Graph, group: string): Element[] {
   return Object.values(graph.elements).filter((n) => n.groups.includes(group) && !isPort(n));
 }
 
+/** Whether a relationship is a note's leader.
+ *
+ *  Derived, and never stored, exactly as {@link isReference} is: a note relates
+ *  to what it describes and to nothing else, so an edge with a note at an end
+ *  *is* a tie and nobody has to say so. Being derived makes it no less the
+ *  engine's business — a tie still draws as a leader and takes no seats. */
+export function isTie(graph: Graph, edge: { source: string; target: string }): boolean {
+  return graph.elements[edge.source]?.form === "note" ||
+         graph.elements[edge.target]?.form === "note";
+}
+
 /** What a note describes: the far end of each of its ties. Derived from the
  *  relationships, because a tie is one. */
 export function tiesOf(graph: Graph, note: string): string[] {
   return Object.values(graph.edges)
-    .filter((e) => e.form === "tie" && e.source === note)
+    .filter((e) => e.source === note && isTie(graph, e))
     .map((e) => e.target);
 }
 
@@ -347,15 +382,9 @@ function dropField(on: Holder | undefined, name: string): void {
   if (on?.fields) on.fields = on.fields.filter((f) => f.name !== name);
 }
 
-/** Plain attributes seen in a retired `add_attr`, waiting for the
- *  `attach_attr` that says who carries them. They have no element of their own
- *  — an attribute is a value on its holder now — so the name has to be held
- *  until the holder is known. Fold-local, and empty again by the next fold. */
-type Pending = Map<string, Field>;
-
 /** Apply one mutation in place. Unknown targets are skipped rather than
  *  thrown: an undone parent can legitimately strand a later step. */
-function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
+function apply(graph: Graph, mutation: Mutation): void {
   switch (mutation.op) {
     case "checkpoint":
       // Everything a snapshot stands for, in place of replaying it.
@@ -374,7 +403,6 @@ function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
       if (!node) return;
       if (mutation.label) node.label = mutation.label;
       if (mutation.type !== undefined) node.type = mutation.type;
-      if (mutation.color !== undefined) node.color = mutation.color;
       break;
     }
 
@@ -481,18 +509,6 @@ function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
       dropField(graph.elements[mutation.id] ?? graph.edges[mutation.id], mutation.name);
       break;
 
-    /** An attribute was a field before fields carried a form; `newField` gives
-     *  it the `text` one, which is what it always was. */
-    case "set_attr": {
-      const on = graph.elements[mutation.id] ?? graph.edges[mutation.id];
-      if (on) setField(on, { name: mutation.name, value: mutation.value, tags: mutation.tags });
-      break;
-    }
-
-    case "drop_attr":
-      dropField(graph.elements[mutation.id] ?? graph.edges[mutation.id], mutation.name);
-      break;
-
     case "link_elements": {
       const { edge } = mutation;
       if (graph.elements[edge.source] && graph.elements[edge.target]) {
@@ -527,12 +543,6 @@ function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
     case "set_form": {
       const edge = graph.edges[mutation.id];
       if (edge) edge.form = mutation.form;
-      break;
-    }
-
-    case "set_kind": {
-      const edge = graph.edges[mutation.id];
-      if (edge) edge.form = mutation.kind;
       break;
     }
 
@@ -576,177 +586,10 @@ function apply(graph: Graph, mutation: Mutation, waiting: Pending): void {
 
     /** A project's relation names were a bare list before they were
      *  definitions, so each becomes one under an id derived from its name. */
-    case "set_domain":
-      graph.vocabulary = mutation.domain;
-      break;
-
-    case "add_relation":
-      defineNamed(graph, mutation.name);
-      break;
-
-    case "rename_relation": {
-      const held = graph.defs[defIdFor(mutation.from)];
-      if (held) held.name = mutation.to;
-      // Usages named the relation before they pointed at one.
-      for (const edge of Object.values(graph.edges)) {
-        if (edge.type === mutation.from) edge.type = mutation.to;
-      }
-      break;
-    }
-
-    case "drop_relation": {
-      delete graph.defs[defIdFor(mutation.name)];
-      for (const edge of Object.values(graph.edges)) {
-        if (edge.type === mutation.name) edge.type = "";
-      }
-      break;
-    }
-
+    // An op this build does not know is skipped rather than guessed at. The
+    // door has already reported it — see `check.entering` — so folding it into
+    // something plausible would only be a second opinion, quietly held.
     default:
-      legacy(graph, mutation, waiting);
-  }
-}
-
-/** Fold an operation no longer written, into what it drew at the time.
- *
- *  Kept separate so the live set above reads as the current schema and nothing
- *  else. Attributes are the substantial case: a group and a note are elements
- *  now, so an old `add_attr` becomes whichever element it was drawing, and its
- *  holders become membership, ties, or a plain value depending on which. */
-function legacy(graph: Graph, mutation: Mutation, waiting: Pending): void {
-  const old = mutation as Record<string, string | number | null | undefined> & { op: string };
-
-  switch (old.op) {
-    case "add_node": {
-      const node = (mutation as { node: Record<string, unknown> }).node;
-      const id = node.id as string;
-      const stands = (node.ref as string | null | undefined) ?? null;
-      graph.elements[id] = newElement((node.label as string) ?? "", {
-        ...node,
-        id,
-        element: stands != null ? "proxy" : "block",
-        of: stands,
-      } as Partial<Element>);
-
-      break;
-    }
-
-    case "update_node":
-      apply(graph, { ...(mutation as object), op: "update_element" } as Mutation, waiting);
-      break;
-
-    case "move_node":
-      apply(graph, { ...(mutation as object), op: "move_element" } as Mutation, waiting);
-      break;
-
-    case "place_node":
-    case "place_attr":
-      apply(graph, { ...(mutation as object), op: "place_element" } as Mutation, waiting);
-      break;
-
-    case "delete_node":
-    case "delete_attr":
-      apply(graph, { op: "delete_element", id: old.id as string }, waiting);
-      break;
-
-    case "link_nodes": {
-      const edge = (mutation as { edge: Record<string, unknown> }).edge;
-      apply(graph, {
-        op: "link_elements",
-        edge: { ...edge, type: (edge.relation as string) ?? "" },
-      } as Mutation, waiting);
-      break;
-    }
-
-    case "set_template":
-      graph.vocabulary = old.template as string;
-      break;
-
-    case "set_title":
-      rootOf(graph).label = old.title as string;
-      break;
-
-    case "add_attr": {
-      const attr = (mutation as { attr: Record<string, unknown> }).attr;
-      const id = attr.id as string;
-      const note = attr.note as { layer: string | null; x: number; y: number;
-                                  w?: number; h?: number } | undefined;
-
-      if (attr.group || note) {
-        graph.elements[id] = newElement((attr.name as string) ?? "", {
-          id,
-          form: note ? "note" : "group",
-          parent: note ? note.layer : null,
-          x: note?.x ?? null,
-          y: note?.y ?? null,
-          w: note?.w ?? null,
-          h: note?.h ?? null,
-          color: (attr.color as string) ?? "#d9a441",
-        });
-      }
-      else {
-        // A plain attribute has no element of its own; it waits here for the
-        // `attach_attr` that says who carries it.
-        waiting.set(id, newField((attr.name as string) ?? "", {
-          value: (attr.value as string) ?? "", tags: (attr.tags as string[]) ?? [],
-        }));
-      }
-      for (const holder of ((attr.holders as string[]) ?? [])) {
-        apply(graph, { op: "attach_attr", id, holder } as Mutation, waiting);
-      }
-      break;
-    }
-
-    case "update_attr": {
-      const node = graph.elements[old.id as string];
-      if (!node) return;
-      if (old.name !== undefined) node.label = old.name as string;
-      if (old.color !== undefined) node.color = old.color as string;
-      break;
-    }
-
-    case "attach_attr": {
-      const id = old.id as string;
-      const holder = graph.elements[old.holder as string];
-      const annotation = graph.elements[id];
-      if (!holder) return;
-
-      // A note's tie is a relationship now; a group's membership is not.
-      if (annotation?.form === "group") {
-        // A group used to take its layer from its members. It is an element in
-        // one now, so the first member it gets is what says which.
-        annotation.parent = holder.parent;
-        apply(graph, { op: "join_group", id: holder.id, group: id }, waiting);
-      } else if (annotation?.form === "note") {
-        const tie = `tie_${id}_${holder.id}`;
-        graph.edges[tie] = newEdge(id, holder.id, { id: tie, form: "tie" });
-      } else {
-        const held = waiting.get(id);
-        if (held) setField(holder, held);
-      }
-      break;
-    }
-
-    case "detach_attr": {
-      const id = old.id as string;
-      const holder = old.holder as string;
-      const annotation = graph.elements[id];
-
-      if (annotation?.form === "group") {
-        apply(graph, { op: "leave_group", id: holder, group: id }, waiting);
-      } else if (annotation?.form === "note") {
-        delete graph.edges[`tie_${id}_${holder}`];
-      } else {
-        const held = waiting.get(id);
-        if (held) dropField(graph.elements[holder], held.name);
-      }
-      break;
-    }
-
-    // A line has no route of its own any more — it is planned from the layer it
-    // is drawn in. Kept so a log written when routes were stored still folds:
-    // the corners are simply not read.
-    case "route_edge":
       break;
   }
 }
@@ -784,7 +627,7 @@ function tidy(graph: Graph): void {
   // this runs on every fold and a random id would never settle.
   for (const edge of Object.values(graph.edges)) {
     if (edge.type && !graph.defs[edge.type]) {
-      edge.type = defineNamed(graph, edge.type, edge.form ?? "untyped");
+      edge.type = defineNamed(graph, edge.type, edge.form ?? "line");
     }
   }
 
@@ -859,11 +702,10 @@ function lastCheckpoint(steps: Step[]): number {
 /** Rebuild the graph from every applied step, in order. */
 export function fold(steps: Step[]): Graph {
   const graph: Graph = structuredClone(EMPTY);
-  const waiting: Pending = new Map();
 
   for (const step of steps) {
     if (step.status !== "applied") continue;
-    for (const mutation of step.mutations) apply(graph, mutation, waiting);
+    for (const mutation of step.mutations) apply(graph, mutation);
   }
 
   tidy(graph);

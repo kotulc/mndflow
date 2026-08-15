@@ -9,7 +9,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { compact, fold, membersOf, relationNames, stepsIn, COMPACT_AT } from "./fold";
+import { compact, fold, isa, isReference, isTie, membersOf, relationNames, stepsIn, tiesOf,
+         COMPACT_AT } from "./fold";
 import { edge, element, step, ROOT, type Mutation, type Step } from "./types";
 
 /** One step holding whatever mutations a case needs. */
@@ -194,5 +195,99 @@ describe("compaction", () => {
 
     expect(compact(few)).toBe(few);
     expect(stepsIn(few)).toBe(3);
+  });
+});
+
+describe("the two derived relation forms", () => {
+  /** A note tied to a block, and a proxy pointing at one — the two ends that
+   *  make a relationship something without anybody saying so. */
+  function layer() {
+    const block = element("Pump", { parent: null });
+    const note = element("watch", { form: "note", parent: null });
+    const stand = element("", { form: "proxy", parent: null, of: block.id });
+    const tie = edge(note.id, block.id);
+    const ref = edge(stand.id, block.id);
+    const plain = edge(block.id, block.id);
+    const mutations: Mutation[] = [
+      ...[block, note, stand].map((it) => ({ op: "add_element" as const, element: it })),
+      ...[tie, ref, plain].map((it) => ({ op: "link_elements" as const, edge: it })),
+    ];
+
+    return { graph: fold([step("", "test", mutations)]), tie, ref, plain };
+  }
+
+  it("reads a tie from a note being at an end, not from a stored word", () => {
+    const { graph, tie, plain } = layer();
+
+    expect(isTie(graph, graph.edges[tie.id])).toBe(true);
+    expect(isTie(graph, graph.edges[plain.id])).toBe(false);
+  });
+
+  it("reads a reference from a proxy being at an end", () => {
+    const { graph, ref, plain } = layer();
+
+    expect(isReference(graph, graph.edges[ref.id])).toBe(true);
+    expect(isReference(graph, graph.edges[plain.id])).toBe(false);
+  });
+
+  it("keeps its declared form either way — derived says nothing about that", () => {
+    const { graph, tie, ref } = layer();
+
+    expect(graph.edges[tie.id].form ?? "line").toBe("line");
+    expect(graph.edges[ref.id].form ?? "line").toBe("line");
+  });
+
+  it("finds what a note describes without a form to filter on", () => {
+    const { graph, tie } = layer();
+
+    expect(tiesOf(graph, graph.edges[tie.id].source)).toEqual([graph.edges[tie.id].target]);
+  });
+});
+
+describe("a definition refining another", () => {
+  /** A chain: safety requirement → requirement, plus something unrelated. */
+  const chain = () => fold([step("", "test", [
+    { op: "set_def", id: "def_req", name: "requirement", form: "block" },
+    { op: "set_def", id: "def_safety", name: "safety requirement", form: "block",
+      extends: "def_req" },
+    { op: "set_def", id: "def_hazard", name: "hazard", form: "block", extends: "def_safety" },
+    { op: "set_def", id: "def_part", name: "part", form: "block" },
+  ])]);
+
+  it("is itself", () => {
+    expect(isa(chain(), "def_req", "def_req")).toBe(true);
+  });
+
+  it("is what it extends, however many hops away", () => {
+    const graph = chain();
+
+    expect(isa(graph, "def_safety", "def_req")).toBe(true);
+    expect(isa(graph, "def_hazard", "def_req")).toBe(true);
+  });
+
+  it("is not what it never extended, and the chain does not run backwards", () => {
+    const graph = chain();
+
+    expect(isa(graph, "def_part", "def_req")).toBe(false);
+    expect(isa(graph, "def_req", "def_safety")).toBe(false);
+  });
+
+  it("stops rather than hanging when a chain loops", () => {
+    const looped = fold([step("", "test", [
+      { op: "set_def", id: "def_a", name: "a", form: "block", extends: "def_b" },
+      { op: "set_def", id: "def_b", name: "b", form: "block", extends: "def_a" },
+    ])]);
+
+    expect(isa(looped, "def_a", "def_missing")).toBe(false);
+  });
+
+  it("ends the walk at a parent that is not loaded, rather than throwing", () => {
+    const alone = fold([step("", "test", [
+      { op: "set_def", id: "def_mine", name: "mine", form: "block",
+        extends: "pkg_sysml/def_requirement" },
+    ])]);
+
+    expect(isa(alone, "def_mine", "def_mine")).toBe(true);
+    expect(isa(alone, "def_mine", "pkg_sysml/def_requirement")).toBe(true);
   });
 });

@@ -28,7 +28,7 @@ function sample(): { graph: Graph; steps: number } {
     { op: "add_element", element: note },
     { op: "add_element", element: group },
     { op: "join_group", id: a.id, group: group.id },
-    { op: "link_elements", edge: edge(a.id, b.id, { type: "drives", form: "flow" }) },
+    { op: "link_elements", edge: edge(a.id, b.id, { type: "drives", form: "directed" }) },
     { op: "set_field", id: a.id, name: "mass", form: "number", value: "4", unit: "kg" },
   ];
 
@@ -99,6 +99,91 @@ describe("what is written", () => {
   it("is valid JSON as well as line-diffable, which are not in tension", () => {
     expect(text.split("\n").length).toBeGreaterThan(10);
     expect(() => JSON.parse(text)).not.toThrow();
+  });
+});
+
+describe("a file written by an earlier build", () => {
+  const { graph, steps } = sample();
+  /** Exactly what 1.0 wrote: the module in the base, and no field 1.1 added. */
+  const before = (() => {
+    const held = JSON.parse(write(graph, "proj_old", steps));
+    const { module: _new, ...meta } = held.meta;
+
+    return { ...held, schema: "1.0", module: "block", meta };
+  })();
+
+  it("still opens — the gate compares the major, so a lower minor is fine", () => {
+    expect(readable("1.0")).toBe(true);
+    expect(read(before)).not.toBeNull();
+  });
+
+  it("comes back holding everything it held", () => {
+    expect(sorted(read(before)!.graph)).toEqual(sorted(graph));
+  });
+
+  it("saves back out current, so opening one is how a project catches up", () => {
+    const back = read(before)!;
+    const again = JSON.parse(write(back.graph, back.id, back.meta?.steps ?? 0));
+
+    expect(again.schema).toBe(SCHEMA);
+    expect(again.module).toBeUndefined();
+    expect(again.meta.module).toBeTruthy();
+  });
+});
+
+describe("the module preference", () => {
+  const { graph, steps } = sample();
+
+  it("is written to meta, not to the base — it is a preference, not a classifier", () => {
+    const held = JSON.parse(write(graph, "proj_test", steps));
+
+    expect(held.module).toBeUndefined();
+    expect(held.meta.module).toBeTruthy();
+  });
+
+  it("is still read from a file that carried it in the base", () => {
+    const held = JSON.parse(write(graph, "proj_test", steps));
+    const { module: _gone, ...meta } = held.meta;
+
+    expect(read({ ...held, meta, module: "activity" })!.meta?.module).toBe("activity");
+  });
+
+  it("falls back rather than failing when a file names none", () => {
+    const held = JSON.parse(write(graph, "proj_test", steps));
+
+    expect(read({ ...held, meta: { steps: 1 } })!.meta?.module).toBeTruthy();
+  });
+});
+
+describe("what a definition declares", () => {
+  /** Everything a definition can say, so the round trip has all of it to lose. */
+  const spoken: Mutation[] = [
+    { op: "set_def", id: "def_decision", name: "decision", form: "figure",
+      body: "a branch in a flow", size: { w: 48, h: 48 },
+      names: { sysml: "DecisionNode" },
+      components: { card: { layout: "shape", shape: "diamond" },
+                    rules: { degree: { in: [1, 1] } } } },
+  ];
+  const graph = fold([step("", "test", spoken)]);
+  const text = write(graph, "proj_test", 1);
+
+  it("keeps every field it declares through a round trip", () => {
+    expect(read(JSON.parse(text))!.graph.defs.def_decision).toMatchObject({
+      body: "a branch in a flow", size: { w: 48, h: 48 },
+      names: { sysml: "DecisionNode" },
+      components: { card: { layout: "shape", shape: "diamond" },
+                    rules: { degree: { in: [1, 1] } } },
+    });
+  });
+
+  it("writes none of them when a definition says nothing", () => {
+    const bare = fold([step("", "test",
+                            [{ op: "set_def", id: "def_part", name: "part", form: "block" }])]);
+    const written = write(bare, "proj_test", 1);
+
+    for (const said of ["body", "size", "names", "components", "icon"]) {
+      expect(written).not.toContain(`"${said}"`);
+    }
   });
 });
 

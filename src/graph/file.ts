@@ -37,10 +37,12 @@ function fieldsIn(held: unknown): Field[] {
 /** Which shape a file is. **Major must match; a higher minor is readable**, so
  *  a reader that knows 1.x opens a 1.3 file and skips what it does not know.
  *  Additive changes to the base cost a minor bump rather than a break. */
-export const SCHEMA = "1.0";
+export const SCHEMA = "1.1";
 
-/** What kind of thing a project is. An open string, not an enumeration: calling
- *  it `block` today and `structure` later must not be a format bump. */
+/** Which module a project would like to be opened in. A preference and nothing
+ *  more — what a project *is* is visible from what it holds — so it lives in
+ *  `meta`, where a reader that ignores it loses nothing. An open string, not an
+ *  enumeration: naming a new module must never be a format bump. */
 export const MODULE = "block";
 
 /** The base is what cannot be safely ignored — drop any of it and the file
@@ -49,9 +51,8 @@ export const MODULE = "block";
 export type Envelope = {
   schema: string;
   id: string;
-  module: string;
   graph: Graph;
-  meta?: { steps?: number };
+  meta?: { steps?: number; module?: string };
 };
 
 /** Only what somebody actually decided: no nulls, no empties, and nothing still
@@ -123,8 +124,7 @@ export function write(graph: Graph, id: string, steps: number): string {
   return `${JSON.stringify({
     schema: SCHEMA,
     id,
-    module: MODULE,
-    meta: { steps },
+    meta: { steps, module: MODULE },
     graph: {
       ...(graph.vocabulary ? { vocabulary: graph.vocabulary } : {}),
       defs: Object.fromEntries(
@@ -195,18 +195,21 @@ export function read(raw: unknown): Envelope | null {
       }),
   );
 
+  const meta = (it.meta ?? {}) as NonNullable<Envelope["meta"]>;
+
   return {
     schema: it.schema as string,
     id: typeof it.id === "string" ? it.id : "",
-    module: typeof it.module === "string" ? it.module : MODULE,
-    meta: (it.meta ?? {}) as Envelope["meta"],
+    // Before 1.1 the module sat in the base. Read from either, since a reader
+    // that finds it in neither is only missing a preference.
+    meta: { ...meta, module: meta.module ?? (typeof it.module === "string" ? it.module : MODULE) },
     graph: {
       defs: Object.fromEntries(
         Object.entries((held.defs ?? {}) as Record<string, unknown>)
           .map(([at, d]) => {
             const raw = d as Record<string, unknown>;
 
-            return [at, { name: "", form: "untyped", ...raw, id: at,
+            return [at, { name: "", form: "line", ...raw, id: at,
                           fields: fieldsIn(raw.fields) } as Definition];
           }),
       ),

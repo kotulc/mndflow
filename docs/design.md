@@ -1,0 +1,553 @@
+# Design
+
+**Why mndflow is the way it is** — the vision, the goals, and the reasoning behind the rules that
+shape everything else. Not what each part does, and not what each word means.
+
+- **What each part does** → [spec.md](spec.md). **What each word means** → [definitions.md](definitions.md).
+- **What is missing and undecided** → [tasks.md](tasks.md). **The queue** → [plan.md](plan.md).
+
+mndflow is for rapidly building and composing descriptive visual blocks into systems models. It is
+a client-only web app. Visual scope is constantly constrained, so a reader is never shown more than
+one layer's worth of anything.
+
+**It stays general on purpose.** Hard rules are only the few that prevent an incoherent project — a
+node cannot contain itself. Nothing is forbidden for being unusual, and where a choice could be
+enforced or left to the user, it is left to the user.
+
+
+## The aim
+
+**Rapid, general concept modelling.** Speed, simplicity and generality come first, and a special
+case never overrides them.
+
+**Nobody should have to learn a notation to use one.** A person describing a system says what the
+parts are, what they are made of, what flows between them and what has to be true — and that is
+already the whole base model. The specialised vocabulary and symbols of a standard are a layer
+somebody chooses to put on top, not a toll on the way in: the same graph reads as plain blocks and
+flows to one person and as a parametric diagram to another, because what changed is the names and
+the drawing, never the structure. **A notation that cannot be reached this way is a notation this
+tool does not do**, which is a better answer than bending the base model until it can.
+
+**SysML is a translation layer, never a shape the model bends to.** It is cumbersome, and a looser
+tool that exports to it serves more people than one built in its image. That split is already paid
+for: the engine's forms are closed and the `type` on each element is open, so a translator maps
+stereotypes and changes no engine code.
+
+
+## Five ideas
+
+These carry most of the weight, and most of the rules below are one of them applied.
+
+- **Derived beats stored.** Anything that can be worked out from the layer is worked out — seats,
+  routes, boundaries, roles, control nodes, messages. Only choices are written down.
+- **The model grows itself as it is described.** Describing behaviour over a structure is how that
+  structure learns what it needs: the states a thing can be in, the interfaces it has to offer, the
+  actions it performs. Somebody draws what happens and the definitions fill in behind them, so the
+  work of modelling is spent saying things once rather than restating them in a second notation.
+- **A hand-laid thing is a hard constraint; a derived one is not.** What somebody placed or declared
+  is honoured; everything else is the layer's to arrange. This is the rule the whole layout model
+  rests on, and the rule promotion follows when a derived state machine becomes real blocks.
+- **The log is the truth.** The graph is folded from it, so undo needs no inverses.
+- **An accident is the failure worth designing against.** Where a rule looks like it is protecting
+  the user, check which it is doing: preventing a slip is worth a gesture's design, and preventing
+  a choice is not. Most of the rules cut from this document were the second wearing the first's
+  clothes.
+
+
+## The engine and what configures it
+
+Four tiers, and the boundary between the middle two is the one that matters: **what the engine must
+know goes in data; what only a person needs to see is shipped beside it.**
+
+| | Holds | Changed by | Lives in |
+|---|---|---|---|
+| **engine** | the forms, the tree, containment, membership, placement, routing, seats, the grid, the log and the fold, ids and references, the action surface | nobody. This is the closed part | `src/graph`, `src/geometry` |
+| **definition** | name, other vocabularies' names, a body, fields, the room a usage needs, and the configuration of every open component | data, shipped in a package | `packages/` |
+| **module** | renderers, layout laws, gesture maps, validation hooks, the projection surface | code, at build time | `src/modules/`, with stylesheets in `styles/` |
+| **never** | a sixth element form, a new mutation op, a new adjustment | — anything the engine would have to *reason* about | — |
+
+**Two sets, and telling them apart is the whole discipline.** Card layouts, style sets, rule kinds,
+arrangements, routing strategies and view modules are **open** — extended by a code change, and
+additively. The element forms, the relationship forms, the value forms, the mutation ops and the
+action set are **closed**, and every argument in this document rests on their being so. If
+"extensible" leaks into the second column the engine stops being general and becomes a plugin host.
+
+**The engine never branches on user data.** It reads the closed forms and the derived facts and
+nothing else — which is why `figure` earns a form for taking no ports while a lighter stroke does
+not earn one at all. Configuration changes what a thing looks like and what is valid on it; it never
+changes how the engine places it.
+
+**Per-subtype is configuration; per-instance is content.** A definition configures components for
+every usage of it, and no element carries configuration of its own. Where two usages must differ,
+they differ in what they **hold** and in their **fields**, both of which are ordinary content. That
+is what keeps presentation from scattering across a project one element at a time.
+
+**A component owns its configuration key and reads no other's.** They share one element and one log,
+so separate code is not separate state, and this is the only thing that makes the isolation real
+rather than nominal.
+
+**Components ship as presets.** They configure independently, which multiplies quickly, and most
+combinations are untested; a view names a coherent set rather than inviting recombination.
+
+**Assets are build-time.** Somebody extending them edits the repo and rebuilds. That is real
+extensibility and costs nothing; a runtime plugin loader means sandboxing untrusted code inside a
+page holding the user's whole workspace, which is a different decision and not one to smuggle in.
+It follows that **a package must be useful with portable presentation alone** — it brings its data
+and renders on the simple typed fields, gaining its custom look only where the module and stylesheet
+it names are in the build. It degrades rather than breaks.
+
+**A subtype keeps the behaviour of the form it subtypes.** A decision is a figure with a shape drawn
+in it, a swimlane is a group with a segmented style, a lifeline is a column of actions — each
+inherits placement wholesale and configures only what it looks like and what is valid on it. That is
+what makes a package safe to install: it can change how a project reads and never how it behaves.
+
+
+## The words
+
+**Every term is defined in [definitions.md](definitions.md)**, which is the canonical vocabulary.
+What belongs here is only the reasoning behind the shape of it.
+
+**Nothing declares what a project is.** One holding only proxies is a view, one holding only
+definitions is a package, one holding its own objects is a structure. It is visible from what it
+has, so there is no field to keep true — and a project is free to become something else by being
+worked on. What its things *mean* comes from the packages it draws definitions from, not from a
+class: one idea doing the work two would have done badly.
+
+**Everything is a block or a relationship.** Those two are the fundamental units and there is no
+third: a folder in a workspace is a block, a diagram is a block, a note is a block, a swimlane is a
+group of them. What varies is which form one takes, what its definition configures, and what it
+holds — never what sort of thing it fundamentally is. That is the property the whole model is built
+to keep, because every rule that has to ask *"but what if it is one of those instead"* is a rule
+that will be wrong about something later.
+
+
+## The decisions everything rests on
+
+### The log is the truth
+
+Only one thing is stored: an ordered list of **steps**. The **fold** replays the applied ones into a
+**graph**, which is thrown away and rebuilt rather than edited, so it can never drift from the
+record that produced it.
+
+```
+    log  ──fold──▶  graph  ──derive──▶  what you see
+  (stored)         (current            (seats, routes,
+                    state)              boundaries, layout)
+```
+
+- **Undo needs no inverses.** Flip the last applied step to `reverted` and fold again. Nothing has
+  to know how to un-delete a group, so no mutation can get its inverse subtly wrong — which is the
+  usual way undo rots.
+- **There is one code path.** The graph that comes back from an undo was built by the same fold that
+  built the original, so no state arrives by a second, rarely-exercised route.
+- **Derived data cannot go stale**, because it is never kept.
+- **The history is honest.** It is not a log written alongside the work; it *is* the work.
+
+That gives a sharp test for whether something belongs to a project: **is it in the log?** A block's
+name is, so it exports and it undoes. Whether interfaces are shown is not, so it does neither.
+
+**The log reads as actions, not as mechanics.** A step per keystroke would be a faithful record and
+a useless one — undo would walk back through a word one letter at a time. So a field commits once,
+and successive placements of the same element replace one another. A run ends when a different
+action begins, which is what makes it safe: the thing that closes a run is the same thing that would
+have made the intermediate steps worth keeping.
+
+**Compaction is the migration path, not merely a size limit.** Every schema change leaves a branch
+in the fold that can never be deleted, because some log somewhere still contains that op. A
+checkpoint is written in the *current* schema whatever the steps behind it were spelled in, so a
+project sheds retired ops by being used — which is what makes deleting those branches a decision
+somebody can safely take. What is spent is reach: undo cannot pass a checkpoint.
+
+### A file is the graph
+
+**A file is the graph; the log is a working copy.** The two have different jobs. A file exists to be
+read, compared and kept, so it should be the size of the model rather than the size of the effort,
+and its diff should say which elements changed rather than replaying the actions that changed them.
+A log fails both: add a block, nudge it a dozen times, rename it twice and delete it, and fifteen
+lines of diff describe a net change of nothing.
+
+**Importing one is a checkpoint**, so this costs no new mechanism and there is no second format and
+no second reader.
+
+**The base of the envelope is whatever cannot be ignored; the rest is `meta`.** That one test is
+what keeps an envelope from becoming a drawer. A reader that skips `schema` cannot know whether it
+understands the file; one that skips `id` cannot resolve a reference. Everything else can be dropped
+with no effect on what the project *is*.
+
+**A count of work is not a version.** `meta.steps` orders nothing between two copies that diverged
+and composes across no set of projects, so calling it a version would promise a guarantee the number
+cannot make.
+
+**The content hash is computed and never stored.** A derived value written down disagrees with what
+it describes the moment anybody hand-edits the file, at which point it lies rather than merely being
+stale — and git hashes the file already, better.
+
+**A project file is a single-owner asset**, like a `.psd`. Two people editing one produces a
+whole-file conflict with no merge path, and hand-merging model JSON is not reasonable work. The
+answer to genuine multi-user editing is a live store, not a merge algorithm — a different product
+decision, and not one this format should pretend to solve. What is given up is that history no
+longer travels with the file, which is the right trade twice over: git is a better history than an
+anonymous near-per-keystroke log, and undo is a thing you want *while working*, which is where the
+log still is.
+
+**An id says what it points at and never what it is called.** A name inside an id would go stale on
+a rename, or force the id to be rewritten everywhere — which is the whole point of having one.
+
+### Two things, and no more
+
+An **element** is placed and drawn; a **relationship** joins two of them. Everything else describes
+one of the two.
+
+**Everything the project holds is an element, not only its structure.** Blocks, notes, groups and
+proxies are one record with one set of operations, because they were already being placed, dragged,
+named and laid out alike — a second table for annotations meant a parallel mechanism for each of
+those, and two cleanup paths where one would do.
+
+**Anything joining two elements is a relationship.** A form may draw as something other than a
+routed line — a tie is a leader — but drawing is not identity. The alternative was a second way to
+join things, with its own mutations, its own cascade and its own list, all shadowing what
+relationships already do.
+
+**The test for which of the two something is: drawn as a line between two things → a relationship;
+not a line → a field.** A tie is a line, so it is one. A `ref` field is not, so it is not.
+
+**Containment is the exception, and stays `parent`.** The tree is the one join every element has
+exactly one of, so storing it as edges would mean guarding an invariant that a field enforces for
+free.
+
+**`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
+elements, relationships and fields alike. A definition subtypes *within* a form rather than across
+one, which is what keeps the closed set closed and stops every rule branching on user data.
+
+**A form is earned when the engine must know something about placement or behaviour and cannot tell
+from a field.** That is why a reference is not a form and a lighter stroke is not a form: one the
+graph already knows, the other is presentation.
+
+### Derived beats declared
+
+The engine knowing something is different from somebody having to say it. **Container** and
+**interface** are ways a block looks, derived from what it holds and whether it sits on a frame
+edge. **Reference** and **tie** are derived from what sits at a relationship's ends. **Seats**,
+**routes** and **lanes** are worked out from the layer every time it is drawn. **Control nodes and
+messages** are counted from the relationships and their guards.
+
+- **Naming them in `form` would make a closed engine-level set answer to something that changes the
+  moment a child is added.**
+- **A default is derived, never written.** A card falls back to its module's word where nothing has
+  given it a type, exactly as an unnamed element falls back to `block 1`. Only a distinction
+  somebody actually drew is written down.
+- **Nothing about a line is stored, and there is no gesture for moving one.** Straightness is
+  decided by the layer's arrangement, a convention is a rule stated once rather than dragged into
+  every line, and clearing other lines is something no single edge can see — which is what lanes are
+  for. What this buys is that a relationship the terminal added is drawn exactly as well as one
+  somebody dragged.
+- **Being cheap is a requirement.** A derived route runs on every render, so the router stays a
+  router. A router nobody can predict is worse than a plain one even where its output is better,
+  because the promise is that you never correct it — and you cannot trust what you cannot
+  anticipate.
+
+### A hard constraint, and what is merely retained
+
+Two different things, easily confused:
+
+- **A hard constraint is honoured *by* an arrangement and survives it.** Only two things are one: a
+  hand-made interface's side and place along it, and a wall a right drag named for a relationship's
+  end.
+- **Retained placement is what an arrangement replaces.** A card's position is this. It constrains
+  nothing: an arrangement overwrites it, writes the new one down, and hands it back.
+
+So a card someone dragged is not a constraint. Only ports and walls are, because only they declare
+something an arrangement has to respect while it runs.
+
+**A wall is an intent, not a position.** Cards move, the frame resizes, and "this leaves by the
+north wall" is still true and still drawable. It can become unhelpful; it never becomes incoherent.
+A constraint fixes which side and where along it, never the distance — and two constraints can be
+mutually unsatisfiable, in which case the sides are honoured and the route takes the consequence,
+the same way a card dragged somewhere unhelpful stays there.
+
+### One channel for everything the app says
+
+**Every message goes to the strip at the top of the canvas**, carrying the text plus at most one
+thing to do about it. A repaired log, a refused name, and the question before discarding a project
+all arrive the same way.
+
+- **No `alert` and no `confirm`.** They are two more places to look, cannot be styled, cannot be
+  tested, and stop the page dead. A question is a message with one answer attached.
+- **A refusal is said twice, at two lengths.** The field marks itself and reads *taken*, because a
+  pane as narrow as the explorer can hold a word and not a sentence; the sentence goes to the strip,
+  which has room.
+- **One field for every name**, so a rule added to it reaches all of them at once.
+- **A failed save is reported, never swallowed.** The session is unharmed until the tab closes, so
+  the one thing that must not happen is the user not knowing.
+
+### Accidents, not choices
+
+**The left button handles what already exists; the right button makes something new.** A division by
+what the gesture *does* rather than by what it is over, which is what makes it sayable in one line.
+Within the right button, a click makes the thing that sits at a point and a drag makes the thing
+that has extent.
+
+- **No part of a card is a separate target.** Aiming at a ring a few pixels wide for the commoner of
+  two actions is worth nothing. The layer's frame is the one exception, unavoidably: its interior
+  *is* the background, so its border must stay a zone.
+- **A move is never confirmed first.** Undo is the answer to a move that went wrong, and a dialog in
+  the way of every reorganisation costs more than it saves.
+- **Select-then-drag is for large targets, not small ones.** A boundary is a wide transparent area a
+  drag could begin in by accident; an interface is thin and precisely reported, so it acts at once.
+- **An interface is made, not stumbled into.** A drag that silently converted a block into one would
+  make every ordinary move a hazard — but the fix is preventing the accident, not forbidding the
+  operation, which is how the tool once ended up able to create an interface and unable to undo it.
+- **A click in the explorer navigates; a click on the canvas selects and never navigates.** So a
+  glance never costs you your place, and descending is always a deliberate second gesture.
+- **Toolbars divide by states against verbs**, which is why the two sit far apart. A control that
+  does something and a control that is something look alike and behave differently.
+
+
+## Where this is going
+
+*Nothing in this section is built. It is here so that the refactors leading to it are made in the
+right direction — see [tasks.md](tasks.md) for what is actually outstanding.*
+
+### Three parts
+
+| Part | Is |
+|---|---|
+| **page** | branding, navigation, and the workspace. Owns nothing about a diagram |
+| **terminal** | an optional alternate way to give input. Minimises to one line |
+| **module** | engine code, and what a diagram configures |
+
+**The tree and the canvas are the base diagram.** Everything else wraps around them.
+
+### One graph, and a view is one too
+
+**A view is a project of proxies**, with its own tree, its own log and its own export. It costs no
+new concept: a diagram is a block whose definition names a view module, a folder beside it is an
+ordinary block, and everything a diagram shows is a proxy of something living elsewhere.
+
+**Things arrive by being put there**, and adding something to a view touches nothing else. A
+relationship, though, goes to the log of the project that owns its ends — so filling in a matrix
+cell is a real relationship in the real project, and undo reverts wherever the work landed rather
+than where the user was standing.
+
+**What is done through a proxy reaches home.** Renaming a proxy renames the block; a behaviour
+acting on one modifies the block it stands for. One rule, no exception: the change is written where
+the element lives.
+
+### The block tree is the foundation
+
+Every notation walked against the model — requirements, activity, parametrics, state machines,
+sequence — asks for **no form the engine does not already have**. That is the strongest evidence the
+closed sets are the right size: a set drawn too small would have shown it as a notation that could
+not be said without widening it.
+
+### The view is where a notation plugs in
+
+**A notation is a vocabulary, a set of renderers, a layout law and a gesture map** — configuration
+of components the engine already publishes. What differs between an activity diagram and a state
+machine is what a node means and how it is drawn, and both belong to the diagram rather than to the
+engine.
+
+**The base diagram is the block tree as it stands**, and every other diagram is a re-configuration
+of it. That is the claim worth testing early: if the default cannot be expressed as one
+configuration among others, the component boundaries are in the wrong place.
+
+**The layer is what is looked at; the layer view is the looking.** A layer is a cross-section of the
+tree — the current scope, and nothing about presentation. A **layer view** is that layer projected
+through the rules and packages in scope and handed to a view module to render. The same layer read
+twice through different packages is two projections of one thing, which is what stops a diagram ever
+being the place a fact is stored.
+
+**So a view module owns the projection surface, and the components own what is in it.** A component
+is configured **per definition** and says what a *thing* is like wherever it appears. A projection
+surface is **per module** and says what it takes to show a layer at all: a frame or no frame, a
+camera or a scrollbar, where the chrome sits, where a gesture asks for a name. Getting this the
+wrong way round is the expensive mistake, because it is invisible at first — put the frame in a
+component and every table definition inherits a border it cannot draw, and the engine ends up
+branching on what kind of view is asking.
+
+**A view declares which adjustments it accepts**, and may accept none. The fewer it accepts, the
+more the engine owns, which is the direction a general modeller should be moving in.
+
+### Structure and behavior
+
+**Behavior is an overlay on a structure, not a second model of it.** A structure project is the
+truth. A behavior project scopes to one or more structures and describes what happens *over* them —
+activities, actions and states as its own blocks, bound to the structural blocks they act on. Two
+projects, one truth, and the overlay never becomes a second place a fact lives.
+
+**A usage leans on something else in one of three ways**, and the words are SysML v2's because the
+distinction is the same one: a **part** the tree owns, a **ref** to something it does not own, an
+**import** of an external definition. A behavior project holds refs — never parts — of the structure
+it acts on, which is precisely why its tree stays its own and an object block never appears in it.
+
+**Only behavior blocks are in the behavior tree.** A participant appears inside a behavior *layer*
+as a ref, which is an appearance and not composition, so the two trees never interleave and neither
+can drift into being a copy of the other.
+
+**Order is read from the model, and only guessed at as a fallback.** A directed relation between two
+blocks *is* the sequence, and it wins. Where none exists, position along the layer's own axis says
+the same thing. So somebody who has laid ten blocks out in a row has already said what happens in
+what order without drawing a single arrow — and that is the reason the axis was worth having as a
+setting separate from an arrangement. The cheapest possible modelling gesture carries meaning, which
+is what *rapid* has to mean if it means anything.
+
+**Activity, sequence and state are three projections of one behavior layer**, not three models. Each
+is still its own **module**, because each projects differently enough to need code; what they are
+not is separate copies of the facts. One behavior block encodes the interaction and three modules
+read it three ways.
+
+**One chain of inference: structure, then activity, then state.** Each rests on the one before, and
+each is harder to write from nothing than the one before it — a structure is what somebody already
+has in their head, an activity over it is a guess the seed can make, and a state machine is that
+activity read from one participant's point of view.
+
+**States are derived until somebody promotes them, and then they are blocks.** Promotion buys
+nesting, entry and exit behaviour, and transitions carrying their own trigger and guard. **It
+replaces and never copies**: the value naming a resulting state becomes a **ref** to the state block,
+so activity and machine point at one object and there is nothing for them to disagree about.
+
+**Seeding is one step, and it does the whole job.** Scoping a behavior project produces a complete
+inferred project, and then somebody reads it and adjusts what is wrong. A question asked before
+anything exists is asked in the abstract; the same question asked over a drawn model answers itself.
+It happens once and can be declined — the behavior tree is its own from then on, because **a process
+worth modelling usually cuts across containers** and a tree pinned to the structure's shape has
+nowhere to put one.
+
+**References never drift; membership does, deliberately.** A ref points at the block itself, so
+renaming or moving a participant flows through untouched. Which participants a project holds refs to
+was seeded once, on purpose.
+
+**A control node is drawn, never stored.** Two outgoing orders with different guards is a decision,
+two without is a fork, two arriving is a merge or join. Every one is a count, so the module draws
+what it works out. Whether the bars and diamonds appear at all is the **package's** call — a SysML
+reading draws them because a reader expects them — which is presentation, exactly where a package's
+authority already ends.
+
+**None of this needs a schema change**, which is the test that it belongs. An activity is a block,
+its parent is the activity above it, a ref is a proxy, the sequence is `dir` on ordinary
+relationships, the implied order is position against the layer's axis, and a partition is a group.
+What is new is inference and projection — code — and never a field.
+
+### The action surface is the input seam
+
+**Everything that changes a project is published as data** — a name, its arguments, and when it
+applies — so that something never written against this app can still drive it. The surface is how
+input methods talk to a project, not how modules plug into a page.
+
+- **Two tiers, divided by whether a thing can be said.** An **action** names something somebody
+  meant and is offered everywhere; an **adjustment** is positional and unsayable. Both write
+  mutations and both undo; only actions are named, ranked and listed. The ambition is that
+  adjustments stay rare — what the engine can decide, it should.
+- **Arguments are typed, and eligibility falls out of them.** A position cannot come from a
+  sentence, so nothing has to be marked as terminal-eligible and no second list can drift out of
+  step with the first.
+- **Eligibility is not ranking.** Describing a block and renaming it take the same arguments; what
+  separates them is that a sentence is prose and a short phrase is a name. So types decide what may
+  be offered and never in what order.
+- **An action that writes no mutations is navigation.** One property carries all three consequences:
+  no step, nothing to undo, and a text interface never offers it.
+- **Scope is the same question a gesture asks** — under the pointer, selected in the tray, selected
+  when somebody types are one question in three phrasings, so they are one field.
+- **An action refuses in words**, and the refusal is what lets a ranked list put an inapplicable
+  action last rather than hiding it.
+- **A gesture layer names an action and never writes a mutation.** Interpreting input ends at naming
+  what was meant. Otherwise a drag that knows a card's parent is changing emits the parenting
+  mutation itself, and every rule about that change has two homes and drifts between them. Held to
+  naming, the layer stays a thing a view can swap — and the pointer is answerable to the same
+  refusals as a typed sentence, since both arrive at the same record.
+- **The dependency runs one way only.** No module imports anything from the terminal, and no log
+  records that a terminal exists.
+
+### Packages and modules
+
+**A package is data; a module is code.** A package is a set of definitions somebody ships — what
+things are called plainly, what a standard calls them, the fields they carry, how they draw. It
+costs nothing to add. A module is engine code, and an open one publishes the components a definition
+configures. It costs an owner.
+
+**A package maps names and presentation, never structure.** The moment a mapping has to rearrange a
+graph to export it, it has become a program, and a program living in data is a second engine nobody
+agreed to build. Most of SysML turns out to be the first kind: requirements is a definition
+declaring two fields plus five relationship types, and asks for no renderer, no layout law and no
+gesture.
+
+**But enabling a package is sometimes an engine change.** A sequence projection needs a column per
+participant; an activity needs a shape drawn inside a card. Each is *one engine capability plus a
+package*, and the two ship together. Saying so plainly is what stops "just write a package" being
+promised and not delivered — a package can only ask for what some component already knows how to do.
+
+**Extension is subtyping, and never overriding.** A package's own definitions are never altered: one
+somebody can silently change in their own workspace has stopped being a standard. Refining SysML's
+requirement means making a safety requirement that *is* one.
+
+**A definition names one parent, and the chain is real.** Fields union with the subtype's winning by
+name; components merge per key. One parent, so there are no diamonds and no merge order to argue
+about. **A rule naming a definition means it or anything below it** — without that, an imported
+standard's rules would reach only its own definitions and nothing anybody actually models.
+
+**Shadowing is impossible; ambiguity is not.** Every reference is a path, so two packages naming a
+thing alike are two different definitions and importing one can never change what an existing
+element means. What two packages *can* do is offer two candidates called "requirement", and the
+answer to that is presentation — both shown with the package they came from — not resolution.
+
+### Constraints and rules
+
+Two things, told apart by what they are about: a **constraint** bounds a thing in itself, and a
+**rule** governs how things interact. Both are declared on a definition and hold over every usage.
+
+**One constraint and four rules**, each a lookup, a count or a single fixed comparison. There is
+nothing to parse and no operators, and **what the five cannot say is a `validate` hook** — code a
+module supplies, written by somebody who has already accepted writing code. There is no rule
+language, deliberately.
+
+**They advise while modelling and refuse only at translation.** A model is legitimately unfinished,
+so a violation is a note in the tray; a translator asks the same checks at the moment it emits and
+declines to write a non-compliant file.
+
+### The workspace
+
+**Several projects are open at once**, each with its own log and its own export, and the workspace
+gathers them. A single project can still be opened, shared or imported alone.
+
+**The workspace is itself a project** and needs no new schema to be one: its elements are proxies of
+other projects' roots, and folders are ordinary blocks. So filing is undoable and it draws as a
+block diagram whose dependencies are derived from who holds proxies into whom.
+
+**A change is recorded where its element lives.** Ownership routes it, and nothing branches or
+merges. A relationship across two projects is a proxy plus an ordinary edge, both in the project of
+the end making the claim — so no relationship ever spans two logs.
+
+**A proxy tolerates a missing target and never records the absence**, so undoing a deletion in one
+project brings the reference back in another. Only deletion is breaking, and only breaking changes
+are reported.
+
+### The terminal
+
+**One goal: an interactive, context-aware text interface.** Not a chat and not a script — a way to
+say what you want in the words you already have, with the engine doing the placing and aligning.
+
+**Two functions, kept apart by whether it is open.** Collapsed, it is the app's primary text entry
+point and asks nothing. Expanded, it is guidance: the next question worth answering, and a tutorial
+walked over a sample project.
+
+**It reads context and never changes it.** No action it can reach opens a layer or moves the
+selection — the explorer and the pointer navigate.
+
+**Ranking is learned, and overruling it is the feedback.** `Enter` confirms the highlighted option
+and arrow keys move the highlight, because a default that is invisible and changes under the user is
+the version of adaptive ranking worth avoiding.
+
+**It goes last, deliberately.** It ranks and completes whatever the surface offers, so building it
+against a surface still moving means building it twice. It is also the one stream whose value
+depends on the rest being mature, which makes it the acceptance test for all of them.
+
+### The SysML target
+
+The full concept-by-concept map is in [definitions.md](definitions.md). What matters here is that
+**nothing in it is a special case**: a part property is a block with a parent, a value property is a
+typed field, a port is an interface, a constraint parameter is an interface so a binding is an
+ordinary relationship, a requirement is a block with two fields.
+
+**Two losses are accepted rather than solved**: trace assertions keep their claim as a typed group
+and lose the bracket notation, and lifeline left-to-right order is presentation that lives in the
+view.

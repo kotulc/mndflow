@@ -23,9 +23,14 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 - `form` says which of five it is: **block** (the base and the default), **note**, **group**,
   **proxy**, or **figure**. It decides what draws an element and which rules reach it.
 - **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
-  the explorer, and what it *is* comes from its `type`. An activity's fork, decision, initial,
-  final, merge and join are all figures. In the closed set; nothing makes one until a module
-  does.
+  the explorer, and what it *is* comes from its `type`. In the closed set; nothing makes one until a
+  module does, and **(planned)** nothing in the core ever will: an activity's fork, decision,
+  initial, final, merge and join are all **derived from counting relationships and guards**, so a
+  module draws them and the graph stores none. What is left for a figure is ornament a package
+  ships — a legacy symbol that means nothing to the engine.
+- **(planned) A figure takes no interfaces**, which is what earns it a form: only a block and the
+  things derived from it do. The action that makes one refuses on a figure, and says why. This is
+  the first rule the engine enforces rather than advises.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
   never across one. **Empty until somebody sets one.**
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
@@ -38,7 +43,10 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
   neither is a separate form, and both are still called blocks.
 - Interfaces do not count towards being a container.
 - An element carries `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` for a note's least size,
-  `axis` for when it is the open layer, `groups` for its membership, `fields`, and `color`.
+  `axis` for when it is the open layer, `groups` for its membership, and `fields`.
+- **An element carries no presentation of its own.** Colour, shape and the rest are its
+  definition's, so two things looking alike is two things being alike rather than a coincidence
+  somebody has to maintain.
 - An interface carries `side`, `at` (0–1 along that edge), `num`, and `flow` instead of `x`/`y`.
 - **An interface is an element only where somebody made one** — a bare one, or a promoted seat.
   A relationship makes none: where its line meets a card is worked out by the layer.
@@ -89,22 +97,27 @@ the project.
   `fromSide`/`toSide` where an end was drawn through a named wall.
 - `type` names the relationship's **definition** — what it *means*, plus the fields it declares
   and how it draws.
-- `form` is `untyped` (the default), `flow`, `assoc` or `tie`. It says what the two ends *are*;
-  `dir` still says which way the arrows point.
-- **Anything joining two elements is a relationship.** A form may draw as something other than a
+- **`form` is `line` (the default) or `directed`, and that is the whole set.** It says what the two
+  ends *are*: a line's are plain seats the layer places, and a directed one's take the sides the
+  layer's axis gives them. `dir` still says which way the arrows point.
+- **Anything joining two elements is a relationship.** One may draw as something other than a
   routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
   drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
   one list to read them from.
-- **A reference is a relationship with a proxy at one end** — it reaches something living in
-  another layer. Derived, never a form: drawing a line onto a proxy makes one without anybody
-  saying so, and it stays plain, flow or assoc and keeps its direction. Both routes to it draw
-  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for
-  it.
-- A reference draws **violet and dashed**, held back at reduced opacity so the form and the label
-  read first; hover and selection bring it to full.
+- **Two more are derived, because nobody has to say them.** Being derived makes neither less the
+  engine's business; it only means the engine works it out.
+
+  | | Derived from | Draws |
+  |---|---|---|
+  | **reference** | an end is a **proxy** — it reaches something in another layer or project | violet and dashed, held back at reduced opacity so the form and the label read first; hover and selection bring it to full |
+  | **tie** | an end is a **note** — a note relates to what it describes and to nothing else | a faint leader, no pointer and no seats |
+
+- A reference keeps whichever form it was given and keeps its direction. Both routes to one draw
+  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for it.
 - What a proxy stands for is a property of the appearance, not a relationship: one thing appearing
   twice rather than two things joined.
-- `tie` joins a note to what it describes.
+- **A weaker mention drawn lighter is not a form** — that is presentation, so it is a definition
+  subtyping `line`.
 - **Containment is not a relationship.** The tree is `parent`, and being inside something is
   implied by it rather than stored as an edge.
 - `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
@@ -145,13 +158,120 @@ the project.
   subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
   — and how they draw.
 - **One record serves elements and relationships alike.** The `form` it subtypes decides what it
-  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `untyped`/`flow`/`assoc`/`tie`
+  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `line`/`directed`
   for a relationship. A project's relation vocabulary is just the definitions of relationship form.
 - **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
   flow's item, or a nested data structure.
 - **Presentation lives on the definition, never on the usage** — colour and icon for an element,
   line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
   export rather than filtered out of one.
+- Four more optional fields, each unwritten at its default so no existing file changes by a byte:
+
+  | | Is |
+  |---|---|
+  | `body: string` | what this kind of thing is, in a sentence — the way an element has one. What the tray shows, and what a typed word is matched against, which is why no definition needs a list of keywords beside it |
+  | `size: { w, h }` | the room a usage needs, since the engine places before anything renders — a fork bar long and thin, a decision small and square. Absent means the ordinary card |
+  | `names: Record<string, string>` | what other vocabularies call it, keyed by vocabulary — `{ sysml: "«requirement»" }`. `name` is what the user reads and types; these are what an export writes. A map rather than one field, so a core definition can answer to SysML *and* UML |
+  | `components: Record<string, object>` | **how each open component behaves for usages of this**, keyed by component |
+
+- **`components` is the one place the schema grows.** A new component adds a key under it, never a
+  field beside it — which is what stops every capability costing a schema change, and what makes
+  *unknown configuration is ignored, never fatal* implementable rather than aspirational.
+
+  ```
+  "components": {
+    "card":        { "layout": "shape", "shape": "diamond" },
+    "style":       { "set": "sysml" },
+    "constraints": { "required": ["guard"] },
+    "rules":       { "degree": { "in": [1, 1], "out": [2, null] } }
+  }
+  ```
+
+  - **Each component validates its own key**, and one absent from the build validates nothing —
+    so its configuration is *unvalidated* rather than *wrong*, which is how an older build opens a
+    newer package. Problems are reported at the door as faults, like everything else read in.
+  - **A module publishes its components and registers each validator with the door**, which is why
+    the door needs to know nothing about what a card or a style means.
+  - **What a component refuses is dropped, and only that key.** The definition arrives whole and the
+    component falls back to what it does for every definition that never mentioned it. A key whose
+    configuration is not a record goes the same way, claimed or not.
+  - **A component reads its own key and no other's.** They share one element and one log, so this
+    is what makes them separable in fact rather than only in file layout.
+  - `size` stays outside it: `layout` reads it for every element on every pass, and reaching into
+    component configuration from the engine would invert the dependency.
+
+- **The components an open module publishes**, and what each key holds. **(planned)** — all but
+  `card`, and `card` is declared and validated rather than drawn from:
+
+  | | Holds |
+  |---|---|
+  | `card` | `layout` — one of `name`, `type`, `fields`, `compartments`, `icon`, `shape`; `shape` — one of `rect`, `round`, `diamond`, `ellipse`, `hex`; `label` — `inside`, `below` or `none`; and `shows`, which fields draw on it and in what order |
+  | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one |
+  | `constraints` | `required` |
+  | `rules` | `ends`, `holds`, `degree`, `match` |
+  | `view` | on a diagram's definition: which view module, and its arrangement |
+
+  Each is defined in [definitions.md](definitions.md) under *Rules, constraints and components*.
+
+  - **The plain card is the default written down** — `type` layout, `rect`, label inside, showing
+    no fields — which is today's card said as one configuration among others. **(planned)** The
+    canvas still draws it hard-wired; reading the configuration is the diagram's, and is what
+    tests whether the boundary holds.
+  - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
+    refused. That is the opposite of an unrecognised *component*, which is left alone: one is a
+    misspelling this build can see, the other may be a newer build's.
+
+  - **The engine always places a rectangle.** Every seat, route and interface reads the box, so a
+    shape changes what is **drawn** and never where anything attaches. A line meeting the box near
+    a diamond's corner appears to touch empty space; a renderer may draw its own port marks to
+    soften that.
+  - **Card layouts and style sets are open** — extended by a code change, additively. The forms,
+    the ops and the actions are closed. Confusing the two is what turns an engine into a plugin
+    host.
+
+- **(planned) A constraint bounds a thing in itself; a rule governs how things interact.** Both are
+  declared on a definition and hold over every usage of it, reaching that subtype's fields, its
+  interfaces and the relationships at it. **A rule naming a definition reaches everything below
+  it.**
+- **(planned) They advise while modelling and refuse only at translation.** A violation is a note
+  in the tray, never a refused change: a model is legitimately unfinished. A **translator** asks
+  the same checks as it emits, and declines to write a non-compliant file.
+- **(planned) What the five cannot say is a module's `validate` hook**, in code. There is no rule
+  language, and local checks certify wiring rather than a whole model — whether every requirement
+  is satisfied is a global walk, which is a translator's to make.
+- A definition may **`extend`** one other, by reference — usually one a package ships. **One
+  parent**, cycles stop, and a parent that is not loaded ends the chain with the subtype standing
+  on its own declarations. `isa` walks it, which is how a rule reaches every subtype.
+- **(planned)** Resolving one: fields union with the subtype's winning by name, and `components`
+  merge per key, a key it does not mention inherited whole. Today a subtype's own declarations are
+  read and the chain is walked only to answer *is it one of these*.
+- **(planned) Extension is subtyping, never overriding.** A package's definitions are never
+  altered; refining one means making a new definition that *is* it.
+- **(planned) A rule naming a definition means it or anything below it.** Without that, an imported
+  standard's rules would reach only its own definitions and nothing anybody models.
+- **(planned)** A project draws definitions from a **list of packages, in the order imported**.
+  **Nothing shadows**: every reference is a path, so two packages naming a thing alike are two
+  different definitions and importing one can never change what an existing element means.
+- **(planned) Two definitions loaded under one name are shown with their packages**, and import
+  order decides which is offered first. Ambiguity in a picker is not shadowing — neither is
+  hidden — and the answer to it is presentation, not resolution.
+- **(planned) A package resists editing.** Changing one is refused with the reason, and the way
+  through is deliberate: **unlock** it, or **fork** it and change the copy. A fork takes a new
+  project id, so anything pointing at the original keeps pointing there rather than quietly
+  following the copy.
+- **(planned) Locked is the workspace's word, not the file's.** The same project is a package you
+  are using or one you are writing depending on which you are doing, so nothing in it says.
+- **A reference reaching another project is written as a path**, `proj_a9f/def_pump` — the
+  project, a slash, then the id inside it. An id alone means this project, so every reference
+  written so far still reads. One convention serves all three places one is held: a proxy's `of`,
+  an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
+  ambiguous, and a reader splits on the first one or does not have to split at all. `refTo` and
+  `refAt` are the two ends of it. **(planned)** Nothing writes a path yet: that is the workspace,
+  which is what makes another project reachable.
+- **(planned)** A **package** is a set of definitions somebody ships — plain names, formal names,
+  fields, presentation and mappings. It is data, adds no code, and **maps names and presentation
+  but never structure**; a notation needing structural change is a module instead. See
+  [design.md](design.md) under *Packages and modules*.
 - **A definition subtypes within a form, never across one.** Nothing a user defines can change
   what a thing *is*.
 - **A data structure is a definition**, not an element form: it declares fields, and a block typed
@@ -186,7 +306,7 @@ the project.
 
 - The log lives in the browser under one key. **Importing a file replaces the session and is saved
   from then on** — a file is a snapshot, the browser is the working copy.
-- **An export is the graph, not the log.** `{ schema, id, module, graph, meta }`, pretty-printed
+- **An export is the graph, not the log.** `{ schema, id, graph, meta }`, pretty-printed
   JSON. Its size follows the model rather than how long somebody worked, and its diff shows the
   elements and relationships that changed rather than the actions that changed them.
 - **Importing one is a checkpoint.** The file becomes a log holding a single `checkpoint` step, so
@@ -201,11 +321,16 @@ the project.
 
   | | Says |
   |---|---|
-  | `schema` | which shape the file is — `"1.0"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
+  | `schema` | which shape the file is — `"1.1"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
   | `id` | which project this is, for life. Cross-project references resolve against it |
-  | `module` | what kind of thing this is. A reader that ignores it has to guess, and renders it wrong |
   | `graph` | the content |
   | `meta` | free-form, unversioned, **safely ignorable**. Absent when empty |
+
+  - **`module` moved from the base to `meta` in 1.1.** It named a classifier that no
+    longer exists — what a project is is visible from what it holds — and what is left is a
+    preference for which module to open it in, which a reader may ignore. Both directions still
+    read: a 1.0 file carries it at the top and a 1.0 reader finding it absent falls back, so the
+    move costs a minor rather than a break.
 
   - **The test for the base is whether dropping a field changes what the project *is*.** That is
     what stops `meta` becoming a bucket anything may be added to.
@@ -242,6 +367,18 @@ the project.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
   saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
+- **(planned)** Storage is keyed, **one entry per project**, the workspace included — it is a
+  project like any other.
+  - **A key appears when a project is first changed, not when it is opened.** A checkpoint is not
+    something anybody did, so an imported project nobody has touched is stored by nothing and
+    costs nothing.
+  - **When storage fills, the projects being worked in keep their logs and the rest are
+    checkpointed** — history for the untouched, which is the cheapest thing to give up, and the
+    strip says so. That is a different message from the one that means nothing is being saved at
+    all.
+  - **The workspace keeps its own list of what has been imported**, which is what an untouched
+    project is remembered by when it has no key of its own.
+  - Today storage holds exactly one, and the code assumes it.
 
 **Tests** — one file per module, beside the module, so a module and its test move together. One
 integration test in `tests/` for the whole lifecycle. `npm test` at the root.
@@ -252,10 +389,178 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
   [tasks.md](tasks.md) under *The suite* for why each.
 
 
+## Action surface
+
+*The registry is built — `actions/index.ts`, with scope, `check`, `sayable` and `writes`.* **(planned)
+— every action in it.** All 52 are still closures on the `project` hook, and S1.2–S1.7 move them.
+
+Everything that changes a project is a **record**, not a function somebody has to know about. One
+registry, read by every input method: gestures, the contents tray, and later the terminal.
+
+- Each record carries a **name**, a **label** the vocabulary may override, a **sentence saying what
+  it does**, the **scope** it applies to, its **arguments**, and a **run** returning mutations.
+- **The sentence is what gets matched**, so that "lay it out" reaches `arrange`. Names and labels
+  are too short to score against.
+- **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray,
+  or selected when somebody types. It names a form where that matters: `dissolve` applies to a
+  group, `tie` to a note, `mark` to an interface.
+- **Arguments are typed**: text, element, choice, number, or a canvas position. An input method
+  offers whatever it can fill, so eligibility is derived rather than declared.
+- **Eligibility is not order.** `describe` and `rename` take the same arguments; what separates them
+  is that a sentence is prose and a short phrase is a name. Types decide what is offered, never in
+  what order.
+- **An action writing no mutations is navigation** — `open`, `up`, `reveal`. It writes no step, has
+  nothing to undo, and a text interface never offers it.
+- **A position can only come from a gesture.** An action needing one is reachable only that way;
+  one where it is optional is reachable from anywhere, and the layer places what it was not given.
+- **Running an action returns mutations, and may also ask** for a layer to be opened, a selection
+  to be moved, or a line to be said. It changes nothing itself.
+- **Undo restores the graph, never the context.** A delete that cleared the selection leaves it
+  cleared when undone: where you are looking is the user's, not the log's.
+- **`when` decides whether an action is shown; `check` decides what happens when it runs.** They
+  are not the same test — `when` asks whether this is a thing here at all, `check` asks whether
+  these particular arguments would work, and cannot be answered until they are filled.
+- **What does not apply is not shown.** Greying out is for a fixed row of controls whose positions
+  are worth learning, like the header's; a list built from the selection has no positions to keep,
+  so an entry that cannot run is only noise.
+- **An action refuses in words**, and the refusal goes to the strip like everything else the app
+  says. A name already taken, a node moved inside itself, a second proxy for the same block.
+- **One step per action**, whatever it took to do it — a card dropped in a group moved and joined,
+  and undo takes back both.
+
+**Two tiers.**
+
+| | Is | Offered by |
+|---|---|---|
+| **action** | something somebody meant, and could say — create, rename, relate, group, note, refer, arrange | gestures, the tray, the terminal |
+| **adjustment** | positional and unsayable — where a card rests, how big a note is, where an interface sits on its edge, which wall an end leaves by | gestures only. Never named or ranked |
+
+- **A diagram declares which adjustments it accepts**, and may accept none — in which case the engine
+  owns every position on it and a drag means something else.
+- **Queries are not on the surface.** Whether a name is free, how many steps a project has, its
+  hash and whether it is saving are readable state, not things to do.
+- **Files are the page's, not a module's** — export, import, new, and later the workspace.
+
+**A module adds no action for anything it draws.** Requirements, activity, parametrics, state
+machines and sequence were each walked against the surface and not one needed an action to *render*
+or to *edit* — a module is a vocabulary, renderers, a layout law and a gesture map.
+
+**(planned) Behavior adds two, and they are the engine's rather than a module's**, because both
+change a project wholesale and neither is about drawing: **`scope`**, which points a behavior
+project at one or more structures and seeds it, and **`promote`**, which turns a derived state
+machine into blocks. Both are sayable, both write mutations, and both are on the one registry like
+everything else.
+
+**Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
+
+
+## Views
+
+*(planned) — the whole section. Today there is one view, written into the canvas.*
+
+**A view is a project holding diagrams.** Its own tree is folders and diagrams, so a view can be
+organised by behaviour, by requirement, by function — whatever the work is about. It has its own
+log and its own export, like any project, and it appears in the workspace as its own entry.
+
+- **A diagram is a block whose definition names a view module.** A folder beside it is an ordinary
+  block. Neither costs a concept. *Diagram* is what a layer looks like drawn on the canvas, so it
+  names no module of its own.
+- **Six view modules, three per kind of project**, and the kind is visible from what is being drawn
+  rather than declared:
+
+  | | Object structures | Behavior structures |
+  |---|---|---|
+  | default | **block** | **activity** |
+  | others | **table**, **matrix** | **sequence**, **state** |
+
+  - **A behavior is not offered a table or a matrix**, because what it holds is tied to the objects
+    interacting and those already have both. Nothing structural stops one — a module reads a layer,
+    and a behavior layer is a layer — so this is what is *offered*, and an allocation matrix of
+    participants against actions is the obvious thing to reconsider it for.
+- **Everything a diagram shows is a proxy**, whatever it looks like: a card, a table row, a label
+  along a matrix axis. How one draws is its subtype's, so a table is the same objects as a diagram
+  drawn differently rather than a second kind of thing.
+- **Things arrive by being put there** — a block, a selection of them, or a whole project by its
+  root, which is how a diagram comes to be about a project rather than a handful of its parts.
+- **Adding something to a view creates a proxy in the view**, and touches nothing else. Dragging a
+  block into a matrix does not write to that block's project.
+- **A diagram's own variation is its contents and its fields**, never configuration: its definition
+  configures every diagram of that subtype alike, so two matrices differ in what they hold and what
+  their fields say.
+- **Nothing about *how a view looks* enters the project it reads** — its contents, its arrangement
+  and its fields are its own. **What is done through a proxy does reach home**, and always did: a
+  proxy is a stand-in, so renaming one renames the block, and a behavior acting on one modifies the
+  block it stands for. That is one rule, not an exception — the change is written where the element
+  lives.
+- **A relationship goes to the log of the project that owns its ends**, resolved through the
+  proxies — so filling in a matrix cell is a real relationship in the real project, while a view's
+  flows between its own elements stay in its own log.
+- **A relationship across two projects is a proxy and an ordinary edge**, both in the project of the
+  end making the claim. An edge's ends stay plain ids; only a proxy's target widens.
+- **Undo reverts wherever the work landed**, not where the user was standing.
+- **A view may hold proxies into as many projects as it likes.** Nothing limits it to one.
+- **A project opened alone is read in isolation** — its own root, its own contents, and nothing
+  about who imported it. A proxy is a one-way import, so the project it points at never needs to
+  know. Cross-project relationships are read in the **workspace** view, where the workspace's root
+  is the root, every project below it is a block, and the lines between them are the imports.
+
+**How it draws** is the second half, and it is what a diagram's definition configures — six
+components, and nothing else:
+
+| | Is |
+|---|---|
+| **scope** | a **layer** — one element's contents — or a **set**, which is whatever it holds proxies of |
+| **vocabulary** | what this notation calls a block, a group, a relationship, an interface — and which definitions it offers |
+| **renderers** | how to draw, keyed by an element's or relationship's `type` |
+| **layout law** | sizes, and either positions or nothing |
+| **gesture map** | which gesture reaches which action, and where its arguments come from |
+| **adjustments** | which of the four positional adjustments it accepts |
+
+**What a view module provides** is the other half, and it is the module's rather than any
+definition's — the **projection surface**. A layer is the current scope; a **layer view** is that
+layer projected through the rules and packages in scope and rendered by one of the three modules.
+
+| | Is |
+|---|---|
+| **the surround** | a frame and its walls, or nothing. The diagram draws a border with interfaces seated on it; a table has rows and no frame |
+| **the viewport** | a camera, or a scrollbar. What "fit" and "go to this" mean here |
+| **the chrome** | which controls a view offers — a breadcrumb, the arrangements, the axis, the toggles that only make sense in it |
+| **asking** | where a gesture puts a question, since one asks for a name before anything is made |
+
+- **Per module, never per definition.** Every diagram has a frame because diagrams project onto a
+  plane, not because a definition asked for one. This is the line the components do not cross: they
+  configure the things *in* a layer, and a component that reached the frame would give every table
+  a border it cannot draw.
+- **A diagram names actions; it never writes mutations.** That is what keeps one input method
+  indistinguishable from another, and what lets two diagrams bind one action to different gestures.
+- **An unregistered `type` falls back to the engine's card.** A diagram declares what it draws
+  differently, not everything it draws — so a half-built one is usable.
+- **A `figure` has no fallback**: the engine places it and never draws it, so a diagram that offers a
+  figure type must render it. Its size comes from the definition.
+- **A layout law may decline to place**, and then the layer arranges as it does today — stored
+  positions held, everything else filled in around them.
+- **A diagram that accepts no adjustments** is one where the engine owns every position. Sequence
+  accepts one, `seat`, because the only thing worth dragging there is where an occurrence sits on
+  its own lifeline.
+- **There is no structure/behavior classifier.** A project that owns its objects is a structure, one
+  that owns only diagrams is a view, one that owns some of each is a behavior — visible from what it
+  holds, so nothing declares it.
+- **Components are configured per definition and never per element**, so every diagram of a subtype
+  behaves alike. Where two must differ they differ in contents and fields.
+- **A component reads its own configuration and no other's.** They share one element and one log, so
+  this is what makes them separable in fact and not only in file layout.
+
+**Which view you have open is display state.** The view itself is not: it is a graph with a log,
+and making one is an ordinary change.
+
+
 ## Shell
 
 - One page: header, terminal rail, then explorer beside the working area.
 - Header reads `mndflow [project]` — the project's own name, which is root's label.
+- **(planned)** With several projects open, the header names the one **in context** — the project
+  the selected explorer row belongs to — and the explorer lists them all in the tree they were
+  filed into.
 - **It names the working session** — `working session`, held quiet, with the snapshot explained
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
@@ -268,7 +573,7 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 
 ## Terminal rail
 
-*Frozen pending refinement — see tasks.md.*
+*Frozen pending refinement — see tasks.md, stream Z.*
 
 - A contextual prompt and a typed answer at the top of the page, with no frame of its own.
 - Past exchanges rise and fade off the top edge; the live line stays at the foot.
@@ -276,6 +581,20 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 - Suggestion chips fill the other half of the row, tiled in the same treemap shape a container
   uses, with the likeliest reading marked as the default.
 - A chip either answers the question or runs a graph operation directly — add, link, open.
+
+**(planned) Two functions, told apart by whether it is open.** Reasoning in
+[design.md](design.md) under *The terminal*.
+
+- **Collapsed** — the app's primary text entry point. Typing ranks the actions available in the
+  current context; it asks nothing.
+- **Expanded** — guidance: the question worth answering next, nudges, documentation for what is in
+  front of you, and a tutorial walking somebody through a diagram of a given kind over a sample
+  project.
+- **It reads context and never changes it.** No action it can reach opens a layer or moves the
+  selection — the explorer and the pointer navigate.
+- **Filtering the explorer is a mode, not an action.**
+- `Enter` confirms the **highlighted** option; arrow keys move the highlight, and overruling the
+  default is the feedback the ranking learns from.
 
 
 ## Object explorer
@@ -289,6 +608,11 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 - Proxies are never listed — a proxy is a second appearance of something already there.
 - Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
+- **(planned)** Every open project is a root in the same tree, filed into the folders the workspace
+  keeps. **The project a selected row belongs to is the context**, which is what decides where a
+  change is written — positional, so there is no mode and nothing to switch.
+- **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
+  is the one place a proxy *is* listed, because in a view there is nothing else to list.
 
 **Navigation**
 
@@ -375,7 +699,7 @@ on the layer.
 | `down` | ranks by relationships, top to bottom |
 
 **Which way the layer reads** — `none`, `across` or `down`. A setting held on the layer. It
-decides which sides a `flow` relationship attaches to, and **(planned)** how its line is drawn.
+decides which sides a `directed` relationship attaches to, and **(planned)** how its line is drawn.
 Arranging never changes it.
 
 - Ranked: nothing pointing at it comes first, and each rank sits one step further along.
@@ -461,8 +785,14 @@ about like any other, and the drag sticks.
   - Nesting stops at the first layer: a child container is marked as one and no further.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
 - **Proxy** — a stand-in for a block living in another layer, so that a relationship reaching
-  it can be seen here. A visual shortcut; it changes nothing about the relationship. It is an
-  element of its own, bound to its block by a `reference` relationship.
+  it can be seen here. A visual shortcut; it changes nothing about the relationship.
+  - **It is bound to its block by `of`, a field — never by a relationship.** A proxy is not two
+    things joined, it is one thing appearing twice, which is a property of the appearance.
+  - **An appearance is the proxy's; the thing is the block's.** Where it sits, how it draws and
+    its colour are its own, because they are true only of this layer. Its name, body, fields,
+    interfaces, children and type are the block's, because there is only one thing to have them.
+  - **A relationship drawn to a proxy is stored here and reaches the block.** That is all
+    "reference" means, and it is derived from where the ends live rather than given as a form.
   - Greyed, hatched and dashed, marked `↗`; the only dashed card on the canvas. The colour is on
     the lines, not the card: **a relationship reaching a reference draws violet and dashed**,
     label and arrowheads with it, so a line leaving the layer is told apart at a glance.
@@ -487,7 +817,7 @@ about like any other, and the drag sticks.
 - **Made only by the user.** Right-clicking a card or a frame edge makes a bare one;
   right-clicking a seat a relationship put there promotes it to one where it sits. Drawing a
   relationship makes none.
-- **A port and an anchor are different things.** A `flow` relationship's ends are typed — one
+- **A port and an anchor are different things.** A `directed` relationship's ends are typed — one
   in, one out — so they draw as interfaces. Every other relationship simply meets the card: its
   end is an **anchor**, a place on the border and no more, and draws nothing.
 - An anchor shows a small round handle while its relationship or its card is selected, the same
@@ -556,7 +886,7 @@ about like any other, and the drag sticks.
 - **Every elbow is a right angle**, guaranteed on the way to being drawn rather than attempted.
 - One pass, so each line sees the seats the ones before it took: **no two ends share a seat**,
   and several relationships may still meet at one interface.
-- A `flow` relationship takes the sides the layer's axis gives it — out on the forward face, in
+- A `directed` relationship takes the sides the layer's axis gives it — out on the forward face, in
   on the one behind — so it runs with the layer rather than doubling back across it. On a `free`
   layer nothing is imposed.
 - **Lanes**: runs that would share a line are spread half a cell apart, centred on where they

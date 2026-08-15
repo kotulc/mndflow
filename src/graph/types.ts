@@ -32,26 +32,25 @@ export type Dir = "none" | "forward" | "back" | "both";
  *  what a block holds and from whether it sits on a frame edge. */
 export type ElemForm = "block" | "note" | "group" | "proxy" | "figure";
 
-/** What a relationship's ends are, and how it draws — its **form**.
+/** What a relationship's ends are — its **form**. Two, and both are declared.
  *
- *  `untyped` is the default and says nothing beyond "these two are related":
- *  its ends are plain seats and the layer puts them wherever the path wants.
- *  `flow` says the relationship carries something one way, so its ends read as
- *  in and out and take the sides the layer's axis gives them. `assoc` is a
- *  weaker mention, drawn lighter. `tie` joins a note to what it describes. The
- *  form decides the ends; `dir` still decides which way the arrows point.
+ *  `line` is the default and says nothing beyond "these two are related": its
+ *  ends are plain seats and the layer puts them wherever the path wants.
+ *  `directed` says it goes one way, so its ends take the sides the layer's axis
+ *  gives them and it biases placement. The form decides the ends; `dir` still
+ *  decides which way the arrows point.
  *
- *  **`reference` is not among them.** A relationship is a reference when one of
- *  its ends is a proxy, which is a fact about where its ends live rather than a
- *  form it was given — so it is derived, and a reference is still plain, flow
- *  or assoc in its own right.
+ *  **`reference` and `tie` are not among them, because nobody has to say so.** A
+ *  relationship is a reference when an end is a proxy and a tie when an end is a
+ *  note — facts about where its ends live rather than forms it was given. Being
+ *  derived does not make either less the engine's business: a tie still draws as
+ *  a leader taking no seats. It only means the engine works it out.
  *
- *  A form may draw as something other than a routed line — a tie is a leader,
- *  taking no pointer and no seats — but that is a rule about drawing, not about
- *  what it is. Anything joining two elements is a relationship, so that there
- *  is one way to join things, one cascade when an end is deleted, and one list
- *  to read them from. */
-export type EdgeForm = "untyped" | "flow" | "assoc" | "tie";
+ *  A weaker mention drawn lighter is not a form either — that is presentation,
+ *  and presentation is a definition's. Anything joining two elements is a
+ *  relationship, so there is one way to join things, one cascade when an end is
+ *  deleted, and one list to read them from. */
+export type EdgeForm = "line" | "directed";
 
 /** Which way a layer reads, and nothing else.
  *
@@ -160,7 +159,6 @@ export type Element = {
   of: string | null;
   /** Descriptive values, addressed by name. */
   fields: Field[];
-  color: string;
 };
 
 /** One end of a relationship as it is drawn: the element it lands on, the
@@ -186,8 +184,8 @@ export type Edge = {
   from?: string;
   to?: string;
   dir: Dir;
-  /** What its ends are and how it draws. Absent reads as `untyped`, so a log
-   *  written before forms existed still folds to what it drew. */
+  /** What its ends are. Absent reads as `line`, so an edge that was never
+   *  told anything still folds to what it drew. */
   form?: EdgeForm;
   /** The wall an end was drawn through, where the gesture named one.
    *
@@ -221,6 +219,12 @@ export type Definition = {
   form: ElemForm | EdgeForm;
   /** What its usages carry, declared. A usage's own `fields` hold the values. */
   fields: Field[];
+  /** What this kind of thing is, in a sentence — the way an element has one.
+   *
+   *  Shown where a type is chosen, and matched against whatever somebody types,
+   *  which is why a definition needs no list of keywords beside it: the words
+   *  are already here and already embedded. */
+  body?: string;
   /** How its usages draw. Presentation lives here and never on a usage, which
    *  is what keeps it structurally out of an export rather than filtered from
    *  one on the way. */
@@ -228,6 +232,48 @@ export type Definition = {
   icon?: string;
   line?: "solid" | "dashed" | "dotted";
   head?: "none" | "open" | "filled" | "hollow";
+  /** The room a `figure` needs. The engine places what it never draws, so the
+   *  one thing it has to be told is how big — a fork bar long and thin, a
+   *  decision small and square. Absent is the ordinary card. */
+  size?: { w: number; h: number };
+  /** The definition this one refines, by reference — usually one shipped in a
+   *  package, `pkg_sysml/def_requirement`.
+   *
+   *  **Extension is subtyping, never overriding.** A package's own definitions
+   *  are never altered: a standard somebody can silently change in their own
+   *  workspace has stopped being a standard, and every file referencing it
+   *  becomes unreadable without knowing what else was loaded. So a refinement
+   *  is a new definition that *is a* the old one, and the original keeps
+   *  meaning what it meant.
+   *
+   *  Fields union with the subtype's winning by name; `components` merge per
+   *  key, and a key it does not mention it inherits whole. **A rule naming a
+   *  definition means it or anything below it** — without that, an imported
+   *  standard's rules would match only its own definitions and nothing anybody
+   *  actually models, which is what makes the chain worth walking rather than
+   *  copying. One parent, so there are no diamonds and no merge order to
+   *  specify; a missing one degrades rather than throwing. */
+  extends?: string;
+  /** What other vocabularies call this, keyed by vocabulary —
+   *  `{ sysml: "«requirement»" }`.
+   *
+   *  `name` is what the user reads and types; these are what an export writes,
+   *  so nobody has to learn a notation to use one. A map rather than a single
+   *  field, so one definition can answer to SysML *and* UML. */
+  names?: Record<string, string>;
+  /** How each open component behaves for usages of this, keyed by component.
+   *
+   *  **The one place the schema grows.** A new capability adds a key here
+   *  rather than a field beside it, which is what stops every component
+   *  costing a schema change — and what makes "unknown configuration is
+   *  ignored, never fatal" implementable rather than aspirational.
+   *
+   *  Each component validates its own key and reads no other's; one absent from
+   *  the build validates nothing, so its configuration is unvalidated rather
+   *  than wrong. `size` is deliberately not in here: layout reads it for every
+   *  element on every pass, and the engine reaching into component
+   *  configuration would invert the dependency. */
+  components?: Record<string, Record<string, unknown>>;
 };
 
 export type Graph = {
@@ -255,7 +301,7 @@ export type Mutation =
        *  before it was counted. */
       at?: number }
   | { op: "add_element"; element: Element }
-  | { op: "update_element"; id: string; label?: string; type?: string; color?: string }
+  | { op: "update_element"; id: string; label?: string; type?: string }
   | { op: "move_element"; id: string; parent: string | null }
   | { op: "place_element"; id: string; x: number; y: number }
   /** The least room a note was asked for, from the rectangle its drag swept. */
@@ -294,42 +340,13 @@ export type Mutation =
   | { op: "delete_edge"; id: string }
   /** Make or amend a definition. Everything but the id is a patch. */
   | { op: "set_def"; id: string; name?: string; form?: ElemForm | EdgeForm; fields?: Field[];
-      color?: string; icon?: string; line?: Definition["line"]; head?: Definition["head"] }
+      body?: string; color?: string; icon?: string; line?: Definition["line"];
+      head?: Definition["head"]; size?: Definition["size"];
+      names?: Record<string, string>; components?: Record<string, Record<string, unknown>>;
+      extends?: string }
   /** Drop it; usages survive, their `type` pointing at nothing. */
   | { op: "drop_def"; id: string }
-  | { op: "set_vocabulary"; vocabulary: string }
-  | Legacy;
-
-/** Operations no longer written, still folded so that a log recorded before a
- *  rename or a merge replays to what it drew at the time. */
-export type Legacy =
-  | { op: "add_node"; node: Record<string, unknown> }
-  | { op: "update_node"; id: string; label?: string; type?: string }
-  | { op: "move_node"; id: string; parent: string | null }
-  | { op: "place_node"; id: string; x: number; y: number }
-  | { op: "delete_node"; id: string }
-  | { op: "link_nodes"; edge: Record<string, unknown> }
-  | { op: "set_template"; template: string }
-  | { op: "set_title"; title: string }
-  | { op: "add_attr"; attr: Record<string, unknown> }
-  | { op: "update_attr"; id: string; name?: string; value?: string; tags?: string[];
-      color?: string }
-  | { op: "place_attr"; id: string; x: number; y: number }
-  | { op: "attach_attr"; id: string; holder: string }
-  | { op: "detach_attr"; id: string; holder: string }
-  | { op: "delete_attr"; id: string }
-  | { op: "route_edge"; id: string; layer: string | null; route: Spot[] | null }
-  /** `element` and `kind` were the closed sets before both became `form`. */
-  | { op: "set_kind"; id: string; kind: EdgeForm }
-  /** Fields were untyped attributes before they carried a form. */
-  | { op: "set_attr"; id: string; name: string; value?: string; tags?: string[] }
-  | { op: "drop_attr"; id: string; name: string }
-  /** A project's relation names were a bare list before they were definitions,
-   *  and its vocabulary was called its domain. */
-  | { op: "set_domain"; domain: string }
-  | { op: "add_relation"; name: string }
-  | { op: "rename_relation"; from: string; to: string }
-  | { op: "drop_relation"; name: string };
+  | { op: "set_vocabulary"; vocabulary: string };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
@@ -368,6 +385,25 @@ export function newId(prefix: string): string {
   return `${prefix}_${counter.toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** Where a reference points, when it may point outside this project.
+ *
+ *  Written as a path — `proj_a9f/def_pump` — and a bare id means "here", so
+ *  every reference written before projects could see one another still reads.
+ *  One convention for all three places a reference is held: a proxy's `of`, an
+ *  element's `type`, and a `ref` field's value. Ids never contain a slash, so
+ *  there is nothing to escape and nothing ambiguous. */
+export function refTo(id: string, project?: string | null): string {
+  return project ? `${project}/${id}` : id;
+}
+
+/** The two halves of one, with `project` absent for anything local. */
+export function refAt(ref: string): { project?: string; id: string } {
+  const cut = ref.indexOf("/");
+  if (cut < 0) return { id: ref };
+
+  return { project: ref.slice(0, cut), id: ref.slice(cut + 1) };
+}
+
 /** An element with the defaults filled in, so callers only state what differs. */
 export function element(label: string, extra: Partial<Element> = {}): Element {
   // Minted from the form it is actually being made as, so a note is never
@@ -393,7 +429,6 @@ export function element(label: string, extra: Partial<Element> = {}): Element {
     groups: [],
     of: null,
     fields: [],
-    color: "#d9a441",
     ...extra,
   };
 }
@@ -420,7 +455,7 @@ export function defIdFor(name: string): string {
 
 /** A definition with the defaults filled in. */
 export function definition(name: string, extra: Partial<Definition> = {}): Definition {
-  return { id: newId("def"), name, form: "untyped", fields: [], ...extra };
+  return { id: newId("def"), name, form: "line", fields: [], ...extra };
 }
 
 /** A relationship with the defaults filled in. Undirected unless said. */

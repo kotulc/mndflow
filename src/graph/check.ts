@@ -30,11 +30,6 @@ const KNOWN = new Set([
   "relax_layer", "join_group", "leave_group", "set_field", "drop_field", "link_elements",
   "set_end", "update_edge", "set_dir", "set_form", "set_side", "flip_edge", "delete_edge",
   "set_def", "drop_def", "set_vocabulary",
-  // Retired, still folded.
-  "add_node", "update_node", "move_node", "place_node", "delete_node", "link_nodes",
-  "set_template", "set_title", "add_attr", "update_attr", "place_attr", "attach_attr",
-  "detach_attr", "delete_attr", "route_edge", "set_kind", "set_attr", "drop_attr",
-  "set_domain", "add_relation", "rename_relation", "drop_relation",
 ]);
 
 /** The closed sets were `element` on an element and `kind` on a relationship
@@ -50,6 +45,91 @@ function healForm(it: Record<string, unknown>, was: string): boolean {
   return true;
 }
 
+/** A relationship's forms were four before two of them turned out to be derived
+ *  and one to be presentation.
+ *
+ *  `flow` is `directed` under the name of the thing the engine actually reasons
+ *  about; `untyped` is `line`; `assoc` was a weaker mention drawn lighter, which
+ *  is a definition's business, so it becomes a plain line and loses its weight;
+ *  and `tie` is worked out from a note being at one end, so the stored word goes
+ *  and nothing is lost. */
+const EDGE_WAS: Record<string, string> = {
+  flow: "directed", untyped: "line", assoc: "line", tie: "line",
+};
+
+function healEdgeForm(it: Record<string, unknown>): boolean {
+  const held = typeof it.form === "string" ? EDGE_WAS[it.form] : undefined;
+  if (!held) return false;
+
+  it.form = held;
+
+  return true;
+}
+
+/** An element carried a colour of its own before presentation belonged to the
+ *  definition it names. Dropped rather than carried: nothing reads it, and a
+ *  field nothing reads is written back out on every save forever. */
+function healColour(it: Record<string, unknown>): boolean {
+  if (!("color" in it)) return false;
+
+  delete it.color;
+
+  return true;
+}
+
+/** What each component says about its own key under a definition's
+ *  `components` — the reason it is wrong, or null.
+ *
+ *  Registered rather than reached for: the door knows the shape of a log and
+ *  nothing about what a card or a style means, and a component absent from the
+ *  build has to leave its key alone rather than condemn it. That is what makes
+ *  *unknown configuration is ignored, never fatal* true of a whole build and
+ *  not only of one reader. */
+const configs = new Map<string, (config: Record<string, unknown>) => string | null>();
+
+/** Register a component's validator. Called by `modules`, never from here. */
+export function validating(
+  name: string, check: (config: Record<string, unknown>) => string | null,
+): void {
+  configs.set(name, check);
+}
+
+/** Check one definition's `components` bag, dropping every key that cannot be
+ *  taken at face value and leaving the definition otherwise whole. What comes
+ *  back is why each one went.
+ *
+ *  A key no component in this build claims is left exactly as it was: it is
+ *  **unvalidated**, which is a newer package read by an older app, and the one
+ *  thing that must not happen is the app deciding it is wrong.
+ *
+ *  A dropped key is not a broken definition. The component falls back to what
+ *  it does with no configuration at all, which is the same thing it does for
+ *  every definition that never mentioned it. */
+function healComponents(def: Record<string, unknown>): string[] {
+  if (!("components" in def)) return [];
+
+  const bag = def.components;
+  if (!bag || typeof bag !== "object" || Array.isArray(bag)) {
+    delete def.components;
+
+    return ["component configuration was not a set of keys"];
+  }
+
+  const wrong: string[] = [];
+
+  for (const [name, config] of Object.entries(bag as Record<string, unknown>)) {
+    const why = !config || typeof config !== "object" || Array.isArray(config)
+      ? `\`${name}\` configuration was not a record`
+      : configs.get(name)?.(config as Record<string, unknown>) ?? null;
+    if (!why) continue;
+
+    delete (bag as Record<string, unknown>)[name];
+    wrong.push(why);
+  }
+
+  return wrong;
+}
+
 /** An attribute was a field before a field carried a form, and was held under
  *  `attrs`. Everything written then was text, which is what it becomes. */
 function healFields(it: Record<string, unknown>): boolean {
@@ -61,9 +141,19 @@ function healFields(it: Record<string, unknown>): boolean {
   return true;
 }
 
-/** Every element and relationship inside a checkpoint's graph. */
-function healGraph(graph: Record<string, unknown>): boolean {
-  let healed = false;
+/** Every element and relationship inside a checkpoint's graph — and every
+ *  definition in it, since a checkpoint carries a whole one. What comes back is
+ *  why each repair was needed, so a dropped component still says which. */
+function healGraph(graph: Record<string, unknown>): string[] {
+  const why: string[] = [];
+  let shaped = false;
+
+  if (graph.defs && typeof graph.defs === "object") {
+    for (const raw of Object.values(graph.defs as Record<string, unknown>)) {
+      if (!raw || typeof raw !== "object") continue;
+      why.push(...healComponents(raw as Record<string, unknown>));
+    }
+  }
 
   for (const [held, was] of [["elements", "element"], ["edges", "kind"]] as const) {
     const bag = graph[held];
@@ -73,12 +163,14 @@ function healGraph(graph: Record<string, unknown>): boolean {
       if (!raw || typeof raw !== "object") continue;
 
       const it = raw as Record<string, unknown>;
-      healed = healForm(it, was) || healed;
-      healed = healFields(it) || healed;
+      shaped = healForm(it, was) || shaped;
+      if (held === "edges") shaped = healEdgeForm(it) || shaped;
+      if (held === "elements") shaped = healColour(it) || shaped;
+      shaped = healFields(it) || shaped;
     }
   }
 
-  return healed;
+  return shaped ? ["checkpoint was written before `form`", ...why] : why;
 }
 
 /** A relationship's name field was `relation` before it was `type`. Logs
@@ -119,6 +211,16 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
     if (healForm(edge, "kind")) {
       faults.push({ step, op, why: "relationship had a `kind`; read it as its form", healed: true });
     }
+    if (healEdgeForm(edge)) {
+      faults.push({ step, op, why: "relationship named a retired form; read it as a current one",
+                    healed: true });
+    }
+  }
+
+  // The same rename, where a form is set rather than given at creation.
+  if (op === "set_form" && healEdgeForm(it)) {
+    faults.push({ step, op, why: "relationship named a retired form; read it as a current one",
+                  healed: true });
   }
 
   if (op === "add_element" && it.element && typeof it.element === "object") {
@@ -128,6 +230,10 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
       faults.push({ step, op, why: "element named its own `element`; read it as its form",
                     healed: true });
     }
+    if (healColour(made)) {
+      faults.push({ step, op, why: "element carried its own colour; presentation is its definition's",
+                    healed: true });
+    }
     if (healFields(made)) {
       faults.push({ step, op, why: "element carried untyped `attrs`; read them as text fields",
                     healed: true });
@@ -135,9 +241,15 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
   }
 
   if (op === "checkpoint" && it.graph && typeof it.graph === "object") {
-    if (healGraph(it.graph as Record<string, unknown>)) {
-      faults.push({ step, op, why: "checkpoint was written before `form`", healed: true });
+    for (const why of healGraph(it.graph as Record<string, unknown>)) {
+      faults.push({ step, op, why, healed: true });
     }
+  }
+
+  // A definition is where every component's configuration is held, so it is
+  // the one place the door has to ask anybody else anything.
+  if (op === "set_def") {
+    for (const why of healComponents(it)) faults.push({ step, op, why, healed: true });
   }
 
   if (op === "update_edge" && typeof it.type !== "string") {

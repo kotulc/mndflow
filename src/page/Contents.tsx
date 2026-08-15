@@ -188,7 +188,7 @@ export function Contents(props: Props) {
         id: edge.id, sort: "relationship", name: typeName(graph, edge.type ?? ""),
         detail: `${nameOf(graph, graph.elements[edge.source])} ${ARROW[edge.dir]} ` +
                 `${nameOf(graph, graph.elements[edge.target])}`,
-        type: edge.form ?? "untyped", edge: true, renameable: true, body: "",
+        type: edge.form ?? "line", edge: true, renameable: true, body: "",
       });
     }
 
