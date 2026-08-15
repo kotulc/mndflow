@@ -10,8 +10,8 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 
 ## Status
 
-Built and stable: the validator, the one message strip, the schema and a 166-test suite.
-`src` is grouped by what a thing is for and dependencies run one way — see
+Built and stable: the validator, the one message strip, the schema and a property suite (166 at
+A0.1; grown since). `src` is grouped by what a thing is for and dependencies run one way — see
 [README.md](../README.md) for the map.
 
 **Frozen, pending refinement.** Left alone deliberately while the graph model settles: the
@@ -35,7 +35,7 @@ through `check.ts` whatever it was written by.
 
 - **Does a `figure` ever get placed?** Every control node is derived, so nothing in the core creates
   one. It survives for ornament a package ships. **If A.7–A.9 land with nothing having placed one,
-  reconsider the form** — it is one of the five, and S5.5 exists to guard it.
+  reconsider the form** — it is one of the five, and S5.5 now refuses interfaces on it.
 
 *Recently closed: states are derived from the activity until somebody **promotes** them, and
 promotion replaces rather than copies — the value naming a resulting state becomes a ref to the
@@ -78,6 +78,14 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
 *The action surface is the input seam*. `project.ts` splits into `actions/*.ts` grouped by subject
 — elements, edges, groups, notes, fields, definitions, layout — and keeps only state and dispatch.
 
+- **S1.2–S1.6 are live.** Descriptors live in `actions/*`; `project.ts` side-effect-imports them,
+  generates `act.*` wrappers from the registry, keeps aliases for old names, and moves the five
+  queries off `act`. Gestures reach actions through the registry.
+- **Scope holds one `on`.** actions.md scopes `retype` (and fields) to `element|edge`; today
+  `retype` declares `element` and `run` still accepts an edge id. Offering on an edge waits on
+  Scope naming both.
+- **No Arg kind for a ports/sides pair.** `relate` carries them in the args bag for the gesture;
+  a sentence never supplies either.
 - **Gestures are not on the descriptor.** A view owns its gesture map and binds a gesture to an
   action name, so S1 and S2 stay disjoint and two views can bind one action differently.
 - **Every action is enumerated in [actions.md](actions.md)** — name, scope, arguments, the
@@ -85,11 +93,11 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
   against `project.ts`.
 - **Collapse the duplicates as part of the extraction**, so nothing later is written against a
   surface that then changes. 52 entries in `act` become **29 actions**, 4 adjustments, 5 page
-  actions and 5 queries that leave the surface entirely.
-- **`check` is required wherever an action can refuse**, and the refusal reaches the strip. Today
-  `nameFree(...) && commit(...)` returns false silently — a class of invisible no-op.
-- **The `act.foo(...)` methods stay, generated from the registry**, so no call site in `page/` or
-  `canvas/` changes beyond the collapsed pairs.
+  actions and 5 queries that leave the surface entirely. *Done with S1.6.*
+- **`check` refusals reach the strip for taken names** via `NameField` (S1.7 partial, proven).
+  **Parked**: canvas prompt clash still silent.
+- **The `act.foo(...)` methods stay, generated from the registry**, so call sites keep working
+  through aliases where old names remain.
 
 Unlocks E and the tray menu in G; prerequisite for the terminal.
 
@@ -100,15 +108,26 @@ key — specced in [spec.md](spec.md) under *Project model*. `Canvas.tsx` splits
 handling — *done* — composition, and `modules/`.
 
 - **Each component validates its own key and reads no other's**, registering its validator with the
-  door so an unrecognised key is unvalidated rather than wrong — *done*, and `card` is the first
-  published, refused at the door in its own words.
-- **The plain card is the claim in miniature.** `PLAIN` says today's card as a configuration and
-  nothing reads it yet; S2.6 is where the canvas draws from it, and where whatever will not go into
-  a component is the answer about the boundaries.
+  door so an unrecognised key is unvalidated rather than wrong — *done*. **Published**: `card`,
+  `constraints`, `style` (`styleOf` / `lookOf`, `styles/sysml.ts`), `view` (six-module registry),
+  `rules` (`ends` / `holds` / `degree` / `match`, `among` via `isa`). **Block diagram draws from
+  card / `lookOf`** (S2.6b); projection surface (frame/crumbs/prompts), compose and gesture map
+  live under `modules/view/diagram/` (S2.6 / S2.6c / S2.7). `Canvas.tsx` still hosts. Table and
+  matrix mount when `view.module` names them (A.1 / A.2, suite). Activity / sequence / state wait
+  A.7–A.9. Rules evaluate and advise in the tray (S5.3). The module
+  `validate` / `findings` hook is live (S5.4); no shipped module supplies a real one yet, and
+  Contents still surfaces constraint/rule notes only.
+- **Preset registry** — `ship` / `presets` / `preset` in `modules/index.ts` (*done*, A0.4). No
+  concrete presets shipped yet.
+- **`resolved()` merges the subtype chain** — fields union, `components` per key, cached per fold
+  (*done*, SC.3). **Parked**: `cardOf`, `styleOf`, `rulesOf`, `constraintsOf` still read the leaf
+  definition alone and ignore the chain.
+- **The plain card is drawn from** — `PLAIN` and shape stroke read from the components (S2.6b).
 
 **S2.6 walked in advance, without moving any code.** Every part of `Canvas.tsx` put against the six
 components. Most of it goes somewhere; what does not is below, and it is one shape rather than five
-unrelated leftovers.
+unrelated leftovers. **Surface + configured half + compose + gesture map have since landed**
+(S2.6 / S2.6b / S2.6c / S2.7); the walk below is the historical reasoning.
 
 | Goes to | What |
 |---|---|
@@ -135,12 +154,12 @@ thing drawn in it:**
   it is not page chrome, since it sits over the stage.
 - **Display preferences pass through.** `showPorts`, `angular` and which form the next right drag
   draws are held by the page and read by the canvas. They are per-diagram, not per-page — a matrix
-  has no interfaces toggle — and with three view modules there is nobody to hold them.
+  has no interfaces toggle — and with six view modules there is nobody to hold them.
 
 **Answered.** They are not a seventh component: they are the **projection surface**, which is the
 view module's and never a definition's — see design.md under *The view is where a notation plugs
 in*. A layer is the current scope; a **layer view** is that layer projected through the rules and
-packages in scope and rendered by one of the three modules. So the frame, the camera, the chrome
+packages in scope and rendered by one of the six modules. So the frame, the camera, the chrome
 and where a gesture asks are the diagram module's answer to *how do you show a layer at all*, and a
 table answers the same question with rows, no frame and a scrollbar.
 
@@ -149,32 +168,44 @@ proxy card draw as they do because of what their ends **are**. That is the engin
 the graph, so it stays with the engine and is offered to the module as a fact, not configured on a
 definition that does not exist.
 
-**Also found**: `Canvas.tsx`'s Props is 50 entries. Most collapse into one dispatch with S1.6;
-about a dozen are the genuine contract a swappable view module would implement, and that dozen is
-worth naming while S2.6 is being decided.
+**Also found**: `Canvas.tsx`'s Props is 50 entries. Most collapse into one dispatch with S1.6
+(*done*); about a dozen are the genuine contract a swappable view module would implement, and
+that dozen is worth naming while S2.6 is being decided.
 - **The test this seam is measured against**: if the base diagram cannot be expressed as one
   configuration among others, the component boundaries are in the wrong place.
 - **Every gesture the canvas binds today is inventoried in [actions.md](actions.md)**, which is
   what the first gesture map is written from.
-- **The gestures are one hook, not yet a map.** `useGestures` takes what it may reach and what the
-  layer worked out, and returns the handlers plus the state a half-finished gesture is in. Every
-  binding is still written into it; S2.7 is what turns them into a declared map.
+- **The gestures are a declared map** (S2.7). `useGestures` still reaches handlers; the diagram
+  declares which adjustments it takes.
 
 Unlocks A and S5, and the context menu in G.
 
 ### S5 — constraints and rules
 
-Two components, and the first rules the engine applies rather than infers. `required` bounds a
-thing in itself; `ends`, `holds`, `degree` and `match` govern how things interact. **They advise
-while modelling and refuse only at translation**, and a rule the five cannot say is a module's
-`validate` hook in code — never a language.
+Two components, and the first rules the engine applies rather than infers. **`constraints` /
+`required` is published** (`constraintsOf`, in `modules/base.ts`). **`rules` is published** —
+`ends`, `holds`, `degree`, `match`, with `among` via `isa` (*done*, S5.2). **They advise while
+modelling and refuse only at translation**: Contents evaluates and notes in the tray/strip (*done*,
+S5.3); a module's `validate` hook and `findings` collect advise-only words (*done*, S5.4) — no
+shipped hook yet, and Contents does not call `findings`. Value-missing evaluation is live with
+S5.3. **`figure` takes no interfaces** — `interface` refuses with the reason (*done*, S5.5,
+`actions/edges.ts`).
 
 ### A0 — packages and styles
 
-`packages/` for definition data and `styles/` for stylesheets, both at the root; module code is
-`src/modules/`, where it already lives. Build-time, so extending means editing the repo and
-rebuilding. **The base ships as a package**, which is the test of whether the package idea is
-strong enough — and it is where the relation seeds now living in `workflows/*.yaml` belong.
+**`packages/` and `styles/` exist at the root.** `packages/core/<domain>.yaml` holds the relation
+definitions; workflows YAML no longer carries relations. **Package load by id is live** (A0.3):
+shipped YAML loads under stable `pkg_*` ids; defs are addressed by path and never copied into a
+consumer's `defs`. **Parked — A0.2 terminal bridge needs Clay**: `workflows.ts` still loads core
+into `Domain.relations` (terminal still consumes that shape) — that path still mints local
+`set_def` copies and remains the shadowing-shaped entry until vocabulary (D.2) consumes the
+loader. Do **not** treat A0.2 as fully closed while that gate is open. **Preset registry** is in
+(`ship` / `presets` / `preset`); no concrete presets yet. Style sets live under `styles/`
+(`sysml` shipped); the block diagram draws from style (S2.6b).
+
+**Parked from A0.3:** README dependency map still omits `src/workspace/` (depends on `graph`);
+`fold` `isa` / `resolved` still read only local `graph.defs`, so a path-shaped `extends` does not
+walk yet.
 
 ### S3 — fold hygiene
 
@@ -184,10 +215,10 @@ Touches only `fold.ts`, so it runs alongside S1 and S2.
   switch rather than the legacy one. `fold.ts` fell 872 → 680 lines, and `types.ts` lost the
   `Legacy` union. **`relax_layer` and `size_element` were not among them** — current ops that
   nothing emits yet, and G wires both.
-- **Split `apply()` by family** — element, edge, group, field, definition — so two owners adding
-  ops do not edit one switch.
-- **Index once per fold.** `childrenOf`, `blocksOf` and `portsOf` are full scans called from inside
-  loops, which makes `drawnIn` and the contents rows quadratic.
+- **Split `apply()` by family** — *done*. Dispatches to `applyElement` / `Edge` / `Group` /
+  `Field` / `Def`; behaviour preserved.
+- **Index once per fold** — *done*. Children indexed once; `childrenOf`, `blocksOf` and
+  `portsOf` use it.
 
 ### S4 — the workspace
 
@@ -198,30 +229,47 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 - Several projects loaded at once, each with its own log and its own export; a **workspace export
   gathers them** and is the everyday one. A single project can still be opened, shared or imported
   alone, without the views that lean on it.
-- **A proxy's target widens to `{ project, element }`**, and a definition ref the same way. **An
-  edge's ends stay plain ids** — widening those would reach `fold`, `layout`, `route` and the
-  canvas, and nothing needs it.
-- **A proxy tolerates a missing target and never records the absence** — `tidy` stops deleting
-  orphans, so undoing a deletion in one project brings the reference back in another.
+- **A proxy's target widens to `{ project, element }`**, and a definition ref the same way — *done*
+  (S4.3). **An edge's ends stay plain ids** — widening those would reach `fold`, `layout`, `route`
+  and the canvas, and nothing needs it.
+- **A proxy tolerates a missing target and never records the absence** — *done*: `tidy` keeps it
+  as a missing block rather than deleting the proxy, so undoing a deletion in one project brings
+  the reference back in another.
 - **A change is recorded where its element lives.** Filling in a matrix cell writes to the project
   that owns both ends. Ownership routes it, and nothing branches or merges.
 - **A relationship across two projects is a proxy plus an ordinary edge**, both in the project of
   the end making the claim. No relationship ever spans two logs.
 - **The workspace is itself a project**, and needs no new schema to be one: its elements are
   proxies of other projects' **roots**, and folders are ordinary blocks. Filing is undoable, and it
-  draws as a block diagram with dependencies derived from who holds proxies into whom.
-- **Guard against a workspace proxying itself.**
-- `useProject(projectId)` — parameterise the hook; the page picks which project is in context.
-- Projects listed in the tree they were filed into; id, step count and hash in the row's tooltip.
-  The selected row's project is the context.
+  draws as a block diagram with dependencies derived from who holds proxies into whom. *Done* as
+  the `workspace/` module (S4.4): `Held`, `admit`, `folder`, `resolve`, self-guard. Explorer wire
+  is live (S4.5).
+- **Guard against a workspace proxying itself.** *Done* (S4.4).
+- `useProject(projectId)` — *done* (S4.2): keyed load/save; switch clears the view; import adopts
+  the file's id. Explorer click-switches context (S4.5).
+- Projects listed in the tree they were filed into; both roots shown; click switches context.
+  *Done* (S4.5, proven).
 - **Only deletion is breaking, and only breaking changes are reported.** Dead references
   accumulate; wants an explicit *clear missing references* action rather than a default.
 - **An export of one graph bundles the external blocks it depends on**, so it stands alone.
-  Nothing is bundled inside a workspace.
-- **The workspace needs its own storage**, separate from every graph.
+  Workspace `⤓` and project `↧` export/import at schema `1.2` — *done* (S4.6, proven). Owns
+  `graph/file.ts`, `page/App.tsx`, `project.ts`.
+- **The workspace needs its own storage**, separate from every graph — *done as keys*:
+  `loadProject`/`saveProject` one slot per id, `loadWorkspace`/`saveWorkspace`, legacy
+  `mndflow.steps.v1` migrates once. Lazy keys and the pressure API are *done* (S4.7): pristine
+  makes no key; first change writes; `watchPressure` / `pressureNote` on the store.
+  **Parked**: the strip is not subscribed to `watchPressure` yet.
+- **Locked packages** — refuse a write with the reason; the strip offers **unlock** or **fork**
+  (*done*, S4.8, seeded lock proven). Unlock and fork are workspace operations, not registry
+  actions.
+- **`adoptId`** — import adopts the file's project id into the session pointer
+  (`mndflow.project.v1`). Callers and docs should treat keyed slots as the source of truth.
+- **The run skill and prove-row still name the legacy key** `mndflow.steps.v1` — update them when
+  driving a keyed session.
 - **Shared definitions.** A house vocabulary is re-declared per project today and drifts. A
   definition ref widens the same way a proxy target does, so the shared vocabulary is one graph
-  the others reference — which is what a **package** is.
+  the others reference — which is what a **package** is. Load-by-id is live (A0.3); a project's
+  import list is D.2 — **blocked** on terminal freeze + owns (A0.2 bridge needs Clay).
 
 
 ## Phase 1: the streams
@@ -237,14 +285,16 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **H** Sample project | `samples/` | — |
 | **Z** Terminal | `terminal/` | **everything above**, H especially |
 
-**Startable today, before any seam:** D, F, H, and G's relationship filter.
+**Startable today, before any seam:** G.7's both-ends enclosure park on `Canvas.tsx`; F.3 SVG
+download wire beside the source; S1.7 canvas-prompt strip.
 
-**The terminal goes last, deliberately.** It ranks and completes whatever the surface offers, so
-building it against a surface still moving means building it twice. It is also the one stream whose
-value depends on the rest being mature — which makes it the acceptance test for all of them.
+**The terminal goes last, deliberately — Wave Z is parked.** It ranks and completes whatever the
+surface offers, so building it against a surface still moving means building it twice. It is also
+the one stream whose value depends on the rest being mature — which makes it the acceptance test
+for all of them. **◆** rows needing Clay before code: G.9 (menu trigger), A.7 (interaction write),
+Z.6 (docs home).
 
-**S4 and F both reach `store.ts`.** S4's first commit should split graph storage from workspace
-storage, after which they are disjoint.
+**S4 and F both reached `store.ts`.** S4.1 / S4.7 / F.2 are done; they are disjoint from here.
 
 ### A — views and packages
 
@@ -254,10 +304,10 @@ different ways — see design.md under *Structure and behavior*.
 
 | | Costs |
 |---|---|
-| requirements | a package. No code |
-| parametrics | a package, once a constraint can draw from a size and a style |
-| flow | a package of `directed` subtypes |
-| activity | a **view module**, plus a package of words. A behavior layer's default reading |
+| requirements | a package. No code — *done* (A.3) |
+| parametrics | a package — *done* (A.4) |
+| flow | a package of `directed` subtypes — *done* (A.5) |
+| activity | a **view module**, plus a package of words. A behavior layer's default reading — **◆ A.7** |
 | state machine | a **view module** over the same layer, and `promote` where somebody wants real state blocks |
 | sequence | a **view module** over the same layer. Messages are derived, not drawn |
 | UML, SysML v2, UAF | packages — tables of definitions, names and mappings |
@@ -266,6 +316,17 @@ different ways — see design.md under *Structure and behavior*.
 for a behavior. Everything else is configuration or data. **Behaviour is what added actions** —
 `scope` and `promote`, both the engine's — and it added no form and no mutation op.
 
+- **`shaped` / `outline` on card** — *done* (A.6). Nothing stores a shape; the module computes one
+  inside the engine's box. Diagram strokes from card / `lookOf` (S2.6b); counting what to draw as a
+  figure is A.7.
+- **requirements package** — *done* (A.3): `packages/requirements/` — requirement block (`id` /
+  `text`, card `shows`) and five directed relationships. Data only.
+- **parametrics package** — *done* (A.4): `packages/parametrics/` — constraint with size and style.
+  Data only.
+- **flow package** — *done* (A.5): `packages/flow/` — control flow, object flow (`item` ref),
+  transition (trigger/guard/effect). Formal `names` wait A.11.
+- **A.1 / A.2** — table and matrix modules mount when `view.module` is `table` / `matrix`
+  (*done*, suite). **A.7 stays ◆**.
 - **A behavior project owns its own tree.** It holds its actions and states, and **refs** to the
   participants; what it learns about a participant is written through the ref to the block, which is
   the ownership rule in S4 and not an exception to it.
@@ -282,25 +343,19 @@ for a behavior. Everything else is configuration or data. **Behaviour is what ad
 Internally serial — clusters, notes and axis bias all rewrite `place` — and parallel to everything
 else.
 
-- **Clusters, and shapes for them.** Relationships should draw units loosely together, each cluster
-  laid out by its own topology. Layout ranks units individually today, which flattens a ring into
-  ranks and loses it. **Start with ring and chain only**: a detector that lays five nodes out as a
-  "ring" nobody sees is worse than no detector.
-- **Notes as units** — laid out like any other object rather than avoided, ties drawn as fixed
-  associations. Their position is patched up after the fact today.
-- **The layer's axis should bias the route**, not merely pick the sides a `flow` attaches to — a
-  flow on an `across` layer running left to right rather than doubling back. That is the whole
-  reason the setting is worth having separately from an arrangement.
-- **The cluster spacing tier**, which needs clusters.
-- **Performance.** A window resize on a layer of 80 blocks blocks the main thread for **15
-  seconds**: the frame derives from the panel, so any panel change re-routes every relationship.
-  The tray toggle used to cost 9.6s and no longer reshapes anything (78ms). The fix is the router
-  cost, not another split. Routing measured ~180ms for twenty cards before the per-layer plan;
-  nothing has been measured since, and design.md's thirty-node target is unchecked.
-- **The acceptance criterion is an aspiration.** Nothing measures overlap, crossings or lines
-  through unattached blocks, and it predates clusters — so it says nothing about the property that
-  now matters most, that a recognisable shape comes out looking like itself. Due a rewrite once the
-  cluster model settles.
+- **Clusters, and shapes for them.** *Done* for ring and chain only (C.1): exact rings and chains
+  get topology shapes; hub-and-spoke and other shapes fall through to the layer arrangement;
+  hand-laid sticks under free fill. Proven in browser. Approximate topologies stay null on purpose.
+- **Notes as units** — *done* (C.2, proven earlier): notes via `withNotes`; ties excluded from
+  structural joins; tied notes seat under holders.
+- **Directed edges bias rank, placement and routing** — *done* (C.3). Port `in`/`out` stay unread.
+  Resting layout does not yet drive an unplaced neighbour from a directed edge (no UI for that
+  path).
+- **The cluster spacing tier**, which needs clusters — still backlog; not a plan row.
+- **Performance.** *Done* (C.4): measured ~15.5s before on an 80-box long-span harness; ~72ms after
+  — two-phase seats-first + shared visibility. Browser resize on a busy layer stayed interactive.
+  Cause was the router, not another split.
+- **Layout acceptance around clusters** — *done* (C.5): cluster layout property tests (suite).
 - **Two known limits, not bugs with known fixes.** The frame drifts off the grid on a window
   resize, since it derives from the panel's aspect ratio, taking its seated interfaces with it;
   fixing it means a frame that does not fit the panel, which is worse. And route corners are free —
@@ -311,10 +366,13 @@ else.
 
 Split out of the terminal because a module needs it and the terminal does not gate it.
 
+- **`terms` live in `workflows/terms/*.yaml`** — *done* (D.1); `workflows.ts` merges them. Chips
+  still read Module/Dependency until a vocabulary package supplies the words.
 - **Take `domain` apart.** It became `graph.vocabulary` in the migration — a rename that decided
   nothing. It currently keys three concerns: a set of words, a set of starting relations, and a set
-  of workflow prompts. Now that a project's relations are definitions, the starting-relations half
-  is a definition set somebody could ship, which leaves the words and the prompts.
+  of workflow prompts. **Relation seeds moved to `packages/core/`** (A0.2); the terminal still
+  reads them through the seeding bridge until D.2 consumes A0.3's loader. **D.2 is blocked** on
+  terminal freeze + owns (A0.2 bridge needs Clay).
 - **The words are what a module needs** — what this notation calls a block, a group, a
   relationship. Stream A cannot declare a module vocabulary until they are separable from the
   prompts.
@@ -325,53 +383,52 @@ Split out of the terminal because a module needs it and the terminal does not ga
 
 ### E — definitions and fields
 
-- **Editing definitions.** The freeze gives a project definitions; nothing makes or edits one.
-  Needs a place to declare a type's fields, defaults and presentation — probably the contents tray,
-  which is already the table of what a project contains.
-- **Fields are listed but barely editable.** Renaming goes through a drop-and-set pair, and a typed
-  field wants a control per form — a number with a unit, a choice with its list, a ref with a
-  target picker.
-- **Tags.** Every field carries them; nothing shows or edits them.
+- **Editing definitions.** *Done* (E.1, proven): types chip + edit defs in the contents tray —
+  fields, defaults and presentation.
+- **Form-specific field controls.** *Done* (E.2, proven): number with unit, choice with its list,
+  ref with a target picker — on usage and definition fields.
+- **Tags.** *Done* (E.3, proven): add/drop on usage and definition fields.
 - **Icons.** A definition should be able to draw one as well as a boundary or a note. Nothing draws
   an icon and no set has been chosen. Needs a renderer from S2.
-- **Packages** — the two notations that turned out to be data rather than views. **Requirements
-  first**: it needs nothing but definitions, so it is the honest test of whether they work.
-  Parametrics follows once a constraint can draw from `size` and a colour.
+- **Packages** — the two notations that turned out to be data rather than views. **Requirements**
+  (*done*, A.3), **flow** (*done*, A.5) and **parametrics** (*done*, A.4) ship as YAML under
+  `packages/`.
 - **Authoring a package** wants somewhere to put a plain name, a formal name and a mapping, which
   is the same place a definition's fields and presentation are edited.
+- **Type offers are package-disambiguated** when two definitions share a name (*done*, SC.4).
 
 ### F — durability and files
 
-- **The browser working copy is invisible to the file on disk.** Pull, forget to re-import, keep
-  editing a stale session, export over somebody's work — nothing can notice. **The fix is the File
-  System Access API**: hold a live handle and say so when the file changes underneath. One
-  integration, and the whole class of problem goes.
+- **File System Access** — *done as fallback* (F.2): Chromium path present; download when the
+  picker fails. Live bind+drift is in code and shows in the header, but was not proven under
+  automation. Owns `graph/store.ts`, `page/App.tsx`, `project.ts`.
+- **Rendered SVG beside the source** — `svgOf` on the diagram module is landed (F.3 partial,
+  suite). **Parked**: wiring that markup into a download beside the JSON export.
 - **Reviewing a model change as JSON is poor.** Committing a rendered SVG beside the source makes a
-  pull request readable. Costs an export path and nothing structural.
+  pull request readable. Costs an export path and nothing structural — download wire is the park
+  above.
 
 ### G — canvas polish
 
 - **The context menu**, still the last thing to build. Every entry now performs its default action
   directly and correctly, so the menu covers for nothing wrong — only the alternatives are missing:
-  direction and reversal for a relationship, ungroup, paste, delete throughout.
+  direction and reversal for a relationship, ungroup, paste, delete throughout. **◆ G.9** — needs
+  Clay: the trigger is not designed.
 - **A menu trigger.** The right button is spent entirely on direct creation, so the menu has no
   gesture left. The intended answer is that selecting an element reveals its options in the
   contents tray — the table is the menu and no gesture is needed. Not designed yet.
-- **The selection box takes things it does not enclose.** Not diagnosed. The leading suspect is the
-  invisible grab band over relationship segments, but that would explain a box that fails to start,
-  not one that over-selects, so the cause is open.
-- **Filter relationships by type on the canvas** — show only `satisfy`. A display preference, no
-  new concept, and the cheap read on how much of the clutter problem a different view would need to
-  solve. **Do this before any matrix.**
-- **`Ctrl`/`Cmd` + `A`** is in the keyboard table and is not implemented.
-- **Three actions have no way in.** `relax_layer` and `size_element` are in the schema and in
-  `fold` and nothing emits either — a layer cannot be handed back to automatic placement, and a
-  note cannot be resized after it is made. `dissolve` has no op missing, only a path. All three are
-  rows in [actions.md](actions.md) with nothing to replace.
-- **`relax` first among them.** It is the thing somebody most wants to type after naming ten
-  things — the engine takes the layer back — so it is worth having before Z rather than after.
-- **Adding a block to an existing group from the panel.** `joinGroup` exists and is wired to
-  nothing, so the only way into an existing group is the drag.
+- **The selection box.** **Partial (G.7):** an edge with only one end enclosed is not selected;
+  click / Ctrl+A / Esc still behave (proven). **Parked**: both-ends enclosure policy. Dead CSS:
+  `.leg-grab` / `.leg-mark` still describe segment grab bands `Wire` no longer draws.
+- **Filter relationships by type on the canvas** — *done* (G.1). Toolbar cycles types; filtered
+  edges do not draw; seats clear. **Parked**: the filter is not persisted in localStorage.
+- **`Ctrl`/`Cmd` + `A`** — *done* (G.5). Selects all cards; Esc clears an RF multi-select via
+  `changeNodes`; Fit and Group still work with the selection.
+- **`relax` and `size` are wired** — ◌ click (`onClick={() => onRelax()}`) and note SE resize
+  (G.2 / G.3). **`dissolve` is registered and S1.6-ready** (G.4) but **unreachable from the UI**
+  until G.9 designs a menu trigger. Delete on a group row still goes through remove, not dissolve.
+- **Adding a block to an existing group from the panel** — *done* (G.6): panel `+ group` joins the
+  selection into an existing group. Proven in browser.
 - **Fluid transitions between layers.** The viewport animates; the contents of the two layers cut,
   so the nesting-doll effect is not what is drawn.
 - **Segments under a card** cannot be grabbed there — cards draw above the relationship layer. No
@@ -384,21 +441,21 @@ Split out of the terminal because a module needs it and the terminal does not ga
 
 ### H — sample project
 
-- **`samples/mndflow.json` does not exist**, nor the directory. Both preconditions are now met —
-  interfaces, references and groups are built, the export format is settled. It should describe
-  this application, exercise every feature in spec.md, and load from the viewer without setup.
+- **`samples/mndflow.json` exists** — *done* (H.1). Describes this app, exercises the forms; import
+  drew Graph/Canvas.
+- **Line-by-line review** — *done* (H.2): `samples/REVIEW.md`. Nesting reads; closed sets present;
+  meta needs no more fields. **Parked from the review**:
+  - Rename the bad edge key `"undefined"` (loads and round-trips; violates id shape).
+  - Root fields dump defaults the writer strips elsewhere (`file.write` / `fieldsOut` asymmetry).
+  - Prefer meaningful `edge_*` keys in samples even though runtime treats keys as opaque.
 - **Z's tutorial is walked over a sample**, so this stream decides what a first project looks like
   as well as proving the format. Worth one sample per module eventually, not just this one.
-- **Read a real export line by line.** The format round-trips but only two people have read one.
-  Ask what a reviewer would want: whether the nesting reads at depth, whether relationship records
-  want the names of their ends beside the ids, whether `meta` should carry anything else. **Whether
-  a hand-authored file is pleasant to write is the real test**, and it is now unblocked.
 
 ### Z — terminal
 
-*Last, and the acceptance test for everything above.* Frozen until then, so it is not touched by
-any other stream. What it is for is settled — see design.md under *The terminal*; what remains is
-building it.
+*Last, and the acceptance test for everything above.* **Parked** — frozen until then, so it is not
+touched by any other stream. What it is for is settled — see design.md under *The terminal*; what
+remains is building it. **◆ Z.6** needs Clay (where docs live / how keyed) before that row.
 
 - **Two functions, split by whether it is open.** Collapsed is the app's primary text entry point
   and asks nothing. Expanded is guidance: the next question worth answering, nudges, documentation

@@ -150,9 +150,11 @@ export type Element = {
    *  who names it, so the two can never disagree. Membership is descriptive,
    *  not structural — a group is never a parent. */
   groups: string[];
-  /** What a proxy stands in for: the block it is a second appearance of.
+  /** What a proxy stands in for: `{ project, element }`, both by id.
    *
-   *  Held here rather than as a relationship. A proxy standing for a block is
+   *  Written as a path — `proj_a9f/block_1` — via {@link refTo}, and a bare id
+   *  means this project, so every proxy written before projects could see one
+   *  another still reads. Held here rather than as a relationship: a proxy is
    *  not two things being joined — it is one thing appearing twice, which is a
    *  property of the appearance. The relationships that *reach* a proxy are the
    *  references, and they are ordinary relationships drawn by hand. */
@@ -402,6 +404,18 @@ export function refAt(ref: string): { project?: string; id: string } {
   if (cut < 0) return { id: ref };
 
   return { project: ref.slice(0, cut), id: ref.slice(cut + 1) };
+}
+
+/** A proxy's target: the block, and the project it lives in when that is not
+ *  this one. The same path as every other cross-project ref, named for how a
+ *  proxy reads it. */
+export type ProxyTarget = { project?: string; element: string };
+
+/** {@link refAt} as a proxy target — `id` is the element half. */
+export function asTarget(of: string): ProxyTarget {
+  const { project, id: element } = refAt(of);
+
+  return { project, element };
 }
 
 /** An element with the defaults filled in, so callers only state what differs. */

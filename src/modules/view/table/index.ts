@@ -1,0 +1,22 @@
+/** The table view module — structure drawn as rows.
+ *
+ *  Projection surface (no frame, scroll), a gesture map that accepts none of
+ *  the four adjustments, and composition that turns a layer's blocks and
+ *  proxies into rows. Registers itself so a later import replaces the stub
+ *  S2.5 left in the view registry. */
+
+export { TABLE } from "./surface";
+export {
+  MAP, takes, reaches,
+  type Adjustment, type Binding, type GestureMap, type Hand, type Motion,
+  type Reaches, type Target,
+} from "./map";
+export { rowsOf, type Row } from "./rows";
+export { Row as RowView, type RowProps } from "./Row";
+export { Table, type TableProps } from "./Table";
+
+import { register } from "../index";
+import { TABLE } from "./surface";
+
+// Replace the stub: same name, now carrying a surface.
+register({ name: "table", kind: "structure", surface: TABLE });

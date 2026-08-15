@@ -4,15 +4,23 @@
  *  `place` lays out a whole layer around the centre, so the mass of blocks
  *  grows outward from the origin instead of trailing off one corner.
  *
- *  A layer arranges itself the way its axis says: ranked along one direction,
- *  or filling outward from the middle when it has none. That is the only choice
- *  there is — there are no named arrangements beyond it.
+ *  Relationships draw units into clusters. A cluster that is exactly a ring or
+ *  a chain is laid out as that shape — ranking alone would flatten a ring into
+ *  ranks and lose it. Anything else follows the layer's arrangement. Directed
+ *  relationships still bias ranking (and the seats resting fill prefers);
+ *  plain lines only pull neighbours level. Port in/out markings are not read
+ *  here.
+ *
+ *  A note is a unit like a card. A tie is not a structural join for ranking or
+ *  topology — it is a fixed association: the note sits under what it describes
+ *  once the rest of the layer has landed. Untied notes arrange with everything
+ *  else. That keeps a ring a ring when a note is pinned to one of its cards.
  *
  *  Both are pure geometry: nothing here knows about React Flow, and nothing
  *  here reaches the embedding model. How closely a child's name relates to its
  *  container decides a *shade*, so it belongs to whatever draws the chip. */
 
-import { isContainer, membersOf, portsOf } from "../graph/fold";
+import { axisOf, isContainer, isTie, membersOf, notesIn, portsOf, tiesOf } from "../graph/fold";
 import type { Axis, Graph, Layout, Element, Side, Spot } from "../graph/types";
 
 /** The canvas grid. Everything with a place of its own lands on it, so that two
@@ -183,6 +191,16 @@ export function pack(count: number, box: { w: number; h: number }): Tile[] {
  *  the same thing the grid inside it already says. The cells shrink instead,
  *  which is what keeps a full container reading as full. */
 export function sizeOf(graph: Graph, node: Element): { w: number; h: number } {
+  // A note's rectangle is its least size — the larger of what the drag asked
+  // for and the ordinary leaf. Text still wins on the canvas; layout only
+  // needs a box that nothing else is laid on top of.
+  if (node.form === "note") {
+    return {
+      w: Math.max(LEAF.w, cell(node.w ?? 0)),
+      h: Math.max(LEAF.h, cell(node.h ?? 0)),
+    };
+  }
+
   if (!isContainer(graph, node.id)) return { ...LEAF };
 
   return { w: LEAF.w, h: LEAF.h + GRID };
@@ -302,14 +320,34 @@ function* rings(step: { x: number; y: number }, rounds: number) {
   }
 }
 
-/** Relationships with both ends among these nodes, as source → target pairs.
+/** Structural relationships with both ends among these nodes.
  *
- *  Ranking reads the pair rather than `dir`, because a relationship is
- *  undirected by default and the way it was drawn is the only statement of
- *  direction most of them will ever carry. */
+ *  Ties are left out on purpose: a note's leader is a fixed association, not a
+ *  join that ranks or clusters. Including one would turn a ring with a caption
+ *  into something topology no longer recognises.
+ *
+ *  Neighbourhood and barycentre read the pair rather than `dir`: a plain
+ *  relationship is undirected, and the way it was drawn is the only statement
+ *  of direction most of them will ever carry. Ranking does not use these when
+ *  any directed edge is present — see {@link flowsAmong}. */
 function linksAmong(graph: Graph, ids: Set<string>): [string, string][] {
   return Object.values(graph.edges)
-    .filter((e) => ids.has(e.source) && ids.has(e.target) && e.source !== e.target)
+    .filter((e) => !isTie(graph, e)
+      && ids.has(e.source) && ids.has(e.target) && e.source !== e.target)
+    .map((e) => [e.source, e.target] as [string, string]);
+}
+
+/** Directed relationships among these nodes, source → target.
+ *
+ *  A directed edge is what biases placement: its source sits earlier along the
+ *  arrangement than its target. Plain lines still pull neighbours level and
+ *  keep related units near each other, but they do not invent a rank — that is
+ *  what made drawing order masquerade as flow. Port in/out markings are not
+ *  consulted; what those mean is the package's. */
+function flowsAmong(graph: Graph, ids: Set<string>): [string, string][] {
+  return Object.values(graph.edges)
+    .filter((e) => (e.form ?? "line") === "directed"
+      && ids.has(e.source) && ids.has(e.target) && e.source !== e.target)
     .map((e) => [e.source, e.target] as [string, string]);
 }
 
@@ -499,8 +537,8 @@ function respaced(items: Sized[], gap: number, wide: number,
   return Object.fromEntries(items.map((i) => [i.id, { x: across[i.id], y: down[i.id] }]));
 }
 
-/** One thing layout moves as a whole: a single card, or a set of cards a group
- *  holds together.
+/** One thing layout moves as a whole: a single card or note, or a set of cards
+ *  a group holds together.
  *
  *  A group is a statement about where things sit, so layout has to honour it or
  *  it is not laying the layer out at all — members strewn across the ranks draw
@@ -518,13 +556,13 @@ type Unit = {
   at: Spot | null;
 };
 
-/** Which group cluster each node belongs to.
+/** Which shared-group home each node belongs to.
  *
- *  Groups that share a member are one cluster: the shared node pins them
+ *  Groups that share a member are one home: the shared node pins them
  *  together, so they cannot be placed apart however much anyone would like
  *  them to be. Their boundaries still overlap and compound, which is what
  *  overlapping groups are supposed to do; they simply travel as one. */
-function clusters(graph: Graph, nodes: Element[]): Map<string, string> {
+function homes(graph: Graph, nodes: Element[]): Map<string, string> {
   const home = new Map<string, string>();
   const find = (id: string): string => {
     const up = home.get(id);
@@ -547,13 +585,13 @@ function clusters(graph: Graph, nodes: Element[]): Map<string, string> {
   return new Map(nodes.map((n) => [n.id, find(n.id)]));
 }
 
-/** The layer's units: every group cluster as one, every other card on its own.
+/** The layer's units: every shared-group home as one, every other card on its own.
  *
  *  A unit the user has placed keeps its members' positions exactly. One nobody
  *  has placed gets an internal arrangement of its own — laid out among its own
  *  members only — and that becomes rigid. */
 function unitsOf(graph: Graph, nodes: Element[], shape: Layout): Unit[] {
-  const home = clusters(graph, nodes);
+  const home = homes(graph, nodes);
   const held = new Map<string, Element[]>();
   for (const node of nodes) {
     const key = home.get(node.id)!;
@@ -616,9 +654,10 @@ function inner(graph: Graph, members: Element[], shape: Layout): Record<string, 
 
   const boxed = members.map((n) => ({ id: n.id, ...sizeOf(graph, n) }));
   const ids = new Set(members.map((n) => n.id));
+  const links = linksAmong(graph, ids);
 
   return shape === "across" || shape === "down"
-    ? rankedBoxes(boxed, linksAmong(graph, ids), shape, new Map(), WITHIN)
+    ? rankedBoxes(boxed, links, shape, new Map(), WITHIN, flowsAmong(graph, ids))
     : gridded(boxed, WITHIN);
 }
 
@@ -673,13 +712,18 @@ function gridded(boxes: { id: string; w: number; h: number }[],
  *  Rank decides the position along the axis, order within the rank decides the
  *  position across it. That is what puts two related things on one row: they
  *  are in neighbouring ranks and the ordering pass pulls them level, so the
- *  relationship between them is a straight line with nothing to work around. */
+ *  relationship between them is a straight line with nothing to work around.
+ *
+ *  When `flows` is non-empty, rank follows those directed edges only; `links`
+ *  still order within a rank. Without a flow, every link ranks — a layer of
+ *  plain lines has nothing else to read. */
 function rankedBoxes(boxes: { id: string; w: number; h: number }[],
                      links: [string, string][], along: "across" | "down",
                      lean: Map<string, number> = new Map(),
-                     gap = GAP): Record<string, Spot> {
+                     gap = GAP,
+                     flows: [string, string][] = []): Record<string, Spot> {
   const size = new Map(boxes.map((b) => [b.id, b]));
-  const rank = ranks(boxes.map((b) => b.id), links);
+  const rank = ranks(boxes.map((b) => b.id), flows.length ? flows : links);
   const depth = Math.max(0, ...rank.values());
 
   const rows: string[][] = Array.from({ length: depth + 1 }, () => []);
@@ -853,20 +897,404 @@ function between(graph: Graph, nodes: Element[], units: Unit[]): [string, string
   )].map((k) => k.split("|") as [string, string]);
 }
 
+/** Directed unit-to-unit relationships — what ranks and resting fill follow. */
+function betweenFlows(graph: Graph, nodes: Element[], units: Unit[]): [string, string][] {
+  const inUnit = new Map<string, string>();
+  for (const unit of units) for (const id of unit.ids) inUnit.set(id, unit.id);
+
+  return [...new Set(
+    flowsAmong(graph, new Set(nodes.map((n) => n.id)))
+      .map(([a, b]) => [inUnit.get(a)!, inUnit.get(b)!])
+      .filter(([a, b]) => a !== b)
+      .map(([a, b]) => `${a}|${b}`),
+  )].map((k) => k.split("|") as [string, string]);
+}
+
+/** Adjacency and degrees for an undirected view of these links.
+ *
+ *  Drawing order and a pair of opposing directed edges are the same join: one
+ *  undirected edge, or a chord would never be told from a double-drawn line. */
+function adjacent(ids: string[], links: [string, string][]) {
+  const here = new Set(ids);
+  const near = new Map(ids.map((id) => [id, [] as string[]]));
+  const deg = new Map(ids.map((id) => [id, 0]));
+  const seen = new Set<string>();
+  let edges = 0;
+
+  for (const [a, b] of links) {
+    if (!here.has(a) || !here.has(b) || a === b) continue;
+    const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    near.get(a)!.push(b);
+    near.get(b)!.push(a);
+    deg.set(a, deg.get(a)! + 1);
+    deg.set(b, deg.get(b)! + 1);
+    edges += 1;
+  }
+
+  return { near, deg, edges };
+}
+
+/** Connected components of units joined by relationships — clusters.
+ *
+ *  Singletons count: an unrelated unit is a cluster of one, so the compose
+ *  pass has one list to place rather than a special case for leftovers. */
+function clustered(units: Unit[], links: [string, string][]): Unit[][] {
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const { near } = adjacent(units.map((u) => u.id), links);
+  const seen = new Set<string>();
+  const packs: Unit[][] = [];
+
+  for (const unit of units) {
+    if (seen.has(unit.id)) continue;
+
+    const wave = [unit.id];
+    const pack: Unit[] = [];
+    seen.add(unit.id);
+
+    while (wave.length) {
+      const id = wave.pop()!;
+      pack.push(byId.get(id)!);
+      for (const other of near.get(id) ?? []) {
+        if (seen.has(other)) continue;
+        seen.add(other);
+        wave.push(other);
+      }
+    }
+
+    packs.push(pack);
+  }
+
+  return packs;
+}
+
+/** Exact ring or chain — nothing fuzzier.
+ *
+ *  A detector that calls five nodes a ring nobody would recognise is worse
+ *  than no detector. A path is a chain; a single cycle is a ring; a chord, a
+ *  branch or a hub is neither, and falls through to the layer's arrangement. */
+function topologyOf(ids: string[], links: [string, string][]): "ring" | "chain" | null {
+  const n = ids.length;
+  if (n < 2) return null;
+
+  const { deg, edges } = adjacent(ids, links);
+  const degrees = [...deg.values()];
+
+  if (edges === n - 1
+      && degrees.every((d) => d <= 2)
+      && degrees.filter((d) => d === 1).length === 2) {
+    return "chain";
+  }
+
+  if (n >= 3 && edges === n && degrees.every((d) => d === 2)) return "ring";
+
+  return null;
+}
+
+/** Walk a path from one end to the other, preferring flow's source end. */
+function walkChain(ids: string[], links: [string, string][],
+                   flows: [string, string][]): string[] {
+  const { near, deg } = adjacent(ids, links);
+  const ends = ids.filter((id) => deg.get(id) === 1);
+  const outbound = new Set(flows.map(([from]) => from));
+  const inbound = new Set(flows.map(([, to]) => to));
+
+  // The end that only sends, or that sends at all, reads as the start.
+  const start = ends.find((id) => outbound.has(id) && !inbound.has(id))
+    ?? ends.find((id) => outbound.has(id))
+    ?? ends[0]
+    ?? ids[0];
+
+  const order = [start];
+  const seen = new Set([start]);
+  let at = start;
+
+  while (order.length < ids.length) {
+    const next = (near.get(at) ?? []).find((id) => !seen.has(id));
+    if (!next) break;
+    order.push(next);
+    seen.add(next);
+    at = next;
+  }
+
+  return order;
+}
+
+/** Walk a cycle once, preferring a directed successor when the edge is one. */
+function walkRing(ids: string[], links: [string, string][],
+                  flows: [string, string][]): string[] {
+  const { near } = adjacent(ids, links);
+  const after = new Map<string, string[]>();
+  for (const [from, to] of flows) after.set(from, [...(after.get(from) ?? []), to]);
+
+  const start = ids.find((id) => (after.get(id) ?? []).length) ?? ids[0];
+  const order = [start];
+  const seen = new Set([start]);
+  let at = start;
+
+  while (order.length < ids.length) {
+    const directed = (after.get(at) ?? []).find((id) => !seen.has(id)
+      && (near.get(at) ?? []).includes(id));
+    const next = directed ?? (near.get(at) ?? []).find((id) => !seen.has(id));
+    if (!next) break;
+    order.push(next);
+    seen.add(next);
+    at = next;
+  }
+
+  return order;
+}
+
+/** Units equally spaced on a circle, in cycle order — a ring that stays a ring. */
+function ringed(units: Unit[], order: string[], gap: number): Record<string, Spot> {
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const span = Math.max(...order.map((id) => Math.max(byId.get(id)!.w, byId.get(id)!.h)));
+  const reach = Math.max(span / 2 + gap, (order.length * (span + gap)) / (2 * Math.PI));
+  const spots: Record<string, Spot> = {};
+
+  order.forEach((id, at) => {
+    const unit = byId.get(id)!;
+    const turn = (at / order.length) * 2 * Math.PI - Math.PI / 2;
+    spots[id] = middled({
+      x: Math.cos(turn) * reach - unit.w / 2,
+      y: Math.sin(turn) * reach - unit.h / 2,
+    }, unit);
+  });
+
+  return spots;
+}
+
+/** Units in series along one axis — a chain that stays a series. */
+function chained(units: Unit[], order: string[], along: "across" | "down",
+                 gap: number): Record<string, Spot> {
+  const byId = new Map(units.map((u) => [u.id, u]));
+  const runs = along === "across" ? "x" : "y";
+  const across: "x" | "y" = runs === "x" ? "y" : "x";
+  const extents = order.map((id) => runs === "x" ? byId.get(id)!.w : byId.get(id)!.h);
+  const total = extents.reduce((sum, e) => sum + e + gap, -gap);
+  let cursor = -total / 2;
+  const spots: Record<string, Spot> = {};
+
+  order.forEach((id, at) => {
+    const unit = byId.get(id)!;
+    const spot = {
+      [runs]: cursor,
+      [across]: -(runs === "x" ? unit.h : unit.w) / 2,
+    } as Spot;
+    spots[id] = middled(spot, unit);
+    cursor += extents[at] + gap;
+  });
+
+  return spots;
+}
+
+/** One cluster's own corners, by its topology or the layer's arrangement. */
+function shaped(units: Unit[], links: [string, string][], flows: [string, string][],
+                shape: Layout, lean: Map<string, number>): Record<string, Spot> {
+  const ids = units.map((u) => u.id);
+  const kind = topologyOf(ids, links);
+  const along = shape === "down" ? "down" : "across";
+
+  if (kind === "ring") return ringed(units, walkRing(ids, links, flows), GAP);
+  if (kind === "chain") return chained(units, walkChain(ids, links, flows), along, GAP);
+
+  const boxes = units.map((u) => ({ id: u.id, w: u.w, h: u.h }));
+
+  return shape === "grid" ? gridded(boxes)
+    : shape === "radial" ? radial(units, links, GAP)
+    : rankedBoxes(boxes, links, shape, lean, GAP, flows);
+}
+
+/** Shift a pack's local corners so its bounding box starts at the origin. */
+function originOf(units: Unit[], local: Record<string, Spot>): {
+  local: Record<string, Spot>; w: number; h: number;
+} {
+  const bounds = around(units.map((u) => ({ ...local[u.id], w: u.w, h: u.h })), 0)!;
+
+  return {
+    local: Object.fromEntries(units.map((u) => [u.id, {
+      x: local[u.id].x - bounds.x,
+      y: local[u.id].y - bounds.y,
+    }])),
+    w: bounds.w,
+    h: bounds.h,
+  };
+}
+
+/** Where a loose unit should prefer to sit, given directed edges to placed ones.
+ *
+ *  Downstream of a placed source, upstream of a placed target — along the
+ *  layer's axis when it has one. Without an axis the ring order stands; the
+ *  axis is what makes "with the flow" a place rather than only a side. */
+function driftOf(id: string, flows: [string, string][],
+                 corner: Record<string, Spot>, units: Unit[],
+                 axis: Axis): Spot | null {
+  if (axis === "none") return null;
+
+  const size = new Map(units.map((u) => [u.id, u]));
+  let x = 0;
+  let y = 0;
+  let n = 0;
+
+  for (const [from, to] of flows) {
+    if (to === id && corner[from]) {
+      const u = size.get(from)!;
+      x += corner[from].x + (axis === "across" ? u.w + GAP : 0);
+      y += corner[from].y + (axis === "down" ? u.h + GAP : 0);
+      n += 1;
+    }
+    if (from === id && corner[to]) {
+      const u = size.get(id)!;
+      x += corner[to].x - (axis === "across" ? u.w + GAP : 0);
+      y += corner[to].y - (axis === "down" ? u.h + GAP : 0);
+      n += 1;
+    }
+  }
+
+  return n ? { x: x / n, y: y / n } : null;
+}
+
+/** First free ring-fill seat for a box, optionally biased toward a preferred spot. */
+function seatIn(taken: Box[], box: { w: number; h: number },
+                step: { x: number; y: number }, rounds: number,
+                prefer: Spot | null): Spot {
+  const candidates = [...rings(step, rounds)];
+  if (prefer) {
+    candidates.sort((a, b) =>
+      Math.abs(a.x - prefer.x) + Math.abs(a.y - prefer.y)
+      - (Math.abs(b.x - prefer.x) + Math.abs(b.y - prefer.y)));
+  }
+
+  for (const point of candidates) {
+    const at = { ...middled({ x: point.x - box.w / 2, y: point.y - box.h / 2 }, box),
+                 w: box.w, h: box.h };
+    if (taken.some((other) => collides(at, other))) continue;
+
+    return { x: at.x, y: at.y };
+  }
+
+  return { x: 0, y: 0 };
+}
+
+/** The layer's notes folded into the node list, so a call that only hands
+ *  cards still places captions with them.
+ *
+ *  Notes already among `nodes` are left alone; the rest come from the same
+ *  parent the cards share. An empty list stays empty — there is no layer to
+ *  read notes from. */
+function withNotes(graph: Graph, nodes: Element[]): Element[] {
+  if (!nodes.length) return nodes;
+
+  const seen = new Set(nodes.map((n) => n.id));
+  const layer = nodes.find((n) => n.form !== "note")?.parent
+    ?? nodes[0]?.parent
+    ?? null;
+  const extra = notesIn(graph, layer).filter((n) => !seen.has(n.id));
+
+  return extra.length ? [...nodes, ...extra] : nodes;
+}
+
+/** Notes that have a tie to something else being laid out — seated by
+ *  association after the structural pass, not ranked into it. */
+function tetheredOf(graph: Graph, nodes: Element[]): Element[] {
+  const here = new Set(nodes.map((n) => n.id));
+
+  return nodes.filter((n) => n.form === "note"
+    && tiesOf(graph, n.id).some((id) => here.has(id)));
+}
+
+/** Whether a box overlaps another, counting the hug a note keeps clear. */
+function hugs(a: Box, b: Box): boolean {
+  return a.x < b.x + b.w + HUG && a.x + a.w + HUG > b.x &&
+         a.y < b.y + b.h + HUG && a.y + a.h + HUG > b.y;
+}
+
+/** Seat tied notes under what they describe — the fixed association.
+ *
+ *  Aligned to the left of the described set, just below it, then dropped a
+ *  row at a time until clear of cards and group boundaries. Notes seated
+ *  earlier in the pass join the obstacles. Callers only hand notes that have
+ *  at least one tie among the laid spots. */
+function associated(graph: Graph, notes: Element[],
+                    spots: Record<string, Spot>,
+                    nodes: Element[]): Record<string, Spot> {
+  const boxOf = (id: string): Box | null => {
+    const at = spots[id];
+    const el = graph.elements[id];
+    if (!at || !el) return null;
+
+    return { ...at, ...sizeOf(graph, el) };
+  };
+
+  const taken: Box[] = [];
+  for (const node of nodes) {
+    if (notes.some((n) => n.id === node.id)) continue;
+    const box = boxOf(node.id);
+    if (box) taken.push(box);
+  }
+
+  for (const group of Object.values(graph.elements)) {
+    if (group.form !== "group") continue;
+    const here = membersOf(graph, group.id).map((n) => boxOf(n.id)).filter(Boolean) as Box[];
+    const band = around(here, HUG);
+    if (band) taken.push(band);
+  }
+
+  const out: Record<string, Spot> = {};
+
+  for (const note of notes) {
+    const held = tiesOf(graph, note.id).map(boxOf).filter(Boolean) as Box[];
+    if (!held.length) continue;
+
+    const round = around(held, 0)!;
+    const size = sizeOf(graph, note);
+    let at = { x: cell(round.x), y: cell(round.y + round.h + CELL) };
+
+    for (let drop = 0; drop < 40; drop += 1) {
+      if (!taken.some((other) => hugs({ ...at, ...size }, other))) break;
+      at = { x: at.x, y: at.y + CELL };
+    }
+
+    out[note.id] = at;
+    taken.push({ ...at, ...size });
+  }
+
+  return out;
+}
+
 /** Positions for one layer as it rests.
  *
  *  Everything somebody placed stays exactly where it is; anything unplaced
  *  fills the room around it. This is the *only* thing a render runs.
  *
+ *  A fully-loose ring or chain is seated as one region with that shape, so
+ *  resting fill does not scatter a topology the next arrangement would keep.
+ *  Mixed and shapeless clusters still fill unit by unit.
+ *
+ *  Tied notes that nobody has placed follow what they describe — a fixed
+ *  association, applied after the structural fill. Untied notes fill like any
+ *  other unit. Notes the layer holds are included even when the caller only
+ *  handed cards.
+ *
  *  An arrangement is an action that writes positions, never a mode that keeps
  *  recomputing them — under a mode, a card dragged while one was set would be
  *  thrown away on the very next frame, which is no way to treat a drag. The
- *  axis is remembered for what it still decides: a flow's sides, and what the
- *  next arrangement will do. */
+ *  axis is remembered for what it still decides: a flow's sides, which way an
+ *  unplaced flow neighbour prefers to sit, and what the next arrangement will
+ *  do. */
 export function place(graph: Graph, nodes: Element[],
                       blocked: Box[] = []): Record<string, Spot> {
-  const units = unitsOf(graph, nodes, "grid");
-  const links = between(graph, nodes, units);
+  const all = withNotes(graph, nodes);
+  const looseTied = tetheredOf(graph, all).filter((n) => n.x === null || n.y === null);
+  const held = new Set(looseTied.map((n) => n.id));
+  const free = all.filter((n) => !held.has(n.id));
+
+  const units = unitsOf(graph, free, "grid");
+  const links = between(graph, free, units);
+  const flows = betweenFlows(graph, free, units);
+  const axis = axisOf(graph, free[0]?.parent ?? all[0]?.parent ?? null);
+  const along = axis === "down" ? "down" : "across";
   const taken: Box[] = [...blocked];
   const corner: Record<string, Spot> = {};
 
@@ -876,40 +1304,120 @@ export function place(graph: Graph, nodes: Element[],
     taken.push({ ...unit.at, w: unit.w, h: unit.h });
   }
 
-  const loose = units.filter((u) => !u.at);
   const step = { x: LEAF.w + GAP, y: LEAF.h + GAP };
   const rounds = units.length + taken.length + 2;
 
-  for (const unit of neighbourly(loose, links)) {
-    for (const point of rings(step, rounds)) {
-      const box = { ...middled({ x: point.x - unit.w / 2, y: point.y - unit.h / 2 },
-                               { w: unit.w, h: unit.h }), w: unit.w, h: unit.h };
-      if (taken.some((other) => collides(box, other))) continue;
+  // Fully-loose rings and chains land as one region before the unit-by-unit fill.
+  for (const members of clustered(units, links)) {
+    if (members.length < 2 || members.some((u) => u.at)) continue;
 
-      corner[unit.id] = { x: box.x, y: box.y };
-      taken.push(box);
-      break;
+    const ids = members.map((u) => u.id);
+    const among = new Set(ids);
+    const localLinks = links.filter(([a, b]) => among.has(a) && among.has(b));
+    const localFlows = flows.filter(([a, b]) => among.has(a) && among.has(b));
+    const kind = topologyOf(ids, localLinks);
+    if (kind !== "ring" && kind !== "chain") continue;
+
+    const raw = kind === "ring"
+      ? ringed(members, walkRing(ids, localLinks, localFlows), GAP)
+      : chained(members, walkChain(ids, localLinks, localFlows), along, GAP);
+    const { local, w, h } = originOf(members, raw);
+
+    const prefer = members
+      .map((u) => driftOf(u.id, flows, corner, units, axis))
+      .reduce<{ x: number; y: number; n: number }>((sum, at) => {
+        if (!at) return sum;
+
+        return { x: sum.x + at.x, y: sum.y + at.y, n: sum.n + 1 };
+      }, { x: 0, y: 0, n: 0 });
+    const bias = prefer.n ? { x: prefer.x / prefer.n, y: prefer.y / prefer.n } : null;
+    const at = seatIn(taken, { w, h }, step, rounds + members.length, bias);
+
+    for (const unit of members) {
+      corner[unit.id] = { x: at.x + local[unit.id].x, y: at.y + local[unit.id].y };
     }
-
-    corner[unit.id] ??= { x: 0, y: 0 };
+    taken.push({ ...at, w, h });
   }
 
-  return spread(units, corner);
+  const loose = units.filter((u) => !corner[u.id]);
+
+  for (const unit of neighbourly(loose, links)) {
+    const prefer = driftOf(unit.id, flows, corner, units, axis);
+    const at = seatIn(taken, { w: unit.w, h: unit.h }, step, rounds, prefer);
+    corner[unit.id] = at;
+    taken.push({ ...at, w: unit.w, h: unit.h });
+  }
+
+  const spots = spread(units, corner);
+  if (!looseTied.length) return spots;
+
+  return { ...spots, ...associated(graph, looseTied, spots, all) };
 }
 
 /** Positions for the whole layer, arranged afresh — what picking an arrangement
  *  computes. The result is written down as ordinary placement, so it can be
- *  dragged about afterwards like anything else. */
+ *  dragged about afterwards like anything else.
+ *
+ *  Each relationship-cluster is shaped on its own (ring, chain, or the layer's
+ *  arrangement), then the clusters themselves are composed by that arrangement.
+ *  Cluster-to-cluster spacing stays the ordinary gap; a wider tier is later.
+ *
+ *  Tied notes are seated under what they describe after the clusters land —
+ *  fixed associations, not members of a ring or a rank. Untied notes arrange
+ *  as units of their own. */
 export function arranged(graph: Graph, nodes: Element[],
                          shape: Layout): Record<string, Spot> {
-  const units = unitsOf(graph, nodes, shape);
-  const links = between(graph, nodes, units);
-  const boxes = units.map((u) => ({ id: u.id, w: u.w, h: u.h }));
+  const all = withNotes(graph, nodes);
+  const tied = tetheredOf(graph, all);
+  const held = new Set(tied.map((n) => n.id));
+  const free = all.filter((n) => !held.has(n.id));
 
-  const corner = shape === "grid" ? gridded(boxes)
-    : shape === "radial" ? radial(units, links, GAP)
-    : rankedBoxes(boxes, links, shape, leanOf(graph, units, shape));
+  const units = unitsOf(graph, free, shape);
+  const links = between(graph, free, units);
+  const flows = betweenFlows(graph, free, units);
+  const lean = shape === "across" || shape === "down"
+    ? leanOf(graph, units, shape)
+    : new Map<string, number>();
 
-  return spread(units, corner);
+  const packs = clustered(units, links).map((members, at) => {
+    const ids = new Set(members.map((u) => u.id));
+    const localLinks = links.filter(([a, b]) => ids.has(a) && ids.has(b));
+    const localFlows = flows.filter(([a, b]) => ids.has(a) && ids.has(b));
+    const packLean = new Map(
+      [...lean].filter(([id]) => members.some((u) => u.id === id)),
+    );
+    const { local, w, h } = originOf(
+      members, shaped(members, localLinks, localFlows, shape, packLean),
+    );
+
+    return { id: `cluster_${at}`, members, local, w, h };
+  });
+
+  const packBoxes = packs.map((p) => ({ id: p.id, w: p.w, h: p.h }));
+  const packUnits: Unit[] = packs.map((p) => ({
+    id: p.id, ids: [p.id], offsets: { [p.id]: { x: 0, y: 0 } },
+    w: p.w, h: p.h, at: null,
+  }));
+
+  // Clusters are disjoint by construction — compose them with no inter-links.
+  const packCorner = shape === "grid" ? gridded(packBoxes)
+    : shape === "radial" ? radial(packUnits, [], GAP)
+    : rankedBoxes(packBoxes, [], shape, new Map(), GAP, []);
+
+  const corner: Record<string, Spot> = {};
+  for (const pack of packs) {
+    const at = packCorner[pack.id] ?? { x: 0, y: 0 };
+    for (const unit of pack.members) {
+      corner[unit.id] = {
+        x: at.x + pack.local[unit.id].x,
+        y: at.y + pack.local[unit.id].y,
+      };
+    }
+  }
+
+  const spots = spread(units, corner);
+  if (!tied.length) return spots;
+
+  return { ...spots, ...associated(graph, tied, spots, all) };
 }
 

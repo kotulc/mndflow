@@ -1,0 +1,67 @@
+# Requirement block and the five relationships that bind it.
+# Presentation on the relationships is the SysML stereotype look —
+# dashed line, hollow head — held on the definition, never on a usage.
+
+definitions:
+  - id: def_requirement
+    name: requirement
+    form: block
+    body: A need or capability something must meet.
+    fields:
+      - name: id
+        form: text
+      - name: text
+        form: text
+    names:
+      sysml: "«requirement»"
+    components:
+      card:
+        layout: fields
+        shows:
+          - id
+          - text
+
+  - id: def_satisfy
+    name: satisfy
+    form: directed
+    body: A design element meets a requirement.
+    line: dashed
+    head: hollow
+    names:
+      sysml: "«satisfy»"
+
+  - id: def_verify
+    name: verify
+    form: directed
+    body: A test or analysis confirms a requirement.
+    line: dashed
+    head: hollow
+    names:
+      sysml: "«verify»"
+
+  - id: def_refine
+    name: refine
+    form: directed
+    body: A more precise statement of a requirement.
+    line: dashed
+    head: hollow
+    names:
+      sysml: "«refine»"
+
+  - id: def_derive
+    name: derive
+    form: directed
+    body: A requirement drawn from another.
+    line: dashed
+    head: hollow
+    names:
+      sysml: "«deriveReqt»"
+
+  - id: def_trace
+    name: trace
+    form: directed
+    body: A weaker link between a requirement and something else.
+    line: dashed
+    head: hollow
+    names:
+      sysml: "«trace»"

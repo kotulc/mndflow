@@ -5,22 +5,25 @@
  *  behind a toggle — one port per relationship would bury the tree it is meant
  *  to make legible.
  *
- *  Every click here is a navigation: it sets the layer the canvas draws.
- *  Parent branches are marked by their role icon; clicking that icon folds. */
+ *  Every open project is a root in the same tree, filed under the folders the
+ *  workspace keeps. A click here is a navigation: it picks which project is in
+ *  context and sets the layer the canvas draws. Parent branches are marked by
+ *  their role icon; clicking that icon folds. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
-import { ROOT as ROOT_ID, type Graph, type Element } from "../graph/types";
+import { ROOT as ROOT_ID, asTarget, type Graph, type Element } from "../graph/types";
 import { REFERRED } from "../canvas/card";
 import type { Terms } from "../terminal/workflows";
 
 const ROOT = "__root__";
+const SHELL = "__shell__";
 
-/** Child nodes per parent, containers first then by label, keyed by ROOT for
- *  the top level. A node whose parent was undone sits at the top rather than
- *  vanishing from the tree. */
+/** Child nodes per parent inside one project, containers first then by label,
+ *  keyed by ROOT for the top level. A node whose parent was undone sits at the
+ *  top rather than vanishing from the tree. */
 function branches(graph: Graph): Record<string, Element[]> {
   const kids: Record<string, Element[]> = {};
 
@@ -48,6 +51,26 @@ function branches(graph: Graph): Record<string, Element[]> {
   return kids;
 }
 
+/** Children of a workspace layer: folders (blocks) and root-proxies, in label
+ *  order. Proxies stay — they are how open projects appear in the filing tree. */
+function shelved(shell: Graph, parent: string | null): Element[] {
+  const out: Element[] = [];
+
+  for (const node of Object.values(shell.elements)) {
+    if (node.id === ROOT_ID) continue;
+    const held = node.parent && shell.elements[node.parent] ? node.parent : null;
+    if (held !== parent) continue;
+    if (node.form === "proxy" && node.of) {
+      const { project, element } = asTarget(node.of);
+      if (project && element === ROOT_ID) out.push(node);
+    } else if (node.form === "block") {
+      out.push(node);
+    }
+  }
+
+  return out.sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+}
+
 /** The mark for a node's role, which it takes from what it holds and where it
  *  sits rather than from anything declared. Blocks are a closed square,
  *  interfaces an open one, containers a compound grid. */
@@ -58,14 +81,28 @@ function icon(graph: Graph, node: Element): string {
   return "■";
 }
 
+export type OpenProject = {
+  id: string;
+  /** Id, step count and hash — what tells two copies apart. */
+  tip: string;
+};
+
 type Props = {
-  graph: Graph;
-  /** The layer the canvas is on — what the tree marks as where you are. */
+  /** Workspace graph: folders and proxies of open projects' roots. */
+  shell: Graph;
+  /** Every open project's graph, keyed by id. */
+  graphs: Record<string, Graph>;
+  /** Open projects in filing order — fallback when a proxy is missing. */
+  projects: OpenProject[];
+  /** Which project's log the page is writing to. */
+  context: string;
+  /** The layer the canvas is on within the context project. */
   view: string | null;
   terms: Terms;
   showPorts: boolean;
   onShowPorts: (on: boolean) => void;
-  onOpen: (id: string | null) => void;
+  /** Open a layer in a project — sets context, then the canvas layer. */
+  onOpen: (projectId: string, id: string | null) => void;
   onCreate: (label: string, parent: string | null) => void;
   /** Whether a name is already spoken for in a layer, so a field can say so. */
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
@@ -80,9 +117,16 @@ type Props = {
 };
 
 export function Files(props: Props) {
-  const { graph, view, showPorts, onShowPorts, onOpen, onCreate, onNameTaken, onSay, unit } = props;
+  const { shell, graphs, projects, context, view, showPorts, onShowPorts } = props;
+  const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const { onDelete, onMove, onRename, onRenameProject } = props;
-  const kids = useMemo(() => branches(graph), [graph]);
+  const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
+  const kidsBy = useMemo(() => {
+    const next: Record<string, Record<string, Element[]>> = {};
+    for (const id of Object.keys(graphs)) next[id] = branches(graphs[id]!);
+
+    return next;
+  }, [graphs]);
   /** Nodes the user has opened. Nothing else opens them — walking into a layer
    *  on the canvas leaves the tree exactly as it was found. A tree that
    *  rearranges itself under you is a tree you cannot keep your place in, and
@@ -98,7 +142,23 @@ export function Files(props: Props) {
   const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLSpanElement>(null);
-  const title = titleOf(graph) || "project";
+
+  const tips = useMemo(() => new Map(projects.map((p) => [p.id, p.tip])), [projects]);
+
+  /** Project ids the shell already shows as root-proxies. */
+  const placed = useMemo(() => {
+    const ids = new Set<string>();
+    for (const node of Object.values(shell.elements)) {
+      if (node.form !== "proxy" || !node.of) continue;
+      const { project, element } = asTarget(node.of);
+      if (project && element === ROOT_ID) ids.add(project);
+    }
+
+    return ids;
+  }, [shell]);
+
+  /** Open projects the shell has not filed yet — still listed, at the top. */
+  const loose = projects.filter((p) => !placed.has(p.id));
 
   function fold(id: string) {
     setOpen((prior) => {
@@ -116,11 +176,17 @@ export function Files(props: Props) {
     setOpen((prior) => {
       if (prior.size) return new Set();
 
-      return new Set(
-        Object.values(graph.elements)
-          .filter((node) => (kids[node.id] ?? []).some((n) => showPorts || !isPort(n)))
-          .map((node) => node.id),
-      );
+      const ids: string[] = [];
+      for (const [projectId, kids] of Object.entries(kidsBy)) {
+        for (const node of Object.values(graphs[projectId]?.elements ?? {})) {
+          if ((kids[node.id] ?? []).some((n) => showPorts || !isPort(n))) ids.push(`${projectId}:${node.id}`);
+        }
+      }
+      for (const node of Object.values(shell.elements)) {
+        if (node.form === "block" && shelved(shell, node.id).length) ids.push(`${SHELL}:${node.id}`);
+      }
+
+      return new Set(ids);
     });
   }
 
@@ -158,20 +224,26 @@ export function Files(props: Props) {
     frame = requestAnimationFrame(() => centre(3));
 
     return () => cancelAnimationFrame(frame);
-  }, [view, open, graph]);
+  }, [view, context, open, graphs, shell]);
 
-  /** A new thing goes inside whatever layer is open. */
+  /** A new thing goes inside whatever layer is open in the context project. */
   const parent = view && graph.elements[view] ? view : null;
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
-  function rename(id: string, label: string) {
+  function rename(key: string, label: string) {
     const wanted = label.trim();
-    const current = id === ROOT ? title : graph.elements[id]?.label;
+    if (key.startsWith("proj:")) {
+      const projectId = key.slice(5);
+      const current = titleOf(graphs[projectId] ?? graph) || "project";
+      if (wanted && wanted !== current && projectId === context) onRenameProject(wanted);
+      setEditing(null);
 
-    if (wanted && wanted !== current) {
-      id === ROOT ? onRenameProject(wanted) : onRename(id, wanted);
+      return;
     }
+
+    const current = graph.elements[key]?.label;
+    if (wanted && wanted !== current) onRename(key, wanted);
 
     setEditing(null);
   }
@@ -182,7 +254,8 @@ export function Files(props: Props) {
     setAdding(null);
   }
 
-  /** Finish a drag, ignoring drops that would leave the node where it is. */
+  /** Finish a drag, ignoring drops that would leave the node where it is.
+   *  Moves stay inside the context project — cross-project filing is later. */
   function drop(into: string | null) {
     const moved = held && held !== into && (graph.elements[held]?.parent ?? null) !== into;
     if (moved) onMove(held!, into);
@@ -217,30 +290,32 @@ export function Files(props: Props) {
     );
   }
 
-  /** Rows for one level. Indentation comes from the nesting of `<ul className
-   *  ="branch">` itself, so the guide line drawn on that element and the row's
-   *  own position always agree — there is no separate depth number to keep in
-   *  step with it. Guides only exist while the branch is open: a collapsed
-   *  parent omits this list entirely. */
-  function branch(parentId: string) {
+  /** Rows for one layer of one project. */
+  function branch(projectId: string, parentId: string) {
+    const kids = kidsBy[projectId] ?? {};
+    const hereGraph = graphs[projectId];
+    if (!hereGraph) return null;
+
     // Interfaces are children like any other, listed alongside the blocks and
     // told apart by their icon; `branches` has already sorted them last.
     const here = (kids[parentId] ?? []).filter((n) => showPorts || !isPort(n));
 
     const row = (node: Element) => {
       const holds = Boolean(kids[node.id]?.some((n) => showPorts || !isPort(n)));
+      const foldKey = `${projectId}:${node.id}`;
+      const active = context === projectId && node.id === view;
 
       return (
-        <li key={node.id}>
+        <li key={`${projectId}:${node.id}`}>
           <div
             className={[
               "item",
-              isContainer(graph, node.id) ? "group" : "object",
+              isContainer(hereGraph, node.id) ? "group" : "object",
               isPort(node) ? "port" : "",
-              node.id === view ? "active" : "",
-              over === node.id ? "over" : "",
+              active ? "active" : "",
+              over === foldKey ? "over" : "",
             ].join(" ")}
-            draggable={editing !== node.id}
+            draggable={editing !== node.id && context === projectId}
             onDragStart={(event) => {
               setHeld(node.id);
               // Dropped on another layer's canvas this becomes a reference,
@@ -250,8 +325,8 @@ export function Files(props: Props) {
             }}
             // Entering a layer opens it: what you asked to look inside of
             // should show you what is inside it.
-            onClick={() => (setOpen((prior) => new Set(prior).add(node.id)), onOpen(node.id))}
-            onDoubleClick={() => setEditing(node.id)}
+            onClick={() => (setOpen((prior) => new Set(prior).add(foldKey)), onOpen(projectId, node.id))}
+            onDoubleClick={() => context === projectId && setEditing(node.id)}
             onContextMenu={(event) => {
               // A row is all name, the way a note is: an icon that folds and a
               // label, with nothing else to aim at. So it takes the rule every
@@ -259,12 +334,13 @@ export function Files(props: Props) {
               // gesture. Making things happens on the empty space below.
               event.preventDefault();
               event.stopPropagation();
-              setEditing(node.id);
+              if (context === projectId) setEditing(node.id);
+              else onOpen(projectId, node.id);
             }}
-            {...dropzone(node.id, node.id)}
+            {...(context === projectId ? dropzone(foldKey, node.id) : {})}
           >
             <span
-              ref={node.id === view ? marker : undefined}
+              ref={active ? marker : undefined}
               className={`icon ${holds ? "fold" : ""}`}
               onMouseDown={(event) => {
                 // Keep the row's drag from swallowing the fold click.
@@ -275,22 +351,101 @@ export function Files(props: Props) {
               onClick={(event) => {
                 if (!holds) return;
                 event.stopPropagation();
-                fold(node.id);
+                fold(foldKey);
               }}
             >
-              {icon(graph, node)}
+              {icon(hereGraph, node)}
             </span>
-            {editing === node.id
+            {editing === node.id && context === projectId
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
                       node.parent ?? null, node.id)
-              : <span className="label">{nameOf(graph, node)}</span>}
+              : <span className="label">{nameOf(hereGraph, node)}</span>}
           </div>
-          {holds && open.has(node.id) && <ul className="branch">{branch(node.id)}</ul>}
+          {holds && open.has(foldKey) && <ul className="branch">{branch(projectId, node.id)}</ul>}
         </li>
       );
     };
 
     return <>{here.map(row)}</>;
+  }
+
+  /** One open project's root row, and the blocks it holds. */
+  function projectRoot(projectId: string) {
+    const here = graphs[projectId];
+    if (!here) return null;
+
+    const title = titleOf(here) || "project";
+    const editKey = `proj:${projectId}`;
+    const active = context === projectId && view === null;
+    const tip = tips.get(projectId);
+
+    return (
+      <li key={projectId}>
+        <div
+          className={`item root ${active ? "active" : ""} ${over === editKey ? "over" : ""}`}
+          title={tip}
+          onClick={() => onOpen(projectId, null)}
+          onDoubleClick={() => context === projectId && setEditing(editKey)}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (context === projectId) setEditing(editKey);
+            else onOpen(projectId, null);
+          }}
+          {...(context === projectId ? dropzone(editKey, null) : {})}
+        >
+          <span ref={active ? marker : undefined} className="icon">▣</span>
+          {editing === editKey && context === projectId
+            ? field(title, (value) => rename(editKey, value), () => setEditing(null))
+            : <span className="label">{title}</span>}
+        </div>
+        <ul className="branch">{branch(projectId, ROOT)}</ul>
+      </li>
+    );
+  }
+
+  /** Workspace folders and the projects filed into them. */
+  function shellBranch(parent: string | null) {
+    const here = shelved(shell, parent);
+
+    return (
+      <>
+        {here.map((node) => {
+          if (node.form === "proxy" && node.of) {
+            const { project } = asTarget(node.of);
+
+            return project ? projectRoot(project) : null;
+          }
+
+          const foldKey = `${SHELL}:${node.id}`;
+          const holds = shelved(shell, node.id).length > 0;
+
+          return (
+            <li key={foldKey}>
+              <div
+                className={["item", "group", over === foldKey ? "over" : ""].join(" ")}
+                onClick={() => holds && fold(foldKey)}
+              >
+                <span
+                  className={`icon ${holds ? "fold" : ""}`}
+                  onClick={(event) => {
+                    if (!holds) return;
+                    event.stopPropagation();
+                    fold(foldKey);
+                  }}
+                >
+                  ▦
+                </span>
+                <span className="label">{nameOf(shell, node) || "folder"}</span>
+              </div>
+              {holds && open.has(foldKey) && (
+                <ul className="branch">{shellBranch(node.id)}</ul>
+              )}
+            </li>
+          );
+        })}
+      </>
+    );
   }
 
   /** Delete what the tree has open. The canvas has its own handling for its
@@ -305,6 +460,8 @@ export function Files(props: Props) {
     onDelete(view);
   }
 
+  const empty = projects.length === 0 && shelved(shell, null).length === 0;
+
   return (
     // Focusable so that clicking a row puts the key handler in reach.
     <div className="files" tabIndex={0} onKeyDown={press}>
@@ -314,7 +471,10 @@ export function Files(props: Props) {
           <button onClick={() => setAdding({ parent })} title={`New ${unit}`}>
             ＋
           </button>
-          <button onClick={() => setEditing(view ?? ROOT)} title="Rename what is open">
+          <button
+            onClick={() => setEditing(view ?? `proj:${context}`)}
+            title="Rename what is open"
+          >
             ✎
           </button>
           <button onClick={foldAll} title={open.size ? "Fold everything" : "Expand everything"}>
@@ -336,34 +496,18 @@ export function Files(props: Props) {
       <div
         className="tree"
         ref={scroller}
-        // The clear space below the rows is the *root's* background, not the
-        // open layer's — the rows are what layers look like here, and this is
-        // the space around all of them. So it makes something at the top level,
-        // wherever you happen to be scoped.
+        // The clear space below the rows is the *context project's* background,
+        // not a shared workspace floor — making something here writes to the
+        // project in context, wherever you happen to be scoped.
         onContextMenu={(event) => {
           event.preventDefault();
           setAdding({ parent: null });
         }}
       >
-        <div
-          className={`item root ${view === null ? "active" : ""} ${over === ROOT ? "over" : ""}`}
-          onClick={() => onOpen(null)}
-          onDoubleClick={() => setEditing(ROOT)}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setEditing(ROOT);
-          }}
-          {...dropzone(ROOT, null)}
-        >
-          {editing === ROOT
-            ? field(title, (value) => rename(ROOT, value), () => setEditing(null))
-            : <span className="label">{title}</span>}
-        </div>
-
-        {/* Same indent step as a nested branch, without its guide line — the
-            root row isn't a foldable node for a line to hang from. */}
-        <ul className="roots">{branch(ROOT)}</ul>
+        <ul className="roots">
+          {loose.map((p) => projectRoot(p.id))}
+          {shellBranch(null)}
+        </ul>
 
         {adding && (
           <div className="item new">
@@ -371,7 +515,7 @@ export function Files(props: Props) {
           </div>
         )}
 
-        {!(kids[ROOT] ?? []).length && !adding && (
+        {empty && !adding && (
           <p className="empty">Nothing here yet</p>
         )}
       </div>

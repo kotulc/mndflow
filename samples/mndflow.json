@@ -1,0 +1,805 @@
+{
+  "schema": "1.1",
+  "id": "proj_mndflow",
+  "meta": {
+    "steps": 1,
+    "module": "block"
+  },
+  "graph": {
+    "vocabulary": "software",
+    "defs": {
+      "def_depends": {
+        "body": "A hard import: the source cannot build without the target.",
+        "color": "#2f4f4f",
+        "form": "directed",
+        "head": "filled",
+        "id": "def_depends",
+        "line": "solid",
+        "name": "depends on",
+        "fields": [
+          {
+            "name": "why"
+          }
+        ]
+      },
+      "def_door": {
+        "body": "The one place a log comes in: checked, healed, reported.",
+        "color": "#4a3d5a",
+        "components": {
+          "card": {
+            "layout": "fields",
+            "shape": "hex",
+            "label": "inside",
+            "shows": [
+              "role"
+            ]
+          }
+        },
+        "extends": "def_module",
+        "form": "block",
+        "id": "def_door",
+        "name": "Door",
+        "fields": [
+          {
+            "form": "flag",
+            "name": "heals",
+            "value": "true"
+          },
+          {
+            "choices": [
+              "enter",
+              "fold",
+              "write"
+            ],
+            "form": "choice",
+            "name": "role",
+            "value": "enter"
+          }
+        ]
+      },
+      "def_feeds": {
+        "body": "Data or control moves this way at runtime.",
+        "color": "#3d5a6a",
+        "form": "directed",
+        "head": "open",
+        "id": "def_feeds",
+        "line": "solid",
+        "name": "feeds",
+        "fields": [
+          {
+            "form": "ref",
+            "name": "item",
+            "tags": [
+              "payload"
+            ]
+          }
+        ]
+      },
+      "def_layer": {
+        "body": "A descriptive set of modules — never a parent.",
+        "color": "#5a4a3d",
+        "components": {
+          "card": {
+            "layout": "name",
+            "shape": "round",
+            "label": "inside"
+          }
+        },
+        "form": "group",
+        "id": "def_layer",
+        "name": "Layer"
+      },
+      "def_mentions": {
+        "body": "A weaker link — drawn lighter by presentation, not by form.",
+        "color": "#7a7a7a",
+        "form": "line",
+        "head": "none",
+        "id": "def_mentions",
+        "line": "dashed",
+        "name": "mentions"
+      },
+      "def_module": {
+        "body": "A discrete part of the app, named by its folder.",
+        "color": "#3d5a4c",
+        "components": {
+          "card": {
+            "layout": "type",
+            "shape": "rect",
+            "label": "inside",
+            "shows": [
+              "path"
+            ]
+          }
+        },
+        "form": "block",
+        "icon": "box",
+        "id": "def_module",
+        "name": "Module",
+        "names": {
+          "sysml": "«block»"
+        },
+        "fields": [
+          {
+            "name": "path",
+            "tags": [
+              "src"
+            ]
+          },
+          {
+            "form": "ref",
+            "many": true,
+            "name": "depends"
+          }
+        ]
+      },
+      "def_seam": {
+        "body": "Ornament a package may ship; the engine places it and never draws it.",
+        "components": {
+          "card": {
+            "layout": "shape",
+            "shape": "diamond",
+            "label": "below"
+          }
+        },
+        "form": "figure",
+        "id": "def_seam",
+        "name": "seam mark",
+        "size": {
+          "w": 48,
+          "h": 24
+        }
+      }
+    },
+    "root": {
+      "axis": "across",
+      "body": "A client-only nested graph editor. The log is the truth; the graph is folded from it; a file is the graph, not the log.",
+      "fields": [
+        {
+          "name": "kind",
+          "form": "text",
+          "value": "web app",
+          "tags": [
+            "product"
+          ]
+        },
+        {
+          "name": "schema",
+          "form": "text",
+          "value": "1.1",
+          "tags": [
+            "format"
+          ]
+        },
+        {
+          "name": "offline",
+          "form": "flag",
+          "value": "true",
+          "tags": []
+        },
+        {
+          "name": "keep",
+          "form": "number",
+          "value": "1000",
+          "tags": [],
+          "unit": "steps"
+        },
+        {
+          "name": "shell",
+          "form": "ref",
+          "value": "block_page",
+          "tags": []
+        },
+        {
+          "name": "lead",
+          "form": "choice",
+          "value": "graph",
+          "tags": [],
+          "choices": [
+            "graph",
+            "terminal",
+            "canvas"
+          ]
+        }
+      ],
+      "label": "mndflow",
+      "holds": {
+        "block_canvas": {
+          "body": "The base diagram: one open layer, cards, frames and routes.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/canvas"
+            }
+          ],
+          "groups": [
+            "group_surface"
+          ],
+          "label": "Canvas",
+          "num": 4,
+          "type": "def_module",
+          "x": 288,
+          "y": 240,
+          "holds": {
+            "block_frame": {
+              "body": "A container seen from inside.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/canvas/Frame.tsx"
+                }
+              ],
+              "label": "Frame",
+              "num": 2,
+              "type": "def_module"
+            },
+            "block_nodecard": {
+              "body": "How a block is drawn.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/canvas/NodeCard.tsx"
+                }
+              ],
+              "label": "NodeCard",
+              "num": 1,
+              "type": "def_module"
+            },
+            "proxy_store": {
+              "body": "Second appearance of Graph/store — one thing, twice.",
+              "form": "proxy",
+              "label": "store",
+              "num": 1,
+              "of": "block_store"
+            }
+          }
+        },
+        "block_embed": {
+          "body": "MiniLM over ONNX — local sentence embeddings, nothing leaves the tab.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/embed"
+            }
+          ],
+          "label": "Embed",
+          "num": 7,
+          "type": "def_module",
+          "x": 48,
+          "y": 432
+        },
+        "block_geometry": {
+          "body": "Sizing, placement and routing — derived from the graph.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/geometry"
+            }
+          ],
+          "groups": [
+            "group_engine"
+          ],
+          "label": "Geometry",
+          "num": 3,
+          "type": "def_module",
+          "x": 528,
+          "y": 48,
+          "holds": {
+            "block_layout": {
+              "body": "Card sizing, treemap tiling, layer placement.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/geometry/layout.ts"
+                }
+              ],
+              "label": "layout",
+              "num": 1,
+              "type": "def_module"
+            },
+            "block_route": {
+              "body": "Where a line goes, and the lanes it shares.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/geometry/route.ts"
+                }
+              ],
+              "label": "route",
+              "num": 2,
+              "type": "def_module"
+            }
+          }
+        },
+        "block_graph": {
+          "axis": "across",
+          "body": "The project: types, fold, the door, files and storage. Imports nothing.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/graph"
+            }
+          ],
+          "groups": [
+            "group_engine"
+          ],
+          "label": "Graph",
+          "num": 2,
+          "type": "def_module",
+          "x": 288,
+          "y": 48,
+          "holds": {
+            "block_check": {
+              "body": "The door. Every log enters here.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/graph/check.ts"
+                },
+                {
+                  "choices": [
+                    "enter",
+                    "fold",
+                    "write"
+                  ],
+                  "form": "choice",
+                  "name": "role",
+                  "value": "enter"
+                },
+                {
+                  "form": "flag",
+                  "name": "heals",
+                  "value": "true"
+                }
+              ],
+              "label": "check",
+              "num": 3,
+              "type": "def_door"
+            },
+            "block_file": {
+              "body": "Envelope, canonical layout, content hash. Defaults are never written.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/graph/file.ts"
+                }
+              ],
+              "label": "file",
+              "num": 4,
+              "type": "def_module"
+            },
+            "block_fold": {
+              "body": "Replay applied steps into a graph. Undo needs no inverses.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/graph/fold.ts"
+                }
+              ],
+              "label": "fold",
+              "num": 2,
+              "type": "def_module"
+            },
+            "block_port_graph": {
+              "at": 0.5,
+              "body": "The folded graph other layers read.",
+              "flow": "both",
+              "label": "graph out",
+              "num": 2,
+              "side": "right"
+            },
+            "block_port_mutations": {
+              "at": 0.35,
+              "body": "Steps and mutations come in through the door.",
+              "flow": "in",
+              "label": "mutations",
+              "num": 1,
+              "side": "left"
+            },
+            "block_store": {
+              "body": "localStorage and handing a file to the user.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/graph/store.ts"
+                }
+              ],
+              "label": "store",
+              "num": 5,
+              "type": "def_module"
+            },
+            "block_types": {
+              "body": "Every shared shape: graph, mutations, steps, definitions.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/graph/types.ts"
+                }
+              ],
+              "label": "types",
+              "num": 1,
+              "type": "def_module"
+            }
+          }
+        },
+        "block_modules": {
+          "body": "Open components a definition configures — card first.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/modules"
+            }
+          ],
+          "label": "Modules",
+          "num": 5,
+          "type": "def_module",
+          "x": 528,
+          "y": 240,
+          "holds": {
+            "block_card": {
+              "body": "Layout, shape, label and which fields show — validated at the door.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/modules/card"
+                }
+              ],
+              "label": "card",
+              "num": 1,
+              "type": "def_module"
+            }
+          }
+        },
+        "block_page": {
+          "body": "Branding, navigation and the workspace shell.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/page"
+            }
+          ],
+          "groups": [
+            "group_surface"
+          ],
+          "label": "Page",
+          "num": 1,
+          "type": "def_module",
+          "x": 48,
+          "y": 48,
+          "holds": {
+            "block_app": {
+              "body": "Header, layout and the project hook.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/page/App.tsx"
+                }
+              ],
+              "label": "App",
+              "num": 1,
+              "type": "def_module"
+            },
+            "block_explorer": {
+              "body": "The tree of blocks. Click navigates; never selects on the canvas.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/page/Contents.tsx"
+                }
+              ],
+              "label": "Explorer",
+              "num": 3,
+              "type": "def_module"
+            },
+            "block_files": {
+              "body": "Export, import and new — the page's, not a module's.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/page/Files.tsx"
+                }
+              ],
+              "label": "Files",
+              "num": 2,
+              "type": "def_module"
+            },
+            "block_panel": {
+              "body": "Properties of whatever is picked.",
+              "fields": [
+                {
+                  "name": "path",
+                  "tags": [
+                    "src"
+                  ],
+                  "value": "src/page/Panel.tsx"
+                }
+              ],
+              "label": "Panel",
+              "num": 4,
+              "type": "def_module"
+            }
+          }
+        },
+        "block_terminal": {
+          "body": "Optional text entry. Frozen while the graph model settles.",
+          "fields": [
+            {
+              "name": "path",
+              "tags": [
+                "src"
+              ],
+              "value": "src/terminal"
+            },
+            {
+              "form": "flag",
+              "name": "frozen",
+              "value": "true"
+            }
+          ],
+          "label": "Terminal",
+          "num": 6,
+          "type": "def_module",
+          "x": 48,
+          "y": 240
+        },
+        "figure_seam": {
+          "form": "figure",
+          "num": 1,
+          "type": "def_seam",
+          "x": 768,
+          "y": 432
+        },
+        "group_engine": {
+          "body": "Closed forms, the tree, the log and the fold.",
+          "form": "group",
+          "label": "engine",
+          "num": 1,
+          "type": "def_layer",
+          "x": 288,
+          "y": 432
+        },
+        "group_surface": {
+          "body": "What a person sees and clicks.",
+          "form": "group",
+          "label": "surface",
+          "num": 2,
+          "type": "def_layer",
+          "x": 528,
+          "y": 432
+        },
+        "note_file_is_graph": {
+          "form": "note",
+          "h": 72,
+          "label": "A file is the graph, not the log. Importing one is a single checkpoint.",
+          "num": 2,
+          "w": 216,
+          "x": 768,
+          "y": 240
+        },
+        "note_log_is_truth": {
+          "form": "note",
+          "h": 72,
+          "label": "The log is the truth — undo flips a step and folds again; no mutation needs an inverse.",
+          "num": 1,
+          "w": 216,
+          "x": 768,
+          "y": 48
+        }
+      }
+    },
+    "edges": {
+      "edge_canvas_uses_geom": {
+        "dir": "both",
+        "form": "directed",
+        "source": "block_canvas",
+        "target": "block_geometry",
+        "type": "def_depends",
+        "fields": [
+          {
+            "name": "why",
+            "value": "places and routes"
+          }
+        ]
+      },
+      "edge_canvas_reads_graph": {
+        "dir": "forward",
+        "form": "directed",
+        "source": "block_canvas",
+        "target": "block_graph",
+        "type": "def_depends"
+      },
+      "edge_check_to_file": {
+        "dir": "forward",
+        "form": "directed",
+        "source": "block_check",
+        "target": "block_file",
+        "type": "def_feeds"
+      },
+      "edge_file_to_store": {
+        "dir": "forward",
+        "form": "directed",
+        "fromSide": "right",
+        "source": "block_file",
+        "target": "block_store",
+        "toSide": "left",
+        "type": "def_feeds"
+      },
+      "edge_fold_through_check": {
+        "dir": "forward",
+        "form": "directed",
+        "source": "block_fold",
+        "target": "block_check",
+        "type": "def_feeds"
+      },
+      "edge_geom_reads_graph": {
+        "dir": "back",
+        "form": "directed",
+        "source": "block_geometry",
+        "target": "block_graph",
+        "type": "def_depends"
+      },
+      "edge_graph_to_canvas": {
+        "dir": "forward",
+        "form": "directed",
+        "from": "block_port_graph",
+        "fromSide": "right",
+        "source": "block_graph",
+        "target": "block_canvas",
+        "toSide": "left",
+        "type": "def_feeds"
+      },
+      "edge_layout_mentions_route": {
+        "form": "line",
+        "source": "block_layout",
+        "target": "block_route",
+        "type": "def_mentions"
+      },
+      "edge_modules_publishes": {
+        "dir": "forward",
+        "form": "directed",
+        "source": "block_modules",
+        "target": "block_card",
+        "type": "def_feeds",
+        "fields": [
+          {
+            "form": "ref",
+            "name": "item",
+            "tags": [
+              "payload"
+            ],
+            "value": "def_module"
+          }
+        ]
+      },
+      "edge_ref_store": {
+        "form": "line",
+        "source": "block_nodecard",
+        "target": "proxy_store",
+        "type": "def_mentions"
+      },
+      "edge_page_hosts_canvas": {
+        "dir": "forward",
+        "form": "directed",
+        "fromSide": "right",
+        "source": "block_page",
+        "target": "block_canvas",
+        "toSide": "left",
+        "type": "def_depends",
+        "fields": [
+          {
+            "name": "why",
+            "value": "shell hosts the diagram"
+          }
+        ]
+      },
+      "undefined": {
+        "dir": "forward",
+        "form": "directed",
+        "fromSide": "right",
+        "source": "block_page",
+        "target": "block_graph",
+        "to": "block_port_mutations",
+        "toSide": "left",
+        "type": "def_feeds",
+        "fields": [
+          {
+            "form": "ref",
+            "name": "item",
+            "tags": [
+              "payload"
+            ],
+            "value": "block_types"
+          }
+        ]
+      },
+      "edge_term_uses_embed": {
+        "dir": "forward",
+        "form": "directed",
+        "source": "block_terminal",
+        "target": "block_embed",
+        "type": "def_depends",
+        "fields": [
+          {
+            "name": "why",
+            "value": "scores what was typed"
+          }
+        ]
+      },
+      "edge_types_feeds_fold": {
+        "dir": "forward",
+        "form": "directed",
+        "fromSide": "right",
+        "source": "block_types",
+        "target": "block_fold",
+        "toSide": "left",
+        "type": "def_feeds"
+      },
+      "edge_tie_file": {
+        "form": "line",
+        "source": "note_file_is_graph",
+        "target": "block_graph"
+      },
+      "edge_tie_log": {
+        "form": "line",
+        "source": "note_log_is_truth",
+        "target": "block_graph"
+      }
+    }
+  }
+}

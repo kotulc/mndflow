@@ -9,9 +9,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { hash, read, readable, write, SCHEMA } from "./file";
+import { hash, isWorkspace, needs, read, readable, write, writeWorkspace, SCHEMA } from "./file";
 import { fold } from "./fold";
-import { edge, element, step, ROOT, type Graph, type Mutation } from "./types";
+import { edge, element, refTo, step, ROOT, type Graph, type Mutation } from "./types";
 
 /** A project with nesting, a note, a relationship, a typed field and a group —
  *  one of everything the layout has to place. */
@@ -217,5 +217,95 @@ describe("the state hash", () => {
 
     expect(hash(text)).toBe(hash(text));
     expect(hash(text)).not.toBe(hash(`${text} `));
+  });
+});
+
+describe("what a project depends on", () => {
+  it("names every external project a proxy points at, and nothing local", () => {
+    const stand = element("", {
+      form: "proxy",
+      parent: null,
+      of: refTo(ROOT, "proj_other"),
+    });
+    const local = element("Pump", { parent: null });
+    const graph = fold([step("", "test", [
+      { op: "add_element", element: stand },
+      { op: "add_element", element: local },
+    ])]);
+
+    expect(needs(graph)).toEqual(["proj_other"]);
+  });
+
+  it("is empty when nothing points outside", () => {
+    const { graph } = sample();
+
+    expect(needs(graph)).toEqual([]);
+  });
+});
+
+describe("a bundle", () => {
+  const primary = sample();
+  const other = element("Tank", { parent: null });
+  const dep = fold([step("", "test", [
+    { op: "update_element", id: ROOT, label: "Other" },
+    { op: "add_element", element: other },
+  ])]);
+  const stand = element("", {
+    form: "proxy",
+    parent: null,
+    of: refTo(ROOT, "proj_dep"),
+  });
+  const withProxy = fold([step("", "test", [
+    { op: "update_element", id: ROOT, label: "Rig" },
+    { op: "add_element", element: stand },
+  ])]);
+
+  it("carries companions so the file stands alone, and round-trips them", () => {
+    const text = write(withProxy, "proj_main", 1, {
+      proj_dep: { graph: dep, steps: 1 },
+    });
+    const back = read(JSON.parse(text))!;
+
+    expect(back.id).toBe("proj_main");
+    expect(Object.keys(back.projects ?? {})).toEqual(["proj_dep"]);
+    expect(sorted(back.projects!.proj_dep.graph)).toEqual(sorted(dep));
+    expect(isWorkspace(back)).toBe(false);
+  });
+
+  it("omits projects when nothing is bundled — a lone export stays a lone envelope", () => {
+    const held = JSON.parse(write(primary.graph, "proj_test", primary.steps));
+
+    expect(held.projects).toBeUndefined();
+  });
+
+  it("writes the same bytes for the same bundle", () => {
+    const others = { proj_dep: { graph: dep, steps: 1 } };
+    const once = write(withProxy, "proj_main", 1, others);
+
+    expect(write(withProxy, "proj_main", 1, others)).toBe(once);
+  });
+});
+
+describe("a workspace export", () => {
+  const shell = fold([step("", "test", [
+    { op: "update_element", id: ROOT, label: "Workspace" },
+    { op: "add_element", element: element("", {
+      form: "proxy", parent: null, of: refTo(ROOT, "proj_a"),
+    }) },
+  ])]);
+  const a = fold([step("", "test", [
+    { op: "update_element", id: ROOT, label: "A" },
+  ])]);
+
+  it("marks itself as a workspace and lists open projects beside the shell", () => {
+    const text = writeWorkspace(
+      { id: "proj_ws", graph: shell, steps: 1 },
+      { proj_a: { graph: a, steps: 2 } },
+    );
+    const back = read(JSON.parse(text))!;
+
+    expect(isWorkspace(back)).toBe(true);
+    expect(back.id).toBe("proj_ws");
+    expect(sorted(back.projects!.proj_a.graph)).toEqual(sorted(a));
   });
 });

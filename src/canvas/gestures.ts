@@ -12,8 +12,9 @@
  *  click that never moves falls through to the default action for whatever is
  *  under it.
  *
- *  Every gesture here is inventoried in actions.md, which is what the gesture
- *  map is written from. */
+ *  The diagram declares the map and which adjustments it accepts; this hook
+ *  reads both. Bindings live in modules/view/diagram/map.ts — from the
+ *  inventory in actions.md — so another view can bind one action differently. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -25,7 +26,12 @@ import { groupsIn, isProxy, membersOf, refOf } from "../graph/fold";
 import { around, cell, HUG, LEAF, middled, seatAt, sizeOf } from "../geometry/layout";
 import type { Box } from "../geometry/route";
 import type { EdgeForm, Element, End, Graph, Side } from "../graph/types";
+import {
+  type GestureMap, type Prompt, MAP, reaches, takes,
+} from "../modules/view/diagram";
 import { type Grazed, LIFTED, REFERRED } from "./card";
+
+export type { Prompt };
 
 /** How far a right drag must travel before it is a relationship rather than a
  *  right click that wandered. */
@@ -37,14 +43,6 @@ const EDGE = 14;
  *  treating the whole margin as the edge lit the frame up from halfway across
  *  the canvas. */
 const RIM = 30;
-
-/** What the floating input is asking for. One prompt, several errands. */
-export type Prompt =
-  | { kind: "node"; x: number; y: number }
-  | { kind: "note"; x: number; y: number; w: number; h: number }
-  | { kind: "sprout"; x: number; y: number; end: End }
-  | { kind: "relation"; id: string }
-  | { kind: "rename"; id: string };
 
 /** A relationship being drawn, from the moment the right button goes down.
  *  `end` is where it started: an interface it began on, or a place on that
@@ -134,7 +132,9 @@ function nearestEdge(
   return { side, at: seatAt(frac, extent, origin) };
 }
 
-export function useGestures(reach: Reach, stage: Stage) {
+/** The active diagram's map. Defaults to the block module's — the only one
+ *  that draws today. A later compositor passes another module's map in. */
+export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
   const { graph, view, picked, form } = reach;
   const { onPick, onOpen, onUp, onReveal, onNest, onPromote, onLift, onRefer } = reach;
   const { onWire, onTie, onAddPort, onGroup, onDelete, onUnlink, onDropAttr } = reach;
@@ -344,7 +344,8 @@ export function useGestures(reach: Reach, stage: Stage) {
   );
 
   /** What a right click does where a menu is not built yet: the default entry
-   *  of the menu that will replace it. */
+   *  of the menu that will replace it. The map names the action; hit-testing
+   *  names what is under the pointer. */
   const fallback = useCallback((x: number, y: number) => {
     const hit = under(x, y);
     const chosen = nodes.current.filter((n) => n.selected).map((n) => n.id);
@@ -354,20 +355,29 @@ export function useGestures(reach: Reach, stage: Stage) {
     // a right click elsewhere is about whatever is under the cursor, and a
     // selection left over from a moment ago should not swallow it.
     const onSelection = hit.kind === "selection" || (hit.id !== null && chosen.includes(hit.id));
-    if (chosen.length > 1 && onSelection) return onGroup(chosen);
+    if (chosen.length > 1 && onSelection) {
+      if (reaches("right", "click", "selection", map) === "group") return onGroup(chosen);
+
+      return;
+    }
 
     // A name opens its own editor on the right button — see `Name` — and an
     // interface is already one; both wait for the menu.
-    if (hit.title || hit.port) return;
+    if (hit.title && reaches("right", "click", "name", map) === "nothing") return;
+    if (hit.port && reaches("right", "click", "interface", map) === "nothing") return;
 
     // A relationship's kind is a name, and a name is written where it is drawn.
     // The last name on the canvas that took a different gesture.
-    if (hit.kind === "edge" && hit.id) return setPrompt({ kind: "relation", id: hit.id });
+    if (hit.kind === "edge" && hit.id
+        && reaches("right", "click", "edge", map) === "retype") {
+      return setPrompt({ kind: "relation", id: hit.id });
+    }
 
     // Anywhere on a card, and anywhere on the layer's own border, makes an
     // interface. Where the click landed decides which point of the border it
     // goes to; it is not a test the click has to pass.
-    if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box) {
+    if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box
+        && reaches("right", "click", hit.kind, map) === "interface") {
       const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
       const { side, at: along } = nearestEdge(hit.box, x, y, flow.getZoom(), corner);
 
@@ -375,16 +385,26 @@ export function useGestures(reach: Reach, stage: Stage) {
     }
 
     // Empty background: a node in this layer, joining any boundary it lands in.
+    if (reaches("right", "click", "empty", map) !== "create") return;
+
     const at = flow.screenToFlowPosition({ x, y });
 
     setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
-  }, [under, nodes, flow, onGroup, onAddPort, setPrompt]);
+  }, [under, nodes, flow, onGroup, onAddPort, setPrompt, map]);
 
   // Shortcuts the canvas owns. Inside a field the field's own editing wins,
   // and Esc abandons whatever is half-drawn — prompt or relationship alike.
   useEffect(() => {
     function press(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        // The multi-selection lives on the nodes, not in `picked`. Clearing
+        // only the pick left Ctrl+A's cards still selected.
+        changeNodes(nodes.current.map((n) => ({
+          type: "select" as const,
+          id: n.id,
+          selected: false,
+        })));
+
         return (setWire(null), setSweep(null), setPrompt(null), onPick(null));
       }
       if ((event.target as HTMLElement).closest("input, textarea")) return;
@@ -404,6 +424,21 @@ export function useGestures(reach: Reach, stage: Stage) {
         event.preventDefault();
 
         return chosen.length ? onGroup(chosen) : undefined;
+      }
+
+      // Everything the selection box can take on this layer — cards, not the
+      // frame, notes or boundaries, which are not multi-selectable. Clearing
+      // the single pick leaves the multi-selection as the only context, so Fit
+      // and Group see the whole set.
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        changeNodes(nodes.current.map((n) => ({
+          type: "select" as const,
+          id: n.id,
+          selected: n.type === "card",
+        })));
+
+        return onPick(null);
       }
 
       // Show me this. Which *this* is already answered by what is selected, so
@@ -440,7 +475,7 @@ export function useGestures(reach: Reach, stage: Stage) {
     window.addEventListener("keydown", press);
 
     return () => window.removeEventListener("keydown", press);
-  }, [nodes, pickedNode, picked, flow, restViewport, onGroup, onPick,
+  }, [nodes, changeNodes, pickedNode, picked, flow, restViewport, onGroup, onPick,
       onDropAttr, onUnlink, onDelete, setPrompt]);
 
   /** The wall a right drag named, where it named one.
@@ -452,6 +487,7 @@ export function useGestures(reach: Reach, stage: Stage) {
    *  there is necessarily *on a wall*, and which wall is what the user meant. */
   function wallAt(hit: { kind: string | null; port: string | null; box: DOMRect | null },
                   x: number, y: number): Side | undefined {
+    if (!takes("wall", map)) return undefined;
     if (hit.kind !== "frame" || hit.port || !hit.box) return undefined;
 
     const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
@@ -475,6 +511,7 @@ export function useGestures(reach: Reach, stage: Stage) {
     // A name is set into a border but is not one, so nothing starts from it.
     if (hit.title) return;
     if (!hit.id || (hit.kind !== "card" && hit.kind !== "frame")) return;
+    if (reaches("right", "drag", hit.kind, map) !== "relate") return;
 
     const origin = { x: event.clientX, y: event.clientY };
 
@@ -533,7 +570,7 @@ export function useGestures(reach: Reach, stage: Stage) {
       // rest of the rectangle is the least room it gets — a minimum, so a long
       // description has space and a longer one still grows the card. What it
       // says is asked for before anything is made, the same as a node's name.
-      if (down.bare) {
+      if (down.bare && reaches("right", "drag", "empty", map) === "note") {
         const at = flow.screenToFlowPosition({ x: Math.min(down.x, event.clientX),
                                                y: Math.min(down.y, event.clientY) });
         const far = flow.screenToFlowPosition({ x: Math.max(down.x, event.clientX),
@@ -551,14 +588,18 @@ export function useGestures(reach: Reach, stage: Stage) {
     // Let go on a note: tie what the drag set off from to it, or untie it if it
     // was tied already. A note is not a node, so no relationship is drawn and no
     // interface is made — the line between them is a leader.
-    if (hit.kind === "note" && hit.id) return onTie(hit.id, held.end.node);
+    if (hit.kind === "note" && hit.id
+        && reaches("right", "drag", "note", map) === "tie") {
+      return onTie(hit.id, held.end.node);
+    }
 
     const landed = hit.kind === "card" || hit.kind === "frame" ? hit.id : null;
 
     // Released on something: the relationship, and nothing else. An interface
     // it landed on is kept as that end's anchor; otherwise the layer decides
     // where the line meets the card, and there is nothing to record.
-    if (landed && landed !== held.end.node) {
+    if (landed && landed !== held.end.node
+        && reaches("right", "drag", hit.kind as "card" | "frame", map) === "relate") {
       return onWire(held.end, {
         node: landed,
         port: hit.port ?? undefined,
@@ -567,6 +608,12 @@ export function useGestures(reach: Reach, stage: Stage) {
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
+    // Still `relate` — create + relate — so the same binding covers the sprout.
+    if (reaches("right", "drag", "card", map) !== "relate"
+        && reaches("right", "drag", "frame", map) !== "relate") {
+      return;
+    }
+
     const at = flow.screenToFlowPosition({ x: event.clientX, y: event.clientY });
     setPrompt({
       kind: "sprout",
@@ -689,6 +736,8 @@ export function useGestures(reach: Reach, stage: Stage) {
     const start = groupRef.current;
     if (node.type === "region" && start && start.id === node.id) {
       groupRef.current = null;
+      if (!takes("place", map)) return;
+
       const dx = node.position.x - start.x;
       const dy = node.position.y - start.y;
       const moved = Object.entries(start.members)
@@ -700,6 +749,7 @@ export function useGestures(reach: Reach, stage: Stage) {
     // A note has a place of its own, and takes nothing with it.
     if (node.type === "note") {
       heldRef.current = null;
+      if (!takes("place", map)) return;
 
       return onPlaceNote(node.id, node.position.x, node.position.y);
     }
@@ -715,6 +765,7 @@ export function useGestures(reach: Reach, stage: Stage) {
     setJoining([]);
 
     // Dropped on another card: that card becomes its container.
+    // `move`, not `place` — nesting changes parentage, not only position.
     if (into) return onNest(node.id, into);
 
     // Pushed past the edge of the frame, while inside a layer: it
@@ -726,6 +777,8 @@ export function useGestures(reach: Reach, stage: Stage) {
                   y < frameBox.y || y > frameBox.y + frameBox.h;
       if (out) return onPromote(node.id, graph.elements[view]?.parent ?? null);
     }
+
+    if (!takes("place", map)) return;
 
     // A selection dragged together lands together.
     const cards = (dragged?.length ? dragged : [node]).filter((n) => n.type === "card");

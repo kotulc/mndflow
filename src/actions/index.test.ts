@@ -25,8 +25,8 @@ function layer() {
   return { graph: fold([step("", "test", mutations)]), block, note, group, port };
 }
 
-const at = (graph: Context["graph"], id: string | null): Context =>
-  ({ graph, view: null, picked: id ? { kind: "node", id } : null });
+const at = (graph: Context["graph"], id: string | null, locked = false): Context =>
+  ({ graph, view: null, picked: id ? { kind: "node", id } : null, locked });
 
 /** Two actions that differ only in what they need, which is the whole point. */
 const named: Action = {
@@ -104,6 +104,29 @@ describe("refusing", () => {
     const { graph } = layer();
 
     expect(run("test.missing", at(graph, null))).toHaveProperty("refused");
+  });
+
+  it("refuses a write on a locked project and offers unlock or fork", () => {
+    const { graph } = layer();
+    const refused = run("test.named", at(graph, null, true), { label: "x" });
+
+    expect(refused).toEqual({
+      refused: "This package is locked.",
+      offer: ["unlock", "fork"],
+    });
+  });
+
+  it("still lets navigation run when the project is locked", () => {
+    const { graph, block } = layer();
+    const done = run("test.goes", at(graph, block.id, true));
+
+    expect(done).toEqual({ mutations: [], open: block.id });
+  });
+
+  it("keeps writing actions offered when locked — the refusal is the answer", () => {
+    const { graph } = layer();
+
+    expect(offered(at(graph, null, true)).map((a) => a.name)).toContain("test.named");
   });
 });
 

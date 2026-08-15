@@ -1,9 +1,12 @@
 /** Workflow definitions, read from YAML at build time.
  *
- *  Three kinds of file. `entry` is the catalogue of domains a first answer
+ *  Four kinds of file. `entry` is the catalogue of domains a first answer
  *  routes into. `operations` is the global list of things the conversation can
- *  ask for — no domain may invent one. A domain file supplies wording and
- *  vocabulary, and nothing else.
+ *  ask for — no domain may invent one. A domain file supplies wording only.
+ *  Starting relations live in `packages/core/<name>.yaml` and are bridged into
+ *  `Domain.relations` here until A0.3 loads packages into the workspace.
+ *  `terms/` holds what each domain calls things, separate from the prompts so
+ *  a package can take the words without the question loop.
  *
  *  Control flow is deliberately absent: which operation to ask about is
  *  decided in `router`, from the graph itself. A new domain is wording only. */
@@ -61,6 +64,22 @@ const files = import.meta.glob("../../workflows/*.yaml", {
   import: "default",
 }) as Record<string, any>;
 
+/** Words keyed by domain name — filename stem matches `name` in the domain file. */
+const termFiles = import.meta.glob("../../workflows/terms/*.yaml", {
+  eager: true,
+  import: "default",
+}) as Record<string, any>;
+
+/** Relation seeds from packages/core — stem matches domain `name`. Bridge only. */
+const coreFiles = import.meta.glob("../../packages/core/*.yaml", {
+  eager: true,
+  import: "default",
+}) as Record<string, any>;
+
+function stem(path: string): string {
+  return path.match(/([^/\\]+)\.yaml$/)?.[1] ?? "";
+}
+
 function lines(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(String);
 
@@ -75,17 +94,41 @@ function wording(raw: any): Wording {
   };
 }
 
+const TERMS: Record<string, Terms> = Object.fromEntries(
+  Object.entries(termFiles).map(([path, raw]) => [
+    stem(path),
+    {
+      group: String(raw?.group ?? GENERIC.group),
+      node: String(raw?.node ?? GENERIC.node),
+      relation: String(raw?.relation ?? GENERIC.relation),
+    },
+  ]),
+);
+
+/** Definition names only — entry still mints `set_def` with form `line`. */
+const RELATIONS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(coreFiles).map(([path, raw]) => [
+    stem(path),
+    Array.isArray(raw?.definitions)
+      ? raw.definitions
+          .map((d: any) => String(d?.name ?? "").trim())
+          .filter(Boolean)
+      : [],
+  ]),
+);
+
 function domain(raw: any): Domain {
+  const name = String(raw?.name ?? "freeform");
   const prompts: Record<string, Wording> = {};
   for (const [key, value] of Object.entries(raw?.prompts ?? {})) {
     prompts[key] = wording(value);
   }
 
   return {
-    name: String(raw?.name ?? "freeform"),
+    name,
     lead: String(raw?.lead ?? ""),
-    terms: { ...GENERIC, ...(raw?.terms ?? {}) },
-    relations: lines(raw?.relations),
+    terms: TERMS[name] ?? GENERIC,
+    relations: RELATIONS[name] ?? [],
     prompts,
   };
 }
