@@ -15,10 +15,15 @@ A0.1; grown since). `src` is grouped by what a thing is for and dependencies run
 [README.md](../README.md) for the map.
 
 **Frozen, pending refinement.** Left alone deliberately while the graph model settles: the
-**terminal rail** (its role is the open question, not its implementation) and the **visual style**.
+**terminal rail** and the **visual style**. *The rail's role is now settled — one text entry point
+over the workspace, not a command palette (design.md,* The terminal*). It stays frozen because it
+ranks and completes whatever the surface offers, and the surface is still moving.*
 
-**One known dependency violation**, left visible: `project.ts` imports the terminal. Seam S1
-is what fixes it.
+**One known dependency violation**, left visible: `project.ts` imports the terminal. **S1 was
+supposed to fix it and did not** — S1.6 landed, the `act` literal became `actions/*`, and the three
+terminal imports stayed, because the question loop's `pending` is held in project state and nothing
+in S1 addressed it. **Seam S6 is what fixes it now**, and it is no longer cosmetic: the rail has to
+be removable, and four files outside `terminal/` import it.
 
 **Exercised in a browser**, and every seam is exercised there before it is called done — see
 `.claude/skills/run/SKILL.md` for how. A fresh session, a pre-freeze log, the canvas gestures,
@@ -36,6 +41,20 @@ through `check.ts` whatever it was written by.
 *Nothing here blocks a plan row today. A.7's design is settled — the whole of it is in
 [behaviors.md](behaviors.md), the reasoning in design.md under* Structure and behavior. *What is
 open inside it is listed there under* Still open, *and none of it blocks A.7a.*
+
+*Recently closed: **the rail is not a command palette.** It is the one text entry point over the
+workspace — natural language that makes and changes things, surfaces documentation, packages and
+definitions, and adapts to how one person words things. A palette is a fixed command list and a
+console is a shell; neither is this, so an editor host duplicates none of it. **It still never
+changes context** — it *ranks against* context, so moving it would shift the ground its own ranking
+stands on. It reaches actions and writes no mutation of its own. New row **Z.8** carries the
+natural-language half; its scope is not settled. **The rail is also the one part that may not be
+client-side**, and the app must work with it unavailable.*
+
+*Recently closed: **storage stays browser-local and wholly client-side.** No cloud home, no sync, no
+server holding a project. What import/export gains is **destinations** — local disk (F.2) and a
+cloud drive — one file at a time, chosen by the user. Nothing changes in undo, the log or the fold,
+and "no server" holds literally for the app.*
 
 *Recently closed — the whole of A.7's design, now [behaviors.md](behaviors.md). **`infer`**
 replaces seeding and promotion: a selection becomes one behavior block, one-way and deterministic,
@@ -224,6 +243,13 @@ loader. Do **not** treat A0.2 as fully closed while that gate is open. **Preset 
 `extends` does not walk yet. *(The README dependency map is current again — `actions/`, `workspace/`
 and `modules/`'s grown dependencies are all in it.)*
 
+**The subtype chain reaches nothing (SC.6).** `cardOf`, `styleOf`, `rulesOf` and `constraintsOf` all
+read `graph.defs[type].components` — the leaf definition alone. `resolved()` computes exactly the
+merge they need and has no caller, so **`extends` inherits nothing at the point of use**: subtype a
+styled definition and the child draws unstyled. `rules` walks `isa` only to match a rule *against* a
+subtype, never to inherit its own configuration. This reads as a bug rather than a missing feature,
+which is why it is a row and not a park.
+
 ### S3 — fold hygiene
 
 Touches only `fold.ts`, so it runs alongside S1 and S2.
@@ -236,6 +262,26 @@ Touches only `fold.ts`, so it runs alongside S1 and S2.
   `Field` / `Def`; behaviour preserved.
 - **Index once per fold** — *done*. Children indexed once; `childrenOf`, `blocksOf` and
   `portsOf` use it.
+
+### S6 — the rail comes out
+
+**The rail is a separate thing and the app is whole without it** (design.md). *Take `src/terminal/`
+out and everything still works* is the acceptance test, and it fails today.
+
+| Imports the rail | For |
+|---|---|
+| `project.ts` | `router`, `turn`, `workflows`; holds the question loop's `pending` in project state |
+| `page/Files.tsx` | `Terms` — vocabulary, which is a general need and not the rail's |
+| `page/App.tsx` | `Chat`, `Suggestion` |
+| `page/Readout.tsx` | `Scores` |
+
+- **An optional part that half the app imports is not optional.** Where the rail runs is undecided —
+  currently fully local — and the design deliberately does not wait on that. What it does require is
+  that including it is a choice.
+- **`terms` is the knot.** Vocabulary living under `terminal/` is why the file tray needs the rail,
+  and it is the same tangle **D.2** is blocked on. S6.2 and D.2 want doing together.
+- **Every capability the rail adds must exist without it.** If the only way to do something is to
+  say it, the rail has stopped being optional. Worth checking against Z.8 when its scope is settled.
 
 ### S4 — the workspace
 
@@ -253,7 +299,12 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
   as a missing block rather than deleting the proxy, so undoing a deletion in one project brings
   the reference back in another.
 - **A change is recorded where its element lives.** Filling in a matrix cell writes to the project
-  that owns both ends. Ownership routes it, and nothing branches or merges.
+  that owns both ends. Ownership routes it, and nothing branches or merges. **The path does not
+  exist yet — S4.9.** `App` holds one `useProject(contextId)`; every other open project is read-only
+  through `graphOf`, and the only way to reach another log is `store.saveProject(id, steps)`, which
+  is a raw step-list write bypassing the fold, the door and the target's undo. So *writing home* —
+  behaviors.md's tier-1 interfaces, a matrix cell, a rename through a proxy — has nowhere to land
+  today. **This blocks A.7a**, and it is the last seam the workspace is missing.
 - **A relationship across two projects is a proxy plus an ordinary edge**, both in the project of
   the end making the claim. No relationship ever spans two logs.
 - **The workspace is itself a project**, and needs no new schema to be one: its elements are
@@ -492,6 +543,15 @@ Split out of the terminal because a module needs it and the terminal does not ga
 touched by any other stream. What it is for is settled — see design.md under *The terminal*; what
 remains is building it. **◆ Z.6** needs Clay (where docs live / how keyed) before that row.
 
+- **It is not a command palette.** The one text entry point over the workspace: natural language
+  that makes and changes, surfaces documentation, packages and definitions, and adapts to a
+  person's wording. **Z.8** is the natural-language half and its scope is not settled — it is what
+  makes the rail more than ranked completion. An editor host's palette and console replace none
+  of it.
+- **It never changes context**, because it ranks against context — moving it would shift the
+  option list under the sentence being typed. The explorer and the pointer navigate.
+- **It may not be client-side**, and it is the only part that may not be. The app has to work with
+  the rail unavailable, which is what *optional input path* has to mean.
 - **Two functions, split by whether it is open.** Collapsed is the app's primary text entry point
   and asks nothing. Expanded is guidance: the next question worth answering, nudges, documentation
   for whatever is in front of you, and a tutorial over a sample project.
@@ -521,7 +581,8 @@ remains is building it. **◆ Z.6** needs Clay (where docs live / how keyed) bef
   proxy carries nothing but where it sits, so it would need a mechanism of its own. An enterprise
   and multi-user concern; for one user it is an extra step on the commonest path, so writes go
   straight home instead. An extension to add when there is somebody to add it for.
-- **A live store for real multi-user work.** Files plus git give one-owner-at-a-time, which is
+- **A live store for real multi-user work.** *(A cloud **drive** as an export destination is not
+  this: it is a place one file is sent, with no sync and no server holding the project.)* Files plus git give one-owner-at-a-time, which is
   honest but is not collaboration. Genuine concurrent editing wants a shared store and presence,
   not a merge algorithm over exported JSON — a different product decision, recorded here so the
   file format is never bent toward pretending to solve it. Team management belongs with it.

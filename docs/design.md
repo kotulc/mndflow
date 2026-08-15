@@ -318,6 +318,45 @@ right direction — see [tasks.md](tasks.md) for what is actually outstanding.*
 
 **The tree and the canvas are the base diagram.** Everything else wraps around them.
 
+### The browser is the product; another host is a shell
+
+**The web app is the primary interface and stays that way.** A desktop or editor-hosted version —
+VS Code being the obvious fit, as a plugin rather than a fork — is for people who would rather not
+work in a browser. It is a **second host for the same app**, never a second implementation.
+
+This is recorded here rather than in the queue because it is not scheduled, and because it only
+matters as a *constraint on the page*: the app already has an explorer, a working area and a rail,
+which is the shape an editor already imposes, and that is what makes the fit cheap. Two things
+follow, and they cost nothing to observe now.
+
+- **Keep the page a shell over the graph.** `page/` already owns branding, navigation and the
+  workspace and nothing about a diagram — the same split a host would need.
+- **Nothing but `store.ts` and `file.ts` may assume where a project lives.** The persistence seam is
+  the only place a host swaps one home for another, and S4.1 already put every key behind it.
+
+**No decision waits on this.** If a UI change would be sound for the web app alone, it is sound.
+It is worth mentioning only when a choice would *lock out* a host — a hard dependency on a browser
+API from somewhere that is not the persistence seam.
+
+### Where a project lives, and where it can be sent
+
+**The browser is the home and stays the home.** A project lives in the tab, keyed per project, and
+the app is completely client-side. Nothing here changes the log, the fold or undo.
+
+**Import and export gain destinations, and that is the whole of it.** Today a file goes to a
+download and comes back from a file picker. Local disk should be a first-class target — F.2's live
+handle is that — and **a cloud drive should be another**. A drive is a place a *file* goes, chosen
+by the user, one export at a time.
+
+- **This is not a cloud home**, and there is no sync, no sessions and no server holding the project.
+  Two machines are two copies, exactly as two downloads are today.
+- **It is the persistence seam and nothing else.** The same bytes the download already writes.
+- **The engine never reaches it.** `store.ts` and `file.ts` know about destinations; nothing else
+  does.
+
+**"No server" still holds**, and is meant literally for the app: the whole engine is in the tab. The
+one possible exception is the rail (above), which is the optional input path and not the project.
+
 ### One graph, and a view is one too
 
 **A view is a project of proxies**, with its own tree, its own log and its own export. It costs no
@@ -558,12 +597,52 @@ say what you want in the words you already have, with the engine doing the placi
 point and asks nothing. Expanded, it is guidance: the next question worth answering, and a tutorial
 walked over a sample project.
 
-**It reads context and never changes it.** No action it can reach opens a layer or moves the
-selection — the explorer and the pointer navigate.
+**It is not a command palette, and the difference is the point.** A palette is a searchable list of
+commands, and it stops there. The rail is the app's **one text entry point over the whole
+workspace**, and it does four things a palette does not:
+
+| | |
+|---|---|
+| **natural language** | a sentence that makes or changes something, not the name of one action picked off a list |
+| **it surfaces** | the documentation, packages and definitions bearing on what is in front of you |
+| **it adapts** | to how *this* person words things, which is what a fixed command list can never do |
+
+**It reads context and never changes it**, and the reason is not squeamishness — **it ranks against
+context.** What the rail offers, and in what order, is derived from the layer you are in and what is
+selected. A rail that moved context would be changing the ground its own ranking stands on, and the
+option list would shift under the sentence being typed. The explorer and the pointer navigate; the
+rail acts on where they put you.
+
+**It reaches actions and never writes a mutation of its own** — the same rule the gesture map obeys.
 
 **Ranking is learned, and overruling it is the feedback.** `Enter` confirms the highlighted option
 and arrow keys move the highlight, because a default that is invisible and changes under the user is
 the version of adaptive ranking worth avoiding.
+
+**A host with its own palette does not replace it.** An editor host (below) has a command palette
+and a console already, and neither is this — one is a fixed command list, the other a shell. The
+rail is not duplicated by either, which is why a VS Code host costs it nothing.
+
+**The rail is a separate thing, and the app is whole without it.** *Where* it runs is undecided —
+the current target is fully local, and understanding a sentence may later want something that does
+not fit in a tab. That question stays open, and **the design does not wait on it**: the rail is
+built to be **included or not**.
+
+> **Take `src/terminal/` out and everything still works.** Nothing below the rail may import it.
+
+This is the strong form and it is deliberate. An optional part that half the app imports is not
+optional — it is a dependency with a flag on it. Three things follow:
+
+- **The rail depends inward, never outward.** It reads the graph and reaches actions, exactly as the
+  gesture map does. It is one more input surface over the same registry, not a layer.
+- **Nothing it owns may be a general need.** Vocabulary and terms are the live example: they live
+  under `terminal/` today and the file tray reads them, which is what makes the rail load-bearing
+  when it should be removable. They belong to a package, not to the rail.
+- **Every capability it adds must exist without it.** If the only way to do something is to say it,
+  the rail has stopped being optional.
+
+*Not satisfied today* — see tasks.md, **S6**. `project.ts`, `page/App.tsx`, `page/Files.tsx` and
+`page/Readout.tsx` all import `terminal/`, so the app does not currently build without it.
 
 **It goes last, deliberately.** It ranks and completes whatever the surface offers, so building it
 against a surface still moving means building it twice. It is also the one stream whose value
