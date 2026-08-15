@@ -6,10 +6,10 @@
  *  same code that built the original. */
 
 import {
-  EMPTY, ROOT, defIdFor, definition as newDefinition, edge as newEdge, element as newElement,
+  EMPTY, ROOT, asTarget, defIdFor, definition as newDefinition, edge as newEdge, element as newElement,
   field as newField, step as makeStep,
   type Axis, type Definition, type Edge, type Element, type Field, type Graph, type Mutation,
-  type Step,
+  type ProxyTarget, type Step,
 } from "./types";
 
 /** The two form families, so a definition can be sorted into the one it
@@ -30,9 +30,16 @@ export function isProxy(node: Element | undefined): boolean {
   return node?.form === "proxy";
 }
 
-/** What a proxy stands in for. */
+/** What a proxy stands in for — the held path, bare or `project/element`. */
 export function refOf(graph: Graph, id: string): string | null {
   return graph.elements[id]?.of ?? null;
+}
+
+/** A proxy's target as `{ project, element }`. Absent when it has none. */
+export function targetOf(graph: Graph, id: string): ProxyTarget | null {
+  const of = graph.elements[id]?.of;
+
+  return of ? asTarget(of) : null;
 }
 
 /** Whether a relationship crosses a structural boundary: one of its ends is a
@@ -49,24 +56,34 @@ export function isReference(graph: Graph, edge: { source: string; target: string
  *
  *  One hop and no more. A proxy is made one way — dragging a row out of the
  *  object explorer — and the explorer does not list proxies, so a proxy always
- *  points at a real block and a chain of them cannot be built. */
+ *  points at a real block and a chain of them cannot be built.
+ *
+ *  A target in another project is not in this fold: absence is tolerated, and
+ *  resolving across projects is the workspace's. */
 export function actual(graph: Graph, id: string | null): Element | undefined {
   const node = id ? graph.elements[id] : undefined;
   if (!node || !isProxy(node)) return node;
 
-  const target = refOf(graph, node.id);
+  const target = targetOf(graph, node.id);
+  if (!target || target.project) return undefined;
 
-  return target ? graph.elements[target] : undefined;
+  return graph.elements[target.element];
 }
 
 /** The proxy in one layer standing in for a given block, if there is one.
  *
  *  At most one: a second appearance of the same block in the same layer says
- *  nothing the first did not. */
+ *  nothing the first did not. `target` is the same path convention as `of` —
+ *  bare for this project, `project/element` for another. */
 export function proxyIn(graph: Graph, layer: string | null, target: string): Element | undefined {
-  return Object.values(graph.elements).find(
-    (n) => isProxy(n) && (n.parent ?? null) === layer && n.of === target,
-  );
+  const wanted = asTarget(target);
+
+  return Object.values(graph.elements).find((n) => {
+    if (!isProxy(n) || (n.parent ?? null) !== layer || !n.of) return false;
+    const held = asTarget(n.of);
+
+    return held.element === wanted.element && held.project === wanted.project;
+  });
 }
 
 /** Whether an element sits under an ancestor — the guard against a move that
@@ -82,17 +99,46 @@ export function descendsFrom(graph: Graph, id: string | null, ancestor: string):
   return false;
 }
 
+/** Parent → children, filled once when a fold finishes. Queries that run while
+ *  mutations are still landing fall back to a scan; everything after does not. */
+const CHILDREN = new WeakMap<Graph, Map<string | null, Element[]>>();
+
+/** Held parent of an element: missing or undone parents count as the root layer,
+ *  matching what {@link childrenOf} has always treated as top level. */
+function heldParent(graph: Graph, node: Element): string | null {
+  return node.parent && graph.elements[node.parent] ? node.parent : null;
+}
+
+/** Group every element under its held parent. Root is skipped the same way
+ *  {@link childrenOf} skips it: it shares `parent: null` with the root layer. */
+function indexChildren(graph: Graph): Map<string | null, Element[]> {
+  const by = new Map<string | null, Element[]>();
+
+  for (const node of Object.values(graph.elements)) {
+    if (node.id === ROOT) continue;
+    const parent = heldParent(graph, node);
+    const list = by.get(parent);
+
+    if (list) list.push(node);
+    else by.set(parent, [node]);
+  }
+
+  return by;
+}
+
 /** Direct children of an element, or the root layer for null. An element whose
  *  parent was undone counts as top level rather than disappearing.
  *
  *  Root is skipped by id: it carries `parent: null` like everything in the root
  *  layer, and this is the one place that has to tell it from its own children. */
 export function childrenOf(graph: Graph, parent: string | null): Element[] {
+  const index = CHILDREN.get(graph);
+  if (index) return index.get(parent) ?? [];
+
   return Object.values(graph.elements).filter((n) => {
     if (n.id === ROOT) return false;
-    const held = n.parent && graph.elements[n.parent] ? n.parent : null;
 
-    return held === parent;
+    return heldParent(graph, n) === parent;
   });
 }
 
@@ -249,6 +295,100 @@ export function isa(graph: Graph, def: string, ancestor: string): boolean {
   return false;
 }
 
+/** Resolved views, filled once when a fold finishes. A query that runs while
+ *  mutations are still landing walks the chain; everything after does not. */
+const RESOLVED = new WeakMap<Graph, Map<string, Definition>>();
+
+/** The extends chain of a definition, furthest ancestor first.
+ *
+ *  Same guards as {@link isa}: a cycle stops, and a parent that is not loaded
+ *  ends the walk — only what is actually in `defs` contributes to a resolve. */
+function chainOf(graph: Graph, id: string): Definition[] {
+  const seen = new Set<string>();
+  const walked: Definition[] = [];
+  let cursor: string | undefined = id;
+
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    const held: Definition | undefined = graph.defs[cursor];
+    if (!held) break;
+    walked.push(held);
+    cursor = held.extends;
+  }
+
+  return walked.reverse();
+}
+
+/** Fields union: each name once, the nearest subtype winning. Order follows
+ *  the chain — an ancestor's field keeps its place when overridden. */
+function unionFields(chain: Definition[]): Field[] {
+  const by = new Map<string, Field>();
+
+  for (const def of chain) {
+    for (const held of def.fields) by.set(held.name, held);
+  }
+
+  return [...by.values()];
+}
+
+/** Components merge per key: a key the subtype does not mention is inherited
+ *  whole; one it does mention replaces the parent's configuration entirely.
+ *  Never a deep merge inside a key — that would invent a merge order the
+ *  schema does not have. */
+function mergeComponents(chain: Definition[]): Definition["components"] {
+  let merged: Definition["components"];
+
+  for (const def of chain) {
+    if (!def.components) continue;
+    merged = { ...merged, ...def.components };
+  }
+
+  return merged;
+}
+
+/** Walk the chain and build the resolved view of one definition. */
+function resolveOne(graph: Graph, id: string): Definition | undefined {
+  const leaf = graph.defs[id];
+  if (!leaf) return undefined;
+
+  const chain = chainOf(graph, id);
+  const components = mergeComponents(chain);
+
+  return {
+    ...leaf,
+    fields: unionFields(chain),
+    ...(components ? { components } : {}),
+  };
+}
+
+/** Every definition's resolved view, keyed by id. */
+function indexResolved(graph: Graph): Map<string, Definition> {
+  const by = new Map<string, Definition>();
+
+  for (const id of Object.keys(graph.defs)) {
+    const view = resolveOne(graph, id);
+    if (view) by.set(id, view);
+  }
+
+  return by;
+}
+
+/** The resolved view of a definition: its own identity with inherited fields
+ *  and components filled in from the extends chain.
+ *
+ *  Fields union with the subtype winning by name; `components` merge per key,
+ *  a key it does not mention inherited whole. Name, form, presentation, body
+ *  and size stay the subtype's — only those two merges are what resolving is.
+ *
+ *  Cached once per fold the way the children index is. A missing id yields
+ *  nothing; a missing parent yields the subtype standing on what loaded. */
+export function resolved(graph: Graph, id: string): Definition | undefined {
+  const index = RESOLVED.get(graph);
+  if (index) return index.get(id);
+
+  return resolveOne(graph, id);
+}
+
 /** Definitions of one form family: element subtypes, or relationship ones. */
 export function defsOf(graph: Graph, edges: boolean): Definition[] {
   const of = new Set<string>(edges ? EDGE_FORMS : ELEM_FORMS);
@@ -382,18 +522,22 @@ function dropField(on: Holder | undefined, name: string): void {
   if (on?.fields) on.fields = on.fields.filter((f) => f.name !== name);
 }
 
-/** Apply one mutation in place. Unknown targets are skipped rather than
- *  thrown: an undone parent can legitimately strand a later step. */
-function apply(graph: Graph, mutation: Mutation): void {
-  switch (mutation.op) {
-    case "checkpoint":
-      // Everything a snapshot stands for, in place of replaying it.
-      graph.elements = structuredClone(mutation.graph.elements);
-      graph.edges = structuredClone(mutation.graph.edges);
-      graph.defs = structuredClone(mutation.graph.defs ?? {});
-      graph.vocabulary = mutation.graph.vocabulary ?? "";
-      break;
+type ElementOp = Extract<Mutation, {
+  op: "add_element" | "update_element" | "move_element" | "place_element" | "size_element" |
+      "delete_element" | "set_body" | "set_port" | "mark_port" | "set_axis" | "relax_layer";
+}>;
+type GroupOp = Extract<Mutation, { op: "join_group" | "leave_group" }>;
+type FieldOp = Extract<Mutation, { op: "set_field" | "drop_field" }>;
+type EdgeOp = Extract<Mutation, {
+  op: "link_elements" | "set_end" | "update_edge" | "set_dir" | "set_form" | "set_side" |
+      "flip_edge" | "delete_edge";
+}>;
+type DefOp = Extract<Mutation, { op: "set_def" | "drop_def" }>;
 
+/** Element mutations: make, amend, place, size, delete, and the layer settings
+ *  that live on an element (axis, relax). */
+function applyElement(graph: Graph, mutation: ElementOp): void {
+  switch (mutation.op) {
     case "add_element":
       graph.elements[mutation.element.id] = { ...mutation.element };
       break;
@@ -482,7 +626,12 @@ function apply(graph: Graph, mutation: Mutation): void {
       // merely retained until an arrangement asks for it back.
       break;
     }
+  }
+}
 
+/** Group membership. Held on the member, never on the group. */
+function applyGroup(graph: Graph, mutation: GroupOp): void {
+  switch (mutation.op) {
     case "join_group": {
       const node = graph.elements[mutation.id];
       if (node && !node.groups.includes(mutation.group)) node.groups.push(mutation.group);
@@ -494,7 +643,12 @@ function apply(graph: Graph, mutation: Mutation): void {
       if (node) node.groups = node.groups.filter((g) => g !== mutation.group);
       break;
     }
+  }
+}
 
+/** Descriptive values on an element or a relationship. */
+function applyField(graph: Graph, mutation: FieldOp): void {
+  switch (mutation.op) {
     case "set_field": {
       const on = graph.elements[mutation.id] ?? graph.edges[mutation.id];
       // The mutation's own `op` and `id` are how it was addressed, not part of
@@ -508,7 +662,12 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "drop_field":
       dropField(graph.elements[mutation.id] ?? graph.edges[mutation.id], mutation.name);
       break;
+  }
+}
 
+/** Relationship mutations. */
+function applyEdge(graph: Graph, mutation: EdgeOp): void {
+  switch (mutation.op) {
     case "link_elements": {
       const { edge } = mutation;
       if (graph.elements[edge.source] && graph.elements[edge.target]) {
@@ -567,7 +726,12 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "delete_edge":
       delete graph.edges[mutation.id];
       break;
+  }
+}
 
+/** Definition mutations. */
+function applyDef(graph: Graph, mutation: DefOp): void {
+  switch (mutation.op) {
     case "set_def": {
       const was = graph.defs[mutation.id];
       const { op: _op, ...patch } = mutation;
@@ -579,13 +743,65 @@ function apply(graph: Graph, mutation: Mutation): void {
     case "drop_def":
       delete graph.defs[mutation.id];
       break;
+  }
+}
+
+/** Apply one mutation in place. Unknown targets are skipped rather than
+ *  thrown: an undone parent can legitimately strand a later step. */
+function apply(graph: Graph, mutation: Mutation): void {
+  switch (mutation.op) {
+    case "checkpoint":
+      // Everything a snapshot stands for, in place of replaying it.
+      graph.elements = structuredClone(mutation.graph.elements);
+      graph.edges = structuredClone(mutation.graph.edges);
+      graph.defs = structuredClone(mutation.graph.defs ?? {});
+      graph.vocabulary = mutation.graph.vocabulary ?? "";
+      break;
+
+    case "add_element":
+    case "update_element":
+    case "move_element":
+    case "place_element":
+    case "size_element":
+    case "delete_element":
+    case "set_body":
+    case "set_port":
+    case "mark_port":
+    case "set_axis":
+    case "relax_layer":
+      applyElement(graph, mutation);
+      break;
+
+    case "join_group":
+    case "leave_group":
+      applyGroup(graph, mutation);
+      break;
+
+    case "set_field":
+    case "drop_field":
+      applyField(graph, mutation);
+      break;
+
+    case "link_elements":
+    case "set_end":
+    case "update_edge":
+    case "set_dir":
+    case "set_form":
+    case "set_side":
+    case "flip_edge":
+    case "delete_edge":
+      applyEdge(graph, mutation);
+      break;
+
+    case "set_def":
+    case "drop_def":
+      applyDef(graph, mutation);
+      break;
 
     case "set_vocabulary":
       graph.vocabulary = mutation.vocabulary;
       break;
 
-    /** A project's relation names were a bare list before they were
-     *  definitions, so each becomes one under an id derived from its name. */
     // An op this build does not know is skipped rather than guessed at. The
     // door has already reported it — see `check.entering` — so folding it into
     // something plausible would only be a second opinion, quietly held.
@@ -595,21 +811,24 @@ function apply(graph: Graph, mutation: Mutation): void {
 }
 
 /** Drop what the graph can no longer support: membership and ties pointing at
- *  things that have gone, groups left with nobody in them, and proxies whose
- *  block has been deleted.
+ *  things that have gone, and groups left with nobody in them.
  *
  *  Done here rather than in each mutation so that deleting an element cleans up
  *  after itself however it happened — by hand, by a workflow, or by an undo
  *  further back in the log putting the graph in a different shape.
+ *
+ *  A proxy whose target is gone is kept. Absence is never recorded, so undoing
+ *  a deletion elsewhere brings the reference back; only a proxy with no `of`
+ *  at all is nothing.
  *
  *  A group down to one member is *not* swept up here. Deliberately grouping a
  *  single block is allowed, and this cannot tell that apart from a group that
  *  decayed — so decay is refused where it happens, in the action that takes the
  *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
-  // A proxy is nothing without the block it stands for.
+  // A proxy must name something; a named target that is merely missing stays.
   for (const [id, node] of Object.entries(graph.elements)) {
-    if (isProxy(node) && (!node.of || !graph.elements[node.of])) delete graph.elements[id];
+    if (isProxy(node) && !node.of) delete graph.elements[id];
   }
 
   for (const node of Object.values(graph.elements)) {
@@ -709,6 +928,8 @@ export function fold(steps: Step[]): Graph {
   }
 
   tidy(graph);
+  CHILDREN.set(graph, indexChildren(graph));
+  RESOLVED.set(graph, indexResolved(graph));
 
   return graph;
 }

@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { edge, element, field, definition, newId, refAt, refTo, rootElement, ROOT, EMPTY,
+import { edge, element, field, definition, newId, asTarget, refAt, refTo, rootElement, ROOT, EMPTY,
          type ElemForm } from "./types";
 
 const FORMS: ElemForm[] = ["block", "note", "group", "proxy", "figure"];
@@ -77,4 +77,11 @@ describe("a reference that may leave the project", () => {
       expect(refAt(refTo("block_1", "proj_2")).id).toBe("block_1");
     },
   );
+
+  it("names a proxy's halves project and element", () => {
+    expect(asTarget(refTo("block_1", "proj_2"))).toEqual({
+      project: "proj_2", element: "block_1",
+    });
+    expect(asTarget("block_1")).toEqual({ element: "block_1" });
+  });
 });

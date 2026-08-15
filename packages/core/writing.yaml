@@ -1,0 +1,14 @@
+# Relationship definitions a writing project starts with.
+# Editable in the app after they land; this is only where a new project begins.
+
+definitions:
+  - name: knows
+    form: line
+  - name: loves
+    form: line
+  - name: betrays
+    form: line
+  - name: appears with
+    form: line
+  - name: happens before
+    form: line

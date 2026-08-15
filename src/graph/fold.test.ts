@@ -4,14 +4,14 @@
  *  still moving. What must not move is that the fold is a pure function of the
  *  log, that a reverted step leaves no trace, that a mutation with nowhere to
  *  land is skipped rather than thrown, and that `tidy` removes only what cannot
- *  exist. Those are the properties every refactor of `fold` can break without
- *  a single type error. */
+ *  exist — never a proxy whose target is merely gone. Those are the properties
+ *  every refactor of `fold` can break without a single type error. */
 
 import { describe, expect, it } from "vitest";
 
-import { compact, fold, isa, isReference, isTie, membersOf, relationNames, stepsIn, tiesOf,
-         COMPACT_AT } from "./fold";
-import { edge, element, step, ROOT, type Mutation, type Step } from "./types";
+import { blocksOf, childrenOf, compact, fold, isa, isPort, isReference, isTie, membersOf,
+         portsOf, relationNames, resolved, stepsIn, targetOf, tiesOf, COMPACT_AT } from "./fold";
+import { edge, element, field, refTo, step, ROOT, type Mutation, type Step } from "./types";
 
 /** One step holding whatever mutations a case needs. */
 const did = (...mutations: Mutation[]): Step => step("", "test", mutations);
@@ -63,15 +63,91 @@ describe("folding", () => {
   });
 });
 
+describe("the children index", () => {
+  /** A layer with a child block, a port on it, a note and a group — enough to
+   *  tell blocks, ports and the rest apart without caring about their ids. */
+  function layered() {
+    const parent = element("Pump", { parent: null });
+    const child = element("Valve", { parent: parent.id });
+    const port = element("", { parent: parent.id, side: "right", at: 0.5, num: 1 });
+    const note = element("watch", { form: "note", parent: null });
+    const group = element("Set", { form: "group", parent: null });
+
+    return {
+      parent, child, port, note, group,
+      graph: fold([did(
+        { op: "add_element", element: parent },
+        { op: "add_element", element: child },
+        { op: "add_element", element: port },
+        { op: "add_element", element: note },
+        { op: "add_element", element: group },
+        { op: "join_group", id: parent.id, group: group.id },
+      )]),
+    };
+  }
+
+  it("lists exactly the elements that hold a given parent", () => {
+    const { graph, parent, child, port, note, group } = layered();
+    const at = (id: string | null) => childrenOf(graph, id).map((n) => n.id).sort();
+
+    expect(at(null)).toEqual([group.id, note.id, parent.id].sort());
+    expect(at(parent.id)).toEqual([child.id, port.id].sort());
+    expect(at(child.id)).toEqual([]);
+  });
+
+  it("treats an undone parent as the root layer, not as missing", () => {
+    // Same rule childrenOf has always used: a stranded child surfaces rather
+    // than vanishing from every listing.
+    const ghost = "parent_gone";
+    const stranded = element("Orphan", { parent: ghost });
+    const graph = fold([did({ op: "add_element", element: stranded })]);
+
+    expect(childrenOf(graph, null).map((n) => n.id)).toContain(stranded.id);
+    expect(childrenOf(graph, ghost)).toEqual([]);
+  });
+
+  it("partitions blocks and ports from the same children listing", () => {
+    const { graph, parent, child, port } = layered();
+
+    expect(blocksOf(graph, parent.id).map((n) => n.id)).toEqual([child.id]);
+    expect(portsOf(graph, parent.id).map((n) => n.id)).toEqual([port.id]);
+    expect(portsOf(graph, parent.id).every(isPort)).toBe(true);
+    expect(blocksOf(graph, parent.id).some(isPort)).toBe(false);
+  });
+});
+
 describe("tidy", () => {
-  it("drops a proxy whose target is gone — it is nothing without one", () => {
+  it("keeps a proxy whose target is gone — absence is never recorded", () => {
     const real = element("Pump", { parent: null });
     const stand = element("", { form: "proxy", parent: null, of: real.id });
+    const orphan = fold([did({ op: "add_element", element: stand })]);
+
+    expect(orphan.elements[stand.id]).toBeDefined();
+    expect(targetOf(orphan, stand.id)).toEqual({ element: real.id });
+
+    const live = fold([did({ op: "add_element", element: real },
+                           { op: "add_element", element: stand })]);
+    expect(live.elements[stand.id]).toBeDefined();
+    expect(live.elements[stand.id]?.of).toBe(real.id);
+  });
+
+  it("drops a proxy that names no target at all", () => {
+    const stand = element("", { form: "proxy", parent: null, of: null });
     const graph = fold([did({ op: "add_element", element: stand })]);
 
     expect(graph.elements[stand.id]).toBeUndefined();
-    expect(fold([did({ op: "add_element", element: real },
-                     { op: "add_element", element: stand })]).elements[stand.id]).toBeDefined();
+  });
+
+  it("reads a path of as { project, element } and leaves a foreign one alone", () => {
+    const stand = element("", {
+      form: "proxy", parent: null, of: refTo("block_pump", "proj_other"),
+    });
+    const graph = fold([did({ op: "add_element", element: stand })]);
+
+    expect(graph.elements[stand.id]).toBeDefined();
+    expect(targetOf(graph, stand.id)).toEqual({
+      project: "proj_other", element: "block_pump",
+    });
   });
 
   it("keeps a group of one, and drops a group of none", () => {
@@ -289,5 +365,110 @@ describe("a definition refining another", () => {
 
     expect(isa(alone, "def_mine", "def_mine")).toBe(true);
     expect(isa(alone, "def_mine", "pkg_sysml/def_requirement")).toBe(true);
+  });
+});
+
+describe("resolving a subtype", () => {
+  /** Parent declares id+text and a card; child redeclares text and adds a
+   *  constraints key — enough to tell union, override and per-key merge apart. */
+  function refined() {
+    return fold([step("", "test", [
+      { op: "set_def", id: "def_req", name: "requirement", form: "block",
+        fields: [field("id"), field("text", { value: "parent" })],
+        components: { card: { layout: "fields", shape: "rect" },
+                      style: { set: "sysml" } } },
+      { op: "set_def", id: "def_safety", name: "safety requirement", form: "block",
+        extends: "def_req",
+        fields: [field("text", { value: "child" }), field("severity")],
+        components: { card: { layout: "shape" },
+                      constraints: { required: ["severity"] } } },
+    ])]);
+  }
+
+  it("is itself when it extends nothing", () => {
+    const graph = fold([step("", "test", [
+      { op: "set_def", id: "def_part", name: "part", form: "block",
+        fields: [field("mass")],
+        components: { card: { layout: "type" } } },
+    ])]);
+    const view = resolved(graph, "def_part");
+
+    expect(view?.id).toBe("def_part");
+    expect(view?.fields.map((f) => f.name)).toEqual(["mass"]);
+    expect(view?.components).toEqual({ card: { layout: "type" } });
+  });
+
+  it("unions fields, with the subtype winning by name", () => {
+    const view = resolved(refined(), "def_safety");
+    const by = Object.fromEntries((view?.fields ?? []).map((f) => [f.name, f]));
+
+    expect(Object.keys(by).sort()).toEqual(["id", "severity", "text"]);
+    expect(by.text.value).toBe("child");
+    expect(by.id).toBeDefined();
+  });
+
+  it("merges components per key — unmentioned inherited whole, mentioned replaced", () => {
+    const view = resolved(refined(), "def_safety");
+
+    // Child never mentioned style, so the parent's set arrives whole.
+    expect(view?.components?.style).toEqual({ set: "sysml" });
+    // Child mentioned card, so the parent's shape does not leak in.
+    expect(view?.components?.card).toEqual({ layout: "shape" });
+    expect(view?.components?.constraints).toEqual({ required: ["severity"] });
+  });
+
+  it("keeps the subtype's own identity and presentation", () => {
+    const view = resolved(refined(), "def_safety");
+
+    expect(view?.id).toBe("def_safety");
+    expect(view?.name).toBe("safety requirement");
+    expect(view?.extends).toBe("def_req");
+  });
+
+  it("inherits across more than one hop", () => {
+    const graph = fold([step("", "test", [
+      { op: "set_def", id: "def_req", name: "requirement", form: "block",
+        fields: [field("id")],
+        components: { style: { set: "sysml" } } },
+      { op: "set_def", id: "def_safety", name: "safety", form: "block",
+        extends: "def_req", fields: [field("severity")] },
+      { op: "set_def", id: "def_hazard", name: "hazard", form: "block",
+        extends: "def_safety", fields: [field("likelihood")] },
+    ])]);
+    const view = resolved(graph, "def_hazard");
+
+    expect(view?.fields.map((f) => f.name).sort()).toEqual(
+      ["id", "likelihood", "severity"]);
+    expect(view?.components?.style).toEqual({ set: "sysml" });
+  });
+
+  it("stands on its own when the parent is not loaded", () => {
+    const alone = fold([step("", "test", [
+      { op: "set_def", id: "def_mine", name: "mine", form: "block",
+        extends: "pkg_sysml/def_requirement",
+        fields: [field("mine")],
+        components: { card: { layout: "name" } } },
+    ])]);
+    const view = resolved(alone, "def_mine");
+
+    expect(view?.fields.map((f) => f.name)).toEqual(["mine"]);
+    expect(view?.components).toEqual({ card: { layout: "name" } });
+  });
+
+  it("stops on a cycle rather than hanging", () => {
+    const looped = fold([step("", "test", [
+      { op: "set_def", id: "def_a", name: "a", form: "block", extends: "def_b",
+        fields: [field("a")] },
+      { op: "set_def", id: "def_b", name: "b", form: "block", extends: "def_a",
+        fields: [field("b")] },
+    ])]);
+
+    expect(() => resolved(looped, "def_a")).not.toThrow();
+    expect(new Set(resolved(looped, "def_a")?.fields.map((f) => f.name)))
+      .toEqual(new Set(["a", "b"]));
+  });
+
+  it("yields nothing for an id that is not there", () => {
+    expect(resolved(fold([]), "def_missing")).toBeUndefined();
   });
 });

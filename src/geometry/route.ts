@@ -7,6 +7,11 @@
  *  orthogonal path that clears other cards. Stubs leave along the side normal
  *  only — never back into the attached card.
  *
+ *  A directed relationship's pinned sides also bias the path: matching
+ *  conventions (right→left, bottom→top) prefer a run that progresses with the
+ *  layer rather than doubling back. What in/out mean on a port stays outside
+ *  this module.
+ *
  *  Nothing here is dragged. A relationship has no route of its own to keep:
  *  every line on a layer is planned from that layer's arrangement, so moving a
  *  card is what moves a line. */
@@ -41,6 +46,11 @@ const BEND_COST = 10_000;
 /** Nudge for an exit that faces the other end. A preference between paths of
  *  equal shape, never a rival to their length. */
 const AIM_COST = 100;
+/** Per canvas unit travelled against a directed relationship's reading. Small
+ *  against length and tiny against a bend, so it only breaks ties — a flow on
+ *  an across layer runs left to right rather than doubling back when both are
+ *  otherwise equal. */
+const ALONG_COST = 2;
 
 const SIDES: Side[] = ["top", "right", "bottom", "left"];
 
@@ -82,6 +92,36 @@ export function across(a: Spot, b: Spot): Axis | null {
   if (dx < NEAR && dy < NEAR) return null;
 
   return dx < NEAR ? "x" : "y";
+}
+
+/** Unit vector a directed relationship prefers to travel, from the sides its
+ *  ends were given. Right→left means the run reads across; bottom→top, down.
+ *  Anything else is not a flow convention and gets no bias — port in/out marks
+ *  are not consulted here. */
+function alongOf(from?: Side, to?: Side): Spot | null {
+  if (from === "right" && to === "left") return { x: 1, y: 0 };
+  if (from === "left" && to === "right") return { x: -1, y: 0 };
+  if (from === "bottom" && to === "top") return { x: 0, y: 1 };
+  if (from === "top" && to === "bottom") return { x: 0, y: -1 };
+
+  return null;
+}
+
+/** How much of a segment fights the preferred direction. Zero when aligned or
+ *  across it; the reverse length when it doubles back. */
+function against(a: Spot, b: Spot, along: Spot): number {
+  const fight = -((b.x - a.x) * along.x + (b.y - a.y) * along.y);
+
+  return fight > 0 ? fight : 0;
+}
+
+/** How much of a stub-to-stub run travels against the flow. */
+function againstOf(corners: Spot[], start: Spot, goal: Spot, along: Spot): number {
+  const run = [start, ...corners, goal];
+  let sum = 0;
+  for (let i = 0; i < run.length - 1; i += 1) sum += against(run[i], run[i + 1], along);
+
+  return sum;
 }
 
 function mid(box: Box): Spot {
@@ -215,7 +255,7 @@ function lengthOf(a: Spot, b: Spot): number {
 
 /** Zero or one bend between two stubs, if clear of obstacles. */
 function orthCorners(a: Spot, b: Spot, obstacles: Box[], pad: number,
-                     bounds?: Box): Spot[] | null {
+                     bounds?: Box, along: Spot | null = null): Spot[] | null {
   if (Math.abs(a.x - b.x) < NEAR || Math.abs(a.y - b.y) < NEAR) {
     return blocked(a, b, obstacles, pad, bounds) ? null : [];
   }
@@ -226,9 +266,16 @@ function orthCorners(a: Spot, b: Spot, obstacles: Box[], pad: number,
   const okVH = !blocked(a, vh, obstacles, pad, bounds) && !blocked(vh, b, obstacles, pad, bounds);
 
   if (okHV && okVH) {
-    return lengthOf(a, hv) + lengthOf(hv, b) <= lengthOf(a, vh) + lengthOf(vh, b)
-      ? [hv]
-      : [vh];
+    const lenHV = lengthOf(a, hv) + lengthOf(hv, b);
+    const lenVH = lengthOf(a, vh) + lengthOf(vh, b);
+    if (along && Math.abs(lenHV - lenVH) < NEAR) {
+      return against(a, hv, along) + against(hv, b, along)
+          <= against(a, vh, along) + against(vh, b, along)
+        ? [hv]
+        : [vh];
+    }
+
+    return lenHV <= lenVH ? [hv] : [vh];
   }
   if (okHV) return [hv];
   if (okVH) return [vh];
@@ -253,15 +300,29 @@ function uniqSpots(points: Spot[]): Spot[] {
   return out;
 }
 
-/** Min-bend orthogonal path between stubs; returns interior corners only.
- *  When `bounds` is set (open frame), every waypoint and segment must stay
- *  inside it — skirts go around cards *within* the frame, never outside. */
-function pathCorners(start: Spot, goal: Spot, obstacles: Box[], pad: number,
-                     bounds?: Box): Spot[] | null {
-  const simple = orthCorners(start, goal, obstacles, pad, bounds);
-  if (simple) return simple;
+type Skirt = {
+  obstacles: Box[];
+  pad: number;
+  bounds?: Box;
+  /** Obstacle corners and frame/cluster rails — independent of stubs. */
+  base: Spot[];
+  /** Clear length base[i]→base[j], or 0 when they do not link. */
+  link: number[][];
+};
 
-  const nodes: Spot[] = [start, goal];
+/** Axis-aligned clear length, or 0 when the segment is not a link. */
+function clearLen(a: Spot, b: Spot, obstacles: Box[], pad: number,
+                  bounds?: Box): number {
+  if (Math.abs(a.x - b.x) >= NEAR && Math.abs(a.y - b.y) >= NEAR) return 0;
+  if (blocked(a, b, obstacles, pad, bounds)) return 0;
+  const len = lengthOf(a, b);
+
+  return len < NEAR ? 0 : len;
+}
+
+/** Obstacle corners and channel rails that do not depend on a stub. */
+function skirtBase(obstacles: Box[], pad: number, bounds?: Box): Spot[] {
+  const nodes: Spot[] = [];
   for (const o of obstacles) {
     const x0 = o.x - pad;
     const y0 = o.y - pad;
@@ -275,18 +336,13 @@ function pathCorners(start: Spot, goal: Spot, obstacles: Box[], pad: number,
     }
   }
 
-  // Channels: inside the frame when we have one; otherwise around the cluster.
   if (bounds) {
     const loX = bounds.x + pad;
     const hiX = bounds.x + bounds.w - pad;
     const loY = bounds.y + pad;
     const hiY = bounds.y + bounds.h - pad;
-    for (const x of [loX, hiX]) {
-      nodes.push({ x, y: start.y }, { x, y: goal.y }, { x, y: loY }, { x, y: hiY });
-    }
-    for (const y of [loY, hiY]) {
-      nodes.push({ x: start.x, y }, { x: goal.x, y }, { x: loX, y }, { x: hiX, y });
-    }
+    for (const x of [loX, hiX]) nodes.push({ x, y: loY }, { x, y: hiY });
+    for (const y of [loY, hiY]) nodes.push({ x: loX, y }, { x: hiX, y });
   } else if (obstacles.length) {
     let minX = Infinity;
     let minY = Infinity;
@@ -298,18 +354,67 @@ function pathCorners(start: Spot, goal: Spot, obstacles: Box[], pad: number,
       maxX = Math.max(maxX, o.x + o.w + pad);
       maxY = Math.max(maxY, o.y + o.h + pad);
     }
-    for (const x of [minX, maxX]) {
-      nodes.push({ x, y: start.y }, { x, y: goal.y }, { x, y: minY }, { x, y: maxY });
-    }
-    for (const y of [minY, maxY]) {
-      nodes.push({ x: start.x, y }, { x: goal.x, y }, { x: minX, y }, { x: maxX, y });
+    for (const x of [minX, maxX]) nodes.push({ x, y: minY }, { x, y: maxY });
+    for (const y of [minY, maxY]) nodes.push({ x: minX, y }, { x: maxX, y });
+  }
+
+  return uniqSpots(nodes).filter((p) => !bounds || contained(bounds, p));
+}
+
+/** Stub-independent half of the visibility graph — built once per search. */
+function prepareSkirt(obstacles: Box[], pad: number, bounds?: Box): Skirt {
+  const base = skirtBase(obstacles, pad, bounds);
+  const n = base.length;
+  const link: number[][] = Array.from({ length: n }, () => Array(n).fill(0));
+  for (let i = 0; i < n; i += 1) {
+    for (let j = i + 1; j < n; j += 1) {
+      const len = clearLen(base[i], base[j], obstacles, pad, bounds);
+      if (!len) continue;
+      link[i][j] = len;
+      link[j][i] = len;
     }
   }
 
-  // Alignments of start/goal with obstacle corners (enough for 2–3 bends).
-  const base = nodes.slice();
-  for (let i = 2; i < base.length; i += 1) {
-    const c = base[i];
+  return { obstacles, pad, bounds, base, link };
+}
+
+/** Min-bend skirt between stubs on a prepared visibility graph. */
+function skirtCorners(start: Spot, goal: Spot, skirt: Skirt,
+                      along: Spot | null = null): Spot[] | null {
+  const { obstacles, pad, bounds, base, link } = skirt;
+  const nodes: Spot[] = [start, goal, ...base];
+
+  if (bounds) {
+    const loX = bounds.x + pad;
+    const hiX = bounds.x + bounds.w - pad;
+    const loY = bounds.y + pad;
+    const hiY = bounds.y + bounds.h - pad;
+    for (const x of [loX, hiX]) {
+      nodes.push({ x, y: start.y }, { x, y: goal.y });
+    }
+    for (const y of [loY, hiY]) {
+      nodes.push({ x: start.x, y }, { x: goal.x, y });
+    }
+  } else if (base.length) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const p of base) {
+      minX = Math.min(minX, p.x);
+      minY = Math.min(minY, p.y);
+      maxX = Math.max(maxX, p.x);
+      maxY = Math.max(maxY, p.y);
+    }
+    for (const x of [minX, maxX]) {
+      nodes.push({ x, y: start.y }, { x, y: goal.y });
+    }
+    for (const y of [minY, maxY]) {
+      nodes.push({ x: start.x, y }, { x: goal.x, y });
+    }
+  }
+
+  for (const c of base) {
     for (const p of [
       { x: start.x, y: c.y }, { x: c.x, y: start.y },
       { x: goal.x, y: c.y }, { x: c.x, y: goal.y },
@@ -320,49 +425,97 @@ function pathCorners(start: Spot, goal: Spot, obstacles: Box[], pad: number,
 
   const pts = uniqSpots(nodes).filter((p) => !bounds || contained(bounds, p));
   const n = pts.length;
-  const adj: { j: number; len: number }[][] = Array.from({ length: n }, () => []);
+  const index = new Map<string, number>();
+  for (let i = 0; i < n; i += 1) index.set(keyOf(pts[i]), i);
 
+  const startAt = index.get(keyOf(start));
+  const goalAt = index.get(keyOf(goal));
+  if (startAt === undefined || goalAt === undefined) return null;
+
+  const baseAt = base.map((p) => index.get(keyOf(p)) ?? -1);
+  const isBase = new Uint8Array(n);
+  for (const i of baseAt) if (i >= 0) isBase[i] = 1;
+
+  const adj: { j: number; len: number }[][] = Array.from({ length: n }, () => []);
+  const join = (i: number, j: number, len: number) => {
+    adj[i].push({ j, len });
+    adj[j].push({ j: i, len });
+  };
+
+  for (let i = 0; i < base.length; i += 1) {
+    if (baseAt[i] < 0) continue;
+    for (let j = i + 1; j < base.length; j += 1) {
+      if (baseAt[j] < 0 || !link[i][j]) continue;
+      join(baseAt[i], baseAt[j], link[i][j]);
+    }
+  }
+
+  // Stubs, alignments and stub channels: link to every point once.
   for (let i = 0; i < n; i += 1) {
-    for (let j = i + 1; j < n; j += 1) {
-      const a = pts[i];
-      const b = pts[j];
-      if (Math.abs(a.x - b.x) >= NEAR && Math.abs(a.y - b.y) >= NEAR) continue;
-      if (blocked(a, b, obstacles, pad, bounds)) continue;
-      const len = lengthOf(a, b);
-      if (len < NEAR) continue;
-      adj[i].push({ j, len });
-      adj[j].push({ j: i, len });
+    if (isBase[i]) continue;
+    for (let j = 0; j < n; j += 1) {
+      if (j === i) continue;
+      if (isBase[j] || i < j) {
+        const len = clearLen(pts[i], pts[j], obstacles, pad, bounds);
+        if (len) join(i, j, len);
+      }
     }
   }
 
   // Dijkstra with direction in the state so bends are charged.
-  // dir: 0 = none yet, 1 = horiz, 2 = vert
+  // dir: 0 = none yet, 1 = horiz, 2 = vert. Binary heap; stale pops skipped.
   const INF = Number.POSITIVE_INFINITY;
   const dist = Array.from({ length: n * 3 }, () => INF);
   const prev = Array.from({ length: n * 3 }, () => -1);
   const stateAt = (i: number, dir: number) => i * 3 + dir;
+  const heap: { s: number; cost: number }[] = [];
 
-  const startAt = pts.findIndex((p) => keyOf(p) === keyOf(start));
-  const goalAt = pts.findIndex((p) => keyOf(p) === keyOf(goal));
-  if (startAt < 0 || goalAt < 0) return null;
-
-  dist[stateAt(startAt, 0)] = 0;
-  const heap: { s: number; cost: number }[] = [{ s: stateAt(startAt, 0), cost: 0 }];
-
+  const siftUp = (at: number) => {
+    let i = at;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (heap[p].cost <= heap[i].cost) break;
+      [heap[p], heap[i]] = [heap[i], heap[p]];
+      i = p;
+    }
+  };
+  const siftDown = (at: number) => {
+    let i = at;
+    for (;;) {
+      let m = i;
+      const l = i * 2 + 1;
+      const r = l + 1;
+      if (l < heap.length && heap[l].cost < heap[m].cost) m = l;
+      if (r < heap.length && heap[r].cost < heap[m].cost) m = r;
+      if (m === i) break;
+      [heap[m], heap[i]] = [heap[i], heap[m]];
+      i = m;
+    }
+  };
   const push = (s: number, cost: number) => {
     if (cost >= dist[s]) return;
     dist[s] = cost;
     heap.push({ s, cost });
+    siftUp(heap.length - 1);
+  };
+  const pop = () => {
+    if (!heap.length) return null;
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      siftDown(0);
+    }
+
+    return top;
   };
 
+  push(stateAt(startAt, 0), 0);
+
   while (heap.length) {
-    let best = 0;
-    for (let i = 1; i < heap.length; i += 1) {
-      if (heap[i].cost < heap[best].cost) best = i;
-    }
-    const { s, cost } = heap[best];
-    heap[best] = heap[heap.length - 1];
-    heap.pop();
+    const item = pop();
+    if (!item) break;
+    const { s, cost } = item;
     if (cost !== dist[s]) continue;
 
     const i = Math.floor(s / 3);
@@ -371,11 +524,11 @@ function pathCorners(start: Spot, goal: Spot, obstacles: Box[], pad: number,
       const path: Spot[] = [];
       let cur = s;
       while (cur >= 0) {
-        const node = Math.floor(cur / 3);
-        path.push(pts[node]);
+        path.push(pts[Math.floor(cur / 3)]);
         cur = prev[cur];
       }
       path.reverse();
+
       return path.slice(1, -1);
     }
 
@@ -384,11 +537,12 @@ function pathCorners(start: Spot, goal: Spot, obstacles: Box[], pad: number,
       const b = pts[j];
       const nextDir = Math.abs(a.y - b.y) < NEAR ? 1 : 2;
       const bend = dir !== 0 && dir !== nextDir ? BEND_COST : 0;
-      const next = stateAt(j, nextDir);
-      const nextCost = cost + len + bend;
-      if (nextCost < dist[next]) {
-        prev[next] = s;
-        push(next, nextCost);
+      const reverse = along ? against(a, b, along) * ALONG_COST : 0;
+      const state = stateAt(j, nextDir);
+      const nextCost = cost + len + bend + reverse;
+      if (nextCost < dist[state]) {
+        prev[state] = s;
+        push(state, nextCost);
       }
     }
   }
@@ -544,7 +698,9 @@ export type RouteOpts = {
   pinTo?: Seat;
   /** Keep this *side*, but let the seat along it float. What a flow
    *  relationship asks for: its ends read as in and out, so which wall they
-   *  leave by is the layer's convention rather than the path's preference. */
+   *  leave by is the layer's convention rather than the path's preference.
+   *  Matching sides (right→left, bottom→top) also bias the run to progress
+   *  with the layer rather than doubling back. */
   sideFrom?: Side;
   sideTo?: Side;
   /** Open-frame interior: keep the whole path inside. */
@@ -565,6 +721,7 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
   const bounds = opts.bounds;
   const inwardFrom = opts.inwardFrom ?? false;
   const inwardTo = opts.inwardTo ?? false;
+  const along = alongOf(opts.sideFrom, opts.sideTo);
 
   // Aim at the other end's port when pinned, else its centre — never the
   // centre of a huge frame when the interface sits on one wall.
@@ -596,14 +753,33 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
   ];
   const solids = [...obstacles, ...ends];
 
+  /** Score a stub-to-stub corner list the same way every phase does. */
+  const scoreOf = (corners: Spot[], start: Spot, goal: Spot,
+                   fs: Side, fa: number, ts: Side, ta: number) =>
+    bendsOf(corners, start, goal) * BEND_COST
+    + pathLen(corners, start, goal)
+    + (along ? againstOf(corners, start, goal, along) * ALONG_COST : 0)
+    - AIM_COST * Math.sign(sideScore(fromBox, fs, attach(toBox, ts, ta), inwardFrom))
+    - AIM_COST * Math.sign(sideScore(toBox, ts, attach(fromBox, fs, fa), inwardTo));
+
   /** The best legal path under a given set of constraints, or nothing if there
    *  is none. `budget` is how many sides each end may try — two that face the
-   *  other end, or all four when the easy answer has already failed. */
+   *  other end, or all four when the easy answer has already failed.
+   *
+   *  Two phases: every seat pair gets the cheap zero/one-bend try first.
+   *  Dijkstra only runs when no pair has a simple path — otherwise the first
+   *  blocked pair rebuilt a visibility graph over every card before a later
+   *  pair that was free to go straight ever got a look. Same answer: a one-bend
+   *  run always beats a skirt, and orthCorners is complete for zero and one. */
   const search = (within: Box | undefined, avoid: Box[], budget: number): Planned | null => {
     const fromTry = fromSides.slice(0, opts.pinFrom || opts.sideFrom ? 1 : budget);
     const toTry = toSides.slice(0, opts.pinTo || opts.sideTo ? 1 : budget);
-    let best: Planned | null = null;
-    let bestCost = Number.POSITIVE_INFINITY;
+
+    type Cand = {
+      fs: Side; fa: number; ts: Side; ta: number;
+      out: Spot; back: Spot; start: Spot; goal: Spot;
+    };
+    const cands: Cand[] = [];
 
     for (const fs of fromTry) {
       const fromAts = opts.pinFrom
@@ -617,40 +793,68 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
 
         for (const fa of fromAts) {
           for (const ta of toAts) {
-            const out = exitOf(fs, inwardFrom);
-            const back = exitOf(ts, inwardTo);
             const start = stubOf(fromBox, fs, fa, inwardFrom);
             const goal = stubOf(toBox, ts, ta, inwardTo);
-            // Stub must leave into the open layer, never through the frame wall.
             if (within && (!contained(within, start) || !contained(within, goal))) continue;
-
-            const found = pathCorners(start, goal, avoid, PAD, within);
-            const fallback = plain(attach(fromBox, fs, fa), out, attach(toBox, ts, ta), back);
-            const corners = found ?? (
-              pathInside(fallback, start, goal, within)
-              && !pathHits(fallback, start, goal, avoid, PAD, within)
-                ? fallback
-                : null
-            );
-            if (!corners || pathHits(corners, start, goal, avoid, PAD, within)) continue;
-
-            // Prefer exits aimed at the other end's actual seat — by their sign
-            // only. A side score is a distance, so charging it whole cancelled
-            // the length it was meant to break ties within, and the run that
-            // crossed the layer to the far wall won every time.
-            const cost = bendsOf(corners, start, goal) * BEND_COST
-              + pathLen(corners, start, goal)
-              - AIM_COST * Math.sign(sideScore(fromBox, fs, attach(toBox, ts, ta), inwardFrom))
-              - AIM_COST * Math.sign(sideScore(toBox, ts, attach(fromBox, fs, fa), inwardTo));
-
-            if (cost < bestCost) {
-              bestCost = cost;
-              best = { from: { side: fs, at: fa }, to: { side: ts, at: ta },
-                       corners, out, back };
-            }
+            cands.push({
+              fs, fa, ts, ta, start, goal,
+              out: exitOf(fs, inwardFrom),
+              back: exitOf(ts, inwardTo),
+            });
           }
         }
       }
+    }
+
+    let best: Planned | null = null;
+    let bestCost = Number.POSITIVE_INFINITY;
+
+    const consider = (c: Cand, corners: Spot[]) => {
+      if (pathHits(corners, c.start, c.goal, avoid, PAD, within)) return;
+      const cost = scoreOf(corners, c.start, c.goal, c.fs, c.fa, c.ts, c.ta);
+      if (cost >= bestCost) return;
+      bestCost = cost;
+      best = {
+        from: { side: c.fs, at: c.fa }, to: { side: c.ts, at: c.ta },
+        corners, out: c.out, back: c.back,
+      };
+    };
+
+    // Phase 1 — orthCorners only. Stop on a straight run; seat drift among
+    // them is not worth another pass.
+    for (const c of cands) {
+      const simple = orthCorners(c.start, c.goal, avoid, PAD, within, along);
+      if (!simple) continue;
+      consider(c, simple);
+      if (bestCost < BEND_COST) return best;
+    }
+    if (best) return best;
+
+    // Phase 2 — skirts. Only reached when every pair needs bends past one.
+    // One visibility graph for the layer; seat pairs only add their stubs.
+    // Preferred seat only: three-per-end rebuilt stub alignments nine times
+    // for a bend the aimed seat already found, and seat drift among skirts is
+    // not worth it once the cheap orth pass has already failed.
+    const skirt = prepareSkirt(avoid, PAD, within);
+    const seenSide = new Set<string>();
+    for (const c of cands) {
+      const key = `${c.fs}:${c.ts}`;
+      if (seenSide.has(key)) continue;
+      seenSide.add(key);
+      const found = skirtCorners(c.start, c.goal, skirt, along);
+      if (found) consider(c, found);
+    }
+    if (best) return best;
+
+    // Phase 3 — facing plain path when the graph finds nothing legal.
+    for (const c of cands) {
+      const fallback = plain(
+        attach(fromBox, c.fs, c.fa), c.out,
+        attach(toBox, c.ts, c.ta), c.back,
+      );
+      if (!pathInside(fallback, c.start, c.goal, within)) continue;
+      if (pathHits(fallback, c.start, c.goal, avoid, PAD, within)) continue;
+      consider(c, fallback);
     }
 
     return best;
@@ -665,7 +869,13 @@ export function route(fromBox: Box, toBox: Box, obstacles: Box[],
   // two ends, and a card hemmed in by its neighbours on a busy layer could
   // leave no legal path at all. In both cases the search returned nothing and
   // the canvas simply dropped the line.
-  return search(bounds, solids, bounds ? 4 : 2)   // tidy: inside the frame, around the cards
+  //
+  // Bounded search starts at budget 2 (facing sides). Escalating to four sides
+  // inside the frame before giving the frame up was the resize cost: each extra
+  // side×seat pair re-ran the visibility graph over every other card. Skirts
+  // also share one prepared graph per search, and only the preferred seat runs
+  // Dijkstra — the orth pass already tried every seat for free.
+  return search(bounds, solids, 2)                 // tidy: facing sides, inside the frame
     ?? search(undefined, solids, 4)                // give up the frame
     ?? search(undefined, ends, 4);                 // give up the cards, but never its own ends
 }

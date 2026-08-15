@@ -35,6 +35,9 @@ export type Context = {
   /** The layer being drawn. Null is the project itself. */
   view: string | null;
   picked: Picked;
+  /** True when the project in context is locked in the workspace. Writing
+   *  actions then refuse and offer unlock or fork — looking still works. */
+  locked?: boolean;
 };
 
 /** What an action needs, typed so that whoever is asking knows what it can
@@ -62,6 +65,13 @@ export type Effect = {
   focus?: Picked;
   /** One line for the strip. */
   say?: string;
+};
+
+/** A refusal: why it did not run, and — when the project is locked — the ways
+ *  through. Unlock and fork are workspace operations, not registry actions. */
+export type Refusal = {
+  refused: string;
+  offer?: ("unlock" | "fork")[];
 };
 
 export type Action = {
@@ -131,10 +141,25 @@ export function sayable(action: Action): boolean {
 }
 
 /** Run one. A refusal comes back as its reason so the caller can say it rather
- *  than guess, which is the difference between a no-op and an answer. */
-export function run(name: string, ctx: Context, args: Args = {}): Effect | { refused: string } {
+ *  than guess, which is the difference between a no-op and an answer.
+ *
+ *  A locked project refuses any writing outcome and offers unlock or fork —
+ *  before a more specific check, so the lock is the answer. Navigation still
+ *  runs: looking is not editing. */
+export function run(name: string, ctx: Context, args: Args = {}): Effect | Refusal {
   const action = held.get(name);
   if (!action) return { refused: `No action called "${name}".` };
+
+  if (ctx.locked) {
+    // run is pure — trial tells us whether this would write without applying.
+    const effect = action.run(ctx, args);
+    if (writes(effect)) {
+      return { refused: "This package is locked.", offer: ["unlock", "fork"] };
+    }
+    const wrong = action.check?.(ctx, args) ?? null;
+    if (wrong) return { refused: wrong };
+    return effect;
+  }
 
   const wrong = action.check?.(ctx, args) ?? null;
   if (wrong) return { refused: wrong };

@@ -2,20 +2,8 @@
 
 name: website
 
-# What this domain calls things. Chips and the object explorer use these
-# instead of the generic group/object/relation.
-terms:
-  group: Section
-  node: Page
-  relation: Link
-
-# The relation kinds this domain starts with. The list is editable in the
-# app; this is only where a new project begins.
-relations:
-  - links to
-  - redirects to
-  - embeds
-  - submits to
+# Starting relations live in packages/core/<name>.yaml. Words live in terms/.
+# workflows.ts bridges core into Domain.relations until A0.3 loads packages.
 
 prompts:
   add_root:

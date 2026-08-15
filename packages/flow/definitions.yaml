@@ -1,0 +1,30 @@
+# Directed relationship subtypes and the plain words for them.
+# Form is `directed` (RF.1 retired the old `flow` form). Item flow is a
+# field on an object flow, never its own definition — see definitions.md
+# under The SysML map. Formal `names` maps wait on A.11.
+
+definitions:
+  - id: def_control_flow
+    name: control flow
+    form: directed
+    body: Control passes from one action to the next.
+
+  - id: def_object_flow
+    name: object flow
+    form: directed
+    body: An object or token moves between actions.
+    fields:
+      - name: item
+        form: ref
+
+  - id: def_transition
+    name: transition
+    form: directed
+    body: A change of state.
+    fields:
+      - name: trigger
+        form: text
+      - name: guard
+        form: text
+      - name: effect
+        form: text

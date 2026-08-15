@@ -25,10 +25,10 @@ join them. Everything else describes one of the two.
 
 | Term | Means |
 |---|---|
-| **element** | anything the graph holds as an object: a block, a note, a group, a proxy, a figure. Placed, drawn, carries fields. Held in `graph.elements` |
+| **element** | anything the graph holds as an object: a block, a note, a group, a proxy. Placed, drawn, carries fields. Held in `graph.elements` |
 | **node** | the graph-theory word for an element. The same thing; `element` is the word the code uses |
 | **relationship / edge** | a join between **exactly two** elements. Not an element — it is placed by its ends, drawn as a line, and joins rather than sits. Anything about a *set* is a group |
-| **form** | **closed and the engine's.** Which of five an element is — `block`, `note`, `group`, `proxy`, `figure` — or which of two a relationship is: `line`, `directed`. It decides what draws a thing and which rules reach it. A form is earned when the engine must know something about placement or behaviour **and cannot tell from a field** |
+| **form** | **closed and the engine's.** Which of four an element is — `block`, `note`, `group`, `proxy` — or which of two a relationship is: `line`, `directed`. It decides what draws a thing and which rules reach it. A form is earned when the engine must know something about placement or behaviour **and cannot tell from a field**. `figure` was a fifth and was **retired**: nothing ever placed one, and ornament is a block with a shape |
 | **derived** | a fact the engine works out rather than being told: an **interface** from `side` being set, a **container** from holding blocks, a **reference** from a proxy at an end, a **tie** from a note at an end. Derived does not mean the engine is ignorant of it — only that nobody had to say it |
 | **type** | **open and the user's.** The definition a thing names. It subtypes **within** a form, never across one, which is what keeps engine rules off user data. Empty until somebody sets one |
 | **the module's word** | what a module calls its elementary block — `block`, and one day `activity`. A property of the **module**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored. Not called a *unit*, which is spoken for twice over — by layout, and by a `number` field's unit of measure |
@@ -114,8 +114,8 @@ named value carried by an element or a relationship, and never changes what cont
 | Term | Means |
 |---|---|
 | **layer** | a **cross-section of the tree at one block**: that block's immediate contents, seen from within. Not its whole subtree — descending a level is a different cross-section of the same branch. The layer is the current **scope** |
-| **layer view** *(planned)* | the **projection** of a layer: what that layer looks like once the rules and packages in scope are applied to it, rendered by one of the three base view modules. The layer is what is being looked at; the layer view is the looking. A layer is scoped to one or more **structures**, its own project's or an imported package's |
-| **projection surface** *(planned)* | what a view module must provide to show a layer at all — the frame or its equivalent, the viewport, the chrome, and the place a gesture asks a question. **Per module, never per definition**: a diagram has a frame and a camera, a table scrolls and has neither. Not one of the components, which configure the things *in* a layer |
+| **layer view** | the **projection** of a layer: what that layer looks like once the rules and packages in scope are applied to it, rendered by one of the six view modules. The layer is what is being looked at; the layer view is the looking. A layer is scoped to one or more **structures**, its own project's or an imported package's. Block, table and matrix surfaces mount; activity / sequence / state wait A.7–A.9 |
+| **projection surface** | what a view module must provide to show a layer at all — the frame or its equivalent, the viewport, the chrome, and the place a gesture asks a question. **Per module, never per definition**: a diagram has a frame and a camera, a table scrolls and has neither. Not one of the components, which configure the things *in* a layer. Block diagram surface live under `modules/view/diagram/` |
 | **scope** | the layer being drawn. Set by clicking in the explorer |
 | **context** | what is selected within the layer. Set by clicking on the canvas |
 | **frame** | the border of the open layer, seen from within. The diagram module's answer to the projection surface; a table has no frame |
@@ -144,13 +144,15 @@ named value carried by an element or a relationship, and never changes what cont
 | **unit** | anything laid out as a whole: a card, a group, or a note. Layout's word; a `number` field's `unit` is its unit of measure, and the two never meet |
 | **cluster** | units drawn together by relationships, arranged as one region *(backlog)* |
 | **arrangement** | a one-time **action** that lays the layer out and writes down where everything landed: `grid`, `radial`, `across`, `down`. Never a mode, so never "current" |
-| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a flow relationship takes; says nothing about where cards go. **(planned)** Also the fallback the implied order is read along |
+| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a directed relationship takes, and biases **rank, placement and routing** along that reading. Port direction stays decorative. **(planned)** Also the fallback the implied order is read along |
 | **diagram** | **what a layer looks like drawn on the canvas** — the picture, not a module. Every view module that draws on the canvas produces one |
 | **structure project** *(planned)* | a project whose blocks are the truth: parts, fields and the relations between them. Its layer views are **block**, **table** and **matrix**, block being the default |
 | **behavior project** *(planned)* | a project that scopes to one or more structures and describes what happens over them — activities, actions and states as its own blocks, holding **refs** to the participants. An overlay, never a second copy. Its layer views are **activity**, **sequence** and **state**, activity being the default |
-| **seeding** *(planned)* | filling a new behavior project with one behavior block per **container** in the structure it scopes to, each holding refs to that container's children and the interactions implied between them. **One step, doing the whole job**, and declinable; it happens once, and the behavior tree is its own from then on |
-| **promotion** *(planned)* | turning a **derived** state machine into real state blocks, which is what buys nesting and entry/exit behaviour. **Replaces, never copies**: the derived reading is the seed and then it is gone, and the value naming a resulting state becomes a **ref** to the state block, so activity and machine point at one object and cannot disagree |
-| **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block |
+| **inference** *(planned)* | turning a selection into one **behavior block** — the `infer` action. The selection is any cross-section: blocks, branches, whole projects, across as many as you like. **One-way, one-time and deterministic over the selection**; nothing re-syncs, and **re-inferring makes a new block** rather than touching an existing one. It **composes** — a selection of actions infers a state block the way structure infers an activity. Replaces *seeding* and *promotion*, both retired. **Not called a projection**, which already means a layer rendered through a module. Rules in [behaviors.md](behaviors.md) |
+| **writing home** *(planned)* | an inference modifying the structure blocks it acts on, through the ref, in their own project. **Automatic**, announced by the strip the first time. Only facts that **survive deleting the behavior** are written, and only ones the structure **stated** — an interface a `flow` implies, never something guessed from position. The interaction itself is never written |
+| **participation** *(planned)* | which behaviors a structure block takes part in. **Derived** — asked of the behavior projects in scope, never stored as a back-reference on the block |
+| **lane** *(planned)* | a participant's column or band in a behavior view. **Derived from the ref** an action holds, so every inferred action has exactly one and lanes always exist. Not from a `performs` relationship, which nobody would draw, and not from connectivity, which has no reliable granularity |
+| **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block. A behavior block's **definition** is `action` or `state`; a **container** one is called an *activity* and a leaf one an *action*, which is the SysML mapping and not a distinction the engine stores |
 | **explicit order** *(planned)* | sequence stated by a **directed relation** between two blocks. Read first, and it wins |
 | **implied order** *(planned)* | sequence read from where blocks sit along the layer's **axis** — left to right, or top to bottom. The fallback where no directed relation says otherwise, so laying things out in a row states an order without drawing an arrow |
 | **resting layout** | what a render runs: placed elements stay, unplaced ones fill around them |
@@ -172,20 +174,23 @@ named value carried by an element or a relationship, and never changes what cont
 | **derived** | worked out rather than stored — seats, routes, boundaries, containment, a group's member list. See *the graph* above for the forms it decides |
 
 
-## The workspace *(planned)*
+## The workspace
 
-Nothing here is built — see [design.md](design.md) under *Where this is going*.
+The workspace module holds open projects as a project of their own. Explorer listing / context
+switch (S4.5) and workspace / project export-import at schema `1.2` (S4.6) are live. Locked
+packages refuse writes and the strip offers unlock / fork (S4.8, seeded lock proven). See
+[plan.md](plan.md). Vocabulary in [design.md](design.md) under *Where this is going*.
 
 | Term | Means |
 |---|---|
 | **workspace** | the projects currently loaded, and their order. Held apart from all of them: neither project data, nor a display preference, nor what the terminal has learned |
 | **module** | **engine code.** An *open* module publishes components; a closed one simply does its job. Layout, routing, rules, constraints and each view type are modules |
 | **component** | a capability an open module offers, switched on and shaped by a definition. Configured **per definition, never per element** |
-| **view module** | the engine code behind one way of presenting: `diagram`, `table` or `matrix`. Three, and closed |
+| **view module** | the engine code behind one way of presenting a layer. **Six**, and closed: `block`, `table`, `matrix` for a structure; `activity`, `sequence`, `state` for a behavior. `diagram` names no module — it is what a layer looks like drawn |
 | **structure** | ordinary description, never a classifier: a project that owns its objects. What things there are, and how they are composed and connected |
 | **behavior** | the same, for a project that owns its actions and holds proxies of the participants: what happens, in what order, under what conditions |
 | **view** | a project holding **diagrams**, arranged in folders of its own. Nothing about it ever enters the project it reads |
-| **diagram** | one presentation: a block whose definition names a view module, holding proxies of what it shows. A table and a matrix are the same thing drawn differently |
+| **diagram** | one presentation: a block whose definition names a view module, holding proxies of what it shows. The six modules draw the same objects differently |
 | **package** | a project whose elements are **definitions**. Data: it costs no code, and it must be useful with portable presentation alone |
 | **extends** | the definition another refines, by reference. **Subtyping, never overriding** — a package's own definitions are never altered. One parent; fields union, components merge per key, and a rule naming a definition reaches everything below it |
 | **translator** | code that reads a project and emits an **artifact** — source, a drawing, a standard's file. One way, and it never writes back |
@@ -197,7 +202,7 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **page** | branding, navigation and the workspace. The shell everything else sits in |
 | **envelope** | what a file travels inside: `{ schema, id, graph, meta }`. **The base is what cannot be ignored** — drop any of it and the file cannot be read, resolved or drawn correctly |
 | **meta** | the free-form, unversioned part of an envelope. **Safely ignorable**: if dropping it changes what the project *is*, it does not belong here. Never display preferences, never the log |
-| **schema** | which shape a file is, as `"1.1"`. Major must match; a higher minor is readable. The only field that changes how a file is read |
+| **schema** | which shape a file is, as `"1.2"`. Major must match; a higher minor is readable. The only field that changes how a file is read |
 | **checkpoint** | the graph cached at one step, so a fold need not replay from zero. Internal — nobody asks for one. Also what an imported file becomes. Carries the count of steps before it, which is what makes `version` survive truncation |
 | **steps** | how much work is in a project: every step ever taken, carried in `meta`. `checkpoint.at` holds the count before it and the rest is derived, so nothing tallies while you work. **Not a version** — it orders nothing across two copies that diverged |
 | **project id** | which project a file is, minted once and kept for life. What a cross-project reference points at, so renaming a project or its file breaks nothing |
@@ -208,7 +213,6 @@ Nothing here is built — see [design.md](design.md) under *Where this is going*
 | **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }`, both by id, so renaming or moving either flows through untouched. Always live; to fix a version, bundle |
 | **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
 | **action surface** | the actions the engine publishes as data — name, arguments, when each applies, and the mutations each returns. **An action returns mutations rather than applying them**, which is what makes it rankable, hostable and testable. The seam both the page and the terminal work against |
-| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and a module draws it. Never in the explorer, and **takes no interfaces**. *(planned)* For **ornament a package ships**: an activity's control nodes are derived rather than placed, so nothing in the core makes one |
 
 **Three words are deliberately absent.** *Namespace*, because every project already scopes its own
 ids and a property shared by all of them is not a sort of thing. *Kind*, because what a project is
@@ -221,9 +225,16 @@ diagram. **`block` names the element throughout** — an activity diagram is bui
 so the qualifier carries the meaning.
 
 
-## Rules, constraints and components *(planned)*
+## Rules, constraints and components
 
-Nothing here is built — see [design.md](design.md) under *Constraints and rules*.
+The **constraints** component is published (`required`, `constraintsOf`); **card**, **style**
+(`styleOf` / `lookOf`), **view** (six-module registry) and **rules** (`ends` / `holds` /
+`degree` / `match`, `rulesOf`, `among` via `isa`) are published too. **Value-missing evaluation
+and tray/strip reporting are live** (S5.3); the module **`validate` hook and `findings` are live**
+(S5.4) — no shipped module supplies a real hook yet, and Contents still surfaces constraint/rule
+notes only. The block diagram draws from card / `lookOf` (S2.6b); table and matrix mount when
+`view.module` names them (A.1 / A.2, suite). Activity / sequence / state wait A.7–A.9. See
+[design.md](design.md) under *Constraints and rules*.
 
 **Declared on a definition, holding over every usage of it**, and reaching that subtype's fields,
 its interfaces and the relationships at it. **A rule naming a definition means it or anything
@@ -249,11 +260,13 @@ code a module supplies, written by somebody who has already accepted writing cod
 |---|---|
 | **`validate` hook** | a module's own check, in code, for what the five kinds cannot express. The deliberate escape hatch, and deliberately not a language |
 | **`components`** | the field on a definition holding one entry per component, keyed by component name. **The one place the schema grows** — a new capability adds a key rather than a field |
-| **`card`** | the component drawing a usage: which **card layout**, its **shape**, where its label sits, and `shows` |
-| **`style`** | the component colouring a usage: a **style set** by name, over the portable typed fields that render without one |
-| **`view`** | the component on a diagram's definition: which **view module**, and its arrangement |
+| **`card`** | the component drawing a usage: which **card layout**, its **shape**, where its label sits, and `shows`. Published; the canvas does not yet draw from it |
+| **`constraints`** | the component declaring checks on a usage in itself. Published with `required`; evaluation and tray reporting are live |
+| **`style`** | the component colouring a usage: a **style set** by name (`set`), over the portable typed fields that render without one. Published; `styleOf` / `lookOf` resolve it. The canvas does not yet draw from it |
+| **`view`** | the component on a diagram's definition: which **view module**, and its arrangement. Published with the six-module registry; the canvas does not yet read it |
+| **`rules`** | the component declaring how usages interact — `ends`, `holds`, `degree`, `match`. Published; `among` walks `isa`. Evaluation and tray reporting are live |
 | **card layout** | one of the standard ways a card is composed — `name`, `type` (label and subtype chip), `fields`, `compartments`, `icon`, `shape` (a shape drawn in the box, label beneath). **Open**: extended by a code change, additively |
-| **shape** | what is drawn inside a card's box: `rect`, `round`, `diamond`, `ellipse`, `hex`. The engine always places a **rectangle** — every seat, route and port reads the box — so a shape changes what is drawn and never where anything attaches |
+| **shape** | what is drawn inside a card's box: `rect`, `round`, `diamond`, `ellipse`, `hex`. The engine always places a **rectangle** — every seat, route and port reads the box — so a shape changes what is drawn and never where anything attaches. `shaped` / `outline` compute it; the canvas does not stroke it yet |
 | **label placement** | `inside`, `below`, or `none`. A diamond's middle is narrow, so its text usually sits under it |
 | **`shows`** | which of a usage's fields draw on its card, in that order. Absent draws none: a card with eight fields on it is unreadable |
 | **`names`** | what other vocabularies call a definition, keyed by vocabulary. `name` is what the user reads and types; these are what an export writes |
@@ -302,11 +315,12 @@ already made of. Nothing in the right column is a special case.
 | association / composition | **relationship** + definition | direction and ends from the definition |
 | requirement | **block** + `id` and `text` fields | no new anything |
 | satisfy / verify / derive | **relationship** + definition | dashed, hollow head, from the definition |
-| action | **block** in a behavior project | |
+| activity | **container block**, definition `action` | a behavior block that holds others; the word is the mapping, not a stored distinction |
+| action | **block** in a behavior project, definition `action` | |
 | control node (fork, join, decision, merge, initial, final) | **derived** | counted from the relationships and their guards; the module draws one and nothing stores it |
 | object node | **interface** or **block**, by where it sits | |
 | control flow / object flow | **relationship**, form `flow` | |
-| state | **block** in a behavior project | doing against being is the vocabulary, not the shape |
+| state | **block** in a behavior project, definition `state` | doing against being is the vocabulary, not the shape |
 | transition | **relationship**, form `flow` | trigger, guard and effect are its fields |
 | region / composite state | **container**, or a **group** | nesting where structural, boundary where not |
 | swimlane / partition | **group** | band shape is the module's rendering |
@@ -315,7 +329,7 @@ already made of. Nothing in the right column is a special case.
 | combined fragment (`alt`, `par`, `loop`) | decision, fork, cycle | already in the flow graph |
 | trace assertion (`neg`, `assert`) | **group** with a definition | a claim about a set, so not a relationship |
 | package | **container**, or a **group** | |
-| actor | **figure** | |
+| actor | **block** + definition | a shape and an icon on the card; nothing structural |
 
 **What does not translate**, and is accepted: inline combined-fragment notation for trace
 assertions — the claim survives as a typed group, the enclosing bracket does not — and lifeline

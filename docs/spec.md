@@ -20,17 +20,16 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 
 - **`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
   elements, relationships and fields alike.
-- `form` says which of five it is: **block** (the base and the default), **note**, **group**,
-  **proxy**, or **figure**. It decides what draws an element and which rules reach it.
-- **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
-  the explorer, and what it *is* comes from its `type`. In the closed set; nothing makes one until a
-  module does, and **(planned)** nothing in the core ever will: an activity's fork, decision,
-  initial, final, merge and join are all **derived from counting relationships and guards**, so a
-  module draws them and the graph stores none. What is left for a figure is ornament a package
-  ships — a legacy symbol that means nothing to the engine.
-- **(planned) A figure takes no interfaces**, which is what earns it a form: only a block and the
-  things derived from it do. The action that makes one refuses on a figure, and says why. This is
-  the first rule the engine enforces rather than advises.
+- `form` says which of four it is: **block** (the base and the default), **note**, **group**, or
+  **proxy**. It decides what draws an element and which rules reach it.
+- **`figure` was a fifth form and is retired (planned, SC.5)**: nothing in the core ever placed one.
+  An activity's fork, decision, initial, final, merge and join are **derived from counting
+  relationships and guards**, so a module draws them and the graph stores none; and the ornament a
+  package ships is a **block whose definition carries a shape and a size** — `SHAPES` and the
+  definition's `size` already say every one of them, a fork bar being a `rect` sized thin. A form
+  is earned by telling the engine something about placement, and ornament told it nothing.
+- **Which definitions take no interface is a `degree` constraint** the `rules` component carries,
+  not a form and not a branch in the `interface` action.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
   never across one. **Empty until somebody sets one.**
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
@@ -158,7 +157,7 @@ the project.
   subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
   — and how they draw.
 - **One record serves elements and relationships alike.** The `form` it subtypes decides what it
-  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `line`/`directed`
+  applies to: `block`/`note`/`group`/`proxy` for an element, `line`/`directed`
   for a relationship. A project's relation vocabulary is just the definitions of relationship form.
 - **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
   flow's item, or a nested data structure.
@@ -200,26 +199,32 @@ the project.
   - `size` stays outside it: `layout` reads it for every element on every pass, and reaching into
     component configuration from the engine would invert the dependency.
 
-- **The components an open module publishes**, and what each key holds. **(planned)** — all but
-  `card`, and `card` is declared and validated rather than drawn from:
+- **The components an open module publishes**, and what each key holds. **`card`**, **`constraints`**,
+  **`style`**, **`view`** and **`rules`** are published and validated. The diagram projection surface
+  draws from card and style (S2.6 / S2.6b); rules evaluate and advise in the tray (S5.3):
 
   | | Holds |
   |---|---|
   | `card` | `layout` — one of `name`, `type`, `fields`, `compartments`, `icon`, `shape`; `shape` — one of `rect`, `round`, `diamond`, `ellipse`, `hex`; `label` — `inside`, `below` or `none`; and `shows`, which fields draw on it and in what order |
-  | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one |
+  | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one. Resolved with `styleOf` / `lookOf` |
   | `constraints` | `required` |
-  | `rules` | `ends`, `holds`, `degree`, `match` |
-  | `view` | on a diagram's definition: which view module, and its arrangement |
+  | `rules` | `ends`, `holds`, `degree`, `match`. `among` walks `isa` so a named definition means it or anything below it |
+  | `view` | on a diagram's definition: which view module, and its arrangement. Six modules registered; the block diagram surface lives under `modules/view/diagram/` |
 
   Each is defined in [definitions.md](definitions.md) under *Rules, constraints and components*.
 
   - **The plain card is the default written down** — `type` layout, `rect`, label inside, showing
-    no fields — which is today's card said as one configuration among others. **(planned)** The
-    canvas still draws it hard-wired; reading the configuration is the diagram's, and is what
-    tests whether the boundary holds.
+    no fields — which is today's card said as one configuration among others. The diagram reads
+    `PLAIN` and strokes shapes from `card` / `lookOf` (S2.6b). `shaped` and `outline` on the card
+    module compute a shape inside the engine's box. Counting what to draw as a control node waits
+    on A.7.
+  - **Style is drawn from** via `lookOf` on the diagram; table and matrix mount when `view.module`
+    names them (A.1 / A.2, suite). Activity / sequence / state still wait A.7–A.9.
   - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
     refused. That is the opposite of an unrecognised *component*, which is left alone: one is a
     misspelling this build can see, the other may be a newer build's.
+  - **Presets** — `ship` / `presets` / `preset` register a named set of component choices. The
+    registry is empty of concrete presets until a package or build ships one.
 
   - **The engine always places a rectangle.** Every seat, route and interface reads the box, so a
     shape changes what is **drawn** and never where anything attaches. A line meeting the box near
@@ -229,48 +234,60 @@ the project.
     the ops and the actions are closed. Confusing the two is what turns an engine into a plugin
     host.
 
-- **(planned) A constraint bounds a thing in itself; a rule governs how things interact.** Both are
+- **A constraint bounds a thing in itself; a rule governs how things interact.** Both are
   declared on a definition and hold over every usage of it, reaching that subtype's fields, its
   interfaces and the relationships at it. **A rule naming a definition reaches everything below
-  it.**
-- **(planned) They advise while modelling and refuse only at translation.** A violation is a note
-  in the tray, never a refused change: a model is legitimately unfinished. A **translator** asks
-  the same checks as it emits, and declines to write a non-compliant file.
-- **(planned) What the five cannot say is a module's `validate` hook**, in code. There is no rule
-  language, and local checks certify wiring rather than a whole model — whether every requirement
-  is satisfied is a global walk, which is a translator's to make.
+  it** (`among` via `isa`). The **constraints** component publishes `required` and resolves with
+  `constraintsOf`; the **rules** component publishes `ends`, `holds`, `degree` and `match` and
+  resolves with `rulesOf`. Value-missing evaluation and tray/strip reporting are live (S5.3).
+- **They advise while modelling and refuse only at translation.** A violation is a note in the
+  tray (and the strip on select), never a refused change: a model is legitimately unfinished. A
+  **translator** asks the same checks as it emits, and declines to write a non-compliant file.
+- **What the five cannot say is a module's `validate` hook**, in code. `publish` registers it;
+  `findings(graph, id)` collects every published hook's words about one usage — advise only. There
+  is no rule language, and local checks certify wiring rather than a whole model — whether every
+  requirement is satisfied is a global walk, which is a translator's to make. No shipped module
+  supplies a real hook yet; the Contents tray still surfaces constraint/rule notes only.
 - A definition may **`extend`** one other, by reference — usually one a package ships. **One
   parent**, cycles stop, and a parent that is not loaded ends the chain with the subtype standing
   on its own declarations. `isa` walks it, which is how a rule reaches every subtype.
-- **(planned)** Resolving one: fields union with the subtype's winning by name, and `components`
-  merge per key, a key it does not mention inherited whole. Today a subtype's own declarations are
-  read and the chain is walked only to answer *is it one of these*.
-- **(planned) Extension is subtyping, never overriding.** A package's definitions are never
-  altered; refining one means making a new definition that *is* it.
-- **(planned) A rule naming a definition means it or anything below it.** Without that, an imported
+- **Resolving one**: `resolved()` unions fields with the subtype's winning by name, and merges
+  `components` per key — a key it does not mention is inherited whole. The view is cached per
+  fold. Component resolvers (`cardOf`, `styleOf`, `rulesOf`, …) still read the leaf definition
+  alone; wiring them to `resolved()` is parked.
+- **Extension is subtyping, never overriding.** A package's definitions are never altered;
+  refining one means making a new definition that *is* it.
+- **A rule naming a definition means it or anything below it.** Without that, an imported
   standard's rules would reach only its own definitions and nothing anybody models.
-- **(planned)** A project draws definitions from a **list of packages, in the order imported**.
-  **Nothing shadows**: every reference is a path, so two packages naming a thing alike are two
-  different definitions and importing one can never change what an existing element means.
-- **(planned) Two definitions loaded under one name are shown with their packages**, and import
+- Shipped packages load as graphs under stable `pkg_*` ids. **Nothing shadows**: every reference
+  is a path, so two packages naming a thing alike are two different definitions and importing one
+  can never change what an existing element means. Definitions are addressed by path
+  (`defOf` / `scoped`); nothing is copied into a consumer's `defs`.
+- **(planned)** A project draws definitions from a **list of packages, in the order imported** —
+  that list is D.2 (`vocabulary`). **Blocked** on the terminal freeze and the A0.2 seeding bridge
+  (needs Clay).
+- **Two definitions loaded under one name are shown with their packages**, and import
   order decides which is offered first. Ambiguity in a picker is not shadowing — neither is
   hidden — and the answer to it is presentation, not resolution.
-- **(planned) A package resists editing.** Changing one is refused with the reason, and the way
-  through is deliberate: **unlock** it, or **fork** it and change the copy. A fork takes a new
-  project id, so anything pointing at the original keeps pointing there rather than quietly
-  following the copy.
-- **(planned) Locked is the workspace's word, not the file's.** The same project is a package you
+- **A package resists editing.** Changing one is refused with the reason, and the strip offers
+  the way through: **unlock** it, or **fork** it and change the copy (S4.8, seeded lock proven).
+  A fork takes a new project id, so anything pointing at the original keeps pointing there rather
+  than quietly following the copy. Unlock and fork are workspace operations, not registry actions.
+- **Locked is the workspace's word, not the file's.** The same project is a package you
   are using or one you are writing depending on which you are doing, so nothing in it says.
 - **A reference reaching another project is written as a path**, `proj_a9f/def_pump` — the
   project, a slash, then the id inside it. An id alone means this project, so every reference
   written so far still reads. One convention serves all three places one is held: a proxy's `of`,
   an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
   ambiguous, and a reader splits on the first one or does not have to split at all. `refTo` and
-  `refAt` are the two ends of it. **(planned)** Nothing writes a path yet: that is the workspace,
-  which is what makes another project reachable.
-- **(planned)** A **package** is a set of definitions somebody ships — plain names, formal names,
-  fields, presentation and mappings. It is data, adds no code, and **maps names and presentation
-  but never structure**; a notation needing structural change is a module instead. See
+  `refAt` are the two ends of it. The workspace admits another project (and a shipped package)
+  under that path; **(planned)** a project's own `vocabulary` list choosing which packages it
+  draws on is D.2.
+- **A package** is a set of definitions somebody ships — plain names, formal names, fields,
+  presentation and mappings. It is data, adds no code, and **maps names and presentation but never
+  structure**; a notation needing structural change is a module instead. **Shipped**:
+  `packages/requirements/` (requirement + five relationships), `packages/flow/` (control /
+  object / transition) and `packages/parametrics/` (constraint with size and style). See
   [design.md](design.md) under *Packages and modules*.
 - **A definition subtypes within a form, never across one.** Nothing a user defines can change
   what a thing *is*.
@@ -304,8 +321,8 @@ the project.
 
 **Files**
 
-- The log lives in the browser under one key. **Importing a file replaces the session and is saved
-  from then on** — a file is a snapshot, the browser is the working copy.
+- The log lives in the browser under a **key per project**. **Importing a file replaces the session
+  and is saved from then on** — a file is a snapshot, the browser is the working copy.
 - **An export is the graph, not the log.** `{ schema, id, graph, meta }`, pretty-printed
   JSON. Its size follows the model rather than how long somebody worked, and its diff shows the
   elements and relationships that changed rather than the actions that changed them.
@@ -315,13 +332,20 @@ the project.
 - **A project carries an `id`**, minted once and kept for life. It is what a cross-project
   reference points at, so renaming a project — or its file — breaks nothing.
 - **The suggested filename follows the project's name**, so the two stop drifting apart.
+- **On Chromium, export can bind a live file handle** via the File System Access API; when the
+  picker is refused or unavailable, the ordinary download path is the fallback. The header can
+  say when the bound file has changed underneath (reopen takes the disk copy). Live bind+drift
+  is landed in code; the download fallback is what has been driven.
+- **A rendered SVG of the open layer** can be produced by `svgOf` on the diagram module (F.3
+  renderer, suite). **(planned)** Wiring that markup into a download beside the source export
+  is still open.
 - **Nothing still at its default is written.** No nulls, no empty lists, no colour every card
   already has — a file the size of the choices in it.
 - **The base is what cannot be ignored**, and everything else is `meta`.
 
   | | Says |
   |---|---|
-  | `schema` | which shape the file is — `"1.1"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
+  | `schema` | which shape the file is — `"1.2"`. **Major must match; a higher minor is readable**, so a reader that knows 1.x opens a 1.3 file and skips what it does not recognise |
   | `id` | which project this is, for life. Cross-project references resolve against it |
   | `graph` | the content |
   | `meta` | free-form, unversioned, **safely ignorable**. Absent when empty |
@@ -353,7 +377,7 @@ the project.
     move a record, which is what a structural change should look like.
   - Relationships sort by source, then target, which clusters everything leaving a block and never
     moves, since neither key changes.
-- **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `figure_`, `edge_`,
+- **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `edge_`,
   `def_`, `step_`, `proj_`. A name is never part of an id — it would go stale on a rename or force
   the id to be rewritten everywhere. Older `n_`/`e_`/`s_` ids stay valid; ids are opaque and
   nothing migrates.
@@ -367,18 +391,24 @@ the project.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
   saved — export` — and the button exports. The session carries on; only persistence has stopped.
 - Display preferences are outside the project: no history, no export.
-- **(planned)** Storage is keyed, **one entry per project**, the workspace included — it is a
-  project like any other.
+- Storage is keyed, **one entry per project** — `mndflow.steps.<id>.v1`. A legacy
+  `mndflow.steps.v1` migrates once into the session project's slot. Workspace state sits on its
+  own key (`mndflow.workspace.v1`), apart from every graph. `useProject(projectId)` loads and saves
+  that project's key; switching id clears the view; import adopts the file's project id. The
+  explorer lists every open project as a root and click-switches context (S4.5).
   - **A key appears when a project is first changed, not when it is opened.** A checkpoint is not
     something anybody did, so an imported project nobody has touched is stored by nothing and
     costs nothing.
   - **When storage fills, the projects being worked in keep their logs and the rest are
-    checkpointed** — history for the untouched, which is the cheapest thing to give up, and the
-    strip says so. That is a different message from the one that means nothing is being saved at
-    all.
-  - **The workspace keeps its own list of what has been imported**, which is what an untouched
-    project is remembered by when it has no key of its own.
-  - Today storage holds exactly one, and the code assumes it.
+    checkpointed** — history for the untouched, which is the cheapest thing to give up. The store
+    exposes `watchPressure` / `pressureNote` for a distinct advisory. **(planned)** The strip is
+    not yet subscribed to that API.
+  - **The workspace keeps its own list of what has been imported** (`Held.projects` on
+    `mndflow.workspace.v1`), which is what an untouched project is remembered by when it has no
+    key of its own. `admit` places a proxy of another project's root and appends that id; `folder`
+    mints an ordinary block for filing; proxying the workspace itself is refused. Explorer listing
+    and context switch are live (S4.5). Workspace `⤓` and project `↧` export/import at schema
+    `1.2` (S4.6).
 
 **Tests** — one file per module, beside the module, so a module and its test move together. One
 integration test in `tests/` for the whole lifecycle. `npm test` at the root.
@@ -391,8 +421,11 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 
 ## Action surface
 
-*The registry is built — `actions/index.ts`, with scope, `check`, `sayable` and `writes`.* **(planned)
-— every action in it.** All 52 are still closures on the `project` hook, and S1.2–S1.7 move them.
+*The registry is built — `actions/index.ts`, with scope, `check`, `sayable` and `writes`. Element,
+edge, group, field, layer and adjustment actions are registered in `actions/*.ts` and **live
+through `act.*` wrappers** generated from the registry (S1.6). Queries sit off `act`. Old closure
+names remain as aliases. **`NameField` taken-name refusals reach the strip** (S1.7 partial).
+**(planned)** Canvas prompt clash still silent.*
 
 Everything that changes a project is a **record**, not a function somebody has to know about. One
 registry, read by every input method: gestures, the contents tray, and later the terminal.
@@ -424,7 +457,8 @@ registry, read by every input method: gestures, the contents tray, and later the
   are worth learning, like the header's; a list built from the selection has no positions to keep,
   so an entry that cannot run is only noise.
 - **An action refuses in words**, and the refusal goes to the strip like everything else the app
-  says. A name already taken, a node moved inside itself, a second proxy for the same block.
+  says. A name already taken, a node moved inside itself, a second proxy for the same block. A
+  write against a locked package refuses with the reason and offers **unlock** or **fork** (S4.8).
 - **One step per action**, whatever it took to do it — a card dropped in a group moved and joined,
   and undo takes back both.
 
@@ -445,18 +479,22 @@ registry, read by every input method: gestures, the contents tray, and later the
 machines and sequence were each walked against the surface and not one needed an action to *render*
 or to *edit* — a module is a vocabulary, renderers, a layout law and a gesture map.
 
-**(planned) Behavior adds two, and they are the engine's rather than a module's**, because both
-change a project wholesale and neither is about drawing: **`scope`**, which points a behavior
-project at one or more structures and seeds it, and **`promote`**, which turns a derived state
-machine into blocks. Both are sayable, both write mutations, and both are on the one registry like
-everything else.
+**(planned) Behavior adds one, and it is the engine's rather than a module's**, because it changes a
+project wholesale and is not about drawing: **`infer`**, which turns a selection of structure into
+one behavior block — or a selection of actions into a state block, since it composes. Sayable, writes
+mutations, and on the one registry like everything else. It absorbed the two the behaviour walk first
+proposed, `scope` and `promote`, both retired before they were built.
 
 **Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
 
 
 ## Views
 
-*(planned) — the whole section. Today there is one view, written into the canvas.*
+*The **block** diagram's projection surface lives under `modules/view/diagram/` — frame, crumbs,
+prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). `Canvas.tsx` still
+hosts. **Table** and **matrix** modules mount when a diagram's `view.module` names them (A.1 /
+A.2, suite). Activity / sequence / state still wait A.7–A.9. The rest of this section is still
+the target for multi-view work.*
 
 **A view is a project holding diagrams.** Its own tree is folders and diagrams, so a view can be
 organised by behaviour, by requirement, by function — whatever the work is about. It has its own
@@ -518,7 +556,7 @@ components, and nothing else:
 
 **What a view module provides** is the other half, and it is the module's rather than any
 definition's — the **projection surface**. A layer is the current scope; a **layer view** is that
-layer projected through the rules and packages in scope and rendered by one of the three modules.
+layer projected through the rules and packages in scope and rendered by one of the six modules.
 
 | | Is |
 |---|---|
@@ -535,8 +573,8 @@ layer projected through the rules and packages in scope and rendered by one of t
   indistinguishable from another, and what lets two diagrams bind one action to different gestures.
 - **An unregistered `type` falls back to the engine's card.** A diagram declares what it draws
   differently, not everything it draws — so a half-built one is usable.
-- **A `figure` has no fallback**: the engine places it and never draws it, so a diagram that offers a
-  figure type must render it. Its size comes from the definition.
+- **A definition drawn as ornament is a block with a `shape` and a `size`**, so it falls back to the
+  engine's card like anything else rather than needing a module to render it.
 - **A layout law may decline to place**, and then the layer arranges as it does today — stored
   positions held, everything else filled in around them.
 - **A diagram that accepts no adjustments** is one where the engine owns every position. Sequence
@@ -553,19 +591,52 @@ layer projected through the rules and packages in scope and rendered by one of t
 **Which view you have open is display state.** The view itself is not: it is a graph with a log,
 and making one is an ordinary change.
 
+### Behavior *(planned — A.7)*
+
+*The rules in full are [behaviors.md](behaviors.md); why they are those rules is [design.md](design.md)
+under **Structure and behavior**. Only what the surface does is here.*
+
+- **A behavior is an overlay; the structure is the truth.** A behavior project holds **refs** to the
+  participants, never parts, so an object block never appears in a behavior tree.
+- **`infer` is how one comes to exist.** A selection — blocks, branches, whole projects, across as
+  many as it reaches — becomes **one behavior block**, in a named behavior project or a new one.
+  One-way, one-time and deterministic; **re-inferring makes a new block** and never edits an
+  existing one.
+- **It composes**: a selection of actions infers a `state` block the way structure infers an
+  `action`.
+- **A behavior block is a block**, and its definition is `action` or `state`. **A container is an
+  activity, a leaf is an action** — the SysML mapping, not a stored distinction. Right-click makes
+  whichever the **module in scope** declares, so creating one is the same fluid gesture as creating
+  a structure block.
+- **Order is read down four tiers** — a `flow` subtype, then any directed relationship, then
+  position along the axis, then adjacency. **Inferred order draws dimmed**, as a derived chip does,
+  so a guess never reads as a statement.
+- **An action's label is derived and dimmed** — the module's verb and the participant's name, `do
+  Pump`. Typing over it stores a real name; nothing transforms the noun.
+- **Lanes come from the refs**, one per participant, so they always exist. A structure group infers
+  to an ordinary group, not a lane. Past **N** actions the inference cuts higher in the tree and a
+  container becomes one action; `N` is `view` configuration, default **5**.
+- **It writes home automatically, and only what the structure stated.** Interfaces a `flow` implies
+  are written to the participants' own projects through the ref; anything guessed from position or
+  adjacency writes nothing. The strip says so the first time and not after.
+- **Participation is derived**, asked of the behavior projects in scope. No back-reference is stored
+  on a structure block, so a structure project opened alone reads clean.
+- **Nothing is derived that somebody edits.** Control nodes, messages and lanes are counted and
+  drawn; states are blocks, because people name and nest them.
+
 
 ## Shell
 
 - One page: header, terminal rail, then explorer beside the working area.
 - Header reads `mndflow [project]` — the project's own name, which is root's label.
-- **(planned)** With several projects open, the header names the one **in context** — the project
+- With several projects open, the header names the one **in context** — the project
   the selected explorer row belongs to — and the explorer lists them all in the tree they were
   filed into.
 - **It names the working session** — `working session`, held quiet, with the snapshot explained
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
-- Controls are icons with tooltips: undo `↤`, redo `↦`, export `⤓`, import `⤒`, new `＋`.
-  Each greys out when it has nothing to do.
+- Controls are icons with tooltips: undo `↤`, redo `↦`, workspace export `⤓`, project export `↧`,
+  import `⤒`, new `＋`. Each greys out when it has nothing to do.
 - `new` asks before discarding, and import reports a file that is not a mndflow project — both
   in the strip, like everything else the app says.
 - The readout toggle sits at the end of the same row.
@@ -608,9 +679,9 @@ and making one is an ordinary change.
 - Proxies are never listed — a proxy is a second appearance of something already there.
 - Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
-- **(planned)** Every open project is a root in the same tree, filed into the folders the workspace
+- Every open project is a root in the same tree, filed into the folders the workspace
   keeps. **The project a selected row belongs to is the context**, which is what decides where a
-  change is written — positional, so there is no mode and nothing to switch.
+  change is written — positional, so there is no mode and nothing to switch. Click switches.
 - **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
   is the one place a proxy *is* listed, because in a view there is nothing else to list.
 
@@ -699,8 +770,9 @@ on the layer.
 | `down` | ranks by relationships, top to bottom |
 
 **Which way the layer reads** — `none`, `across` or `down`. A setting held on the layer. It
-decides which sides a `directed` relationship attaches to, and **(planned)** how its line is drawn.
-Arranging never changes it.
+decides which sides a `directed` relationship attaches to, biases **rank and placement**, and
+routes the line along that bias. Port `in`/`out` stay decorative and unread. Arranging never
+changes the axis.
 
 - Ranked: nothing pointing at it comes first, and each rank sits one step further along.
 - Within a rank, things are ordered by where what they relate to sits in the rank before, swept
@@ -714,7 +786,9 @@ Arranging never changes it.
 - A **unit** is anything laid out as a whole: a card, a group, or a note. Groups sharing a
   member are one unit — the shared card pins them together.
 - Relationships draw units loosely into **clusters**, arranged as one region, with the cluster's
-  own shape following its topology — a ring stays a ring, a series stays a series. **(planned)**
+  own shape following its topology — a ring stays a ring, a series stays a series. Only exact
+  rings and chains get those shapes; hub-and-spoke and everything else fall through to the layer
+  arrangement.
 - A unit is **rigid in shape, not in size**: members keep their relative arrangement — who sits
   beside whom, on which side — while the distances between them are layout's, so the spacing
   tiers reach inside a unit as well as between them.
@@ -724,13 +798,13 @@ Arranging never changes it.
   members, and that becomes its shape.
 - A unit is sized to its members plus the room its boundary needs, so two groups are spaced
   apart rather than left with their boundaries touching.
-- **Notes are avoided, not arranged.** A note takes up room like a card, so nothing is laid on
-  top of one and no relationship is drawn through one — but an arrangement is never slid aside
-  for one.
+- **Notes are layout units.** A note takes up room like a card; ties are excluded from structural
+  joins and drawn as fixed associations. An arrangement seats each tied note under what it
+  describes, clear of the cards and boundaries. A note tied to nothing keeps its place.
 - **Space is a signal.** What matters is the contrast — tight inside a unit, open between them,
   so a group reads as one object and the lines between units have room to spread:
 
-  | Between | Space |
+  | Between | Distance |
   |---|---|
   | members inside one unit | half a cell |
   | two of those with a relationship between them | two cells — room for the line |
@@ -742,8 +816,6 @@ Arranging never changes it.
 **An arrangement writes down where everything landed.** Afterwards every card can be dragged
 about like any other, and the drag sticks.
 
-- It also moves each tied note to sit under what it describes, clear of the cards and boundaries.
-  A note tied to nothing keeps its place.
 - Walls a relationship was pinned to are kept — a wall is a hard constraint, not placement.
 - It changes nothing else, and never the direction the layer reads.
 - Between arrangements the layer rests: whatever is placed stays, and anything unplaced fills the
@@ -786,8 +858,11 @@ about like any other, and the drag sticks.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
 - **Proxy** — a stand-in for a block living in another layer, so that a relationship reaching
   it can be seen here. A visual shortcut; it changes nothing about the relationship.
-  - **It is bound to its block by `of`, a field — never by a relationship.** A proxy is not two
-    things joined, it is one thing appearing twice, which is a property of the appearance.
+  - **It is bound to its block by `of`** — a path id for a same-project block, or
+    `{ project, element }` when the target lives elsewhere — never by a relationship. A proxy is
+    not two things joined, it is one thing appearing twice, which is a property of the appearance.
+  - **A missing target is kept, never deleted by tidy** — the card reads as a missing block so
+    undoing a deletion elsewhere can bring the reference back.
   - **An appearance is the proxy's; the thing is the block's.** Where it sits, how it draws and
     its colour are its own, because they are true only of this layer. Its name, body, fields,
     interfaces, children and type are the block's, because there is only one thing to have them.
@@ -887,11 +962,15 @@ about like any other, and the drag sticks.
 - One pass, so each line sees the seats the ones before it took: **no two ends share a seat**,
   and several relationships may still meet at one interface.
 - A `directed` relationship takes the sides the layer's axis gives it — out on the forward face, in
-  on the one behind — so it runs with the layer rather than doubling back across it. On a `free`
-  layer nothing is imposed.
+  on the one behind — and its path runs with that bias rather than doubling back. Rank and
+  placement follow the same directed edges. On a `free` layer nothing is imposed. Port `in`/`out`
+  stay decorative.
 - **Lanes**: runs that would share a line are spread half a cell apart, centred on where they
   would have gone, so parallel relationships stay distinct. Only the interior segments move;
   the ends stay on their seats.
+- **Cost.** Seats try a cheap orth path first; Dijkstra skirts run only when every seat pair needs
+  one, and those skirts share one prepared visibility graph. An 80-box long-span harness that took
+  ~15.5s before the two-phase pass now lands around ~72ms; a busy layer resize stays interactive.
 - A card moving is what moves a line. There is no step, no history, and nothing to converge on.
 
 ### Groups
@@ -908,13 +987,17 @@ about like any other, and the drag sticks.
 - Dropping a card in the clear space inside joins; dropping it outside leaves. Dropping *on* a
   card is a move into that card instead.
 - A node created inside a boundary joins that group, by the same reckoning as a drop there.
+- **The panel can join a selected block into an existing group** — `+ group` lists the groups on
+  this layer it is not already in.
 - Membership is decided against the boundary as it stood when the drag began — from the members
   standing still, or from all of them where none is. Dragging the boundary itself moves the group
   and changes no membership; layout moves one as a single unit — see Coordinates and layout.
 - **One member is allowed**, and a group that falls to one stays a group. `Ctrl`/`Cmd` + `G`
   makes one; right-click still makes an interface on a single card. Removing a group is the
   user's to do — the one exception is a group emptied entirely, which has no bounds to draw and
-  no way to be reached, so it goes.
+  no way to be reached, so it goes. **`dissolve` is registered** and deletes the group while
+  leaving members put; **(planned)** nothing on the canvas or tray offers it yet — that waits a
+  menu trigger (G.9).
 - Boundaries overlap freely and their backgrounds compound.
 - Its name is edited on the boundary itself.
 - **A group draws as its definition says.** A bare group — one nobody typed — is a faint dashed
@@ -933,6 +1016,7 @@ about like any other, and the drag sticks.
   is created.
 - **The rectangle is its least size**: the note appears at the top-left corner and gets at least
   the room swept. It is as big as the larger of that and what it says, so text always wins.
+  **After it is made, the SE handle resizes it** (`size` / `size_element`).
 - Right-clicking it rewrites it. The note *is* its text — there is nothing else on it to aim at.
 - Ties to nothing, one thing or many. Right-drag from a node onto a note ties it; the same
   gesture over a node already tied unties it. The panel lists ties and removes them.
@@ -967,10 +1051,12 @@ about like any other, and the drag sticks.
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
   full trail in its tooltip, plus `↑` for one layer up.
 - Canvas toolbar top-right — **relationships**, all settings: interfaces on the canvas, the form
-  a right drag draws, curves or angles, and past a divider which way the layer reads. Each shows
+  a right drag draws, which relationship types are shown (cycles; filtered edges do not draw and
+  their seats clear), curves or angles, and past a divider which way the layer reads. Each shows
   what it is on.
-- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs**. Icons only, and
-  none of them is ever lit: an arrangement is something you do, not something a layer is in.
+- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs**, plus **◌** to
+  hand the layer back to the engine (`relax`). Icons only, and none of the four is ever lit: an
+  arrangement is something you do, not something a layer is in.
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
@@ -989,7 +1075,7 @@ makes the thing that sits at a point and a drag makes the thing that has extent.
 | a note | moves it within its layer |
 | an interface | slides it along its frame edge |
 | a selected group's background | moves every member together |
-| empty background, or an unselected boundary | draws a selection box, taking what it encloses |
+| empty background, or an unselected boundary | draws a selection box, taking what it encloses. An edge with only one end inside is not selected; **(planned)** both-ends enclosure policy still parked (G.7) |
 
 Small precise targets — interfaces, notes — act at once. Large ones — a boundary, a multi-node
 selection — must be selected first.
@@ -1021,13 +1107,13 @@ selection — must be selected first.
 | Key | Action |
 |---|---|
 | `Delete` / `Backspace` | delete the selection |
-| `Esc` | clear the selection, back to the scope |
+| `Esc` | clear the selection, including a React Flow multi-select, back to the scope |
 | `Enter` | rename the selection |
 | `F` | fit the layer, or zoom to the selection if there is one |
 | `Ctrl`/`Cmd` + `Z` | undo |
 | `Ctrl`/`Cmd` + `Y`, `Ctrl`/`Cmd` + `Shift` + `Z` | redo |
 | `Ctrl`/`Cmd` + `G` | group the selection |
-| `Ctrl`/`Cmd` + `A` | select everything on this layer **(planned)** |
+| `Ctrl`/`Cmd` + `A` | select everything on this layer |
 | `Shift` / `Cmd` + click | add to the selection |
 | `Space` + drag | pan |
 | double-click | descend on the canvas, rename in the explorer |
@@ -1066,12 +1152,19 @@ interface can be found without hunting for it on the drawing.
 - Sortable by form or by name; clicking the column already sorted by turns it around.
 - **Hovering a row lights that thing on the canvas**, and shows what it says and what it carries
   above the table. The canvas's own hover wins where the two disagree.
+- **Constraint and rule notes advise here and never refuse.** Short notes sit in the what column
+  and the hover tip; selecting a noted row says the full sentences once in the strip. Edits still
+  go through.
 - **Clicking a row selects it on the canvas.**
 
 **Changing things from a row**
 
-- Double-click a name to rename; single-click a type to subtype. Fields open rather than sitting
+- Double-click a name to rename; single-click a type to subtype — **type offers are package-
+  disambiguated** when two definitions share a name (SC.4). Fields open rather than sitting
   there, so a row stays clickable.
+- **Definitions are editable in the tray** — fields, defaults and presentation (E.1). A types chip
+  reaches them. Each field form has its own control — number with unit, choice with its list, ref
+  with a picker (E.2) — and tags add and drop on usage and definition fields (E.3).
 - Row buttons appear on hover and carry whatever that form can be told to do:
 
   | Row | Buttons |

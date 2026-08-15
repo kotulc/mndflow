@@ -1,0 +1,17 @@
+# Constraint block: the parametric notation's one definition.
+# Size and style live on the definition — layout places from size before
+# anything draws; colour comes from the named style set, never a usage.
+
+definitions:
+  - id: def_constraint
+    name: constraint
+    form: block
+    body: A mathematical relationship among values.
+    size:
+      w: 168
+      h: 36
+    names:
+      sysml: "«constraint»"
+    components:
+      style:
+        set: sysml

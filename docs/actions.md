@@ -7,9 +7,10 @@ The shape each record takes is in [spec.md](spec.md) under *Action surface*; why
 shape is in [design.md](design.md) under *The action surface is the input seam*. The words used
 here — project, view, package, module — are defined in design.md under *The words*.
 
-*The registry these go into is built — `actions/index.ts`, S1.1. **No action is in it yet**:
-`project.ts` still holds all 52 closures, and the third column says which of them each row
-replaces. This table is the target the extraction is measured against.*
+*The registry these go into is built — `actions/index.ts`, S1.1. **S1.2–S1.5 registered the
+actions**; **S1.6** side-effect-imports them, generates the `act.*` wrappers, moves the queries
+off the surface, and keeps aliases for the old names. Gestures and the page reach actions through
+the registry. The third column still names which closure each row replaced.*
 
 **Every action acts within one project.** Where an argument names something in another, it is a
 proxy that brings it into this one — see *Across projects* below. No action ever writes to two
@@ -18,9 +19,9 @@ logs.
 
 ## Actions
 
-Thirty-one. Every one is sayable, which is the test for being here at all. `colour` was a
-candidate until an element's own presentation was removed — colour is its definition's. The last
-two, `scope` and `promote`, arrived with behaviour and are **not built**.
+Thirty. Every one is sayable, which is the test for being here at all. `colour` was a
+candidate until an element's own presentation was removed — colour is its definition's. The last,
+`infer`, arrived with behaviour and is **not built**.
 
 **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
 selected when somebody types. `layer` means the open layer is enough; `element` means one is
@@ -41,7 +42,7 @@ against. Names and labels are too short to score. Not tabled here — it belongs
 | `move` | element | id, parent, spot? | `move_element` + shed (+ `place_element`) | `move`, `nest`, `promote`, `lift` |
 | `refer` | layer | target, spot? | `add_element{proxy}` | `refer` |
 
-**`refer`'s target widens with S4** to `{ project, element }`, and nothing else about it changes.
+**`refer`'s target is `{ project, element }`** (a same-project target may still be a bare path).
 A proxy of another project's **root** refers to that whole project, which is what the workspace's
 own elements are.
 
@@ -71,7 +72,9 @@ makes three siblings, because creating one selected nothing.
 | `mark` | interface | id, flow | `mark_port` | `markPort` |
 
 **`interface` absorbs promotion**: naming a relationship's seat is making an interface and telling
-that end about it, which is the same action with two more arguments.
+that end about it, which is the same action with two more arguments. **Which definitions take no
+interface is a `degree` constraint the `rules` component carries** (S5.2), not a branch in the
+action — the `figure` special case went with the form (SC.5).
 
 ### Relationships
 
@@ -89,11 +92,12 @@ that end about it, which is the same action with two more arguments.
 |---|---|---|---|---|
 | `group` | layer | members, into? | `add_element{group}` + `join_group`… | `group`, `joinGroup` |
 | `leave` | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
-| `dissolve` | element `group` | id | `delete_element` | **not built** |
+| `dissolve` | element `group` | id | `delete_element` | **registered; no UI yet (G.9)** |
 | `note` | layer | text, spot?, size? | `add_element{note}` | `note` |
 | `tie` | element `note` | note, holder | `link_elements` / `delete_edge` — tie-ness is derived | `tie` |
 
-**`group` absorbs joining**: with `into`, it adds to that group; without, it makes one.
+**`group` absorbs joining**: with `into`, it adds to that group; without, it makes one. The panel
+`+ group` select is the UI path into an existing group.
 
 ### Fields and definitions
 
@@ -106,26 +110,34 @@ that end about it, which is the same action with two more arguments.
 
 ### Behavior *(not built — A.7)*
 
-Two, and they are the engine's rather than any module's: both change a project wholesale, and
-neither is about drawing. Nothing else about behaviour needs an action — an activity is blocks and
+**One**, and it is the engine's rather than any module's: it changes a project wholesale and is not
+about drawing. Nothing else about behaviour needs an action — an activity is blocks and
 relationships, and the ordinary ones make those.
 
 | | Scope | Arguments | Writes | Replaces |
 |---|---|---|---|---|
-| `scope` | project | structures[], seed? | `add_element{proxy}`… + `link_elements`… | **not built** |
-| `promote` | element `proxy` | id | `add_element{block}`… + `set_field` per transition | **not built** |
+| `infer` | selection | of[], into? | `add_element{block, proxy}`… + `link_elements`… + writes home | **not built** |
 
-**`scope` seeds unless told not to**: one behavior block per container in the structures named,
-each holding refs to that container's children and the interactions implied between them. One step,
-and it happens once — nothing re-syncs afterwards.
+**`infer` takes any cross-section** — blocks, whole branches, entire projects, across as many
+projects as the selection reaches. `into` names the behavior project the result lands in; without
+one, a new project is made. The result is **one behavior block**.
 
-**`promote` replaces the derived machine**, so the value naming a resulting state becomes a ref to
-the state block it made. Activity and machine then point at one object.
+**One-way, one-time and deterministic.** Nothing re-syncs afterwards, and **re-inferring makes a new
+block** rather than touching an existing one, so hand-adjusted work is never clobbered. Determinism
+is over the *selection*, so nothing may depend on the order things were clicked.
 
-**`promote` means one thing wherever it appears**: turning something derived into something
-declared. A seat becomes an interface, a read machine becomes state blocks — same act, so the same
-word. The old `promote` closure meant *move up a layer* and is absorbed by `move`, which frees the
-name for what it should always have said.
+**It composes.** A selection of actions infers a `state` block the way structure infers an `action`.
+
+**It writes home** — but only what the structure stated. Everything else it guesses freely. The four
+ordering tiers, the labels, the lanes and the cap are in [behaviors.md](behaviors.md).
+
+**Named `infer`, not `project`.** *Projection* already means a layer rendered through a view module,
+and `projection surface` is a defined term; overloading it would collide.
+
+**`scope` and `promote` are retired before they were built.** `scope` was `infer` with a project for
+its argument, `promote` was `infer` with the derived machine for its source, and derived state
+machines are gone — so one action says all of it. The old `promote` closure meant *move up a layer*
+and is absorbed by `move`.
 
 ### The layer and the project
 
@@ -133,7 +145,7 @@ name for what it should always have said.
 |---|---|---|---|---|
 | `axis` | layer | layer, axis | `set_axis` | `setAxis` |
 | `arrange` | layer | layer, shape | `place_element`… | `arrange` |
-| `relax` | layer | layer | `relax_layer` | **op exists, unwired** |
+| `relax` | layer | layer | `relax_layer` | ◌ on the canvas (G.2) |
 | `vocabulary` | project | name | `set_vocabulary` | the entry turn |
 
 **`vocabulary` changes shape with D**, from a subject-matter string to which package or packages a
@@ -142,7 +154,7 @@ project draws its definitions from. The action stays one; its argument becomes a
 
 ### Across projects
 
-*(not built — S4.)* Nothing new here: each is an existing action with a widened argument.
+*(not built — remaining S4 / A rows.)* Nothing new here: each is an existing action with a widened argument.
 
 | | Scope | Does |
 |---|---|---|
@@ -163,15 +175,15 @@ of these it accepts**, and may accept none.
 | | Scope | Arguments | Writes | Replaces |
 |---|---|---|---|---|
 | `place` | element | moved[], membership? | `place_element`… + `join_group`/`leave_group` | `place`, `placeMany`, `placeNote` |
-| `size` | note | id, w, h | `size_element` | **op exists, unwired** |
+| `size` | note | id, w, h | `size_element` | note SE handle (G.3) |
 | `seat` | interface | id, side, at | `set_port` | `setPort` |
 | `wall` | edge | id, end, side | `set_side` | `setSide` |
 
 
 ## Gestures
 
-What reaches an action today, read out of `canvas/gestures.ts`. **The left button works what
-already exists; the right button makes something new.**
+What reaches an action today, read out of `canvas/gestures.ts` and the diagram's declared gesture
+map (S2.7). **The left button works what already exists; the right button makes something new.**
 
 ### Left button
 
@@ -209,12 +221,12 @@ already exists; the right button makes something new.**
 
 | | Reaches |
 |---|---|
-| `Escape` | abandons a prompt or a half-drawn relationship; clears the selection |
+| `Escape` | abandons a prompt or a half-drawn relationship; clears the selection, including a React Flow multi-select |
 | `Enter` | `rename`, on the picked node |
 | `Ctrl`/`Cmd` + `G` | `group` |
 | `F` | fit the selection, or the layer |
 | `Delete` / `Backspace` | `delete`, `unlink`, or drops the picked field |
-| `Ctrl`/`Cmd` + `A` | **not implemented** |
+| `Ctrl`/`Cmd` + `A` | select every card on the layer |
 
 
 ## Not on the surface
@@ -223,7 +235,8 @@ already exists; the right button makes something new.**
 
 `export`, `import`, `new`, `undo`, `redo`, and with S4 `open project`, `close project` and
 `export workspace`. **`undo` applies to the project in context**, since that is where the step
-was written.
+was written. **Unlock** and **fork** are workspace operations offered from the strip when a
+locked package refuses a write — not registry actions (S4.8).
 
 **Queries** — readable state, not things to do. Off the registry entirely.
 
@@ -235,8 +248,9 @@ nor navigation. It is a mode the terminal can drive and the explorer owns.
 **Display preferences** — held outside the log, and outside both tiers. Toggling one changes what
 you see and nothing about the project.
 
-Whether interfaces are shown, curves against right angles, and which form the next right drag
-draws. The breadcrumb and the arrange buttons are not among them: those reach `open` and `arrange`.
+Whether interfaces are shown, curves against right angles, which form the next right drag
+draws, and which relationship types are shown on the canvas. The breadcrumb and the arrange
+buttons are not among them: those reach `open` and `arrange`.
 
 
 ## What the count came to
@@ -244,16 +258,17 @@ draws. The breadcrumb and the arrange buttons are not among them: those reach `o
 | | |
 |---|---|
 | entries in `act` today | 52 |
-| actions | 31 — 29 replacing a closure, 2 new with behaviour |
+| actions | 30 — 29 replacing a closure, 1 new with behaviour |
 | adjustments | 4 |
 | page actions | 5, and 8 after S4 |
 | queries, off the surface | 5 |
 
 Twenty-nine rather than the twenty-six estimated in tasks.md: `move` and `group` absorbed more than
 expected, but navigation turned out to be three actions rather than none, and `relax`, `dissolve`
-and `vocabulary` had no closure to be counted in the first place. `scope` and `promote` are the
-thirtieth and thirty-first, and the only two the behaviour walk added to the surface.
+and `vocabulary` had no closure to be counted in the first place. **`infer` is the thirtieth and the
+only one the behaviour walk added** — it was two, `scope` and `promote`, until inference absorbed
+both.
 
-**Three ops are reachable from nothing**: `relax_layer` and `size_element` are in the schema and in
-`fold`, and no code emits either; `dissolve` has no op of its own but no path to `delete_element`
-for a group. Each is a row above with no `Replaces`.
+`relax_layer` and `size_element` are wired on the canvas (◌ and note SE). `dissolve` reaches
+`delete_element` through the registry but nothing on the canvas or tray offers it yet — that waits
+G.9 (`◆`).
