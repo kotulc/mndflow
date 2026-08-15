@@ -46,7 +46,7 @@ These carry most of the weight, and most of the rules below are one of them appl
   work of modelling is spent saying things once rather than restating them in a second notation.
 - **A hand-laid thing is a hard constraint; a derived one is not.** What somebody placed or declared
   is honoured; everything else is the layer's to arrange. This is the rule the whole layout model
-  rests on, and the rule promotion follows when a derived state machine becomes real blocks.
+  rests on, and the rule projection follows when it makes a new block rather than editing one.
 - **The log is the truth.** The graph is folded from it, so undo needs no inverses.
 - **An accident is the failure worth designing against.** Where a rule looks like it is protecting
   the user, check which it is doing: preventing a slip is worth a gesture's design, and preventing
@@ -73,9 +73,9 @@ action set are **closed**, and every argument in this document rests on their be
 "extensible" leaks into the second column the engine stops being general and becomes a plugin host.
 
 **The engine never branches on user data.** It reads the closed forms and the derived facts and
-nothing else — which is why `figure` earns a form for taking no ports while a lighter stroke does
-not earn one at all. Configuration changes what a thing looks like and what is valid on it; it never
-changes how the engine places it.
+nothing else — which is why a group earns a form for banding what it holds while a lighter stroke,
+or a shape, does not earn one at all. Configuration changes what a thing looks like and what is
+valid on it; it never changes how the engine places it.
 
 **Per-subtype is configuration; per-instance is content.** A definition configures components for
 every usage of it, and no element carries configuration of its own. Where two usages must differ,
@@ -96,7 +96,7 @@ It follows that **a package must be useful with portable presentation alone** �
 and renders on the simple typed fields, gaining its custom look only where the module and stylesheet
 it names are in the build. It degrades rather than breaks.
 
-**A subtype keeps the behaviour of the form it subtypes.** A decision is a figure with a shape drawn
+**A subtype keeps the behaviour of the form it subtypes.** A decision is a block with a shape drawn
 in it, a swimlane is a group with a segmented style, a lifeline is a column of actions — each
 inherits placement wholesale and configures only what it looks like and what is valid on it. That is
 what makes a package safe to install: it can change how a project reads and never how it behaves.
@@ -389,33 +389,61 @@ blocks *is* the sequence, and it wins. Where none exists, position along the lay
 the same thing. So somebody who has laid ten blocks out in a row has already said what happens in
 what order without drawing a single arrow — and that is the reason the axis was worth having as a
 setting separate from an arrangement. The cheapest possible modelling gesture carries meaning, which
-is what *rapid* has to mean if it means anything.
+is what *rapid* has to mean if it means anything. The full chain is four tiers deep and lives in
+[behaviors.md](behaviors.md).
+
+**A behavior is inferred from a selection, once, and then it is the user's.** `infer` takes any
+cross-section and gives one behavior block. It is one-way and deterministic, nothing re-syncs, and
+**re-inferring makes a new block rather than editing one** — so hand-adjusted work can never be
+clobbered by running it again. Opening with the structure's containment is the guess and not a rule
+it keeps, because **a process worth modelling usually cuts across containers** and a tree pinned to
+the structure's shape has nowhere to put one. The rules are in [behaviors.md](behaviors.md).
+
+**Guess freely in the behavior; never guess into the structure.** This is the line the whole design
+rests on. A wrong guess in a behavior costs an edit, so the inference can afford to be loose and
+should be — *an inference that is wrong but workable beats one that never runs*, and most structures
+will never have a named relationship for it to read. A wrong guess written into a **structure** is
+another matter: it modifies the truth, in somebody else's project, invisibly.
+
+> **A write to a structure block must be a fact about the structure that still stands once the
+> behavior is deleted.** If deleting the behavior would leave it stale, it should have been derived.
+
+| | Lives on | Survives deleting the behavior |
+|---|---|---|
+| an **interface** the interaction needs, a **relationship** it implies, a **definition** it fills in | the structure block | **yes** — true of the structure on its own |
+| the **interaction**: order, guard, message | the behavior block | no |
+| **participation** — who takes part in what | derived | n/a; it stops being true |
+
+**So only what the structure stated is written home**, and everything guessed from position or
+adjacency writes nothing. That is what makes loose inference safe rather than reckless. The write is
+automatic, because the structure is the truth and there is nowhere else for the fact to go.
+
+**Participation is derived, never stored.** A behavior holds refs to its participants, so *which
+behaviors a block takes part in* is a question asked of the behavior projects in scope. A stored
+back-reference would duplicate a fact that already lives in another log, write into a project for no
+cause of its own, and leave a structure project opened alone carrying references to behaviors that
+are not there.
+
+**Nothing is derived that somebody edits.** A thing is derived when it is a **rendering of a count**
+and nobody touches it — a fork, a message, a lane. It is **stored** when somebody names it, nests it,
+or hangs behaviour on it — a state. That is the line *derived beats stored* draws, and states were
+always the awkward case because they were the one derived thing people were expected to edit.
+
+**Inference composes, and that is the whole chain.** A selection of actions gives a **state** block
+exactly as a selection of structure gives an **activity** — structure, then activity, then state,
+each harder to write from nothing than the one before. There is no separate promotion step and no
+machine that exists before somebody asks for one.
 
 **Activity, sequence and state are three projections of one behavior layer**, not three models. Each
 is still its own **module**, because each projects differently enough to need code; what they are
 not is separate copies of the facts. One behavior block encodes the interaction and three modules
 read it three ways.
 
-**One chain of inference: structure, then activity, then state.** Each rests on the one before, and
-each is harder to write from nothing than the one before it — a structure is what somebody already
-has in their head, an activity over it is a guess the seed can make, and a state machine is that
-activity read from one participant's point of view.
-
-**States are derived until somebody promotes them, and then they are blocks.** Promotion buys
-nesting, entry and exit behaviour, and transitions carrying their own trigger and guard. **It
-replaces and never copies**: the value naming a resulting state becomes a **ref** to the state block,
-so activity and machine point at one object and there is nothing for them to disagree about.
-
-**Seeding is one step, and it does the whole job.** Scoping a behavior project produces a complete
-inferred project, and then somebody reads it and adjusts what is wrong. A question asked before
-anything exists is asked in the abstract; the same question asked over a drawn model answers itself.
-It happens once and can be declined — the behavior tree is its own from then on, because **a process
-worth modelling usually cuts across containers** and a tree pinned to the structure's shape has
-nowhere to put one.
-
-**References never drift; membership does, deliberately.** A ref points at the block itself, so
-renaming or moving a participant flows through untouched. Which participants a project holds refs to
-was seeded once, on purpose.
+**A behavior block is a block, and its definition says which kind.** `action` and `state` are the
+two, shipped as definitions rather than earned as forms — doing against being is the vocabulary, not
+the shape. A container is an *activity* and a leaf an *action*, which the engine already tells apart,
+so nobody declares it. What a right-click makes follows from **the module in scope**, so creating one
+stays the single fluid gesture that making a structure block already is.
 
 **A control node is drawn, never stored.** Two outgoing orders with different guards is a decision,
 two without is a fork, two arriving is a merge or join. Every one is a count, so the module draws
@@ -426,7 +454,7 @@ authority already ends.
 **None of this needs a schema change**, which is the test that it belongs. An activity is a block,
 its parent is the activity above it, a ref is a proxy, the sequence is `dir` on ordinary
 relationships, the implied order is position against the layer's axis, and a partition is a group.
-What is new is inference and projection — code — and never a field.
+What is new is inference — code — and never a field.
 
 ### The action surface is the input seam
 

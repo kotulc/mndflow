@@ -20,17 +20,16 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 
 - **`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
   elements, relationships and fields alike.
-- `form` says which of five it is: **block** (the base and the default), **note**, **group**,
-  **proxy**, or **figure**. It decides what draws an element and which rules reach it.
-- **`figure` is placed and drawn by a module, never by the engine** — never in the tree, never in
-  the explorer, and what it *is* comes from its `type`. In the closed set; nothing makes one until a
-  module does, and **(planned)** nothing in the core ever will: an activity's fork, decision,
-  initial, final, merge and join are all **derived from counting relationships and guards**, so a
-  module draws them and the graph stores none. What is left for a figure is ornament a package
-  ships — a legacy symbol that means nothing to the engine.
-- **A figure takes no interfaces**, which is what earns it a form: only a block and the
-  things derived from it do. The `interface` action refuses on a figure, and says why. This is
-  the first rule the engine enforces rather than advises.
+- `form` says which of four it is: **block** (the base and the default), **note**, **group**, or
+  **proxy**. It decides what draws an element and which rules reach it.
+- **`figure` was a fifth form and is retired (planned, SC.5)**: nothing in the core ever placed one.
+  An activity's fork, decision, initial, final, merge and join are **derived from counting
+  relationships and guards**, so a module draws them and the graph stores none; and the ornament a
+  package ships is a **block whose definition carries a shape and a size** — `SHAPES` and the
+  definition's `size` already say every one of them, a fork bar being a `rect` sized thin. A form
+  is earned by telling the engine something about placement, and ornament told it nothing.
+- **Which definitions take no interface is a `degree` constraint** the `rules` component carries,
+  not a form and not a branch in the `interface` action.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
   never across one. **Empty until somebody sets one.**
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
@@ -158,7 +157,7 @@ the project.
   subtypes, the fields its usages have — name, form, unit, default, and `choices` where it has one
   — and how they draw.
 - **One record serves elements and relationships alike.** The `form` it subtypes decides what it
-  applies to: `block`/`note`/`group`/`proxy`/`figure` for an element, `line`/`directed`
+  applies to: `block`/`note`/`group`/`proxy` for an element, `line`/`directed`
   for a relationship. A project's relation vocabulary is just the definitions of relationship form.
 - **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
   flow's item, or a nested data structure.
@@ -217,7 +216,8 @@ the project.
   - **The plain card is the default written down** — `type` layout, `rect`, label inside, showing
     no fields — which is today's card said as one configuration among others. The diagram reads
     `PLAIN` and strokes shapes from `card` / `lookOf` (S2.6b). `shaped` and `outline` on the card
-    module compute a shape inside the engine's box. Counting what to draw as a figure waits on A.7.
+    module compute a shape inside the engine's box. Counting what to draw as a control node waits
+    on A.7.
   - **Style is drawn from** via `lookOf` on the diagram; table and matrix mount when `view.module`
     names them (A.1 / A.2, suite). Activity / sequence / state still wait A.7–A.9.
   - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
@@ -377,7 +377,7 @@ the project.
     move a record, which is what a structural change should look like.
   - Relationships sort by source, then target, which clusters everything leaving a block and never
     moves, since neither key changes.
-- **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `figure_`, `edge_`,
+- **Ids say what they point at**: `block_`, `note_`, `group_`, `proxy_`, `edge_`,
   `def_`, `step_`, `proj_`. A name is never part of an id — it would go stale on a rename or force
   the id to be rewritten everywhere. Older `n_`/`e_`/`s_` ids stay valid; ids are opaque and
   nothing migrates.
@@ -479,11 +479,11 @@ registry, read by every input method: gestures, the contents tray, and later the
 machines and sequence were each walked against the surface and not one needed an action to *render*
 or to *edit* — a module is a vocabulary, renderers, a layout law and a gesture map.
 
-**(planned) Behavior adds two, and they are the engine's rather than a module's**, because both
-change a project wholesale and neither is about drawing: **`scope`**, which points a behavior
-project at one or more structures and seeds it, and **`promote`**, which turns a derived state
-machine into blocks. Both are sayable, both write mutations, and both are on the one registry like
-everything else.
+**(planned) Behavior adds one, and it is the engine's rather than a module's**, because it changes a
+project wholesale and is not about drawing: **`infer`**, which turns a selection of structure into
+one behavior block — or a selection of actions into a state block, since it composes. Sayable, writes
+mutations, and on the one registry like everything else. It absorbed the two the behaviour walk first
+proposed, `scope` and `promote`, both retired before they were built.
 
 **Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
 
@@ -573,8 +573,8 @@ layer projected through the rules and packages in scope and rendered by one of t
   indistinguishable from another, and what lets two diagrams bind one action to different gestures.
 - **An unregistered `type` falls back to the engine's card.** A diagram declares what it draws
   differently, not everything it draws — so a half-built one is usable.
-- **A `figure` has no fallback**: the engine places it and never draws it, so a diagram that offers a
-  figure type must render it. Its size comes from the definition.
+- **A definition drawn as ornament is a block with a `shape` and a `size`**, so it falls back to the
+  engine's card like anything else rather than needing a module to render it.
 - **A layout law may decline to place**, and then the layer arranges as it does today — stored
   positions held, everything else filled in around them.
 - **A diagram that accepts no adjustments** is one where the engine owns every position. Sequence
@@ -590,6 +590,39 @@ layer projected through the rules and packages in scope and rendered by one of t
 
 **Which view you have open is display state.** The view itself is not: it is a graph with a log,
 and making one is an ordinary change.
+
+### Behavior *(planned — A.7)*
+
+*The rules in full are [behaviors.md](behaviors.md); why they are those rules is [design.md](design.md)
+under **Structure and behavior**. Only what the surface does is here.*
+
+- **A behavior is an overlay; the structure is the truth.** A behavior project holds **refs** to the
+  participants, never parts, so an object block never appears in a behavior tree.
+- **`infer` is how one comes to exist.** A selection — blocks, branches, whole projects, across as
+  many as it reaches — becomes **one behavior block**, in a named behavior project or a new one.
+  One-way, one-time and deterministic; **re-inferring makes a new block** and never edits an
+  existing one.
+- **It composes**: a selection of actions infers a `state` block the way structure infers an
+  `action`.
+- **A behavior block is a block**, and its definition is `action` or `state`. **A container is an
+  activity, a leaf is an action** — the SysML mapping, not a stored distinction. Right-click makes
+  whichever the **module in scope** declares, so creating one is the same fluid gesture as creating
+  a structure block.
+- **Order is read down four tiers** — a `flow` subtype, then any directed relationship, then
+  position along the axis, then adjacency. **Inferred order draws dimmed**, as a derived chip does,
+  so a guess never reads as a statement.
+- **An action's label is derived and dimmed** — the module's verb and the participant's name, `do
+  Pump`. Typing over it stores a real name; nothing transforms the noun.
+- **Lanes come from the refs**, one per participant, so they always exist. A structure group infers
+  to an ordinary group, not a lane. Past **N** actions the inference cuts higher in the tree and a
+  container becomes one action; `N` is `view` configuration, default **5**.
+- **It writes home automatically, and only what the structure stated.** Interfaces a `flow` implies
+  are written to the participants' own projects through the ref; anything guessed from position or
+  adjacency writes nothing. The strip says so the first time and not after.
+- **Participation is derived**, asked of the behavior projects in scope. No back-reference is stored
+  on a structure block, so a structure project opened alone reads clean.
+- **Nothing is derived that somebody edits.** Control nodes, messages and lanes are counted and
+  drawn; states are blocks, because people name and nest them.
 
 
 ## Shell

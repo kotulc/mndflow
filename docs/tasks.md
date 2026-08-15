@@ -33,14 +33,23 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-- **Does a `figure` ever get placed?** Every control node is derived, so nothing in the core creates
-  one. It survives for ornament a package ships. **If A.7–A.9 land with nothing having placed one,
-  reconsider the form** — it is one of the five, and S5.5 now refuses interfaces on it.
+*Nothing here blocks a plan row today. A.7's design is settled — the whole of it is in
+[behaviors.md](behaviors.md), the reasoning in design.md under* Structure and behavior. *What is
+open inside it is listed there under* Still open, *and none of it blocks A.7a.*
 
-*Recently closed: states are derived from the activity until somebody **promotes** them, and
-promotion replaces rather than copies — the value naming a resulting state becomes a ref to the
-state block, so one object is pointed at from both sides and the two notations cannot disagree.
-Structure, then activity, then state, each resting on the one before.*
+*Recently closed — the whole of A.7's design, now [behaviors.md](behaviors.md). **`infer`**
+replaces seeding and promotion: a selection becomes one behavior block, one-way and deterministic,
+and re-inferring makes a new block rather than editing one. **Guess freely in the behavior, never
+into the structure** is the line the design rests on — the ordering chain is four tiers deep and
+fires almost always, and only what the structure **stated** is written home. **Derived state
+machines are gone. Lanes come from the ref**, not from `performs`. `action` and `state` are
+**definitions**, not forms.*
+
+*Recently closed: **`figure` is retired** — nothing in the core ever placed one, behaviour was the
+last candidate and places blocks, refs and groups instead. Ornament is a block with a `shape` and a
+`size`, both of which the card already carries; the fork bar is a thin `rect`. The closed set of
+element forms drops to **four**. S5.5's "takes no interfaces" survives as a `degree` constraint on a
+definition (S5.2) rather than a branch in the action. SC.5 is the removal.*
 
 *Recently closed: the shipped layout is two folders at the root, `packages/` for data and `styles/`
 for stylesheets, with no wrapper — module code is `src/modules/`, where it already lives; and a
@@ -58,19 +67,27 @@ isolation.*
 
 ## Phase 0: the seams
 
-Five files absorb almost every planned feature, so almost every feature waits on another. Cutting
-these is what turns three concurrent streams into eight. **S1, S2, S3, S5 and A0 touch disjoint
+Five files absorbed almost every planned feature, so almost every feature waited on another. Cutting
+these is what turned three concurrent streams into eight. **S1, S2, S3, S5 and A0 touch disjoint
 files and run in parallel** — S5 waits on S2's contract and A0 on nothing. **S4 is the exception**:
 it reaches `fold.ts` and `store.ts`, which S3 and F also own. plan.md carries the order to take
 them in.
 
-| | Lines | Absorbs |
-|---|---|---|
-| `canvas/Canvas.tsx` | 1304 | every renderer. **The gestures are out** — `canvas/gestures.ts`, S2.1 |
-| `project.ts` | 772 | one `act` literal — every feature adds an action to it |
-| `graph/fold.ts` | 714 | one `apply()` switch — every new op. Was 872 before S3.1 |
-| `geometry/layout.ts` | 915 | clusters, notes-as-units and axis bias all land here |
-| `graph/types.ts` | 475 | every schema change — append-only, so tolerable as it is |
+**The seams are cut.** Three of the five came down; two grew instead, because the streams they
+absorb landed after the split rather than before it.
+
+| | Was | Now | Absorbed |
+|---|---|---|---|
+| `canvas/Canvas.tsx` | 1304 | **703** | gestures out (S2.1), projection surface and compose out (S2.6) |
+| `project.ts` | 772 | **586** | the `act` literal became `actions/*` (S1.2–6); only state and dispatch left |
+| `graph/types.ts` | 475 | 489 | every schema change — append-only, so tolerable as it is |
+| `graph/fold.ts` | 714 | **935** | split by family (S3.2) and indexed (S3.3), then `extends` / `resolved` landed on top (SC.2, SC.3) |
+| `geometry/layout.ts` | 915 | **1423** | clusters, notes-as-units and axis bias all landed here as planned (C.1–C.3) |
+
+**Two files outgrew the table rather than the seam.** `layout.ts` (1423) took all of stream C by
+design and no seam was ever cut for it; `page/Contents.tsx` (1444) is now the largest file in the
+tree, having absorbed E.1–E.3, S5.3 and SC.4 without a row owning the split. Neither is a bug and
+neither blocks anything — recorded so the next structural row is chosen with them in view.
 
 ### S1 — the action registry
 
@@ -188,8 +205,8 @@ Two components, and the first rules the engine applies rather than infers. **`co
 modelling and refuse only at translation**: Contents evaluates and notes in the tray/strip (*done*,
 S5.3); a module's `validate` hook and `findings` collect advise-only words (*done*, S5.4) — no
 shipped hook yet, and Contents does not call `findings`. Value-missing evaluation is live with
-S5.3. **`figure` takes no interfaces** — `interface` refuses with the reason (*done*, S5.5,
-`actions/edges.ts`).
+S5.3. **S5.5 is superseded**: `figure` is retired (SC.5), so "takes no interfaces" becomes a
+`degree` constraint on a definition and the branch in `actions/edges.ts` comes out with the form.
 
 ### A0 — packages and styles
 
@@ -203,9 +220,9 @@ loader. Do **not** treat A0.2 as fully closed while that gate is open. **Preset 
 (`ship` / `presets` / `preset`); no concrete presets yet. Style sets live under `styles/`
 (`sysml` shipped); the block diagram draws from style (S2.6b).
 
-**Parked from A0.3:** README dependency map still omits `src/workspace/` (depends on `graph`);
-`fold` `isa` / `resolved` still read only local `graph.defs`, so a path-shaped `extends` does not
-walk yet.
+**Parked from A0.3:** `fold` `isa` / `resolved` still read only local `graph.defs`, so a path-shaped
+`extends` does not walk yet. *(The README dependency map is current again — `actions/`, `workspace/`
+and `modules/`'s grown dependencies are all in it.)*
 
 ### S3 — fold hygiene
 
@@ -291,8 +308,9 @@ download wire beside the source; S1.7 canvas-prompt strip.
 **The terminal goes last, deliberately — Wave Z is parked.** It ranks and completes whatever the
 surface offers, so building it against a surface still moving means building it twice. It is also
 the one stream whose value depends on the rest being mature — which makes it the acceptance test
-for all of them. **◆** rows needing Clay before code: G.9 (menu trigger), A.7 (interaction write),
-Z.6 (docs home).
+for all of them. **◆** rows needing Clay before code: G.9 (menu trigger) and Z.6 (docs home).
+**A.7 is no longer one** — its design is settled above; only the action's *name* is open, and that
+blocks nothing until code is written.
 
 **S4 and F both reached `store.ts`.** S4.1 / S4.7 / F.2 are done; they are disjoint from here.
 
@@ -307,18 +325,22 @@ different ways — see design.md under *Structure and behavior*.
 | requirements | a package. No code — *done* (A.3) |
 | parametrics | a package — *done* (A.4) |
 | flow | a package of `directed` subtypes — *done* (A.5) |
-| activity | a **view module**, plus a package of words. A behavior layer's default reading — **◆ A.7** |
-| state machine | a **view module** over the same layer, and `promote` where somebody wants real state blocks |
+| activity | a **view module**, plus a package of words. A behavior layer's default reading — A.7 |
+| state machine | a **view module** over the same layer, and a second **projection** where somebody wants state blocks |
 | sequence | a **view module** over the same layer. Messages are derived, not drawn |
 | UML, SysML v2, UAF | packages — tables of definitions, names and mappings |
 
 **Six view modules**: `block`, `table`, `matrix` for a structure and `activity`, `sequence`, `state`
-for a behavior. Everything else is configuration or data. **Behaviour is what added actions** —
-`scope` and `promote`, both the engine's — and it added no form and no mutation op.
+for a behavior. Everything else is configuration or data. **Behaviour added one action** —
+`infer`, the engine's — and it added no form and no mutation op. It also **removed** one: `figure`
+went, because behaviour was the last candidate to place one and it places blocks, refs and groups.
 
 - **`shaped` / `outline` on card** — *done* (A.6). Nothing stores a shape; the module computes one
   inside the engine's box. Diagram strokes from card / `lookOf` (S2.6b); counting what to draw as a
-  figure is A.7.
+  control node is A.7b. **This is also what retired `figure`**: shape plus the definition's `size`
+  says every SysML ornament — a diamond for a decision, a thin `rect` for a fork bar, a small
+  `ellipse` for an initial node. **The one gap is the activity-final double ring**, which wants a
+  `style` that can stroke twice; nothing else needed a form.
 - **requirements package** — *done* (A.3): `packages/requirements/` — requirement block (`id` /
   `text`, card `shows`) and five directed relationships. Data only.
 - **parametrics package** — *done* (A.4): `packages/parametrics/` — constraint with size and style.
@@ -326,10 +348,19 @@ for a behavior. Everything else is configuration or data. **Behaviour is what ad
 - **flow package** — *done* (A.5): `packages/flow/` — control flow, object flow (`item` ref),
   transition (trigger/guard/effect). Formal `names` wait A.11.
 - **A.1 / A.2** — table and matrix modules mount when `view.module` is `table` / `matrix`
-  (*done*, suite). **A.7 stays ◆**.
+  (*done*, suite). **A.7's design is settled** — see the open questions above.
 - **A behavior project owns its own tree.** It holds its actions and states, and **refs** to the
   participants; what it learns about a participant is written through the ref to the block, which is
   the ownership rule in S4 and not an exception to it.
+- **The whole inference is [behaviors.md](behaviors.md)** — the four ordering tiers, lanes from the
+  ref, the abstraction cap, derived labels, and what writes home. Two worked examples are kept there
+  as the record of why. **What is still open is listed at the foot of that file**, and none of it
+  blocks A.7a.
+- **A behavior block's definition is `action` or `state`**, and a container one is an *activity*.
+  Right-click makes whichever the module in scope declares, so **the `view` component needs a
+  default definition for a created block** — a small addition beside "the module's word", and one
+  every module benefits from (`table` answers "a row", `matrix` answers "nothing"). The same
+  component carries the abstraction cap **`N`**, default 5.
 - **A diagram binds gestures to actions**; the graph still holds all the state.
 - **A lifeline is a column, and an occurrence on it is an action.** Which column follows from who
   `performs` the action, and **a message is derived**: an order relationship whose two ends are
@@ -388,8 +419,12 @@ Split out of the terminal because a module needs it and the terminal does not ga
 - **Form-specific field controls.** *Done* (E.2, proven): number with unit, choice with its list,
   ref with a target picker — on usage and definition fields.
 - **Tags.** *Done* (E.3, proven): add/drop on usage and definition fields.
-- **Icons.** A definition should be able to draw one as well as a boundary or a note. Nothing draws
-  an icon and no set has been chosen. Needs a renderer from S2.
+- **Icons.** A definition should be able to draw one as well as a boundary or a note. `layout: icon`
+  renders a **glyph** today; no SVG and no set chosen. Retiring `figure` did not add to this — every
+  ornament walked came out as a shape plus a size — but an actor still wants a real icon.
+- **Multi-select in the explorer tree.** A prerequisite for `infer`: the selection it takes is any
+  cross-section — blocks, branches, whole projects, across several at once — and the tree offers
+  single selection only. The canvas already multi-selects; the tree does not.
 - **Packages** — the two notations that turned out to be data rather than views. **Requirements**
   (*done*, A.3), **flow** (*done*, A.5) and **parametrics** (*done*, A.4) ship as YAML under
   `packages/`.

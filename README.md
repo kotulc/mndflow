@@ -179,11 +179,13 @@ design problem you can see rather than one you have to trace.
 | [`graph/`](src/graph) | the project: log, fold, schema, files | nothing |
 | [`embed/`](src/embed) | MiniLM over ONNX, and scoring text against it | nothing |
 | [`geometry/`](src/geometry) | sizing, placement and routing, derived from the graph | `graph` |
-| [`canvas/`](src/canvas) | the diagram module — the drawing half | `graph`, `geometry`, `embed` |
-| [`modules/`](src/modules) | what open modules publish: the components a definition configures | `graph` |
-| [`page/`](src/page) | the shell a module sits in | `graph`, `canvas`, `terminal` |
+| [`actions/`](src/actions) | the action registry: every action, its scope and its check | `graph`, `geometry` |
+| [`workspace/`](src/workspace) | the workspace as a project: held roots, folders, packages | `graph` |
+| [`modules/`](src/modules) | what open modules publish — the components a definition configures, and the view modules that project a layer | `graph`, `geometry`, `embed`, `actions` |
+| [`canvas/`](src/canvas) | the drawing half the diagram module composes | `graph`, `geometry`, `actions`, `modules` |
+| [`page/`](src/page) | the shell a module sits in | `graph`, `canvas`, `modules`, `workspace`, `terminal`, `project` |
 | [`terminal/`](src/terminal) | the optional way to give input | `graph`, `geometry`, `embed` |
-| [`project.ts`](src/project.ts) | the seam: state, and every action | `graph`, `terminal` |
+| [`project.ts`](src/project.ts) | the seam: state and dispatch | `graph`, `actions`, `embed`, `terminal` |
 
 | Module | Purpose |
 |---|---|
@@ -195,8 +197,11 @@ design problem you can see rather than one you have to trace.
 | [`geometry/layout.ts`](src/geometry/layout.ts) | Card sizing, treemap tiling, layer placement |
 | [`geometry/route.ts`](src/geometry/route.ts) | Where a line goes, and the lanes it shares |
 | [`canvas/card.tsx`](src/canvas/card.tsx) | The pieces every drawn thing is built from |
+| [`actions/index.ts`](src/actions/index.ts) | The action registry: scope, `check`, `sayable`, `writes` — every action is registered here |
+| [`workspace/index.ts`](src/workspace/index.ts) | The workspace as a project: held roots, folders, and the packages that ship |
 | [`modules/index.ts`](src/modules/index.ts) | The component contract: what a module publishes, and the key each owns |
 | [`modules/card/`](src/modules/card) | The card component: how a usage is composed — layout, shape, label, `shows` |
+| [`modules/view/diagram/`](src/modules/view/diagram) | The `block` view module: the projection surface, composition and gesture map |
 | [`canvas/gestures.ts`](src/canvas/gestures.ts) | What the pointer and the keyboard mean, and which action that reaches |
 | [`canvas/Canvas.tsx`](src/canvas/Canvas.tsx) | The layer composed: where things sit, what draws them, the controls |
 | [`terminal/router.ts`](src/terminal/router.ts) | Picks the question from the graph and the selection |

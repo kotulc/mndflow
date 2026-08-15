@@ -5,7 +5,7 @@ owns so two owners never collide.
 
 - **Why any of it** → [design.md](design.md), and *The words* for the vocabulary used here.
 - **What each part does** → [spec.md](spec.md). **The action surface** → [actions.md](actions.md).
-- **What is missing and undecided** → [tasks.md](tasks.md).
+- **What is missing and undecided** → [tasks.md](tasks.md). **Behaviour** → [behaviors.md](behaviors.md).
 
 `⊘` marks a chunk nothing blocks. Everything else names what it waits on.
 `◆` marks one that **needs a decision before any code** — take it to the user first.
@@ -100,7 +100,7 @@ wrong place.
 | ~~**S5.2**~~ | ~~The **rules** component — `ends` (with port direction), `holds`, `degree`, `match`. Each reaches every subtype, via `isa`. Publish it in `modules/base.ts`~~ — **done**: `ends` / `holds` / `degree` / `match`; `among` via `isa`; published in `modules/base.ts`. Reporting is S5.3 | `modules/rules/`, `modules/base.ts` | S2.2, SC.2 |
 | ~~**S5.3**~~ | ~~Reporting: violations advise in the tray and the strip, and **never refuse**~~ — **done**: `required` / `ends` / `holds` / `degree` / `match` note in the tray (what + tip) and full sentences in the strip on select; edits never gated. Module `findings` not wired here — that is S5.4's hook, Contents still constraint/rule only | `page/Contents.tsx` | S5.2 |
 | ~~**S5.4**~~ | ~~A module's `validate` hook — the escape hatch for what the five cannot say~~ — **done**: optional `Module.validate`; `publish` registers it; `findings(graph, id)` collects advise-only words. No module ships a real hook yet; Contents does not call `findings` | `modules/index.ts` | S5.2 |
-| ~~**S5.5**~~ | ~~**`figure` takes no interfaces**~~ — **done**: `interface` refuses on a figure with the reason (`actions/edges.ts`). First rule the engine enforces rather than advises | `actions/edges.ts` | S1.7 |
+| ~~**S5.5**~~ | ~~**`figure` takes no interfaces**~~ — **done, then superseded by SC.5**: the form is retired, so the refusal comes out of `actions/edges.ts` and becomes a `degree` constraint on a definition | `actions/edges.ts` | S1.7 |
 
 ### Schema
 
@@ -109,6 +109,7 @@ wrong place.
 | ~~**SC.2**~~ | ~~`extends` on a definition, and `isa` to walk the chain~~ — **done**: one parent, cycle-guarded, a missing parent ends the walk. 5 tests | `graph/types.ts`, `graph/fold.ts` | — |
 | ~~**SC.3**~~ | ~~Resolve a subtype: fields union, `components` merge per key, and the resolved view cached per fold~~ — **done**: `resolved()` unions fields and merges `components` per key, cached per fold. Component resolvers (`cardOf` &c.) still read the leaf alone | `graph/fold.ts` | SC.2, S3.3 |
 | ~~**SC.4**~~ | ~~Two definitions loaded under one name are offered with their packages beside them~~ — **done**: type offers are package-disambiguated (proven) | `page/Contents.tsx` | A0.3 |
+| **SC.5** | **Retire the `figure` form.** Element forms drop to four. `check.ts` heals `figure` → `block` at the door so existing files still open; the `interface` refusal (S5.5) comes out with it and becomes a `degree` constraint. 22 occurrences across 13 files, plus the one figure in `samples/mndflow.json` — **re-author it as a block with a shape**, which is also the first real test of the claim | `graph/types.ts`, `graph/check.ts`, `actions/edges.ts`, `samples/` | ⊘ |
 
 ### A0 — packages and styles
 
@@ -166,6 +167,7 @@ wrong place.
 | ~~**E.1**~~ | ~~Editing definitions in the contents tray — fields, defaults, presentation~~ — **done**: types chip + edit defs in the tray (proven) | `page/Contents.tsx` | S1.6 |
 | ~~**E.2**~~ | ~~A control per field form — number with unit, choice with list, ref with picker~~ — **done**: number+unit, choice list, ref picker on usage and definition fields (proven) | `page/Contents.tsx` | E.1 |
 | ~~**E.3**~~ | ~~Tags: shown and editable~~ — **done**: tags add/drop on usage and definition fields (proven) | `page/Contents.tsx` | E.2 |
+| **E.4** | **Multi-select in the explorer tree** — blocks, branches and whole projects, across several projects at once. The selection `infer` takes; the canvas multi-selects already and the tree does not | `page/App.tsx`, explorer | ⊘ |
 | ~~**G.2**~~ | ~~`relax` — hand a layer back to the engine~~ — **done**: ◌ click wires `onRelax` (`onClick={() => onRelax()}`) | `actions/layer.ts`, `canvas/` | S1.5 |
 | ~~**G.3**~~ | ~~`size` — resize a note after it is made~~ — **done**: note SE resize emits `size` (proven) | `actions/layer.ts`, `canvas/` | S1.5 |
 | ~~**G.4**~~ | ~~`dissolve` — ungroup a whole group~~ — **done**: registered and S1.6-ready (`delete_element` on the group; members stay). **No UI reaches it** — offering from menu/tray waits G.9 | `actions/groups.ts` | S1.4 |
@@ -180,11 +182,13 @@ wrong place.
 | ~~**A.4**~~ | ~~**parametrics** package — a constraint definition with a size and a style~~ — **done**: data only under `packages/parametrics/` (suite) | `packages/parametrics/` | A.3 |
 | ~~**A.5**~~ | ~~**flow** package — `directed` subtypes and the words for them~~ — **done**: `packages/flow/definitions.yaml` — control flow, object flow (`item` ref), transition (trigger/guard/effect); data only. Formal `names` wait A.11 | `packages/flow/` | A0.2 |
 | ~~**A.6**~~ | ~~*Engine capability*: a **shape drawn inside a card**~~ — **done**: `shaped()` + `outline()` on card; nothing stored. Canvas stroke waits S2.6; counting waits A.7 | `modules/card/` | S2.3 |
-| **A.7** `◆` | The **activity** view module — a behavior layer's default projection. Figures, guards as edge fields, partitions as blocks. Seeding makes one behavior block per container, holding refs to its children and the interactions implied between them; **sync is an action, never a binding**, so a process may cut across containers. **Needs Clay**: what an interaction writes on a participant — see tasks.md | `modules/view/activity/` | A.6, S5.2 |
-| **A.8** | The **state** view module — the same behavior layer projected as states and transitions. Its own module because it projects differently; not its own model | `modules/view/state/` | A.7 |
-| **A.9** | The **sequence** view module — a column per participant, order running down each. Explicit order from directed relations first, implied from position along the axis as the fallback | `modules/view/sequence/` | A.7 |
-| **A.10** | **Vocabulary packages** for the three behavior projections — what each calls an action, a state, a message. Data only; the projecting is A.7–A.9 | `packages/behavior/` | A.9 |
-| **A.11** | **UML, SysML v2 and UAF** packages — tables of definitions, `names`, and mappings | `packages/` | A.7 |
+| **A.10** | **`packages/behavior`** — the `action` and `state` definitions, and each module's words: what it calls an action, a state, a message, and **the verb a derived label opens with** (`do Pump`). Data only. **Moved ahead of A.7**: a module cannot tell an activity from a state, or label one, until these exist | `packages/behavior/` | A0.1 |
+| **A.7a** | The **`infer` action** — a selection becomes one behavior block, in a named behavior project or a new one. One-way, deterministic over the selection; **re-inferring makes a new block**. Four ordering tiers, lanes from the ref, the abstraction cap; **writes home only what the structure stated**. Build against [behaviors.md](behaviors.md) | `actions/behavior.ts` | A.10, E.4, S5.2 |
+| **A.7b** | The **activity** view module — a behavior layer's default projection. Control nodes counted and drawn, guards as edge fields, groups as groups and lanes from the refs. **Derived labels draw dimmed**, as does inferred order. Declares `action` as the definition a right-click makes | `modules/view/activity/` | A.7a, A.6 |
+| **A.7c** | `view` gains a **default definition for a created block** and the **abstraction cap `N`** (default 5), so the module in scope decides what right-click makes and when the inference cuts higher in the tree. Beside "the module's word"; `table` and `matrix` answer too | `modules/view/` | S2.5 |
+| **A.8** | The **state** view module — the same behavior layer drawn as states and transitions. Draws empty where nothing has been inferred and **offers the inference**; `infer` over actions is what fills it. Reading A or B per [behaviors.md](behaviors.md) | `modules/view/state/` | A.7b |
+| **A.9** | The **sequence** view module — a column per participant, order running down each. Explicit order from directed relations first, implied from position along the axis as the fallback | `modules/view/sequence/` | A.7b |
+| **A.11** | **UML, SysML v2 and UAF** packages — tables of definitions, `names`, and mappings. Includes the ornament that used to be `figure`: a decision diamond, a fork bar as a thin `rect`, an initial node as a small filled `ellipse` — all shape + size on a definition | `packages/` | A.7b |
 | **A.12** | The **IBD layout law** — rank by connectivity rather than containment, ports shown | `modules/view/diagram/` | A.2 |
 
 

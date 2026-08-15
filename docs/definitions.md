@@ -25,10 +25,10 @@ join them. Everything else describes one of the two.
 
 | Term | Means |
 |---|---|
-| **element** | anything the graph holds as an object: a block, a note, a group, a proxy, a figure. Placed, drawn, carries fields. Held in `graph.elements` |
+| **element** | anything the graph holds as an object: a block, a note, a group, a proxy. Placed, drawn, carries fields. Held in `graph.elements` |
 | **node** | the graph-theory word for an element. The same thing; `element` is the word the code uses |
 | **relationship / edge** | a join between **exactly two** elements. Not an element — it is placed by its ends, drawn as a line, and joins rather than sits. Anything about a *set* is a group |
-| **form** | **closed and the engine's.** Which of five an element is — `block`, `note`, `group`, `proxy`, `figure` — or which of two a relationship is: `line`, `directed`. It decides what draws a thing and which rules reach it. A form is earned when the engine must know something about placement or behaviour **and cannot tell from a field** |
+| **form** | **closed and the engine's.** Which of four an element is — `block`, `note`, `group`, `proxy` — or which of two a relationship is: `line`, `directed`. It decides what draws a thing and which rules reach it. A form is earned when the engine must know something about placement or behaviour **and cannot tell from a field**. `figure` was a fifth and was **retired**: nothing ever placed one, and ornament is a block with a shape |
 | **derived** | a fact the engine works out rather than being told: an **interface** from `side` being set, a **container** from holding blocks, a **reference** from a proxy at an end, a **tie** from a note at an end. Derived does not mean the engine is ignorant of it — only that nobody had to say it |
 | **type** | **open and the user's.** The definition a thing names. It subtypes **within** a form, never across one, which is what keeps engine rules off user data. Empty until somebody sets one |
 | **the module's word** | what a module calls its elementary block — `block`, and one day `activity`. A property of the **module**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored. Not called a *unit*, which is spoken for twice over — by layout, and by a `number` field's unit of measure |
@@ -148,9 +148,11 @@ named value carried by an element or a relationship, and never changes what cont
 | **diagram** | **what a layer looks like drawn on the canvas** — the picture, not a module. Every view module that draws on the canvas produces one |
 | **structure project** *(planned)* | a project whose blocks are the truth: parts, fields and the relations between them. Its layer views are **block**, **table** and **matrix**, block being the default |
 | **behavior project** *(planned)* | a project that scopes to one or more structures and describes what happens over them — activities, actions and states as its own blocks, holding **refs** to the participants. An overlay, never a second copy. Its layer views are **activity**, **sequence** and **state**, activity being the default |
-| **seeding** *(planned)* | filling a new behavior project with one behavior block per **container** in the structure it scopes to, each holding refs to that container's children and the interactions implied between them. **One step, doing the whole job**, and declinable; it happens once, and the behavior tree is its own from then on |
-| **promotion** *(planned)* | turning a **derived** state machine into real state blocks, which is what buys nesting and entry/exit behaviour. **Replaces, never copies**: the derived reading is the seed and then it is gone, and the value naming a resulting state becomes a **ref** to the state block, so activity and machine point at one object and cannot disagree |
-| **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block |
+| **inference** *(planned)* | turning a selection into one **behavior block** — the `infer` action. The selection is any cross-section: blocks, branches, whole projects, across as many as you like. **One-way, one-time and deterministic over the selection**; nothing re-syncs, and **re-inferring makes a new block** rather than touching an existing one. It **composes** — a selection of actions infers a state block the way structure infers an activity. Replaces *seeding* and *promotion*, both retired. **Not called a projection**, which already means a layer rendered through a module. Rules in [behaviors.md](behaviors.md) |
+| **writing home** *(planned)* | an inference modifying the structure blocks it acts on, through the ref, in their own project. **Automatic**, announced by the strip the first time. Only facts that **survive deleting the behavior** are written, and only ones the structure **stated** — an interface a `flow` implies, never something guessed from position. The interaction itself is never written |
+| **participation** *(planned)* | which behaviors a structure block takes part in. **Derived** — asked of the behavior projects in scope, never stored as a back-reference on the block |
+| **lane** *(planned)* | a participant's column or band in a behavior view. **Derived from the ref** an action holds, so every inferred action has exactly one and lanes always exist. Not from a `performs` relationship, which nobody would draw, and not from connectivity, which has no reliable granularity |
+| **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block. A behavior block's **definition** is `action` or `state`; a **container** one is called an *activity* and a leaf one an *action*, which is the SysML mapping and not a distinction the engine stores |
 | **explicit order** *(planned)* | sequence stated by a **directed relation** between two blocks. Read first, and it wins |
 | **implied order** *(planned)* | sequence read from where blocks sit along the layer's **axis** — left to right, or top to bottom. The fallback where no directed relation says otherwise, so laying things out in a row states an order without drawing an arrow |
 | **resting layout** | what a render runs: placed elements stay, unplaced ones fill around them |
@@ -211,7 +213,6 @@ packages refuse writes and the strip offers unlock / fork (S4.8, seeded lock pro
 | **external proxy** | a **proxy** whose target lives in another project rather than another layer. Target is `{ project, element }`, both by id, so renaming or moving either flows through untouched. Always live; to fix a version, bundle |
 | **breaking change** | the deletion of a block some proxy stands for — **the only** change reported to the user. A rename or a move is not one |
 | **action surface** | the actions the engine publishes as data — name, arguments, when each applies, and the mutations each returns. **An action returns mutations rather than applying them**, which is what makes it rankable, hostable and testable. The seam both the page and the terminal work against |
-| **figure** | a placed, drawn element the engine only positions — what it *is* comes from its `type`, and a module draws it. Never in the explorer, and **takes no interfaces** (`interface` refuses). For **ornament a package ships**: an activity's control nodes are derived rather than placed, so nothing in the core makes one |
 
 **Three words are deliberately absent.** *Namespace*, because every project already scopes its own
 ids and a property shared by all of them is not a sort of thing. *Kind*, because what a project is
@@ -314,11 +315,12 @@ already made of. Nothing in the right column is a special case.
 | association / composition | **relationship** + definition | direction and ends from the definition |
 | requirement | **block** + `id` and `text` fields | no new anything |
 | satisfy / verify / derive | **relationship** + definition | dashed, hollow head, from the definition |
-| action | **block** in a behavior project | |
+| activity | **container block**, definition `action` | a behavior block that holds others; the word is the mapping, not a stored distinction |
+| action | **block** in a behavior project, definition `action` | |
 | control node (fork, join, decision, merge, initial, final) | **derived** | counted from the relationships and their guards; the module draws one and nothing stores it |
 | object node | **interface** or **block**, by where it sits | |
 | control flow / object flow | **relationship**, form `flow` | |
-| state | **block** in a behavior project | doing against being is the vocabulary, not the shape |
+| state | **block** in a behavior project, definition `state` | doing against being is the vocabulary, not the shape |
 | transition | **relationship**, form `flow` | trigger, guard and effect are its fields |
 | region / composite state | **container**, or a **group** | nesting where structural, boundary where not |
 | swimlane / partition | **group** | band shape is the module's rendering |
@@ -327,7 +329,7 @@ already made of. Nothing in the right column is a special case.
 | combined fragment (`alt`, `par`, `loop`) | decision, fork, cycle | already in the flow graph |
 | trace assertion (`neg`, `assert`) | **group** with a definition | a claim about a set, so not a relationship |
 | package | **container**, or a **group** | |
-| actor | **figure** | |
+| actor | **block** + definition | a shape and an icon on the card; nothing structural |
 
 **What does not translate**, and is accepted: inline combined-fragment notation for trace
 assertions — the claim survives as a typed group, the enclosing bracket does not — and lifeline

@@ -19,9 +19,9 @@ logs.
 
 ## Actions
 
-Thirty-one. Every one is sayable, which is the test for being here at all. `colour` was a
-candidate until an element's own presentation was removed — colour is its definition's. The last
-two, `scope` and `promote`, arrived with behaviour and are **not built**.
+Thirty. Every one is sayable, which is the test for being here at all. `colour` was a
+candidate until an element's own presentation was removed — colour is its definition's. The last,
+`infer`, arrived with behaviour and is **not built**.
 
 **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
 selected when somebody types. `layer` means the open layer is enough; `element` means one is
@@ -72,9 +72,9 @@ makes three siblings, because creating one selected nothing.
 | `mark` | interface | id, flow | `mark_port` | `markPort` |
 
 **`interface` absorbs promotion**: naming a relationship's seat is making an interface and telling
-that end about it, which is the same action with two more arguments. **`interface` refuses on a
-`figure`**, with the reason — the first rule the engine enforces rather than advises (S5.5,
-`actions/edges.ts`).
+that end about it, which is the same action with two more arguments. **Which definitions take no
+interface is a `degree` constraint the `rules` component carries** (S5.2), not a branch in the
+action — the `figure` special case went with the form (SC.5).
 
 ### Relationships
 
@@ -110,26 +110,34 @@ that end about it, which is the same action with two more arguments. **`interfac
 
 ### Behavior *(not built — A.7)*
 
-Two, and they are the engine's rather than any module's: both change a project wholesale, and
-neither is about drawing. Nothing else about behaviour needs an action — an activity is blocks and
+**One**, and it is the engine's rather than any module's: it changes a project wholesale and is not
+about drawing. Nothing else about behaviour needs an action — an activity is blocks and
 relationships, and the ordinary ones make those.
 
 | | Scope | Arguments | Writes | Replaces |
 |---|---|---|---|---|
-| `scope` | project | structures[], seed? | `add_element{proxy}`… + `link_elements`… | **not built** |
-| `promote` | element `proxy` | id | `add_element{block}`… + `set_field` per transition | **not built** |
+| `infer` | selection | of[], into? | `add_element{block, proxy}`… + `link_elements`… + writes home | **not built** |
 
-**`scope` seeds unless told not to**: one behavior block per container in the structures named,
-each holding refs to that container's children and the interactions implied between them. One step,
-and it happens once — nothing re-syncs afterwards.
+**`infer` takes any cross-section** — blocks, whole branches, entire projects, across as many
+projects as the selection reaches. `into` names the behavior project the result lands in; without
+one, a new project is made. The result is **one behavior block**.
 
-**`promote` replaces the derived machine**, so the value naming a resulting state becomes a ref to
-the state block it made. Activity and machine then point at one object.
+**One-way, one-time and deterministic.** Nothing re-syncs afterwards, and **re-inferring makes a new
+block** rather than touching an existing one, so hand-adjusted work is never clobbered. Determinism
+is over the *selection*, so nothing may depend on the order things were clicked.
 
-**`promote` means one thing wherever it appears**: turning something derived into something
-declared. A seat becomes an interface, a read machine becomes state blocks — same act, so the same
-word. The old `promote` closure meant *move up a layer* and is absorbed by `move`, which frees the
-name for what it should always have said.
+**It composes.** A selection of actions infers a `state` block the way structure infers an `action`.
+
+**It writes home** — but only what the structure stated. Everything else it guesses freely. The four
+ordering tiers, the labels, the lanes and the cap are in [behaviors.md](behaviors.md).
+
+**Named `infer`, not `project`.** *Projection* already means a layer rendered through a view module,
+and `projection surface` is a defined term; overloading it would collide.
+
+**`scope` and `promote` are retired before they were built.** `scope` was `infer` with a project for
+its argument, `promote` was `infer` with the derived machine for its source, and derived state
+machines are gone — so one action says all of it. The old `promote` closure meant *move up a layer*
+and is absorbed by `move`.
 
 ### The layer and the project
 
@@ -250,15 +258,16 @@ buttons are not among them: those reach `open` and `arrange`.
 | | |
 |---|---|
 | entries in `act` today | 52 |
-| actions | 31 — 29 replacing a closure, 2 new with behaviour |
+| actions | 30 — 29 replacing a closure, 1 new with behaviour |
 | adjustments | 4 |
 | page actions | 5, and 8 after S4 |
 | queries, off the surface | 5 |
 
 Twenty-nine rather than the twenty-six estimated in tasks.md: `move` and `group` absorbed more than
 expected, but navigation turned out to be three actions rather than none, and `relax`, `dissolve`
-and `vocabulary` had no closure to be counted in the first place. `scope` and `promote` are the
-thirtieth and thirty-first, and the only two the behaviour walk added to the surface.
+and `vocabulary` had no closure to be counted in the first place. **`infer` is the thirtieth and the
+only one the behaviour walk added** — it was two, `scope` and `promote`, until inference absorbed
+both.
 
 `relax_layer` and `size_element` are wired on the canvas (◌ and note SE). `dissolve` reaches
 `delete_element` through the registry but nothing on the canvas or tray offers it yet — that waits
