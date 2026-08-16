@@ -124,6 +124,13 @@ named value carried by an element or a relationship, and never changes what cont
 | **card** | a block as drawn on the canvas |
 | **chip** | one cell of a container's treemap |
 
+**A saved view is a block, and needs no word of its own.** A block whose definition carries a
+`view` component, holding proxies of what it shows — every piece of that already exists, so nothing
+classifies it and no project kind contains it. It is filed in a **folder**, which is itself an
+ordinary block (`workspace/folder()`). *Layer* is the cross-section being looked at, *layer view* is
+the looking, and a block with a `view` component is the looking **written down**. The word
+**diagram** means one thing only: what a layer looks like drawn.
+
 
 ## Where a line meets a card
 
@@ -189,8 +196,6 @@ packages refuse writes and the strip offers unlock / fork (S4.8, seeded lock pro
 | **view module** | the engine code behind one way of presenting a layer. **Six**, and closed: `block`, `table`, `matrix` for a structure; `activity`, `sequence`, `state` for a behavior. `diagram` names no module — it is what a layer looks like drawn |
 | **structure** | ordinary description, never a classifier: a project that owns its objects. What things there are, and how they are composed and connected |
 | **behavior** | the same, for a project that owns its actions and holds proxies of the participants: what happens, in what order, under what conditions |
-| **view** | a project holding **diagrams**, arranged in folders of its own. Nothing about it ever enters the project it reads |
-| **diagram** | one presentation: a block whose definition names a view module, holding proxies of what it shows. The six modules draw the same objects differently |
 | **package** | a project whose elements are **definitions**. Data: it costs no code, and it must be useful with portable presentation alone |
 | **extends** | the definition another refines, by reference. **Subtyping, never overriding** — a package's own definitions are never altered. One parent; fields union, components merge per key, and a rule naming a definition reaches everything below it |
 | **translator** | code that reads a project and emits an **artifact** — source, a drawing, a standard's file. One way, and it never writes back |
@@ -264,7 +269,7 @@ code a module supplies, written by somebody who has already accepted writing cod
 | **`card`** | the component drawing a usage: which **card layout**, its **shape**, where its label sits, and `shows`. Published; the canvas does not yet draw from it |
 | **`constraints`** | the component declaring checks on a usage in itself. Published with `required`; evaluation and tray reporting are live |
 | **`style`** | the component colouring a usage: a **style set** by name (`set`), over the portable typed fields that render without one. Published; `styleOf` / `lookOf` resolve it. The canvas does not yet draw from it |
-| **`view`** | the component on a diagram's definition: which **view module**, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Published with the six-module registry. Create / `infer` not yet wired to `word` / `creates` |
+| **`view`** | the component on a definition: which **view module**, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Published with the six-module registry. Create / `infer` not yet wired to `word` / `creates`. Sets how a layer of that definition **opens**; the toggle (U.8) picks what is shown now and writes nothing |
 | **`rules`** | the component declaring how usages interact — `ends`, `holds`, `degree`, `match`. Published; `among` walks `isa`. Evaluation and tray reporting are live |
 | **card layout** | one of the standard ways a card is composed — `name`, `type` (label and subtype chip), `fields`, `compartments`, `icon`, `shape` (a shape drawn in the box, label beneath). **Open**: extended by a code change, additively |
 | **shape** | what is drawn inside a card's box: `rect`, `round`, `diamond`, `ellipse`, `hex`. The engine always places a **rectangle** — every seat, route and port reads the box — so a shape changes what is drawn and never where anything attaches. `shaped` / `outline` compute it; the canvas does not stroke it yet |

@@ -22,7 +22,7 @@ that target's log, never a single step spanning two logs.
 
 Thirty. Every one is sayable, which is the test for being here at all. `colour` was a
 candidate until an element's own presentation was removed — colour is its definition's. The last,
-`infer`, arrived with behaviour and is **built** (A.7a); page chosen → `infer` is not wired yet.
+`infer`, arrived with behaviour and is **built** (A.7a); the menu is what reaches it (G.9b).
 
 **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
 selected when somebody types. `layer` means the open layer is enough; `element` means one is
@@ -93,7 +93,7 @@ action — the `figure` special case went with the form (SC.5).
 |---|---|---|---|---|
 | `group` | layer | members, into? | `add_element{group}` + `join_group`… | `group`, `joinGroup` |
 | `leave` | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
-| `dissolve` | element `group` | id | `delete_element` | **registered; no UI yet (G.9)** |
+| `dissolve` | element `group` | id | `delete_element` | **registered; reached by the menu (G.9b/d)** |
 | `note` | layer | text, spot?, size? | `add_element{note}` | `note` |
 | `tie` | element `note` | note, holder | `link_elements` / `delete_edge` — tie-ness is derived | `tie` |
 
@@ -131,7 +131,9 @@ is over the *selection*, so nothing may depend on the order things were clicked.
 
 **It writes home** — but only what the structure stated. Everything else it guesses freely. The four
 ordering tiers, the labels, the lanes and the cap are in [behaviors.md](behaviors.md). Cap is a tree
-slice, not connected-components. **Parked**: page `Chosen[]` → `infer`.
+slice, not connected-components. **Its trigger is the menu** (G.9b): with the explorer as
+context and one or more blocks or projects selected, `infer` is one of the offered options, so the
+page's `Chosen[]` reaches it there rather than needing a gesture of its own.
 
 **Named `infer`, not `project`.** *Projection* already means a layer rendered through a view module,
 and `projection surface` is a defined term; overloading it would collide.
@@ -190,15 +192,19 @@ of these it accepts**, and may accept none.
 What reaches an action today, read out of `canvas/gestures.ts` and the diagram's declared gesture
 map (S2.7). **The left button works what already exists; the right button makes something new.**
 
-**(planned — G.9)** *A third way in: the **offered-action list**, one ranked set of what the
-selection can do. Reached by right-clicking in the explorer (G.9b) and by clicking the rail, which
-puts the caret in it — type to filter, arrows to move, `Enter` to take (G.9c). The list lives in
-`actions/`, below the rail, so it survives the rail being removed.*
+**(planned — G.9)** *A third way in: the **offered-action list**, one set of what the selection can
+do in its context. Same list everywhere; only the presentation differs — the menu in a **fixed**
+order, the rail ordered by **learned preference**. It lives in `actions/`, below the rail, so it
+survives the rail being removed. Reached by right-clicking an existing thing, and by clicking the
+rail (type to filter, arrows to move, `Enter` to take).*
 
-***The canvas has no gesture left for it (◆ G.9d).*** *Every right-button binding in the table below
-is spoken for by direct creation, which is the rule stated just above. Opening the list on the
-canvas means one of those five moves, or the list arrives there by some other gesture. Undecided —
-and the explorer and rail halves do not wait on it.*
+***On the canvas the target decides.*** *The rule above narrows to: **the right button makes
+something new where there is nothing, and shows what a thing can do where there is something.**
+Right-click on empty space still creates. Right-click on a card, a frame, an edge or a selection
+opens the list instead, so `interface`, `retype` and `group` become entries rather than immediate
+acts. **Right drags are unchanged** — the distance threshold in `gestures.ts` already tells a drag
+from a click, so only the click half changes meaning. Rows marked **(planned)** below are the ones
+this moves.*
 
 ### Left button
 
@@ -222,11 +228,11 @@ and the explorer and rail halves do not wait on it.*
 
 | Gesture | On | Reaches |
 |---|---|---|
-| click | empty | `create` — asks for the name first |
-| click | card, frame edge | `interface`, at the nearest point of the border |
-| click | edge | `retype` — a relationship's name is edited where it is drawn |
-| click | a selection of several | `group` |
-| click | a name, an interface | nothing — these wait for the menu |
+| click | empty | `create` — asks for the name first. **Unchanged by G.9** |
+| click | card, frame edge | `interface`, at the nearest point of the border. **(planned — G.9d)** becomes the offered list for that card |
+| click | edge | `retype` — a relationship's name is edited where it is drawn. **(planned — G.9d)** becomes the offered list for that edge |
+| click | a selection of several | `group`. **(planned — G.9d)** becomes the offered list for the selection |
+| click | a name, an interface | nothing — **(planned — G.9d)** these gain the offered list |
 | drag | card/frame → card/frame | `relate` |
 | drag | card/frame → note | `tie`, or untie if it was tied |
 | drag | card/frame → empty | `create` + `relate` |
@@ -286,4 +292,4 @@ both.
 
 `relax_layer` and `size_element` are wired on the canvas (◌ and note SE). `dissolve` reaches
 `delete_element` through the registry but nothing on the canvas or tray offers it yet — that waits
-G.9 (`◆`).
+G.9, which is now settled in full and carries no gate.

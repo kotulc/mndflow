@@ -508,13 +508,16 @@ proven). **Sequence** mounts when `view.module` is `sequence` — columns; direc
 DIM (A.9, proven). **Parked** on activity: RF framed host; gestures on the activity plane;
 activity-final double ring. The rest of this section is still the target for multi-view work.*
 
-**A view is a project holding diagrams.** Its own tree is folders and diagrams, so a view can be
-organised by behaviour, by requirement, by function — whatever the work is about. It has its own
-log and its own export, like any project, and it appears in the workspace as its own entry.
+**A saved view is a block, and there is no kind of project for it.** A block whose definition
+carries a `view` component, holding proxies of what it shows, filed in a folder — which is itself
+an ordinary block. It can be organised by behaviour, by requirement, by function, wherever it is
+filed, and it costs no concept: blocks nest, `view` is a published component, and external proxies
+landed with S4.3.
 
-- **A diagram is a block whose definition names a view module.** A folder beside it is an ordinary
-  block. Neither costs a concept. *Diagram* is what a layer looks like drawn on the canvas, so it
-  names no module of its own.
+- ***Diagram* means one thing**: what a layer looks like drawn on the canvas. It names no module,
+  and it is not a second name for the block above.
+- **Which view is showing is a display preference** — sticky per project, never in the log (U.8).
+  The definition's `view.module` says how a layer **opens**; the toggle says what is shown **now**.
 - **Six view modules, three per kind of project**, and the kind is visible from what is being drawn
   rather than declared:
 
