@@ -22,7 +22,8 @@ that target's log, never a single step spanning two logs.
 
 Thirty. Every one is sayable, which is the test for being here at all. `colour` was a
 candidate until an element's own presentation was removed — colour is its definition's. The last,
-`infer`, arrived with behaviour and is **built** (A.7a); the menu is what reaches it (G.9b).
+`infer`, arrived with behaviour and is **built** (A.7a); the explorer menu reaches it (G.9b,
+proven).
 
 **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray, or
 selected when somebody types. `layer` means the open layer is enough; `element` means one is
@@ -93,7 +94,7 @@ action — the `figure` special case went with the form (SC.5).
 |---|---|---|---|---|
 | `group` | layer | members, into? | `add_element{group}` + `join_group`… | `group`, `joinGroup` |
 | `leave` | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
-| `dissolve` | element `group` | id | `delete_element` | **registered; reached by the menu (G.9b/d)** |
+| `dissolve` | element `group` | id | `delete_element` | canvas offer (G.9d ◐); not in explorer |
 | `note` | layer | text, spot?, size? | `add_element{note}` | `note` |
 | `tie` | element `note` | note, holder | `link_elements` / `delete_edge` — tie-ness is derived | `tie` |
 
@@ -131,9 +132,11 @@ is over the *selection*, so nothing may depend on the order things were clicked.
 
 **It writes home** — but only what the structure stated. Everything else it guesses freely. The four
 ordering tiers, the labels, the lanes and the cap are in [behaviors.md](behaviors.md). Cap is a tree
-slice, not connected-components. **Its trigger is the menu** (G.9b): with the explorer as
-context and one or more blocks or projects selected, `infer` is one of the offered options, so the
-page's `Chosen[]` reaches it there rather than needing a gesture of its own.
+slice, not connected-components. **Its trigger is the explorer menu** (G.9b, proven): with the
+explorer as context and one or more blocks or projects selected, `infer` is one of the offered
+options, so the page's `Chosen[]` reaches it there rather than needing a gesture of its own.
+**Parked**: a new behavior project from Infer is not admitted into `held.projects`, so it does not
+appear in the explorer.
 
 **Named `infer`, not `project`.** *Projection* already means a layer rendered through a view module,
 and `projection surface` is a defined term; overloading it would collide.
@@ -149,11 +152,11 @@ and is absorbed by `move`.
 |---|---|---|---|---|
 | `axis` | layer | layer, axis | `set_axis` | `setAxis` |
 | `arrange` | layer | layer, shape | `place_element`… | `arrange` |
-| `relax` | layer | layer | `relax_layer` | ◌ on the canvas (G.2) |
-| `vocabulary` | project | name | `set_vocabulary` | the entry turn |
+| `relax` | layer | layer | `relax_layer` | ∿ on the canvas (G.2 / U.2) |
+| `vocabulary` | project | packages | `set_vocabulary` | the entry turn |
 
-**`vocabulary` changes shape with D**, from a subject-matter string to which package or packages a
-project draws its definitions from. The action stays one; its argument becomes a list of ids.
+**`vocabulary` is the package import list** (D.2): argument is the package ids, in order; op writes
+`set_vocabulary`. A legacy subject-matter stem still heals into that list.
 
 
 ### Across projects
@@ -192,19 +195,41 @@ of these it accepts**, and may accept none.
 What reaches an action today, read out of `canvas/gestures.ts` and the diagram's declared gesture
 map (S2.7). **The left button works what already exists; the right button makes something new.**
 
-**(planned — G.9)** *A third way in: the **offered-action list**, one set of what the selection can
-do in its context. Same list everywhere; only the presentation differs — the menu in a **fixed**
-order, the rail ordered by **learned preference**. It lives in `actions/`, below the rail, so it
-survives the rail being removed. Reached by right-clicking an existing thing, and by clicking the
-rail (type to filter, arrows to move, `Enter` to take).*
+**The offered-action list** is built (G.9a) — `offer(ctx)` in `actions/offer.ts`: membership for the
+current context (scope + `when`), no ordering of its own. Same set everywhere; only presentation
+differs — explorer and canvas menus in a **fixed** order (G.9b / G.9d ◐, proven); the rail ranks
+by embedding when typed (Z.1), by learned preference when idle (Z.3).
+It lives in `actions/`, below the rail, so it survives the rail being removed.
 
-***On the canvas the target decides.*** *The rule above narrows to: **the right button makes
-something new where there is nothing, and shows what a thing can do where there is something.**
-Right-click on empty space still creates. Right-click on a card, a frame, an edge or a selection
-opens the list instead, so `interface`, `retype` and `group` become entries rather than immediate
-acts. **Right drags are unchanged** — the distance threshold in `gestures.ts` already tells a drag
-from a click, so only the click half changes meaning. Rows marked **(planned)** below are the ones
-this moves.*
+**Explorer (G.9b, proven).** Right-click an existing explorer row opens that list in fixed order and
+enacts via `project.go` (`App` `onAct={project.go}`). Empty-tree / clear-space create is unchanged.
+Rename stays double-click / ✎ — right-click no longer renames. **Bar `＋`** (U.14 ◐): follows the
+selection — project or nothing → name a project into being; block → create under it; tooltip names
+which.
+
+**Rail (G.9c, proven; rank Z.1; feedback Z.2; preference Z.3; guidance Z.4; gloss Z.6; label Z.7; doc hit Z.8; layout U.5; caret U.6).**
+Clicking the rail chrome focuses the caret. Chips are `offer(ctx)`: idle orders by shape-weighted
+preference from `feedback.read()` (actions-only); typed text ranks by embedding similarity when the
+model is warm, substring when cold, with shape as tie-break and an exact prior entry pinned first,
+then appends at most one `docs.json` keyword hit always last (ghost — Enter/click surfaces gloss,
+no action); Chat warms embeddings. Arrows move the highlight; `Enter` takes via `onAct` (`App`
+`Chat` `onAct={project.go}`), except a doc ghost which only shows gloss. Overruling the highlighted
+default (arrow+`Enter` or click) records to `mndflow.rail.feedback.v1` with `shape_of(ctx)`;
+confirming the default writes nothing. Learning is local sticky only. Defaults **collapsed**
+(one-line entry, inline chips); **expanded** is a two-column guidance shell (Z.4: next question +
+hint + nudges from `guidance.ts`; root tip uses `blocksOf(null)`; choice chips / typed Enter answer;
+no-choice shows ranked actions; Z.6: context gloss from `samples/docs.json` via `doc_for(ctx)` /
+`shape_of` — collapsed unchanged); ▾/▴ toggles with titles Expand / Collapse Page Intelligence
+(Z.7 — `rail` stays the identifier). Empty line: block cursor at the insertion point (native caret
+hidden); with text, the native caret.
+
+**Canvas (G.9d ◐, proven).** *The target decides*: the right button makes something new where there
+is nothing, and shows what a thing can do where there is something. Right-click on empty space still
+creates. Right-click on a card, a frame, an edge or a selection opens the list in fixed order via
+`App` `onAct={project.go}` into Canvas, so `interface` and `group` become entries rather than
+immediate acts. Name and perch are not immediate. **Right drags are unchanged** — the distance
+threshold in `gestures.ts` already tells a drag from a click. **Gap**: edge→`retype` waits Scope
+naming both `element` and `edge`.
 
 ### Left button
 
@@ -229,10 +254,10 @@ this moves.*
 | Gesture | On | Reaches |
 |---|---|---|
 | click | empty | `create` — asks for the name first. **Unchanged by G.9** |
-| click | card, frame edge | `interface`, at the nearest point of the border. **(planned — G.9d)** becomes the offered list for that card |
-| click | edge | `retype` — a relationship's name is edited where it is drawn. **(planned — G.9d)** becomes the offered list for that edge |
-| click | a selection of several | `group`. **(planned — G.9d)** becomes the offered list for the selection |
-| click | a name, an interface | nothing — **(planned — G.9d)** these gain the offered list |
+| click | card, frame edge | offered list for that target, fixed order (G.9d ◐); `interface` is an entry |
+| click | edge | offered list for that edge, fixed order (G.9d ◐). **Gap**: `retype` waits Scope naming `edge` |
+| click | a selection of several | offered list for the selection, fixed order (G.9d ◐); `group` is an entry |
+| click | a name, an interface | offered list — not immediate rename / perch (G.9d ◐) |
 | drag | card/frame → card/frame | `relate` |
 | drag | card/frame → note | `tie`, or untie if it was tied |
 | drag | card/frame → empty | `create` + `relate` |
@@ -254,12 +279,19 @@ this moves.*
 
 **Page actions** — the shell's, not a module's, per design.md's three parts.
 
-`export`, `import`, `new`, `undo`, `redo`, and with S4 `open project`, `close project` and
-`export workspace`. **`new` names a project into being** — a name is required and unique among open
-projects (`workspace.mayName`), the naming *is* the project's first step (`workspace.started`), and
-nothing can be added before it. Storage no longer mints a project on load. **`undo` applies to the project in context**, since that is where the step
-was written. **Unlock** and **fork** are workspace operations offered from the strip when a
-locked package refuses a write — not registry actions (S4.8).
+`export`, `import`, `new workspace`, `new` (project), `undo`, `redo`, and with S4 `open project`,
+`close project` and `export workspace`. **`new workspace` clears the session** — drops every keyed
+project log, the workspace list, the session pointer and the live file handle, then leaves a blank
+`Held` (`store.clearSession` / `clearWorkspace`). Reached as a **word** in the header, behind a
+confirm (U.13, proven). **`new` names a project into being** — a name is required and unique among
+open projects (`workspace.mayName`), the naming *is* the project's first step (`workspace.started` /
+`workspace.begin`), and nothing can be added before it. Storage no longer mints a project on load.
+Reached from the explorer's `＋` when the selection says project (U.14 ◐). **`App.newProject` still
+does not call `begin`** — gap, App not owned. **`undo` / `redo` apply to the project in context**,
+since that is where the step was written — **reached as words at the explorer foot**, with one line
+naming the last executed action; the header's `↤` / `↦` pair is gone; keyboard shortcuts are
+unchanged (U.12, proven). **Unlock** and **fork** are workspace operations offered from the strip
+when a locked package refuses a write — not registry actions (S4.8).
 
 **Queries** — readable state, not things to do. Off the registry entirely.
 
@@ -272,8 +304,14 @@ nor navigation. It is a mode the terminal can drive and the explorer owns.
 you see and nothing about the project.
 
 Whether interfaces are shown, curves against right angles, which form the next right drag
-draws, and which relationship types are shown on the canvas. The breadcrumb and the arrange
-buttons are not among them: those reach `open` and `arrange`.
+draws, which relationship types are shown on the canvas, the table/matrix types cycle
+(definition names on table; relationship marks on matrix — U.7), and the page **theme**
+(`current` / `modern` / `light`, sticky in `mndflow.theme.v1` — U.4). **Diagram chrome
+presents them in one language** (U.15, proven): vertical *interface* / *relation* / *flow*
+groups; every control word+glyph; form / draw / types / axis as radio rows. The breadcrumb and
+the arrange buttons are not among them: those reach `open` and `arrange` (arrangements still
+on `.shape` with words until U.16; table/matrix crumbs climb when wired; trail/climb also
+derive from the graph when the page omits `path`/`onUp`).
 
 
 ## What the count came to
@@ -292,6 +330,7 @@ and `vocabulary` had no closure to be counted in the first place. **`infer` is t
 only one the behaviour walk added** — it was two, `scope` and `promote`, until inference absorbed
 both.
 
-`relax_layer` and `size_element` are wired on the canvas (◌ and note SE). `dissolve` reaches
-`delete_element` through the registry but nothing on the canvas or tray offers it yet — that waits
-G.9, which is now settled in full and carries no gate.
+`relax_layer` and `size_element` are wired on the canvas (∿ and note SE). `dissolve` reaches
+`delete_element` through the registry and the canvas menu offers it when a group is in scope
+(G.9d ◐); groups are not listed in the explorer. Explorer (G.9b), rail (G.9c) and canvas
+(G.9d ◐) all present the offered list.

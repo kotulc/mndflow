@@ -1,7 +1,8 @@
 /** The table module's projection surface.
  *
  *  Rows and a scrollbar, no frame and no camera. Declared here so a definition
- *  that picks `table` never inherits a border it cannot draw. */
+ *  that picks `table` never inherits a border it cannot draw. The panel shell
+ *  hosts crumbs and types beside the list. */
 
 import type { Surface } from "../diagram/surface";
 

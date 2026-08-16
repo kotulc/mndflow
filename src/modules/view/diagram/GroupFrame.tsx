@@ -27,8 +27,7 @@ export type GroupData = {
   dropping: boolean;
   /** The pointer is on this boundary's clear space (or its rim). */
   grazed: boolean;
-  /** The pointer is on its name, which is its own target: a right-click there
-   *  renames rather than acting on the boundary. */
+  /** The pointer is on its name, which is its own target for the offered list. */
   titled: boolean;
   onPick: () => void;
   onLabel: (label: string) => void;
@@ -46,8 +45,7 @@ export const GroupFrame = memo(({ data }: NodeProps) => {
                   dropping ? "dropping" : ""].join(" ")}
       onClick={onPick}
     >
-      {/* Draggable with the boundary: the name is an obvious handle, and
-          renaming is a right-click rather than a left one. */}
+      {/* Draggable with the boundary: the name is an obvious handle. */}
       <span className={`region-name${titled ? " grazed" : ""}`}>
         <Name text={label || "group"} className="region-label" onRename={onLabel}
               taken={onNameTaken} onSay={onSay} />

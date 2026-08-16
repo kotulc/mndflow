@@ -5,12 +5,13 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { fold } from "../src/graph/fold";
+import { compact, fold } from "../src/graph/fold";
+import { saveProject } from "../src/graph/store";
 import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../src/graph/types";
 import {
-  admit, blank, defOf, folder, fork, fromDefs, gather, isLocked, isSelf, load,
-  mayAdmit, named, opened, pack, packId, packs, read, resolve, rootOf, save,
-  scoped, unlock, writeInto,
+  admit, begin, blank, defOf, folder, fork, fromDefs, gather, isLocked, isSelf, load,
+  mayAdmit, mayName, named, names, opened, pack, packId, packagesOf, packs, read, resolve,
+  rootOf, save, scoped, started, stemOf, unlock, writeInto,
 } from "../src/workspace/index";
 
 /** An in-memory localStorage so the suite does not need a browser. */
@@ -160,6 +161,47 @@ describe("folder", () => {
   });
 });
 
+describe("begin", () => {
+  it("names a project into being and keeps what it holds across save and reopen", () => {
+    const held = blank();
+    const out = begin(held, EMPTY, "coolant loop", {});
+    expect("refuse" in out).toBe(false);
+    if ("refuse" in out) return;
+
+    expect(out.id).toMatch(/^proj_/);
+    expect(out.held.projects).toContain(out.id);
+    expect(fold(out.steps).elements[ROOT].label).toBe("coolant loop");
+
+    const block = element("Pump", { parent: null });
+    const steps = compact([
+      ...out.steps,
+      step("added", "create", [{ op: "add_element", element: block }]),
+    ]);
+    expect(saveProject(out.id, steps)).toBe(true);
+    expect(save(out.held)).toBe(true);
+
+    const shell = applied(...out.mutations);
+    expect(named(shell)).toContain(out.id);
+    expect(load().projects).toContain(out.id);
+
+    const again = opened(out.id);
+    expect(again.graph.elements[ROOT].label).toBe("coolant loop");
+    expect(again.graph.elements[block.id]?.label).toBe("Pump");
+  });
+
+  it("refuses a blank or taken name rather than minting a blank project", () => {
+    const taken = names({ proj_a: fold(started("alpha")) });
+
+    expect(begin(blank(), EMPTY, "   ", taken)).toEqual({
+      refuse: mayName(taken, "   "),
+    });
+    expect(begin(blank(), EMPTY, "alpha", taken)).toEqual({
+      refuse: mayName(taken, "alpha"),
+    });
+    expect("refuse" in begin(blank(), EMPTY, "beta", taken)).toBe(false);
+  });
+});
+
 describe("resolve", () => {
   it("finds a foreign root in the open project's graph", () => {
     const other = {
@@ -269,6 +311,17 @@ describe("packages", () => {
   it("mints a stable package id from the name", () => {
     expect(packId("Requirements")).toMatch(/^pkg_/);
     expect(packId("Requirements")).toBe(packId("requirements"));
+  });
+
+  it("maps a domain stem to its package import list", () => {
+    const listed = packagesOf("software");
+
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.every((id) => id.startsWith("pkg_"))).toBe(true);
+    expect(listed).toEqual([packId("software")]);
+    expect(packagesOf("")).toEqual([]);
+    expect(stemOf(listed)).toBe("software");
+    expect(stemOf([])).toBe("");
   });
 
   it("loads definitions by id and derives a missing one from the name", () => {

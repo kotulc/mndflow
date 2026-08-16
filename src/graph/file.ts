@@ -18,7 +18,7 @@
  *  project sits beside it once — nothing is nested inside anything else. */
 
 import {
-  ROOT, edge as newEdge, element as newElement, field as newField, refAt,
+  ROOT, asVocabulary, edge as newEdge, element as newElement, field as newField, refAt,
   type Definition, type Edge, type Element, type Field, type Graph,
 } from "./types";
 
@@ -135,7 +135,7 @@ function graphOut(graph: Graph): Record<string, unknown> {
   const { id: _id, parent: _parent, ...rest } = root ?? newElement("");
 
   return {
-    ...(graph.vocabulary ? { vocabulary: graph.vocabulary } : {}),
+    ...(graph.vocabulary.length ? { vocabulary: [...graph.vocabulary] } : {}),
     defs: Object.fromEntries(
       Object.entries(graph.defs)
         .sort(([a], [b]) => a.localeCompare(b))
@@ -202,7 +202,7 @@ function graphIn(held: Record<string, unknown>): Graph {
     ),
     elements,
     edges,
-    vocabulary: typeof held.vocabulary === "string" ? held.vocabulary : "",
+    vocabulary: asVocabulary(held.vocabulary),
   };
 }
 

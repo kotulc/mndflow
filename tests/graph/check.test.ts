@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { entering, report, validating } from "../../src/graph/check";
 import { fold } from "../../src/graph/fold";
+import { stemOf } from "../../src/graph/types";
 
 /** A log as some earlier build would have written it. */
 const logged = (...mutations: unknown[]) => ([{
@@ -71,7 +72,7 @@ describe("healing old shapes", () => {
         elements: { n_1: oldElement({ attrs: [{ name: "a", value: "b", tags: [] }] }) },
         edges: { e_1: { id: "e_1", source: "n_1", target: "n_1", type: "t", dir: "none",
                         kind: "flow" } },
-        defs: {}, vocabulary: "",
+        defs: {}, vocabulary: [],
       },
     }))!;
     const graph = fold(came.steps);
@@ -79,6 +80,16 @@ describe("healing old shapes", () => {
     expect(graph.elements.n_1.form).toBe("block");
     expect(graph.elements.n_1.fields).toHaveLength(1);
     expect(graph.edges.e_1.form).toBe("directed");
+  });
+
+  it("reads a domain-stem vocabulary as a package list", () => {
+    const came = entering(logged({ op: "set_vocabulary", vocabulary: "software" }))!;
+    const graph = fold(came.steps);
+
+    expect(graph.vocabulary.length).toBeGreaterThan(0);
+    expect(graph.vocabulary.every((id) => id.startsWith("pkg_"))).toBe(true);
+    expect(stemOf(graph.vocabulary)).toBe("software");
+    expect(came.faults.some((f) => f.healed)).toBe(true);
   });
 });
 
@@ -93,7 +104,7 @@ describe("an element's own colour, now its definition's", () => {
   it("is dropped inside a checkpoint too, which is what a file arrives as", () => {
     const came = entering(logged({
       op: "checkpoint",
-      graph: { elements: { n_1: oldElement() }, edges: {}, defs: {}, vocabulary: "" },
+      graph: { elements: { n_1: oldElement() }, edges: {}, defs: {}, vocabulary: [] },
     }))!;
 
     expect(fold(came.steps).elements.n_1).not.toHaveProperty("color");
@@ -163,7 +174,7 @@ describe("the retired figure form", () => {
                                 groups: [], of: null, fields: [] } },
         edges: {},
         defs: { def_seam: { id: "def_seam", name: "seam", form: "figure", fields: [] } },
-        vocabulary: "",
+        vocabulary: [],
       },
     }))!;
     const graph = fold(came.steps);
@@ -251,7 +262,7 @@ describe("a definition's component configuration", () => {
     const def = { id: "def_1", name: "requirement", form: "block", fields: [],
                   components: { fussy: {}, unclaimed: { a: 1 } } };
     const came = entering(logged({ op: "checkpoint", at: 0, graph: {
-      defs: { def_1: def }, elements: {}, edges: {}, vocabulary: "" } }))!;
+      defs: { def_1: def }, elements: {}, edges: {}, vocabulary: [] } }))!;
 
     expect(fold(came.steps).defs.def_1.components).toEqual({ unclaimed: { a: 1 } });
     expect(came.faults.some((f) => f.healed)).toBe(true);

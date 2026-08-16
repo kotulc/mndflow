@@ -1,0 +1,51 @@
+{
+  "project": "proj_mndflow",
+  "kind": "block",
+  "steps": [
+    {
+      "at": null,
+      "say": "This sample is a block diagram of mndflow itself. Cards are modules; lines are how they depend and feed.",
+      "next": "Open Graph in the explorer to see the door and the fold."
+    },
+    {
+      "at": "block_graph",
+      "say": "Graph holds the engine: types, fold, file, store, and check — a Door that heals what comes in. Ports on the frame are interfaces.",
+      "next": "Select check, or return to the root and open Canvas."
+    },
+    {
+      "at": "block_check",
+      "say": "check is a Door: the one place a log comes in, checked and healed. Its fields say what role it plays.",
+      "next": "Follow the feed chain to file and store, or go up and open Canvas."
+    },
+    {
+      "at": "block_canvas",
+      "say": "Canvas draws one open layer — cards, frames and routes. NodeCard mentions store through a proxy so the line can cross layers.",
+      "next": "Open NodeCard, or pick a note or group back at the root."
+    },
+    {
+      "at": "proxy_store",
+      "say": "A proxy stands in for a block that lives elsewhere — here, Graph's store — so a relationship can cross a structural boundary.",
+      "next": "Return to the root and select a note or the engine group."
+    },
+    {
+      "at": "note_file_is_graph",
+      "say": "A note is a card of text, not structure. This one names the file rule: a file is the graph, not the log.",
+      "next": "Select the other note, or the engine group beside the modules."
+    },
+    {
+      "at": "note_log_is_truth",
+      "say": "The other note names the session rule: the log is the truth — undo flips a step and folds again.",
+      "next": "Select the engine group, or a relationship line on the canvas."
+    },
+    {
+      "at": "group_engine",
+      "say": "A group organises without structuring — engine and surface gather modules on this layer without becoming parents.",
+      "next": "Click a relationship line to see how joins differ from cards."
+    },
+    {
+      "at": "edge",
+      "say": "A relationship joins exactly two elements. Directed edges carry depends / feeds; plain lines are mentions and ties.",
+      "next": "Keep exploring the sample, or collapse Page Intelligence when you are done walking."
+    }
+  ]
+}

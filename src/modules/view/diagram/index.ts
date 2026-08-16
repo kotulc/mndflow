@@ -14,6 +14,10 @@ export {
   MAP, ADJUSTMENTS, takes, reaches,
   type GestureMap, type Adjustment, type Binding, type Hand, type Motion, type Target, type Reaches,
 } from "./map";
+export {
+  OfferMenu, ORDER, can_fill, fill_args, offered_for, rank,
+  type OfferTarget,
+} from "./offer";
 export { paint } from "./paint";
 export { svgOf } from "./svg";
 export {

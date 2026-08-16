@@ -506,7 +506,7 @@ export function useProject(projectId: string, locked = false) {
       go("arrange", { spots, notes }),
     relax: (layer?: string | null) =>
       go("relax", layer !== undefined ? { layer } : {}),
-    vocabulary: (name: string) => go("vocabulary", { name }),
+    vocabulary: (packages: string[]) => go("vocabulary", { packages }),
 
     place: (moved: { id: string; x: number; y: number }[], what = "",
             membership: { attr: string; holder: string; join: boolean }[] = []) =>
@@ -664,6 +664,8 @@ export function useProject(projectId: string, locked = false) {
     redo,
     /** Land mutations in a named project's log — see {@link home}. */
     home,
+    /** Run any registry action by name — menu and rail reach `infer` here. */
+    go,
     // Queries — readable state, off the action surface.
     nameTaken: (parent: string | null, label: string, except: string | null = null) =>
       !nameFree(graph, parent, label, except),

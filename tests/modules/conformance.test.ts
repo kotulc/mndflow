@@ -160,8 +160,19 @@ describe("every registered view module", () => {
       expect(mod.word.length).toBeGreaterThan(0);
     });
 
+    it("carries a scanning icon of its own", () => {
+      expect(typeof mod.icon).toBe("string");
+      expect(mod.icon.length).toBeGreaterThan(0);
+    });
+
     it("answers what a right-click creates, even if that is nothing", () => {
       expect(mod.creates === null || typeof mod.creates === "string").toBe(true);
     });
+  });
+
+  it("keeps every module's icon distinct from the others", () => {
+    const icons = MODULES.map((name) => named(name)!.icon);
+
+    expect(new Set(icons).size).toBe(MODULES.length);
   });
 });

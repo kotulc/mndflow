@@ -76,6 +76,7 @@ the project.
   | Where | |
   |---|---|
   | explorer — new row, and rename | checked |
+  | explorer — new **project** (bar `＋` / empty-tree link) | checked — unique among open projects (`workspace.mayName`); exists once named (U.14 ◐) |
   | canvas prompt — new block, and rename | checked |
   | a relationship grown into empty space | checked |
   | a card's own label, in place | checked |
@@ -210,7 +211,7 @@ the project.
   | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one. Resolved with `styleOf` / `lookOf` |
   | `constraints` | `required` |
   | `rules` | `ends`, `holds`, `degree`, `match`. `among` walks `isa` so a named definition means it or anything below it |
-  | `view` | on a diagram's definition: which view module, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Six modules registered; the block diagram surface lives under `modules/view/diagram/`. Create / `infer` are not yet wired to `word` / `creates` |
+  | `view` | on a diagram's definition: which view module, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Six modules registered, each with a distinct **`icon`** glyph (U.9); the labelled view toggle draws those glyphs (U.8). The block diagram surface lives under `modules/view/diagram/`. Create / `infer` are not yet wired to `word` / `creates` |
 
   Each is defined in [definitions.md](definitions.md) under *Rules, constraints and components*.
 
@@ -221,7 +222,9 @@ the project.
     activity module (A.7b).
   - **Style is drawn from** via `lookOf` on the diagram; **table** mounts when `view.module` is
     `table` — rows pick/open, proxy open withheld (A.1, proven); **matrix** mounts when named
-    (A.2, suite); **activity** mounts when `view.module` is `activity` — dimmed derived labels and
+    (A.2, suite). Both are **Contents-modelled panel shells** (~⅓ stage; expand fills stage) with
+    crumbs + types cycle (U.7 ◐ — App does not yet wire `path`/`onUp`; expand does not cover
+    Contents). **Activity** mounts when `view.module` is `activity` — dimmed derived labels and
     inferred order (A.7b, proven); **state** and **sequence** mount the same way (A.8 / A.9,
     proven).
   - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
@@ -267,9 +270,10 @@ the project.
   is a path, so two packages naming a thing alike are two different definitions and importing one
   can never change what an existing element means. Definitions are addressed by path
   (`defOf` / `scoped`); nothing is copied into a consumer's `defs`.
-- **(planned)** A project draws definitions from a **list of packages, in the order imported** —
-  that list is D.2 (`vocabulary`). **Blocked** on the terminal freeze and the A0.2 seeding bridge
-  (needs Clay).
+- A project draws definitions from a **list of packages, in the order imported** —
+  `graph.vocabulary` / `set_vocabulary` are that list (`string[]` of package ids). A legacy
+  subject-matter stem heals through `asVocabulary` at the door and on fold. The old
+  `Domain.relations` seeding bridge is gone; entry writes the healed list.
 - **Two definitions loaded under one name are shown with their packages**, and import
   order decides which is offered first. Ambiguity in a picker is not shadowing — neither is
   hidden — and the answer to it is presentation, not resolution.
@@ -285,8 +289,8 @@ the project.
   an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
   ambiguous, and a reader splits on the first one or does not have to split at all. `refTo` and
   `refAt` are the two ends of it. The workspace admits another project (and a shipped package)
-  under that path; **(planned)** a project's own `vocabulary` list choosing which packages it
-  draws on is D.2.
+  under that path; a project's own `vocabulary` list chooses which packages it draws on, in
+  import order.
 - **A package** is a set of definitions somebody ships — plain names, formal names, fields,
   presentation and mappings. It is data, adds no code, and **maps names and presentation but never
   structure**; a notation needing structural change is a module instead. **Shipped**:
@@ -342,9 +346,10 @@ the project.
   reference points at, so renaming a project — or its file — breaks nothing.
 - **The suggested filename follows the project's name**, so the two stop drifting apart.
 - **On Chromium, export can bind a live file handle** via the File System Access API; when the
-  picker is refused or unavailable, the ordinary download path is the fallback. The header can
-  say when the bound file has changed underneath (reopen takes the disk copy). Live bind+drift
-  is landed in code; the download fallback is what has been driven.
+  picker is refused or unavailable, the ordinary download path is the fallback. A bound handle is
+  held (`store.hold`) and probed for drift (`store.probe`); focus and visibility listeners
+  re-attach when the document is replaced. The header's `data-where` is `session`, `drifted` or
+  `unsaved`; when drifted it says the file changed and reopen takes the disk copy.
 - **A rendered SVG of the open layer** can be produced by `svgOf` on the diagram module and
   downloaded beside the source export (F.3, proven).
 - **Nothing still at its default is written.** No nulls, no empty lists, no colour every card
@@ -412,10 +417,15 @@ the project.
     exposes `watchPressure` / `pressureNote`; the strip shows that note when pressure rises.
   - **The workspace keeps its own list of what has been imported** (`Held.projects` on
     `mndflow.workspace.v1`), which is what an untouched project is remembered by when it has no
-    key of its own. `admit` places a proxy of another project's root and appends that id; `folder`
-    mints an ordinary block for filing; proxying the workspace itself is refused. Explorer listing
-    and context switch are live (S4.5). Workspace `⤓` and project `↧` export/import at schema
-    `1.2` (S4.6).
+    key of its own.     `admit` places a proxy of another project's root and appends that id; `folder`
+    mints an ordinary block for filing; proxying the workspace itself is refused. **`begin`
+    names a project into the workspace** — required, unique, then a log whose first step is that
+    naming; never an untitled blank (U.14 ◐). Explorer listing and context switch are live (S4.5).
+    Workspace `⤓` and project `↧` export/import at schema `1.2` (S4.6).
+  - **Clearing the session starts a new workspace** (U.13, proven): `store.clearSession()` drops
+    every keyed project log, the workspace list, the session pointer and the live file handle;
+    `clearWorkspace` leaves a blank `Held`. The designed opening is empty — no silently reminted
+    project.
 
 **Tests** — all in `tests/`, mirroring `src/`; a module's `index.ts` is tested by its folder's name.
 A contract many modules keep is tested once over all of them (`tests/modules/conformance.test.ts`).
@@ -462,6 +472,14 @@ registry, read by every input method: gestures, the contents tray, and later the
 - **`when` decides whether an action is shown; `check` decides what happens when it runs.** They
   are not the same test — `when` asks whether this is a thing here at all, `check` asks whether
   these particular arguments would work, and cannot be answered until they are filled.
+- **The offered-action list** is membership only — `offer(ctx)` in `actions/offer.ts` (G.9a):
+  everything whose scope matches the current context and whose `when` says yes. It ranks over the
+  registry and lives beside it, so the rail can be removed without taking the menu (S6.3). Order is
+  never the list's: the explorer and canvas menus take a **fixed** order (G.9b / G.9d ◐, proven);
+  the rail ranks chips by embedding similarity when typed (Z.1), and by learned preference for that
+  context when idle (Z.3). **Explorer, rail and canvas draw from it.**
+  Adjustments stay off the set through `when`; `check` is not consulted here, because it needs
+  arguments nobody has filled.
 - **What does not apply is not shown.** Greying out is for a fixed row of controls whose positions
   are worth learning, like the header's; a list built from the selection has no positions to keep,
   so an entry that cannot run is only noise.
@@ -493,7 +511,8 @@ project wholesale and is not about drawing: **`infer`**, which turns a selection
 one behavior block — or a selection of actions into a state block, since it composes. Sayable, writes
 mutations (and `Effect.home` for writing home), and on the one registry like everything else. It
 absorbed the two the behaviour walk first proposed, `scope` and `promote`, both retired before they
-were built. **Parked**: the page's `Chosen[]` is not yet wired to `infer`.
+were built. The page's `Chosen[]` reaches it through the explorer offer (G.9b); the suite walks
+Chosen → offer → `run("infer")` → fold → activity draw (T.4, proven; browser skipped).
 
 **Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
 
@@ -502,13 +521,18 @@ were built. **Parked**: the page's `Chosen[]` is not yet wired to `infer`.
 
 *The **block** diagram's projection surface lives under `modules/view/diagram/` — frame, crumbs,
 prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). `Canvas.tsx` still
-hosts. **Table** mounts when `view.module` is `table` — rows pick/open; proxy open withheld
-(A.1, proven). **Matrix** mounts when named (A.2, suite). **Activity** mounts when
-`view.module` is `activity` — derived labels and inferred order draw dimmed (A.7b, proven).
-**State** mounts when `view.module` is `state` — empty infer offer; Reading A/B; DIM (A.8,
-proven). **Sequence** mounts when `view.module` is `sequence` — columns; directed then axis;
-DIM (A.9, proven). **Parked** on activity: RF framed host; gestures on the activity plane;
-activity-final double ring. The rest of this section is still the target for multi-view work.*
+hosts. **Which module mounts** follows the sticky pick when it fits the project kind, else the
+layer's `view.module` (U.8, proven). **Table** — rows pick/open; proxy open withheld (A.1,
+proven). **Matrix** when named (A.2, suite). **Both open as Contents-modelled panel shells**
+(~⅓ of the stage by default; expand fills the stage) and host **A.1's chrome** — crumbs plus a
+types cycle (definition names on table; relationship marks on matrix). Optional `path` / `onUp`;
+when the page omits them, trail and climb derive from the graph (U.7 ◐). Contents and Panel are
+untouched; expand does not yet cover or replace Contents, App does not wire `path`/`onUp`, and
+`styles.css` has no `tray.full`. **Activity** — derived labels and inferred order draw dimmed
+(A.7b, proven). **State** — empty infer offer; Reading A/B; DIM (A.8, proven). **Sequence** —
+columns; directed then axis; DIM (A.9, proven). **Parked** on activity: RF framed host; gestures
+on the activity plane; activity-final double ring. The rest of this section is still the target
+for multi-view work.*
 
 **A saved view is a block, and there is no kind of project for it.** A block whose definition
 carries a `view` component, holding proxies of what it shows, filed in a folder — which is itself
@@ -518,8 +542,11 @@ landed with S4.3.
 
 - ***Diagram* means one thing**: what a layer looks like drawn on the canvas. It names no module,
   and it is not a second name for the block above.
-- **Which view is showing is a display preference** — sticky per project, never in the log (U.8).
-  The definition's `view.module` says how a layer **opens**; the toggle says what is shown **now**.
+- **Which view is showing is a display preference** — sticky per project in `mndflow.view.v1`,
+  never in the log (U.8, proven). A labelled control beside the project root lists the three
+  modules the project kind offers, each with its U.9 glyph. **Writes nothing.** The definition's
+  `view.module` says how a layer **opens**; the toggle says what is shown **now**. App mounts from
+  the sticky pick when it fits the kind; otherwise it mounts the layer's `view.module`.
 - **Six view modules, three per kind of project**, and the kind is visible from what is being drawn
   rather than declared:
 
@@ -528,6 +555,10 @@ landed with S4.3.
   | default | **block** | **activity** |
   | others | **table**, **matrix** | **sequence**, **state** |
 
+  - **Each module publishes a distinct `icon`** on `ViewModule` — block ▭, table ☰, matrix ⊞,
+    activity ▸, sequence ⋮, state ◯ — sized and coloured by `.view-icon` (U.9). Re-registers keep
+    the glyph. **The view toggle draws them** (U.8, proven). Definition / card `layout: icon` is
+    stream E's, not this.
   - **A behavior is not offered a table or a matrix**, because what it holds is tied to the objects
     interacting and those already have both. Nothing structural stops one — a module reads a layer,
     and a behavior layer is a layer — so this is what is *offered*, and an allocation matrix of
@@ -622,7 +653,8 @@ derived labels and inferred order draw dimmed (DIM).*
 - **`infer` is how one comes to exist.** A selection — blocks, branches, whole projects, across as
   many as it reaches — becomes **one behavior block**, in a named behavior project or a new one.
   One-way, one-time and deterministic; **re-inferring makes a new block** and never edits an
-  existing one. **Parked**: explorer / page `Chosen[]` → `infer` is not wired yet.
+  existing one. Reached from the explorer's offered list (G.9b, proven). **Parked**: a new behavior
+  project from Infer is not admitted into `held.projects`, so it does not appear in the explorer.
 - **It composes**: a selection of actions infers a `state` block the way structure infers an
   `action`.
 - **A behavior block is a block**, and its definition is `action` or `state`. **A container is an
@@ -663,40 +695,86 @@ derived labels and inferred order draw dimmed (DIM).*
 - With several projects open, the header names the one **in context** — the project
   the selected explorer row belongs to — and the explorer lists them all in the tree they were
   filed into.
+- **On a narrow window the header yields** (U.1): the identity truncates; the tool cluster stays
+  put. The session / where control ellipsizes. The stage keeps `min-width: 0` and clips overflow,
+  so chrome cannot steal its room.
+- **The explorer bounds itself** (U.3, proven): width is `min(280px, 36vw)`; it collapses to a
+  28px strip (◂/▸) with the tree hidden until reopened; the bar title ellipsizes.
+- **Themes are chrome** (U.4, proven): a labelled header group offers `current`, `modern` and
+  `light`; `current` is the default. Palettes are CSS variables selected by `data-theme` on the
+  document; the choice sticks in `mndflow.theme.v1`. Shell overlays take chrome washes from the
+  same variables. Root `styles/` (the `style` component) and the diagram's hard-coded colours are
+  untouched — a theme never recolours a card, route or frame.
 - **It names the working session** — `working session`, held quiet, with the snapshot explained
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
-- Controls are icons with tooltips: undo `↤`, redo `↦`, workspace export `⤓`, project export `↧`,
-  import `⤒`, new `＋`. Each greys out when it has nothing to do.
-- `new` asks before discarding, and import reports a file that is not a mndflow project — both
-  in the strip, like everything else the app says.
-- The readout toggle sits at the end of the same row.
+- Controls are icons with tooltips: workspace export `⤓`, project export `↧`, import `⤒`.
+  Each greys out when it has nothing to do. **Undo and redo left the header** (U.12). **New
+  workspace is a word**, not a glyph (U.13, proven) — rare and destructive, same move as undo/redo.
+- **New workspace asks before discarding** (U.13), then clears the session and leaves a blank
+  `Held`. Import reports a file that is not a mndflow project — both in the strip, like everything
+  else the app says.
+- **No readout drawer** (U.11, proven): the header toggle and the three tabs are gone. Relation
+  kinds are edited in Contents; action history is future work — U.12 keeps only the last action,
+  on one line at the explorer foot.
 
 
 ## Terminal rail
 
-*Frozen pending refinement — see tasks.md, stream Z.*
+*Optional (S6.3). Collapsed offer wiring is G.9c; embedding rank is Z.1; overrule feedback is Z.2;
+learned preference is Z.3; collapsed / expanded layout is U.5; caret at insertion is U.6; expanded
+guidance is Z.4; tutorial is Z.5; context gloss is Z.6; user-facing label is Z.7; ranked doc hit
+is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 
 - A contextual prompt and a typed answer at the top of the page, with no frame of its own.
 - Past exchanges rise and fade off the top edge; the live line stays at the foot.
 - Reverted steps show struck through.
-- Suggestion chips fill the other half of the row, tiled in the same treemap shape a container
-  uses, with the likeliest reading marked as the default.
-- A chip either answers the question or runs a graph operation directly — add, link, open.
+- **Clicking the rail chrome focuses the caret** (G.9c) — click does not steal focus from the
+  input (`preventDefault` on chrome that would).
+- **Suggestion chips** are the offered-action list for the current context (`offer(ctx)`). When the
+  line is **idle**, chips order by **shape-weighted preference** from `feedback.read()` (Z.3). When
+  typed text is present and the embedding model is warm, chips **rank by embedding similarity**
+  against what was typed (Z.1), with shape as tie-break and an **exact prior entry pinned first**;
+  while the model is cold, a **substring** filter is the fallback. Chat warms embeddings on mount.
+  A chip runs via `project.go` (`App` `Chat` `onAct={project.go}`).
+- Arrow keys move the highlight; `Enter` takes the highlighted chip.
+- **Overrule feedback** (Z.2) — taking a chip that is not the highlighted default (arrow then
+  `Enter`, or click) records to local sticky storage `mndflow.rail.feedback.v1` with the
+  situation's shape from `shape_of(ctx)`. Confirming the highlighted default writes nothing.
+- **Learned preference** (Z.3) — two-tier: the literal entry remembered, the situation's shape
+  weighted. Local sticky only; never logged.
+- **Collapsed / expanded layout** (U.5) — defaults **collapsed**: one-line entry with inline chips.
+  **Expanded** is a two-column guidance shell. ▾/▴ toggles between them; titles are **Expand Page
+  Intelligence** / **Collapse Page Intelligence** (Z.7) — user-facing copy only; code and docs keep
+  saying `rail`. Focus, arrows and Enter stay G.9c's; typed rank is Z.1's; feedback is Z.2's; idle /
+  shape order is Z.3's; expanded guidance content is Z.4's.
+- **Caret at the insertion point** (U.6) — while the line is empty, a block cursor overlays the
+  input insertion point and the native caret is hidden; with text, the native caret.
+- **Expanded guidance** (Z.4) — next question, hint and nudges from `guidance.ts`; the root tip
+  counts via `blocksOf(null)`. When the question has choices, chips or typed `Enter` answer; when
+  it has none, the rail shows ranked actions instead.
+- **Context gloss** (Z.6) — expanded shows a short gloss for what is in front of you, from
+  `samples/docs.json` (ten hand-authored terms keyed to [definitions.md](definitions.md)) via
+  `doc_for(ctx)` / `shape_of`. Collapsed is unchanged. No generator.
+- **One doc hit, ranked last** (Z.8) — when the line is typed, the chip list is offered actions
+  plus at most one `docs.json` keyword hit, always last (ghost). Enter or click on that hit
+  surfaces its gloss and runs no action. Idle and answer lists stay actions-only.
+- **Tutorial** (Z.5) — expanded walks `samples/tutorial.json` via `walk_for(ctx)` on
+  `proj_mndflow`; advances by pick / ancestors / open layer; an edge advances to the relationship
+  step. Collapsed stays quiet; Z.4 / Z.6 / Z.7 unchanged.
 
-**(planned) Two functions, told apart by whether it is open.** Reasoning in
-[design.md](design.md) under *The terminal*.
+**Two functions, told apart by whether it is open.**
 
-- **Collapsed** — the app's primary text entry point. Typing ranks the actions available in the
-  current context; it asks nothing.
-- **Expanded** — guidance: the question worth answering next, nudges, documentation for what is in
-  front of you, and a tutorial walking somebody through a diagram of a given kind over a sample
-  project.
+- **Collapsed** — the app's primary text entry point. Typing **ranks** what is available against the
+  typed text (Z.1 embedding), appending at most one documentation hit last (Z.8); idle order learns
+  from overrule feedback (Z.3) and stays actions-only. It asks nothing.
+- **Expanded** — guidance (Z.4): the question worth answering next, a hint, and nudges; plus a
+  context gloss (Z.6) for what is in front of you; plus a tutorial (Z.5) walked over the sample
+  project. Typed answer chips may append one doc ghost last (Z.8); idle/answer lists without typing
+  stay actions-only.
 - **It reads context and never changes it.** No action it can reach opens a layer or moves the
   selection — the explorer and the pointer navigate.
 - **Filtering the explorer is a mode, not an action.**
-- `Enter` confirms the **highlighted** option; arrow keys move the highlight, and overruling the
-  default is the feedback the ranking learns from.
 
 
 ## Object explorer
@@ -714,8 +792,7 @@ derived labels and inferred order draw dimmed (DIM).*
   keeps. **The project a selected row belongs to is the context**, which is what decides where a
   change is written — positional, so there is no mode and nothing to switch. Click switches.
 - **Multi-select** — Shift / Meta click builds a `Chosen[]` across blocks, branches and projects
-  (E.4, proven). **Parked**: Ctrl on Windows; no distinct multi-select CSS; chosen → `infer` not
-  wired.
+  (E.4, proven). **Parked**: Ctrl on Windows; no distinct multi-select CSS.
 - **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
   is the one place a proxy *is* listed, because in a view there is nothing else to list.
 
@@ -723,18 +800,39 @@ derived labels and inferred order draw dimmed (DIM).*
 
 - Single click sets the scope: the canvas draws that node's view, and its branch opens — asking
   to look inside something shows what is inside it.
-- Double-click or right-click renames in place — a row is all name, so it takes the same rule
+- Double-click or the ✎ control renames in place — a row is all name, so it takes the same rule
   every name takes.
-- Right-clicking the clear space below the rows makes a block **at the root**, wherever you are
-  scoped: the rows are what layers look like here, so the space around all of them is the root's
-  own background. The bar's ＋ button is the one that acts on the open layer.
-- A role icon precedes every name and doubles as the fold control where there is one.
+- **Right-click on a row** opens the offered-action list for the selection, in fixed order
+  (`offer(ctx)` → `project.go`; G.9b, proven). That is `infer`'s trigger when blocks or projects
+  are chosen.
+- Right-clicking the clear space below the rows (or an empty tree) makes a block **at the root**,
+  wherever you are scoped: the rows are what layers look like here, so the space around all of
+  them is the root's own background.
+- **The bar's `＋` follows the selection** (U.14 ◐, proven) — the same *target decides* rule as
+  the canvas right button (G.9d): a **project** or nothing selected opens the name prompt and the
+  project exists once named; a **block** selected makes a block under it. The tooltip names which,
+  so the meaning is never hidden. (G.9b's list offering *add a project* as well is only half-true —
+  see tasks.md.)
+- A role icon precedes every name and doubles as the fold control where there is one — ■ leaf,
+  □ interface, ◫ container (U.2; `▦` is the grid arrangement, not a tree role).
+- **A labelled view toggle sits beside the project root** (U.8, proven) — the three modules the
+  project kind offers, each with its U.9 glyph. Sticky per project in `mndflow.view.v1`; writes
+  nothing. Tree role icons stay ■ / □ / ◫.
 - Folding is the user's alone; walking into a layer on the canvas never rearranges the tree.
 - One control in the bar opens every branch or closes every branch.
 
 **Layout**
 
 - Levels are shown by indentation and faint guide lines.
+- **Width is capped** at `min(280px, 36vw)` so the stage keeps room at high zoom (U.3, proven).
+- **Collapses to a 28px strip** (◂/▸); the tree is hidden until the strip is reopened (U.3,
+  proven). The bar title ellipsizes when the pane is narrow.
+- **Project roots are marked** (`className="project"`) and **siblings get 10px top margin**, so
+  several open projects read as several rather than as one long tree (U.17, proven).
+- **Undo and Redo read as words at the explorer foot**, with **one line naming the last executed
+  action** (U.12, proven). The header's `↤` / `↦` pair is gone; keyboard shortcuts are unchanged.
+  A collapsed explorer hides the foot with the tree — reaching them still never means opening a
+  drawer first, only reopening the explorer.
 - Deep branches indent past the sidebar rather than wrapping; the tree scrolls horizontally and
   centres on the depth of the selection, re-centring when the tree's shape changes.
 - The horizontal scrollbar sits at the foot of the sidebar, not under the last row.
@@ -966,10 +1064,11 @@ about like any other, and the drag sticks.
 - `Esc` cancels the gesture.
 - Right-clicking a line names its type — a name is edited where it is drawn, and this is the
   last name on the canvas that took a different gesture.
-- The form a right drag makes is picked in the canvas toolbar: plain, flow, or assoc.
+- The form a right drag makes is picked in the canvas options (*relation* group): plain, flow,
+  or assoc — a **radio row**, word+glyph (U.15).
 - **Flow** draws heavier and takes its sides from the layer's axis; **assoc** draws thinner and
   fainter; **plain** says only that the two are related and takes whatever side suits the path.
-- Drawn curved or angular by the canvas toggle, which is global to the app.
+- Drawn curved or angular by the *relation* draw radio (U.15), which is global to the app.
 
 **Where one is drawn**
 
@@ -1027,11 +1126,11 @@ about like any other, and the drag sticks.
   standing still, or from all of them where none is. Dragging the boundary itself moves the group
   and changes no membership; layout moves one as a single unit — see Coordinates and layout.
 - **One member is allowed**, and a group that falls to one stays a group. `Ctrl`/`Cmd` + `G`
-  makes one; right-click still makes an interface on a single card. Removing a group is the
-  user's to do — the one exception is a group emptied entirely, which has no bounds to draw and
-  no way to be reached, so it goes. **`dissolve` is registered** and deletes the group while
-  leaving members put; **(planned)** nothing on the canvas or tray offers it yet — that waits a
-  menu trigger (G.9).
+  makes one; right-click on a card opens the offered list (`interface` is an entry, not immediate —
+  G.9d ◐). Removing a group is the user's to do — the one exception is a group emptied entirely,
+  which has no bounds to draw and no way to be reached, so it goes. **`dissolve` is registered**
+  and deletes the group while leaving members put; the canvas menu offers it when a group is in
+  scope (G.9d ◐). Groups are not listed in the explorer.
 - Boundaries overlap freely and their backgrounds compound.
 - Its name is edited on the boundary itself.
 - **A group draws as its definition says.** A bare group — one nobody typed — is a faint dashed
@@ -1083,14 +1182,22 @@ about like any other, and the drag sticks.
 ### Controls
 
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
-  full trail in its tooltip, plus `↑` for one layer up.
-- Canvas toolbar top-right — **relationships**, all settings: interfaces on the canvas, the form
-  a right drag draws, which relationship types are shown (cycles; filtered edges do not draw and
-  their seats clear), curves or angles, and past a divider which way the layer reads. Each shows
-  what it is on.
-- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs**, plus **◌** to
-  hand the layer back to the engine (`relax`). Icons only, and none of the four is ever lit: an
-  arrangement is something you do, not something a layer is in.
+  full trail in its tooltip, plus `↑` for one layer up. On a short row the left half truncates with
+  an ellipsis (U.1).
+- **One glyph vocabulary** (U.2, proven): no mark means two things. `·` is axis-none only;
+  interfaces-off is `⊏`; all-types is `∗`; arrangements are `▦ ⊙ ⇄ ⇅`; relax is `∿`. Definition
+  icons stay stream E's; module icons (U.9) sit on the labelled view toggle (U.8, proven).
+  Table/matrix types chrome still reads `· types` (outside this owns).
+- **Canvas options share one design language** (U.15, proven): vertical subject groups
+  *interface* / *relation* / *flow*; **every control carries a word**, glyph as scan aid.
+  Form, draw, types and axis are **radio rows**; interfaces stay a two-state toggle. Settings
+  only — not the one-time arrange verbs.
+- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs** (`▦ ⊙ ⇄ ⇅`),
+  plus `∿` to hand the layer back to the engine (`relax`), still on `.shape` with **words**
+  beside the glyphs (U.15). None of the four is ever lit: an arrangement is something you do,
+  not something a layer is in. **(planned — U.16)** they leave the bar for the frame's context
+  list. On a short row `.arrange` wraps on the right half rather than overlapping the crumbs
+  (U.1).
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
@@ -1114,21 +1221,21 @@ makes the thing that sits at a point and a drag makes the thing that has extent.
 Small precise targets — interfaces, notes — act at once. Large ones — a boundary, a multi-node
 selection — must be selected first.
 
-**Right button**, where the menu does not exist yet:
+**Right button** — explorer (G.9b) and canvas (G.9d ◐) menus live; *the target decides*:
 
 | On | Click makes | Drag makes |
 |---|---|---|
-| a card | an interface, at the nearest point of its border | a relationship, or a tie if let go on a note |
-| the layer's frame edge | an interface on the frame | a relationship from the frame |
+| a card | the offered-action list for that card, fixed order (G.9d ◐) | a relationship, or a tie if let go on a note |
+| the layer's frame edge | the offered-action list for the frame, fixed order (G.9d ◐) | a relationship from the frame |
 | empty background | a node | a note |
-| a name | opens it for editing | — |
+| a name | the offered-action list — rename is an entry, not immediate (G.9d ◐) | — |
 | a note | opens it for editing | — |
-| an explorer row | opens it for renaming | — |
-| the space below the explorer's rows | a node in the open layer | — |
-| an interface | nothing — it is already one | a relationship from it |
+| an explorer row | the offered-action list for the selection, fixed order (G.9b) | — |
+| the space below the explorer's rows | a node at the root (empty-tree create unchanged) | — |
+| an interface | the offered-action list for that interface, fixed order (G.9d ◐) | a relationship from it |
 | a seat a relationship put there | an interface of its own, where it sits | — |
-| a relationship | names its type | — |
-| a multi-node selection | groups the selection | — |
+| a relationship | the offered-action list for that edge, fixed order (G.9d ◐). **Gap**: `retype` waits Scope naming `edge` | — |
+| a multi-node selection | the offered-action list for the selection, fixed order (G.9d ◐); `group` is an entry | — |
 
 - A card has no border zone: the click position decides where on the border the interface
   lands, but anywhere on the card will do. The layer's own frame is the exception, since its
@@ -1164,9 +1271,11 @@ A relationship has no inside, so double-clicking one does nothing.
 
 ## Contents tray
 
-The bottom tray, and the only panel. **A table of everything the open layer holds** — blocks,
-interfaces, relationships, groups and notes together. It is the only place a relationship or an
-interface can be found without hunting for it on the drawing.
+The bottom tray — still the Contents panel, and still the model that table and matrix copy (U.7).
+**A table of everything the open layer holds** — blocks, interfaces, relationships, groups and notes
+together. It is the only place a relationship or an interface can be found without hunting for it
+on the drawing. Table and matrix views open as separate panel shells modelled on this one; they do
+not delete or rewrite Contents.
 
 **Opening and closing**
 
@@ -1193,12 +1302,15 @@ interface can be found without hunting for it on the drawing.
 
 **Changing things from a row**
 
-- Double-click a name to rename; single-click a type to subtype — **type offers are package-
-  disambiguated** when two definitions share a name (SC.4). Fields open rather than sitting
+- Double-click a name to rename; single-click a type to subtype — **type offers follow the
+  project's `vocabulary` import order**, and are package-disambiguated when two definitions
+  share a name (SC.4). Only imported packages are offered. Fields open rather than sitting
   there, so a row stays clickable.
 - **Definitions are editable in the tray** — fields, defaults and presentation (E.1). A types chip
-  reaches them. Each field form has its own control — number with unit, choice with its list, ref
-  with a picker (E.2) — and tags add and drop on usage and definition fields (E.3).
+  reaches them, including **add / rename / drop of relationship (line) kinds** — the same path that
+  used to live in the readout's Relations tab (U.11, proven). Each field form has its own control —
+  number with unit, choice with its list, ref with a picker (E.2) — and tags add and drop on usage
+  and definition fields (E.3).
 - Row buttons appear on hover and carry whatever that form can be told to do:
 
   | Row | Buttons |
@@ -1211,25 +1323,16 @@ interface can be found without hunting for it on the drawing.
 - **What it says** opens the row out: its body, the groups it belongs to, and its fields,
   with a field for adding one.
 
-## Readout drawer
-
-- Slides in over the canvas from the right edge, toggled from the header.
-- Three tabs, since only one is ever being read:
-  - **relations** — the kinds this project uses, each with how many edges carry it. Add, rename
-    (renaming every edge with it), or drop (leaving those edges unnamed).
-  - **actions** — one line per step, newest first, reverted ones struck through.
-  - **matching** — how each workflow scores against what is being typed.
-
-
 ## Naming
 
 - A name is written the way it was typed and shown the same way everywhere.
 - Only the role words an unnamed thing falls back to are lower case: `block`, `container`,
   `interface 3`. Giving a name replaces the description entirely.
-- **A name is edited where it is drawn, by right-clicking it.** One rule for every name on the
-  canvas — a card's, a boundary's, the layer's own frame. `Enter` commits, `Esc` abandons, and
-  clicking away commits.
+- **A name is edited where it is drawn.** On the canvas, right-click opens the offered list and
+  rename is an entry (G.9d ◐) — not an immediate edit. `Enter` commits, `Esc` abandons, and
+  clicking away commits when an edit is open.
 - A name is its own target: it highlights on its own, and the border it is set into stays dark
   beneath it.
 - `Enter` renames the selection, for a hand already on the keyboard.
-- The explorer renames on double-click, as a file tree does.
+- The explorer renames on double-click or ✎, as a file tree does. Right-click there opens the
+  offered list (G.9b), not rename.

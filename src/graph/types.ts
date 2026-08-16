@@ -283,10 +283,12 @@ export type Graph = {
   defs: Record<string, Definition>;
   elements: Record<string, Element>;
   edges: Record<string, Edge>;
-  /** The words and starting relations a subject matter supplies, consumed only
-   *  by the terminal. What is left of `domain` once the diagram type became the
-   *  module — see tasks.md, where its rework is still open. */
-  vocabulary: string;
+  /** Packages this project draws definitions from, in import order.
+   *
+   *  Stable `pkg_*` ids — never copied into `defs`. Order decides which of two
+   *  like-named definitions a picker offers first. Empty until something is
+   *  chosen; a legacy domain string heals to a one-entry list at the door. */
+  vocabulary: string[];
 };
 
 export type Mutation =
@@ -346,7 +348,7 @@ export type Mutation =
       extends?: string }
   /** Drop it; usages survive, their `type` pointing at nothing. */
   | { op: "drop_def"; id: string }
-  | { op: "set_vocabulary"; vocabulary: string };
+  | { op: "set_vocabulary"; vocabulary: string[] };
 
 /** One user action and everything it changed. Undo flips the status and the
  *  graph is refolded, so no mutation needs an inverse. */
@@ -450,8 +452,42 @@ export function rootElement(title = ""): Element {
   return element(title, { id: ROOT, axis: "none" });
 }
 
+/** Package ids from a stored vocabulary — a list as written, or one id healed
+ *  from a legacy domain stem so old logs and files still fold. */
+export function asVocabulary(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((v): v is string => typeof v === "string")
+      .map((v) => packRef(v.trim()))
+      .filter(Boolean);
+  }
+  if (typeof value === "string" && value.trim()) return [packRef(value.trim())];
+
+  return [];
+}
+
+/** Domain stem still used for terms and prompts — first package's name.
+ *
+ *  Z owns reworking that coupling; until then the stem is recovered from the
+ *  import list rather than stored beside it. */
+export function stemOf(vocabulary: string[]): string {
+  const first = vocabulary[0];
+  if (!first) return "";
+  if (first.startsWith("pkg_")) return first.slice(4);
+
+  return first;
+}
+
+/** A package id: leave `pkg_…` alone; mint one from a legacy domain stem. */
+function packRef(stem: string): string {
+  if (!stem) return "";
+  if (stem.startsWith("pkg_")) return stem;
+
+  return `pkg_${stem.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+}
+
 export const EMPTY: Graph = {
-  defs: {}, elements: { [ROOT]: rootElement() }, edges: {}, vocabulary: "",
+  defs: {}, elements: { [ROOT]: rootElement() }, edges: {}, vocabulary: [],
 };
 
 /** A definition's id where it was minted from a bare name — a relation typed

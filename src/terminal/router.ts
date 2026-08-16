@@ -10,7 +10,7 @@
 
 import { blocksOf } from "../graph/fold";
 import { best, FLOOR, phrasesOf, scoreAny, type Scored } from "../embed/match";
-import type { Graph } from "../graph/types";
+import { stemOf, type Graph } from "../graph/types";
 import * as workflows from "./workflows";
 
 export const ENTRY = "entry";
@@ -120,9 +120,9 @@ function chips(graph: Graph, scope: string | null, operation: string,
 /** The next question: the opening one until a domain is chosen, then the loop
  *  over whichever object is selected. */
 export function question(graph: Graph, scope: string | null, recent: string[]): Question | null {
-  if (!graph.vocabulary) return entryQuestion();
+  if (!graph.vocabulary.length) return entryQuestion();
 
-  const domain = workflows.getDomain(graph.vocabulary);
+  const domain = workflows.getDomain(stemOf(graph.vocabulary));
   const operation = pick(domain, graph, scope, recent);
   const wording = operation && workflows.getWording(domain, operation.id, scope === null);
   if (!operation || !wording) return null;

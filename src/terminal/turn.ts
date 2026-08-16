@@ -12,9 +12,9 @@ import { blocksOf } from "../graph/fold";
 import { score } from "../embed/match";
 import { CREATE_IT, ENTRY, classify, type Question } from "./router";
 import {
-  ROOT, defIdFor, edge as makeEdge, element as makeElement, type Graph, type Mutation,
+  ROOT, asVocabulary, edge as makeEdge, element as makeElement, type Graph, type Mutation,
 } from "../graph/types";
-import { entry, getDomain, type Terms } from "./workflows";
+import { entry, type Terms } from "./workflows";
 
 /** A relation half-built: what we know, and what we still need. */
 export type Pending = { source: string | null; wanted: string };
@@ -118,16 +118,8 @@ export function answer(graph: Graph, question: Question | null, said: string,
 
       return {
         mutations: [
-          { op: "set_vocabulary", vocabulary: template },
+          { op: "set_vocabulary", vocabulary: asVocabulary(template) },
           { op: "update_element", id: ROOT, label: chip ? chip.chip : text },
-          // The vocabulary's relations are seeded as definitions, so they
-          // arrive with the project and are editable from then on.
-          ...getDomain(template).relations.map((name) => ({
-            op: "set_def" as const,
-            id: defIdFor(name),
-            name,
-            form: "line" as const,
-          })),
         ],
         pending: null,
         action: "entry",

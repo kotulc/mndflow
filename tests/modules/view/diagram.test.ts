@@ -8,6 +8,8 @@
 
 import { describe, expect, it } from "vitest";
 
+import { lookup } from "../../../src/actions/index";
+import "../../../src/actions/groups";
 import { CELL } from "../../../src/geometry/layout";
 import { cardOf, outline, PLAIN } from "../../../src/modules/card";
 import { lookOf } from "../../../src/modules/style";
@@ -15,8 +17,8 @@ import { element, EMPTY, ROOT } from "../../../src/graph/types";
 import type { Graph } from "../../../src/graph/types";
 import {
   ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP, MARGIN, NOTE,
-  NODES, edgesOf, extentOf, floorOf, framed, laidOf, nodesOf, paint, reaches,
-  restOf, stageOf, svgOf, takes,
+  NODES, edgesOf, extentOf, fill_args, floorOf, framed, laidOf, nodesOf, paint,
+  reaches, restOf, stageOf, svgOf, takes, type OfferTarget,
 } from "../../../src/modules/view/diagram/index";
 
 describe("the block module's surface", () => {
@@ -46,14 +48,16 @@ describe("the block module's gesture map", () => {
     expect(takes("seat", none)).toBe(false);
   });
 
-  it("binds the inventory's right-click defaults", () => {
+  it("binds right-click: create on empty, offer the list on what exists", () => {
     expect(reaches("right", "click", "empty")).toBe("create");
-    expect(reaches("right", "click", "card")).toBe("interface");
-    expect(reaches("right", "click", "frame")).toBe("interface");
-    expect(reaches("right", "click", "edge")).toBe("retype");
-    expect(reaches("right", "click", "selection")).toBe("group");
-    expect(reaches("right", "click", "name")).toBe("nothing");
-    expect(reaches("right", "click", "interface")).toBe("nothing");
+    expect(reaches("right", "click", "card")).toBe("offer");
+    expect(reaches("right", "click", "frame")).toBe("offer");
+    expect(reaches("right", "click", "edge")).toBe("offer");
+    expect(reaches("right", "click", "selection")).toBe("offer");
+    expect(reaches("right", "click", "name")).toBe("offer");
+    expect(reaches("right", "click", "interface")).toBe("offer");
+    expect(reaches("right", "click", "group")).toBe("offer");
+    expect(reaches("right", "click", "note")).toBe("offer");
   });
 
   it("binds left navigation and placement", () => {
@@ -74,6 +78,41 @@ describe("the block module's gesture map", () => {
     expect(reaches("key", "Delete", "any")).toBe("delete");
   });
 
+});
+
+describe("offer fill_args", () => {
+  it("never fills optional into with a non-group focus", () => {
+    const a = element("A", { id: "a", parent: null });
+    const b = element("B", { id: "b", parent: null, x: 40 });
+    const graph: Graph = { ...EMPTY, elements: { ...EMPTY.elements, a, b } };
+    const action = lookup("group")!;
+    const targets: OfferTarget[] = [
+      { kind: "selection", id: "", members: ["a", "b"] },
+      { kind: "card", id: "a", members: ["a", "b"] },
+    ];
+
+    for (const target of targets) {
+      const picked = target.kind === "selection" ? null : { kind: "node" as const, id: target.id };
+      const args = fill_args(action, { graph, view: null, picked }, target);
+      expect(args.into == null || graph.elements[String(args.into)]?.form === "group").toBe(true);
+      expect(Array.isArray(args.members) && (args.members as string[]).length > 0).toBe(true);
+    }
+  });
+
+  it("fills into when the target is already a group", () => {
+    const a = element("A", { id: "a", parent: null });
+    const g = element("", { id: "g", form: "group", parent: null });
+    const graph: Graph = { ...EMPTY, elements: { ...EMPTY.elements, a, g } };
+    const action = lookup("group")!;
+    const target: OfferTarget = { kind: "group", id: "g", members: ["a"] };
+    const args = fill_args(
+      action,
+      { graph, view: null, picked: { kind: "node", id: "g" } },
+      target,
+    );
+
+    expect(args.into).toBe("g");
+  });
 });
 
 describe("the surround", () => {

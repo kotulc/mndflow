@@ -6,7 +6,7 @@
  *  same code that built the original. */
 
 import {
-  EMPTY, ROOT, asTarget, defIdFor, definition as newDefinition, edge as newEdge, element as newElement,
+  EMPTY, ROOT, asTarget, asVocabulary, defIdFor, definition as newDefinition, edge as newEdge, element as newElement,
   field as newField, step as makeStep,
   type Axis, type Definition, type Edge, type Element, type Field, type Graph, type Mutation,
   type ProxyTarget, type Step,
@@ -755,7 +755,7 @@ function apply(graph: Graph, mutation: Mutation): void {
       graph.elements = structuredClone(mutation.graph.elements);
       graph.edges = structuredClone(mutation.graph.edges);
       graph.defs = structuredClone(mutation.graph.defs ?? {});
-      graph.vocabulary = mutation.graph.vocabulary ?? "";
+      graph.vocabulary = asVocabulary(mutation.graph.vocabulary);
       break;
 
     case "add_element":
@@ -799,7 +799,7 @@ function apply(graph: Graph, mutation: Mutation): void {
       break;
 
     case "set_vocabulary":
-      graph.vocabulary = mutation.vocabulary;
+      graph.vocabulary = asVocabulary(mutation.vocabulary);
       break;
 
     // An op this build does not know is skipped rather than guessed at. The

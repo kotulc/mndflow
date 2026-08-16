@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as embed from "../embed/model";
-import { step as makeStep } from "../graph/types";
+import { stemOf, step as makeStep } from "../graph/types";
 import { looping, type LoopCore, type LoopSurface } from "../project";
 import * as router from "./router";
 import { answer, pendingQuestion, type Pending } from "./turn";
@@ -32,7 +32,7 @@ function useQuestionLoop(core: LoopCore): LoopSurface {
     embed.warm(router.templatePhrases());
   }, []);
 
-  const terms = getDomain(graph.vocabulary).terms;
+  const terms = getDomain(stemOf(graph.vocabulary)).terms;
 
   /** Questions the last few turns answered — what gives the loop its rhythm. */
   const recent = useMemo(

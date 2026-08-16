@@ -95,11 +95,11 @@ const ELEM: Set<string> = new Set<ElemForm>([
   "block", "note", "group", "proxy",
 ]);
 
-/** Definitions in scope for the type cell: shipped packages in catalog order,
- *  then this project's own. Two alike names stay two offers — SC.4. */
+/** Definitions in scope for the type cell: packages this project imports, then
+ *  its own. Two alike names stay two offers — SC.4. */
 function offerings(graph: Graph): Offer[] {
+  const order = graph.vocabulary;
   const catalog = packs();
-  const order = Object.keys(catalog);
   const open = gather(order);
   const out: Offer[] = [];
 
@@ -799,7 +799,7 @@ export function Contents(props: Props) {
     const counts = new Map<string, number>();
     for (const o of all) counts.set(o.name, (counts.get(o.name) ?? 0) + 1);
 
-    return { typeOffers: all, typeCounts: counts, typeOpen: gather(Object.keys(packs())) };
+    return { typeOffers: all, typeCounts: counts, typeOpen: gather(graph.vocabulary) };
   }, [graph]);
 
   const shown = useMemo(() => {

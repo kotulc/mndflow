@@ -10,17 +10,68 @@
  *  is in context and sets the layer the canvas draws. Shift or Cmd click adds
  *  to a cross-project selection — blocks, branches and whole projects — without
  *  moving the scope; that set is what `infer` will take. Parent branches are
- *  marked by their role icon; clicking that icon folds. */
+ *  marked by their role icon; clicking that icon folds.
+ *
+ *  Beside each project root sits a labelled view toggle: the three modules that
+ *  kind offers, glyphs from the registry. Sticky per project and write-free —
+ *  a display preference, not a log step. The definition's view.module still
+ *  says how a layer opens; this says what is on screen now.
+ *
+ *  The pane bounds itself: a width cap under pressure, and a collapse that
+ *  leaves only a strip so the stage keeps the room.
+ *
+ *  Undo and redo sit as words at the foot, with one line naming the last
+ *  executed action — always in reach while the explorer is open.
+ *
+ *  The bar's ＋ follows the selection (G.9d — the target decides): a project
+ *  or nothing selected names a new project into the workspace; a block
+ *  selected makes a block under it. The tooltip says which. Right-click still
+ *  offers create (block) regardless, and empty space below the rows creates at
+ *  the root. Rename stays on double-click and ✎. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { offer } from "../actions/offer";
+import type { Action, Arg, Args, Context } from "../actions";
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
-import { ROOT as ROOT_ID, asTarget, refTo, type Graph, type Element } from "../graph/types";
+import {
+  ROOT as ROOT_ID, asTarget, refAt, refTo, type Graph, type Element,
+} from "../graph/types";
+import { kindOf, viewOf, views, type ViewName } from "../modules/view";
 import { REFERRED } from "../canvas/card";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
+
+/** Fixed menu order — the actions.md enumeration. The rail will learn its own. */
+const ORDER = [
+  "create", "delete", "rename", "retype", "describe", "move", "refer",
+  "open", "up", "reveal",
+  "interface", "mark",
+  "relate", "unlink", "flip", "direct", "reform",
+  "group", "leave", "dissolve", "note", "tie",
+  "field", "unfield", "define", "undefine",
+  "infer",
+  "axis", "arrange", "relax", "vocabulary",
+];
+
+function rank(name: string): number {
+  const i = ORDER.indexOf(name);
+  return i < 0 ? ORDER.length : i;
+}
+
+/** Same-project element ids from a cross-project selection (roots excluded). */
+function local_ids(refs: string[], projectId: string): string[] {
+  const out: string[] = [];
+  for (const ref of refs) {
+    const { project, id } = refAt(ref);
+    if (id === ROOT_ID) continue;
+    if ((project ?? projectId) !== projectId) continue;
+    out.push(id);
+  }
+  return out;
+}
 
 /** What this diagram calls a group, a block, a relationship. */
 type Terms = { group: string; node: string; relation: string };
@@ -76,11 +127,11 @@ function shelved(shell: Graph, parent: string | null): Element[] {
 }
 
 /** The mark for a node's role, which it takes from what it holds and where it
- *  sits rather than from anything declared. Blocks are a closed square,
- *  interfaces an open one, containers a compound grid. */
+ *  sits rather than from anything declared. One meaning each: ■ leaf, □
+ *  interface, ◫ container (▦ is the grid arrangement, not a tree role). */
 function icon(graph: Graph, node: Element): string {
   if (isPort(node)) return "□";
-  if (isContainer(graph, node.id)) return "▦";
+  if (isContainer(graph, node.id)) return "◫";
 
   return "■";
 }
@@ -131,6 +182,19 @@ type Props = {
   onNewProject: (name: string) => boolean;
   /** Why this project may not be called that, or null. */
   onNameProject: (name: string, except: string) => string | null;
+  /** Run a registry action — the offered list reaches `infer` through here. */
+  onAct: (name: string, args?: Args) => boolean;
+  /** Undo / redo for the project in context — words at the foot, always in reach. */
+  onUndo: () => void;
+  onRedo: () => void;
+  undoable: boolean;
+  redoable: boolean;
+  /** Last applied action's name, or null when nothing has been done yet. */
+  lastAction: string | null;
+  /** Which view module is showing per open project — display preference only. */
+  shownViews: Record<string, ViewName>;
+  /** Pick what is shown for a project; writes nothing to its log. */
+  onShowView: (projectId: string, module: ViewName) => void;
 };
 
 export function Files(props: Props) {
@@ -139,6 +203,7 @@ export function Files(props: Props) {
   const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const {
     onDelete, onMove, onRename, onRenameProject, onNewProject, onNameProject,
+    onAct, onUndo, onRedo, undoable, redoable, lastAction, shownViews, onShowView,
   } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
   const kidsBy = useMemo(() => {
@@ -162,8 +227,25 @@ export function Files(props: Props) {
   const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
   /** Naming a new project — the first step, before anything can go in it. */
   const [naming, setNaming] = useState(false);
+  /** Shut to a strip so the stage keeps the width — chrome yields, stage does not. */
+  const [collapsed, setCollapsed] = useState(false);
+  /** Offered-action menu at a pointer — membership from `offer`, order fixed. */
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    items: Action[];
+    ctx: Context;
+    of: string[];
+  } | null>(null);
+  /** A required text argument the menu could not fill from the selection. */
+  const [prompt, setPrompt] = useState<{
+    action: Action;
+    args: Args;
+    arg: Arg;
+  } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLSpanElement>(null);
+  const menuBox = useRef<HTMLUListElement>(null);
 
   const tips = useMemo(() => new Map(projects.map((p) => [p.id, p.tip])), [projects]);
 
@@ -206,6 +288,119 @@ export function Files(props: Props) {
     }
 
     onChoose([key]);
+  }
+
+  /** Context the menu asks `offer` against — the project in context, with the
+   *  row as `picked` when it belongs there. Cross-project refs ride in `of`. */
+  function menu_ctx(projectId: string, elementId: string): Context {
+    const here = projectId === context && elementId !== ROOT_ID;
+
+    return {
+      graph,
+      view,
+      picked: here ? { kind: "node", id: elementId } : null,
+      project: context,
+      open: graphs,
+    };
+  }
+
+  /** Whether the explorer can supply every required non-text argument. */
+  function can_fill(action: Action, ctx: Context, refs: string[]): boolean {
+    if (action.name === "infer") return refs.length > 0;
+    if (action.name === "group") return local_ids(refs, context).length > 0;
+    if (action.name === "relate") return local_ids(refs, context).length >= 2;
+
+    for (const arg of action.args) {
+      if (arg.optional) continue;
+      if (arg.kind === "spot" || arg.kind === "choice" || arg.kind === "number") {
+        return false;
+      }
+      if (arg.kind === "element") {
+        if (ctx.picked) continue;
+        if (local_ids(refs, context).length) continue;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /** Fill what the tree already knows; text left empty is prompted next. */
+  function fill_args(action: Action, ctx: Context, refs: string[]): Args {
+    const args: Args = {};
+    const locals = local_ids(refs, context);
+    const focus = ctx.picked?.id ?? locals[0];
+
+    if (action.name === "infer") {
+      args.of = refs;
+      args.open = graphs;
+      return args;
+    }
+
+    if (action.name === "group") {
+      args.members = locals;
+    }
+
+    if (action.name === "relate" && locals.length >= 2) {
+      args.from = locals[0];
+      args.to = locals[1];
+    }
+
+    if (action.name === "create") {
+      args.parent = view;
+    }
+
+    for (const arg of action.args) {
+      if (arg.kind !== "element") continue;
+      if (args[arg.name] != null) continue;
+      if (arg.name === "parent") {
+        args.parent = view;
+        continue;
+      }
+      if (focus) args[arg.name] = focus;
+    }
+
+    return args;
+  }
+
+  /** Sort `offer` into the fixed order and open the menu at the pointer. */
+  function show_offer(
+    event: { clientX: number; clientY: number; preventDefault(): void; stopPropagation(): void },
+    projectId: string,
+    elementId: string,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const key = refTo(elementId, projectId);
+    const refs = picked.has(key) && chosen.length ? chosen : [key];
+    if (refs !== chosen) onChoose(refs);
+
+    const ctx = menu_ctx(projectId, elementId);
+    const items = offer(ctx)
+      .filter((action) => can_fill(action, ctx, refs))
+      .sort((a, b) => rank(a.name) - rank(b.name));
+
+    setPrompt(null);
+    if (!items.length) {
+      setMenu(null);
+      return;
+    }
+    setMenu({ x: event.clientX, y: event.clientY, items, ctx, of: refs });
+  }
+
+  /** Run a menu pick, prompting when a required name is still missing. */
+  function take(action: Action, ctx: Context, refs: string[]) {
+    setMenu(null);
+    const args = fill_args(action, ctx, refs);
+    const missing = action.args.find(
+      (arg) => !arg.optional && arg.kind === "text" && args[arg.name] == null,
+    );
+    if (missing) {
+      setPrompt({ action, args, arg: missing });
+      return;
+    }
+    onAct(action.name, args);
   }
 
   /** Highlight: the multi-selection when there is one, otherwise the open layer. */
@@ -287,8 +482,31 @@ export function Files(props: Props) {
     return () => cancelAnimationFrame(frame);
   }, [view, context, open, graphs, shell]);
 
-  /** A new thing goes inside whatever layer is open in the context project. */
-  const parent = view && graph.elements[view] ? view : null;
+  /** What the bar's ＋ will make — selection decides, never a hidden mode.
+   *
+   *  A project root or an empty pick names a project (workspace op). A block
+   *  in the context project makes a block under it. Cross-project picks fall
+   *  through to a project: create writes only the log in context. */
+  function plus_target():
+    | { kind: "project" }
+    | { kind: "block"; parent: string } {
+    if (!chosen.length) return { kind: "project" };
+
+    const key = chosen[chosen.length - 1]!;
+    const { project, id } = refAt(key);
+    const projectId = project ?? context;
+    if (id === ROOT_ID || projectId !== context) return { kind: "project" };
+
+    const node = graph.elements[id];
+    if (!node || node.form !== "block" || isPort(node)) return { kind: "project" };
+
+    return { kind: "block", parent: id };
+  }
+
+  const plus = plus_target();
+  const plus_title = plus.kind === "project"
+    ? "New project — name it first"
+    : `New ${unit}`;
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
@@ -323,6 +541,18 @@ export function Files(props: Props) {
     if (label.trim() && adding) onCreate(label.trim(), adding.parent);
 
     setAdding(null);
+  }
+
+  /** Bar ＋ — open the name prompt for a project, or a block field under the pick. */
+  function add() {
+    if (plus.kind === "project") {
+      setAdding(null);
+      setNaming(true);
+      return;
+    }
+
+    setNaming(false);
+    setAdding({ parent: plus.parent });
   }
 
   /** Finish a drag, ignoring drops that would leave the node where it is.
@@ -408,16 +638,7 @@ export function Files(props: Props) {
               onOpen(projectId, node.id);
             }}
             onDoubleClick={() => context === projectId && setEditing(node.id)}
-            onContextMenu={(event) => {
-              // A row is all name, the way a note is: an icon that folds and a
-              // label, with nothing else to aim at. So it takes the rule every
-              // name takes rather than carving out a few pixels for a second
-              // gesture. Making things happens on the empty space below.
-              event.preventDefault();
-              event.stopPropagation();
-              if (context === projectId) setEditing(node.id);
-              else onOpen(projectId, node.id);
-            }}
+            onContextMenu={(event) => show_offer(event, projectId, node.id)}
             {...(context === projectId ? dropzone(foldKey, node.id) : {})}
           >
             <span
@@ -462,9 +683,14 @@ export function Files(props: Props) {
     const active = lit(projectId, ROOT_ID);
     const hereScoped = scoped(projectId, ROOT_ID);
     const tip = tips.get(projectId);
+    // Kind from the root's definition — three offers, never six.
+    const root = here.elements[ROOT_ID];
+    const kind = root ? kindOf(viewOf(here, root).module) : "structure";
+    const offers = views().filter((m) => m.kind === kind);
+    const shown = shownViews[projectId];
 
     return (
-      <li key={projectId}>
+      <li key={projectId} className="project">
         <div
           className={`item root ${active ? "active" : ""} ${over === editKey ? "over" : ""}`}
           title={tip}
@@ -474,18 +700,42 @@ export function Files(props: Props) {
             onOpen(projectId, null);
           }}
           onDoubleClick={() => context === projectId && setEditing(editKey)}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            if (context === projectId) setEditing(editKey);
-            else onOpen(projectId, null);
-          }}
+          onContextMenu={(event) => show_offer(event, projectId, ROOT_ID)}
           {...(context === projectId ? dropzone(editKey, null) : {})}
         >
           <span ref={hereScoped ? marker : undefined} className="icon">▣</span>
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
+          {offers.length > 0 && editing !== editKey && (
+            <span
+              className="themes"
+              role="group"
+              aria-label="View"
+              onClick={(event) => event.stopPropagation()}
+              onDoubleClick={(event) => event.stopPropagation()}
+              onContextMenu={(event) => event.stopPropagation()}
+            >
+              {offers.map((mod) => (
+                <button
+                  key={mod.name}
+                  type="button"
+                  className={shown === mod.name ? "on" : ""}
+                  aria-pressed={shown === mod.name}
+                  title={`View: ${mod.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onShowView(projectId, mod.name);
+                    if (projectId !== context) onOpen(projectId, null);
+                  }}
+                >
+                  <span className="view-icon" aria-hidden>{mod.icon}</span>
+                  {" "}
+                  {mod.name}
+                </button>
+              ))}
+            </span>
+          )}
         </div>
         <ul className="branch">{branch(projectId, ROOT)}</ul>
       </li>
@@ -522,7 +772,7 @@ export function Files(props: Props) {
                     fold(foldKey);
                   }}
                 >
-                  ▦
+                  ◫
                 </span>
                 <span className="label">{nameOf(shell, node) || "folder"}</span>
               </div>
@@ -538,10 +788,21 @@ export function Files(props: Props) {
 
   /** Delete what the tree has open. The canvas has its own handling for its
    *  own selection, so the key has to be caught where the focus actually is.
-   *  Esc clears the cross-project pick back to "nothing beyond the scope". */
+   *  Esc clears the cross-project pick back to "nothing beyond the scope", and
+   *  dismisses an open offer menu. */
   function press(event: React.KeyboardEvent) {
     if (event.key === "Escape") {
-      if (editing || adding || (event.target as HTMLElement).closest("input")) return;
+      if (menu) {
+        event.preventDefault();
+        setMenu(null);
+        return;
+      }
+      if (prompt) {
+        event.preventDefault();
+        setPrompt(null);
+        return;
+      }
+      if (editing || adding || naming || (event.target as HTMLElement).closest("input")) return;
       if (!chosen.length) return;
       event.preventDefault();
       onChoose([]);
@@ -550,32 +811,39 @@ export function Files(props: Props) {
 
     if (event.key !== "Delete" && event.key !== "Backspace") return;
     // Never while naming something — Backspace is just a character there.
-    if (editing || adding || (event.target as HTMLElement).closest("input")) return;
+    if (editing || adding || naming || prompt || (event.target as HTMLElement).closest("input")) return;
     if (!view) return;
 
     event.preventDefault();
     onDelete(view);
   }
 
+  // A click outside the menu puts it away — same as Escape.
+  useEffect(() => {
+    if (!menu) return;
+
+    const dismiss = (event: MouseEvent) => {
+      if (menuBox.current?.contains(event.target as Node)) return;
+      setMenu(null);
+    };
+
+    window.addEventListener("mousedown", dismiss);
+    return () => window.removeEventListener("mousedown", dismiss);
+  }, [menu]);
+
   const empty = projects.length === 0 && shelved(shell, null).length === 0;
 
   return (
     // Focusable so that clicking a row puts the key handler in reach.
-    <div className="files" tabIndex={0} onKeyDown={press}>
+    <div
+      className={`files${collapsed ? " collapsed" : ""}`}
+      tabIndex={0}
+      onKeyDown={press}
+    >
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
-          <button
-            onClick={() => setNaming(true)}
-            title="New project — name it first"
-          >
-            ＋▣
-          </button>
-          <button
-            onClick={() => setAdding({ parent })}
-            disabled={!context}
-            title={context ? `New ${unit}` : "Make a project first"}
-          >
+          <button onClick={add} title={plus_title}>
             ＋
           </button>
           <button
@@ -585,17 +853,25 @@ export function Files(props: Props) {
             ✎
           </button>
           <button onClick={foldAll} title={open.size ? "Fold everything" : "Expand everything"}>
-            {open.size ? "⊟" : "⊞"}
+            {open.size ? "⊟" : "⊡"}
           </button>
           <button
             className={showPorts ? "on" : ""}
             onClick={() => onShowPorts(!showPorts)}
             title={showPorts ? "Hide interfaces" : "Show interfaces"}
           >
-            {showPorts ? "▣" : "□"}
+            {showPorts ? "□" : "⊏"}
           </button>
           <button onClick={() => view && onDelete(view)} disabled={!view} title="Delete">
             ✕
+          </button>
+          <button
+            className="bound"
+            aria-expanded={!collapsed}
+            title={collapsed ? "Show explorer" : "Hide explorer"}
+            onClick={() => (setCollapsed((was) => !was), setMenu(null))}
+          >
+            {collapsed ? "❯" : "❮"}
           </button>
         </span>
       </div>
@@ -608,6 +884,7 @@ export function Files(props: Props) {
         // project in context, wherever you happen to be scoped.
         onContextMenu={(event) => {
           event.preventDefault();
+          setNaming(false);
           setAdding({ parent: null });
         }}
       >
@@ -624,13 +901,37 @@ export function Files(props: Props) {
 
         {naming && (
           <div className="item new">
-            {field("", (name) => {
-              if (onNewProject(name)) setNaming(false);
-            }, () => setNaming(false), null)}
+            <NameField
+              initial=""
+              className="rename"
+              // Clash mark while typing; strip text is the project rule on commit
+              // (NameField's own sentence is about layers and must not fire here).
+              taken={(name) => Boolean(name.trim()) && onNameProject(name, "") !== null}
+              onCommit={(name) => {
+                if (onNewProject(name)) setNaming(false);
+              }}
+              onCancel={() => setNaming(false)}
+            />
           </div>
         )}
 
-        {empty && !adding && !naming && (
+        {prompt && (
+          <div className="item new">
+            {field(
+              "",
+              (value) => {
+                const wanted = value.trim();
+                if (!wanted) return;
+                onAct(prompt.action.name, { ...prompt.args, [prompt.arg.name]: wanted });
+                setPrompt(null);
+              },
+              () => setPrompt(null),
+              prompt.action.name === "create" ? (view ?? null) : null,
+            )}
+          </div>
+        )}
+
+        {empty && !adding && !naming && !prompt && (
           <p className="empty">
             No project yet — <button className="link" onClick={() => setNaming(true)}>
               name one
@@ -638,6 +939,56 @@ export function Files(props: Props) {
           </p>
         )}
       </div>
+
+      {/* Always visible while the explorer is open — reaching undo never means
+          opening a drawer first. Words, not glyphs: the same move as the header's
+          rare destructive control. */}
+      <div className="files-foot">
+        <span className="last" title={lastAction ?? undefined}>
+          {lastAction ?? "—"}
+        </span>
+        <span className="history">
+          <button
+            type="button"
+            className="word"
+            onClick={onUndo}
+            disabled={!undoable}
+            title="Undo"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            className="word"
+            onClick={onRedo}
+            disabled={!redoable}
+            title="Redo"
+          >
+            Redo
+          </button>
+        </span>
+      </div>
+
+      {menu && menu.items.length > 0 && (
+        <ul
+          ref={menuBox}
+          className="offer"
+          style={{ left: menu.x, top: menu.y }}
+          role="menu"
+        >
+          {menu.items.map((action) => (
+            <li key={action.name} role="none">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => take(action, menu.ctx, menu.of)}
+              >
+                {action.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

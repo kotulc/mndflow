@@ -29,15 +29,16 @@ import "@xyflow/react/dist/style.css";
 
 
 import type { Picked } from "../actions";
+import type { Action, Arg, Args } from "../actions";
 import {
   axisOf, blocksOf, groupsIn, notesIn, relationNames, tiesOf, typeName,
 } from "../graph/fold";
 import { around, CELL, cell, HUG, arranged, sizeOf, type Box } from "../geometry/layout";
 import { type Axis, type EdgeForm, type End, type Graph, type Layout, type Side, type Spot } from "../graph/types";
 import {
-  Arrangements, Ask, Crumbs, EDGES, NOTE, NODES, edgesOf, extentOf,
-  floorOf, laidOf, nodesOf, placementKey, restOf, stageOf,
-  Toggles, type Prompt,
+  Arrangements, Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, edgesOf, extentOf,
+  fill_args, floorOf, laidOf, nodesOf, offered_for, placementKey, restOf, stageOf,
+  Toggles, type OfferTarget, type Prompt,
 } from "../modules/view/diagram";
 import { useGestures } from "./gestures";
 import { type Grazed } from "./card";
@@ -140,12 +141,14 @@ type Props = {
   onRefer: (target: string, x?: number, y?: number) => void;
   /** Go to where a node actually lives, and mark it there. */
   onReveal: (id: string) => void;
+  /** Run a registry action — the offered list reaches the door through here. */
+  onAct: (name: string, args?: Args) => boolean;
 };
 
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
-  const { hinted, said, onHeard, onSay } = props;
+  const { hinted, said, onHeard, onSay, onAct } = props;
   const { onArrangeLayer, onRelax, onAxis, onPick, onOpen, onUp } = props;
   const { onCreateAt, onSprout, onNameTaken } = props;
   const { form, onForm } = props;
@@ -162,6 +165,19 @@ function Flow(props: Props) {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   /** Whether the name being typed is already spoken for in this layer. */
   const [clash, setClash] = useState(false);
+  /** Offered-action menu at a pointer — membership from `offer`, order fixed. */
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    items: Action[];
+    target: OfferTarget;
+  } | null>(null);
+  /** A required text argument the menu could not fill from the gesture. */
+  const [offerAsk, setOfferAsk] = useState<{
+    action: Action;
+    args: Args;
+    arg: Arg;
+  } | null>(null);
   /** Which relationship type to draw. `null` is every type — a display
    *  preference held on the canvas, not in the project, so it records no
    *  history and never reaches an export. */
@@ -312,10 +328,88 @@ function Flow(props: Props) {
   );
 
 
+  /** Context the menu asks `offer` against — pick follows what was named. */
+  function menu_ctx(target: OfferTarget): { graph: typeof graph; view: string | null; picked: Picked } {
+    if (target.kind === "edge") {
+      return { graph, view, picked: { kind: "edge", id: target.id } };
+    }
+    if (target.kind === "selection") {
+      return { graph, view, picked: null };
+    }
+    if (target.kind === "interface" || target.kind === "group" || target.kind === "note") {
+      return { graph, view, picked: { kind: "node", id: target.id } };
+    }
+
+    return { graph, view, picked: { kind: "node", id: target.id } };
+  }
+
+
+  /** Sort `offer` into the fixed order and open the menu at the pointer. */
+  const show_offer = useSteady((x: number, y: number, target: OfferTarget) => {
+    const ctx = menu_ctx(target);
+    if (ctx.picked) onPick(ctx.picked);
+    else if (target.kind === "selection") onPick(null);
+
+    const items = offered_for(ctx, target);
+    setOfferAsk(null);
+    if (!items.length) {
+      setMenu(null);
+      return;
+    }
+    setMenu({ x, y, items, target });
+  });
+
+
+  // Esc dismisses the offer menu / text ask before the gesture abandon path.
+  useEffect(() => {
+    if (!menu && !offerAsk) return;
+
+    function press(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setMenu(null);
+      setOfferAsk(null);
+    }
+
+    window.addEventListener("keydown", press, true);
+    return () => window.removeEventListener("keydown", press, true);
+  }, [menu, offerAsk]);
+
+
+  /** Run a menu pick — rename/retype on an edge use Ask; other text is prompted. */
+  const take_offer = useSteady((action: Action, target: OfferTarget) => {
+    setMenu(null);
+    const ctx = menu_ctx(target);
+    const args = fill_args(action, ctx, target);
+    const focus = ctx.picked?.id ?? (target.kind !== "selection" ? target.id : undefined);
+
+    if (action.name === "rename" && focus) {
+      setPrompt({ kind: "rename", id: focus });
+      return;
+    }
+
+    // Scope still names only `element`, so retype is absent on an edge — keep
+    // the old Ask path as the short until Scope can say both (G.9d ◐).
+    if (action.name === "retype" && ctx.picked?.kind === "edge") {
+      setPrompt({ kind: "relation", id: ctx.picked.id });
+      return;
+    }
+
+    const missing = action.args.find(
+      (arg) => !arg.optional && arg.kind === "text" && args[arg.name] == null,
+    );
+    if (missing) {
+      setOfferAsk({ action, args, arg: missing });
+      return;
+    }
+    onAct(action.name, args);
+  });
+
+
   /** What the pointer and the keyboard mean here. It reads the layer as worked
    *  out above and reaches the actions the canvas was handed; the props go in
    *  whole, since every one it can reach is among them. */
-  const gestures = useGestures(props, {
+  const gestures = useGestures({ ...props, onOffer: show_offer }, {
     nodes: flowNodes,
     members,
     boxes,
@@ -716,6 +810,41 @@ function Flow(props: Props) {
         onCreateAt={onCreateAt}
         enclosing={enclosing}
       />
+
+
+      {offerAsk && (
+        <div className="floating">
+          <span className="caret">&gt;</span>
+          <input
+            autoFocus
+            placeholder={offerAsk.arg.kind === "text"
+              ? (offerAsk.arg.prompt ?? offerAsk.arg.name)
+              : offerAsk.arg.name}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setOfferAsk(null);
+                return;
+              }
+              if (event.key !== "Enter") return;
+              const wanted = (event.target as HTMLInputElement).value.trim();
+              if (!wanted) return;
+              onAct(offerAsk.action.name, { ...offerAsk.args, [offerAsk.arg.name]: wanted });
+              setOfferAsk(null);
+            }}
+          />
+        </div>
+      )}
+
+
+      {menu && (
+        <OfferMenu
+          x={menu.x}
+          y={menu.y}
+          items={menu.items}
+          onTake={(action) => take_offer(action, menu.target)}
+          onDismiss={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }

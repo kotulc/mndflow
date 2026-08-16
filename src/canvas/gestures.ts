@@ -8,9 +8,9 @@
  *
  *  The buttons divide the work. Left selects and moves: click to select, then
  *  drag what is selected, which is what makes a card, an interface and a group
- *  all movable by the same gesture. Right draws relationships, and a right
- *  click that never moves falls through to the default action for whatever is
- *  under it.
+ *  all movable by the same gesture. Right draws relationships; a right click
+ *  on empty still creates, and on something that exists opens the offered list
+ *  (G.9d). Right *drags* are unchanged.
  *
  *  The diagram declares the map and which adjustments it accepts; this hook
  *  reads both. Bindings live in modules/view/diagram/map.ts — from the
@@ -27,7 +27,8 @@ import { around, cell, HUG, LEAF, middled, seatAt, sizeOf } from "../geometry/la
 import type { Box } from "../geometry/route";
 import type { EdgeForm, Element, End, Graph, Side } from "../graph/types";
 import {
-  type GestureMap, type Prompt, MAP, reaches, takes,
+  type GestureMap, type OfferTarget, type Prompt, MAP, reaches, takes,
+  standInOf,
 } from "../modules/view/diagram";
 import { type Grazed, LIFTED, REFERRED } from "./card";
 
@@ -93,6 +94,8 @@ export type Reach = {
   onPlaceMany: (moved: { id: string; x: number; y: number }[], what?: string,
                 membership?: { attr: string; holder: string; join: boolean }[]) => void;
   onPlaceNote: (id: string, x: number, y: number) => void;
+  /** Open the offered-action list for whatever the right click named. */
+  onOffer: (x: number, y: number, target: OfferTarget) => void;
 };
 
 /** The layer as the canvas worked it out, and the three things it lends back:
@@ -137,8 +140,8 @@ function nearestEdge(
 export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
   const { graph, view, picked, form } = reach;
   const { onPick, onOpen, onUp, onReveal, onNest, onPromote, onLift, onRefer } = reach;
-  const { onWire, onTie, onAddPort, onGroup, onDelete, onUnlink, onDropAttr } = reach;
-  const { onPlaceMany, onPlaceNote } = reach;
+  const { onWire, onTie, onGroup, onDelete, onUnlink, onDropAttr } = reach;
+  const { onPlaceMany, onPlaceNote, onOffer } = reach;
   const { members, boxes, frameBox, bands, setPrompt, restViewport } = stage;
   const nodes = stage.nodes;
   const changeNodes = stage.onNodesChange;
@@ -206,9 +209,16 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
                : null;
 
     if (host && kind) {
+      const perchEl = element?.closest(".perch") as HTMLElement | null;
+      const perch = perchEl ? {
+        edge: perchEl.dataset.edge ?? null,
+        side: (perchEl.dataset.side as Side | undefined) ?? null,
+        at: perchEl.dataset.at != null ? Number(perchEl.dataset.at) : null,
+      } : null;
+
       return { id: host.dataset.id ?? null, kind, port: port?.dataset.port ?? null,
                cell: cell?.dataset.cell ?? null, title,
-               box: host.getBoundingClientRect() };
+               box: host.getBoundingClientRect(), perch };
     }
 
     // Nothing of ours under the pointer: it may still be the layer's own edge.
@@ -343,54 +353,105 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
     [graph, view, boxes],
   );
 
-  /** What a right click does where a menu is not built yet: the default entry
-   *  of the menu that will replace it. The map names the action; hit-testing
-   *  names what is under the pointer. */
+  /** Right click: create on empty; open the offered list on anything that
+   *  already exists. Former immediates (interface, retype, group, rename) are
+   *  entries in that list — the map says `offer`, not the action itself. */
   const fallback = useCallback((x: number, y: number) => {
     const hit = under(x, y);
     const chosen = nodes.current.filter((n) => n.selected).map((n) => n.id);
 
-    // On a selection of several: group them, which is the one thing a right
-    // click on more than one node could reasonably mean. Only *on* it, though —
-    // a right click elsewhere is about whatever is under the cursor, and a
-    // selection left over from a moment ago should not swallow it.
-    const onSelection = hit.kind === "selection" || (hit.id !== null && chosen.includes(hit.id));
-    if (chosen.length > 1 && onSelection) {
-      if (reaches("right", "click", "selection", map) === "group") return onGroup(chosen);
-
+    // Empty background: a node in this layer, joining any boundary it lands in.
+    if (hit.kind === null && reaches("right", "click", "empty", map) === "create") {
+      const at = flow.screenToFlowPosition({ x, y });
+      setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
       return;
     }
 
-    // A name opens its own editor on the right button — see `Name` — and an
-    // interface is already one; both wait for the menu.
-    if (hit.title && reaches("right", "click", "name", map) === "nothing") return;
-    if (hit.port && reaches("right", "click", "interface", map) === "nothing") return;
+    const onSelection = hit.kind === "selection"
+      || (hit.id !== null && chosen.length > 1 && chosen.includes(hit.id));
 
-    // A relationship's kind is a name, and a name is written where it is drawn.
-    // The last name on the canvas that took a different gesture.
+    if (onSelection && chosen.length > 1
+        && reaches("right", "click", "selection", map) === "offer") {
+      return onOffer(x, y, { kind: "selection", id: "", members: chosen });
+    }
+
+    if (hit.perch?.edge && hit.id && hit.perch.side != null && hit.perch.at != null
+        && reaches("right", "click", "card", map) === "offer") {
+      const edge = graph.edges[hit.perch.edge];
+      const end = edge && standInOf(graph, view, members, edge.source) === hit.id
+        ? "from" as const
+        : "to" as const;
+
+      return onOffer(x, y, {
+        kind: "perch",
+        id: hit.id,
+        side: hit.perch.side,
+        at: hit.perch.at,
+        edge: hit.perch.edge,
+        end,
+        members: chosen.length ? chosen : [hit.id],
+      });
+    }
+
+    if (hit.title && hit.id && reaches("right", "click", "name", map) === "offer") {
+      return onOffer(x, y, {
+        kind: "name",
+        id: hit.id,
+        members: chosen.length ? chosen : [hit.id],
+      });
+    }
+
+    if (hit.port && reaches("right", "click", "interface", map) === "offer") {
+      return onOffer(x, y, {
+        kind: "interface",
+        id: hit.port,
+        members: chosen.length ? chosen : [hit.port],
+      });
+    }
+
     if (hit.kind === "edge" && hit.id
-        && reaches("right", "click", "edge", map) === "retype") {
-      return setPrompt({ kind: "relation", id: hit.id });
+        && reaches("right", "click", "edge", map) === "offer") {
+      return onOffer(x, y, { kind: "edge", id: hit.id });
     }
 
-    // Anywhere on a card, and anywhere on the layer's own border, makes an
-    // interface. Where the click landed decides which point of the border it
-    // goes to; it is not a test the click has to pass.
-    if ((hit.kind === "card" || hit.kind === "frame") && hit.id && hit.box
-        && reaches("right", "click", hit.kind, map) === "interface") {
-      const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
-      const { side, at: along } = nearestEdge(hit.box, x, y, flow.getZoom(), corner);
+    if ((hit.kind === "card" || hit.kind === "frame") && hit.id
+        && reaches("right", "click", hit.kind, map) === "offer") {
+      let side: Side | undefined;
+      let at: number | undefined;
+      if (hit.box) {
+        const corner = flow.screenToFlowPosition({ x: hit.box.left, y: hit.box.top });
+        const edge = nearestEdge(hit.box, x, y, flow.getZoom(), corner);
+        side = edge.side;
+        at = edge.at;
+      }
 
-      return onAddPort(hit.id, side, along);
+      return onOffer(x, y, {
+        kind: hit.kind,
+        id: hit.id,
+        side,
+        at,
+        members: chosen.length ? chosen : [hit.id],
+      });
     }
 
-    // Empty background: a node in this layer, joining any boundary it lands in.
-    if (reaches("right", "click", "empty", map) !== "create") return;
+    if (hit.kind === "group" && hit.id
+        && reaches("right", "click", "group", map) === "offer") {
+      return onOffer(x, y, {
+        kind: "group",
+        id: hit.id,
+        members: chosen.length ? chosen : [hit.id],
+      });
+    }
 
-    const at = flow.screenToFlowPosition({ x, y });
-
-    setPrompt({ kind: "node", x: at.x - LEAF.w / 2, y: at.y - LEAF.h / 2 });
-  }, [under, nodes, flow, onGroup, onAddPort, setPrompt, map]);
+    if (hit.kind === "note" && hit.id
+        && reaches("right", "click", "note", map) === "offer") {
+      return onOffer(x, y, {
+        kind: "note",
+        id: hit.id,
+        members: chosen.length ? chosen : [hit.id],
+      });
+    }
+  }, [under, nodes, flow, graph, view, members, onOffer, setPrompt, map]);
 
   // Shortcuts the canvas owns. Inside a field the field's own editing wins,
   // and Esc abandons whatever is half-drawn — prompt or relationship alike.

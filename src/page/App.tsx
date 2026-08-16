@@ -1,13 +1,11 @@
 /** Shell: optional terminal rail at the top, object explorer and graph below.
  *
- *  The canvas takes everything left over. What used to sit under it — the
- *  action log, the relation kinds, the match scoring — is a tabbed readout
- *  behind the rail's toggle, and the attributes of whatever is selected ride
- *  at the foot of the canvas itself.
+ *  The canvas takes everything left over. The attributes of whatever is
+ *  selected ride at the foot of the canvas itself.
  *
  *  The rail is one optional mount: when `terminal/` is in the build its Chat
- *  and Scores pieces appear; when it is not, the page still runs. Nothing
- *  below imports the rail.
+ *  appears; when it is not, the page still runs. Nothing below imports the
+ *  rail.
  *
  *  There is no server. Everything below runs against a step log in this tab.
  *  Which log is which project's is decided by the explorer: the selected row's
@@ -15,18 +13,19 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
-import { compact, fold, stepsIn, titleOf } from "../graph/fold";
+import { compact, fold, isCheckpoint, stepsIn, titleOf } from "../graph/fold";
 import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
 import * as store from "../graph/store";
+import { lookup } from "../actions";
 import {
   ROOT, refAt, step as makeStep,
   type EdgeForm, type Graph, type Mutation, type Step,
 } from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
-import { viewOf } from "../modules/view";
+import { viewOf, views, kindOf, named, type ViewName } from "../modules/view";
 import { Activity } from "../modules/view/activity";
 import { Sequence } from "../modules/view/sequence";
 import { State } from "../modules/view/state";
@@ -36,10 +35,6 @@ import { Table } from "../modules/view/table";
 import * as workspace from "../workspace";
 import { Files, type Chosen } from "./Files";
 import { Panel } from "./Panel";
-import { Readout } from "./Readout";
-
-/** A chip the rail may ask the page to run — structural; the rail owns the rest. */
-type Chip = { kind: "add" | "link" | "open"; value: string };
 
 type ChatProps = {
   graph: Graph;
@@ -52,31 +47,29 @@ type ChatProps = {
     placeholder: string;
   } | null;
   view: string | null;
-  scope: string | null;
-  terms: { group: string; node: string; relation: string };
+  picked: { kind: "node" | "edge" | "attr"; id: string } | null;
+  project: string;
+  open: Record<string, Graph>;
+  chosen: string[];
+  locked?: boolean;
   draft: string;
   onDraft: (text: string) => void;
   onTurn: (input: string) => void;
-  onRun: (chip: Chip) => void;
+  onAct: (name: string, args?: Record<string, unknown>) => boolean;
 };
-
-type ScoresProps = { text: string; active: string };
 
 /** Rail UI when `terminal/` is present. Eager so Chat's loop registers before
  *  the first render; an empty glob is a build without the rail. */
 const railMods = import.meta.glob("../terminal/*.tsx", { eager: true }) as Record<
   string,
-  { Chat?: ComponentType<ChatProps>; Scores?: ComponentType<ScoresProps> }
+  { Chat?: ComponentType<ChatProps> }
 >;
 
-const rail = (() => {
-  let Chat: ComponentType<ChatProps> | undefined;
-  let Scores: ComponentType<ScoresProps> | undefined;
+const Chat = (() => {
   for (const mod of Object.values(railMods)) {
-    if (mod.Chat) Chat = mod.Chat;
-    if (mod.Scores) Scores = mod.Scores;
+    if (mod.Chat) return mod.Chat;
   }
-  return { Chat, Scores };
+  return undefined;
 })();
 
 /** What this diagram calls its elementary unit.
@@ -109,6 +102,84 @@ function remember(logs: Record<string, Step[]>) {
     if (Array.isArray(raw) && raw.length > 0) delete stash[id];
     else stash[id] = steps;
   }
+}
+
+/** Shell colour themes — chrome only; never the `style` component's sets. */
+const THEMES = ["current", "modern", "light"] as const;
+type Theme = (typeof THEMES)[number];
+
+const THEME_KEY = "mndflow.theme.v1";
+
+function readTheme(): Theme {
+  try {
+    const raw = localStorage.getItem(THEME_KEY);
+    if (raw === "modern" || raw === "light" || raw === "current") return raw;
+  } catch {
+    // Preference unread; stay on the default.
+  }
+
+  return "current";
+}
+
+function writeTheme(theme: Theme) {
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch {
+    // Preference lost, nothing more.
+  }
+}
+
+/** Which view module is showing — sticky per project, never in the log. */
+const VIEW_KEY = "mndflow.view.v1";
+
+function readViews(): Record<string, ViewName> {
+  try {
+    const raw = localStorage.getItem(VIEW_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    const out: Record<string, ViewName> = {};
+    for (const [id, name] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof name === "string" && named(name)) out[id] = name as ViewName;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeViews(map: Record<string, ViewName>) {
+  try {
+    localStorage.setItem(VIEW_KEY, JSON.stringify(map));
+  } catch {
+    // Preference lost, nothing more.
+  }
+}
+
+/** The three modules a project's kind offers — kind from the root's definition. */
+function offered(graph: Graph): ViewName[] {
+  const root = graph.elements[ROOT];
+  const kind = root ? kindOf(viewOf(graph, root).module) : "structure";
+
+  return views().filter((m) => m.kind === kind).map((m) => m.name);
+}
+
+/** What is on screen for a project: sticky pick when it still belongs to the
+ *  kind, else how the open layer's definition opens. Writes nothing. */
+function moduleOf(
+  prefs: Record<string, ViewName>,
+  projectId: string,
+  graph: Graph,
+  layer: string | null,
+): ViewName {
+  const options = offered(graph);
+  const fallback = options[0] ?? "block";
+  const sticky = prefs[projectId];
+  if (sticky && options.includes(sticky)) return sticky;
+
+  const el = graph.elements[layer ?? ROOT];
+  const opens = el ? viewOf(graph, el).module : fallback;
+  return options.includes(opens) ? opens : fallback;
 }
 
 /** Projects this graph depends on, transitively, excluding itself and shipped
@@ -256,10 +327,8 @@ export function App() {
     return true;
   }
 
-  // Held here so the match scoring can watch it being typed.
+  // Held here so the rail can watch it being typed.
   const [draft, setDraft] = useState("");
-  /** Whether the readout drawer is out. */
-  const [shelved, setShelved] = useState(false);
   /** The tray, so a click outside it can put it away. Its height no longer
    *  needs measuring: it takes half the canvas and the drawing takes the rest,
    *  rather than covering it. */
@@ -271,6 +340,14 @@ export function App() {
   // history because how something is drawn is not a change to it.
   const [angular, setAngular] = useState(store.angular.initial);
   const [ports, setPorts] = useState(store.ports.initial);
+  /** Page chrome palette — not a style set, not in the log. */
+  const [theme, setTheme] = useState<Theme>(() => {
+    const next = readTheme();
+    document.documentElement.dataset.theme = next;
+    return next;
+  });
+  /** Which view module is showing, per project — display preference, like ports. */
+  const [viewPrefs, setViewPrefs] = useState<Record<string, ViewName>>(readViews);
   /** Something the contents table is pointing at, lit on the canvas without
    *  being selected. The canvas's own hover still wins where they disagree. */
   const [hinted, setHinted] = useState<Grazed>(null);
@@ -291,6 +368,11 @@ export function App() {
   useEffect(() => store.angular.set(angular), [angular]);
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    writeTheme(theme);
+  }, [theme]);
+  useEffect(() => writeViews(viewPrefs), [viewPrefs]);
 
   // After switching project, open the layer the click asked for — but only once
   // the hook has folded *that* project's log.
@@ -420,21 +502,6 @@ export function App() {
     return () => window.removeEventListener("keydown", press);
   }, [project.undo, project.redo]);
 
-  /** Run a chip that is a graph operation rather than an answer. */
-  function run(chip: Chip) {
-    switch (chip.kind) {
-      case "add":
-        return project.create(chip.value, view);
-      case "link":
-        return project.scope && project.link(project.scope, chip.value);
-      case "open":
-        return project.open(chip.value);
-    }
-  }
-
-  const Chat = rail.Chat;
-  const Scores = rail.Scores;
-
   const graphs = useMemo(() => {
     const next: Record<string, Graph> = {};
     for (const id of held.projects) {
@@ -475,6 +542,26 @@ export function App() {
     () => graphOf(held.id).graph,
     [held.id, held.projects],
   );
+
+  /** Drop every open project and the workspace with them — a fresh session.
+   *
+   *  Storage clears the keyed slots and the session pointer; the page takes a
+   *  blank Held and no context. Bigger than discarding one project, so the
+   *  header asks first and names the act in words. */
+  function clearWorkspace() {
+    store.clearSession();
+    for (const id of Object.keys(stash)) delete stash[id];
+
+    const next = workspace.blank();
+    workspace.save(next);
+    setHeld(next);
+    setContextId("");
+    setChosen([]);
+    setHinted(null);
+    setDraft("");
+    setNotice(null);
+    setViewPrefs({});
+  }
 
   /** Unlock the project in context — workspace word only; file unchanged. */
   function unlockPackage() {
@@ -520,19 +607,50 @@ export function App() {
     })),
   } : project.pressure ? { text: project.pressure } : null);
 
-  /** Which view module draws the open layer — the layer's definition, never
-   *  a page setting. Root when nothing is open. */
-  const open = graph.elements[view ?? ROOT];
-  const module = open ? viewOf(graph, open).module : "block";
+  /** Which view module draws the open layer — sticky preference when it still
+   *  fits the project kind; otherwise how the layer's definition opens. */
+  const module = contextId
+    ? moduleOf(viewPrefs, contextId, graph, view)
+    : "block";
+
+  /** Resolved shown module per open project — what the explorer marks as on. */
+  const shownViews = useMemo(() => {
+    const next: Record<string, ViewName> = {};
+    for (const id of held.projects) {
+      const g = graphs[id];
+      if (!g) continue;
+      next[id] = moduleOf(
+        viewPrefs,
+        id,
+        g,
+        id === contextId ? view : null,
+      );
+    }
+    return next;
+  }, [held.projects, graphs, viewPrefs, contextId, view]);
+
+  /** Last thing somebody did in this project's log — a checkpoint is not one. */
+  const lastAction = useMemo(() => {
+    for (let i = project.steps.length - 1; i >= 0; i--) {
+      const step = project.steps[i]!;
+      if (step.status !== "applied" || isCheckpoint(step)) continue;
+      return lookup(step.action)?.label ?? step.action;
+    }
+    return null;
+  }, [project.steps]);
 
   return (
     <div className="app">
       <header>
-        <h1>mndflow</h1>
-        {/* Whose project this is, where the domain used to sit — the domain is
-            a setting, and a name is what tells one project from another. */}
-        <span className="domain">
-          {titleOf(graph) || "untitled"}
+        {/* Identity yields under pressure; the tools never do. A long project
+            name truncates here rather than shoving export off the row. */}
+        <span className="identity">
+          <h1>mndflow</h1>
+          {/* Whose project this is, where the domain used to sit — the domain is
+              a setting, and a name is what tells one project from another. */}
+          <span className="domain">
+            {titleOf(graph) || "untitled"}
+          </span>
         </span>
 
         {/* Where the work actually lives, said all the time rather than only
@@ -542,6 +660,7 @@ export function App() {
             and the way out. Storage failure wins — data only in this tab. */}
         <button
           className={`where${project.saving && !project.drifted ? "" : " unsaved"}`}
+          data-where={!project.saving ? "unsaved" : project.drifted ? "drifted" : "session"}
           onClick={() => {
             if (project.saving && project.drifted) void reopen();
             else void exportProject();
@@ -560,8 +679,6 @@ export function App() {
         </button>
 
         <span className="tools">
-          <button onClick={project.undo} disabled={!project.undoable} title="Undo">↤</button>
-          <button onClick={project.redo} disabled={!project.redoable} title="Redo">↦</button>
           <button
             onClick={() => void exportWorkspace()}
             disabled={!held.projects.length && !project.steps.length}
@@ -614,28 +731,33 @@ export function App() {
             />
           </button>
           <button
-            onClick={() => say("Discard this project? Export it first if you want it back.",
-                              { label: "discard", run: project.reset })}
-            disabled={!project.steps.length}
-            title="Start a new, empty project"
+            type="button"
+            className="word"
+            onClick={() => say(
+              "Discard this workspace? Export it first if you want it back.",
+              { label: "discard", run: clearWorkspace },
+            )}
+            disabled={!held.projects.length && !contextId && !project.steps.length}
+            title="Clear the session and start a new workspace"
           >
-            ＋
+            new workspace
           </button>
 
-          <button
-            type="button"
-            className={`readout-toggle ${shelved ? "on" : ""}`}
-            aria-pressed={shelved}
-            aria-label={shelved ? "Hide the readout" : "Show the readout"}
-            title={shelved ? "Hide the readout" : "Show relations, actions and matching"}
-            onClick={() => setShelved((out) => !out)}
-          >
-            <span className="match-icon" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
-          </button>
+          {/* Labelled theme group — shows which is on, never cycles through. */}
+          <span className="themes" role="group" aria-label="Theme">
+            {THEMES.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={theme === name ? "on" : ""}
+                aria-pressed={theme === name}
+                title={`Theme: ${name}`}
+                onClick={() => setTheme(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </span>
         </span>
       </header>
 
@@ -645,12 +767,15 @@ export function App() {
           steps={project.steps}
           question={question}
           view={view}
-          scope={project.scope}
-          terms={terms}
+          picked={picked}
+          project={contextId}
+          open={graphs}
+          chosen={chosen}
+          locked={workspace.isLocked(held, contextId)}
           draft={draft}
           onDraft={setDraft}
           onTurn={project.turn}
-          onRun={run}
+          onAct={project.go}
         />
       )}
 
@@ -678,6 +803,16 @@ export function App() {
             onMove={project.move}
             onRename={project.rename}
             onRenameProject={project.renameProject}
+            onAct={project.go}
+            onUndo={project.undo}
+            onRedo={project.redo}
+            undoable={project.undoable}
+            redoable={project.redoable}
+            lastAction={lastAction}
+            shownViews={shownViews}
+            onShowView={(projectId, name) => {
+              setViewPrefs((prior) => ({ ...prior, [projectId]: name }));
+            }}
           />
         </div>
 
@@ -770,6 +905,7 @@ export function App() {
               onPlaceNote={project.placeNote}
               onSize={project.size}
               onTie={project.tie}
+              onAct={project.go}
             />
             )}
 
@@ -803,18 +939,6 @@ export function App() {
             />
           </div>
         </section>
-
-        <aside className={`drawer ${shelved ? "open" : ""}`} aria-hidden={!shelved}>
-          <Readout
-            graph={graph}
-            steps={project.steps}
-            draft={draft}
-            Scores={Scores}
-            onAddRelation={project.addRelation}
-            onRenameRelation={project.renameRelation}
-            onDropRelation={project.dropRelation}
-          />
-        </aside>
       </main>
     </div>
   );

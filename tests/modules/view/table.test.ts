@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
 import { element, EMPTY, ROOT, refTo } from "../../../src/graph/types";
 import type { Graph } from "../../../src/graph/types";
-import { MAP, TABLE, reaches, rowsOf, takes } from "../../../src/modules/view/table/index";
+import { MAP, TABLE, reaches, rowsOf, takes, kindsOf, trailOf } from "../../../src/modules/view/table/index";
 
 describe("the table module's surface", () => {
   it("is rows with a scrollbar, no frame, and a place to ask", () => {
@@ -70,5 +70,19 @@ describe("row composition", () => {
 
   it("is empty for a layer that holds nothing", () => {
     expect(rowsOf(EMPTY, ROOT)).toEqual([]);
+  });
+
+  it("lists the definition names present for the types chrome", () => {
+    const rows = rowsOf(layered(), "L");
+
+    expect(kindsOf(rows)).toContain("Part");
+    expect(kindsOf(rows).every((name) => name.length > 0)).toBe(true);
+  });
+
+  it("builds a crumb trail from the open layer up to the project", () => {
+    const trail = trailOf(layered(), "L");
+
+    expect(trail[trail.length - 1]).toBe("L");
+    expect(trail.length).toBeGreaterThan(0);
   });
 });

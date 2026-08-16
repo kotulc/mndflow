@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { element, EMPTY, ROOT } from "../../../src/graph/types";
 import type { Graph } from "../../../src/graph/types";
-import { MAP, MATRIX, gridOf, reaches, takes } from "../../../src/modules/view/matrix/index";
+import { MAP, MATRIX, gridOf, reaches, takes, kindsOf, trailOf } from "../../../src/modules/view/matrix/index";
 
 describe("the matrix module's surface", () => {
   it("is a grid with a scrollbar, no frame, and a place to ask", () => {
@@ -89,5 +89,19 @@ describe("grid composition", () => {
     expect(grid.rows).toEqual([]);
     expect(grid.cols).toEqual([]);
     expect(grid.cells).toEqual([]);
+  });
+
+  it("lists the relationship marks present for the types chrome", () => {
+    const grid = gridOf(layered(), "L");
+
+    expect(kindsOf(grid).length).toBeGreaterThan(0);
+    expect(kindsOf(grid).every((name) => name.length > 0)).toBe(true);
+  });
+
+  it("builds a crumb trail from the open layer up to the project", () => {
+    const trail = trailOf(layered(), "L");
+
+    expect(trail[trail.length - 1]).toBe("L");
+    expect(trail.length).toBeGreaterThan(0);
   });
 });

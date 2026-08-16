@@ -7,7 +7,8 @@
  *  the behavior modules' bodies are later rows. This one owns the key under
  *  `components`.
  *
- *  Each module also names its word (the chip fallback) and what right-click
+ *  Each module also names its word (the chip fallback), a distinct icon glyph
+ *  (the explorer and view toggle's scanning mark), and what right-click
  *  creates — a definition name, empty for a plain block, or null when the
  *  module makes nothing. The abstraction cap `N` lives on the component
  *  configuration so a diagram can choose when inference cuts higher.
@@ -34,15 +35,18 @@ export type ViewName = (typeof MODULES)[number];
 /** What the project holds, visible from the module rather than declared. */
 export type ViewKind = "structure" | "behavior";
 
-/** One registered view module. A name, its kind, its word, and what a create
- *  gesture makes; the projection surface lands with the module itself —
- *  `block` carries today's, the rest fill in as their rows land. */
+/** One registered view module. A name, its kind, its word, its icon, and what
+ *  a create gesture makes; the projection surface lands with the module itself
+ *  — `block` carries today's, the rest fill in as their rows land. */
 export type ViewModule = {
   name: ViewName;
   kind: ViewKind;
   /** What it calls its elementary block — the chip fallback. Derived, never
    *  stored on an element. */
   word: string;
+  /** One glyph that means this module and no other — U.8's mark, and what a
+   *  shrunken explorer reads by. Not a definition icon. */
+  icon: string;
   /** Definition name right-click creates. Empty is a plain untyped block;
    *  `null` means this module creates nothing. */
   creates: string | null;
@@ -84,15 +88,16 @@ export function kindOf(name: ViewName): ViewKind {
 }
 
 // The set. Structure modules carry surfaces; behavior ones are stubs until
-// their rows land (A.7–A.9). Word and creates are the module's answers for
-// a chip and a create gesture — table is a row, matrix makes nothing.
+// their rows land (A.7–A.9). Word, icon and creates are the module's answers
+// for a chip, a scanning mark and a create gesture — table is a row, matrix
+// makes nothing. Icons are pairwise distinct on purpose.
 register(
-  { name: "block", kind: "structure", word: "block", creates: "", surface: DIAGRAM },
-  { name: "table", kind: "structure", word: "row", creates: "", surface: TABLE },
-  { name: "matrix", kind: "structure", word: "block", creates: null, surface: MATRIX },
-  { name: "activity", kind: "behavior", word: "activity", creates: "action" },
-  { name: "sequence", kind: "behavior", word: "action", creates: "action" },
-  { name: "state", kind: "behavior", word: "state", creates: "state" },
+  { name: "block", kind: "structure", word: "block", icon: "▭", creates: "", surface: DIAGRAM },
+  { name: "table", kind: "structure", word: "row", icon: "☰", creates: "", surface: TABLE },
+  { name: "matrix", kind: "structure", word: "block", icon: "⊞", creates: null, surface: MATRIX },
+  { name: "activity", kind: "behavior", word: "activity", icon: "▸", creates: "action" },
+  { name: "sequence", kind: "behavior", word: "action", icon: "⋮", creates: "action" },
+  { name: "state", kind: "behavior", word: "state", icon: "◯", creates: "state" },
 );
 
 /** Why this configuration would not work, in words, or null.

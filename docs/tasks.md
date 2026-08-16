@@ -22,8 +22,11 @@ route or a frame looks like stays the engine's and is not U's to retune.
 
 **The rail is detachable.** `project.ts` no longer imports the terminal — question loop registers
 via `looping()` (S6.1). `packages/terms/` holds vocabulary; `Files.tsx` is free of the rail
-(S6.2). **Page mount is optional** via `import.meta.glob` — Readout optional `Scores`; a build
-without `terminal/` still runs (S6.3, proven). **Parked**: Matching tab empty when Scores absent.
+(S6.2). **Page mount is optional** via `import.meta.glob` — Chat mounts when `terminal/` is
+present; a build without it still runs (S6.3, proven). **U.11 landed**: readout gone, so Scores
+has no page mount (component still unmounted — remount when ranking needs a surface). **Z.1 /
+Z.2 / Z.3 landed**: collapsed chips rank by embedding when typed; idle by shape-weighted
+preference; overrule feedback in sticky storage; Chat warms embeddings; `suggest.ts` gone.
 
 **Three bugs found by driving the app, all fixed.**
 
@@ -99,15 +102,32 @@ four ways — single and double click across projects, and a same-project descen
   is shown to anybody.
 
 
-*Recently closed — **the last three rail unknowns**. **Z.6**: documentation lives in
-`samples/docs.json`, keyed by the terms in [definitions.md](definitions.md) — hand-authored, and
-**no generator**, which is the obvious unasked-for build step. **Z.7**: no code rename ever —
-`rail` stays the word throughout the tree and the docs, and **"Page Intelligence"** is user-facing
-copy only. **Z.8**: scoped down to **ranked actions plus at most one documentation hit**, on the
-single most relevant keyword and **always ranked last**. That is a lookup and a sort, so **the rail
-as scoped is wholly client-side** — the "may not be client-side" caveat and its "must work with it
-unavailable" corollary are both retired. The **natural-language half is deferred, not dropped**: it
-moves to* Out of scope *so nothing is built on it.*
+*Recently closed — **Z.8** (proven): typed lists append at most one `docs.json` keyword hit,
+always last (ghost); Enter/click surfaces gloss, no action; idle/answer lists stay actions-only.
+Wave Z complete (Z.1–Z.8).*
+
+*Recently closed — **Z.5** (proven): `samples/tutorial.json` + `walk_for(ctx)` on `proj_mndflow`;
+advances by pick / ancestors / open layer; edge → relationship step. Collapsed quiet; Z.4 / Z.6 /
+Z.7 preserved. **Parked**: proxy tip advance is canvas-only.*
+
+*Recently closed — **Z.7** (proven): ▾/▴ titles Expand / Collapse Page Intelligence; `rail`
+identifiers unchanged. No rename.*
+
+*Recently closed — **Z.6** (proven): `samples/docs.json` ten terms; expanded gloss via
+`doc_for(ctx)` / `shape_of`; Collapsed unchanged. **Left out**: Z.8 ranked-list doc hit (now
+landed above); Z.5 tutorial.*
+
+*Recently closed — **the last three rail unknowns** (shape settled; Z.6 / Z.8 now also proven
+above).
+**Z.6**: documentation lives in `samples/docs.json`, keyed by the terms in
+[definitions.md](definitions.md) — hand-authored, and **no generator**, which is the obvious
+unasked-for build step. **Z.7**: no code rename ever — `rail` stays the word throughout the tree
+and the docs, and **"Page Intelligence"** is user-facing copy only. **Z.8**: scoped down to
+**ranked actions plus at most one documentation hit**, on the single most relevant keyword and
+**always ranked last**. That is a lookup and a sort, so **the rail as scoped is wholly
+client-side** — the "may not be client-side" caveat and its "must work with it unavailable"
+corollary are both retired. The **natural-language half is deferred, not dropped**: it moves to*
+Out of scope *so nothing is built on it.*
 
 *Recently closed — **the shell, and one word retired**. The **visual style is unfrozen** as stream
 **U** (chrome only). A **saved view needs no new noun**: it is a block whose definition carries a
@@ -117,12 +137,44 @@ meaning. **Which view is showing is a display preference** — sticky per projec
 and shown by a labelled control beside the project root rather than cycled by an icon. No sixth
 page action; the closed set is untouched.*
 
-*Recently closed — **the whole of G.9**. One set of offered actions, presented two ways: the menu
+*Recently closed — **Z.3** (proven): idle chips order by shape-weighted preference from
+`feedback.read()`; typed keeps embedding/substring lead with shape tie-break and exact prior
+entry pinned first; local sticky only. Confirming the default still writes nothing.*
+
+*Recently closed — **Z.2** (proven): overrule feedback records to `mndflow.rail.feedback.v1`
+with `shape_of(ctx)`; arrows / `Enter` unchanged; confirming the highlighted default writes
+nothing. **Left out**: Z.3 learning from that store (now landed).*
+
+*Recently closed — **Z.1** (proven): collapsed rail chips rank via embedding similarity; idle
+kept fixed `ORDER` until Z.3; cold-model substring fallback; Chat warms embeddings; `suggest.ts`
+deleted. **Out of row / parked**: README dep map still omits `terminal → actions`; `ORDER`
+duplicated across Files / diagram / terminal; `Scores.tsx` unmounted.*
+
+*Recently closed — **G.9d** (◐, proven): empty canvas right-click creates; existing opens
+`offer(ctx)` in fixed order via `App` `onAct={project.go}` into Canvas; former immediates
+(`interface`, `group`) are list entries; Name/Perch not immediate; `fill_args` leaves optional
+`into` unset from focused card (multi-select Group creates). **Gap**: edge→`retype` — Scope is
+element-only. **Out of row**: Files.tsx / `terminal/rank.ts` still fill optional `into` from focus;
+`ORDER` duplicated across Files / diagram / terminal.*
+
+*Recently closed — **U.6** (proven): empty-line block cursor overlays the rail input insertion
+point; native caret hidden while empty; with text, native caret; U.5 collapsed/expanded unchanged.*
+
+*Recently closed — **G.9c** (proven): click rail chrome focuses caret; chips from `offer(ctx)`;
+arrows / `Enter` via `onAct={project.go}`. Embedding rank is Z.1; overrule feedback is Z.2;
+learned preference is Z.3.*
+
+*Recently closed — **G.9b** (proven): explorer row right-click opens `offer(ctx)` in fixed order
+via `project.go`; empty-tree create unchanged; rename on double-click / ✎; `infer` enactable from
+the list. **Parked**: Infer's new behavior project is not admitted into `held.projects`, so it
+does not appear in the explorer.*
+
+*Recently closed — **the design of G.9**. One set of offered actions, presented two ways: the menu
 in **fixed** order, the rail ordered by **learned preference**. **The list lives in `actions/`**, not
 in the rail, because the rail stays optional and a menu importing it would break S6.3. **`infer`'s
-trigger is the menu** with the explorer as context. **On the canvas the target decides** — empty
-space still creates, an existing card / frame / edge / selection opens the list, and right drags are
-untouched.*
+trigger is the explorer menu** with the explorer as context. **On the canvas the target decides** —
+empty space still creates, an existing card / frame / edge / selection opens the list, and right
+drags are untouched.*
 
 *Recently closed: **the terminal is unfrozen**; **A.12 is dropped** — a child block's inside already
 is an internal block diagram.*
@@ -132,16 +184,35 @@ design is settled — the whole of it is in [behaviors.md](behaviors.md); `infer
 state / sequence views draw derived labels (A.7b–A.9). What remains open inside behaviour is listed
 there under* Still open*.
 
+*Recently closed: **the readout is gone** (U.11, proven) — header toggle and `Readout` /
+`Relations` / `Log` deleted; Contents types chip covers add/rename/drop of relation kinds (E.1
+confirmed); theme and Chat `onAct` intact. **Left out**: action history UI; Scores remount;
+project relation wrappers. **Parked from review**: `terminal/Scores.tsx` unmounted; `project`
+`addRelation` / `renameRelation` / `dropRelation` wrappers unused.*
+
+*Recently closed — **U.14** (◐, proven): explorer `＋` follows selection (project vs block);
+tooltip names which; project exists once named; `workspace.begin` + outcome test. **Gap**:
+`App.newProject` still does not call `workspace.begin` (App not owned). **Out of row**:
+`NameField` layer-only refuse; G.9b project-entry half-true.*
+
 *Recently closed: **page mounts the rail or does not** (S6.3) — optional via `import.meta.glob`;
-Readout optional Scores; build without `terminal/` passes; Chat + Scores proven. **Parked**:
-Matching tab empty when Scores absent.*
+build without `terminal/` passes; Chat proven. Matching tab retired with U.11 (Scores had no
+mount once the readout went).*
 
 *Recently closed: **`project.ts` free of the terminal** (S6.1) and **`terms` in `packages/terms/`**
-(S6.2). Detach only; D.2 / A0.2 bridge still needs Clay.*
+(S6.2). Detach only; the A0.2 bridge waited on D.2.*
+
+*Recently closed: **vocabulary as package import list** (D.2, proven) — `graph.vocabulary` /
+`set_vocabulary` are `string[]`; `asVocabulary` heals a legacy stem; A0.2 `Domain.relations` bridge
+retired; Contents offerings follow import order; Scores via `stemOf`. **Left out** (not this row):
+Z prompt rework; Contents split; package authoring UI. **Parked from review**: `packagesOf` may
+have no production callers; `store.ts` private `stemOf` name collision with graph's; unnamed
+session key `mndflow.steps..v1`.*
 
 *Recently closed: **`infer`** (A.7a) — selection → one behavior block + `Effect.home`; writing into
-a foreign project via `Effect.into` / `writeInto` (S4.9). **Parked**: page chosen → `infer`; App
-refresh after foreign write. Cap is a tree slice, not connected-components.*
+a foreign project via `Effect.into` / `writeInto` (S4.9). Explorer menu reaches it (G.9b, proven).
+**Parked**: new behavior project from Infer not admitted into `held.projects` (not in explorer);
+App refresh after foreign write. Cap is a tree slice, not connected-components.*
 
 *Recently closed: **activity view** (A.7b) — mounts when `view.module===activity`; DIM in stage;
 dimmed labels/order proven. Owns include `base.ts` + App mount. **Parked**: RF framed host;
@@ -157,7 +228,7 @@ axis; DIM proven. Owns include `base.ts` + App mount.*
 shape/size; catalog load proven; formal `names` on behavior / flow / requirements / parametrics.*
 
 *Recently closed: **explorer multi-select** (E.4) — Shift/Meta, `Chosen[]` in App. **Parked**: Ctrl
-on Windows; no distinct CSS; infer wire.*
+on Windows; no distinct CSS.*
 
 *Recently closed: **`figure` retired** (SC.5) — door heals to `block`; sample re-authored as shaped
 block; interface-on-figure refusal removed. Forms are four.*
@@ -231,7 +302,7 @@ absorb landed after the split rather than before it.
 **Three files outgrew the table rather than the seam.** `layout.ts` (1423) took all of stream C by
 design and no seam was ever cut for it; `page/Contents.tsx` (1444) is now the largest file in the
 tree, having absorbed E.1–E.3, S5.3 and SC.4 without a row owning the split; and **`page/Files.tsx`
-(600) is next in line** — six Wave U rows and G.9b all reach it, with no seam cut for it either.
+(600) is next in line** — six Wave U rows reach it (G.9b landed), with no seam cut for it either.
 None is a bug and none blocks anything — recorded so the next structural row is chosen with them in
 view.
 
@@ -245,8 +316,8 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
   generates `act.*` wrappers from the registry, keeps aliases for old names, and moves the five
   queries off `act`. Gestures reach actions through the registry.
 - **Scope holds one `on`.** actions.md scopes `retype` (and fields) to `element|edge`; today
-  `retype` declares `element` and `run` still accepts an edge id. Offering on an edge waits on
-  Scope naming both.
+  `retype` declares `element` and `run` still accepts an edge id. **G.9d gap**: offering `retype`
+  on an edge waits on Scope naming both.
 - **No Arg kind for a ports/sides pair.** `relate` carries them in the args bag for the gesture;
   a sentence never supplies either.
 - **Gestures are not on the descriptor.** A view owns its gesture map and binds a gesture to an
@@ -254,11 +325,16 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
 - **Every action is enumerated in [actions.md](actions.md)** — name, scope, arguments, the
   mutations it writes, and which of today's closures it replaces. Build against that table, not
   against `project.ts`.
+- **`fill_args` optional `into` from focus.** Diagram's canvas path no longer fills optional `into`
+  from the focused card (G.9d — multi-select Group creates). **`page/Files.tsx` and
+  `terminal/rank.ts` still do** — same refuse risk when an optional `into` is wrongly supplied.
 - **Collapse the duplicates as part of the extraction**, so nothing later is written against a
   surface that then changes. 52 entries in `act` become **29 actions**, 4 adjustments, 5 page
   actions and 5 queries that leave the surface entirely. *Done with S1.6.*
 - **`check` refusals reach the strip** via Ask + Canvas `onSay` (S1.7, proven), including
-  `NameField` taken-name marks.
+  `NameField` taken-name marks. **Finding (U.14)**: `NameField`'s own refuse sentence is
+  layer-only — wrong for naming a project; explorer project prompt suppresses it and uses the
+  project rule on commit. Needs a non-layer refuse path when App / NameField are next owned.
 - **The `act.foo(...)` methods stay, generated from the registry**, so call sites keep working
   through aliases where old names remain.
 
@@ -277,13 +353,14 @@ handling — *done* — composition, and `modules/`.
   card / `lookOf`** (S2.6b); projection surface (frame/crumbs/prompts), compose and gesture map
   live under `modules/view/diagram/` (S2.6 / S2.6c / S2.7). `Canvas.tsx` still hosts. **Table**
   mounts when `view.module` is `table` — rows pick/open, proxy open withheld (A.1, proven).
-  **Matrix** when named (A.2, suite). **Parked**: table chrome (crumbs / types) not hosted beside
-  Table.   **Activity** when `view.module` is `activity` — dimmed labels/order (A.7b, proven).
-  **State** when `state` — empty infer offer; Reading A/B; DIM (A.8, proven). **Sequence** when
-  `sequence` — columns; directed then axis; DIM (A.9, proven). **Parked**: RF framed host;
-  gestures on activity plane; activity-final double ring. Rules evaluate and advise in the tray (S5.3).
-  The module `validate` / `findings` hook is live (S5.4); no shipped module supplies a real one yet,
-  and Contents still surfaces constraint/rule notes only.
+  **Matrix** when named (A.2, suite). Both are Contents-modelled panel shells with crumbs + types
+  cycle (U.7 ◐). **Gap**: App does not wire `path`/`onUp`; no `tray.full`; expand does not
+  cover/replace Contents. **Activity** when `view.module` is `activity` — dimmed labels/order
+  (A.7b, proven). **State** when `state` — empty infer offer; Reading A/B; DIM (A.8, proven).
+  **Sequence** when `sequence` — columns; directed then axis; DIM (A.9, proven). **Parked**: RF
+  framed host; gestures on activity plane; activity-final double ring. Rules evaluate and advise in
+  the tray (S5.3). The module `validate` / `findings` hook is live (S5.4); no shipped module
+  supplies a real one yet, and Contents still surfaces constraint/rule notes only.
 - **Preset registry** — `ship` / `presets` / `preset` in `modules/index.ts` (*done*, A0.4). No
   concrete presets shipped yet.
 - **`resolved()` merges the subtype chain** — fields union, `components` per key, cached per fold
@@ -365,16 +442,16 @@ the form (SC.5, proven — heal → `block`; sample shaped block; interface-on-f
 **`packages/` and `styles/` exist at the root.** `packages/core/<domain>.yaml` holds the relation
 definitions; workflows YAML no longer carries relations. **Package load by id is live** (A0.3):
 shipped YAML loads under stable `pkg_*` ids; defs are addressed by path and never copied into a
-consumer's `defs`. **Parked — A0.2 terminal bridge needs Clay**: `workflows.ts` still loads core
-into `Domain.relations` (terminal still consumes that shape) — that path still mints local
-`set_def` copies and remains the shadowing-shaped entry until vocabulary (D.2) consumes the
-loader. Do **not** treat A0.2 as fully closed while that gate is open. **Preset registry** is in
-(`ship` / `presets` / `preset`); no concrete presets yet. Style sets live under `styles/`
-(`sysml` shipped); the block diagram draws from style (S2.6b).
+consumer's `defs`. **A0.2 terminal bridge is retired** (D.2, proven): `Domain.relations` and the
+core YAML seeding path are gone; entry writes `asVocabulary(template)` and vocabulary is the
+package import list. **Preset registry** is in (`ship` / `presets` / `preset`); no concrete
+presets yet. Style sets live under `styles/` (`sysml` shipped); the block diagram draws from
+style (S2.6b).
 
 **Parked from A0.3:** `fold` `isa` / `resolved` still read only local `graph.defs`, so a path-shaped
-`extends` does not walk yet. *(The README dependency map is current again — `actions/`, `workspace/`
-and `modules/`'s grown dependencies are all in it.)*
+`extends` does not walk yet. *(README dep map **lags**: it still omits `terminal → actions` —
+Z.1's ranking reads the action surface through the rail. Update the map when next touching
+README.)*
 
 **The subtype chain reaches all five resolvers (SC.6).** `cardOf`, `styleOf`, `rulesOf`,
 `constraintsOf` **and `viewOf`** read `resolved()`, so a subtype draws the parent's diamond and
@@ -405,16 +482,17 @@ out and everything still works* is the acceptance test — **S6.1–S6.3 landed*
 | `project.ts` | was `router`, `turn`, `workflows` + `pending` | **cut** (S6.1) — `looping()` registration |
 | `page/Files.tsx` | was `Terms` | **cut** (S6.2) — `packages/terms/` |
 | `page/App.tsx` | `Chat`, `Suggestion` | **optional** (S6.3) — `import.meta.glob` |
-| `page/Readout.tsx` | `Scores` | **optional** (S6.3) |
+| `page/Readout.tsx` | was `Scores` | **gone** (U.11) — Scores unmounted; component left for Z |
 
 - **An optional part that half the app imports is not optional.** Where the rail runs is undecided —
   currently fully local — and the design deliberately does not wait on that. What it does require is
   that including it is a choice. **S6.3 proves the page can omit it.**
-- **`terms` moved to `packages/terms/`** (S6.2). **D.2 / A0.2** still need Clay — untouched by the
-  detach.
+- **`terms` moved to `packages/terms/`** (S6.2). **D.2 / A0.2 bridge retired** with vocabulary as
+  the package import list.
 - **Every capability the rail adds must exist without it.** If the only way to do something is to
-  say it, the rail has stopped being optional. Worth checking against Z.8 when its scope is settled.
-- **Parked**: Matching tab empty when Scores absent.
+  say it, the rail has stopped being optional. **Checked against Z.8**: the ranked doc ghost only
+  surfaces a gloss (no action), so nothing actionable is rail-only.
+- **Matching tab empty when Scores absent** — **closed** by U.11 (tab deleted with the readout).
 
 ### S4 — the workspace
 
@@ -468,7 +546,13 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 - **Shared definitions.** A house vocabulary is re-declared per project today and drifts. A
   definition ref widens the same way a proxy target does, so the shared vocabulary is one graph
   the others reference — which is what a **package** is. Load-by-id is live (A0.3); a project's
-  import list is D.2 — **unblocked** now the terminal is no longer frozen.
+  import list is `graph.vocabulary` (D.2, proven). Package authoring UI did not land with D.2.
+- **`packagesOf` may have no production callers** — thin workspace bridge left after D.2; confirm
+  before deleting.
+- **`store.ts` private `stemOf` name** — collides in meaning with graph's `stemOf`; rename or
+  document when next touching storage.
+- **Unnamed session key `mndflow.steps..v1`** — odd empty-id key; park until a naming / session
+  row owns it.
 
 
 ## Phase 1: the streams
@@ -478,24 +562,26 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **A** Views and packages | `modules/view/`, `packages/` | S2, S4 |
 | **C** Geometry | `geometry/` | S3 (perf only) |
 | **D** Vocabulary | `terminal/workflows.ts`, `graph.vocabulary` | — |
-| **E** Definitions and fields | `page/Contents.tsx`, `page/Relations.tsx` | S1 |
+| **E** Definitions and fields | `page/Contents.tsx` | S1 |
 | **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | S4 for the workspace export |
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
-| **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | G.9b / G.9c for the files it shares |
+| **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | G.9d ◐ gap (edge retype); U.16 ◆ Clay |
 | **T** The suite | `tests/` | U for the page rows only |
-| **Z** Terminal | `terminal/` | **everything above**, H especially |
+| **Z** Terminal | `terminal/` | **done** (Z.1–Z.8 proven) |
 
-**Startable today:** F.2 live bind+drift proof (`◐`); D.2 (**unblocked** — the terminal is no
-longer frozen, and the A0.2 bridge is retired with that row); G.9a, then G.9b / G.9c / G.9d; the
-`infer` trigger; and all of **U** except the two rows sharing files with G.9.
+**Startable today:** remaining **U** — **U.16** is ◆ (Clay on root affordance before implement).
+**U.6 landed** (rail caret at insertion). **U.5 landed** (rail collapsed / expanded layout).
+**G.9a / G.9b / G.9c landed**; **G.9d ◐**. **F.2** and **D.2** are done (proven). `infer`'s
+explorer trigger is live. **Wave Z is complete** (Z.1–Z.8 proven). **T.3** waits on Wave U.
 
-**No `◆` row is left.** G.9d is settled (the target decides) and Z.6 is answered
+**U.16** is the remaining `◆`. G.9d is settled (the target decides) and documentation is answered
 (`samples/docs.json`, keyed by definitions.md).
 
-**The terminal is no longer parked, but it is still last.** It ranks and completes whatever the
-surface offers, so building Z.1 against a surface Wave 2 is moving means building it twice. Z.2 and
-Z.3 are self-contained and may go early. It stays the acceptance test for everything above.
+**The terminal is no longer parked — Wave Z is done.** It ranks and completes whatever the
+surface offers. **Z.1–Z.8 landed** (embedding rank; overrule feedback; learned preference;
+expanded guidance; tutorial walk; context gloss; Page Intelligence titles; ranked doc hit last).
+It was the acceptance test for everything above.
 
 **S4 and F both reached `store.ts`.** S4.1 / S4.7 / F.2 are done; they are disjoint from here.
 
@@ -536,9 +622,11 @@ went, because behaviour was the last candidate to place one and it places blocks
   `definitions.yaml`; words for activity / sequence / state with verb `do`. Activity view reads
   the verb for derived labels (A.7b). Formal `names` landed with A.11.
 - **A.1** — table mounts when `view.module` is `table`; rows pick/open; proxy open withheld
-  (*done*, proven). **Parked**: table chrome (crumbs / types) not hosted beside Table. **A.2** —
-  matrix mounts when named (*done*, suite). **A.7a** — `infer` + `Effect.home` (*done*, suite 387).
-  **Parked**: page chosen → `infer`. Cap is a tree slice, not connected-components. **A.7c** —
+  (*done*, proven). Chrome (crumbs / types) hosted beside Table/Matrix (*done* under U.7 ◐).
+  **A.2** — matrix mounts when named (*done*, suite). **A.7a** — `infer` + `Effect.home` (*done*,
+  suite 387). Explorer menu reaches it (G.9b, proven).
+  **Parked**: new behavior project from Infer not admitted into `held.projects` (not in explorer).
+  Cap is a tree slice, not connected-components. **A.7c** —
   `ViewModule` `word` / `creates` and `ViewConfig` `N` default 5 (*done*). **Parked**: create /
   `infer` not wired to `word` / `creates`. **A.7b** — activity mounts when `view.module` is
   `activity`; DIM in stage; dimmed labels/order proven. Owns include `base.ts` + App mount.
@@ -601,23 +689,24 @@ Split out of the terminal because a module needs it and the terminal does not ga
 
 - **`terms` live in `packages/terms/*.yaml`** — *done* (S6.2; was D.1 under `workflows/terms/`).
   Chips still read Module/Dependency until a vocabulary package supplies the words.
-- **Take `domain` apart.** It became `graph.vocabulary` in the migration — a rename that decided
-  nothing. It currently keys three concerns: a set of words, a set of starting relations, and a set
-  of workflow prompts. **Relation seeds moved to `packages/core/`** (A0.2); the terminal still
-  reads them through the seeding bridge until D.2 consumes A0.3's loader. **D.2 is unblocked** —
-  the terminal is no longer frozen, so the bridge is retired as part of that row.
+- **`vocabulary` is the package import list** — *done* (D.2, proven): `graph.vocabulary` /
+  `set_vocabulary` are `string[]` of package ids in order; `asVocabulary` heals a legacy stem;
+  fold/file/door round-trip; entry writes the healed list; A0.2 `Domain.relations` bridge retired;
+  Contents offerings follow import order; Scores via `stemOf`. **Relation seeds** already live in
+  `packages/core/` (A0.2). **Left out of D.2**: Z prompt rework; Contents split; package authoring
+  UI.
 - **The words are what a module needs** — what this notation calls a block, a group, a
-  relationship. Stream A cannot declare a module vocabulary until they are separable from the
-  prompts.
-- **The prompts belong to Z**, and so does the rename, so it happens once. `vocabulary` describes
-  what remains; `template` is spoken for by definitions.
-- **Keep `terms` and one opening hint per domain**; the rest of each YAML serves a question loop
-  that only Z's expanded half still needs. Do not invest in the prompt sets.
+  relationship. Still separable from the prompts; chips have not switched yet.
+- **The prompts belong to Z** — still open. Keep `terms` and one opening hint per domain; the rest
+  of each YAML serves a question loop that only Z's expanded half still needs. Do not invest in
+  the prompt sets.
 
 ### E — definitions and fields
 
 - **Editing definitions.** *Done* (E.1, proven): types chip + edit defs in the contents tray —
-  fields, defaults and presentation.
+  fields, defaults and presentation. **Relation kinds too** (U.11, proven): add / rename / drop of
+  relationship (line) definitions via the same chip — Contents was already the path; the readout's
+  Relations tab was the duplicate.
 - **Form-specific field controls.** *Done* (E.2, proven): number with unit, choice with its list,
   ref with a target picker — on usage and definition fields.
 - **Tags.** *Done* (E.3, proven): add/drop on usage and definition fields.
@@ -625,8 +714,7 @@ Split out of the terminal because a module needs it and the terminal does not ga
   renders a **glyph** today; no SVG and no set chosen. Retiring `figure` did not add to this — every
   ornament walked came out as a shape plus a size — but an actor still wants a real icon.
 - **Multi-select in the explorer tree.** *Done* (E.4, proven): Shift/Meta builds `Chosen[]` across
-  blocks, branches and projects. **Parked**: Ctrl on Windows; no distinct multi-select CSS; page
-  chosen → `infer` not wired.
+  blocks, branches and projects. **Parked**: Ctrl on Windows; no distinct multi-select CSS.
 - **Packages** — the two notations that turned out to be data rather than views. **Requirements**
   (*done*, A.3), **flow** (*done*, A.5) and **parametrics** (*done*, A.4) ship as YAML under
   `packages/`.
@@ -636,9 +724,11 @@ Split out of the terminal because a module needs it and the terminal does not ga
 
 ### F — durability and files
 
-- **File System Access** — *done as fallback* (F.2): Chromium path present; download when the
-  picker fails. Live bind+drift is in code and shows in the header, but was not proven under
-  automation. Owns `graph/store.ts`, `page/App.tsx`, `project.ts`.
+- **File System Access** — *done* (F.2, proven): Chromium live bind via `store.hold`, drift via
+  `store.probe`, focus/visibility re-attach on document replace; header `data-where` is
+  `session` | `drifted` | `unsaved`; download when the picker fails. Owns `graph/store.ts`,
+  `page/App.tsx`, `project.ts`.
+- **Explorer says "No project yet" while a live block is open** — pre-existing; not F.2. Parked.
 - **Rendered SVG beside the source** — *done* (F.3, proven): SVG download beside the JSON export.
   Owns include `modules/view/diagram/`, `graph/store.ts`, `page/App.tsx`, `project.ts`.
 - **Reviewing a model change as JSON is poor.** Committing a rendered SVG beside the source makes a
@@ -650,25 +740,33 @@ Split out of the terminal because a module needs it and the terminal does not ga
   context, presented two ways. **The list is identical; only presentation differs** — the menu shows
   a **fixed** order, the rail orders by **learned preference for that context**. Ordering is the
   presenting surface's business and never the list's.
-- **The list may not live in `terminal/`** (G.9a). The rail stays optional and S6.3's acceptance
-  test is *delete `terminal/` and everything still runs* — a menu importing the rail would break it.
-  So the list sits beside the action registry in `actions/`, and the rail is one consumer of it.
-  **This is the load-bearing constraint**, not a tidiness point.
-- **`infer`'s trigger is the menu** (G.9b). With the explorer as context and one or more blocks or
-  projects selected, `infer` is one of the offered options. It needs no gesture of its own, and the
-  built-but-unreachable A.7a action stops being unreachable.
-- **The canvas right button is settled — the target decides** (G.9d). On **empty space** it still
-  creates, unchanged. On **something that already exists** it opens the list for that thing. So the
-  old rule holds where there is nothing to act on, and becomes *show me what this can do* where
-  there is. `card→interface`, `frame→interface`, `edge→retype` and `selection→group` stop being
-  immediate and become entries.
-- **Right drags are untouched.** Card-to-card still draws a relationship and empty still makes a
-  note. `gestures.ts` already separates a drag from a click by a distance threshold, so the menu
-  costs no new concept — the click half of an existing split changes meaning, and the drag half
-  does not.
-- **`interface` loses its one-click path**, which is the real cost: it was a right-click on a card
-  and becomes two steps. Worth watching once the menu is in — if it is the commonest thing done to
-  a card, it may want to stay first in the fixed order.
+- **The offered-action list** (G.9a) — *done*, proven (actions suite; browser skipped).
+  `actions/offer.ts` exports `offer(ctx)` — membership for the current context (scope + `when`), no
+  ordering of its own. Lives beside the registry, not in `terminal/`, so S6.3 still holds. **Still**:
+  `actions/index.ts` exports a twin `offered()` — retire or re-export once owns allow; suite
+  coverage may move from `offered` → `offer` when callers cut over (T.1 landed the action-module
+  suites; dedicated `offer` cover still waits on that cutover). Explorer (G.9b), rail (G.9c) and
+  canvas (G.9d ◐) draw from it.
+- **Explorer right-click menu** (G.9b) — *done*, proven. Row right-click opens `offer(ctx)` in fixed
+  order via `App` `onAct={project.go}` (`go` exposed); empty-tree create unchanged; rename stays
+  double-click / ✎; minimal `.offer` CSS. **`infer` is reachable** from the list. **Parked**: a new
+  behavior project from Infer is not admitted into `held.projects`, so it does not appear in the
+  explorer. **Half-true**: U.14's claim that the list offers *add a project* as well as a block —
+  only the block path is solid; project entry via the menu is not fully there.
+- **Rail offer surface** (G.9c) — *done*, proven. Click chrome focuses caret (`preventDefault`);
+  chips from `offer(ctx)`; arrows move highlight; `Enter` takes via `App` `Chat`
+  `onAct={project.go}`. Embedding rank is Z.1; overrule feedback is Z.2; learned preference is Z.3.
+  Caret at insertion is U.6 (landed).
+- **`ORDER` is duplicated** across `page/Files.tsx`, diagram offer chrome, and `terminal/` — same
+  fixed sequence copied for menus / cold fallback. Collapse to one export when owns allow (likely
+  beside `offer`). Still open after Z.3.
+- **Canvas right-click menu** (G.9d) — ◐, proven. Empty space still creates; existing card / frame /
+  edge / selection opens `offer(ctx)` in fixed order via `App` `onAct={project.go}` into Canvas.
+  Former immediates (`card→interface`, `frame→interface`, `selection→group`) are list entries;
+  Name/Perch not immediate. `fill_args` leaves optional `into` unset from focused card so
+  multi-select Group creates. **Gap**: edge→`retype` — Scope is element-only (see S1). Right drags
+  untouched. **`interface` loses its one-click path** — worth watching; may want to stay first in
+  the fixed order.
 - **The selection box.** *Done* (G.7, proven): both ends inside selects the edge; one end does not.
   Dead CSS: `.leg-grab` / `.leg-mark` still describe segment grab bands `Wire` no longer draws.
 - **Esc after marquee.** Esc does not clear RF-selected edges after a marquee selection. Parked
@@ -677,9 +775,10 @@ Split out of the terminal because a module needs it and the terminal does not ga
   edges do not draw; seats clear. **Parked**: the filter is not persisted in localStorage.
 - **`Ctrl`/`Cmd` + `A`** — *done* (G.5). Selects all cards; Esc clears an RF multi-select via
   `changeNodes`; Fit and Group still work with the selection.
-- **`relax` and `size` are wired** — ◌ click (`onClick={() => onRelax()}`) and note SE resize
-  (G.2 / G.3). **`dissolve` is registered and S1.6-ready** (G.4) but **unreachable from the UI**
-  until G.9 designs a menu trigger. Delete on a group row still goes through remove, not dissolve.
+- **`relax` and `size` are wired** — ∿ click (`onClick={() => onRelax()}`) and note SE resize
+  (G.2 / G.3; U.2 retuned the relax mark). **`dissolve` is registered and offered from the canvas
+  menu** when a group is in scope (G.9d ◐); groups are not listed in the explorer. Delete on a
+  group row still goes through remove, not dissolve.
 - **Adding a block to an existing group from the panel** — *done* (G.6): panel `+ group` joins the
   selection into an existing group. Proven in browser.
 - **Fluid transitions between layers.** The viewport animates; the contents of the two layers cut,
@@ -701,111 +800,149 @@ Split out of the terminal because a module needs it and the terminal does not ga
   - Rename the bad edge key `"undefined"` (loads and round-trips; violates id shape).
   - Root fields dump defaults the writer strips elsewhere (`file.write` / `fieldsOut` asymmetry).
   - Prefer meaningful `edge_*` keys in samples even though runtime treats keys as opaque.
-- **Z's tutorial is walked over a sample**, so this stream decides what a first project looks like
-  as well as proving the format. Worth one sample per module eventually, not just this one.
+- **Z's tutorial is walked over a sample** — *done* (Z.5, proven): `walk_for` on `proj_mndflow`
+  via `samples/tutorial.json`. This stream still decides what a first project looks like as well as
+  proving the format. Worth one sample per module eventually, not just this one.
 
 ### U — the shell
 
-The page does not survive a narrow window. **Breadcrumbs and the interface / relationship option
-groups collide and overlap**; at high zoom or on a small screen **the explorer takes most of the
-width**; and the **chrome icons are hard to tell apart**. Reasoning in design.md under *The shell
-yields; the stage does not*.
+**U.1 landed** (proven): header identity truncates (tools stay); session/where ellipsizes; crumbs
+left half truncate; `.arrange` wraps instead of overlapping crumbs; stage `min-width: 0` / overflow
+clipped. **U.17 landed** (proven): project roots spaced as siblings. **U.3 landed** (proven):
+explorer width `min(280px, 36vw)`; collapses to a 28px strip (◂/▸); tree hidden until reopened; bar
+title ellipsizes; U.17 spacing and G.9b `.offer` intact. **U.4 landed** (proven): header theme
+group `current` / `modern` / `light` (`current` default); CSS variable palettes on `data-theme`;
+sticky `mndflow.theme.v1`; chrome washes for shell overlays. **U.11 landed** (proven): readout
+toggle and three tabs gone; Contents covers relation kinds; theme and Chat `onAct` intact.
+**U.14 ◐** (proven): explorer `＋` follows selection (project vs block); tooltip names which;
+project exists once named; `workspace.begin` + outcome test. **Gap**: `App.newProject` still does
+not call `workspace.begin` (App not owned). **U.2 landed** (proven): one chrome glyph vocabulary —
+no mark means two things; `·` axis-none only; `⊏` interfaces-off; `∗` all-types; arrangements
+`▦⊙⇄⇅`; relax `∿`; explorer roles/bar. **Left out**: stream E icons; table/matrix still `·`
+types (outside owns). Words/groups were U.15. **U.15 landed** (proven): vertical subject groups
+*interface* / *relation* / *flow*; every control word+glyph; form / draw / types / axis as radio
+rows; arrangements still on `.shape` with words until U.16. **U.8 landed** (proven): labelled
+view toggle beside project root; three modules per kind with U.9 glyphs; sticky per project in
+`mndflow.view.v1`; writes nothing; App mounts from sticky pick when it fits, else layer
+`view.module`. **Out of row**: a `.files-scoped` class may help a cramped root row;
+behavior-kind modules were not driven in prove. Reasoning in design.md under *The shell yields;
+the stage does not*.
 
-- **Chrome yields, the stage does not.** Crumbs truncate, option groups collapse, the explorer
-  bounds itself. What must never happen is chrome growing until it collides with itself.
-- **A theme is not a style set.** `src/styles.css` is app chrome; root `styles/` is the `style`
-  component's per-definition presentation (`sysml.ts`). Two meanings of one word, and they must not
-  be merged — a user's colour preference does not belong where a definition's presentation lives.
-  The current theme stays the default; **modern (blues)** and **light** join it.
+- **Chrome yields, the stage does not** — *done* for header / crumbs / arrange / stage (U.1) and
+  for the explorer bound (U.3). What must never happen is chrome growing until it collides with
+  itself.
+- **One glyph vocabulary** — *done* (U.2, proven): no mark means two things across header,
+  explorer and diagram chrome. `·` is axis-none only; interfaces-off is `⊏`; all-types is `∗`;
+  arrangements are `▦ ⊙ ⇄ ⇅`; relax is `∿`; explorer roles are ■ / □ / ◫. **Still open**:
+  table/matrix types chrome still reads `· types` (outside U.2 owns — follow when next touching
+  those chrome files); stream E definition icons. Module-icon placement on the view toggle is
+  U.8 (landed). Words/groups are U.15 (landed).
+- **A theme is not a style set** — *done* (U.4, proven): `src/styles.css` is app chrome; root
+  `styles/` is the `style` component's per-definition presentation and stayed untouched. Header
+  group `current` / `modern` / `light` (`current` default); CSS variables via `data-theme`; sticky
+  `mndflow.theme.v1`; chrome washes for shell overlays. Diagram hardcodes and a `store.ts` theme
+  flag were not added — chrome only.
 - **The explorer must hold more than one project legibly**, which is what a bounded width costs and
-  what per-view icons buy back. **Space between projects** is the cheapest half of it (U.17) — with
-  several open, the tree currently reads as one long list rather than as several projects.
-- **Adding a project opens the name prompt** (U.14). design.md: *a project comes into being by being
-  named*, and storage never mints one. So the `＋` must not create a blank and file it — that is the
-  silently-minted session project, removed as a bug, coming back through another door. The name is
-  required and unique, checked on the way in.
-- **A distinct icon per view module**, so a shrunken explorer stays readable. **Definition icons are
-  a different want** and stream E already holds it (`layout: icon` renders a glyph; no SVG, no set
-  chosen) — do not re-open it here.
-- **The view toggle is a labelled control beside the project root**, not an icon that cycles.
-  Cycling hides both what is available and what is current, and changes the canvas without saying
-  why. Sticky **per project**, so descending a layer keeps it.
+  what per-view icons buy back. **Space between projects** — *done* (U.17, proven): project roots
+  `className="project"`; sibling projects 10px top margin. **Width cap / collapse** — *done*
+  (U.3, proven): `min(280px, 36vw)`; 28px strip (◂/▸); tree hidden until reopened; bar title
+  ellipsizes.
+- **Adding a project opens the name prompt** — *done* (U.14 ◐, proven): explorer `＋` follows
+  selection; tooltip names project vs block; project exists once named; `workspace.begin` +
+  outcome test. **Still open**: `App.newProject` should call `workspace.begin` (App not owned);
+  `NameField`'s built-in refuse sentence is layer-only and wrong for project naming; G.9b's claim
+  that the right-click list offers *add a project* as well as a block is only half-true.
+- **A distinct icon per view module** — *done* (U.9): each of the six publishes a distinct `icon`
+  on `ViewModule`; `.view-icon` styles it; property tests hold non-empty and pairwise distinct.
+  **The labelled view toggle draws them** (U.8, proven). **Definition icons are a different
+  want** and stream E already holds it (`layout: icon` renders a glyph; no SVG, no set chosen) —
+  do not re-open it here.
+- **The view toggle is a labelled control beside the project root** — *done* (U.8, proven): three
+  modules per kind with U.9 glyphs; sticky per project in `mndflow.view.v1`; writes nothing; App
+  mounts from sticky pick when it fits, else layer `view.module`. Not an icon that cycles.
+  **Out of row**: a `.files-scoped` class may help a cramped root row; behavior-kind modules were
+  not driven in prove.
 - **It writes nothing.** Which view is showing is a display preference — the same rule as
   `showPorts` and `angular`, and the reason is definitions.md's own test: *what belongs to a project
   is what is in the log*. The definition's `view.module` says how a layer **opens**; the toggle says
   what is on screen **now**. No sixth page action was added, so the closed set is untouched.
-- **Table and matrix take Contents as their model** — both start partially open, as the panel does
-  now, and expand to the full canvas. This is also where **A.1's parked table chrome** (crumbs /
-  types, not hosted beside Table) finally lands.
-- **Contents is not deleted.** It is the model. Definition and field editing (E.1–E.3), constraint
-  and rule advice (S5.3) and type offers (SC.4) all stay where they are.
+  Sticky key is `mndflow.view.v1` (U.8, proven).
+- **Table and matrix take Contents as their model** — *done* (U.7 ◐, proven): both open as panel
+  shells (~⅓ stage; expand fills stage); A.1 chrome — crumbs + types cycle (definition names on
+  table; relationship marks on matrix); optional `path`/`onUp` with trail/climb from the graph when
+  omitted. **Still open**: App wiring of `path`/`onUp`; `tray.full` in `styles.css`; expand covering
+  or replacing Contents; types cycle still reads `· types` while diagram chrome uses `∗` (U.2 left
+  that outside owns).
+- **Contents is not deleted.** It is the model and stayed untouched. Definition and field editing
+  (E.1–E.3), constraint and rule advice (S5.3) and type offers (SC.4) all stay where they are.
 - **The rail's collapsed form is a minimal text entry with inline chips**, and its expanded form is
-  laid out to match. **Click-to-focus is not this stream's** — G.9c owns it. What is U's is the
-  **caret that does not sit where the text cursor is**, which is a rendering bug in the existing
-  rail and shares `terminal/` with G.9c, so the two serialise.
+  laid out to match — *done* (U.5, proven): defaults collapsed (one-line, inline chips); expanded
+  is a two-column guidance shell; ▾/▴ toggles; G.9c focus / filter / Enter unchanged.
+- **The rail caret sits where the text cursor is** — *done* (U.6, proven): empty-line block cursor
+  overlays the input insertion point; native caret hidden while empty; with text, native caret;
+  U.5 collapsed/expanded unchanged.
 - **Undo and redo read as words, at the foot of the explorer**, beside one line naming the last
-  executed action. `Log.tsx` put them in the corner controls so that *reaching them never means
-  opening anything first*; the foot of an always-visible explorer keeps that rule while giving them
-  labels, so this moves the controls without overturning the reasoning.
+  executed action — *done* (U.12, proven): Undo / Redo as words; last-action line; header `↤` /
+  `↦` gone; keyboard shortcuts unchanged; collapsed explorer hides the foot; U.13 new workspace
+  and U.17 spacing intact. `Log.tsx`'s rule — *reaching them never means opening anything first*
+  — holds as reopening the explorer, not opening a drawer.
 
-**The readout comes out whole** (U.11) — the header toggle and all three tabs. What that touches
-beyond the deletion:
+**The readout came out whole** (U.11, proven) — the header toggle and all three tabs. Confirmed
+before deleting:
 
-- **`Relations.tsx` is today's only relation-vocabulary UI** — add, rename and drop a relation kind.
-  It should be redundant: a relation kind **is a definition of relationship form**
-  (definitions.md), Contents lists a `relationship` sort and edits `graph.defs` since E.1, and its
-  `FORMS` list already carries `line` and `directed`. **The row must confirm that before deleting**,
-  because if creating a relationship definition is not reachable from Contents, this removes a
-  capability rather than a duplicate.
-- **`Log.tsx` is orphaned by it.** The action history moves to future work below; U.12's
-  last-action line keeps the one part of it worth glancing at.
-- **`terminal/Scores.tsx` loses its only mount.** Leave the component — Z.1/Z.3 rank against
-  exactly what it draws — but the page stops reaching into the rail for it, which **closes S6.3's
-  parked** *"Matching tab empty when Scores absent"* by deleting the tab that was empty.
+- **`Relations.tsx` was redundant** — Contents types chip already add / rename / drop relation
+  (line) kinds as relationship-form definitions (E.1). Capability kept; duplicate UI gone.
+- **`Log.tsx` went with it.** Action history stays future work below; U.12's last-action line
+  (landed) keeps the one part worth glancing at.
+- **`terminal/Scores.tsx` lost its only mount.** Still unmounted after Z.1 (ranking does not need
+  that surface). S6.3's parked *"Matching tab empty when Scores absent"* **closed** by deleting the
+  tab. **Parked**: remount Scores somewhere if a matching readout is wanted again.
+- **`project.addRelation` / `renameRelation` / `dropRelation` wrappers** — unused after Relations
+  went; registry `define` / `undefine` aliases remain. **Parked**: drop or rewire when next
+  touching `project.ts`.
 
 **The `＋` was doing three jobs** and one of them was backwards: new block
-([Files.tsx:548](../src/page/Files.tsx#L548)), new relation kind (`Relations.tsx`, going with U.11), and
-**discard-and-start-empty** ([App.tsx:511](../src/page/App.tsx#L511)) — which removed rather than added. U.11
-retires the second. The other two split by **scope**, which is the rule worth stating:
+([Files.tsx:548](../src/page/Files.tsx#L548)), new relation kind (`Relations.tsx`, **retired** with
+U.11), and **discard-and-start-empty** ([App.tsx:511](../src/page/App.tsx#L511)) — which removed
+rather than added. U.11 retired the second. The other two split by **scope**, which is the rule
+worth stating:
 
 - **The header is workspace-scoped; the explorer is project-scoped.** Adding a project is filing,
   and filing belongs to the tree that shows the filing. So the header keeps only *clear the session
-  and start a new workspace* (U.13), and the explorer's `＋` gains *add a project* (U.14).
+  and start a new workspace* (**U.13, proven**), and the explorer's `＋` gains *add a project*
+  (U.14 ◐).
 - **A new workspace is a bigger thing than a new project**, since it drops every open project at
-  once. It **reads as a word rather than a glyph** — rare and destructive is exactly when a label
-  beats an icon, and it is the same move U.12 makes for undo and redo. **It lands on a state the
-  design already wants**: a fresh session has no project and says so, so clearing to nothing is the
-  designed opening rather than a special empty case.
-- **Adding a project is a workspace operation**, `admit` with a blank graph — the way unlock and
-  fork are (S4.8), and not a registry action. No page action was added, so that enumerated set is
-  untouched.
+  once — *done* (U.13, proven): header *new workspace* word; confirm kept; `store.clearSession()`
+  drops keyed logs, workspace list, session pointer and live handle; `clearWorkspace` → blank
+  `Held`. It **reads as a word rather than a glyph** — rare and destructive is exactly when a
+  label beats an icon, and it is the same move U.12 makes for undo and redo. **It lands on a
+  state the design already wants**: a fresh session has no project and says so, so clearing to
+  nothing is the designed opening rather than a special empty case. **Note**: live FS handle
+  release was not exercised in the browser drive.
+- **Adding a project is a workspace operation**, `begin` / `admit` with a naming-first log — the way
+  unlock and fork are (S4.8), and not a registry action. No page action was added, so that
+  enumerated set is untouched. **`App.newProject` still does not call `begin`** — wire when App is
+  owned.
 - **Blocks keep a one-click path.** The explorer `＋` follows the selection exactly as the canvas
   right button does (G.9d, *the target decides*): a project or nothing selected makes a **project**,
   a block selected makes a **block** under it. This is **not** the hidden state U.8 rejects — the
   selection is visible and the tooltip names what the button will do. **G.9b's right-click list
-  offers both regardless**, so the gesture path never depends on guessing the selection right.
+  offering both is only half-true** — record, do not invent a second create door here.
 
-**The canvas options have three idioms and no rule** (U.15). `chrome.tsx`'s `Toggles` is eight
-controls picking freely between them:
+**The canvas options share one design language** (U.15, proven). Vertical subject groups
+*interface* / *relation* / *flow*; **every control carries a word**, glyph as scan aid. Form,
+draw, types and axis are **radio rows**; interfaces stay a two-state toggle. **Arrangements
+still sit on `.shape`** with words beside the glyphs — U.16 moves those verbs to the frame's
+context list rather than making them a fourth bar group.
 
-| | Reads | Is |
-|---|---|---|
-| interfaces | `□ interfaces` / `· interfaces` | glyph **and** word |
-| what a right drag makes | `— plain` / `⇥ directed` | glyph **and** word |
-| angles / curves | `⌐` / `~` | glyph **only** |
-| relationship types | `⊂ name` / `· types` | glyph **and** word |
-| axis | `·` `→` `↓` | glyph **only**, and a **radio row** where types and form are **one cycling button** |
-
-- **Every control carries a word**, the glyph reduced to a scanning aid. It is the same move U.12
-  and U.13 make, and the complaint that the marks are indistinguishable is only fatal while a mark
-  is the *whole* label.
-- **No mark may mean two things** (U.2). `·` currently means *interfaces off*, *all types* and *no
-  axis*; `⊙` and `◌` are one circle for *radial* and *relax*; `▦ ▤ ▥` are three hatched squares for
-  *grid*, *across* and *down*. This is the root of "the icons all look the same" and it is a
-  vocabulary fault, not a drawing one — so U.2 is the foundation U.9 and U.15 both stand on.
-- **Grouped by subject, vertically** — *interface*, *relation*, *flow*, *arrangement*. `angular`
-  belongs with **relation** (it is how a line draws), `axis` with **flow** (it is which way the
-  layer reads, and it biases rank, placement and routing).
+- **Every control carries a word** — *done* (U.15): same move U.12 / U.13 made for rare
+  destructive controls, applied to the canvas options.
+- **No mark may mean two things** — *done* (U.2, proven) for diagram / explorer / header chrome.
+  `·` is axis-none only; interfaces-off is `⊏`; all-types is `∗`; radial `⊙` and relax `∿` no
+  longer share a circle; arrangements are `▦ ⊙ ⇄ ⇅`. **Still open**: table/matrix types chrome
+  still reads `· types` (outside U.2 owns).
+- **Grouped by subject, vertically** — *done* (U.15) for *interface*, *relation*, *flow*.
+  `angular` / draw with **relation**; `axis` with **flow**.
 - **The verbs leave the bar** (U.16) rather than becoming a fourth group. design.md says *toolbars
   divide by states against verbs, which is why the two sit far apart* — grouping the bar by subject
   would put a one-time verb beside a setting and quietly overturn that. Instead the arrangements go
@@ -813,15 +950,14 @@ controls picking freely between them:
   done to the layer. The bar is left holding states only, which is what makes one design language
   possible at all.
 
-**Contended owns, declared.** `terminal/` with **G.9c** and Wave Z; `modules/view/diagram/chrome.tsx`
-between **U.2**, **U.15** and **U.16**, serial in that order; `page/Relations.tsx` with stream **E**,
-which U.11 deletes rather than edits, so take it when E is quiet.
+**Contended owns, declared.** `terminal/` Wave Z is complete (U.5 / U.6 / G.9c landed with it);
+`modules/view/diagram/chrome.tsx` next is **U.16** alone (U.2 and U.15 landed; ◆ waiting Clay).
+**`page/Relations.tsx` is gone** (U.11) — stream E no longer shares it.
 
-**`page/Files.tsx` is this wave's contended file** — U.2, U.3, U.8, U.12, U.14 and U.17 all reach
-it, and so does G.9b. That is the shape `Canvas.tsx` and `Contents.tsx` had before their seams were
-cut, and **no row here cuts one**: the file is 600 lines and this wave will grow it. Recorded so the
-next structural row is chosen knowing it, and so the order in plan.md is followed rather than
-rediscovered. None of it is parallelisable.
+**`page/Files.tsx` was this wave's contended file** — G.9b / U.17 / U.3 / U.12 / U.14 ◐ / U.2 /
+**U.8** all reached it; **U.8** was the last Wave U owner. That was the shape `Canvas.tsx` and
+`Contents.tsx` had before their seams were cut, and **no row cut one**: the file grew as those
+rows landed. No remaining Wave U row owns it.
 
 ### T — the suite
 
@@ -829,32 +965,33 @@ The gaps *What the review found* named, now rows. **T owns `tests/` alone**, so 
 contends with an implementation row — which is the practical benefit of tests having moved out of
 `src/`.
 
-- **Five of seven action modules have no test** (T.1) — `edges`, `elements`, `fields`, `groups`,
-  `layer`. Only `behavior.ts` and the registry are covered. The trigger was already written down
-  under *Deliberately untested*: **once actions are pure `(graph, args) -> Effect` they are worth a
-  suite**, and S1.6 landed that. Properties only — an action returns the mutations it claims,
-  refuses through `check` rather than throwing, and writes nothing when it refuses.
-- **The page layer has no tests at all**, and it is where every browser-found bug lived. It splits
-  in two by whether Wave U is about to rewrite it. **`Contents.tsx` is startable now** (T.2): U.7
-  models table and matrix *on* it but does not rewrite it, so a suite there survives the wave.
-  **`App.tsx`, `Files.tsx` and `Panel.tsx` wait for U** (T.3), because U rewrites the header, the
-  explorer and the chrome, and a suite written first would be thrown away with them. That is the
-  project's own rule applied to itself: *do not write tests for a design that is still moving*.
-- **44 behaviour-view tests prove less than their count suggests** (T.4). `activity`, `state` and
-  `sequence` render what `infer` produces, over hand-built fixtures, and `infer` has no call site —
-  so they cover the renderers and not the feature. G.9b gives it one; then a single test walks
-  selection → `infer` → drawn, and the caveat retires.
-- **The terminal stays deliberately uncovered** and gets no T row. Stream Z is about to change its
-  shape, so a suite now would be rewritten by it — the same reasoning as T.3, and the reason no row
-  exists rather than a row that waits.
+- **The five action modules have a property suite** (*done*, T.1, proven; browser skipped) —
+  `edges`, `elements`, `fields`, `groups`, `layer` under `tests/actions/` (79 new; actions slice
+  102 with registry + behavior). Success returns the claimed mutation ops; refuse goes through
+  `check` without throw and with no mutations; navigation writes nothing; writing actions report
+  `writes(effect)`. Registry and `behavior`/`infer` were already covered; locked-project /
+  sayable / offered registry properties were left out on purpose.
+- **`Contents.tsx` has its first cover** (*done*, T.2, proven): Node SSR markup in
+  `tests/page/contents.test.ts` (9) — empty layer, listing trays, filter chips, default sort,
+  constraint/rule advice, proxies. Interactive filter / column sort / row pick / hover lighting and
+  strip `onSay` on selection still need a DOM harness before they can be suite-proven; definition
+  editor / field controls / SC.4 depth were left out of this cover on purpose.
+  **`App.tsx`, `Files.tsx` and `Panel.tsx` still have none and wait for U** (T.3), because U rewrites
+  the header, the explorer and the chrome, and a suite written first would be thrown away with them.
+  That is the project's own rule applied to itself: *do not write tests for a design that is still
+  moving*.
+- **`infer` is walked end to end in the suite** (*done*, T.4, proven; browser skipped) —
+  `tests/modules/view/infer.test.ts`: Chosen → offer includes infer → `run("infer")` → fold →
+  activity `stageOf` draws (suite 574). The older behaviour-view fixtures still prove renderers
+  over hand-built graphs; they keep, and no longer stand in for the trigger path.
+- **The terminal stays deliberately uncovered** and gets no T row. Wave Z finished without adding
+  one — same reasoning as T.3 while the shape was moving, and no cover row was scheduled after.
 
 ### Z — terminal
 
-*The acceptance test for everything above.* **Unfrozen since S6 and no longer parked — queued
-behind Wave 2**, because Z.1's ranking still reads a surface Wave 2 is moving, and building it
-first means building it twice. Z.2 and Z.3 are self-contained and startable ahead of it. What it is
-for is settled — see design.md under *The terminal*. **Nothing in Z needs Clay any more**: Z.6 is
-answered below.
+*The acceptance test for everything above.* **Unfrozen since S6 — Wave Z complete (Z.1–Z.8
+proven).** What it is for is settled — see design.md under *The terminal*. **Nothing in Z
+needs Clay any more.**
 
 - **It is not a command palette.** The one text entry point over the workspace: it ranks, completes
   and surfaces documentation, and adapts to a person's wording. An editor host's palette and console
@@ -865,39 +1002,49 @@ answered below.
   planned needs a server. The old "may not be client-side" caveat is retired with the
   natural-language half it belonged to.
 - **Two functions, split by whether it is open.** Collapsed is the app's primary text entry point
-  and asks nothing. Expanded is guidance: the next question worth answering, nudges, documentation
-  for whatever is in front of you, and a tutorial over a sample project.
-- **The guided half needs H.** A live onboarding tutorial walks somebody through a diagram of a
-  given kind, which means there has to be one to walk through — so the sample project is a
-  dependency, not a nicety.
-- **Ranking**: eligibility from argument types, order from the shape of what was typed and a
-  two-tier learned weight — the literal entry remembered, the situation's shape weighted. Local,
-  and out of every log.
-- **Arrow keys move the highlighted option.** Nothing moves it today, so `Enter` always takes the
-  top suggestion — the version of adaptive ranking worth avoiding, since the default is then
-  invisible and changes under the user. Overruling it is the feedback.
+  and asks nothing. Expanded is guidance (Z.4, proven) plus a context gloss (Z.6, proven) plus a
+  tutorial (Z.5, proven): the next question worth answering, a hint, and nudges — choice chips /
+  typed Enter when there are choices, ranked actions when not; root tip uses `blocksOf(null)`;
+  gloss from `doc_for(ctx)` / `shape_of`; walk from `samples/tutorial.json` via `walk_for(ctx)` on
+  `proj_mndflow`.
+- **Expanded guidance** — *done* (Z.4, proven): next question + hint + nudges (`guidance.ts`);
+  root tip uses `blocksOf(null)`; choice chips / typed Enter answer; no-choice shows ranked
+  actions. Collapsed Z.1 / Z.2 / Z.3 untouched.
+- **Tutorial** — *done* (Z.5, proven): `samples/tutorial.json` + `walk_for(ctx)` on `proj_mndflow`;
+  advances by pick / ancestors / open layer; edge → relationship step. Collapsed quiet; Z.4 / Z.6 /
+  Z.7 preserved. **Parked**: proxy tip advance is canvas-only.
+- **The guided half needed H** — sample dependency met (H.1); Z.5 walks it.
+- **Ranking** — *done* for collapsed chips (Z.1 + Z.3, proven): typed text ranks by embedding
+  similarity (substring when cold), with shape as tie-break and an exact prior entry pinned first;
+  idle orders by shape-weighted preference from `feedback.read()`. Local sticky only; out of every
+  log. Chat warms embeddings.
+- **Arrow keys move the highlighted option** — *live via G.9c* over the ranked (or learned idle)
+  list; unchanged by Z.2 / Z.3.
+- **Overrule feedback** — *done* (Z.2, proven): taking a non-default chip (arrow+`Enter` or click)
+  records to `mndflow.rail.feedback.v1` with `shape_of(ctx)`; confirming the highlighted default
+  writes nothing. **Z.3 reads that store** for idle / shape preference.
 - **`router.ts` loses its centre.** Question selection, the operation set and the `RHYTHM` rule
   serve the expanded half only; the collapsed half asks nothing and ranks instead. What survives of
   `workflows/*.yaml` is `terms` — which D takes — and one opening hint per domain.
-- **Documentation lives in `samples/docs.json`**, keyed by the terms in
-  [definitions.md](definitions.md) (Z.6). Hand-authored, and starting small — **no generator**,
-  which is exactly the unasked-for build step somebody would otherwise add. This puts Z.6 in stream
-  **H**'s owns, so the two serialise.
-- **One doc hit, ranked last** (Z.8). The ranked list is actions plus at most a single documentation
-  result, chosen on the most relevant keyword and always the final option — so it is available
-  without ever displacing something actionable.
-- **There is no rename** (Z.7). `rail` stays the word in the code and the docs; **"Page
-  Intelligence"** is user-facing copy and nothing more. The row costs a string, not a refactor.
+- **Documentation** — *done* (Z.6, proven): `samples/docs.json` ten terms keyed to
+  [definitions.md](definitions.md); expanded gloss via `doc_for(ctx)` / `shape_of`; Collapsed
+  unchanged. Hand-authored — **no generator**. Shares `samples/` with stream **H**.
+- **One doc hit, ranked last** — *done* (Z.8, proven): typed lists append at most one `docs.json`
+  keyword hit, always last (ghost); Enter/click surfaces gloss, no action; idle/answer lists stay
+  actions-only — so it is available without ever displacing something actionable.
+- **There is no rename** — *done* (Z.7, proven): ▾/▴ titles are Expand / Collapse Page
+  Intelligence; `rail` stays the word in the code and the docs. User-facing copy only — no
+  identifier rename.
 
 
 ## Out of scope, recorded so nothing is built on it
 
-- **Action history, displayed another way** — **future work, deliberately unscheduled.** U.11 deletes
-  `Log.tsx` with the readout, and U.12 keeps only the last executed action, on one line at the foot
-  of the explorer. Going back through the history was never offered even by `Log.tsx`, so nothing
+- **Action history, displayed another way** — **future work, deliberately unscheduled.** U.11
+  deleted `Log.tsx` with the readout; **U.12 landed** the last executed action on one line at the
+  explorer foot. Going back through the history was never offered even by `Log.tsx`, so nothing
   regresses; what a fuller history should look like, and where it should live, is undecided. The
-  data is not at risk either way — the log **is** the project, so any future surface folds from what
-  is already stored.
+  data is not at risk either way — the log **is** the project, so any future surface folds from
+  what is already stored.
 - **Natural language over the workspace** — a sentence that *makes or changes* something rather than
   naming one action. It stays the aim (design.md, *The terminal*) and is **deliberately not
   scheduled**: Z.8 is now ranked completion plus one documentation hit, which is a lookup and a sort.
@@ -972,10 +1119,14 @@ outcome-shaped and well named (*leaves no trace of a reverted step*, *keeps a pr
 gone*). They are why S3.1's 22 deletions and the S6 detach landed without drama. **Culling for its
 own sake would cost more than it saves.** Three findings instead:
 
-- **The page layer has no tests at all.** `App.tsx`, `Files.tsx`, `Panel.tsx` and `Contents.tsx` —
-  about 3,600 lines, and `Contents.tsx` alone is the largest file in the tree — are covered by
-  nothing. Every bug found by driving the browser lived here or in the seam below it. This is the
-  gap, not the redundancy. **Now rows T.2 and T.3**, split by whether Wave U rewrites the file.
+- **The page layer's cover gap is half closed.** `Contents.tsx` has a first property suite (*done*,
+  T.2, proven) via Node SSR markup — not interaction. **`App.tsx`, `Files.tsx` and `Panel.tsx`
+  still have none** (T.3, waits on Wave U). Every bug found by driving the browser lived here or in
+  the seam below it. This remains the gap, not the redundancy.
+- **Page interaction cover still needs a harness.** There is no jsdom, happy-dom or
+  `@testing-library` in the tree. Filter chips, column sort, row pick, hover lighting and strip
+  `onSay` on selection cannot be suite-proven until one lands; T.2 deliberately stopped at SSR
+  markup for that reason.
 - **The storage journey is now covered** — `tests/lifecycle.test.ts` gained *work, reload, still
   there*. It goes through `saveProject` / `loadProject` rather than `file.write` / `file.read`, which
   is what the old "integration" test actually did. Reintroducing the import bug now fails **three**
@@ -992,17 +1143,15 @@ live in `tests/` mirroring `src/`, and a contract kept by many modules is tested
 them. Keeping a test beside its module made moving a module cheap, and moving modules stopped being
 the common operation.
 
-**44 tests cover a feature nothing can reach.** `activity`, `state` and `sequence` render what
-`infer` produces, and `infer` still has no call site — G.9b is its trigger and is unbuilt. They test
-renderers over hand-built fixtures. Keep, but they prove less than their count suggests. **Now row
-T.4**, which walks the whole path once the trigger exists.
+**`infer` is suite-walked end to end** (*done*, T.4, proven; browser skipped) — Chosen → offer →
+`run("infer")` → fold → activity draw. The older behaviour-view fixtures still prove renderers over
+hand-built graphs; keep them.
 
-**Deliberately untested:** the terminal — `router`, `turn`, `workflows` — whose shape stream Z is
-about to change, so a suite now would be rewritten by it; `embed`, `match` and `suggest`, which
+**Deliberately untested:** the terminal — `router`, `turn`, `workflows`, `rank` — whose shape
+stream Z is still changing, so a suite now would be rewritten by it; `embed` and `match`, which
 need a model *(and which Z.8's scope-down does not summon — it is a keyword lookup, not a model)*;
 and `project`, whose actions are thin wrappers
-over mutations `fold` already covers. Each is a judgement to revisit. **The last of these has been
-revisited and is now T.1**: S1.6 made actions pure `(graph, args) -> Effect`, which is exactly the
-condition that made them worth a suite, and five of the seven modules still have none. The terminal
-stays uncovered on purpose and gets no row — stream Z changes its shape, so a suite would be
-rewritten by it.
+over mutations `fold` already covers. Each is a judgement to revisit. **The last of these was
+revisited as T.1 and landed**: S1.6 made actions pure `(graph, args) -> Effect`; the five modules
+now have property suites under `tests/actions/`. The terminal stays uncovered on purpose and gets
+no row — stream Z changes its shape, so a suite would be rewritten by it.

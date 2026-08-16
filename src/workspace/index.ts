@@ -25,11 +25,13 @@ import { entering, type Fault } from "../graph/check";
 import { compact, fold, nextNum, titleOf } from "../graph/fold";
 import { loadProject, loadWorkspace, saveProject, saveWorkspace } from "../graph/store";
 import {
-  EMPTY, ROOT, asTarget, defIdFor, definition, element, field, newId, refAt, refTo,
-  step as makeStep,
+  EMPTY, ROOT, asTarget, asVocabulary, defIdFor, definition, element, field, newId,
+  refAt, refTo, stemOf, step as makeStep,
   type Definition, type EdgeForm, type ElemForm, type Element, type Field,
   type Graph, type Mutation, type Spot, type Step,
 } from "../graph/types";
+
+export { stemOf };
 
 /** What the workspace key holds, apart from every project's log. */
 export type Held = {
@@ -204,6 +206,34 @@ export function mayName(
 export function started(name: string): Step[] {
   return [makeStep(`new project: ${name.trim()}`, "rename",
                    [{ op: "update_element", id: ROOT, label: name.trim() }])];
+}
+
+/** Name a project into the workspace — unlock and fork's sibling.
+ *
+ *  The project exists once named: required, unique, then a log whose first
+ *  step is that naming. Never mints an untitled blank. The caller stores the
+ *  steps and adopts the id; nothing here touches a project key. */
+export function begin(
+  held: Held,
+  workspace: Graph,
+  name: string,
+  taken: Record<string, string>,
+  parent: string | null = null,
+  spot?: Spot,
+): { held: Held; id: string; steps: Step[]; mutations: Mutation[] } | { refuse: string } {
+  const why = mayName(taken, name);
+  if (why) return { refuse: why };
+
+  const id = newId("proj");
+  const admitted = admit(held, workspace, id, parent, spot);
+  if ("refuse" in admitted) return admitted;
+
+  return {
+    held: admitted.held,
+    id,
+    steps: started(name),
+    mutations: admitted.mutations,
+  };
 }
 
 /** Drop a project from the workspace: its proxy goes and its entry with it.
@@ -399,6 +429,15 @@ export type Pack = {
 /** Stable project id for a shipped package name — `pkg_requirements`. */
 export function packId(name: string): string {
   return `pkg_${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
+}
+
+/** Package ids a domain or template stem draws on, in import order.
+ *
+ *  Today one core seed per stem (`packages/core/<stem>.yaml`). A later row may
+ *  widen the list; callers already take an ordered array. The minting itself
+ *  lives next to `asVocabulary` so the terminal never reaches here for it. */
+export function packagesOf(stem: string): string[] {
+  return asVocabulary(stem);
 }
 
 /** Package name from a path under `packages/`.
