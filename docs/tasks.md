@@ -73,6 +73,33 @@ repairs and saves out current. What it turned up has been fixed.
 through `check.ts` whatever it was written by.
 
 
+## What the closing review found
+
+Nine defects over the three-wave pass, queued as `R.1`–`R.5`. **The offered-action list's
+argument-filling layer holds most of them**, and two rules cause the damage:
+
+- **`fill_args` assigns the same focused element id to every unfilled `element` argument.** `tie`
+  takes `note` and `holder`, so both become the focused card and the menu **writes a self-loop tie
+  into the log** — `check` passes, so it commits. `leave` gets `id === group` and refuses "Not a
+  group." on everything.
+- **`can_fill` inspects `spot` / `choice` / `number` / `element` and never `text`.** So `field`,
+  `unfield` and `undefine` prompt for a raw holder or definition id and always refuse.
+
+**The three functions are copy-pasted into `offer.tsx`, `Files.tsx` and `rank.ts`, and have already
+diverged** — the explorer and rail copies lack the `interface` guard the diagram copy has, so
+*Interface* is offered everywhere and always refuses. That duplication is why one mistake became
+three bugs, and it is `R.2`.
+
+**One regression outside the menu**: `Contents.offerings` keys on `graph.vocabulary`, which
+`workspace.started` never sets, so **a project created from the explorer has an empty type picker**
+where it used to have the whole shipped catalog (`R.3`). It arrived with D.2 and is the first thing
+a new user meets.
+
+**Not defects, recorded so they are not mistaken for them**: `workspace.begin`, `packagesOf`,
+`store.hold` and `store.probe` are exercised only by tests and have no production callers. `begin`
+is deliberately unwired pending `U.18`; the other three are reached through paths the suite covers.
+
+
 ## Open questions
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*

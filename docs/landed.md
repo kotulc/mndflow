@@ -174,12 +174,80 @@ that landed *short* stays in plan.md marked `◐`.
 | **G.8** | A favicon — the header's `▚` inline as an SVG data URI, so nothing is fetched |
 
 
+## G.9 — the offered-action list
+
+One set of what the selection can do, presented two ways: the menu in **fixed** order, the rail by
+learned preference. The list lives in `actions/`, never in `terminal/`, so S6.3 still holds.
+
+| | Landed |
+|---|---|
+| **G.9a** | `offer(ctx)` in `actions/offer.ts` — membership for the current context (scope + `when`), no ordering of its own. Explorer, rail and canvas all draw from it |
+| **G.9b** | Explorer row right-click opens the list in fixed order via `project.go`; rename stays double-click / ✎. **This is `infer`'s trigger**, so A.7a stopped being unreachable (proven) |
+| **G.9c** | Click the rail chrome to focus the caret; chips from `offer(ctx)`, typed filter, arrows move the highlight, `Enter` takes it (proven) |
+| **G.9d** | **The target decides**: empty canvas right-click still creates, an existing card / frame / edge / selection opens the list. Former immediates became entries; right *drags* untouched (proven). *Landed short — `retype` on an edge waits on Scope; that gap is now its own row, `G.9e`* |
+
+
+## U — the shell
+
+Wave U made the shell coherent: it yields under pressure, has one glyph vocabulary, and reads in
+words where a control is rare or destructive. **U owns chrome, not the diagram's visual language.**
+
+| | Landed |
+|---|---|
+| **U.1** | Header overflow — identity truncates, crumbs ellipsize, `.arrange` wraps instead of overlapping, stage keeps its room (proven) |
+| **U.2** | One glyph vocabulary across header, explorer and canvas — **no mark means two things**. `·` axis-none only, `⊏` interfaces-off, `∗` all-types, arrangements `▦⊙⇄⇅`, relax `∿` (proven) |
+| **U.3** | The explorer bounds itself — width `min(280px, 36vw)`, collapses to a 28px strip (proven) |
+| **U.4** | Theme toggle — `current` / `modern` / `light`, CSS variable palettes on `data-theme`, sticky. Chrome only; root `styles/` untouched (proven) |
+| **U.5** | Rail collapsed form — one-line entry with inline chips; expanded is a two-column shell (proven) |
+| **U.6** | The rail caret sits at the insertion point; native caret hidden while empty (proven) |
+| **U.7** | Table and matrix as Contents-modelled panel shells, with A.1's crumbs + types chrome (proven). *Landed short — App never wires `path`/`onUp` and there is no `tray.full`; that gap is now `U.18`* |
+| **U.8** | The view toggle — a labelled control beside the project root, three modules per kind, sticky per project. **Writes nothing** (proven) |
+| **U.9** | A distinct icon per view module — block ▭, table ☰, matrix ⊞, activity ▸, sequence ⋮, state ◯; property tests hold them non-empty and pairwise distinct |
+| **U.11** | The readout removed whole — header toggle and `Readout` / `Relations` / `Log` deleted. Confirmed first that Contents already covers relation kinds (proven) |
+| **U.12** | Undo and redo as **words** at the foot of the explorer, with the last executed action named on one line (proven) |
+| **U.13** | The header clears the session and starts a new workspace — `clearSession` drops keyed logs, the workspace list, the session pointer and the live handle. Reads as a word, keeps its confirm (proven) |
+| **U.14** | The explorer `＋` follows the selection — a project or nothing makes a project, a block makes a block under it; the tooltip names which. A project exists once it is named (proven). *Landed short — `App.newProject` never calls `workspace.begin`; that gap is now `U.18`* |
+| **U.15** | The canvas options in one design language — vertical subject groups, every control word+glyph, radio rows (proven) |
+| **U.17** | Projects told apart in the explorer — sibling roots spaced (proven) |
+
+**U.16 was dropped, not built** — the arrangements were never in the bar to move out of. See
+plan.md, *Not in the queue*.
+
+
+## T — the suite
+
+| | Landed |
+|---|---|
+| **T.1** | Property suites for the five uncovered action modules — `edges`, `elements`, `fields`, `groups`, `layer`. Claimed mutations on success; refusal through `check` without throwing and with nothing written |
+| **T.2** | `page/Contents.tsx`'s first cover — Node SSR markup over empty layers, trays, filter chips, sort, advice and proxies. *Interaction still needs a DOM harness — that is `T.5`* |
+| **T.4** | `infer` walked end to end through its real trigger — Chosen → offer → `run("infer")` → fold → activity draws |
+
+
+## Z — the rail
+
+Built as Z.1–Z.8. **`Z.9` trims the wave** to the ranking surface and a fixed expanded pane; what
+survives is recorded there rather than here.
+
+| | Landed |
+|---|---|
+| **Z.1** | Collapsed chips rank by embedding similarity when typed; idle keeps a fixed order; cold model falls back to substring. `suggest.ts` deleted |
+| **Z.2** | Arrows move the highlight and `Enter` confirms; **overruling is the feedback**, recorded locally with the situation's shape. Confirming the default writes nothing |
+| **Z.3** | Two-tier learning — idle chips order by shape-weighted preference, typed keeps the embedding lead with a shape tie-break. Local, never logged |
+| **Z.4** | Expanded mode — next question, hint and nudges. *`Z.9` cuts this back to a fixed prompt set plus the selected action's description* |
+| **Z.5** | The tutorial walked over a sample — `samples/tutorial.json` + `walk_for(ctx)`, advancing by pick / ancestors / open layer. *Wanted; re-walk after Wave V, since a tutorial teaches whatever the app currently is* |
+| **Z.6** | Documentation keyed to context — `samples/docs.json`, ten terms keyed to definitions.md, hand-authored with no generator |
+| **Z.7** | **No rename** — `rail` stays the word in the code and the docs; *Page Intelligence* is user-facing copy only |
+| **Z.8** | One documentation hit in the ranked list, always last, never displacing something actionable |
+
+
 ## D, F, H and the build
 
 | | Landed |
 |---|---|
 | **D.1** | `terms` split out of the workflow YAML into `workflows/terms/*.yaml`; `workflows.ts` merges them — **superseded home**: terms now live under `packages/terms/` (S6.2) |
+| **D.2** | `vocabulary` is the list of packages a project imports, in order — `string[]`, a legacy stem healed at the door, and the A0.2 seeding bridge retired with it (proven) |
 | **F.1** | Filename follows the project's name — **already built**; `store.download` derives it from the title. tasks.md was stale |
+| **F.2** | File System Access — a live handle via `store.hold`, drift via `store.probe`, listeners re-attaching when the document is replaced; header `data-where` is `session` \| `drifted` \| `unsaved`. Download stays the fallback (proven) |
 | **F.3** | Project export downloads an SVG of the open layer beside the JSON via `svgOf` (proven) |
 | **H.1** | `samples/mndflow.json` — describes this app, exercises the forms; import drew Graph/Canvas |
 | **H.2** | `samples/REVIEW.md` — a line-by-line read of a real export. *Three parks came out of it, in tasks.md under H* |
