@@ -1195,9 +1195,11 @@ about like any other, and the drag sticks.
 - Canvas arrangements bottom-right, opposite the zoom controls — **four verbs** (`▦ ⊙ ⇄ ⇅`),
   plus `∿` to hand the layer back to the engine (`relax`), still on `.shape` with **words**
   beside the glyphs (U.15). None of the four is ever lit: an arrangement is something you do,
-  not something a layer is in. **(planned — U.16)** they leave the bar for the frame's context
-  list. On a short row `.arrange` wraps on the right half rather than overlapping the crumbs
-  (U.1).
+  not something a layer is in. **They stay there**: `.shape` is already a floating cluster apart
+  from the `.arrange` bar, so the verbs already sit away from the states, and `arrange` is
+  layer-scoped, so the frame's context list offers it as well. The interface is the same whatever
+  the layer or project. On a short row `.arrange` wraps on the right half rather than overlapping
+  the crumbs (U.1).
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.

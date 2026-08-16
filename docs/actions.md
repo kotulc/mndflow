@@ -310,7 +310,7 @@ draws, which relationship types are shown on the canvas, the table/matrix types 
 presents them in one language** (U.15, proven): vertical *interface* / *relation* / *flow*
 groups; every control word+glyph; form / draw / types / axis as radio rows. The breadcrumb and
 the arrange buttons are not among them: those reach `open` and `arrange` (arrangements still
-on `.shape` with words until U.16; table/matrix crumbs climb when wired; trail/climb also
+on `.shape` with words (U.16 dropped); table/matrix crumbs climb when wired; trail/climb also
 derive from the graph when the page omits `path`/`onUp`).
 
 

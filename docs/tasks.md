@@ -92,14 +92,26 @@ however it is reached: `navigate` now ignores a call while an intent is already 
 four ways — single and double click across projects, and a same-project descend.*
 
 
-- **Should an untouched project stay in the workspace?** A session opens an empty project, admits it
-  to the workspace, and if the user then imports or switches, that empty one stays in the explorer
-  forever as a row reading `project`. Every later import leaves another. It is not wrong — it *is* an
-  empty project — but it reads as clutter and as a bug. Options: do not admit until first change
-  (matching the lazy-key rule), or tidy an untouched empty project when it leaves context. **Also**:
-  an untitled project falls back to the word `project`, which is indistinguishable from the workspace
-  itself; the explorer gives no sign which row is which. Blocks nothing; wanted before the explorer
-  is shown to anybody.
+- **Does an action's description live on the descriptor or in `docs.json`?** `Action.about` is
+  **required on every action already** and is documented as *"What it does, in a sentence — long
+  enough to be scored against"* — `arrange` carries `"lay the layer out again"`. So the docstrings
+  the expanded rail wants exist, on all of them. Copying them into `docs.json` gives one sentence two
+  homes and they will drift. **Recommendation**: expanded mode renders `about` straight off the
+  descriptor, and `docs.json` stays what Z.6 built — terms, keyed to definitions.md. If actions do go
+  in the file, it must be nested (`{ "terms": …, "actions": … }`), because **`group` is already both
+  a term and an action** and a flat key silently overwrites one with the other. Blocks the `Z.9`
+  trim, and only that.
+
+- **What comes out of Wave Z?** The `◆` on `Z.9` — the rows landed against a superseded spec, so
+  answering it means deleting working, proven code. Nothing is touched until it is answered.
+
+*Recently closed: **an untouched project stays in the workspace.** It is a reference — a snapshot
+taken before the user modifies it — and **the workspace is the user's to manage**: adding and
+removing projects and blocks is their business, not something the app tidies behind them. So no
+admit-on-first-change rule and no sweeping an empty project when it leaves context. The separate
+half — that an untitled project falls back to the word `project` and reads as the workspace itself
+— is closed too, by the naming rule already landed: a project comes into being by being named, so
+there is no untitled project left to be ambiguous.*
 
 
 *Recently closed — **Z.8** (proven): typed lists append at most one `docs.json` keyword hit,
@@ -566,17 +578,20 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | S4 for the workspace export |
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
-| **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | G.9d ◐ gap (edge retype); U.16 ◆ Clay |
+| **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | **done** — U.18 collects the App gaps |
+| **V** The shell, second pass | `src/modules/icons/`, `src/styles.css`, `page/`, `modules/view/` | V.2 first — most of the wave draws on it |
 | **T** The suite | `tests/` | U for the page rows only |
-| **Z** Terminal | `terminal/` | **done** (Z.1–Z.8 proven) |
+| **Z** Terminal | `terminal/` | built but thin — Z.9 trims; Z.5 last |
 
-**Startable today:** remaining **U** — **U.16** is ◆ (Clay on root affordance before implement).
-**U.6 landed** (rail caret at insertion). **U.5 landed** (rail collapsed / expanded layout).
-**G.9a / G.9b / G.9c landed**; **G.9d ◐**. **F.2** and **D.2** are done (proven). `infer`'s
-explorer trigger is live. **Wave Z is complete** (Z.1–Z.8 proven). **T.3** waits on Wave U.
+**Startable today:** **G.9e** (`retype` scope), **A.7d** (`infer`'s result reachable), **T.5** (DOM
+harness), **U.18** (the two App gaps), **S7** (the `Files.tsx` seam). **Wave U is complete** —
+U.16 dropped, the arrangements were never in the bar to move out of. **G.9a / G.9b / G.9c landed**;
+**G.9d ◐**, which G.9e closes. **F.2** and **D.2** are done (proven).
 
-**U.16** is the remaining `◆`. G.9d is settled (the target decides) and documentation is answered
-(`samples/docs.json`, keyed by definitions.md).
+**Wave V is the priority** and **carries no `◆`** — all five were answered. **V.2 goes first**: the
+curated inline-SVG vocabulary replaces the Unicode marks outright, and most of the wave draws on it.
+**V.4** (hover highlight on relationship lines) and **V.11** (space above the first project) depend
+on nothing and run in parallel.
 
 **The terminal is no longer parked — Wave Z is done.** It ranks and completes whatever the
 surface offers. **Z.1–Z.8 landed** (embedding rank; overrule feedback; learned preference;
@@ -821,7 +836,7 @@ no mark means two things; `·` axis-none only; `⊏` interfaces-off; `∗` all-t
 `▦⊙⇄⇅`; relax `∿`; explorer roles/bar. **Left out**: stream E icons; table/matrix still `·`
 types (outside owns). Words/groups were U.15. **U.15 landed** (proven): vertical subject groups
 *interface* / *relation* / *flow*; every control word+glyph; form / draw / types / axis as radio
-rows; arrangements still on `.shape` with words until U.16. **U.8 landed** (proven): labelled
+rows; arrangements stay on `.shape` with words (U.16 dropped). **U.8 landed** (proven): labelled
 view toggle beside project root; three modules per kind with U.9 glyphs; sticky per project in
 `mndflow.view.v1`; writes nothing; App mounts from sticky pick when it fits, else layer
 `view.module`. **Out of row**: a `.files-scoped` class may help a cramped root row;
@@ -931,9 +946,8 @@ worth stating:
 
 **The canvas options share one design language** (U.15, proven). Vertical subject groups
 *interface* / *relation* / *flow*; **every control carries a word**, glyph as scan aid. Form,
-draw, types and axis are **radio rows**; interfaces stay a two-state toggle. **Arrangements
-still sit on `.shape`** with words beside the glyphs — U.16 moves those verbs to the frame's
-context list rather than making them a fourth bar group.
+draw, types and axis are **radio rows**; interfaces stay a two-state toggle. **Arrangements sit on
+`.shape`** with words beside the glyphs, and **stay there** — U.16 is dropped.
 
 - **Every control carries a word** — *done* (U.15): same move U.12 / U.13 made for rare
   destructive controls, applied to the canvas options.
@@ -943,21 +957,84 @@ context list rather than making them a fourth bar group.
   still reads `· types` (outside U.2 owns).
 - **Grouped by subject, vertically** — *done* (U.15) for *interface*, *relation*, *flow*.
   `angular` / draw with **relation**; `axis` with **flow**.
-- **The verbs leave the bar** (U.16) rather than becoming a fourth group. design.md says *toolbars
-  divide by states against verbs, which is why the two sit far apart* — grouping the bar by subject
-  would put a one-time verb beside a setting and quietly overturn that. Instead the arrangements go
-  where G.9d already sends them: **the frame is the layer**, so right-clicking it offers what can be
-  done to the layer. The bar is left holding states only, which is what makes one design language
-  possible at all.
+- **The verbs were never in the bar** — U.16 is **dropped**, and its premise was the error. design.md
+  says *toolbars divide by states against verbs, which is why the two sit far apart*, and that is
+  already satisfied: `.shape` is a floating cluster at the canvas's bottom right, not a group inside
+  the `.arrange` bar. The bar already holds states only. And `arrange` is `scope: { on: "layer" }`,
+  which `inScope` matches in every context, so **the frame's right-click list already offers it** —
+  the second door G.9d would have provided exists. Nothing to move, and **the interface stays the
+  same whatever the layer or project**: no root affordance, and arrange / relax remain reachable at
+  the bottom right everywhere, including project root.
 
 **Contended owns, declared.** `terminal/` Wave Z is complete (U.5 / U.6 / G.9c landed with it);
-`modules/view/diagram/chrome.tsx` next is **U.16** alone (U.2 and U.15 landed; ◆ waiting Clay).
+`modules/view/diagram/chrome.tsx` has **no queued owner** (U.2 and U.15 landed; U.16 dropped).
 **`page/Relations.tsx` is gone** (U.11) — stream E no longer shares it.
 
 **`page/Files.tsx` was this wave's contended file** — G.9b / U.17 / U.3 / U.12 / U.14 ◐ / U.2 /
 **U.8** all reached it; **U.8** was the last Wave U owner. That was the shape `Canvas.tsx` and
 `Contents.tsx` had before their seams were cut, and **no row cut one**: the file grew as those
 rows landed. No remaining Wave U row owns it.
+
+### V — the shell, second pass
+
+U made the shell coherent; **V makes it legible and compact**, and every row came from driving the
+built app. Detail is on the rows in [plan.md](plan.md); what belongs here is the five open decisions
+and the two reversals.
+
+**All five decisions are answered; V has no `◆` left:**
+
+- **The icon vocabulary replaces the Unicode marks outright** (V.2). **One module defines the set** —
+  the default icon/SVG vocabulary *and* the design language over it: one grid size, one stroke
+  weight, one idiom, so the app has a single visual language rather than a drawer of glyphs. Every
+  surface draws from that module and none inlines its own. Vendored inline SVG, no package, since
+  icons are markup. **U.2's rule carries over, not its glyphs**:
+  *no mark means two things* governs the new set exactly as it did the old. **This is also why the
+  chrome reads blurry and indistinct** — a Unicode mark renders from whatever system font happens to
+  carry it, unhinted at small sizes, with per-platform metrics and an unreliable baseline; an SVG
+  draws at an exact size with one stroke weight. **It moves `ViewModule.icon`**, which U.9 published
+  as a Unicode string with a conformance test asserting non-empty and pairwise distinct — the six
+  modules and that suite travel with the row. **Per-definition icons stay stream E's** (`layout:
+  icon`) and become a consumer of this set later; not V's to reopen.
+- **The theme toggle is three positions** (V.1) — Light, Modern (dark), Retro (green-on-black),
+  **Retro default**, in Nextra's shape. Recorded plainly: **Retro sits in the *system* slot but does
+  not read `prefers-color-scheme`** — it is a third look wearing that icon. Genuine OS-following
+  would need a fourth state and is not wanted.
+- **The per-project export is today's `↧` moved, not a new capability** (V.6). A **project export**
+  writes the whole model — elements, edges, groups, history — as a file that stands alone and
+  imports back as a project. A **package** is the other thing entirely: definitions only, loaded by
+  stable `pkg_*` id, never copied into a consumer's `defs`, listed in `graph.vocabulary`. Publishing
+  a project *as* a package is the **package authoring UI already parked from D.2**, and stays there.
+- **Flow does not apply an arrangement** (V.7, and V.8 dropped). Considered and refused, because it
+  would turn a setting into a mutation: `actions/layer.ts` keeps *an arrangement writes ordinary
+  placement … an axis is a setting and says nothing about where cards go*, and wiring the two would
+  make an axis change write placement for every card into the log. The groups only move **next to
+  each other**, staying visibly distinct — distance carried that separation before, and a group
+  boundary has to carry it now.
+- **The project root icon folds, and the row click still switches** (V.9 + V.10, one span so one
+  row). **Why it does not work today**: `projectRoot` is a separate render path from `row`, and its
+  icon is a plain `<span className="icon">▣</span>` — no `fold` class, no `onClick`, no
+  `onMouseDown`. The block row has all three, the `onMouseDown` there to stop the row's drag
+  swallowing the click. The handler was simply never written. The same span also answers **V.9**:
+  `kind` is *already computed* one line above it from `kindOf(viewOf(here, root).module)` and the
+  icon ignores it. Kind stays derived, never stored.
+
+**Two reversals of landed decisions**, taken deliberately — there is not enough room for the words —
+and recorded so the reasoning is read rather than rediscovered. **V.3** puts *new workspace* back on
+an icon against U.13's *rare and destructive is exactly when a label beats an icon*; the glyph is
+**not** a refresh mark, which reads as *reload* — the opposite of *discard every open project* — but
+a discard one. **V.5** makes the view toggle icon-only against U.8's *a labelled control … not an
+icon that cycles*, survivable only because U.9 gave the six modules distinct icons. Both keep what
+makes them safe: V.3 its confirm, V.5 its tooltips, which stop being optional.
+
+**The standing line**: chrome may shrink to icons, but an icon firing a destructive or irreversible
+action needs a word, a tooltip or a confirm.
+
+**`src/styles.css` is V's contended file** — 2,156 lines, and **eight of nine V rows own it**. That
+is the shape `page/Files.tsx` had through Wave U and `Canvas.tsx` / `Contents.tsx` had before their
+seams were cut, and it is now the fourth file to reach that size without one. Rows owning it
+**cannot run in parallel**: either V serialises on purpose, or a seam is cut first. Note the file is
+also where `V.2`'s icon module *would* otherwise land — keeping the set in its own module is the one
+thing in the wave that reduces the pressure rather than adding to it.
 
 ### T — the suite
 
@@ -1037,6 +1114,49 @@ needs Clay any more.**
   identifier rename.
 
 
+### The Z overshoot
+
+**Z.1–Z.8 landed and are proven. They are also more than is wanted**, because the spec they were
+built against was superseded while they were being built. This is the one place in the tree where
+the next move is *deletion of working code*, so it is written down rather than left to be
+rediscovered.
+
+**What is wanted, stated plainly:**
+
+- **Ranking shows in the chip order, and the score on hover.** That is the whole of the surface.
+- **Expanded mode shows a fixed placeholder prompt set** on the theme of *"What's next?"* / *"What
+  action would you like to take?"*, **plus the description of the selected action**. Nothing more.
+
+**What is actually there, by line count** — the rows read *landed (proven)* and are thinner than
+that sounds, which is why the honest verdict is **half-built**, not *overbuilt*:
+
+| | Lines | Reading |
+|---|---|---|
+| `rank.ts` | 225 | **Real.** Embedding lead, learned preference, fixed `ORDER` fallback. Keep. |
+| `feedback.ts` | 74 | **Real.** Overrule feedback, local. Keep — it is what the order learns from. |
+| `docs.ts` + `docs.json` | 83 + 10 terms | Keep, pending the `docs.json` question above. |
+| `tutorial.ts` + `tutorial.json` | 105 | **Wanted, and last.** See below. |
+| `guidance.ts` | **32** | Two hardcoded strings. Not the guidance engine the row implies. |
+| `Scores.tsx` | 55 | **Unmounted since U.11 and never remounted.** Delete — the hover score replaces it. |
+| the hover score | **0** | **Does not exist.** The one part of what was asked for that was never built. |
+
+**So the trim is smaller than "delete a wave".** Keep `rank.ts` and `feedback.ts` and *finish* them
+with the score on hover; stand the expanded pane down to a fixed prompt set plus the selected
+action's `about`, which takes `guidance.ts` out and unhooks the pane from `router.ts` /
+`workflows.ts` / `turn.ts` — the question loop this file already said would *lose its centre*;
+delete `Scores.tsx`; collapse `ORDER`, now duplicated **four** ways (`rank.ts`, `page/Files.tsx`,
+diagram offer chrome, `terminal/`).
+
+**The tutorial is wanted and is deliberately last.** A tutorial teaches whatever the app currently
+is, and Wave V is about to change the header, the explorer, the theme control, the canvas options
+and the export doors. Walking it before the shell settles means rewriting the walk with every V row.
+Nothing else waits on it, which is what makes holding it free.
+
+**The lesson is about sequencing, not about the code.** Wave Z was being implemented during the
+conversation that changed its spec. Nothing was done wrong by anyone; a wave in flight is simply
+not a wave open to redesign, and the queue should not have been answering both at once.
+
+
 ## Out of scope, recorded so nothing is built on it
 
 - **Action history, displayed another way** — **future work, deliberately unscheduled.** U.11
@@ -1111,6 +1231,17 @@ module cheap, and that is no longer the common operation.
 
 **Nothing asserts a coordinate, an id, a message or a count that tuning would change.** The suite
 is about properties, because the values are still moving.
+
+**`npx vitest run` used to die on any machine with more than two cores — fixed.** The worker cap in
+`vite.config.ts` (added so agent sittings stop leaving orphan vitest trees) named only the maximum,
+and **vitest 2.1.9 defaults the minimum to the CPU count**, so the two conflicted and the run died
+before collecting anything: *options.minThreads and options.maxThreads must not conflict*, reading
+as a failure rather than a misconfiguration. `npm run test:ci` was unaffected — `scripts/test-ci.mjs`
+passes `--maxWorkers=2` on the command line, and **the CLI flag sets both ends where the config field
+does not**, which is why the gate and its stand-in disagreed. **Now `minWorkers: 1, maxWorkers: 2`,
+both named**; the cap the config exists for is unchanged and `npx vitest run` passes 574 tests over
+32 files. The lesson worth keeping: **a bounded pool must name both ends**, and a config field and
+its CLI flag are not always the same thing.
 
 ### What the review found
 

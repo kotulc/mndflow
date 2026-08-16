@@ -12,4 +12,16 @@ export default defineConfig({
   optimizeDeps: { include: ["@xenova/transformers"] },
   build: { chunkSizeWarningLimit: 900 },
   server: { port: 5173 },
+  // Agent sittings used to leave orphan vitest trees; keep workers few and
+  // individual tests bounded. The hard wall clock is scripts/test-ci.mjs.
+  // Both ends are named: a lone maxWorkers leaves the minimum at the CPU
+  // count, which conflicts with it and kills the run before it collects.
+  test: {
+    pool: "forks",
+    minWorkers: 1,
+    maxWorkers: 2,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+    teardownTimeout: 10_000,
+  },
 });
