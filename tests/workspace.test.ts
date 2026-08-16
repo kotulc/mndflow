@@ -189,6 +189,18 @@ describe("begin", () => {
     expect(again.graph.elements[block.id]?.label).toBe("Pump");
   });
 
+  it("brings the project into being with a vocabulary it can pick types from", () => {
+    // A project whose import list is empty offers no types at all, which is a
+    // blank type picker on the first thing a new user meets.
+    const graph = fold(started("coolant loop"));
+
+    expect(graph.vocabulary.length).toBeGreaterThan(0);
+
+    const open = gather(graph.vocabulary);
+    expect(Object.keys(open).length).toBe(graph.vocabulary.length);
+    expect(scoped(graph.vocabulary, open).length).toBeGreaterThan(0);
+  });
+
   it("refuses a blank or taken name rather than minting a blank project", () => {
     const taken = names({ proj_a: fold(started("alpha")) });
 

@@ -32,6 +32,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { offer } from "../actions/offer";
+import { fill, fillable, rank, type Supply } from "../actions/fill";
 import type { Action, Arg, Args, Context } from "../actions";
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
@@ -43,23 +44,6 @@ import { REFERRED } from "../canvas/card";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
-
-/** Fixed menu order — the actions.md enumeration. The rail will learn its own. */
-const ORDER = [
-  "create", "delete", "rename", "retype", "describe", "move", "refer",
-  "open", "up", "reveal",
-  "interface", "mark",
-  "relate", "unlink", "flip", "direct", "reform",
-  "group", "leave", "dissolve", "note", "tie",
-  "field", "unfield", "define", "undefine",
-  "infer",
-  "axis", "arrange", "relax", "vocabulary",
-];
-
-function rank(name: string): number {
-  const i = ORDER.indexOf(name);
-  return i < 0 ? ORDER.length : i;
-}
 
 /** Same-project element ids from a cross-project selection (roots excluded). */
 function local_ids(refs: string[], projectId: string): string[] {
@@ -304,63 +288,42 @@ export function Files(props: Props) {
     };
   }
 
-  /** Whether the explorer can supply every required non-text argument. */
+  /** Candidates the tree can name: what is picked, then the rest of the
+   *  selection that lives in this project. The explorer prompts for a name,
+   *  so a missing word never withholds an action. */
+  function supply_of(ctx: Context, refs: string[]): Supply {
+    const ids = [ctx.picked?.id, ...local_ids(refs, context)]
+      .filter((id): id is string => Boolean(id));
+    return { ids: [...new Set(ids)], view, prompts: true };
+  }
+
+  /** What only the tree knows — a cross-project selection, and the graphs it
+   *  spans, which `infer` reads and no argument declares. */
+  function seed_of(action: Action, refs: string[]): Args {
+    const locals = local_ids(refs, context);
+    if (action.name === "infer") return { of: refs, open: graphs };
+    if (action.name === "group") return { members: locals };
+    if (action.name === "relate" && locals.length >= 2) {
+      return { from: locals[0], to: locals[1] };
+    }
+    return {};
+  }
+
+  /** Whether the explorer can supply every required argument. */
   function can_fill(action: Action, ctx: Context, refs: string[]): boolean {
     if (action.name === "infer") return refs.length > 0;
     if (action.name === "group") return local_ids(refs, context).length > 0;
     if (action.name === "relate") return local_ids(refs, context).length >= 2;
+    // Needs a place on the border, and the tree names no side or offset.
+    if (action.name === "interface") return false;
 
-    for (const arg of action.args) {
-      if (arg.optional) continue;
-      if (arg.kind === "spot" || arg.kind === "choice" || arg.kind === "number") {
-        return false;
-      }
-      if (arg.kind === "element") {
-        if (ctx.picked) continue;
-        if (local_ids(refs, context).length) continue;
-        return false;
-      }
-    }
-
-    return true;
+    return fillable(action, ctx, supply_of(ctx, refs), seed_of(action, refs));
   }
 
   /** Fill what the tree already knows; text left empty is prompted next. */
   function fill_args(action: Action, ctx: Context, refs: string[]): Args {
-    const args: Args = {};
-    const locals = local_ids(refs, context);
-    const focus = ctx.picked?.id ?? locals[0];
-
-    if (action.name === "infer") {
-      args.of = refs;
-      args.open = graphs;
-      return args;
-    }
-
-    if (action.name === "group") {
-      args.members = locals;
-    }
-
-    if (action.name === "relate" && locals.length >= 2) {
-      args.from = locals[0];
-      args.to = locals[1];
-    }
-
-    if (action.name === "create") {
-      args.parent = view;
-    }
-
-    for (const arg of action.args) {
-      if (arg.kind !== "element") continue;
-      if (args[arg.name] != null) continue;
-      if (arg.name === "parent") {
-        args.parent = view;
-        continue;
-      }
-      if (focus) args[arg.name] = focus;
-    }
-
-    return args;
+    if (action.name === "infer") return seed_of(action, refs);
+    return fill(action, ctx, supply_of(ctx, refs), seed_of(action, refs));
   }
 
   /** Sort `offer` into the fixed order and open the menu at the pointer. */
@@ -589,6 +552,25 @@ export function Files(props: Props) {
         onCancel={cancel}
       />
     );
+  }
+
+  /** The layer a prompted name must be unique within. Names are unique per
+   *  layer, so a rename is checked against the element's own siblings — not,
+   *  as it was, against the root, which let a real clash through. */
+  function clash_within(action: Action, args: Args): string | null {
+    const here = graphs[context];
+    if (action.name === "create") {
+      return (args.parent as string | null) ?? view ?? null;
+    }
+    const id = typeof args.id === "string" ? args.id : null;
+    if (action.name === "rename" && id) return here?.elements[id]?.parent ?? null;
+    return null;
+  }
+
+  /** The element being renamed — it does not clash with the name it already has. */
+  function clash_except(action: Action, args: Args): string | null {
+    if (action.name !== "rename") return null;
+    return typeof args.id === "string" ? args.id : null;
   }
 
   /** Rows for one layer of one project. */
@@ -926,7 +908,8 @@ export function Files(props: Props) {
                 setPrompt(null);
               },
               () => setPrompt(null),
-              prompt.action.name === "create" ? (view ?? null) : null,
+              clash_within(prompt.action, prompt.args),
+              clash_except(prompt.action, prompt.args),
             )}
           </div>
         )}

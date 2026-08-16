@@ -147,13 +147,6 @@ export function inScope(scope: Scope, ctx: Context): boolean {
   return node.form === scope.form;
 }
 
-/** Everything worth showing here, in registration order. `check` is deliberately
- *  not consulted: it needs arguments nobody has filled yet, and an action hidden
- *  for a reason it cannot state is worse than one that refuses out loud. */
-export function offered(ctx: Context): Action[] {
-  return all().filter((action) => inScope(action.scope, ctx) && (action.when?.(ctx) ?? true));
-}
-
 /** What an input method can offer, which is whatever it can fill from words.
  *  Derived from the argument types, so nothing has to be marked — and an action
  *  that changes nothing is navigation, which a text interface never offers. */

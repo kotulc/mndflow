@@ -23,9 +23,9 @@ annotated here with one line on what actually landed (or `◐` with the gap name
 
 ## What is startable now
 
-**Wave V is the priority** — the shell's second pass, from driving the built app. **No `◆` is left
-in it**: all five were answered. **`V.2` is the one to take first** — the icon vocabulary most of
-the wave draws on. `V.4` and `V.11` depend on nothing and can go in parallel.
+**Wave V is next** — the shell's second pass, from driving the built app, and it carries no `◆`.
+**`V.2` is the one to take first**, the icon vocabulary most of the wave draws on. `V.4` and `V.11`
+depend on nothing and can go in parallel.
 
 **Clay-free elsewhere:** `G.9e`, `A.7d`, `T.5`, `U.18`, `Z.9`, `S7`. **Wave U is complete** — U.16
 dropped (*Not in the queue*), `U.18` collects the `◐` gaps U.7 and U.14 left in `App.tsx`.
@@ -33,18 +33,18 @@ dropped (*Not in the queue*), `U.18` collects the `◐` gaps U.7 and U.14 left i
 **Z.5, the tutorial, is wanted and deliberately last**, since a tutorial teaches whatever the app
 currently is and Wave V is about to change it. **G.9d ◐** — `G.9e` closes it.
 
-**Everything finished has moved to [landed.md](landed.md)** — Waves U, T and Z, G.9a–d, D.2 and F.2.
-This file is the queue again, and nothing in it is done. **No `◆` is left anywhere.**
+**Everything finished before this sitting is in [landed.md](landed.md)** — Waves U, T and Z, G.9a–d,
+D.2 and F.2. What is annotated here landed in the sitting just gone and has not been archived yet.
 
 **Wave T still runs alongside anything.** It owns `tests/` alone, so no T row contends with an
 implementation row. `T.5` can fill any sitting; `T.3` waits on Wave V for the same reason it once
 waited on U — V rewrites the header, the explorer and the chrome.
 
-**Nine defects came out of the closing review**, gathered as `R.1`–`R.5` at the head of the queue.
-**They come before Wave V.** Most of them make the offered-action menu *wrong* rather than merely
-thin — one writes a malformed edge into the log and one leaves a new project with no types to pick
-from — and V is about to restyle the same surfaces. Fixing behaviour under a skin that is about to
-change is cheaper than the reverse.
+**`R.1`–`R.4` landed** (proven in a browser): the argument-filling layer is one module, a tie can no
+longer be offered against itself, *Leave group* works, `Field` / `Drop field` / `Interface` appear
+where they belong, and a new project comes into being importing a vocabulary it can pick types from.
+**`R.5` is the queue's one `◆`** — five actions are unreachable from every menu because a required
+`choice` is a question no menu asks, and what a menu should do with a choice is Clay's to say.
 
 
 ## Found by review — the menu is wrong, not just thin
@@ -61,11 +61,11 @@ can happen again.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **R.1** | **Fix `fill_args` / `can_fill`.** Three defects, one root. **(a)** `tie` fills `note` and `holder` with the same id, writing a **self-loop tie into the log** — `check` passes, so it commits. **(b)** `leave` gets `id === group`, so *Leave group* refuses "Not a group." on every element, including ones genuinely in one. **(c)** `can_fill` never inspects `text`, so `field` / `unfield` / `undefine` prompt for a raw `holder` or def id and always refuse. **The rule to restore**: distinct element arguments take distinct elements, and one focused id may fill at most one of them | `modules/view/diagram/offer.tsx`, `page/Files.tsx`, `terminal/rank.ts`, `src/actions/fields.ts` | ⊘ |
-| **R.2** | **One copy of `ORDER` / `rank` / `can_fill` / `fill_args`.** Triplicated across `offer.tsx`, `Files.tsx` and `rank.ts` and **already divergent** — the explorer and rail copies lack the `interface` side/at guard the diagram copy has, so *Interface* is offered everywhere and always refuses. Collapse to one home beside `offer()`, and retire the dead twin `offered()` on `actions/index.ts`, which now has zero callers | `src/actions/offer.ts`, `actions/index.ts`, `modules/view/diagram/offer.tsx`, `page/Files.tsx`, `terminal/rank.ts` | ⊘ |
-| **R.3** | **A new project has an empty type picker.** `Contents.offerings` keys on `graph.vocabulary`, but `workspace.started` never sets it, so a project created from the explorer offers **no types at all** where it used to offer the whole shipped catalog. A regression from D.2, and the first thing a new user meets | `src/workspace/index.ts`, `page/Contents.tsx` | ⊘ |
-| **R.4** | **Two smaller ones.** The menu's rename prompt passes `within` / `except` as null, so the inline clash check consults the **root layer instead of the element's siblings** — a name can collide and not be caught. And `scripts/test-ci.mjs` calls `process.kill(-pid)` without spawning `detached: true`: on POSIX that throws `ESRCH` and the fallback kills only the shell, **orphaning the vitest tree the script exists to reap** | `page/Files.tsx`, `scripts/test-ci.mjs` | ⊘ |
-| **R.5** | **`mark`, `direct`, `reform`, `axis` and `arrange` may be unreachable from every offered list** — every `can_fill` rejects a required `choice` argument, and all five have one, despite holding reserved slots in `ORDER`. *Plausible, not confirmed — verify against a driven browser before writing code, since a fix here touches the same functions as R.1* | `terminal/rank.ts`, `modules/view/diagram/offer.tsx`, `page/Files.tsx` | R.1 |
+| **R.1** | **Fix `fill_args` / `can_fill`.** Three defects, one root. **(a)** `tie` fills `note` and `holder` with the same id, writing a **self-loop tie into the log** — `check` passes, so it commits. **(b)** `leave` gets `id === group`, so *Leave group* refuses "Not a group." on every element, including ones genuinely in one. **(c)** `can_fill` never inspects `text`, so `field` / `unfield` / `undefine` prompt for a raw `holder` or def id and always refuse. **The rule to restore**: distinct element arguments take distinct elements, and one focused id may fill at most one of them — **landed** (proven): `fill` / `fillable` in `src/actions/fill.ts`; an element argument takes an unclaimed candidate, and one carrying a `form` takes a candidate of that form; a required `group` argument reads the group the selection is *inside*, which is what `leave` means; `holder` is optional on `field` / `unfield` (`holder_of` already defaulted it) and `unfield`'s `name` gained a prompt. **Driven**: Tie is withheld on a lone note (was a self-loop); Leave group is offered on a grouped card and no longer refuses; Field / Drop field / Interface now appear where they belong. 12 property tests in `tests/actions/fill.test.ts` | `src/actions/fill.ts`, `modules/view/diagram/offer.tsx`, `page/Files.tsx`, `terminal/rank.ts`, `src/actions/fields.ts` | ⊘ |
+| **R.2** | **One copy of `ORDER` / `rank` / `can_fill` / `fill_args`.** Triplicated across `offer.tsx`, `Files.tsx` and `rank.ts` and **already divergent** — the explorer and rail copies lack the `interface` side/at guard the diagram copy has, so *Interface* is offered everywhere and always refuses. Collapse to one home beside `offer()`, and retire the dead twin `offered()` on `actions/index.ts` — **landed** (proven): `src/actions/fill.ts` holds `ORDER`, `rank`, `fill` and `fillable`; all three surfaces call it and keep only what they alone know (the canvas a border place, the explorer a cross-project selection, the rail its draft) as a `seed`; `offered()` deleted and its one test moved to `offer`. **The `interface` guard is now one rule**, so the explorer stops offering an action it always refused | `src/actions/fill.ts`, `actions/index.ts`, `modules/view/diagram/offer.tsx`, `page/Files.tsx`, `terminal/rank.ts` | ⊘ |
+| **R.3** | **A new project has an empty type picker.** `Contents.offerings` keys on `graph.vocabulary`, but `workspace.started` never sets it, so a project created from the explorer offers **no types at all** where it used to offer the whole shipped catalog. A regression from D.2, and the first thing a new user meets — **landed** (proven): `started()` carries `set_vocabulary` beside the naming, so a project comes into being importing `packages/core/freeform`, which its own first line says is *where a new project begins*. **The first fix was wrong and a test caught it**: `core/` has no `definitions.yaml`, so each file there is its own package keyed by stem — there is no `pkg_core`, and the vocabulary pointed at nothing. Driven: a new project logs `set_vocabulary: ["pkg_freeform"]` | `src/workspace/index.ts` | ⊘ |
+| **R.4** | **Two smaller ones.** The menu's rename prompt passes `within` / `except` as null, so the inline clash check consults the **root layer instead of the element's siblings** — a name can collide and not be caught. And `scripts/test-ci.mjs` calls `process.kill(-pid)` without spawning `detached: true`: on POSIX that throws `ESRCH` and the fallback kills only the shell, **orphaning the vitest tree the script exists to reap** — **landed**: the prompt now derives its clash scope from the action, so a rename is checked against the element's own siblings and excludes the element itself, and a create against the layer it lands in; `test-ci.mjs` spawns `detached` off Windows so `process.kill(-pid)` reaches the group. **Not proven**: the orphan-reap path needs a hung suite on POSIX to exercise, and this is Windows | `page/Files.tsx`, `scripts/test-ci.mjs` | ⊘ |
+| **R.5** ◆ | **`mark`, `direct`, `reform`, `axis` and `arrange` are unreachable from every offered list — confirmed in the browser.** All five carry a **required `choice`** argument (`flow`, `dir`, `form`, `axis`, `shape`), and a choice is a question no menu asks, so `fillable` withholds them. Driving it: a card's menu offers Relax but never Mark or Arrange; no menu anywhere offers any of the five. They hold reserved slots in `ORDER` that nothing ever fills. **The decision is what a menu does with a choice**, and it is Clay's: (a) an entry per option — *Arrange ▸ grid / radial / across / down*, which is a submenu the menu has no notion of; (b) one entry that opens a prompt, as text arguments already do; or (c) leave them gesture-and-bar-only and **take their `ORDER` slots out**, which is what the canvas already does for arrange and relax. **(c) matches what was asked for** — arrange and relax stay at the bottom right — but it leaves `mark`, `direct` and `reform` with no home at all | `src/actions/`, `modules/view/diagram/offer.tsx` | ◆ |
 
 
 ## Wave 2 — leftovers
@@ -181,12 +181,17 @@ time nothing else owns it. The next thing to reach in should find a seam already
 internal block diagram, so no separate law or view module is wanted. Kept as something to expand on
 later only if connectivity-ranked placement proves worth having on its own.
 
-**Moving the arrangements** (was U.16) — **dropped, on a wrong premise.** The row wanted the verbs
-out of the bar to keep design.md's *toolbars divide by states against verbs* true. They were already
-out: `.shape` is a floating cluster at the canvas's bottom right, not part of the `.arrange` bar, and
-U.15 gave it words. And `arrange` is `scope: { on: "layer" }`, which `inScope` matches in every
-context, so the frame's right-click list already offers it. Nothing to move. **The interface stays
-the same whatever the layer or project** — no root affordance, no second door, no `◆`.
+**Moving the arrangements** (was U.16) — **dropped.** The row wanted the verbs out of the bar to
+keep design.md's *toolbars divide by states against verbs* true. They were already out: `.shape` is a
+floating cluster at the canvas's bottom right, not part of the `.arrange` bar, and U.15 gave it
+words. **The interface stays the same whatever the layer or project** — no root affordance, no
+second door.
+
+*One reason first given for dropping it was wrong, and driving the app found it.* `arrange` is
+`scope: { on: "layer" }`, so it was said the frame's right-click list already offered it. **It does
+not**: `arrange` carries a required `choice` argument and no menu asks a choice, so it is withheld
+everywhere — see `R.5`. The bar is the only way to reach it, which is what was wanted, but by
+accident rather than by design.
 
 Recorded in [tasks.md](tasks.md) and deliberately unscheduled: translators and code generation,
 local variation on a proxy for multi-user work, the cluster spacing tier, and the README rewrite

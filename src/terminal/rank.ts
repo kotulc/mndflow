@@ -10,23 +10,11 @@
  *  never changes it. */
 
 import { offer } from "../actions/offer";
+import { ORDER, fill, fillable, type Supply } from "../actions/fill";
 import { sayable, type Action, type Args, type Context } from "../actions";
 import { FLOOR, scoreAny } from "../embed/match";
 import { ROOT, refAt } from "../graph/types";
 import { read, shape_of } from "./feedback";
-
-/** Fixed order — the actions.md enumeration. Fallback when no preference has
- *  been learned for an action in this shape. */
-const ORDER = [
-  "create", "delete", "rename", "retype", "describe", "move", "refer",
-  "open", "up", "reveal",
-  "interface", "mark",
-  "relate", "unlink", "flip", "direct", "reform",
-  "group", "leave", "dissolve", "note", "tie",
-  "field", "unfield", "define", "undefine",
-  "infer",
-  "axis", "arrange", "relax", "vocabulary",
-];
 
 /** Navigation — a text surface never offers these (spec.md). */
 const NAV = new Set(["open", "up", "reveal"]);
@@ -95,7 +83,32 @@ function locals(refs: string[], project: string | undefined): string[] {
   return out;
 }
 
-/** Whether the rail can supply every required non-text argument. */
+/** Candidates the rail can name: what is picked, then the rest of the
+ *  selection in this project. **The rail does not prompt** — it has only what
+ *  was typed, so an action missing a word stays off the list until it is. */
+function supply_of(ctx: Context, refs: string[], draft = ""): Supply {
+  const ids = [ctx.picked?.id, ...locals(refs, ctx.project)]
+    .filter((id): id is string => Boolean(id));
+  return { ids: [...new Set(ids)], view: ctx.view, text: draft };
+}
+
+/** What only the rail knows — the selection it was opened over. */
+function seed_of(action: Action, ctx: Context, refs: string[]): Args {
+  const ids = locals(refs, ctx.project);
+  if (action.name === "infer") {
+    return ctx.open ? { of: refs, open: ctx.open } : { of: refs };
+  }
+  if (action.name === "group") {
+    const focus = ctx.picked?.id;
+    return { members: ids.length ? ids : (focus ? [focus] : []) };
+  }
+  if (action.name === "relate" && ids.length >= 2) {
+    return { from: ids[0], to: ids[1] };
+  }
+  return {};
+}
+
+/** Whether the rail can supply every required argument. */
 export function can_fill(action: Action, ctx: Context, refs: string[]): boolean {
   if (NAV.has(action.name)) return false;
   if (!sayable(action)) return false;
@@ -107,19 +120,10 @@ export function can_fill(action: Action, ctx: Context, refs: string[]): boolean 
   }
   if (action.name === "relate") return locals(refs, ctx.project).length >= 2;
 
-  for (const arg of action.args) {
-    if (arg.optional) continue;
-    if (arg.kind === "spot" || arg.kind === "choice" || arg.kind === "number") {
-      return false;
-    }
-    if (arg.kind === "element") {
-      if (ctx.picked) continue;
-      if (locals(refs, ctx.project).length) continue;
-      return false;
-    }
-  }
-
-  return true;
+  // Membership only: a word the draft has not supplied yet is `ready`'s
+  // business, not a reason to withhold the action from the list.
+  return fillable(action, ctx, { ...supply_of(ctx, refs), prompts: true },
+                  seed_of(action, ctx, refs));
 }
 
 /** Fill from selection and draft; required text left empty means not yet ready. */
@@ -129,44 +133,11 @@ export function fill_args(
   refs: string[],
   draft: string,
 ): Args {
-  const args: Args = {};
-  const ids = locals(refs, ctx.project);
-  const focus = ctx.picked?.id ?? ids[0];
-  const text = draft.trim();
+  if (action.name === "infer") return seed_of(action, ctx, refs);
 
-  if (action.name === "infer") {
-    args.of = refs;
-    if (ctx.open) args.open = ctx.open;
-    return args;
-  }
-
-  if (action.name === "group") {
-    args.members = ids.length ? ids : (focus ? [focus] : []);
-  }
-
-  if (action.name === "relate" && ids.length >= 2) {
-    args.from = ids[0];
-    args.to = ids[1];
-  }
-
-  if (action.name === "create") {
-    args.parent = ctx.view;
-  }
-
-  for (const arg of action.args) {
-    if (arg.kind === "element") {
-      if (args[arg.name] != null) continue;
-      if (arg.name === "parent" || arg.name === "owner") {
-        args[arg.name] = ctx.view;
-        continue;
-      }
-      if (focus) args[arg.name] = focus;
-      continue;
-    }
-    if (arg.kind === "text" && text && args[arg.name] == null) {
-      args[arg.name] = text;
-    }
-  }
+  const args = fill(
+    action, ctx, supply_of(ctx, refs, draft), seed_of(action, ctx, refs),
+  );
 
   if (action.name === "unlink" || action.name === "flip"
       || action.name === "direct" || action.name === "reform") {

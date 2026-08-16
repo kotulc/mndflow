@@ -58,7 +58,7 @@ const field: Action = {
   // case. Offering against a picked edge waits on Scope being able to say both.
   scope: { on: "element" },
   args: [
-    { kind: "text", name: "holder" },
+    { kind: "text", name: "holder", optional: true },
     { kind: "text", name: "name", prompt: "field name" },
   ],
   check: (ctx, args) => {
@@ -96,8 +96,8 @@ const unfield: Action = {
   about: "drop a named value from this",
   scope: { on: "element" },
   args: [
-    { kind: "text", name: "holder" },
-    { kind: "text", name: "name" },
+    { kind: "text", name: "holder", optional: true },
+    { kind: "text", name: "name", prompt: "which field?" },
   ],
   check: (ctx, args) => {
     const holder = holder_of(ctx, args);

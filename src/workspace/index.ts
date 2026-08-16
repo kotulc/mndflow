@@ -201,11 +201,27 @@ export function mayName(
   return null;
 }
 
+/** The package a project with no domain of its own starts from — the
+ *  relationship kinds a model is built out of, which `packages/core/freeform`
+ *  says in its own first line. Without it a new project imports nothing, and
+ *  the type picker offers nothing at all.
+ *
+ *  A `core/` file is its own package: the folder has no `definitions.yaml`, so
+ *  each domain there is keyed by its file stem, not by `core`. */
+const BASE = "freeform";
+
 /** The log a newly named project starts from — naming it is its first step, and
- *  what makes it real enough to store and to list. */
+ *  what makes it real enough to store and to list.
+ *
+ *  The naming carries the base import with it. `vocabulary` is the list of
+ *  packages a project uses (D.2), and everything reading types reads that list
+ *  — so a project that imports nothing offers nothing, which is a blank type
+ *  picker on the first thing a new user meets. */
 export function started(name: string): Step[] {
-  return [makeStep(`new project: ${name.trim()}`, "rename",
-                   [{ op: "update_element", id: ROOT, label: name.trim() }])];
+  return [makeStep(`new project: ${name.trim()}`, "rename", [
+    { op: "update_element", id: ROOT, label: name.trim() },
+    { op: "set_vocabulary", vocabulary: [packId(BASE)] },
+  ])];
 }
 
 /** Name a project into the workspace — unlock and fork's sibling.

@@ -15,10 +15,15 @@ const timeout_ms = Number(process.env.VITEST_CI_TIMEOUT_MS ?? 120_000);
 const extra = process.argv.slice(2);
 const args = ["vitest", "run", ...extra];
 
+// `detached` puts the child in its own process group, which is what makes
+// `process.kill(-pid)` below reach the whole vitest tree. Without it that call
+// throws ESRCH and the fallback kills only the shell, orphaning the very
+// processes this script exists to reap. Windows uses taskkill /T instead.
 const child = spawn("npx", args, {
   cwd: root,
   stdio: "inherit",
   shell: true,
+  detached: process.platform !== "win32",
   windowsHide: true,
 });
 

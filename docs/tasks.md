@@ -99,6 +99,27 @@ a new user meets.
 `store.hold` and `store.probe` are exercised only by tests and have no production callers. `begin`
 is deliberately unwired pending `U.18`; the other three are reached through paths the suite covers.
 
+**`R.1`–`R.4` landed and were driven.** The filling layer is one module, `src/actions/fill.ts`, on
+two rules: an element argument takes a candidate **of its own**, and one carrying a `form` takes a
+candidate of that form; text is the surface's business, and only an argument declaring a `prompt` is
+askable. Each surface keeps a `seed` of what it alone knows. Two things worth keeping from doing it:
+
+- **A green suite proved nothing here.** All 574 tests passed with every one of these bugs live,
+  because none of them had a test. The browser found them and the browser confirmed the fixes.
+- **The first fix for `R.3` was wrong and the new test caught it.** `started()` seeded
+  `pkg_core`, and **there is no such package**: `packages/core/` has no `definitions.yaml`, so
+  `nameOf` keys each file there by its own stem — `pkg_freeform`, `pkg_product`, and so on. The
+  vocabulary pointed at nothing and `gather` silently skipped it, so the picker would still have
+  been empty. Driving it could not see this, because the log looked right; the property test —
+  *the vocabulary a new project starts with yields offerings* — is what failed.
+
+**`R.5` is confirmed, not plausible, and needs Clay.** `mark`, `direct`, `reform`, `axis` and
+`arrange` all carry a **required `choice`** (`flow`, `dir`, `form`, `axis`, `shape`). A choice is a
+question no menu asks, so all five are withheld from every offered list while holding reserved slots
+in `ORDER`. Driving it: a card's menu offers *Relax* but never *Mark* or *Arrange*. What a menu
+should do with a choice — an entry per option, a prompt, or dropping them from `ORDER` and leaving
+them to gestures and the bar — is a design decision, and it is on the row in plan.md.
+
 
 ## Open questions
 
@@ -987,11 +1008,12 @@ draw, types and axis are **radio rows**; interfaces stay a two-state toggle. **A
 - **The verbs were never in the bar** — U.16 is **dropped**, and its premise was the error. design.md
   says *toolbars divide by states against verbs, which is why the two sit far apart*, and that is
   already satisfied: `.shape` is a floating cluster at the canvas's bottom right, not a group inside
-  the `.arrange` bar. The bar already holds states only. And `arrange` is `scope: { on: "layer" }`,
-  which `inScope` matches in every context, so **the frame's right-click list already offers it** —
-  the second door G.9d would have provided exists. Nothing to move, and **the interface stays the
-  same whatever the layer or project**: no root affordance, and arrange / relax remain reachable at
-  the bottom right everywhere, including project root.
+  the `.arrange` bar. The bar already holds states only. **The interface stays the same whatever the
+  layer or project**: arrange / relax are reachable at the bottom right everywhere, project root
+  included. **Correction from driving the app**: it was also said that `arrange`, being layer-scoped,
+  already appeared in the frame's right-click list. It does not — a required `choice` argument
+  withholds it from every offered list (`R.5`). The bar is its only door, which is the wanted
+  outcome reached by accident.
 
 **Contended owns, declared.** `terminal/` Wave Z is complete (U.5 / U.6 / G.9c landed with it);
 `modules/view/diagram/chrome.tsx` has **no queued owner** (U.2 and U.15 landed; U.16 dropped).
