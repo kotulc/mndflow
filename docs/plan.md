@@ -34,6 +34,9 @@ own.
 both `⊘` and unblock others — U.2 is what U.9 and U.15 stand on. Everything else in the wave either
 waits on G.9 or queues behind `page/Files.tsx`.
 
+**Wave T runs alongside anything.** It owns `tests/` alone, so `T.1` and `T.2` contend with no
+implementation row and can fill any sitting. `T.3` waits on Wave U on purpose.
+
 **No `◆` row is left in the queue.** G.9d is settled — the target decides — and `Z.6` is answered:
 documentation lives in `samples/docs.json`, keyed by the terms in
 [definitions.md](definitions.md), hand-authored and with no generator.
@@ -97,6 +100,24 @@ holds survives being saved and read back* — in `tests/graph/store.test.ts` and
 | **U.15** | **The canvas options get one design language**, in **vertical groups** — *interface*, *relation*, *flow*, *arrangement*. Today `Toggles` mixes three idioms with no rule: three controls carry a glyph **and** a word (`□ interfaces`, `— plain`, `· types`), two carry a glyph **only** (`⌐`/`~`, the three axis marks), and states are drawn both as one cycling button **and** as a radio row. **Every control carries a word**, with the glyph as a scanning aid — the direction U.12 and U.13 already take. Depends on U.2 for marks that differ | `modules/view/diagram/chrome.tsx`, `src/styles.css` | U.2 |
 | **U.16** | **Arrangements move to the frame's context list** — `grid` / `radial` / `across` / `down` / `relax` leave the bar. They are one-time **verbs** over the whole layer, and **the frame is the layer**, so G.9d's *the target decides* already routes them: right-click the frame, get the things you can do to it. This is what keeps design.md's *toolbars divide by states against verbs* true once the bar is grouped by subject — the verbs leave the bar rather than sitting in a fourth group | `modules/view/diagram/chrome.tsx`, `canvas/gestures.ts` | G.9d, U.15 |
 | **U.17** | **Projects are told apart in the explorer** — space between them, so several open projects read as several rather than as one long tree. The cheapest half of what U.3 is for, and it stands alone | `page/Files.tsx`, `src/styles.css` | ⊘ |
+
+
+## Wave T — the suite
+
+The gaps the test review named, as rows. **Owns `tests/` alone**, so no T row ever contends with an
+implementation row. Detail in tasks.md, stream **T**.
+
+**The largest gap sits under the wave about to rewrite it.** `App.tsx`, `Files.tsx` and `Panel.tsx`
+have no cover and every browser-found bug lived there — but Wave U rewrites all three, so testing
+them first buys a suite that U throws away. That is the reasoning behind T.3's wait, and it is the
+project's own rule: *do not write tests for a design that is still moving*.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **T.1** | **The action modules get a suite.** Five of seven have none — `edges`, `elements`, `fields`, `groups`, `layer`; only `behavior.ts` and the registry are covered. tasks.md already recorded the trigger: **S1 made actions pure `(graph, args) -> Effect`**, which is what makes them worth testing, and S1.6 landed. Properties, not values: an action returns the mutations it claims, refuses through `check` rather than throwing, and writes nothing when it refuses | `tests/actions/` | ⊘ |
+| **T.2** | **`page/Contents.tsx` gets its first cover** — the largest file in the tree (1444 lines) with no test at all. **Startable now, unlike the rest of the page**: Wave U models table and matrix *on* it (U.7) but does not rewrite it, so a suite written here survives the wave | `tests/page/` | ⊘ |
+| **T.3** | **`App.tsx`, `Files.tsx` and `Panel.tsx` get cover** — ~2,200 lines, no tests, and the place every browser-found bug lived. **Waits on Wave U deliberately**: U rewrites the header, the explorer and the chrome, so a suite now would be rewritten with them | `tests/page/` | Wave U |
+| **T.4** | **`infer` proved end to end, through its real trigger.** 44 tests render what `infer` produces over hand-built fixtures, and `infer` has no call site — so they prove the renderers and not the feature. Once G.9b offers it from the explorer, one test walks selection → `infer` → drawn | `tests/`, `tests/modules/view/` | G.9b, A.7a |
 
 
 ## Wave 3 — the rail

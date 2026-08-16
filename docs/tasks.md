@@ -483,6 +483,7 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
 | **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | G.9b / G.9c for the files it shares |
+| **T** The suite | `tests/` | U for the page rows only |
 | **Z** Terminal | `terminal/` | **everything above**, H especially |
 
 **Startable today:** F.2 live bind+drift proof (`◐`); D.2 (**unblocked** — the terminal is no
@@ -822,6 +823,31 @@ cut, and **no row here cuts one**: the file is 600 lines and this wave will grow
 next structural row is chosen knowing it, and so the order in plan.md is followed rather than
 rediscovered. None of it is parallelisable.
 
+### T — the suite
+
+The gaps *What the review found* named, now rows. **T owns `tests/` alone**, so no test row ever
+contends with an implementation row — which is the practical benefit of tests having moved out of
+`src/`.
+
+- **Five of seven action modules have no test** (T.1) — `edges`, `elements`, `fields`, `groups`,
+  `layer`. Only `behavior.ts` and the registry are covered. The trigger was already written down
+  under *Deliberately untested*: **once actions are pure `(graph, args) -> Effect` they are worth a
+  suite**, and S1.6 landed that. Properties only — an action returns the mutations it claims,
+  refuses through `check` rather than throwing, and writes nothing when it refuses.
+- **The page layer has no tests at all**, and it is where every browser-found bug lived. It splits
+  in two by whether Wave U is about to rewrite it. **`Contents.tsx` is startable now** (T.2): U.7
+  models table and matrix *on* it but does not rewrite it, so a suite there survives the wave.
+  **`App.tsx`, `Files.tsx` and `Panel.tsx` wait for U** (T.3), because U rewrites the header, the
+  explorer and the chrome, and a suite written first would be thrown away with them. That is the
+  project's own rule applied to itself: *do not write tests for a design that is still moving*.
+- **44 behaviour-view tests prove less than their count suggests** (T.4). `activity`, `state` and
+  `sequence` render what `infer` produces, over hand-built fixtures, and `infer` has no call site —
+  so they cover the renderers and not the feature. G.9b gives it one; then a single test walks
+  selection → `infer` → drawn, and the caveat retires.
+- **The terminal stays deliberately uncovered** and gets no T row. Stream Z is about to change its
+  shape, so a suite now would be rewritten by it — the same reasoning as T.3, and the reason no row
+  exists rather than a row that waits.
+
 ### Z — terminal
 
 *The acceptance test for everything above.* **Unfrozen since S6 and no longer parked — queued
@@ -949,7 +975,7 @@ own sake would cost more than it saves.** Three findings instead:
 - **The page layer has no tests at all.** `App.tsx`, `Files.tsx`, `Panel.tsx` and `Contents.tsx` —
   about 3,600 lines, and `Contents.tsx` alone is the largest file in the tree — are covered by
   nothing. Every bug found by driving the browser lived here or in the seam below it. This is the
-  gap, not the redundancy.
+  gap, not the redundancy. **Now rows T.2 and T.3**, split by whether Wave U rewrites the file.
 - **The storage journey is now covered** — `tests/lifecycle.test.ts` gained *work, reload, still
   there*. It goes through `saveProject` / `loadProject` rather than `file.write` / `file.read`, which
   is what the old "integration" test actually did. Reintroducing the import bug now fails **three**
@@ -968,11 +994,15 @@ the common operation.
 
 **44 tests cover a feature nothing can reach.** `activity`, `state` and `sequence` render what
 `infer` produces, and `infer` still has no call site — G.9b is its trigger and is unbuilt. They test
-renderers over hand-built fixtures. Keep, but they prove less than their count suggests.
+renderers over hand-built fixtures. Keep, but they prove less than their count suggests. **Now row
+T.4**, which walks the whole path once the trigger exists.
 
 **Deliberately untested:** the terminal — `router`, `turn`, `workflows` — whose shape stream Z is
 about to change, so a suite now would be rewritten by it; `embed`, `match` and `suggest`, which
 need a model *(and which Z.8's scope-down does not summon — it is a keyword lookup, not a model)*;
 and `project`, whose actions are thin wrappers
-over mutations `fold` already covers. Each is a judgement to revisit. **S1 changes the last of
-these**: once actions are pure `(graph, args) -> Effect`, they are worth a suite.
+over mutations `fold` already covers. Each is a judgement to revisit. **The last of these has been
+revisited and is now T.1**: S1.6 made actions pure `(graph, args) -> Effect`, which is exactly the
+condition that made them worth a suite, and five of the seven modules still have none. The terminal
+stays uncovered on purpose and gets no row — stream Z changes its shape, so a suite would be
+rewritten by it.
