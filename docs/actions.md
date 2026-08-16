@@ -255,7 +255,9 @@ this moves.*
 **Page actions** — the shell's, not a module's, per design.md's three parts.
 
 `export`, `import`, `new`, `undo`, `redo`, and with S4 `open project`, `close project` and
-`export workspace`. **`undo` applies to the project in context**, since that is where the step
+`export workspace`. **`new` names a project into being** — a name is required and unique among open
+projects (`workspace.mayName`), the naming *is* the project's first step (`workspace.started`), and
+nothing can be added before it. Storage no longer mints a project on load. **`undo` applies to the project in context**, since that is where the step
 was written. **Unlock** and **fork** are workspace operations offered from the strip when a
 locked package refuses a write — not registry actions (S4.8).
 

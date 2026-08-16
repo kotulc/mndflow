@@ -107,6 +107,22 @@ what makes a package safe to install: it can change how a project reads and neve
 **Every term is defined in [definitions.md](definitions.md)**, which is the canonical vocabulary.
 What belongs here is only the reasoning behind the shape of it.
 
+**A project comes into being by being named**, and naming it is the first step
+there is — nothing can be put in one before it has a name. The app therefore
+opens with *no* project rather than with one nobody asked for: storage reads a
+pointer and never invents one.
+
+**Project names are unique**, which is the rule a layer already has, applied one
+level up: projects are siblings in the workspace the way blocks are siblings in a
+layer, and every file explorer works this way for the same reason. A name is
+required and no two share one, enforced on the way in and on rename alike.
+
+*This replaces a silently minted session project.* One was created on every load
+so that there was always somewhere to draw; untitled, it drew as the bare word
+`project`, nothing ever removed one, and a workspace accumulated a row per
+abandoned session. The fallback label is gone with it — a blank name is now a bug
+to see rather than a word to paper over.
+
 **Nothing declares what a project is.** One holding only proxies is a view, one holding only
 definitions is a package, one holding its own objects is a structure. It is visible from what it
 has, so there is no field to keep true — and a project is free to become something else by being

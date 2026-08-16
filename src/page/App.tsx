@@ -20,7 +20,10 @@ import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
 import * as store from "../graph/store";
-import { ROOT, refAt, step as makeStep, type EdgeForm, type Graph, type Step } from "../graph/types";
+import {
+  ROOT, refAt, step as makeStep,
+  type EdgeForm, type Graph, type Mutation, type Step,
+} from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
 import { viewOf } from "../modules/view";
@@ -136,7 +139,20 @@ function companions(
 /** Admit a project into the workspace list and place its root proxy. Already
  *  open is a no-op. */
 function openIn(held: workspace.Held, projectId: string): workspace.Held {
+  if (held.projects.includes(projectId)) return held;
+
   const { graph, steps } = graphOf(held.id);
+
+  // Already proxied in the shell but missing from the list — a log written
+  // before this call, or an effect that ran twice. Adopt it; admitting again
+  // would draw the project a second time.
+  if (workspace.holds(graph, projectId)) {
+    const next = { ...held, projects: [...held.projects, projectId] };
+    workspace.save(next);
+
+    return next;
+  }
+
   const out = workspace.admit(held, graph, projectId);
   if ("refuse" in out) return held;
 
@@ -149,6 +165,37 @@ function openIn(held: workspace.Held, projectId: string): workspace.Held {
   return out.held;
 }
 
+/** Forget every project storage has no log for.
+ *
+ *  **A project earns its place in the workspace the way it earns a key: on the
+ *  first change.** Admitting on *open* instead put a row in the explorer for
+ *  every session that was started and never used — each one untitled, so each
+ *  drew as the bare word `project`, and nothing ever took them out again. */
+function prune(held: workspace.Held): workspace.Held {
+  const gone = held.projects.filter((id) => !store.isKeyed(id));
+  if (!gone.length) return held;
+
+  const { graph, steps } = graphOf(held.id);
+  let next = held;
+  const mutations: Mutation[] = [];
+
+  for (const id of gone) {
+    const out = workspace.forget(next, graph, id);
+    next = out.held;
+    mutations.push(...out.mutations);
+  }
+
+  workspace.save(next);
+  if (mutations.length) {
+    store.saveProject(held.id, compact([
+      ...steps,
+      makeStep("closed", "forget", mutations),
+    ]));
+  }
+
+  return next;
+}
+
 /** Tooltip for an open project: id, how much work, and which copy. */
 function tipOf(id: string, graph: Graph, steps: Step[]): string {
   const written = file.write(graph, id, stepsIn(steps));
@@ -157,14 +204,58 @@ function tipOf(id: string, graph: Graph, steps: Step[]): string {
 }
 
 export function App() {
-  const [held, setHeld] = useState(() => openIn(workspace.load(), store.projectId()));
+  // The session project is *not* admitted here. It joins the workspace when it
+  // first holds something (below), so a fresh session shows no rows at all.
+  const [held, setHeld] = useState(() => prune(workspace.load()));
   /** Which project's log the page writes to — the selected explorer row's. */
-  const [contextId, setContextId] = useState(() => store.projectId());
+  // `""` until a project is named. Storage no longer invents one: a project
+  // comes into being by being named, so nothing can be added before that.
+  const [contextId, setContextId] = useState(() => store.currentProject());
   /** Layer to open once useProject has rebound after a context switch. */
-  const pendingView = useRef<string | null | undefined>(undefined);
+  const pendingView = useRef<{ project: string; layer: string | null } | null>(null);
 
   const project = useProject(contextId, workspace.isLocked(held, contextId));
+
+  // A project that got into the list without a name cannot be told from any
+  // other — the rule is enforced on the way in, so this is only a safety net.
+  useEffect(() => {
+    if (!contextId || held.projects.includes(contextId)) return;
+    if (!project.steps.length) return;
+
+    setHeld(openIn(held, contextId));
+  }, [contextId, held, project.steps.length]);
   const { graph, view, picked, path, question, terms } = project;
+
+  /** Every open project's name, for the uniqueness rule. */
+  const takenNames = useMemo(
+    () => workspace.names(Object.fromEntries(
+      held.projects.map((id) => [id, id === contextId ? graph : graphOf(id).graph]),
+    )),
+    [held.projects, contextId, graph],
+  );
+
+  /** The `new` page action: name it, and that naming is its first step.
+   *
+   *  Naming is what brings a project into being — it earns a key, a place in
+   *  the workspace and the context, all from having been called something. */
+  function newProject(name: string): boolean {
+    const why = workspace.mayName(takenNames, name);
+    if (why) {
+      say(why);
+
+      return false;
+    }
+
+    const id = store.newProjectId();
+    store.saveProject(id, workspace.started(name));
+    store.adoptId(id);
+    setHeld(openIn(held, id));
+    pendingView.current = { project: id, layer: null };
+    setContextId(id);
+
+    return true;
+  }
+
   // Held here so the match scoring can watch it being typed.
   const [draft, setDraft] = useState("");
   /** Whether the readout drawer is out. */
@@ -201,23 +292,30 @@ export function App() {
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);
 
-  // After switching project, open the layer the click asked for — once the
-  // hook has folded the new log (`graph` changes), not on the stale closure.
+  // After switching project, open the layer the click asked for — but only once
+  // the hook has folded *that* project's log.
+  //
+  // `project.open` is a fresh closure every render, so this effect runs on every
+  // render too. Waiting for the layer to actually be in the graph is what tells
+  // a rebind apart from an ordinary re-render; consuming it eagerly opened the
+  // id against the project we were leaving, which said "Nothing to open."
   useEffect(() => {
-    if (pendingView.current === undefined) return;
-    const layer = pendingView.current;
-    pendingView.current = undefined;
-    project.open(layer);
-  }, [graph, project.open]);
+    const want = pendingView.current;
+    if (!want || want.project !== contextId) return;
+    if (want.layer !== null && !graph.elements[want.layer]) return;
+
+    pendingView.current = null;
+    project.open(want.layer);
+  }, [graph, contextId, project.open]);
 
   /** Bring a project into context and open a layer inside it. */
   function navigate(projectId: string, layer: string | null) {
     if (projectId !== contextId) {
-      pendingView.current = layer;
+      pendingView.current = { project: projectId, layer };
       setContextId(projectId);
       return;
     }
-    pendingView.current = undefined;
+    pendingView.current = null;
     project.open(layer);
   }
 
@@ -564,6 +662,8 @@ export function App() {
             onShowPorts={setTreePorts}
             onOpen={navigate}
             onCreate={project.create}
+            onNewProject={newProject}
+            onNameProject={(name, except) => workspace.mayName(takenNames, name, except)}
             onNameTaken={project.nameTaken}
             onSay={say}
             unit={UNIT}

@@ -126,13 +126,20 @@ type Props = {
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
   onRenameProject: (label: string) => void;
+  /** The `new` page action — name a project into being. Returns false when the
+   *  name was refused, so the field can stay open. */
+  onNewProject: (name: string) => boolean;
+  /** Why this project may not be called that, or null. */
+  onNameProject: (name: string, except: string) => string | null;
 };
 
 export function Files(props: Props) {
   const { shell, graphs, projects, context, view, chosen, onChoose } = props;
   const { showPorts, onShowPorts } = props;
   const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
-  const { onDelete, onMove, onRename, onRenameProject } = props;
+  const {
+    onDelete, onMove, onRename, onRenameProject, onNewProject, onNameProject,
+  } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
   const kidsBy = useMemo(() => {
     const next: Record<string, Record<string, Element[]>> = {};
@@ -153,6 +160,8 @@ export function Files(props: Props) {
    *  gestures mean different places: the bar's button acts on what is open,
    *  and the clear space below the rows is the root's own background. */
   const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
+  /** Naming a new project — the first step, before anything can go in it. */
+  const [naming, setNaming] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLSpanElement>(null);
 
@@ -287,8 +296,18 @@ export function Files(props: Props) {
     const wanted = label.trim();
     if (key.startsWith("proj:")) {
       const projectId = key.slice(5);
-      const current = titleOf(graphs[projectId] ?? graph) || "project";
-      if (wanted && wanted !== current && projectId === context) onRenameProject(wanted);
+      const current = titleOf(graphs[projectId] ?? graph);
+      if (wanted && wanted !== current && projectId === context) {
+        // Projects are siblings in the workspace, so the same rule a layer has
+        // applies here: a name is required, and no two share one.
+        const why = onNameProject(wanted, projectId);
+        if (why) {
+          onSay(why);
+
+          return;
+        }
+        onRenameProject(wanted);
+      }
       setEditing(null);
 
       return;
@@ -436,7 +455,9 @@ export function Files(props: Props) {
     const here = graphs[projectId];
     if (!here) return null;
 
-    const title = titleOf(here) || "project";
+    // No fallback: a project is named on the way in, so a blank here is a bug
+    // worth seeing rather than papering over with the word "project".
+    const title = titleOf(here);
     const editKey = `proj:${projectId}`;
     const active = lit(projectId, ROOT_ID);
     const hereScoped = scoped(projectId, ROOT_ID);
@@ -544,7 +565,17 @@ export function Files(props: Props) {
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
-          <button onClick={() => setAdding({ parent })} title={`New ${unit}`}>
+          <button
+            onClick={() => setNaming(true)}
+            title="New project — name it first"
+          >
+            ＋▣
+          </button>
+          <button
+            onClick={() => setAdding({ parent })}
+            disabled={!context}
+            title={context ? `New ${unit}` : "Make a project first"}
+          >
             ＋
           </button>
           <button
@@ -591,8 +622,20 @@ export function Files(props: Props) {
           </div>
         )}
 
-        {empty && !adding && (
-          <p className="empty">Nothing here yet</p>
+        {naming && (
+          <div className="item new">
+            {field("", (name) => {
+              if (onNewProject(name)) setNaming(false);
+            }, () => setNaming(false), null)}
+          </div>
+        )}
+
+        {empty && !adding && !naming && (
+          <p className="empty">
+            No project yet — <button className="link" onClick={() => setNaming(true)}>
+              name one
+            </button> to start.
+          </p>
         )}
       </div>
     </div>

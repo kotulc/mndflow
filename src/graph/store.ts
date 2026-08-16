@@ -24,7 +24,7 @@
  *  refused — the download path stays the way out. */
 
 import { fold, isCheckpoint, stepsIn } from "./fold";
-import { newId, step as makeStep, type Step } from "./types";
+import { ROOT, newId, step as makeStep, type Step } from "./types";
 
 /** The Chromium handle surface. Typed locally: the DOM lib this build uses
  *  does not yet name these, and a missing API is detected at the call site. */
@@ -219,10 +219,41 @@ function stepsKey(id: string): string {
   return `${STEPS_PREFIX}${id}${STEPS_SUFFIX}`;
 }
 
-/** Whether this log is still only what opening or importing left — nothing
- *  somebody did, so it does not earn a key. */
+/** Whether a checkpoint carries nothing — the shape a project opens with before
+ *  anything is in it. A checkpoint holding a graph is the whole project, which
+ *  is what an import writes, and losing it is losing the work. */
+function bare(step: Step): boolean {
+  const only = step.mutations[0];
+  if (!only || only.op !== "checkpoint") return false;
+
+  const { defs, elements, edges } = only.graph;
+  if (Object.keys(edges).length || Object.keys(defs).length) return false;
+
+  // A fresh project is its root and nothing else. A named root is somebody's
+  // project title, so it counts as content even with nothing under it yet.
+  const ids = Object.keys(elements);
+  if (ids.some((id) => id !== ROOT)) return false;
+
+  const root = elements[ROOT];
+
+  return !root || (!root.label && !root.body && !root.fields.length);
+}
+
+/** Whether this log is still only what opening left — nothing somebody did and
+ *  nothing carried in, so it does not earn a key.
+ *
+ *  **An import is not pristine.** It arrives as a single checkpoint, the same
+ *  shape a fresh project opens with, but that checkpoint holds the entire graph
+ *  — so the shape alone cannot decide it and the contents have to be read. */
 function pristine(steps: Step[]): boolean {
-  return steps.length === 0 || steps.every((s) => isCheckpoint(s));
+  return steps.length === 0 || steps.every((s) => isCheckpoint(s) && bare(s));
+}
+
+/** Whether storage holds a log for this project. A project with no key has
+ *  never been changed — the workspace uses this to tell a real project from an
+ *  abandoned empty session. */
+export function isKeyed(id: string): boolean {
+  return keyed(id);
 }
 
 function keyed(id: string): boolean {
@@ -330,6 +361,28 @@ function migrateLegacy(into: string): void {
  *  Lives beside the log rather than in it: it is what a cross-project reference
  *  points at, so renaming a project — or its file — has to break nothing. Taken
  *  from an imported file where one names itself. */
+/** The project in context, or `""` when there is none.
+ *
+ *  **Reads; never invents.** A project comes into being by being named — see
+ *  the `new` page action — so a session with no project has none, rather than
+ *  one nobody asked for and nobody named. */
+export function currentProject(): string {
+  try {
+    const held = localStorage.getItem(CURRENT);
+    if (held) migrateLegacy(held);
+
+    return held ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** A fresh project id. Minting is deliberate now — only the `new` action does
+ *  it, and only once a name has been accepted. */
+export function newProjectId(): string {
+  return newId("proj");
+}
+
 export function projectId(): string {
   try {
     const held = localStorage.getItem(CURRENT);

@@ -10,7 +10,7 @@ import {
   loadWorkspace, pickIn, pressureNote, projectId, readBound, release, save,
   saveProject, saveWorkspace, settleBound, watch, watchPressure, writeOut,
 } from "./store";
-import { EMPTY, step, type Step } from "./types";
+import { EMPTY, element, step, type Step } from "./types";
 
 /** An in-memory localStorage so the suite does not need a browser. */
 function memory(limit?: number): Storage {
@@ -36,9 +36,20 @@ function memory(limit?: number): Storage {
 
 const sample = (tag: string): Step[] => [step(tag, "test", [])];
 
-/** An import-shaped log: one checkpoint, nothing somebody did. */
-const imported = (tag: string): Step[] => [
+/** A just-opened log: one checkpoint carrying nothing. */
+const opened = (tag: string): Step[] => [
   step(tag, "checkpoint", [{ op: "checkpoint", graph: EMPTY, at: 0 }]),
+];
+
+/** An import: the same single-checkpoint shape, but the checkpoint holds the
+ *  whole graph. Shape alone cannot tell this from `opened`, which is exactly
+ *  what made losing it possible. */
+const imported = (tag: string): Step[] => [
+  step(tag, "checkpoint", [{
+    op: "checkpoint",
+    graph: { ...EMPTY, elements: { block_1: element("Pump", { form: "block" }) } },
+    at: 0,
+  }]),
 ];
 
 /** A long log — enough history that collapsing it frees measurable space. */
@@ -152,9 +163,23 @@ describe("a key appears on the first change", () => {
     expect(loadProject("proj_fresh")).toEqual([]);
   });
 
-  it("does not store an import that nobody has touched", () => {
+  it("does not store a project that was only opened", () => {
+    expect(saveProject("proj_opened", opened("opened"))).toBe(true);
+    expect(localStorage.getItem("mndflow.steps.proj_opened.v1")).toBeNull();
+  });
+
+  // The bug this replaces: an import is one checkpoint, the same shape a fresh
+  // project opens with, so the lazy-key gate threw the whole imported graph
+  // away and reported success. Nothing survived a reload.
+  it("stores an import, whose one checkpoint carries the whole graph", () => {
     expect(saveProject("proj_import", imported("opened"))).toBe(true);
-    expect(localStorage.getItem("mndflow.steps.proj_import.v1")).toBeNull();
+    expect(localStorage.getItem("mndflow.steps.proj_import.v1")).not.toBeNull();
+  });
+
+  it("reads back everything an import brought", () => {
+    const log = imported("opened");
+    saveProject("proj_round", log);
+    expect(loadProject("proj_round")).toEqual(log);
   });
 
   it("stores the log once something somebody did is in it", () => {
@@ -164,7 +189,7 @@ describe("a key appears on the first change", () => {
 
   it("keeps writing after a key already exists, even for a later pristine shape", () => {
     saveProject("proj_work", sample("changed"));
-    const back = imported("back");
+    const back = opened("back");
     expect(saveProject("proj_work", back)).toBe(true);
     expect(loadProject("proj_work")).toEqual(back);
   });

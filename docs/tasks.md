@@ -24,6 +24,49 @@ via `looping()` (S6.1). `packages/terms/` holds vocabulary; `Files.tsx` is free 
 (S6.2). **Page mount is optional** via `import.meta.glob` — Readout optional `Scores`; a build
 without `terminal/` still runs (S6.3, proven). **Parked**: Matching tab empty when Scores absent.
 
+**Three bugs found by driving the app, all fixed.**
+
+1. **An imported project was never stored.** Import writes the whole graph as one checkpoint step;
+   `pristine()` read a checkpoint-only log as "nothing somebody did", so the lazy-key gate (S4.7)
+   dropped it and reported success. Every project came back empty after a reload. **Fixed** in
+   `store.ts`: a checkpoint carrying a graph is not pristine — only an untouched root is.
+2. **The explorer listed projects that did not exist.** `App` admitted `store.projectId()` into the
+   workspace *at mount*, before the project held anything, and nothing ever removed one — so every
+   session started and abandoned left an untitled row reading `project`, for ever. This contradicted
+   S4.7's own rule. **Fixed**: a project joins the workspace when it first holds something, the same
+   rule storage uses for a key, and `prune` forgets any listed project storage has no log for. A
+   fresh session now lists **nothing**.
+3. **A false *Nothing to open*.** `project.open` is a new closure every render, so the effect that
+   applies a pending layer ran on every render and fired *before* `useProject` rebound — opening the
+   id against the project being left. **Fixed**: the pending view now names its project and waits for
+   the layer to actually be in the graph. *(The cross-project descend it was hiding is still broken —
+   see* Open questions*.)*
+
+**What this says about the suite.** An **imported project was never stored**: import
+writes the whole graph as one checkpoint step, `pristine()` read a checkpoint-only log as "nothing
+somebody did", and the lazy-key gate (S4.7) dropped it and reported success. Every project came back
+empty after a reload, the explorer showed untitled `project` rows, and selecting anything said
+*Nothing to open*. Fixed in `store.ts`: a checkpoint carrying a graph is not pristine — only an
+untouched root is.
+
+**401 tests did not catch it, and one of them asserted it was correct.** `store.test.ts` had a
+fixture named *an import-shaped log* built on `EMPTY`, the single graph value for which the old
+behaviour is right, under a test named *does not store an import that nobody has touched*. The
+suite's own words describe the bug. Two structural reasons, both worth fixing before adding
+anything:
+
+- **The one integration test does not integrate.** `tests/lifecycle.test.ts` is described here as
+  *work → save → open → work again*, but it never calls `saveProject` / `loadProject` and never
+  touches `localStorage` — it round-trips `file.write` / `file.read`. The app's actual save path had
+  **no end-to-end cover at all**; only `store.test.ts` and `workspace/index.test.ts` touch storage.
+- **A mechanism was asserted where an outcome was meant.** *Properties, never values* held — nothing
+  asserted a coordinate or a count — but the property that mattered, *what a project holds survives
+  being saved and read back*, was never written down. What was written down was the gate's internal
+  rule, proven with the fixture that made the rule look right.
+
+**The browser found it in minutes.** That is the standing argument for the run skill being the
+acceptance gate rather than a green suite — see CLAUDE.md, *Finishing a chunk*.
+
 **Exercised in a browser**, and every seam is exercised there before it is called done — see
 `.claude/skills/run/SKILL.md` for how. A fresh session, a pre-freeze log, the canvas gestures,
 import and export all check out: the round trip is byte-identical and a pre-freeze log draws,
@@ -36,6 +79,34 @@ through `check.ts` whatever it was written by.
 ## Open questions
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
+
+*Recently closed: **a project is named into being.** Naming is the first step and nothing goes in
+one before it; **project names are unique**, the layer rule one level up. Storage reads a pointer and
+never mints — a fresh session has no project and says so. The `|| "project"` fallbacks are gone from
+the explorer, the crumbs and the panel. This was already sanctioned as the `new` page action
+(actions.md) and needed no gate.*
+
+- **Cross-project descend does not complete — open bug, not yet fixed.** Double-clicking a *child of
+  a project that is not in context* switches the context but never opens the layer, and the canvas
+  draws **nothing** — at a layer that has eight cards. Repro: import `samples/mndflow.json` beside a
+  second project, click the other project's root to take context, then double-click `Canvas` under
+  `mndflow`. Crumb reads `mndflow↑` instead of `mndflow/Canvas`; card count 0. **Same-project descend
+  is fine** (`mndflow/Canvas`, 3 cards), and **switching context by clicking a root row is fine**.
+  Pre-existing: before the `pendingView` fix this path also said *Nothing to open* — that false
+  refusal is gone, the blank canvas is not. Suspects: `Files` calls `onOpen` on single click too, so
+  a double-click fires `navigate` twice before `contextId` updates; and `useProject` rebinding
+  `graph` lags `contextId` by a render.
+
+
+- **Should an untouched project stay in the workspace?** A session opens an empty project, admits it
+  to the workspace, and if the user then imports or switches, that empty one stays in the explorer
+  forever as a row reading `project`. Every later import leaves another. It is not wrong — it *is* an
+  empty project — but it reads as clutter and as a bug. Options: do not admit until first change
+  (matching the lazy-key rule), or tidy an untouched empty project when it leaves context. **Also**:
+  an untitled project falls back to the word `project`, which is indistinguishable from the workspace
+  itself; the explorer gives no sign which row is which. Blocks nothing; wanted before the explorer
+  is shown to anybody.
+
 
 *Recently closed — **the last three rail unknowns**. **Z.6**: documentation lives in
 `samples/docs.json`, keyed by the terms in [definitions.md](definitions.md) — hand-authored, and

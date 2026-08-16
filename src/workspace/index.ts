@@ -22,7 +22,7 @@
  *  Nothing here draws the explorer, the tray, or an export bundle. */
 
 import { entering, type Fault } from "../graph/check";
-import { compact, fold, nextNum } from "../graph/fold";
+import { compact, fold, nextNum, titleOf } from "../graph/fold";
 import { loadProject, loadWorkspace, saveProject, saveWorkspace } from "../graph/store";
 import {
   EMPTY, ROOT, asTarget, defIdFor, definition, element, field, newId, refAt, refTo,
@@ -102,7 +102,7 @@ export function isSelf(held: Held, of: string): boolean {
 }
 
 /** Whether this graph already holds a proxy of that project's root. */
-function holds(graph: Graph, projectId: string): boolean {
+export function holds(graph: Graph, projectId: string): boolean {
   const wanted = asTarget(rootOf(projectId));
 
   return Object.values(graph.elements).some((n) => {
@@ -168,6 +168,64 @@ export function admit(
 }
 
 /** Whether this project currently resists editing. */
+/** Every open project's name, by id — the root label each draws under. */
+export function names(graphs: Record<string, Graph>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [id, graph] of Object.entries(graphs)) out[id] = titleOf(graph);
+
+  return out;
+}
+
+/** Whether a project may be called this.
+ *
+ *  **Projects are siblings in the workspace**, so the rule a layer already has
+ *  applies one level up: a name is required and no two share one. `except` is
+ *  the project being renamed, which does not clash with itself. */
+export function mayName(
+  taken: Record<string, string>,
+  want: string,
+  except?: string,
+): string | null {
+  const name = want.trim();
+  if (!name) return "A project needs a name.";
+
+  for (const [id, held] of Object.entries(taken)) {
+    if (id === except) continue;
+    if (held.trim().toLowerCase() === name.toLowerCase()) {
+      return `"${name}" is already a project. Project names are unique.`;
+    }
+  }
+
+  return null;
+}
+
+/** The log a newly named project starts from — naming it is its first step, and
+ *  what makes it real enough to store and to list. */
+export function started(name: string): Step[] {
+  return [makeStep(`new project: ${name.trim()}`, "rename",
+                   [{ op: "update_element", id: ROOT, label: name.trim() }])];
+}
+
+/** Drop a project from the workspace: its proxy goes and its entry with it.
+ *
+ *  The inverse of {@link admit}. Used to clear an abandoned empty session —
+ *  never to close a project holding work, which is the user's to do. */
+export function forget(
+  held: Held,
+  graph: Graph,
+  projectId: string,
+): { held: Held; mutations: Mutation[] } {
+  const of = rootOf(projectId);
+  const mutations: Mutation[] = Object.values(graph.elements)
+    .filter((it) => it.form === "proxy" && it.of === of)
+    .map((it) => ({ op: "delete_element", id: it.id }) as Mutation);
+
+  return {
+    held: { ...held, projects: held.projects.filter((p) => p !== projectId) },
+    mutations,
+  };
+}
+
 export function isLocked(held: Held, projectId: string): boolean {
   return locks(held).includes(projectId);
 }
