@@ -9,6 +9,7 @@
  *  means to ask. */
 
 import type { Component, Config } from "../index";
+import { resolved } from "../../graph/fold";
 import type { Element, Graph } from "../../graph/types";
 
 export type ConstraintsConfig = {
@@ -40,11 +41,11 @@ export const constraints: Component = { name: "constraints", check };
 
 /** What this element's definition requires of it: its own answer over none.
  *
- *  Per definition and never per element. A definition that extends another
- *  does not yet inherit its constraints — SC.3 is what merges the chain, and
- *  until then a subtype stands on its own. */
+ *  Per definition and never per element. Reads the resolved view, so a subtype
+ *  inherits a constraints key it does not mention and replaces one it does —
+ *  never a deep merge inside the key. */
 export function constraintsOf(graph: Graph, element: Element): ConstraintsConfig {
-  const config = graph.defs[element.type]?.components?.constraints;
+  const config = resolved(graph, element.type)?.components?.constraints;
 
   return config ? { ...NONE, ...config } as ConstraintsConfig : NONE;
 }

@@ -82,11 +82,6 @@ const iface: Action = {
     }
     const owner = typeof args.owner === "string" ? args.owner : null;
     if (owner && !ctx.graph.elements[owner]) return "Nothing to put an interface on.";
-    // A figure earns its form by taking none — the first rule the engine
-    // refuses rather than advising about.
-    if (owner && ctx.graph.elements[owner]?.form === "figure") {
-      return "A figure takes no interfaces.";
-    }
     const edge = typeof args.edge === "string" ? args.edge : "";
     const end = args.end === "from" || args.end === "to" ? args.end : "";
     if (edge && !end) return "Needs which end to pin.";

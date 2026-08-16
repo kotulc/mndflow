@@ -1,34 +1,80 @@
-/** Shell: terminal and suggestions at the top, object explorer and graph
- *  below.
+/** Shell: optional terminal rail at the top, object explorer and graph below.
  *
  *  The canvas takes everything left over. What used to sit under it — the
  *  action log, the relation kinds, the match scoring — is a tabbed readout
  *  behind the rail's toggle, and the attributes of whatever is selected ride
  *  at the foot of the canvas itself.
  *
+ *  The rail is one optional mount: when `terminal/` is in the build its Chat
+ *  and Scores pieces appear; when it is not, the page still runs. Nothing
+ *  below imports the rail.
+ *
  *  There is no server. Everything below runs against a step log in this tab.
  *  Which log is which project's is decided by the explorer: the selected row's
  *  project is the context. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
 import { compact, fold, stepsIn, titleOf } from "../graph/fold";
 import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
 import * as store from "../graph/store";
-import { ROOT, step as makeStep, type EdgeForm, type Graph, type Step } from "../graph/types";
-import type { Suggestion } from "../terminal/suggest";
+import { ROOT, refAt, step as makeStep, type EdgeForm, type Graph, type Step } from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
 import { viewOf } from "../modules/view";
+import { Activity } from "../modules/view/activity";
+import { Sequence } from "../modules/view/sequence";
+import { State } from "../modules/view/state";
+import { svgOf } from "../modules/view/diagram";
 import { Matrix } from "../modules/view/matrix";
 import { Table } from "../modules/view/table";
-import { Chat } from "../terminal/Chat";
 import * as workspace from "../workspace";
-import { Files } from "./Files";
+import { Files, type Chosen } from "./Files";
 import { Panel } from "./Panel";
 import { Readout } from "./Readout";
+
+/** A chip the rail may ask the page to run — structural; the rail owns the rest. */
+type Chip = { kind: "add" | "link" | "open"; value: string };
+
+type ChatProps = {
+  graph: Graph;
+  steps: Step[];
+  question: {
+    id: string;
+    prompt: string;
+    hint: string;
+    choices: string[];
+    placeholder: string;
+  } | null;
+  view: string | null;
+  scope: string | null;
+  terms: { group: string; node: string; relation: string };
+  draft: string;
+  onDraft: (text: string) => void;
+  onTurn: (input: string) => void;
+  onRun: (chip: Chip) => void;
+};
+
+type ScoresProps = { text: string; active: string };
+
+/** Rail UI when `terminal/` is present. Eager so Chat's loop registers before
+ *  the first render; an empty glob is a build without the rail. */
+const railMods = import.meta.glob("../terminal/*.tsx", { eager: true }) as Record<
+  string,
+  { Chat?: ComponentType<ChatProps>; Scores?: ComponentType<ScoresProps> }
+>;
+
+const rail = (() => {
+  let Chat: ComponentType<ChatProps> | undefined;
+  let Scores: ComponentType<ScoresProps> | undefined;
+  for (const mod of Object.values(railMods)) {
+    if (mod.Chat) Chat = mod.Chat;
+    if (mod.Scores) Scores = mod.Scores;
+  }
+  return { Chat, Scores };
+})();
 
 /** What this diagram calls its elementary unit.
  *
@@ -148,6 +194,9 @@ export function App() {
    *  about how anything is drawn, but it lives here for the same reason: it is
    *  the tool in hand, not part of the project. */
   const [form, setForm] = useState<EdgeForm>("line");
+  /** Explorer multi-select — cross-project refs `infer` will take. Held here
+   *  so the action can read it without the tree owning the session. */
+  const [chosen, setChosen] = useState<Chosen[]>([]);
   useEffect(() => store.angular.set(angular), [angular]);
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);
@@ -236,9 +285,12 @@ export function App() {
     await store.writeOut(text, titleOf(shell.graph) || "workspace");
   }
 
-  /** Export the project in context, bundling what it depends on. */
-  function exportProject(): Promise<void> {
-    return project.save(companions(graph, contextId));
+  /** Export the project in context, bundling what it depends on, and offer a
+   *  rendered SVG of the open layer beside that source (F.3). */
+  async function exportProject(): Promise<void> {
+    const wrote = await project.save(companions(graph, contextId));
+    if (!wrote) return;
+    store.downloadSvg(svgOf(graph, view), titleOf(graph) || "mndflow");
   }
 
   // Shortcuts that belong to the whole app rather than to one panel. Inside a
@@ -264,7 +316,7 @@ export function App() {
   }, [project.undo, project.redo]);
 
   /** Run a chip that is a graph operation rather than an answer. */
-  function run(chip: Suggestion) {
+  function run(chip: Chip) {
     switch (chip.kind) {
       case "add":
         return project.create(chip.value, view);
@@ -275,6 +327,9 @@ export function App() {
     }
   }
 
+  const Chat = rail.Chat;
+  const Scores = rail.Scores;
+
   const graphs = useMemo(() => {
     const next: Record<string, Graph> = {};
     for (const id of held.projects) {
@@ -283,6 +338,22 @@ export function App() {
 
     return next;
   }, [held.projects, contextId, graph]);
+
+  // Drop picks whose project closed or whose block was undone.
+  useEffect(() => {
+    setChosen((prior) => {
+      const next = prior.filter((ref) => {
+        const { project, id } = refAt(ref);
+        if (!project || !held.projects.includes(project)) return false;
+        const g = graphs[project];
+        return id === ROOT || Boolean(g?.elements[id]);
+      });
+
+      return next.length === prior.length && next.every((k, i) => k === prior[i])
+        ? prior
+        : next;
+    });
+  }, [held.projects, graphs]);
 
   const listed = useMemo(() => (
     held.projects.map((id) => {
@@ -335,14 +406,14 @@ export function App() {
     setContextId(out.id);
   }
 
-  /** Strip message: page notice wins; else project trouble with unlock/fork acts. */
+  /** Strip message: page notice, then trouble (with unlock/fork), then pressure. */
   const said = notice ?? (project.trouble ? {
     text: project.trouble,
     acts: project.offer?.map((way) => ({
       label: way,
       run: way === "unlock" ? unlockPackage : forkPackage,
     })),
-  } : null);
+  } : project.pressure ? { text: project.pressure } : null);
 
   /** Which view module draws the open layer — the layer's definition, never
    *  a page setting. Root when nothing is open. */
@@ -407,14 +478,17 @@ export function App() {
             onClick={async () => {
               if (store.canBind()) {
                 const text = await store.pickIn();
-                if (text === null) return;
-                if (!takeIn(text)) {
-                  store.release();
-                  say("That file is not a mndflow project.");
+                // Cancelled — leave the session alone. Failed — plain input.
+                if (text === false) return;
+                if (text !== null) {
+                  if (!takeIn(text)) {
+                    store.release();
+                    say("That file is not a mndflow project.");
+                  }
+                  return;
                 }
-                return;
               }
-              // No live handle: the plain file input is the whole path.
+              // No live handle, or the Chromium picker failed: plain file input.
               importInput.current?.click();
             }}
           >
@@ -460,18 +534,20 @@ export function App() {
         </span>
       </header>
 
-      <Chat
-        graph={graph}
-        steps={project.steps}
-        question={question}
-        view={view}
-        scope={project.scope}
-        terms={terms}
-        draft={draft}
-        onDraft={setDraft}
-        onTurn={project.turn}
-        onRun={run}
-      />
+      {Chat && (
+        <Chat
+          graph={graph}
+          steps={project.steps}
+          question={question}
+          view={view}
+          scope={project.scope}
+          terms={terms}
+          draft={draft}
+          onDraft={setDraft}
+          onTurn={project.turn}
+          onRun={run}
+        />
+      )}
 
       <main>
         <div className="side">
@@ -481,6 +557,8 @@ export function App() {
             projects={listed}
             context={contextId}
             view={view}
+            chosen={chosen}
+            onChoose={setChosen}
             terms={terms}
             showPorts={treePorts}
             onShowPorts={setTreePorts}
@@ -514,6 +592,30 @@ export function App() {
                 onPick={(id) => project.pick({ kind: "node", id })}
                 onOpen={project.open}
               />
+            ) : module === "activity" ? (
+              <Activity
+                graph={graph}
+                layer={view}
+                picked={picked?.kind === "node" ? picked.id : null}
+                onPick={(id) => project.pick({ kind: "node", id })}
+                onOpen={project.open}
+              />
+            ) : module === "sequence" ? (
+              <Sequence
+                graph={graph}
+                layer={view}
+                picked={picked?.kind === "node" ? picked.id : null}
+                onPick={(id) => project.pick({ kind: "node", id })}
+                onOpen={project.open}
+              />
+            ) : module === "state" ? (
+              <State
+                graph={graph}
+                layer={view}
+                picked={picked?.kind === "node" ? picked.id : null}
+                onPick={(id) => project.pick({ kind: "node", id })}
+                onOpen={project.open}
+              />
             ) : (
             <Canvas
               graph={graph}
@@ -521,7 +623,7 @@ export function App() {
               hinted={hinted}
               said={said}
               onSay={say}
-              onHeard={() => (setNotice(null), project.clearTrouble())}
+              onHeard={() => (setNotice(null), project.clearTrouble(), project.clearPressure())}
               view={view}
               picked={picked}
               path={path}
@@ -600,6 +702,7 @@ export function App() {
             graph={graph}
             steps={project.steps}
             draft={draft}
+            Scores={Scores}
             onAddRelation={project.addRelation}
             onRenameRelation={project.renameRelation}
             onDropRelation={project.dropRelation}

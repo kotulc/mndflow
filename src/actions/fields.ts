@@ -14,7 +14,7 @@ import {
 import { register, type Action, type Args, type Context, type Effect } from "./index";
 
 const EDGE_FORMS = ["line", "directed"] as const;
-const ELEM_FORMS = ["block", "note", "group", "proxy", "figure"] as const;
+const ELEM_FORMS = ["block", "note", "group", "proxy"] as const;
 const DEF_FORMS = [...ELEM_FORMS, ...EDGE_FORMS];
 
 function as_patch(args: Args): Partial<Field> {

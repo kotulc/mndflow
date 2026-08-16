@@ -6,4 +6,5 @@ the relationship rather than a fourth subtype. Data only — no module, no
 renderer, no layout law.
 
 Loading into a project is A0.3. Until then these files sit ready; nothing
-imports them. Behavior vocabulary words (action, state, message) are A.10.
+imports them. Formal `names` (SysML / UML) ship with A.11. Behavior vocabulary
+words (action, state, message) are A.10.

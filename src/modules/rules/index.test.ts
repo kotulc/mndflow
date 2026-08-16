@@ -142,6 +142,55 @@ describe("how a usage is ruled", () => {
     });
   });
 
+  it("inherits rules the parent names when the subtype says nothing", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { rules: { holds: ["def_block"], match: ["type"] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+
+    expect(rulesOf(graph, held)).toEqual({
+      ...NONE,
+      holds: ["def_block"],
+      match: ["type"],
+    });
+  });
+
+  it("replaces the parent's rules when the subtype names its own", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { rules: { holds: ["def_block"], match: ["type"] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+          components: { rules: { degree: { in: [1, 1] } } },
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+    const held_rules = rulesOf(graph, held);
+
+    // Whole key replaced — the parent's holds and match do not leak in.
+    expect(held_rules.degree).toEqual({ in: [1, 1] });
+    expect(held_rules.holds).toEqual([]);
+    expect(held_rules.match).toEqual([]);
+  });
+
 });
 
 describe("the four kinds", () => {

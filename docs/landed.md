@@ -1,18 +1,15 @@
 # Landed
 
-Every plan row that landed whole, with the one line of what actually landed. Moved out of
-[plan.md](plan.md) so that file is only what is left to do.
+Optional archive of plan rows that landed whole. Not a queue, and **not updated
+during implement sittings** — annotate finished work in [plan.md](plan.md)
+instead. Clay may tidy rows into this file later if he wants; agents never do.
 
-**This is a record, not a queue.** Nothing here is waiting on anything. A row that landed *short*
-is not here — it stays in plan.md marked `◐`, because the rest of it is still work.
-
-**Only the main agent writes this file, and only after reviewing the work.** No subagent moves a row
-here. A subagent reports what it did; somebody then reads the diff and decides whether the row is
-finished. A row nobody reviewed stays in plan.md however green the suite is — the value of this file
-is that each line was stood behind, not self-reported.
+**This is a record, not a queue.** Nothing here is waiting on anything. A row
+that landed *short* stays in plan.md marked `◐`.
 
 - **What each part does now** → [spec.md](spec.md). **Why** → [design.md](design.md).
 - **What is still missing** → [tasks.md](tasks.md).
+- **What to do next** → [plan.md](plan.md).
 
 
 ## W0 — the specification gaps
@@ -28,8 +25,10 @@ is that each line was stood behind, not self-reported.
 |---|---|
 | **SC.1** | Four `Definition` fields (`body`, `size`, `names`, `components`), `refTo`/`refAt` for cross-project paths, `module` demoted to `meta`, schema `1.1`. A 1.0 file still opens, keeps everything, and saves out current. 12 tests |
 | **SC.2** | `extends` on a definition and `isa` to walk the chain — one parent, cycle-guarded, a missing parent ends the walk. 5 tests |
-| **SC.3** | `resolved()` unions fields and merges `components` per key, cached per fold. *The four component resolvers still read the leaf alone — that is SC.6, still open* |
+| **SC.3** | `resolved()` unions fields and merges `components` per key, cached per fold |
 | **SC.4** | Type offers are package-disambiguated when two definitions share a name (proven) |
+| **SC.5** | Element forms are four; door heals `figure` → `block`; sample seam is a shaped block; interface-on-figure refusal removed (proven) |
+| **SC.6** | `cardOf` / `styleOf` / `rulesOf` / `constraintsOf` read `resolved()`; a subtype draws the parent's diamond (proven) |
 
 
 ## S1 — the action registry
@@ -42,6 +41,7 @@ is that each line was stood behind, not self-reported.
 | **S1.4** | `actions/groups.ts` + `actions/fields.ts` — the 5 group-and-note and 4 field-and-definition actions |
 | **S1.5** | `actions/layer.ts` — axis/arrange/relax/vocabulary and the four adjustments place/size/seat/wall |
 | **S1.6** | `act.*` wrappers generated from the registry; side-effect imports of `actions/*`; the 5 queries off `act`; aliases for old names; gestures work through the registry. 52 entries in `act` became 29 actions, 4 adjustments, 5 page actions and 5 queries |
+| **S1.7** | Canvas Ask create/rename clash Enter speaks on the strip via `onSay` and holds the field (proven) |
 
 
 ## S2 — the component surface
@@ -78,7 +78,17 @@ is that each line was stood behind, not self-reported.
 | **S4.4** | The workspace as a project — `Held` + `admit` / `folder` / `resolve` / self-guard on `mndflow.workspace.v1` |
 | **S4.5** | Explorer shows both roots; click switches context (proven) |
 | **S4.6** | Workspace `⤓` and project `↧` export/import at schema `1.2` (proven) |
+| **S4.7** | Pristine makes no key; first change writes; pressure strip via `watchPressure` (suite/API + wire) |
 | **S4.8** | Locked packages refuse a change with the reason; the strip offers unlock / fork. Seeded lock proven in a browser |
+| **S4.9** | `Effect.into` + `workspace.writeInto` + `home` — a write into another project's log through the door, undoable there |
+
+## S6 — the rail comes out
+
+| | Landed |
+|---|---|
+| **S6.1** | `project.ts` free of the terminal; question loop registers via `looping()` (detach only) |
+| **S6.2** | Domain terms under `packages/terms/`; `Files.tsx` no longer imports the rail (detach only) |
+| **S6.3** | Page mounts Chat/Scores via optional `import.meta.glob`; build without `terminal/` still runs; Chat + Scores proven |
 
 
 ## S5 — constraints and rules
@@ -128,17 +138,26 @@ is that each line was stood behind, not self-reported.
 | **E.1** | Types chip + editing definitions in the contents tray — fields, defaults, presentation (proven) |
 | **E.2** | A control per field form — number with unit, choice with list, ref with picker, on usage and definition fields (proven) |
 | **E.3** | Tags shown and editable — add/drop on usage and definition fields (proven) |
+| **E.4** | Explorer Shift/Meta multi-select across projects; `Chosen[]` in App; Esc clears (proven) |
 
 
 ## A — views and packages
 
 | | Landed |
 |---|---|
+| **A.1** | The **table** view module — mounts when `view.module` is `table`; rows pick/open; proxy open withheld (proven) |
 | **A.2** | The **matrix** view module — two axes, relationships in the cells, no adjustments. App mounts it when `view.module` is `matrix` (suite) |
 | **A.3** | **requirements** package — requirement block (`id` / `text`, card `shows`) and satisfy/verify/refine/derive/trace. Data only, and the proof a package needs no code |
 | **A.4** | **parametrics** package — a constraint definition with a size and a style. Data only |
-| **A.5** | **flow** package — control flow, object flow (`item` ref), transition (trigger/guard/effect). Data only; formal `names` wait A.11 |
+| **A.5** | **flow** package — control flow, object flow (`item` ref), transition (trigger/guard/effect). Data only; formal `names` landed with A.11 |
 | **A.6** | *Engine capability* — `shaped()` + `outline()` on card, a shape drawn inside a card. Nothing stored |
+| **A.10** | `packages/behavior` — `action` + `state` defs and words (`do`) for activity / sequence / state |
+| **A.7c** | `ViewModule` `word` / `creates`; `ViewConfig` `N` default 5 |
+| **A.7a** | `infer` + `Effect.home` — selection → one behavior block; tier-1 write-home via `home`/`writeInto` (suite) |
+| **A.7b** | **activity** view — App mounts when `view.module===activity`; lanes from refs; DIM on derived labels/order (proven) |
+| **A.8** | **state** view — App mount; empty infer offer; Reading A/B; DIM (proven) |
+| **A.9** | **sequence** view — App mount; columns; directed then axis order; DIM (proven) |
+| **A.11** | `packages/sysml`, `uml`, `uaf` + ornaments as shape/size; formal `names` on behavior/flow/requirements/parametrics; catalog load proven |
 
 
 ## G — canvas polish
@@ -151,6 +170,7 @@ is that each line was stood behind, not self-reported.
 | **G.4** | `dissolve` registered and S1.6-ready (`delete_element` on the group; members stay). *No UI reaches it — that waits G.9* |
 | **G.5** | `Ctrl`/`Cmd` + `A` selects all cards; Esc clears an RF multi-select via `changeNodes`; Fit and Group still work |
 | **G.6** | Panel `+ group` joins the selection into an existing group (proven) |
+| **G.7** | Marquee: both ends inside selects the edge; one end does not (proven) |
 | **G.8** | A favicon — the header's `▚` inline as an SVG data URI, so nothing is fetched |
 
 
@@ -158,8 +178,9 @@ is that each line was stood behind, not self-reported.
 
 | | Landed |
 |---|---|
-| **D.1** | `terms` split out of the workflow YAML into `workflows/terms/*.yaml`; `workflows.ts` merges them |
+| **D.1** | `terms` split out of the workflow YAML into `workflows/terms/*.yaml`; `workflows.ts` merges them — **superseded home**: terms now live under `packages/terms/` (S6.2) |
 | **F.1** | Filename follows the project's name — **already built**; `store.download` derives it from the title. tasks.md was stale |
+| **F.3** | Project export downloads an SVG of the open layer beside the JSON via `svgOf` (proven) |
 | **H.1** | `samples/mndflow.json` — describes this app, exercises the forms; import drew Graph/Canvas |
 | **H.2** | `samples/REVIEW.md` — a line-by-line read of a real export. *Three parks came out of it, in tasks.md under H* |
 | **CI** | `tsc` and `vitest` on push, `.github/workflows/check.yml`. LFS skipped: the model is needed to run the app, not to check it |

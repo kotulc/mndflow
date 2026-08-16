@@ -3,11 +3,12 @@
  *  Properties only — nothing asserts a particular id, key string, or payload
  *  shape that a later row is free to refine. */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  adoptId, clearPressure, load, loadProject, loadWorkspace, pressureNote,
-  projectId, save, saveProject, saveWorkspace, watchPressure,
+  adoptId, canBind, clearPressure, download, downloadSvg, isDrifted, load, loadProject,
+  loadWorkspace, pickIn, pressureNote, projectId, readBound, release, save,
+  saveProject, saveWorkspace, settleBound, watch, watchPressure, writeOut,
 } from "./store";
 import { EMPTY, step, type Step } from "./types";
 
@@ -47,6 +48,7 @@ function lengthy(tag: string, n: number): Step[] {
 
 beforeEach(() => {
   clearPressure();
+  release();
   Object.defineProperty(globalThis, "localStorage", {
     value: memory(), configurable: true, writable: true,
   });
@@ -54,6 +56,8 @@ beforeEach(() => {
 
 afterEach(() => {
   clearPressure();
+  release();
+  vi.useRealTimers();
   Object.defineProperty(globalThis, "localStorage", {
     value: undefined, configurable: true, writable: true,
   });
@@ -223,5 +227,235 @@ describe("under pressure the untouched give up history", () => {
     saveProject("proj_idle", idle);
     expect(saveProject("proj_active", active)).toBe(true);
     expect(loadProject("proj_active")).toEqual(active);
+  });
+});
+
+/** A stand-in File System Access handle — properties only, no real disk. */
+function fakeHandle(name: string, body: string, modified = 1) {
+  let text = body;
+  let lastModified = modified;
+
+  return {
+    name,
+    getFile: async () => ({
+      lastModified,
+      text: async () => text,
+    }),
+    createWritable: async () => ({
+      write: async (data: string | Blob) => {
+        text = typeof data === "string" ? data : await (data as Blob).text();
+      },
+      close: async () => { lastModified += 1; },
+    }),
+    /** Simulate an external edit — what the poll watches for. */
+    bump: () => { lastModified += 1; },
+    contents: () => text,
+  };
+}
+
+type FakeHandle = ReturnType<typeof fakeHandle>;
+
+function withPickers(save?: () => Promise<FakeHandle>, open?: () => Promise<FakeHandle[]>) {
+  const w = globalThis as typeof globalThis & {
+    showSaveFilePicker?: () => Promise<FakeHandle>;
+    showOpenFilePicker?: () => Promise<FakeHandle[]>;
+  };
+  const prior = {
+    save: w.showSaveFilePicker,
+    open: w.showOpenFilePicker,
+  };
+  // canBind requires both; a stub fills whichever the test leaves out.
+  const stub = fakeHandle("stub.mndflow.json", "{}");
+  w.showSaveFilePicker = save ?? (async () => stub);
+  w.showOpenFilePicker = open ?? (async () => [stub]);
+
+  return () => {
+    if (prior.save) w.showSaveFilePicker = prior.save;
+    else delete w.showSaveFilePicker;
+    if (prior.open) w.showOpenFilePicker = prior.open;
+    else delete w.showOpenFilePicker;
+  };
+}
+
+/** Strip both pickers — canBind must then be false. */
+function withoutPickers() {
+  const w = globalThis as typeof globalThis & {
+    showSaveFilePicker?: unknown;
+    showOpenFilePicker?: unknown;
+  };
+  const prior = {
+    save: w.showSaveFilePicker,
+    open: w.showOpenFilePicker,
+  };
+  delete w.showSaveFilePicker;
+  delete w.showOpenFilePicker;
+
+  return () => {
+    if (prior.save !== undefined) w.showSaveFilePicker = prior.save as typeof w.showSaveFilePicker;
+    else delete w.showSaveFilePicker;
+    if (prior.open !== undefined) w.showOpenFilePicker = prior.open as typeof w.showOpenFilePicker;
+    else delete w.showOpenFilePicker;
+  };
+}
+
+describe("live bind and drift", () => {
+  beforeEach(() => {
+    // download and watchPage touch document; pickers hang on globalThis.
+    Object.defineProperty(globalThis, "document", {
+      value: {
+        hidden: false,
+        addEventListener() {},
+        createElement: () => ({ href: "", download: "", click() {} }),
+      },
+      configurable: true,
+      writable: true,
+    });
+    if (typeof URL.createObjectURL !== "function") {
+      URL.createObjectURL = () => "blob:test";
+      URL.revokeObjectURL = () => {};
+    }
+  });
+
+  afterEach(() => {
+    release();
+    delete (globalThis as { document?: unknown }).document;
+  });
+
+  it("reports whether the Chromium pickers are present", () => {
+    const stop = withoutPickers();
+    expect(canBind()).toBe(false);
+    stop();
+
+    const restore = withPickers(
+      async () => fakeHandle("a.mndflow.json", "{}"),
+      async () => [fakeHandle("a.mndflow.json", "{}")],
+    );
+    expect(canBind()).toBe(true);
+    restore();
+  });
+
+  it("binds on writeOut and clears drift after a successful write", async () => {
+    const handle = fakeHandle("untitled.mndflow.json", "{}");
+    const restore = withPickers(async () => handle);
+    const heard: boolean[] = [];
+    const stop = watch((next) => heard.push(next));
+
+    await writeOut('{"ok":true}', "untitled");
+
+    expect(handle.contents()).toBe('{"ok":true}');
+    expect(isDrifted()).toBe(false);
+    expect(heard.at(-1)).toBe(false);
+
+    stop();
+    restore();
+  });
+
+  it("notices when the bound file's lastModified moves underneath", async () => {
+    vi.useFakeTimers();
+    const handle = fakeHandle("untitled.mndflow.json", "{}");
+    const restore = withPickers(async () => handle);
+    const heard: boolean[] = [];
+    const stop = watch((next) => heard.push(next));
+
+    await writeOut("{}", "untitled");
+    handle.bump();
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(isDrifted()).toBe(true);
+    expect(heard.at(-1)).toBe(true);
+
+    stop();
+    restore();
+  });
+
+  it("settleBound clears drift only after the shell accepts the disk copy", async () => {
+    vi.useFakeTimers();
+    const handle = fakeHandle("untitled.mndflow.json", '{"schema":"1.2"}');
+    const restore = withPickers(async () => handle);
+    await writeOut("{}", "untitled");
+    handle.bump();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(isDrifted()).toBe(true);
+
+    const text = await readBound();
+    expect(text).toBeTruthy();
+    expect(isDrifted()).toBe(true);
+
+    await settleBound();
+    expect(isDrifted()).toBe(false);
+
+    restore();
+  });
+
+  it("release drops the handle and the drift warning", async () => {
+    vi.useFakeTimers();
+    const handle = fakeHandle("untitled.mndflow.json", "{}");
+    const restore = withPickers(async () => handle);
+    await writeOut("{}", "untitled");
+    handle.bump();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(isDrifted()).toBe(true);
+
+    release();
+    expect(isDrifted()).toBe(false);
+
+    restore();
+  });
+
+  it("does not overwrite a bound file when the export name is a different file", async () => {
+    const project = fakeHandle("alpha.mndflow.json", "project");
+    const workspace = fakeHandle("workspace.mndflow.json", "shell");
+    let saves = 0;
+    const restore = withPickers(async () => {
+      saves += 1;
+      return saves === 1 ? project : workspace;
+    });
+
+    await writeOut("project-body", "alpha");
+    expect(project.contents()).toBe("project-body");
+
+    await writeOut("workspace-body", "workspace");
+    expect(project.contents()).toBe("project-body");
+    expect(workspace.contents()).toBe("workspace-body");
+    expect(saves).toBe(2);
+
+    restore();
+  });
+
+  it("pickIn returns false when the user cancels, null when the API is absent", async () => {
+    const absent = withoutPickers();
+    expect(await pickIn()).toBeNull();
+    absent();
+
+    const restore = withPickers(
+      async () => fakeHandle("a.mndflow.json", "{}"),
+      async () => { throw new DOMException("cancelled", "AbortError"); },
+    );
+    expect(await pickIn()).toBe(false);
+    restore();
+  });
+
+  it("download remains the fallback when no picker is offered", () => {
+    // Property: download is callable without a live handle — the shell's way
+    // out when Chromium is absent. Does not throw.
+    expect(() => download("{}", "untitled")).not.toThrow();
+  });
+
+  it("downloadSvg offers a companion file without needing a live handle", () => {
+    // Property: the SVG beside the source is always an anchor download — the
+    // live handle stays the JSON. Callable, does not throw.
+    expect(() => downloadSvg("<svg/>", "untitled")).not.toThrow();
+  });
+
+  it("writeOut reports whether the export landed", async () => {
+    const stop = withoutPickers();
+    expect(await writeOut("{}", "untitled")).toBe(true);
+    stop();
+
+    const restore = withPickers(async () => {
+      throw new DOMException("cancelled", "AbortError");
+    });
+    expect(await writeOut("{}", "untitled")).toBe(false);
+    restore();
   });
 });

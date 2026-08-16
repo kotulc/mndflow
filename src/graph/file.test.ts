@@ -158,7 +158,7 @@ describe("the module preference", () => {
 describe("what a definition declares", () => {
   /** Everything a definition can say, so the round trip has all of it to lose. */
   const spoken: Mutation[] = [
-    { op: "set_def", id: "def_decision", name: "decision", form: "figure",
+    { op: "set_def", id: "def_decision", name: "decision", form: "block",
       body: "a branch in a flow", size: { w: 48, h: 48 },
       names: { sysml: "DecisionNode" },
       components: { card: { layout: "shape", shape: "diamond" },

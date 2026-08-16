@@ -9,8 +9,8 @@ import { fold } from "../graph/fold";
 import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../graph/types";
 import {
   admit, blank, defOf, folder, fork, fromDefs, gather, isLocked, isSelf, load,
-  mayAdmit, named, pack, packId, packs, read, resolve, rootOf, save, scoped,
-  unlock,
+  mayAdmit, named, opened, pack, packId, packs, read, resolve, rootOf, save,
+  scoped, unlock, writeInto,
 } from "./index";
 
 /** An in-memory localStorage so the suite does not need a browser. */
@@ -183,6 +183,85 @@ describe("resolve", () => {
     const here = applied({ op: "add_element", element: local });
 
     expect(resolve(here, {}, local.id)?.id).toBe(local.id);
+  });
+});
+
+describe("writeInto", () => {
+  it("lands an applied step in the named project's log through the door", () => {
+    const block = element("Pump", { parent: null });
+    const landed = writeInto(
+      "proj_home",
+      [{ op: "add_element", element: block }],
+      { say: "home: interface", action: "interface" },
+    );
+
+    expect("refuse" in landed).toBe(false);
+    if ("refuse" in landed) return;
+
+    expect(landed.steps.some((s) => s.status === "applied" && s.action === "interface")).toBe(true);
+    expect(landed.graph.elements[block.id]?.label).toBe("Pump");
+
+    // Re-open through the door — storage holds a real undoable step, not a raw replace.
+    const again = opened("proj_home");
+    expect(again.graph.elements[block.id]?.label).toBe("Pump");
+    expect(again.steps.filter((s) => s.status === "applied").length).toBeGreaterThan(0);
+  });
+
+  it("is undone by reverting that step in the target's log", () => {
+    const block = element("Heat Exchanger", { parent: null });
+    const landed = writeInto(
+      "proj_undo",
+      [{ op: "add_element", element: block }],
+      { say: "home", action: "interface" },
+    );
+    if ("refuse" in landed) throw new Error("writeInto refused");
+
+    const index = landed.steps.map((s) => s.status).lastIndexOf("applied");
+    const reverted = landed.steps.map((s, i) =>
+      i === index ? { ...s, status: "reverted" as const } : s,
+    );
+
+    expect(fold(reverted).elements[block.id]).toBeUndefined();
+    expect(fold(landed.steps).elements[block.id]).toBeDefined();
+  });
+
+  it("refuses a locked target before writing", () => {
+    const block = element("Pump", { parent: null });
+    const refused = writeInto(
+      "proj_locked",
+      [{ op: "add_element", element: block }],
+      { say: "home", action: "interface" },
+      { locked: true },
+    );
+
+    expect(refused).toEqual({
+      refuse: "This package is locked.",
+      offer: ["unlock", "fork"],
+    });
+    expect(opened("proj_locked").steps).toEqual([]);
+  });
+
+  it("refuses empty mutations rather than minting a no-op step", () => {
+    expect(writeInto("proj_empty", [], { say: "home", action: "interface" }))
+      .toEqual({ refuse: "Nothing to write." });
+  });
+
+  it("accepts an in-memory prior when the slot has no key yet", () => {
+    const seed = element("Seed", { parent: null });
+    const prior = [step("opened", "checkpoint",
+      [{ op: "checkpoint", graph: applied({ op: "add_element", element: seed }), at: 0 }])];
+    const added = element("Port", { parent: null, side: "left", at: 0 });
+
+    const landed = writeInto(
+      "proj_stash",
+      [{ op: "add_element", element: added }],
+      { say: "home", action: "interface" },
+      { prior },
+    );
+    if ("refuse" in landed) throw new Error("writeInto refused");
+
+    expect(landed.graph.elements[seed.id]).toBeDefined();
+    expect(landed.graph.elements[added.id]).toBeDefined();
   });
 });
 

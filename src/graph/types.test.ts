@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { edge, element, field, definition, newId, asTarget, refAt, refTo, rootElement, ROOT, EMPTY,
          type ElemForm } from "./types";
 
-const FORMS: ElemForm[] = ["block", "note", "group", "proxy", "figure"];
+const FORMS: ElemForm[] = ["block", "note", "group", "proxy"];
 
 describe("newId", () => {
   it.each(FORMS)("prefixes an element made as %s with its own form", (form) => {

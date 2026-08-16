@@ -18,4 +18,6 @@ import { register } from "../index";
 import { MATRIX } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
-register({ name: "matrix", kind: "structure", surface: MATRIX });
+register({
+  name: "matrix", kind: "structure", word: "block", creates: null, surface: MATRIX,
+});

@@ -8,7 +8,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { inScope, offered, register, run, sayable, writes,
-         type Action, type Context } from "./index";
+         type Action, type Context, type Effect } from "./index";
 import { fold } from "../graph/fold";
 import { element, step, type Mutation } from "../graph/types";
 
@@ -158,5 +158,49 @@ describe("what is worth a step", () => {
 
     expect(done.open).toBe(block.id);
     expect(writes(done)).toBe(false);
+  });
+});
+
+describe("where a step lands", () => {
+  it("lets an effect name the project the mutations land in", () => {
+    const homes: Action = {
+      name: "test.home", label: "Home", about: "writes a fact into another project",
+      scope: { on: "layer" }, args: [],
+      run: () => ({
+        mutations: [{ op: "set_body", id: "root", body: "stated" }],
+        into: "proj_structure",
+        say: "home: interface",
+      }),
+    };
+    register(homes);
+
+    const { graph } = layer();
+    const done = run("test.home", at(graph, null));
+
+    expect(done).toMatchObject({
+      into: "proj_structure",
+      say: "home: interface",
+    });
+    expect(writes(done as { mutations: Mutation[] })).toBe(true);
+  });
+
+  it("counts home batches as writing", () => {
+    const homes: Action = {
+      name: "test.home.batch", label: "Home batch", about: "writes home only",
+      scope: { on: "layer" }, args: [],
+      run: () => ({
+        mutations: [],
+        home: [{
+          into: "proj_structure",
+          mutations: [{ op: "set_body", id: "root", body: "stated" }],
+        }],
+      }),
+    };
+    register(homes);
+
+    const { graph } = layer();
+    const done = run("test.home.batch", at(graph, null));
+
+    expect(writes(done as Effect)).toBe(true);
   });
 });

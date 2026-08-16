@@ -14,16 +14,15 @@ Built and stable: the validator, the one message strip, the schema and a propert
 A0.1; grown since). `src` is grouped by what a thing is for and dependencies run one way — see
 [README.md](../README.md) for the map.
 
-**Frozen, pending refinement.** Left alone deliberately while the graph model settles: the
-**terminal rail** and the **visual style**. *The rail's role is now settled — one text entry point
-over the workspace, not a command palette (design.md,* The terminal*). It stays frozen because it
-ranks and completes whatever the surface offers, and the surface is still moving.*
+**Frozen, pending refinement.** The **visual style** only. **The terminal rail is unfrozen** —
+its role is settled (design.md, *The terminal*), the surface it ranks over has stopped moving, and
+G.9c puts the rail's own select-and-confirm behaviour on the near queue. It is detachable now (S6),
+so working in it no longer risks the rest.
 
-**One known dependency violation**, left visible: `project.ts` imports the terminal. **S1 was
-supposed to fix it and did not** — S1.6 landed, the `act` literal became `actions/*`, and the three
-terminal imports stayed, because the question loop's `pending` is held in project state and nothing
-in S1 addressed it. **Seam S6 is what fixes it now**, and it is no longer cosmetic: the rail has to
-be removable, and four files outside `terminal/` import it.
+**The rail is detachable.** `project.ts` no longer imports the terminal — question loop registers
+via `looping()` (S6.1). `packages/terms/` holds vocabulary; `Files.tsx` is free of the rail
+(S6.2). **Page mount is optional** via `import.meta.glob` — Readout optional `Scores`; a build
+without `terminal/` still runs (S6.3, proven). **Parked**: Matching tab empty when Scores absent.
 
 **Exercised in a browser**, and every seam is exercised there before it is called done — see
 `.claude/skills/run/SKILL.md` for how. A fresh session, a pre-freeze log, the canvas gestures,
@@ -38,9 +37,54 @@ through `check.ts` whatever it was written by.
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
 
-*Nothing here blocks a plan row today. A.7's design is settled — the whole of it is in
-[behaviors.md](behaviors.md), the reasoning in design.md under* Structure and behavior. *What is
-open inside it is listed there under* Still open, *and none of it blocks A.7a.*
+*Recently closed: **the context menu's shape** (G.9) — one ranked action list, reached from the
+explorer's right button, the canvas's right button, and by clicking the rail (type to filter, arrows
+to move, `Enter` to take). **The list lives below the rail, in `actions/`**, because the rail is
+detachable and a menu importing it would break S6.3. **Still open**: which canvas gesture gives way
+(◆ G.9d).*
+
+*Recently closed: **the terminal is unfrozen**; **A.12 is dropped** — a child block's inside already
+is an internal block diagram.*
+
+*Nothing here blocks a plan row today except the `◆` gates: **G.9d** (which canvas gesture gives
+way to the menu) and **Z.6** (docs home / keying). A.7a's
+design is settled — the whole of it is in [behaviors.md](behaviors.md); `infer` is built; activity /
+state / sequence views draw derived labels (A.7b–A.9). What remains open inside behaviour is listed
+there under* Still open*.
+
+*Recently closed: **page mounts the rail or does not** (S6.3) — optional via `import.meta.glob`;
+Readout optional Scores; build without `terminal/` passes; Chat + Scores proven. **Parked**:
+Matching tab empty when Scores absent.*
+
+*Recently closed: **`project.ts` free of the terminal** (S6.1) and **`terms` in `packages/terms/`**
+(S6.2). Detach only; D.2 / A0.2 bridge still needs Clay.*
+
+*Recently closed: **`infer`** (A.7a) — selection → one behavior block + `Effect.home`; writing into
+a foreign project via `Effect.into` / `writeInto` (S4.9). **Parked**: page chosen → `infer`; App
+refresh after foreign write. Cap is a tree slice, not connected-components.*
+
+*Recently closed: **activity view** (A.7b) — mounts when `view.module===activity`; DIM in stage;
+dimmed labels/order proven. Owns include `base.ts` + App mount. **Parked**: RF framed host;
+gestures on activity plane; activity-final double ring; swimlanes-from-`performs` docs drift.*
+
+*Recently closed: **state view** (A.8) — state module + App mount; empty infer offer; Reading A/B;
+DIM proven. Owns include `base.ts` + App mount.*
+
+*Recently closed: **sequence view** (A.9) — sequence module + App mount; columns; directed then
+axis; DIM proven. Owns include `base.ts` + App mount.*
+
+*Recently closed: **UML / SysML / UAF packages** (A.11) — `packages/sysml|uml|uaf` + ornaments as
+shape/size; catalog load proven; formal `names` on behavior / flow / requirements / parametrics.*
+
+*Recently closed: **explorer multi-select** (E.4) — Shift/Meta, `Chosen[]` in App. **Parked**: Ctrl
+on Windows; no distinct CSS; infer wire.*
+
+*Recently closed: **`figure` retired** (SC.5) — door heals to `block`; sample re-authored as shaped
+block; interface-on-figure refusal removed. Forms are four.*
+
+*Recently closed: Ask + Canvas `onSay` wires `check` refusals to the strip (S1.7); SVG download
+beside source export (F.3); both-ends marquee selects edge (G.7); `view` carries `word` / `creates`
+and cap `N` (A.7c — create/infer not wired yet).*
 
 *Recently closed: **the rail is not a command palette.** It is the one text entry point over the
 workspace — natural language that makes and changes things, surfaces documentation, packages and
@@ -62,13 +106,14 @@ and re-inferring makes a new block rather than editing one. **Guess freely in th
 into the structure** is the line the design rests on — the ordering chain is four tiers deep and
 fires almost always, and only what the structure **stated** is written home. **Derived state
 machines are gone. Lanes come from the ref**, not from `performs`. `action` and `state` are
-**definitions**, not forms.*
+**definitions**, not forms. **A.7a built the action**; **A.7b–A.9 draw activity, state and
+sequence.***
 
 *Recently closed: **`figure` is retired** — nothing in the core ever placed one, behaviour was the
 last candidate and places blocks, refs and groups instead. Ornament is a block with a `shape` and a
 `size`, both of which the card already carries; the fork bar is a thin `rect`. The closed set of
 element forms drops to **four**. S5.5's "takes no interfaces" survives as a `degree` constraint on a
-definition (S5.2) rather than a branch in the action. SC.5 is the removal.*
+definition (S5.2) rather than a branch in the action. SC.5 is the removal — **done**.*
 
 *Recently closed: the shipped layout is two folders at the root, `packages/` for data and `styles/`
 for stylesheets, with no wrapper — module code is `src/modules/`, where it already lives; and a
@@ -130,8 +175,8 @@ The shape is specced in [spec.md](spec.md) under *Action surface*, the reasoning
 - **Collapse the duplicates as part of the extraction**, so nothing later is written against a
   surface that then changes. 52 entries in `act` become **29 actions**, 4 adjustments, 5 page
   actions and 5 queries that leave the surface entirely. *Done with S1.6.*
-- **`check` refusals reach the strip for taken names** via `NameField` (S1.7 partial, proven).
-  **Parked**: canvas prompt clash still silent.
+- **`check` refusals reach the strip** via Ask + Canvas `onSay` (S1.7, proven), including
+  `NameField` taken-name marks.
 - **The `act.foo(...)` methods stay, generated from the registry**, so call sites keep working
   through aliases where old names remain.
 
@@ -148,16 +193,20 @@ handling — *done* — composition, and `modules/`.
   `constraints`, `style` (`styleOf` / `lookOf`, `styles/sysml.ts`), `view` (six-module registry),
   `rules` (`ends` / `holds` / `degree` / `match`, `among` via `isa`). **Block diagram draws from
   card / `lookOf`** (S2.6b); projection surface (frame/crumbs/prompts), compose and gesture map
-  live under `modules/view/diagram/` (S2.6 / S2.6c / S2.7). `Canvas.tsx` still hosts. Table and
-  matrix mount when `view.module` names them (A.1 / A.2, suite). Activity / sequence / state wait
-  A.7–A.9. Rules evaluate and advise in the tray (S5.3). The module
-  `validate` / `findings` hook is live (S5.4); no shipped module supplies a real one yet, and
-  Contents still surfaces constraint/rule notes only.
+  live under `modules/view/diagram/` (S2.6 / S2.6c / S2.7). `Canvas.tsx` still hosts. **Table**
+  mounts when `view.module` is `table` — rows pick/open, proxy open withheld (A.1, proven).
+  **Matrix** when named (A.2, suite). **Parked**: table chrome (crumbs / types) not hosted beside
+  Table.   **Activity** when `view.module` is `activity` — dimmed labels/order (A.7b, proven).
+  **State** when `state` — empty infer offer; Reading A/B; DIM (A.8, proven). **Sequence** when
+  `sequence` — columns; directed then axis; DIM (A.9, proven). **Parked**: RF framed host;
+  gestures on activity plane; activity-final double ring. Rules evaluate and advise in the tray (S5.3).
+  The module `validate` / `findings` hook is live (S5.4); no shipped module supplies a real one yet,
+  and Contents still surfaces constraint/rule notes only.
 - **Preset registry** — `ship` / `presets` / `preset` in `modules/index.ts` (*done*, A0.4). No
   concrete presets shipped yet.
 - **`resolved()` merges the subtype chain** — fields union, `components` per key, cached per fold
-  (*done*, SC.3). **Parked**: `cardOf`, `styleOf`, `rulesOf`, `constraintsOf` still read the leaf
-  definition alone and ignore the chain.
+  (*done*, SC.3). **`cardOf` / `styleOf` / `rulesOf` / `constraintsOf` read that view** (*done*,
+  SC.6, proven). **Parked**: Contents still advises only leaf constraints/rules on subtypes.
 - **The plain card is drawn from** — `PLAIN` and shape stroke read from the components (S2.6b).
 
 **S2.6 walked in advance, without moving any code.** Every part of `Canvas.tsx` put against the six
@@ -224,8 +273,10 @@ Two components, and the first rules the engine applies rather than infers. **`co
 modelling and refuse only at translation**: Contents evaluates and notes in the tray/strip (*done*,
 S5.3); a module's `validate` hook and `findings` collect advise-only words (*done*, S5.4) — no
 shipped hook yet, and Contents does not call `findings`. Value-missing evaluation is live with
-S5.3. **S5.5 is superseded**: `figure` is retired (SC.5), so "takes no interfaces" becomes a
-`degree` constraint on a definition and the branch in `actions/edges.ts` comes out with the form.
+S5.3. **Parked**: on subtypes, Contents still advises only leaf constraints/rules (resolvers inherit;
+the tray does not). **S5.5 is superseded**: `figure` is retired (SC.5), so "takes no interfaces"
+becomes a `degree` constraint on a definition and the branch in `actions/edges.ts` comes out with
+the form (SC.5, proven — heal → `block`; sample shaped block; interface-on-figure refusal removed).
 
 ### A0 — packages and styles
 
@@ -243,12 +294,9 @@ loader. Do **not** treat A0.2 as fully closed while that gate is open. **Preset 
 `extends` does not walk yet. *(The README dependency map is current again — `actions/`, `workspace/`
 and `modules/`'s grown dependencies are all in it.)*
 
-**The subtype chain reaches nothing (SC.6).** `cardOf`, `styleOf`, `rulesOf` and `constraintsOf` all
-read `graph.defs[type].components` — the leaf definition alone. `resolved()` computes exactly the
-merge they need and has no caller, so **`extends` inherits nothing at the point of use**: subtype a
-styled definition and the child draws unstyled. `rules` walks `isa` only to match a rule *against* a
-subtype, never to inherit its own configuration. This reads as a bug rather than a missing feature,
-which is why it is a row and not a park.
+**The subtype chain reaches the four resolvers (SC.6, proven).** `cardOf`, `styleOf`, `rulesOf`
+and `constraintsOf` read `resolved()`, so a subtype draws the parent's diamond. **Parked**:
+Contents still advises only leaf constraints/rules on subtypes — not this row's owns.
 
 ### S3 — fold hygiene
 
@@ -266,22 +314,23 @@ Touches only `fold.ts`, so it runs alongside S1 and S2.
 ### S6 — the rail comes out
 
 **The rail is a separate thing and the app is whole without it** (design.md). *Take `src/terminal/`
-out and everything still works* is the acceptance test, and it fails today.
+out and everything still works* is the acceptance test — **S6.1–S6.3 landed**.
 
-| Imports the rail | For |
-|---|---|
-| `project.ts` | `router`, `turn`, `workflows`; holds the question loop's `pending` in project state |
-| `page/Files.tsx` | `Terms` — vocabulary, which is a general need and not the rail's |
-| `page/App.tsx` | `Chat`, `Suggestion` |
-| `page/Readout.tsx` | `Scores` |
+| Imports the rail | For | Status |
+|---|---|---|
+| `project.ts` | was `router`, `turn`, `workflows` + `pending` | **cut** (S6.1) — `looping()` registration |
+| `page/Files.tsx` | was `Terms` | **cut** (S6.2) — `packages/terms/` |
+| `page/App.tsx` | `Chat`, `Suggestion` | **optional** (S6.3) — `import.meta.glob` |
+| `page/Readout.tsx` | `Scores` | **optional** (S6.3) |
 
 - **An optional part that half the app imports is not optional.** Where the rail runs is undecided —
   currently fully local — and the design deliberately does not wait on that. What it does require is
-  that including it is a choice.
-- **`terms` is the knot.** Vocabulary living under `terminal/` is why the file tray needs the rail,
-  and it is the same tangle **D.2** is blocked on. S6.2 and D.2 want doing together.
+  that including it is a choice. **S6.3 proves the page can omit it.**
+- **`terms` moved to `packages/terms/`** (S6.2). **D.2 / A0.2** still need Clay — untouched by the
+  detach.
 - **Every capability the rail adds must exist without it.** If the only way to do something is to
   say it, the rail has stopped being optional. Worth checking against Z.8 when its scope is settled.
+- **Parked**: Matching tab empty when Scores absent.
 
 ### S4 — the workspace
 
@@ -299,12 +348,9 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
   as a missing block rather than deleting the proxy, so undoing a deletion in one project brings
   the reference back in another.
 - **A change is recorded where its element lives.** Filling in a matrix cell writes to the project
-  that owns both ends. Ownership routes it, and nothing branches or merges. **The path does not
-  exist yet — S4.9.** `App` holds one `useProject(contextId)`; every other open project is read-only
-  through `graphOf`, and the only way to reach another log is `store.saveProject(id, steps)`, which
-  is a raw step-list write bypassing the fold, the door and the target's undo. So *writing home* —
-  behaviors.md's tier-1 interfaces, a matrix cell, a rename through a proxy — has nowhere to land
-  today. **This blocks A.7a**, and it is the last seam the workspace is missing.
+  that owns both ends. Ownership routes it, and nothing branches or merges. **The path is live
+  (S4.9)**: `Effect.into` / `writeInto` / `home` — same door, undoable step in the target's log.
+  **Parked**: App may not refresh after a foreign write; into()-style runner if needed.
 - **A relationship across two projects is a proxy plus an ordinary edge**, both in the project of
   the end making the claim. No relationship ever spans two logs.
 - **The workspace is itself a project**, and needs no new schema to be one: its elements are
@@ -324,9 +370,10 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
   `graph/file.ts`, `page/App.tsx`, `project.ts`.
 - **The workspace needs its own storage**, separate from every graph — *done as keys*:
   `loadProject`/`saveProject` one slot per id, `loadWorkspace`/`saveWorkspace`, legacy
-  `mndflow.steps.v1` migrates once. Lazy keys and the pressure API are *done* (S4.7): pristine
-  makes no key; first change writes; `watchPressure` / `pressureNote` on the store.
-  **Parked**: the strip is not subscribed to `watchPressure` yet.
+  `mndflow.steps.v1` migrates once. Lazy keys, pressure API, and the strip note are *done*
+  (S4.7): pristine makes no key; first change writes; `watchPressure` / `pressureNote`; strip
+  shows the pressure note (suite/API + wire; quota hard to prove in-browser). Owns
+  `graph/store.ts`, `project.ts`, `page/App.tsx`.
 - **Locked packages** — refuse a write with the reason; the strip offers **unlock** or **fork**
   (*done*, S4.8, seeded lock proven). Unlock and fork are workspace operations, not registry
   actions.
@@ -337,7 +384,7 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 - **Shared definitions.** A house vocabulary is re-declared per project today and drifts. A
   definition ref widens the same way a proxy target does, so the shared vocabulary is one graph
   the others reference — which is what a **package** is. Load-by-id is live (A0.3); a project's
-  import list is D.2 — **blocked** on terminal freeze + owns (A0.2 bridge needs Clay).
+  import list is D.2 — **unblocked** now the terminal is no longer frozen.
 
 
 ## Phase 1: the streams
@@ -353,15 +400,14 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **H** Sample project | `samples/` | — |
 | **Z** Terminal | `terminal/` | **everything above**, H especially |
 
-**Startable today, before any seam:** G.7's both-ends enclosure park on `Canvas.tsx`; F.3 SVG
-download wire beside the source; S1.7 canvas-prompt strip.
+**Startable today:** F.2 live bind+drift proof (`◐`); D.2 (**unblocked** — the terminal is no
+longer frozen, and the A0.2 bridge is retired with that row); G.9a, then G.9b / G.9c; the `infer`
+trigger. **◆** needing Clay: G.9d, Z.6.
 
 **The terminal goes last, deliberately — Wave Z is parked.** It ranks and completes whatever the
 surface offers, so building it against a surface still moving means building it twice. It is also
 the one stream whose value depends on the rest being mature — which makes it the acceptance test
-for all of them. **◆** rows needing Clay before code: G.9 (menu trigger) and Z.6 (docs home).
-**A.7 is no longer one** — its design is settled above; only the action's *name* is open, and that
-blocks nothing until code is written.
+for all of them.
 
 **S4 and F both reached `store.ts`.** S4.1 / S4.7 / F.2 are done; they are disjoint from here.
 
@@ -376,10 +422,10 @@ different ways — see design.md under *Structure and behavior*.
 | requirements | a package. No code — *done* (A.3) |
 | parametrics | a package — *done* (A.4) |
 | flow | a package of `directed` subtypes — *done* (A.5) |
-| activity | a **view module**, plus a package of words. A behavior layer's default reading — A.7 |
-| state machine | a **view module** over the same layer, and a second **projection** where somebody wants state blocks |
-| sequence | a **view module** over the same layer. Messages are derived, not drawn |
-| UML, SysML v2, UAF | packages — tables of definitions, names and mappings |
+| activity | a **view module**, plus a package of words (*done*, A.10). A behavior layer's default reading — **done** (A.7b) |
+| state machine | a **view module** over the same layer — **done** (A.8) |
+| sequence | a **view module** over the same layer — **done** (A.9). Messages are derived, not drawn |
+| UML, SysML v2, UAF | packages — **done** (A.11): tables of definitions, names and mappings; ornaments as shape + size |
 
 **Six view modules**: `block`, `table`, `matrix` for a structure and `activity`, `sequence`, `state`
 for a behavior. Everything else is configuration or data. **Behaviour added one action** —
@@ -387,38 +433,55 @@ for a behavior. Everything else is configuration or data. **Behaviour added one 
 went, because behaviour was the last candidate to place one and it places blocks, refs and groups.
 
 - **`shaped` / `outline` on card** — *done* (A.6). Nothing stores a shape; the module computes one
-  inside the engine's box. Diagram strokes from card / `lookOf` (S2.6b); counting what to draw as a
-  control node is A.7b. **This is also what retired `figure`**: shape plus the definition's `size`
+  inside the engine's box. Diagram strokes from card / `lookOf` (S2.6b); activity counts and draws
+  control nodes (A.7b). **This is also what retired `figure`**: shape plus the definition's `size`
   says every SysML ornament — a diamond for a decision, a thin `rect` for a fork bar, a small
   `ellipse` for an initial node. **The one gap is the activity-final double ring**, which wants a
-  `style` that can stroke twice; nothing else needed a form.
+  `style` that can stroke twice; nothing else needed a form — parked from A.7b.
 - **requirements package** — *done* (A.3): `packages/requirements/` — requirement block (`id` /
   `text`, card `shows`) and five directed relationships. Data only.
 - **parametrics package** — *done* (A.4): `packages/parametrics/` — constraint with size and style.
   Data only.
 - **flow package** — *done* (A.5): `packages/flow/` — control flow, object flow (`item` ref),
-  transition (trigger/guard/effect). Formal `names` wait A.11.
-- **A.1 / A.2** — table and matrix modules mount when `view.module` is `table` / `matrix`
-  (*done*, suite). **A.7's design is settled** — see the open questions above.
+  transition (trigger/guard/effect). Formal `names` landed with A.11.
+- **behavior package** — *done* (A.10): `packages/behavior/` — `action` + `state` in
+  `definitions.yaml`; words for activity / sequence / state with verb `do`. Activity view reads
+  the verb for derived labels (A.7b). Formal `names` landed with A.11.
+- **A.1** — table mounts when `view.module` is `table`; rows pick/open; proxy open withheld
+  (*done*, proven). **Parked**: table chrome (crumbs / types) not hosted beside Table. **A.2** —
+  matrix mounts when named (*done*, suite). **A.7a** — `infer` + `Effect.home` (*done*, suite 387).
+  **Parked**: page chosen → `infer`. Cap is a tree slice, not connected-components. **A.7c** —
+  `ViewModule` `word` / `creates` and `ViewConfig` `N` default 5 (*done*). **Parked**: create /
+  `infer` not wired to `word` / `creates`. **A.7b** — activity mounts when `view.module` is
+  `activity`; DIM in stage; dimmed labels/order proven. Owns include `base.ts` + App mount.
+  **Parked**: RF framed host; gestures on activity plane; activity-final double ring;
+  swimlanes-from-`performs` docs drift. **A.8** — state module + App mount; empty infer offer;
+  Reading A/B; DIM proven. Owns include `base.ts` + App mount. **A.9** — sequence module + App
+  mount; columns; directed then axis; DIM proven. Owns include `base.ts` + App mount. **A.11** —
+  `packages/sysml|uml|uaf` + ornaments as shape/size; catalog load proven; formal `names` on
+  behavior / flow / requirements / parametrics.
 - **A behavior project owns its own tree.** It holds its actions and states, and **refs** to the
   participants; what it learns about a participant is written through the ref to the block, which is
   the ownership rule in S4 and not an exception to it.
 - **The whole inference is [behaviors.md](behaviors.md)** — the four ordering tiers, lanes from the
   ref, the abstraction cap, derived labels, and what writes home. Two worked examples are kept there
-  as the record of why. **What is still open is listed at the foot of that file**, and none of it
-  blocks A.7a.
+  as the record of why. **What is still open is listed at the foot of that file.**
 - **A behavior block's definition is `action` or `state`**, and a container one is an *activity*.
-  Right-click makes whichever the module in scope declares, so **the `view` component needs a
-  default definition for a created block** — a small addition beside "the module's word", and one
-  every module benefits from (`table` answers "a row", `matrix` answers "nothing"). The same
-  component carries the abstraction cap **`N`**, default 5.
+  **`view` carries `creates` / `word` and cap `N` (default 5)** (A.7c). Create / `infer` are not
+  yet wired to those fields.
+- **The IBD layout law is dropped** (was A.12). The view inside a child block already *is* an
+  internal block diagram, so no separate law or module is wanted. On the not-in-queue list only, in
+  case connectivity-ranked placement proves worth having on its own later.
 - **A diagram binds gestures to actions**; the graph still holds all the state.
 - **A lifeline is a column, and an occurrence on it is an action.** Which column follows from who
-  `performs` the action, and **a message is derived**: an order relationship whose two ends are
-  performed by different participants. Sequence needs an arrangement, not a layout law of its own,
-  and needs nothing drawn that the activity did not already say.
-- **A swimlane is derived from `performs`** — the participants an action names are the lanes. Not a
-  group, which cannot be empty, and not something anybody draws.
+  the action refs (lanes from the ref — design; tasks once said `performs`, which is the docs drift
+  parked under A.7b). **A message is derived**: an order relationship whose two ends are performed
+  by different participants. Sequence needs an arrangement, not a layout law of its own, and needs
+  nothing drawn that the activity did not already say.
+- **A swimlane is derived from the ref** — the participant an action holds is the lane. Not a
+  group, which cannot be empty, and not something anybody draws. *(tasks once said `performs` —
+  correct that drift when next touching activity chrome; A.9 sequence columns follow the same
+  ref rule.)*
 
 ### C — geometry
 
@@ -448,13 +511,13 @@ else.
 
 Split out of the terminal because a module needs it and the terminal does not gate it.
 
-- **`terms` live in `workflows/terms/*.yaml`** — *done* (D.1); `workflows.ts` merges them. Chips
-  still read Module/Dependency until a vocabulary package supplies the words.
+- **`terms` live in `packages/terms/*.yaml`** — *done* (S6.2; was D.1 under `workflows/terms/`).
+  Chips still read Module/Dependency until a vocabulary package supplies the words.
 - **Take `domain` apart.** It became `graph.vocabulary` in the migration — a rename that decided
   nothing. It currently keys three concerns: a set of words, a set of starting relations, and a set
   of workflow prompts. **Relation seeds moved to `packages/core/`** (A0.2); the terminal still
-  reads them through the seeding bridge until D.2 consumes A0.3's loader. **D.2 is blocked** on
-  terminal freeze + owns (A0.2 bridge needs Clay).
+  reads them through the seeding bridge until D.2 consumes A0.3's loader. **D.2 is unblocked** —
+  the terminal is no longer frozen, so the bridge is retired as part of that row.
 - **The words are what a module needs** — what this notation calls a block, a group, a
   relationship. Stream A cannot declare a module vocabulary until they are separable from the
   prompts.
@@ -473,9 +536,9 @@ Split out of the terminal because a module needs it and the terminal does not ga
 - **Icons.** A definition should be able to draw one as well as a boundary or a note. `layout: icon`
   renders a **glyph** today; no SVG and no set chosen. Retiring `figure` did not add to this — every
   ornament walked came out as a shape plus a size — but an actor still wants a real icon.
-- **Multi-select in the explorer tree.** A prerequisite for `infer`: the selection it takes is any
-  cross-section — blocks, branches, whole projects, across several at once — and the tree offers
-  single selection only. The canvas already multi-selects; the tree does not.
+- **Multi-select in the explorer tree.** *Done* (E.4, proven): Shift/Meta builds `Chosen[]` across
+  blocks, branches and projects. **Parked**: Ctrl on Windows; no distinct multi-select CSS; page
+  chosen → `infer` not wired.
 - **Packages** — the two notations that turned out to be data rather than views. **Requirements**
   (*done*, A.3), **flow** (*done*, A.5) and **parametrics** (*done*, A.4) ship as YAML under
   `packages/`.
@@ -488,24 +551,29 @@ Split out of the terminal because a module needs it and the terminal does not ga
 - **File System Access** — *done as fallback* (F.2): Chromium path present; download when the
   picker fails. Live bind+drift is in code and shows in the header, but was not proven under
   automation. Owns `graph/store.ts`, `page/App.tsx`, `project.ts`.
-- **Rendered SVG beside the source** — `svgOf` on the diagram module is landed (F.3 partial,
-  suite). **Parked**: wiring that markup into a download beside the JSON export.
+- **Rendered SVG beside the source** — *done* (F.3, proven): SVG download beside the JSON export.
+  Owns include `modules/view/diagram/`, `graph/store.ts`, `page/App.tsx`, `project.ts`.
 - **Reviewing a model change as JSON is poor.** Committing a rendered SVG beside the source makes a
-  pull request readable. Costs an export path and nothing structural — download wire is the park
-  above.
+  pull request readable — now available beside the source export.
 
 ### G — canvas polish
 
-- **The context menu**, still the last thing to build. Every entry now performs its default action
-  directly and correctly, so the menu covers for nothing wrong — only the alternatives are missing:
-  direction and reversal for a relationship, ungroup, paste, delete throughout. **◆ G.9** — needs
-  Clay: the trigger is not designed.
-- **A menu trigger.** The right button is spent entirely on direct creation, so the menu has no
-  gesture left. The intended answer is that selecting an element reveals its options in the
-  contents tray — the table is the menu and no gesture is needed. Not designed yet.
-- **The selection box.** **Partial (G.7):** an edge with only one end enclosed is not selected;
-  click / Ctrl+A / Esc still behave (proven). **Parked**: both-ends enclosure policy. Dead CSS:
-  `.leg-grab` / `.leg-mark` still describe segment grab bands `Wire` no longer draws.
+- **The context menu is designed** (G.9). **One ranked list of what the selection can do**, reached
+  three ways: right-click in the explorer (G.9b), right-click on the canvas (G.9d), and clicking
+  anywhere in the rail, which puts the caret in it — type to filter, arrows to move, `Enter` to take
+  (G.9c). The list is the same in all three; only the way in differs.
+- **The list may not live in `terminal/`** (G.9a). The rail is detachable and S6.3's acceptance test
+  is *delete `terminal/` and everything still runs* — a menu that imported the rail would break it.
+  Ranking over the action registry belongs beside the registry, in `actions/`, and the rail becomes
+  one more consumer of it. **This is the load-bearing constraint on G.9**, not a tidiness point.
+- **The canvas right button is still the open half** (**◆ G.9d**). The diagram's declared gesture
+  map binds all five: `empty→create`, `card→interface`, `frame→interface`, `edge→retype`,
+  `selection→group`. The menu needs one of them to move, or its own gesture on the canvas. The
+  explorer and rail halves are unaffected and can land first.
+- **The selection box.** *Done* (G.7, proven): both ends inside selects the edge; one end does not.
+  Dead CSS: `.leg-grab` / `.leg-mark` still describe segment grab bands `Wire` no longer draws.
+- **Esc after marquee.** Esc does not clear RF-selected edges after a marquee selection. Parked
+  under gestures; not the selection-box row.
 - **Filter relationships by type on the canvas** — *done* (G.1). Toolbar cycles types; filtered
   edges do not draw; seats clear. **Parked**: the filter is not persisted in localStorage.
 - **`Ctrl`/`Cmd` + `A`** — *done* (G.5). Selects all cards; Esc clears an RF multi-select via

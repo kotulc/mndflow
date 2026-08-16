@@ -133,7 +133,7 @@
         ]
       },
       "def_seam": {
-        "body": "Ornament a package may ship; the engine places it and never draws it.",
+        "body": "Ornament a package may ship — a block whose definition carries a shape and a size.",
         "components": {
           "card": {
             "layout": "shape",
@@ -141,7 +141,7 @@
             "label": "below"
           }
         },
-        "form": "figure",
+        "form": "block",
         "id": "def_seam",
         "name": "seam mark",
         "size": {
@@ -598,8 +598,7 @@
           "x": 48,
           "y": 240
         },
-        "figure_seam": {
-          "form": "figure",
+        "block_seam": {
           "num": 1,
           "type": "def_seam",
           "x": 768,

@@ -38,6 +38,10 @@ export type Context = {
   /** True when the project in context is locked in the workspace. Writing
    *  actions then refuse and offer unlock or fork — looking still works. */
   locked?: boolean;
+  /** This project's id when known — bare refs in a selection resolve here. */
+  project?: string;
+  /** Open projects (and packages) by id — cross-project `of[]` resolution. */
+  open?: Record<string, Graph>;
 };
 
 /** What an action needs, typed so that whoever is asking knows what it can
@@ -53,11 +57,24 @@ export type Arg =
 
 export type Args = Record<string, unknown>;
 
+/** Mutations that land in another project's log — writing home. Applied after
+ *  the primary {@link Effect.mutations} via `project.home` → `writeInto`. */
+export type HomeBatch = {
+  into: string;
+  mutations: Mutation[];
+  say?: string;
+};
+
 /** What running one comes to.
  *
  *  `open` and `focus` are how the ten actions that used to close over the
  *  page's state stay pure. **Undo restores the graph and never the context**,
- *  so neither is replayed: where somebody is looking is theirs. */
+ *  so neither is replayed: where somebody is looking is theirs.
+ *
+ *  `into` is which project's log the primary mutations land in — a matrix
+ *  cell, a rename through a proxy, an inferred behavior project. Absent means
+ *  the project in context. One primary log per effect; {@link home} batches
+ *  are extra writes into structure projects, still through the same door. */
 export type Effect = {
   mutations: Mutation[];
   /** Open this layer. Null is the project itself. */
@@ -65,6 +82,10 @@ export type Effect = {
   focus?: Picked;
   /** One line for the strip. */
   say?: string;
+  /** Project id primary mutations land in. Absent is the project in context. */
+  into?: string;
+  /** Structure writes implied by the primary work — tier-1 flow interfaces. */
+  home?: HomeBatch[];
 };
 
 /** A refusal: why it did not run, and — when the project is locked — the ways
@@ -169,7 +190,9 @@ export function run(name: string, ctx: Context, args: Args = {}): Effect | Refus
 
 /** Whether an effect is worth a step. An action that wrote no mutations changed
  *  nothing about the project — going somewhere and looking at something are not
- *  history, and putting them in the log would give undo two kinds of work. */
+ *  history, and putting them in the log would give undo two kinds of work.
+ *  Home batches count too: writing into a structure is still editing. */
 export function writes(effect: Effect): boolean {
-  return effect.mutations.length > 0;
+  return effect.mutations.length > 0
+    || Boolean(effect.home?.some((batch) => batch.mutations.length > 0));
 }

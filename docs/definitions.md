@@ -40,8 +40,8 @@ join them. Everything else describes one of the two.
 | Term | Means |
 |---|---|
 | **tree** | the project's core hierarchy: blocks nested inside blocks. The spine the whole project hangs from |
-| **structure tree** *(planned)* | the tree of a **structure project**: the things themselves, and the truth about them |
-| **behavior tree** *(planned)* | the tree of a **behavior project**: activities, and the actions and states under them. **Only behavior blocks are in it** — a participant appears inside a behavior *layer* as a ref, never as a child |
+| **structure tree** | the tree of a **structure project**: the things themselves, and the truth about them |
+| **behavior tree** | the tree of a **behavior project**: activities, and the actions and states under them. **Only behavior blocks are in it** — a participant appears inside a behavior *layer* as a ref, never as a child |
 | **structural** | belonging to the tree, and nothing looser. **Only blocks are structural**, and only through `parent` — a note, a group and a proxy all sit in a layer without composing it, and a relationship joins without composing. Reserved for the tree so that it stays a useful word |
 | **parent** | what an element sits inside. The tree is `parent` and nothing else |
 | **containment** | being inside something. **Implied by `parent`, never stored as a relationship** |
@@ -114,7 +114,7 @@ named value carried by an element or a relationship, and never changes what cont
 | Term | Means |
 |---|---|
 | **layer** | a **cross-section of the tree at one block**: that block's immediate contents, seen from within. Not its whole subtree — descending a level is a different cross-section of the same branch. The layer is the current **scope** |
-| **layer view** | the **projection** of a layer: what that layer looks like once the rules and packages in scope are applied to it, rendered by one of the six view modules. The layer is what is being looked at; the layer view is the looking. A layer is scoped to one or more **structures**, its own project's or an imported package's. Block, table and matrix surfaces mount; activity / sequence / state wait A.7–A.9 |
+| **layer view** | the **projection** of a layer: what that layer looks like once the rules and packages in scope are applied to it, rendered by one of the six view modules. The layer is what is being looked at; the layer view is the looking. A layer is scoped to one or more **structures**, its own project's or an imported package's. All six surfaces mount: block, table, matrix, activity, sequence, state |
 | **projection surface** | what a view module must provide to show a layer at all — the frame or its equivalent, the viewport, the chrome, and the place a gesture asks a question. **Per module, never per definition**: a diagram has a frame and a camera, a table scrolls and has neither. Not one of the components, which configure the things *in* a layer. Block diagram surface live under `modules/view/diagram/` |
 | **scope** | the layer being drawn. Set by clicking in the explorer |
 | **context** | what is selected within the layer. Set by clicking on the canvas |
@@ -144,17 +144,17 @@ named value carried by an element or a relationship, and never changes what cont
 | **unit** | anything laid out as a whole: a card, a group, or a note. Layout's word; a `number` field's `unit` is its unit of measure, and the two never meet |
 | **cluster** | units drawn together by relationships, arranged as one region *(backlog)* |
 | **arrangement** | a one-time **action** that lays the layer out and writes down where everything landed: `grid`, `radial`, `across`, `down`. Never a mode, so never "current" |
-| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a directed relationship takes, and biases **rank, placement and routing** along that reading. Port direction stays decorative. **(planned)** Also the fallback the implied order is read along |
+| **axis** | which way a layer **reads**: `none`, `across` or `down`. A setting, held per layer. Decides the sides a directed relationship takes, and biases **rank, placement and routing** along that reading. Port direction stays decorative. Also the fallback the **implied order** is read along (sequence / activity) |
 | **diagram** | **what a layer looks like drawn on the canvas** — the picture, not a module. Every view module that draws on the canvas produces one |
-| **structure project** *(planned)* | a project whose blocks are the truth: parts, fields and the relations between them. Its layer views are **block**, **table** and **matrix**, block being the default |
-| **behavior project** *(planned)* | a project that scopes to one or more structures and describes what happens over them — activities, actions and states as its own blocks, holding **refs** to the participants. An overlay, never a second copy. Its layer views are **activity**, **sequence** and **state**, activity being the default |
-| **inference** *(planned)* | turning a selection into one **behavior block** — the `infer` action. The selection is any cross-section: blocks, branches, whole projects, across as many as you like. **One-way, one-time and deterministic over the selection**; nothing re-syncs, and **re-inferring makes a new block** rather than touching an existing one. It **composes** — a selection of actions infers a state block the way structure infers an activity. Replaces *seeding* and *promotion*, both retired. **Not called a projection**, which already means a layer rendered through a module. Rules in [behaviors.md](behaviors.md) |
-| **writing home** *(planned)* | an inference modifying the structure blocks it acts on, through the ref, in their own project. **Automatic**, announced by the strip the first time. Only facts that **survive deleting the behavior** are written, and only ones the structure **stated** — an interface a `flow` implies, never something guessed from position. The interaction itself is never written |
+| **structure project** | a project whose blocks are the truth: parts, fields and the relations between them. Its layer views are **block**, **table** and **matrix**, block being the default |
+| **behavior project** | a project that scopes to one or more structures and describes what happens over them — activities, actions and states as its own blocks, holding **refs** to the participants. An overlay, never a second copy. Its layer views are **activity**, **sequence** and **state**, activity being the default |
+| **inference** | turning a selection into one **behavior block** — the `infer` action. The selection is any cross-section: blocks, branches, whole projects, across as many as you like. **One-way, one-time and deterministic over the selection**; nothing re-syncs, and **re-inferring makes a new block** rather than touching an existing one. It **composes** — a selection of actions infers a state block the way structure infers an activity. Replaces *seeding* and *promotion*, both retired. **Not called a projection**, which already means a layer rendered through a module. Rules in [behaviors.md](behaviors.md) |
+| **writing home** | an inference modifying the structure blocks it acts on, through the ref, in their own project (`Effect.home` / `into`, S4.9 / A.7a). **Automatic**, announced by the strip the first time. Only facts that **survive deleting the behavior** are written, and only ones the structure **stated** — an interface a `flow` implies, never something guessed from position. The interaction itself is never written. **Parked**: App may not refresh after a foreign write |
 | **participation** *(planned)* | which behaviors a structure block takes part in. **Derived** — asked of the behavior projects in scope, never stored as a back-reference on the block |
-| **lane** *(planned)* | a participant's column or band in a behavior view. **Derived from the ref** an action holds, so every inferred action has exactly one and lanes always exist. Not from a `performs` relationship, which nobody would draw, and not from connectivity, which has no reliable granularity |
-| **structure block** / **behavior block** *(planned)* | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block. A behavior block's **definition** is `action` or `state`; a **container** one is called an *activity* and a leaf one an *action*, which is the SysML mapping and not a distinction the engine stores |
-| **explicit order** *(planned)* | sequence stated by a **directed relation** between two blocks. Read first, and it wins |
-| **implied order** *(planned)* | sequence read from where blocks sit along the layer's **axis** — left to right, or top to bottom. The fallback where no directed relation says otherwise, so laying things out in a row states an order without drawing an arrow |
+| **lane** | a participant's column or band in a behavior view. **Derived from the ref** an action holds, so every inferred action has exactly one and lanes always exist. Not from a `performs` relationship, which nobody would draw, and not from connectivity, which has no reliable granularity. Sequence draws one column per participant (A.9) |
+| **structure block** / **behavior block** | a block, qualified by which tree it lives in. Only used where the two must be told apart; a block is a block. A behavior block's **definition** is `action` or `state`; a **container** one is called an *activity* and a leaf one an *action*, which is the SysML mapping and not a distinction the engine stores |
+| **explicit order** | sequence stated by a **directed relation** between two blocks. Read first, and it wins (A.9) |
+| **implied order** | sequence read from where blocks sit along the layer's **axis** — left to right, or top to bottom. The fallback where no directed relation says otherwise, so laying things out in a row states an order without drawing an arrow (A.9) |
 | **resting layout** | what a render runs: placed elements stay, unplaced ones fill around them |
 | **rank** | one step along the axis. Things pointing at each other sit in successive ranks |
 | **hard constraint** | something honoured **by** an arrangement, which survives it. Ports and walls, and nothing else |
@@ -232,9 +232,10 @@ The **constraints** component is published (`required`, `constraintsOf`); **card
 `degree` / `match`, `rulesOf`, `among` via `isa`) are published too. **Value-missing evaluation
 and tray/strip reporting are live** (S5.3); the module **`validate` hook and `findings` are live**
 (S5.4) — no shipped module supplies a real hook yet, and Contents still surfaces constraint/rule
-notes only. The block diagram draws from card / `lookOf` (S2.6b); table and matrix mount when
-`view.module` names them (A.1 / A.2, suite). Activity / sequence / state wait A.7–A.9. See
-[design.md](design.md) under *Constraints and rules*.
+notes only. The block diagram draws from card / `lookOf` (S2.6b); **table** mounts when
+`view.module` is `table` (A.1, proven); **matrix** when named (A.2, suite); **activity** when
+`view.module` is `activity` (A.7b, proven); **state** (A.8, proven) and **sequence** (A.9,
+proven). See [design.md](design.md) under *Constraints and rules*.
 
 **Declared on a definition, holding over every usage of it**, and reaching that subtype's fields,
 its interfaces and the relationships at it. **A rule naming a definition means it or anything
@@ -263,7 +264,7 @@ code a module supplies, written by somebody who has already accepted writing cod
 | **`card`** | the component drawing a usage: which **card layout**, its **shape**, where its label sits, and `shows`. Published; the canvas does not yet draw from it |
 | **`constraints`** | the component declaring checks on a usage in itself. Published with `required`; evaluation and tray reporting are live |
 | **`style`** | the component colouring a usage: a **style set** by name (`set`), over the portable typed fields that render without one. Published; `styleOf` / `lookOf` resolve it. The canvas does not yet draw from it |
-| **`view`** | the component on a diagram's definition: which **view module**, and its arrangement. Published with the six-module registry; the canvas does not yet read it |
+| **`view`** | the component on a diagram's definition: which **view module**, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Published with the six-module registry. Create / `infer` not yet wired to `word` / `creates` |
 | **`rules`** | the component declaring how usages interact — `ends`, `holds`, `degree`, `match`. Published; `among` walks `isa`. Evaluation and tray reporting are live |
 | **card layout** | one of the standard ways a card is composed — `name`, `type` (label and subtype chip), `fields`, `compartments`, `icon`, `shape` (a shape drawn in the box, label beneath). **Open**: extended by a code change, additively |
 | **shape** | what is drawn inside a card's box: `rect`, `round`, `diamond`, `ellipse`, `hex`. The engine always places a **rectangle** — every seat, route and port reads the box — so a shape changes what is drawn and never where anything attaches. `shaped` / `outline` compute it; the canvas does not stroke it yet |
@@ -289,11 +290,13 @@ The full enumeration is in [actions.md](actions.md).
 | **`when`** | whether an action is worth offering here at all. Decides what is **shown** |
 | **`check`** | why an action would refuse, in words. Decides what happens **on commit**, and never what is shown — it cannot be answered until the arguments are in hand |
 
-## The SysML map *(planned)*
+## The SysML map
 
 SysML is a **translation layer** over the general model, never a shape the model bends to. This
 table is what makes that claim checkable: every SysML concept mndflow targets, and what it is
-already made of. Nothing in the right column is a special case.
+already made of. Nothing in the right column is a special case. **Shipped packages** `sysml` /
+`uml` / `uaf` carry the formal `names` and ornament shape+size (A.11); the map below is the
+engine's reading.
 
 | SysML | mndflow | |
 |---|---|---|

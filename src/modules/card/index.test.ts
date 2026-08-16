@@ -81,6 +81,53 @@ describe("how a usage is composed", () => {
 
     expect(cardOf(graph, element)).toEqual({ ...PLAIN, shape: "hex" });
   });
+
+  it("inherits a card the parent names when the subtype says nothing", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { card: { shape: "diamond", shows: ["id"] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+    const composed = cardOf(graph, held);
+
+    expect(composed.shape).toBe("diamond");
+    expect(composed.shows).toEqual(["id"]);
+    expect(composed.layout).toBe(PLAIN.layout);
+  });
+
+  it("replaces the parent's card when the subtype names its own", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { card: { shape: "diamond", shows: ["id"] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+          components: { card: { shape: "hex" } },
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+    const composed = cardOf(graph, held);
+
+    // Whole key replaced — the parent's shows does not leak in.
+    expect(composed.shape).toBe("hex");
+    expect(composed.shows).toEqual(PLAIN.shows);
+  });
 });
 
 describe("the base diagram as one configuration among others", () => {

@@ -72,6 +72,48 @@ describe("how a usage is constrained", () => {
 
     expect(constraintsOf(graph, element)).toEqual({ required: ["guard"] });
   });
+
+  it("inherits constraints the parent names when the subtype says nothing", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { constraints: { required: ["id"] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+
+    expect(constraintsOf(graph, held)).toEqual({ required: ["id"] });
+  });
+
+  it("replaces the parent's constraints when the subtype names its own", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { constraints: { required: ["id"] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+          components: { constraints: { required: ["text"] } },
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+
+    // Whole key replaced — the parent's required list does not leak in.
+    expect(constraintsOf(graph, held)).toEqual({ required: ["text"] });
+  });
 });
 
 describe("the one constraint", () => {

@@ -62,7 +62,7 @@ const ARROW: Record<Dir, string> = { none: "—", forward: "→", back: "←", b
 
 const VALUE_FORMS: ValueForm[] = ["text", "number", "flag", "choice", "ref"];
 const DEF_FORMS: (ElemForm | EdgeForm)[] = [
-  "block", "note", "group", "proxy", "figure", "line", "directed",
+  "block", "note", "group", "proxy", "line", "directed",
 ];
 const LINES: NonNullable<Definition["line"]>[] = ["solid", "dashed", "dotted"];
 const HEADS: NonNullable<Definition["head"]>[] = ["none", "open", "filled", "hollow"];
@@ -92,7 +92,7 @@ type Offer = {
 };
 
 const ELEM: Set<string> = new Set<ElemForm>([
-  "block", "note", "group", "proxy", "figure",
+  "block", "note", "group", "proxy",
 ]);
 
 /** Definitions in scope for the type cell: shipped packages in catalog order,

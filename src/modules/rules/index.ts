@@ -13,7 +13,7 @@
  *  module owns the shape and what it means to ask. */
 
 import type { Component, Config } from "../index";
-import { isa } from "../../graph/fold";
+import { isa, resolved } from "../../graph/fold";
 import type { Element, Flow, Graph } from "../../graph/types";
 
 /** Port directions an `ends` rule may ask for. Same closed set as an
@@ -147,12 +147,12 @@ export const rules: Component = { name: "rules", check };
 
 /** What this element's definition says about how its usages interact.
  *
- *  Per definition and never per element. A definition that extends another
- *  does not yet inherit its rules — SC.3 is what merges the chain, and until
- *  then a subtype stands on its own. Reach across the chain is `among`, which
- *  walks `isa` rather than copying the parent's configuration. */
+ *  Per definition and never per element. Reads the resolved view, so a subtype
+ *  inherits a rules key it does not mention and replaces one it does — never
+ *  a deep merge inside the key. Reach across the chain for *matching* a named
+ *  definition is still `among`, which walks `isa`. */
 export function rulesOf(graph: Graph, element: Element): RulesConfig {
-  const config = graph.defs[element.type]?.components?.rules;
+  const config = resolved(graph, element.type)?.components?.rules;
   if (!config) return NONE;
 
   const ends = config.ends as EndsRule | undefined;

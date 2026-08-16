@@ -4,9 +4,10 @@
  *  routes into. `operations` is the global list of things the conversation can
  *  ask for — no domain may invent one. A domain file supplies wording only.
  *  Starting relations live in `packages/core/<name>.yaml` and are bridged into
- *  `Domain.relations` here until A0.3 loads packages into the workspace.
- *  `terms/` holds what each domain calls things, separate from the prompts so
- *  a package can take the words without the question loop.
+ *  `Domain.relations` here until seeding reads packages directly.
+ *  What each domain calls things lives in `packages/terms/<name>.yaml` — a
+ *  general need, not the rail's — and is merged into `Domain.terms` here so
+ *  the question loop can still speak the same words the explorer does.
  *
  *  Control flow is deliberately absent: which operation to ask about is
  *  decided in `router`, from the graph itself. A new domain is wording only. */
@@ -64,8 +65,8 @@ const files = import.meta.glob("../../workflows/*.yaml", {
   import: "default",
 }) as Record<string, any>;
 
-/** Words keyed by domain name — filename stem matches `name` in the domain file. */
-const termFiles = import.meta.glob("../../workflows/terms/*.yaml", {
+/** Words keyed by domain name — stem matches `name` in the domain file. */
+const termFiles = import.meta.glob("../../packages/terms/*.yaml", {
   eager: true,
   import: "default",
 }) as Record<string, any>;

@@ -2,7 +2,9 @@
  *
  *  Geometry comes from `stageOf` / `laidOf`, the same composition the canvas
  *  hosts on top of. This half writes plain SVG so a commit can sit a picture
- *  beside the JSON source without dragging the React Flow tree into export. */
+ *  beside the JSON source without dragging the React Flow tree into export.
+ *  The page's project export downloads that markup beside the `.mndflow.json`
+ *  (store.downloadSvg); this module only renders. */
 
 import { axisOf, nameOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";

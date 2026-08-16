@@ -1,6 +1,8 @@
 # Behaviors
 
-How a behavior comes to exist, what it infers, and what it writes back. **(planned — A.7.)**
+How a behavior comes to exist, what it infers, and what it writes back. **A.7a landed** (`infer` +
+writing home); **A.7b–A.9 landed** (activity / state / sequence views — dimmed derived labels and
+inferred order; state empty-infer offer + Reading A/B; sequence columns, directed then axis).
 
 - **Why any of it** → [design.md](design.md) under *Structure and behavior*.
 - **What the surface does** → [spec.md](spec.md); the action → [actions.md](actions.md).
@@ -125,8 +127,9 @@ and a plain card's chip falls back to the module's word:
 <module's verb> <participant name>          e.g.   do Pump
 ```
 
-- The **verb** comes from the module's vocabulary (`packages/behavior`, A.10), so a SysML reading and
-  a plain reading can differ without either being stored.
+- The **verb** comes from the module's vocabulary (`packages/behavior` ships it — A.10; the activity
+  view reads it for derived labels, A.7b), so a SysML reading and a plain reading can differ without
+  either being stored.
 - The **name** is read through the ref, so renaming the block flows through.
 - Where a **tier 1** relationship carries a name, that name is used instead — still derived, still
   dimmed.
@@ -231,5 +234,9 @@ the structure said nothing, so it learned nothing.
 |---|---|
 | **The thin result is the common case** | Most structures have unnamed or absent relationships, so an activity of dimmed actions with lanes and refs is what people usually get. It has to read as a starting point rather than as a failure — undesigned |
 | **A nudge toward naming** | Naming relationships is the highest-leverage thing a user can do and nothing says so. Worth a strip line when every edge in a selection is unnamed. Not designed |
-| **`N`'s default** | 5, chosen not measured. A `view` setting, so it is cheap to change |
-| **The activity-final double ring** | The one SysML ornament that is not shape + size; wants a `style` that strokes twice |
+| **`N`'s default** | 5, chosen not measured — now on `view` (A.7c). Create / `infer` not wired to `creates` / `word` yet |
+| **Page → `infer`** | explorer `Chosen[]` exists (E.4); not yet wired to the action |
+| **App refresh after foreign write** | `Effect.into` lands the step (S4.9); UI may not refresh |
+| **The activity-final double ring** | The one SysML ornament that is not shape + size; wants a `style` that strokes twice — parked from A.7b |
+| **RF framed host / activity gestures** | Activity mounts; RF framed host and gestures on the activity plane still open — parked from A.7b |
+| **Swimlanes-from-`performs` docs drift** | design is lanes from the ref; wipe any leftover `performs` wording when next touching activity chrome — parked from A.7b |

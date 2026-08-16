@@ -1,0 +1,222 @@
+# SysML v2 definitions, formal names, and the ornament that used to be
+# figure. Control nodes activity derives are still counts; these defs are
+# what a package ships when one is placed or exported.
+# `mappings` document the translation layer — catalog reads definitions only.
+
+definitions:
+  # ——— structure ———
+  - id: def_block
+    name: block
+    form: block
+    body: A SysML part definition — a reusable structural type.
+    names:
+      sysml: "part def"
+      uml: Class
+    components:
+      style:
+        set: sysml
+
+  - id: def_allocation
+    name: allocate
+    form: directed
+    body: A SysML allocation from one element to another.
+    line: dashed
+    head: open
+    names:
+      sysml: "«allocate»"
+      uml: allocate
+
+  - id: def_binding
+    name: binding
+    form: line
+    body: Equality between two parameters or ports — a binding connector.
+    line: solid
+    head: none
+    names:
+      sysml: "binding connector"
+      uml: binding
+
+  # ——— ornaments (shape + size; never a form) ———
+  - id: def_decision
+    name: decision
+    form: block
+    body: A branch in a flow — one in, several guarded outs.
+    size:
+      w: 48
+      h: 48
+    names:
+      sysml: DecisionNode
+      uml: DecisionNode
+    components:
+      card:
+        layout: shape
+        shape: diamond
+        label: below
+      style:
+        set: sysml
+      rules:
+        degree:
+          in: [1, 1]
+          out: [2, null]
+
+  - id: def_merge
+    name: merge
+    form: block
+    body: Alternate paths rejoin — several ins, one out.
+    size:
+      w: 48
+      h: 48
+    names:
+      sysml: MergeNode
+      uml: MergeNode
+    components:
+      card:
+        layout: shape
+        shape: diamond
+        label: below
+      style:
+        set: sysml
+      rules:
+        degree:
+          in: [2, null]
+          out: [1, 1]
+
+  - id: def_fork
+    name: fork
+    form: block
+    body: Parallel paths begin — a thin bar, one in, several outs.
+    size:
+      w: 96
+      h: 12
+    names:
+      sysml: ForkNode
+      uml: ForkNode
+    components:
+      card:
+        layout: shape
+        shape: rect
+        label: none
+      style:
+        set: sysml
+      rules:
+        degree:
+          in: [1, 1]
+          out: [2, null]
+
+  - id: def_join
+    name: join
+    form: block
+    body: Parallel paths synchronize — a thin bar, several in, one out.
+    size:
+      w: 96
+      h: 12
+    names:
+      sysml: JoinNode
+      uml: JoinNode
+    components:
+      card:
+        layout: shape
+        shape: rect
+        label: none
+      style:
+        set: sysml
+      rules:
+        degree:
+          in: [2, null]
+          out: [1, 1]
+
+  - id: def_initial
+    name: initial
+    form: block
+    body: Where a flow starts — a small filled ellipse, no incoming edge.
+    size:
+      w: 24
+      h: 24
+    names:
+      sysml: InitialNode
+      uml: InitialNode
+    components:
+      card:
+        layout: shape
+        shape: ellipse
+        label: none
+      style:
+        set: sysml
+      rules:
+        degree:
+          in: [0, 0]
+          out: [1, 1]
+
+  - id: def_final
+    name: final
+    form: block
+    body: Where a flow ends — a small ellipse, no outgoing edge. The activity-final double ring wants a style that strokes twice (parked).
+    size:
+      w: 24
+      h: 24
+    names:
+      sysml: ActivityFinalNode
+      uml: ActivityFinalNode
+    components:
+      card:
+        layout: shape
+        shape: ellipse
+        label: none
+      style:
+        set: sysml
+      rules:
+        degree:
+          in: [1, null]
+          out: [0, 0]
+
+# SysML concept → what mndflow already is (and which shipped def, when one
+# exists). Checkable form of the table in definitions.md. Not loaded by the
+# catalog.
+mappings:
+  - sysml: block / part def
+    as: block
+    via: def_block
+  - sysml: part property
+    as: block with parent
+  - sysml: reference property
+    as: ref field
+  - sysml: value property
+    as: field (number / text / flag)
+  - sysml: enum
+    as: definition + choice field
+  - sysml: proxy port / full port / pin
+    as: interface
+  - sysml: binding connector
+    as: relationship form line
+    via: def_binding
+  - sysml: allocate
+    as: directed relationship
+    via: def_allocation
+  - sysml: requirement
+    as: block with id + text
+    via: pkg_requirements/def_requirement
+  - sysml: satisfy / verify / derive / refine / trace
+    as: directed relationship
+    via: pkg_requirements
+  - sysml: constraint
+    as: block with size + style
+    via: pkg_parametrics/def_constraint
+  - sysml: action / activity
+    as: block definition action (container = activity)
+    via: pkg_behavior/def_action
+  - sysml: state
+    as: block definition state
+    via: pkg_behavior/def_state
+  - sysml: control flow / object flow / transition
+    as: directed relationship
+    via: pkg_flow
+  - sysml: control node
+    as: derived count, or ornament def below
+    via: def_decision / def_fork / def_initial / …
+  - sysml: item flow
+    as: item ref on object flow
+    via: pkg_flow/def_object_flow
+  - sysml: swimlane / partition
+    as: group
+  - sysml: package
+    as: container or group

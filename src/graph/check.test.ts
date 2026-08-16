@@ -129,6 +129,50 @@ describe("the relation forms that became two", () => {
   });
 });
 
+describe("the retired figure form", () => {
+  it("reads an element named figure as a block", () => {
+    const came = entering(logged({
+      op: "add_element",
+      element: {
+        id: "figure_1", form: "figure", label: "Seam", type: "", parent: null, body: "",
+        x: null, y: null, w: null, h: null, side: null, at: null, flow: null, num: 1,
+        axis: null, groups: [], of: null, fields: [],
+      },
+    }))!;
+
+    expect(fold(came.steps).elements.figure_1.form).toBe("block");
+    expect(came.faults.some((f) => f.healed)).toBe(true);
+  });
+
+  it("reads a definition named figure as a block", () => {
+    const came = entering(logged({
+      op: "set_def", id: "def_seam", name: "seam", form: "figure",
+    }))!;
+
+    expect(fold(came.steps).defs.def_seam.form).toBe("block");
+    expect(came.faults.some((f) => f.healed)).toBe(true);
+  });
+
+  it("reaches figures inside a checkpoint too", () => {
+    const came = entering(logged({
+      op: "checkpoint",
+      graph: {
+        elements: { figure_1: { id: "figure_1", form: "figure", label: "", type: "",
+                                parent: null, body: "", x: null, y: null, w: null, h: null,
+                                side: null, at: null, flow: null, num: 1, axis: null,
+                                groups: [], of: null, fields: [] } },
+        edges: {},
+        defs: { def_seam: { id: "def_seam", name: "seam", form: "figure", fields: [] } },
+        vocabulary: "",
+      },
+    }))!;
+    const graph = fold(came.steps);
+
+    expect(graph.elements.figure_1.form).toBe("block");
+    expect(graph.defs.def_seam.form).toBe("block");
+  });
+});
+
 describe("what cannot be read", () => {
   it("drops an operation from a newer build and says so", () => {
     const came = entering(logged({ op: "invent_something", id: "x" }))!;

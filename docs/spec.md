@@ -22,12 +22,13 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
   elements, relationships and fields alike.
 - `form` says which of four it is: **block** (the base and the default), **note**, **group**, or
   **proxy**. It decides what draws an element and which rules reach it.
-- **`figure` was a fifth form and is retired (planned, SC.5)**: nothing in the core ever placed one.
+- **`figure` was a fifth form and is retired**: nothing in the core ever placed one.
   An activity's fork, decision, initial, final, merge and join are **derived from counting
   relationships and guards**, so a module draws them and the graph stores none; and the ornament a
   package ships is a **block whose definition carries a shape and a size** — `SHAPES` and the
   definition's `size` already say every one of them, a fork bar being a `rect` sized thin. A form
-  is earned by telling the engine something about placement, and ornament told it nothing.
+  is earned by telling the engine something about placement, and ornament told it nothing. The door
+  heals a legacy `figure` to `block` so old files still open.
 - **Which definitions take no interface is a `degree` constraint** the `rules` component carries,
   not a form and not a branch in the `interface` action.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
@@ -209,17 +210,20 @@ the project.
   | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one. Resolved with `styleOf` / `lookOf` |
   | `constraints` | `required` |
   | `rules` | `ends`, `holds`, `degree`, `match`. `among` walks `isa` so a named definition means it or anything below it |
-  | `view` | on a diagram's definition: which view module, and its arrangement. Six modules registered; the block diagram surface lives under `modules/view/diagram/` |
+  | `view` | on a diagram's definition: which view module, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Six modules registered; the block diagram surface lives under `modules/view/diagram/`. Create / `infer` are not yet wired to `word` / `creates` |
 
   Each is defined in [definitions.md](definitions.md) under *Rules, constraints and components*.
 
   - **The plain card is the default written down** — `type` layout, `rect`, label inside, showing
     no fields — which is today's card said as one configuration among others. The diagram reads
     `PLAIN` and strokes shapes from `card` / `lookOf` (S2.6b). `shaped` and `outline` on the card
-    module compute a shape inside the engine's box. Counting what to draw as a control node waits
-    on A.7.
-  - **Style is drawn from** via `lookOf` on the diagram; table and matrix mount when `view.module`
-    names them (A.1 / A.2, suite). Activity / sequence / state still wait A.7–A.9.
+    module compute a shape inside the engine's box. Control nodes are counted and drawn by the
+    activity module (A.7b).
+  - **Style is drawn from** via `lookOf` on the diagram; **table** mounts when `view.module` is
+    `table` — rows pick/open, proxy open withheld (A.1, proven); **matrix** mounts when named
+    (A.2, suite); **activity** mounts when `view.module` is `activity` — dimmed derived labels and
+    inferred order (A.7b, proven); **state** and **sequence** mount the same way (A.8 / A.9,
+    proven).
   - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
     refused. That is the opposite of an unrecognised *component*, which is left alone: one is a
     misspelling this build can see, the other may be a newer build's.
@@ -253,8 +257,8 @@ the project.
   on its own declarations. `isa` walks it, which is how a rule reaches every subtype.
 - **Resolving one**: `resolved()` unions fields with the subtype's winning by name, and merges
   `components` per key — a key it does not mention is inherited whole. The view is cached per
-  fold. Component resolvers (`cardOf`, `styleOf`, `rulesOf`, …) still read the leaf definition
-  alone; wiring them to `resolved()` is parked.
+  fold. `cardOf`, `styleOf`, `rulesOf` and `constraintsOf` read that view, so a subtype draws
+  and constrains from what it inherits.
 - **Extension is subtyping, never overriding.** A package's definitions are never altered;
   refining one means making a new definition that *is* it.
 - **A rule naming a definition means it or anything below it.** Without that, an imported
@@ -287,8 +291,13 @@ the project.
   presentation and mappings. It is data, adds no code, and **maps names and presentation but never
   structure**; a notation needing structural change is a module instead. **Shipped**:
   `packages/requirements/` (requirement + five relationships), `packages/flow/` (control /
-  object / transition) and `packages/parametrics/` (constraint with size and style). See
-  [design.md](design.md) under *Packages and modules*.
+  object / transition), `packages/parametrics/` (constraint with size and style),
+  `packages/behavior/` (`action` + `state`, and activity / sequence / state words with verb `do` —
+  A.10; activity view reads the verb for derived labels, A.7b), and **`packages/sysml/`**,
+  **`packages/uml/`**, **`packages/uaf/`** (tables of definitions, `names`, and mappings —
+  ornaments as shape + size; catalog load proven, A.11). Formal `names` also sit on behavior /
+  flow / requirements / parametrics (A.11). See [design.md](design.md) under *Packages and
+  modules*.
 - **A definition subtypes within a form, never across one.** Nothing a user defines can change
   what a thing *is*.
 - **A data structure is a definition**, not an element form: it declares fields, and a block typed
@@ -336,9 +345,8 @@ the project.
   picker is refused or unavailable, the ordinary download path is the fallback. The header can
   say when the bound file has changed underneath (reopen takes the disk copy). Live bind+drift
   is landed in code; the download fallback is what has been driven.
-- **A rendered SVG of the open layer** can be produced by `svgOf` on the diagram module (F.3
-  renderer, suite). **(planned)** Wiring that markup into a download beside the source export
-  is still open.
+- **A rendered SVG of the open layer** can be produced by `svgOf` on the diagram module and
+  downloaded beside the source export (F.3, proven).
 - **Nothing still at its default is written.** No nulls, no empty lists, no colour every card
   already has — a file the size of the choices in it.
 - **The base is what cannot be ignored**, and everything else is `meta`.
@@ -401,8 +409,7 @@ the project.
     costs nothing.
   - **When storage fills, the projects being worked in keep their logs and the rest are
     checkpointed** — history for the untouched, which is the cheapest thing to give up. The store
-    exposes `watchPressure` / `pressureNote` for a distinct advisory. **(planned)** The strip is
-    not yet subscribed to that API.
+    exposes `watchPressure` / `pressureNote`; the strip shows that note when pressure rises.
   - **The workspace keeps its own list of what has been imported** (`Held.projects` on
     `mndflow.workspace.v1`), which is what an untouched project is remembered by when it has no
     key of its own. `admit` places a proxy of another project's root and appends that id; `folder`
@@ -424,8 +431,8 @@ integration test in `tests/` for the whole lifecycle. `npm test` at the root.
 *The registry is built — `actions/index.ts`, with scope, `check`, `sayable` and `writes`. Element,
 edge, group, field, layer and adjustment actions are registered in `actions/*.ts` and **live
 through `act.*` wrappers** generated from the registry (S1.6). Queries sit off `act`. Old closure
-names remain as aliases. **`NameField` taken-name refusals reach the strip** (S1.7 partial).
-**(planned)** Canvas prompt clash still silent.*
+names remain as aliases. **`check` refusals reach the strip** via Ask + Canvas `onSay` (S1.7,
+proven), including `NameField` taken-name marks.*
 
 Everything that changes a project is a **record**, not a function somebody has to know about. One
 registry, read by every input method: gestures, the contents tray, and later the terminal.
@@ -479,11 +486,12 @@ registry, read by every input method: gestures, the contents tray, and later the
 machines and sequence were each walked against the surface and not one needed an action to *render*
 or to *edit* — a module is a vocabulary, renderers, a layout law and a gesture map.
 
-**(planned) Behavior adds one, and it is the engine's rather than a module's**, because it changes a
+**Behavior adds one, and it is the engine's rather than a module's**, because it changes a
 project wholesale and is not about drawing: **`infer`**, which turns a selection of structure into
 one behavior block — or a selection of actions into a state block, since it composes. Sayable, writes
-mutations, and on the one registry like everything else. It absorbed the two the behaviour walk first
-proposed, `scope` and `promote`, both retired before they were built.
+mutations (and `Effect.home` for writing home), and on the one registry like everything else. It
+absorbed the two the behaviour walk first proposed, `scope` and `promote`, both retired before they
+were built. **Parked**: the page's `Chosen[]` is not yet wired to `infer`.
 
 **Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
 
@@ -492,9 +500,13 @@ proposed, `scope` and `promote`, both retired before they were built.
 
 *The **block** diagram's projection surface lives under `modules/view/diagram/` — frame, crumbs,
 prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). `Canvas.tsx` still
-hosts. **Table** and **matrix** modules mount when a diagram's `view.module` names them (A.1 /
-A.2, suite). Activity / sequence / state still wait A.7–A.9. The rest of this section is still
-the target for multi-view work.*
+hosts. **Table** mounts when `view.module` is `table` — rows pick/open; proxy open withheld
+(A.1, proven). **Matrix** mounts when named (A.2, suite). **Activity** mounts when
+`view.module` is `activity` — derived labels and inferred order draw dimmed (A.7b, proven).
+**State** mounts when `view.module` is `state` — empty infer offer; Reading A/B; DIM (A.8,
+proven). **Sequence** mounts when `view.module` is `sequence` — columns; directed then axis;
+DIM (A.9, proven). **Parked** on activity: RF framed host; gestures on the activity plane;
+activity-final double ring. The rest of this section is still the target for multi-view work.*
 
 **A view is a project holding diagrams.** Its own tree is folders and diagrams, so a view can be
 organised by behaviour, by requirement, by function — whatever the work is about. It has its own
@@ -532,7 +544,9 @@ log and its own export, like any project, and it appears in the workspace as its
   lives.
 - **A relationship goes to the log of the project that owns its ends**, resolved through the
   proxies — so filling in a matrix cell is a real relationship in the real project, while a view's
-  flows between its own elements stay in its own log.
+  flows between its own elements stay in its own log. **A write into a project that is not the one
+  in context** goes through `Effect.into` / `writeInto` — the same door, an undoable step in the
+  target's log (S4.9). **Parked**: App may not refresh after a foreign write.
 - **A relationship across two projects is a proxy and an ordinary edge**, both in the project of the
   end making the claim. An edge's ends stay plain ids; only a proxy's target widens.
 - **Undo reverts wherever the work landed**, not where the user was standing.
@@ -591,34 +605,45 @@ layer projected through the rules and packages in scope and rendered by one of t
 **Which view you have open is display state.** The view itself is not: it is a graph with a log,
 and making one is an ordinary change.
 
-### Behavior *(planned — A.7)*
+### Behavior *(A.7a–A.9 landed)*
 
 *The rules in full are [behaviors.md](behaviors.md); why they are those rules is [design.md](design.md)
-under **Structure and behavior**. Only what the surface does is here.*
+under **Structure and behavior**. Only what the surface does is here. `infer` and writing-home via
+`Effect.home` / `Effect.into` are live; **activity**, **state** and **sequence** modules mount —
+derived labels and inferred order draw dimmed (DIM).*
 
 - **A behavior is an overlay; the structure is the truth.** A behavior project holds **refs** to the
   participants, never parts, so an object block never appears in a behavior tree.
 - **`infer` is how one comes to exist.** A selection — blocks, branches, whole projects, across as
   many as it reaches — becomes **one behavior block**, in a named behavior project or a new one.
   One-way, one-time and deterministic; **re-inferring makes a new block** and never edits an
-  existing one.
+  existing one. **Parked**: explorer / page `Chosen[]` → `infer` is not wired yet.
 - **It composes**: a selection of actions infers a `state` block the way structure infers an
   `action`.
 - **A behavior block is a block**, and its definition is `action` or `state`. **A container is an
   activity, a leaf is an action** — the SysML mapping, not a stored distinction. Right-click makes
-  whichever the **module in scope** declares, so creating one is the same fluid gesture as creating
-  a structure block.
+  whichever the **module in scope** declares (`view` carries `creates` / `word` and cap `N`,
+  default 5); create / `infer` are not yet wired to those fields.
 - **Order is read down four tiers** — a `flow` subtype, then any directed relationship, then
-  position along the axis, then adjacency. **Inferred order draws dimmed**, as a derived chip does,
-  so a guess never reads as a statement.
+  position along the axis, then adjacency. **Inferred order draws dimmed** on activity, state and
+  sequence (DIM in stage), as a derived chip does, so a guess never reads as a statement.
 - **An action's label is derived and dimmed** — the module's verb and the participant's name, `do
-  Pump`. Typing over it stores a real name; nothing transforms the noun.
+  Pump`. Typing over it stores a real name; nothing transforms the noun. Proven on the activity
+  view.
+- **The state view** draws the same layer as states and transitions. Empty where nothing has been
+  inferred, it **offers the inference**; Reading A or B per [behaviors.md](behaviors.md) (A.8,
+  proven).
+- **The sequence view** draws a column per participant, order running down each. **Explicit order
+  from directed relations first**, implied from position along the axis as the fallback (A.9,
+  proven).
 - **Lanes come from the refs**, one per participant, so they always exist. A structure group infers
-  to an ordinary group, not a lane. Past **N** actions the inference cuts higher in the tree and a
-  container becomes one action; `N` is `view` configuration, default **5**.
+  to an ordinary group, not a lane. Past **N** actions the inference cuts higher in the tree (a
+  tree slice, not connected-components) and a container becomes one action; `N` is `view`
+  configuration, default **5**.
 - **It writes home automatically, and only what the structure stated.** Interfaces a `flow` implies
-  are written to the participants' own projects through the ref; anything guessed from position or
-  adjacency writes nothing. The strip says so the first time and not after.
+  are written to the participants' own projects through the ref (`Effect.home` / `into`); anything
+  guessed from position or adjacency writes nothing. The strip says so the first time and not after.
+  **Parked**: App may not refresh after a foreign write.
 - **Participation is derived**, asked of the behavior projects in scope. No back-reference is stored
   on a structure block, so a structure project opened alone reads clean.
 - **Nothing is derived that somebody edits.** Control nodes, messages and lanes are counted and
@@ -627,7 +652,8 @@ under **Structure and behavior**. Only what the surface does is here.*
 
 ## Shell
 
-- One page: header, terminal rail, then explorer beside the working area.
+- One page: header, optional terminal rail (S6.3 — `import.meta.glob`; absent when `terminal/` is
+  out), then explorer beside the working area.
 - Header reads `mndflow [project]` — the project's own name, which is root's label.
 - With several projects open, the header names the one **in context** — the project
   the selected explorer row belongs to — and the explorer lists them all in the tree they were
@@ -682,6 +708,9 @@ under **Structure and behavior**. Only what the surface does is here.*
 - Every open project is a root in the same tree, filed into the folders the workspace
   keeps. **The project a selected row belongs to is the context**, which is what decides where a
   change is written — positional, so there is no mode and nothing to switch. Click switches.
+- **Multi-select** — Shift / Meta click builds a `Chosen[]` across blocks, branches and projects
+  (E.4, proven). **Parked**: Ctrl on Windows; no distinct multi-select CSS; chosen → `infer` not
+  wired.
 - **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
   is the one place a proxy *is* listed, because in a view there is nothing else to list.
 
@@ -1075,7 +1104,7 @@ makes the thing that sits at a point and a drag makes the thing that has extent.
 | a note | moves it within its layer |
 | an interface | slides it along its frame edge |
 | a selected group's background | moves every member together |
-| empty background, or an unselected boundary | draws a selection box, taking what it encloses. An edge with only one end inside is not selected; **(planned)** both-ends enclosure policy still parked (G.7) |
+| empty background, or an unselected boundary | draws a selection box, taking what it encloses. An edge is selected only when both ends are inside; one end alone is not enough |
 
 Small precise targets — interfaces, notes — act at once. Large ones — a boundary, a multi-node
 selection — must be selected first.
@@ -1107,7 +1136,7 @@ selection — must be selected first.
 | Key | Action |
 |---|---|
 | `Delete` / `Backspace` | delete the selection |
-| `Esc` | clear the selection, including a React Flow multi-select, back to the scope |
+| `Esc` | clear the selection, including a React Flow multi-select, back to the scope. **Parked**: Esc does not clear RF-selected edges after a marquee (G.7 follow-on) |
 | `Enter` | rename the selection |
 | `F` | fit the layer, or zoom to the selection if there is one |
 | `Ctrl`/`Cmd` + `Z` | undo |

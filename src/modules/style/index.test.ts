@@ -83,6 +83,48 @@ describe("how a usage is coloured", () => {
 
     expect(styleOf(graph, element)).toEqual({ set: SETS[0] });
   });
+
+  it("inherits a style the parent names when the subtype says nothing", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { style: { set: SETS[0] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+
+    expect(styleOf(graph, held)).toEqual({ set: SETS[0] });
+  });
+
+  it("replaces the parent's style when the subtype names its own", () => {
+    const held = element("a thing", { id: "block_1", type: "def_child" });
+    const graph: Graph = {
+      ...EMPTY,
+      defs: {
+        def_parent: {
+          id: "def_parent", name: "parent", form: "block", fields: [],
+          components: { style: { set: SETS[0] } },
+        },
+        def_child: {
+          id: "def_child", name: "child", form: "block", fields: [],
+          extends: "def_parent",
+          // Names the key with nothing in it — whole-key replace, parent's set gone.
+          components: { style: {} },
+        },
+      },
+      elements: { ...EMPTY.elements, block_1: held },
+    };
+
+    expect(styleOf(graph, held)).toEqual(NONE);
+  });
 });
 
 describe("style sets as an open set", () => {

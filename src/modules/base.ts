@@ -11,6 +11,11 @@ import { style } from "./style";
 import { view } from "./view";
 import type { Module } from "./index";
 
+// Side-effect: replace behavior stubs with their surfaces (A.7b, A.8, A.9).
+import "./view/activity";
+import "./view/state";
+import "./view/sequence";
+
 export const base: Module = {
   name: "base",
   components: [card, constraints, rules, view, style],
