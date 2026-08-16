@@ -417,8 +417,10 @@ the project.
     and context switch are live (S4.5). Workspace `⤓` and project `↧` export/import at schema
     `1.2` (S4.6).
 
-**Tests** — one file per module, beside the module, so a module and its test move together. One
-integration test in `tests/` for the whole lifecycle. `npm test` at the root.
+**Tests** — all in `tests/`, mirroring `src/`; a module's `index.ts` is tested by its folder's name.
+A contract many modules keep is tested once over all of them (`tests/modules/conformance.test.ts`).
+The lifecycle test covers two journeys: through the file format, and through storage. `npm test` at
+the root.
 
 - **Properties, never values.** Nothing asserts a coordinate, an id, a message or a count that
   tuning would change — the suite pins what must stay true, not what happens to be true.

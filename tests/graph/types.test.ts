@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import { edge, element, field, definition, newId, asTarget, refAt, refTo, rootElement, ROOT, EMPTY,
-         type ElemForm } from "./types";
+         type ElemForm } from "../../src/graph/types";
 
 const FORMS: ElemForm[] = ["block", "note", "group", "proxy"];
 

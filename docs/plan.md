@@ -30,6 +30,10 @@ annotated here with one line on what actually landed (or `◐` with the gap name
 and **Wave Z** (unparked, queued behind Wave 2). `infer`'s trigger is G.9b and needs no row of its
 own.
 
+**Cheapest first in Wave U:** `U.17` (space between projects) and `U.2` (the glyph vocabulary) are
+both `⊘` and unblock others — U.2 is what U.9 and U.15 stand on. Everything else in the wave either
+waits on G.9 or queues behind `page/Files.tsx`.
+
 **No `◆` row is left in the queue.** G.9d is settled — the target decides — and `Z.6` is answered:
 documentation lives in `samples/docs.json`, keyed by the terms in
 [definitions.md](definitions.md), hand-authored and with no generator.
@@ -60,9 +64,20 @@ the width at high zoom, and the chrome icons are hard to tell apart. Reasoning i
 *The shell yields; the stage does not*; the detail in tasks.md, stream **U**.
 
 **U owns chrome, not the diagram's visual language.** A card, a route and a frame stay the
-engine's. Two rows share files with G.9 and are marked; **take the G.9 row first in both cases**,
-since the shell follows the behaviour rather than setting it. **U.11 reaches `page/Relations.tsx`,
-which is stream E's** — it deletes the file rather than editing it, so take it when E is quiet.
+engine's. **U.11 reaches `page/Relations.tsx`, which is stream E's** — it deletes the file rather
+than editing it, so take it when E is quiet.
+
+**`page/Files.tsx` is the contended file of this wave** — six U rows and G.9b all reach it, the way
+`Canvas.tsx` and `Contents.tsx` were contended before their seams. Nothing here cuts a seam for it;
+it is 600 lines and this wave will grow it. **Take it in one order**: `G.9b → U.17 → U.3 → U.12 →
+U.14 → U.2 → U.8`. Spacing first because it is free and stands alone, the right-click list before
+anything that offers entries into it, and the `＋` after the layout is settled.
+
+**Two rows reach storage, and storage is where the suite just failed.** U.13 clears the keyed
+slots and U.14 creates a project; the import-never-stored bug lived in exactly that gate, and 401
+tests asserted the wrong behaviour was right. Both rows want an **outcome** test — *what a project
+holds survives being saved and read back* — in `tests/graph/store.test.ts` and
+`tests/workspace.test.ts`, not another assertion about the gate's internal rule.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
@@ -78,9 +93,10 @@ which is stream E's** — it deletes the file rather than editing it, so take it
 | **U.11** | **Remove the readout entirely** — the header's *"Show relations, actions and matching"* toggle ([App.tsx:520](../src/page/App.tsx#L520)) and all three tabs: `Readout.tsx`, `Relations.tsx`, `Log.tsx`. **Confirm before deleting**: `Relations.tsx` is today's only add / rename / drop for relation kinds, and Contents must already cover it as definition editing (E.1). Action history returns another way — future work, not this row | `page/App.tsx`, `page/Readout.tsx`, `page/Relations.tsx`, `page/Log.tsx`, `src/styles.css` | ⊘ |
 | **U.12** | **Undo and redo read as text**, at the foot of the explorer, with **one line naming the last executed action**. They leave the header's `↤` / `↦` glyph pair. The foot of the explorer is always visible, so `Log.tsx`'s rule — *reaching them never means opening anything first* — still holds | `page/Files.tsx`, `page/App.tsx`, `src/styles.css` | U.11 |
 | **U.13** | **The header clears the session and starts a new workspace.** Today's `＋` ([App.tsx:511](../src/page/App.tsx#L511)) is `project.reset` — one project, discarded, behind a confirm. It becomes **workspace-scoped**: drop every open project and the workspace with them. `workspace.blank()` already mints the empty `Held`, so the work is clearing the keyed project slots and the session pointer. Bigger and more destructive, so **it reads as a word rather than a glyph** — the same move U.12 makes for undo/redo, and the right one for a rare destructive control. Keeps its confirm | `page/App.tsx`, `graph/store.ts`, `src/styles.css` | ⊘ |
-| **U.14** | **The explorer's `＋` adds a project to the workspace** — a workspace operation the way unlock and fork are (S4.8), not a registry action. `admit` takes an id that already exists, so this needs the small missing path in front of it: mint an id, save an empty log, then admit. **Blocks keep a one-click path**: the `＋` follows the selection the way the canvas right button does (G.9d, *the target decides*) — a project or nothing selected makes a **project**, a block selected makes a **block** under it. The tooltip names which, so the meaning is never hidden. Right-click in the explorer (G.9b) offers both regardless | `page/Files.tsx`, `workspace/` | G.9b |
+| **U.14** | **The explorer's `＋` adds a project to the workspace** — a workspace operation the way unlock and fork are (S4.8), not a registry action. **It opens the name prompt, and the project exists once it is named** — design.md, *a project comes into being by being named*. It must **not** mint an id and admit a blank: that is the silently-minted session project that was just removed as a bug, arriving by another door. The name is required and unique, enforced on the way in. **Blocks keep a one-click path**: the `＋` follows the selection the way the canvas right button does (G.9d, *the target decides*) — a project or nothing selected makes a **project**, a block selected makes a **block** under it. The tooltip names which, so the meaning is never hidden. Right-click in the explorer (G.9b) offers both regardless | `page/Files.tsx`, `workspace/` | G.9b |
 | **U.15** | **The canvas options get one design language**, in **vertical groups** — *interface*, *relation*, *flow*, *arrangement*. Today `Toggles` mixes three idioms with no rule: three controls carry a glyph **and** a word (`□ interfaces`, `— plain`, `· types`), two carry a glyph **only** (`⌐`/`~`, the three axis marks), and states are drawn both as one cycling button **and** as a radio row. **Every control carries a word**, with the glyph as a scanning aid — the direction U.12 and U.13 already take. Depends on U.2 for marks that differ | `modules/view/diagram/chrome.tsx`, `src/styles.css` | U.2 |
 | **U.16** | **Arrangements move to the frame's context list** — `grid` / `radial` / `across` / `down` / `relax` leave the bar. They are one-time **verbs** over the whole layer, and **the frame is the layer**, so G.9d's *the target decides* already routes them: right-click the frame, get the things you can do to it. This is what keeps design.md's *toolbars divide by states against verbs* true once the bar is grouped by subject — the verbs leave the bar rather than sitting in a fourth group | `modules/view/diagram/chrome.tsx`, `canvas/gestures.ts` | G.9d, U.15 |
+| **U.17** | **Projects are told apart in the explorer** — space between them, so several open projects read as several rather than as one long tree. The cheapest half of what U.3 is for, and it stands alone | `page/Files.tsx`, `src/styles.css` | ⊘ |
 
 
 ## Wave 3 — the rail

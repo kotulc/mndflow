@@ -9,9 +9,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { hash, isWorkspace, needs, read, readable, write, writeWorkspace, SCHEMA } from "./file";
-import { fold } from "./fold";
-import { edge, element, refTo, step, ROOT, type Graph, type Mutation } from "./types";
+import { hash, isWorkspace, needs, read, readable, write, writeWorkspace, SCHEMA } from "../../src/graph/file";
+import { fold } from "../../src/graph/fold";
+import { edge, element, refTo, step, ROOT, type Graph, type Mutation } from "../../src/graph/types";
 
 /** A project with nesting, a note, a relationship, a typed field and a group —
  *  one of everything the layout has to place. */

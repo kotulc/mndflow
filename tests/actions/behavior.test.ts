@@ -3,12 +3,12 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { lookup, run, writes, type Context } from "./index";
-import "./behavior";
-import { fold } from "../graph/fold";
+import { lookup, run, writes, type Context } from "../../src/actions/index";
+import "../../src/actions/behavior";
+import { fold } from "../../src/graph/fold";
 import {
   edge, element, refTo, step, type Mutation,
-} from "../graph/types";
+} from "../../src/graph/types";
 
 function at(graph: Context["graph"], project = "proj_a"): Context {
   return { graph, view: null, picked: null, project };

@@ -19,6 +19,7 @@
 
 import type { Component, Config } from "../index";
 import type { Element, Graph } from "../../graph/types";
+import { resolved } from "../../graph/fold";
 import { DIAGRAM, type Surface } from "./diagram/surface";
 import { TABLE } from "./table/surface";
 import { MATRIX } from "./matrix/surface";
@@ -121,11 +122,11 @@ export const view: Component = { name: "view", check };
 
 /** Which view module draws this element: its definition's answer over block.
  *
- *  Per definition and never per element. A definition that extends another
- *  does not yet inherit its view — SC.3 is what merges the chain, and until
- *  then a subtype stands on its own. */
+ *  Per definition and never per element. Reads the resolved view, so a subtype
+ *  inherits a view key it does not mention and replaces one it does — never a
+ *  deep merge inside the key. */
 export function viewOf(graph: Graph, element: Element): ViewConfig {
-  const config = graph.defs[element.type]?.components?.view;
+  const config = resolved(graph, element.type)?.components?.view;
 
   return config ? { ...BLOCK, ...config } as ViewConfig : BLOCK;
 }

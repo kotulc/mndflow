@@ -10,9 +10,10 @@ streams, one owner each. A stream names the files it owns, so two owners never e
 
 ## Status
 
-Built and stable: the validator, the one message strip, the schema and a property suite (166 at
-A0.1; grown since). `src` is grouped by what a thing is for and dependencies run one way — see
-[README.md](../README.md) for the map.
+Built and stable: the validator, the one message strip, the schema and a property suite that grows
+with the work — **no count is kept here**, because the last one pinned drifted for months and the
+number never meant anything on its own. `src` is grouped by what a thing is for and dependencies run
+one way — see [README.md](../README.md) for the map; every test lives in `tests/` mirroring it.
 
 **Nothing is frozen any more.** The rail was unfrozen with S6; the **visual style** is unfrozen
 now, and it is stream **U**'s subject. One boundary survives the lift: **U owns chrome, not the
@@ -42,14 +43,7 @@ without `terminal/` still runs (S6.3, proven). **Parked**: Matching tab empty wh
    the layer to actually be in the graph. *(The cross-project descend it was hiding is still broken —
    see* Open questions*.)*
 
-**What this says about the suite.** An **imported project was never stored**: import
-writes the whole graph as one checkpoint step, `pristine()` read a checkpoint-only log as "nothing
-somebody did", and the lazy-key gate (S4.7) dropped it and reported success. Every project came back
-empty after a reload, the explorer showed untitled `project` rows, and selecting anything said
-*Nothing to open*. Fixed in `store.ts`: a checkpoint carrying a graph is not pristine — only an
-untouched root is.
-
-**401 tests did not catch it, and one of them asserted it was correct.** `store.test.ts` had a
+**401 tests did not catch the first of them, and one of them asserted it was correct.** `store.test.ts` had a
 fixture named *an import-shaped log* built on `EMPTY`, the single graph value for which the old
 behaviour is right, under a test named *does not store an import that nobody has touched*. The
 suite's own words describe the bug. Two structural reasons, both worth fixing before adding
@@ -86,16 +80,13 @@ never mints — a fresh session has no project and says so. The `|| "project"` f
 the explorer, the crumbs and the panel. This was already sanctioned as the `new` page action
 (actions.md) and needed no gate.*
 
-- **Cross-project descend does not complete — open bug, not yet fixed.** Double-clicking a *child of
-  a project that is not in context* switches the context but never opens the layer, and the canvas
-  draws **nothing** — at a layer that has eight cards. Repro: import `samples/mndflow.json` beside a
-  second project, click the other project's root to take context, then double-click `Canvas` under
-  `mndflow`. Crumb reads `mndflow↑` instead of `mndflow/Canvas`; card count 0. **Same-project descend
-  is fine** (`mndflow/Canvas`, 3 cards), and **switching context by clicking a root row is fine**.
-  Pre-existing: before the `pendingView` fix this path also said *Nothing to open* — that false
-  refusal is gone, the blank canvas is not. Suspects: `Files` calls `onOpen` on single click too, so
-  a double-click fires `navigate` twice before `contextId` updates; and `useProject` rebinding
-  `graph` lags `contextId` by a render.
+*Recently closed: **cross-project descend was never broken.** A single click on a row descends; a
+double-click is the *rename* gesture. The earlier report drove a double-click, which fired two
+navigations — and because the tree re-rendered between them, the second carried the id of whatever
+row had moved under the pointer, clearing the queued intent and opening a block that was not in the
+project. **Fixed anyway**, because a double-click landing somewhere arbitrary is a real misbehaviour
+however it is reached: `navigate` now ignores a call while an intent is already queued. Verified all
+four ways — single and double click across projects, and a same-project descend.*
 
 
 - **Should an untouched project stay in the workspace?** A session opens an empty project, admits it
@@ -237,10 +228,12 @@ absorb landed after the split rather than before it.
 | `graph/fold.ts` | 714 | **935** | split by family (S3.2) and indexed (S3.3), then `extends` / `resolved` landed on top (SC.2, SC.3) |
 | `geometry/layout.ts` | 915 | **1423** | clusters, notes-as-units and axis bias all landed here as planned (C.1–C.3) |
 
-**Two files outgrew the table rather than the seam.** `layout.ts` (1423) took all of stream C by
+**Three files outgrew the table rather than the seam.** `layout.ts` (1423) took all of stream C by
 design and no seam was ever cut for it; `page/Contents.tsx` (1444) is now the largest file in the
-tree, having absorbed E.1–E.3, S5.3 and SC.4 without a row owning the split. Neither is a bug and
-neither blocks anything — recorded so the next structural row is chosen with them in view.
+tree, having absorbed E.1–E.3, S5.3 and SC.4 without a row owning the split; and **`page/Files.tsx`
+(600) is next in line** — six Wave U rows and G.9b all reach it, with no seam cut for it either.
+None is a bug and none blocks anything — recorded so the next structural row is chosen with them in
+view.
 
 ### S1 — the action registry
 
@@ -383,9 +376,11 @@ loader. Do **not** treat A0.2 as fully closed while that gate is open. **Preset 
 `extends` does not walk yet. *(The README dependency map is current again — `actions/`, `workspace/`
 and `modules/`'s grown dependencies are all in it.)*
 
-**The subtype chain reaches the four resolvers (SC.6, proven).** `cardOf`, `styleOf`, `rulesOf`
-and `constraintsOf` read `resolved()`, so a subtype draws the parent's diamond. **Parked**:
-Contents still advises only leaf constraints/rules on subtypes — not this row's owns.
+**The subtype chain reaches all five resolvers (SC.6).** `cardOf`, `styleOf`, `rulesOf`,
+`constraintsOf` **and `viewOf`** read `resolved()`, so a subtype draws the parent's diamond and
+inherits its view module. **`viewOf` was missed the first time** — the row said "the four
+resolvers" and there are five; the conformance suite caught it. **Parked**: Contents still advises
+only leaf constraints/rules on subtypes — not this row's owns.
 
 ### S3 — fold hygiene
 
@@ -722,7 +717,12 @@ yields; the stage does not*.
   be merged — a user's colour preference does not belong where a definition's presentation lives.
   The current theme stays the default; **modern (blues)** and **light** join it.
 - **The explorer must hold more than one project legibly**, which is what a bounded width costs and
-  what per-view icons buy back.
+  what per-view icons buy back. **Space between projects** is the cheapest half of it (U.17) — with
+  several open, the tree currently reads as one long list rather than as several projects.
+- **Adding a project opens the name prompt** (U.14). design.md: *a project comes into being by being
+  named*, and storage never mints one. So the `＋` must not create a blank and file it — that is the
+  silently-minted session project, removed as a bug, coming back through another door. The name is
+  required and unique, checked on the way in.
 - **A distinct icon per view module**, so a shrunken explorer stays readable. **Definition icons are
   a different want** and stream E already holds it (`layout: icon` renders a glyph; no SVG, no set
   chosen) — do not re-open it here.
@@ -772,7 +772,9 @@ retires the second. The other two split by **scope**, which is the rule worth st
   and start a new workspace* (U.13), and the explorer's `＋` gains *add a project* (U.14).
 - **A new workspace is a bigger thing than a new project**, since it drops every open project at
   once. It **reads as a word rather than a glyph** — rare and destructive is exactly when a label
-  beats an icon, and it is the same move U.12 makes for undo and redo.
+  beats an icon, and it is the same move U.12 makes for undo and redo. **It lands on a state the
+  design already wants**: a fresh session has no project and says so, so clearing to nothing is the
+  designed opening rather than a special empty case.
 - **Adding a project is a workspace operation**, `admit` with a blank graph — the way unlock and
   fork are (S4.8), and not a registry action. No page action was added, so that enumerated set is
   untouched.
@@ -810,11 +812,15 @@ controls picking freely between them:
   done to the layer. The bar is left holding states only, which is what makes one design language
   possible at all.
 
-**Contended owns, declared:** `page/Files.tsx` with **G.9b**, `terminal/` with **G.9c** and Wave Z,
-`modules/view/diagram/chrome.tsx` between **U.2**, **U.15** and **U.16** (serial, in that order),
-`page/Relations.tsx` with stream **E** (U.11 deletes it rather than editing it, so take it when E is
-quiet). None is parallelisable; take the other row first in each case, since the shell is following
-the behaviour rather than setting it.
+**Contended owns, declared.** `terminal/` with **G.9c** and Wave Z; `modules/view/diagram/chrome.tsx`
+between **U.2**, **U.15** and **U.16**, serial in that order; `page/Relations.tsx` with stream **E**,
+which U.11 deletes rather than edits, so take it when E is quiet.
+
+**`page/Files.tsx` is this wave's contended file** — U.2, U.3, U.8, U.12, U.14 and U.17 all reach
+it, and so does G.9b. That is the shape `Canvas.tsx` and `Contents.tsx` had before their seams were
+cut, and **no row here cuts one**: the file is 600 lines and this wave will grow it. Recorded so the
+next structural row is chosen knowing it, and so the order in plan.md is followed rather than
+rediscovered. None of it is parallelisable.
 
 ### Z — terminal
 
@@ -914,8 +920,10 @@ readable.
 
 ## The suite
 
-**One test file per module, beside the module**, so moving a module moves its test. The one
-integration test sits in `tests/`, belonging to no single module.
+**Every test lives in `tests/`, mirroring `src/`.** A module's `index.ts` is tested by its folder's
+name — `src/modules/card/index.ts` → `tests/modules/card.test.ts`. They moved out of `src/` once the
+structure stopped changing; before that, keeping a test beside its module was what made moving a
+module cheap, and that is no longer the common operation.
 
 | | Holds it to |
 |---|---|
@@ -930,6 +938,37 @@ integration test sits in `tests/`, belonging to no single module.
 
 **Nothing asserts a coordinate, an id, a message or a count that tuning would change.** The suite
 is about properties, because the values are still moving.
+
+### What the review found
+
+**440 tests. The problem was never quality — it was shape.** Read end to end, the tests are
+outcome-shaped and well named (*leaves no trace of a reverted step*, *keeps a proxy whose target is
+gone*). They are why S3.1's 22 deletions and the S6 detach landed without drama. **Culling for its
+own sake would cost more than it saves.** Three findings instead:
+
+- **The page layer has no tests at all.** `App.tsx`, `Files.tsx`, `Panel.tsx` and `Contents.tsx` —
+  about 3,600 lines, and `Contents.tsx` alone is the largest file in the tree — are covered by
+  nothing. Every bug found by driving the browser lived here or in the seam below it. This is the
+  gap, not the redundancy.
+- **The storage journey is now covered** — `tests/lifecycle.test.ts` gained *work, reload, still
+  there*. It goes through `saveProject` / `loadProject` rather than `file.write` / `file.read`, which
+  is what the old "integration" test actually did. Reintroducing the import bug now fails **three**
+  tests; before, it failed none.
+- **The duplicated conformance tests are consolidated** — *done*. 46 near-identical tests came out
+  of eleven module files and `tests/modules/conformance.test.ts` runs the contract over every
+  published component and registered module instead. **It found a real bug on its first run**:
+  `viewOf` still read the leaf definition, so SC.6 had wired four resolvers and there are **five**.
+  A subtype inherited no view. That is the argument for the shape — the copied version could not
+  have caught it, because `view`'s own file never had the test to copy.
+
+**The rule changed to allow it.** *One test file per module, beside the module* is retired: tests
+live in `tests/` mirroring `src/`, and a contract kept by many modules is tested once over all of
+them. Keeping a test beside its module made moving a module cheap, and moving modules stopped being
+the common operation.
+
+**44 tests cover a feature nothing can reach.** `activity`, `state` and `sequence` render what
+`infer` produces, and `infer` still has no call site — G.9b is its trigger and is unbuilt. They test
+renderers over hand-built fixtures. Keep, but they prove less than their count suggests.
 
 **Deliberately untested:** the terminal — `router`, `turn`, `workflows` — whose shape stream Z is
 about to change, so a suite now would be rewritten by it; `embed`, `match` and `suggest`, which

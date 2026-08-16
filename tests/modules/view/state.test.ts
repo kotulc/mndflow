@@ -6,15 +6,14 @@
 
 import { describe, expect, it } from "vitest";
 
-import { edge, element, EMPTY, ROOT, field, refTo } from "../../../graph/types";
-import type { Graph } from "../../../graph/types";
-import { named } from "../index";
-import { CHROME } from "../diagram/surface";
-import { SHAPES } from "../../card";
+import { edge, element, EMPTY, ROOT, field, refTo } from "../../../src/graph/types";
+import type { Graph } from "../../../src/graph/types";
+import { named } from "../../../src/modules/view/index";
+import { SHAPES } from "../../../src/modules/card";
 import {
   STATE, DIM, MAP, MARKS, OFFER, guardOf, isState, marksOf, reaches,
   readingOf, stageOf, takes,
-} from "./index";
+} from "../../../src/modules/view/state/index";
 
 const STATE_TYPE = refTo("def_state", "pkg_behavior");
 const ACTION_TYPE = refTo("def_action", "pkg_behavior");
@@ -28,18 +27,6 @@ describe("the state module's surface", () => {
     expect(STATE.chrome).not.toContain("interfaces");
   });
 
-  it("is what the registered state module carries", () => {
-    expect(named("state")?.surface).toEqual(STATE);
-    expect(named("state")?.kind).toBe("behavior");
-    expect(named("state")?.creates).toBe("state");
-    expect(named("state")?.word).toBe("state");
-  });
-
-  it("names no chrome kind outside the open set", () => {
-    for (const kind of STATE.chrome) {
-      expect(CHROME).toContain(kind);
-    }
-  });
 });
 
 describe("the state module's gesture map", () => {
@@ -58,10 +45,6 @@ describe("the state module's gesture map", () => {
     expect(reaches("left", "drag", "card")).toBe("place");
   });
 
-  it("answers null for a gesture it does not bind", () => {
-    expect(reaches("right", "click", "frame")).toBeNull();
-    expect(reaches("left", "drag", "edge")).toBeNull();
-  });
 });
 
 describe("stage composition", () => {

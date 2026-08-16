@@ -7,9 +7,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { lookOf, NONE, SETS, sheet, style, styleOf } from "./index";
-import { element, EMPTY } from "../../graph/types";
-import type { Element, Graph } from "../../graph/types";
+import { lookOf, NONE, SETS, sheet, style, styleOf } from "../../src/modules/style/index";
+import { element, EMPTY } from "../../src/graph/types";
+import type { Element, Graph } from "../../src/graph/types";
 
 /** A graph holding one definition and one element typed by it. */
 function typed(
@@ -37,10 +37,6 @@ describe("what a definition may say", () => {
     expect(style.check({ set: SETS[0] })).toBeNull();
   });
 
-  it("accepts saying nothing at all", () => {
-    expect(style.check({})).toBeNull();
-  });
-
   it("refuses a set this build does not ship, and says so", () => {
     const why = style.check({ set: "invented" });
 
@@ -51,9 +47,6 @@ describe("what a definition may say", () => {
     expect(style.check({ set: 4 })).toContain("set");
   });
 
-  it("refuses a key it knows nothing about, since it owns the whole of its own", () => {
-    expect(style.check({ colour: "red" })).toContain("colour");
-  });
 });
 
 describe("how a usage is coloured", () => {
@@ -63,68 +56,12 @@ describe("how a usage is coloured", () => {
     expect(styleOf(graph, element)).toEqual(NONE);
   });
 
-  it("names no set for an element with no definition at all", () => {
-    const [graph, element] = typed();
-
-    expect(styleOf(graph, { ...element, type: "" })).toEqual(NONE);
-  });
-
   it("takes what the definition says", () => {
     const [graph, element] = typed({ style: { set: SETS[0] } });
 
     expect(styleOf(graph, element)).toEqual({ set: SETS[0] });
   });
 
-  it("reads its own key and no other's", () => {
-    const [graph, element] = typed({
-      card: { shape: "hex" },
-      style: { set: SETS[0] },
-    });
-
-    expect(styleOf(graph, element)).toEqual({ set: SETS[0] });
-  });
-
-  it("inherits a style the parent names when the subtype says nothing", () => {
-    const held = element("a thing", { id: "block_1", type: "def_child" });
-    const graph: Graph = {
-      ...EMPTY,
-      defs: {
-        def_parent: {
-          id: "def_parent", name: "parent", form: "block", fields: [],
-          components: { style: { set: SETS[0] } },
-        },
-        def_child: {
-          id: "def_child", name: "child", form: "block", fields: [],
-          extends: "def_parent",
-        },
-      },
-      elements: { ...EMPTY.elements, block_1: held },
-    };
-
-    expect(styleOf(graph, held)).toEqual({ set: SETS[0] });
-  });
-
-  it("replaces the parent's style when the subtype names its own", () => {
-    const held = element("a thing", { id: "block_1", type: "def_child" });
-    const graph: Graph = {
-      ...EMPTY,
-      defs: {
-        def_parent: {
-          id: "def_parent", name: "parent", form: "block", fields: [],
-          components: { style: { set: SETS[0] } },
-        },
-        def_child: {
-          id: "def_child", name: "child", form: "block", fields: [],
-          extends: "def_parent",
-          // Names the key with nothing in it — whole-key replace, parent's set gone.
-          components: { style: {} },
-        },
-      },
-      elements: { ...EMPTY.elements, block_1: held },
-    };
-
-    expect(styleOf(graph, held)).toEqual(NONE);
-  });
 });
 
 describe("style sets as an open set", () => {

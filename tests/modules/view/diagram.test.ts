@@ -8,17 +8,16 @@
 
 import { describe, expect, it } from "vitest";
 
-import { CELL } from "../../../geometry/layout";
-import { cardOf, outline, PLAIN } from "../../card";
-import { lookOf } from "../../style";
-import { element, EMPTY, ROOT } from "../../../graph/types";
-import type { Graph } from "../../../graph/types";
-import { named } from "../index";
+import { CELL } from "../../../src/geometry/layout";
+import { cardOf, outline, PLAIN } from "../../../src/modules/card";
+import { lookOf } from "../../../src/modules/style";
+import { element, EMPTY, ROOT } from "../../../src/graph/types";
+import type { Graph } from "../../../src/graph/types";
 import {
   ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP, MARGIN, NOTE,
   NODES, edgesOf, extentOf, floorOf, framed, laidOf, nodesOf, paint, reaches,
   restOf, stageOf, svgOf, takes,
-} from "./index";
+} from "../../../src/modules/view/diagram/index";
 
 describe("the block module's surface", () => {
   it("is the framed camera with the full chrome and a place to ask", () => {
@@ -28,15 +27,6 @@ describe("the block module's surface", () => {
     expect([...DIAGRAM.chrome].sort()).toEqual([...CHROME].sort());
   });
 
-  it("is what the registered block module carries", () => {
-    expect(named("block")?.surface).toEqual(DIAGRAM);
-  });
-
-  it("names no chrome kind outside the open set", () => {
-    for (const kind of DIAGRAM.chrome) {
-      expect(CHROME).toContain(kind);
-    }
-  });
 });
 
 describe("the block module's gesture map", () => {
@@ -84,10 +74,6 @@ describe("the block module's gesture map", () => {
     expect(reaches("key", "Delete", "any")).toBe("delete");
   });
 
-  it("answers null for a gesture it does not bind", () => {
-    expect(reaches("left", "click", "note")).toBeNull();
-    expect(reaches("right", "double", "card")).toBeNull();
-  });
 });
 
 describe("the surround", () => {

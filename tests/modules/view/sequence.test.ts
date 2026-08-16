@@ -6,14 +6,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { edge, element, EMPTY, ROOT, field } from "../../../graph/types";
-import type { Graph } from "../../../graph/types";
-import { named } from "../index";
-import { CHROME } from "../diagram/surface";
+import { edge, element, EMPTY, ROOT, field } from "../../../src/graph/types";
+import type { Graph } from "../../../src/graph/types";
 import {
   SEQUENCE, DIM, MAP, VERB, along, columnsOf, guardOf, ranked, reaches,
   stageOf, takes,
-} from "./index";
+} from "../../../src/modules/view/sequence/index";
 
 describe("the sequence module's surface", () => {
   it("is a framed plane with a camera, and a place to ask", () => {
@@ -24,18 +22,6 @@ describe("the sequence module's surface", () => {
     expect(SEQUENCE.chrome).not.toContain("interfaces");
   });
 
-  it("is what the registered sequence module carries", () => {
-    expect(named("sequence")?.surface).toEqual(SEQUENCE);
-    expect(named("sequence")?.kind).toBe("behavior");
-    expect(named("sequence")?.creates).toBe("action");
-    expect(named("sequence")?.word).toBe("action");
-  });
-
-  it("names no chrome kind outside the open set", () => {
-    for (const kind of SEQUENCE.chrome) {
-      expect(CHROME).toContain(kind);
-    }
-  });
 });
 
 describe("the sequence module's gesture map", () => {
@@ -53,10 +39,6 @@ describe("the sequence module's gesture map", () => {
     expect(reaches("left", "double", "card")).toBe("open");
   });
 
-  it("answers null for a gesture it does not bind", () => {
-    expect(reaches("right", "click", "frame")).toBeNull();
-    expect(reaches("left", "drag", "card")).toBeNull();
-  });
 });
 
 describe("stage composition", () => {

@@ -6,11 +6,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { element, EMPTY, ROOT, refTo } from "../../../graph/types";
-import type { Graph } from "../../../graph/types";
-import { named } from "../index";
-import { CHROME } from "../diagram/surface";
-import { MAP, TABLE, reaches, rowsOf, takes } from "./index";
+import { element, EMPTY, ROOT, refTo } from "../../../src/graph/types";
+import type { Graph } from "../../../src/graph/types";
+import { MAP, TABLE, reaches, rowsOf, takes } from "../../../src/modules/view/table/index";
 
 describe("the table module's surface", () => {
   it("is rows with a scrollbar, no frame, and a place to ask", () => {
@@ -22,16 +20,6 @@ describe("the table module's surface", () => {
     expect(TABLE.chrome).not.toContain("arrange");
   });
 
-  it("is what the registered table module carries", () => {
-    expect(named("table")?.surface).toEqual(TABLE);
-    expect(named("table")?.kind).toBe("structure");
-  });
-
-  it("names no chrome kind outside the open set", () => {
-    for (const kind of TABLE.chrome) {
-      expect(CHROME).toContain(kind);
-    }
-  });
 });
 
 describe("the table module's gesture map", () => {
@@ -50,10 +38,6 @@ describe("the table module's gesture map", () => {
     expect(reaches("right", "click", "empty")).toBe("create");
   });
 
-  it("answers null for a gesture it does not bind", () => {
-    expect(reaches("left", "drag", "row")).toBeNull();
-    expect(reaches("key", "F", "any")).toBeNull();
-  });
 });
 
 describe("row composition", () => {

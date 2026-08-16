@@ -8,8 +8,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { entering, report, validating } from "./check";
-import { fold } from "./fold";
+import { entering, report, validating } from "../../src/graph/check";
+import { fold } from "../../src/graph/fold";
 
 /** A log as some earlier build would have written it. */
 const logged = (...mutations: unknown[]) => ([{

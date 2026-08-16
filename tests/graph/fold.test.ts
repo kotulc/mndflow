@@ -10,8 +10,8 @@
 import { describe, expect, it } from "vitest";
 
 import { blocksOf, childrenOf, compact, fold, isa, isPort, isReference, isTie, membersOf,
-         portsOf, relationNames, resolved, stepsIn, targetOf, tiesOf, COMPACT_AT } from "./fold";
-import { edge, element, field, refTo, step, ROOT, type Mutation, type Step } from "./types";
+         portsOf, relationNames, resolved, stepsIn, targetOf, tiesOf, COMPACT_AT } from "../../src/graph/fold";
+import { edge, element, field, refTo, step, ROOT, type Mutation, type Step } from "../../src/graph/types";
 
 /** One step holding whatever mutations a case needs. */
 const did = (...mutations: Mutation[]): Step => step("", "test", mutations);

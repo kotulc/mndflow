@@ -9,10 +9,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   BLOCK, MODULES, kindOf, named, view, viewOf, views,
-} from "./index";
-import type { ViewName } from "./index";
-import { element, EMPTY } from "../../graph/types";
-import type { Element, Graph } from "../../graph/types";
+} from "../../src/modules/view/index";
+import type { ViewName } from "../../src/modules/view/index";
+import { element, EMPTY } from "../../src/graph/types";
+import type { Element, Graph } from "../../src/graph/types";
 
 /** A graph holding one definition and one element typed by it. */
 function typed(components?: Record<string, Record<string, unknown>>): [Graph, Element] {
@@ -71,10 +71,6 @@ describe("what a definition may say", () => {
     }
   });
 
-  it("accepts saying nothing at all", () => {
-    expect(view.check({})).toBeNull();
-  });
-
   it("accepts a positive integer abstraction cap", () => {
     expect(view.check({ N: 1 })).toBeNull();
     expect(view.check({ N: BLOCK.N })).toBeNull();
@@ -92,9 +88,6 @@ describe("what a definition may say", () => {
     expect(view.check({ N: "5" })).toContain("N");
   });
 
-  it("refuses a key it knows nothing about, since it owns the whole of its own", () => {
-    expect(view.check({ arrangement: "grid" })).toContain("arrangement");
-  });
 });
 
 describe("how a usage is projected", () => {
@@ -102,12 +95,6 @@ describe("how a usage is projected", () => {
     const [graph, element] = typed();
 
     expect(viewOf(graph, element)).toEqual(BLOCK);
-  });
-
-  it("is the block view for an element with no definition at all", () => {
-    const [graph, element] = typed();
-
-    expect(viewOf(graph, { ...element, type: "" })).toEqual(BLOCK);
   });
 
   it("takes what the definition says, and the default for what it leaves out", () => {
@@ -122,14 +109,6 @@ describe("how a usage is projected", () => {
     expect(viewOf(graph, element)).toEqual({ module: "activity", N: 3 });
   });
 
-  it("reads its own key and no other's", () => {
-    const [graph, element] = typed({
-      card: { shape: "hex" },
-      view: { module: "table" },
-    });
-
-    expect(viewOf(graph, element)).toEqual({ ...BLOCK, module: "table" });
-  });
 });
 
 describe("the base diagram as one configuration among others", () => {

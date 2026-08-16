@@ -7,11 +7,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { element, EMPTY, ROOT } from "../../../graph/types";
-import type { Graph } from "../../../graph/types";
-import { named } from "../index";
-import { CHROME } from "../diagram/surface";
-import { MAP, MATRIX, gridOf, reaches, takes } from "./index";
+import { element, EMPTY, ROOT } from "../../../src/graph/types";
+import type { Graph } from "../../../src/graph/types";
+import { MAP, MATRIX, gridOf, reaches, takes } from "../../../src/modules/view/matrix/index";
 
 describe("the matrix module's surface", () => {
   it("is a grid with a scrollbar, no frame, and a place to ask", () => {
@@ -23,16 +21,6 @@ describe("the matrix module's surface", () => {
     expect(MATRIX.chrome).not.toContain("arrange");
   });
 
-  it("is what the registered matrix module carries", () => {
-    expect(named("matrix")?.surface).toEqual(MATRIX);
-    expect(named("matrix")?.kind).toBe("structure");
-  });
-
-  it("names no chrome kind outside the open set", () => {
-    for (const kind of MATRIX.chrome) {
-      expect(CHROME).toContain(kind);
-    }
-  });
 });
 
 describe("the matrix module's gesture map", () => {
@@ -51,10 +39,6 @@ describe("the matrix module's gesture map", () => {
     expect(reaches("left", "drop", "explorer")).toBe("refer");
   });
 
-  it("answers null for a gesture it does not bind", () => {
-    expect(reaches("left", "drag", "cell")).toBeNull();
-    expect(reaches("key", "F", "any")).toBeNull();
-  });
 });
 
 describe("grid composition", () => {

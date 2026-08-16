@@ -6,9 +6,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { among, NONE, rules, rulesOf } from "./index";
-import { element, EMPTY } from "../../graph/types";
-import type { Element, Graph } from "../../graph/types";
+import { among, NONE, rules, rulesOf } from "../../src/modules/rules/index";
+import { element, EMPTY } from "../../src/graph/types";
+import type { Element, Graph } from "../../src/graph/types";
 
 /** A graph holding one definition and one element typed by it. */
 function typed(
@@ -36,10 +36,6 @@ describe("what a definition may say", () => {
       degree: { in: [0, 0], out: [1, null] },
       match: ["type"],
     })).toBeNull();
-  });
-
-  it("accepts saying nothing at all", () => {
-    expect(rules.check({})).toBeNull();
   });
 
   it("accepts empty lists and unbounded degree", () => {
@@ -84,10 +80,6 @@ describe("what a definition may say", () => {
     expect(rules.check({ match: "type" })).toContain("match");
   });
 
-  it("refuses a key it knows nothing about, since it owns the whole of its own", () => {
-    expect(rules.check({ required: ["id"] })).toContain("required");
-  });
-
   it("refuses ends that omit from or to", () => {
     expect(rules.check({ ends: { to: [] } })).toContain("from");
     expect(rules.check({ ends: { from: [] } })).toContain("to");
@@ -99,12 +91,6 @@ describe("how a usage is ruled", () => {
     const [graph, element] = typed();
 
     expect(rulesOf(graph, element)).toEqual(NONE);
-  });
-
-  it("rules nothing for an element with no definition at all", () => {
-    const [graph, element] = typed();
-
-    expect(rulesOf(graph, { ...element, type: "" })).toEqual(NONE);
   });
 
   it("takes what the definition says, and none for what it leaves out", () => {
@@ -120,18 +106,6 @@ describe("how a usage is ruled", () => {
     });
   });
 
-  it("reads its own key and no other's", () => {
-    const [graph, element] = typed({
-      constraints: { required: ["id"] },
-      rules: { holds: ["def_block"] },
-    });
-
-    expect(rulesOf(graph, element)).toEqual({
-      ...NONE,
-      holds: ["def_block"],
-    });
-  });
-
   it("carries optional port directions on ends", () => {
     const [graph, element] = typed({
       rules: { ends: { from: ["def_a"], to: [], fromPort: "out" } },
@@ -140,55 +114,6 @@ describe("how a usage is ruled", () => {
     expect(rulesOf(graph, element).ends).toEqual({
       from: ["def_a"], to: [], fromPort: "out",
     });
-  });
-
-  it("inherits rules the parent names when the subtype says nothing", () => {
-    const held = element("a thing", { id: "block_1", type: "def_child" });
-    const graph: Graph = {
-      ...EMPTY,
-      defs: {
-        def_parent: {
-          id: "def_parent", name: "parent", form: "block", fields: [],
-          components: { rules: { holds: ["def_block"], match: ["type"] } },
-        },
-        def_child: {
-          id: "def_child", name: "child", form: "block", fields: [],
-          extends: "def_parent",
-        },
-      },
-      elements: { ...EMPTY.elements, block_1: held },
-    };
-
-    expect(rulesOf(graph, held)).toEqual({
-      ...NONE,
-      holds: ["def_block"],
-      match: ["type"],
-    });
-  });
-
-  it("replaces the parent's rules when the subtype names its own", () => {
-    const held = element("a thing", { id: "block_1", type: "def_child" });
-    const graph: Graph = {
-      ...EMPTY,
-      defs: {
-        def_parent: {
-          id: "def_parent", name: "parent", form: "block", fields: [],
-          components: { rules: { holds: ["def_block"], match: ["type"] } },
-        },
-        def_child: {
-          id: "def_child", name: "child", form: "block", fields: [],
-          extends: "def_parent",
-          components: { rules: { degree: { in: [1, 1] } } },
-        },
-      },
-      elements: { ...EMPTY.elements, block_1: held },
-    };
-    const held_rules = rulesOf(graph, held);
-
-    // Whole key replaced — the parent's holds and match do not leak in.
-    expect(held_rules.degree).toEqual({ in: [1, 1] });
-    expect(held_rules.holds).toEqual([]);
-    expect(held_rules.match).toEqual([]);
   });
 
 });

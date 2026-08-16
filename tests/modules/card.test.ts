@@ -7,10 +7,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { card, cardOf, LAYOUTS, outline, PLAIN, shaped, SHAPES } from "./index";
-import type { Outline, Shape, Spot } from "./index";
-import { element, EMPTY } from "../../graph/types";
-import type { Element, Graph } from "../../graph/types";
+import { card, cardOf, LAYOUTS, outline, PLAIN, shaped, SHAPES } from "../../src/modules/card/index";
+import type { Outline, Shape, Spot } from "../../src/modules/card/index";
+import { element, EMPTY } from "../../src/graph/types";
+import type { Element, Graph } from "../../src/graph/types";
 
 /** A graph holding one definition and one element typed by it. */
 function typed(components?: Record<string, Record<string, unknown>>): [Graph, Element] {
@@ -29,10 +29,6 @@ describe("what a definition may say", () => {
     expect(card.check({ layout: "shape", shape: "diamond", label: "below" })).toBeNull();
   });
 
-  it("accepts saying nothing at all", () => {
-    expect(card.check({})).toBeNull();
-  });
-
   it.each([
     ["layout", { layout: "invented" }],
     ["shape", { shape: "trapezium" }],
@@ -41,10 +37,6 @@ describe("what a definition may say", () => {
     const why = card.check(config);
 
     expect(why).toContain(key);
-  });
-
-  it("refuses a key it knows nothing about, since it owns the whole of its own", () => {
-    expect(card.check({ colour: "red" })).toContain("colour");
   });
 
   it("refuses `shows` that is not a list of field names", () => {
@@ -61,12 +53,6 @@ describe("how a usage is composed", () => {
     expect(cardOf(graph, element)).toEqual(PLAIN);
   });
 
-  it("is the plain card for an element with no definition at all", () => {
-    const [graph, element] = typed();
-
-    expect(cardOf(graph, { ...element, type: "" })).toEqual(PLAIN);
-  });
-
   it("takes what the definition says, and the default for what it leaves out", () => {
     const [graph, element] = typed({ card: { shape: "diamond", shows: ["id"] } });
     const held = cardOf(graph, element);
@@ -76,58 +62,6 @@ describe("how a usage is composed", () => {
     expect(held.layout).toBe(PLAIN.layout);
   });
 
-  it("reads its own key and no other's", () => {
-    const [graph, element] = typed({ style: { set: "sysml" }, card: { shape: "hex" } });
-
-    expect(cardOf(graph, element)).toEqual({ ...PLAIN, shape: "hex" });
-  });
-
-  it("inherits a card the parent names when the subtype says nothing", () => {
-    const held = element("a thing", { id: "block_1", type: "def_child" });
-    const graph: Graph = {
-      ...EMPTY,
-      defs: {
-        def_parent: {
-          id: "def_parent", name: "parent", form: "block", fields: [],
-          components: { card: { shape: "diamond", shows: ["id"] } },
-        },
-        def_child: {
-          id: "def_child", name: "child", form: "block", fields: [],
-          extends: "def_parent",
-        },
-      },
-      elements: { ...EMPTY.elements, block_1: held },
-    };
-    const composed = cardOf(graph, held);
-
-    expect(composed.shape).toBe("diamond");
-    expect(composed.shows).toEqual(["id"]);
-    expect(composed.layout).toBe(PLAIN.layout);
-  });
-
-  it("replaces the parent's card when the subtype names its own", () => {
-    const held = element("a thing", { id: "block_1", type: "def_child" });
-    const graph: Graph = {
-      ...EMPTY,
-      defs: {
-        def_parent: {
-          id: "def_parent", name: "parent", form: "block", fields: [],
-          components: { card: { shape: "diamond", shows: ["id"] } },
-        },
-        def_child: {
-          id: "def_child", name: "child", form: "block", fields: [],
-          extends: "def_parent",
-          components: { card: { shape: "hex" } },
-        },
-      },
-      elements: { ...EMPTY.elements, block_1: held },
-    };
-    const composed = cardOf(graph, held);
-
-    // Whole key replaced — the parent's shows does not leak in.
-    expect(composed.shape).toBe("hex");
-    expect(composed.shows).toEqual(PLAIN.shows);
-  });
 });
 
 describe("the base diagram as one configuration among others", () => {

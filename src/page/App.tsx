@@ -310,6 +310,13 @@ export function App() {
 
   /** Bring a project into context and open a layer inside it. */
   function navigate(projectId: string, layer: string | null) {
+    // A second click arriving before the first has landed is the same gesture —
+    // a double-click, which the tree reads as rename. The rows may have moved
+    // under the pointer by then, so that click's id is not to be trusted; the
+    // intent already queued wins. Cleared within a render of the graph folding,
+    // so this suppresses nothing a person could aim.
+    if (pendingView.current) return;
+
     if (projectId !== contextId) {
       pendingView.current = { project: projectId, layer };
       setContextId(projectId);

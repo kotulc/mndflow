@@ -8,8 +8,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { across, attach, lanes, route, runOf, type Box, type Planned } from "./route";
-import type { Spot } from "../graph/types";
+import { across, attach, lanes, route, runOf, type Box, type Planned } from "../../src/geometry/route";
+import type { Spot } from "../../src/graph/types";
 
 /** The whole line, end to end. `route` returns the pieces — two seats, two
  *  outward directions and the corners between — and `runOf` is what the canvas

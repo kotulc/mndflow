@@ -5,13 +5,13 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { fold } from "../graph/fold";
-import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../graph/types";
+import { fold } from "../src/graph/fold";
+import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../src/graph/types";
 import {
   admit, blank, defOf, folder, fork, fromDefs, gather, isLocked, isSelf, load,
   mayAdmit, named, opened, pack, packId, packs, read, resolve, rootOf, save,
   scoped, unlock, writeInto,
-} from "./index";
+} from "../src/workspace/index";
 
 /** An in-memory localStorage so the suite does not need a browser. */
 function memory(): Storage {

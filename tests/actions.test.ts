@@ -8,9 +8,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { inScope, offered, register, run, sayable, writes,
-         type Action, type Context, type Effect } from "./index";
-import { fold } from "../graph/fold";
-import { element, step, type Mutation } from "../graph/types";
+         type Action, type Context, type Effect } from "../src/actions/index";
+import { fold } from "../src/graph/fold";
+import { element, step, type Mutation } from "../src/graph/types";
 
 /** A layer holding one block, one note and one group, so scope has something to
  *  tell apart. */

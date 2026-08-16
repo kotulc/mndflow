@@ -12,10 +12,10 @@
 import { describe, expect, it } from "vitest";
 
 import { around, cell, pack, place, arranged, seatAt, seatMarks, sizeOf, tile, CELL, CHIP_CAP,
-         type Box } from "./layout";
-import { fold } from "../graph/fold";
+         type Box } from "../../src/geometry/layout";
+import { fold } from "../../src/graph/fold";
 import { edge, element, step, type Element, type Graph, type Layout, type Mutation,
-         type Spot } from "../graph/types";
+         type Spot } from "../../src/graph/types";
 
 /** A layer of loose blocks, plus any the caller has already placed. */
 function layer(loose: number, placed: Array<{ x: number; y: number }> = []) {

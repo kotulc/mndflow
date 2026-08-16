@@ -28,7 +28,7 @@ that landed *short* stays in plan.md marked `◐`.
 | **SC.3** | `resolved()` unions fields and merges `components` per key, cached per fold |
 | **SC.4** | Type offers are package-disambiguated when two definitions share a name (proven) |
 | **SC.5** | Element forms are four; door heals `figure` → `block`; sample seam is a shaped block; interface-on-figure refusal removed (proven) |
-| **SC.6** | `cardOf` / `styleOf` / `rulesOf` / `constraintsOf` read `resolved()`; a subtype draws the parent's diamond (proven) |
+| **SC.6** | All **five** resolvers — `cardOf` / `styleOf` / `rulesOf` / `constraintsOf` / `viewOf` — read `resolved()`; a subtype draws the parent's diamond and inherits its view. *`viewOf` was missed on the first pass and caught later by the conformance suite* |
 
 
 ## S1 — the action registry

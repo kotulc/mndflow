@@ -7,9 +7,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { findings, preset, presets, publish, ship } from "./index";
-import type { Module, Preset } from "./index";
-import type { Graph } from "../graph/types";
+import { findings, preset, presets, publish, ship } from "../src/modules/index";
+import type { Module, Preset } from "../src/modules/index";
+import type { Graph } from "../src/graph/types";
 
 const empty = {} as Graph;
 

@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { restated } from "./sync";
+import { restated } from "../../src/canvas/sync";
 
 type Node = {
   id: string;

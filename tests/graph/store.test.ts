@@ -9,8 +9,8 @@ import {
   adoptId, canBind, clearPressure, download, downloadSvg, isDrifted, load, loadProject,
   loadWorkspace, pickIn, pressureNote, projectId, readBound, release, save,
   saveProject, saveWorkspace, settleBound, watch, watchPressure, writeOut,
-} from "./store";
-import { EMPTY, element, step, type Step } from "./types";
+} from "../../src/graph/store";
+import { EMPTY, element, step, type Step } from "../../src/graph/types";
 
 /** An in-memory localStorage so the suite does not need a browser. */
 function memory(limit?: number): Storage {
