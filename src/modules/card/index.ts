@@ -23,6 +23,7 @@
  *  describe a new one. */
 
 import type { Component, Config } from "../index";
+import { resolved } from "../../graph/fold";
 import type { Element, Graph } from "../../graph/types";
 
 /** How a card is composed. `type` is what every card is today: a name with the
@@ -101,10 +102,10 @@ export const card: Component = { name: "card", check };
  *  composed alike. Where two must differ they differ in what they hold and in
  *  their fields, both of which are content.
  *
- *  A definition that extends another does not yet inherit its card — SC.3 is
- *  what merges the chain, and until then a subtype stands on its own. */
+ *  Reads the resolved view, so a subtype inherits a card key it does not
+ *  mention and replaces one it does — never a deep merge inside the key. */
 export function cardOf(graph: Graph, element: Element): CardConfig {
-  const config = graph.defs[element.type]?.components?.card;
+  const config = resolved(graph, element.type)?.components?.card;
 
   return config ? { ...PLAIN, ...config } as CardConfig : PLAIN;
 }

@@ -107,6 +107,22 @@ what makes a package safe to install: it can change how a project reads and neve
 **Every term is defined in [definitions.md](definitions.md)**, which is the canonical vocabulary.
 What belongs here is only the reasoning behind the shape of it.
 
+**A project comes into being by being named**, and naming it is the first step
+there is — nothing can be put in one before it has a name. The app therefore
+opens with *no* project rather than with one nobody asked for: storage reads a
+pointer and never invents one.
+
+**Project names are unique**, which is the rule a layer already has, applied one
+level up: projects are siblings in the workspace the way blocks are siblings in a
+layer, and every file explorer works this way for the same reason. A name is
+required and no two share one, enforced on the way in and on rename alike.
+
+*This replaces a silently minted session project.* One was created on every load
+so that there was always somewhere to draw; untitled, it drew as the bare word
+`project`, nothing ever removed one, and a workspace accumulated a row per
+abandoned session. The fallback label is gone with it — a blank name is now a bug
+to see rather than a word to paper over.
+
 **Nothing declares what a project is.** One holding only proxies is a view, one holding only
 definitions is a package, one holding its own objects is a structure. It is visible from what it
 has, so there is no field to keep true — and a project is free to become something else by being
@@ -301,6 +317,29 @@ that has extent.
   glance never costs you your place, and descending is always a deliberate second gesture.
 - **Toolbars divide by states against verbs**, which is why the two sit far apart. A control that
   does something and a control that is something look alike and behave differently.
+
+### The shell yields; the stage does not
+
+**Chrome gives way under pressure and the working area does not.** On a narrow window or at high
+zoom the crumbs truncate, the option groups collapse and the explorer bounds itself — the canvas
+keeps its room. The failure to avoid is the one the app has today: chrome that grows until it
+collides with itself and takes the stage with it.
+
+- **A theme is chrome; a style set is content.** `styles/` holds the `style` component's
+  per-definition presentation and means what a *usage* looks like. A theme is what the *page* looks
+  like. They are two unrelated things that happen to share a word, and merging them would put a
+  user's colour preference where a definition's presentation lives.
+- **A control shows its state rather than cycling it.** An icon that advances through three views on
+  click hides both what is available and what is current; a labelled control says both. Cheaper to
+  read, and it never changes the canvas without saying why.
+- **A saved view is a block, not a kind of project.** A block whose definition carries a `view`
+  component, holding proxies of what it shows, filed in a folder like anything else. No classifier
+  was added, for the same reason *structure* and *behavior* are not classifiers.
+- **Which view is showing is a display preference**, so it is sticky per project and never enters
+  the log. The definition's `view.module` says how a layer *opens*; the toggle says what is on
+  screen now. Same rule as `showPorts` and `angular`.
+- **Every view module earns a distinct icon**, because a shrunken explorer is legible through
+  glyphs or not at all. Definition icons are a separate want, and stream E already holds it.
 
 
 ## Where this is going
@@ -623,10 +662,15 @@ the version of adaptive ranking worth avoiding.
 and a console already, and neither is this — one is a fixed command list, the other a shell. The
 rail is not duplicated by either, which is why a VS Code host costs it nothing.
 
-**The rail is a separate thing, and the app is whole without it.** *Where* it runs is undecided —
-the current target is fully local, and understanding a sentence may later want something that does
-not fit in a tab. That question stays open, and **the design does not wait on it**: the rail is
-built to be **included or not**.
+**The rail is a separate thing, and the app is whole without it.** It is built to be **included or
+not**, and that holds however much it grows.
+
+**What ships is client-side, and the open question about where it runs is closed for now.** Z.8 is
+scoped to ranked completion over the action surface plus **one** documentation hit, on the single
+most relevant keyword and always ranked last. That is a lookup and a sort — it fits in a tab, so
+nothing about the rail as built needs a server, and *"the app must work with it unavailable"* is no
+longer a caveat this design carries. The **natural-language half above stays the aim** and is
+deliberately not scheduled; if it is ever built, where it runs reopens with it.
 
 > **Take `src/terminal/` out and everything still works.** Nothing below the rail may import it.
 

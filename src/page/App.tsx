@@ -1,34 +1,83 @@
-/** Shell: terminal and suggestions at the top, object explorer and graph
- *  below.
+/** Shell: optional terminal rail at the top, object explorer and graph below.
  *
  *  The canvas takes everything left over. What used to sit under it — the
  *  action log, the relation kinds, the match scoring — is a tabbed readout
  *  behind the rail's toggle, and the attributes of whatever is selected ride
  *  at the foot of the canvas itself.
  *
+ *  The rail is one optional mount: when `terminal/` is in the build its Chat
+ *  and Scores pieces appear; when it is not, the page still runs. Nothing
+ *  below imports the rail.
+ *
  *  There is no server. Everything below runs against a step log in this tab.
  *  Which log is which project's is decided by the explorer: the selected row's
  *  project is the context. */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
 import { compact, fold, stepsIn, titleOf } from "../graph/fold";
 import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
 import * as store from "../graph/store";
-import { ROOT, step as makeStep, type EdgeForm, type Graph, type Step } from "../graph/types";
-import type { Suggestion } from "../terminal/suggest";
+import {
+  ROOT, refAt, step as makeStep,
+  type EdgeForm, type Graph, type Mutation, type Step,
+} from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
 import { viewOf } from "../modules/view";
+import { Activity } from "../modules/view/activity";
+import { Sequence } from "../modules/view/sequence";
+import { State } from "../modules/view/state";
+import { svgOf } from "../modules/view/diagram";
 import { Matrix } from "../modules/view/matrix";
 import { Table } from "../modules/view/table";
-import { Chat } from "../terminal/Chat";
 import * as workspace from "../workspace";
-import { Files } from "./Files";
+import { Files, type Chosen } from "./Files";
 import { Panel } from "./Panel";
 import { Readout } from "./Readout";
+
+/** A chip the rail may ask the page to run — structural; the rail owns the rest. */
+type Chip = { kind: "add" | "link" | "open"; value: string };
+
+type ChatProps = {
+  graph: Graph;
+  steps: Step[];
+  question: {
+    id: string;
+    prompt: string;
+    hint: string;
+    choices: string[];
+    placeholder: string;
+  } | null;
+  view: string | null;
+  scope: string | null;
+  terms: { group: string; node: string; relation: string };
+  draft: string;
+  onDraft: (text: string) => void;
+  onTurn: (input: string) => void;
+  onRun: (chip: Chip) => void;
+};
+
+type ScoresProps = { text: string; active: string };
+
+/** Rail UI when `terminal/` is present. Eager so Chat's loop registers before
+ *  the first render; an empty glob is a build without the rail. */
+const railMods = import.meta.glob("../terminal/*.tsx", { eager: true }) as Record<
+  string,
+  { Chat?: ComponentType<ChatProps>; Scores?: ComponentType<ScoresProps> }
+>;
+
+const rail = (() => {
+  let Chat: ComponentType<ChatProps> | undefined;
+  let Scores: ComponentType<ScoresProps> | undefined;
+  for (const mod of Object.values(railMods)) {
+    if (mod.Chat) Chat = mod.Chat;
+    if (mod.Scores) Scores = mod.Scores;
+  }
+  return { Chat, Scores };
+})();
 
 /** What this diagram calls its elementary unit.
  *
@@ -90,7 +139,20 @@ function companions(
 /** Admit a project into the workspace list and place its root proxy. Already
  *  open is a no-op. */
 function openIn(held: workspace.Held, projectId: string): workspace.Held {
+  if (held.projects.includes(projectId)) return held;
+
   const { graph, steps } = graphOf(held.id);
+
+  // Already proxied in the shell but missing from the list — a log written
+  // before this call, or an effect that ran twice. Adopt it; admitting again
+  // would draw the project a second time.
+  if (workspace.holds(graph, projectId)) {
+    const next = { ...held, projects: [...held.projects, projectId] };
+    workspace.save(next);
+
+    return next;
+  }
+
   const out = workspace.admit(held, graph, projectId);
   if ("refuse" in out) return held;
 
@@ -103,6 +165,37 @@ function openIn(held: workspace.Held, projectId: string): workspace.Held {
   return out.held;
 }
 
+/** Forget every project storage has no log for.
+ *
+ *  **A project earns its place in the workspace the way it earns a key: on the
+ *  first change.** Admitting on *open* instead put a row in the explorer for
+ *  every session that was started and never used — each one untitled, so each
+ *  drew as the bare word `project`, and nothing ever took them out again. */
+function prune(held: workspace.Held): workspace.Held {
+  const gone = held.projects.filter((id) => !store.isKeyed(id));
+  if (!gone.length) return held;
+
+  const { graph, steps } = graphOf(held.id);
+  let next = held;
+  const mutations: Mutation[] = [];
+
+  for (const id of gone) {
+    const out = workspace.forget(next, graph, id);
+    next = out.held;
+    mutations.push(...out.mutations);
+  }
+
+  workspace.save(next);
+  if (mutations.length) {
+    store.saveProject(held.id, compact([
+      ...steps,
+      makeStep("closed", "forget", mutations),
+    ]));
+  }
+
+  return next;
+}
+
 /** Tooltip for an open project: id, how much work, and which copy. */
 function tipOf(id: string, graph: Graph, steps: Step[]): string {
   const written = file.write(graph, id, stepsIn(steps));
@@ -111,14 +204,58 @@ function tipOf(id: string, graph: Graph, steps: Step[]): string {
 }
 
 export function App() {
-  const [held, setHeld] = useState(() => openIn(workspace.load(), store.projectId()));
+  // The session project is *not* admitted here. It joins the workspace when it
+  // first holds something (below), so a fresh session shows no rows at all.
+  const [held, setHeld] = useState(() => prune(workspace.load()));
   /** Which project's log the page writes to — the selected explorer row's. */
-  const [contextId, setContextId] = useState(() => store.projectId());
+  // `""` until a project is named. Storage no longer invents one: a project
+  // comes into being by being named, so nothing can be added before that.
+  const [contextId, setContextId] = useState(() => store.currentProject());
   /** Layer to open once useProject has rebound after a context switch. */
-  const pendingView = useRef<string | null | undefined>(undefined);
+  const pendingView = useRef<{ project: string; layer: string | null } | null>(null);
 
   const project = useProject(contextId, workspace.isLocked(held, contextId));
+
+  // A project that got into the list without a name cannot be told from any
+  // other — the rule is enforced on the way in, so this is only a safety net.
+  useEffect(() => {
+    if (!contextId || held.projects.includes(contextId)) return;
+    if (!project.steps.length) return;
+
+    setHeld(openIn(held, contextId));
+  }, [contextId, held, project.steps.length]);
   const { graph, view, picked, path, question, terms } = project;
+
+  /** Every open project's name, for the uniqueness rule. */
+  const takenNames = useMemo(
+    () => workspace.names(Object.fromEntries(
+      held.projects.map((id) => [id, id === contextId ? graph : graphOf(id).graph]),
+    )),
+    [held.projects, contextId, graph],
+  );
+
+  /** The `new` page action: name it, and that naming is its first step.
+   *
+   *  Naming is what brings a project into being — it earns a key, a place in
+   *  the workspace and the context, all from having been called something. */
+  function newProject(name: string): boolean {
+    const why = workspace.mayName(takenNames, name);
+    if (why) {
+      say(why);
+
+      return false;
+    }
+
+    const id = store.newProjectId();
+    store.saveProject(id, workspace.started(name));
+    store.adoptId(id);
+    setHeld(openIn(held, id));
+    pendingView.current = { project: id, layer: null };
+    setContextId(id);
+
+    return true;
+  }
+
   // Held here so the match scoring can watch it being typed.
   const [draft, setDraft] = useState("");
   /** Whether the readout drawer is out. */
@@ -148,27 +285,44 @@ export function App() {
    *  about how anything is drawn, but it lives here for the same reason: it is
    *  the tool in hand, not part of the project. */
   const [form, setForm] = useState<EdgeForm>("line");
+  /** Explorer multi-select — cross-project refs `infer` will take. Held here
+   *  so the action can read it without the tree owning the session. */
+  const [chosen, setChosen] = useState<Chosen[]>([]);
   useEffect(() => store.angular.set(angular), [angular]);
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);
 
-  // After switching project, open the layer the click asked for — once the
-  // hook has folded the new log (`graph` changes), not on the stale closure.
+  // After switching project, open the layer the click asked for — but only once
+  // the hook has folded *that* project's log.
+  //
+  // `project.open` is a fresh closure every render, so this effect runs on every
+  // render too. Waiting for the layer to actually be in the graph is what tells
+  // a rebind apart from an ordinary re-render; consuming it eagerly opened the
+  // id against the project we were leaving, which said "Nothing to open."
   useEffect(() => {
-    if (pendingView.current === undefined) return;
-    const layer = pendingView.current;
-    pendingView.current = undefined;
-    project.open(layer);
-  }, [graph, project.open]);
+    const want = pendingView.current;
+    if (!want || want.project !== contextId) return;
+    if (want.layer !== null && !graph.elements[want.layer]) return;
+
+    pendingView.current = null;
+    project.open(want.layer);
+  }, [graph, contextId, project.open]);
 
   /** Bring a project into context and open a layer inside it. */
   function navigate(projectId: string, layer: string | null) {
+    // A second click arriving before the first has landed is the same gesture —
+    // a double-click, which the tree reads as rename. The rows may have moved
+    // under the pointer by then, so that click's id is not to be trusted; the
+    // intent already queued wins. Cleared within a render of the graph folding,
+    // so this suppresses nothing a person could aim.
+    if (pendingView.current) return;
+
     if (projectId !== contextId) {
-      pendingView.current = layer;
+      pendingView.current = { project: projectId, layer };
       setContextId(projectId);
       return;
     }
-    pendingView.current = undefined;
+    pendingView.current = null;
     project.open(layer);
   }
 
@@ -236,9 +390,12 @@ export function App() {
     await store.writeOut(text, titleOf(shell.graph) || "workspace");
   }
 
-  /** Export the project in context, bundling what it depends on. */
-  function exportProject(): Promise<void> {
-    return project.save(companions(graph, contextId));
+  /** Export the project in context, bundling what it depends on, and offer a
+   *  rendered SVG of the open layer beside that source (F.3). */
+  async function exportProject(): Promise<void> {
+    const wrote = await project.save(companions(graph, contextId));
+    if (!wrote) return;
+    store.downloadSvg(svgOf(graph, view), titleOf(graph) || "mndflow");
   }
 
   // Shortcuts that belong to the whole app rather than to one panel. Inside a
@@ -264,7 +421,7 @@ export function App() {
   }, [project.undo, project.redo]);
 
   /** Run a chip that is a graph operation rather than an answer. */
-  function run(chip: Suggestion) {
+  function run(chip: Chip) {
     switch (chip.kind) {
       case "add":
         return project.create(chip.value, view);
@@ -275,6 +432,9 @@ export function App() {
     }
   }
 
+  const Chat = rail.Chat;
+  const Scores = rail.Scores;
+
   const graphs = useMemo(() => {
     const next: Record<string, Graph> = {};
     for (const id of held.projects) {
@@ -283,6 +443,22 @@ export function App() {
 
     return next;
   }, [held.projects, contextId, graph]);
+
+  // Drop picks whose project closed or whose block was undone.
+  useEffect(() => {
+    setChosen((prior) => {
+      const next = prior.filter((ref) => {
+        const { project, id } = refAt(ref);
+        if (!project || !held.projects.includes(project)) return false;
+        const g = graphs[project];
+        return id === ROOT || Boolean(g?.elements[id]);
+      });
+
+      return next.length === prior.length && next.every((k, i) => k === prior[i])
+        ? prior
+        : next;
+    });
+  }, [held.projects, graphs]);
 
   const listed = useMemo(() => (
     held.projects.map((id) => {
@@ -335,14 +511,14 @@ export function App() {
     setContextId(out.id);
   }
 
-  /** Strip message: page notice wins; else project trouble with unlock/fork acts. */
+  /** Strip message: page notice, then trouble (with unlock/fork), then pressure. */
   const said = notice ?? (project.trouble ? {
     text: project.trouble,
     acts: project.offer?.map((way) => ({
       label: way,
       run: way === "unlock" ? unlockPackage : forkPackage,
     })),
-  } : null);
+  } : project.pressure ? { text: project.pressure } : null);
 
   /** Which view module draws the open layer — the layer's definition, never
    *  a page setting. Root when nothing is open. */
@@ -407,14 +583,17 @@ export function App() {
             onClick={async () => {
               if (store.canBind()) {
                 const text = await store.pickIn();
-                if (text === null) return;
-                if (!takeIn(text)) {
-                  store.release();
-                  say("That file is not a mndflow project.");
+                // Cancelled — leave the session alone. Failed — plain input.
+                if (text === false) return;
+                if (text !== null) {
+                  if (!takeIn(text)) {
+                    store.release();
+                    say("That file is not a mndflow project.");
+                  }
+                  return;
                 }
-                return;
               }
-              // No live handle: the plain file input is the whole path.
+              // No live handle, or the Chromium picker failed: plain file input.
               importInput.current?.click();
             }}
           >
@@ -460,18 +639,20 @@ export function App() {
         </span>
       </header>
 
-      <Chat
-        graph={graph}
-        steps={project.steps}
-        question={question}
-        view={view}
-        scope={project.scope}
-        terms={terms}
-        draft={draft}
-        onDraft={setDraft}
-        onTurn={project.turn}
-        onRun={run}
-      />
+      {Chat && (
+        <Chat
+          graph={graph}
+          steps={project.steps}
+          question={question}
+          view={view}
+          scope={project.scope}
+          terms={terms}
+          draft={draft}
+          onDraft={setDraft}
+          onTurn={project.turn}
+          onRun={run}
+        />
+      )}
 
       <main>
         <div className="side">
@@ -481,11 +662,15 @@ export function App() {
             projects={listed}
             context={contextId}
             view={view}
+            chosen={chosen}
+            onChoose={setChosen}
             terms={terms}
             showPorts={treePorts}
             onShowPorts={setTreePorts}
             onOpen={navigate}
             onCreate={project.create}
+            onNewProject={newProject}
+            onNameProject={(name, except) => workspace.mayName(takenNames, name, except)}
             onNameTaken={project.nameTaken}
             onSay={say}
             unit={UNIT}
@@ -514,6 +699,30 @@ export function App() {
                 onPick={(id) => project.pick({ kind: "node", id })}
                 onOpen={project.open}
               />
+            ) : module === "activity" ? (
+              <Activity
+                graph={graph}
+                layer={view}
+                picked={picked?.kind === "node" ? picked.id : null}
+                onPick={(id) => project.pick({ kind: "node", id })}
+                onOpen={project.open}
+              />
+            ) : module === "sequence" ? (
+              <Sequence
+                graph={graph}
+                layer={view}
+                picked={picked?.kind === "node" ? picked.id : null}
+                onPick={(id) => project.pick({ kind: "node", id })}
+                onOpen={project.open}
+              />
+            ) : module === "state" ? (
+              <State
+                graph={graph}
+                layer={view}
+                picked={picked?.kind === "node" ? picked.id : null}
+                onPick={(id) => project.pick({ kind: "node", id })}
+                onOpen={project.open}
+              />
             ) : (
             <Canvas
               graph={graph}
@@ -521,7 +730,7 @@ export function App() {
               hinted={hinted}
               said={said}
               onSay={say}
-              onHeard={() => (setNotice(null), project.clearTrouble())}
+              onHeard={() => (setNotice(null), project.clearTrouble(), project.clearPressure())}
               view={view}
               picked={picked}
               path={path}
@@ -600,6 +809,7 @@ export function App() {
             graph={graph}
             steps={project.steps}
             draft={draft}
+            Scores={Scores}
             onAddRelation={project.addRelation}
             onRenameRelation={project.renameRelation}
             onDropRelation={project.dropRelation}

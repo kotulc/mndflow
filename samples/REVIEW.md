@@ -18,14 +18,15 @@ by hand**, not about the loader.
 | Envelope | schema `1.1`, id `proj_mndflow` | Correct |
 | `meta` | `steps: 1`, `module: "block"` | See *meta* below |
 | Definitions | 7 | Module, Door (`extends` Module), Layer, seam mark; depends / feeds / mentions |
-| Elements | 30 | All five forms |
+| Elements | 30 | All four forms |
 | Relationships | 16 | Both forms; ties and a reference derived |
 
-**Element forms:** block 24 · note 2 · group 2 · proxy 1 · figure 1  
+**Element forms:** block 25 · note 2 · group 2 · proxy 1  
 **Field forms on root alone:** text, number, flag, choice, ref — all five  
 **Also exercised:** interfaces (side/at/flow), membership (`groups` on the member),
-`components.card` (several layouts/shapes), `names.sysml`, figure `size`,
-definition `extends`, port-pinned ends (`from` / `to`), edge fields (`why`, `item`)
+`components.card` (several layouts/shapes), `names.sysml`, definition `size` on a
+shaped block, definition `extends`, port-pinned ends (`from` / `to`), edge fields
+(`why`, `item`)
 
 ## Nesting — does it read at depth?
 
@@ -34,7 +35,7 @@ Yes. Three levels, and each layer is a sentence:
 ```
 mndflow
   Page, Graph, Canvas, Geometry, Modules, Terminal, Embed
-  engine / surface (groups), two notes, seam figure
+  engine / surface (groups), two notes, seam mark (shaped block)
     Graph → types, fold, check (Door), file, store, two ports
     Canvas → Frame, NodeCard, proxy of store
     …

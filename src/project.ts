@@ -6,7 +6,9 @@
  *  mechanism.
  *
  *  Actions live in the registry (`actions/*`); this module holds state, runs
- *  them, and commits what they write. What an answer *means* lives in `turn`. */
+ *  them, and commits what they write. The question loop is optional: the rail
+ *  registers it via `looping`, and a build without the rail leaves this seam
+ *  alone. */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -16,24 +18,66 @@ import "./actions/edges";
 import "./actions/groups";
 import "./actions/fields";
 import "./actions/layer";
+import "./actions/behavior";
 import * as embed from "./embed/model";
 import { blocksOf, childrenOf, compact, fold, isCheckpoint, nameFree, stepsIn, titleOf } from "./graph/fold";
-import * as router from "./terminal/router";
 import { entering, report } from "./graph/check";
 import * as file from "./graph/file";
 import * as store from "./graph/store";
-import { answer, pendingQuestion, type Pending } from "./terminal/turn";
 import {
   ROOT, defIdFor, step as makeStep,
   type Axis, type Dir, type EdgeForm, type End, type Field, type Flow,
-  type Graph, type Side, type Step,
+  type Graph, type Mutation, type Side, type Step,
 } from "./graph/types";
-import { getDomain } from "./terminal/workflows";
+import * as workspace from "./workspace";
 
 export type { Picked };
 
-/** Consecutive turns on one operation before the loop moves on. */
-const RHYTHM = 2;
+/** What the rail needs from the project to ask and answer. */
+export type LoopCore = {
+  graph: Graph;
+  scope: string | null;
+  applied: Step[];
+  last: Step | null;
+  commit: (step: Step) => void;
+  bound: string;
+  /** Bumped when undo, redo, reset or import should drop a half-built turn. */
+  cleared: number;
+};
+
+/** What the rail contributes when it is attached. Structural — project names
+ *  no question type of its own. */
+export type LoopSurface = {
+  question: {
+    id: string;
+    prompt: string;
+    hint: string;
+    choices: string[];
+    placeholder: string;
+  } | null;
+  terms: { group: string; node: string; relation: string };
+  turn: (said: string) => Promise<void>;
+};
+
+type LoopHook = (core: LoopCore) => LoopSurface;
+
+const FALLBACK_TERMS = { group: "Group", node: "Object", relation: "Relation" };
+
+/** No rail: nothing to ask, and an answer is a no-op. */
+function useQuietLoop(_core: LoopCore): LoopSurface {
+  return {
+    question: null,
+    terms: FALLBACK_TERMS,
+    turn: async () => {},
+  };
+}
+
+let useLoop: LoopHook = useQuietLoop;
+
+/** Attach the question loop. Called by the rail at load; never from here. */
+export function looping(hook: LoopHook): void {
+  useLoop = hook;
+}
 
 /** What a step moves, when moving is *all* it does — the elements it places,
  *  keyed so two of them can be compared. Null for anything else, which is what
@@ -93,7 +137,9 @@ export function useProject(projectId: string, locked = false) {
   /** The layer the canvas is drawing. null is the project itself. */
   const [view, setView] = useState<string | null>(null);
   const [picked, setPicked] = useState<Picked>(null);
-  const [pending, setPending] = useState<Pending | null>(null);
+  /** Bumped so the attached loop drops a half-built turn — see `LoopCore`. */
+  const [cleared, setCleared] = useState(0);
+  const dismiss = useCallback(() => setCleared((n) => n + 1), []);
 
   // The log is the only thing worth saving; the graph is folded from it.
   /** False once the log has stopped reaching storage — see `saving`. */
@@ -101,6 +147,9 @@ export function useProject(projectId: string, locked = false) {
   /** True once the bound file on disk is newer than what this session last
    *  wrote or read — see `store.watch`. */
   const [drifted, setDrifted] = useState(false);
+  /** Advisory after quota pressure checkpointed other projects' history —
+   *  see `store.watchPressure`. Distinct from `saving` / "not being saved". */
+  const [pressure, setPressure] = useState<string | null>(null);
 
   // Page picked a different project — open that slot, leave the last one alone.
   useEffect(() => {
@@ -111,7 +160,6 @@ export function useProject(projectId: string, locked = false) {
     setSteps(read(projectId));
     setView(null);
     setPicked(null);
-    setPending(null);
   }, [projectId, bound]);
 
   useEffect(() => {
@@ -121,10 +169,7 @@ export function useProject(projectId: string, locked = false) {
   }, [bound, projectId, steps]);
 
   useEffect(() => store.watch(setDrifted), []);
-
-  // Warm the catalogue once, so the first thing typed is not also the first
-  // thing that waits on the model.
-  useEffect(() => embed.warm(router.templatePhrases()), []);
+  useEffect(() => store.watchPressure(setPressure), []);
 
   const graph = useMemo(() => fold(steps), [steps]);
   /** The project alone as it would be written — state hash ignores companions,
@@ -134,36 +179,16 @@ export function useProject(projectId: string, locked = false) {
   );
   const applied = useMemo(() => steps.filter((s) => s.status === "applied"), [steps]);
   const last = applied.length ? applied[applied.length - 1] : null;
-  const terms = getDomain(graph.vocabulary).terms;
 
-  /** Whatever the conversation should be about: the canvas selection if there
-   *  is one, otherwise the layer being looked at. */
+  /** Whatever is in focus: the canvas selection if there is one, otherwise the
+   *  layer being looked at. The rail reads this as its scope. */
   const scope = picked?.kind === "node" ? picked.id : view;
 
-  // Every name and body in the project, so suggestions and affinity have
-  // vectors ready by the time anything is scored against them.
+  // Every name and body in the project, so affinity (and the rail, when
+  // attached) have vectors ready by the time anything is scored against them.
   useEffect(() => {
     embed.warm(Object.values(graph.elements).flatMap((n) => [n.label, n.body]));
   }, [graph]);
-
-  /** Questions the last few turns answered — what gives the loop its rhythm. */
-  const recent = useMemo(
-    () => applied.filter((s) => s.question).slice(-RHYTHM).map((s) => s.question).reverse(),
-    [applied],
-  );
-
-  const question = useMemo(() => {
-    if (pending) return pendingQuestion(graph, pending);
-
-    const next = router.question(graph, scope, recent);
-    // Say so when a turn changed nothing; re-asking unaltered reads as though
-    // the answer never arrived.
-    if (next && last?.question && !last.mutations.length) {
-      return { ...next, hint: `Nothing came of that. ${next.hint}`.trim() };
-    }
-
-    return next;
-  }, [graph, scope, recent, pending, last]);
 
   /** Append a step, or replace the one before it where the two are the same
    *  adjustment carried on.
@@ -181,22 +206,12 @@ export function useProject(projectId: string, locked = false) {
     return compact(next);
   }), []);
 
-  const turn = useCallback(
-    async (said: string) => {
-      // Routing the opening answer needs its vector now, not on a later
-      // render — it decides the domain the whole project runs under.
-      if (question?.id === router.ENTRY) await embed.ensure([said]);
-
-      const outcome = answer(graph, question, said, scope, pending, terms);
-      setPending(outcome.pending);
-      commit(makeStep(said.trim(), outcome.action, outcome.mutations,
-                      question?.id ?? "", question?.prompt ?? ""));
-    },
-    [graph, question, scope, pending, terms, commit],
-  );
+  const { question, terms, turn } = useLoop({
+    graph, scope, applied, last, commit, bound, cleared,
+  });
 
   const undo = useCallback(() => {
-    setPending(null);
+    dismiss();
     setSteps((prior) => {
       const index = prior.map((s) => s.status).lastIndexOf("applied");
 
@@ -206,13 +221,13 @@ export function useProject(projectId: string, locked = false) {
         ? prior
         : prior.map((s, i) => (i === index ? { ...s, status: "reverted" as const } : s));
     });
-  }, []);
+  }, [dismiss]);
 
   /** Re-apply what undo last unwound. Undo always takes the newest applied
    *  step, so everything reverted sits in a run at the end and redo is simply
    *  the first of that run. */
   const redo = useCallback(() => {
-    setPending(null);
+    dismiss();
     setSteps((prior) => {
       const next = prior.map((s) => s.status).lastIndexOf("applied") + 1;
 
@@ -220,7 +235,7 @@ export function useProject(projectId: string, locked = false) {
         ? prior.map((s, i) => (i === next ? { ...s, status: "applied" as const } : s))
         : prior;
     });
-  }, []);
+  }, [dismiss]);
 
   /** Nodes from the project down to the open one — the breadcrumb, and the
    *  set the explorer keeps expanded. */
@@ -236,13 +251,54 @@ export function useProject(projectId: string, locked = false) {
     return trail;
   }, [graph, view]);
 
+  /** Write mutations into a named project's log — through the door, as one
+   *  undoable step there. Writing home's call site: the structure project's
+   *  id, the interfaces the inference stated, and nothing else.
+   *
+   *  The bound project takes the ordinary commit so React state and storage
+   *  stay one log. A locked target refuses with the same offers as a registry
+   *  write. */
+  const home = (
+    target: string,
+    mutations: Mutation[],
+    meta: { say: string; action: string },
+    targetLocked = false,
+  ): boolean => {
+    if (!mutations.length) return false;
+
+    if (!target || target === bound) {
+      if (targetLocked) {
+        sayRefuse({ refused: "This package is locked.", offer: ["unlock", "fork"] });
+        return false;
+      }
+      commit(makeStep(meta.say, meta.action, mutations));
+      return true;
+    }
+
+    const landed = workspace.writeInto(target, mutations, meta, { locked: targetLocked });
+    if ("refuse" in landed) {
+      sayRefuse({
+        refused: landed.refuse,
+        ...(landed.offer ? { offer: landed.offer } : {}),
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   /** Apply an effect the registry returned: context first, then a step if it
    *  wrote. A refusal is said in the strip — the same channel as a repaired
    *  log — so a blocked action is an answer rather than a silent no-op. A
    *  lock refusal keeps its offers separate; the page turns them into strip
-   *  buttons (unlock / fork). */
+   *  buttons (unlock / fork).
+   *
+   *  `into` on the effect routes the primary step to that project's log
+   *  through the door ({@link workspace.writeInto}); absent or matching
+   *  `bound` keeps the ordinary commit. `home` batches are further writes
+   *  into structure projects via {@link home} — same door, not a second path. */
   const enact = (name: string, args: Args = {}): Effect | null => {
-    const outcome = run(name, { graph, view, picked, locked }, args);
+    const outcome = run(name, { graph, view, picked, locked, project: bound }, args);
     if ("refused" in outcome) {
       sayRefuse(outcome);
       return null;
@@ -250,8 +306,36 @@ export function useProject(projectId: string, locked = false) {
 
     if (outcome.open !== undefined) setView(outcome.open);
     if (outcome.focus !== undefined) setPicked(outcome.focus);
-    if (writes(outcome)) {
-      commit(makeStep(outcome.say ?? name, name, outcome.mutations));
+
+    if (outcome.mutations.length > 0) {
+      const target = outcome.into;
+      if (target && target !== bound) {
+        const landed = workspace.writeInto(
+          target, outcome.mutations,
+          { say: outcome.say ?? name, action: name },
+        );
+        if ("refuse" in landed) {
+          sayRefuse({
+            refused: landed.refuse,
+            ...(landed.offer ? { offer: landed.offer } : {}),
+          });
+          return null;
+        }
+      } else {
+        commit(makeStep(outcome.say ?? name, name, outcome.mutations));
+      }
+    }
+
+    if (outcome.home?.length) {
+      for (const batch of outcome.home) {
+        if (!batch.mutations.length) continue;
+        if (!home(batch.into, batch.mutations, {
+          say: batch.say ?? outcome.say ?? name,
+          action: name,
+        })) {
+          return null;
+        }
+      }
     }
 
     return outcome;
@@ -444,7 +528,7 @@ export function useProject(projectId: string, locked = false) {
     /** The project as a file: the graph, laid out canonically, with any
      *  companions the page gathered so the snapshot stands alone. Changes
      *  nothing in the log. Chromium writes (or picks) a live handle; elsewhere
-     *  it downloads. */
+     *  it downloads. True when the write or download landed (false on cancel). */
     save: (others: Record<string, { graph: Graph; steps: number }> = {}) =>
       store.writeOut(
         Object.keys(others).length
@@ -454,15 +538,21 @@ export function useProject(projectId: string, locked = false) {
       ),
 
     /** Re-read the bound file into the session. What the working-session
-     *  control offers when the file changed underneath. */
+     *  control offers when the file changed underneath. The disk stamp is
+     *  accepted only after the text has replaced the working copy. */
     reopen: async () => {
       const text = await store.readBound();
       if (text === null) return null;
 
-      return loadFrom(text);
+      const got = loadFrom(text);
+      if (got) await store.settleBound();
+
+      return got;
     },
 
     clearTrouble: () => sayTrouble(null),
+    /** Shell dismisses the pressure advisory — same channel as the strip. */
+    clearPressure: () => store.clearPressure(),
 
     /** An imported file becomes this project's working copy, and is saved from
      *  then on under the file's own id — the page's next `projectId` should be
@@ -480,7 +570,7 @@ export function useProject(projectId: string, locked = false) {
       setSteps([]);
       setView(null);
       setPicked(null);
-      setPending(null);
+      dismiss();
     },
   };
 
@@ -525,7 +615,7 @@ export function useProject(projectId: string, locked = false) {
       setSteps(next);
       setView(null);
       setPicked(null);
-      setPending(null);
+      dismiss();
 
       return {
         id: held.id,
@@ -543,7 +633,7 @@ export function useProject(projectId: string, locked = false) {
     setSteps(next);
     setView(null);
     setPicked(null);
-    setPending(null);
+    dismiss();
 
     return {
       id: bound,
@@ -572,6 +662,8 @@ export function useProject(projectId: string, locked = false) {
     turn,
     undo,
     redo,
+    /** Land mutations in a named project's log — see {@link home}. */
+    home,
     // Queries — readable state, off the action surface.
     nameTaken: (parent: string | null, label: string, except: string | null = null) =>
       !nameFree(graph, parent, label, except),
@@ -579,6 +671,7 @@ export function useProject(projectId: string, locked = false) {
     state: file.hash(written),
     saving,
     drifted,
+    pressure,
     trouble,
     offer,
     ...act,

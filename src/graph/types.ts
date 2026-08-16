@@ -16,21 +16,20 @@ export type Flow = "in" | "out" | "both";
 /** Which way a relationship reads. Undirected by default. */
 export type Dir = "none" | "forward" | "back" | "both";
 
-/** Which of the five an element is — its **form**.
+/** Which of the four an element is — its **form**.
  *
  *  Closed and engine-level: it decides what draws an element and which rules
  *  reach it. `block` is the base and the default — the discrete structural
  *  thing the tree is built from. `note` and `group` describe rather than
  *  structure, and a group is the generic set, meaning whatever its definition
- *  says. `proxy` stands in for a block living in another layer. `figure` is the
- *  form that says "not mine to draw": the engine places it and a module draws
- *  it, which is what an activity's fork, decision or join is.
+ *  says. `proxy` stands in for a block living in another layer. Ornament a
+ *  package ships is still a block: its definition carries a shape and a size.
  *
  *  A user's own subtypes go in `type` and subtype **within** one of these,
  *  never across one, so this set stays closed and no rule has to branch on
  *  user data. Container and interface are not here: both are derived, from
  *  what a block holds and from whether it sits on a frame edge. */
-export type ElemForm = "block" | "note" | "group" | "proxy" | "figure";
+export type ElemForm = "block" | "note" | "group" | "proxy";
 
 /** What a relationship's ends are — its **form**. Two, and both are declared.
  *
@@ -106,7 +105,7 @@ export type Field = {
 
 export type Element = {
   id: string;
-  /** Which of the five this is. Closed, engine-level, and set at creation. */
+  /** Which of the four this is. Closed, engine-level, and set at creation. */
   form: ElemForm;
   label: string;
   /** The user's own subtype for this element — a stereotype, and empty until
@@ -234,9 +233,8 @@ export type Definition = {
   icon?: string;
   line?: "solid" | "dashed" | "dotted";
   head?: "none" | "open" | "filled" | "hollow";
-  /** The room a `figure` needs. The engine places what it never draws, so the
-   *  one thing it has to be told is how big — a fork bar long and thin, a
-   *  decision small and square. Absent is the ordinary card. */
+  /** How big a usage should sit when layout places it — a fork bar long and
+   *  thin, a decision small and square. Absent is the ordinary card. */
   size?: { w: number; h: number };
   /** The definition this one refines, by reference — usually one shipped in a
    *  package, `pkg_sysml/def_requirement`.

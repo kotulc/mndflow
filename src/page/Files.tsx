@@ -6,20 +6,24 @@
  *  to make legible.
  *
  *  Every open project is a root in the same tree, filed under the folders the
- *  workspace keeps. A click here is a navigation: it picks which project is in
- *  context and sets the layer the canvas draws. Parent branches are marked by
- *  their role icon; clicking that icon folds. */
+ *  workspace keeps. A plain click here is a navigation: it picks which project
+ *  is in context and sets the layer the canvas draws. Shift or Cmd click adds
+ *  to a cross-project selection — blocks, branches and whole projects — without
+ *  moving the scope; that set is what `infer` will take. Parent branches are
+ *  marked by their role icon; clicking that icon folds. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
-import { ROOT as ROOT_ID, asTarget, type Graph, type Element } from "../graph/types";
+import { ROOT as ROOT_ID, asTarget, refTo, type Graph, type Element } from "../graph/types";
 import { REFERRED } from "../canvas/card";
-import type { Terms } from "../terminal/workflows";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
+
+/** What this diagram calls a group, a block, a relationship. */
+type Terms = { group: string; node: string; relation: string };
 
 /** Child nodes per parent inside one project, containers first then by label,
  *  keyed by ROOT for the top level. A node whose parent was undone sits at the
@@ -87,6 +91,11 @@ export type OpenProject = {
   tip: string;
 };
 
+/** One explorer pick as a cross-project ref — `proj/block` or `proj/root`
+ *  for a whole project. Order in the list is click order; `infer` must not
+ *  depend on it. */
+export type Chosen = string;
+
 type Props = {
   /** Workspace graph: folders and proxies of open projects' roots. */
   shell: Graph;
@@ -98,6 +107,9 @@ type Props = {
   context: string;
   /** The layer the canvas is on within the context project. */
   view: string | null;
+  /** Cross-project selection the tree holds for `infer`. */
+  chosen: Chosen[];
+  onChoose: (next: Chosen[]) => void;
   terms: Terms;
   showPorts: boolean;
   onShowPorts: (on: boolean) => void;
@@ -114,12 +126,20 @@ type Props = {
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
   onRenameProject: (label: string) => void;
+  /** The `new` page action — name a project into being. Returns false when the
+   *  name was refused, so the field can stay open. */
+  onNewProject: (name: string) => boolean;
+  /** Why this project may not be called that, or null. */
+  onNameProject: (name: string, except: string) => string | null;
 };
 
 export function Files(props: Props) {
-  const { shell, graphs, projects, context, view, showPorts, onShowPorts } = props;
+  const { shell, graphs, projects, context, view, chosen, onChoose } = props;
+  const { showPorts, onShowPorts } = props;
   const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
-  const { onDelete, onMove, onRename, onRenameProject } = props;
+  const {
+    onDelete, onMove, onRename, onRenameProject, onNewProject, onNameProject,
+  } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
   const kidsBy = useMemo(() => {
     const next: Record<string, Record<string, Element[]>> = {};
@@ -140,6 +160,8 @@ export function Files(props: Props) {
    *  gestures mean different places: the bar's button acts on what is open,
    *  and the clear space below the rows is the root's own background. */
   const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
+  /** Naming a new project — the first step, before anything can go in it. */
+  const [naming, setNaming] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const marker = useRef<HTMLSpanElement>(null);
 
@@ -159,6 +181,45 @@ export function Files(props: Props) {
 
   /** Open projects the shell has not filed yet — still listed, at the top. */
   const loose = projects.filter((p) => !placed.has(p.id));
+
+  /** Keys currently picked — a Set so toggle is O(1) and membership reads clean. */
+  const picked = useMemo(() => new Set(chosen), [chosen]);
+
+  /** Shift or Cmd adds without navigating — same modifiers the canvas uses. */
+  function multi(event: { shiftKey: boolean; metaKey: boolean }) {
+    return event.shiftKey || event.metaKey;
+  }
+
+  /** Toggle or replace the cross-project selection. A whole project is
+   *  `refTo(root, project)`; a branch is the container's own ref. The first
+   *  modifier click seeds from the open layer so the set starts from focus. */
+  function choose(projectId: string, elementId: string, event: { shiftKey: boolean; metaKey: boolean }) {
+    const key = refTo(elementId, projectId);
+
+    if (multi(event)) {
+      const base = chosen.length ? chosen : [refTo(view ?? ROOT_ID, context)];
+      const held = new Set(base);
+      if (held.has(key)) held.delete(key);
+      else held.add(key);
+      onChoose([...held]);
+      return;
+    }
+
+    onChoose([key]);
+  }
+
+  /** Highlight: the multi-selection when there is one, otherwise the open layer. */
+  function lit(projectId: string, elementId: string) {
+    const key = refTo(elementId, projectId);
+    if (chosen.length) return picked.has(key);
+
+    return scoped(projectId, elementId);
+  }
+
+  /** The open layer — scroll follows this, not the multi-selection. */
+  function scoped(projectId: string, elementId: string) {
+    return context === projectId && (elementId === ROOT_ID ? view === null : elementId === view);
+  }
 
   function fold(id: string) {
     setOpen((prior) => {
@@ -235,8 +296,18 @@ export function Files(props: Props) {
     const wanted = label.trim();
     if (key.startsWith("proj:")) {
       const projectId = key.slice(5);
-      const current = titleOf(graphs[projectId] ?? graph) || "project";
-      if (wanted && wanted !== current && projectId === context) onRenameProject(wanted);
+      const current = titleOf(graphs[projectId] ?? graph);
+      if (wanted && wanted !== current && projectId === context) {
+        // Projects are siblings in the workspace, so the same rule a layer has
+        // applies here: a name is required, and no two share one.
+        const why = onNameProject(wanted, projectId);
+        if (why) {
+          onSay(why);
+
+          return;
+        }
+        onRenameProject(wanted);
+      }
       setEditing(null);
 
       return;
@@ -303,7 +374,8 @@ export function Files(props: Props) {
     const row = (node: Element) => {
       const holds = Boolean(kids[node.id]?.some((n) => showPorts || !isPort(n)));
       const foldKey = `${projectId}:${node.id}`;
-      const active = context === projectId && node.id === view;
+      const active = lit(projectId, node.id);
+      const mark = scoped(projectId, node.id);
 
       return (
         <li key={`${projectId}:${node.id}`}>
@@ -324,8 +396,17 @@ export function Files(props: Props) {
               event.dataTransfer.effectAllowed = "all";
             }}
             // Entering a layer opens it: what you asked to look inside of
-            // should show you what is inside it.
-            onClick={() => (setOpen((prior) => new Set(prior).add(foldKey)), onOpen(projectId, node.id))}
+            // should show you what is inside it. A modifier click only adds
+            // to the selection — the scope stays put so a cross-project set
+            // can be built without thrashing the canvas.
+            onClick={(event) => {
+              // Interfaces are furniture, not structure `infer` takes.
+              if (multi(event) && isPort(node)) return;
+              choose(projectId, node.id, event);
+              if (multi(event)) return;
+              setOpen((prior) => new Set(prior).add(foldKey));
+              onOpen(projectId, node.id);
+            }}
             onDoubleClick={() => context === projectId && setEditing(node.id)}
             onContextMenu={(event) => {
               // A row is all name, the way a note is: an icon that folds and a
@@ -340,7 +421,7 @@ export function Files(props: Props) {
             {...(context === projectId ? dropzone(foldKey, node.id) : {})}
           >
             <span
-              ref={active ? marker : undefined}
+              ref={mark ? marker : undefined}
               className={`icon ${holds ? "fold" : ""}`}
               onMouseDown={(event) => {
                 // Keep the row's drag from swallowing the fold click.
@@ -374,9 +455,12 @@ export function Files(props: Props) {
     const here = graphs[projectId];
     if (!here) return null;
 
-    const title = titleOf(here) || "project";
+    // No fallback: a project is named on the way in, so a blank here is a bug
+    // worth seeing rather than papering over with the word "project".
+    const title = titleOf(here);
     const editKey = `proj:${projectId}`;
-    const active = context === projectId && view === null;
+    const active = lit(projectId, ROOT_ID);
+    const hereScoped = scoped(projectId, ROOT_ID);
     const tip = tips.get(projectId);
 
     return (
@@ -384,7 +468,11 @@ export function Files(props: Props) {
         <div
           className={`item root ${active ? "active" : ""} ${over === editKey ? "over" : ""}`}
           title={tip}
-          onClick={() => onOpen(projectId, null)}
+          onClick={(event) => {
+            choose(projectId, ROOT_ID, event);
+            if (multi(event)) return;
+            onOpen(projectId, null);
+          }}
           onDoubleClick={() => context === projectId && setEditing(editKey)}
           onContextMenu={(event) => {
             event.preventDefault();
@@ -394,7 +482,7 @@ export function Files(props: Props) {
           }}
           {...(context === projectId ? dropzone(editKey, null) : {})}
         >
-          <span ref={active ? marker : undefined} className="icon">▣</span>
+          <span ref={hereScoped ? marker : undefined} className="icon">▣</span>
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
@@ -449,8 +537,17 @@ export function Files(props: Props) {
   }
 
   /** Delete what the tree has open. The canvas has its own handling for its
-   *  own selection, so the key has to be caught where the focus actually is. */
+   *  own selection, so the key has to be caught where the focus actually is.
+   *  Esc clears the cross-project pick back to "nothing beyond the scope". */
   function press(event: React.KeyboardEvent) {
+    if (event.key === "Escape") {
+      if (editing || adding || (event.target as HTMLElement).closest("input")) return;
+      if (!chosen.length) return;
+      event.preventDefault();
+      onChoose([]);
+      return;
+    }
+
     if (event.key !== "Delete" && event.key !== "Backspace") return;
     // Never while naming something — Backspace is just a character there.
     if (editing || adding || (event.target as HTMLElement).closest("input")) return;
@@ -468,7 +565,17 @@ export function Files(props: Props) {
       <div className="files-bar">
         <span className="title">Explorer</span>
         <span className="actions">
-          <button onClick={() => setAdding({ parent })} title={`New ${unit}`}>
+          <button
+            onClick={() => setNaming(true)}
+            title="New project — name it first"
+          >
+            ＋▣
+          </button>
+          <button
+            onClick={() => setAdding({ parent })}
+            disabled={!context}
+            title={context ? `New ${unit}` : "Make a project first"}
+          >
             ＋
           </button>
           <button
@@ -515,8 +622,20 @@ export function Files(props: Props) {
           </div>
         )}
 
-        {empty && !adding && (
-          <p className="empty">Nothing here yet</p>
+        {naming && (
+          <div className="item new">
+            {field("", (name) => {
+              if (onNewProject(name)) setNaming(false);
+            }, () => setNaming(false), null)}
+          </div>
+        )}
+
+        {empty && !adding && !naming && (
+          <p className="empty">
+            No project yet — <button className="link" onClick={() => setNaming(true)}>
+              name one
+            </button> to start.
+          </p>
         )}
       </div>
     </div>

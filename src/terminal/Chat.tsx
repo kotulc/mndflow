@@ -19,6 +19,7 @@ import type { Terms } from "./workflows";
 import { useEmbeddings } from "../embed/useEmbeddings";
 import { useSettling } from "./useSettling";
 import { useTypewriter } from "./useTypewriter";
+import "./loop";
 
 /** How many past exchanges stay on screen before they fade off the top. */
 const RECENT = 6;

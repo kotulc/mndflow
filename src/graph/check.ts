@@ -66,6 +66,17 @@ function healEdgeForm(it: Record<string, unknown>): boolean {
   return true;
 }
 
+/** `figure` was a fifth element form before ornament proved to be a block with
+ *  a shape. Healed rather than dropped: a usage still sits where it sat, now as
+ *  the form that draws it. */
+function healElemForm(it: Record<string, unknown>): boolean {
+  if (it.form !== "figure") return false;
+
+  it.form = "block";
+
+  return true;
+}
+
 /** An element carried a colour of its own before presentation belonged to the
  *  definition it names. Dropped rather than carried: nothing reads it, and a
  *  field nothing reads is written back out on every save forever. */
@@ -147,11 +158,14 @@ function healFields(it: Record<string, unknown>): boolean {
 function healGraph(graph: Record<string, unknown>): string[] {
   const why: string[] = [];
   let shaped = false;
+  let figured = false;
 
   if (graph.defs && typeof graph.defs === "object") {
     for (const raw of Object.values(graph.defs as Record<string, unknown>)) {
       if (!raw || typeof raw !== "object") continue;
-      why.push(...healComponents(raw as Record<string, unknown>));
+      const def = raw as Record<string, unknown>;
+      figured = healElemForm(def) || figured;
+      why.push(...healComponents(def));
     }
   }
 
@@ -165,12 +179,18 @@ function healGraph(graph: Record<string, unknown>): string[] {
       const it = raw as Record<string, unknown>;
       shaped = healForm(it, was) || shaped;
       if (held === "edges") shaped = healEdgeForm(it) || shaped;
-      if (held === "elements") shaped = healColour(it) || shaped;
+      if (held === "elements") {
+        shaped = healColour(it) || shaped;
+        figured = healElemForm(it) || figured;
+      }
       shaped = healFields(it) || shaped;
     }
   }
 
-  return shaped ? ["checkpoint was written before `form`", ...why] : why;
+  if (figured) why.unshift("named the retired `figure` form; read it as a block");
+  if (shaped) why.unshift("checkpoint was written before `form`");
+
+  return why;
 }
 
 /** A relationship's name field was `relation` before it was `type`. Logs
@@ -238,6 +258,10 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
       faults.push({ step, op, why: "element carried untyped `attrs`; read them as text fields",
                     healed: true });
     }
+    if (healElemForm(made)) {
+      faults.push({ step, op, why: "element named the retired `figure` form; read it as a block",
+                    healed: true });
+    }
   }
 
   if (op === "checkpoint" && it.graph && typeof it.graph === "object") {
@@ -249,6 +273,10 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
   // A definition is where every component's configuration is held, so it is
   // the one place the door has to ask anybody else anything.
   if (op === "set_def") {
+    if (healElemForm(it)) {
+      faults.push({ step, op, why: "definition named the retired `figure` form; read it as a block",
+                    healed: true });
+    }
     for (const why of healComponents(it)) faults.push({ step, op, why, healed: true });
   }
 

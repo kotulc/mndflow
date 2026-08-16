@@ -19,4 +19,6 @@ import { register } from "../index";
 import { TABLE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
-register({ name: "table", kind: "structure", surface: TABLE });
+register({
+  name: "table", kind: "structure", word: "row", creates: "", surface: TABLE,
+});

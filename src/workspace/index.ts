@@ -9,6 +9,11 @@
  *  that has no key of its own), and which of them are locked. Locked is this
  *  module's word, never the file's: unlock or fork to change a package.
  *
+ *  A change is recorded where its element lives. {@link writeInto} is that
+ *  path: mutations go through the door into the named project's log as one
+ *  undoable step — writing home, a matrix cell, a rename through a proxy.
+ *  Raw `saveProject` of a whole step list is not a substitute.
+ *
  *  Shipped packages live under `packages/` and load here as graphs of
  *  definitions under a stable id. A consumer names them by path
  *  (`pkg_requirements/def_requirement`); nothing is copied into its own
@@ -16,12 +21,14 @@
  *
  *  Nothing here draws the explorer, the tray, or an export bundle. */
 
-import { nextNum } from "../graph/fold";
-import { loadWorkspace, saveWorkspace } from "../graph/store";
+import { entering, type Fault } from "../graph/check";
+import { compact, fold, nextNum, titleOf } from "../graph/fold";
+import { loadProject, loadWorkspace, saveProject, saveWorkspace } from "../graph/store";
 import {
   EMPTY, ROOT, asTarget, defIdFor, definition, element, field, newId, refAt, refTo,
+  step as makeStep,
   type Definition, type EdgeForm, type ElemForm, type Element, type Field,
-  type Graph, type Mutation, type Spot,
+  type Graph, type Mutation, type Spot, type Step,
 } from "../graph/types";
 
 /** What the workspace key holds, apart from every project's log. */
@@ -95,7 +102,7 @@ export function isSelf(held: Held, of: string): boolean {
 }
 
 /** Whether this graph already holds a proxy of that project's root. */
-function holds(graph: Graph, projectId: string): boolean {
+export function holds(graph: Graph, projectId: string): boolean {
   const wanted = asTarget(rootOf(projectId));
 
   return Object.values(graph.elements).some((n) => {
@@ -161,6 +168,64 @@ export function admit(
 }
 
 /** Whether this project currently resists editing. */
+/** Every open project's name, by id — the root label each draws under. */
+export function names(graphs: Record<string, Graph>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [id, graph] of Object.entries(graphs)) out[id] = titleOf(graph);
+
+  return out;
+}
+
+/** Whether a project may be called this.
+ *
+ *  **Projects are siblings in the workspace**, so the rule a layer already has
+ *  applies one level up: a name is required and no two share one. `except` is
+ *  the project being renamed, which does not clash with itself. */
+export function mayName(
+  taken: Record<string, string>,
+  want: string,
+  except?: string,
+): string | null {
+  const name = want.trim();
+  if (!name) return "A project needs a name.";
+
+  for (const [id, held] of Object.entries(taken)) {
+    if (id === except) continue;
+    if (held.trim().toLowerCase() === name.toLowerCase()) {
+      return `"${name}" is already a project. Project names are unique.`;
+    }
+  }
+
+  return null;
+}
+
+/** The log a newly named project starts from — naming it is its first step, and
+ *  what makes it real enough to store and to list. */
+export function started(name: string): Step[] {
+  return [makeStep(`new project: ${name.trim()}`, "rename",
+                   [{ op: "update_element", id: ROOT, label: name.trim() }])];
+}
+
+/** Drop a project from the workspace: its proxy goes and its entry with it.
+ *
+ *  The inverse of {@link admit}. Used to clear an abandoned empty session —
+ *  never to close a project holding work, which is the user's to do. */
+export function forget(
+  held: Held,
+  graph: Graph,
+  projectId: string,
+): { held: Held; mutations: Mutation[] } {
+  const of = rootOf(projectId);
+  const mutations: Mutation[] = Object.values(graph.elements)
+    .filter((it) => it.form === "proxy" && it.of === of)
+    .map((it) => ({ op: "delete_element", id: it.id }) as Mutation);
+
+  return {
+    held: { ...held, projects: held.projects.filter((p) => p !== projectId) },
+    mutations,
+  };
+}
+
 export function isLocked(held: Held, projectId: string): boolean {
   return locks(held).includes(projectId);
 }
@@ -258,10 +323,66 @@ export function named(graph: Graph): string[] {
   return ids;
 }
 
+// --- writing into another project's log -------------------------------------
+
+/** What {@link opened} hands back: a log that has been through the door. */
+export type Opened = {
+  steps: Step[];
+  graph: Graph;
+  faults: Fault[];
+};
+
+/** Load one project's log through the door and fold it.
+ *
+ *  `prior` is what the caller already holds when storage has no key yet (an
+ *  untouched import living only in the tab). Absent means read the keyed
+ *  slot. Garbage at the door yields an empty applied log rather than a throw. */
+export function opened(id: string, prior?: Step[]): Opened {
+  const raw = prior ?? loadProject(id);
+  const came = entering(raw);
+  if (!came) return { steps: [], graph: fold([]), faults: [] };
+
+  const steps = compact(came.steps);
+
+  return { steps, graph: fold(steps), faults: came.faults };
+}
+
+/** Append mutations as one applied step in another project's log.
+ *
+ *  Through the door on the way in, compacted on the way out, saved under that
+ *  project's key. The step is undoable when that project is in context —
+ *  reverting it there unwinds the write, the same as any other step.
+ *
+ *  Locked refuses before anything is written; unlock and fork stay the page's.
+ *  Empty mutations refuse rather than mint a no-op step. `prior` matches
+ *  {@link opened}. */
+export function writeInto(
+  id: string,
+  mutations: Mutation[],
+  meta: { say: string; action: string },
+  opts: { prior?: Step[]; locked?: boolean } = {},
+): { steps: Step[]; graph: Graph } | { refuse: string; offer?: Way[] } {
+  if (!id) return { refuse: "Nowhere to write." };
+  if (!mutations.length) return { refuse: "Nothing to write." };
+  if (opts.locked) {
+    return { refuse: "This package is locked.", offer: ["unlock", "fork"] };
+  }
+
+  const { steps: prior } = opened(id, opts.prior);
+  const next = compact([
+    ...prior,
+    makeStep(meta.say, meta.action, mutations),
+  ]);
+
+  saveProject(id, next);
+
+  return { steps: next, graph: fold(next) };
+}
+
 // --- shipped packages -------------------------------------------------------
 
 const FORMS = new Set<string>([
-  "block", "note", "group", "proxy", "figure", "line", "directed",
+  "block", "note", "group", "proxy", "line", "directed",
 ]);
 
 /** A shipped package: definitions under a stable project id.

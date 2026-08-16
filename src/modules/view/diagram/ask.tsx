@@ -32,6 +32,8 @@ export type AskProps = {
   setPrompt: (prompt: Prompt | null) => void;
   setClash: (clash: boolean) => void;
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
+  /** Same strip message NameField uses when Enter hits a taken name. */
+  onSay: (message: string) => void;
   onRename: (id: string, label: string) => void;
   onRelation: (id: string, relation: string) => void;
   onUnlink: (id: string) => void;
@@ -47,10 +49,15 @@ function actsOf(said: Said): Act[] {
   return said.acts ?? (said.act ? [said.act] : []);
 }
 
+/** Said on Enter when the name is spoken for — same words as NameField. */
+function taken_say(onSay: (message: string) => void, value: string): void {
+  onSay(`"${value.trim()}" is already here. Names are unique within a layer.`);
+}
+
 /** The floating strip: a message, or a name being asked for. */
 export function Ask({
   graph, view, prompt, clash, said, form,
-  onHeard, setPrompt, setClash, onNameTaken, onRename, onRelation, onUnlink,
+  onHeard, setPrompt, setClash, onNameTaken, onSay, onRename, onRelation, onUnlink,
   onSprout, onNote, onCreateAt, enclosing,
 }: AskProps) {
   return (
@@ -108,10 +115,16 @@ export function Ask({
             onChange={(event) => setClash(onNameTaken(
               graph.elements[prompt.id]?.parent ?? null, event.target.value, prompt.id))}
             onKeyDown={(event) => {
+              const value = event.currentTarget.value;
               const taken = onNameTaken(graph.elements[prompt.id]?.parent ?? null,
-                                        event.currentTarget.value, prompt.id);
-              if (event.key === "Enter" && taken) return setClash(true);
-              if (event.key === "Enter") onRename(prompt.id, event.currentTarget.value);
+                                        value, prompt.id);
+              // Hold and say — same as NameField; closing would throw the typing away.
+              if (event.key === "Enter" && taken) {
+                setClash(true);
+                taken_say(onSay, value);
+                return;
+              }
+              if (event.key === "Enter") onRename(prompt.id, value);
               if (event.key === "Enter" || event.key === "Escape") {
                 setPrompt(null);
                 setClash(false);
@@ -140,7 +153,9 @@ export function Ask({
               const text = event.currentTarget.value.trim();
               if (event.key === "Enter" && text && prompt.kind !== "note" &&
                   onNameTaken(view, text, null)) {
-                return setClash(true);
+                setClash(true);
+                taken_say(onSay, text);
+                return;
               }
               if (event.key === "Enter" && text) {
                 if (prompt.kind === "sprout") {
@@ -154,7 +169,10 @@ export function Ask({
                   onCreateAt(text, prompt.x, prompt.y, enclosing("", mid, new Set()));
                 }
               }
-              if (event.key === "Enter" || event.key === "Escape") setPrompt(null);
+              if (event.key === "Enter" || event.key === "Escape") {
+                setPrompt(null);
+                setClash(false);
+              }
             }}
           />
         </div>

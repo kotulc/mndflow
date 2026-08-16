@@ -9,12 +9,28 @@
  *  Deliberately the only integration test. One that says something is worth
  *  more than a suite that restates the units in a wider scope. */
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { entering } from "../src/graph/check";
 import * as file from "../src/graph/file";
 import { fold, stepsIn } from "../src/graph/fold";
 import { edge, element, step, ROOT, type Graph, type Mutation, type Step } from "../src/graph/types";
+import { loadProject, saveProject } from "../src/graph/store";
+import * as workspace from "../src/workspace";
+
+/** localStorage for a test process, so the storage journey can be driven. */
+function memory(): Storage {
+  const held = new Map<string, string>();
+
+  return {
+    get length() { return held.size; },
+    clear() { held.clear(); },
+    getItem(key: string) { return held.get(key) ?? null; },
+    setItem(key: string, value: unknown) { held.set(key, String(value)); },
+    removeItem(key: string) { held.delete(key); },
+    key(index: number) { return [...held.keys()][index] ?? null; },
+  } as unknown as Storage;
+}
 
 /** Building a project the way the app does: one gesture, one step. */
 function built(): Step[] {
@@ -147,5 +163,82 @@ describe("a project from an older build", () => {
 
     expect(back.schema).toBe(file.SCHEMA);
     expect(back.graph.elements.n_2.form).toBe("block");
+  });
+});
+
+
+/** The journey the unit tests could not see: through *storage*, not through the
+ *  file format. A project is only really saved when a reload finds it again,
+ *  and every module below was green while nothing survived one.
+ *
+ *  This is the test the import bug walked through. `file.write` / `file.read`
+ *  round-tripped perfectly the whole time; `saveProject` dropped the log and
+ *  reported success, so the work existed only until the tab was closed. */
+describe("work, reload, still there", () => {
+  beforeEach(() => {
+    Object.defineProperty(globalThis, "localStorage", {
+      value: memory(), configurable: true, writable: true,
+    });
+  });
+
+  /** Reading a keyed slot the way the page does on a fresh load. */
+  const reopen = (id: string): Graph => {
+    const came = entering(loadProject(id));
+
+    return fold(came ? came.steps : []);
+  };
+
+  it("finds the work again after a reload", () => {
+    const steps = built();
+    saveProject("proj_rig", steps);
+
+    const back = reopen("proj_rig");
+    expect(sorted(back)).toEqual(sorted(fold(steps)));
+  });
+
+  it("finds an imported project again after a reload", () => {
+    // What import writes: the whole graph as one checkpoint, and nothing else.
+    const graph = fold(built());
+    saveProject("proj_taken", opened(graph, stepsIn(built())));
+
+    const back = reopen("proj_taken");
+    expect(Object.keys(back.elements).length).toBe(Object.keys(graph.elements).length);
+    expect(back.elements[ROOT].label).toBe("Rig");
+  });
+
+  it("keeps a project that was named and nothing more", () => {
+    // Naming is a project's first step, and what makes it real enough to keep.
+    saveProject("proj_named", workspace.started("coolant loop"));
+
+    expect(reopen("proj_named").elements[ROOT].label).toBe("coolant loop");
+  });
+
+  it("keeps a project nobody opened out of storage entirely", () => {
+    saveProject("proj_untouched", opened(fold([]), 0));
+
+    expect(localStorage.getItem("mndflow.steps.proj_untouched.v1")).toBeNull();
+  });
+
+  it("keeps two projects' work apart across a reload", () => {
+    saveProject("proj_one", built());
+    saveProject("proj_two", workspace.started("other"));
+
+    expect(reopen("proj_one").elements[ROOT].label).toBe("Rig");
+    expect(reopen("proj_two").elements[ROOT].label).toBe("other");
+  });
+
+  it("refuses a second project the name one already has", () => {
+    const taken = workspace.names({ proj_one: fold(workspace.started("coolant loop")) });
+
+    expect(workspace.mayName(taken, "coolant loop")).not.toBeNull();
+    expect(workspace.mayName(taken, "Coolant Loop")).not.toBeNull();
+    expect(workspace.mayName(taken, "telemetry")).toBeNull();
+    expect(workspace.mayName(taken, "   ")).not.toBeNull();
+  });
+
+  it("lets a project keep its own name when renamed to it", () => {
+    const taken = workspace.names({ proj_one: fold(workspace.started("coolant loop")) });
+
+    expect(workspace.mayName(taken, "coolant loop", "proj_one")).toBeNull();
   });
 });

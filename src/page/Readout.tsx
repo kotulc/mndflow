@@ -5,15 +5,17 @@
  *  templates score against what is being typed. They are tabs rather than
  *  panes because only one is ever being read, and the rail is one slot wide.
  *
+ *  Matching is optional: Scores arrives from the page's rail mount, so a build
+ *  without `terminal/` still shows relations and actions.
+ *
  *  It owns which tab is showing and nothing else — each tab is its own
  *  component, unchanged by living here. */
 
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 
 import type { Graph, Step } from "../graph/types";
 import { Log } from "./Log";
 import { Relations } from "./Relations";
-import { Scores } from "../terminal/Scores";
 
 const TABS = ["relations", "actions", "matching"] as const;
 type Tab = (typeof TABS)[number];
@@ -22,13 +24,15 @@ type Props = {
   graph: Graph;
   steps: Step[];
   draft: string;
+  /** Rail matching pane — absent when the rail is not in the build. */
+  Scores?: ComponentType<{ text: string; active: string }>;
   onAddRelation: (name: string) => void;
   onRenameRelation: (from: string, to: string) => void;
   onDropRelation: (name: string) => void;
 };
 
 export function Readout(props: Props) {
-  const { graph, steps, draft } = props;
+  const { graph, steps, draft, Scores } = props;
   const { onAddRelation, onRenameRelation, onDropRelation } = props;
   const [tab, setTab] = useState<Tab>("actions");
 
@@ -58,7 +62,9 @@ export function Readout(props: Props) {
           />
         )}
         {tab === "actions" && <Log steps={steps} />}
-        {tab === "matching" && <Scores text={draft} active={graph.vocabulary} />}
+        {tab === "matching" && Scores && (
+          <Scores text={draft} active={graph.vocabulary} />
+        )}
       </div>
     </section>
   );

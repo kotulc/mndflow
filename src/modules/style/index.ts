@@ -12,6 +12,7 @@
  *  the build knows and cannot describe a new one. */
 
 import type { Component, Config } from "../index";
+import { resolved } from "../../graph/fold";
 import type { Definition, Element, Graph } from "../../graph/types";
 import { sysml } from "../../../styles/sysml";
 
@@ -74,11 +75,11 @@ export const style: Component = { name: "style", check };
 
 /** How this element's usages are coloured: its definition's answer over none.
  *
- *  Per definition and never per element. A definition that extends another
- *  does not yet inherit its style — SC.3 is what merges the chain, and until
- *  then a subtype stands on its own. */
+ *  Per definition and never per element. Reads the resolved view, so a subtype
+ *  inherits a style key it does not mention and replaces one it does — never
+ *  a deep merge inside the key. */
 export function styleOf(graph: Graph, element: Element): StyleConfig {
-  const config = graph.defs[element.type]?.components?.style;
+  const config = resolved(graph, element.type)?.components?.style;
 
   return config ? { ...NONE, ...config } as StyleConfig : NONE;
 }

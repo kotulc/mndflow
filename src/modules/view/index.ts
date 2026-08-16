@@ -7,6 +7,11 @@
  *  the behavior modules' bodies are later rows. This one owns the key under
  *  `components`.
  *
+ *  Each module also names its word (the chip fallback) and what right-click
+ *  creates — a definition name, empty for a plain block, or null when the
+ *  module makes nothing. The abstraction cap `N` lives on the component
+ *  configuration so a diagram can choose when inference cuts higher.
+ *
  *  Arrangement is an action on a layer, never a setting and never a field of
  *  this key — the module's chrome offers the verbs, and picking one writes
  *  positions down. Putting one here would bring back the mode that was retired
@@ -14,6 +19,7 @@
 
 import type { Component, Config } from "../index";
 import type { Element, Graph } from "../../graph/types";
+import { resolved } from "../../graph/fold";
 import { DIAGRAM, type Surface } from "./diagram/surface";
 import { TABLE } from "./table/surface";
 import { MATRIX } from "./matrix/surface";
@@ -28,12 +34,18 @@ export type ViewName = (typeof MODULES)[number];
 /** What the project holds, visible from the module rather than declared. */
 export type ViewKind = "structure" | "behavior";
 
-/** One registered view module. A name and its kind; the projection surface
- *  lands with the module itself — `block` carries today's, the rest fill in
- *  as their rows land. */
+/** One registered view module. A name, its kind, its word, and what a create
+ *  gesture makes; the projection surface lands with the module itself —
+ *  `block` carries today's, the rest fill in as their rows land. */
 export type ViewModule = {
   name: ViewName;
   kind: ViewKind;
+  /** What it calls its elementary block — the chip fallback. Derived, never
+   *  stored on an element. */
+  word: string;
+  /** Definition name right-click creates. Empty is a plain untyped block;
+   *  `null` means this module creates nothing. */
+  creates: string | null;
   /** What it takes to show a layer at all. Absent on a stub. */
   surface?: Surface;
 };
@@ -41,10 +53,12 @@ export type ViewModule = {
 export type ViewConfig = {
   /** Which of the six draws usages of this definition. */
   module: ViewName;
+  /** Beyond this many actions, inference cuts higher in the tree. */
+  N: number;
 };
 
 /** Today's canvas, and the answer for every definition that says nothing. */
-export const BLOCK: ViewConfig = { module: "block" };
+export const BLOCK: ViewConfig = { module: "block", N: 5 };
 
 const held = new Map<ViewName, ViewModule>();
 
@@ -70,14 +84,15 @@ export function kindOf(name: ViewName): ViewKind {
 }
 
 // The set. Structure modules carry surfaces; behavior ones are stubs until
-// their rows land (A.7–A.9).
+// their rows land (A.7–A.9). Word and creates are the module's answers for
+// a chip and a create gesture — table is a row, matrix makes nothing.
 register(
-  { name: "block", kind: "structure", surface: DIAGRAM },
-  { name: "table", kind: "structure", surface: TABLE },
-  { name: "matrix", kind: "structure", surface: MATRIX },
-  { name: "activity", kind: "behavior" },
-  { name: "sequence", kind: "behavior" },
-  { name: "state", kind: "behavior" },
+  { name: "block", kind: "structure", word: "block", creates: "", surface: DIAGRAM },
+  { name: "table", kind: "structure", word: "row", creates: "", surface: TABLE },
+  { name: "matrix", kind: "structure", word: "block", creates: null, surface: MATRIX },
+  { name: "activity", kind: "behavior", word: "activity", creates: "action" },
+  { name: "sequence", kind: "behavior", word: "action", creates: "action" },
+  { name: "state", kind: "behavior", word: "state", creates: "state" },
 );
 
 /** Why this configuration would not work, in words, or null.
@@ -92,6 +107,12 @@ function check(config: Config): string | null {
     }
   }
 
+  if (config.N !== undefined) {
+    if (typeof config.N !== "number" || !Number.isInteger(config.N) || config.N < 1) {
+      return "`view.N` has to be a positive integer";
+    }
+  }
+
   const stray = Object.keys(config).filter((key) => !(key in BLOCK));
 
   return stray.length ? `\`view\` knows nothing about \`${stray[0]}\`` : null;
@@ -101,11 +122,11 @@ export const view: Component = { name: "view", check };
 
 /** Which view module draws this element: its definition's answer over block.
  *
- *  Per definition and never per element. A definition that extends another
- *  does not yet inherit its view — SC.3 is what merges the chain, and until
- *  then a subtype stands on its own. */
+ *  Per definition and never per element. Reads the resolved view, so a subtype
+ *  inherits a view key it does not mention and replaces one it does — never a
+ *  deep merge inside the key. */
 export function viewOf(graph: Graph, element: Element): ViewConfig {
-  const config = graph.defs[element.type]?.components?.view;
+  const config = resolved(graph, element.type)?.components?.view;
 
   return config ? { ...BLOCK, ...config } as ViewConfig : BLOCK;
 }

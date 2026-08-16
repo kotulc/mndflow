@@ -185,7 +185,7 @@ design problem you can see rather than one you have to trace.
 | [`canvas/`](src/canvas) | the drawing half the diagram module composes | `graph`, `geometry`, `actions`, `modules` |
 | [`page/`](src/page) | the shell a module sits in | `graph`, `canvas`, `modules`, `workspace`, `terminal`, `project` |
 | [`terminal/`](src/terminal) | the optional way to give input | `graph`, `geometry`, `embed` |
-| [`project.ts`](src/project.ts) | the seam: state and dispatch | `graph`, `actions`, `embed`, `terminal` |
+| [`project.ts`](src/project.ts) | the seam: state and dispatch | `graph`, `actions`, `embed` |
 
 | Module | Purpose |
 |---|---|
@@ -211,9 +211,9 @@ design problem you can see rather than one you have to trace.
 `turn.ts` is deliberately pure: given a graph and an answer it returns the
 mutations and whatever is still unresolved, touching no state of its own.
 
-**One known violation, left visible.** `project.ts` imports the terminal, where
-the design says the dependency runs one way and nothing imports it. Publishing
-the action surface as data is what fixes it — see tasks.md.
+**The rail mounts optionally.** `project.ts` no longer imports the terminal — the question loop
+registers via `looping()` (S6.1). `page/App.tsx` and `page/Readout.tsx` still import it; S6.3 is
+the acceptance test.
 
 ---
 

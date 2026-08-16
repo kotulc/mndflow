@@ -24,11 +24,14 @@
  *  refused — the download path stays the way out. */
 
 import { fold, isCheckpoint, stepsIn } from "./fold";
-import { newId, step as makeStep, type Step } from "./types";
+import { ROOT, newId, step as makeStep, type Step } from "./types";
 
 /** The Chromium handle surface. Typed locally: the DOM lib this build uses
  *  does not yet name these, and a missing API is detected at the call site. */
 type FileHandle = {
+  /** Present on real FileSystemFileHandle — used so a workspace export does
+   *  not silently overwrite a bound project file (and the reverse). */
+  name?: string;
   getFile(): Promise<File>;
   createWritable(): Promise<{
     write(data: string | Blob): Promise<void>;
@@ -38,7 +41,7 @@ type FileHandle = {
   requestPermission?(opts: { mode: "read" | "readwrite" }): Promise<PermissionState>;
 };
 
-type PickerWindow = Window & {
+type PickerHost = {
   showSaveFilePicker?(opts?: {
     suggestedName?: string;
     types?: { description: string; accept: Record<string, string[]> }[];
@@ -54,11 +57,19 @@ const FILE_TYPE = {
   accept: { "application/json": [".json", ".mndflow.json"] },
 };
 
+/** Stem shared by the JSON source and the SVG that sits beside it. */
+function stemOf(title: string): string {
+  return (title || "mndflow").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
 /** Suggested download / picker name — same rule as the anchor download. */
 function fileName(title: string): string {
-  const name = (title || "mndflow").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return `${stemOf(title)}.mndflow.json`;
+}
 
-  return `${name}.mndflow.json`;
+/** Suggested name for a rendered SVG of the open layer. */
+function svgFile(title: string): string {
+  return `${stemOf(title)}.svg`;
 }
 
 function isAbort(err: unknown): boolean {
@@ -67,8 +78,7 @@ function isAbort(err: unknown): boolean {
 
 /** Whether this tab can open or write a live file handle. */
 export function canBind(): boolean {
-  if (typeof window === "undefined") return false;
-  const w = window as PickerWindow;
+  const w = globalThis as PickerHost;
 
   return typeof w.showSaveFilePicker === "function"
     && typeof w.showOpenFilePicker === "function";
@@ -79,12 +89,21 @@ export function canBind(): boolean {
 let held: { handle: FileHandle; known: number } | null = null;
 let drifted = false;
 let tick: ReturnType<typeof setInterval> | null = null;
+let pageWatched = false;
 const listeners = new Set<(next: boolean) => void>();
 
 function sayDrift(next: boolean) {
   if (drifted === next) return;
   drifted = next;
   for (const listener of listeners) listener(drifted);
+}
+
+/** True when the handle is the file `writeOut` would write for this title. */
+function sameFile(handle: FileHandle, want: string): boolean {
+  // No name (tests, odd hosts) — keep writing the bound handle.
+  if (!handle.name) return true;
+
+  return handle.name === want;
 }
 
 async function permit(handle: FileHandle, mode: "read" | "readwrite"): Promise<boolean> {
@@ -95,26 +114,44 @@ async function permit(handle: FileHandle, mode: "read" | "readwrite"): Promise<b
   return (await handle.requestPermission(opts)) === "granted";
 }
 
+/** Re-check as soon as the tab is looked at again — the interval alone would
+ *  leave drift invisible for up to two seconds after a switch back. */
+function watchPage(): void {
+  if (pageWatched || typeof document === "undefined") return;
+  pageWatched = true;
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) void poll();
+  });
+  if (typeof globalThis.addEventListener === "function") {
+    globalThis.addEventListener("focus", () => { void poll(); });
+  }
+}
+
 async function take(handle: FileHandle, known?: number): Promise<void> {
   const stamp = known ?? (await handle.getFile()).lastModified;
   held = { handle, known: stamp };
   sayDrift(false);
-  if (tick === null && typeof window !== "undefined") {
+  watchPage();
+  if (tick === null && typeof setInterval === "function") {
     tick = setInterval(() => { void poll(); }, 2000);
   }
 }
 
 async function poll(): Promise<void> {
-  if (!held || (typeof document !== "undefined" && document.hidden)) return;
+  const current = held;
+  if (!current || (typeof document !== "undefined" && document.hidden)) return;
 
   try {
-    if (!(await permit(held.handle, "read"))) return;
-    const file = await held.handle.getFile();
-    sayDrift(file.lastModified !== held.known);
+    if (!(await permit(current.handle, "read"))) return;
+    // A release or a new take during the await owns the warning channel now.
+    if (held !== current) return;
+    const file = await current.handle.getFile();
+    if (held !== current) return;
+    sayDrift(file.lastModified !== current.known);
   } catch {
     // Permission revoked or the file is gone — drop the handle rather than
     // keep warning about a file we can no longer see.
-    release();
+    if (held === current) release();
   }
 }
 
@@ -143,15 +180,19 @@ export function release(): void {
 }
 
 async function writeHandle(text: string): Promise<boolean> {
-  if (!held) return false;
+  const current = held;
+  if (!current) return false;
 
   try {
-    if (!(await permit(held.handle, "readwrite"))) return false;
-    const out = await held.handle.createWritable();
+    if (!(await permit(current.handle, "readwrite"))) return false;
+    if (held !== current) return false;
+    const out = await current.handle.createWritable();
     await out.write(text);
     await out.close();
-    const file = await held.handle.getFile();
-    held = { handle: held.handle, known: file.lastModified };
+    if (held !== current) return false;
+    const file = await current.handle.getFile();
+    if (held !== current) return false;
+    held = { handle: current.handle, known: file.lastModified };
     sayDrift(false);
 
     return true;
@@ -178,10 +219,41 @@ function stepsKey(id: string): string {
   return `${STEPS_PREFIX}${id}${STEPS_SUFFIX}`;
 }
 
-/** Whether this log is still only what opening or importing left — nothing
- *  somebody did, so it does not earn a key. */
+/** Whether a checkpoint carries nothing — the shape a project opens with before
+ *  anything is in it. A checkpoint holding a graph is the whole project, which
+ *  is what an import writes, and losing it is losing the work. */
+function bare(step: Step): boolean {
+  const only = step.mutations[0];
+  if (!only || only.op !== "checkpoint") return false;
+
+  const { defs, elements, edges } = only.graph;
+  if (Object.keys(edges).length || Object.keys(defs).length) return false;
+
+  // A fresh project is its root and nothing else. A named root is somebody's
+  // project title, so it counts as content even with nothing under it yet.
+  const ids = Object.keys(elements);
+  if (ids.some((id) => id !== ROOT)) return false;
+
+  const root = elements[ROOT];
+
+  return !root || (!root.label && !root.body && !root.fields.length);
+}
+
+/** Whether this log is still only what opening left — nothing somebody did and
+ *  nothing carried in, so it does not earn a key.
+ *
+ *  **An import is not pristine.** It arrives as a single checkpoint, the same
+ *  shape a fresh project opens with, but that checkpoint holds the entire graph
+ *  — so the shape alone cannot decide it and the contents have to be read. */
 function pristine(steps: Step[]): boolean {
-  return steps.length === 0 || steps.every((s) => isCheckpoint(s));
+  return steps.length === 0 || steps.every((s) => isCheckpoint(s) && bare(s));
+}
+
+/** Whether storage holds a log for this project. A project with no key has
+ *  never been changed — the workspace uses this to tell a real project from an
+ *  abandoned empty session. */
+export function isKeyed(id: string): boolean {
+  return keyed(id);
 }
 
 function keyed(id: string): boolean {
@@ -289,6 +361,28 @@ function migrateLegacy(into: string): void {
  *  Lives beside the log rather than in it: it is what a cross-project reference
  *  points at, so renaming a project — or its file — has to break nothing. Taken
  *  from an imported file where one names itself. */
+/** The project in context, or `""` when there is none.
+ *
+ *  **Reads; never invents.** A project comes into being by being named — see
+ *  the `new` page action — so a session with no project has none, rather than
+ *  one nobody asked for and nobody named. */
+export function currentProject(): string {
+  try {
+    const held = localStorage.getItem(CURRENT);
+    if (held) migrateLegacy(held);
+
+    return held ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** A fresh project id. Minting is deliberate now — only the `new` action does
+ *  it, and only once a name has been accepted. */
+export function newProjectId(): string {
+  return newId("proj");
+}
+
 export function projectId(): string {
   try {
     const held = localStorage.getItem(CURRENT);
@@ -384,49 +478,69 @@ export function saveWorkspace(held: unknown): boolean {
   }
 }
 
-/** Hand the project to the user as a file — the graph, laid out by `file`.
- *  The name follows the project's own, so the two cannot drift apart. The
- *  fallback when no live handle is available; Chromium prefers `writeOut`. */
-export function download(text: string, title: string): void {
-  const blob = new Blob([text], { type: "application/json" });
+/** Hand bytes to the user as a named download — shared by JSON and SVG. */
+function offer(text: string, name: string, type: string): void {
+  const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = fileName(title);
+  link.download = name;
   link.click();
   URL.revokeObjectURL(url);
 }
 
+/** Hand the project to the user as a file — the graph, laid out by `file`.
+ *  The name follows the project's own, so the two cannot drift apart. The
+ *  fallback when no live handle is available; Chromium prefers `writeOut`. */
+export function download(text: string, title: string): void {
+  offer(text, fileName(title), "application/json");
+}
+
+/** Hand a rendered SVG of the open layer beside the JSON source — same stem,
+ *  different extension, so a commit can carry both. Always a download: the
+ *  live handle is the project's JSON file, not a second pick. */
+export function downloadSvg(markup: string, title: string): void {
+  offer(markup, svgFile(title), "image/svg+xml");
+}
+
 /** Write the project to the bound file, or pick one (Chromium), or download.
- *  A cancelled picker writes nothing — it does not fall through to download. */
-export async function writeOut(text: string, title: string): Promise<void> {
-  if (await writeHandle(text)) return;
+ *  A cancelled picker writes nothing — it does not fall through to download.
+ *  A bound handle whose name is not this export's suggested file is left alone
+ *  and a fresh picker is offered, so a workspace export does not overwrite a
+ *  project file (and the reverse). True when something was written or offered. */
+export async function writeOut(text: string, title: string): Promise<boolean> {
+  const want = fileName(title);
+  if (held && sameFile(held.handle, want) && await writeHandle(text)) return true;
 
   if (canBind()) {
     try {
-      const handle = await (window as PickerWindow).showSaveFilePicker!({
-        suggestedName: fileName(title),
+      const handle = await (globalThis as PickerHost).showSaveFilePicker!({
+        suggestedName: want,
         types: [FILE_TYPE],
       });
       await take(handle);
-      if (await writeHandle(text)) return;
+      if (await writeHandle(text)) return true;
     } catch (err) {
-      if (isAbort(err)) return;
+      if (isAbort(err)) return false;
       // Picker failed for another reason — fall through to download.
     }
   }
 
   download(text, title);
+  return true;
 }
 
-/** Open a file through the Chromium picker and bind its handle. Null when the
- *  API is absent or the user cancelled — the shell then uses a plain input. */
-export async function pickIn(): Promise<string | null> {
+/** Open a file through the Chromium picker and bind its handle.
+ *
+ *  - a string is the file contents (handle held)
+ *  - `false` means the user cancelled — do not fall through to a plain input
+ *  - `null` means the API is absent or failed — the shell may use a plain input */
+export async function pickIn(): Promise<string | false | null> {
   if (!canBind()) return null;
 
   try {
-    const [handle] = await (window as PickerWindow).showOpenFilePicker!({
+    const [handle] = await (globalThis as PickerHost).showOpenFilePicker!({
       multiple: false,
       types: [FILE_TYPE],
     });
@@ -439,28 +553,48 @@ export async function pickIn(): Promise<string | null> {
 
     return text;
   } catch (err) {
-    if (isAbort(err)) return null;
+    if (isAbort(err)) return false;
 
     return null;
   }
 }
 
-/** Re-read the bound file and accept its stamp as known. Null when unbound. */
+/** Re-read the bound file without accepting its stamp. Null when unbound.
+ *  The shell calls `settleBound` only after the text has replaced the session —
+ *  otherwise a refused file would silence the drift warning. */
 export async function readBound(): Promise<string | null> {
-  if (!held) return null;
+  const current = held;
+  if (!current) return null;
 
   try {
-    if (!(await permit(held.handle, "read"))) return null;
-    const file = await held.handle.getFile();
-    const text = await file.text();
-    held = { handle: held.handle, known: file.lastModified };
-    sayDrift(false);
+    if (!(await permit(current.handle, "read"))) return null;
+    if (held !== current) return null;
+    const file = await current.handle.getFile();
+    if (held !== current) return null;
 
-    return text;
+    return await file.text();
   } catch {
-    release();
+    if (held === current) release();
 
     return null;
+  }
+}
+
+/** Accept the bound file's current lastModified as known — after a successful
+ *  reopen has taken the disk copy into the session. */
+export async function settleBound(): Promise<void> {
+  const current = held;
+  if (!current) return;
+
+  try {
+    if (!(await permit(current.handle, "read"))) return;
+    if (held !== current) return;
+    const file = await current.handle.getFile();
+    if (held !== current) return;
+    held = { handle: current.handle, known: file.lastModified };
+    sayDrift(false);
+  } catch {
+    if (held === current) release();
   }
 }
 

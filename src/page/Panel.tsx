@@ -19,7 +19,7 @@ import { Contents } from "./Contents";
 import { Guard } from "./Guard";
 import type { Picked } from "../project";
 import type { Dir, Definition, Field, Flow, Graph } from "../graph/types";
-import { childrenOf, nameOf } from "../graph/fold";
+import { childrenOf, nameOf, titleOf } from "../graph/fold";
 import { type Grazed } from "../canvas/card";
 
 type DefPatch = {
@@ -89,7 +89,8 @@ export function Panel(props: Props) {
   }, [open, hostRef]);
 
   // Where you are, so the table's scope is never in doubt.
-  const where = view ? nameOf(graph, graph.elements[view]) : "project";
+  // At the top of a project the scope is the project itself, which is named.
+  const where = view ? nameOf(graph, graph.elements[view]) : titleOf(graph);
 
   /** A selected block that can still join at least one group on this layer.
    *  Groups and edges are out: joining is `group` with `into`, and only a

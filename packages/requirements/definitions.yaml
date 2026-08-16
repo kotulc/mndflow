@@ -14,6 +14,7 @@ definitions:
         form: text
     names:
       sysml: "«requirement»"
+      uml: Requirement
     components:
       card:
         layout: fields
@@ -29,6 +30,7 @@ definitions:
     head: hollow
     names:
       sysml: "«satisfy»"
+      uml: Satisfy
 
   - id: def_verify
     name: verify
@@ -38,6 +40,7 @@ definitions:
     head: hollow
     names:
       sysml: "«verify»"
+      uml: Verify
 
   - id: def_refine
     name: refine
@@ -47,6 +50,7 @@ definitions:
     head: hollow
     names:
       sysml: "«refine»"
+      uml: Refine
 
   - id: def_derive
     name: derive
@@ -56,6 +60,7 @@ definitions:
     head: hollow
     names:
       sysml: "«deriveReqt»"
+      uml: DeriveReqt
 
   - id: def_trace
     name: trace
@@ -65,3 +70,4 @@ definitions:
     head: hollow
     names:
       sysml: "«trace»"
+      uml: Trace

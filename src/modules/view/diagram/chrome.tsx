@@ -56,7 +56,7 @@ export function Crumbs({ graph, view, path, onOpen, onUp }: CrumbsProps) {
   return (
     <div className="crumbs">
       <button onClick={() => onOpen(null)} className={view ? "" : "here"}>
-        {titleOf(graph) || "project"}
+        {titleOf(graph)}
       </button>
 
       {/* The project, then the last few layers. Whatever is skipped is left

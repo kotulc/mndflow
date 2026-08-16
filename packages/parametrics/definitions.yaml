@@ -12,6 +12,7 @@ definitions:
       h: 36
     names:
       sysml: "«constraint»"
+      uml: Constraint
     components:
       style:
         set: sysml

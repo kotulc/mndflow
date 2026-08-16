@@ -176,6 +176,11 @@ function Flow(props: Props) {
   /** Node ids currently selected — updated in the change handler so a marquee's
    *  edge filter sees them in the same turn the library selects the cards. */
   const chosenNodes = useRef(new Set<string>());
+  /** While boxing: select edges with both ends chosen, drop the rest. The
+   *  library only emits edge changes when its own incident set mutates, so an
+   *  edge rejected at one end never gets a second select when the other end
+   *  enters — node changes have to drive the policy. Wired after edges exist. */
+  const syncBoxedEdges = useRef(() => {});
   const changeNodes = useSteady((changes: NodeChange<FlowNode>[]) => {
     for (const change of changes) {
       if (change.type === "select") {
@@ -188,7 +193,10 @@ function Flow(props: Props) {
 
 
     onNodesChange(changes);
+    if (boxing.current) syncBoxedEdges.current();
   });
+  /** True while the left-drag selection box is active — see changeEdges. */
+  const boxing = useRef(false);
   /** The part of the canvas actually visible — what is left once the tray has
    *  taken its half. Everything answers to this: the frame takes its shape from
    *  the room it is shown in, and the camera fits into the same room.
@@ -436,8 +444,8 @@ function Flow(props: Props) {
   // The library's marquee selects every edge incident to a boxed card, with no
   // test on the line. A relationship that leaves the box is not enclosed — while
   // the box is being drawn, keep only edges whose both ends are in it. Clicks
-  // still select a single edge as before.
-  const boxing = useRef(false);
+  // still select a single edge as before. Node changes also call syncBoxedEdges
+  // so an edge rejected at one end can select once both ends are enclosed.
   const changeEdges = useCallback((changes: EdgeChange[]) => {
     if (!boxing.current) return onEdgesChange(changes);
 
@@ -455,6 +463,22 @@ function Flow(props: Props) {
       return { ...change, selected: false };
     }));
   }, [flow, onEdgesChange]);
+
+
+  syncBoxedEdges.current = () => {
+    const chosen = chosenNodes.current;
+    const next: EdgeChange[] = [];
+
+
+    for (const edge of flow.getEdges()) {
+      const both = chosen.has(edge.source) && chosen.has(edge.target);
+      if (!!edge.selected === both) continue;
+      next.push({ id: edge.id, type: "select", selected: both });
+    }
+
+
+    if (next.length) onEdgesChange(next);
+  };
 
 
   // Nothing writes seats back. A card moving changes `boxes`, which changes the
@@ -601,7 +625,10 @@ function Flow(props: Props) {
         // group boundary it was drawn inside, most of all — is left alone.
         selectionMode={SelectionMode.Full}
         onSelectionStart={() => { boxing.current = true; }}
-        onSelectionEnd={() => { boxing.current = false; }}
+        onSelectionEnd={() => {
+          syncBoxedEdges.current();
+          boxing.current = false;
+        }}
         // Wheel zooms. Vertical pan is what the middle button and the track
         // are for; scrolling alone used to shove the layer instead of scaling.
         zoomOnScroll
@@ -680,6 +707,7 @@ function Flow(props: Props) {
         setPrompt={setPrompt}
         setClash={setClash}
         onNameTaken={onNameTaken}
+        onSay={onSay}
         onRename={onRename}
         onRelation={onRelation}
         onUnlink={onUnlink}

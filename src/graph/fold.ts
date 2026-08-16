@@ -14,7 +14,7 @@ import {
 
 /** The two form families, so a definition can be sorted into the one it
  *  subtypes without either set being restated where it is used. */
-const ELEM_FORMS = ["block", "note", "group", "proxy", "figure"] as const;
+const ELEM_FORMS = ["block", "note", "group", "proxy"] as const;
 const EDGE_FORMS = ["line", "directed"] as const;
 
 /** Whether an element sits on its parent's frame edge. That, and only that, is
