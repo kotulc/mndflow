@@ -374,15 +374,20 @@ export function Files(props: Props) {
     onAct(action.name, args);
   }
 
-  /** Highlight: the multi-selection when there is one, otherwise the open layer. */
+  /** Selected — what an action would act on.
+   *
+   *  Only ever the selection. It used to fall back to the open layer when
+   *  nothing was picked, which gave *nothing is selected* and *this row is
+   *  selected* one appearance — and deselecting is a gesture the app leans on
+   *  (V.14 reaches a new project through it), so a tree that cannot show an
+   *  empty selection breaks the gesture rather than merely looking odd. */
   function lit(projectId: string, elementId: string) {
-    const key = refTo(elementId, projectId);
-    if (chosen.length) return picked.has(key);
-
-    return scoped(projectId, elementId);
+    return picked.has(refTo(elementId, projectId));
   }
 
-  /** The open layer — scroll follows this, not the multi-selection. */
+  /** The open layer — where the canvas is pointed. Scroll follows this, not the
+   *  multi-selection, and it is drawn quieter than a selection: it says where
+   *  you are looking, not what you are about to act on. */
   function scoped(projectId: string, elementId: string) {
     return context === projectId && (elementId === ROOT_ID ? view === null : elementId === view);
   }
@@ -645,6 +650,7 @@ export function Files(props: Props) {
               isContainer(hereGraph, node.id) ? "group" : "object",
               isPort(node) ? "port" : "",
               active ? "active" : "",
+              mark ? "open" : "",
               over === foldKey ? "over" : "",
             ].join(" ")}
             draggable={editing !== node.id && context === projectId}
@@ -736,7 +742,8 @@ export function Files(props: Props) {
     return (
       <li key={projectId} className="project">
         <div
-          className={`item root ${active ? "active" : ""} ${over === editKey ? "over" : ""}`}
+          className={`item root ${active ? "active" : ""} ${hereScoped ? "open" : ""} ${
+            over === editKey ? "over" : ""}`}
           title={tip}
           onClick={(event) => {
             // Picking the project that is already picked lets go of it, so the

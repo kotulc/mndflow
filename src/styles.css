@@ -1,60 +1,240 @@
-/* Themes are chrome (U.4). `retro` is the default greens; `modern` is blues;
-   `light` is a pale shell. Diagram hardcodes stay the engine's — only these
-   variables and the few chrome washes that keyed them swap. */
+/* The colour ramp (Y.5). Slots × steps, and nothing anywhere names a colour.
+   Reverses U.4: a theme reaches the drawing now, not only the shell.
+
+   A **step** is a job — `fill` is what a thing rests on, `ink` is text on it —
+   and it means the same job in every slot and every theme, which is what makes
+   contrast structural instead of checked by eye three times.
+
+   A **slot** is a family. `primary` is green in retro and blue in modern: slots
+   are theme-relative, never hues, because a slot meaning *jade* everywhere is
+   what left the diagram green inside a blue shell. There is deliberately no
+   slot named for a lightness — lightness is the ladder's, and a `dark` slot
+   could not survive the light theme.
+
+   Steps are **computed**, not written: a theme declares a lightness ladder and
+   two numbers a slot, and `oklch()` does the rest. It is perceptually uniform,
+   so one ladder holds its contrast across every hue. Twenty numbers a theme
+   rather than sixty hand-picked hexes.
+
+   Slot variables are `--s-<slot>-<step>`. The `--s-` is not decoration: it
+   keeps the `muted` *slot* clear of `--muted`, the chrome's dim text. */
+
+:root {
+  /* Four accent families, spread to stay apart, and two greys. Per theme. */
+  --primary-h: 150; --primary-c: 0.19;
+  --secondary-h: 200; --secondary-c: 0.12;
+  --tertiary-h: 250; --tertiary-c: 0.12;
+  --quaternary-h: 330; --quaternary-c: 0.12;
+  --neutral-h: 160; --neutral-c: 0.05;
+  --muted-h: 160; --muted-c: 0.025;
+
+  /* Reserved: the app speaking about your model rather than the model
+     speaking, so a definition can never pick one. Their **hue is fixed across
+     themes** — violet always means elsewhere, amber always a note — while
+     their lightness follows the ladder, which is what the old flat hexes could
+     not do and why they were invisible in `light`. */
+  --away-h: 285; --away-c: 0.16;
+  --note-h: 78; --note-c: 0.14;
+  --error-h: 25; --error-c: 0.18;
+  --warn-h: 50; --warn-c: 0.14;
+}
+
+/* A theme is its ladder plus twelve numbers. `--l-outside` is the ground beyond
+   the frame — dimmer than the working area in every theme, but *relative* to it
+   rather than a fixed near-black, which is what left a dark surround around a
+   pale canvas. */
+
+/* `retro` — the greens the app was built in. */
 :root,
 :root[data-theme="retro"] {
-  --bg: #0a0f0d;
-  --surface: #0f1613;
-  --border: #1e2f28;
-  --divider: #16211c;
-  --text: #c8e6d0;
-  --muted: #6b8f7d;
-  --accent: #4ade80;
-  /* Not from here. Green is structure and amber is attributes, so a mention of
-     something living in another layer gets the one hue neither has claimed. */
-  --away: #a78bfa;
-  --away-dim: #4c3f78;
-  /* Attributes, and the notes that draw them on the canvas. */
-  --note: #d9a441;
-  --note-dim: #6b5426;
-  --error: #ff6b6b;
-  --hover: #16221c;
-  /* Accent-tinted wash and translucent chrome panels (header overlays, rail). */
-  --tint: #12241a;
-  --chrome: rgba(15, 22, 19, 0.9);
-
+  --l-ground: 0.145;
+  --l-fill: 0.195;
+  --l-raised: 0.255;
+  --l-divide: 0.245;
+  --l-line: 0.335;
+  --l-edge: 0.800;
+  --l-dim: 0.600;
+  --l-ink: 0.880;
+  --l-outside: 0.085;
+  --outside-a: 0.72;
   color-scheme: dark;
+
+  --primary-h: 150; --primary-c: 0.19;
+  --secondary-h: 200; --secondary-c: 0.12;
+  --tertiary-h: 250; --tertiary-c: 0.12;
+  --quaternary-h: 330; --quaternary-c: 0.12;
+  --neutral-h: 160; --neutral-c: 0.05;
+  --muted-h: 160; --muted-c: 0.025;
+}
+
+/* `modern` — a cyanotype. The paper is *blue*, not black, which is why this one
+   needs its own ladder rather than retro's: a blueprint's ground sits well off
+   the floor, and the chroma on the greys is what makes it read as paper instead
+   of as a dark grey shell with blue accents. */
+:root[data-theme="modern"] {
+  --l-ground: 0.225;
+  --l-fill: 0.275;
+  --l-raised: 0.335;
+  --l-divide: 0.320;
+  --l-line: 0.450;
+  --l-edge: 0.860;
+  --l-dim: 0.680;
+  --l-ink: 0.945;
+  --l-outside: 0.150;
+  --outside-a: 0.62;
+  color-scheme: dark;
+
+  --primary-h: 205; --primary-c: 0.13;
+  --secondary-h: 240; --secondary-c: 0.11;
+  --tertiary-h: 300; --tertiary-c: 0.10;
+  --quaternary-h: 40; --quaternary-c: 0.11;
+  --neutral-h: 245; --neutral-c: 0.075;
+  --muted-h: 245; --muted-c: 0.045;
+}
+
+/* `light` — the whiteprint the cyanotype became: blue ink on pale paper. The
+   ladder inverts, and `quaternary` is the red pencil an annotation is made in. */
+:root[data-theme="light"] {
+  --l-ground: 0.958;
+  --l-fill: 0.985;
+  --l-raised: 0.930;
+  --l-divide: 0.900;
+  --l-line: 0.800;
+  --l-edge: 0.500;
+  --l-dim: 0.495;
+  --l-ink: 0.265;
+  --l-outside: 0.895;
+  --outside-a: 0.55;
+  color-scheme: light;
+
+  --primary-h: 235; --primary-c: 0.14;
+  --secondary-h: 200; --secondary-c: 0.11;
+  --tertiary-h: 265; --tertiary-c: 0.11;
+  --quaternary-h: 25; --quaternary-c: 0.12;
+  --neutral-h: 232; --neutral-c: 0.026;
+  --muted-h: 232; --muted-c: 0.014;
+}
+
+/* The steps, written once. Chroma is scaled per step as well as per slot: a
+   card filled with `primary` must not be neon, while its border and its text
+   still have to carry the family. */
+:root {
+  --s-primary-fill: oklch(var(--l-fill) calc(var(--primary-c) * 0.18) var(--primary-h));
+  --s-primary-raised: oklch(var(--l-raised) calc(var(--primary-c) * 0.26) var(--primary-h));
+  --s-primary-line: oklch(var(--l-line) calc(var(--primary-c) * 0.40) var(--primary-h));
+  --s-primary-edge: oklch(var(--l-edge) var(--primary-c) var(--primary-h));
+  --s-primary-dim: oklch(var(--l-dim) calc(var(--primary-c) * 0.30) var(--primary-h));
+  --s-primary-ink: oklch(var(--l-ink) calc(var(--primary-c) * 0.32) var(--primary-h));
+
+  --s-secondary-fill: oklch(var(--l-fill) calc(var(--secondary-c) * 0.18) var(--secondary-h));
+  --s-secondary-raised: oklch(var(--l-raised) calc(var(--secondary-c) * 0.26) var(--secondary-h));
+  --s-secondary-line: oklch(var(--l-line) calc(var(--secondary-c) * 0.40) var(--secondary-h));
+  --s-secondary-edge: oklch(var(--l-edge) var(--secondary-c) var(--secondary-h));
+  --s-secondary-dim: oklch(var(--l-dim) calc(var(--secondary-c) * 0.30) var(--secondary-h));
+  --s-secondary-ink: oklch(var(--l-ink) calc(var(--secondary-c) * 0.32) var(--secondary-h));
+
+  --s-tertiary-fill: oklch(var(--l-fill) calc(var(--tertiary-c) * 0.18) var(--tertiary-h));
+  --s-tertiary-raised: oklch(var(--l-raised) calc(var(--tertiary-c) * 0.26) var(--tertiary-h));
+  --s-tertiary-line: oklch(var(--l-line) calc(var(--tertiary-c) * 0.40) var(--tertiary-h));
+  --s-tertiary-edge: oklch(var(--l-edge) var(--tertiary-c) var(--tertiary-h));
+  --s-tertiary-dim: oklch(var(--l-dim) calc(var(--tertiary-c) * 0.30) var(--tertiary-h));
+  --s-tertiary-ink: oklch(var(--l-ink) calc(var(--tertiary-c) * 0.32) var(--tertiary-h));
+
+  --s-quaternary-fill: oklch(var(--l-fill) calc(var(--quaternary-c) * 0.18) var(--quaternary-h));
+  --s-quaternary-raised: oklch(var(--l-raised) calc(var(--quaternary-c) * 0.26) var(--quaternary-h));
+  --s-quaternary-line: oklch(var(--l-line) calc(var(--quaternary-c) * 0.40) var(--quaternary-h));
+  --s-quaternary-edge: oklch(var(--l-edge) var(--quaternary-c) var(--quaternary-h));
+  --s-quaternary-dim: oklch(var(--l-dim) calc(var(--quaternary-c) * 0.30) var(--quaternary-h));
+  --s-quaternary-ink: oklch(var(--l-ink) calc(var(--quaternary-c) * 0.32) var(--quaternary-h));
+
+  /* The greys carry the shell, so these two are the only slots with a ground
+     and a divider — the steps a card has no use for. */
+  --s-neutral-ground: oklch(var(--l-ground) calc(var(--neutral-c) * 0.30) var(--neutral-h));
+  --s-neutral-fill: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h));
+  --s-neutral-raised: oklch(var(--l-raised) calc(var(--neutral-c) * 0.40) var(--neutral-h));
+  --s-neutral-divide: oklch(var(--l-divide) calc(var(--neutral-c) * 0.40) var(--neutral-h));
+  --s-neutral-line: oklch(var(--l-line) calc(var(--neutral-c) * 0.55) var(--neutral-h));
+  --s-neutral-dim: oklch(var(--l-dim) calc(var(--neutral-c) * 0.70) var(--neutral-h));
+  --s-neutral-ink: oklch(var(--l-ink) var(--neutral-c) var(--neutral-h));
+
+  --s-muted-fill: oklch(var(--l-fill) calc(var(--muted-c) * 0.35) var(--muted-h));
+  --s-muted-line: oklch(var(--l-line) calc(var(--muted-c) * 0.55) var(--muted-h));
+  --s-muted-dim: oklch(var(--l-dim) calc(var(--muted-c) * 0.70) var(--muted-h));
+  --s-muted-ink: oklch(var(--l-ink) var(--muted-c) var(--muted-h));
+
+  --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.22) var(--away-h));
+  --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.55) var(--away-h));
+  --s-away-edge: oklch(var(--l-edge) var(--away-c) var(--away-h));
+  --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.45) var(--away-h));
+  --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.40) var(--away-h));
+
+  --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.22) var(--note-h));
+  --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.55) var(--note-h));
+  --s-note-edge: oklch(var(--l-edge) var(--note-c) var(--note-h));
+  --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.45) var(--note-h));
+  --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.40) var(--note-h));
+
+  --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
+  --s-error-ink: oklch(var(--l-ink) calc(var(--error-c) * 0.45) var(--error-h));
+  --s-warn-edge: oklch(var(--l-edge) var(--warn-c) var(--warn-h));
+}
+
+/* The shell reads the ramp rather than a palette of its own (Y.5). Two colour
+   systems drifting apart is how the diagram stayed green inside a blue shell,
+   so these are names for steps now and not values. */
+:root {
+  --bg: var(--s-neutral-ground);
+  --surface: var(--s-neutral-fill);
+  --hover: var(--s-neutral-raised);
+  --divider: var(--s-neutral-divide);
+  --border: var(--s-neutral-line);
+  --line: var(--s-neutral-line);
+  --raised: var(--s-neutral-raised);
+  --text: var(--s-neutral-ink);
+  --muted: var(--s-neutral-dim);
+  --faint: var(--s-muted-dim);
+  --accent: var(--s-primary-edge);
+  --tint: var(--s-primary-fill);
+  --away: var(--s-away-edge);
+  --away-dim: var(--s-away-dim);
+  --note: var(--s-note-edge);
+  --note-dim: var(--s-note-dim);
+  --error: var(--s-error-edge);
+  --warn: var(--s-warn-edge);
+  /* Translucent panels ride over whatever is behind them, so this one keeps an
+     alpha the steps do not carry. */
+  --chrome: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h) / 0.92);
+
+  /* What the drawing reads (Y.6). Named for the thing rather than the slot, so
+     `Y.7` can point a definition at another slot without touching a rule. The
+     default is `neutral`, which is what an unstyled model gets. */
+  --card-fill: var(--s-neutral-fill);
+  --card-line: var(--s-neutral-line);
+  --card-raised: var(--s-neutral-raised);
+  --card-lit: var(--s-primary-dim);
+  --card-veil: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h) / 0.6);
+  --card-veil-lit: oklch(var(--l-raised) calc(var(--neutral-c) * 0.4) var(--neutral-h) / 0.75);
+  --glow: color-mix(in oklch, var(--accent) 35%, transparent);
+  /* Walls and interfaces are the engine's own structure, so they carry the
+     app's hue rather than a definition's. */
+  --wall: var(--s-primary-line);
+  --wall-lit: var(--s-primary-dim);
+  /* Ink that has to read on a filled warning or error patch. */
+  --on-loud: var(--s-neutral-ground);
+  /* Routes. Read from `paint.ts`, which hands these to React Flow as stroke
+     values — a `var()` resolves there because the edge is drawn in the page. */
+  --route: var(--s-primary-line);
+  --route-head: var(--s-primary-dim);
+  --route-away: var(--s-away-dim);
+  /* Beyond the frame. Dimmer than the working area in every theme, but taken
+     from the ladder rather than fixed — a near-black surround is right in a
+     cyanotype and wrong on a whiteprint. */
+  --outside: oklch(var(--l-outside) calc(var(--neutral-c) * 0.3) var(--neutral-h)
+                   / var(--outside-a));
+
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
   color: var(--text);
-}
-
-:root[data-theme="modern"] {
-  --bg: #0a0e14;
-  --surface: #0f1520;
-  --border: #1e2a3f;
-  --divider: #162033;
-  --text: #c8d6e6;
-  --muted: #6b7f9f;
-  --accent: #5b9fd4;
-  --hover: #162230;
-  --tint: #122038;
-  --chrome: rgba(15, 20, 32, 0.9);
-  color-scheme: dark;
-}
-
-:root[data-theme="light"] {
-  --bg: #eef2f0;
-  --surface: #f7f9f8;
-  --border: #b8c8c0;
-  --divider: #d5ded9;
-  --text: #1a2e24;
-  --muted: #5a7266;
-  --accent: #1f7a4a;
-  --hover: #e0e8e3;
-  --tint: #d4e8dc;
-  --chrome: rgba(247, 249, 248, 0.92);
-  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -539,7 +719,20 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .files .item .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .files .item:hover { background: var(--hover); }
-.files .item.active { background: var(--hover); color: var(--accent); }
+/* Two states, two looks, and they stack (Y.8).
+
+   `open` is where the canvas is pointed; `active` is what an action would act
+   on. They used to share one appearance, so a row stayed lit after a deselect
+   and *nothing is selected* was unsayable — which breaks V.14, where letting go
+   is how a new project is reached. Open is a wash and no more; selected takes
+   the accent and a bar, so it reads first when a row is both. */
+.files .item.open { background: var(--hover); }
+
+.files .item.active {
+  background: var(--hover);
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 .files .item.over { outline: 1px dashed var(--accent); outline-offset: -1px; }
 .files .item.root { color: var(--muted); padding-left: 10px; }
 
@@ -552,6 +745,24 @@ button:disabled { opacity: 0.4; cursor: default; }
 .canvas { position: relative; min-height: 0; display: flex; flex-direction: column; }
 
 .canvas .react-flow__controls { bottom: 30px; }
+
+/* The zoom controls are React Flow's own, and it ships them light-on-white.
+   That went unnoticed while every theme was dark (Y.6): they read as a black
+   block the moment the shell turned pale. Put them on the ramp with everything
+   else — chrome the theme did not reach is the whole of what Y.5 was for. */
+.react-flow__controls-button {
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  background: var(--chrome);
+  fill: var(--muted);
+}
+
+/* The glyph is an inner `svg` that React Flow fills itself, so the button's own
+   `fill` never reaches it. */
+.react-flow__controls-button svg { fill: var(--muted); }
+.react-flow__controls-button:hover { background: var(--hover); }
+.react-flow__controls-button:hover svg { fill: var(--text); }
+.react-flow__controls-button:last-child { border-bottom: none; }
 
 /* The card fills the size the canvas states for it, rather than sizing itself
    from its text. `sizeOf` is what every other piece of geometry measures
@@ -569,7 +780,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   height: 100%;
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: #111a16;
+  background: var(--card-fill);
   /* Tight vertically: the card is one grid row of content, and every pixel of
      padding comes straight off the room the name has. */
   padding: 5px 9px;
@@ -578,11 +789,11 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* No dashed border: the grid inside already says this holds something, and two
    signals for one fact only make the canvas noisier. */
-.card.group { background: rgba(15, 22, 19, 0.6); }
+.card.group { background: var(--card-veil); }
 .card { position: relative; }
-.card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35); }
+.card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px var(--glow); }
 .card.chosen { box-shadow: 0 0 0 2px var(--accent); }
-.card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
+.card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--s-primary-raised); }
 
 /* What the pointer is over, and only that — the canvas picks one element and
    sets the class, since `:hover` would light the card under every interface
@@ -591,14 +802,14 @@ button:disabled { opacity: 0.4; cursor: default; }
    One highlight for the whole card, border included: right-click makes an
    interface wherever on it the click lands, so there is no longer a second
    context along its edge for a second highlight to describe. */
-.card.grazed { border-color: #5f8f73; background: #16211b; }
-.card.group.grazed { background: rgba(22, 33, 27, 0.75); }
+.card.grazed { border-color: var(--card-lit); background: var(--card-raised); }
+.card.group.grazed { background: var(--card-veil-lit); }
 
 .card.grazed::after {
   content: "";
   position: absolute;
   inset: -3px;
-  border: 1px solid rgba(74, 222, 128, 0.35);
+  border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);
   border-radius: 5px;
   pointer-events: none;
 }
@@ -638,8 +849,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .region-name .region-label { cursor: context-menu; }
 
 .card-head.grazed .label {
-  color: #eaffef;
-  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--glow);
   border-radius: 2px;
 }
 
@@ -682,7 +893,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 
-.cell.group { border: 1px solid rgba(107, 143, 125, 0.45); }
+.cell.group { border: 1px solid color-mix(in oklch, var(--muted) 45%, transparent); }
 
 .cell .tag {
   position: relative;
@@ -723,10 +934,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 .frame {
   width: 100%;
   height: 100%;
-  border: 1px solid #3a5c4b;
+  border: 1px solid var(--wall);
   border-radius: 4px;
   background: transparent;
-  box-shadow: 0 0 0 9000px rgba(6, 10, 8, 0.72);
+  box-shadow: 0 0 0 9000px var(--outside);
 }
 
 /* The two walls a flow relationship enters and leaves by, when the layer has an
@@ -762,28 +973,28 @@ button:disabled { opacity: 0.4; cursor: default; }
   top: -1px;
   bottom: -1px;
   left: -4px;
-  border-left: 2px solid #6d9a7e;
+  border-left: 2px solid var(--wall-lit);
 }
 
 .frame.flow-across::after {
   top: -1px;
   bottom: -1px;
   right: -4px;
-  border-right: 2px solid #395a4b;
+  border-right: 2px solid var(--wall);
 }
 
 .frame.flow-down::before {
   left: -1px;
   right: -1px;
   top: -4px;
-  border-top: 2px solid #6d9a7e;
+  border-top: 2px solid var(--wall-lit);
 }
 
 .frame.flow-down::after {
   left: -1px;
   right: -1px;
   bottom: -4px;
-  border-bottom: 2px solid #395a4b;
+  border-bottom: 2px solid var(--wall);
 }
 
 /* The layer's border answers the pointer the way a card's does, since it is
@@ -795,7 +1006,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    block's own border, running through the dimmed margin on either side and
    stopping where this frame begins. */
 .wall .before,
-.wall .after { position: absolute; background: #3a5c4b; }
+.wall .after { position: absolute; background: var(--wall); }
 
 .wall.upright .before,
 .wall.upright .after { left: 50%; width: 1px; height: 9000px; }
@@ -827,7 +1038,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    name is its own target — set into the border, never part of it — so it
    lights on its own and the border stays dark under it. */
 .frame-name.grazed .frame-label { color: var(--text); }
-.frame-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
+.frame-name.grazed { box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 35%, transparent); border-radius: 2px; }
 
 .frame-name .rename {
   width: 12em;
@@ -903,7 +1114,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   width: 9px;
   height: 9px;
   border: 1px solid var(--border);
-  background: #3a5c4b;
+  background: var(--wall);
   transform: translate(-50%, -50%);
 }
 
@@ -926,7 +1137,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Filled when a relationship attaches to it, open when none does — so a
    glance at a card says which of its ports are wired and which are only
    describing its shape. */
-.port.wired .mark { background: #3a5c4b; }
+.port.wired .mark { background: var(--wall); }
 
 /* A port holding blocks of its own says so, without being opened. */
 .port.deep .mark {
@@ -934,10 +1145,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .port.wired.deep .mark {
-  background: linear-gradient(to right, #3a5c4b 0 45%, var(--border) 45% 55%, #3a5c4b 55%);
+  background: linear-gradient(to right, var(--wall) 0 45%, var(--border) 45% 55%, var(--wall) 55%);
 }
 
-.port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3); }
+.port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent); }
 .port.grazed .mark { border-color: var(--accent); }
 .port.flow-in .mark { border-left-width: 3px; }
 .port.flow-out .mark { border-right-width: 3px; }
@@ -966,19 +1177,19 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .card.reference {
   border-style: dashed;
-  border-color: #4a5d53;
+  border-color: var(--s-away-line);
   color: var(--muted);
   background:
     repeating-linear-gradient(
       135deg,
-      rgba(120, 140, 130, 0.06) 0 5px,
+      color-mix(in oklch, var(--muted) 6%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    #101613;
+    var(--card-fill);
 }
 
-.card.reference .card-head .label { color: #8aa295; font-style: italic; }
-.card.reference .card-head .kind { color: #4c5f55; }
+.card.reference .card-head .label { color: var(--s-away-dim); font-style: italic; }
+.card.reference .card-head .kind { color: var(--s-muted-dim); }
 
 /* The mark for what it is: away, not here. On `::before`, because `::after`
    is the hover ring every card gets and an element has only one of each. */
@@ -987,14 +1198,14 @@ button:disabled { opacity: 0.4; cursor: default; }
   position: absolute;
   top: 2px;
   right: 5px;
-  color: #4c5f55;
+  color: var(--s-muted-dim);
   font-size: 11px;
   line-height: 1;
   pointer-events: none;
 }
 
-.card.reference.grazed { border-color: #587a6a; }
-.card.reference.grazed::before { color: #8aa295; }
+.card.reference.grazed { border-color: var(--s-away-edge); }
+.card.reference.grazed::before { color: var(--s-away-dim); }
 
 .card.reference.picked {
   border-color: var(--accent);
@@ -1024,7 +1235,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    green selection box the left button draws in the same place. Dashed because
    it is provisional — the same reason the relationship being drawn is. */
 .wiring rect.sweep {
-  fill: rgba(217, 164, 65, 0.06);
+  fill: color-mix(in oklch, var(--note) 6%, transparent);
   stroke: var(--note);
   stroke-width: 1;
   stroke-dasharray: 4 3;
@@ -1604,7 +1815,7 @@ header .tools button.word {
 .react-flow__edge.reaching.selected .react-flow__edge-path,
 .react-flow__edge.reaching.selected .react-flow__edge-path { opacity: 1; }
 .react-flow__edge.reaching .react-flow__edge-text {
-  fill: #8a7ab0; font-style: italic; opacity: 0.75;
+  fill: var(--s-away-dim); font-style: italic; opacity: 0.75;
 }
 .react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
@@ -1728,7 +1939,7 @@ header .tools button.word {
 /* Selection box, while it is being drawn */
 
 .react-flow__selection {
-  background: rgba(74, 222, 128, 0.07);
+  background: color-mix(in oklch, var(--accent) 7%, transparent);
   border: 1px solid var(--accent);
 }
 
@@ -1742,9 +1953,9 @@ header .tools button.word {
   /* Half a cell, the same hug a group's boundary uses — see HUG in Canvas. */
   margin: -12px;
   padding: 12px;
-  border: 1px dashed rgba(74, 222, 128, 0.6);
+  border: 1px dashed color-mix(in oklch, var(--accent) 60%, transparent);
   border-radius: 4px;
-  background: rgba(74, 222, 128, 0.05);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
 }
 
 /* A group's boundary — one shared attribute, drawn around its members.
@@ -1759,22 +1970,22 @@ header .tools button.word {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  border: 1px dashed rgba(107, 143, 125, 0.4);
+  border: 1px dashed color-mix(in oklch, var(--muted) 40%, transparent);
   border-radius: 4px;
-  background: rgba(107, 143, 125, 0.04);
+  background: color-mix(in oklch, var(--muted) 4%, transparent);
   background-clip: padding-box;
   cursor: grab;
 }
 
 .region.grazed {
-  border-color: rgba(74, 222, 128, 0.7);
-  background: rgba(74, 222, 128, 0.06);
+  border-color: color-mix(in oklch, var(--accent) 70%, transparent);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
   background-clip: padding-box;
 }
 
 .region.picked {
-  border-color: rgba(74, 222, 128, 0.6);
-  background: rgba(74, 222, 128, 0.05);
+  border-color: color-mix(in oklch, var(--accent) 60%, transparent);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
   background-clip: padding-box;
 }
 
@@ -1782,7 +1993,7 @@ header .tools button.word {
    container gives, because it is the same gesture. */
 .region.dropping {
   border-color: var(--accent);
-  background: rgba(74, 222, 128, 0.08);
+  background: color-mix(in oklch, var(--accent) 8%, transparent);
   background-clip: padding-box;
 }
 
@@ -1808,7 +2019,7 @@ header .tools button.word {
 /* Its own target for rename highlight — a right-click there edits rather than
    acting on the boundary. */
 .region-name.grazed .region-label { color: var(--text); }
-.region-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
+.region-name.grazed { box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 35%, transparent); border-radius: 2px; }
 
 .region-name .rename {
   width: 10em;
@@ -1840,7 +2051,7 @@ header .tools button.word {
   border: 1px solid var(--note-dim);
   border-left: 3px solid var(--note-dim);
   border-radius: 2px;
-  background: rgba(217, 164, 65, 0.05);
+  background: color-mix(in oklch, var(--note) 5%, transparent);
   background-clip: padding-box;
   color: var(--muted);
   font-size: 12px;
@@ -1862,9 +2073,9 @@ header .tools button.word {
 .note.picked {
   border-color: var(--note);
   color: var(--text);
-  background: rgba(217, 164, 65, 0.09);
+  background: color-mix(in oklch, var(--note) 9%, transparent);
   background-clip: padding-box;
-  box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.3);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--note) 30%, transparent);
 }
 
 .note .rename {
@@ -1937,7 +2148,7 @@ header .unsaved {
   font-weight: 600;
 }
 
-header .unsaved:hover { background: var(--error); color: #1a1d1b; }
+header .unsaved:hover { background: var(--error); color: var(--on-loud); }
 
 /* Two ways of reading the same layer, on the one bottom surface: what is
    selected, and everything there is. Tabs rather than a second panel — the
@@ -1995,10 +2206,10 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
 .contents-table th.sortable:hover { color: var(--text); }
 .contents-table th.sortable.on { color: var(--accent); }
 
-.contents-table td { padding: 1px 10px; border-bottom: 1px solid var(--line, #1f2623); }
+.contents-table td { padding: 1px 10px; border-bottom: 1px solid var(--line); }
 .contents-table tr { cursor: pointer; }
-.contents-table tbody tr:hover { background: var(--raised, rgba(255, 255, 255, 0.03)); }
-.contents-table tr.picked { background: rgba(122, 168, 143, 0.12); }
+.contents-table tbody tr:hover { background: var(--raised); }
+.contents-table tr.picked { background: color-mix(in oklch, var(--accent) 12%, transparent); }
 
 .contents-table td.sort { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; }
 .contents-table td.what { color: var(--muted); }
@@ -2031,7 +2242,7 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
   flex: none;
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
-  background: var(--raised, rgba(255, 255, 255, 0.03));
+  background: var(--raised);
   font-size: 11px;
   display: flex;
   align-items: baseline;
@@ -2141,7 +2352,7 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
   flex: none;
 }
 
-.floating.saying .act:hover { background: var(--error); color: #1a1d1b; }
+.floating.saying .act:hover { background: var(--error); color: var(--on-loud); }
 
 /* Where the work lives, said all the time. Quiet while it is true; the same
    control turns into the warning when the browser stops accepting the log,
@@ -2174,7 +2385,7 @@ header .where.unsaved {
   color: var(--error);
 }
 
-header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
+header .where.unsaved:hover { background: var(--error); color: var(--on-loud); }
 
 
 /* The icon set (V.2). One size and one alignment for every mark in the app, so
@@ -2203,7 +2414,7 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
 /* The one control that throws work away. A mark alone would not say so, and it
    is the reason U.13 made it a word — so it keeps a colour instead, and its
    confirm (V.3). */
-.tools button.danger { color: var(--warn, #c86a6a); }
+.tools button.danger { color: var(--warn); }
 .tools button.danger:hover:not(:disabled) { background: var(--hover); }
 
 .group-label {
@@ -2211,7 +2422,7 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--faint, var(--muted));
+  color: var(--faint);
   padding: 0 7px 1px;
   opacity: 0.65;
 }

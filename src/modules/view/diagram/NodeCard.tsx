@@ -107,7 +107,12 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
               "cell", "nodrag", isContainer(graph, kid.id) ? "group" : "object",
               grazed?.kind === "cell" && grazed.id === kid.id ? "grazed" : "",
             ].join(" ")}
-            style={cellStyle(seat, `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})`)}
+            // Mixed off the accent rather than a literal, so a chip follows the
+            // theme like everything else (Y.6). It was the one colour a `rgba()`
+            // sweep of the stylesheet could not reach: the alpha is computed
+            // from affinity, so it only ever existed here.
+            style={cellStyle(seat, `color-mix(in oklch, var(--accent) ${
+              Math.round((0.08 + affinity(graph, kid) * 0.5) * 100)}%, transparent)`)}
             title={`${label} — drag onto the canvas to lift it out`}
             data-cell={kid.id}
             draggable
@@ -170,7 +175,7 @@ function Stroke({ drawn, color }: { drawn: Outline; color: string }) {
       <svg style={SHAPE} aria-hidden>
         <ellipse
           cx={drawn.cx} cy={drawn.cy} rx={drawn.rx} ry={drawn.ry}
-          fill="#111a16" stroke={color} strokeWidth={1}
+          fill="var(--card-fill)" stroke={color} strokeWidth={1}
         />
       </svg>
     );
@@ -179,7 +184,7 @@ function Stroke({ drawn, color }: { drawn: Outline; color: string }) {
   const points = drawn.points.map((p) => `${p.x},${p.y}`).join(" ");
   return (
     <svg style={SHAPE} aria-hidden>
-      <polygon points={points} fill="#111a16" stroke={color} strokeWidth={1} />
+      <polygon points={points} fill="var(--card-fill)" stroke={color} strokeWidth={1} />
     </svg>
   );
 }

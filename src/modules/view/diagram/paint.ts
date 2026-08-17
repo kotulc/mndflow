@@ -10,16 +10,23 @@ import { MarkerType, type EdgeMarkerType } from "@xyflow/react";
 
 import type { Look } from "../../style";
 
-/** Defaults when a definition says nothing — today's green line. */
+/** Defaults when a definition says nothing.
+ *
+ *  Steps on the theme's ramp rather than colours (Y.6). These are handed to
+ *  React Flow as stroke values and the edge is drawn in the page, so a `var()`
+ *  resolves — which is what lets a route follow the theme at all. An exported
+ *  SVG has no page and is the one caller that cannot use them (`svg.ts`). */
 const PLAIN = {
-  color: "#2f4a3e",
-  head: "#3f6552",
+  color: "var(--route)",
+  head: "var(--route-head)",
 } as const;
 
-/** A reference's own hue — nothing else has claimed violet. */
+/** A reference's own hue — nothing else has claimed violet. Fixed across
+ *  themes, since *elsewhere* means the same thing in all of them; only its
+ *  lightness follows the ladder. */
 const AWAY = {
-  color: "#6d5aa8",
-  head: "#6d5aa8",
+  color: "var(--route-away)",
+  head: "var(--route-away)",
   dash: "5 4",
 } as const;
 

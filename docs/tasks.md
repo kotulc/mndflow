@@ -1274,11 +1274,22 @@ interfaces toggle that does nothing, and spec.md's *per module: a matrix has no 
 is the line that stops chrome meaning different things in different views. So: `ViewModule` gains a
 declaration beside `surface`, and the rail renders what it is handed.
 
-**Icons only, under a group label.** This reverses U.15's *every control carries a word, glyph as
-scan aid*, and it only works because U.9 and V.2 spent a wave making every mark distinct — the same
-ground V.5 stood on when the view toggle lost its words. **The risk is not legibility, it is
-grouping**: two unlabelled icon columns next to each other read as one long column, which is why
-the labels and the spacing are part of the row rather than polish after it.
+**The word goes under the icon, and U.15 survives.** The first draft of this row dropped the words
+outright and was wrong: *every control carries a word* only cost width because the word sat
+*beside* the glyph. Under it, the column stays slim and the rule holds. **One word each** — and
+nothing the app owns needs renaming, since `grid`, `radial`, `across`, `down`, `relax`, `none`,
+`plain`, `directed`, `curves`, `angles`, `interfaces` and the view names are already single. **The
+one place a word cannot be chosen** is a relation type, whose label is a *definition's* name:
+`depends on` belongs to whoever wrote the vocabulary. Those wrap; nothing else does.
+
+**The order is the overflow plan.** Project views, flow, arrange, interfaces, lines, relations —
+**relations last because it is the only group that grows with the vocabulary**, so it is the one to
+push off the bottom rather than the one to squeeze. **The column scrolls**, with no collapsing and
+no hidden state: roughly 20 rows against roughly 800px of usable height makes overflow the normal
+case, not an edge, and hiding a group behind a mode is what U.8 rejected on the view toggle.
+
+**The risk that remains is grouping, not legibility**: adjacent icon columns read as one long
+column, which is why the labels and the spacing are in the row rather than polish afterwards.
 
 **The verbs keep a boundary.** design.md's *toolbars divide by states against verbs* survived U.15,
 U.16 and V.7 — the arrangements were never allowed to sit among the settings. A rail of identical
@@ -1323,19 +1334,66 @@ resolves to in retro, modern and light.
 chips, error and warning. These are the app speaking about your model rather than the model
 speaking, and a definition that could restyle them could hide the app's own signals.
 
-**`Y.7` is a schema change and needs a migration.** `color` is stored, exported and sitting in
-logs; `samples/mndflow.json` carries six raw hexes. They map to the nearest slot or to the default,
-and `check.ts` heals the old shape the way it heals the others.
+**`color` is dropped, not mapped** (Clay's call). It is stored, exported and sitting in logs, and
+`samples/mndflow.json` carries six raw hexes — but a nearest-slot guess would be wrong more often
+than the default, and **`check.ts` already does exactly this**: `healColour` drops an element's
+colour with the note *a field nothing reads is written back out on every save forever*. Same
+treatment, one function along. Breaking the schema is accepted — the design is still moving and the
+theming matters more.
+
+**The dials go under `components.style`, not beside it.** CLAUDE.md's rule is that a new capability
+adds a key under `components` and never a field on the definition; `style.check` already refuses an
+unknown key, so a closed enum is checked the day it lands. **`slot` and `emphasis` are `Y.7`**
+(breaking, with the drop); **`weight` and label emphasis are `Y.9`** (additive, nothing healed).
+
+**Layout and inclusion are already built and must not be rebuilt.** `components.card` ships
+`layout`, `shape`, `label` and `shows` as closed sets behind an `oneOf` check — so *how is it laid
+out, is the type shown, is the icon shown* is answered. Of the five tunables wanted, three exist.
+
+**Slots are theme-relative, not hues.** A slot meaning *jade* in every theme would leave blocks
+green in `modern`, which is the complaint that started this. `primary` is green in retro and blue
+in modern; the theme guarantees its slots are distinguishable from each other, and a definition only
+says which one it is.
+
+**Six, and two names were refused.** `primary`, `secondary`, `tertiary`, `quaternary` are hue
+families; `neutral` and `muted` are greys, `muted` being the faintly tinted second family (Material
+ships the same pair as `neutral` / `neutral-variant`). **`dark` was proposed and refused**: it names
+a lightness, and lightness belongs to the theme's ladder — in the light theme a `dark` slot either
+draws a dark card in a pale theme or means something that is not dark, and a name that lies is worse
+than an ugly ordinal. **`muted` survived on a condition** — it is a grey family and never an
+intensity, because `emphasis` already owns intensity and two dials meaning one thing is exactly what
+this system exists to prevent. Ordinals past *tertiary* are ugly and accepted: a name carrying no
+domain meaning is what lets two packages use slot 4 for different things without either being wrong.
+
+**The steps are computed rather than written.** Each theme declares a lightness ladder and a
+hue/chroma per slot; the steps fall out in `oklch()`, which is perceptually uniform — so *ink reads
+on fill* holds by arithmetic instead of being checked by eye in three themes. Roughly two numbers
+per slot rather than six hex values, which is also what keeps the reserved roles from drifting.
+
+**One system, not two: the chrome moves onto the ramp with the drawing.** `--bg`, `--surface`,
+`--border`, `--text` and `--muted` become `neutral` steps and `--accent` becomes `primary`. Keeping
+the shell on its own variables was the cheaper option and was refused, because **two colour systems
+drifting apart is how the present mismatch happened** — the diagram never followed when `modern` and
+`light` were added. This makes `Y.5` a shell row as well as a canvas one, so it wants the full
+browser drive across all three themes; the shell is where every browser-found bug has lived.
+
+**Retro comes out perceptually equivalent, not pixel-identical.** Pinning today's hexes would put
+the default theme outside the system it defines, and leave the contrast guarantee holding for two
+themes of three. Small shifts are accepted and judged by eye on the drive. **The rule that still
+stands** is that nobody should be able to point at retro and say the product looks different — the
+change is that the other two stop being a shell around a green diagram.
 
 **Retro looking identical afterwards is the acceptance test** for the whole group, because a theme
 pass that quietly restyles the default look has changed the product, not the chrome.
 
-**Open — does an exported SVG follow the theme it was made in?** `svg.ts` hard-codes its greens and
-a downloaded file has no page to read a variable from, so `Y.5` has to inline *something*. Three
-answers are defensible: the theme at export time (what you saw is what you get), always one neutral
-set (a diagram in a pull request should not depend on who exported it), or a choice at export. **Not
-settled, and `Y.5` must not settle it by accident** — it inlines the resolved theme and this stays
-open.
+**Closed — an exported SVG offers its look as a choice.** A file has no page to read a variable
+from, so `svg.ts` must inline concrete values. **The same split settles it as settles everything
+else here**: the *slot* is the model's and travels with the definition; the *resolution* is a
+viewing preference, and stamping a preference into a file somebody else opens is the thing to
+avoid. So the export asks, defaulting to the theme in use. One control on an existing door, not a
+new capability. Recorded because the wrong reading — *a theme is only a UI wrapper, so an export
+needs none* — no longer holds after `Y.5`: the theme reaches the drawing now, which is exactly why
+the export has to say which one it used.
 
 **The selection defect is one look doing two jobs.** `lit()` returns the open layer when nothing is
 chosen, and `.item.active` paints both the same, so a deselected project still reads as picked.

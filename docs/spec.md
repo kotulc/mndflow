@@ -702,9 +702,28 @@ derived labels and inferred order draw dimmed (DIM).*
   so chrome cannot steal its room.
 - **The explorer bounds itself** (U.3, proven): width is `min(280px, 36vw)`; it collapses to a
   28px strip (◂/▸) with the tree hidden until reopened; the bar title ellipsizes.
-- **Themes are chrome** (U.4, then V.1, V.19, proven): `light`, `modern` (blues) and `retro`
-  (green on black); `retro` is the default, and a session that saved the old name `current` reads
-  as `retro`. **One icon cycles them**, as the project's view toggle does — it wears the look that
+- **A theme is a ramp, and it reaches the drawing** (Y.5 + Y.6, proven — reversing U.4). **Slots ×
+  steps**: a step is a job (`fill`, `raised`, `line`, `edge`, `dim`, `ink`, plus `ground` and
+  `divide` on the greys) and means the same job everywhere; a slot is a family. Six pickable —
+  `primary`, `secondary`, `tertiary`, `quaternary`, `neutral`, `muted` — and four reserved to the
+  app: `away`, `note`, `error`, `warn`. **Slots are theme-relative, never hues or lightnesses**:
+  `primary` is green in retro and blue in modern. The reserved four keep their hue across themes,
+  since *elsewhere* and *a note* mean one thing everywhere, and follow the ladder for lightness.
+- **Steps are computed, not written.** A theme declares a lightness ladder and two numbers a slot;
+  `oklch()` does the rest, and being perceptually uniform means one ladder holds its contrast in
+  every hue. A new theme is about twenty numbers. Variables are `--s-<slot>-<step>`.
+- **The shell reads the same ramp** — `--bg`, `--surface`, `--border`, `--text`, `--muted` and
+  `--accent` are names for steps, not values. One system: the header cannot drift from the canvas,
+  which is how the diagram stayed green inside a blue shell for two waves.
+- **The three looks are a family, not three palettes** (Y.6). **`retro`** is the greens the app was
+  built in. **`modern` is a cyanotype** — blue *paper*, not a dark shell with blue accents, which is
+  why it carries its own ladder with the ground well off the floor and chroma on its greys.
+  **`light` is the whiteprint that became** — blue ink on pale paper, the ladder inverted, with
+  `quaternary` as the red pencil an annotation is made in. `retro` is the default, and a session
+  that saved the old name `current` reads as `retro`.
+- **Beyond the frame is `--outside`**, a step off each theme's own ladder. It was a fixed near-black,
+  which is right for a cyanotype and wrong on a whiteprint — a pale canvas sitting in a dark box.
+- **One icon cycles the looks** (V.19), as the project's view toggle does — it wears the look that
   is on, and its tooltip names the next. The declared order *is* the cycle. Palettes are CSS variables selected by `data-theme` on the
   document; the choice sticks in `mndflow.theme.v1`. Shell overlays take chrome washes from the
   same variables. Root `styles/` (the `style` component) and the diagram's hard-coded colours are
@@ -801,6 +820,11 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 - Every open project is a root in the same tree, filed into the folders the workspace
   keeps. **The project a selected row belongs to is the context**, which is what decides where a
   change is written — positional, so there is no mode and nothing to switch. Click switches.
+- **The open layer and the selection are two states with two looks** (Y.8, proven). *Open* is where
+  the canvas is pointed and draws as a wash; *selected* is what an action would act on and takes
+  the accent and an inset bar. They stack, and selected reads first. They shared one look before,
+  which made *nothing is selected* unsayable — and deselecting is a gesture the app leans on (V.14
+  reaches a new project through it, W.3 the vocabulary).
 - **Multi-select** — Shift / Meta click builds a `Chosen[]` across blocks, branches and projects
   (E.4, proven). **Parked**: Ctrl on Windows; no distinct multi-select CSS.
 - **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
