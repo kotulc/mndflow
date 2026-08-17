@@ -158,6 +158,11 @@ type Props = {
   /** What this diagram calls its elementary unit. */
   unit: string;
   onDelete: (id: string) => void;
+  /** Drop a whole project from the workspace — asks first. */
+  onDropProject: (projectId: string) => void;
+  /** Write the project in context out as a file, bundling what it depends on.
+   *  Project-scoped, so it lives here rather than in the header (V.6). */
+  onExportProject: () => void;
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
   onRenameProject: (label: string) => void;
@@ -186,7 +191,7 @@ export function Files(props: Props) {
   const { showPorts, onShowPorts } = props;
   const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const {
-    onDelete, onMove, onRename, onRenameProject, onNewProject, onNameProject,
+    onDelete, onDropProject, onExportProject, onMove, onRename, onRenameProject, onNewProject, onNameProject,
     onAct, onUndo, onRedo, undoable, redoable, lastAction, shownViews, onShowView,
   } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
@@ -466,18 +471,26 @@ export function Files(props: Props) {
 
   /** What the bar's add button will make — selection decides, never a hidden mode.
    *
-   *  A project root or an empty pick names a project (workspace op). A block
-   *  in the context project makes a block under it. Cross-project picks fall
-   *  through to a project: create writes only the log in context. */
+   *  **Nothing selected names a project**; a project selected makes a block
+   *  inside it; a block makes a block under it. Deselecting is therefore the
+   *  door to a new project, which is why clicking blank space in the tree —
+   *  or the project that is already picked — clears the selection.
+   *
+   *  This reverses U.14, which sent a selected project to *project*. Both
+   *  creations stay central to the explorer; the header is workspace-scoped.
+   *  A cross-project pick still falls through to a project, since create
+   *  writes only the log in context. */
   function plus_target():
     | { kind: "project" }
-    | { kind: "block"; parent: string } {
+    | { kind: "block"; parent: string | null } {
     if (!chosen.length) return { kind: "project" };
 
     const key = chosen[chosen.length - 1]!;
     const { project, id } = refAt(key);
     const projectId = project ?? context;
-    if (id === ROOT_ID || projectId !== context) return { kind: "project" };
+    if (projectId !== context) return { kind: "project" };
+    // A project root is the layer a block would land in — its own root.
+    if (id === ROOT_ID) return { kind: "block", parent: null };
 
     const node = graph.elements[id];
     if (!node || node.form !== "block" || isPort(node)) return { kind: "project" };
@@ -485,10 +498,23 @@ export function Files(props: Props) {
     return { kind: "block", parent: id };
   }
 
+  /** What the bar's delete would remove. A picked project root is a workspace
+   *  operation and asks first (V.13); anything else is the open layer, which
+   *  is one undoable step. */
+  const doomed: { project?: string; element?: string | null } = (() => {
+    const key = chosen.length === 1 ? chosen[0]! : null;
+    if (key) {
+      const { project, id } = refAt(key);
+      if (id === ROOT_ID) return { project: project ?? context };
+    }
+
+    return { element: view };
+  })();
+
   const plus = plus_target();
   const plus_title = plus.kind === "project"
-    ? "New project — name it first"
-    : `New ${unit}`;
+    ? "New project — name it first (nothing selected)"
+    : `New ${unit} in what is selected`;
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
@@ -700,6 +726,14 @@ export function Files(props: Props) {
           className={`item root ${active ? "active" : ""} ${over === editKey ? "over" : ""}`}
           title={tip}
           onClick={(event) => {
+            // Picking the project that is already picked lets go of it, so the
+            // add button falls back to naming a new project. The context does
+            // not move — only the selection does.
+            const key = refTo(ROOT_ID, projectId);
+            if (!multi(event) && chosen.length === 1 && chosen[0] === key) {
+              onChoose([]);
+              return;
+            }
             choose(projectId, ROOT_ID, event);
             if (multi(event)) return;
             onOpen(projectId, null);
@@ -752,6 +786,16 @@ export function Files(props: Props) {
                 </button>
               ))}
             </span>
+          )}
+          {projectId === context && (
+            <button
+              type="button"
+              className="ship"
+              title="Export this project (bundles what it depends on)"
+              onClick={(event) => (event.stopPropagation(), onExportProject())}
+            >
+              <Icon name="export_project" />
+            </button>
           )}
         </div>
         {!folded && <ul className="branch">{branch(projectId, ROOT)}</ul>}
@@ -879,7 +923,12 @@ export function Files(props: Props) {
           >
             <Icon name={showPorts ? "ports_on" : "ports_off"} />
           </button>
-          <button onClick={() => view && onDelete(view)} disabled={!view} title="Delete">
+          <button
+            onClick={() => (doomed.project ? onDropProject(doomed.project)
+                                           : doomed.element && onDelete(doomed.element))}
+            disabled={!doomed.project && !doomed.element}
+            title={doomed.project ? "Delete this project" : "Delete"}
+          >
             <Icon name="remove" />
           </button>
           <button
@@ -903,6 +952,15 @@ export function Files(props: Props) {
           event.preventDefault();
           setNaming(false);
           setAdding({ parent: null });
+        }}
+        // Clicking the clear space clears the selection, which is what makes a
+        // new project reachable: the add button names one only when nothing is
+        // picked (V.14). The view stays where it is — deselecting to make a
+        // project must not cost you your place.
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          if (chosen.length) onChoose([]);
+          setMenu(null);
         }}
       >
         <ul className="roots">

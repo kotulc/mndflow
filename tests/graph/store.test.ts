@@ -6,7 +6,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  adoptId, canBind, clearPressure, clearSession, currentProject, download,
+  adoptId, canBind, clearPressure, clearSession, currentProject, download, dropProject,
   downloadSvg, hold, isDrifted, isKeyed, load, loadProject, loadWorkspace,
   pickIn, pressureNote, probe, projectId, readBound, release, save, saveProject,
   saveWorkspace, settleBound, watch, watchPressure, writeOut,
@@ -574,3 +574,32 @@ describe("live bind and drift", () => {
     restore();
   });
 });
+
+describe("dropProject", () => {
+  it("forgets the log, so a deleted project stays deleted across a reload", () => {
+    saveProject("proj_gone", [step("made", "create", [])]);
+    expect((loadProject("proj_gone") as Step[]).length).toBeGreaterThan(0);
+
+    dropProject("proj_gone");
+    expect((loadProject("proj_gone") as Step[]).length).toBe(0);
+  });
+
+  it("clears the session pointer when it named that project", () => {
+    // Left naming a key that is gone, the next load opens a ghost id and the
+    // first edit writes the deleted project back under its old key.
+    saveProject("proj_gone", [step("made", "create", [])]);
+    adoptId("proj_gone");
+    expect(currentProject()).toBe("proj_gone");
+
+    dropProject("proj_gone");
+    expect(currentProject()).not.toBe("proj_gone");
+  });
+
+  it("leaves a pointer that named some other project alone", () => {
+    adoptId("proj_kept");
+    dropProject("proj_other");
+
+    expect(currentProject()).toBe("proj_kept");
+  });
+});
+

@@ -272,6 +272,34 @@ view, committing a step that moved a thing to where it already was.
 | **V.3** | **`new workspace` is a mark** — a discard glyph, **not a refresh**, which reads as *reload what is here* and would be the opposite of dropping every project. It keeps its confirm and takes a warning colour, which is what U.13's word was carrying (proven) |
 | **V.5** | **The view toggle is icon-only**, with U.9's marks and tooltips as the only remaining signal. It clipped `matrix` against the explorer's width cap before; it fits now (proven) |
 | **V.9 + V.10** | **The project root icon says the kind and folds the project** — one span, because `kindOf` was already derived a line above it and ignored. A structure and a behavior project draw differently; clicking the icon folds; **the row click still switches project**, so the two never collide; `⊟`/`⊡` reaches roots too. Projects are open by default — the opposite polarity to a branch, since one that hid its tree on sight would read as empty (proven) |
+| **V.6** | **One export door each.** The header keeps workspace export and import; the project's own export moved to its row in the tree, where project scope lives — U's own rule that the header is workspace-scoped and the explorer project-scoped (proven) |
+| **V.7** | **Flow left the top bar for the bottom right**, above the arrangements and behind a divider. States and verbs are adjacent now, so the boundary carries what distance used to (proven) |
+| **V.12** | **A project can be deleted** — `workspace.forget` was built and unreached. The proxy leaves the shell *and* `store.dropProject` clears the keyed log, or a reload brings it back. A workspace operation, so no page action was added (proven: gone, and gone after a reload) |
+| **V.13** | **Deleting a project asks first.** A block is one undoable step; this is not in the log at all, so undo cannot reach it and the confirm is the only thing in front of it (proven) |
+| **V.14** | **The add button follows the selection** — nothing picked names a project, a project picked makes a block inside it. **Deselection is the door**: clicking blank tree space, or the project already picked, lets go. The view does not follow, so reaching a new project never costs your place. Reverses U.14 deliberately (proven) |
+| **V.16** | **A tie can be picked.** The leaders were built with a **synthetic** id (`tie-note-target`), and the hit test reads an edge's id straight off the DOM — so the pick pointed at no edge in the graph and nothing could ever select. Keyed by the real edge now, marked from the page's own `picked` like every other line, and still drawn faint (proven) |
+| **V.17** | **Two labelled settings groups, inline at the top right** — *view* (interfaces, curves/angles) and *relation*. Each carries its label, since with two on one row nothing else says where one ends; they wrap rather than reach the crumbs (proven) |
+| **V.17a** | **The relation group picks what the next drag draws** — plain, directed, then the types in scope, **capped at three** because it sits inline beside the crumbs. A type carries its own form, so picking one settles how the line draws. It writes nothing: a display preference beside `showPorts` and `angular`. **The list comes from the page**, since `relationNames` reads local defs alone and an imported type is never copied into a consumer's (proven: a drag wrote `def_contains`) |
+| **V.17b** | **`relate` gained an optional `type`** — it had `from`, `to` and a `form` and no way to say what kind. A name already in scope is matched before minting, so a typed name cannot grow a twin. One argument on a descriptor, not a wider action set; `relate`-then-`retype` would have cost two log steps and two undos for one gesture |
+
+**A review of the wave found six more, all fixed here.** Every one was invisible to the suite:
+
+- **A typed drag stored a local stub that shadowed the package's own definition.** The lookup
+  searched local `defs` while the toolbar listed *imported* types, so drawing with one minted
+  `def_<name>` — and where that derived id matched the package's, it hid it. A type is carried by
+  its **path** now, and only a bare name nothing declares is minted. Same-named types from two
+  packages stay two offers (SC.4).
+- **A named type's declared form was never applied** — `form` always arrives from the gesture, so
+  the fallback that consulted the type could not fire. The kind's form travels with it.
+- **Deleting a project left the session pointer naming it**, so the next load opened a ghost id and
+  the first edit wrote the project back under its old key. `store.dropProject` clears its own
+  pointer.
+- **The delete confirm captured `held` at prompt time**, so a project imported while the prompt sat
+  open was dropped by writing back a stale list. It reads through `setHeld` now.
+- **A picked tie looked identical to an unpicked one** — the rules were copied from `.reaching`,
+  whose base sets an opacity `.tether` never had.
+- **The vertical group separator still applied to the now-horizontal bar**, sitting one group 10px
+  below the other under an orphan rule.
 
 
 ## D, F, H and the build

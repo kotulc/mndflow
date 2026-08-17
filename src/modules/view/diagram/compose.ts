@@ -9,7 +9,7 @@ import type { Edge, Node as FlowNode } from "@xyflow/react";
 import type { Picked } from "../../../actions";
 import {
   blocksOf, groupsIn, isReference, nameOf, notesIn, portsOf, proxyIn,
-  tiesOf, typeName,
+  isTie, tiesOf, typeName,
 } from "../../../graph/fold";
 import { around, CELL, cell, HUG, place, sizeOf } from "../../../geometry/layout";
 import {
@@ -546,8 +546,11 @@ export function edgesOf(
   const standIn = (id: string) => standInOf(graph, view, members, id);
 
   /** A note's leaders: one faint line to each object it is tied to that is
-   *  drawn in this layer. Decoration, not relationships — they take no
-   *  pointer, cannot be selected, and are never routed by hand. */
+   *  drawn in this layer. Drawn as decoration and never routed by hand, but a
+   *  tie is a real edge in the graph — `isTie` is derived from its ends, the
+   *  edge is stored, and untying deletes it — so it can be picked and removed
+   *  like any other (V.16). Selectable is not the same as loud: the leader
+   *  keeps its faint weight. */
   const tethers = notes.flatMap((attr, i) => {
     const at = noteCorner(attr, noteRest, attr.x == null || attr.y == null
       ? notes.slice(0, i).filter((n) => n.x == null || n.y == null).length
@@ -555,17 +558,25 @@ export function edgesOf(
     const mine = { ...at, w: Math.max(NOTE.w, cell(attr.w ?? 0)),
                    h: Math.max(NOTE.h, cell(attr.h ?? 0)) };
 
-    return tiesOf(graph, attr.id).filter((id) => boxes[id]).map((id) => ({
-      id: `tie-${attr.id}-${id}`,
+    // Keyed by the **real** edge, not a synthetic `tie-note-target`: the hit
+    // test reads an edge's id straight off the DOM, so a made-up one picks
+    // nothing that exists and the tie could never be selected or untied.
+    return Object.values(graph.edges)
+      .filter((e) => e.source === attr.id && isTie(graph, e) && boxes[e.target])
+      .map((edge) => ({
+      id: edge.id,
       source: attr.id,
-      target: id,
+      target: edge.target,
+      // Marked from the page's own pick, the way every other edge is — React
+      // Flow's selection is not what this canvas reads.
+      selected: picked?.kind === "edge" && picked.id === edge.id,
       type: "straight",
       zIndex: DEPTH.group,
-      sourceHandle: `auto-${facing(mine, boxes[id])}-s`,
-      targetHandle: `auto-${facing(boxes[id], mine)}-t`,
-      selectable: false,
-      focusable: false,
-      deletable: false,
+      sourceHandle: `auto-${facing(mine, boxes[edge.target])}-s`,
+      targetHandle: `auto-${facing(boxes[edge.target], mine)}-t`,
+      selectable: true,
+      focusable: true,
+      deletable: true,
       className: "tether",
     } as Edge));
   });

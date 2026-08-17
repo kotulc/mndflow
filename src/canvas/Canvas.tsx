@@ -112,7 +112,10 @@ type Props = {
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
   /** Draw a relationship, with an interface at each end. */
-  onWire: (a: End, b: End, form: EdgeForm) => void;
+  onWire: (a: End, b: End, form: EdgeForm, type?: string) => void;
+  /** Relationship kinds in scope, each with the path it is addressed by and
+   *  the form it declares. Packages first, then the project's own. */
+  kinds?: { name: string; path: string; form: string }[];
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   /** Turn a derived seat into an interface of its own, where it sits. */
   onPromotePort: (edge: string, end: "from" | "to", owner: string,
@@ -276,6 +279,12 @@ function Flow(props: Props) {
   }, [graph, picked]);
 
 
+  /** Which relationship type the next right drag draws. A display preference
+   *  like `form` and `angular` — it writes nothing and never reaches the log.
+   *  The list itself comes from the page, which can see the packages. */
+  const [kind, setKind] = useState<{ path: string; form: string } | null>(null);
+  const kinds = props.kinds ?? [];
+
   const laid = useMemo(
     () => laidOf(graph, stage, view, axis, showPorts, shows),
     [graph, stage, view, axis, showPorts, shows],
@@ -380,7 +389,8 @@ function Flow(props: Props) {
   /** What the pointer and the keyboard mean here. It reads the layer as worked
    *  out above and reaches the actions the canvas was handed; the props go in
    *  whole, since every one it can reach is among them. */
-  const gestures = useGestures({ ...props, onOffer: show_offer }, {
+  const gestures = useGestures({ ...props, kind: kind?.path ?? "",
+                                 kindForm: kind?.form ?? "", onOffer: show_offer }, {
     nodes: flowNodes,
     members,
     boxes,
@@ -645,12 +655,13 @@ function Flow(props: Props) {
         onForm={onForm}
         angular={angular}
         onAngular={onAngular}
-        axis={axis}
-        onAxis={onAxis}
+        kind={kind}
+        onKind={setKind}
+        kinds={kinds}
       />
 
 
-      <Arrangements onArrange={onArrange} onRelax={onRelax} />
+      <Arrangements onArrange={onArrange} onRelax={onRelax} axis={axis} onAxis={onAxis} />
 
 
       <ReactFlow

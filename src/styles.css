@@ -1643,7 +1643,10 @@ header .tools button.word {
   gap: 2px;
 }
 
-.arrange .option-group + .option-group {
+/* Stacked groups are divided by a rule above; a row of them is divided by the
+   gap and its own label instead (V.17), so the separator is scoped to the
+   column form rather than left to apply sideways. */
+.arrange:not(.inline) .option-group + .option-group {
   margin-top: 5px;
   padding-top: 5px;
   border-top: 1px solid var(--divider);
@@ -1861,17 +1864,32 @@ header .tools button.word {
 
 .note .rename:focus { outline: none; }
 
-/* A note's leaders. Fainter and finer than any relationship, and transparent to
-   the pointer: they are drawn *about* the diagram rather than being part of it,
-   so there is nothing to select and nothing to route. Dotted rather than
-   dashed, which is what tells them from a reference's violet dashes. */
-.react-flow__edge.tether { pointer-events: none; }
+/* A note's leaders. Fainter and finer than any relationship — drawn *about*
+   the diagram rather than as part of it, and never routed by hand. Dotted
+   rather than dashed, which is what tells them from a reference's violet.
+
+   A tie takes the pointer now (V.16) — it can be picked and untied like any
+   relationship. It stays the faintest thing on the canvas until it is one of
+   those, and then it has to actually say so: these rules come after the base
+   below, so they are what wins. */
+.react-flow__edge.tether .react-flow__edge-interaction { stroke-width: 14; }
 
 .react-flow__edge.tether .react-flow__edge-path {
   stroke: var(--note-dim);
   stroke-width: 1;
   stroke-dasharray: 1 4;
   stroke-linecap: round;
+}
+
+.react-flow__edge.tether:hover .react-flow__edge-path {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.react-flow__edge.tether.selected .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: none;
 }
 
 /* A name that is already taken by a sibling.
@@ -2174,3 +2192,44 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
    confirm (V.3). */
 .tools button.danger { color: var(--warn, #c86a6a); }
 .tools button.danger:hover:not(:disabled) { background: var(--hover); }
+
+/* Two settings groups on one row, top right (V.17). Inline so they read as a
+   single bar, and each keeps its own label because with two side by side
+   nothing else says where one ends. `flex-wrap` is what stops them reaching
+   the crumbs on a narrow window — U.1's rule, kept. */
+.arrange.options.inline {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.group-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint, var(--muted));
+  padding: 0 7px 1px;
+  opacity: 0.65;
+}
+
+/* Flow joins the arrangements at the bottom right (V.7) but stays its own
+   group: it is a setting and they are verbs, and design.md keeps those apart.
+   The rule that distance used to carry is now a divider. */
+.shape .option-group.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* The project's own export, beside its view toggle in the tree (V.6). */
+.files .item.root button.ship {
+  margin-left: auto;
+  padding: 2px 5px;
+  line-height: 1;
+}

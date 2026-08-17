@@ -504,6 +504,24 @@ export function saveWorkspace(held: unknown): boolean {
   }
 }
 
+/** Drop one project's log, and the session pointer with it when it named that
+ *  project.
+ *
+ *  The workspace list stays the caller's. The pointer does not: left naming a
+ *  key that is gone, the next load opens a ghost id — a blank canvas over
+ *  somebody else's tree, and the first edit writing the deleted project back
+ *  under its old key. */
+export function dropProject(id: string): boolean {
+  try {
+    localStorage.removeItem(stepsKey(id));
+    if (localStorage.getItem(CURRENT) === id) localStorage.removeItem(CURRENT);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Drop every keyed project log, the workspace filing list, and the session
  *  pointer. Display preferences stay — they are not the session. The live
  *  file handle goes too: nothing on disk is this session any more. */

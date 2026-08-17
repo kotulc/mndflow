@@ -78,6 +78,8 @@ const PATHS = {
   // groups, so a shared mark would be the one mistake this set exists to stop.
   relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
   relation_directed: "M4.5 8.5v7M4.5 12h13.5M14 8.5l3.5 3.5-3.5 3.5",
+  // A declared kind: the same joined ends, tagged.
+  relation_typed: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15M12 6.5v3",
 
   // The three looks. Nextra's shape — light, dark, and the slot a "system"
   // toggle would use — but ours are three named looks rather than two modes

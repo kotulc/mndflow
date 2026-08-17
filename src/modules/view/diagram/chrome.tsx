@@ -107,18 +107,35 @@ export type TogglesProps = {
   onForm: (form: EdgeForm) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
-  axis: Axis;
-  onAxis: (axis: Axis) => void;
+  /** The relationship type the next drag draws, or null for an untyped line. */
+  kind: { path: string; form: string } | null;
+  onKind: (next: { path: string; form: string } | null) => void;
+  /** Types in scope, each with the path it is addressed by. Capped when drawn. */
+  kinds: { name: string; path: string; form: string }[];
 };
 
-/** Display settings in vertical subject groups — interface, relation, flow. */
+/** How many types the inline group shows. It sits beside the crumbs, so it
+ *  cannot grow with the vocabulary; the menu and the strip are where the rest
+ *  live, with a *More…* of their own. */
+const TYPE_CAP = 3;
+
+/** The canvas settings, top right, as two labelled groups side by side.
+ *
+ *  **View** is how the canvas draws — interfaces on or off, lines angled or
+ *  curved. **Relation** is what the next right drag makes: a plain line, a
+ *  directed one, then the types the project imports, capped, because the list
+ *  grows with the vocabulary and this one sits inline beside the crumbs.
+ *
+ *  Flow leaves for the bottom right (V.7), beside the arrangements, so the top
+ *  holds settings only. Each group carries its label — with two groups on one
+ *  row, nothing else says where one ends. */
 export function Toggles({
-  showPorts, onShowPorts, form, onForm, angular, onAngular,
-  axis, onAxis,
+  showPorts, onShowPorts, form, onForm, angular, onAngular, kind, onKind, kinds,
 }: TogglesProps) {
   return (
-    <div className="arrange options">
-      <div className="option-group" role="group" aria-label="Interface">
+    <div className="arrange options inline">
+      <div className="option-group" role="group" aria-label="View">
+        <span className="group-label">view</span>
         <button
           type="button"
           className={showPorts ? "on" : ""}
@@ -127,21 +144,6 @@ export function Toggles({
         >
           <Icon name={showPorts ? "ports_on" : "ports_off"} /> interfaces
         </button>
-      </div>
-
-      <div className="option-group" role="group" aria-label="Relation">
-        {FORMS.map(({ form: which, mark, word, tip }) => (
-          <button
-            key={which}
-            type="button"
-            className={form === which ? "on" : ""}
-            aria-pressed={form === which}
-            onClick={() => onForm(which)}
-            title={tip}
-          >
-            <Icon name={mark} /> {word}
-          </button>
-        ))}
         {DRAWS.map(({ angular: which, mark, word, tip }) => (
           <button
             key={word}
@@ -156,9 +158,59 @@ export function Toggles({
         ))}
       </div>
 
-      {/* Which way the layer reads: a setting about relationships — it decides
-          which sides a flow attaches to and how its line runs. */}
-      <div className="option-group" role="group" aria-label="Flow">
+      <div className="option-group" role="group" aria-label="Relation type">
+        <span className="group-label">relation</span>
+        {FORMS.map(({ form: which, mark, word, tip }) => (
+          <button
+            key={which}
+            type="button"
+            className={!kind && form === which ? "on" : ""}
+            aria-pressed={!kind && form === which}
+            onClick={() => (onKind(null), onForm(which))}
+            title={tip}
+          >
+            <Icon name={mark} /> {word}
+          </button>
+        ))}
+        {kinds.slice(0, TYPE_CAP).map(({ name, path, form: declared }) => (
+          <button
+            key={path}
+            type="button"
+            className={kind?.path === path ? "on" : ""}
+            aria-pressed={kind?.path === path}
+            onClick={() => onKind(kind?.path === path ? null
+                                                      : { path, form: declared })}
+            title={`Right drag makes a “${name}”`}
+          >
+            <Icon name="relation_typed" /> {name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export type ArrangementsProps = {
+  onArrange: (shape: Layout) => void;
+  onRelax: () => void;
+  axis: Axis;
+  onAxis: (axis: Axis) => void;
+};
+
+/** Arrangement verbs, opposite the zoom controls. Each is a one-time action,
+ *  so none of them lights up — there is no arrangement a layer is currently
+ *  *in*, only one it was last put through. Relax hands the layer back to
+ *  automatic placement, so it sits with them. Words match the options strip;
+ *  U.16 moves the whole set to the frame. */
+export function Arrangements({ onArrange, onRelax, axis, onAxis }: ArrangementsProps) {
+  return (
+    <div className="shape">
+      {/* Flow — which way the layer reads. A setting, so it lights up, and it
+          sits above the arrangements rather than among them: design.md keeps
+          states and verbs apart, and with the two groups now adjacent the
+          boundary has to carry what distance used to (V.7). */}
+      <div className="option-group flow" role="group" aria-label="Flow">
+        <span className="group-label">flow</span>
         {AXES.map(({ axis: which, mark, word, tip }) => (
           <button
             key={which}
@@ -172,23 +224,7 @@ export function Toggles({
           </button>
         ))}
       </div>
-    </div>
-  );
-}
 
-export type ArrangementsProps = {
-  onArrange: (shape: Layout) => void;
-  onRelax: () => void;
-};
-
-/** Arrangement verbs, opposite the zoom controls. Each is a one-time action,
- *  so none of them lights up — there is no arrangement a layer is currently
- *  *in*, only one it was last put through. Relax hands the layer back to
- *  automatic placement, so it sits with them. Words match the options strip;
- *  U.16 moves the whole set to the frame. */
-export function Arrangements({ onArrange, onRelax }: ArrangementsProps) {
-  return (
-    <div className="shape">
       {LAYOUTS.map(({ shape, mark, word, tip }) => (
         <button key={shape} type="button" onClick={() => onArrange(shape)} title={tip}>
           <Icon name={mark} /> {word}

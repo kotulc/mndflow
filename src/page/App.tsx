@@ -576,6 +576,79 @@ export function App() {
     setViewPrefs({});
   }
 
+  /** Drop a project from the workspace, log and all.
+   *
+   *  A workspace operation the way `begin`, unlock and fork are, not a registry
+   *  action — the closed set is untouched. `forget` takes the proxy out of the
+   *  shell; the keyed log has to go too, or a reload brings the project back.
+   *
+   *  Asked first (V.13). Deleting a block is one undoable step; this is not in
+   *  the log at all, so undo cannot bring it back and a confirm is the only
+   *  thing standing in front of it. */
+  function dropProject(projectId: string) {
+    const title = titleOf(graphs[projectId] ?? graph) || "this project";
+
+    say(`Delete "${title}"? Its history goes with it and undo will not bring it back.`, {
+      label: "delete",
+      run: () => {
+        // `held` is read here rather than captured at prompt time: the confirm
+        // is deferred, and a project imported or named while it sat open would
+        // otherwise be dropped by writing back a stale list.
+        setHeld((current) => {
+          const shell = graphOf(current.id);
+          const out = workspace.forget(current, shell.graph, projectId);
+
+          workspace.save(out.held);
+          store.saveProject(current.id, compact([
+            ...shell.steps,
+            makeStep("deleted", "forget", out.mutations),
+          ]));
+          // Clears the session pointer too when it named this project.
+          store.dropProject(projectId);
+          delete stash[projectId];
+
+          const next = out.held.projects.find((id) => id !== projectId) ?? "";
+          if (next) store.adoptId(next);
+
+          return out.held;
+        });
+
+        setChosen((was) => was.filter((ref) => !ref.startsWith(`${projectId}/`)));
+        if (projectId === contextId) {
+          setContextId(held.projects.find((id) => id !== projectId) ?? "");
+        }
+      },
+    });
+  }
+
+  /** Relationship kinds the project can draw: the ones its packages bring,
+   *  then its own.
+   *
+   *  Each carries the **path** it is addressed by, not just a name — a bare
+   *  name would be minted as a local twin under a derived id, and where that id
+   *  matches the package's own it would shadow it. Two packages may ship the
+   *  same name, and both stay on offer (SC.4). */
+  const relationKinds = useMemo(() => {
+    const open = workspace.gather(graph.vocabulary);
+    const out: { name: string; path: string; form: string }[] = [];
+    const drawn = new Set<string>();
+
+    for (const row of workspace.scoped(graph.vocabulary, open)) {
+      if (row.def.form !== "line" && row.def.form !== "directed") continue;
+      if (drawn.has(row.path)) continue;
+      drawn.add(row.path);
+      out.push({ name: row.def.name, path: row.path, form: row.def.form });
+    }
+    for (const def of Object.values(graph.defs)) {
+      if (def.form !== "line" && def.form !== "directed") continue;
+      if (drawn.has(def.id)) continue;
+      drawn.add(def.id);
+      out.push({ name: def.name, path: def.id, form: def.form });
+    }
+
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  }, [graph]);
+
   /** Unlock the project in context — workspace word only; file unchanged. */
   function unlockPackage() {
     const next = workspace.unlock(held, contextId);
@@ -700,13 +773,6 @@ export function App() {
             <Icon name="export_workspace" />
           </button>
           <button
-            onClick={() => void exportProject()}
-            disabled={!project.steps.length}
-            title="Export this project (bundles what it depends on)"
-          >
-            <Icon name="export_project" />
-          </button>
-          <button
             type="button"
             className="import"
             title="Open a snapshot, replacing what is here"
@@ -814,6 +880,8 @@ export function App() {
             onSay={say}
             unit={UNIT}
             onDelete={project.remove}
+            onDropProject={dropProject}
+            onExportProject={() => void exportProject()}
             onMove={project.move}
             onRename={project.rename}
             onRenameProject={project.renameProject}
@@ -903,6 +971,7 @@ export function App() {
               onNameTaken={project.nameTaken}
               onLift={project.lift}
               onWire={project.wire}
+              kinds={relationKinds}
               onAddPort={project.addPort}
               onPromotePort={project.promotePort}
               onSlidePort={project.setPort}

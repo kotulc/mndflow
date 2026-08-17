@@ -157,3 +157,38 @@ describe("interface and mark", () => {
     expect(ops(done)).toEqual(["mark_port"]);
   });
 });
+
+describe("relate with a type", () => {
+  it("uses a declared definition as it stands rather than minting a twin", () => {
+    // A path or a known id already addresses a definition. Minting one for an
+    // imported type would put a local stub under a derived id in front of the
+    // package's own, which is the shadowing SC.4 had to disambiguate.
+    const { graph, a, b } = pair();
+    const effect = as_effect(run("relate", at(graph), {
+      from: a.id, to: b.id, type: "pkg_freeform/def_contains",
+    }));
+
+    expect(effect.mutations.some((m) => m.op === "set_def")).toBe(false);
+    const linked = effect.mutations.find((m) => m.op === "link_elements");
+    expect((linked as { edge: { type: string } }).edge.type)
+      .toBe("pkg_freeform/def_contains");
+  });
+
+  it("mints a definition for a bare name nothing declares", () => {
+    const { graph, a, b } = pair();
+    const effect = as_effect(run("relate", at(graph), {
+      from: a.id, to: b.id, type: "feeds",
+    }));
+
+    expect(effect.mutations.some((m) => m.op === "set_def")).toBe(true);
+  });
+
+  it("draws untyped when no type is named", () => {
+    const { graph, a, b } = pair();
+    const effect = as_effect(run("relate", at(graph), { from: a.id, to: b.id }));
+    const linked = effect.mutations.find((m) => m.op === "link_elements");
+
+    expect((linked as { edge: { type: string } }).edge.type).toBe("");
+  });
+});
+

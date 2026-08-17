@@ -420,9 +420,9 @@ export function useProject(projectId: string, locked = false) {
       go("relate", { from, to, form, ...(ports ? { ports } : {}), ...(sides ? { sides } : {}) }),
     link: (source: string, target: string, form: EdgeForm = "line") =>
       go("relate", { from: source, to: target, form }),
-    wire: (a: End, b: End, form: EdgeForm = "line") =>
+    wire: (a: End, b: End, form: EdgeForm = "line", type = "") =>
       go("relate", {
-        from: a.node, to: b.node, form,
+        from: a.node, to: b.node, form, type,
         ports: { from: a.port, to: b.port },
         sides: { from: a.side, to: b.side },
       }),

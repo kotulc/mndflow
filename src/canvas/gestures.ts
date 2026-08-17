@@ -76,6 +76,12 @@ export type Reach = {
   picked: Picked;
   /** What a right drag makes: the form picked in the toolbar. */
   form: EdgeForm;
+  /** The relationship type the next drag draws, as the path it is addressed
+   *  by, or "" for an untyped one. */
+  kind?: string;
+  /** The form that type declares, so a typed drag draws as its kind says
+   *  rather than as the untyped toolbar setting does. */
+  kindForm?: string;
   onPick: (next: Picked) => void;
   onOpen: (id: string | null) => void;
   onUp: () => void;
@@ -84,7 +90,7 @@ export type Reach = {
   onPromote: (id: string, parent: string | null) => void;
   onLift: (id: string, x: number, y: number) => void;
   onRefer: (target: string, x?: number, y?: number) => void;
-  onWire: (a: End, b: End, form: EdgeForm) => void;
+  onWire: (a: End, b: End, form: EdgeForm, type?: string) => void;
   onTie: (id: string, holder: string) => void;
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   onGroup: (members: string[]) => void;
@@ -138,7 +144,7 @@ function nearestEdge(
 /** The active diagram's map. Defaults to the block module's — the only one
  *  that draws today. A later compositor passes another module's map in. */
 export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
-  const { graph, view, picked, form } = reach;
+  const { graph, view, picked, form, kind, kindForm } = reach;
   const { onPick, onOpen, onUp, onReveal, onNest, onPromote, onLift, onRefer } = reach;
   const { onWire, onTie, onGroup, onDelete, onUnlink, onDropAttr } = reach;
   const { onPlaceMany, onPlaceNote, onOffer } = reach;
@@ -665,7 +671,7 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
         node: landed,
         port: hit.port ?? undefined,
         side: wallAt(hit, event.clientX, event.clientY),
-      }, form);
+      }, (kindForm as EdgeForm) || form, kind);
     }
 
     // Nothing under it: make the far end where it was let go, and attach.
