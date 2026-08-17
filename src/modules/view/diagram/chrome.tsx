@@ -2,10 +2,13 @@
  *
  *  Breadcrumb, arrangement verbs, axis and the display toggles that only make
  *  sense here. Per module — a matrix has no interfaces toggle. Marks share one
- *  vocabulary with the shell: no character means two things (U.2). Options sit
- *  in vertical subject groups — interface, relation, flow — every control a
- *  word with the glyph as a scanning aid (U.15). Arrangements stay opposite
- *  the zoom until U.16 moves them to the frame. */
+ *  vocabulary with the shell: no character means two things (U.2), and every
+ *  control carries a word with the glyph as a scanning aid (U.15).
+ *
+ *  Two places, not three (V.17, V.7). **Top right**: two labelled groups side
+ *  by side — *view* (interfaces, curves/angles) and *relation* (what the next
+ *  right drag makes). **Bottom right**: *flow* above the arrangement verbs,
+ *  divided from them, since a setting and a verb are not the same thing. */
 
 import { nameOf, titleOf } from "../../../graph/fold";
 import type { Axis, EdgeForm, Graph, Layout } from "../../../graph/types";

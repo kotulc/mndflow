@@ -82,11 +82,18 @@ action — the `figure` special case went with the form (SC.5).
 
 | | Scope | Arguments | Writes | Replaces |
 |---|---|---|---|---|
-| `relate` | layer | from, to, form?, ports?, sides? | `link_elements` | `link`, `wire` |
+| `relate` | layer | from, to, form?, type?, ports?, sides? | `link_elements` (+ `set_def` for a name nothing declares) | `link`, `wire` |
 | `unlink` | edge | id | `delete_edge` + spare interfaces | `unlink` |
 | `flip` | edge | id | `flip_edge` | `flip` |
 | `direct` | edge | id, dir | `set_dir` | `setDir` |
 | `reform` | edge | id, form | `set_form` | `setForm` |
+
+**`relate`'s `type` says what kind it is** (V.17b), so one gesture does not cost `relate` then
+`retype` — two log steps and two undos. **A path (`pkg_x/def_y`) or a known id is used as it
+stands**; a bare name is matched against the definitions in scope first, and only a name nothing
+declares is minted (`defineNamed`'s bridge). Minting for an imported type would put a local stub
+under a derived id in front of the package's own. **A named kind carries its own form**, so the
+toolbar's plain/directed setting only applies to an untyped drag.
 
 ### Groups and notes
 

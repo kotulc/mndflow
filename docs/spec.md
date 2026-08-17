@@ -102,16 +102,17 @@ the project.
   ends *are*: a line's are plain seats the layer places, and a directed one's take the sides the
   layer's axis gives them. `dir` still says which way the arrows point.
 - **Anything joining two elements is a relationship.** One may draw as something other than a
-  routed line — a tie is a leader, taking no pointer and no seats — but that is a rule about
-  drawing, not a second way to join things. One mechanism, one cascade when an end is deleted,
-  one list to read them from.
+  routed line — a tie is a leader, taking no seats and never routed by hand — but that is a rule
+  about drawing, not a second way to join things. One mechanism, one cascade when an end is
+  deleted, one list to read them from. **Drawing faint is not the same as being untouchable**: a
+  tie takes the pointer like any other edge (V.16).
 - **Two more are derived, because nobody has to say them.** Being derived makes neither less the
   engine's business; it only means the engine works it out.
 
   | | Derived from | Draws |
   |---|---|---|
   | **reference** | an end is a **proxy** — it reaches something in another layer or project | violet and dashed, held back at reduced opacity so the form and the label read first; hover and selection bring it to full |
-  | **tie** | an end is a **note** — a note relates to what it describes and to nothing else | a faint leader, no pointer and no seats |
+  | **tie** | an end is a **note** — a note relates to what it describes and to nothing else | a faint leader with no seats; it takes the pointer and can be picked and untied (V.16) |
 
 - A reference keeps whichever form it was given and keeps its direction. Both routes to one draw
   alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for it.
@@ -700,17 +701,24 @@ derived labels and inferred order draw dimmed (DIM).*
   so chrome cannot steal its room.
 - **The explorer bounds itself** (U.3, proven): width is `min(280px, 36vw)`; it collapses to a
   28px strip (◂/▸) with the tree hidden until reopened; the bar title ellipsizes.
-- **Themes are chrome** (U.4, proven): a labelled header group offers `current`, `modern` and
-  `light`; `current` is the default. Palettes are CSS variables selected by `data-theme` on the
+- **Themes are chrome** (U.4, then V.1, proven): a header group offers `light`, `modern` (blues)
+  and `retro` (green on black); `retro` is the default, and a session that saved the old name
+  `current` reads as `retro`. Palettes are CSS variables selected by `data-theme` on the
   document; the choice sticks in `mndflow.theme.v1`. Shell overlays take chrome washes from the
   same variables. Root `styles/` (the `style` component) and the diagram's hard-coded colours are
   untouched — a theme never recolours a card, route or frame.
 - **It names the working session** — `working session`, held quiet, with the snapshot explained
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
-- Controls are icons with tooltips: workspace export `⤓`, project export `↧`, import `⤒`.
-  Each greys out when it has nothing to do. **Undo and redo left the header** (U.12). **New
-  workspace is a word**, not a glyph (U.13, proven) — rare and destructive, same move as undo/redo.
+- Controls are icons with tooltips: workspace export, workspace import. Each greys out when it has
+  nothing to do. **Undo and redo left the header** (U.12).
+- **One export door each** (V.6, proven): the header is workspace-scoped and keeps workspace
+  export and import; **the project's own export moved to its row in the tree**, where project
+  scope lives. The two side-by-side header exports that read as a choice nobody could make are
+  gone. *Exporting a project as a package is a different thing* and is still parked (D.2).
+- **New workspace is a mark** (V.3, proven) — a discard glyph, never a refresh, which would read
+  as *reload what is here*. It keeps its confirm and takes a warning colour, which is what U.13's
+  word was carrying.
 - **New workspace asks before discarding** (U.13), then clears the session and leaves a blank
   `Held`. Import reports a file that is not a mndflow project — both in the strip, like everything
   else the app says.
@@ -808,16 +816,28 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 - Right-clicking the clear space below the rows (or an empty tree) makes a block **at the root**,
   wherever you are scoped: the rows are what layers look like here, so the space around all of
   them is the root's own background.
-- **The bar's `＋` follows the selection** (U.14 ◐, proven) — the same *target decides* rule as
-  the canvas right button (G.9d): a **project** or nothing selected opens the name prompt and the
-  project exists once named; a **block** selected makes a block under it. The tooltip names which,
-  so the meaning is never hidden. (G.9b's list offering *add a project* as well is only half-true —
-  see tasks.md.)
-- A role icon precedes every name and doubles as the fold control where there is one — ■ leaf,
-  □ interface, ◫ container (U.2; `▦` is the grid arrangement, not a tree role).
-- **A labelled view toggle sits beside the project root** (U.8, proven) — the three modules the
-  project kind offers, each with its U.9 glyph. Sticky per project in `mndflow.view.v1`; writes
-  nothing. Tree role icons stay ■ / □ / ◫.
+- **The bar's `＋` follows the selection** (V.14, proven) — the same *target decides* rule as the
+  canvas right button (G.9d): **nothing selected** names a **project**; a **project** selected
+  makes a block inside it; a **block** makes a block under it. The tooltip names which, so the
+  meaning is never hidden. **This reverses U.14 deliberately**, and the door it closes is reopened
+  by **deselection**: clicking blank tree space, or the project already picked, lets go. **The
+  view does not follow**, so reaching a new project never costs your place. (G.9b's list offering
+  *add a project* as well is only half-true — see tasks.md.)
+- **The bar's delete follows it too**: a picked project root is a **workspace operation** and asks
+  first (V.12, V.13, proven); anything else is the open layer, which is one undoable step.
+  Deleting a project takes `workspace.forget` **and** the keyed log, or a reload brings it back;
+  the session pointer goes with it, or the next load opens a ghost id. It is not in the log at
+  all, so undo cannot reach it and the confirm is the only thing in front of it.
+- **The project's own export sits on its root row** (V.6, proven), where project scope lives.
+- A role icon precedes every name and doubles as the fold control where there is one — leaf,
+  interface, container (U.2, drawn from the V.2 icon set; the grid arrangement is not a tree role).
+- **A project root's icon says its kind and folds the project** (V.9 + V.10, proven) — a structure
+  and a behavior project draw differently; clicking the icon folds, while the **row click still
+  switches project**, so the two never collide. Projects are open by default: one that hid its
+  tree on sight would read as empty.
+- **The view toggle beside the project root is icon-only** (U.8, then V.5, proven) — the modules
+  the project kind offers, each with its U.9 glyph, tooltips the only remaining signal. Sticky per
+  project in `mndflow.view.v1`; writes nothing.
 - Folding is the user's alone; walking into a layer on the canvas never rearranges the tree.
 - One control in the bar opens every branch or closes every branch.
 
@@ -1064,8 +1084,10 @@ about like any other, and the drag sticks.
 - `Esc` cancels the gesture.
 - Right-clicking a line names its type — a name is edited where it is drawn, and this is the
   last name on the canvas that took a different gesture.
-- The form a right drag makes is picked in the canvas options (*relation* group): plain, flow,
-  or assoc — a **radio row**, word+glyph (U.15).
+- **What a right drag makes is picked before it, in the canvas *relation* group** (V.17a, proven):
+  plain, directed, then the types in scope capped at three — a **radio row**, word+glyph (U.15).
+  Picking a type hands `relate` its `type` (V.17b), so the kind is settled by the gesture rather
+  than corrected after it, and the type's own form is what draws.
 - **Flow** draws heavier and takes its sides from the layer's axis; **assoc** draws thinner and
   fainter; **plain** says only that the two are related and takes whatever side suits the path.
 - Drawn curved or angular by the *relation* draw radio (U.15), which is global to the app.
@@ -1153,7 +1175,10 @@ about like any other, and the drag sticks.
 - Right-clicking it rewrites it. The note *is* its text — there is nothing else on it to aim at.
 - Ties to nothing, one thing or many. Right-drag from a node onto a note ties it; the same
   gesture over a node already tied unties it. The panel lists ties and removes them.
-- A leader takes no pointer, cannot be selected and is never routed — it is not a relationship.
+- **A leader is picked and deleted like any other line** (V.16, proven): it is keyed by the real
+  edge, marked from the page's own selection, and never routed by hand. It stays the faintest
+  thing on the canvas until it is picked, and then it says so. Right-dragging onto the note is
+  still the other door to untying.
 - Belongs to the layer it was drawn in, and moves within it by an ordinary drag.
 - Survives losing every tie; goes only when deleted or when its layer does.
 
@@ -1184,22 +1209,37 @@ about like any other, and the drag sticks.
 - Breadcrumbs top-left: the project and the last three layers, the middle elided to `…` with the
   full trail in its tooltip, plus `↑` for one layer up. On a short row the left half truncates with
   an ellipsis (U.1).
-- **One glyph vocabulary** (U.2, proven): no mark means two things. `·` is axis-none only;
-  interfaces-off is `⊏`; all-types is `∗`; arrangements are `▦ ⊙ ⇄ ⇅`; relax is `∿`. Definition
-  icons stay stream E's; module icons (U.9) sit on the labelled view toggle (U.8, proven).
-  Table/matrix types chrome still reads `· types` (outside this owns).
-- **Canvas options share one design language** (U.15, proven): vertical subject groups
-  *interface* / *relation* / *flow*; **every control carries a word**, glyph as scan aid.
-  Form, draw, types and axis are **radio rows**; interfaces stay a two-state toggle. Settings
-  only — not the one-time arrange verbs.
+- **One icon vocabulary** (U.2, then V.2, proven): no mark means two things, and the marks are
+  **curated inline SVG** rather than Unicode — which is also why the chrome no longer reads blurry.
+  One module defines the set. Definition icons stay stream E's; module icons (U.9) sit on the view
+  toggle. **The all-types mark is gone with the filter it belonged to** (V.15).
+- **The relationship type filter is gone** (V.15, proven) — the control, the `shown` state, the
+  kinds list, the predicate and the clipping — and every edge draws. Choosing what you are *about*
+  to draw replaced filtering what already is (V.17a). A matrix over a busy vocabulary may want a
+  filter of its own; that is a different surface and should arrive by decision (see plan.md, W).
+- **Hover lights a relationship line** (V.4, proven).
+- **Canvas options share one design language** (U.15, proven): **every control carries a word**,
+  glyph as scan aid; radio rows for the picks, a two-state toggle for interfaces. Settings only —
+  not the one-time arrange verbs.
+- **Two labelled groups, inline at the top right** (V.17, proven) — *view* (the interfaces toggle,
+  and curves / angles) and *relation*. Each carries its own label, because with two on one row
+  nothing else says where one ends. They **wrap** rather than reach the crumbs (U.1's rule kept).
+- **The *relation* group picks what the next right drag draws** (V.17a, proven): plain, directed,
+  then the relationship types in scope, **capped at three** because it sits inline beside the
+  crumbs. Picking a type settles the form too — a definition carries its own. **It writes
+  nothing**: a display preference beside `showPorts` and `angular`. The list comes from the page,
+  which can see the imported packages; each entry carries the **path** it is addressed by, so a
+  drag never mints a local twin of a package's type. The rest of the vocabulary lives on the menu
+  and the strip (`R.5`, `R.9`).
 - Canvas arrangements bottom-right, opposite the zoom controls — **four verbs** (`▦ ⊙ ⇄ ⇅`),
-  plus `∿` to hand the layer back to the engine (`relax`), still on `.shape` with **words**
-  beside the glyphs (U.15). None of the four is ever lit: an arrangement is something you do,
-  not something a layer is in. **They stay there**: `.shape` is already a floating cluster apart
-  from the `.arrange` bar, so the verbs already sit away from the states, and `arrange` is
-  layer-scoped, so the frame's context list offers it as well. The interface is the same whatever
-  the layer or project. On a short row `.arrange` wraps on the right half rather than overlapping
-  the crumbs (U.1).
+  plus `∿` to hand the layer back to the engine (`relax`), on `.shape` with **words** beside the
+  glyphs (U.15). None of the four is ever lit: an arrangement is something you do, not something a
+  layer is in. **They stay there**: `.shape` is a floating cluster apart from the `.arrange` bar,
+  and `arrange` is layer-scoped, so the frame's context list offers it as well. The interface is
+  the same whatever the layer or project.
+- **Flow sits with them, above and divided from them** (V.7, proven) — the axis left the top bar,
+  so the top holds settings only. Adjacent but visibly distinct: flow is a *setting* and the
+  arrangements are *verbs*, and where distance used to carry that, a group boundary now does.
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.

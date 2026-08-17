@@ -227,6 +227,13 @@ however it is reached: `navigate` now ignores a call while an intent is already 
 four ways — single and double click across projects, and a same-project descend.*
 
 
+- **spec.md still describes relationship forms as `plain` / `flow` / `assoc`** in *Relationships*,
+  while *Project model* says `form` is `line` or `directed` "and that is the whole set" — which is
+  what `EdgeForm` and the chrome actually offer. **Pre-dates Wave V** and was found while recording
+  V.17a, so it is nobody's row. Either the three-way wording is dead text to delete, or `assoc` was
+  a wanted third form that never landed; the bullet under it describing how each of the three draws
+  has to go the same way. **Clay's call which.**
+
 - **Does an action's description live on the descriptor or in `docs.json`?** `Action.about` is
   **required on every action already** and is documented as *"What it does, in a sentence — long
   enough to be scored against"* — `arrange` carries `"lay the layer out again"`. So the docstrings
@@ -728,7 +735,7 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
 | **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | **done** — U.18 collects the App gaps |
-| **V** The shell, second pass | `src/modules/icons/`, `src/styles.css`, `page/`, `modules/view/` | V.2 first — most of the wave draws on it |
+| **V** The shell, second pass | `src/modules/icons/`, `src/styles.css`, `page/`, `modules/view/` | **done** — every row landed and is in landed.md |
 | **T** The suite | `tests/` | U for the page rows only |
 | **Z** Terminal | `terminal/` | built but thin — Z.9 trims; Z.5 last |
 
@@ -737,10 +744,10 @@ harness), **U.18** (the two App gaps), **S7** (the `Files.tsx` seam). **Wave U i
 U.16 dropped, the arrangements were never in the bar to move out of. **G.9a / G.9b / G.9c landed**;
 **G.9d ◐**, which G.9e closes. **F.2** and **D.2** are done (proven).
 
-**Wave V is the priority** and **carries no `◆`** — all five were answered. **V.2 goes first**: the
-curated inline-SVG vocabulary replaces the Unicode marks outright, and most of the wave draws on it.
-**V.4** (hover highlight on relationship lines) and **V.11** (space above the first project) depend
-on nothing and run in parallel.
+**Wave V is complete.** The shell has one icon vocabulary, two labelled settings groups at the top
+and the verbs at the bottom, a project that can be made and deleted from the tree, and a relation
+type picked before the drag rather than corrected after it. **Next is `R.5`–`R.8` and `R.10` /
+`R.11`**, then Wave W (the tray, the table, the heatmap) and Wave X (the shared capped list).
 
 **The terminal is no longer parked — Wave Z is done.** It ranks and completes whatever the
 surface offers. **Z.1–Z.8 landed** (embedding rank; overrule feedback; learned preference;
@@ -1127,7 +1134,7 @@ rows landed. No remaining Wave U row owns it.
 
 ### V — the shell, second pass
 
-**V.2, V.4, V.11 and V.15 landed** (proven). The icon set lives in
+**The wave is complete** (every row proven). The icon set lives in
 `src/modules/icons/`: one 24-unit grid, one 1.5 stroke, `currentColor`, and **names that are
 purposes rather than shapes** — `fold_all`, never `minus_box` — which is what stops two meanings
 quietly sharing a drawing. `ViewModule.icon` is a **name into the set**, so U.9's conformance test
@@ -1147,8 +1154,19 @@ apply. The colour goes through an `--edge-stroke` custom property now. The dead 
 `shows` predicate and `clipped` are gone and every edge draws. It landed with V.2 because `∗ types`
 was the last Unicode mark in the chrome, and converting a control about to be deleted is waste.
 
-**Still open in the wave**: the view toggle overflows the explorer's width cap — `matrix` clips —
-which is exactly what **V.5** (icon-only) fixes.
+**The view toggle overflowing the explorer's width cap** — `matrix` clipped — is what **V.5**
+(icon-only) fixed; it fits now.
+
+**A review of the wave's last rows found six more, all fixed with them** and every one invisible to
+the suite: a typed drag minting a local stub that shadowed the package's own definition; a named
+type's declared form never applying, because `form` always arrives from the gesture; a deleted
+project leaving the session pointer naming it, so the next load opened a ghost id and the first
+edit wrote it back; the delete confirm capturing `held` at prompt time, so a project imported while
+the prompt sat open was dropped by writing back a stale list; a picked tie looking identical to an
+unpicked one, the rules having been copied from `.reaching`, whose base sets an opacity `.tether`
+never had; and the vertical group separator still applying to the now-horizontal bar. **The pattern
+worth keeping**: four of the six are *a value read at the wrong moment or from the wrong scope* —
+a stale capture, a derived id, a fallback that could never fire.
 
 
 U made the shell coherent; **V makes it legible and compact**, and every row came from driving the
