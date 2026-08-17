@@ -596,8 +596,16 @@ export function edgesOf(
       const away = source !== edge.source || target !== edge.target ||
         isReference(graph, edge);
 
-      const forward = edge.dir === "forward" || edge.dir === "both";
-      const back = edge.dir === "back" || edge.dir === "both";
+      // **The form says there is a direction; `dir` only refines which way.**
+      // A `directed` relationship left at `dir: "none"` — which is every one
+      // the toolbar draws — reads source → target, and drew no arrowhead at
+      // all, so direction was invisible on the canvas even where the graph
+      // held it. `behavior.ts`'s `is_directed` has always read it this way.
+      // Wanting no arrows is `reform` back to a plain line.
+      const heads = edge.dir === "none" && (edge.form ?? "line") === "directed"
+        ? "forward" : edge.dir;
+      const forward = heads === "forward" || heads === "both";
+      const back = heads === "back" || heads === "both";
       // Colour, dash and head from the style component; a reference still
       // overrides — derived from the ends, not configured on a definition.
       const look = lookOf(graph, element("", { type: edge.type }));

@@ -199,10 +199,9 @@ const retype: Action = {
   name: "retype",
   label: "Retype",
   about: "sets what kind of thing an element or a relationship is",
-  // actions.md scopes this to element and edge; Scope today holds one `on`, so
-  // element is declared and run still accepts an edge id. Offering on an edge
-  // waits on Scope being able to name both.
-  scope: { on: "element" },
+  // `run` has always taken either, and actions.md has always said both; only
+  // the descriptor disagreed, which is what kept it off an edge's menu.
+  scope: { on: ["element", "edge"] },
   args: [
     { kind: "element", name: "id" },
     { kind: "text", name: "type", prompt: "Type" },

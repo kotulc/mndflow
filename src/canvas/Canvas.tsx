@@ -373,8 +373,8 @@ function Flow(props: Props) {
       return;
     }
 
-    // Scope still names only `element`, so retype is absent on an edge — keep
-    // the old Ask path as the short until Scope can say both (G.9d ◐).
+    // `retype` reaches an edge now that Scope names both (G.9e); the relation
+    // Ask stays its door, since asking for a type by name is what it does.
     if (action.name === "retype" && ctx.picked?.kind === "edge") {
       setPrompt({ kind: "relation", id: ctx.picked.id });
       return;

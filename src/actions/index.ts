@@ -15,6 +15,11 @@ import type { ElemForm, Graph, Mutation } from "../graph/types";
  *  here — an empty selection is what shows the layer's own properties. */
 export type Picked = { kind: "node" | "edge" | "attr"; id: string } | null;
 
+/** Where an action reads as applying. A list means more than one does —
+ *  `retype` answers the same question of an element and a relationship, and
+ *  saying so is a descriptor's own business rather than a new action. */
+export type Where = "layer" | "element" | "edge" | "project";
+
 /** What an action is offered against: the same question a gesture asks of
  *  whatever is under the pointer, asked of a selection instead.
  *
@@ -22,11 +27,7 @@ export type Picked = { kind: "node" | "edge" | "attr"; id: string } | null;
  *  tying to a note, marking to an interface. Interface is not a form: it is
  *  derived from sitting on a frame edge, and named here because scope is about
  *  what a thing reads as rather than what it is stored as. */
-export type Scope =
-  | { on: "layer" }
-  | { on: "element"; form?: ElemForm | "interface" }
-  | { on: "edge" }
-  | { on: "project" };
+export type Scope = { on: Where | readonly Where[]; form?: ElemForm | "interface" };
 
 /** Where an action is being run. Read, never changed: an action that wants the
  *  view or the selection moved says so in its {@link Effect}. */
@@ -105,6 +106,11 @@ export type Action = {
   about: string;
   scope: Scope;
   args: Arg[];
+  /** Offer this once per option of its required `choice` rather than once as
+   *  itself. A menu asks no questions, so an action holding a choice is
+   *  withheld everywhere — expanding turns the options into the entries. On
+   *  the descriptor so it stays one rule instead of a case in every surface. */
+  expand?: true;
   /** Whether it is worth offering here at all. Absent is always. */
   when?: (ctx: Context) => boolean;
   /** Why it would refuse, in words, or null if it would not. Answerable only
@@ -131,12 +137,13 @@ export function all(): Action[] {
 /** Whether a scope matches what is selected. One test, so a gesture map, a tray
  *  and a ranked list never disagree about where something applies. */
 export function inScope(scope: Scope, ctx: Context): boolean {
-  if (scope.on === "layer" || scope.on === "project") return true;
+  const where = Array.isArray(scope.on) ? scope.on : [scope.on];
+  if (where.includes("layer") || where.includes("project")) return true;
 
   const picked = ctx.picked;
   if (!picked) return false;
-  if (scope.on === "edge") return picked.kind === "edge";
-  if (picked.kind === "edge") return false;
+  if (picked.kind === "edge") return where.includes("edge");
+  if (!where.includes("element")) return false;
 
   const node = ctx.graph.elements[picked.id];
   if (!node) return false;

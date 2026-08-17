@@ -15,14 +15,18 @@ export {
 } from "./map";
 export { gridOf, type AxisItem, type Cell, type Grid } from "./grid";
 export { Matrix, type MatrixProps } from "./Matrix";
-export { Types, kindsOf, trailOf, type TypesProps } from "./chrome";
+export { kindsOf, trailOf } from "./chrome";
 
 import { register } from "../index";
 import { MATRIX } from "./surface";
+import { kindsOf } from "./chrome";
+import { gridOf } from "./grid";
 
 // Replace the stub: same name, now carrying a surface.
 register({
   name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null,
   surface: MATRIX,
   chrome: ["types"],
+  // A cell's mark is a relationship kind, so the mark is a line's.
+  types: { icon: "relation_typed", of: (graph, layer) => kindsOf(gridOf(graph, layer)) },
 });

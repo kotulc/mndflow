@@ -80,6 +80,16 @@ describe("scope", () => {
     expect(inScope(scope, at(graph, block.id))).toBe(false);
   });
 
+  it("lets one scope name more than one thing", () => {
+    const { graph, block } = layer();
+    const scope = { on: ["element", "edge"] } as const;
+    const edge: Context = { graph, view: null, picked: { kind: "edge", id: "e1" } };
+
+    expect(inScope(scope, at(graph, block.id))).toBe(true);
+    expect(inScope(scope, edge)).toBe(true);
+    expect(inScope({ on: "element" }, edge)).toBe(false);
+  });
+
   it("offers nothing element-scoped when nothing is selected", () => {
     const { graph } = layer();
     const names = offer(at(graph, null)).map((a) => a.name);

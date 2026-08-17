@@ -327,19 +327,28 @@ export function App() {
    *  Naming is what brings a project into being — it earns a key, a place in
    *  the workspace and the context, all from having been called something. */
   function newProject(name: string): boolean {
-    const why = workspace.mayName(takenNames, name);
-    if (why) {
-      say(why);
+    // `begin` is the one door: it names, mints the id, writes the first step
+    // and admits the project to the shell in one go. App used to do all four
+    // itself, which is how `begin` sat unwired with the page's own copy of the
+    // name check beside it (U.14 ◐).
+    const { graph: shell, steps } = graphOf(held.id);
+    const out = workspace.begin(held, shell, name, takenNames);
+    if ("refuse" in out) {
+      say(out.refuse);
 
       return false;
     }
 
-    const id = store.newProjectId();
-    store.saveProject(id, workspace.started(name));
-    store.adoptId(id);
-    setHeld(openIn(held, id));
-    pendingView.current = { project: id, layer: null };
-    setContextId(id);
+    store.saveProject(out.id, out.steps);
+    store.adoptId(out.id);
+    workspace.save(out.held);
+    store.saveProject(held.id, compact([
+      ...steps,
+      makeStep("opened", "admit", out.mutations),
+    ]));
+    setHeld(out.held);
+    pendingView.current = { project: out.id, layer: null };
+    setContextId(out.id);
 
     return true;
   }
@@ -386,6 +395,10 @@ export function App() {
    *  beside `form` and `angular`, held here rather than in the canvas because
    *  the rail that picks it is page-level (Y.1). */
   const [kind, setKind] = useState<{ path: string; form: string } | null>(null);
+  /** Which type the listing views are narrowed to. Page state for the same
+   *  reason `form` is: the rail owns the control and table and matrix stopped
+   *  drawing one of their own (Y.4). */
+  const [shownType, setShownType] = useState<string | null>(null);
   /** The one verb the page cannot work out for itself: arranging needs the
    *  laid-out geometry only the canvas has, so the canvas publishes it here
    *  rather than the page reaching in. Dependencies still run one way. */
@@ -714,6 +727,16 @@ export function App() {
     ? moduleOf(viewPrefs, contextId, graph, view)
     : "block";
 
+  /** What the open view's `types` group lists — the module's answer, since a
+   *  table filters by definition names and a matrix by relationship marks. A
+   *  pick that is no longer on the layer reads as *everything* rather than as
+   *  a filter that hides all of it, so nothing has to be reset on navigation. */
+  const layerTypes = useMemo(
+    () => named(module)?.types?.of(graph, view) ?? [],
+    [module, graph, view],
+  );
+  const narrowed = shownType && layerTypes.includes(shownType) ? shownType : null;
+
   /** Resolved shown module per open project — what the explorer marks as on. */
   const shownViews = useMemo(() => {
     const next: Record<string, ViewName> = {};
@@ -913,6 +936,9 @@ export function App() {
                 picked={picked?.kind === "node" ? picked.id : null}
                 onPick={(id) => project.pick({ kind: "node", id })}
                 onOpen={project.open}
+                path={path}
+                onUp={project.up}
+                shown={narrowed}
               />
             ) : module === "matrix" ? (
               <Matrix
@@ -921,6 +947,9 @@ export function App() {
                 picked={picked?.kind === "node" ? picked.id : null}
                 onPick={(id) => project.pick({ kind: "node", id })}
                 onOpen={project.open}
+                path={path}
+                onUp={project.up}
+                shown={narrowed}
               />
             ) : module === "activity" ? (
               <Activity
@@ -1042,6 +1071,8 @@ export function App() {
               showPorts: ports, onShowPorts: setPorts,
               angular, onAngular: setAngular,
               form, onForm: setForm,
+              types: layerTypes, typeIcon: (named(module)?.types?.icon ?? "role_leaf") as never,
+              shownType: narrowed, onShownType: setShownType,
               kind, onKind: setKind, kinds: relationKinds,
               axis: axisOf(graph, view), onAxis: project.setAxis,
               onArrange: (shape) => arranging.current?.(shape),

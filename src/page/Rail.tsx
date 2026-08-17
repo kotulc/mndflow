@@ -84,6 +84,12 @@ export type RailOpts = {
   onAngular: (on: boolean) => void;
   form: EdgeForm;
   onForm: (form: EdgeForm) => void;
+  /** What the open view's `types` group lists, and its mark — the module's
+   *  answer, since a table and a matrix filter by different vocabularies. */
+  types: string[];
+  typeIcon: IconName;
+  shownType: string | null;
+  onShownType: (next: string | null) => void;
   kind: { path: string; form: string } | null;
   onKind: (next: { path: string; form: string } | null) => void;
   kinds: { name: string; path: string; form: string }[];
@@ -160,6 +166,24 @@ export function groupsFor(o: RailOpts): RailGroup[] {
       controls: DRAWS.map(({ angular, icon, word, tip }) => ({
         key: word, icon, word, tip, on: o.angular === angular,
         run: () => o.onAngular(angular),
+      })),
+    });
+  }
+
+  // What the list on the stage is narrowed to. Nothing picked is everything,
+  // so picking the lit one again is how you get back — no separate *all*
+  // entry, the way the relation types below work.
+  if (has("types")) {
+    out.push({
+      key: "types",
+      label: "types",
+      controls: o.types.map((name) => ({
+        key: name,
+        icon: o.typeIcon,
+        word: name,
+        tip: `Show only “${name}”`,
+        on: o.shownType === name,
+        run: () => o.onShownType(o.shownType === name ? null : name),
       })),
     });
   }

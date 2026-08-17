@@ -16,14 +16,18 @@ export {
 export { rowsOf, type Row } from "./rows";
 export { Row as RowView, type RowProps } from "./Row";
 export { Table, type TableProps } from "./Table";
-export { Types, kindsOf, trailOf, type TypesProps } from "./chrome";
+export { kindsOf, trailOf } from "./chrome";
 
 import { register } from "../index";
 import { TABLE } from "./surface";
+import { kindsOf } from "./chrome";
+import { rowsOf } from "./rows";
 
 // Replace the stub: same name, now carrying a surface.
 register({
   name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE,
   // Rows, so nothing to draw and nothing to arrange — only what to list.
   chrome: ["types"],
+  // A row's type is its definition's name, so the mark is a block's.
+  types: { icon: "role_leaf", of: (graph, layer) => kindsOf(rowsOf(graph, layer)) },
 });

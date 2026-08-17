@@ -168,6 +168,17 @@ describe("every registered view module", () => {
     it("answers what a right-click creates, even if that is nothing", () => {
       expect(mod.creates === null || typeof mod.creates === "string").toBe(true);
     });
+
+    // The rail builds every other group from the page's own state; `types` is
+    // the one it cannot, so declaring the group and answering it go together.
+    it("answers its own `types` group, and only declares one it can answer", () => {
+      const declared = (mod.chrome ?? []).includes("types");
+
+      expect(Boolean(mod.types)).toBe(declared);
+      if (!mod.types) return;
+      expect(mod.types.icon.length).toBeGreaterThan(0);
+      expect(Array.isArray(mod.types.of(EMPTY, null))).toBe(true);
+    });
   });
 
   it("keeps every module's icon distinct from the others", () => {

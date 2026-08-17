@@ -34,6 +34,30 @@ export function rank(name: string): number {
   return i < 0 ? ORDER.length : i;
 }
 
+/** An action as one line on an offered list.
+ *
+ *  An expanding one appears once per option of its required choice, wearing
+ *  the option as its label and carrying it already chosen — the options *are*
+ *  the entries, because a menu asks no questions and an action holding an
+ *  unanswerable one is withheld everywhere. Everything else appears once, as
+ *  itself. It is still the same registered action offered N times, so the
+ *  action set does not widen. */
+export type Offered = Action & { chose?: Args };
+
+/** The lines one action makes on an offered list. */
+export function entries(action: Action): Offered[] {
+  const arg = action.expand
+    ? action.args.find((a) => a.kind === "choice" && !a.optional)
+    : undefined;
+  if (arg?.kind !== "choice") return [action];
+
+  return arg.options.map((option) => ({
+    ...action,
+    label: option.charAt(0).toUpperCase() + option.slice(1),
+    chose: { [arg.name]: option },
+  }));
+}
+
 /** What a surface can hand to an action's arguments. */
 export type Supply = {
   /** Candidates, most relevant first. Each element argument takes its own. */
@@ -79,12 +103,14 @@ function candidate(
 /** Fill what the surface can supply. Arguments only it can know — a place on a
  *  border, the two ends of a relationship — arrive already filled as `seed`. */
 export function fill(
-  action: Action,
+  action: Offered,
   ctx: Context,
   supply: Supply,
   seed: Args = {},
 ): Args {
-  const args: Args = { ...seed };
+  // An expanded entry already answered its choice; the surface's own seed
+  // still wins, since it knows things the option does not.
+  const args: Args = { ...action.chose, ...seed };
   const taken = new Set(
     Object.values(seed).filter((v): v is string => typeof v === "string"),
   );
@@ -124,7 +150,7 @@ export function fill(
 /** Whether this action can run from what the surface has. Offering one that
  *  cannot is worse than leaving it out: it reads as available and refuses. */
 export function fillable(
-  action: Action,
+  action: Offered,
   ctx: Context,
   supply: Supply,
   seed: Args = {},

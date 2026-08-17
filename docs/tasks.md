@@ -98,7 +98,7 @@ a new user meets.
 
 **Not defects, recorded so they are not mistaken for them**: `workspace.begin`, `packagesOf`,
 `store.hold` and `store.probe` are exercised only by tests and have no production callers. `begin`
-is deliberately unwired pending `U.18`; the other three are reached through paths the suite covers.
+is wired now (U.18); the other three are reached through paths the suite covers.
 
 **`R.1`–`R.4` landed and were driven.** The filling layer is one module, `src/actions/fill.ts`, on
 two rules: an element argument takes a candidate **of its own**, and one carrying a `form` takes a
@@ -113,6 +113,44 @@ askable. Each surface keeps a `seed` of what it alone knows. Two things worth ke
   vocabulary pointed at nothing and `gather` silently skipped it, so the picker would still have
   been empty. Driving it could not see this, because the log looked right; the property test —
   *the vocabulary a new project starts with yields offerings* — is what failed.
+
+### The offered list grew a rule
+
+**`Y.4` closed its `◐`.** The rail builds the `types` group now, so table and matrix stopped
+drawing an inline cycle each. **`types` is the one group the page cannot build from its own state**
+— a table filters by the definition names on its rows, a matrix by the relationship marks in its
+cells — so `ViewModule` gained a `types` answer beside `chrome`: an icon and a function from the
+layer to the kinds on it. Declaring the group without answering it now fails the module conformance
+contract, so the two cannot drift. **A pick that is no longer on the layer reads as *everything***,
+which is why nothing has to be reset on navigation.
+
+**`R.5`–`R.8` and `R.10` / `R.11` landed and were driven.** Five things, one theme: the menu was
+thin because a rule was missing, not because entries had been forgotten.
+
+- **A required `choice` expands into one entry per option** (`R.5`). `expand` on the descriptor,
+  `entries()` in `actions/fill.ts`, and both menus call it — so the canvas and the explorer cannot
+  drift the way the three copied fill functions did. `mark`, `direct` and `reform` carry it;
+  `axis` and `arrange` deliberately do not, since the bar and the `.shape` cluster are their doors.
+  **The action set does not widen**: one registered action, offered N times with different args.
+- **`direct` and `reform` now have a home** (`R.6`) — the edge menu, proven end to end: *Directed*
+  turns a plain line into a directed one and *Back* moves the arrowhead to the other end.
+- **A directed relationship draws an arrowhead** (`R.7`). The form says there is a direction and
+  `dir` only refines which way, which is how `behavior.ts` has always read it; the canvas required
+  an explicit `dir` and so drew nothing for every edge the toolbar makes.
+- **`Scope.on` takes a list** (`G.9e`), so `retype` is offered on an edge. Widening a descriptor's
+  own field is not widening the closed action set.
+- **The explorer menu writes where it was clicked** (`R.10`). It built its context from the project
+  in context whatever the row, so a menu on B's row wrote A's log. It now builds from the row's own
+  project and brings that project into context, which is what the left-click path always did.
+- **An empty domain stem is not a repair** (`R.11`). Normalising `""` to `[]` carried nothing, so
+  every pre-migration project without a domain opened with a trouble notice it did not earn.
+- **actions.md gained a Does column** (`R.8`), copied from each descriptor's `about`. The
+  descriptor stays the source.
+
+**Watch, unresolved**: an edge menu now reads `Create Retype Refer Up Unlink Flip None Forward Back
+Both Line Directed Note Define Relax Vocabulary` — sixteen flat entries with the four directions and
+two forms unlabelled. It is legible because the options sit together in `ORDER`, but **`X.2`'s capped
+list is what makes it good**, and a large vocabulary will make it worse before then.
 
 ### The tray, the table and the strip
 
@@ -360,8 +398,8 @@ project relation wrappers. **Parked from review**: `terminal/Scores.tsx` unmount
 `addRelation` / `renameRelation` / `dropRelation` wrappers unused.*
 
 *Recently closed — **U.14** (◐, proven): explorer `＋` follows selection (project vs block);
-tooltip names which; project exists once named; `workspace.begin` + outcome test. **Gap**:
-`App.newProject` still does not call `workspace.begin` (App not owned). **Out of row**:
+tooltip names which; project exists once named; `workspace.begin` + outcome test. **Closed by U.18**:
+`App.newProject` goes through `workspace.begin`. **Out of row**:
 `NameField` layer-only refuse; G.9b project-entry half-true.*
 
 *Recently closed: **page mounts the rail or does not** (S6.3) — optional via `import.meta.glob`;
@@ -735,20 +773,25 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **F** Durability and files | `graph/store.ts`, `page/Files.tsx` | S4 for the workspace export |
 | **G** Canvas polish | `canvas/`, `page/Panel.tsx` | S2 for the menu only |
 | **H** Sample project | `samples/` | — |
-| **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | **done** — U.18 collects the App gaps |
+| **U** The shell | `src/styles.css`, `page/App.tsx`, `page/Files.tsx` | **done** — U.18 ◐ landed the wires; `tray.full` went to W.1 |
 | **V** The shell, second pass | `src/modules/icons/`, `src/styles.css`, `page/`, `modules/view/` | **done** — every row landed and is in landed.md |
 | **T** The suite | `tests/` | U for the page rows only |
 | **Z** Terminal | `terminal/` | built but thin — Z.9 trims; Z.5 last |
 
-**Startable today:** **G.9e** (`retype` scope), **A.7d** (`infer`'s result reachable), **T.5** (DOM
-harness), **U.18** (the two App gaps), **S7** (the `Files.tsx` seam). **Wave U is complete** —
-U.16 dropped, the arrangements were never in the bar to move out of. **G.9a / G.9b / G.9c landed**;
-**G.9d ◐**, which G.9e closes. **F.2** and **D.2** are done (proven).
+**Startable today:** **A.7d** (`infer`'s result reachable), **T.5** (DOM harness), **S7** (the
+`Files.tsx` seam). **`U.18` landed short**: U.7's `path` / `onUp` reach table and matrix and U.14's
+`newProject` goes through `workspace.begin`, but `tray.full` went to `W.1` — nothing asks for a full
+tray, so the rule would be dead CSS ahead of the door that reaches it. **Wave U is complete** — U.16 dropped, the
+arrangements were never in the bar to move out of. **G.9a–G.9c landed, and G.9e closes G.9d ◐**:
+`Scope.on` takes a list, `retype` is scoped `element|edge`, and the edge menu offers it (proven).
+**F.2** and **D.2** are done (proven).
 
 **Wave V is complete.** The shell has one icon vocabulary, two labelled settings groups at the top
 and the verbs at the bottom, a project that can be made and deleted from the tree, and a relation
-type picked before the drag rather than corrected after it. **Next is `R.5`–`R.8` and `R.10` /
-`R.11`**, then Wave W (the tray, the table, the heatmap) and Wave X (the shared capped list).
+type picked before the drag rather than corrected after it. **`R.5`–`R.8` and `R.10` / `R.11` have
+landed and were driven** — see *The offered list grew a rule* below. **Next is Wave W** (the tray,
+the table, the heatmap) and **Wave X** (the shared capped list), with `Y.4`'s `types` group, `Y.6`'s
+`svg.ts` remainder and `Y.7` still open in Y.
 
 **The terminal is no longer parked — Wave Z is done.** It ranks and completes whatever the
 surface offers. **Z.1–Z.8 landed** (embedding rank; overrule feedback; learned preference;
@@ -987,8 +1030,8 @@ group `current` / `modern` / `light` (`current` default); CSS variable palettes 
 sticky `mndflow.theme.v1`; chrome washes for shell overlays. **U.11 landed** (proven): readout
 toggle and three tabs gone; Contents covers relation kinds; theme and Chat `onAct` intact.
 **U.14 ◐** (proven): explorer `＋` follows selection (project vs block); tooltip names which;
-project exists once named; `workspace.begin` + outcome test. **Gap**: `App.newProject` still does
-not call `workspace.begin` (App not owned). **U.2 landed** (proven): one chrome glyph vocabulary —
+project exists once named; `workspace.begin` + outcome test. **Closed by U.18**: `App.newProject` goes
+through `workspace.begin`. **U.2 landed** (proven): one chrome glyph vocabulary —
 no mark means two things; `·` axis-none only; `⊏` interfaces-off; `∗` all-types; arrangements
 `▦⊙⇄⇅`; relax `∿`; explorer roles/bar. **Left out**: stream E icons; table/matrix still `·`
 types (outside owns). Words/groups were U.15. **U.15 landed** (proven): vertical subject groups
@@ -1093,8 +1136,9 @@ worth stating:
   release was not exercised in the browser drive.
 - **Adding a project is a workspace operation**, `begin` / `admit` with a naming-first log — the way
   unlock and fork are (S4.8), and not a registry action. No page action was added, so that
-  enumerated set is untouched. **`App.newProject` still does not call `begin`** — wire when App is
-  owned.
+  enumerated set is untouched. **`App.newProject` goes through `begin`** (U.18, proven): it names,
+  mints the id, writes the first step and admits in one call, instead of App keeping its own copy of
+  the name check beside an unwired door.
 - **Blocks keep a one-click path.** The explorer `＋` follows the selection exactly as the canvas
   right button does (G.9d, *the target decides*): a project or nothing selected makes a **project**,
   a block selected makes a **block** under it. This is **not** the hidden state U.8 rejects — the
@@ -1121,8 +1165,8 @@ draw, types and axis are **radio rows**; interfaces stay a two-state toggle. **A
   layer or project**: arrange / relax are reachable at the bottom right everywhere, project root
   included. **Correction from driving the app**: it was also said that `arrange`, being layer-scoped,
   already appeared in the frame's right-click list. It does not — a required `choice` argument
-  withholds it from every offered list (`R.5`). The bar is its only door, which is the wanted
-  outcome reached by accident.
+  withholds it from every offered list. `R.5` gave that rule a way out (`expand`), and **`arrange`
+  deliberately leaves it off**: the bar is its only door, which is the wanted outcome.
 
 **Contended owns, declared.** `terminal/` Wave Z is complete (U.5 / U.6 / G.9c landed with it);
 `modules/view/diagram/chrome.tsx` has **no queued owner** (U.2 and U.15 landed; U.16 dropped).

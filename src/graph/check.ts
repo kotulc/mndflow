@@ -167,7 +167,10 @@ function healVocabulary(it: Record<string, unknown>): boolean {
 
   it.vocabulary = next;
 
-  return true;
+  // An empty stem was already no packages, so the normalisation carried
+  // nothing. Reporting it gave every pre-migration project without a domain a
+  // repair notice for a repair it did not need.
+  return next.length > 0;
 }
 
 /** Every element and relationship inside a checkpoint's graph — and every

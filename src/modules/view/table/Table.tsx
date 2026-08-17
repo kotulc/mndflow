@@ -6,12 +6,12 @@
  *  which is the size the tray uses. Hosts the crumbs and types chrome the
  *  surface declared — parked beside the list since A.1. No frame, no camera. */
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Crumbs } from "../diagram/chrome";
 import { nameOf, titleOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";
-import { Types, kindsOf, trailOf } from "./chrome";
+import { trailOf } from "./chrome";
 import { rowsOf } from "./rows";
 import { Row } from "./Row";
 import { Icon } from "../../icons";
@@ -27,18 +27,20 @@ export type TableProps = {
   path?: string[];
   /** One layer up. Defaults to opening the open layer's parent. */
   onUp?: () => void;
+  /** Narrow the list to one type. The rail owns this control now (Y.4) — the
+   *  module says what the group lists (`ViewModule.types`) and stops drawing a
+   *  cycle of its own. Absent is everything. */
+  shown?: string | null;
 };
 
 /** Proxies (and blocks) of the open layer, drawn as rows in a tray. */
 export function Table({
-  graph, layer, picked, onPick, onOpen, path, onUp,
+  graph, layer, picked, onPick, onOpen, path, onUp, shown = null,
 }: TableProps) {
   const [expanded, setExpanded] = useState(true);
-  const [shown, setShown] = useState<string | null>(null);
 
   const trail = path ?? trailOf(graph, layer);
   const rows = rowsOf(graph, layer);
-  const kinds = useMemo(() => kindsOf(rows), [rows]);
   const listed = shown ? rows.filter((row) => row.type === shown) : rows;
 
   const climb = onUp ?? (() => {
@@ -60,7 +62,6 @@ export function Table({
         onOpen={onOpen}
         onUp={climb}
       />
-      <Types kinds={kinds} shown={shown} onShown={setShown} />
 
       {!expanded && <div style={{ flex: 1, minHeight: 0 }} aria-hidden />}
 

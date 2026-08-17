@@ -31,7 +31,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { offer } from "../actions/offer";
-import { fill, fillable, rank, type Supply } from "../actions/fill";
+import { entries, fill, fillable, rank, type Offered, type Supply } from "../actions/fill";
 import type { Action, Arg, Args, Context } from "../actions";
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
@@ -217,7 +217,7 @@ export function Files(props: Props) {
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
-    items: Action[];
+    items: Offered[];
     ctx: Context;
     of: string[];
   } | null>(null);
@@ -274,16 +274,19 @@ export function Files(props: Props) {
     onChoose([key]);
   }
 
-  /** Context the menu asks `offer` against — the project in context, with the
-   *  row as `picked` when it belongs there. Cross-project refs ride in `of`. */
+  /** Context the menu asks `offer` against — **the project the row lives in**,
+   *  with the row as `picked`. Cross-project refs ride in `of`.
+   *
+   *  It used to be the project in context whatever was clicked, so a menu on a
+   *  row in B offered actions that wrote A's log with nothing saying so. The
+   *  clicked project is brought into context alongside (`show_offer`), which is
+   *  what the left-click path has always done. */
   function menu_ctx(projectId: string, elementId: string): Context {
-    const here = projectId === context && elementId !== ROOT_ID;
-
     return {
-      graph,
-      view,
-      picked: here ? { kind: "node", id: elementId } : null,
-      project: context,
+      graph: graphs[projectId] ?? graph,
+      view: projectId === context ? view : null,
+      picked: elementId === ROOT_ID ? null : { kind: "node", id: elementId },
+      project: projectId,
       open: graphs,
     };
   }
@@ -292,15 +295,15 @@ export function Files(props: Props) {
    *  selection that lives in this project. The explorer prompts for a name,
    *  so a missing word never withholds an action. */
   function supply_of(ctx: Context, refs: string[]): Supply {
-    const ids = [ctx.picked?.id, ...local_ids(refs, context)]
+    const ids = [ctx.picked?.id, ...local_ids(refs, ctx.project ?? context)]
       .filter((id): id is string => Boolean(id));
-    return { ids: [...new Set(ids)], view, prompts: true };
+    return { ids: [...new Set(ids)], view: ctx.view, prompts: true };
   }
 
   /** What only the tree knows — a cross-project selection, and the graphs it
    *  spans, which `infer` reads and no argument declares. */
-  function seed_of(action: Action, refs: string[]): Args {
-    const locals = local_ids(refs, context);
+  function seed_of(action: Offered, ctx: Context, refs: string[]): Args {
+    const locals = local_ids(refs, ctx.project ?? context);
     if (action.name === "infer") return { of: refs, open: graphs };
     if (action.name === "group") return { members: locals };
     if (action.name === "relate" && locals.length >= 2) {
@@ -310,20 +313,21 @@ export function Files(props: Props) {
   }
 
   /** Whether the explorer can supply every required argument. */
-  function can_fill(action: Action, ctx: Context, refs: string[]): boolean {
+  function can_fill(action: Offered, ctx: Context, refs: string[]): boolean {
+    const home = ctx.project ?? context;
     if (action.name === "infer") return refs.length > 0;
-    if (action.name === "group") return local_ids(refs, context).length > 0;
-    if (action.name === "relate") return local_ids(refs, context).length >= 2;
+    if (action.name === "group") return local_ids(refs, home).length > 0;
+    if (action.name === "relate") return local_ids(refs, home).length >= 2;
     // Needs a place on the border, and the tree names no side or offset.
     if (action.name === "interface") return false;
 
-    return fillable(action, ctx, supply_of(ctx, refs), seed_of(action, refs));
+    return fillable(action, ctx, supply_of(ctx, refs), seed_of(action, ctx, refs));
   }
 
   /** Fill what the tree already knows; text left empty is prompted next. */
-  function fill_args(action: Action, ctx: Context, refs: string[]): Args {
-    if (action.name === "infer") return seed_of(action, refs);
-    return fill(action, ctx, supply_of(ctx, refs), seed_of(action, refs));
+  function fill_args(action: Offered, ctx: Context, refs: string[]): Args {
+    if (action.name === "infer") return seed_of(action, ctx, refs);
+    return fill(action, ctx, supply_of(ctx, refs), seed_of(action, ctx, refs));
   }
 
   /** Sort `offer` into the fixed order and open the menu at the pointer. */
@@ -339,9 +343,17 @@ export function Files(props: Props) {
     const refs = picked.has(key) && chosen.length ? chosen : [key];
     if (refs !== chosen) onChoose(refs);
 
+    // A menu on another project's row acts on that project, so bring it into
+    // context first — exactly what a left-click on the same row does. The
+    // picked item runs after this has landed, so `onAct` writes the right log.
+    if (projectId !== context) onOpen(projectId, elementId === ROOT_ID ? null : elementId);
+
     const ctx = menu_ctx(projectId, elementId);
+    // An expanding action takes one line per option (R.5) — the same rule the
+    // canvas menu follows, kept in `fill.ts` so neither surface owns it.
     const items = offer(ctx)
-      .filter((action) => can_fill(action, ctx, refs))
+      .flatMap(entries)
+      .filter((entry) => can_fill(entry, ctx, refs))
       .sort((a, b) => rank(a.name) - rank(b.name));
 
     setPrompt(null);
@@ -353,7 +365,7 @@ export function Files(props: Props) {
   }
 
   /** Run a menu pick, prompting when a required name is still missing. */
-  function take(action: Action, ctx: Context, refs: string[]) {
+  function take(action: Offered, ctx: Context, refs: string[]) {
     setMenu(null);
     const args = fill_args(action, ctx, refs);
     const missing = action.args.find(
@@ -1022,7 +1034,7 @@ export function Files(props: Props) {
           role="menu"
         >
           {menu.items.map((action) => (
-            <li key={action.name} role="none">
+            <li key={`${action.name}:${action.label}`} role="none">
               <button
                 type="button"
                 role="menuitem"

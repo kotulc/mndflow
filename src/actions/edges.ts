@@ -124,6 +124,8 @@ const mark: Action = {
   label: "Mark",
   about: "marks an interface as in, out, both, or clears the mark",
   scope: { on: "element", form: "interface" },
+  // The marks are the entries — a menu asks no questions (R.5).
+  expand: true,
   args: [
     { kind: "element", name: "id", optional: true },
     { kind: "choice", name: "flow", options: [...FLOWS] },
@@ -288,6 +290,8 @@ const direct: Action = {
   label: "Direct",
   about: "sets which way a relationship's arrows point",
   scope: { on: "edge" },
+  // The directions are the entries; this is the edge menu's only home (R.6).
+  expand: true,
   args: [
     { kind: "text", name: "id", optional: true },
     { kind: "choice", name: "dir", options: [...DIRS] },
@@ -315,6 +319,8 @@ const reform: Action = {
   label: "Reform",
   about: "sets whether a relationship is a plain line or a directed one",
   scope: { on: "edge" },
+  // The forms are the entries; this is the edge menu's only home (R.6).
+  expand: true,
   args: [
     { kind: "text", name: "id", optional: true },
     { kind: "choice", name: "form", options: [...FORMS] },

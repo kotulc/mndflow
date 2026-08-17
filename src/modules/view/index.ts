@@ -73,6 +73,16 @@ export type ViewModule = {
   /** Which control groups it offers the rail. Absent is none — a stub view
    *  still gets the page's own `views` and `project` groups. */
   chrome?: readonly ChromeGroup[];
+  /** What the `types` group lists, for a module that offers one. The rail can
+   *  build every other group from the page's own state, but not this: a table
+   *  filters by the definition names on its rows and a matrix by the
+   *  relationship marks in its cells, which are two vocabularies and only the
+   *  module knows either. The icon is the group's, since those two read
+   *  differently. */
+  types?: {
+    icon: string;
+    of: (graph: Graph, layer: string | null) => string[];
+  };
 };
 
 export type ViewConfig = {

@@ -6,11 +6,12 @@
 
 import { describe, expect, it } from "vitest";
 
-import { fill, fillable, rank, ORDER, type Supply } from "../../src/actions/fill";
+import { entries, fill, fillable, rank, ORDER, type Supply } from "../../src/actions/fill";
 import { lookup, type Action, type Context } from "../../src/actions/index";
 import "../../src/actions/groups";
 import "../../src/actions/elements";
 import "../../src/actions/fields";
+import "../../src/actions/edges";
 import { fold } from "../../src/graph/fold";
 import { element, step, type Mutation } from "../../src/graph/types";
 
@@ -165,5 +166,44 @@ describe("text is the surface's business", () => {
 describe("order", () => {
   it("ranks a known action ahead of one it does not list", () => {
     expect(rank(ORDER[0])).toBeLessThan(rank("nothing.by.that.name"));
+  });
+});
+
+
+describe("a required choice expands into one entry per option", () => {
+  it("makes one line per option, each carrying its own answer", () => {
+    const reform = act("reform");
+    const choice = reform.args.find((a) => a.kind === "choice" && !a.optional);
+    const lines = entries(reform);
+
+    expect(choice?.kind).toBe("choice");
+    expect(lines).toHaveLength(
+      choice?.kind === "choice" ? choice.options.length : 0,
+    );
+    expect(new Set(lines.map((line) => line.label)).size).toBe(lines.length);
+    for (const line of lines) expect(line.name).toBe(reform.name);
+  });
+
+  it("makes an expanded entry fillable where the action itself was not", () => {
+    const graph = scene();
+    const here = { ...at(graph), picked: { kind: "edge", id: "e" } } as Context;
+    const reform = act("reform");
+
+    expect(fillable(reform, here, supply(["e"], { prompts: true }))).toBe(false);
+    for (const line of entries(reform)) {
+      expect(fillable(line, here, supply(["e"], { prompts: true }))).toBe(true);
+    }
+  });
+
+  it("leaves an action that does not expand as one line", () => {
+    expect(entries(act("create"))).toHaveLength(1);
+  });
+
+  it("lets the surface's own seed outrank the option", () => {
+    const graph = scene();
+    const [first] = entries(act("reform"));
+    const args = fill(first, at(graph), supply([]), { form: "line" });
+
+    expect(args.form).toBe("line");
   });
 });

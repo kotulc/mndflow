@@ -6,11 +6,12 @@
 import { useEffect, useRef } from "react";
 
 import { offer } from "../../../actions/offer";
-import { fill, fillable, rank, type Supply } from "../../../actions/fill";
+import { entries, fill, fillable, rank, type Offered, type Supply } from "../../../actions/fill";
 import type { Action, Arg, Args, Context } from "../../../actions";
 import type { Side } from "../../../graph/types";
 
-export { ORDER, rank } from "../../../actions/fill";
+export { ORDER, entries, rank } from "../../../actions/fill";
+export type { Offered } from "../../../actions/fill";
 
 /** What a canvas right-click named — enough to fill arguments the gesture knows. */
 export type OfferTarget = {
@@ -42,7 +43,7 @@ function supply_of(ctx: Context, target: OfferTarget): Supply {
 /** What only the gesture knows — a place on a border, the ends of a drag, the
  *  members of a marquee. Named per action, so nothing leaks onto one that
  *  never asked for it. */
-function seed_of(action: Action, ctx: Context, target: OfferTarget): Args {
+function seed_of(action: Offered, ctx: Context, target: OfferTarget): Args {
   const args: Args = {};
   const members = target.members ?? [];
   const focus = ctx.picked?.id
@@ -77,7 +78,7 @@ function seed_of(action: Action, ctx: Context, target: OfferTarget): Args {
 }
 
 /** Whether the canvas can supply every required argument. */
-export function can_fill(action: Action, ctx: Context, target: OfferTarget): boolean {
+export function can_fill(action: Offered, ctx: Context, target: OfferTarget): boolean {
   if (action.name === "group") {
     return (target.members?.length ?? 0) > 0
       || Boolean(ctx.picked?.kind === "node" && ctx.picked.id);
@@ -92,7 +93,7 @@ export function can_fill(action: Action, ctx: Context, target: OfferTarget): boo
 }
 
 /** Fill what the gesture and selection already know; text left empty is prompted. */
-export function fill_args(action: Action, ctx: Context, target: OfferTarget): Args {
+export function fill_args(action: Offered, ctx: Context, target: OfferTarget): Args {
   const args = fill(action, ctx, supply_of(ctx, target), seed_of(action, ctx, target));
 
   if (action.name === "unlink" || action.name === "flip"
@@ -103,10 +104,13 @@ export function fill_args(action: Action, ctx: Context, target: OfferTarget): Ar
   return args;
 }
 
-/** Sort `offer` into the fixed order for this target. */
-export function offered_for(ctx: Context, target: OfferTarget): Action[] {
+/** Sort `offer` into the fixed order for this target, an expanding action
+ *  taking one line per option. Sorting is stable, so an action's options keep
+ *  the order the descriptor listed them in. */
+export function offered_for(ctx: Context, target: OfferTarget): Offered[] {
   return offer(ctx)
-    .filter((action) => can_fill(action, ctx, target))
+    .flatMap(entries)
+    .filter((entry) => can_fill(entry, ctx, target))
     .sort((a, b) => rank(a.name) - rank(b.name));
 }
 
@@ -116,8 +120,8 @@ export function OfferMenu({
 }: {
   x: number;
   y: number;
-  items: Action[];
-  onTake: (action: Action) => void;
+  items: Offered[];
+  onTake: (action: Offered) => void;
   onDismiss: () => void;
 }) {
   const box = useRef<HTMLUListElement>(null);
@@ -142,7 +146,7 @@ export function OfferMenu({
       role="menu"
     >
       {items.map((action) => (
-        <li key={action.name} role="none">
+        <li key={`${action.name}:${action.label}`} role="none">
           <button
             type="button"
             role="menuitem"

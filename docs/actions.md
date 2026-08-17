@@ -30,19 +30,21 @@ selected when somebody types. `layer` means the open layer is enough; `element` 
 selected; a form after it means only that form will do.
 
 **Each also carries a sentence saying what it does**, which is what a typed word is matched
-against. Names and labels are too short to score. Not tabled here — it belongs beside the code.
+against — names and labels are too short to score. That sentence is the `about` on the descriptor,
+and it is the **Does** column below, copied. **The descriptor stays the source**: change it there,
+and bring the column with it.
 
 ### Elements
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `create` | layer | label, parent?, spot?, groups? | `add_element` + `join_group`… | `create`, `createAt` |
-| `delete` | element | id | `delete_element` + partings | `remove` |
-| `rename` | element | id, label | `update_element{label}` | `rename`, `renameProject` |
-| `retype` | element, edge | id, type | `update_element{type}` / `update_edge` | `retype`, `relation` |
-| `describe` | element | id, body | `set_body` | `write` |
-| `move` | element | id, parent, spot? | `move_element` + shed (+ `place_element`) | `move`, `nest`, `promote`, `lift` |
-| `refer` | layer | target, spot? | `add_element{proxy}` | `refer` |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `create` | makes a new block in a layer, where you pointed if you did | layer | label, parent?, spot?, groups? | `add_element` + `join_group`… | `create`, `createAt` |
+| `delete` | removes an element and everything it holds | element | id | `delete_element` + partings | `remove` |
+| `rename` | changes what an element is called | element | id, label | `update_element{label}` | `rename`, `renameProject` |
+| `retype` | sets what kind of thing an element or a relationship is | element, edge | id, type | `update_element{type}` / `update_edge` | `retype`, `relation` |
+| `describe` | writes the body text of an element | element | id, body | `set_body` | `write` |
+| `move` | puts an element under a different parent, and places it if told where | element | id, parent, spot? | `move_element` + shed (+ `place_element`) | `move`, `nest`, `promote`, `lift` |
+| `refer` | places a proxy of an element into this layer | layer | target, spot? | `add_element{proxy}` | `refer` |
 
 **`refer`'s target is `{ project, element }`** (a same-project target may still be a bare path).
 A proxy of another project's **root** refers to that whole project, which is what the workspace's
@@ -57,21 +59,21 @@ layer above, the open layer, or a named one.
 three consequences: no step is written, there is nothing to undo, and **the terminal never offers
 these**. The explorer and the pointer navigate.
 
-| | Scope | Arguments | Effect | Replaces |
-|---|---|---|---|---|
-| `open` | element | id | `open` | `open` |
-| `up` | layer | — | `open` | `up` |
-| `reveal` | element, proxy | id | `open` + `focus` | `reveal` |
+| | Does | Scope | Arguments | Effect | Replaces |
+|---|---|---|---|---|---|
+| `open` | opens an element as the layer being drawn | element | id | `open` | `open` |
+| `up` | leaves the open layer for the one containing it | layer | — | `open` | `up` |
+| `reveal` | opens the layer an element lives in and selects it there | element, proxy | id | `open` + `focus` | `reveal` |
 
 **No other action returns `open` or `focus` when a text interface reached it.** Typing three names
 makes three siblings, because creating one selected nothing.
 
 ### Interfaces
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `interface` | element | owner, side?, at?, edge?, end? | `add_element` (+ `set_end`) | `addPort`, `promotePort` |
-| `mark` | interface | id, flow | `mark_port` | `markPort` |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `interface` | puts an interface on a frame edge, or pins a relationship's seat as one | element | owner, side?, at?, edge?, end? | `add_element` (+ `set_end`) | `addPort`, `promotePort` |
+| `mark` | marks an interface as in, out, both, or clears the mark | interface | id, flow | `mark_port` | `markPort` |
 
 **`interface` absorbs promotion**: naming a relationship's seat is making an interface and telling
 that end about it, which is the same action with two more arguments. **Which definitions take no
@@ -80,13 +82,13 @@ action — the `figure` special case went with the form (SC.5).
 
 ### Relationships
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `relate` | layer | from, to, form?, type?, ports?, sides? | `link_elements` (+ `set_def` for a name nothing declares) | `link`, `wire` |
-| `unlink` | edge | id | `delete_edge` + spare interfaces | `unlink` |
-| `flip` | edge | id | `flip_edge` | `flip` |
-| `direct` | edge | id, dir | `set_dir` | `setDir` |
-| `reform` | edge | id, form | `set_form` | `setForm` |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `relate` | draws a relationship from one element to another | layer | from, to, form?, type?, ports?, sides? | `link_elements` (+ `set_def` for a name nothing declares) | `link`, `wire` |
+| `unlink` | removes a relationship and any spare interfaces it left behind | edge | id | `delete_edge` + spare interfaces | `unlink` |
+| `flip` | turns a relationship around | edge | id | `flip_edge` | `flip` |
+| `direct` | sets which way a relationship's arrows point | edge | id, dir | `set_dir` | `setDir` |
+| `reform` | sets whether a relationship is a plain line or a directed one | edge | id, form | `set_form` | `setForm` |
 
 **`relate`'s `type` says what kind it is** (V.17b), so one gesture does not cost `relate` then
 `retype` — two log steps and two undos. **A path (`pkg_x/def_y`) or a known id is used as it
@@ -97,25 +99,25 @@ toolbar's plain/directed setting only applies to an untyped drag.
 
 ### Groups and notes
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `group` | layer | members, into? | `add_element{group}` + `join_group`… | `group`, `joinGroup` |
-| `leave` | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
-| `dissolve` | element `group` | id | `delete_element` | canvas offer (G.9d ◐); not in explorer |
-| `note` | layer | text, spot?, size? | `add_element{note}` | `note` |
-| `tie` | element `note` | note, holder | `link_elements` / `delete_edge` — tie-ness is derived | `tie` |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `group` | draw a boundary round these, or add them to a group that is already there | layer | members, into? | `add_element{group}` + `join_group`… | `group`, `joinGroup` |
+| `leave` | take this out of a group it belongs to | element | id, group | `leave_group`, or `delete_element` if it empties | `leaveGroup` |
+| `dissolve` | take the boundary away and leave its members where they are | element `group` | id | `delete_element` | canvas offer (G.9d ◐); not in explorer |
+| `note` | put a note here saying what you typed | layer | text, spot?, size? | `add_element{note}` | `note` |
+| `tie` | tie this note to what it describes, or untie it if it already is | element `note` | note, holder | `link_elements` / `delete_edge` — tie-ness is derived | `tie` |
 
 **`group` absorbs joining**: with `into`, it adds to that group; without, it makes one. The panel
 `+ group` select is the UI path into an existing group.
 
 ### Fields and definitions
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `field` | element, edge | holder, name, patch? | `set_field` (+ `drop_field` on rename) | `addField`, `updateField` |
-| `unfield` | element, edge | holder, name | `drop_field` | `dropField` |
-| `define` | project | id?, name, form?, patch | `set_def` | `addRelation`, `renameRelation` |
-| `undefine` | project | id | `drop_def` | `dropRelation` |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `field` | set a named value on this, or rename one it already carries | element, edge | holder, name, patch? | `set_field` (+ `drop_field` on rename) | `addField`, `updateField` |
+| `unfield` | drop a named value from this | element, edge | holder, name | `drop_field` | `dropField` |
+| `define` | name a new type, or rename one the project already has | project | id?, name, form?, patch | `set_def` | `addRelation`, `renameRelation` |
+| `undefine` | drop a type from the project, leaving anything that used it alone | project | id | `drop_def` | `dropRelation` |
 
 ### Behavior *(A.7a)*
 
@@ -123,9 +125,9 @@ toolbar's plain/directed setting only applies to an untyped drag.
 about drawing. Nothing else about behaviour needs an action — an activity is blocks and
 relationships, and the ordinary ones make those.
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `infer` | selection | of[], into? | `add_element{block, proxy}`… + `link_elements`… + writes home (`Effect.home`) | **built (A.7a)** |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `infer` | turns a selection into one behavior block — activity, or state when the selection is actions | selection | of[], into? | `add_element{block, proxy}`… + `link_elements`… + writes home (`Effect.home`) | **built (A.7a)** |
 
 **`infer` takes any cross-section** — blocks, whole branches, entire projects, across as many
 projects as the selection reaches. `into` names the behavior project the result lands in; without
@@ -155,12 +157,12 @@ and is absorbed by `move`.
 
 ### The layer and the project
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `axis` | layer | layer, axis | `set_axis` | `setAxis` |
-| `arrange` | layer | layer, shape | `place_element`… | `arrange` |
-| `relax` | layer | layer | `relax_layer` | ∿ on the canvas (G.2 / U.2) |
-| `vocabulary` | project | packages | `set_vocabulary` | the entry turn |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `axis` | which way the layer reads | layer | layer, axis | `set_axis` | `setAxis` |
+| `arrange` | lay the layer out again | layer | layer, shape | `place_element`… | `arrange` |
+| `relax` | hand the layer back to automatic placement | layer | layer | `relax_layer` | ∿ on the canvas (G.2 / U.2) |
+| `vocabulary` | which packages this project draws definitions from | project | packages | `set_vocabulary` | the entry turn |
 
 **`vocabulary` is the package import list** (D.2): argument is the package ids, in order; op writes
 `set_vocabulary`. A legacy subject-matter stem still heals into that list.
@@ -189,12 +191,12 @@ root. It has no actions of its own.
 Four. Positional, unsayable, gesture-only — never named, ranked or listed. **A diagram declares which
 of these it accepts**, and may accept none.
 
-| | Scope | Arguments | Writes | Replaces |
-|---|---|---|---|---|
-| `place` | element | moved[], membership? | `place_element`… + `join_group`/`leave_group` | `place`, `placeMany`, `placeNote` |
-| `size` | note | id, w, h | `size_element` | note SE handle (G.3) |
-| `seat` | interface | id, side, at | `set_port` | `setPort` |
-| `wall` | edge | id, end, side | `set_side` | `setSide` |
+| | Does | Scope | Arguments | Writes | Replaces |
+|---|---|---|---|---|---|
+| `place` | where something came to rest | element | moved[], membership? | `place_element`… + `join_group`/`leave_group` | `place`, `placeMany`, `placeNote` |
+| `size` | how big a note was asked to be | note | id, w, h | `size_element` | note SE handle (G.3) |
+| `seat` | where an interface sits on its edge | interface | id, side, at | `set_port` | `setPort` |
+| `wall` | which wall a relationship leaves by | edge | id, end, side | `set_side` | `setSide` |
 
 
 ## Gestures
@@ -235,8 +237,8 @@ is nothing, and shows what a thing can do where there is something. Right-click 
 creates. Right-click on a card, a frame, an edge or a selection opens the list in fixed order via
 `App` `onAct={project.go}` into Canvas, so `interface` and `group` become entries rather than
 immediate acts. Name and perch are not immediate. **Right drags are unchanged** — the distance
-threshold in `gestures.ts` already tells a drag from a click. **Gap**: edge→`retype` waits Scope
-naming both `element` and `edge`.
+threshold in `gestures.ts` already tells a drag from a click. `Scope.on` takes a list, so edge→`retype` is
+offered (G.9e).
 
 ### Left button
 
@@ -262,7 +264,7 @@ naming both `element` and `edge`.
 |---|---|---|
 | click | empty | `create` — asks for the name first. **Unchanged by G.9** |
 | click | card, frame edge | offered list for that target, fixed order (G.9d ◐); `interface` is an entry |
-| click | edge | offered list for that edge, fixed order (G.9d ◐). **Gap**: `retype` waits Scope naming `edge` |
+| click | edge | offered list for that edge, fixed order (G.9d ◐); `retype` is an entry (G.9e) |
 | click | a selection of several | offered list for the selection, fixed order (G.9d ◐); `group` is an entry |
 | click | a name, an interface | offered list — not immediate rename / perch (G.9d ◐) |
 | drag | card/frame → card/frame | `relate` |

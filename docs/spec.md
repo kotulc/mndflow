@@ -100,7 +100,10 @@ the project.
   and how it draws.
 - **`form` is `line` (the default) or `directed`, and that is the whole set.** It says what the two
   ends *are*: a line's are plain seats the layer places, and a directed one's take the sides the
-  layer's axis gives them. `dir` still says which way the arrows point.
+  layer's axis gives them. **The form says there is a direction; `dir` only refines which way** —
+  a `directed` relationship left at `dir: "none"` reads source → target and draws an arrowhead
+  (R.7, proven), which is how every one the toolbar draws is stored. Wanting no arrows is `reform`
+  back to a plain line.
 - **Anything joining two elements is a relationship.** One may draw as something other than a
   routed line — a tie is a leader, taking no seats and never routed by hand — but that is a rule
   about drawing, not a second way to join things. One mechanism, one cascade when an end is
@@ -224,8 +227,9 @@ the project.
   - **Style is drawn from** via `lookOf` on the diagram; **table** mounts when `view.module` is
     `table` — rows pick/open, proxy open withheld (A.1, proven); **matrix** mounts when named
     (A.2, suite). Both are **Contents-modelled panel shells** (~⅓ stage; expand fills stage) with
-    crumbs + types cycle (U.7 ◐ — App does not yet wire `path`/`onUp`; expand does not cover
-    Contents). **Activity** mounts when `view.module` is `activity` — dimmed derived labels and
+    crumbs. **App wires `path` / `onUp`** (U.18, proven), so the crumb reads the trail the page
+    already holds, and **the types filter is the rail's group** (Y.4, proven) rather than a cycle
+    each stage draws. Expand still does not cover Contents (`W.1`). **Activity** mounts when `view.module` is `activity` — dimmed derived labels and
     inferred order (A.7b, proven); **state** and **sequence** mount the same way (A.8 / A.9,
     proven).
   - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
@@ -399,7 +403,9 @@ the project.
   is folded. What can be repaired is repaired; what cannot is dropped rather than folded into a
   broken graph.
 - **The user is told, once**: `repaired 2, could not read 1`, in the strip at the top of the
-  canvas. Dismissable, and a clean log says nothing.
+  canvas. Dismissable, and a clean log says nothing. **A normalisation that carried nothing is not
+  a repair** — an empty domain stem was already no packages, so a pre-migration project without one
+  opens silent (R.11, proven). A false alarm is what teaches people to ignore the real ones.
 - **A panel that cannot draw itself says so and stays out of the way**, rather than taking the
   window with it. The log is unharmed, so closing the panel and carrying on is the way out.
 - The log is kept in the browser. **If it stops fitting, the header says so** — `⚠ not being
@@ -421,7 +427,7 @@ the project.
     key of its own.     `admit` places a proxy of another project's root and appends that id; `folder`
     mints an ordinary block for filing; proxying the workspace itself is refused. **`begin`
     names a project into the workspace** — required, unique, then a log whose first step is that
-    naming; never an untitled blank (U.14 ◐). Explorer listing and context switch are live (S4.5).
+    naming; never an untitled blank. **`App.newProject` goes through it** (U.18, proven). Explorer listing and context switch are live (S4.5).
     Workspace `⤓` and project `↧` export/import at schema `1.2` (S4.6).
   - **Clearing the session starts a new workspace** (U.13, proven): `store.clearSession()` drops
     every keyed project log, the workspace list, the session pointer and the live file handle;
@@ -456,7 +462,9 @@ registry, read by every input method: gestures, the contents tray, and later the
   are too short to score against.
 - **Scope is the same question a gesture asks** — what is under the pointer, selected in the tray,
   or selected when somebody types. It names a form where that matters: `dissolve` applies to a
-  group, `tie` to a note, `mark` to an interface.
+  group, `tie` to a note, `mark` to an interface. **`on` takes a list** where one action answers for
+  more than one thing — `retype` for an element and a relationship alike (G.9e, proven). Widening a
+  descriptor's own field is not widening the closed action set.
 - **Arguments are typed**: text, element, choice, number, or a canvas position. An input method
   offers whatever it can fill, so eligibility is derived rather than declared.
 - **Eligibility is not order.** `describe` and `rename` take the same arguments; what separates them
@@ -481,6 +489,13 @@ registry, read by every input method: gestures, the contents tray, and later the
   context when idle (Z.3). **Explorer, rail and canvas draw from it.**
   Adjustments stay off the set through `when`; `check` is not consulted here, because it needs
   arguments nobody has filled.
+- **A required `choice` expands into one entry per option** (R.5, proven). A menu asks no
+  questions, so an action holding one was withheld everywhere; `expand` on the descriptor turns the
+  options into the entries — `mark`, `direct` and `reform` carry it, `axis` and `arrange` do not
+  (they have doors of their own). One rule, in `actions/fill.ts`'s `entries`, so the canvas menu and
+  the explorer menu cannot disagree. **The action set does not widen**: one registered action,
+  offered N times with different arguments. **`direct` and `reform` reach an edge this way** and
+  had no home at all before it (R.6, proven).
 - **What does not apply is not shown.** Greying out is for a fixed row of controls whose positions
   are worth learning, like the header's; a list built from the selection has no positions to keep,
   so an entry that cannot run is only noise.
@@ -526,11 +541,13 @@ hosts. **Which module mounts** follows the sticky pick when it fits the project 
 layer's `view.module` (U.8, proven). **Table** — rows pick/open; proxy open withheld (A.1,
 proven). **Matrix** when named (A.2, suite). **Both open as Contents-modelled panel shells**
 (**filling the stage by default** since V.19 — the tab shrinks them back to ~⅓) and host **A.1's
-chrome** — crumbs plus a types cycle (definition names on table; relationship marks on matrix).
-Optional `path` / `onUp`; when the page omits them, trail and climb derive from the graph (U.7 ◐).
-Contents and Panel are untouched; expand does not yet cover or replace Contents, App does not wire
-`path`/`onUp`, and `styles.css` has no `tray.full` — so a filled table still draws a `contents` bar
-at its foot listing the same layer (`W.1a`). **Activity** — derived labels and inferred order draw dimmed
+crumbs**. **The types filter went to the rail** (Y.4, proven): each declares a `types` answer —
+definition names on the table, relationship marks on the matrix — and neither draws a cycle of its
+own.
+**App wires `path` / `onUp`** (U.18, proven); the fallback — deriving trail and climb from the
+graph — stays for a caller that omits them. Contents and Panel are untouched; expand does not yet
+cover or replace Contents and `styles.css` has no `tray.full`, so a filled table still draws a
+`contents` bar at its foot listing the same layer (`W.1` / `W.1a`). **Activity** — derived labels and inferred order draw dimmed
 (A.7b, proven). **State** — empty infer offer; Reading A/B; DIM (A.8, proven). **Sequence** —
 columns; directed then axis; DIM (A.9, proven). **Parked** on activity: RF framed host; gestures
 on the activity plane; activity-final double ring. The rest of this section is still the target
@@ -844,7 +861,9 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   every name takes.
 - **Right-click on a row** opens the offered-action list for the selection, in fixed order
   (`offer(ctx)` → `project.go`; G.9b, proven). That is `infer`'s trigger when blocks or projects
-  are chosen.
+  are chosen. **The menu is built against the project the row lives in, and brings it into
+  context** (R.10, proven) — the same switch a left-click makes. It read the project in context
+  whatever was clicked before, so a menu on B's row wrote A's log with nothing saying so.
 - Right-clicking the clear space below the rows (or an empty tree) makes a block **at the root**,
   wherever you are scoped: the rows are what layers look like here, so the space around all of
   them is the root's own background.
@@ -1274,6 +1293,12 @@ about like any other, and the drag sticks.
   sits on the drawing. **A view module declares which groups it offers** (`ViewModule.chrome`) and
   the column draws them in `CHROME_ORDER` — a matrix has no interfaces toggle because it declares
   none, never because one was greyed out.
+- **`types` is the one group the page cannot build alone** (Y.4, proven), because a table filters by
+  the definition names on its rows and a matrix by the relationship marks in its cells. So a module
+  declaring it also answers it — `ViewModule.types` is an icon and a function from the layer to the
+  kinds on it. **Nothing picked is everything**, and picking the lit one again is how you get back;
+  a pick that is no longer on the layer reads as everything rather than as a filter hiding all of
+  it, so navigation resets nothing. An empty group is dropped, so an untyped layer shows none.
 - **The order is the overflow plan**: views, flow, arrange, interfaces, lines, relations, project.
   **Relations is last** because it is the only group that grows with the vocabulary, so it is the
   one to push off the bottom. **The column scrolls** — twenty-odd controls against a window's height
