@@ -113,12 +113,99 @@ askable. Each surface keeps a `seed` of what it alone knows. Two things worth ke
   been empty. Driving it could not see this, because the log looked right; the property test —
   *the vocabulary a new project starts with yields offerings* — is what failed.
 
-**`R.5` is confirmed, not plausible, and needs Clay.** `mark`, `direct`, `reform`, `axis` and
-`arrange` all carry a **required `choice`** (`flow`, `dir`, `form`, `axis`, `shape`). A choice is a
-question no menu asks, so all five are withheld from every offered list while holding reserved slots
-in `ORDER`. Driving it: a card's menu offers *Relax* but never *Mark* or *Arrange*. What a menu
-should do with a choice — an entry per option, a prompt, or dropping them from `ORDER` and leaving
-them to gestures and the bar — is a design decision, and it is on the row in plan.md.
+### The tray, the table and the strip
+
+**Contents already *is* the table view**, stuck at one size. Not a thing to move: U.7 already said
+*both open partially, as the panel does now, and expand to the full canvas*, and landed `◐` on
+exactly that — expand does not cover or replace Contents. The shipped `table` module's own listing is
+the duplicate.
+
+**The rule the rest falls out of: the tray shows the contents of whatever is in focus** — a block its
+fields, a group its members, a note its text, a relationship its ends and what it could be. That is
+why the capped type list stopped looking like a relationship special case: it is the *what could this
+be* half of the same tray.
+
+**The two sizes take different inputs.** **Full** — the `table` view on the stage — shows the layer
+and everything in it, and **the selection does not narrow it**. **Partial** — the tray at the foot —
+is that same table **scoped to what is in focus**. With nothing in focus the two agree, so *expand*
+is only a size. Taking different inputs is what keeps this clear of the hidden state U.8 rejected:
+the two never disagree about one input. A full stage given over to one note's text was the tell that
+focus should not drive both.
+
+**Matrix should be a heatmap** — the one thing a grid gives that a listing does not. **Hue is the
+relationship kind, opacity is the count**: transparent at zero, grading up, so both dimensions read
+at once without a mode switch. **The hue is the definition's existing `style`** (`styleOf` /
+`lookOf`, `styles/sysml.ts`) — never a new matrix palette, so the matrix and the diagram cannot
+disagree and there is no second colour vocabulary to keep in step. A cell holding two kinds draws as
+**bands**, degrading to a solid cell in the common single-kind case.
+
+**U.7 modelled table and matrix on Contents and deliberately did not delete it**, so this
+duplication was known and accepted at the time; what changed is that the duplication turned out to
+be the wrong way round.
+
+### Listing the types in scope
+
+**Three surfaces ask the same question** — the edge context menu, the selection strip and the canvas
+*relation types* group — and each grows with the vocabulary. **One rule**: top three ranked by use,
+a *More…* that expands in place, scrolling past a height, and no submenus. The relation types group
+is the exception at three and no expansion, being a setting inline beside the crumbs rather than a
+list of things to act on.
+
+**The ranking already exists and is in the wrong place.** `Z.3` computes shape-weighted learned
+preference in `terminal/rank.ts` and `terminal/feedback.ts` — measured *use*, which is what "the
+three most common" should mean — but `terminal/` is **optional** (S6.3: delete it and the app still
+runs). A menu ranking by preference therefore cannot live downstream of the rail, which is the same
+argument that put `offer()` in `actions/` rather than `terminal/` (G.9a). Moving it also gives Z.3 a
+second consumer; until now it ranked rail chips alone. **Cold start** falls back to vocabulary import
+order, which Contents already uses for type offerings (D.2), so a fresh project needs no new rule.
+
+**A typed name is a type.** The strip carries a text field beside the capped list: type a name and
+the selection takes it. **Already built** — `fold.defineNamed` mints a definition for a bare name
+under a derived id and describes itself as *the bridge from free text to a real definition*, and the
+suite holds it. **Match before minting**: a free-text mint derives its id from the name while a
+deliberate definition carries its own, so typing a name already in scope would produce a twin — the
+duplicate-name case SC.4 needed disambiguation for.
+
+**The strip re-defines the selected thing, never its type.** Name, which type it is, field values —
+all instance-level. What fields a *type* carries and how it presents stays behind deselect on the
+types chip (`W.3`). Splitting it the other way rebuilds, somewhere new, the duplication U.11 deleted
+`Relations.tsx` to remove.
+
+### Where each action lives
+
+**A required `choice` is a question no menu asks**, so five actions were withheld from every offered
+list while holding reserved `ORDER` slots — `mark` (`flow`), `direct` (`dir`), `reform` (`form`),
+`axis` (`axis`), `arrange` (`shape`). Driving it: a card's menu offers *Relax* but never *Mark* or
+*Arrange*. Asking where each of the five actually lives turned up more than the original defect.
+
+| | Home | |
+|---|---|---|
+| `axis` | canvas bar, *flow* group | fine |
+| `arrange` | `.shape` cluster, bottom right | fine |
+| `mark` | Panel and Contents, `onMarkPort` — an interface's flow | fine |
+| `direct` | — | **homeless** |
+| `reform` | — | **homeless** |
+
+**`direct` and `reform` have no home at all.** The canvas relation group is `onForm`, a **draft**
+setting for what the *next* right-drag draws — a display preference beside `showPorts` and `angular`,
+recorded as such under S2.6. It never touches an existing edge. `project.direct` / `setDir` /
+`reform` exist and nothing calls them, so **once a relationship is drawn, its direction and its form
+cannot be changed anywhere**.
+
+**Settled — the options become the entries.** Right-clicking a relationship lists the relation types
+and forms themselves rather than an action that then asks which. No submenu, and no open text prompt.
+The list is tailored to the target because the options are. **It does not widen the closed action
+set**: one registered action offered N times with different args, which is the wording U.16 used
+before it was dropped. The flag goes on the **descriptor** (`expand`), keeping one rule instead of
+the per-surface special-casing R.2 removed; `arrange` and `axis` leave it off because they have
+homes. **Watch**: an edge menu then lists every relation type in the project.
+
+**Two things fell out of the same question.** A **directed relationship draws no arrowhead**, so
+direction is invisible even where the graph holds it — `direct` being unreachable is what hid it,
+and arrowheads are the engine's visual language rather than chrome, so it is not Wave V's. And
+**actions.md never says what an action does** — name, scope, arguments, mutations and what each
+replaced, but no description, which is why `reform` had to be read out of the source. The text
+already exists as `about`, required on all 29 descriptors.
 
 
 ## Open questions
@@ -152,6 +239,20 @@ four ways — single and double click across projects, and a same-project descen
 
 - **What comes out of Wave Z?** The `◆` on `Z.9` — the rows landed against a superseded spec, so
   answering it means deleting working, proven code. Nothing is touched until it is answered.
+
+*Recently closed: **vocabulary editing needs no new door** (`W.3`). Definitions are not the contents
+of anything, but the **layer listing already carries the types chip** (E.1), and the layer listing is
+what the tray shows when nothing is in focus. Deselect and it is one chip away. The tray sits at the
+foot in every view, so this holds from a block diagram, a matrix or an activity alike — which keeps
+U.11's deletion of `Relations.tsx` honest. **One gesture does both jobs**: click empty space to
+deselect, on the canvas and in the explorer, reaching a new project there (`V.14`) and the vocabulary
+here. Field values were never in question — they are an element's contents and stay in the tray.*
+
+**One wart, accepted rather than papered over.** Under *the tray shows the contents of what is in
+focus*, a layer's contents are its elements — **definitions are the project's vocabulary, not the
+layer's contents**, so `types` sits in the chip row as *show the vocabulary instead* rather than as a
+filter over what the layer holds. It is a small category slip, it costs nothing, and fixing it would
+buy a second surface nobody asked for.
 
 *Recently closed: **an untouched project stays in the workspace.** It is a reference — a snapshot
 taken before the user modifies it — and **the workspace is the user's to manage**: adding and
