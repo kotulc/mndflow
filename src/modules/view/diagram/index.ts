@@ -8,7 +8,7 @@
 export { DIAGRAM, CHROME, type Surface, type ChromeKind, type Surround, type Viewport } from "./surface";
 export { framed, MARGIN, BAND, LEAST } from "./surround";
 export { floorOf, restOf, extentOf, type Camera } from "./viewport";
-export { Crumbs, Toggles, Arrangements } from "./chrome";
+export { Crumbs } from "./chrome";
 export { Ask, type Act, type Prompt, type Said } from "./ask";
 export {
   MAP, ADJUSTMENTS, takes, reaches,

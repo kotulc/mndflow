@@ -24,4 +24,6 @@ import { TABLE } from "./surface";
 // Replace the stub: same name, now carrying a surface.
 register({
   name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE,
+  // Rows, so nothing to draw and nothing to arrange — only what to list.
+  chrome: ["types"],
 });

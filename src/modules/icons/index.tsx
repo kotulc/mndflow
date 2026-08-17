@@ -41,7 +41,9 @@ const PATHS = {
   // What a row is, in the tree. One meaning each.
   role_leaf: "M7 7h10v10H7z",
   role_interface: "M7.5 7.5h9v9h-9z",
-  role_container: "M4 5.5h16v13H4zM4 10.5h16",
+  // A container is the leaf's square, larger and filled — it holds things, so
+  // it is solid. It was a box with a rule across it, which read as a table.
+  role_container: "M6 6h12v12H6z",
   project: "M3.5 5h17v14h-17zM7.5 9h9v6h-9z",
   // A behavior project holds actions and states rather than parts, so its
   // mark is the same frame around a run of steps instead of a block.
@@ -132,8 +134,8 @@ export function names(): IconName[] {
 }
 
 /** One icon. `solid` fills it instead of stroking — for the marks that are
- *  solid by nature, like a leaf row, where an outline would read as an empty
- *  container and mean the wrong thing. */
+ *  solid by nature, like a container row, where the fill is what says it holds
+ *  something and an outline would read as the empty leaf beside it. */
 export function Icon({
   name, size = 16, solid = false, className,
 }: {

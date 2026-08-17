@@ -52,6 +52,7 @@
   --l-raised: 0.255;
   --l-divide: 0.245;
   --l-line: 0.335;
+  --l-stroke: 0.420;
   --l-edge: 0.800;
   --l-dim: 0.600;
   --l-ink: 0.880;
@@ -77,6 +78,7 @@
   --l-raised: 0.335;
   --l-divide: 0.320;
   --l-line: 0.450;
+  --l-stroke: 0.545;
   --l-edge: 0.860;
   --l-dim: 0.680;
   --l-ink: 0.945;
@@ -100,6 +102,7 @@
   --l-raised: 0.930;
   --l-divide: 0.900;
   --l-line: 0.800;
+  --l-stroke: 0.620;
   --l-edge: 0.500;
   --l-dim: 0.495;
   --l-ink: 0.265;
@@ -117,11 +120,18 @@
 
 /* The steps, written once. Chroma is scaled per step as well as per slot: a
    card filled with `primary` must not be neon, while its border and its text
-   still have to carry the family. */
+   still have to carry the family.
+
+   **`line` and `stroke` are two jobs, not one.** `line` is a border drawn on a
+   card — it sits against `fill`. `stroke` is a line drawn on the **canvas
+   ground**: the frame, the walls, a route. One step served both until the
+   whiteprint made the difference visible, where a `line` on pale paper all but
+   vanished while the flow walls stayed — the frame looked deleted. */
 :root {
   --s-primary-fill: oklch(var(--l-fill) calc(var(--primary-c) * 0.18) var(--primary-h));
   --s-primary-raised: oklch(var(--l-raised) calc(var(--primary-c) * 0.26) var(--primary-h));
   --s-primary-line: oklch(var(--l-line) calc(var(--primary-c) * 0.40) var(--primary-h));
+  --s-primary-stroke: oklch(var(--l-stroke) calc(var(--primary-c) * 0.45) var(--primary-h));
   --s-primary-edge: oklch(var(--l-edge) var(--primary-c) var(--primary-h));
   --s-primary-dim: oklch(var(--l-dim) calc(var(--primary-c) * 0.30) var(--primary-h));
   --s-primary-ink: oklch(var(--l-ink) calc(var(--primary-c) * 0.32) var(--primary-h));
@@ -129,6 +139,7 @@
   --s-secondary-fill: oklch(var(--l-fill) calc(var(--secondary-c) * 0.18) var(--secondary-h));
   --s-secondary-raised: oklch(var(--l-raised) calc(var(--secondary-c) * 0.26) var(--secondary-h));
   --s-secondary-line: oklch(var(--l-line) calc(var(--secondary-c) * 0.40) var(--secondary-h));
+  --s-secondary-stroke: oklch(var(--l-stroke) calc(var(--secondary-c) * 0.45) var(--secondary-h));
   --s-secondary-edge: oklch(var(--l-edge) var(--secondary-c) var(--secondary-h));
   --s-secondary-dim: oklch(var(--l-dim) calc(var(--secondary-c) * 0.30) var(--secondary-h));
   --s-secondary-ink: oklch(var(--l-ink) calc(var(--secondary-c) * 0.32) var(--secondary-h));
@@ -136,6 +147,7 @@
   --s-tertiary-fill: oklch(var(--l-fill) calc(var(--tertiary-c) * 0.18) var(--tertiary-h));
   --s-tertiary-raised: oklch(var(--l-raised) calc(var(--tertiary-c) * 0.26) var(--tertiary-h));
   --s-tertiary-line: oklch(var(--l-line) calc(var(--tertiary-c) * 0.40) var(--tertiary-h));
+  --s-tertiary-stroke: oklch(var(--l-stroke) calc(var(--tertiary-c) * 0.45) var(--tertiary-h));
   --s-tertiary-edge: oklch(var(--l-edge) var(--tertiary-c) var(--tertiary-h));
   --s-tertiary-dim: oklch(var(--l-dim) calc(var(--tertiary-c) * 0.30) var(--tertiary-h));
   --s-tertiary-ink: oklch(var(--l-ink) calc(var(--tertiary-c) * 0.32) var(--tertiary-h));
@@ -143,6 +155,7 @@
   --s-quaternary-fill: oklch(var(--l-fill) calc(var(--quaternary-c) * 0.18) var(--quaternary-h));
   --s-quaternary-raised: oklch(var(--l-raised) calc(var(--quaternary-c) * 0.26) var(--quaternary-h));
   --s-quaternary-line: oklch(var(--l-line) calc(var(--quaternary-c) * 0.40) var(--quaternary-h));
+  --s-quaternary-stroke: oklch(var(--l-stroke) calc(var(--quaternary-c) * 0.45) var(--quaternary-h));
   --s-quaternary-edge: oklch(var(--l-edge) var(--quaternary-c) var(--quaternary-h));
   --s-quaternary-dim: oklch(var(--l-dim) calc(var(--quaternary-c) * 0.30) var(--quaternary-h));
   --s-quaternary-ink: oklch(var(--l-ink) calc(var(--quaternary-c) * 0.32) var(--quaternary-h));
@@ -154,22 +167,26 @@
   --s-neutral-raised: oklch(var(--l-raised) calc(var(--neutral-c) * 0.40) var(--neutral-h));
   --s-neutral-divide: oklch(var(--l-divide) calc(var(--neutral-c) * 0.40) var(--neutral-h));
   --s-neutral-line: oklch(var(--l-line) calc(var(--neutral-c) * 0.55) var(--neutral-h));
+  --s-neutral-stroke: oklch(var(--l-stroke) calc(var(--neutral-c) * 0.60) var(--neutral-h));
   --s-neutral-dim: oklch(var(--l-dim) calc(var(--neutral-c) * 0.70) var(--neutral-h));
   --s-neutral-ink: oklch(var(--l-ink) var(--neutral-c) var(--neutral-h));
 
   --s-muted-fill: oklch(var(--l-fill) calc(var(--muted-c) * 0.35) var(--muted-h));
   --s-muted-line: oklch(var(--l-line) calc(var(--muted-c) * 0.55) var(--muted-h));
+  --s-muted-stroke: oklch(var(--l-stroke) calc(var(--muted-c) * 0.60) var(--muted-h));
   --s-muted-dim: oklch(var(--l-dim) calc(var(--muted-c) * 0.70) var(--muted-h));
   --s-muted-ink: oklch(var(--l-ink) var(--muted-c) var(--muted-h));
 
   --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.22) var(--away-h));
   --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.55) var(--away-h));
+  --s-away-stroke: oklch(var(--l-stroke) calc(var(--away-c) * 0.60) var(--away-h));
   --s-away-edge: oklch(var(--l-edge) var(--away-c) var(--away-h));
   --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.45) var(--away-h));
   --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.40) var(--away-h));
 
   --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.22) var(--note-h));
   --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.55) var(--note-h));
+  --s-note-stroke: oklch(var(--l-stroke) calc(var(--note-c) * 0.60) var(--note-h));
   --s-note-edge: oklch(var(--l-edge) var(--note-c) var(--note-h));
   --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.45) var(--note-h));
   --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.40) var(--note-h));
@@ -217,13 +234,13 @@
   --glow: color-mix(in oklch, var(--accent) 35%, transparent);
   /* Walls and interfaces are the engine's own structure, so they carry the
      app's hue rather than a definition's. */
-  --wall: var(--s-primary-line);
+  --wall: var(--s-primary-stroke);
   --wall-lit: var(--s-primary-dim);
   /* Ink that has to read on a filled warning or error patch. */
   --on-loud: var(--s-neutral-ground);
   /* Routes. Read from `paint.ts`, which hands these to React Flow as stroke
      values — a `var()` resolves there because the edge is drawn in the page. */
-  --route: var(--s-primary-line);
+  --route: var(--s-primary-stroke);
   --route-head: var(--s-primary-dim);
   --route-away: var(--s-away-dim);
   /* Beyond the frame. Dimmer than the working area in every theme, but taken
@@ -311,12 +328,17 @@ button:disabled { opacity: 0.4; cursor: default; }
 .chat {
   min-width: 0;
   overflow: hidden;
+  /* Its own ground, a step off the page's, so the rail reads as a surface
+     rather than as text floating above the explorer. */
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
 }
 
 /* Shut: text entry and chips share one row so the stage keeps the height. */
 .chat.collapsed {
   display: flex;
   align-items: center;
+  padding-block: 6px;
   gap: 12px;
   padding: 6px 20px;
 }
@@ -661,7 +683,17 @@ button:disabled { opacity: 0.4; cursor: default; }
 .files-foot .history {
   display: flex;
   flex: none;
+  align-items: center;
   gap: 4px;
+}
+
+/* Names the pair, the way every other group of controls is named. */
+.files-foot .group-word {
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
 }
 .files-foot button.word {
   padding: 2px 6px;
@@ -778,7 +810,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   flex-direction: column;
   width: 100%;
   height: 100%;
-  border: 1px solid var(--border);
+  border: calc(1px / var(--zoom, 1)) solid var(--border);
   border-radius: 2px;
   background: var(--card-fill);
   /* Tight vertically: the card is one grid row of content, and every pixel of
@@ -930,11 +962,17 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 /* Inside the frame is the canvas itself, left clear to the grid; everything
-   outside it is dimmed by a shadow wide enough to reach any corner. */
+   outside it is dimmed by a shadow wide enough to reach any corner.
+
+   **Its border divides by the zoom.** Everything the flow draws sits inside a
+   `scale(zoom)` transform, so a plain 1px border is a pixel *of layer* rather
+   than of screen — at the resting zoom of a large layer it lands under a device
+   pixel and the browser drops it, which is how the frame could vanish zoomed
+   out and come back zoomed in. The canvas publishes `--zoom` for this. */
 .frame {
   width: 100%;
   height: 100%;
-  border: 1px solid var(--wall);
+  border: calc(1px / var(--zoom, 1)) solid var(--wall);
   border-radius: 4px;
   background: transparent;
   box-shadow: 0 0 0 9000px var(--outside);
@@ -973,28 +1011,28 @@ button:disabled { opacity: 0.4; cursor: default; }
   top: -1px;
   bottom: -1px;
   left: -4px;
-  border-left: 2px solid var(--wall-lit);
+  border-left: calc(2px / var(--zoom, 1)) solid var(--wall-lit);
 }
 
 .frame.flow-across::after {
   top: -1px;
   bottom: -1px;
   right: -4px;
-  border-right: 2px solid var(--wall);
+  border-right: calc(2px / var(--zoom, 1)) solid var(--wall);
 }
 
 .frame.flow-down::before {
   left: -1px;
   right: -1px;
   top: -4px;
-  border-top: 2px solid var(--wall-lit);
+  border-top: calc(2px / var(--zoom, 1)) solid var(--wall-lit);
 }
 
 .frame.flow-down::after {
   left: -1px;
   right: -1px;
   bottom: -4px;
-  border-bottom: 2px solid var(--wall);
+  border-bottom: calc(2px / var(--zoom, 1)) solid var(--wall);
 }
 
 /* The layer's border answers the pointer the way a card's does, since it is
@@ -1387,7 +1425,120 @@ main:has(.files.collapsed) {
 
 /* The canvas takes what is left; the attribute tray rides at its foot */
 
-.work { display: grid; min-width: 0; overflow: hidden; }
+/* The stage and the options rail, side by side (Y.1). A real column rather than
+   something floating over the drawing: the stage ends where the rail begins, so
+   chrome never sits on top of what is being described. */
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* One column, fixed to the page's right, holding every control the thing on the
+   stage has (Y.2). It **scrolls**: twenty-odd controls against the height of a
+   window makes overflow ordinary, and collapsing a group would be the hidden
+   state U.8 turned down.
+
+   `.opts`, not `.rail` — the terminal's Chat has owned `.rail` since S6. */
+.opts {
+  display: flex;
+  flex-direction: column;
+  /* Far enough apart to read as separate groups. Adjacent icon columns
+     otherwise run together into one long column, which is the failure the
+     labels alone did not prevent. */
+  gap: 20px;
+  /* Narrow, and long words wrap rather than setting the width. Sizing the
+     column to its longest label — `interfaces`, `depends on` — spent the space
+     on one word and left every short one swimming; each chip carries a tooltip,
+     so a name over two lines costs nothing.
+
+     The extra width is edge padding, not chip: a chip flush to the border read
+     as part of it. */
+  width: 68px;
+  padding: 12px 8px 16px;
+  border-left: 1px solid var(--border);
+  /* The explorer's ground, so the two edges of the page are one surface and the
+     stage is what sits between them. */
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.opts-group { display: flex; flex-direction: column; gap: 4px; }
+
+/* Every group is ruled off from the one above it — never the first, where the
+   rule would divide the column from nothing.
+
+   **What this costs, recorded rather than discovered later**: the rule used to
+   fall only between the settings and the verbs, which is how design.md's
+   *toolbars divide by states against verbs* was drawn. With every group ruled,
+   that boundary is carried by the group's own label and by the fact that a verb
+   never lights — `arrange` has no state to be in, so nothing in it is ever on,
+   which in use is the plainer signal of the two. */
+.opts-group + .opts-group {
+  border-top: 1px solid var(--divider);
+  padding-top: 12px;
+}
+
+.opts-label {
+  padding: 0 1px 5px;
+  color: var(--faint);
+  /* Sized to the longest label rather than to taste: `INTERFACES` at the old
+     size ran past the column and was cut in half. */
+  font-size: 7.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* An icon over one word. U.15's rule holds — the word only cost width when it
+   sat beside the glyph, and under it the column stays slim.
+
+   **Chips, like the terminal's actions.** Each keeps the base button's border
+   and ground rather than stripping them, so a control here reads as the same
+   kind of thing as a control there — one app, not two toolbars that happened to
+   grow separately. */
+.opts button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  /* Barely any side padding: the word is the widest thing in here and every
+     pixel spent beside it is a pixel the word has to wrap for. */
+  padding: 5px 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  line-height: 1.15;
+}
+
+.opts button .word {
+  display: block;
+  width: 100%;
+  font-size: 8px;
+  letter-spacing: -0.01em;
+  text-align: center;
+  /* A relation type's label is a *definition's* name, so it is the one word
+     nobody here gets to choose — those wrap rather than being clipped. */
+  overflow-wrap: anywhere;
+}
+
+.opts button svg { width: 20px; height: 20px; }
+.opts button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+
+/* The one that is on takes the terminal's `likely` treatment — accent border,
+   tinted ground and a bar down the leading edge — so *which is current* reads
+   the same everywhere it is asked. */
+.opts button.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--tint);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.opts button:disabled { opacity: 0.4; }
 
 /* A third of the canvas when open, whatever it holds. A tray that grew to its
    contents moved every time a filter changed the row count, so the row you
@@ -1699,6 +1850,12 @@ header .tools {
   align-items: center;
 }
 header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
+/* One weight across the header. Export and import sat on `--text` while every
+   neighbour sat on `--muted`, so they read as louder than the controls around
+   them. Discard joins them: V.3's confirm is what stands in front of it, and a
+   colour that never followed the theme was doing the job twice. */
+header .tools button { color: var(--muted); }
+header .tools button:hover:not(:disabled) { color: var(--text); }
 
 /* Rare destructive acts read as words — a glyph hides how big they are. */
 header .tools button.word {
@@ -2414,8 +2571,7 @@ header .where.unsaved:hover { background: var(--error); color: var(--on-loud); }
 /* The one control that throws work away. A mark alone would not say so, and it
    is the reason U.13 made it a word — so it keeps a colour instead, and its
    confirm (V.3). */
-.tools button.danger { color: var(--warn); }
-.tools button.danger:hover:not(:disabled) { background: var(--hover); }
+
 
 .group-label {
   display: block;

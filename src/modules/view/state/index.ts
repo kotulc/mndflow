@@ -25,4 +25,5 @@ import { STATE } from "./surface";
 register({
   name: "state", kind: "behavior", word: "state", icon: "view_state", creates: "state",
   surface: STATE,
+  chrome: ["flow", "arrange"],
 });

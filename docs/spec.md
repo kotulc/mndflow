@@ -712,6 +712,10 @@ derived labels and inferred order draw dimmed (DIM).*
 - **Steps are computed, not written.** A theme declares a lightness ladder and two numbers a slot;
   `oklch()` does the rest, and being perceptually uniform means one ladder holds its contrast in
   every hue. A new theme is about twenty numbers. Variables are `--s-<slot>-<step>`.
+- **`line` and `stroke` are two jobs.** A border on a **card** sits against `fill`; the frame, the
+  walls and a route are drawn on the **canvas ground**. One step served both until the whiteprint
+  made the difference visible — a frame at `line` all but vanished on pale paper while the flow
+  walls stayed, so the frame read as deleted.
 - **The shell reads the same ramp** — `--bg`, `--surface`, `--border`, `--text`, `--muted` and
   `--accent` are names for steps, not values. One system: the header cannot drift from the canvas,
   which is how the diagram stayed green inside a blue shell for two waves.
@@ -732,14 +736,16 @@ derived labels and inferred order draw dimmed (DIM).*
   on hover. When the browser stops accepting the log the same control becomes
   `⚠ not being saved — export` and stops being quiet, because the answer to both is that button.
 - Controls are icons with tooltips: workspace export, workspace import. Each greys out when it has
-  nothing to do. **Undo and redo left the header** (U.12).
+  nothing to do. **Undo and redo left the header** (U.12). **All of them sit at one weight** — the
+  two exports were on `--text` among `--muted` neighbours and read as louder than their company.
 - **One export door each** (V.6, proven): the header is workspace-scoped and keeps workspace
   export and import; **the project's own export moved to its row in the tree**, where project
   scope lives. The two side-by-side header exports that read as a choice nobody could make are
   gone. *Exporting a project as a package is a different thing* and is still parked (D.2).
 - **New workspace is a mark** (V.3, proven) — a discard glyph, never a refresh, which would read
-  as *reload what is here*. It keeps its confirm and takes a warning colour, which is what U.13's
-  word was carrying.
+  as *reload what is here*. **It keeps its confirm and nothing else**: the warning colour came off,
+  since the confirm is what stands in front of it and a fixed hue that ignored the theme was doing
+  the same job twice.
 - **New workspace asks before discarding** (U.13), then clears the session and leaves a blank
   `Held`. Import reports a file that is not a mndflow project — both in the strip, like everything
   else the app says.
@@ -857,7 +863,12 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 - **The project's own export sits on its root row** (V.6, proven), where project scope lives —
   behind the options button described below.
 - A role icon precedes every name and doubles as the fold control where there is one — leaf,
-  interface, container (U.2, drawn from the V.2 icon set; the grid arrangement is not a tree role).
+  interface, container (U.2, drawn from the V.2 icon set). **A container is a filled square and a
+  leaf an outlined one**: the fill is what says it holds something. It was a box with a rule across
+  it, which read as the table view's mark.
+- **Fold everything and expand everything are one control**, and it reads *anything open at all* —
+  a branch or a project root. Reading only the branches meant a collapsed project kept forcing the
+  fold branch, so the control could never open one again.
 - **A project root's icon says its kind and folds the project** (V.9 + V.10, proven) — a structure
   and a behavior project draw differently; clicking the icon folds, while the **row click still
   switches project**, so the two never collide. Projects are open by default: one that hid its
@@ -1258,28 +1269,38 @@ about like any other, and the drag sticks.
 - **Canvas options share one design language** (U.15, proven): **every control carries a word**,
   glyph as scan aid; radio rows for the picks, a two-state toggle for interfaces. Settings only —
   not the one-time arrange verbs.
-- **Two labelled groups stacked at the top right** (V.17, then V.19, proven) — *view* (the
-  interfaces toggle, and curves / angles) and *relation*. **Every group in both clusters is built
-  the same way**: a label, a rule above it, then its controls in a column — top-right and
-  bottom-right alike, so the canvas has one settings idiom rather than two. Both boxes hug their
-  words; left to stretch, a settings cluster reads as a panel.
-- **The *relation* group picks what the next right drag draws** (V.17a, proven): plain, directed,
-  then the relationship types in scope, **capped at three** because it sits inline beside the
-  crumbs. Picking a type settles the form too — a definition carries its own. **It writes
-  nothing**: a display preference beside `showPorts` and `angular`. The list comes from the page,
-  which can see the imported packages; each entry carries the **path** it is addressed by, so a
-  drag never mints a local twin of a package's type. The rest of the vocabulary lives on the menu
-  and the strip (`R.5`, `R.9`).
-- Canvas arrangements bottom-right, opposite the zoom controls — **four verbs** (`▦ ⊙ ⇄ ⇅`),
-  plus `∿` to hand the layer back to the engine (`relax`), on `.shape` with **words** beside the
-  glyphs (U.15). None of the four is ever lit: an arrangement is something you do, not something a
-  layer is in. **They stay there**: `.shape` is a floating cluster apart from the `.arrange` bar,
-  and `arrange` is layer-scoped, so the frame's context list offers it as well. The interface is
-  the same whatever the layer or project.
-- **Flow sits with them, above and divided from them** (V.7, proven) — the axis left the top bar,
-  so the top holds settings only. Adjacent but visibly distinct: flow is a *setting* and the
-  arrangements are *verbs*, and where distance used to carry that, a group boundary now does.
-  **Both carry a label** — *flow* and *arrange* (V.19) — the same rule the top pair keeps.
+- **Every control the thing on the stage has is in one column** (Y.1–Y.3, proven), fixed to the
+  page's right. **A real column, not an overlay**: the stage ends where it begins, so chrome never
+  sits on the drawing. **A view module declares which groups it offers** (`ViewModule.chrome`) and
+  the column draws them in `CHROME_ORDER` — a matrix has no interfaces toggle because it declares
+  none, never because one was greyed out.
+- **The order is the overflow plan**: views, flow, arrange, interfaces, lines, relations, project.
+  **Relations is last** because it is the only group that grows with the vocabulary, so it is the
+  one to push off the bottom. **The column scrolls** — twenty-odd controls against a window's height
+  makes overflow ordinary — and no group ever collapses, since that is hidden state.
+- **A structural stroke divides by the zoom.** Everything the flow draws sits inside a
+  `scale(zoom)` transform, so a plain 1px border is a pixel *of layer*, not of screen — zoomed out
+  it lands under a device pixel and the browser drops it, which is how the frame could look deleted
+  at rest and reappear on zoom. The canvas publishes `--zoom`; the frame, the flow walls and a
+  card's border read it, so their apparent width is constant.
+- **The column's controls are chips**, carrying the same border and ground as the terminal's
+  actions, and the one that is on takes the terminal's `likely` treatment — accent border, tinted
+  ground, a bar down the leading edge. One app, not two toolbars that grew separately. **It shares
+  the explorer's ground**, so both edges of the page are one surface with the stage between them.
+- **An icon over one word, under a group label.** U.15's *every control carries a word* holds: the
+  word only cost width when it sat beside the glyph. Every word the app owns is a single word; a
+  relation type's is a **definition's name**, so it belongs to whoever wrote the vocabulary and
+  wraps rather than being clipped. **The column is narrow and the words wrap to it**, rather than
+  the longest label setting the width — sizing it to `interfaces` spent the space on one word and
+  left every short one swimming. **A control never repeats its group's label**: the interfaces
+  toggle reads `shown` / `hidden`, which says more and fits. **Every group is ruled off from the one above it**, never the first — a
+  rule there would divide the column from nothing. The rule used to fall only between the settings
+  and the verbs, which is how design.md's *toolbars divide by states against verbs* was drawn; with
+  all groups ruled, that boundary is carried by the group's label and by the fact that **a verb
+  never lights** — `arrange` has no state to be in, which in use is the plainer signal.
+- **One verb could not simply move.** Arranging needs the laid-out geometry only the canvas has, so
+  **the canvas publishes it upward** and the column calls what it was handed. The page never reaches
+  into the canvas; dependencies still run one way.
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.

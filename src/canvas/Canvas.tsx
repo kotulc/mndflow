@@ -36,9 +36,9 @@ import {
 import { around, CELL, cell, HUG, arranged, sizeOf, type Box } from "../geometry/layout";
 import { type Axis, type EdgeForm, type End, type Graph, type Layout, type Side, type Spot } from "../graph/types";
 import {
-  Arrangements, Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, edgesOf, extentOf,
+  Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, edgesOf, extentOf,
   fill_args, floorOf, laidOf, nodesOf, offered_for, placementKey, restOf, stageOf,
-  Toggles, type OfferTarget, type Prompt,
+  type OfferTarget, type Prompt,
 } from "../modules/view/diagram";
 import { useGestures } from "./gestures";
 import { type Grazed } from "./card";
@@ -116,6 +116,15 @@ type Props = {
   /** Relationship kinds in scope, each with the path it is addressed by and
    *  the form it declares. Packages first, then the project's own. */
   kinds?: { name: string; path: string; form: string }[];
+  /** Which of them the next right drag draws, or null for an untyped line. A
+   *  display preference like `form` and `angular`, so the page holds it — the
+   *  rail that picks it is page-level and cannot reach inside here (Y.1). */
+  kind?: { path: string; form: string } | null;
+  /** Where to publish the arrange verb. **Arranging needs the laid-out geometry
+   *  only this component has**, so the rail cannot work it out — the canvas
+   *  hands it up instead of the page reaching in, which is the same direction
+   *  every other dependency here runs. */
+  arranging?: { current: ((shape: Layout) => void) | null };
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   /** Turn a derived seat into an interface of its own, where it sits. */
   onPromotePort: (edge: string, end: "from" | "to", owner: string,
@@ -279,11 +288,7 @@ function Flow(props: Props) {
   }, [graph, picked]);
 
 
-  /** Which relationship type the next right drag draws. A display preference
-   *  like `form` and `angular` — it writes nothing and never reaches the log.
-   *  The list itself comes from the page, which can see the packages. */
-  const [kind, setKind] = useState<{ path: string; form: string } | null>(null);
-  const kinds = props.kinds ?? [];
+  const kind = props.kind ?? null;
 
   const laid = useMemo(
     () => laidOf(graph, stage, view, axis, showPorts, shows),
@@ -421,6 +426,12 @@ function Flow(props: Props) {
     onArrangeLayer(laid, reNoted(spots));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reNoted is stable per graph
   }, [onArrangeLayer, graph, members, view]);
+
+  // Publish it for the rail (Y.1). Assigned on every render rather than in an
+  // effect: the rail reads it at click time, and an effect would leave one
+  // paint's worth of stale geometry behind a button that lays out a layer.
+  const arrangingRef = props.arranging;
+  if (arrangingRef) arrangingRef.current = onArrange;
 
 
   /** Where each tied note should sit once this layer is laid out afresh.
@@ -612,8 +623,30 @@ function Flow(props: Props) {
   // the floor is left alone.
   const zoomAboveFloor = useRef(false);
   const settlingRest = useRef(false);
+  /** Publish the zoom so a line can hold its width through it.
+   *
+   *  Everything the flow draws lives inside a `scale(zoom)` transform, so a 1px
+   *  border is 1px *of layer*, not of screen: at the resting zoom of a large
+   *  layer it lands under a device pixel and the browser drops it — which is
+   *  how the frame could look deleted zoomed out and reappear zoomed in. The
+   *  strokes that describe structure divide by this instead. */
+  const shownZoom = useRef(0);
+  const showZoom = useCallback((zoom: number) => {
+    const z = zoom || 1;
+    if (Math.abs(z - shownZoom.current) < 1e-4) return;
+    shownZoom.current = z;
+    surface.current?.style.setProperty("--zoom", String(z));
+  }, []);
+
+  // The first paint and every camera fit land without a move event, so read it
+  // back rather than waiting to be told.
+  useEffect(() => {
+    showZoom(flow.getViewport().zoom);
+  });
+
   const onMove = useCallback(
     (_: unknown, vp: Viewport) => {
+      showZoom(vp.zoom);
       if (settlingRest.current) return;
       const atFloor = vp.zoom <= floorZoom + 1e-3;
       if (!atFloor) {
@@ -631,7 +664,7 @@ function Flow(props: Props) {
         settlingRest.current = false;
       });
     },
-    [flow, floorZoom, restViewport],
+    [flow, floorZoom, restViewport, showZoom],
   );
 
 
@@ -648,22 +681,8 @@ function Flow(props: Props) {
       <Crumbs graph={graph} view={view} path={path} onOpen={onOpen} onUp={onUp} />
 
 
-      <Toggles
-        showPorts={showPorts}
-        onShowPorts={onShowPorts}
-        form={form}
-        onForm={onForm}
-        angular={angular}
-        onAngular={onAngular}
-        kind={kind}
-        onKind={setKind}
-        kinds={kinds}
-      />
-
-
-      <Arrangements onArrange={onArrange} onRelax={onRelax} axis={axis} onAxis={onAxis} />
-
-
+      {/* The settings and the verbs left for the page's rail (Y.1). What stays
+          here is what is *of* the drawing: the trail, and the stage itself. */}
       <ReactFlow
         nodes={nodes}
         edges={edges}

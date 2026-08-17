@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
-import { compact, fold, isCheckpoint, stepsIn, titleOf } from "../graph/fold";
+import { axisOf, compact, fold, isCheckpoint, stepsIn, titleOf } from "../graph/fold";
 import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
@@ -21,11 +21,12 @@ import * as store from "../graph/store";
 import { lookup } from "../actions";
 import {
   ROOT, refAt, step as makeStep,
-  type EdgeForm, type Graph, type Mutation, type Step,
+  type EdgeForm, type Graph, type Layout, type Mutation, type Step,
 } from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
 import { viewOf, views, kindOf, named, type ViewName } from "../modules/view";
+import { Rail, groupsFor } from "./Rail";
 import { Activity } from "../modules/view/activity";
 import { Sequence } from "../modules/view/sequence";
 import { State } from "../modules/view/state";
@@ -381,6 +382,14 @@ export function App() {
    *  about how anything is drawn, but it lives here for the same reason: it is
    *  the tool in hand, not part of the project. */
   const [form, setForm] = useState<EdgeForm>("line");
+  /** Which relationship type the next right drag draws. A display preference
+   *  beside `form` and `angular`, held here rather than in the canvas because
+   *  the rail that picks it is page-level (Y.1). */
+  const [kind, setKind] = useState<{ path: string; form: string } | null>(null);
+  /** The one verb the page cannot work out for itself: arranging needs the
+   *  laid-out geometry only the canvas has, so the canvas publishes it here
+   *  rather than the page reaching in. Dependencies still run one way. */
+  const arranging = useRef<((shape: Layout) => void) | null>(null);
   /** Explorer multi-select — cross-project refs `infer` will take. Held here
    *  so the action can read it without the tree owning the session. */
   const [chosen, setChosen] = useState<Chosen[]>([]);
@@ -817,7 +826,6 @@ export function App() {
           </button>
           <button
             type="button"
-            className="danger"
             onClick={() => say(
               "Discard this workspace? Export it first if you want it back.",
               { label: "discard", run: clearWorkspace },
@@ -884,7 +892,6 @@ export function App() {
             unit={UNIT}
             onDelete={project.remove}
             onDropProject={dropProject}
-            onExportProject={() => void exportProject()}
             onMove={project.move}
             onRename={project.rename}
             onRenameProject={project.renameProject}
@@ -894,10 +901,6 @@ export function App() {
             undoable={project.undoable}
             redoable={project.redoable}
             lastAction={lastAction}
-            shownViews={shownViews}
-            onShowView={(projectId, name) => {
-              setViewPrefs((prior) => ({ ...prior, [projectId]: name }));
-            }}
           />
         </div>
 
@@ -975,6 +978,8 @@ export function App() {
               onLift={project.lift}
               onWire={project.wire}
               kinds={relationKinds}
+              kind={kind}
+              arranging={arranging}
               onAddPort={project.addPort}
               onPromotePort={project.promotePort}
               onSlidePort={project.setPort}
@@ -1024,6 +1029,26 @@ export function App() {
               hostRef={tray}
             />
           </div>
+
+          <Rail
+            groups={groupsFor({
+              offers: named(module)?.chrome ?? [],
+              views: offered(graph).map((name) => ({
+                name,
+                icon: (named(name)?.icon ?? "view_block") as never,
+                on: name === module,
+                run: () => setViewPrefs((prior) => ({ ...prior, [contextId]: name })),
+              })),
+              showPorts: ports, onShowPorts: setPorts,
+              angular, onAngular: setAngular,
+              form, onForm: setForm,
+              kind, onKind: setKind, kinds: relationKinds,
+              axis: axisOf(graph, view), onAxis: project.setAxis,
+              onArrange: (shape) => arranging.current?.(shape),
+              onRelax: project.relax,
+              onExport: () => void exportProject(),
+            })}
+          />
         </section>
       </main>
     </div>

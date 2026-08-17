@@ -22,5 +22,7 @@ import { MATRIX } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null, surface: MATRIX,
+  name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null,
+  surface: MATRIX,
+  chrome: ["types"],
 });

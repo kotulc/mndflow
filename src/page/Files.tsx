@@ -12,10 +12,9 @@
  *  moving the scope; that set is what `infer` will take. Parent branches are
  *  marked by their role icon; clicking that icon folds.
  *
- *  Beside each project root sits a labelled view toggle: the three modules that
- *  kind offers, glyphs from the registry. Sticky per project and write-free —
- *  a display preference, not a log step. The definition's view.module still
- *  says how a layer opens; this says what is on screen now.
+ *  The view toggle and the project export left for the page's options rail
+ *  (Y.3): both act on what is on the stage, and the rail is where that lives.
+ *  What stays here is the tree and what it can be told to do.
  *
  *  The pane bounds itself: a width cap under pressure, and a collapse that
  *  leaves only a strip so the stage keeps the room.
@@ -39,7 +38,7 @@ import { NameField } from "../NameField";
 import {
   ROOT as ROOT_ID, asTarget, refAt, refTo, type Graph, type Element,
 } from "../graph/types";
-import { kindOf, viewOf, views, type ViewName } from "../modules/view";
+import { kindOf, viewOf } from "../modules/view";
 import { REFERRED } from "../canvas/card";
 import { Icon, type IconName } from "../modules/icons";
 
@@ -160,9 +159,6 @@ type Props = {
   onDelete: (id: string) => void;
   /** Drop a whole project from the workspace — asks first. */
   onDropProject: (projectId: string) => void;
-  /** Write the project in context out as a file, bundling what it depends on.
-   *  Project-scoped, so it lives here rather than in the header (V.6). */
-  onExportProject: () => void;
   onMove: (id: string, parent: string | null) => void;
   onRename: (id: string, label: string) => void;
   onRenameProject: (label: string) => void;
@@ -180,10 +176,6 @@ type Props = {
   redoable: boolean;
   /** Last applied action's name, or null when nothing has been done yet. */
   lastAction: string | null;
-  /** Which view module is showing per open project — display preference only. */
-  shownViews: Record<string, ViewName>;
-  /** Pick what is shown for a project; writes nothing to its log. */
-  onShowView: (projectId: string, module: ViewName) => void;
 };
 
 export function Files(props: Props) {
@@ -191,8 +183,8 @@ export function Files(props: Props) {
   const { showPorts, onShowPorts } = props;
   const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const {
-    onDelete, onDropProject, onExportProject, onMove, onRename, onRenameProject, onNewProject, onNameProject,
-    onAct, onUndo, onRedo, undoable, redoable, lastAction, shownViews, onShowView,
+    onDelete, onDropProject, onMove, onRename, onRenameProject, onNewProject, onNameProject,
+    onAct, onUndo, onRedo, undoable, redoable, lastAction,
   } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
   const kidsBy = useMemo(() => {
@@ -411,18 +403,26 @@ export function Files(props: Props) {
     });
   }
 
+  /** Whether anything is open at all — a branch, or a project root. What the
+   *  fold-everything control does next, and what it draws itself as. */
+  const anyOpen = open.size > 0 || shut.size < projects.length;
+
   /** Every branch at once, or none of them. Which way it goes depends on
    *  whether anything is open, so the one control is always the one you
    *  want. */
   function foldAll() {
+    // **One decision, applied to both sets.** They disagreed before: `shut`
+    // collapsed whenever *anything* was shut, so once the projects were folded
+    // its own state kept forcing the collapse branch and this control could
+    // never open them again — it only ever folded.
+    const collapsing = anyOpen;
+
     // Projects travel with the branches, or "fold everything" would leave the
     // roots open and the control would only half mean what it says.
-    setShut((prior) => (prior.size || open.size
-      ? new Set(projects.map((p) => `proj:${p.id}`))
-      : new Set()));
+    setShut(() => (collapsing ? new Set(projects.map((p) => `proj:${p.id}`)) : new Set()));
 
-    setOpen((prior) => {
-      if (prior.size) return new Set();
+    setOpen(() => {
+      if (collapsing) return new Set();
 
       const ids: string[] = [];
       for (const [projectId, kids] of Object.entries(kidsBy)) {
@@ -692,7 +692,7 @@ export function Files(props: Props) {
                 fold(foldKey);
               }}
             >
-              <Icon name={role_of(hereGraph, node)} solid={role_of(hereGraph, node) === "role_leaf"} />
+              <Icon name={role_of(hereGraph, node)} solid={role_of(hereGraph, node) === "role_container"} />
             </span>
             {editing === node.id && context === projectId
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
@@ -723,21 +723,6 @@ export function Files(props: Props) {
     const root = here.elements[ROOT_ID];
     const kind = root ? kindOf(viewOf(here, root).module) : "structure";
     const folded = shut.has(editKey);
-    const offers = views().filter((m) => m.kind === kind);
-    const shown = shownViews[projectId];
-    // Row tools appear on the selected project only — the project in context
-    // *and* something actually picked in it. Context alone is not enough: it
-    // survives a deselect (V.14 keeps the view where it is), and that is the
-    // state whose whole point is that nothing is selected. Picking a block
-    // inside the project still counts, so the export stays reachable while
-    // working rather than only from the root row.
-    const picked = projectId === context && chosen.length > 0;
-    // One icon that cycles, not one button per view (reverses U.8 and V.5's
-    // row of three). Three sit badly in a capped-width tree, and the icon a
-    // cycling control wears is the view that is on — so it never hides which,
-    // which is the objection U.8 raised against cycling in the first place.
-    const at = Math.max(0, offers.findIndex((m) => m.name === shown));
-    const next = offers[(at + 1) % (offers.length || 1)];
 
     return (
       <li key={projectId} className="project">
@@ -780,36 +765,6 @@ export function Files(props: Props) {
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
-          {/* The row's own tools, held to the right so the names still line up
-              down the left however many a row carries. The span swallows the
-              row's gestures once, rather than every button repeating it. */}
-          {picked && editing !== editKey && (
-            <span
-              className="row-tools"
-              onClick={(event) => event.stopPropagation()}
-              onDoubleClick={(event) => event.stopPropagation()}
-              onContextMenu={(event) => event.stopPropagation()}
-            >
-              {offers.length > 1 && next && (
-                <button
-                  type="button"
-                  className="views"
-                  title={`Showing ${offers[at]!.name} — click for ${next.name}`}
-                  onClick={() => onShowView(projectId, next.name)}
-                >
-                  <Icon className="view-icon" name={offers[at]!.icon as IconName} />
-                </button>
-              )}
-              <button
-                type="button"
-                className="ship"
-                title="Export this project (bundles what it depends on)"
-                onClick={() => onExportProject()}
-              >
-                <Icon name="options" />
-              </button>
-            </span>
-          )}
         </div>
         {!folded && <ul className="branch">{branch(projectId, ROOT)}</ul>}
       </li>
@@ -926,8 +881,8 @@ export function Files(props: Props) {
           >
             <Icon name="rename" />
           </button>
-          <button onClick={foldAll} title={open.size ? "Fold everything" : "Expand everything"}>
-            <Icon name={open.size ? "fold_all" : "unfold_all"} />
+          <button onClick={foldAll} title={anyOpen ? "Fold everything" : "Expand everything"}>
+            <Icon name={anyOpen ? "fold_all" : "unfold_all"} />
           </button>
           <button
             className={showPorts ? "on" : ""}
@@ -1037,6 +992,7 @@ export function Files(props: Props) {
           {lastAction ?? "—"}
         </span>
         <span className="history">
+          <span className="group-word">history</span>
           <button
             type="button"
             className="word"

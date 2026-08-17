@@ -25,4 +25,7 @@ import { ACTIVITY } from "./surface";
 register({
   name: "activity", kind: "behavior", word: "activity", icon: "view_activity", creates: "action",
   surface: ACTIVITY,
+  // A behavior layer reads in a direction and can be laid out; it has no
+  // frame seats, so no interfaces.
+  chrome: ["flow", "arrange"],
 });

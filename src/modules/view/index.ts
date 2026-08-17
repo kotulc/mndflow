@@ -35,6 +35,24 @@ export type ViewName = (typeof MODULES)[number];
 /** What the project holds, visible from the module rather than declared. */
 export type ViewKind = "structure" | "behavior";
 
+/** A control group the options rail can draw (Y.1).
+ *
+ *  **A module says which it offers; the page knows how to build each.** That is
+ *  the split that keeps one rail rather than six — a matrix declaring no
+ *  `interfaces` is why it has no interfaces toggle, instead of being handed one
+ *  greyed out. **Open set**: add a key here and teach the rail to build it. */
+export type ChromeGroup =
+  | "flow" | "arrange" | "interfaces" | "lines" | "relations" | "types";
+
+/** The order every rail draws its groups in, whatever order a module lists
+ *  them. **`relations` is last on purpose**: it is the only group that grows
+ *  with the vocabulary, so it is the one to push off the bottom of a column
+ *  that scrolls rather than the one to squeeze. `project` and `views` are the
+ *  page's own and lead, since what you are looking at comes before how. */
+export const CHROME_ORDER = [
+  "project", "views", "arrange", "flow", "interfaces", "lines", "types", "relations",
+] as const;
+
 /** One registered view module. A name, its kind, its word, its icon, and what
  *  a create gesture makes; the projection surface lands with the module itself
  *  — `block` carries today's, the rest fill in as their rows land. */
@@ -52,6 +70,9 @@ export type ViewModule = {
   creates: string | null;
   /** What it takes to show a layer at all. Absent on a stub. */
   surface?: Surface;
+  /** Which control groups it offers the rail. Absent is none — a stub view
+   *  still gets the page's own `views` and `project` groups. */
+  chrome?: readonly ChromeGroup[];
 };
 
 export type ViewConfig = {
@@ -92,7 +113,13 @@ export function kindOf(name: ViewName): ViewKind {
 // for a chip, a scanning mark and a create gesture — table is a row, matrix
 // makes nothing. Icons are pairwise distinct on purpose.
 register(
-  { name: "block", kind: "structure", word: "block", icon: "view_block", creates: "", surface: DIAGRAM },
+  {
+    name: "block", kind: "structure", word: "block", icon: "view_block", creates: "",
+    surface: DIAGRAM,
+    // The diagram is the only view with a frame and seats, so it is the only
+    // one that offers interfaces.
+    chrome: ["interfaces", "lines", "relations", "flow", "arrange"],
+  },
   { name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE },
   { name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null, surface: MATRIX },
   { name: "activity", kind: "behavior", word: "activity", icon: "view_activity", creates: "action" },
