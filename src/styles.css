@@ -1089,6 +1089,10 @@ main:has(.files.collapsed) {
 }
 /* Sibling projects are told apart — several open read as several, not one tree. */
 .files li + li.project { margin-top: 10px; }
+
+/* And room above the first one, so the tree does not start hard against the
+   bar (U.17 spaced siblings and left the top edge tight). */
+.files .roots > li.project:first-child { margin-top: 8px; }
 .files .item { width: max-content; min-width: 100%; }
 .files .item.new { padding-left: calc(20px + 0.5em); }
 .files .icon { width: 1em; flex: none; text-align: center; color: var(--border); }
@@ -1560,7 +1564,17 @@ header .tools button.word {
 .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.5; }
 /* Relations sit above the cards, so hovering one lights only the line — nothing
    under it shares the pointer. */
-.react-flow__edge:hover .react-flow__edge-path { stroke: var(--text); }
+/* The kind's own colour, set per edge as a property so hover and selection can
+   still win — an inline `stroke` would outrank both. */
+.react-flow__edge-path { stroke: var(--edge-stroke, var(--line)); }
+
+/* Hovering a line lifts it out of its neighbours: brighter, thicker, and a
+   wider invisible band so it can be caught without pixel-hunting. */
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: var(--text);
+  stroke-width: 2.5;
+}
+.react-flow__edge .react-flow__edge-interaction { stroke-width: 18; }
 .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
 .react-flow__edge-textbg { fill: var(--bg); }
 .react-flow__edge.selected .react-flow__edge-text { fill: var(--accent); }
@@ -1574,30 +1588,8 @@ header .tools button.word {
    cursor for the way it moves; the mark under the pointer says which part of
    the line is being offered, since a run is one shape and its segments are not
    otherwise told apart. Selecting the line shows them all faintly at once. */
-/* The band is a rectangle sized in the component, so it stays the same size on
-   screen however far the layer is zoomed out. Filled rather than stroked
-   because hit testing on a fill is the one thing every browser agrees about. */
-.leg-grab { fill: transparent; stroke: none; pointer-events: all; }
-
-/* The mark keeps its weight on screen too, so a segment reads the same at any
-   zoom rather than thinning away as the layer shrinks. */
-.leg-mark {
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  fill: none;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms;
-}
-
-.leg.shown .leg-mark { opacity: 0.28; }
-
-/* A curved line has no segments of its own, so hovering it shows the whole run
-   it would take rather than one piece of it floating off the curve. */
-.react-flow__edge:hover .leg.ghost .leg-mark { opacity: 0.3; }
-.leg-grab:hover + .leg-mark { opacity: 0.6; }
+/* Segment grab bands were removed with `Wire`; the rules that dressed them
+   went with them (V.4). Hovering a line is the edge path's own business. */
 
 /* A reference — a relation with a proxy at one end, so it reaches something
    living in another layer. Its own colour as well as dashed: in the same green
@@ -1608,18 +1600,15 @@ header .tools button.word {
    itself, so the violet sits under the green lines in weight and lets the kind
    and the label read first. Hover and selection bring it back up to full. */
 .react-flow__edge.reaching .react-flow__edge-path { opacity: 0.55; }
-.react-flow__edge.reaching .leg-mark { opacity: 0.55; }
 .react-flow__edge.reaching:hover .react-flow__edge-path,
 .react-flow__edge.reaching.selected .react-flow__edge-path,
-.react-flow__edge.reaching:hover .leg-mark,
-.react-flow__edge.reaching.selected .leg-mark { opacity: 1; }
+.react-flow__edge.reaching.selected .react-flow__edge-path { opacity: 1; }
 .react-flow__edge.reaching .react-flow__edge-text {
   fill: #8a7ab0; font-style: italic; opacity: 0.75;
 }
 .react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-text { fill: var(--away); }
-.react-flow__edge.reaching .leg-mark { stroke: var(--away); }
 
 /* Display options, top right of the canvas.
  *
@@ -2154,3 +2143,18 @@ header .where.unsaved {
 }
 
 header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
+
+
+/* The icon set (V.2). One size and one alignment for every mark in the app, so
+   a button never has to know how its glyph sits — the SVG takes the text
+   colour and the line-height it is dropped into. */
+.icon-svg {
+  display: inline-block;
+  vertical-align: -0.18em;
+  flex: none;
+  color: inherit;
+}
+
+/* On a control that is only its icon, the mark carries the whole button. */
+.files .actions .icon-svg,
+.tools .icon-svg { vertical-align: -0.22em; }

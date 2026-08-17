@@ -31,7 +31,7 @@ import "@xyflow/react/dist/style.css";
 import type { Picked } from "../actions";
 import type { Action, Arg, Args } from "../actions";
 import {
-  axisOf, blocksOf, groupsIn, notesIn, relationNames, tiesOf, typeName,
+  axisOf, blocksOf, groupsIn, notesIn, tiesOf,
 } from "../graph/fold";
 import { around, CELL, cell, HUG, arranged, sizeOf, type Box } from "../geometry/layout";
 import { type Axis, type EdgeForm, type End, type Graph, type Layout, type Side, type Spot } from "../graph/types";
@@ -181,7 +181,6 @@ function Flow(props: Props) {
   /** Which relationship type to draw. `null` is every type — a display
    *  preference held on the canvas, not in the project, so it records no
    *  history and never reaches an export. */
-  const [shown, setShown] = useState<string | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   /** The nodes as React Flow has them. Held by reference because the two ends
    *  of this cannot both be passed forwards: the gestures read what is
@@ -253,40 +252,12 @@ function Flow(props: Props) {
   const { boxes, frameBox, bands } = stage;
 
 
-  /** Every relationship type the project knows, plus any free name still
-   *  carried by an edge — the set the filter steps through. */
-  const kinds = useMemo(() => {
-    const names = new Set(relationNames(graph));
-    for (const edge of Object.values(graph.edges)) {
-      const named = typeName(graph, edge.type);
-      if (named) names.add(named);
-    }
 
 
-    return [...names].sort((a, b) => a.localeCompare(b));
-  }, [graph]);
-
-
-  /** Whether this relationship is drawn under the current filter. */
-  const shows = useCallback(
-    (edge: { type: string }) => shown === null || typeName(graph, edge.type) === shown,
-    [graph, shown],
-  );
-
-
-  // A type that left the project cannot stay selected as the filter.
-  useEffect(() => {
-    if (shown !== null && !kinds.includes(shown)) setShown(null);
-  }, [kinds, shown]);
-
-
-  // Hiding a selected relationship leaves nothing to find — drop the pick so
-  // seats and the tray do not keep pointing at a line that is not there.
-  useEffect(() => {
-    if (picked?.kind !== "edge" || shown === null) return;
-    const edge = graph.edges[picked.id];
-    if (edge && !shows(edge)) onPick(null);
-  }, [shown, picked, graph, shows, onPick]);
+  // Every relationship draws. The per-type filter came out with its control
+  // (V.15): filtering what is already on the canvas earned less than picking
+  // what the next drag makes, which is what the bar offers instead.
+  const shows = useCallback(() => true, []);
 
 
   /** Relationships whose ends should show themselves: the selected one. An
@@ -674,9 +645,6 @@ function Flow(props: Props) {
         onForm={onForm}
         angular={angular}
         onAngular={onAngular}
-        shown={shown}
-        kinds={kinds}
-        onShown={setShown}
         axis={axis}
         onAxis={onAxis}
       />

@@ -34,6 +34,7 @@ import { Matrix } from "../modules/view/matrix";
 import { Table } from "../modules/view/table";
 import * as workspace from "../workspace";
 import { Files, type Chosen } from "./Files";
+import { Icon } from "../modules/icons";
 import { Panel } from "./Panel";
 
 type ChatProps = {
@@ -684,14 +685,14 @@ export function App() {
             disabled={!held.projects.length && !project.steps.length}
             title="Export the workspace"
           >
-            ⤓
+            <Icon name="export_workspace" />
           </button>
           <button
             onClick={() => void exportProject()}
             disabled={!project.steps.length}
             title="Export this project (bundles what it depends on)"
           >
-            ↧
+            <Icon name="export_project" />
           </button>
           <button
             type="button"

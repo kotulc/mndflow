@@ -11,6 +11,7 @@ import { nameOf, titleOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";
 import { Types, kindsOf, trailOf } from "./chrome";
 import { gridOf } from "./grid";
+import { Icon } from "../../icons";
 
 export type MatrixProps = {
   graph: Graph;
@@ -74,7 +75,7 @@ export function Matrix({
             title={expanded ? "Show as a panel" : "Fill the canvas"}
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "partial ▾" : "expand ▴"}
+            {expanded ? "partial " : "expand "}<Icon name={expanded ? "more" : "less"} />
           </button>
         </div>
 

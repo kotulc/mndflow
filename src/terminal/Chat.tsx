@@ -30,6 +30,7 @@ import { refTo } from "../graph/types";
 import type { Action, Args, Context, Picked } from "../actions";
 import { useSettling } from "./useSettling";
 import { useTypewriter } from "./useTypewriter";
+import { Icon } from "../modules/icons";
 import "./loop";
 
 /** How many past exchanges stay on screen before they fade off the top. */
@@ -397,7 +398,7 @@ export function Chat(props: Props) {
           title={expanded ? "Collapse Page Intelligence" : "Expand Page Intelligence"}
           onClick={() => setExpanded((was) => !was)}
         >
-          {expanded ? "▴" : "▾"}
+          <Icon name={expanded ? "less" : "more"} />
         </button>
       </div>
     </div>

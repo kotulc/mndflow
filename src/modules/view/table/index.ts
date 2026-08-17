@@ -23,5 +23,5 @@ import { TABLE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "table", kind: "structure", word: "row", icon: "☰", creates: "", surface: TABLE,
+  name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE,
 });

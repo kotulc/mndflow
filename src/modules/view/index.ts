@@ -92,12 +92,12 @@ export function kindOf(name: ViewName): ViewKind {
 // for a chip, a scanning mark and a create gesture — table is a row, matrix
 // makes nothing. Icons are pairwise distinct on purpose.
 register(
-  { name: "block", kind: "structure", word: "block", icon: "▭", creates: "", surface: DIAGRAM },
-  { name: "table", kind: "structure", word: "row", icon: "☰", creates: "", surface: TABLE },
-  { name: "matrix", kind: "structure", word: "block", icon: "⊞", creates: null, surface: MATRIX },
-  { name: "activity", kind: "behavior", word: "activity", icon: "▸", creates: "action" },
-  { name: "sequence", kind: "behavior", word: "action", icon: "⋮", creates: "action" },
-  { name: "state", kind: "behavior", word: "state", icon: "◯", creates: "state" },
+  { name: "block", kind: "structure", word: "block", icon: "view_block", creates: "", surface: DIAGRAM },
+  { name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE },
+  { name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null, surface: MATRIX },
+  { name: "activity", kind: "behavior", word: "activity", icon: "view_activity", creates: "action" },
+  { name: "sequence", kind: "behavior", word: "action", icon: "view_sequence", creates: "action" },
+  { name: "state", kind: "behavior", word: "state", icon: "view_state", creates: "state" },
 );
 
 /** Why this configuration would not work, in words, or null.

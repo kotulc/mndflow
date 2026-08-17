@@ -23,6 +23,6 @@ import { ACTIVITY } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "activity", kind: "behavior", word: "activity", icon: "▸", creates: "action",
+  name: "activity", kind: "behavior", word: "activity", icon: "view_activity", creates: "action",
   surface: ACTIVITY,
 });

@@ -12,6 +12,7 @@ import type { Graph } from "../../../graph/types";
 import { Types, kindsOf, trailOf } from "./chrome";
 import { rowsOf } from "./rows";
 import { Row } from "./Row";
+import { Icon } from "../../icons";
 
 export type TableProps = {
   graph: Graph;
@@ -73,7 +74,7 @@ export function Table({
             title={expanded ? "Show as a panel" : "Fill the canvas"}
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? "partial ▾" : "expand ▴"}
+            {expanded ? "partial " : "expand "}<Icon name={expanded ? "more" : "less"} />
           </button>
         </div>
 

@@ -23,11 +23,11 @@
  *  Undo and redo sit as words at the foot, with one line naming the last
  *  executed action — always in reach while the explorer is open.
  *
- *  The bar's ＋ follows the selection (G.9d — the target decides): a project
+ *  The bar's add button follows the selection (G.9d — the target decides): a project
  *  or nothing selected names a new project into the workspace; a block
  *  selected makes a block under it. The tooltip says which. Right-click still
  *  offers create (block) regardless, and empty space below the rows creates at
- *  the root. Rename stays on double-click and ✎. */
+ *  the root. Rename stays on double-click and the rename button. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -41,6 +41,7 @@ import {
 } from "../graph/types";
 import { kindOf, viewOf, views, type ViewName } from "../modules/view";
 import { REFERRED } from "../canvas/card";
+import { Icon, type IconName } from "../modules/icons";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
@@ -110,14 +111,13 @@ function shelved(shell: Graph, parent: string | null): Element[] {
   return out.sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
 }
 
-/** The mark for a node's role, which it takes from what it holds and where it
- *  sits rather than from anything declared. One meaning each: ■ leaf, □
- *  interface, ◫ container (▦ is the grid arrangement, not a tree role). */
-function icon(graph: Graph, node: Element): string {
-  if (isPort(node)) return "□";
-  if (isContainer(graph, node.id)) return "◫";
+/** A node's role, taken from what it holds and where it sits rather than from
+ *  anything declared. One meaning each — the set's own rule. */
+function role_of(graph: Graph, node: Element): IconName {
+  if (isPort(node)) return "role_interface";
+  if (isContainer(graph, node.id)) return "role_container";
 
-  return "■";
+  return "role_leaf";
 }
 
 export type OpenProject = {
@@ -445,7 +445,7 @@ export function Files(props: Props) {
     return () => cancelAnimationFrame(frame);
   }, [view, context, open, graphs, shell]);
 
-  /** What the bar's ＋ will make — selection decides, never a hidden mode.
+  /** What the bar's add button will make — selection decides, never a hidden mode.
    *
    *  A project root or an empty pick names a project (workspace op). A block
    *  in the context project makes a block under it. Cross-project picks fall
@@ -506,7 +506,7 @@ export function Files(props: Props) {
     setAdding(null);
   }
 
-  /** Bar ＋ — open the name prompt for a project, or a block field under the pick. */
+  /** Bar add — open the name prompt for a project, or a block field under the pick. */
   function add() {
     if (plus.kind === "project") {
       setAdding(null);
@@ -638,7 +638,7 @@ export function Files(props: Props) {
                 fold(foldKey);
               }}
             >
-              {icon(hereGraph, node)}
+              <Icon name={role_of(hereGraph, node)} solid={role_of(hereGraph, node) === "role_leaf"} />
             </span>
             {editing === node.id && context === projectId
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
@@ -685,7 +685,7 @@ export function Files(props: Props) {
           onContextMenu={(event) => show_offer(event, projectId, ROOT_ID)}
           {...(context === projectId ? dropzone(editKey, null) : {})}
         >
-          <span ref={hereScoped ? marker : undefined} className="icon">▣</span>
+          <span ref={hereScoped ? marker : undefined} className="icon"><Icon name="project" /></span>
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
@@ -711,7 +711,7 @@ export function Files(props: Props) {
                     if (projectId !== context) onOpen(projectId, null);
                   }}
                 >
-                  <span className="view-icon" aria-hidden>{mod.icon}</span>
+                  <Icon className="view-icon" name={mod.icon as IconName} />
                   {" "}
                   {mod.name}
                 </button>
@@ -754,7 +754,7 @@ export function Files(props: Props) {
                     fold(foldKey);
                   }}
                 >
-                  ◫
+                  <Icon name="role_container" />
                 </span>
                 <span className="label">{nameOf(shell, node) || "folder"}</span>
               </div>
@@ -826,26 +826,26 @@ export function Files(props: Props) {
         <span className="title">Explorer</span>
         <span className="actions">
           <button onClick={add} title={plus_title}>
-            ＋
+            <Icon name="add" />
           </button>
           <button
             onClick={() => setEditing(view ?? `proj:${context}`)}
             title="Rename what is open"
           >
-            ✎
+            <Icon name="rename" />
           </button>
           <button onClick={foldAll} title={open.size ? "Fold everything" : "Expand everything"}>
-            {open.size ? "⊟" : "⊡"}
+            <Icon name={open.size ? "fold_all" : "unfold_all"} />
           </button>
           <button
             className={showPorts ? "on" : ""}
             onClick={() => onShowPorts(!showPorts)}
             title={showPorts ? "Hide interfaces" : "Show interfaces"}
           >
-            {showPorts ? "□" : "⊏"}
+            <Icon name={showPorts ? "ports_on" : "ports_off"} />
           </button>
           <button onClick={() => view && onDelete(view)} disabled={!view} title="Delete">
-            ✕
+            <Icon name="remove" />
           </button>
           <button
             className="bound"
@@ -853,7 +853,7 @@ export function Files(props: Props) {
             title={collapsed ? "Show explorer" : "Hide explorer"}
             onClick={() => (setCollapsed((was) => !was), setMenu(null))}
           >
-            {collapsed ? "❯" : "❮"}
+            <Icon name={collapsed ? "pane_show" : "pane_hide"} />
           </button>
         </span>
       </div>

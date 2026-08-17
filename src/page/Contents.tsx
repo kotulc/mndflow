@@ -37,6 +37,7 @@ import { SETS } from "../modules/style";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
 import { defOf, gather, packs, scoped } from "../workspace";
+import { Icon } from "../modules/icons";
 
 /** What a row is, which is also how it is filtered and what it lights. */
 type Sort = "block" | "interface" | "group" | "note" | "relationship" | "definition";
@@ -492,9 +493,7 @@ function ChoicesList({ choices, onChange }: {
               const next = choices.filter((c) => c !== choice);
               onChange(next.length ? next : undefined);
             }}
-          >
-            ✕
-          </button>
+          ><Icon name="remove" /></button>
         </span>
       ))}
       <input
@@ -532,9 +531,7 @@ function TagsEdit({ tags, onChange }: {
               stop(event);
               onChange(tags.filter((t) => t !== tag));
             }}
-          >
-            ✕
-          </button>
+          ><Icon name="remove" /></button>
         </span>
       ))}
       <input
@@ -835,7 +832,7 @@ export function Contents(props: Props) {
       className={`sortable ${by === key ? "on" : ""}`}
       onClick={() => (by === key ? setDown(!down) : (setBy(key), setDown(false)))}
     >
-      {label}{by === key ? (down ? " ▾" : " ▴") : ""}
+      {label}{by === key ? <Icon name={down ? "sort_down" : "sort_up"} /> : null}
     </th>
   );
 
@@ -878,10 +875,8 @@ export function Contents(props: Props) {
             className={opened === row.id ? "on" : ""}
             title="Fields, defaults, and how it draws"
             onClick={stop(() => setOpened(opened === row.id ? null : row.id))}
-          >
-            ✎
-          </button>
-          <button title="Drop this type" onClick={stop(() => onUndefine(row.id))}>✕</button>
+          ><Icon name="rename" /></button>
+          <button title="Drop this type" onClick={stop(() => onUndefine(row.id))}><Icon name="remove" /></button>
         </>
       );
     }
@@ -895,8 +890,10 @@ export function Contents(props: Props) {
         <>
           <button title={`Direction: ${dir}`}
                   onClick={stop(() => onSetDir(row.id, next))}>{ARROW[dir]}</button>
-          <button title="Turn it around" onClick={stop(() => onFlip(row.id))}>⇄</button>
-          <button title="Remove this relationship" onClick={stop(() => onUnlink(row.id))}>✕</button>
+          <button title="Turn it around" onClick={stop(() => onFlip(row.id))}>
+              <Icon name="flip" />
+            </button>
+          <button title="Remove this relationship" onClick={stop(() => onUnlink(row.id))}><Icon name="remove" /></button>
         </>
       );
     }
@@ -922,10 +919,8 @@ export function Contents(props: Props) {
           className={opened === row.id ? "on" : ""}
           title="What it says, and what it carries"
           onClick={stop(() => setOpened(opened === row.id ? null : row.id))}
-        >
-          ✎
-        </button>
-        <button title="Delete it" onClick={stop(() => onDelete(row.id))}>✕</button>
+        ><Icon name="rename" /></button>
+        <button title="Delete it" onClick={stop(() => onDelete(row.id))}><Icon name="remove" /></button>
       </>
     );
   }
@@ -1024,7 +1019,7 @@ export function Contents(props: Props) {
                   onChange={(tags) => setDeclared(def, held.name, { ...held, tags })}
                 />
                 <button title="Remove it"
-                        onClick={() => setDeclared(def, held.name, null)}>✕</button>
+                        onClick={() => setDeclared(def, held.name, null)}><Icon name="remove" /></button>
               </span>
             ))}
             <input
@@ -1181,7 +1176,7 @@ export function Contents(props: Props) {
               <span className="held" key={id}>
                 {nameOf(graph, graph.elements[id])}
                 <button title="Out of the group"
-                        onClick={() => onLeaveGroup(row.id, id)}>✕</button>
+                        onClick={() => onLeaveGroup(row.id, id)}><Icon name="remove" /></button>
               </span>
             ))}
             {held.map((held) => {
@@ -1199,7 +1194,7 @@ export function Contents(props: Props) {
                     tags={held.tags}
                     onChange={(tags) => onUpdateField(row.id, held.name, { tags })}
                   />
-                  <button title="Remove it" onClick={() => onDropField(row.id, held.name)}>✕</button>
+                  <button title="Remove it" onClick={() => onDropField(row.id, held.name)}><Icon name="remove" /></button>
                 </span>
               );
             })}

@@ -9,6 +9,7 @@
 
 import { nameOf, titleOf } from "../../../graph/fold";
 import type { Axis, EdgeForm, Graph, Layout } from "../../../graph/types";
+import { Icon, type IconName } from "../../icons";
 
 /** How many layers of the trail the breadcrumb spells out. Past this the
  *  middle is elided: the project and the last few are what tell you where you
@@ -17,39 +18,37 @@ const TRAIL = 3;
 
 /** The arrangements. Each is a one-time action — press it and the layer is laid
  *  out that way — so none of them lights up: there is no arrangement a layer is
- *  currently *in*. Marks are shape-of-layout, not hatched-square cousins. */
-const LAYOUTS: { shape: Layout; mark: string; word: string; tip: string }[] = [
-  { shape: "grid", mark: "▦", word: "grid", tip: "Arrange as a grid" },
-  { shape: "radial", mark: "⊙", word: "radial", tip: "Arrange around a hub" },
-  { shape: "across", mark: "⇄", word: "across", tip: "Arrange in ranks, across" },
-  { shape: "down", mark: "⇅", word: "down", tip: "Arrange in ranks, down" },
+ *  currently *in*. Each mark is the shape of the layout it makes. */
+const LAYOUTS: { shape: Layout; mark: IconName; word: string; tip: string }[] = [
+  { shape: "grid", mark: "arrange_grid", word: "grid", tip: "Arrange as a grid" },
+  { shape: "radial", mark: "arrange_radial", word: "radial", tip: "Arrange around a hub" },
+  { shape: "across", mark: "arrange_across", word: "across", tip: "Arrange in ranks, across" },
+  { shape: "down", mark: "arrange_down", word: "down", tip: "Arrange in ranks, down" },
 ];
 
-/** Which way the layer reads. A setting, so it does light up. `·` means only
- *  *no axis* — never interfaces-off or all-types. */
-const AXES: { axis: Axis; mark: string; word: string; tip: string }[] = [
-  { axis: "none", mark: "·", word: "none", tip: "No flow direction" },
-  { axis: "across", mark: "→", word: "across", tip: "Flows read across" },
-  { axis: "down", mark: "↓", word: "down", tip: "Flows read down" },
+/** Which way the layer reads. A setting, so it does light up. An axis is an
+ *  arrow; an arrangement is a shape — the two can never be read for each
+ *  other, which is the set's rule applied to the pair that most invites it. */
+const AXES: { axis: Axis; mark: IconName; word: string; tip: string }[] = [
+  { axis: "none", mark: "axis_none", word: "none", tip: "No flow direction" },
+  { axis: "across", mark: "axis_across", word: "across", tip: "Flows read across" },
+  { axis: "down", mark: "axis_down", word: "down", tip: "Flows read down" },
 ];
 
 /** What a right drag makes — shown as a radio pair, never cycled. `tie` has a
  *  gesture of its own; a reference keeps whichever form it was given. */
-const FORMS: { form: EdgeForm; mark: string; word: string; tip: string }[] = [
-  { form: "line", mark: "—", word: "plain", tip: "Right drag makes a plain line" },
-  { form: "directed", mark: "⇥", word: "directed", tip: "Right drag makes a directed flow" },
+const FORMS: { form: EdgeForm; mark: IconName; word: string; tip: string }[] = [
+  { form: "line", mark: "relation_plain", word: "plain",
+    tip: "Right drag makes a plain line" },
+  { form: "directed", mark: "relation_directed", word: "directed",
+    tip: "Right drag makes a directed flow" },
 ];
 
 /** How lines draw — both options visible so the current one is never hidden. */
-const DRAWS: { angular: boolean; mark: string; word: string; tip: string }[] = [
-  { angular: false, mark: "~", word: "curves", tip: "Curves" },
-  { angular: true, mark: "⌐", word: "angles", tip: "Angles" },
+const DRAWS: { angular: boolean; mark: IconName; word: string; tip: string }[] = [
+  { angular: false, mark: "smooth", word: "curves", tip: "Curves" },
+  { angular: true, mark: "angles", word: "angles", tip: "Angles" },
 ];
-
-/** Shorten a type name for the toolbar — long names would dominate the column. */
-function clipped(name: string, at = 14): string {
-  return name.length > at ? `${name.slice(0, at - 1)}…` : name;
-}
 
 export type CrumbsProps = {
   graph: Graph;
@@ -108,9 +107,6 @@ export type TogglesProps = {
   onForm: (form: EdgeForm) => void;
   angular: boolean;
   onAngular: (on: boolean) => void;
-  shown: string | null;
-  kinds: string[];
-  onShown: (next: string | null) => void;
   axis: Axis;
   onAxis: (axis: Axis) => void;
 };
@@ -118,7 +114,7 @@ export type TogglesProps = {
 /** Display settings in vertical subject groups — interface, relation, flow. */
 export function Toggles({
   showPorts, onShowPorts, form, onForm, angular, onAngular,
-  shown, kinds, onShown, axis, onAxis,
+  axis, onAxis,
 }: TogglesProps) {
   return (
     <div className="arrange options">
@@ -129,7 +125,7 @@ export function Toggles({
           onClick={() => onShowPorts(!showPorts)}
           title="Interfaces on the canvas"
         >
-          {showPorts ? "□ interfaces" : "⊏ interfaces"}
+          <Icon name={showPorts ? "ports_on" : "ports_off"} /> interfaces
         </button>
       </div>
 
@@ -143,7 +139,7 @@ export function Toggles({
             onClick={() => onForm(which)}
             title={tip}
           >
-            {mark} {word}
+            <Icon name={mark} /> {word}
           </button>
         ))}
         {DRAWS.map(({ angular: which, mark, word, tip }) => (
@@ -155,32 +151,7 @@ export function Toggles({
             onClick={() => onAngular(which)}
             title={tip}
           >
-            {mark} {word}
-          </button>
-        ))}
-        {/* Which relationship types to draw. All → each known type, both
-            visible; a display preference, not a change to the graph. `∗` is
-            all types — never the axis-none `·`. */}
-        <button
-          type="button"
-          className={shown === null ? "on" : ""}
-          aria-pressed={shown === null}
-          disabled={!kinds.length}
-          onClick={() => onShown(null)}
-          title="All relationship types"
-        >
-          ∗ types
-        </button>
-        {kinds.map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            className={shown === kind ? "on" : ""}
-            aria-pressed={shown === kind}
-            onClick={() => onShown(kind)}
-            title={`Showing only “${kind}”`}
-          >
-            ⊂ {clipped(kind)}
+            <Icon name={mark} /> {word}
           </button>
         ))}
       </div>
@@ -197,7 +168,7 @@ export function Toggles({
             onClick={() => onAxis(which)}
             title={tip}
           >
-            {mark} {word}
+            <Icon name={mark} /> {word}
           </button>
         ))}
       </div>
@@ -220,7 +191,7 @@ export function Arrangements({ onArrange, onRelax }: ArrangementsProps) {
     <div className="shape">
       {LAYOUTS.map(({ shape, mark, word, tip }) => (
         <button key={shape} type="button" onClick={() => onArrange(shape)} title={tip}>
-          {mark} {word}
+          <Icon name={mark} /> {word}
         </button>
       ))}
       <button
@@ -229,7 +200,7 @@ export function Arrangements({ onArrange, onRelax }: ArrangementsProps) {
         onClick={() => onRelax()}
         title="Relax — hand the layer back to the engine"
       >
-        ∿ relax
+        <Icon name="relax" /> relax
       </button>
     </div>
   );

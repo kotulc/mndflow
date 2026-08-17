@@ -3,6 +3,7 @@
  *  The host mounts the lists and wires gestures; this module owns how a layer
  *  becomes those lists — stacking, note sizing, seats, routes, and paint. */
 
+import type { CSSProperties } from "react";
 import type { Edge, Node as FlowNode } from "@xyflow/react";
 
 import type { Picked } from "../../../actions";
@@ -617,7 +618,10 @@ export function edgesOf(
         focusable: true,
         className: `form-${form}${away ? " reaching" : ""}`,
         selected: picked?.kind === "edge" && picked.id === edge.id,
-        style: { stroke: drawn.stroke, strokeDasharray: drawn.dash },
+        // The colour goes through a custom property rather than `stroke`
+        // directly: an inline stroke outranks every selector, so a hover or a
+        // selection could never repaint the line (V.4).
+        style: { "--edge-stroke": drawn.stroke, strokeDasharray: drawn.dash } as CSSProperties,
       } as Edge;
     })
     .filter((e): e is Edge => e !== null);

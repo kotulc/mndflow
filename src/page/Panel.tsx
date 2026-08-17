@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState, type Ref } from "react";
 
 import { Contents } from "./Contents";
 import { Guard } from "./Guard";
+import { Icon } from "../modules/icons";
 import type { Picked } from "../project";
 import type { Dir, Definition, Field, Flow, Graph } from "../graph/types";
 import { childrenOf, nameOf, titleOf } from "../graph/fold";
@@ -138,7 +139,7 @@ export function Panel(props: Props) {
           title={open ? "Hide what this layer holds" : "Everything this layer holds"}
           onClick={() => setOpen(!open)}
         >
-          contents {open ? "▾" : "▴"}
+          contents <Icon name={open ? "more" : "less"} />
         </button>
       </div>
 

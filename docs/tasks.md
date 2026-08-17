@@ -1127,6 +1127,30 @@ rows landed. No remaining Wave U row owns it.
 
 ### V — the shell, second pass
 
+**V.2, V.4, V.11 and V.15 landed** (proven). The icon set lives in
+`src/modules/icons/`: one 24-unit grid, one 1.5 stroke, `currentColor`, and **names that are
+purposes rather than shapes** — `fold_all`, never `minus_box` — which is what stops two meanings
+quietly sharing a drawing. `ViewModule.icon` is a **name into the set**, so U.9's conformance test
+holds unchanged. The chrome carries no Unicode mark at all now.
+
+**It broke its own rule while being written, which is worth keeping.** `plain` and `none` came out as
+the same dash and `directed` and `across` as the same arrow — sitting in adjacent groups, which is
+exactly the failure U.2 existed to end. Relationship forms took end bars, and **a property test now
+holds that no two names draw one path**, so it cannot come back quietly.
+
+**V.4 was an overridden rule, not a missing one.** `compose.ts` set `stroke` inline, and an inline
+style outranks every selector, so the hover rule that had been in `styles.css` all along could never
+apply. The colour goes through an `--edge-stroke` custom property now. The dead `.leg-grab` /
+`.leg-mark` rules — grab bands `Wire` stopped drawing — came out with it.
+
+**V.15 took the whole filter, not just the control**: the `shown` state, the `kinds` list, the
+`shows` predicate and `clipped` are gone and every edge draws. It landed with V.2 because `∗ types`
+was the last Unicode mark in the chrome, and converting a control about to be deleted is waste.
+
+**Still open in the wave**: the view toggle overflows the explorer's width cap — `matrix` clips —
+which is exactly what **V.5** (icon-only) fixes.
+
+
 U made the shell coherent; **V makes it legible and compact**, and every row came from driving the
 built app. Detail is on the rows in [plan.md](plan.md); what belongs here is the five open decisions
 and the two reversals.

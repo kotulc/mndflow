@@ -22,6 +22,6 @@ import { SEQUENCE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "sequence", kind: "behavior", word: "action", icon: "⋮", creates: "action",
+  name: "sequence", kind: "behavior", word: "action", icon: "view_sequence", creates: "action",
   surface: SEQUENCE,
 });
