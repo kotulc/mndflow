@@ -108,6 +108,30 @@ describe("the layer in view", () => {
   });
 });
 
+describe("a container means where to make it, not where to move it", () => {
+  it("fills a container for an action that makes something", () => {
+    const graph = scene();
+    const args = fill(act("create"), at(graph, "a"), supply([], { view: "a" }));
+
+    expect(args.parent).toBe("a");
+  });
+
+  it("leaves it empty for one that already names an element", () => {
+    const graph = scene();
+    // `move` filled from the view moved a thing to where it already was and
+    // spent an undo slot saying nothing.
+    const args = fill(act("move"), at(graph, "a"), supply(["b"], { view: "a" }));
+
+    expect("parent" in args).toBe(false);
+  });
+
+  it("withholds such an action rather than offering a move to nowhere", () => {
+    const graph = scene();
+    expect(fillable(act("move"), at(graph, "a"), supply(["b"], { view: "a", prompts: true })))
+      .toBe(false);
+  });
+});
+
 describe("text is the surface's business", () => {
   it("offers a promptable word to a surface that can ask", () => {
     const graph = scene();

@@ -105,21 +105,33 @@ function remember(logs: Record<string, Step[]>) {
   }
 }
 
-/** Shell colour themes — chrome only; never the `style` component's sets. */
-const THEMES = ["current", "modern", "light"] as const;
-type Theme = (typeof THEMES)[number];
+/** Shell colour themes — chrome only; never the `style` component's sets.
+ *
+ *  Three named looks, in Nextra's order: light, dark, then the slot a *system*
+ *  toggle would hold. `retro` sits there and is the default, but it does not
+ *  read `prefers-color-scheme` — following the operating system would need a
+ *  fourth state, and three concrete looks is what was wanted. */
+const THEMES = [
+  { name: "light", icon: "theme_light", tip: "Light" },
+  { name: "modern", icon: "theme_modern", tip: "Modern — blues" },
+  { name: "retro", icon: "theme_retro", tip: "Retro — green on black" },
+] as const;
+type Theme = (typeof THEMES)[number]["name"];
 
 const THEME_KEY = "mndflow.theme.v1";
 
 function readTheme(): Theme {
   try {
     const raw = localStorage.getItem(THEME_KEY);
-    if (raw === "modern" || raw === "light" || raw === "current") return raw;
+    if (raw === "modern" || raw === "light" || raw === "retro") return raw;
+    // `current` was this look's name before it was called retro; a session
+    // that stored it must not land themeless.
+    if (raw === "current") return "retro";
   } catch {
     // Preference unread; stay on the default.
   }
 
-  return "current";
+  return "retro";
 }
 
 function writeTheme(theme: Theme) {
@@ -715,7 +727,7 @@ export function App() {
               importInput.current?.click();
             }}
           >
-            ⤒
+            <Icon name="import_file" />
             <input
               ref={importInput}
               type="file"
@@ -733,7 +745,7 @@ export function App() {
           </button>
           <button
             type="button"
-            className="word"
+            className="danger"
             onClick={() => say(
               "Discard this workspace? Export it first if you want it back.",
               { label: "discard", run: clearWorkspace },
@@ -741,21 +753,22 @@ export function App() {
             disabled={!held.projects.length && !contextId && !project.steps.length}
             title="Clear the session and start a new workspace"
           >
-            new workspace
+            <Icon name="discard" />
           </button>
 
-          {/* Labelled theme group — shows which is on, never cycles through. */}
-          <span className="themes" role="group" aria-label="Theme">
-            {THEMES.map((name) => (
+          {/* Three looks, shown at once rather than cycled: which one is on is
+              never hidden behind a press. */}
+          <span className="themes compact" role="group" aria-label="Theme">
+            {THEMES.map(({ name, icon, tip }) => (
               <button
                 key={name}
                 type="button"
                 className={theme === name ? "on" : ""}
                 aria-pressed={theme === name}
-                title={`Theme: ${name}`}
+                title={tip}
                 onClick={() => setTheme(name)}
               >
-                {name}
+                <Icon name={icon} />
               </button>
             ))}
           </span>

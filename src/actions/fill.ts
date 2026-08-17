@@ -89,13 +89,22 @@ export function fill(
     Object.values(seed).filter((v): v is string => typeof v === "string"),
   );
   const text = supply.text?.trim() ?? "";
+  // An action naming an existing element relocates it; one that does not is
+  // making something new.
+  const makes = !action.args.some((a) => a.kind === "element" && a.name === "id");
 
   for (const arg of action.args) {
     // `in`, not a null test: a null parent is the root layer, which is filled.
     if (arg.name in args) continue;
 
     if (arg.kind === "element") {
+      // The layer in view means *make it here*, so it fills a container only
+      // for an action that makes something. One that already names an element
+      // — `move` — means *put it there*, which a click cannot say; filling it
+      // from the view would move a thing to where it already is and spend a
+      // step saying nothing.
       if (arg.name === "parent" || arg.name === "owner") {
+        if (!makes) continue;
         args[arg.name] = supply.view;
         continue;
       }

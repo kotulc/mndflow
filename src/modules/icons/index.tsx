@@ -43,6 +43,9 @@ const PATHS = {
   role_interface: "M7.5 7.5h9v9h-9z",
   role_container: "M4 5.5h16v13H4zM4 10.5h16",
   project: "M3.5 5h17v14h-17zM7.5 9h9v6h-9z",
+  // A behavior project holds actions and states rather than parts, so its
+  // mark is the same frame around a run of steps instead of a block.
+  project_behavior: "M3.5 5h17v14h-17zM7 12h3M14 12h3M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3",
 
   // Interfaces drawn on the canvas, or not.
   ports_on: "M6 6h12v12H6zM2.5 12H6M18 12h3.5",
@@ -75,6 +78,18 @@ const PATHS = {
   // groups, so a shared mark would be the one mistake this set exists to stop.
   relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
   relation_directed: "M4.5 8.5v7M4.5 12h13.5M14 8.5l3.5 3.5-3.5 3.5",
+
+  // The three looks. Nextra's shape — light, dark, and the slot a "system"
+  // toggle would use — but ours are three named looks rather than two modes
+  // and a follow, so `retro` sits in that slot without pretending to read the
+  // operating system.
+  theme_light: "M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9M12 2v2.5M12 19.5V22M4.5 12H2M22 12h-2.5M6 6L4.5 4.5M19.5 19.5L18 18M18 6l1.5-1.5M4.5 19.5L6 18",
+  theme_modern: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5",
+  theme_retro: "M5 5h14v10H5zM9 19h6M12 15v4",
+
+  // Discarding a whole workspace. Not a refresh mark — refresh reads as
+  // *reload what is here*, and this drops every open project.
+  discard: "M5 7h14M10 7V5h4v2M6.5 7l1 13h9l1-13M10 11v5M14 11v5",
 
   // How a relationship is drawn.
   angles: "M4 19V8h8V4",

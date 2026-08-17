@@ -165,3 +165,21 @@ describe("adjustments", () => {
     expect(ops(done)).toEqual(["set_side"]);
   });
 });
+
+describe("vocabulary from a prompt", () => {
+  it("reads a typed list as several packages rather than one long id", () => {
+    // Unsplit, "sysml, uml" minted a single id nothing ships, and
+    // `set_vocabulary` replaced the whole import list with it.
+    const done = run("vocabulary", at(graph_of()), { packages: "sysml, uml" });
+    const effect = as_effect(done);
+    const set = effect.mutations.find((m) => m.op === "set_vocabulary");
+
+    expect(set).toBeDefined();
+    expect((set as { vocabulary: string[] }).vocabulary.length).toBe(2);
+  });
+
+  it("still refuses when nothing was typed", () => {
+    expect(is_refusal(run("vocabulary", at(graph_of()), { packages: "  " }))).toBe(true);
+  });
+});
+

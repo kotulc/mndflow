@@ -240,6 +240,40 @@ survives is recorded there rather than here.
 | **Z.8** | One documentation hit in the ranked list, always last, never displacing something actionable |
 
 
+## R — what the closing review found
+
+Nine defects over the three-wave pass. The offered-action list's argument-filling
+layer held most of them, and the fix was one module rather than three patches.
+
+| | Landed |
+|---|---|
+| **R.1** | `fill` / `fillable` on two rules — an element argument takes an **unclaimed** candidate, and one carrying a `form` takes a candidate of that form. A tie can no longer be offered against itself (it wrote a self-loop the door accepted); *Leave group* works instead of refusing "Not a group."; `holder` went optional on `field` / `unfield` so both stop prompting for a raw id (proven) |
+| **R.2** | One home for `ORDER` / `rank` / `fill` / `fillable` — `src/actions/fill.ts`. The three copies had already drifted, which is how one mistake became three bugs; each surface now keeps only what it alone knows, as a `seed`. Dead twin `offered()` deleted |
+| **R.3** | A new project comes into being importing `packages/core/freeform`, so its type picker is not blank. **The first fix was wrong and a property test caught it** — `core/` has no `definitions.yaml`, so each file there is keyed by its own stem and `pkg_core` does not exist (proven) |
+| **R.4** | A prompted rename is checked against the element's own siblings rather than the root layer; `test-ci.mjs` spawns `detached` off Windows so its kill reaches the process group |
+
+**A second review of the sitting found five more, all fixed here**: the terminal
+stole Left and Right from the caret; a prompt for something that is not a name
+(a note's text, a package list) was clash-checked against the layer and silently
+discarded; `vocabulary` read a typed `"sysml, uml"` as **one** bogus id and wiped
+the project's imports; and `move` offered from a menu filled its parent from the
+view, committing a step that moved a thing to where it already was.
+
+
+## V — the shell, second pass
+
+| | Landed |
+|---|---|
+| **V.2** | **One icon vocabulary** — `src/modules/icons/`, a 24-unit grid, 1.5 stroke, `currentColor`, and names that are **purposes rather than shapes** (`fold_all`, never `minus_box`), which is what stops two meanings sharing a drawing. Every surface draws from it and no Unicode mark is left in the chrome. `ViewModule.icon` is a name **into** the set, so U.9's conformance test holds unchanged. *It broke its own rule while being written — `plain` and `none` came out as one dash, in adjacent groups — so a property test now holds that no two names draw one path* (proven) |
+| **V.4** | Relationship lines highlight on hover. **The rule was there all along and was being overridden**: `compose.ts` set `stroke` inline, which outranks every selector. The colour goes through an `--edge-stroke` property now, and the dead `.leg-grab` / `.leg-mark` rules came out with it (proven) |
+| **V.11** | Room above the first project, so the tree clears the explorer bar (proven) |
+| **V.15** | The relationship type filter is gone — the whole row, and with it the `shown` state, `kinds`, the `shows` predicate and `clipped`. Every edge draws. Landed with V.2, since `∗ types` was the last Unicode mark and converting a control about to be deleted is waste (proven) |
+| **V.1** | **The theme toggle is three icon positions** — light, modern (dark), retro (green on black), in Nextra's order with retro **default**. Recorded plainly: retro sits in the slot a *system* toggle would hold but does **not** read `prefers-color-scheme`; following the OS would need a fourth state and three concrete looks was what was wanted. `current` → `retro` migrates, so a stored preference cannot land themeless (proven) |
+| **V.3** | **`new workspace` is a mark** — a discard glyph, **not a refresh**, which reads as *reload what is here* and would be the opposite of dropping every project. It keeps its confirm and takes a warning colour, which is what U.13's word was carrying (proven) |
+| **V.5** | **The view toggle is icon-only**, with U.9's marks and tooltips as the only remaining signal. It clipped `matrix` against the explorer's width cap before; it fits now (proven) |
+| **V.9 + V.10** | **The project root icon says the kind and folds the project** — one span, because `kindOf` was already derived a line above it and ignored. A structure and a behavior project draw differently; clicking the icon folds; **the row click still switches project**, so the two never collide; `⊟`/`⊡` reaches roots too. Projects are open by default — the opposite polarity to a branch, since one that hid its tree on sight would read as empty (proven) |
+
+
 ## D, F, H and the build
 
 | | Landed |

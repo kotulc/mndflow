@@ -1,8 +1,8 @@
-/* Themes are chrome (U.4). `current` is the default greens; `modern` is blues;
+/* Themes are chrome (U.4). `retro` is the default greens; `modern` is blues;
    `light` is a pale shell. Diagram hardcodes stay the engine's — only these
    variables and the few chrome washes that keyed them swap. */
 :root,
-:root[data-theme="current"] {
+:root[data-theme="retro"] {
   --bg: #0a0f0d;
   --surface: #0f1613;
   --border: #1e2f28;
@@ -2158,3 +2158,19 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
 /* On a control that is only its icon, the mark carries the whole button. */
 .files .actions .icon-svg,
 .tools .icon-svg { vertical-align: -0.22em; }
+
+
+/* An icon-only control group — the theme toggle and the view toggle. The mark
+   carries the button, so the padding that made room for a word comes off (V.1,
+   V.5). Tooltips are not optional here: the icon is the only signal left. */
+.themes.compact button,
+.files .themes button {
+  padding: 2px 5px;
+  line-height: 1;
+}
+
+/* The one control that throws work away. A mark alone would not say so, and it
+   is the reason U.13 made it a word — so it keeps a colour instead, and its
+   confirm (V.3). */
+.tools button.danger { color: var(--warn, #c86a6a); }
+.tools button.danger:hover:not(:disabled) { background: var(--hover); }

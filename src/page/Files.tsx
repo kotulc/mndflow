@@ -201,6 +201,9 @@ export function Files(props: Props) {
    *  rearranges itself under you is a tree you cannot keep your place in, and
    *  which branches are worth having open is not something the canvas knows. */
   const [open, setOpen] = useState<Set<string>>(new Set());
+  /** Project roots that are folded. Opposite polarity to `open` on purpose: a
+   *  branch is shut until asked, a project is open until shut. */
+  const [shut, setShut] = useState<Set<string>>(new Set());
   const [held, setHeld] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -379,6 +382,16 @@ export function Files(props: Props) {
     return context === projectId && (elementId === ROOT_ID ? view === null : elementId === view);
   }
 
+  /** Fold or unfold a whole project from its root icon. */
+  function foldProject(key: string) {
+    setShut((prior) => {
+      const next = new Set(prior);
+      next.has(key) ? next.delete(key) : next.add(key);
+
+      return next;
+    });
+  }
+
   function fold(id: string) {
     setOpen((prior) => {
       const next = new Set(prior);
@@ -392,6 +405,12 @@ export function Files(props: Props) {
    *  whether anything is open, so the one control is always the one you
    *  want. */
   function foldAll() {
+    // Projects travel with the branches, or "fold everything" would leave the
+    // roots open and the control would only half mean what it says.
+    setShut((prior) => (prior.size || open.size
+      ? new Set(projects.map((p) => `proj:${p.id}`))
+      : new Set()));
+
     setOpen((prior) => {
       if (prior.size) return new Set();
 
@@ -541,12 +560,14 @@ export function Files(props: Props) {
    *  layer the name has to be free in, and `except` the element already
    *  holding it when this is a rename. */
   function field(initial: string, commit: (value: string) => void, cancel: () => void,
-                 within: string | null = null, except: string | null = null) {
+                 clash: { within: string | null; except: string | null } | null = null) {
     return (
       <NameField
         initial={initial}
         className="rename"
-        taken={(name) => onNameTaken(within, name, except)}
+        // Omitted where nothing competes for the word, which is what stops a
+        // note's text being refused for matching a block's name.
+        taken={clash ? (name) => onNameTaken(clash.within, name, clash.except) : undefined}
         onSay={onSay}
         onCommit={commit}
         onCancel={cancel}
@@ -554,23 +575,24 @@ export function Files(props: Props) {
     );
   }
 
-  /** The layer a prompted name must be unique within. Names are unique per
-   *  layer, so a rename is checked against the element's own siblings — not,
-   *  as it was, against the root, which let a real clash through. */
-  function clash_within(action: Action, args: Args): string | null {
+  /** Where a prompted name has to be unique, or null when the word being asked
+   *  for is not a name at all.
+   *
+   *  Only `create` and `rename` ask for one. A note's text, a field name, a
+   *  type or a package list compete with nothing — checking those against the
+   *  layer would refuse a perfectly good word, and since the field holds on a
+   *  refusal and cancels on blur, the typing would be thrown away. */
+  function clash_of(action: Action, args: Args): { within: string | null; except: string | null } | null {
     const here = graphs[context];
     if (action.name === "create") {
-      return (args.parent as string | null) ?? view ?? null;
+      return { within: (args.parent as string | null) ?? view ?? null, except: null };
     }
-    const id = typeof args.id === "string" ? args.id : null;
-    if (action.name === "rename" && id) return here?.elements[id]?.parent ?? null;
-    return null;
-  }
+    if (action.name === "rename") {
+      const id = typeof args.id === "string" ? args.id : null;
+      if (id) return { within: here?.elements[id]?.parent ?? null, except: id };
+    }
 
-  /** The element being renamed — it does not clash with the name it already has. */
-  function clash_except(action: Action, args: Args): string | null {
-    if (action.name !== "rename") return null;
-    return typeof args.id === "string" ? args.id : null;
+    return null;
   }
 
   /** Rows for one layer of one project. */
@@ -642,7 +664,7 @@ export function Files(props: Props) {
             </span>
             {editing === node.id && context === projectId
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
-                      node.parent ?? null, node.id)
+                      { within: node.parent ?? null, except: node.id })
               : <span className="label">{nameOf(hereGraph, node)}</span>}
           </div>
           {holds && open.has(foldKey) && <ul className="branch">{branch(projectId, node.id)}</ul>}
@@ -668,6 +690,7 @@ export function Files(props: Props) {
     // Kind from the root's definition — three offers, never six.
     const root = here.elements[ROOT_ID];
     const kind = root ? kindOf(viewOf(here, root).module) : "structure";
+    const folded = shut.has(editKey);
     const offers = views().filter((m) => m.kind === kind);
     const shown = shownViews[projectId];
 
@@ -685,7 +708,21 @@ export function Files(props: Props) {
           onContextMenu={(event) => show_offer(event, projectId, ROOT_ID)}
           {...(context === projectId ? dropzone(editKey, null) : {})}
         >
-          <span ref={hereScoped ? marker : undefined} className="icon"><Icon name="project" /></span>
+          {/* The icon folds, as a branch's does, and says which kind of project
+              this is — both from the same span, since a project's kind is
+              already derived one line above rather than stored. */}
+          <span
+            ref={hereScoped ? marker : undefined}
+            className="icon fold"
+            title={folded ? "Unfold this project" : "Fold this project"}
+            onMouseDown={(event) => (event.preventDefault(), event.stopPropagation())}
+            onClick={(event) => {
+              event.stopPropagation();
+              foldProject(editKey);
+            }}
+          >
+            <Icon name={kind === "behavior" ? "project_behavior" : "project"} />
+          </span>
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
@@ -704,7 +741,7 @@ export function Files(props: Props) {
                   type="button"
                   className={shown === mod.name ? "on" : ""}
                   aria-pressed={shown === mod.name}
-                  title={`View: ${mod.name}`}
+                  title={`Show as ${mod.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onShowView(projectId, mod.name);
@@ -712,14 +749,12 @@ export function Files(props: Props) {
                   }}
                 >
                   <Icon className="view-icon" name={mod.icon as IconName} />
-                  {" "}
-                  {mod.name}
                 </button>
               ))}
             </span>
           )}
         </div>
-        <ul className="branch">{branch(projectId, ROOT)}</ul>
+        {!folded && <ul className="branch">{branch(projectId, ROOT)}</ul>}
       </li>
     );
   }
@@ -877,7 +912,8 @@ export function Files(props: Props) {
 
         {adding && (
           <div className="item new">
-            {field("", create, () => setAdding(null), adding.parent)}
+            {field("", create, () => setAdding(null),
+                   { within: adding.parent, except: null })}
           </div>
         )}
 
@@ -908,8 +944,7 @@ export function Files(props: Props) {
                 setPrompt(null);
               },
               () => setPrompt(null),
-              clash_within(prompt.action, prompt.args),
-              clash_except(prompt.action, prompt.args),
+              clash_of(prompt.action, prompt.args),
             )}
           </div>
         )}

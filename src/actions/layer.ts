@@ -136,9 +136,9 @@ const vocabulary: Action = {
   scope: { on: "project" },
   args: [{ kind: "text", name: "packages", prompt: "packages" }],
   check: (_ctx, args) =>
-    asVocabulary(args.packages).length ? null : "Needs a vocabulary.",
+    listed(args.packages).length ? null : "Needs a vocabulary.",
   run: (_ctx, args): Effect => {
-    const packages = asVocabulary(args.packages);
+    const packages = listed(args.packages);
 
     return {
       mutations: [{ op: "set_vocabulary", vocabulary: packages }],
@@ -146,6 +146,20 @@ const vocabulary: Action = {
     };
   },
 };
+
+/** A typed vocabulary is a list of package names, however it was punctuated.
+ *
+ *  `asVocabulary` reads a bare string as *one* id, which is right at the door
+ *  — a legacy file carried a single domain stem — and wrong from a prompt,
+ *  where "sysml, uml" is two. Left unsplit it mints one id nothing ships,
+ *  `set_vocabulary` replaces the whole list with it, and the project's imports
+ *  are gone. */
+function listed(value: unknown): string[] {
+  if (Array.isArray(value)) return asVocabulary(value);
+  if (typeof value !== "string") return [];
+
+  return asVocabulary(value.split(/[,;\s]+/).filter(Boolean));
+}
 
 /** Where a drag came to rest: positions, and any group joined or left.
  *

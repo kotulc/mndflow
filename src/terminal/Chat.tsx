@@ -220,13 +220,16 @@ export function Chat(props: Props) {
   }
 
   function press(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+    // Up and down move the highlight: a one-line field has no use for them.
+    // Left and right belong to the caret — taking them would make the draft
+    // uneditable except by backspacing to the mistake.
+    if (event.key === "ArrowDown") {
       if (!chip_count) return;
       event.preventDefault();
       setHi((n) => (n + 1) % chip_count);
       return;
     }
-    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+    if (event.key === "ArrowUp") {
       if (!chip_count) return;
       event.preventDefault();
       setHi((n) => (n - 1 + chip_count) % chip_count);
