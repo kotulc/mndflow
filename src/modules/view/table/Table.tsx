@@ -1,8 +1,10 @@
 /** The table stage: a panel of rows for one layer, modelled on Contents.
  *
- *  Opens partially (a third of the stage, as the tray does) and expands to
- *  fill it. Hosts the crumbs and types chrome the surface declared — parked
- *  beside the list since A.1. No frame and no camera. */
+ *  **Fills the stage.** Choosing *table* on the project's view toggle is asking
+ *  for the layer as a list, so opening a third full with dead space above it
+ *  answers a different question. It still shrinks back to a panel on the tab,
+ *  which is the size the tray uses. Hosts the crumbs and types chrome the
+ *  surface declared — parked beside the list since A.1. No frame, no camera. */
 
 import { useMemo, useState } from "react";
 
@@ -31,7 +33,7 @@ export type TableProps = {
 export function Table({
   graph, layer, picked, onPick, onOpen, path, onUp,
 }: TableProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [shown, setShown] = useState<string | null>(null);
 
   const trail = path ?? trailOf(graph, layer);

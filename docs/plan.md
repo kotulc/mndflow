@@ -27,8 +27,21 @@ annotated here with one line on what actually landed (or `◐` with the gap name
 two labelled settings groups at the top and the verbs at the bottom, a project that can be made and
 deleted from the tree, and a relation type picked before the drag rather than corrected after it.
 
-**Next**: `R.5`–`R.8` and `R.10` / `R.11`, then **Wave W** (the tray, the table, the heatmap) and
-**Wave X** (the shared capped list). `S7` and `W.1` are the two large structural rows.
+**Next**: **Wave Y** — the options rail, themes that reach the drawing, and the selection defect —
+then `R.5`–`R.8` and `R.10` / `R.11`, then **Wave W** (the tray, the table, the heatmap) and
+**Wave X** (the shared capped list). `S7`, `W.1` and `Y.1` are the three large structural rows.
+
+**`Y.5` and `Y.8` are startable now and touch nothing the rail touches**, so they run alongside it.
+**Y has two independent seams**: `Y.1` (the rail) and `Y.5` (the colour ramp). `Y.2`–`Y.4` wait on
+the first, `Y.6` / `Y.7` on the second, and the two halves never contend for a file.
+
+**`V.19` landed outside the queue** — Clay's UI pass over the finished wave, taken after driving it.
+The view toggle and the theme toggle are each **one cycling icon**; the project row's tools sit
+right and only on the selected project; per-project export wears an **options** mark, a placeholder
+for a menu; the canvas settings **stack in labelled groups** top and bottom alike, `arrange`
+included; `view_block` is a plain square; **table and matrix fill the stage** rather than opening a
+third full. It reverses U.8 a third time and un-inlines V.17 — reasoning in tasks.md, stream V.
+**It left one duplicate visible**, and `W.1a` is the row that closes it.
 
 **Clay-free elsewhere:** `G.9e`, `A.7d`, `T.5`, `U.18`, `Z.9`, `S7`. **Wave U is complete** — U.16
 dropped (*Not in the queue*), `U.18` collects the `◐` gaps U.7 and U.14 left in `App.tsx`.
@@ -120,6 +133,49 @@ can happen again.
 | **R.9** | **The strip at the foot of the stage becomes *what is selected, and what it could be*.** The selection's **name** plus **the types available to it**, capped to a readable number, picked in one click — and the same list on right-click. **It is not only for relationships and ports**: a block, a group and a note answer the same question, so the strip is universal rather than a relationship special case. This is what makes `R.5`'s expansion usable instead of a menu that grows with the vocabulary. **The slot is Contents' slot**, so it opens once `W.1` moves Contents into the table view | `modules/view/diagram/`, `canvas/Canvas.tsx`, `src/styles.css` | R.5, W.1 |
 
 
+## Y — one options rail, and themes that reach the drawing
+
+**Three things, and the rail is the large one.** All four decisions under it were taken by Clay
+after driving V.19; the reasoning is in tasks.md, stream **Y**.
+
+**The rail is a seam, not a control.** Today `modules/view/diagram/chrome.tsx` owns `Toggles` and
+`Arrangements`, and only the diagram has them — a table or a matrix draws its own `.arrange` shell
+with a types cycle in it. A rail fixed to the right of *every* view cannot live in one module, and
+copying it into six is the shape `R.2` exists to remove. **So the rail is page-level and a view
+module declares what goes in it** — which keeps spec.md's *per module: a matrix has no interfaces
+toggle* true, rather than greying out a control that means nothing there.
+
+**`Y.5`–`Y.7` reverse U.4 and one line of CLAUDE.md**, knowingly: *a theme never recolours a card,
+route or frame* is what made `modern` a blue shell around a green diagram.
+
+**The relationship inverts rather than moving.** It was *the definition paints and the theme keeps
+off*; it becomes **the theme owns the palette and a definition chooses within it** — a hue slot and
+an intensity, never a colour. So the two are no longer layered with one winning: they answer
+different questions, which is the only arrangement where a definition cannot look wrong. design.md's
+*a theme is chrome; a style set is content* survives, but *a definition's `style` wins over the
+theme* does not, and `Y.7` is where it goes.
+
+**This is the design-token model** — Radix Colors' fixed-function steps, Material 3's role-and-tone,
+shadcn's semantic variables. Its guarantee is the one wanted here: contrast is a property of the
+step, so *ink on fill is readable* holds in every hue and every theme without anybody checking.
+
+**Watch — the exported SVG.** `svg.ts` hard-codes its own greens, and a downloaded file has no page
+to read a variable from. Whether an export follows the theme it was made in or always renders one
+neutral way is a real question and is **not settled**; `Y.6` inlines whatever the theme resolves to
+and the question is parked in tasks.md rather than answered by accident.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **Y.1** | **Cut the rail seam.** A page-level rail fixed to the right of the stage, rendering the groups the **open view module declares** — so it is one surface whose contents vary, not six copies. `ViewModule` gains a way to say what it offers, beside `surface`; the diagram declares interfaces / draw / relation / flow / arrange and the four move across **unchanged**, words and all. `.arrange.options` and `.shape` go. **Not a rewrite** — same controls, same handlers, one owner. Adding a field to `ViewModule` is not widening a closed set; the module list is closed, a module's own fields are not | `page/`, `modules/view/index.ts`, `modules/view/diagram/chrome.tsx`, `src/styles.css` | ⊘ |
+| **Y.2** | **The rail's own look: a slim column of icons under small group labels.** The group label is the only text; every icon keeps a tooltip. Groups sit **far enough apart to read as separate** — the thing two adjacent unlabelled icon columns get wrong. **The verb group is marked out from the settings**: design.md keeps *toolbars divide by states against verbs*, and a rail of identical groups is exactly what erases that, so `arrange` takes a rule and never lights up. **This reverses U.15's *every control carries a word*** — survivable only because U.9 and V.2 gave every control a distinct icon, which is the same ground V.5 stood on | `page/`, `src/styles.css` | Y.1 |
+| **Y.3** | **The view toggle is the rail's first group, and export joins it — both leave the explorer.** The toggle becomes one icon per view again rather than V.19's cycle, since a column has the room a tree row did not. **This reverses V.6**, which moved export to the explorer on the grounds that the header is workspace-scoped and the explorer project-scoped; the rail is a third scope — *the thing on the stage* — and that is where both belong. The explorer row goes back to a name and its fold icon; `.row-tools` goes | `page/`, `page/Files.tsx`, `src/styles.css` | Y.1 |
+| **Y.4** | **Every other view module declares its groups**, so the rail is genuinely fixed rather than diagram-only. Table and matrix hand over the types cycle they draw in their own `.arrange` shell today and stop drawing one; activity, sequence and state declare what little they have. **The duplicate this removes** is the per-module `.arrange` shell, not the controls | `modules/view/table/`, `modules/view/matrix/`, `modules/view/activity/`, `modules/view/sequence/`, `modules/view/state/` | Y.1 |
+| **Y.5** | **The theme becomes a ramp, not a list of colours.** A **closed set of hue slots** and a **fixed set of steps**, where a step means the same *job* in every slot and every theme — step 2 is a fill, step 6 a border, step 11 ink on either. That is what makes contrast structural rather than checked by eye. The theme owns the mapping; nothing else names a colour. **Also fixes what is missing today**: `modern` and `light` redefine ten variables and never touch `--away`, `--note`, `--error` or `--warn`, so the violet, amber and red are retro's in every theme. **Reserved to the theme and never tunable**: selection, hover, focus, grazing, icons, container child chips, the error and warning roles. **Retro must look identical afterwards** — the acceptance test, because a theme pass that restyles the default look has changed the product | `src/styles.css`, `src/modules/style/` | ⊘ |
+| **Y.6** | **The ~30 hard-coded greens move onto the ramp.** `.card` body `#111a16`, `.card.grazed`, walls and ports `#3a5c4b`, the reference greys, plus `paint.ts`'s `PLAIN` / `AWAY` and `NodeCard.tsx`. Mechanical once `Y.5` exists; it is a separate row because it touches four files and the ramp has to be settled before anything can be moved onto it. **`svg.ts` is included but its open question is not answered here** — it inlines whatever the theme resolves to, and *which* theme an export should carry stays parked | `src/styles.css`, `modules/view/diagram/paint.ts`, `modules/view/diagram/NodeCard.tsx`, `modules/view/diagram/svg.ts` | Y.5 |
+| **Y.7** | **Definitions tune, they do not paint.** `Definition.color?: string` is the one free-form value in the style surface and the only way a definition can look wrong — `line`, `head`, `icon` and `size` are already closed sets or names into one. It is replaced by **a hue slot from the theme's closed set** plus **an intensity step**, so two types still read as different things while neither can be off-palette. **Slot, not intensity alone**: a model needs *requirement* ≠ *part* ≠ *constraint* at a glance, and one hue for everything would lose that. **The other tunables are closed too** — border weight and text emphasis are enumerations (`hairline\|thin\|thick`, `quiet\|normal\|loud`), never free numbers or font names, since a 6px border breaks a visual system as surely as magenta does. **Inclusion stays boolean** (is the type shown, is the icon shown) and is safe as it is. **Schema change with a migration**: `color` is stored, exported and in logs, and `samples/mndflow.json` carries six raw hexes — they map to the nearest slot, or to the default, and `check.ts` heals the old shape | `src/graph/types.ts`, `src/modules/style/`, `src/graph/check.ts`, `samples/`, `docs/definitions.md` | Y.5 |
+| **Y.8** | **A deselected project stops looking selected.** `lit()` falls back to `scoped()` when nothing is chosen, and `.item.active` paints *the open layer* and *the selection* with one treatment — so after a deselect the project root still reads as picked, which is precisely the gesture V.14 made load-bearing. **Two meanings need two looks**: the open layer is where the canvas is pointed, the selection is what an action would act on. Give the open layer the quieter of the two | `page/Files.tsx`, `src/styles.css` | ⊘ |
+
+
 ## W — the tray shows what is in focus
 
 **Contents already *is* the table view.** It is not a thing to move into `modules/view/table/`; it is
@@ -142,6 +198,7 @@ relation kinds*, so a focus-driven tray must not take that capability down with 
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **W.1** | **The tray expands to the full stage**, finishing U.7's `◐`. Contents is the table view at full size — same component, same listing, same filters and sort; the shipped `table` module's own listing is the duplicate and goes. `tray.full` in `styles.css`, and expand covers Contents rather than sitting beside it | `modules/view/table/`, `page/Contents.tsx`, `page/App.tsx`, `src/styles.css` | ⊘ |
+| **W.1a** | **The tray's three sizes, settled.** **Partial is 25% of the stage** by default — `.tray.open` is `33%` today, and the comment there argues for *a third* on grounds (a fixed height beats one that moves with the row count) that 25% keeps; only the number changes, so the drawing gets more of the stage. **Shut is a bar**, one click away on the tab, which already works. **Full is what the view toggle means**: setting a project to `table` makes the listing the stage, and the tray is that listing at full size rather than a second one under it. **This is the row that removes the duplicate V.19 left visible** — a table filling the stage with a `contents` bar still at its foot, both listing the same layer. Do not add a fourth size or a hidden mode: three, and the toggle and the tab are the only two doors | `page/Contents.tsx`, `page/App.tsx`, `src/styles.css` | W.1 |
 | **W.2** | **The two sizes take different inputs, and that is what keeps them honest.** **Full — the `table` view on the stage — shows the layer and everything in it, and the selection does not narrow it.** **Partial — the tray at the foot — is the same table scoped to what is in focus**: its name and available types at the head, its contents as rows. Nothing in focus and the partial tray shows the layer, so the two agree and *expand* is genuinely only a size. This is not the hidden state U.8 rejected — the sizes never disagree about one input, they read different ones. **Recommended for the one case that is not a row filter**: a group or a block with children narrows to rows of the same shape, but a note has text and a leaf block has fields, and Contents already carries an opened-row presentation for exactly that (`styles.css`, *A row opened out*) | `page/Contents.tsx`, `modules/view/table/` | W.1 |
 | **W.3** | **Vocabulary editing needs no new door — deselecting is the door.** Definitions are not the contents of anything, but **the layer listing already holds the types chip** (E.1), and the layer listing is what the tray shows when nothing is in focus. So: click empty space, the tray un-focuses back to the whole layer, and the vocabulary is one chip away. **The tray sits at the foot in every view**, so this is reachable from a block diagram, a matrix or an activity alike — which is what keeps U.11's deletion of `Relations.tsx` honest. **The same gesture as `V.14`**: empty space deselects, on the canvas and in the explorer both, and it is what unlocks *new project* there and *edit the vocabulary* here | `page/Contents.tsx`, `canvas/Canvas.tsx` | W.2 |
 | **W.4** | **Matrix draws a heatmap.** **Hue is the relationship kind and opacity is the count** — transparent at zero, grading up — so both dimensions read at once. **The hue comes from the definition's existing `style`** (`styleOf` / `lookOf`, `styles/sysml.ts`), never a new matrix palette, so the matrix and the diagram cannot disagree and there is no second colour vocabulary to keep. **A cell holding two kinds draws as bands**, one per kind, degrading to a solid cell in the common single-kind case; the strip lists them all on selection | `modules/view/matrix/`, `src/styles.css` | W.1 |
@@ -161,8 +218,9 @@ arrive by decision rather than by the back door.
 ## Wave U — what is left of it
 
 **Wave U landed and is in [landed.md](landed.md).** One row survives it: the two `◐` gaps U.7 and
-U.14 left, both parked on the same words — *App not owned*. **U owns chrome, not the diagram's
-visual language**, and that boundary still holds for Wave V.
+U.14 left, both parked on the same words — *App not owned*. **U's *chrome, not the diagram's visual
+language* boundary held through V and is reversed by `Y.5`** — a theme now supplies the diagram's
+defaults, while a definition's `style` still wins.
 
 | | Does | Owns | Waits |
 |---|---|---|---|

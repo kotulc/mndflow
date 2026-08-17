@@ -15,10 +15,11 @@ with the work — **no count is kept here**, because the last one pinned drifted
 number never meant anything on its own. `src` is grouped by what a thing is for and dependencies run
 one way — see [README.md](../README.md) for the map; every test lives in `tests/` mirroring it.
 
-**Nothing is frozen any more.** The rail was unfrozen with S6; the **visual style** is unfrozen
-now, and it is stream **U**'s subject. One boundary survives the lift: **U owns chrome, not the
-diagram's visual language.** Header, explorer, themes and rail *layout* are U's; what a card, a
-route or a frame looks like stays the engine's and is not U's to retune.
+**Nothing is frozen any more.** The rail was unfrozen with S6; the **visual style** was unfrozen as
+stream **U**. Its boundary — *chrome never recolours a card, route or frame* — held through U and V
+and is **reversed by `Y.5`–`Y.7`**: the theme becomes a ramp of hue slots and fixed-function steps,
+and a definition picks **a slot and an intensity, never a colour**. Presentation still lives on the
+definition — what narrows is what it may say. The default look must not change.
 
 **The rail is detachable.** `project.ts` no longer imports the terminal — question loop registers
 via `looping()` (S6.1). `packages/terms/` holds vocabulary; `Files.tsx` is free of the rail
@@ -1221,12 +1222,125 @@ makes them safe: V.3 its confirm, V.5 its tooltips, which stop being optional.
 **The standing line**: chrome may shrink to icons, but an icon firing a destructive or irreversible
 action needs a word, a tooltip or a confirm.
 
+**A third reversal, V.19, came from driving the finished wave** — Clay's call, taken after seeing
+it. **The view toggle became one cycling icon**, which is what U.8 refused outright and V.5 only
+half-moved toward. The refusal was against *an icon that cycles* hiding which state it is in; that
+does not hold when the icon **is** the state and the tooltip names the next one, and three buttons
+genuinely do not fit a tree capped at `min(280px, 36vw)`. **The two top groups un-inlined** — V.17
+put them side by side, and stacked they match flow and arrange exactly, which is the better rule:
+one settings idiom on the canvas rather than a top one and a bottom one. **Arrange gained a label**
+and both boxes now hug their words. **The per-project export wears an options mark** and is the
+first entry of what will be a menu — recorded as a placeholder so it is not read as finished.
+
+**Watch**: an options icon that fires an export directly is a small lie until the menu lands. It
+keeps a tooltip naming what it actually does, which is the standing line above applied to a mark
+that promises more than it delivers rather than less.
+
+**V.19 also took the theme toggle down to one cycling icon** — the same reversal as the view
+toggle, for the same reason, so the two now read alike. `view_block` became a plain square: it was
+a wide short rectangle, which said *a card* rather than *the block view*, and a square is what the
+other five icons contrast against. **Table and matrix now fill the stage**, since choosing them on
+the view toggle is asking for the layer as a list and a third of the height with dead space above
+it answers a different question; the tab still shrinks them back.
+
+**What V.19 deliberately did not do**, and `W.1a` carries: a table filling the stage **still draws
+the Contents bar at its foot**, both listing the same layer. Making the tray *be* the full-size
+listing rather than a second one under it is W.1's job, and the sizing it settles — **partial 25%,
+shut on the tab, full when the view toggle says `table`** — is W.1a. The 33% comment in
+`styles.css` argues for a fixed height over one that tracks the row count; that argument survives
+the change to 25% intact, so only the number moves.
+
 **`src/styles.css` is V's contended file** — 2,156 lines, and **eight of nine V rows own it**. That
 is the shape `page/Files.tsx` had through Wave U and `Canvas.tsx` / `Contents.tsx` had before their
 seams were cut, and it is now the fourth file to reach that size without one. Rows owning it
 **cannot run in parallel**: either V serialises on purpose, or a seam is cut first. Note the file is
 also where `V.2`'s icon module *would* otherwise land — keeping the set in its own module is the one
 thing in the wave that reduces the pressure rather than adding to it.
+
+### Y — the options rail and the themes
+
+*From driving V.19. Four decisions, all Clay's, all taken before any code. Rows in
+[plan.md](plan.md).*
+
+**The rail replaces three surfaces with one.** Today the canvas has settings top right and verbs
+bottom right, the explorer row carries the view toggle and the export, and table and matrix each
+draw an `.arrange` shell of their own. That is four places to look for *what can I do with what is
+on the stage*. One slim column, fixed right, answers it once.
+
+**It is page-level, and a view module says what goes in it.** The alternative — each module builds
+its own rail — puts the view toggle and the export in six files and is the copy-paste shape `R.2`
+was created to remove. The alternative to *that* — one fixed set everywhere — shows a matrix an
+interfaces toggle that does nothing, and spec.md's *per module: a matrix has no interfaces toggle*
+is the line that stops chrome meaning different things in different views. So: `ViewModule` gains a
+declaration beside `surface`, and the rail renders what it is handed.
+
+**Icons only, under a group label.** This reverses U.15's *every control carries a word, glyph as
+scan aid*, and it only works because U.9 and V.2 spent a wave making every mark distinct — the same
+ground V.5 stood on when the view toggle lost its words. **The risk is not legibility, it is
+grouping**: two unlabelled icon columns next to each other read as one long column, which is why
+the labels and the spacing are part of the row rather than polish after it.
+
+**The verbs keep a boundary.** design.md's *toolbars divide by states against verbs* survived U.15,
+U.16 and V.7 — the arrangements were never allowed to sit among the settings. A rail of identical
+groups is exactly what would erase it, so `arrange` takes a rule of its own and still never lights
+up: there is no arrangement a layer is *in*.
+
+**A theme now reaches the drawing, and U.4 is reversed.** *A theme never recolours a card, route or
+frame* is what made `modern` a blue shell around a green diagram and `light` a pale one around a
+dark canvas.
+
+**The first answer was wrong, and the second is the one built.** *Theme sets the default, a
+definition's `style` overrides it* still lets a definition name `#ff00ff` and be off-palette in
+every theme — it only moves who wins, not whether anything can look wrong. **The arrangement that
+works is that they answer different questions**: the theme owns the palette, and a definition
+chooses **a hue slot and an intensity within it**. Neither overrides the other, so there is no
+combination that comes out wrong.
+
+**This is the design-token model, and it is what modern frameworks converged on.** *Radix Colors* —
+12-step scales where a step number has a fixed **job** (fill, border, ink) in every hue and both
+modes, so contrast is structural. *Material 3* — a role plus a tone, never a literal. *Tailwind /
+shadcn* — semantic name plus intensity, the theme swapping the mapping underneath. The shared rule
+is that **components reference a role and a step, never a value**, and Radix's guarantee is exactly
+the one wanted here: *ink on fill is readable* holds without anybody checking it per theme.
+
+**The codebase is most of the way there already.** `line` (`solid|dashed|dotted`), `head`
+(`none|open|filled|hollow`), `icon` (a name into the U.9 set) and `size` (geometry) are all closed
+or token-like and none of them can be off-palette. **`Definition.color?: string` is the single
+free-form value**, and the only way a definition can look wrong. That is `Y.7`.
+
+**Two of the proposed tunables would still break it**, and are closed for the same reason: **border
+weight** and **text styling**. A 6px border or an arbitrary font wrecks a visual system as surely as
+a bad hue, so both become enumerations rather than free numbers and strings. **Inclusion** — is the
+type shown, is the icon shown — is already safe, being boolean.
+
+**Intensity alone is not enough, and this is the one correction to the shape.** If a definition can
+only set intensity, every type on the canvas carries one hue and *requirement* / *part* /
+*constraint* stop being tellable apart, which is most of what the styling is for. So a definition
+picks **a slot from the theme's closed set** as well — the theme still decides what that slot
+resolves to in retro, modern and light.
+
+**Reserved to the theme, never tunable**: selection, hover, focus, grazing, icons, container child
+chips, error and warning. These are the app speaking about your model rather than the model
+speaking, and a definition that could restyle them could hide the app's own signals.
+
+**`Y.7` is a schema change and needs a migration.** `color` is stored, exported and sitting in
+logs; `samples/mndflow.json` carries six raw hexes. They map to the nearest slot or to the default,
+and `check.ts` heals the old shape the way it heals the others.
+
+**Retro looking identical afterwards is the acceptance test** for the whole group, because a theme
+pass that quietly restyles the default look has changed the product, not the chrome.
+
+**Open — does an exported SVG follow the theme it was made in?** `svg.ts` hard-codes its greens and
+a downloaded file has no page to read a variable from, so `Y.5` has to inline *something*. Three
+answers are defensible: the theme at export time (what you saw is what you get), always one neutral
+set (a diagram in a pull request should not depend on who exported it), or a choice at export. **Not
+settled, and `Y.5` must not settle it by accident** — it inlines the resolved theme and this stays
+open.
+
+**The selection defect is one look doing two jobs.** `lit()` returns the open layer when nothing is
+chosen, and `.item.active` paints both the same, so a deselected project still reads as picked.
+That is not cosmetic here: V.14 made *deselect* the door to a new project and W.3 makes it the door
+to the vocabulary, so a tree that cannot show *nothing is selected* breaks both.
 
 ### T — the suite
 

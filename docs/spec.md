@@ -525,11 +525,12 @@ prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). `Can
 hosts. **Which module mounts** follows the sticky pick when it fits the project kind, else the
 layer's `view.module` (U.8, proven). **Table** — rows pick/open; proxy open withheld (A.1,
 proven). **Matrix** when named (A.2, suite). **Both open as Contents-modelled panel shells**
-(~⅓ of the stage by default; expand fills the stage) and host **A.1's chrome** — crumbs plus a
-types cycle (definition names on table; relationship marks on matrix). Optional `path` / `onUp`;
-when the page omits them, trail and climb derive from the graph (U.7 ◐). Contents and Panel are
-untouched; expand does not yet cover or replace Contents, App does not wire `path`/`onUp`, and
-`styles.css` has no `tray.full`. **Activity** — derived labels and inferred order draw dimmed
+(**filling the stage by default** since V.19 — the tab shrinks them back to ~⅓) and host **A.1's
+chrome** — crumbs plus a types cycle (definition names on table; relationship marks on matrix).
+Optional `path` / `onUp`; when the page omits them, trail and climb derive from the graph (U.7 ◐).
+Contents and Panel are untouched; expand does not yet cover or replace Contents, App does not wire
+`path`/`onUp`, and `styles.css` has no `tray.full` — so a filled table still draws a `contents` bar
+at its foot listing the same layer (`W.1a`). **Activity** — derived labels and inferred order draw dimmed
 (A.7b, proven). **State** — empty infer offer; Reading A/B; DIM (A.8, proven). **Sequence** —
 columns; directed then axis; DIM (A.9, proven). **Parked** on activity: RF framed host; gestures
 on the activity plane; activity-final double ring. The rest of this section is still the target
@@ -701,9 +702,10 @@ derived labels and inferred order draw dimmed (DIM).*
   so chrome cannot steal its room.
 - **The explorer bounds itself** (U.3, proven): width is `min(280px, 36vw)`; it collapses to a
   28px strip (◂/▸) with the tree hidden until reopened; the bar title ellipsizes.
-- **Themes are chrome** (U.4, then V.1, proven): a header group offers `light`, `modern` (blues)
-  and `retro` (green on black); `retro` is the default, and a session that saved the old name
-  `current` reads as `retro`. Palettes are CSS variables selected by `data-theme` on the
+- **Themes are chrome** (U.4, then V.1, V.19, proven): `light`, `modern` (blues) and `retro`
+  (green on black); `retro` is the default, and a session that saved the old name `current` reads
+  as `retro`. **One icon cycles them**, as the project's view toggle does — it wears the look that
+  is on, and its tooltip names the next. The declared order *is* the cycle. Palettes are CSS variables selected by `data-theme` on the
   document; the choice sticks in `mndflow.theme.v1`. Shell overlays take chrome washes from the
   same variables. Root `styles/` (the `style` component) and the diagram's hard-coded colours are
   untouched — a theme never recolours a card, route or frame.
@@ -828,16 +830,27 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   Deleting a project takes `workspace.forget` **and** the keyed log, or a reload brings it back;
   the session pointer goes with it, or the next load opens a ghost id. It is not in the log at
   all, so undo cannot reach it and the confirm is the only thing in front of it.
-- **The project's own export sits on its root row** (V.6, proven), where project scope lives.
+- **The project's own export sits on its root row** (V.6, proven), where project scope lives —
+  behind the options button described below.
 - A role icon precedes every name and doubles as the fold control where there is one — leaf,
   interface, container (U.2, drawn from the V.2 icon set; the grid arrangement is not a tree role).
 - **A project root's icon says its kind and folds the project** (V.9 + V.10, proven) — a structure
   and a behavior project draw differently; clicking the icon folds, while the **row click still
   switches project**, so the two never collide. Projects are open by default: one that hid its
   tree on sight would read as empty.
-- **The view toggle beside the project root is icon-only** (U.8, then V.5, proven) — the modules
-  the project kind offers, each with its U.9 glyph, tooltips the only remaining signal. Sticky per
-  project in `mndflow.view.v1`; writes nothing.
+- **The view toggle is one icon that cycles** (U.8 → V.5 → V.19, proven) — it wears the view that
+  is *on*, and clicking moves to the next the project kind offers. Sticky per project in
+  `mndflow.view.v1`; writes nothing. **This reverses U.8's *not an icon that cycles* deliberately**:
+  three buttons cost width a capped-width tree does not have, and the objection U.8 raised — that a
+  cycling control hides which state it is in — does not apply when the icon *is* the state. The
+  tooltip names both, current and next, so the step is never a guess.
+- **A project row's tools sit right, and only on the selected project** (V.19, proven) — the view
+  cycle and an **options** button, held to the right so names still line up down the left. They
+  show when the project is in context *and* something is picked in it: context alone survives a
+  deselect, and deselecting is the state whose whole point is that nothing is selected (V.14).
+  Picking a block inside the project counts, so they stay reachable while working.
+- **Options is where per-project actions collect.** Today it is the project export alone (V.6);
+  the icon is a placeholder for a menu, so the tooltip still names what it does.
 - Folding is the user's alone; walking into a layer on the canvas never rearranges the tree.
 - One control in the bar opens every branch or closes every branch.
 
@@ -1221,9 +1234,11 @@ about like any other, and the drag sticks.
 - **Canvas options share one design language** (U.15, proven): **every control carries a word**,
   glyph as scan aid; radio rows for the picks, a two-state toggle for interfaces. Settings only —
   not the one-time arrange verbs.
-- **Two labelled groups, inline at the top right** (V.17, proven) — *view* (the interfaces toggle,
-  and curves / angles) and *relation*. Each carries its own label, because with two on one row
-  nothing else says where one ends. They **wrap** rather than reach the crumbs (U.1's rule kept).
+- **Two labelled groups stacked at the top right** (V.17, then V.19, proven) — *view* (the
+  interfaces toggle, and curves / angles) and *relation*. **Every group in both clusters is built
+  the same way**: a label, a rule above it, then its controls in a column — top-right and
+  bottom-right alike, so the canvas has one settings idiom rather than two. Both boxes hug their
+  words; left to stretch, a settings cluster reads as a panel.
 - **The *relation* group picks what the next right drag draws** (V.17a, proven): plain, directed,
   then the relationship types in scope, **capped at three** because it sits inline beside the
   crumbs. Picking a type settles the form too — a definition carries its own. **It writes
@@ -1240,6 +1255,7 @@ about like any other, and the drag sticks.
 - **Flow sits with them, above and divided from them** (V.7, proven) — the axis left the top bar,
   so the top holds settings only. Adjacent but visibly distinct: flow is a *setting* and the
   arrangements are *verbs*, and where distance used to carry that, a group boundary now does.
+  **Both carry a label** — *flow* and *arrange* (V.19) — the same rule the top pair keeps.
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
@@ -1326,6 +1342,9 @@ not delete or rewrite Contents.
 - **Open, it takes a third of the canvas** and the drawing keeps the other two thirds — the drawing
   shrinks and re-centres rather than being covered. Its height does not change with what it
   lists, so filtering never moves a row out from under the pointer.
+  **(planned, `W.1a`)** The partial size becomes **25%**, and a third size — **full** — is what
+  setting the project's view toggle to `table` means. Three sizes, two doors: the tab shuts it, the
+  toggle fills it.
 - **The frame reshapes to the room it is left**, rather than keeping its old proportions and
   letterboxing. How far it can grow is still bounded by the zoom ceiling, so a sparse layer keeps
   room around it instead of being magnified.

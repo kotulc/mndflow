@@ -1624,6 +1624,9 @@ header .tools button.word {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  /* Hug the words. Left to stretch, a settings box reads as a panel rather
+     than a cluster — the bottom-right pair is the width these should be. */
+  width: max-content;
   max-width: calc(50% - 16px);
   max-height: calc(100% - 96px);
   min-width: 0;
@@ -1643,16 +1646,20 @@ header .tools button.word {
   gap: 2px;
 }
 
-/* Stacked groups are divided by a rule above; a row of them is divided by the
-   gap and its own label instead (V.17), so the separator is scoped to the
-   column form rather than left to apply sideways. */
-.arrange:not(.inline) .option-group + .option-group {
+/* Groups stack, and a rule divides them. Each also carries its label (V.17),
+   which is what says where one ends when the rule is not enough. */
+.arrange .option-group + .option-group,
+.shape .option-group + .option-group {
   margin-top: 5px;
   padding-top: 5px;
   border-top: 1px solid var(--divider);
 }
 
 .arrange button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
   flex: none;
   padding: 2px 7px;
   border: none;
@@ -1680,11 +1687,18 @@ header .tools button.word {
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  width: max-content;
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 2px;
   background: var(--chrome);
+}
+
+.shape .option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .shape button {
@@ -2178,11 +2192,10 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
 .tools .icon-svg { vertical-align: -0.22em; }
 
 
-/* An icon-only control group — the theme toggle and the view toggle. The mark
-   carries the button, so the padding that made room for a word comes off (V.1,
-   V.5). Tooltips are not optional here: the icon is the only signal left. */
-.themes.compact button,
-.files .themes button {
+/* An icon-only control group — the theme toggle. The mark carries the button,
+   so the padding that made room for a word comes off (V.1). Tooltips are not
+   optional here: the icon is the only signal left. */
+.themes.compact button {
   padding: 2px 5px;
   line-height: 1;
 }
@@ -2192,18 +2205,6 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
    confirm (V.3). */
 .tools button.danger { color: var(--warn, #c86a6a); }
 .tools button.danger:hover:not(:disabled) { background: var(--hover); }
-
-/* Two settings groups on one row, top right (V.17). Inline so they read as a
-   single bar, and each keeps its own label because with two side by side
-   nothing else says where one ends. `flex-wrap` is what stops them reaching
-   the crumbs on a narrow window — U.1's rule, kept. */
-.arrange.options.inline {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
 
 .group-label {
   display: block;
@@ -2215,21 +2216,22 @@ header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
   opacity: 0.65;
 }
 
-/* Flow joins the arrangements at the bottom right (V.7) but stays its own
-   group: it is a setting and they are verbs, and design.md keeps those apart.
-   The rule that distance used to carry is now a divider. */
-.shape .option-group.flow {
+/* A project row's own tools — the view it is drawn as, and its options. Held
+   to the right so the names still line up down the left however many tools a
+   row carries, and shown only on the project in context, which is the one they
+   would act on. */
+.files .item.root .row-tools {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 2px;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--divider);
+  flex: none;
+  margin-left: auto;
 }
 
-/* The project's own export, beside its view toggle in the tree (V.6). */
-.files .item.root button.ship {
-  margin-left: auto;
+.files .item.root .row-tools button {
   padding: 2px 5px;
   line-height: 1;
+  color: var(--muted);
 }
+
+.files .item.root .row-tools button:hover { color: var(--text); }

@@ -117,26 +117,25 @@ export type TogglesProps = {
   kinds: { name: string; path: string; form: string }[];
 };
 
-/** How many types the inline group shows. It sits beside the crumbs, so it
- *  cannot grow with the vocabulary; the menu and the strip are where the rest
- *  live, with a *More…* of their own. */
+/** How many types the group shows. It stands beside the stage, so it cannot
+ *  grow with the vocabulary; the menu and the strip are where the rest live,
+ *  with a *More…* of their own. */
 const TYPE_CAP = 3;
 
-/** The canvas settings, top right, as two labelled groups side by side.
+/** The canvas settings, top right, as labelled groups stacked in a column.
  *
  *  **View** is how the canvas draws — interfaces on or off, lines angled or
  *  curved. **Relation** is what the next right drag makes: a plain line, a
- *  directed one, then the types the project imports, capped, because the list
- *  grows with the vocabulary and this one sits inline beside the crumbs.
+ *  directed one, then the types the project imports, capped.
  *
  *  Flow leaves for the bottom right (V.7), beside the arrangements, so the top
- *  holds settings only. Each group carries its label — with two groups on one
- *  row, nothing else says where one ends. */
+ *  holds settings only. Every group carries its label and a rule above it, top
+ *  and bottom alike, so the two clusters read as one design. */
 export function Toggles({
   showPorts, onShowPorts, form, onForm, angular, onAngular, kind, onKind, kinds,
 }: TogglesProps) {
   return (
-    <div className="arrange options inline">
+    <div className="arrange options">
       <div className="option-group" role="group" aria-label="View">
         <span className="group-label">view</span>
         <button
@@ -228,19 +227,22 @@ export function Arrangements({ onArrange, onRelax, axis, onAxis }: ArrangementsP
         ))}
       </div>
 
-      {LAYOUTS.map(({ shape, mark, word, tip }) => (
-        <button key={shape} type="button" onClick={() => onArrange(shape)} title={tip}>
-          <Icon name={mark} /> {word}
+      <div className="option-group" role="group" aria-label="Arrange">
+        <span className="group-label">arrange</span>
+        {LAYOUTS.map(({ shape, mark, word, tip }) => (
+          <button key={shape} type="button" onClick={() => onArrange(shape)} title={tip}>
+            <Icon name={mark} /> {word}
+          </button>
+        ))}
+        <button
+          type="button"
+          className="apart"
+          onClick={() => onRelax()}
+          title="Relax — hand the layer back to the engine"
+        >
+          <Icon name="relax" /> relax
         </button>
-      ))}
-      <button
-        type="button"
-        className="apart"
-        onClick={() => onRelax()}
-        title="Relax — hand the layer back to the engine"
-      >
-        <Icon name="relax" /> relax
-      </button>
+      </div>
     </div>
   );
 }

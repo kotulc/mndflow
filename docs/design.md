@@ -329,9 +329,25 @@ collides with itself and takes the stage with it.
   per-definition presentation and means what a *usage* looks like. A theme is what the *page* looks
   like. They are two unrelated things that happen to share a word, and merging them would put a
   user's colour preference where a definition's presentation lives.
-- **A control shows its state rather than cycling it.** An icon that advances through three views on
-  click hides both what is available and what is current; a labelled control says both. Cheaper to
-  read, and it never changes the canvas without saying why.
+- **The theme owns the palette; a definition chooses within it** (Y.5–Y.7, revising U.4). A theme
+  was once held out of the canvas entirely, which left a blue shell around a green diagram and
+  called it a look. **Layering them the other way — definition overrides theme — fixes nothing**,
+  because a definition naming a colour is off-palette however the precedence runs. So they answer
+  different questions instead: the theme is a **ramp of hue slots and fixed-function steps**, and a
+  definition says *which slot, how intense* and never *what colour*. Neither overrides the other,
+  and there is no combination that comes out wrong. The test is that the default theme looks the
+  same before and after.
+- **A definition tunes; it cannot break the system.** Everything it can set is a closed set or a
+  step on a ramp — slot, intensity, border weight, text emphasis, what is shown. Nothing it can set
+  is a colour, a pixel count or a font. **Selection, hover, focus, icons and the error roles are
+  the theme's alone**: those are the app speaking about the model, and a definition able to restyle
+  them could hide the app's own signals.
+- **A control shows its state — by wearing it, or by showing the set.** A labelled row of three
+  says what is available and what is current at once, and is right wherever there is room. Where
+  there is not — a tree row capped at 36vw — **one icon that wears the current state and names the
+  next in its tooltip says the same two things in a third of the width** (V.19). What is refused is
+  the third form: a control that cycles while showing neither, which is what the original rule was
+  written against.
 - **A saved view is a block, not a kind of project.** A block whose definition carries a `view`
   component, holding proxies of what it shows, filed in a folder like anything else. No classifier
   was added, for the same reason *structure* and *behavior* are not classifiers.

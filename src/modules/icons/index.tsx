@@ -89,6 +89,13 @@ const PATHS = {
   theme_modern: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5",
   theme_retro: "M5 5h14v10H5zM9 19h6M12 15v4",
 
+  // What can be done to the thing this sits on. Sliders rather than a gear:
+  // every round mark in this set is already spoken for — `arrange_radial`,
+  // `view_state` and `theme_light` are all a circle with marks around it, and
+  // a gear would be a fourth. Two tracks with a knob on each; the verticals
+  // are what keep it off `view_table`'s three bare lines.
+  options: "M4 8.5h9M17 8.5h3M4 15.5h3M11 15.5h9M15 6.5v4M9 13.5v4",
+
   // Discarding a whole workspace. Not a refresh mark — refresh reads as
   // *reload what is here*, and this drops every open project.
   discard: "M5 7h14M10 7V5h4v2M6.5 7l1 13h9l1-13M10 11v5M14 11v5",
@@ -98,7 +105,7 @@ const PATHS = {
   smooth: "M4 19c5 0 3-14 8-14s3 14 8 14",
 
   // The six view modules (U.9). Distinct at a glance and from everything above.
-  view_block: "M4 7.5h16v9H4z",
+  view_block: "M5 5h14v14H5z",
   view_table: "M4 6h16M4 12h16M4 18h16",
   view_matrix: "M4 4.5h16v15H4zM4 9.5h16M4 14.5h16M9.5 4.5v15M14.5 4.5v15",
   view_activity: "M6 12h4M14 12h4M10 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7",

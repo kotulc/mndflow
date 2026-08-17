@@ -110,11 +110,14 @@ function remember(logs: Record<string, Step[]>) {
  *  Three named looks, in Nextra's order: light, dark, then the slot a *system*
  *  toggle would hold. `retro` sits there and is the default, but it does not
  *  read `prefers-color-scheme` — following the operating system would need a
- *  fourth state, and three concrete looks is what was wanted. */
+ *  fourth state, and three concrete looks is what was wanted.
+ *
+ *  **The order is the cycle**, since one icon steps through them rather than
+ *  three sitting side by side. */
 const THEMES = [
-  { name: "light", icon: "theme_light", tip: "Light" },
-  { name: "modern", icon: "theme_modern", tip: "Modern — blues" },
-  { name: "retro", icon: "theme_retro", tip: "Retro — green on black" },
+  { name: "light", word: "light", icon: "theme_light", tip: "Light" },
+  { name: "modern", word: "modern", icon: "theme_modern", tip: "Modern — blues" },
+  { name: "retro", word: "retro", icon: "theme_retro", tip: "Retro — green on black" },
 ] as const;
 type Theme = (typeof THEMES)[number]["name"];
 
@@ -359,6 +362,9 @@ export function App() {
     document.documentElement.dataset.theme = next;
     return next;
   });
+  /** Where the look sits in the cycle, and where a press sends it. */
+  const themeAt = Math.max(0, THEMES.findIndex((t) => t.name === theme));
+  const themeNext = (themeAt + 1) % THEMES.length;
   /** Which view module is showing, per project — display preference, like ports. */
   const [viewPrefs, setViewPrefs] = useState<Record<string, ViewName>>(readViews);
   /** Something the contents table is pointing at, lit on the canvas without
@@ -822,21 +828,18 @@ export function App() {
             <Icon name="discard" />
           </button>
 
-          {/* Three looks, shown at once rather than cycled: which one is on is
-              never hidden behind a press. */}
+          {/* One icon that cycles, as the project's view toggle does. The mark
+              it wears is the look that is on, so nothing is hidden behind the
+              press; the tooltip names where the next one goes. */}
           <span className="themes compact" role="group" aria-label="Theme">
-            {THEMES.map(({ name, icon, tip }) => (
-              <button
-                key={name}
-                type="button"
-                className={theme === name ? "on" : ""}
-                aria-pressed={theme === name}
-                title={tip}
-                onClick={() => setTheme(name)}
-              >
-                <Icon name={icon} />
-              </button>
-            ))}
+            <button
+              type="button"
+              className="on"
+              title={`${THEMES[themeAt]!.tip} — click for ${THEMES[themeNext]!.word}`}
+              onClick={() => setTheme(THEMES[themeNext]!.name)}
+            >
+              <Icon name={THEMES[themeAt]!.icon} />
+            </button>
           </span>
         </span>
       </header>

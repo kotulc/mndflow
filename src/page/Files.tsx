@@ -719,6 +719,19 @@ export function Files(props: Props) {
     const folded = shut.has(editKey);
     const offers = views().filter((m) => m.kind === kind);
     const shown = shownViews[projectId];
+    // Row tools appear on the selected project only — the project in context
+    // *and* something actually picked in it. Context alone is not enough: it
+    // survives a deselect (V.14 keeps the view where it is), and that is the
+    // state whose whole point is that nothing is selected. Picking a block
+    // inside the project still counts, so the export stays reachable while
+    // working rather than only from the root row.
+    const picked = projectId === context && chosen.length > 0;
+    // One icon that cycles, not one button per view (reverses U.8 and V.5's
+    // row of three). Three sit badly in a capped-width tree, and the icon a
+    // cycling control wears is the view that is on — so it never hides which,
+    // which is the objection U.8 raised against cycling in the first place.
+    const at = Math.max(0, offers.findIndex((m) => m.name === shown));
+    const next = offers[(at + 1) % (offers.length || 1)];
 
     return (
       <li key={projectId} className="project">
@@ -760,42 +773,35 @@ export function Files(props: Props) {
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
-          {offers.length > 0 && editing !== editKey && (
+          {/* The row's own tools, held to the right so the names still line up
+              down the left however many a row carries. The span swallows the
+              row's gestures once, rather than every button repeating it. */}
+          {picked && editing !== editKey && (
             <span
-              className="themes"
-              role="group"
-              aria-label="View"
+              className="row-tools"
               onClick={(event) => event.stopPropagation()}
               onDoubleClick={(event) => event.stopPropagation()}
               onContextMenu={(event) => event.stopPropagation()}
             >
-              {offers.map((mod) => (
+              {offers.length > 1 && next && (
                 <button
-                  key={mod.name}
                   type="button"
-                  className={shown === mod.name ? "on" : ""}
-                  aria-pressed={shown === mod.name}
-                  title={`Show as ${mod.name}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onShowView(projectId, mod.name);
-                    if (projectId !== context) onOpen(projectId, null);
-                  }}
+                  className="views"
+                  title={`Showing ${offers[at]!.name} — click for ${next.name}`}
+                  onClick={() => onShowView(projectId, next.name)}
                 >
-                  <Icon className="view-icon" name={mod.icon as IconName} />
+                  <Icon className="view-icon" name={offers[at]!.icon as IconName} />
                 </button>
-              ))}
+              )}
+              <button
+                type="button"
+                className="ship"
+                title="Export this project (bundles what it depends on)"
+                onClick={() => onExportProject()}
+              >
+                <Icon name="options" />
+              </button>
             </span>
-          )}
-          {projectId === context && (
-            <button
-              type="button"
-              className="ship"
-              title="Export this project (bundles what it depends on)"
-              onClick={(event) => (event.stopPropagation(), onExportProject())}
-            >
-              <Icon name="export_project" />
-            </button>
           )}
         </div>
         {!folded && <ul className="branch">{branch(projectId, ROOT)}</ul>}

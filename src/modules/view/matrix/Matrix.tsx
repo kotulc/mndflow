@@ -1,8 +1,10 @@
 /** The matrix stage: a panel grid for one layer, modelled on Contents.
  *
- *  Opens partially (a third of the stage, as the tray does) and expands to
- *  fill it. Hosts the crumbs and types chrome the surface declared. Axes are
- *  the same members a table would list; cells show relationships. */
+ *  **Fills the stage**, for the reason the table does: a grid is asked for to
+ *  be read across, and a third of the height with dead space above it is the
+ *  worst size for that. Shrinks back to a panel on the tab. Hosts the crumbs
+ *  and types chrome the surface declared. Axes are the same members a table
+ *  would list; cells show relationships. */
 
 import { useMemo, useState } from "react";
 
@@ -30,7 +32,7 @@ export type MatrixProps = {
 export function Matrix({
   graph, layer, picked, onPick, onOpen, path, onUp,
 }: MatrixProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [shown, setShown] = useState<string | null>(null);
 
   const trail = path ?? trailOf(graph, layer);
