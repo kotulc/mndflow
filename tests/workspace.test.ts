@@ -9,7 +9,7 @@ import { compact, fold } from "../src/graph/fold";
 import { saveProject } from "../src/graph/store";
 import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../src/graph/types";
 import {
-  admit, begin, blank, defOf, folder, fork, fromDefs, gather, isLocked, isSelf, load,
+  admit, begin, blank, defOf, extraction, folder, fork, fromDefs, gather, isLocked, isSelf, load,
   mayAdmit, mayName, named, names, opened, pack, packId, packagesOf, packs, read, resolve,
   rootOf, save, scoped, started, stemOf, unlock, writeInto,
 } from "../src/workspace/index";
@@ -485,5 +485,75 @@ describe("packages", () => {
 
     expect(Object.keys(open)).toEqual([id]);
     expect(Object.keys(open[id]!.defs).length).toBeGreaterThan(0);
+  });
+});
+
+
+describe("extraction", () => {
+  /** One project holding a branch, a sibling, a relationship between them and
+   *  one wholly inside the branch. */
+  function scene() {
+    return applied(
+      { op: "set_vocabulary", vocabulary: ["pkg_a"] },
+      { op: "set_def", id: "def_1", name: "Part", form: "block", fields: [] },
+      { op: "add_element", element: element("Branch", { id: "b" }) },
+      { op: "add_element", element: element("Leaf", { id: "l", parent: "b", type: "def_1" }) },
+      { op: "add_element", element: element("Other", { id: "o" }) },
+      { op: "link_elements", edge: { id: "e_in", source: "b", target: "l", type: "", dir: "none" } },
+      { op: "link_elements", edge: { id: "e_out", source: "b", target: "o", type: "", dir: "none" } },
+    );
+  }
+
+  it("carries the subtree, what it is joined to inside, and what it names", () => {
+    const out = extraction(scene(), "b");
+    if ("refuse" in out) throw new Error(out.refuse);
+    const ops = out.mutations.map((m) => m.op);
+
+    expect(ops).toContain("set_def");
+    expect(ops).toContain("link_elements");
+    // One end left behind is one relationship lost, and it is counted.
+    expect(out.lost).toBe(1);
+  });
+
+  it("leaves a relationship with one end behind rather than half-writing it", () => {
+    const out = extraction(scene(), "b");
+    if ("refuse" in out) throw new Error(out.refuse);
+    const linked = out.mutations.filter((m) => m.op === "link_elements");
+
+    // Every edge that travelled has both of its ends among what travelled.
+    const ids = new Set(out.mutations.flatMap(
+      (m) => (m.op === "add_element" ? [m.element.id] : []),
+    ));
+    ids.add(ROOT);
+    for (const m of linked) {
+      if (m.op !== "link_elements") continue;
+      expect(ids.has(m.edge.source) && ids.has(m.edge.target)).toBe(true);
+    }
+  });
+
+  it("makes the block the root when it is promoted, and a child when it is not", () => {
+    const promoted = extraction(scene(), "b", null, "root");
+    const filed = extraction(scene(), "b", null, "child");
+    if ("refuse" in promoted || "refuse" in filed) throw new Error("refused");
+
+    // Promoted, the block amends the destination's root rather than adding one.
+    expect(promoted.mutations.some((m) => m.op === "update_element" && m.id === ROOT)).toBe(true);
+    expect(filed.mutations.some((m) => m.op === "add_element" && m.element.id === "b")).toBe(true);
+  });
+
+  it("adds the source's packages to the destination's rather than replacing them", () => {
+    const destination = applied({ op: "set_vocabulary", vocabulary: ["pkg_b"] });
+    const out = extraction(scene(), "b", null, "child", destination);
+    if ("refuse" in out) throw new Error(out.refuse);
+    const set = out.mutations.find((m) => m.op === "set_vocabulary");
+
+    expect(set && set.op === "set_vocabulary" && set.vocabulary).toEqual(
+      expect.arrayContaining(["pkg_a", "pkg_b"]),
+    );
+  });
+
+  it("says no when there is nothing to take out", () => {
+    expect("refuse" in extraction(scene(), ROOT)).toBe(true);
+    expect("refuse" in extraction(scene(), "nobody")).toBe(true);
   });
 });

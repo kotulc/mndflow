@@ -264,8 +264,9 @@ export function begin(
  *  stood, every relationship with *both* ends inside the subtree, and the
  *  definitions those elements name — without the last, a promoted block would
  *  silently lose its types, which is the same kind of quiet loss the strip
- *  exists to prevent. The package import list travels too, so a type held in a
- *  package still resolves.
+ *  exists to prevent. Packages the source imported travel too, **added to what
+ *  the destination already imports** rather than replacing them, so a type held
+ *  in a package still resolves and the destination keeps its own.
  *
  *  **What does not**: a relationship with one end left behind. That is Clay's
  *  call — nothing stands in for the block it left — so {@link lost} counts them
@@ -275,6 +276,7 @@ export function extraction(
   id: string,
   parent: string | null = null,
   becomes: "root" | "child" = "child",
+  into: Graph = EMPTY,
 ): { mutations: Mutation[]; lost: number } | { refuse: string } {
   const held = from.elements[id];
   if (!held || id === ROOT) return { refuse: "Nothing to take out." };
@@ -303,8 +305,14 @@ export function extraction(
 
   const mutations: Mutation[] = [];
 
-  if (from.vocabulary.length) {
-    mutations.push({ op: "set_vocabulary", vocabulary: [...from.vocabulary] });
+  // **The destination gains packages; it never has them replaced.** Writing the
+  // source's list flat would wipe whatever the destination imported — silent
+  // loss in a part of the project the drag never touched. Import order is kept:
+  // what was there stays where it was, and anything new lands after it.
+  const packages = [...into.vocabulary];
+  for (const held of from.vocabulary) if (!packages.includes(held)) packages.push(held);
+  if (packages.length > into.vocabulary.length) {
+    mutations.push({ op: "set_vocabulary", vocabulary: packages });
   }
 
   for (const key of named) {

@@ -336,6 +336,7 @@ around a green diagram. What is left of the wave is in [plan.md](plan.md):
 | **Y.5** | **The theme became a ramp, not a list of colours.** Six steps meaning the same *job* everywhere (`fill`, `raised`, `line`, `edge`, `dim`, `ink`) across ten slots, computed in `oklch()` from a per-theme lightness ladder — so *ink reads on fill* is arithmetic rather than eyeballed three times. **The chrome moved onto it too**: every chrome variable is an alias for a ramp step, so ~2,000 existing rules were left untouched and the ramp still became the single source. `--line`, `--raised` and `--faint` were used with fallbacks and never defined; they are real now |
 | **Y.8** | **A deselected project stops looking selected.** `lit()` fell back to `scoped()` when nothing was chosen, so the open layer and the selection had one appearance — and deselecting is a gesture the app leans on. `lit()` is the selection alone now and `scoped()` adds an `open` class beside it: open is a wash, selected takes the accent and an inset bar, and they stack. Driven through all four states |
 
+| **Y.6** | **The ~30 hard-coded greens move onto the ramp** — card, walls, ports, references, `paint.ts` and `NodeCard.tsx`, so a card tracks the theme. *Landed short first*, on `svg.ts`. **Closed with `lookNow()`**: it resolves the page's own ramp **through a probe element**, so a file carries `oklch(0.42 0.0855 150)` rather than the authored `calc()` another tool would have to evaluate, and `svgOf` inlines what it is handed. **Not a second palette** — `styles.css` stays the only source, and a caller with no document gets `PAPER`, a look that reads on paper. Driven: exporting in retro and again in light gives two files, neither holding a `var()`. *(Three things came with the first half that the row did not name: 21 `rgba()` literals that were the accent and note-amber wearing an alpha, React Flow's dark-on-white zoom controls, and a fixed near-black surround that sat a pale canvas in a dark box.)* **The look *override* is `Y.6a`**, still queued |
 | **Y.7** | **`color` is dropped and the style component gains the dials.** `Definition.color` was the one free-form value in the style surface and the only way a definition could look wrong. It is gone; `components.style` gains **`slot`** (six hue families) and **`emphasis`** (`quiet\|normal\|strong`, which steps the fill and border take), and a definition that says nothing gets `neutral` / `normal`. **Dropped, not mapped** — `check.ts`'s `healColour` already did exactly this for elements, one function along. `samples/mndflow.json`'s six hexes became six slot picks. **One judgement the row did not settle**: a usage with *no type at all* has no definition to read, so it keeps the engine's own default rather than the neutral slot — otherwise *no type yet* and *deliberately quiet* draw the same (`Look.typed`). Driven: the sample imports, every card follows the theme through all three, and the log carries no colour anywhere |
 | **Y.9** | **Border weight and text emphasis, as enumerations.** `weight` (`hairline\|thin\|thick`) and `voice` (`quiet\|normal\|loud`) under `components.style`, additive and breaking nothing. The numbers stay the stylesheet's (`--weight-*`), so a definition says *thick* and never a pixel count. Driven through the tray's definition editor: all four dials moved every usage at once, and the door refuses `slot: "magenta"` by name. **Named `voice`, not `label`** — `components.card.label` already means *where the label sits*, and one word meaning two things is what U.2 exists to stop |
 
@@ -369,6 +370,32 @@ in one call instead of App doing all four beside an unwired door.
 **`tray.full` went to `W.1`**: nothing anywhere asks for a full tray — no
 control, no state, no class — so the rule would be dead CSS ahead of the door
 that reaches it.
+
+## P — everything is a block
+
+Clay's rule, from playing with the built app: **a project is a block that
+nothing contains**. Making one is making a top-level block; promoting one is
+moving a block to the top. **Settled with it**: a set is a block whose members
+are proxies, derived, drawn with a folder mark — so there is no folder concept.
+The rest of the stream is in [plan.md](plan.md) under stories `ST.1`–`ST.3`.
+
+| | Landed |
+|---|---|
+| **P.1** | **A block can leave a project, and can move between them.** `workspace.extraction()` builds what a subtree needs to stand up elsewhere — the elements, the relationships with **both** ends inside, the definitions those name, and the source's packages **added to** the destination's rather than replacing them. Every row is draggable and the drag carries a **cross-project ref**, which a bare id could never say. **Promoted, the block *is* the project**: it becomes the destination's root rather than landing inside a project of its own name, and everything pointing at it points at root. Promotion goes through `newProject`'s own door (`workspace.begin`), so there is one way to make a project and not two. Driven: `Pump` dragged to the clear space left `Rig` holding `Tank` and became a project — *Pump moved — 1 relationship left behind* — and dragged onto `Yard`'s row it landed there instead; both survive a reload |
+
+**Two bugs the closing review found in it, both fixed with tests.** *(a)*
+`set_vocabulary` was written **flat**, so moving a block into an existing project
+replaced that project's package list with the source's — silent loss in a part of
+the project the drag never touched. It unions now, keeping import order. *(b)*
+The two logs are written one after the other, so a source that turned out to be
+**locked after the destination had already taken the subtree** left the block in
+both projects. The lock is checked before either write.
+
+**Recorded, not fixed**: a copied definition's `extends` can point at a parent no
+moved element named, leaving it dangling. It degrades safely — SC.2's walk ends
+at a missing parent — and `P.12` is where copy-versus-reference is decided
+anyway.
+
 
 ## D, F, H and the build
 

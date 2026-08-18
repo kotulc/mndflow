@@ -291,10 +291,20 @@ name:
   `extraction()` carries the definitions the subtree names and the package
   import list with it.
 
-**Still open on the drop.** A row's tree does not refold until the next click:
-right after a cross-project drag the source still draws the block it no longer
-holds, and a reload or a click puts it right. Data is correct throughout. Park
-it against `T.3`, which is where the explorer gets cover.
+**Two bugs the closing review found, both fixed with tests.** *(a)*
+`set_vocabulary` was written **flat**, so moving a block into an existing project
+replaced that project's package list with the source's — silent loss in a part
+of the project the drag never touched. It unions now, keeping import order.
+*(b)* The two logs are written one after the other, so a source that turned out
+to be **locked after the destination had already taken the subtree** left the
+block in both projects; the lock is checked before either write.
+
+**Recorded, not fixed**: a copied definition's `extends` can point at a parent no
+moved element named, leaving it dangling. It degrades safely — SC.2's walk ends
+at a missing parent — and `P.12` decides copy-versus-reference anyway.
+
+**The refold defect became `P.15`**, not a park: Clay hit it, so it is a row
+under story `ST.1`.
 
 ### The style surface closed
 

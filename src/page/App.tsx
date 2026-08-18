@@ -531,8 +531,18 @@ export function App() {
     const source = graphs[from];
     if (!source) return;
 
+    // **Refuse before either write, never between them.** The two logs are
+    // written one after the other, so a source that turns out to be unwritable
+    // *after* the destination has taken the subtree would leave the block in
+    // both projects at once.
+    if (workspace.isLocked(held, from)) {
+      say("This package is locked.");
+      return;
+    }
+
     const taken = workspace.extraction(
       source, id, into ? parent : null, into ? "child" : "root",
+      into ? graphs[into] : undefined,
     );
     if ("refuse" in taken) {
       say(taken.refuse);
