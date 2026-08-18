@@ -160,6 +160,12 @@ type Props = {
   /** Drop a whole project from the workspace — asks first. */
   onDropProject: (projectId: string) => void;
   onMove: (id: string, parent: string | null) => void;
+  /** Take a block out of one project and into another — or into none, which
+   *  makes it a project of its own. Two steps in two logs (P.1). `into` is the
+   *  layer it lands in, null being the destination's root. */
+  onExtract: (
+    from: string, id: string, into: string | null, parent: string | null,
+  ) => void;
   onRename: (id: string, label: string) => void;
   onRenameProject: (label: string) => void;
   /** The `new` page action — name a project into being. Returns false when the
@@ -183,7 +189,8 @@ export function Files(props: Props) {
   const { showPorts, onShowPorts } = props;
   const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
   const {
-    onDelete, onDropProject, onMove, onRename, onRenameProject, onNewProject, onNameProject,
+    onDelete, onDropProject, onMove, onExtract, onRename, onRenameProject,
+    onNewProject, onNameProject,
     onAct, onUndo, onRedo, undoable, redoable, lastAction,
   } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
@@ -201,6 +208,9 @@ export function Files(props: Props) {
   /** Project roots that are folded. Opposite polarity to `open` on purpose: a
    *  branch is shut until asked, a project is open until shut. */
   const [shut, setShut] = useState<Set<string>>(new Set());
+  /** What is being dragged, as a **cross-project ref** rather than a bare id.
+   *  A drop has to know which log the block is leaving, and a bare id cannot
+   *  say (P.1). */
   const [held, setHeld] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -580,22 +590,40 @@ export function Files(props: Props) {
     setAdding({ parent: plus.parent });
   }
 
-  /** Finish a drag, ignoring drops that would leave the node where it is.
-   *  Moves stay inside the context project — cross-project filing is later. */
-  function drop(into: string | null) {
-    const moved = held && held !== into && (graph.elements[held]?.parent ?? null) !== into;
-    if (moved) onMove(held!, into);
-
+  /** Finish a drag.
+   *
+   *  **Three cases, and only the first is a move.** Within one project it is
+   *  `move` and one step. Into another project, or onto the clear space that
+   *  means *nowhere*, it is an **extraction**: two steps in two logs, because a
+   *  project is a log and nothing spans both (P.1). A drop that would leave the
+   *  block where it already is does nothing. */
+  function drop(intoProject: string | null, into: string | null) {
+    const from = held;
     setHeld(null);
     setOver(null);
+    if (!from) return;
+
+    const { project: source, id } = refAt(from);
+    const home = source ?? context;
+    if (id === ROOT_ID) return;
+
+    if (home === intoProject) {
+      const stays = (graphs[home]?.elements[id]?.parent ?? null) === into;
+      if (!stays) onMove(id, into);
+      return;
+    }
+
+    onExtract(home, id, intoProject, into);
   }
 
-  /** Drop-target wiring shared by the root row and every node row. */
-  function dropzone(id: string, into: string | null) {
+  /** Drop-target wiring shared by the root row and every node row. Every row
+   *  takes a drop now, not only the ones in context — a block that cannot
+   *  cross a project boundary cannot be filed anywhere but where it was made. */
+  function dropzone(id: string, project: string | null, into: string | null) {
     return {
       onDragOver: (event: React.DragEvent) => (event.preventDefault(), setOver(id)),
       onDragLeave: () => setOver(null),
-      onDrop: (event: React.DragEvent) => (event.preventDefault(), drop(into)),
+      onDrop: (event: React.DragEvent) => (event.preventDefault(), drop(project, into)),
     };
   }
 
@@ -665,12 +693,12 @@ export function Files(props: Props) {
               mark ? "open" : "",
               over === foldKey ? "over" : "",
             ].join(" ")}
-            draggable={editing !== node.id && context === projectId}
+            draggable={editing !== node.id}
             onDragStart={(event) => {
-              setHeld(node.id);
+              setHeld(refTo(node.id, projectId));
               // Dropped on another layer's canvas this becomes a reference,
               // which is a mention of the node rather than a move of it.
-              event.dataTransfer.setData(REFERRED, node.id);
+              event.dataTransfer.setData(REFERRED, refTo(node.id, projectId));
               event.dataTransfer.effectAllowed = "all";
             }}
             // Entering a layer opens it: what you asked to look inside of
@@ -687,7 +715,7 @@ export function Files(props: Props) {
             }}
             onDoubleClick={() => context === projectId && setEditing(node.id)}
             onContextMenu={(event) => show_offer(event, projectId, node.id)}
-            {...(context === projectId ? dropzone(foldKey, node.id) : {})}
+            {...dropzone(foldKey, projectId, node.id)}
           >
             <span
               ref={mark ? marker : undefined}
@@ -757,7 +785,7 @@ export function Files(props: Props) {
           }}
           onDoubleClick={() => context === projectId && setEditing(editKey)}
           onContextMenu={(event) => show_offer(event, projectId, ROOT_ID)}
-          {...(context === projectId ? dropzone(editKey, null) : {})}
+          {...dropzone(editKey, projectId, null)}
         >
           {/* The icon folds, as a branch's does, and says which kind of project
               this is — both from the same span, since a project's kind is
@@ -941,6 +969,22 @@ export function Files(props: Props) {
           if (event.target !== event.currentTarget) return;
           if (chosen.length) onChoose([]);
           setMenu(null);
+        }}
+        // **The clear space is *nowhere*, and a block dropped nowhere becomes a
+        // project** — which is the whole of Clay's rule that a project is a
+        // block nothing contains (P.1). It is also the second, visible door to
+        // making one, beside the bar's control.
+        onDragOver={(event) => {
+          if (event.target !== event.currentTarget || !held) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setOver(SHELL);
+        }}
+        onDragLeave={() => setOver(null)}
+        onDrop={(event) => {
+          if (event.target !== event.currentTarget) return;
+          event.preventDefault();
+          drop(null, null);
         }}
       >
         <ul className="roots">

@@ -18,7 +18,34 @@ owns so two owners never collide.
 annotated here with one line on what actually landed (or `◐` with the gap named). See
 [CLAUDE.md](../CLAUDE.md). Do not move rows into `landed.md` during a sitting.
 
+**A row being done does not finish a *story*.** A story is a goal somebody has; it spans several
+rows, and **only Clay closes it**, after driving it himself. See *Stories* below — rows land, the
+story gets closer, and a green suite never closes one.
+
 **A row that landed short stays here as `◐`.** The rest of it is still work.
+
+
+## Stories
+
+**A story is a goal somebody has, not a chunk of work.** Rows say what to build; a story says what
+has to be *true for a person* before any of it counts. One story spans several rows and often
+several waves.
+
+**A story is finished only when Clay says it is.** Rows land the ordinary way — suite, `tsc`, the
+browser drive, docs. **That makes the row done and the story only closer.** When every row under a
+story has landed, it goes to Clay to be driven, and he closes it or sends it back with what is still
+wrong. **Nobody else marks a story done**, and a green suite never does.
+
+**Why**: every real defect this project has had came from driving the built app, not from the suite —
+and a row can land exactly as written while the thing it was part of is still unusable. `V.14`'s
+`＋` did name a project, correctly, behind a gesture nobody could see. The rows were done; the story
+was not.
+
+| | The goal | Rows | State |
+|---|---|---|---|
+| **ST.1** | **Reorganising is easy.** Move a block anywhere it could sensibly go — into another branch of the same project, into a different project, or out to the workspace — and see where it is going to land while dragging. Nothing announces itself afterwards, because the move was obvious as it happened | `P.1` ✓, `P.13`, `P.14`, `P.15` | rows landing |
+| **ST.2** | **A saved view is worth saving.** Pick a cross-section of several projects, keep it, name it, come back to it, and read it as a requirements table or an allocation matrix | `P.4`, `P.5`, `P.7`, `P.8`, `P.9` | not started |
+| **ST.3** | **Nothing is unreachable.** Every kind of thing the app can hold can be made from the app: a project, a set, a behavior. None of them needs an invisible gesture or an import | `P.2`, `P.3`, `P.6`, `P.10` | not started |
 
 
 ## What is startable now
@@ -26,7 +53,11 @@ annotated here with one line on what actually landed (or `◐` with the gap name
 **Everything that has landed is in [landed.md](landed.md)** — waves U, T, Z and V whole, the R
 review, and Y's rail and ramp. This file is what is left.
 
-**Startable with nothing in the way:** `P.1` (a block can leave a project), `Y.6a` (the export's
+**Story `ST.1` is the live one** — *reorganising is easy*. `P.1` landed under it; `P.13`, `P.14` and
+`P.15` are what is left, and **the story closes only when Clay drives it**, not when they land.
+
+**Startable with nothing in the way:** `P.13`, `P.14`, `P.15` (story `ST.1`), `P.2` and `P.6` (story
+`ST.3`), `P.11` and `S8.1` (both small), `Y.6a` (the export's
 look override), `Y.10` (one panel edge, one panel label), `W.1` (the tray at full size), `T.5` (the
 DOM harness) then `T.3` (the page suite), `Z.9` (trim the rail), `S7` (the `Files.tsx` seam).
 
@@ -274,19 +305,103 @@ container and interface have theirs; **a set has none and a behavior's cannot be
 property test already holds that no two icon names draw one path; the missing half is that every
 role *has* one.
 
-**One thing option B does not cover, and it should be said now.** A set holds proxies of **whole
-blocks**. *These three fields of those five blocks* — a column selection — is a different shape, and
-a requirements table may well want it. Not scheduled, not designed; recorded so it arrives by
-decision rather than by the back door.
+
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **P.1** | **A block can leave a project, and can move between them.** The explorer's drop targets stop being *this project only*: a row in **any** open project accepts a drop, and **the empty tree area accepts one too** — which is what makes a block into a project. Extraction is two steps in two logs: the subtree is written into a new log through `writeInto`, and the source deletes it through the cascade `delete` already has. **The strip names what went with it**, since relationships to the block are lost and that must not be silent | `page/Files.tsx`, `page/App.tsx`, `workspace/` | ⊘ |
+| **P.1** | **A block can leave a project, and can move between them.** The explorer's drop targets stop being *this project only*: a row in **any** open project accepts a drop, and **the empty tree area accepts one too** — which is what makes a block into a project. Extraction is two steps in two logs: the subtree is written into a new log through `writeInto`, and the source deletes it through the cascade `delete` already has. **The strip names what went with it**, since relationships to the block are lost and that must not be silent **Landed (proven)**: `workspace.extraction()` builds what a subtree needs to stand up elsewhere — the elements, the relationships with **both** ends inside, the definitions those name and the package list, so a promoted block does not silently lose its types. Every row is draggable now and the drag carries a **cross-project ref** rather than a bare id, which is what a bare id could never say. **Promoted, the block *is* the project**: it becomes the destination's root rather than landing inside a project of its own name, and everything pointing at it points at root. Promotion goes through `newProject`'s own door (`workspace.begin`), so there is one way to make a project and not two. Driven: `Pump` dragged to the clear space left `Rig` holding `Tank` and became a project, with the strip saying *Pump moved — 1 relationship left behind*; dragged onto `Yard`'s row it landed there instead. Both survive a reload | `page/Files.tsx`, `page/App.tsx`, `workspace/` | ⊘ |
 | **P.2** | **The explorer bar gains a visible way to make a project.** Today the only route is *deselect, then `＋`*, and the deselect is invisible — which is how Clay came to believe projects could not be made at all. One control that makes one outright, no gesture first. **One control, not two**: under model B a folder *is* a set of projects, so there is nothing else for a second icon to make | `page/Files.tsx`, `src/modules/icons/` | ⊘ |
 | **P.3** | **Nothing anywhere special-cases making a project.** With `P.1` and `P.2` landed, `infer` (`A.7d`), a dropped block and the bar's control all reach the same door, and the door is *a block at the top level*. This row is the check that they do — if any caller still needs its own path, the rule has not landed | `src/actions/`, `page/` | P.1, P.2 |
 | **P.4** | **Save a cross-section as a set.** With a cross-project selection made, one action mints a block holding a proxy of each — the general form of what `infer` already does for behaviour, taking the same `of[]` argument. It opens like any project, and its view module decides whether it reads as a **requirements table** or an **allocation matrix**. **Prefer generalising `infer` to registering a second action**: the action set is closed, and *one registered action offered N times* is the wording `R.5` already established. If it will not generalise cleanly, that is a gate, not a licence to add one | `src/actions/`, `page/Files.tsx` | P.1 |
 | **P.5** | **Every node role carries a mark of its own, and a set gets the folder.** `role_of` gains one line — *its members are proxies* — and the explorer draws that with a **folder** icon, since a set of projects and a folder are the same thing under model B. **The gap this closes is a rule, not one icon**: block, container and interface are marked and a set is not, so two different things read alike. **V.2's property test holds that no two names draw one path; the other half is that every role has one**, which is what to add to the icon conformance test | `page/Files.tsx`, `src/modules/icons/`, `tests/modules/icons.test.ts` | P.4 |
 | **P.6** | **A project can be made a behavior — nothing can today.** Found while answering *I cannot create sets or behaviors*: **nothing anywhere writes `components.view.module`**, and `offered(graph)` filters the view toggle to the modules of the project's own kind, where kind is read back off that same key. A fresh project's root has no definition, so it is `block`, so it is *structure*, so activity / sequence / state are never offered — **a one-way door with nothing that opens it**. The only behavior projects that can exist are `infer`'s, and those are unreachable (`A.7d`). Give the root's kind a door: setting it is `define` on the root's own definition, which is built — what is missing is a control that reaches it | `page/Contents.tsx`, `page/Files.tsx` | ⊘ |
+
+
+### Columns are the table's and the matrix's, not the set's
+
+**What model B does not cover**: a set holds proxies of **whole blocks**. *These three fields of
+those five blocks* is a **column** selection, and it is a different shape.
+
+**Settled — it belongs to the view module, not to the set.** Clay's call. A set says *which things*;
+the table and the matrix say *which of their properties to show*. Keeping them apart is what stops a
+set from having to know it is going to be drawn as a table.
+
+**And composing one is a drag.** Dragging a block from the tree onto the stage is how a set gets its
+members, which makes that gesture load-bearing rather than a convenience. **It half exists**: the
+block canvas already takes a `REFERRED` drop and turns it into a proxy through `refer` — but
+**a row is `draggable` only when its project is the one in context**, and the payload is a **bare
+element id** rather than a cross-project ref, so neither end of the cross-project case works. `refer`
+itself already accepts `{ project, element }`; nothing hands it one.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **P.7** | **A block dragged from the tree lands on whatever is on the stage.** Two halves, both real gaps. **The payload becomes a cross-project ref** (`refTo`) rather than a bare id, and every row is draggable rather than only the ones in context — without both, a set cannot be composed from more than one project, which is the whole point of it. **And table and matrix take the drop**, which they do not today: they have no drag handling at all, while the block canvas has had `onRefer` since G. One gesture, three surfaces, one action (`refer`) | `page/Files.tsx`, `modules/view/table/`, `modules/view/matrix/`, `page/App.tsx` | P.1 |
+| **P.8** | **A table's columns are chosen.** They are fixed at `form / name / type` today, which is the one thing a requirements table cannot live with. Columns are the **fields in scope** across the rows, picked from a list; `form / name / type` stay as the default set rather than as the only one. **`components.card.shows` is the precedent and not the mechanism** — that is one definition saying what its own card shows; this is one *view* saying what its columns are, so it is the table's state and not a definition's | `modules/view/table/`, `page/Rail.tsx` | P.7 |
+| **P.9** | **A matrix's axes and kinds are chosen.** Rows against columns is one reading of a set; *these blocks against those requirements* is the one an allocation view needs. Which relationship kinds count is the same question the heatmap asks, so **`W.4` and this row are one design and should land together or in order** — do not let two different answers to *which kinds* appear | `modules/view/matrix/`, `page/Rail.tsx` | P.7, W.4 |
+
+
+### The workspace is the root, and it is already a project
+
+**Checked, not assumed.** Clay's reading is not a new idea to encode — **it is the built model with
+no door on it**, which is the shape of every gap this stream has found.
+
+| Clay's reading | What is already true |
+|---|---|
+| The workspace is the true root | `Held.id` **is a project id**; its graph is keyed and folded from its own log like any other (`graphOf(held.id)`) |
+| It keeps its own history | it already does — `admit`, `forget` and `folder` write steps into it |
+| It works the same way as a project | actions.md already says so: *"**The workspace is a project**, so working in it uses these same actions… It has no actions of its own"* |
+| I should be able to open it as a block diagram | **this is the gap.** It is never `contextId` and has no row of its own, so it can never be on the stage |
+
+**Where the line between the two histories falls is already decided, and it is sharper than
+*cross-project actions*.** The rule is `workspace/`'s own first paragraph: **a change is recorded
+where its element lives**, through `Effect.into` / `writeInto`. Admitting a project writes the
+workspace's log because *the proxy is the workspace's element*. Renaming a block writes that
+project's log because *the block is its element*. A relationship reaching across writes the log of
+whoever holds the **edge**. Nobody decides case by case, and no action needs to know it is a
+cross-project one.
+
+**And import / export falls straight out of it**, which is why the two doors already differ: a
+project export is one log; a workspace export is the workspace's log plus the logs it names (S4.6).
+Nothing to design — the rule was there first.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **P.10** | **The workspace opens like anything else.** `P.13` found its door — the panel's own title — so this row is the half behind it: `contextId` may be `held.id`, and the stage draws the workspace's graph. It gets a row of its own at the top of the tree, it can be selected, and selecting it puts **its** graph on the stage — a block diagram of the projects it holds, with the proxies as cards and the imports as lines. **Nothing new is stored**: its log, its graph and its actions all exist; what is missing is that `contextId` can never be `held.id` and the tree draws its contents without ever drawing it. **Watch**: the explorer must not then draw the workspace twice, once as a root and once as the tree it already is | `page/Files.tsx`, `page/App.tsx` | ⊘ |
+| **P.11** | **The rule that draws the line gets written down and held.** *A change is recorded where its element lives* is implemented and is **in a module comment**, which is where a rule goes to be forgotten. It belongs in design.md, and it belongs in a property test — *every mutation lands in the log of the project holding the element it names* — which is the one assertion that would catch a future action writing to the wrong log, as `R.10` did | `docs/design.md`, `tests/workspace.test.ts` | ⊘ |
+| **P.12 ◆** | **A definition that travels: copied, or referenced?** `P.1` made a promoted subtree **copy** the definitions it names, so its types survive. But a **package** is referenced by path and never copied, deliberately — *nothing is copied into a consumer's `defs`, so two packages offering the same name cannot shadow each other*. **That is two mechanisms for one idea**, and it arrived by accident in `P.1` rather than by decision. Referencing instead would make the source project a package to the new one, which is more consistent and creates a dependency where there was none. **Clay's call** | `workspace/`, `src/graph/types.ts` | ◆ |
+
+
+### Reorganising — what driving it turned up
+
+**Clay drove `P.1` and it is not finished.** The move works; using it does not. Four things, and they
+belong to story **`ST.1`**.
+
+**The panel visualises the workspace, so it should say so.** *Explorer* names the panel; **Workspace**
+names what is in it. The two can both be true — the panel stays the explorer in conversation — but
+the word at the top of it is the thing being shown, and that is the workspace. **Its header is then
+the workspace's own row**, which is the door `P.10` was looking for: select it and the workspace
+draws on the stage as a block view of the projects it holds.
+
+**The drag says nothing about where it will land.** The canvas has grazing, a `dropping` outline and
+a lit target; the tree has one flat dashed outline (`.item.over`) that says *this row* and never
+*into this branch* versus *beside it*. **And a folded branch never opens under the pointer**, so a
+nested target cannot be reached at all — which is why nesting by drag reads as impossible. **It is
+not a logic gap**: `move` accepts it, and refuses only a move into itself or into a reference. The
+gap is that nothing tells you where you are.
+
+**A cross-project drop looks like nothing happened.** The source tree keeps drawing the block until
+something else forces a refold, so the move only appears once the target project is opened. Parked
+against `T.3` when it was found; Clay has hit it, so it is a row.
+
+**And the strip should stop announcing a plain move.** `P.1` says *Pump moved* after every one, which
+is noise if the move was obvious as it happened — Clay's call. **The loss is not noise**: a
+relationship left behind is still said, because that is the one thing the gesture does not show.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **P.13** | **The panel is titled *Workspace*, and its title is the workspace's row.** The word at the top names what is shown rather than the panel showing it; *explorer* stays the name of the pane. **Selecting it puts the workspace on the stage** as a block view of the projects it holds — which is `P.10`'s door, found rather than invented. **Watch**: the header is a heading today and a row is a selectable thing, so it takes the selection treatment `Y.8` settled — the wash for open, the accent for selected — or it will be a title that mysteriously highlights | `page/Files.tsx`, `src/styles.css` | ⊘ |
+| **P.14** | **A drag says where it will land, the way the canvas does.** Three things the tree lacks and the canvas has: the target **lights as a target** rather than wearing one flat outline; *into this branch* and *beside it* look different, since they are different drops; and **a folded branch opens when the pointer rests on it**, which is what makes a nested target reachable at all. **`move` already accepts nesting** — this is entirely feedback, so the acceptance is *drag a block into a folded branch three levels down without guessing* | `page/Files.tsx`, `src/styles.css` | ⊘ |
+| **P.15** | **A drop is visible immediately, and says nothing afterwards.** The source tree refolds on the drop rather than on the next click, so a block that moved looks moved. **And the strip stops announcing a plain move** (Clay's call — a fluid gesture needs no receipt), while still saying when a relationship was **left behind**, since that is the part the gesture cannot show | `page/Files.tsx`, `page/App.tsx` | P.1 |
 
 
 ## Wave U — what is left of it
@@ -380,6 +495,42 @@ time nothing else owns it. The next thing to reach in should find a seam already
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **S7** | **Cut the `page/Files.tsx` seam.** Take the split from what the file actually does rather than from line count: the tree and its rows, the naming prompt, the offer menu, and the foot (undo / redo / last action) are four jobs in one file. **Not a rewrite** — the same behaviour, moved, with the browser drive proving each half still works. Fold in the duplicated `ORDER` while here if it falls out naturally; do not go looking for it | `page/Files.tsx` | ⊘ |
+
+
+## S8 — one word, one meaning
+
+**Clay asked whether the language is getting in the way. It is, and it is measurable.**
+[definitions.md](definitions.md) holds **149 terms**, and three of the most-used ones mean three
+different things each. This is the rule `U.2` set for icons — *no mark means two things* — never
+applied to the words.
+
+| Word | Means | And also | And also |
+|---|---|---|---|
+| **context** | `actions.Context` — where an action is being run | `contextId` — which project's log is written to | definitions.md: *what is selected within the layer* |
+| **view** | `view: string \| null` — the open **layer's** id | a **view module** — one of the six | *layer view* — the projection of a layer |
+| **scope** | definitions.md: *the layer being drawn* | `Scope` — where an action applies | *packages in scope* |
+
+**None of these is a subtlety.** Reading `ctx.view` as *the module* rather than *the layer* is a
+mistake anyone makes once, and `context` naming both *the project being written to* and *what is
+selected* is exactly the confusion that produced `R.10`.
+
+**The renames are mechanical and the words already exist.** definitions.md says a layer *is* the
+current scope and the code already calls the selection `picked`:
+
+| Now | Becomes | Why |
+|---|---|---|
+| `view: string \| null` | **`layer`** | it **is** the layer; the glossary already says so, and it frees *view* for the module |
+| `contextId` | **`project`** / `openProject` | it is which project is open, and nothing else |
+| definitions.md *context* | **`selection`** | the code has called it `picked` all along |
+
+**Cost, measured**: `view` appears **257 times** under `src/`, `contextId` **29**. The first is big
+enough to be its own row and to want the browser drive after it, which is why they are split.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **S8.1** | **`contextId` → `project`, and definitions.md's *context* → *selection*.** 29 call sites and one glossary row. The small half, done first so the big one lands against settled words | `page/`, `src/project.ts`, `docs/definitions.md` | ⊘ |
+| **S8.2** | **`view` → `layer` wherever it means the open layer**, leaving *view* to the module alone. 257 sites, almost all mechanical, but `ViewModule` / `viewOf` / `views()` must **not** be caught in it — which is the whole reason the rename is worth doing. **Drive it after**: a wrong rename here silently opens the wrong layer, and no test covers the page | `src/`, `docs/` | S8.1 |
+| **S8.3** | **The glossary is distilled.** 149 terms is more than anyone holds, and a term nobody uses is a term that drifts. Keep what the code names or a decision turns on; fold the rest into the entries they qualify. **Not a deletion pass for its own sake** — the test is *could somebody read this in a few minutes*, which is the standard CLAUDE.md already sets for every doc | `docs/definitions.md` | S8.2 |
 
 
 ## Not in the queue

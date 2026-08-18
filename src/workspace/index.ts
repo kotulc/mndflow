@@ -22,7 +22,7 @@
  *  Nothing here draws the explorer, the tray, or an export bundle. */
 
 import { entering, type Fault } from "../graph/check";
-import { compact, fold, nextNum, titleOf } from "../graph/fold";
+import { compact, descendsFrom as descends, fold, nextNum, titleOf } from "../graph/fold";
 import { loadProject, loadWorkspace, saveProject, saveWorkspace } from "../graph/store";
 import {
   EMPTY, ROOT, asTarget, asVocabulary, defIdFor, definition, element, field, newId,
@@ -250,6 +250,98 @@ export function begin(
     steps: started(name),
     mutations: admitted.mutations,
   };
+}
+
+/** Everything a block's subtree needs to stand up in another project's log.
+ *
+ *  **A project is a log, not only a place**, so a block cannot simply *move*
+ *  between two: it is written into the destination and deleted from the source,
+ *  as two steps in two logs. This half builds the writing; the deleting is the
+ *  ordinary `delete` action, which already cascades to descendants and sheds
+ *  what the block was joined to.
+ *
+ *  **What travels**: the block re-parented to `parent`, every descendant as it
+ *  stood, every relationship with *both* ends inside the subtree, and the
+ *  definitions those elements name — without the last, a promoted block would
+ *  silently lose its types, which is the same kind of quiet loss the strip
+ *  exists to prevent. The package import list travels too, so a type held in a
+ *  package still resolves.
+ *
+ *  **What does not**: a relationship with one end left behind. That is Clay's
+ *  call — nothing stands in for the block it left — so {@link lost} counts them
+ *  and the caller says so. */
+export function extraction(
+  from: Graph,
+  id: string,
+  parent: string | null = null,
+  becomes: "root" | "child" = "child",
+): { mutations: Mutation[]; lost: number } | { refuse: string } {
+  const held = from.elements[id];
+  if (!held || id === ROOT) return { refuse: "Nothing to take out." };
+
+  const moving = Object.values(from.elements)
+    .filter((node) => descends(from, node.id, id));
+  const inside = new Set(moving.map((node) => node.id));
+
+  // **Promoted, the block *is* the project** — Clay's rule that a project is a
+  // block nothing contains. So it becomes the destination's root rather than
+  // landing inside a project of the same name, and everything that pointed at
+  // it points at root instead.
+  const at = (node: string) => (becomes === "root" && node === id ? ROOT : node);
+
+  const edges = Object.values(from.edges);
+  const travelling = edges.filter((e) => inside.has(e.source) && inside.has(e.target));
+  const lost = edges.filter(
+    (e) => inside.has(e.source) !== inside.has(e.target),
+  ).length;
+
+  // Only the definitions this subtree actually names, so a promotion does not
+  // drag a whole vocabulary along with it.
+  const named = new Set<string>();
+  for (const node of moving) if (node.type) named.add(node.type);
+  for (const edge of travelling) if (edge.type) named.add(edge.type);
+
+  const mutations: Mutation[] = [];
+
+  if (from.vocabulary.length) {
+    mutations.push({ op: "set_vocabulary", vocabulary: [...from.vocabulary] });
+  }
+
+  for (const key of named) {
+    const def = from.defs[key];
+    if (!def) continue;
+    mutations.push({ op: "set_def", ...def });
+  }
+
+  for (const node of moving) {
+    if (becomes === "root" && node.id === id) {
+      // The root already exists in the destination, so this amends it rather
+      // than adding a second one.
+      mutations.push({ op: "update_element", id: ROOT, label: node.label, type: node.type });
+      if (node.body) mutations.push({ op: "set_body", id: ROOT, body: node.body });
+      for (const held of node.fields) mutations.push({ op: "set_field", id: ROOT, ...held });
+      continue;
+    }
+
+    mutations.push({
+      op: "add_element",
+      element: {
+        ...node,
+        parent: node.id === id
+          ? parent
+          : becomes === "root" && node.parent === id ? null : node.parent,
+      },
+    });
+  }
+
+  for (const edge of travelling) {
+    mutations.push({
+      op: "link_elements",
+      edge: { ...edge, source: at(edge.source), target: at(edge.target) },
+    });
+  }
+
+  return { mutations, lost };
 }
 
 /** Drop a project from the workspace: its proxy goes and its entry with it.

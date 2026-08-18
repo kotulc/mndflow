@@ -114,6 +114,86 @@ askable. Each surface keeps a `seed` of what it alone knows. Two things worth ke
   been empty. Driving it could not see this, because the log looked right; the property test —
   *the vocabulary a new project starts with yields offerings* — is what failed.
 
+### Stories, and why a landed row is not a finished goal
+
+**Clay's process change.** A **story** is a goal somebody has — *reorganising is
+easy* — and it spans several rows. Rows land the ordinary way; **a story is
+closed only when Clay has driven it himself**, and no agent and no green suite
+closes one. Recorded in plan.md (*Stories*) and in CLAUDE.md's *Finishing a
+chunk*.
+
+**The reason is this project's own history.** Every real defect came from
+driving the built app, and **a row can land exactly as written while the thing
+it was part of is still unusable**. `V.14`'s `＋` did name a project, correctly,
+behind a gesture nobody could see: the rows were done and the story was not.
+`P.1` repeated it — the move works, using it does not.
+
+**What driving `P.1` turned up** (all `ST.1`, all rows now):
+
+- **Nesting by drag reads as impossible.** It is **not** a logic gap — `move`
+  accepts it and refuses only a move into itself or into a reference. The tree
+  has one flat dashed outline where the canvas has grazing and a lit target, and
+  **a folded branch never opens under the pointer**, so a nested target cannot
+  be reached. `P.14`.
+- **A cross-project drop looks like nothing happened**, because the source tree
+  refolds on the next click rather than on the drop. `P.15`.
+- **The strip should stop announcing a plain move** — a fluid gesture needs no
+  receipt (Clay's call). **A relationship left behind is still said**, since
+  that is the one part the gesture cannot show. `P.15`.
+- **The panel should be titled *Workspace***: *explorer* names the pane,
+  **workspace** names what is in it. And **its title is the workspace's own
+  row** — which is the door `P.10` was looking for, found rather than invented.
+  `P.13`.
+
+### Is the language getting in the way? Measured, and yes
+
+**Clay asked; it is checkable rather than a matter of taste.** definitions.md
+holds **149 terms**, and three of the most-used mean three different things
+each — `context`, `view` and `scope`. `U.2` set the rule *no mark means two
+things* for icons and it was never applied to the words. `R.10` — the explorer
+menu writing to the project in context rather than the one clicked — is what
+that costs: two meanings of `context` sitting in one file.
+
+**The words to reach for already exist.** definitions.md says a layer *is* the
+current scope, and the code has called the selection `picked` all along. So
+`view` → `layer`, `contextId` → `project`, and *context* → *selection*.
+Measured cost: `view` 257 sites under `src/`, `contextId` 29 — which is why
+`S8` is three rows and not one.
+
+**The abstraction itself is not the problem.** *Everything is a block, and what
+kind it is, is derived* is one idea, not many, and it survives the check: a
+project, a container, an interface and a set are all blocks, and every one of
+them is told apart by what it holds or where it sits. **The naming is what
+drifted**, and it drifted in the places two subsystems met.
+
+### The workspace was already the root
+
+**Clay's reading turned out to be the built model with no door on it**, which
+is the shape of every gap this stream has found:
+
+- `Held.id` **is a project id**; the workspace's graph is keyed and folded from
+  its own log exactly like any other (`graphOf(held.id)`).
+- Its log already records `admit`, `forget` and `folder`.
+- actions.md has said *"the workspace is a project … it has no actions of its
+  own"* since S4.
+- **What is missing**: it is never `contextId` and has no row of its own, so it
+  can never be on the stage. `P.10`.
+
+**Where the line between the two histories falls was already decided**, and it
+is sharper than *cross-project actions*: **a change is recorded where its
+element lives** (`workspace/`'s own first paragraph, through `Effect.into` /
+`writeInto`). Admitting a project writes the workspace's log because the proxy
+is the workspace's element; renaming a block writes that project's because the
+block is its. **Import and export fall straight out** — a project export is one
+log, a workspace export is the workspace's plus the logs it names (S4.6).
+**That rule lives in a module comment**, which is where a rule goes to be
+forgotten; `P.11` moves it into design.md and holds it with a property test.
+
+**One inconsistency `P.1` introduced and nobody decided.** A promoted subtree
+now **copies** the definitions it names, so its types survive. But a package is
+**referenced** by path and deliberately never copied. That is two mechanisms for
+one idea, arrived at by accident. `P.12` is Clay's call.
+
 ### Stream P — making a project, and saving a view
 
 **Clay played with the built app and could not make a project.** Four things
@@ -196,6 +276,25 @@ conformance test.
 fields of those five blocks* is a column selection — a different shape, and one
 a requirements table may want. It should arrive by decision, not by the back
 door.
+
+**`P.1` landed and was driven.** Three things it turned up that the row did not
+name:
+
+- **The drag payload was a bare element id**, so even where a row was draggable
+  it could not say which log the block was leaving. It is a cross-project ref
+  now — which `refer` has always accepted and nothing ever handed it.
+- **A promoted block was landing *inside* a project of its own name.** Clay's
+  rule is that the block **is** the project, so it becomes the destination's
+  root and everything pointing at it points at root instead.
+- **Definitions have to travel.** Without them a promoted block loses its types
+  silently — the same class of quiet loss the strip exists to prevent — so
+  `extraction()` carries the definitions the subtree names and the package
+  import list with it.
+
+**Still open on the drop.** A row's tree does not refold until the next click:
+right after a cross-project drag the source still draws the block it no longer
+holds, and a reload or a click puts it right. Data is correct throughout. Park
+it against `T.3`, which is where the explorer gets cover.
 
 ### The style surface closed
 

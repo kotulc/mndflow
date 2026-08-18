@@ -858,6 +858,16 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   reaches a new project through it, W.3 the vocabulary).
 - **Multi-select** — Shift / Meta click builds a `Chosen[]` across blocks, branches and projects
   (E.4, proven). **Parked**: Ctrl on Windows; no distinct multi-select CSS.
+- **A block can leave a project, and can move between them** (P.1, proven). Every row is draggable
+  and the drag carries a **cross-project ref**; a row in any open project takes a drop, and **the
+  clear space below the rows takes one too** — dropping there makes the block a project, since a
+  project is a block nothing contains. **Promoted, the block *is* the project**: it becomes the new
+  root rather than landing inside a project of its own name.
+- **A move across projects is two steps in two logs**, never one spanning both: the subtree is
+  written into the destination through `writeInto` and deleted from the source through the door.
+  Its definitions and the package list travel with it, so types still resolve. **Relationships with
+  one end left behind are lost** — deliberate, nothing stands in for the block that left — and the
+  strip says how many.
 - **(planned)** A **set** appears as a root like any other and lists what it holds proxies of. It
   is the one place a proxy *is* listed, because in a set there is nothing else to list. **Derived,
   never declared** — members are proxies, so it is a set. This is what a *saved view* is: a

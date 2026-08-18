@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
-import { axisOf, compact, fold, isCheckpoint, stepsIn, titleOf } from "../graph/fold";
+import { axisOf, compact, fold, isCheckpoint, nameOf, stepsIn, titleOf } from "../graph/fold";
 import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
@@ -326,7 +326,7 @@ export function App() {
    *
    *  Naming is what brings a project into being — it earns a key, a place in
    *  the workspace and the context, all from having been called something. */
-  function newProject(name: string): boolean {
+  function newProject(name: string): string | null {
     // `begin` is the one door: it names, mints the id, writes the first step
     // and admits the project to the shell in one go. App used to do all four
     // itself, which is how `begin` sat unwired with the page's own copy of the
@@ -336,7 +336,7 @@ export function App() {
     if ("refuse" in out) {
       say(out.refuse);
 
-      return false;
+      return null;
     }
 
     store.saveProject(out.id, out.steps);
@@ -350,7 +350,7 @@ export function App() {
     pendingView.current = { project: out.id, layer: null };
     setContextId(out.id);
 
-    return true;
+    return out.id;
   }
 
   // Held here so the rail can watch it being typed.
@@ -511,6 +511,59 @@ export function App() {
       open,
     );
     await store.writeOut(text, titleOf(shell.graph) || "workspace");
+  }
+
+  /** Take a block out of one project and into another — or into none, which
+   *  makes it a project of its own (P.1).
+   *
+   *  **Two steps in two logs**, because a project is a log and nothing spans
+   *  both: the subtree is written into the destination through `writeInto`, and
+   *  the source deletes it through the door like any other edit.
+   *
+   *  **Promotion goes through `newProject`'s own door.** A block dropped on
+   *  nowhere is named into the workspace by `workspace.begin` exactly as the
+   *  bar's control does, and the subtree is written in after — so there is one
+   *  way to make a project and not two (P.3).
+   *
+   *  **Relationships crossing the boundary are lost**, which is deliberate —
+   *  nothing stands in for the block it left — so the strip says how many. */
+  function extract(from: string, id: string, into: string | null, parent: string | null) {
+    const source = graphs[from];
+    if (!source) return;
+
+    const taken = workspace.extraction(
+      source, id, into ? parent : null, into ? "child" : "root",
+    );
+    if ("refuse" in taken) {
+      say(taken.refuse);
+      return;
+    }
+
+    const name = nameOf(source, source.elements[id]) || UNIT;
+    const target = into ?? newProject(name);
+    if (!target) return;
+
+    const landed = workspace.writeInto(target, taken.mutations, {
+      say: `took in: ${name}`, action: "move",
+    });
+    if ("refuse" in landed) {
+      say(landed.refuse);
+      return;
+    }
+
+    // The source loses it through the ordinary door, so the cascade and the
+    // partings `delete` already has do the work rather than a second copy.
+    const gone = workspace.writeInto(from, [{ op: "delete_element", id }], {
+      say: `sent out: ${name}`, action: "delete",
+    });
+    if ("refuse" in gone) {
+      say(gone.refuse);
+      return;
+    }
+
+    say(taken.lost
+      ? `${name} moved — ${taken.lost} relationship${taken.lost === 1 ? "" : "s"} left behind`
+      : `${name} moved`);
   }
 
   /** Export the project in context, bundling what it depends on, and offer a
@@ -911,7 +964,7 @@ export function App() {
             onShowPorts={setTreePorts}
             onOpen={navigate}
             onCreate={project.create}
-            onNewProject={newProject}
+            onNewProject={(name) => Boolean(newProject(name))}
             onNameProject={(name, except) => workspace.mayName(takenNames, name, except)}
             onNameTaken={project.nameTaken}
             onSay={say}
@@ -919,6 +972,7 @@ export function App() {
             onDelete={project.remove}
             onDropProject={dropProject}
             onMove={project.move}
+            onExtract={extract}
             onRename={project.rename}
             onRenameProject={project.renameProject}
             onAct={project.go}
