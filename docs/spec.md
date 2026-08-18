@@ -858,8 +858,15 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   reaches a new project through it, W.3 the vocabulary).
 - **Multi-select** — Shift / Meta click builds a `Chosen[]` across blocks, branches and projects
   (E.4, proven). **Parked**: Ctrl on Windows; no distinct multi-select CSS.
-- **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
-  is the one place a proxy *is* listed, because in a view there is nothing else to list.
+- **(planned)** A **set** appears as a root like any other and lists what it holds proxies of. It
+  is the one place a proxy *is* listed, because in a set there is nothing else to list. **Derived,
+  never declared** — members are proxies, so it is a set. This is what a *saved view* is: a
+  requirements table is a set of requirements, an allocation view the same set drawn as a matrix.
+  **A folder is a set of projects**, so there is no folder concept and a set wears a folder mark
+  (stream `P`).
+- **(planned)** **Every node role carries a mark of its own.** Block, container and interface have
+  theirs; a set has none, and a behavior's cannot be reached because nothing writes
+  `components.view.module` — so a fresh project is structure for ever (`P.5`, `P.6`).
 
 **Navigation**
 

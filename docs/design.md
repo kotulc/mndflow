@@ -631,6 +631,29 @@ declines to write a non-compliant file.
 **Several projects are open at once**, each with its own log and its own export, and the workspace
 gathers them. A single project can still be opened, shared or imported alone.
 
+**Everything is a block, and what kind it is, is derived.** A project is a block that nothing
+contains; a container is a block holding blocks; an interface is a block sitting on a frame edge;
+and a **set** is a block whose members are **proxies** — it holds references rather than things.
+Nothing declares any of these. Making a project is making a top-level block, so making one is as
+ordinary as making anything else, and every caller — a drag out of the tree, the explorer's own
+control, `infer` — goes through the one door instead of each carrying its own.
+
+**A set is what a saved view is.** A requirements table is a set of requirements; an allocation view
+is the same set drawn as a matrix. The cross-section is chosen with the ordinary multi-select, each
+member is an ordinary proxy, and which module draws it is the ordinary sticky preference — so a
+saved view needed no new concept, only the one already named *(spec.md: a **set** is whatever it
+holds proxies of)*.
+
+**So there is no folder.** Filing is a set whose proxies are project roots, which is exactly what
+the workspace itself already is — `admit` files a project by placing a proxy of its root. A set is
+drawn with a folder mark, because at that point the two are the same thing. Chosen over keeping
+folders as a third concept, and over letting a definition declare itself a set: one duplicates
+something derivable, and the other makes *container* mean three different things in one tree.
+
+**A move across projects is two steps in two logs.** A project is a log, not only a place, so
+nothing spans both — the rule `Effect.into` and the `home` batches already keep. Undoing in the
+source brings the block back; it does not unmake the project.
+
 **The workspace is itself a project** and needs no new schema to be one: its elements are proxies of
 other projects' roots, and folders are ordinary blocks. So filing is undoable and it draws as a
 block diagram whose dependencies are derived from who holds proxies into whom.

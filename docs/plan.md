@@ -26,15 +26,22 @@ annotated here with one line on what actually landed (or `◐` with the gap name
 **Everything that has landed is in [landed.md](landed.md)** — waves U, T, Z and V whole, the R
 review, and Y's rail and ramp. This file is what is left.
 
-**Startable with nothing in the way:** `Y.6a` (the export's look override), `Y.10` (one panel edge,
-one panel label), `W.1` (the tray at full size), `A.7d` (`infer`'s result reachable), `T.5` (the DOM
-harness) then `T.3` (the page suite), `Z.9` (trim the rail), `S7` (the `Files.tsx` seam).
+**Startable with nothing in the way:** `P.1` (a block can leave a project), `Y.6a` (the export's
+look override), `Y.10` (one panel edge, one panel label), `W.1` (the tray at full size), `T.5` (the
+DOM harness) then `T.3` (the page suite), `Z.9` (trim the rail), `S7` (the `Files.tsx` seam).
 
-**`A.7d` needs its owns widened before it can start.** The row owns `src/actions/behavior.ts` and
-`workspace/`, but the admission it describes — *admit the project, select it, let the context
-change* — happens where `held` lives, which is `page/App.tsx`, and the hook to notice a foreign
-write does not exist on `project.ts` yet. Either widen the owns to those two files or cut the hook
-as its own chunk first; do not invent a dead API in `behavior.ts`.
+**`P` is the new wave and the one Clay is waiting on.** Making a project is too hard, and what it is
+really for is a *saved view* — a requirements table or an allocation matrix over a cross-section of
+several projects. **The design already names that a `set`** and has marked it planned since W0.
+**Settled: model B** — a set is a block whose members are proxies, derived, drawn with a folder
+mark, and there is no folder concept beside it. **Nothing in `P` is `◆` any more.**
+
+**`A.7d` was mis-framed and is now wave `P`.** It is not that `infer` needs a hook — it is that the
+explorer cannot make a project by any route that does not begin with an invisible deselect, so
+`infer` was being asked for a door the app does not have. **`P` is where that door is cut**, and it
+carries the larger ask with it: a *saved view* over a cross-section of several projects, which the
+design already names a **set** and already marks planned. **`P.2`, `P.4` and `P.5` are `◆`** — one
+model has to be picked first, and the options are in the wave.
 
 **`Y.7` and `Y.9` landed and were driven** — the style surface is closed: four dials (`slot`,
 `emphasis`, `weight`, `voice`), no colour, no pixel count, no font. **`Y.6` closed too**: an export
@@ -169,12 +176,15 @@ arrive by decision rather than by the back door.
 
 ## Wave 2 — leftovers
 
+**`A.7d` is here for continuity only** — it is stream `P`'s now, and needs nothing of its own once
+`P.1` and `P.2` land.
+
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **A.7d** | **`infer`'s result is reachable — by the same path everything else uses.** Today it mints a behavior project that is never admitted to `held.projects`, so nothing shows it. **This is not `infer`'s problem**: the explorer cannot make a project by any route that does not start with an invisible deselect, so `infer` was being asked for a door the app does not have. It waits on `P.1`–`P.2` and then needs nothing of its own — it makes a block at the top level, and a block at the top level is a project. **No proxy is placed in the source layer**: a proxy exists to carry a relationship across a boundary, and [behaviors.md](behaviors.md) rejects the back-reference outright | `src/actions/behavior.ts` | P.2 |
 
 
-## P — a project is a block that isn't inside anything
+## P — everything is a block, and what kind it is, is derived
 
 **Clay's rule, from playing with the built app.** Making a project should be as ordinary as making a
 block, because it *is* one: a project is a block that nothing contains. Promoting a block is moving
@@ -203,15 +213,80 @@ from its old siblings go with it, exactly as `delete`'s partings already do. Cla
 proxy standing in for it. **So the strip must say what went** — a silent loss of lines is the one
 thing this must not be, and `delete` already has the cascade to count.
 
-**`◆` The folder question is open.** The workspace has *folders* — blocks in its own log, used for
-filing — and nothing can make one. Whether the explorer's new affordance makes a folder, a project,
-or both is Clay's, and `P.2` cannot be written until it is answered.
+
+### The real ask: a saved view over a cross-section
+
+**What is wanted** is a requirements table, or an allocation view over a chosen cross-section of
+several projects, stored and organised as the user likes. **The design already names it and marks it
+planned** — two lines sitting there since W0:
+
+> **scope** — a **layer**, one element's contents — or a **set**, which is whatever it holds
+> proxies of. *(spec.md, what a diagram's definition configures)*
+
+> **(planned)** A **view** appears as a root like any other and lists what it holds proxies of. It
+> is the one place a proxy *is* listed, because in a view there is nothing else to list.
+
+**So a saved view is a set: a block whose members are proxies of things elsewhere.** Nothing new is
+invented; three built things meet.
+
+| Already built | Does |
+|---|---|
+| `Chosen[]` cross-project multi-select (E.4) | picks the cross-section |
+| `refer` | places a proxy of another project's element |
+| sticky per-project view module (U.8) | decides whether it draws as a table or a matrix |
+
+**`infer` is the proof it works.** It already takes a cross-project selection and makes a project
+holding **proxies of the participants** — it is the *behavior* special case of exactly this move.
+Generalising it is cheaper than inventing a second mechanism, and it is what makes `A.7d` stop being
+a special case at all.
+
+**How the kinds are told apart — derived, never declared.** This is the answer to *how do I
+differentiate structure, behavior and a saved view*, and it needs no stored field. The explorer
+already derives a node's role from what it holds and where it sits (`role_of`); this is one more
+line of the same function.
+
+| Reads as | Because | Marked by |
+|---|---|---|
+| **block** | it holds nothing | `role_leaf` (built) |
+| **container** | it holds blocks of its own | `role_container` (built) |
+| **interface** | it sits on a frame edge (`side != null`) | `role_interface` (built) |
+| **set / view** | **its members are proxies** — it holds references, not things | *new mark* |
+| **project** | it is at the top level and owns a log | `project` (built) |
+| **behavior** | its module is activity, sequence or state | `project_behavior` (built) |
+
+**And that answers the folder.** A folder is *a set whose proxies are project roots* — which is
+literally what the workspace already is, since `admit` files a project by placing a proxy of its
+root. **So there is no folder concept to add**: filing is a set of projects, and `workspace.folder()`
+is a door that was never needed. This deletes a concept rather than adding one, which is why it is
+the recommended reading of Clay's *keep everything as a block*.
+
+**Settled — model B.** A **set is a block whose members are proxies**, derived like every other role.
+No stored field, no new closed set, and **no folder concept**: filing is a set of projects, a
+requirements table is a set of requirements, an allocation view is the same set drawn as a matrix.
+Clay's call, taken over wiring up `workspace.folder()` (which stays dead) and over declaring a
+`components.set` key. `infer` becomes one caller of the general move rather than the only one.
+
+**A set is drawn with a folder mark**, because a set of projects and a folder read the same way and
+under this model they *are* the same thing. Clay's call.
+
+**Every node role carries a mark of its own** — Clay's rule, and the reason `P.5` exists. Block,
+container and interface have theirs; **a set has none and a behavior's cannot be reached**. V.2's
+property test already holds that no two icon names draw one path; the missing half is that every
+role *has* one.
+
+**One thing option B does not cover, and it should be said now.** A set holds proxies of **whole
+blocks**. *These three fields of those five blocks* — a column selection — is a different shape, and
+a requirements table may well want it. Not scheduled, not designed; recorded so it arrives by
+decision rather than by the back door.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **P.1** | **A block can leave a project, and can move between them.** The explorer's drop targets stop being *this project only*: a row in **any** open project accepts a drop, and **the empty tree area accepts one too** — which is what makes a block into a project. Extraction is two steps in two logs: the subtree is written into a new log through `writeInto`, and the source deletes it through the cascade `delete` already has. **The strip names what went with it**, since relationships to the block are lost and that must not be silent | `page/Files.tsx`, `page/App.tsx`, `workspace/` | ⊘ |
-| **P.2 ◆** | **The explorer bar gains a visible way to make one.** Today the only route is *deselect, then `＋`*, and the deselect is invisible. One control that makes a project outright, no gesture first. **Blocked on the folder question above** — the icon's meaning decides what it makes, and a control that makes a *folder* and one that makes a *project* are not the same control | `page/Files.tsx`, `src/modules/icons/` | ◆ |
+| **P.2** | **The explorer bar gains a visible way to make a project.** Today the only route is *deselect, then `＋`*, and the deselect is invisible — which is how Clay came to believe projects could not be made at all. One control that makes one outright, no gesture first. **One control, not two**: under model B a folder *is* a set of projects, so there is nothing else for a second icon to make | `page/Files.tsx`, `src/modules/icons/` | ⊘ |
 | **P.3** | **Nothing anywhere special-cases making a project.** With `P.1` and `P.2` landed, `infer` (`A.7d`), a dropped block and the bar's control all reach the same door, and the door is *a block at the top level*. This row is the check that they do — if any caller still needs its own path, the rule has not landed | `src/actions/`, `page/` | P.1, P.2 |
+| **P.4** | **Save a cross-section as a set.** With a cross-project selection made, one action mints a block holding a proxy of each — the general form of what `infer` already does for behaviour, taking the same `of[]` argument. It opens like any project, and its view module decides whether it reads as a **requirements table** or an **allocation matrix**. **Prefer generalising `infer` to registering a second action**: the action set is closed, and *one registered action offered N times* is the wording `R.5` already established. If it will not generalise cleanly, that is a gate, not a licence to add one | `src/actions/`, `page/Files.tsx` | P.1 |
+| **P.5** | **Every node role carries a mark of its own, and a set gets the folder.** `role_of` gains one line — *its members are proxies* — and the explorer draws that with a **folder** icon, since a set of projects and a folder are the same thing under model B. **The gap this closes is a rule, not one icon**: block, container and interface are marked and a set is not, so two different things read alike. **V.2's property test holds that no two names draw one path; the other half is that every role has one**, which is what to add to the icon conformance test | `page/Files.tsx`, `src/modules/icons/`, `tests/modules/icons.test.ts` | P.4 |
+| **P.6** | **A project can be made a behavior — nothing can today.** Found while answering *I cannot create sets or behaviors*: **nothing anywhere writes `components.view.module`**, and `offered(graph)` filters the view toggle to the modules of the project's own kind, where kind is read back off that same key. A fresh project's root has no definition, so it is `block`, so it is *structure*, so activity / sequence / state are never offered — **a one-way door with nothing that opens it**. The only behavior projects that can exist are `infer`'s, and those are unreachable (`A.7d`). Give the root's kind a door: setting it is `define` on the root's own definition, which is built — what is missing is a control that reaches it | `page/Contents.tsx`, `page/Files.tsx` | ⊘ |
 
 
 ## Wave U — what is left of it

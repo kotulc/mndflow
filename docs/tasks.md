@@ -114,6 +114,89 @@ askable. Each surface keeps a `seed` of what it alone knows. Two things worth ke
   been empty. Driving it could not see this, because the log looked right; the property test —
   *the vocabulary a new project starts with yields offerings* — is what failed.
 
+### Stream P — making a project, and saving a view
+
+**Clay played with the built app and could not make a project.** Four things
+were expected; **none of them work**, checked against the code:
+
+- `＋` names a project only after clicking empty tree space to deselect first.
+- The empty tree area has **no drop target at all**.
+- Drag is wired only *inside* the project in context, so no block can cross.
+- `workspace.folder()` is built and **has no caller** — folders render, nothing
+  makes one.
+
+**plan.md predicted the first one exactly**: *click nothing to enable something
+is obvious to whoever built it and invisible to everyone else*. That prediction
+coming true on the first play is the evidence `V.14`'s gesture cannot be the
+only door. It is not reversed — it gains a visible sibling.
+
+**The rule Clay wants**: a project is a block that nothing contains. Making one
+is making a top-level block; promoting one is moving a block to the top.
+
+**Settled — nothing is left behind** when a block leaves. It takes its subtree;
+relationships from its old siblings go with it the way `delete`'s partings
+already do. Against a proxy standing in for it, which was the other option.
+**The consequence is silent data loss on the lines**, so the strip has to name
+what went.
+
+**A move across projects is two steps in two logs.** A project is a log, not
+only a place. That is already the rule everywhere (`Effect.into` / `writeInto`,
+`home` batches: *never a single step spanning two logs*). Undo in the source
+brings the block back; it does not remove the project that was made.
+
+**`A.7d` was mis-framed and is retired into this stream.** It read as *`infer`
+needs a hook to admit its project*. It is not: the explorer has no way to make a
+project that does not begin with an invisible gesture, so `infer` was being
+asked for a door the app does not have. Cut the door and `infer` needs nothing.
+
+**The larger ask, and the design already named it.** What is wanted is a
+requirements table, or an allocation view over a cross-section of several
+projects, stored and organised freely. spec.md has carried the concept as
+**(planned)** since W0 — *a **set** is whatever it holds proxies of*, and *a
+view appears as a root like any other and lists what it holds proxies of*. So a
+saved view is a **set**: a block whose members are proxies of things elsewhere.
+`Chosen[]` picks the cross-section (E.4), `refer` places each proxy, and the
+sticky view module decides whether it reads as a table or a matrix — all built.
+
+**`infer` is the existing proof.** It already takes a cross-project selection
+and mints a project holding proxies of the participants. It is the *behavior*
+special case of the general move, which is why generalising it beats inventing a
+second mechanism.
+
+**How the kinds are told apart — derived, never declared.** `role_of` already
+reads a node's role from what it holds and where it sits; *members are proxies*
+is one more line of it. **And that answers the folder**: a folder is a set whose
+proxies are project roots, which is what the workspace itself already is, since
+`admit` files a project by placing a proxy of its root. So there is no folder
+concept to add — the recommendation deletes one.
+
+**Settled — model B, Clay's call.** A set is **derived**: a block whose members
+are proxies. No stored field, no `components.set` key, and **no folder concept**
+— filing is a set of projects, which is what the workspace itself already is.
+`workspace.folder()` stays dead. **A set wears a folder mark**, because under
+this model a set of projects and a folder are the same thing.
+
+**And a second rule from the same conversation**: *every node role carries a
+mark of its own*. Block, container and interface have theirs. **Two do not**:
+
+- **a set has no mark**, so it would read as a container — `P.5`.
+- **a behavior cannot be reached at all.** Nothing anywhere writes
+  `components.view.module`, and `offered(graph)` filters the view toggle to the
+  modules of the project's own kind, where kind is read back off that same key.
+  A fresh project's root has no definition, so it is `block`, so it is
+  *structure*, so activity / sequence / state are never offered. **A one-way
+  door with nothing that opens it** — the only behavior projects that can exist
+  are `infer`'s, and those are unreachable. `P.6`.
+
+V.2's property test already holds that no two icon names draw one path; the
+missing half is that every *role* has one, which is what `P.5` adds to the icon
+conformance test.
+
+**Recorded, not scheduled**: a set holds proxies of *whole blocks*. *These three
+fields of those five blocks* is a column selection — a different shape, and one
+a requirements table may want. It should arrive by decision, not by the back
+door.
+
 ### The style surface closed
 
 **`Y.7` and `Y.9` landed and were driven.** `Definition.color` is gone and
@@ -802,8 +885,8 @@ existing. It is a seam, not a feature. Vocabulary in [design.md](design.md) unde
 | **T** The suite | `tests/` | U for the page rows only |
 | **Z** Terminal | `terminal/` | built but thin — Z.9 trims; Z.5 last |
 
-**Startable today:** **A.7d** (`infer`'s result reachable), **T.5** (DOM harness), **S7** (the
-`Files.tsx` seam). **`U.18` landed short**: U.7's `path` / `onUp` reach table and matrix and U.14's
+**Startable today:** **P.1** (a block can leave a project), **T.5** (DOM harness), **S7** (the
+`Files.tsx` seam). **A.7d moved into stream P** — it was never `infer`'s gap; see above. **`U.18` landed short**: U.7's `path` / `onUp` reach table and matrix and U.14's
 `newProject` goes through `workspace.begin`, but `tray.full` went to `W.1` — nothing asks for a full
 tray, so the rule would be dead CSS ahead of the door that reaches it. **Wave U is complete** — U.16 dropped, the
 arrangements were never in the bar to move out of. **G.9a–G.9c landed, and G.9e closes G.9d ◐**:
