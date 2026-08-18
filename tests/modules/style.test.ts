@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  EMPHASES, LABELS, lookOf, NONE, SETS, SLOTS, WEIGHTS, ramp, sheet, style, styleOf,
+  EMPHASES, lookOf, NONE, SETS, SLOTS, VOICES, WEIGHTS, ramp, sheet, style, styleOf,
 } from "../../src/modules/style/index";
 import { element, EMPTY } from "../../src/graph/types";
 import type { Element, Graph } from "../../src/graph/types";
@@ -77,11 +77,11 @@ describe("a definition picks within the palette, never a colour", () => {
     expect(style.check({ emphasis: "shouting" })).toContain("emphasis");
   });
 
-  it("accepts every weight and label it offers, and refuses a value instead", () => {
+  it("accepts every weight and voice it offers, and refuses a value instead", () => {
     for (const weight of WEIGHTS) expect(style.check({ weight })).toBeNull();
-    for (const label of LABELS) expect(style.check({ label })).toBeNull();
+    for (const voice of VOICES) expect(style.check({ voice })).toBeNull();
     expect(style.check({ weight: "6px" })).toContain("weight");
-    expect(style.check({ label: "Helvetica" })).toContain("label");
+    expect(style.check({ voice: "Helvetica" })).toContain("voice");
   });
 
   it("names no colour anywhere — a slot resolves to a step of the theme's ramp", () => {
@@ -89,7 +89,7 @@ describe("a definition picks within the palette, never a colour", () => {
       for (const emphasis of EMPHASES) {
         for (const part of ["fill", "line"] as const) {
           const drawn = ramp(
-            { slot, emphasis, weight: NONE.weight, label: NONE.label, typed: true },
+            { slot, emphasis, weight: NONE.weight, voice: NONE.voice, typed: true },
             part,
           );
 
@@ -136,7 +136,7 @@ describe("portable fields without a set", () => {
     const [graph, element] = typed(undefined, { line: "dashed", head: "hollow" });
 
     expect(lookOf(graph, element)).toEqual({
-      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, label: NONE.label,
+      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, voice: NONE.voice,
       line: "dashed", head: "hollow", typed: true,
     });
   });
@@ -145,7 +145,7 @@ describe("portable fields without a set", () => {
     const [graph, element] = typed({ style: { set: SETS[0] } }, {});
 
     expect(lookOf(graph, element)).toEqual({
-      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, label: NONE.label,
+      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, voice: NONE.voice,
       set: SETS[0], typed: true,
     });
   });
@@ -157,7 +157,7 @@ describe("portable fields without a set", () => {
     );
 
     expect(lookOf(graph, element)).toEqual({
-      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, label: NONE.label,
+      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, voice: NONE.voice,
       line: "dotted", typed: true,
     });
   });

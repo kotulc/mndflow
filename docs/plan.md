@@ -36,10 +36,9 @@ change* — happens where `held` lives, which is `page/App.tsx`, and the hook to
 write does not exist on `project.ts` yet. Either widen the owns to those two files or cut the hook
 as its own chunk first; do not invent a dead API in `behavior.ts`.
 
-**`Y.7` and `Y.9` landed and were driven** — the style surface is closed: four dials, no colour, no
-pixel count, no font. **One name wants a word from Clay**: `components.style.label` (how loudly)
-sits beside `components.card.label` (where it sits). Reasoning in tasks.md, *The style surface
-closed*.
+**`Y.7` and `Y.9` landed and were driven** — the style surface is closed: four dials (`slot`,
+`emphasis`, `weight`, `voice`), no colour, no pixel count, no font. **`Y.6` closed too**: an export
+carries the look that was on the screen, resolved flat.
 
 **One `◐` row is still work.** `U.18` left `tray.full`, and handed it to `W.1`, which owns the size
 and the door that reaches it together.
@@ -172,7 +171,48 @@ arrive by decision rather than by the back door.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **A.7d** | **`infer`'s result is reachable.** Today it mints a behavior project that is never admitted to `held.projects`, so nothing in the explorer or the canvas shows it and the action's output is a dead end. It should **admit the project to the workspace under a default name, select it, and let the context change** — the layer moves, and the view module then draws it like any other project. **No proxy is placed in the source layer**: a proxy exists to carry a relationship across a boundary, and [behaviors.md](behaviors.md) rejects the back-reference outright — it "would duplicate a fact living in another log and leave a structure project opened alone pointing at behaviors that are not there". Refs point one way, from the behavior at the participants | `src/actions/behavior.ts`, `workspace/` | ⊘ |
+| **A.7d** | **`infer`'s result is reachable — by the same path everything else uses.** Today it mints a behavior project that is never admitted to `held.projects`, so nothing shows it. **This is not `infer`'s problem**: the explorer cannot make a project by any route that does not start with an invisible deselect, so `infer` was being asked for a door the app does not have. It waits on `P.1`–`P.2` and then needs nothing of its own — it makes a block at the top level, and a block at the top level is a project. **No proxy is placed in the source layer**: a proxy exists to carry a relationship across a boundary, and [behaviors.md](behaviors.md) rejects the back-reference outright | `src/actions/behavior.ts` | P.2 |
+
+
+## P — a project is a block that isn't inside anything
+
+**Clay's rule, from playing with the built app.** Making a project should be as ordinary as making a
+block, because it *is* one: a project is a block that nothing contains. Promoting a block is moving
+it to the top; filing one is moving it back in.
+
+**Four things were expected and none of them work.** Checked against the code, not guessed:
+
+| Expected | What is there |
+|---|---|
+| Make a project easily | `＋` does name one — but only after clicking empty tree space to deselect first |
+| Drag a block to empty space → a project | the empty tree area has **no drop target at all** |
+| Drag a block into another project | drag is wired only *inside* the project in context |
+| A folder affordance | `workspace.folder()` is built and **has no caller**; folders render, nothing makes them |
+
+**This file predicted it.** *"Click nothing to enable something is obvious to whoever built it and
+invisible to everyone else."* Clay hit it on the first play, which is the evidence that the deselect
+gesture cannot be the only door — `V.14` is not reversed, it is given a second, visible way in.
+
+**A project is a log, not only a place**, so a move across projects is **two steps in two logs** —
+one adding, one removing — never one step spanning both. That is already the rule (`Effect.into` /
+`writeInto`, `home` batches). Undo in the source brings the block back; it does not remove the
+project that was made.
+
+**Settled — nothing is left behind.** A block that leaves takes its subtree and goes; relationships
+from its old siblings go with it, exactly as `delete`'s partings already do. Clay's call, against a
+proxy standing in for it. **So the strip must say what went** — a silent loss of lines is the one
+thing this must not be, and `delete` already has the cascade to count.
+
+**`◆` The folder question is open.** The workspace has *folders* — blocks in its own log, used for
+filing — and nothing can make one. Whether the explorer's new affordance makes a folder, a project,
+or both is Clay's, and `P.2` cannot be written until it is answered.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **P.1** | **A block can leave a project, and can move between them.** The explorer's drop targets stop being *this project only*: a row in **any** open project accepts a drop, and **the empty tree area accepts one too** — which is what makes a block into a project. Extraction is two steps in two logs: the subtree is written into a new log through `writeInto`, and the source deletes it through the cascade `delete` already has. **The strip names what went with it**, since relationships to the block are lost and that must not be silent | `page/Files.tsx`, `page/App.tsx`, `workspace/` | ⊘ |
+| **P.2 ◆** | **The explorer bar gains a visible way to make one.** Today the only route is *deselect, then `＋`*, and the deselect is invisible. One control that makes a project outright, no gesture first. **Blocked on the folder question above** — the icon's meaning decides what it makes, and a control that makes a *folder* and one that makes a *project* are not the same control | `page/Files.tsx`, `src/modules/icons/` | ◆ |
+| **P.3** | **Nothing anywhere special-cases making a project.** With `P.1` and `P.2` landed, `infer` (`A.7d`), a dropped block and the bar's control all reach the same door, and the door is *a block at the top level*. This row is the check that they do — if any caller still needs its own path, the rule has not landed | `src/actions/`, `page/` | P.1, P.2 |
+
 
 ## Wave U — what is left of it
 

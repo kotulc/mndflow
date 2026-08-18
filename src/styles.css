@@ -826,12 +826,14 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-size: 12px;
 }
 
-/* What a definition's `style.weight` and `style.label` come to (Y.9). Names,
+/* What a definition's `style.weight` and `style.voice` come to (Y.9). Names,
    not values, on the definition; the numbers are the theme's, so a definition
-   cannot break the system by choosing a 6px border or a font of its own. */
-.card-head.loud-quiet .label { opacity: 0.72; font-weight: 400; }
-.card-head.loud-normal .label { font-weight: 500; }
-.card-head.loud-loud .label { font-weight: 700; letter-spacing: 0.01em; }
+   cannot break the system by choosing a 6px border or a font of its own.
+   `voice` rather than `label`, because `card.label` already means where the
+   label sits. */
+.card-head.voice-quiet .label { opacity: 0.72; font-weight: 400; }
+.card-head.voice-normal .label { font-weight: 500; }
+.card-head.voice-loud .label { font-weight: 700; letter-spacing: 0.01em; }
 
 /* No dashed border: the grid inside already says this holds something, and two
    signals for one fact only make the canvas noisier. */

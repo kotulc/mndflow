@@ -59,10 +59,14 @@ export const WEIGHTS = ["hairline", "thin", "thick"] as const;
 export type Weight = (typeof WEIGHTS)[number];
 
 /** How loudly a usage's name is set. A definition never names a font or a
- *  size; it says how much the label should carry. */
-export const LABELS = ["quiet", "normal", "loud"] as const;
+ *  size; it says how much the label should carry.
+ *
+ *  **`voice`, not `label`** — `components.card.label` already means *where the
+ *  label sits*, and one word meaning two things is the mistake U.2 exists to
+ *  stop. */
+export const VOICES = ["quiet", "normal", "loud"] as const;
 
-export type Label = (typeof LABELS)[number];
+export type Voice = (typeof VOICES)[number];
 
 /** The whole of what emphasis decides: two step names on the chosen slot. */
 const STEPS: Record<Emphasis, { fill: string; line: string }> = {
@@ -82,14 +86,14 @@ export type StyleConfig = {
   /** How heavy the border is. */
   weight: Weight;
   /** How loudly the name is set. */
-  label: Label;
+  voice: Voice;
 };
 
 /** What every definition that says nothing gets: no set, and the calm end of
  *  the ramp — an unstyled model reads as one quiet thing rather than every
  *  definition claiming the theme's own hue. */
 export const NONE: StyleConfig = {
-  set: null, slot: "neutral", emphasis: "normal", weight: "thin", label: "normal",
+  set: null, slot: "neutral", emphasis: "normal", weight: "thin", voice: "normal",
 };
 
 /** The portable typed fields a usage draws from without a style set. */
@@ -97,7 +101,7 @@ export type Look = {
   slot: Slot;
   emphasis: Emphasis;
   weight: Weight;
-  label: Label;
+  voice: Voice;
   icon?: string;
   line?: Definition["line"];
   head?: Definition["head"];
@@ -137,8 +141,8 @@ function check(config: Config): string | null {
     return `\`style.weight\` has to be one of ${WEIGHTS.join(", ")}`;
   }
 
-  if (config.label !== undefined && !LABELS.includes(config.label as Label)) {
-    return `\`style.label\` has to be one of ${LABELS.join(", ")}`;
+  if (config.voice !== undefined && !VOICES.includes(config.voice as Voice)) {
+    return `\`style.voice\` has to be one of ${VOICES.join(", ")}`;
   }
 
   if (config.set !== undefined) {
@@ -181,7 +185,7 @@ export function lookOf(graph: Graph, element: Element): Look {
     slot: config.slot,
     emphasis: config.emphasis,
     weight: config.weight,
-    label: config.label,
+    voice: config.voice,
     icon: def?.icon,
     line: def?.line,
     head: def?.head,

@@ -33,7 +33,7 @@ import { field as blankField, refAt } from "../graph/types";
 import { LAYOUTS, LABELS, PLAIN, SHAPES, type CardConfig } from "../modules/card";
 import { constraintsOf } from "../modules/constraints";
 import { among, rulesOf, type Bound } from "../modules/rules";
-import { EMPHASES, LABELS as VOICES, SETS, SLOTS, WEIGHTS } from "../modules/style";
+import { EMPHASES, SETS, SLOTS, VOICES, WEIGHTS } from "../modules/style";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
 import { defOf, gather, packs, scoped } from "../workspace";
@@ -429,7 +429,7 @@ function styleOn(def: Definition): string {
 
 /** The four closed dials `style` carries — a definition picks within the
  *  theme's palette and the theme's weights, and names neither. */
-type Dial = "slot" | "emphasis" | "weight" | "label";
+type Dial = "slot" | "emphasis" | "weight" | "voice";
 
 /** One `style` dial a definition has set, or "" for the component's default. */
 function dialOn(def: Definition, key: Dial): string {
@@ -1093,14 +1093,14 @@ export function Contents(props: Props) {
               </select>
             </span>
             <span className="held value">
-              label
+              voice
               <select
-                value={dialOn(def, "label")}
+                value={dialOn(def, "voice")}
                 onClick={stop}
-                onChange={(event) => setDial(def, "label", event.target.value)}
+                onChange={(event) => setDial(def, "voice", event.target.value)}
               >
                 <option value="">—</option>
-                {VOICES.map((l) => <option key={l} value={l}>{l}</option>)}
+                {VOICES.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             </span>
             <span className="held value">

@@ -118,7 +118,7 @@ askable. Each surface keeps a `seed` of what it alone knows. Two things worth ke
 
 **`Y.7` and `Y.9` landed and were driven.** `Definition.color` is gone and
 `components.style` carries four closed dials instead: `slot` (six hue families),
-`emphasis` (`quiet|normal|strong`), `weight` (`hairline|thin|thick`) and `label`
+`emphasis` (`quiet|normal|strong`), `weight` (`hairline|thin|thick`) and `voice`
 (`quiet|normal|loud`). Nothing a definition can set is a colour, a pixel count or
 a font. Driven: setting all four on `Module` moved every usage's border from
 `oklch(0.42 .0855 150)` at 1px to `oklch(0.8 .12 330)` at 2px with its name at
@@ -132,13 +132,11 @@ all** has no definition to read, so it keeps the engine's own default (`--route`
 *deliberately quiet* draw the same, and the untyped canvas would lose its green.
 `Look.typed` is the flag.
 
-**One name collides and is worth a word from Clay.** `components.card.label`
-means *where the label sits* (`inside|below|none`); `components.style.label`
-now means *how loudly it is set* (`quiet|normal|loud`). Two components may each
-own a key called `label`, and `Contents.tsx` already has to alias one of the two
-constants to import both. The project's own rule is *no mark means two things*
-(U.2) — **`voice` or `weight`-style naming would keep it**. Written as the `Y.9`
-row specified; a rename is one line plus a heal.
+**The name collision is settled: `voice`.** `components.card.label` means *where
+the label sits*; the style dial is `components.style.voice` — *how loudly the
+name is set*. Clay's call, taken because one word meaning two things is what U.2
+exists to stop, and `Contents.tsx` was already aliasing a constant to import
+both.
 
 ### The offered list grew a rule
 

@@ -220,7 +220,7 @@ the project.
   | | Holds |
   |---|---|
   | `card` | `layout` — one of `name`, `type`, `fields`, `compartments`, `icon`, `shape`; `shape` — one of `rect`, `round`, `diamond`, `ellipse`, `hex`; `label` — `inside`, `below` or `none`; and `shows`, which fields draw on it and in what order |
-  | `style` | `slot` and `emphasis` (the dials a definition picks within the theme's palette), `weight` and `label`, plus `set` — a style set by name — over the portable typed fields `line` and `head`. Resolved with `styleOf` / `lookOf`; `ramp()` turns a slot and an emphasis into a theme variable |
+  | `style` | `slot` and `emphasis` (the dials a definition picks within the theme's palette), `weight` and `voice`, plus `set` — a style set by name — over the portable typed fields `line` and `head`. Resolved with `styleOf` / `lookOf`; `ramp()` turns a slot and an emphasis into a theme variable |
   | `constraints` | `required` |
   | `rules` | `ends`, `holds`, `degree`, `match`. `among` walks `isa` so a named definition means it or anything below it |
   | `view` | on a diagram's definition: which view module, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Six modules registered, each with a distinct **`icon`** glyph (U.9); the labelled view toggle draws those glyphs (U.8). The block diagram surface lives under `modules/view/diagram/`. Create / `infer` are not yet wired to `word` / `creates` |

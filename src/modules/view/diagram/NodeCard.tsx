@@ -240,7 +240,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   };
 
   const title = titled && (
-    <div className={`card-head loud-${look.typed ? look.label : "normal"}${
+    <div className={`card-head voice-${look.typed ? look.voice : "normal"}${
       grazed?.kind === "title" && grazed.id === node.id ? " grazed" : ""}`}>
       <Name
         text={nameOf(graph, node)}
