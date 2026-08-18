@@ -10,7 +10,6 @@
     "defs": {
       "def_depends": {
         "body": "A hard import: the source cannot build without the target.",
-        "color": "#2f4f4f",
         "form": "directed",
         "head": "filled",
         "id": "def_depends",
@@ -20,11 +19,16 @@
           {
             "name": "why"
           }
-        ]
+        ],
+        "components": {
+          "style": {
+            "slot": "primary",
+            "emphasis": "strong"
+          }
+        }
       },
       "def_door": {
         "body": "The one place a log comes in: checked, healed, reported.",
-        "color": "#4a3d5a",
         "components": {
           "card": {
             "layout": "fields",
@@ -33,6 +37,10 @@
             "shows": [
               "role"
             ]
+          },
+          "style": {
+            "slot": "quaternary",
+            "emphasis": "normal"
           }
         },
         "extends": "def_module",
@@ -59,7 +67,6 @@
       },
       "def_feeds": {
         "body": "Data or control moves this way at runtime.",
-        "color": "#3d5a6a",
         "form": "directed",
         "head": "open",
         "id": "def_feeds",
@@ -73,16 +80,25 @@
               "payload"
             ]
           }
-        ]
+        ],
+        "components": {
+          "style": {
+            "slot": "secondary",
+            "emphasis": "strong"
+          }
+        }
       },
       "def_layer": {
-        "body": "A descriptive set of modules — never a parent.",
-        "color": "#5a4a3d",
+        "body": "A descriptive set of modules \u2014 never a parent.",
         "components": {
           "card": {
             "layout": "name",
             "shape": "round",
             "label": "inside"
+          },
+          "style": {
+            "slot": "tertiary",
+            "emphasis": "quiet"
           }
         },
         "form": "group",
@@ -90,17 +106,21 @@
         "name": "Layer"
       },
       "def_mentions": {
-        "body": "A weaker link — drawn lighter by presentation, not by form.",
-        "color": "#7a7a7a",
+        "body": "A weaker link \u2014 drawn lighter by presentation, not by form.",
         "form": "line",
         "head": "none",
         "id": "def_mentions",
         "line": "dashed",
-        "name": "mentions"
+        "name": "mentions",
+        "components": {
+          "style": {
+            "slot": "muted",
+            "emphasis": "quiet"
+          }
+        }
       },
       "def_module": {
         "body": "A discrete part of the app, named by its folder.",
-        "color": "#3d5a4c",
         "components": {
           "card": {
             "layout": "type",
@@ -109,6 +129,10 @@
             "shows": [
               "path"
             ]
+          },
+          "style": {
+            "slot": "primary",
+            "emphasis": "normal"
           }
         },
         "form": "block",
@@ -116,7 +140,7 @@
         "id": "def_module",
         "name": "Module",
         "names": {
-          "sysml": "«block»"
+          "sysml": "\u00abblock\u00bb"
         },
         "fields": [
           {
@@ -133,7 +157,7 @@
         ]
       },
       "def_seam": {
-        "body": "Ornament a package may ship — a block whose definition carries a shape and a size.",
+        "body": "Ornament a package may ship \u2014 a block whose definition carries a shape and a size.",
         "components": {
           "card": {
             "layout": "shape",
@@ -254,7 +278,7 @@
               "type": "def_module"
             },
             "proxy_store": {
-              "body": "Second appearance of Graph/store — one thing, twice.",
+              "body": "Second appearance of Graph/store \u2014 one thing, twice.",
               "form": "proxy",
               "label": "store",
               "num": 1,
@@ -263,7 +287,7 @@
           }
         },
         "block_embed": {
-          "body": "MiniLM over ONNX — local sentence embeddings, nothing leaves the tab.",
+          "body": "MiniLM over ONNX \u2014 local sentence embeddings, nothing leaves the tab.",
           "fields": [
             {
               "name": "path",
@@ -280,7 +304,7 @@
           "y": 432
         },
         "block_geometry": {
-          "body": "Sizing, placement and routing — derived from the graph.",
+          "body": "Sizing, placement and routing \u2014 derived from the graph.",
           "fields": [
             {
               "name": "path",
@@ -461,7 +485,7 @@
           }
         },
         "block_modules": {
-          "body": "Open components a definition configures — card first.",
+          "body": "Open components a definition configures \u2014 card first.",
           "fields": [
             {
               "name": "path",
@@ -478,7 +502,7 @@
           "y": 240,
           "holds": {
             "block_card": {
-              "body": "Layout, shape, label and which fields show — validated at the door.",
+              "body": "Layout, shape, label and which fields show \u2014 validated at the door.",
               "fields": [
                 {
                   "name": "path",
@@ -545,7 +569,7 @@
               "type": "def_module"
             },
             "block_files": {
-              "body": "Export, import and new — the page's, not a module's.",
+              "body": "Export, import and new \u2014 the page's, not a module's.",
               "fields": [
                 {
                   "name": "path",
@@ -634,7 +658,7 @@
         "note_log_is_truth": {
           "form": "note",
           "h": 72,
-          "label": "The log is the truth — undo flips a step and folds again; no mutation needs an inverse.",
+          "label": "The log is the truth \u2014 undo flips a step and folds again; no mutation needs an inverse.",
           "num": 1,
           "w": 216,
           "x": 768,

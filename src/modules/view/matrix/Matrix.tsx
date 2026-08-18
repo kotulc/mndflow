@@ -2,9 +2,9 @@
  *
  *  **Fills the stage**, for the reason the table does: a grid is asked for to
  *  be read across, and a third of the height with dead space above it is the
- *  worst size for that. Shrinks back to a panel on the tab. Hosts the crumbs
- *  and types chrome the surface declared. Axes are the same members a table
- *  would list; cells show relationships. */
+ *  worst size for that. Shrinks back to a panel on the tab. Hosts the crumbs; the
+ *  types filter is a rail group (Y.4). Axes are the same members a table would
+ *  list; cells show relationships. */
 
 import { useState } from "react";
 

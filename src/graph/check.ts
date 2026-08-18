@@ -78,9 +78,13 @@ function healElemForm(it: Record<string, unknown>): boolean {
   return true;
 }
 
-/** An element carried a colour of its own before presentation belonged to the
- *  definition it names. Dropped rather than carried: nothing reads it, and a
- *  field nothing reads is written back out on every save forever. */
+/** A colour was written free-form before the theme owned the palette — first on
+ *  an element, then on the definition it names (Y.7).
+ *
+ *  **Dropped, not mapped.** Nothing reads it, and a field nothing reads is
+ *  written back out on every save forever. A nearest-slot guess would be wrong
+ *  more often than the default is: `neutral` / `normal` is a definition saying
+ *  nothing, which is exactly what a dropped colour leaves it saying. */
 function healColour(it: Record<string, unknown>): boolean {
   if (!("color" in it)) return false;
 
@@ -190,6 +194,9 @@ function healGraph(graph: Record<string, unknown>): string[] {
       if (!raw || typeof raw !== "object") continue;
       const def = raw as Record<string, unknown>;
       figured = healElemForm(def) || figured;
+      if (healColour(def)) {
+        why.push("definition named a colour; the theme owns the palette now");
+      }
       why.push(...healComponents(def));
     }
   }
@@ -298,6 +305,10 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
   // A definition is where every component's configuration is held, so it is
   // the one place the door has to ask anybody else anything.
   if (op === "set_def") {
+    if (healColour(it)) {
+      faults.push({ step, op, why: "definition named a colour; the theme owns the palette now",
+                    healed: true });
+    }
     if (healElemForm(it)) {
       faults.push({ step, op, why: "definition named the retired `figure` form; read it as a block",
                     healed: true });

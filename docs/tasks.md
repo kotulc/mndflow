@@ -114,6 +114,32 @@ askable. Each surface keeps a `seed` of what it alone knows. Two things worth ke
   been empty. Driving it could not see this, because the log looked right; the property test —
   *the vocabulary a new project starts with yields offerings* — is what failed.
 
+### The style surface closed
+
+**`Y.7` and `Y.9` landed and were driven.** `Definition.color` is gone and
+`components.style` carries four closed dials instead: `slot` (six hue families),
+`emphasis` (`quiet|normal|strong`), `weight` (`hairline|thin|thick`) and `label`
+(`quiet|normal|loud`). Nothing a definition can set is a colour, a pixel count or
+a font. Driven: setting all four on `Module` moved every usage's border from
+`oklch(0.42 .0855 150)` at 1px to `oklch(0.8 .12 330)` at 2px with its name at
+700, and the door refuses `slot: "magenta"` by name — *`style.slot` has to be one
+of primary, secondary, tertiary, quaternary, neutral, muted*.
+
+**One judgement the row did not settle.** *A definition that says nothing gets
+`neutral` / `normal`* is true of a definition — but a usage with **no type at
+all** has no definition to read, so it keeps the engine's own default (`--route`,
+`--border`) rather than the neutral slot. Otherwise *no type yet* and
+*deliberately quiet* draw the same, and the untyped canvas would lose its green.
+`Look.typed` is the flag.
+
+**One name collides and is worth a word from Clay.** `components.card.label`
+means *where the label sits* (`inside|below|none`); `components.style.label`
+now means *how loudly it is set* (`quiet|normal|loud`). Two components may each
+own a key called `label`, and `Contents.tsx` already has to alias one of the two
+constants to import both. The project's own rule is *no mark means two things*
+(U.2) — **`voice` or `weight`-style naming would keep it**. Written as the `Y.9`
+row specified; a rename is one line plus a heal.
+
 ### The offered list grew a rule
 
 **`Y.4` closed its `◐`.** The rail builds the `types` group now, so table and matrix stopped

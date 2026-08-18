@@ -249,6 +249,13 @@
   --outside: oklch(var(--l-outside) calc(var(--neutral-c) * 0.3) var(--neutral-h)
                    / var(--outside-a));
 
+  /* What a definition's `style.weight` names comes to (Y.9). Theme-wide and
+     not per-theme, since a stroke weight is not a colour — but here rather
+     than in the component, so the numbers stay the stylesheet's. */
+  --weight-hairline: 0.5px;
+  --weight-thin: 1px;
+  --weight-thick: 2px;
+
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
   color: var(--text);
@@ -810,7 +817,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   flex-direction: column;
   width: 100%;
   height: 100%;
-  border: calc(1px / var(--zoom, 1)) solid var(--border);
+  border: calc(var(--card-weight, var(--weight-thin)) / var(--zoom, 1)) solid var(--border);
   border-radius: 2px;
   background: var(--card-fill);
   /* Tight vertically: the card is one grid row of content, and every pixel of
@@ -818,6 +825,13 @@ button:disabled { opacity: 0.4; cursor: default; }
   padding: 5px 9px;
   font-size: 12px;
 }
+
+/* What a definition's `style.weight` and `style.label` come to (Y.9). Names,
+   not values, on the definition; the numbers are the theme's, so a definition
+   cannot break the system by choosing a 6px border or a font of its own. */
+.card-head.loud-quiet .label { opacity: 0.72; font-weight: 400; }
+.card-head.loud-normal .label { font-weight: 500; }
+.card-head.loud-loud .label { font-weight: 700; letter-spacing: 0.01em; }
 
 /* No dashed border: the grid inside already says this holds something, and two
    signals for one fact only make the canvas noisier. */

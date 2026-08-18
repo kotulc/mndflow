@@ -525,7 +525,6 @@ function defOfRaw(raw: unknown): Definition | null {
     form,
     fields: fieldsOf(it.fields),
     ...(typeof it.body === "string" ? { body: it.body } : {}),
-    ...(typeof it.color === "string" ? { color: it.color } : {}),
     ...(typeof it.icon === "string" ? { icon: it.icon } : {}),
     ...(it.line === "solid" || it.line === "dashed" || it.line === "dotted"
       ? { line: it.line } : {}),

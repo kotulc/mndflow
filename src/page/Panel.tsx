@@ -26,7 +26,6 @@ import { type Grazed } from "../canvas/card";
 type DefPatch = {
   fields?: Field[];
   body?: string;
-  color?: string;
   icon?: string;
   line?: Definition["line"];
   head?: Definition["head"];

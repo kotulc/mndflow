@@ -33,7 +33,7 @@ import { field as blankField, refAt } from "../graph/types";
 import { LAYOUTS, LABELS, PLAIN, SHAPES, type CardConfig } from "../modules/card";
 import { constraintsOf } from "../modules/constraints";
 import { among, rulesOf, type Bound } from "../modules/rules";
-import { SETS } from "../modules/style";
+import { EMPHASES, LABELS as VOICES, SETS, SLOTS, WEIGHTS } from "../modules/style";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
 import { defOf, gather, packs, scoped } from "../workspace";
@@ -72,7 +72,6 @@ const HEADS: NonNullable<Definition["head"]>[] = ["none", "open", "filled", "hol
 type DefPatch = {
   fields?: Field[];
   body?: string;
-  color?: string;
   icon?: string;
   line?: Definition["line"];
   head?: Definition["head"];
@@ -426,6 +425,16 @@ function cardOn(def: Definition): CardConfig {
 function styleOn(def: Definition): string {
   const set = def.components?.style?.set;
   return typeof set === "string" ? set : "";
+}
+
+/** The four closed dials `style` carries — a definition picks within the
+ *  theme's palette and the theme's weights, and names neither. */
+type Dial = "slot" | "emphasis" | "weight" | "label";
+
+/** One `style` dial a definition has set, or "" for the component's default. */
+function dialOn(def: Definition, key: Dial): string {
+  const held = def.components?.style?.[key];
+  return typeof held === "string" ? held : "";
 }
 
 /** The declaration a usage's type names for this field, if any.
@@ -862,6 +871,15 @@ export function Contents(props: Props) {
     amend(def, { components });
   }
 
+  /** One `style` dial, merged into the key rather than replacing it — `set`,
+   *  `slot` and `emphasis` are three answers under one component. */
+  function setDial(def: Definition, key: Dial, value: string) {
+    const held = { ...(def.components?.style ?? {}) };
+    if (value) held[key] = value;
+    else delete held[key];
+    setComponent(def, "style", Object.keys(held).length ? held : null);
+  }
+
   /** The buttons a row carries: whatever that kind can be told to do. Between
    *  them they cover everything the selection panel used to change. */
   function doing(row: Row) {
@@ -1037,13 +1055,53 @@ export function Contents(props: Props) {
             />
           </div>
           <div className="carries">
+            {/* Two dials rather than a colour (Y.7): the theme owns the
+                palette and a definition chooses within it, so there is no
+                value here that can look wrong in one theme and right in
+                another. */}
             <span className="held value">
-              colour
-              <Draft
-                value={def.color ?? ""}
-                placeholder="#…"
-                onCommit={(color) => amend(def, { color: color.trim() || undefined })}
-              />
+              slot
+              <select
+                value={dialOn(def, "slot")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "slot", event.target.value)}
+              >
+                <option value="">—</option>
+                {SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+              </select>
+            </span>
+            <span className="held value">
+              emphasis
+              <select
+                value={dialOn(def, "emphasis")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "emphasis", event.target.value)}
+              >
+                <option value="">—</option>
+                {EMPHASES.map((how) => <option key={how} value={how}>{how}</option>)}
+              </select>
+            </span>
+            <span className="held value">
+              weight
+              <select
+                value={dialOn(def, "weight")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "weight", event.target.value)}
+              >
+                <option value="">—</option>
+                {WEIGHTS.map((w) => <option key={w} value={w}>{w}</option>)}
+              </select>
+            </span>
+            <span className="held value">
+              label
+              <select
+                value={dialOn(def, "label")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "label", event.target.value)}
+              >
+                <option value="">—</option>
+                {VOICES.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
             </span>
             <span className="held value">
               line
@@ -1088,7 +1146,10 @@ export function Contents(props: Props) {
                 onClick={stop}
                 onChange={(event) => {
                   const set = event.target.value;
-                  setComponent(def, "style", set ? { set } : null);
+                  const held = { ...(def.components?.style ?? {}) };
+                  if (set) held.set = set;
+                  else delete held.set;
+                  setComponent(def, "style", Object.keys(held).length ? held : null);
                 }}
               >
                 <option value="">—</option>

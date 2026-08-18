@@ -403,12 +403,6 @@ export function currentProject(): string {
   }
 }
 
-/** A fresh project id. Minting is deliberate now — only the `new` action does
- *  it, and only once a name has been accepted. */
-export function newProjectId(): string {
-  return newId("proj");
-}
-
 export function projectId(): string {
   try {
     const held = localStorage.getItem(CURRENT);

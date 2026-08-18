@@ -18,7 +18,7 @@ import type { Graph } from "../../../src/graph/types";
 import {
   ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP, MARGIN, NOTE,
   NODES, edgesOf, extentOf, fill_args, floorOf, framed, laidOf, nodesOf, paint,
-  reaches, restOf, stageOf, svgOf, takes, type OfferTarget,
+  PAPER, reaches, restOf, stageOf, svgOf, takes, type OfferTarget, type SvgLook,
 } from "../../../src/modules/view/diagram/index";
 
 describe("the block module's surface", () => {
@@ -180,7 +180,8 @@ describe("the configured half", () => {
       defs: {
         def_1: {
           id: "def_1", name: "satisfy", form: "line", fields: [],
-          color: "#abc", line: "dashed", head: "open",
+          line: "dashed", head: "open",
+          components: { style: { slot: "secondary", emphasis: "strong" } },
         },
       },
       elements: { ...EMPTY.elements, e1: held },
@@ -189,7 +190,8 @@ describe("the configured half", () => {
     const own = paint(look, false);
     const away = paint(look, true);
 
-    expect(own.stroke).toBe(look.color);
+    // The slot the definition picked, resolved to a ramp step — never a colour.
+    expect(own.stroke).toContain(look.slot);
     expect(own.dash).toBeDefined();
     expect(own.head("forward")).toBeTruthy();
     // Derived presentation wins over the definition's look.
@@ -288,6 +290,28 @@ describe("SVG export of a layer", () => {
     expect(markup).toContain('data-id="e1"');
     // Not a React Flow tree — plain SVG elements only.
     expect(markup).not.toContain("react-flow");
+  });
+
+  it("inlines the look it was handed, and never a variable", () => {
+    const look: SvgLook = {
+      frame: "#010203", band: "#040506", fill: "#070809",
+      stroke: "#0a0b0c", ink: "#0d0e0f", route: "#101112",
+    };
+    const markup = svgOf(layered(), "L", look);
+
+    // A file has no page, so nothing may leave as something to resolve later.
+    expect(markup).not.toContain("var(--");
+    // Every part this scene draws — a band needs a group, which it has none of.
+    for (const part of ["frame", "fill", "stroke", "ink", "route"] as const) {
+      expect(markup).toContain(look[part]);
+    }
+  });
+
+  it("falls back to a look that reads on paper when handed none", () => {
+    const markup = svgOf(layered(), "L");
+
+    expect(markup).toContain(PAPER.fill);
+    expect(markup).not.toContain("var(--");
   });
 
   it("still returns an svg when the layer is empty", () => {

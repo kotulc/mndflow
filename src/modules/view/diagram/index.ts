@@ -19,7 +19,7 @@ export {
   type OfferTarget,
 } from "./offer";
 export { paint } from "./paint";
-export { svgOf } from "./svg";
+export { PAPER, lookNow, svgOf, type Look as SvgLook } from "./svg";
 export {
   NOTE, DEPTH, stageOf, laidOf, nodesOf, edgesOf, placementKey, standInOf,
   type Laid, type Band, type Stage, type NodeReach,

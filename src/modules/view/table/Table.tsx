@@ -3,8 +3,8 @@
  *  **Fills the stage.** Choosing *table* on the project's view toggle is asking
  *  for the layer as a list, so opening a third full with dead space above it
  *  answers a different question. It still shrinks back to a panel on the tab,
- *  which is the size the tray uses. Hosts the crumbs and types chrome the
- *  surface declared — parked beside the list since A.1. No frame, no camera. */
+ *  which is the size the tray uses. Hosts the crumbs; the types filter is a
+ *  rail group (Y.4). No frame, no camera. */
 
 import { useState } from "react";
 

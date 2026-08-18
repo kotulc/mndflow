@@ -30,7 +30,7 @@ import { Rail, groupsFor } from "./Rail";
 import { Activity } from "../modules/view/activity";
 import { Sequence } from "../modules/view/sequence";
 import { State } from "../modules/view/state";
-import { svgOf } from "../modules/view/diagram";
+import { lookNow, svgOf } from "../modules/view/diagram";
 import { Matrix } from "../modules/view/matrix";
 import { Table } from "../modules/view/table";
 import * as workspace from "../workspace";
@@ -518,7 +518,10 @@ export function App() {
   async function exportProject(): Promise<void> {
     const wrote = await project.save(companions(graph, contextId));
     if (!wrote) return;
-    store.downloadSvg(svgOf(graph, view), titleOf(graph) || "mndflow");
+    // The picture leaves in the look that was on the screen — `lookNow` reads
+    // the page's own ramp, so an export never stamps a theme nobody chose
+    // (Y.6). A caller with no page still gets `PAPER`.
+    store.downloadSvg(svgOf(graph, view, lookNow()), titleOf(graph) || "mndflow");
   }
 
   // Shortcuts that belong to the whole app rather than to one panel. Inside a

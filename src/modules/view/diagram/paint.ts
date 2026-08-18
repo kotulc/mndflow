@@ -8,7 +8,7 @@
 
 import { MarkerType, type EdgeMarkerType } from "@xyflow/react";
 
-import type { Look } from "../../style";
+import { ramp, type Look } from "../../style";
 
 /** Defaults when a definition says nothing.
  *
@@ -61,8 +61,12 @@ export function paint(look: Look, away: boolean): {
     };
   }
 
-  const stroke = look.color ?? PLAIN.color;
-  const tip = look.color ?? PLAIN.head;
+  // **A definition picks a slot; a line that names none has nothing to read.**
+  // Presentation lives on the definition, so an untyped relationship falls back
+  // to the engine's own route rather than claiming the neutral slot — which
+  // would make *no type yet* and *deliberately quiet* look the same (Y.7).
+  const stroke = look.typed ? ramp(look, "line") : PLAIN.color;
+  const tip = look.typed ? ramp(look, "line") : PLAIN.head;
 
   return {
     stroke,

@@ -167,9 +167,17 @@ the project.
   for a relationship. A project's relation vocabulary is just the definitions of relationship form.
 - **Every reference to a definition is by id**, so renaming one never orphans a typed interface, a
   flow's item, or a nested data structure.
-- **Presentation lives on the definition, never on the usage** — colour and icon for an element,
-  line style, arrowhead and colour for a relationship. It is therefore structurally absent from an
-  export rather than filtered out of one.
+- **Presentation lives on the definition, never on the usage** — icon, line style and arrowhead,
+  and the `style` component's dials. It is therefore structurally absent from an export rather than
+  filtered out of one.
+- **No colour among them** (Y.7, proven). `Definition.color` was the one free-form value in the
+  surface and the only way a definition could look wrong; it is gone, and the door drops it off a
+  definition the way it already dropped it off an element. **Dropped, not mapped** — a nearest-slot
+  guess would be wrong more often than the default is, and the default is *a definition saying
+  nothing*, which is exactly what a dropped colour leaves it saying.
+- **A definition that names no type has no presentation to read**, so an untyped card keeps the
+  theme's own border and an untyped route the engine's own line. Otherwise *no type yet* and
+  *deliberately quiet* would look the same.
 - Four more optional fields, each unwritten at its default so no existing file changes by a byte:
 
   | | Is |
@@ -212,7 +220,7 @@ the project.
   | | Holds |
   |---|---|
   | `card` | `layout` — one of `name`, `type`, `fields`, `compartments`, `icon`, `shape`; `shape` — one of `rect`, `round`, `diamond`, `ellipse`, `hex`; `label` — `inside`, `below` or `none`; and `shows`, which fields draw on it and in what order |
-  | `style` | `set`, a style set by name, over the portable typed fields — colour, line, arrowhead — that render without one. Resolved with `styleOf` / `lookOf` |
+  | `style` | `slot` and `emphasis` (the dials a definition picks within the theme's palette), `weight` and `label`, plus `set` — a style set by name — over the portable typed fields `line` and `head`. Resolved with `styleOf` / `lookOf`; `ramp()` turns a slot and an emphasis into a theme variable |
   | `constraints` | `required` |
   | `rules` | `ends`, `holds`, `degree`, `match`. `among` walks `isa` so a named definition means it or anything below it |
   | `view` | on a diagram's definition: which view module, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Six modules registered, each with a distinct **`icon`** glyph (U.9); the labelled view toggle draws those glyphs (U.8). The block diagram surface lives under `modules/view/diagram/`. Create / `infer` are not yet wired to `word` / `creates` |

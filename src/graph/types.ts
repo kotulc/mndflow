@@ -228,8 +228,12 @@ export type Definition = {
   body?: string;
   /** How its usages draw. Presentation lives here and never on a usage, which
    *  is what keeps it structurally out of an export rather than filtered from
-   *  one on the way. */
-  color?: string;
+   *  one on the way.
+   *
+   *  **No colour among them.** A hue is `components.style.slot` and how loudly
+   *  it is taken is `components.style.emphasis`, both closed sets — the theme
+   *  owns the palette and a definition chooses within it (Y.7). `color` was the
+   *  one free-form value here and the only way a definition could look wrong. */
   icon?: string;
   line?: "solid" | "dashed" | "dotted";
   head?: "none" | "open" | "filled" | "hollow";
@@ -342,7 +346,7 @@ export type Mutation =
   | { op: "delete_edge"; id: string }
   /** Make or amend a definition. Everything but the id is a patch. */
   | { op: "set_def"; id: string; name?: string; form?: ElemForm | EdgeForm; fields?: Field[];
-      body?: string; color?: string; icon?: string; line?: Definition["line"];
+      body?: string; icon?: string; line?: Definition["line"];
       head?: Definition["head"]; size?: Definition["size"];
       names?: Record<string, string>; components?: Record<string, Record<string, unknown>>;
       extends?: string }

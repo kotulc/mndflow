@@ -184,7 +184,8 @@ learned preference. The list lives in `actions/`, never in `terminal/`, so S6.3 
 | **G.9a** | `offer(ctx)` in `actions/offer.ts` — membership for the current context (scope + `when`), no ordering of its own. Explorer, rail and canvas all draw from it |
 | **G.9b** | Explorer row right-click opens the list in fixed order via `project.go`; rename stays double-click / ✎. **This is `infer`'s trigger**, so A.7a stopped being unreachable (proven) |
 | **G.9c** | Click the rail chrome to focus the caret; chips from `offer(ctx)`, typed filter, arrows move the highlight, `Enter` takes it (proven) |
-| **G.9d** | **The target decides**: empty canvas right-click still creates, an existing card / frame / edge / selection opens the list. Former immediates became entries; right *drags* untouched (proven). *Landed short — `retype` on an edge waits on Scope; that gap is now its own row, `G.9e`* |
+| **G.9d** | **The target decides**: empty canvas right-click still creates, an existing card / frame / edge / selection opens the list. Former immediates became entries; right *drags* untouched (proven). *Landed short — `retype` on an edge waited on Scope; `G.9e` closed it* |
+| **G.9e** | `Scope` collapsed from four variants to `{ on: Where \| readonly Where[] }`, and `retype` is scoped `element\|edge` — which is what actions.md always said and `run` always accepted. The edge menu lists *Retype* (proven). Widening a descriptor's own field is not widening the closed action set |
 
 
 ## U — the shell
@@ -259,6 +260,22 @@ discarded; `vocabulary` read a typed `"sysml, uml"` as **one** bogus id and wipe
 the project's imports; and `move` offered from a menu filled its parent from the
 view, committing a step that moved a thing to where it already was.
 
+**`R.5`–`R.8` and `R.10` / `R.11` were the second half**, and the theme was one
+rule missing rather than entries forgotten.
+
+| | Landed |
+|---|---|
+| **R.5** | **A required `choice` expands into one entry per option.** A menu asks no questions, so an action holding one was withheld everywhere — `expand` on the descriptor turns the options into the entries, through `entries()` in `actions/fill.ts`. `mark`, `direct` and `reform` carry it; `axis` and `arrange` deliberately do not, since the bar and the `.shape` cluster are their doors. **The action set does not widen**: one registered action, offered N times with different arguments. **Both** menus call it — the explorer's copy was one line, and leaving it out would have rebuilt the per-surface drift `R.2` removed (proven) |
+| **R.6** | `direct` and `reform` reach an edge for the first time. Driven end to end: *Directed* turned a plain line into a directed one, *Back* moved the arrowhead to the other end, each one log step |
+| **R.7** | **A directed relationship draws its arrowhead.** The *form* says there is a direction and `dir` only refines which way — the reading `behavior.ts` always used. The canvas required an explicit `dir`, so it drew nothing for every edge the toolbar makes. Wanting no arrows is `reform` back to a plain line. `styles.css` was untouched: the head was already on the ramp, it was never being asked for |
+| **R.8** | A **Does** column on all seven [actions.md](actions.md) tables, each descriptor's `about` copied verbatim, with the descriptor named as the source in the preamble. The two *waits Scope* gaps went with G.9e |
+| **R.10** | **The explorer menu writes where it was clicked.** `menu_ctx` built its context from the project in context whatever the row, so a menu on B's row wrote A's log with nothing saying so. It builds from the row's own project now and brings that project into context first — the switch the left-click path always made. Driven with two projects: with B open, *Create* on A's row put the block in A's log and nowhere else |
+| **R.11** | **An empty domain stem is not a repair.** `healVocabulary` counted `vocabulary: ""` → `[]` as healed, but the normalisation carried nothing, so every pre-migration project without a domain opened with a trouble notice it had not earned. Driven both ways — an empty stem opens silent, a real stem still reports (proven) |
+
+**Left unresolved and recorded**: an edge menu now reads sixteen flat entries,
+with the four directions and two forms unlabelled. Legible only because `ORDER`
+keeps each action's options together — `R.9` and `X.2` are what make it good.
+
 
 ## V — the shell, second pass
 
@@ -301,6 +318,57 @@ view, committing a step that moved a thing to where it already was.
 - **The vertical group separator still applied to the now-horizontal bar**, sitting one group 10px
   below the other under an orphan rule.
 
+
+## Y — one options rail, and a theme that reaches the drawing
+
+Two independent seams that shared no file: the rail (`Y.1`) and the colour ramp
+(`Y.5`). **`Y.5`–`Y.7` reverse U.4 and one line of CLAUDE.md** knowingly — *a
+theme never recolours a card, route or frame* is what made `modern` a blue shell
+around a green diagram. What is left of the wave is in [plan.md](plan.md):
+`Y.6`'s `svg.ts` remainder, `Y.7`'s dials, `Y.9` and `Y.10`.
+
+| | Landed |
+|---|---|
+| **Y.1** | **The rail is a seam, not a control.** A page-level column rendering the groups the open view module declares (`ViewModule.chrome`), so it is one surface whose contents vary rather than six copies. The diagram's four moved across unchanged, words and all; `.arrange.options` and `.shape` went |
+| **Y.2** | A column of stacked icons, each with one word beneath it. **U.15 is not reversed** — *every control carries a word* survives, because the word moved **under** the icon rather than beside it, and beside is where the width went. Measured: the stage ends at exactly the column's left edge, and it scrolls as predicted (1121px of content against 823px). **It is `.opts`, not `.rail`** — the terminal's Chat has owned `.rail` since S6, and the first cut collided with it |
+| **Y.3** | The view toggle is the rail's first group and export joins it, both leaving the explorer. **This reverses V.6**: the rail is a third scope — *the thing on the stage* — and that is where both belong. `onExportProject` / `shownViews` / `onShowView` went with them rather than being left dead |
+| **Y.4** | **Every other view module declares its groups**, so the rail is genuinely fixed rather than diagram-only. Table and matrix declare `types`, activity and state `flow`+`arrange`, sequence `flow` alone (columns are its layout, so an arrangement would fight it). *Landed short first*: the rail built no `types` group, so both stages still drew an inline cycle. **Closed with `ViewModule.types`** — an icon and a function from the layer to the kinds on it, because the rail can build every other group from the page's own state but not this one: a table filters by definition names and a matrix by relationship marks. Declaring the group without answering it now fails the module conformance contract. **A pick no longer on the layer reads as *everything***, so navigation resets nothing |
+| **Y.5** | **The theme became a ramp, not a list of colours.** Six steps meaning the same *job* everywhere (`fill`, `raised`, `line`, `edge`, `dim`, `ink`) across ten slots, computed in `oklch()` from a per-theme lightness ladder — so *ink reads on fill* is arithmetic rather than eyeballed three times. **The chrome moved onto it too**: every chrome variable is an alias for a ramp step, so ~2,000 existing rules were left untouched and the ramp still became the single source. `--line`, `--raised` and `--faint` were used with fallbacks and never defined; they are real now |
+| **Y.8** | **A deselected project stops looking selected.** `lit()` fell back to `scoped()` when nothing was chosen, so the open layer and the selection had one appearance — and deselecting is a gesture the app leans on. `lit()` is the selection alone now and `scoped()` adds an `open` class beside it: open is a wash, selected takes the accent and an inset bar, and they stack. Driven through all four states |
+
+| **Y.7** | **`color` is dropped and the style component gains the dials.** `Definition.color` was the one free-form value in the style surface and the only way a definition could look wrong. It is gone; `components.style` gains **`slot`** (six hue families) and **`emphasis`** (`quiet\|normal\|strong`, which steps the fill and border take), and a definition that says nothing gets `neutral` / `normal`. **Dropped, not mapped** — `check.ts`'s `healColour` already did exactly this for elements, one function along. `samples/mndflow.json`'s six hexes became six slot picks. **One judgement the row did not settle**: a usage with *no type at all* has no definition to read, so it keeps the engine's own default rather than the neutral slot — otherwise *no type yet* and *deliberately quiet* draw the same (`Look.typed`). Driven: the sample imports, every card follows the theme through all three, and the log carries no colour anywhere |
+| **Y.9** | **Border weight and text emphasis, as enumerations.** `weight` (`hairline\|thin\|thick`) and `label` (`quiet\|normal\|loud`) under `components.style`, additive and breaking nothing. The numbers stay the stylesheet's (`--weight-*`), so a definition says *thick* and never a pixel count. Driven through the tray's definition editor: all four dials moved every usage at once, and the door refuses `slot: "magenta"` by name. **`components.style.label` collides in wording with `components.card.label`** — recorded in tasks.md as the one thing wanting Clay's word |
+
+**A follow-up pass landed with them.** The ramp gained a **`stroke` step** — a
+line drawn on the canvas *ground* rather than on a card, which `line` was doing
+badly: on the whiteprint a frame at `line` all but vanished while the flow walls
+stayed, so the frame read as deleted. **The frame's disappearance was a second
+bug under the first**: a 1px border inside a `scale(zoom)` transform is a pixel
+*of layer* and lands under a device pixel, so the canvas publishes `--zoom` and
+the frame, walls and card borders divide by it — measured constant from zoom 1
+down to 0.15. **`foldAll` could only ever fold**: it read `shut.size` as
+*something is open*, so once the projects were collapsed its own state forced the
+collapse branch forever. The header sits at one weight; **discard is an ordinary
+icon**, since V.3's confirm is what stands in front of it; a **container is a
+filled square** rather than a box with a rule through it, which read as a table;
+and **the column's controls became chips**, carrying the terminal's border,
+ground and `likely` treatment, so the page's two edges read as one surface.
+
+
+## V.19 and U.18 — the pass after the wave
+
+| | Landed |
+|---|---|
+| **V.19** | Clay's UI pass over the finished wave, taken after driving it and **outside the queue**. The view toggle and the theme toggle are each **one cycling icon**; the project row's tools sit right and only on the selected project; per-project export wears an **options** mark, a placeholder for a menu; the canvas settings **stack in labelled groups** top and bottom alike, `arrange` included; `view_block` is a plain square; **table and matrix fill the stage** rather than opening a third full. It reverses U.8 a third time and un-inlines V.17 — reasoning in tasks.md, stream V. **It left one duplicate visible**, and `W.1a` is the row that closes it |
+
+**`U.18` landed short and stays in plan.md.** Its two wires are done — `path` /
+`onUp` reach table and matrix, so the crumb reads the trail the page already
+holds rather than re-deriving it, and `newProject` goes through
+`workspace.begin`, which names, mints the id, writes the first step and admits
+in one call instead of App doing all four beside an unwired door.
+**`tray.full` went to `W.1`**: nothing anywhere asks for a full tray — no
+control, no state, no class — so the rule would be dead CSS ahead of the door
+that reaches it.
 
 ## D, F, H and the build
 
