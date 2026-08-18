@@ -11,7 +11,14 @@
  *  control on the bar, not another column.
  *
  *  It stays shut until asked for. The table covers the drawing it describes,
- *  so it opens on the tab and closes on a click anywhere else. */
+ *  so it opens on the tab and closes on a click anywhere else.
+ *
+ *  **`full` is the table view at full stage size (W.1).** Setting the
+ *  project's view toggle to `table` is the door — App reads no diagram in
+ *  that mode, so this is what fills the space it would have drawn in,
+ *  instead of the module drawing a second listing of the same layer. There is
+ *  no shut state for it yet (that is `W.1a`'s three sizes), so the tab is
+ *  withheld rather than left bound to nothing. */
 
 import { useEffect, useMemo, useState, type Ref } from "react";
 
@@ -37,6 +44,14 @@ type Props = {
   graph: Graph;
   view: string | null;
   picked: Picked;
+  /** Descend into a row, or navigate the crumb trail (null = project) — the
+   *  crumbs only draw at full stage size (W.1), but the door is the same one
+   *  either way. */
+  onOpen: (id: string | null) => void;
+  /** Trail for the crumbs. Derived from the graph when the page omits it. */
+  path?: string[];
+  /** One layer up. Defaults to opening the open layer's parent. */
+  onUp?: () => void;
   onSave: (id: string, body: string) => void;
   onRetype: (id: string, type: string) => void;
   onMarkPort: (id: string, flow: Flow | null) => void;
@@ -66,17 +81,22 @@ type Props = {
   onUndefine: (id: string) => void;
   /** So the canvas can measure the tray and keep its own controls above it. */
   hostRef?: Ref<HTMLElement>;
+  /** The table view at full stage size — the project's view toggle set to
+   *  `table` (W.1). Forces the tray open regardless of its own state. */
+  full?: boolean;
 };
 
 export function Panel(props: Props) {
-  const { graph, view, picked, onJoinGroup, hostRef } = props;
+  const { graph, view, picked, onJoinGroup, hostRef, full = false } = props;
   const [open, setOpen] = useState(false);
+  const stage = full || open;
 
   /** A click anywhere outside puts it away. The table covers the drawing it is
    *  describing, so getting back to the canvas should not need aiming at a
-   *  chevron first — and the tab is one click either way. */
+   *  chevron first — and the tab is one click either way. Full has no outside
+   *  click to answer to: the toggle that opened it is the only door back. */
   useEffect(() => {
-    if (!open) return undefined;
+    if (!stage || full) return undefined;
 
     const away = (event: PointerEvent) => {
       const host = (hostRef as { current?: HTMLElement | null })?.current;
@@ -86,7 +106,7 @@ export function Panel(props: Props) {
     document.addEventListener("pointerdown", away);
 
     return () => document.removeEventListener("pointerdown", away);
-  }, [open, hostRef]);
+  }, [stage, full, hostRef]);
 
   // Where you are, so the table's scope is never in doubt.
   // At the top of a project the scope is the project itself, which is named.
@@ -108,7 +128,7 @@ export function Panel(props: Props) {
   }, [graph, view, picked]);
 
   return (
-    <section className={`tray ${open ? "open" : ""}`} ref={hostRef}>
+    <section className={`tray ${stage ? "open" : ""} ${full ? "full" : ""}`} ref={hostRef}>
       <div className="tray-bar">
         <span className="name">{where}</span>
 
@@ -132,18 +152,20 @@ export function Panel(props: Props) {
           </select>
         )}
 
-        <button
-          className={`tray-tab ${open ? "on" : ""}`}
-          aria-expanded={open}
-          title={open ? "Hide what this layer holds" : "Everything this layer holds"}
-          onClick={() => setOpen(!open)}
-        >
-          contents <Icon name={open ? "more" : "less"} />
-        </button>
+        {!full && (
+          <button
+            className={`tray-tab ${open ? "on" : ""}`}
+            aria-expanded={open}
+            title={open ? "Hide what this layer holds" : "Everything this layer holds"}
+            onClick={() => setOpen(!open)}
+          >
+            contents <Icon name={open ? "more" : "less"} />
+          </button>
+        )}
       </div>
 
       <div className="tray-body">
-        {open && (
+        {stage && (
           <Guard what="This layer's contents">
             <Contents {...props} />
           </Guard>

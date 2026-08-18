@@ -23,5 +23,9 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     teardownTimeout: 10_000,
+    // happy-dom over jsdom: vitest-native, and nothing here needs jsdom's
+    // deeper spec cover (no canvas, no navigation). Global rather than a
+    // per-file pragma — every page test wants it, not only this one (T.3).
+    environment: "happy-dom",
   },
 });

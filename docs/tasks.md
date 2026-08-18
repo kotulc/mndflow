@@ -1910,3 +1910,30 @@ over mutations `fold` already covers. Each is a judgement to revisit. **The last
 revisited as T.1 and landed**: S1.6 made actions pure `(graph, args) -> Effect`; the five modules
 now have property suites under `tests/actions/`. The terminal stays uncovered on purpose and gets
 no row — stream Z changes its shape, so a suite would be rewritten by it.
+
+## Found while working the queue (2026-08-17/18)
+
+**Defects — not any row's work, none fixed.**
+
+| | What | Where |
+|---|---|---|
+| **1** | **`onMove` writes to the wrong project's log.** `project.move` takes no project argument and always writes to the bound/context project. Every tree row is draggable regardless of context, and `drop()` routes a same-project drag to `onMove` — so dragging inside project A while B is in context records the move in **B's** log. Silent corruption, same class as `R.10`. `P.11`'s property test covers `writeInto` directly, not the page path, so it does not catch this. Needs a signature change through `onMove` → `act.move` / `home` | `page/Files.tsx`, `project.ts` |
+| **2** | **A minted `set` project has no name and skips the uniqueness check.** `build_set` makes its root with label `""`, and `titleOf` is the root's label — so the project draws blank. It reaches the workspace via `writeInto` + `onAdmit`, bypassing `workspace.begin`, which is where `mayName` refuses a duplicate | `actions/behavior.ts` |
+| **2b** | **A moved subtree's local proxies silently re-point.** `extract` copies each element with `{...node}` and rewrites only `parent`; a proxy's `of` travels unchanged. `refTo(id)` with no project yields a **bare** id and `refAt` reads a bare ref as local — so a proxy pointing at a sibling in the source project re-resolves against the **destination** after the drop, dangling or hitting a different element with the same id. `lost` counts only edges, so nothing warns. This is exactly the population the explorer→canvas gesture creates. **Open (Clay):** re-qualify to the source project on the way out (`refTo(id, source)` — the reference survives, the destination gains a dependency), or drop it and count it like a left-behind relationship | `workspace/index.ts` |
+| **3** | The `terms` prop chain is dead: `project.ts` → `App.tsx` → `Files.tsx` Props, never destructured or rendered. The explorer's word is `const UNIT = "block"`. Pre-existing. Either wire it or delete the chain and `terminal/terms.ts` with it | `page/`, `terminal/terms.ts` |
+| **4** | `type Terms` is declared twice — `Files.tsx` duplicates `terminal/workflows.ts` | both |
+| **5** | Dead CSS left by `Z.9`'s removed history block: `.past`, `.exchange`, `.exchange.reverted`, `.typed .noop` | `styles.css` |
+| **6** | `feedback.ts`'s `CAP = 200` now serves two independent histories (action overrules and `retype:*`) with no per-namespace budget, so a burst of one evicts the other. The namespacing itself is airtight | `actions/feedback.ts` |
+| **7** | `typelist.ts` reimplements the private `shape_weights()` from `actions/rank.ts` byte-for-byte. Fix is one `export`. This was `X.2`'s to fold in | `modules/view/diagram/` |
+| **8** | Matrix `map.ts` declares *left click on cell → selection* but no `onClick` is wired in `Matrix.tsx`, so "the strip lists them all on selection" cannot work | `modules/view/matrix/` |
+| **9** | `project.ts`'s `looping()` / `LoopHook` / `LoopCore` / `LoopSurface` seam now has exactly one implementation (`terminal/terms.ts`) and no question/turn user. Keep as an extension point, or retire? | `project.ts` |
+| **10** | `Files.tsx`'s internal `graph` fallback resolves wrong when `context === held.id` (unreachable today — no gesture adds a workspace-scoped ref to `chosen`) | `page/Files.tsx` |
+| **11** | "Rename what is open" is a silent no-op while the workspace is the open context | `page/Files.tsx` |
+| **12** | The rail never calls `entries()`, so no `expand` action (`mark`, `direct`, `reform`, now `infer`) can offer its second reading from the rail — only the explorer and canvas menus can | `actions/rank.ts` |
+| **13** | `Y.6a` dropped `verbs: true` from the rail's `project` group as a side effect; the group now mixes a one-shot verb with four stateful picks. Nothing keyed off it | `page/Rail.tsx` |
+| **14** | `table` is the only view module shipping no component, and `App.tsx` name-checks all six modules in one ternary chain. Legal, but record it so it does not read as an accident | `modules/view/table/`, `page/App.tsx` |
+
+**Decisions taken — Clay, 2026-08-18.**
+
+- **`P.12` — settled: copy.** And the framing was wrong: these are **two gestures, not two mechanisms for one idea**. *Tree to tree* carries the branch and copies the definitions it names. *Explorer to canvas* makes a **proxy** — a reference from the canvas layer to that block, moving and copying nothing. A package stays referenced because it is immutable. The destination decides.
+- **`P.14`'s "beside" — settled: it does not exist.** Every drop is *into* something. Onto a block → it becomes a child; onto a project root → a child of the root; onto empty space → a project, a member of the workspace set. All three are already wired, so the row needed no further code.

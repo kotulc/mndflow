@@ -1,12 +1,16 @@
 /** Properties of the contents tray — what a layer lists, what filters
- *  expose, and that constraints/rules advise without blocking the table.
+ *  expose, that constraints/rules advise without blocking the table, and
+ *  (T.5) what actually happens on a click, a sort or a hover.
  *
- *  Rendered to markup in Node: the tray's settled claims are about which
- *  rows and chips appear, not pointer coordinates or copy wording. */
+ *  Static shape is read from markup rendered in Node; anything that needs a
+ *  pointer or an effect to fire is driven through the happy-dom harness with
+ *  `@testing-library/react`, whose queries are role and text — properties of
+ *  the markup, never a coordinate or a copy string. */
 
 import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Contents } from "../../src/page/Contents";
 import { fold } from "../../src/graph/fold";
@@ -15,13 +19,15 @@ import {
 } from "../../src/graph/types";
 
 type Props = ComponentProps<typeof Contents>;
+type Handlers = Omit<Props, "graph" | "view" | "picked" | "unit">;
 
 const silent = () => {};
 
-/** Handlers that never fire — the suite reads the markup, not callbacks. */
-function handlers(): Omit<Props, "graph" | "view" | "picked" | "unit"> {
+/** Handlers that never fire — the SSR suite reads markup, not callbacks. */
+function handlers(): Handlers {
   return {
     onPick: silent,
+    onOpen: silent,
     onHint: silent,
     onRename: silent,
     onRetype: silent,
@@ -44,6 +50,35 @@ function handlers(): Omit<Props, "graph" | "view" | "picked" | "unit"> {
   };
 }
 
+/** The same handlers as spies — the interactive suite reads what fired. */
+function spies(): Handlers {
+  return {
+    onPick: vi.fn(),
+    onOpen: vi.fn(),
+    onHint: vi.fn(),
+    onRename: vi.fn(),
+    onRetype: vi.fn(),
+    onRelation: vi.fn(),
+    onNameTaken: vi.fn(() => false),
+    onSay: vi.fn(),
+    onDelete: vi.fn(),
+    onUnlink: vi.fn(),
+    onSave: vi.fn(),
+    onSetDir: vi.fn(),
+    onFlip: vi.fn(),
+    onMarkPort: vi.fn(),
+    onAddField: vi.fn(),
+    onUpdateField: vi.fn(),
+    onDropField: vi.fn(),
+    onLeaveGroup: vi.fn(),
+    onReveal: vi.fn(),
+    onDefine: vi.fn(),
+    onUndefine: vi.fn(),
+  };
+}
+
+afterEach(cleanup);
+
 function drawn(...mutations: Mutation[]): Graph {
   return fold([step("", "test", mutations)]);
 }
@@ -57,6 +92,57 @@ function markup(graph: Graph, extra: Partial<Props> = {}): string {
     ...handlers(),
     ...extra,
   }));
+}
+
+/** Mount into the happy-dom document, wired to spies, so a click or a hover
+ *  can be fired at it. `rerenderWith` reuses the same spies across a
+ *  rerender — the strip's advise effect only fires on a prop change. */
+function draw(graph: Graph, extra: Partial<Props> = {}) {
+  const calls = spies();
+  const of = (patch: Partial<Props>) => createElement(Contents, {
+    graph, view: null, picked: null, unit: "block", ...calls, ...extra, ...patch,
+  });
+  const view = render(of({}));
+
+  return { ...view, calls, rerenderWith: (patch: Partial<Props>) => view.rerender(of(patch)) };
+}
+
+/** One of each tray sort — a group only lists once it holds a member, and a
+ *  relationship only when both ends are drawn (blocks / proxies / ports). */
+function layered() {
+  const a = element("Pump", { parent: null });
+  const b = element("Valve", { parent: null });
+  const port = element("inlet", { parent: a.id, side: "left", at: 0.5, flow: "in" });
+  const group = element("Set", { form: "group", parent: null });
+  const note = element("watch the seal", { form: "note", parent: null });
+  const link = edge(a.id, b.id, { form: "directed", dir: "forward", type: "drives" });
+
+  return {
+    graph: drawn(
+      { op: "add_element", element: a },
+      { op: "add_element", element: b },
+      { op: "add_element", element: port },
+      { op: "add_element", element: group },
+      { op: "add_element", element: note },
+      { op: "join_group", id: a.id, group: group.id },
+      { op: "link_elements", edge: link },
+    ),
+    a, b, port, group, note, link,
+  };
+}
+
+/** A block that holds one child — the "narrows to its own contents" case. */
+function nested() {
+  const box = element("Box", { parent: null });
+  const bolt = element("Bolt", { parent: box.id });
+
+  return {
+    graph: drawn(
+      { op: "add_element", element: box },
+      { op: "add_element", element: bolt },
+    ),
+    box, bolt,
+  };
 }
 
 /** Every body row's kind cell, in table order. */
@@ -83,30 +169,6 @@ describe("what an empty layer shows", () => {
 });
 
 describe("what a layer lists", () => {
-  /** One of each tray sort — a group only lists once it holds a member, and a
-   *  relationship only when both ends are drawn (blocks / proxies / ports). */
-  function layered() {
-    const a = element("Pump", { parent: null });
-    const b = element("Valve", { parent: null });
-    const port = element("inlet", { parent: a.id, side: "left", at: 0.5, flow: "in" });
-    const group = element("Set", { form: "group", parent: null });
-    const note = element("watch the seal", { form: "note", parent: null });
-    const link = edge(a.id, b.id, { form: "directed", dir: "forward", type: "drives" });
-
-    return {
-      graph: drawn(
-        { op: "add_element", element: a },
-        { op: "add_element", element: b },
-        { op: "add_element", element: port },
-        { op: "add_element", element: group },
-        { op: "add_element", element: note },
-        { op: "join_group", id: a.id, group: group.id },
-        { op: "link_elements", edge: link },
-      ),
-      a, b, port, group, note, link,
-    };
-  }
-
   it("lists every sort the layer holds, and never a project type among them", () => {
     const { graph } = layered();
     const withType = {
@@ -221,5 +283,224 @@ describe("proxies", () => {
 
     expect(kinds(html)).toEqual(["block"]);
     expect(html).toMatch(/stands for/);
+  });
+});
+
+// T.5's leftovers: what a click, a sort or a hover actually does. Driven
+// through happy-dom rather than read off static markup.
+
+describe("filter chips narrow the table", () => {
+  it("clicking a chip shows only that sort; 'all' brings the rest back", () => {
+    const { graph } = layered();
+    const { container } = draw(graph);
+
+    fireEvent.click(screen.getByRole("button", { name: /^blocks\b/ }));
+    const only = kinds(container.innerHTML);
+    expect(only.length).toBeGreaterThan(0);
+    expect(only.every((k) => k === "block")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: /^all\b/ }));
+    expect(kinds(container.innerHTML)).toEqual(expect.arrayContaining([
+      "block", "interface", "group", "note", "relationship",
+    ]));
+  });
+});
+
+describe("the name column sorts", () => {
+  /** The name cell's text — the row order is what is under test, not the
+   *  fixture's own names. */
+  function names(html: string): string[] {
+    return [...html.matchAll(/<td class="name"[^>]*>[\s\S]*?<\/td>/g)]
+      .map((m) => (m[0].match(/<span[^>]*>([^<]*)<\/span>/)?.[1] ?? "").trim());
+  }
+
+  it("clicking the header sorts by name; clicking it again reverses it", () => {
+    const { graph } = layered();
+    const { container } = draw(graph);
+
+    fireEvent.click(screen.getByRole("columnheader", { name: /^name/ }));
+    const ascending = names(container.innerHTML);
+    expect(ascending).toEqual([...ascending].sort((a, b) => a.localeCompare(b)));
+
+    fireEvent.click(screen.getByRole("columnheader", { name: /^name/ }));
+    expect(names(container.innerHTML)).toEqual([...ascending].reverse());
+  });
+});
+
+describe("clicking a row picks it", () => {
+  it("picks a block as a node", () => {
+    const { graph, a } = layered();
+    const { calls } = draw(graph);
+
+    fireEvent.click(screen.getByText("Pump").closest("tr")!);
+
+    expect(calls.onPick).toHaveBeenCalledWith({ kind: "node", id: a.id });
+  });
+
+  it("picks a relationship as an edge", () => {
+    const { graph, link } = layered();
+    const { calls } = draw(graph);
+
+    fireEvent.click(screen.getByText("drives").closest("tr")!);
+
+    expect(calls.onPick).toHaveBeenCalledWith({ kind: "edge", id: link.id });
+  });
+});
+
+describe("hovering a row lights what it draws on the canvas", () => {
+  it.each([
+    ["Pump", "card", (f: ReturnType<typeof layered>) => f.a.id],
+    ["inlet", "port", (f: ReturnType<typeof layered>) => f.port.id],
+    ["Set", "group", (f: ReturnType<typeof layered>) => f.group.id],
+    ["watch the seal", "title", (f: ReturnType<typeof layered>) => f.note.id],
+    ["drives", "edge", (f: ReturnType<typeof layered>) => f.link.id],
+  ] as const)("entering the %s row hints a %s", (text, kind, idOf) => {
+    const fixture = layered();
+    const { calls } = draw(fixture.graph);
+
+    fireEvent.mouseEnter(screen.getByText(text).closest("tr")!);
+
+    expect(calls.onHint).toHaveBeenCalledWith({ kind, id: idOf(fixture) });
+  });
+
+  it("clears the hint on leaving the tray", () => {
+    const { graph } = layered();
+    const { calls, container } = draw(graph);
+
+    fireEvent.mouseEnter(screen.getByText("Pump").closest("tr")!);
+    fireEvent.mouseLeave(container.querySelector(".contents")!);
+
+    expect(calls.onHint).toHaveBeenLastCalledWith(null);
+  });
+});
+
+describe("the strip advises the selection", () => {
+  it("says the full sentence once a noted row becomes picked", () => {
+    const typed = element("Need", { parent: null, type: "def_need" });
+    const graph = drawn(
+      { op: "set_def", id: "def_need", name: "Needful", form: "block",
+        fields: [field("id")],
+        components: { constraints: { required: ["id"] } } },
+      { op: "add_element", element: typed },
+    );
+    const { calls, rerenderWith } = draw(graph);
+
+    rerenderWith({ picked: { kind: "node", id: typed.id } });
+
+    expect(calls.onSay).toHaveBeenCalledWith(expect.stringContaining("needs a value for id"));
+  });
+
+  it("stays quiet when the picked row carries no notes", () => {
+    const plain = element("Fine", { parent: null });
+    const graph = drawn({ op: "add_element", element: plain });
+    const { calls, rerenderWith } = draw(graph);
+
+    rerenderWith({ picked: { kind: "node", id: plain.id } });
+
+    expect(calls.onSay).not.toHaveBeenCalled();
+  });
+});
+
+// The crumb and descend U.18 wired for table and matrix, restored on Contents
+// after W.1 deleted the module that used to carry them (W.1 repair).
+
+describe("the crumb trail draws only at full stage size", () => {
+  it("draws at full and not at partial", () => {
+    const { graph } = nested();
+
+    expect(markup(graph, { full: true, path: [] })).toMatch(/class="crumbs"/);
+    expect(markup(graph, { full: false })).not.toMatch(/class="crumbs"/);
+  });
+
+  it("uses the trail it is given rather than deriving one from the graph", () => {
+    const { graph, box } = nested();
+    // A derived trail would read "Box" off the graph; an empty one passed
+    // in deliberately disagrees, so seeing no crumb for it proves the prop
+    // won rather than a graph walk repeating what U.18 already computed.
+    const html = markup(graph, { full: true, view: box.id, path: [] });
+
+    expect(html).not.toMatch(/>Box</);
+  });
+});
+
+describe("double-clicking a block's row descends into it", () => {
+  it("opens a container from the row", () => {
+    const { graph, box } = nested();
+    const { calls } = draw(graph);
+
+    fireEvent.dblClick(screen.getByText("Box").closest("tr")!);
+    expect(calls.onOpen).toHaveBeenCalledWith(box.id);
+  });
+
+  it("leaves the name cell free for rename instead of descend", () => {
+    const { graph } = nested();
+    const { calls } = draw(graph);
+
+    fireEvent.dblClick(screen.getByText("Box").closest("td.name")!);
+    expect(calls.onOpen).not.toHaveBeenCalled();
+  });
+
+  it("withholds descend from a proxy, which has nowhere to go", () => {
+    const stand = element("", { parent: null, form: "proxy", of: refTo("gone", "proj_other") });
+    const graph = drawn({ op: "add_element", element: stand });
+    const { calls, container } = draw(graph);
+
+    fireEvent.dblClick(container.querySelector(".contents-table tbody tr")!);
+    expect(calls.onOpen).not.toHaveBeenCalled();
+  });
+});
+
+describe("the tray scopes to what is in focus (W.2)", () => {
+  it("full shows the whole layer even when something is picked", () => {
+    const { graph, a } = layered();
+    const html = markup(graph, { full: true, picked: { kind: "node", id: a.id } });
+
+    expect(html).toMatch(/contents-tabs/);
+    expect(kinds(html)).toEqual(expect.arrayContaining([
+      "block", "interface", "group", "note", "relationship",
+    ]));
+  });
+
+  it("partial narrows to a picked container's own contents", () => {
+    const { graph, box, bolt } = nested();
+    const html = markup(graph, { full: false, picked: { kind: "node", id: box.id } });
+
+    expect(kinds(html)).toEqual(["block"]);
+    expect(html).toMatch(new RegExp(bolt.label));
+    expect(html).not.toMatch(/>Box</);
+  });
+
+  it("partial narrows to a picked group's own members", () => {
+    const { graph, group, a, b } = layered();
+    const html = markup(graph, { full: false, picked: { kind: "node", id: group.id } });
+
+    expect(kinds(html)).toEqual(["block"]);
+    expect(html).toMatch(new RegExp(a.label));
+    expect(html).not.toMatch(new RegExp(b.label));
+  });
+
+  it("partial shows the layer when nothing is picked", () => {
+    const { graph, box } = nested();
+    const html = markup(graph, { full: false, picked: null });
+
+    expect(html).toMatch(new RegExp(box.label));
+  });
+
+  it("opens a leaf block's own row instead of an empty table", () => {
+    const plain = element("Fine", { parent: null });
+    const graph = drawn({ op: "add_element", element: plain });
+    const html = markup(graph, { full: false, picked: { kind: "node", id: plain.id } });
+
+    expect(html).not.toMatch(/contents-tabs/);
+    expect(html).toMatch(/class="opened"/);
+  });
+
+  it("stops at a relationship's summary row, with no editable field it would refuse", () => {
+    const { graph, link } = layered();
+    const html = markup(graph, { full: false, picked: { kind: "edge", id: link.id } });
+
+    expect(html).not.toMatch(/contents-tabs/);
+    expect(html).not.toMatch(/class="opened"/);
+    expect(kinds(html)).toEqual(["relationship"]);
   });
 });

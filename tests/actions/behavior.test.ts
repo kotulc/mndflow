@@ -7,7 +7,7 @@ import { lookup, run, writes, type Context } from "../../src/actions/index";
 import "../../src/actions/behavior";
 import { fold } from "../../src/graph/fold";
 import {
-  edge, element, refTo, step, type Mutation,
+  ROOT, edge, element, refTo, step, type Mutation,
 } from "../../src/graph/types";
 
 function at(graph: Context["graph"], project = "proj_a"): Context {
@@ -138,5 +138,101 @@ describe("infer", () => {
     expect(typeof done.into).toBe("string");
     expect(done.into!.length).toBeGreaterThan(0);
     expect(done.mutations.some((m) => m.op === "add_element")).toBe(true);
+  });
+
+  // P.6: a fresh mint's own root gets a kind, so it reads as a behavior view
+  // rather than the default structure block once it is admitted.
+  it("classifies a freshly minted project's own root", () => {
+    const leaf = element("Alone", { parent: null });
+    const graph = graph_of({ op: "add_element", element: leaf });
+    const done = run("infer", at(graph), { of: [leaf.id] });
+    expect("refused" in done).toBe(false);
+    if ("refused" in done) return;
+
+    const retype = done.mutations.find(
+      (m): m is Extract<Mutation, { op: "update_element" }> =>
+        m.op === "update_element" && m.id === ROOT,
+    );
+    expect(retype?.type).toBeTruthy();
+
+    const kind = done.mutations.find(
+      (m): m is Extract<Mutation, { op: "set_def" }> =>
+        m.op === "set_def" && m.id === retype!.type,
+    );
+    expect(kind?.components?.view?.module).toBe("activity");
+  });
+
+  it("does not reclassify a target the caller already named", () => {
+    const leaf = element("Alone", { parent: null });
+    const graph = graph_of({ op: "add_element", element: leaf });
+    const done = run("infer", at(graph), { of: [leaf.id], into: "proj_existing" });
+    expect("refused" in done).toBe(false);
+    if ("refused" in done) return;
+
+    expect(done.mutations.some((m) => m.op === "update_element" && m.id === ROOT)).toBe(false);
+  });
+
+  // P.3: a fresh mint asks its caller to admit it — the same door a dropped
+  // block or the bar's control reaches — so it is not written and then left
+  // unreachable. A named destination is already open and asks for nothing.
+  it("asks to be admitted only when it mints a project", () => {
+    const leaf = element("Alone", { parent: null });
+    const graph = graph_of({ op: "add_element", element: leaf });
+
+    const minted = run("infer", at(graph), { of: [leaf.id] });
+    expect("refused" in minted).toBe(false);
+    if (!("refused" in minted)) expect(minted.admit).toBe(true);
+
+    const named = run("infer", at(graph), { of: [leaf.id], into: "proj_existing" });
+    expect("refused" in named).toBe(false);
+    if (!("refused" in named)) expect(named.admit).toBeFalsy();
+  });
+});
+
+// P.4: the set reading — same registered action, `as: "set"` — mints a block
+// holding a direct proxy of each hit, with none of the behavior reading's
+// tree, order or kind.
+describe("infer — set reading", () => {
+  it("mints a block whose members are a proxy of each hit, one each", () => {
+    const a = element("A", { parent: null, x: 0, y: 0 });
+    const b = element("B", { parent: null, x: 100, y: 0 });
+    const graph = graph_of(
+      { op: "add_element", element: a },
+      { op: "add_element", element: b },
+    );
+    const done = run("infer", at(graph), { of: [a.id, b.id], as: "set" });
+    expect("refused" in done).toBe(false);
+    if ("refused" in done) return;
+
+    // One root plus one proxy per hit — no wrapper action nodes.
+    expect(done.mutations.filter((m) => m.op === "add_element")).toHaveLength(3);
+    expect(done.mutations.filter((m) => m.op === "add_element" && m.element.form === "proxy"))
+      .toHaveLength(2);
+    expect(done.mutations.some((m) => m.op === "link_elements")).toBe(false);
+    expect(done.home ?? []).toHaveLength(0);
+  });
+
+  it("does not classify its root — a set stays plain structure", () => {
+    const leaf = element("Alone", { parent: null });
+    const graph = graph_of({ op: "add_element", element: leaf });
+    const done = run("infer", at(graph), { of: [leaf.id], as: "set" });
+    expect("refused" in done).toBe(false);
+    if ("refused" in done) return;
+
+    expect(done.mutations.some((m) => m.op === "update_element" && m.id === ROOT)).toBe(false);
+    expect(done.mutations.some((m) => m.op === "set_def")).toBe(false);
+  });
+
+  it("admits only a fresh mint, same rule as the behavior reading", () => {
+    const leaf = element("Alone", { parent: null });
+    const graph = graph_of({ op: "add_element", element: leaf });
+
+    const minted = run("infer", at(graph), { of: [leaf.id], as: "set" });
+    expect("refused" in minted).toBe(false);
+    if (!("refused" in minted)) expect(minted.admit).toBe(true);
+
+    const named = run("infer", at(graph), { of: [leaf.id], as: "set", into: "proj_existing" });
+    expect("refused" in named).toBe(false);
+    if (!("refused" in named)) expect(named.admit).toBeFalsy();
   });
 });

@@ -4,7 +4,8 @@
  *  be read across, and a third of the height with dead space above it is the
  *  worst size for that. Shrinks back to a panel on the tab. Hosts the crumbs; the
  *  types filter is a rail group (Y.4). Axes are the same members a table would
- *  list; cells show relationships. */
+ *  list; cells paint as a heatmap (W.4) — a band per relationship kind, from
+ *  `paint.ts`. */
 
 import { useState } from "react";
 
@@ -12,7 +13,8 @@ import { Crumbs } from "../diagram/chrome";
 import { nameOf, titleOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";
 import { trailOf } from "./chrome";
-import { gridOf } from "./grid";
+import { gridOf, type Cell } from "./grid";
+import { bandsOf, type Band } from "./paint";
 import { Icon } from "../../icons";
 
 export type MatrixProps = {
@@ -51,8 +53,12 @@ export function Matrix({
 
   const where = layer ? nameOf(graph, graph.elements[layer]) : titleOf(graph);
 
-  const marksOf = (marks: string[]) =>
-    shown ? marks.filter((mark) => mark === shown) : marks;
+  // The rail's types cycle narrows to one kind (Y.4); everything else about
+  // which kinds a cell counts is the seam paint.ts leaves for P.9.
+  const bandsFor = (cell: Cell): Band[] => {
+    const bands = bandsOf(graph, cell);
+    return shown ? bands.filter((band) => band.name === shown) : bands;
+  };
 
   return (
     <div className="stage" style={{ display: "flex", flexDirection: "column" }}>
@@ -121,16 +127,33 @@ export function Matrix({
                         {row.name || "·"}
                       </td>
                       {grid.cells[ri].map((cell) => {
-                        const marks = marksOf(cell.marks);
+                        const bands = bandsFor(cell);
+                        // One band per kind — a single kind fills the cell,
+                        // several share it as equal stripes rather than a
+                        // blended colour no single kind actually has.
+                        const title = bands
+                          .map((band) => `${band.name} (${band.count})`)
+                          .join(", ");
 
                         return (
                           <td
                             key={`${cell.row}:${cell.col}`}
-                            className={marks.length ? "type" : undefined}
+                            className={bands.length ? "matrix-cell" : undefined}
+                            title={title || undefined}
                           >
-                            {marks.length
-                              ? marks.join(", ")
-                              : <span className="none">—</span>}
+                            {bands.length ? (
+                              <div className="cell-heat">
+                                {bands.map((band) => (
+                                  <span
+                                    key={band.type}
+                                    className="band"
+                                    style={{ background: band.fill, opacity: band.opacity }}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="none">—</span>
+                            )}
                           </td>
                         );
                       })}

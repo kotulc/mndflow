@@ -26,13 +26,15 @@ import {
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
 import { viewOf, views, kindOf, named, type ViewName } from "../modules/view";
-import { Rail, groupsFor } from "./Rail";
+import { Rail, groupsFor, type ExportLook } from "./Rail";
 import { Activity } from "../modules/view/activity";
 import { Sequence } from "../modules/view/sequence";
 import { State } from "../modules/view/state";
 import { lookNow, svgOf } from "../modules/view/diagram";
 import { Matrix } from "../modules/view/matrix";
-import { Table } from "../modules/view/table";
+// Registration only: `table` has no component of its own since W.1 — the
+// view toggle fills the tray with Contents instead of a second listing.
+import "../modules/view/table";
 import * as workspace from "../workspace";
 import { Files, type Chosen } from "./Files";
 import { Icon } from "../modules/icons";
@@ -40,14 +42,6 @@ import { Panel } from "./Panel";
 
 type ChatProps = {
   graph: Graph;
-  steps: Step[];
-  question: {
-    id: string;
-    prompt: string;
-    hint: string;
-    choices: string[];
-    placeholder: string;
-  } | null;
   view: string | null;
   picked: { kind: "node" | "edge" | "attr"; id: string } | null;
   project: string;
@@ -56,11 +50,11 @@ type ChatProps = {
   locked?: boolean;
   draft: string;
   onDraft: (text: string) => void;
-  onTurn: (input: string) => void;
   onAct: (name: string, args?: Record<string, unknown>) => boolean;
 };
 
-/** Rail UI when `terminal/` is present. Eager so Chat's loop registers before
+/** Rail UI when `terminal/` is present. Eager so Chat's side-effect imports
+ *  (currently just per-domain terms — see `terminal/terms.ts`) register before
  *  the first render; an empty glob is a build without the rail. */
 const railMods = import.meta.glob("../terminal/*.tsx", { eager: true }) as Record<
   string,
@@ -302,7 +296,14 @@ export function App() {
   /** Layer to open once useProject has rebound after a context switch. */
   const pendingView = useRef<{ project: string; layer: string | null } | null>(null);
 
-  const project = useProject(contextId, workspace.isLocked(held, contextId));
+  // A registry effect that mints a project (`infer`'s fresh behavior project)
+  // reaches the workspace through the same door a dropped block or the bar's
+  // control does — `openIn`, not a copy of what it does (P.3).
+  const project = useProject(
+    contextId,
+    workspace.isLocked(held, contextId),
+    (id) => setHeld((current) => openIn(current, id)),
+  );
 
   // A project that got into the list without a name cannot be told from any
   // other — the rule is enforced on the way in, so this is only a safety net.
@@ -312,7 +313,7 @@ export function App() {
 
     setHeld(openIn(held, contextId));
   }, [contextId, held, project.steps.length]);
-  const { graph, view, picked, path, question, terms } = project;
+  const { graph, view, picked, path, terms } = project;
 
   /** Every open project's name, for the uniqueness rule. */
   const takenNames = useMemo(
@@ -399,6 +400,10 @@ export function App() {
    *  reason `form` is: the rail owns the control and table and matrix stopped
    *  drawing one of their own (Y.4). */
   const [shownType, setShownType] = useState<string | null>(null);
+  /** What the next export renders in. Page state beside `form` and `angular`
+   *  for the same reason: the tool in hand, not a per-project preference
+   *  (Y.6a). `shown` — the default — follows whatever `theme` is. */
+  const [exportLook, setExportLook] = useState<ExportLook>("shown");
   /** The one verb the page cannot work out for itself: arranging needs the
    *  laid-out geometry only the canvas has, so the canvas publishes it here
    *  rather than the page reaching in. Dependencies still run one way. */
@@ -406,6 +411,13 @@ export function App() {
   /** Explorer multi-select — cross-project refs `infer` will take. Held here
    *  so the action can read it without the tree owning the session. */
   const [chosen, setChosen] = useState<Chosen[]>([]);
+  /** Bumped after a write that lands in another open project's log without
+   *  touching this hook's own state — an extraction between two projects
+   *  neither of which is bound here writes storage directly (P.1's
+   *  `workspace.writeInto`), so `graphs` would otherwise not reread that slot
+   *  until something else changed `contextId` or `graph`. A drop should look
+   *  moved the instant it lands, not on the next unrelated re-render (P.15). */
+  const [refoldAt, setRefoldAt] = useState(0);
   useEffect(() => store.angular.set(angular), [angular]);
   useEffect(() => store.ports.set(ports), [ports]);
   useEffect(() => store.treePorts.set(treePorts), [treePorts]);
@@ -571,9 +583,36 @@ export function App() {
       return;
     }
 
-    say(taken.lost
-      ? `${name} moved — ${taken.lost} relationship${taken.lost === 1 ? "" : "s"} left behind`
-      : `${name} moved`);
+    // The drop already showed the move happening — a fluid gesture needs no
+    // receipt (Clay's call), so the strip goes quiet rather than keeping
+    // whatever it last said. A relationship left behind is the one part the
+    // gesture cannot show, so that alone is still said (P.15).
+    if (taken.lost) {
+      say(`${name} — ${taken.lost} relationship${taken.lost === 1 ? "" : "s"} left behind`);
+    } else {
+      setNotice(null);
+    }
+
+    // Neither write above touched this hook's own state when `from` or the
+    // target is a project other than the one bound here — force the source
+    // (and destination) tree to reread storage now, not on the next
+    // unrelated re-render.
+    setRefoldAt((n) => n + 1);
+  }
+
+  /** The concrete look one export renders in. `shown` is `lookNow`'s own
+   *  answer — the ramp the screen is actually in (Y.6). Forcing one of the
+   *  three named looks (Y.6a) swaps the root's theme just long enough for
+   *  `lookNow` to resolve it against that ramp instead, then puts the
+   *  screen's own theme back before anything repaints. */
+  function lookFor(choice: ExportLook) {
+    if (choice === "shown") return lookNow();
+
+    document.documentElement.dataset.theme = choice;
+    const look = lookNow();
+    document.documentElement.dataset.theme = theme;
+
+    return look;
   }
 
   /** Export the project in context, bundling what it depends on, and offer a
@@ -581,10 +620,11 @@ export function App() {
   async function exportProject(): Promise<void> {
     const wrote = await project.save(companions(graph, contextId));
     if (!wrote) return;
-    // The picture leaves in the look that was on the screen — `lookNow` reads
-    // the page's own ramp, so an export never stamps a theme nobody chose
-    // (Y.6). A caller with no page still gets `PAPER`.
-    store.downloadSvg(svgOf(graph, view, lookNow()), titleOf(graph) || "mndflow");
+    // The picture leaves in the look `exportLook` names — the screen's own
+    // ramp by default, so an export never stamps a theme nobody chose, or one
+    // of the three forced regardless of what is on screen. A caller with no
+    // page still gets `PAPER`.
+    store.downloadSvg(svgOf(graph, view, lookFor(exportLook)), titleOf(graph) || "mndflow");
   }
 
   // Shortcuts that belong to the whole app rather than to one panel. Inside a
@@ -616,7 +656,7 @@ export function App() {
     }
 
     return next;
-  }, [held.projects, contextId, graph]);
+  }, [held.projects, contextId, graph, refoldAt]);
 
   // Drop picks whose project closed or whose block was undone.
   useEffect(() => {
@@ -944,8 +984,6 @@ export function App() {
       {Chat && (
         <Chat
           graph={graph}
-          steps={project.steps}
-          question={question}
           view={view}
           picked={picked}
           project={contextId}
@@ -954,7 +992,6 @@ export function App() {
           locked={workspace.isLocked(held, contextId)}
           draft={draft}
           onDraft={setDraft}
-          onTurn={project.turn}
           onAct={project.go}
         />
       )}
@@ -991,22 +1028,19 @@ export function App() {
             undoable={project.undoable}
             redoable={project.redoable}
             lastAction={lastAction}
+            // P.10: the workspace opens the same door every other row does —
+            // `navigate` already knows how to switch context and land on root.
+            workspaceOpen={contextId === held.id}
+            onOpenWorkspace={() => navigate(held.id, null)}
           />
         </div>
 
         <section className="work">
           <div className="canvas">
             {module === "table" ? (
-              <Table
-                graph={graph}
-                layer={view}
-                picked={picked?.kind === "node" ? picked.id : null}
-                onPick={(id) => project.pick({ kind: "node", id })}
-                onOpen={project.open}
-                path={path}
-                onUp={project.up}
-                shown={narrowed}
-              />
+              // Nothing draws here: the toggle fills the tray with Contents
+              // at full stage size instead (W.1).
+              null
             ) : module === "matrix" ? (
               <Matrix
                 graph={graph}
@@ -1102,6 +1136,9 @@ export function App() {
               picked={picked}
               unit={UNIT}
               onPick={project.pick}
+              onOpen={project.open}
+              path={path}
+              onUp={project.up}
               onHint={setHinted}
               onDelete={project.remove}
               onUnlink={project.unlink}
@@ -1123,6 +1160,7 @@ export function App() {
               onDefine={project.define}
               onUndefine={project.undefine}
               hostRef={tray}
+              full={module === "table"}
             />
           </div>
 
@@ -1145,6 +1183,7 @@ export function App() {
               onArrange: (shape) => arranging.current?.(shape),
               onRelax: project.relax,
               onExport: () => void exportProject(),
+              exportLook, onExportLook: setExportLook, screenLook: theme,
             })}
           />
         </section>

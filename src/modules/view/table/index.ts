@@ -1,9 +1,11 @@
 /** The table view module — structure drawn as rows.
  *
- *  Projection surface (no frame, scroll), a gesture map that accepts none of
- *  the four adjustments, and composition that turns a layer's blocks and
- *  proxies into rows. The stage is a Contents-modelled panel: partial by
- *  default, expandable, with crumbs and types hosted beside the list.
+ *  No component of its own (W.1): choosing `table` on the view toggle fills
+ *  the tray with `Contents` at full stage size — same listing, same filters
+ *  and sort — instead of this module drawing a second one. What stays here is
+ *  what Contents cannot answer: the projection surface, the gesture map that
+ *  accepts none of the four adjustments, and composition that turns a
+ *  layer's blocks and proxies into rows for the rail's `types` group.
  *  Registers itself so a later import replaces the stub S2.5 left in the
  *  view registry. */
 
@@ -14,8 +16,6 @@ export {
   type Reaches, type Target,
 } from "./map";
 export { rowsOf, type Row } from "./rows";
-export { Row as RowView, type RowProps } from "./Row";
-export { Table, type TableProps } from "./Table";
 export { kindsOf, trailOf } from "./chrome";
 
 import { register } from "../index";

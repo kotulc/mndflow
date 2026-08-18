@@ -36,14 +36,18 @@ import type { Action, Arg, Args, Context } from "../actions";
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
 import {
-  ROOT as ROOT_ID, asTarget, refAt, refTo, type Graph, type Element,
+  ROOT as ROOT_ID, asTarget, defIdFor, refAt, refTo, type Graph, type Element,
 } from "../graph/types";
-import { kindOf, viewOf } from "../modules/view";
+import { kindOf, named, viewOf, views } from "../modules/view";
 import { REFERRED } from "../canvas/card";
 import { Icon, type IconName } from "../modules/icons";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
+/** How long a drag rests on a folded branch before it springs open — long
+ *  enough that passing over it does not fling it open, short enough that
+ *  reaching a target three levels down does not feel like waiting. */
+const SPRING_MS = 500;
 
 /** Same-project element ids from a cross-project selection (roots excluded). */
 function local_ids(refs: string[], projectId: string): string[] {
@@ -111,7 +115,12 @@ function shelved(shell: Graph, parent: string | null): Element[] {
 }
 
 /** A node's role, taken from what it holds and where it sits rather than from
- *  anything declared. One meaning each — the set's own rule. */
+ *  anything declared. One meaning each — the set's own rule.
+ *
+ *  P.5: a set (members are proxies, `infer`'s `as: "set"` reading, P.4) is
+ *  `isContainer` too — `blocksOf` counts proxies — so it reads as a plain
+ *  container until a branch here tells the two apart and wears the folder
+ *  mark instead. */
 function role_of(graph: Graph, node: Element): IconName {
   if (isPort(node)) return "role_interface";
   if (isContainer(graph, node.id)) return "role_container";
@@ -182,6 +191,14 @@ type Props = {
   redoable: boolean;
   /** Last applied action's name, or null when nothing has been done yet. */
   lastAction: string | null;
+  /** Whether the workspace's own graph is what the canvas is showing — set by
+   *  the page once `contextId` can be `held.id` (P.10). Undefined until that
+   *  lands, which reads as not open, the same as every layer before it. */
+  workspaceOpen?: boolean;
+  /** The title row was picked — puts the workspace on the stage (P.10's
+   *  door). Optional until the page wires it; the row still reports the pick
+   *  so P.10 has something to land behind. */
+  onOpenWorkspace?: () => void;
 };
 
 export function Files(props: Props) {
@@ -192,6 +209,7 @@ export function Files(props: Props) {
     onDelete, onDropProject, onMove, onExtract, onRename, onRenameProject,
     onNewProject, onNameProject,
     onAct, onUndo, onRedo, undoable, redoable, lastAction,
+    workspaceOpen, onOpenWorkspace,
   } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
   const kidsBy = useMemo(() => {
@@ -213,6 +231,11 @@ export function Files(props: Props) {
    *  say (P.1). */
   const [held, setHeld] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  /** The spring-load timer for a folded target a drag is resting on — one at a
+   *  time, since only one row can be hovered. `dragover` fires continuously
+   *  while the pointer sits still, so this is keyed by id to arm only once. */
+  const springRef = useRef<{ id: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  useEffect(() => () => { if (springRef.current) clearTimeout(springRef.current.timer); }, []);
   const [editing, setEditing] = useState<string | null>(null);
   /** Null when nothing is being named; otherwise the layer the new element
    *  lands in. Held rather than read from the scope, because the two creation
@@ -334,9 +357,11 @@ export function Files(props: Props) {
     return fillable(action, ctx, supply_of(ctx, refs), seed_of(action, ctx, refs));
   }
 
-  /** Fill what the tree already knows; text left empty is prompted next. */
+  /** Fill what the tree already knows; text left empty is prompted next. An
+   *  expanded entry's own pick (P.4's Behavior / Set) rides in `action.chose`
+   *  and `seed_of` only knows the selection, so it is merged in ahead of it. */
   function fill_args(action: Offered, ctx: Context, refs: string[]): Args {
-    if (action.name === "infer") return seed_of(action, ctx, refs);
+    if (action.name === "infer") return { ...action.chose, ...seed_of(action, ctx, refs) };
     return fill(action, ctx, supply_of(ctx, refs), seed_of(action, ctx, refs));
   }
 
@@ -404,6 +429,33 @@ export function Files(props: Props) {
    *  you are looking, not what you are about to act on. */
   function scoped(projectId: string, elementId: string) {
     return context === projectId && (elementId === ROOT_ID ? view === null : elementId === view);
+  }
+
+  /** Cross the structure/behavior line on a project's own root — the door
+   *  nothing else reaches (P.6). `local_ids` excludes the root from every
+   *  selection, so `retype` can never be offered against it through the menu;
+   *  this cycles the three behavior modules and back to plain structure.
+   *  A definition already named for the module is reused rather than
+   *  twinned, the same rule X.3 settled for a free-text type. */
+  function cycleKind(projectId: string) {
+    const here = graphs[projectId];
+    const root = here?.elements[ROOT_ID];
+    if (!here || !root) return;
+
+    const behaviors = views().filter((m) => m.kind === "behavior").map((m) => m.name);
+    const at = behaviors.indexOf(viewOf(here, root).module);
+    const next = at === -1 ? behaviors[0] : behaviors[at + 1];
+
+    if (!next) {
+      onAct("retype", { id: ROOT_ID, type: "" });
+      return;
+    }
+
+    const found = Object.values(here.defs).find((d) => d.name === next);
+    if (!found) {
+      onAct("define", { name: next, patch: { components: { view: { module: next } } } });
+    }
+    onAct("retype", { id: ROOT_ID, type: found?.id ?? defIdFor(next) });
   }
 
   /** Fold or unfold a whole project from its root icon. */
@@ -590,6 +642,14 @@ export function Files(props: Props) {
     setAdding({ parent: plus.parent });
   }
 
+  /** The bar's other door to a project — outright, no deselect first (P.2).
+   *  `add()` still follows the selection (V.14); this one never does, so
+   *  making a project is never gated on knowing that deselecting reaches it. */
+  function newProject() {
+    setAdding(null);
+    setNaming(true);
+  }
+
   /** Finish a drag.
    *
    *  **Three cases, and only the first is a move.** Within one project it is
@@ -598,6 +658,7 @@ export function Files(props: Props) {
    *  project is a log and nothing spans both (P.1). A drop that would leave the
    *  block where it already is does nothing. */
   function drop(intoProject: string | null, into: string | null) {
+    clear_spring();
     const from = held;
     setHeld(null);
     setOver(null);
@@ -616,13 +677,36 @@ export function Files(props: Props) {
     onExtract(home, id, intoProject, into);
   }
 
+  /** Arm the spring-load timer for `id`, or leave it be if it is already
+   *  armed for it. `opens` is what a folded target does once the pointer has
+   *  rested on it — null where the target does not fold, or is already open. */
+  function spring(id: string, opens: (() => void) | null) {
+    if (springRef.current?.id === id) return;
+    clear_spring();
+    if (!opens) return;
+    springRef.current = { id, timer: setTimeout(opens, SPRING_MS) };
+  }
+
+  function clear_spring() {
+    if (springRef.current) clearTimeout(springRef.current.timer);
+    springRef.current = null;
+  }
+
   /** Drop-target wiring shared by the root row and every node row. Every row
    *  takes a drop now, not only the ones in context — a block that cannot
-   *  cross a project boundary cannot be filed anywhere but where it was made. */
-  function dropzone(id: string, project: string | null, into: string | null) {
+   *  cross a project boundary cannot be filed anywhere but where it was made.
+   *
+   *  `opens`, given only where `id` is currently folded, is a nested target's
+   *  way in: without it, reaching a branch three levels down means letting go
+   *  of the drag to click it open first, then dragging again. */
+  function dropzone(id: string, project: string | null, into: string | null, opens?: () => void) {
     return {
-      onDragOver: (event: React.DragEvent) => (event.preventDefault(), setOver(id)),
-      onDragLeave: () => setOver(null),
+      onDragOver: (event: React.DragEvent) => {
+        event.preventDefault();
+        setOver(id);
+        spring(id, opens ?? null);
+      },
+      onDragLeave: () => { setOver(null); clear_spring(); },
       onDrop: (event: React.DragEvent) => (event.preventDefault(), drop(project, into)),
     };
   }
@@ -715,7 +799,10 @@ export function Files(props: Props) {
             }}
             onDoubleClick={() => context === projectId && setEditing(node.id)}
             onContextMenu={(event) => show_offer(event, projectId, node.id)}
-            {...dropzone(foldKey, projectId, node.id)}
+            {...dropzone(foldKey, projectId, node.id,
+                         holds && !open.has(foldKey)
+                           ? () => setOpen((prior) => new Set(prior).add(foldKey))
+                           : undefined)}
           >
             <span
               ref={mark ? marker : undefined}
@@ -761,7 +848,8 @@ export function Files(props: Props) {
     const tip = tips.get(projectId);
     // Kind from the root's definition — three offers, never six.
     const root = here.elements[ROOT_ID];
-    const kind = root ? kindOf(viewOf(here, root).module) : "structure";
+    const module = root ? viewOf(here, root).module : "block";
+    const kind = kindOf(module);
     const folded = shut.has(editKey);
 
     return (
@@ -785,7 +873,14 @@ export function Files(props: Props) {
           }}
           onDoubleClick={() => context === projectId && setEditing(editKey)}
           onContextMenu={(event) => show_offer(event, projectId, ROOT_ID)}
-          {...dropzone(editKey, projectId, null)}
+          {...dropzone(editKey, projectId, null,
+                       folded
+                         ? () => setShut((prior) => {
+                             const next = new Set(prior);
+                             next.delete(editKey);
+                             return next;
+                           })
+                         : undefined)}
         >
           {/* The icon folds, as a branch's does, and says which kind of project
               this is — both from the same span, since a project's kind is
@@ -805,6 +900,18 @@ export function Files(props: Props) {
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
+          {/* The door onto the root's own kind (P.6) — shown only for the
+              project in context, which is the one a click would act on. */}
+          {context === projectId && (
+            <div className="row-tools" onClick={(event) => event.stopPropagation()}>
+              <button
+                title={`Kind: ${named(module)?.word ?? module} — click to change`}
+                onClick={() => cycleKind(projectId)}
+              >
+                <Icon name={(named(module)?.icon ?? "view_block") as never} />
+              </button>
+            </div>
+          )}
         </div>
         {!folded && <ul className="branch">{branch(projectId, ROOT)}</ul>}
       </li>
@@ -910,10 +1017,24 @@ export function Files(props: Props) {
       onKeyDown={press}
     >
       <div className="files-bar">
-        <span className="title">Explorer</span>
+        {/* The pane is still "explorer" (className, docs); the word here names
+            the workspace, since the title is now that row — clicking it is a
+            pick, the same as any other row, and takes the Y.8 wash for open.
+            P.13 is only the door: `workspaceOpen` stays unset until P.10 lets
+            `contextId` become the workspace's own id. */}
+        <span
+          className={`title${workspaceOpen ? " open" : ""}`}
+          onClick={() => onOpenWorkspace?.()}
+          title="Open the workspace"
+        >
+          Workspace
+        </span>
         <span className="actions">
           <button onClick={add} title={plus_title}>
             <Icon name="add" />
+          </button>
+          <button onClick={newProject} title="New project">
+            <Icon name="new_project" />
           </button>
           <button
             onClick={() => setEditing(view ?? `proj:${context}`)}
@@ -951,7 +1072,7 @@ export function Files(props: Props) {
       </div>
 
       <div
-        className="tree"
+        className={`tree${over === SHELL ? " over" : ""}`}
         ref={scroller}
         // The clear space below the rows is the *context project's* background,
         // not a shared workspace floor — making something here writes to the

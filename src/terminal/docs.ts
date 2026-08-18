@@ -6,7 +6,7 @@
  *  a single keyword hit, always last, never displacing something actionable. */
 
 import type { Context } from "../actions";
-import { shape_of } from "./feedback";
+import { shape_of } from "../actions/feedback";
 
 /** Bundled at build time the same way workflows YAML is — no runtime fetch. */
 const pack = import.meta.glob("../../samples/docs.json", {

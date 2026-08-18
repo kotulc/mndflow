@@ -2,10 +2,11 @@
  *
  *  Projection surface (no frame, scroll), a gesture map that accepts none of
  *  the four adjustments, and composition that turns a layer's blocks and
- *  proxies into two axes with relationships in the cells. The stage is a
- *  Contents-modelled panel: partial by default, expandable, with crumbs and
- *  types hosted beside the grid. Registers itself so a later import replaces
- *  the stub S2.5 left in the view registry. */
+ *  proxies into two axes with relationships in the cells. Cells paint as a
+ *  heatmap (W.4): hue from each kind's own style, opacity from the count. The
+ *  stage is a Contents-modelled panel: partial by default, expandable, with
+ *  crumbs and types hosted beside the grid. Registers itself so a later
+ *  import replaces the stub S2.5 left in the view registry. */
 
 export { MATRIX } from "./surface";
 export {
@@ -16,6 +17,7 @@ export {
 export { gridOf, type AxisItem, type Cell, type Grid } from "./grid";
 export { Matrix, type MatrixProps } from "./Matrix";
 export { kindsOf, trailOf } from "./chrome";
+export { bandsOf, type Band } from "./paint";
 
 import { register } from "../index";
 import { MATRIX } from "./surface";

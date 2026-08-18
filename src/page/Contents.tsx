@@ -18,7 +18,17 @@
  *
  *  Constraints and rules advise here and never refuse. A model is unfinished
  *  by nature while somebody is still drawing it; a note in the tray and a
- *  line in the strip say what is missing, and every edit still goes through. */
+ *  line in the strip say what is missing, and every edit still goes through.
+ *
+ *  **Two sizes, two inputs (W.2).** At full stage size the selection never
+ *  narrows the table — it is always the whole open layer, plus the crumb
+ *  trail Panel forces open there. At partial size the table reads what is
+ *  picked instead: a container (a group, or a block that holds something)
+ *  narrows to its own contents; a note or a leaf block has no children to
+ *  filter into rows, so its own opened-out row is shown on its own; a
+ *  relationship has neither, so its one summary row is the honest stop.
+ *  Nothing picked is the layer either way, keeping the two sizes honest
+ *  with each other. */
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -34,6 +44,9 @@ import { LAYOUTS, LABELS, PLAIN, SHAPES, type CardConfig } from "../modules/card
 import { constraintsOf } from "../modules/constraints";
 import { among, rulesOf, type Bound } from "../modules/rules";
 import { EMPHASES, SETS, SLOTS, VOICES, WEIGHTS } from "../modules/style";
+import { MODULES } from "../modules/view";
+import { Crumbs } from "../modules/view/diagram";
+import { trailOf } from "../modules/view/table";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
 import { defOf, gather, packs, scoped } from "../workspace";
@@ -178,6 +191,15 @@ type Props = {
   view: string | null;
   picked: { kind: string; id: string } | null;
   unit: string;
+  /** Descend into a row, or navigate the crumb trail (null = project). */
+  onOpen: (id: string | null) => void;
+  /** Trail for the crumbs. Derived from the graph when the page omits it. */
+  path?: string[];
+  /** One layer up. Defaults to opening the open layer's parent. */
+  onUp?: () => void;
+  /** The table view at full stage size (W.1) — the crumb trail only draws
+   *  here; the partial tray keeps Panel's own single-name bar. */
+  full?: boolean;
   onPick: (next: { kind: "node" | "edge"; id: string } | null) => void;
   onHint: (next: Grazed) => void;
   onRename: (id: string, label: string) => void;
@@ -434,6 +456,15 @@ type Dial = "slot" | "emphasis" | "weight" | "voice";
 /** One `style` dial a definition has set, or "" for the component's default. */
 function dialOn(def: Definition, key: Dial): string {
   const held = def.components?.style?.[key];
+  return typeof held === "string" ? held : "";
+}
+
+/** Which of the six views a definition's own usages draw as, or "" for the
+ *  default (`block`). This is a project's only door onto its kind (P.6): the
+ *  root has no row of its own here, but once something has retyped it to a
+ *  definition, that definition is a row like any other. */
+function moduleOn(def: Definition): string {
+  const held = def.components?.view?.module;
   return typeof held === "string" ? held : "";
 }
 
@@ -702,7 +733,7 @@ export function Contents(props: Props) {
   const { graph, view, picked, unit, onPick, onHint, onRename, onRetype } = props;
   const { onRelation, onNameTaken, onSay, onDelete, onUnlink, onSave, onSetDir, onFlip } = props;
   const { onMarkPort, onAddField, onUpdateField, onDropField, onLeaveGroup, onReveal } = props;
-  const { onDefine, onUndefine } = props;
+  const { onDefine, onUndefine, onOpen, path, onUp, full = false } = props;
   const [only, setOnly] = useState<Sort | "all">("all");
   const [by, setBy] = useState<"name" | "sort">("sort");
   const [down, setDown] = useState(false);
@@ -714,11 +745,25 @@ export function Contents(props: Props) {
   const [opened, setOpened] = useState<string | null>(null);
   const [over, setOver] = useState<Row | null>(null);
 
+  // W.2: the tray shows the contents of whatever is in focus. Full ignores
+  // the selection outright — the whole point of the two sizes reading
+  // different inputs; partial reads it, and nothing picked is the layer.
+  const focusId = full ? null : (picked?.id ?? null);
+
+  /** A block that holds something narrows to its own contents, exactly the
+   *  way opening a layer would — the "row filter" half of what focus means. */
+  const container = focusId && graph.elements[focusId]?.form === "block"
+    && isContainer(graph, focusId) ? focusId : null;
+
+  /** The layer the table draws over — the focused container's when there is
+   *  one, the open layer otherwise. */
+  const scope = container ?? view;
+
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     const said = (id: string) => graph.elements[id]?.body ?? "";
 
-    for (const node of blocksOf(graph, view)) {
+    for (const node of blocksOf(graph, scope)) {
       out.push({
         id: node.id, sort: "block", name: nameOf(graph, node),
         detail: blockDetail(graph, node.id, unit),
@@ -737,7 +782,7 @@ export function Contents(props: Props) {
     }
 
     // The frame's own interfaces belong to the layer, not to a card in it.
-    for (const port of portsOf(graph, view)) {
+    for (const port of portsOf(graph, scope)) {
       out.push({
         id: port.id, sort: "interface", name: nameOf(graph, port),
         detail: `frame · ${port.side}${port.flow ? ` · ${port.flow}` : ""}`,
@@ -746,7 +791,7 @@ export function Contents(props: Props) {
       });
     }
 
-    for (const { attr } of groupsIn(graph, view)) {
+    for (const { attr } of groupsIn(graph, scope)) {
       const held = membersOf(graph, attr.id).length;
       out.push({
         id: attr.id, sort: "group", name: nameOf(graph, attr),
@@ -756,7 +801,7 @@ export function Contents(props: Props) {
       });
     }
 
-    for (const note of notesIn(graph, view)) {
+    for (const note of notesIn(graph, scope)) {
       const tied = tiesOf(graph, note.id).length;
       out.push({
         id: note.id, sort: "note", name: nameOf(graph, note),
@@ -766,7 +811,7 @@ export function Contents(props: Props) {
       });
     }
 
-    for (const edge of edgesIn(graph, view)) {
+    for (const edge of edgesIn(graph, scope)) {
       out.push({
         id: edge.id, sort: "relationship", name: typeName(graph, edge.type ?? ""),
         detail: `${nameOf(graph, graph.elements[edge.source])} ${ARROW[edge.dir]} ` +
@@ -777,7 +822,7 @@ export function Contents(props: Props) {
     }
 
     return out;
-  }, [graph, view, unit]);
+  }, [graph, scope, unit]);
 
   /** This project's definitions only — packages resist editing. */
   const types = useMemo<Row[]>(() => {
@@ -808,6 +853,21 @@ export function Contents(props: Props) {
     return { typeOffers: all, typeCounts: counts, typeOpen: gather(graph.vocabulary) };
   }, [graph]);
 
+  /** A group narrows the same way a container does, but by membership
+   *  rather than nesting — its members are siblings, not its own children,
+   *  so they are filtered out of what the layer already lists. */
+  const groupId = !container && focusId && graph.elements[focusId]?.form === "group"
+    ? focusId : null;
+  const memberIds = useMemo(
+    () => (groupId ? new Set(membersOf(graph, groupId).map((m) => m.id)) : null),
+    [graph, groupId],
+  );
+
+  /** Nothing else in focus has children of its own to list — a note, a leaf
+   *  block, a relationship. Its own opened-out row is the whole answer
+   *  (W.2): not a row filter, the one case that is not. */
+  const openingId = focusId && !container && !groupId ? focusId : null;
+
   const shown = useMemo(() => {
     // Types are project-level: they never mix into the layer's "all".
     if (only === "definition") {
@@ -816,7 +876,8 @@ export function Contents(props: Props) {
       return down ? sorted.reverse() : sorted;
     }
 
-    const kept = only === "all" ? rows : rows.filter((r) => r.sort === only);
+    const base = memberIds ? rows.filter((r) => r.sort === "block" && memberIds.has(r.id)) : rows;
+    const kept = only === "all" ? base : base.filter((r) => r.sort === only);
     const order = ["block", "interface", "relationship", "group", "note"];
     // Defensively: one row with something missing must not take the panel
     // down, which is what an unguarded compare did.
@@ -826,14 +887,21 @@ export function Contents(props: Props) {
       : order.indexOf(a.sort) - order.indexOf(b.sort) || named(a).localeCompare(named(b))));
 
     return down ? sorted.reverse() : sorted;
-  }, [rows, types, only, by, down]);
+  }, [rows, types, only, by, down, memberIds]);
+
+  /** The one row `openingId` names, opened out on its own — undefined only
+   *  while the graph and the pick are momentarily out of step. */
+  const openingRow = openingId ? rows.find((r) => r.id === openingId) ?? null : null;
 
   // Strip on selection change — tray click or canvas pick alike. Not on every
   // graph edit: filling a missing field should not keep restating the rest.
+  // Read straight off the graph rather than `rows`, which W.2 can now scope
+  // away from whatever was just picked.
   useEffect(() => {
     if (!picked) return;
-    const row = rows.find((r) => r.id === picked.id);
-    if (row) advise(row.notes, onSay);
+    const edge = graph.edges[picked.id];
+    const node = graph.elements[picked.id];
+    advise(edge ? edgeNotes(graph, edge) : node ? elementNotes(graph, node) : [], onSay);
   }, [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps — id only
 
   const head = (key: "name" | "sort", label: string) => (
@@ -1140,6 +1208,20 @@ export function Contents(props: Props) {
               />
             </span>
             <span className="held value">
+              view
+              <select
+                value={moduleOn(def)}
+                onClick={stop}
+                onChange={(event) => {
+                  const module = event.target.value;
+                  setComponent(def, "view", module ? { module } : null);
+                }}
+              >
+                <option value="">—</option>
+                {MODULES.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </span>
+            <span className="held value">
               style
               <select
                 value={style}
@@ -1291,20 +1373,35 @@ export function Contents(props: Props) {
     );
   }
 
+  // W.1: the crumb trail draws only at full stage size — the partial tray
+  // keeps Panel's own single-name bar, exactly as the old full-size table
+  // did alongside its own tray-bar.
+  const trail = path ?? trailOf(graph, view);
+  const climb = onUp ?? (() => {
+    if (!view) { onOpen(null); return; }
+    onOpen(graph.elements[view]?.parent ?? null);
+  });
+
   return (
     <div className="contents" onMouseLeave={() => (onHint(null), setOver(null))}>
-      <div className="contents-tabs">
-        {FILTERS.map(({ sort, label }) => (
-          <button
-            key={sort}
-            className={only === sort ? "on" : ""}
-            disabled={sort !== "definition" && counted(sort) === 0}
-            onClick={() => setOnly(sort)}
-          >
-            {label} <i>{counted(sort)}</i>
-          </button>
-        ))}
-      </div>
+      {full && (
+        <Crumbs graph={graph} view={view} path={trail} onOpen={onOpen} onUp={climb} />
+      )}
+
+      {!openingRow && (
+        <div className="contents-tabs">
+          {FILTERS.map(({ sort, label }) => (
+            <button
+              key={sort}
+              className={only === sort ? "on" : ""}
+              disabled={sort !== "definition" && counted(sort) === 0}
+              onClick={() => setOnly(sort)}
+            >
+              {label} <i>{counted(sort)}</i>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* What the selection panel used to say, where the pointer already is.
           Read-only — changing something is what the row's buttons are for.
@@ -1332,21 +1429,23 @@ export function Contents(props: Props) {
         </div>
       )}
 
-      {shown.length === 0 && only !== "definition" ? (
+      {!openingRow && shown.length === 0 && only !== "definition" ? (
         <p className="empty">Nothing in this layer yet</p>
       ) : (
         <table className="contents-table">
-          <thead>
-            <tr>
-              {head("sort", "kind")}
-              {head("name", "name")}
-              <th>what</th>
-              <th>{only === "definition" ? "form" : "type"}</th>
-              <th />
-            </tr>
-          </thead>
+          {!openingRow && (
+            <thead>
+              <tr>
+                {head("sort", "kind")}
+                {head("name", "name")}
+                <th>what</th>
+                <th>{only === "definition" ? "form" : "type"}</th>
+                <th />
+              </tr>
+            </thead>
+          )}
           <tbody>
-            {shown.flatMap((row) => [
+            {(openingRow ? [openingRow] : shown).flatMap((row) => [
               <tr
                 key={row.id}
                 className={picked?.id === row.id ? "picked" : ""}
@@ -1365,6 +1464,14 @@ export function Contents(props: Props) {
                     return;
                   }
                   onPick({ kind: row.edge ? "edge" : "node", id: row.id });
+                }}
+                onDoubleClick={(event) => {
+                  // The name cell owns its own double-click (rename) and the
+                  // doing/type cells own theirs; everywhere else on a block's
+                  // row, descend — the gesture the deleted Table/Row carried.
+                  if (row.sort !== "block" || !row.renameable) return;
+                  if ((event.target as HTMLElement).closest("td.doing, td.type")) return;
+                  onOpen(row.id);
                 }}
               >
                 <td className="sort">{row.sort === "definition" ? "type" : row.sort}</td>
@@ -1472,9 +1579,16 @@ export function Contents(props: Props) {
                 </td>
                 <td className="doing">{doing(row)}</td>
               </tr>,
-              ...(opened === row.id ? [detail(row)] : []),
+              // A single opened focus (W.2) stays open — except a relationship,
+              // which has no "opened" detail today (`doing` offers it no
+              // toggle either): its ends already sit in the "what" column, and
+              // "what it could be" is R.9's, so the summary row is the honest
+              // stopping point here rather than an editable field that would
+              // always be refused. Anything else follows the row's own toggle.
+              ...(openingRow ? (row.edge ? [] : [detail(row)])
+                : opened === row.id ? [detail(row)] : []),
             ])}
-            {only === "definition" && (
+            {!openingRow && only === "definition" && (
               <tr key="add-type" className="opened">
                 <td colSpan={5}>
                   <input

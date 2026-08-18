@@ -640,14 +640,22 @@ button:disabled { opacity: 0.4; cursor: default; }
   background: var(--bg);
 }
 
+/* The title is the workspace's own row now (P.13): the same wash `.files
+   .item.open` uses, since this is a pick like any other row, not a heading
+   that happens to sit above them. */
 .files-bar .title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 2px;
   color: var(--muted);
   letter-spacing: 0.12em;
+  cursor: pointer;
 }
+.files-bar .title:hover { background: var(--hover); color: var(--accent); }
+.files-bar .title.open { background: var(--hover); }
 .files-bar .actions { display: flex; flex: none; gap: 2px; }
 
 /* Bar glyphs share the app vocabulary: ＋ add, ✎ rename, ⊟/⊡ fold, □/⊏
@@ -772,8 +780,19 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--accent);
   box-shadow: inset 2px 0 0 var(--accent);
 }
-.files .item.over { outline: 1px dashed var(--accent); outline-offset: -1px; }
+/* A drag rests on this row and would nest inside it — the same signal a card
+   or a group gives on the canvas (`.card.dropping`, `.region.dropping`),
+   rather than the flat dashed line this used to wear on its own. */
+.files .item.over {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
 .files .item.root { color: var(--muted); padding-left: 10px; }
+
+/* The clear space below the rows is a target too — dropping there makes the
+   block a project (P.1), and it gets the same lit treatment a row does. */
+.tree.over { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Canvas cards */
 
@@ -1572,6 +1591,11 @@ main:has(.files.collapsed) {
 
 .tray.open { height: 33%; }
 
+/* The table view at full stage size (W.1): the toggle is the door, so the
+   tray covers the space a diagram would draw in rather than sitting beside
+   one at a third. */
+.tray.full { height: 100%; }
+
 .tray-bar {
   display: flex;
   align-items: center;
@@ -1833,6 +1857,61 @@ main:has(.files.collapsed) {
 .crumbs button.here { color: var(--accent); }
 .crumbs .sep { color: var(--border); flex: none; }
 .crumbs .up { margin-left: 4px; border: 1px solid var(--border); }
+
+/* The selection strip over the canvas — what is picked, and what it could be
+ * (R.9). Chips only: colour, hover and focus stay the theme's (var(--accent),
+ * var(--hover)), same as every other chip on the canvas — a definition never
+ * gets a say in how its own chip looks. */
+
+.selection-strip {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: calc(100% - 20px);
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--chrome);
+  font-size: 12px;
+}
+
+.selection-strip .name {
+  flex: none;
+  max-width: 10em;
+  padding: 1px 5px;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.selection-strip .types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-height: 6.5em;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.selection-strip button {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: none;
+  color: var(--text);
+}
+
+.selection-strip button:hover { background: var(--hover); color: var(--text); border-color: var(--accent); }
+.selection-strip button.here { color: var(--accent); border-color: var(--accent); }
+.selection-strip button.more { color: var(--muted); border-style: dashed; }
 
 /* Properties pane header */
 
@@ -2387,6 +2466,22 @@ header .unsaved:hover { background: var(--error); color: var(--on-loud); }
 .contents-table td.sort { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; }
 .contents-table td.what { color: var(--muted); }
 .contents-table td.type .none { color: var(--muted); opacity: 0.4; }
+
+/* The matrix's heatmap cell (W.4): hue from the relationship kind's own
+   style, opacity from the count — both dimensions read without a mode
+   switch. A cell with two kinds splits into equal bands rather than
+   blending, which degrades to one solid band in the common single-kind
+   case. Grading by count is local to this view, not a style dial. */
+.contents-table td.matrix-cell { padding: 0; }
+.cell-heat { display: flex; height: 100%; min-height: 20px; }
+.cell-heat .band { flex: 1; }
+.cell-heat .band + .band { border-left: 1px solid var(--surface); }
+.contents-table td.matrix-cell .none {
+  display: block;
+  padding: 2px 10px;
+  color: var(--muted);
+  opacity: 0.4;
+}
 .contents-table td.name input,
 .contents-table td.type input {
   width: 100%;

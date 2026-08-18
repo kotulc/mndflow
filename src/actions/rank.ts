@@ -1,28 +1,25 @@
-/** Presentation of the offered-action list for the rail.
+/** Learned-preference ranking of the offered-action list.
  *
  *  Membership is `offer(ctx)` — this module only filters, orders and fills.
  *  Idle order is learned preference for the situation's shape, falling back to
- *  a fixed enumeration. Against typed text, embedding similarity leads, then
- *  the same preference; an exact prior entry is remembered and pinned first.
- *  Feedback is local (`feedback.read`), never the log. A documentation keyword
- *  hit may be appended after this list (docs.ts / Chat) — always last, never
- *  mixed into action rank. Navigation stays off: the rail reads context and
- *  never changes it. */
+ *  the menu's fixed `rank()` (fill.ts — the one shared enumeration, also what
+ *  the explorer and the diagram offer chrome sort by). Against typed text,
+ *  embedding similarity leads, then the same preference; an exact prior entry
+ *  is remembered and pinned first. Feedback is local (`feedback.read`), never
+ *  the log. Lives beside `offer()` so it can be removed without taking a
+ *  consumer down (S6.3); today the rail (`terminal/Chat.tsx`) is the only one,
+ *  which reads context and never changes it — a documentation keyword hit may
+ *  be appended after this list there, always last, never mixed into rank. */
 
-import { offer } from "../actions/offer";
-import { ORDER, fill, fillable, type Supply } from "../actions/fill";
-import { sayable, type Action, type Args, type Context } from "../actions";
+import { offer } from "./offer";
+import { fill, fillable, rank, type Supply } from "./fill";
+import { sayable, type Action, type Args, type Context } from "./index";
 import { FLOOR, scoreAny } from "../embed/match";
 import { ROOT, refAt } from "../graph/types";
 import { read, shape_of } from "./feedback";
 
 /** Navigation — a text surface never offers these (spec.md). */
 const NAV = new Set(["open", "up", "reveal"]);
-
-function order_of(name: string): number {
-  const i = ORDER.indexOf(name);
-  return i < 0 ? ORDER.length : i;
-}
 
 /** How often each action was chosen when overruling, for one situation shape. */
 function shape_weights(shape: string): Map<string, number> {
@@ -51,7 +48,7 @@ function by_pref(
   weights: Map<string, number>,
 ): number {
   return (weights.get(b.name) ?? 0) - (weights.get(a.name) ?? 0)
-    || order_of(a.name) - order_of(b.name);
+    || rank(a.name) - rank(b.name);
 }
 
 /** Pin a remembered literal choice first when it is still on offer. */
@@ -154,12 +151,17 @@ export function ready(action: Action, args: Args): boolean {
   );
 }
 
-/** Offer membership, filtered to what the rail can say.
- *  Idle: shape-weighted preference, then fixed ORDER.
- *  Typed: embedding rank (best first), preference as tie-break; an exact prior
- *  entry is pinned first. Substring only while nothing clears the floor — the
- *  model is still cold, or the draft matches no action. */
-export function ranked(ctx: Context, draft: string, refs: string[]): Action[] {
+export type Ranked = { action: Action; score: number };
+
+/** Offer membership, filtered to what the rail can say, paired with the score
+ *  behind its place in line — the hover title a chip carries (Z.9), so a near
+ *  miss reads as a number instead of a mystery.
+ *  Idle: shape-weighted preference count, then the fixed `rank()`.
+ *  Typed: embedding score (best first), preference as tie-break; an exact
+ *  prior entry is pinned first. Substring only while nothing clears the
+ *  floor — the model is still cold, or the draft matches no action; the score
+ *  shown is still the (sub-floor) embedding one. */
+export function scored(ctx: Context, draft: string, refs: string[]): Ranked[] {
   const text = draft.trim();
   const weights = shape_weights(shape_of(ctx));
   const recall = entry_recall(text);
@@ -167,30 +169,28 @@ export function ranked(ctx: Context, draft: string, refs: string[]): Action[] {
     .filter((action) => can_fill(action, ctx, refs))
     .sort((a, b) => by_pref(a, b, weights));
 
-  if (!text) return items;
+  if (!text) {
+    return items.map((action) => ({ action, score: weights.get(action.name) ?? 0 }));
+  }
 
   const options = Object.fromEntries(items.map((a) => [a.name, phrases(a)]));
-  const scored = scoreAny(text, options);
-  const by_score = new Map(scored.map((hit) => [hit.id, hit.score]));
-  const top = scored[0]?.score ?? 0;
+  const hits = scoreAny(text, options);
+  const by_score = new Map(hits.map((hit) => [hit.id, hit.score]));
+  const top = hits[0]?.score ?? 0;
 
-  if (top >= FLOOR) {
-    return pin_recall(
-      items
+  const ordered = top >= FLOOR
+    ? items
         .filter((action) => (by_score.get(action.name) ?? 0) >= FLOOR)
         .sort((a, b) =>
           (by_score.get(b.name) ?? 0) - (by_score.get(a.name) ?? 0)
-          || by_pref(a, b, weights)),
-      recall,
-    );
-  }
+          || by_pref(a, b, weights))
+    : items.filter((action) => {
+        const needle = text.toLowerCase();
+        const hay = `${action.label} ${action.about} ${action.name}`.toLowerCase();
+        return hay.includes(needle);
+      });
 
-  const needle = text.toLowerCase();
-  return pin_recall(
-    items.filter((action) => {
-      const hay = `${action.label} ${action.about} ${action.name}`.toLowerCase();
-      return hay.includes(needle);
-    }),
-    recall,
-  );
+  return pin_recall(ordered, recall).map((action) => ({
+    action, score: by_score.get(action.name) ?? 0,
+  }));
 }

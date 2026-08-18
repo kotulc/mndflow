@@ -659,8 +659,10 @@ other projects' roots, and folders are ordinary blocks. So filing is undoable an
 block diagram whose dependencies are derived from who holds proxies into whom.
 
 **A change is recorded where its element lives.** Ownership routes it, and nothing branches or
-merges. A relationship across two projects is a proxy plus an ordinary edge, both in the project of
-the end making the claim — so no relationship ever spans two logs.
+merges. Every cross-project write goes through one door — an applied step appended to the target's
+log, never a raw replace of it — so an action can get *which* project wrong but never leave a write
+half-done. A relationship across two projects is a proxy plus an ordinary edge, both in the project
+of the end making the claim — so no relationship ever spans two logs.
 
 **A proxy tolerates a missing target and never records the absence**, so undoing a deletion in one
 project brings the reference back in another. Only deletion is breaking, and only breaking changes

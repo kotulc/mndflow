@@ -85,6 +85,11 @@ export type Effect = {
   say?: string;
   /** Project id primary mutations land in. Absent is the project in context. */
   into?: string;
+  /** `into` names a project the workspace does not hold yet — `infer`'s fresh
+   *  mint. The caller must admit it (the workspace door), not only write into
+   *  its log, or it exists with nothing to show it (P.3). Meaningless without
+   *  `into`, and false or absent otherwise. */
+  admit?: boolean;
   /** Structure writes implied by the primary work — tier-1 flow interfaces. */
   home?: HomeBatch[];
 };

@@ -319,6 +319,49 @@ describe("writeInto", () => {
   });
 });
 
+describe("ownership routing", () => {
+  // design.md: "a change is recorded where its element lives." `writeInto` is
+  // the one door every cross-project write funnels through, so this is the
+  // layer where a future action confusing "current context" with "the
+  // element's project" would first show: the mutation would land in the
+  // wrong log, as it did in R.10. Property, over several projects and
+  // several mutation ops: a write named for one project's log never reaches
+  // another open project's, whatever op it is.
+  it("lands every mutation op in the log of the project it names, and no other open one", () => {
+    const homes = ["proj_route_a", "proj_route_b", "proj_route_c"];
+    const seed: Record<string, ReturnType<typeof element>> = {};
+    for (const id of homes) seed[id] = element(`${id} root`, { parent: null });
+
+    for (const id of homes) {
+      const out = writeInto(id, [{ op: "add_element", element: seed[id]! }], { say: "seed", action: "test" });
+      if ("refuse" in out) throw new Error("seed refused");
+    }
+
+    for (const id of homes) {
+      const out = writeInto(id, [
+        { op: "update_element", id: seed[id]!.id, label: `${id} renamed` },
+        { op: "set_field", id: seed[id]!.id, name: "note", value: "x" },
+      ], { say: "route", action: "test" });
+      if ("refuse" in out) throw new Error("writeInto refused");
+    }
+
+    for (const owner of homes) {
+      const { graph } = opened(owner);
+
+      // The write named for this project's element landed here…
+      expect(graph.elements[seed[owner]!.id]?.label).toBe(`${owner} renamed`);
+      expect(graph.elements[seed[owner]!.id]?.fields.some((f) => f.name === "note")).toBe(true);
+
+      // …and every other project's element — named in a write to a different
+      // door — never appears in this log.
+      for (const other of homes) {
+        if (other === owner) continue;
+        expect(graph.elements[seed[other]!.id]).toBeUndefined();
+      }
+    }
+  });
+});
+
 describe("packages", () => {
   it("mints a stable package id from the name", () => {
     expect(packId("Requirements")).toMatch(/^pkg_/);

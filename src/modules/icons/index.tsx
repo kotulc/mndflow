@@ -21,6 +21,10 @@ const WEIGHT = 1.5;
 const PATHS = {
   // Making, naming, removing.
   add: "M12 5v14M5 12h14",
+  // A project outright, whatever is selected — the bar's second door (P.2).
+  // The `project` frame with a plus in place of its window, so it reads as
+  // *make one of these* rather than *this is one*.
+  new_project: "M3.5 5h17v14h-17zM12 9v6M9 12h6",
   rename: "M4 20h4L18 10a2.1 2.1 0 0 0-3-3L5 17v3z",
   remove: "M6 6l12 12M18 6L6 18",
 

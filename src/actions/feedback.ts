@@ -1,10 +1,12 @@
-/** Overruling the ranked default is the feedback the rail learns from.
+/** Overruling the ranked default is the feedback a consumer of `rank.ts`
+ *  learns from.
  *
- *  Arrow keys move the highlight and Enter confirms it (Chat). Taking anything
- *  other than the first-ranked chip is an overrule — recorded here, local,
- *  never in the log. Ranking (`rank.ts`) reads the store for two-tier learning. */
+ *  Arrow keys move the highlight and Enter confirms it (`terminal/Chat.tsx`).
+ *  Taking anything other than the first-ranked chip is an overrule — recorded
+ *  here, local, never in the log. `rank.ts` reads the store for two-tier
+ *  learning. */
 
-import type { Context } from "../actions";
+import type { Context } from "./index";
 
 /** One overrule — enough for Z.3's two tiers without inventing the learner. */
 export type Overrule = {

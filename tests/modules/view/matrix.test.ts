@@ -9,7 +9,9 @@ import { describe, expect, it } from "vitest";
 
 import { element, EMPTY, ROOT } from "../../../src/graph/types";
 import type { Graph } from "../../../src/graph/types";
-import { MAP, MATRIX, gridOf, reaches, takes, kindsOf, trailOf } from "../../../src/modules/view/matrix/index";
+import {
+  MAP, MATRIX, gridOf, reaches, takes, kindsOf, trailOf, bandsOf,
+} from "../../../src/modules/view/matrix/index";
 
 describe("the matrix module's surface", () => {
   it("is a grid with a scrollbar, no frame, and a place to ask", () => {
@@ -103,5 +105,79 @@ describe("grid composition", () => {
 
     expect(trail[trail.length - 1]).toBe("L");
     expect(trail.length).toBeGreaterThan(0);
+  });
+});
+
+describe("cell heat (W.4)", () => {
+  /** A layer with one cell holding two relationship kinds — `flow` twice,
+   *  `carry` once — each kind styled to a different slot on the ramp. */
+  function heated(): Graph {
+    const layer = element("layer", { id: "L", parent: ROOT, form: "block" });
+    const a = element("pump", { id: "a", parent: "L", form: "block", type: "def_1" });
+    const b = element("tank", { id: "b", parent: "L", form: "block", type: "def_1" });
+
+    return {
+      ...EMPTY,
+      defs: {
+        def_1: { id: "def_1", name: "Part", form: "block", fields: [] },
+        def_flow: {
+          id: "def_flow", name: "flow", form: "directed", fields: [],
+          components: { style: { slot: "secondary" } },
+        },
+        def_carry: {
+          id: "def_carry", name: "carry", form: "directed", fields: [],
+          components: { style: { slot: "tertiary" } },
+        },
+      },
+      elements: { ...EMPTY.elements, L: layer, a, b },
+      edges: {
+        e1: { id: "e1", source: "a", target: "b", type: "def_flow", form: "directed", dir: "forward" },
+        e2: { id: "e2", source: "a", target: "b", type: "def_flow", form: "directed", dir: "forward" },
+        e3: { id: "e3", source: "a", target: "b", type: "def_carry", form: "directed", dir: "forward" },
+      },
+    };
+  }
+
+  it("draws one band per kind held, never per edge", () => {
+    const graph = heated();
+    const cell = gridOf(graph, "L").cells.flat().find((c) => c.edges.length > 0)!;
+    const bands = bandsOf(graph, cell);
+
+    expect(bands).toHaveLength(2);
+    expect(new Set(bands.map((b) => b.type)).size).toBe(bands.length);
+  });
+
+  it("a single kind degrades to one band — the solid-cell case", () => {
+    const graph = heated();
+    const cell = gridOf(graph, "L").cells.flat().find((c) => c.edges.length > 0)!;
+    const solo = { ...cell, edges: cell.edges.filter((e) => e.type === "def_flow") };
+
+    expect(bandsOf(graph, solo)).toHaveLength(1);
+  });
+
+  it("opacity climbs with count, transparent at zero and never solid", () => {
+    const graph = heated();
+    const cell = gridOf(graph, "L").cells.flat().find((c) => c.edges.length > 0)!;
+    const light = bandsOf(
+      graph, { ...cell, edges: cell.edges.filter((e) => e.type === "def_carry") },
+    )[0];
+    const heavy = bandsOf(
+      graph, { ...cell, edges: cell.edges.filter((e) => e.type === "def_flow") },
+    )[0];
+    const empty = bandsOf(graph, { ...cell, edges: [] });
+
+    expect(empty).toHaveLength(0);
+    expect(light.count).toBeLessThan(heavy.count);
+    expect(light.opacity).toBeGreaterThan(0);
+    expect(light.opacity).toBeLessThan(heavy.opacity);
+    expect(heavy.opacity).toBeLessThan(1);
+  });
+
+  it("kinds on different slots paint different fills", () => {
+    const graph = heated();
+    const cell = gridOf(graph, "L").cells.flat().find((c) => c.edges.length > 0)!;
+    const bands = bandsOf(graph, cell);
+
+    expect(new Set(bands.map((b) => b.fill)).size).toBe(bands.length);
   });
 });

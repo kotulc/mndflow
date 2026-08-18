@@ -36,7 +36,7 @@ import {
 import { around, CELL, cell, HUG, arranged, sizeOf, type Box } from "../geometry/layout";
 import { type Axis, type EdgeForm, type End, type Graph, type Layout, type Side, type Spot } from "../graph/types";
 import {
-  Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, edgesOf, extentOf,
+  Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, SelectionStrip, edgesOf, extentOf,
   fill_args, floorOf, laidOf, nodesOf, offered_for, placementKey, restOf, stageOf,
   type OfferTarget, type Prompt,
 } from "../modules/view/diagram";
@@ -679,6 +679,10 @@ function Flow(props: Props) {
   return (
     <div className="stage" ref={surface} {...gestures.surface}>
       <Crumbs graph={graph} view={view} path={path} onOpen={onOpen} onUp={onUp} />
+
+      {/* What is selected, and what it could be (R.9) — Contents' old slot,
+          open now that W.1 moved Contents into the table view. */}
+      <SelectionStrip graph={graph} picked={picked} kinds={props.kinds} onAct={onAct} />
 
 
       {/* The settings and the verbs left for the page's rail (Y.1). What stays

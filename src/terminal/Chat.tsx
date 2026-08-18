@@ -2,44 +2,45 @@
  *
  *  It has no frame of its own — it is the top of the page. Collapsed, it is
  *  one line: text entry with inline chips ranked against what is typed.
- *  Expanded, it is guidance: the next question, nudges, a tutorial walk over
- *  the sample project, a context gloss from `samples/docs.json`, and answer
- *  chips; past exchanges rise and fade at the edge with the live line at the
- *  foot.
+ *  Expanded, it adds a fixed placeholder prompt, a tutorial walk over the
+ *  sample project, a context gloss from `samples/docs.json`, and the
+ *  highlighted chip's own description — past exchanges, nudges and the
+ *  question loop are gone (Z.9): the rail never asked anything expanded mode
+ *  could not also ask collapsed, so it stopped asking.
  *
- *  Collapsed chips are the offered-action list (G.9a), ranked and highlighted
- *  by the arrows, plus at most one documentation keyword hit always last.
- *  Enter confirms. Taking anything other than the first-ranked action is an
- *  overrule — local feedback ranking learns from. Expanded prefers answering
- *  the open question. Membership lives in `actions/offer`; this file only
- *  presents it. Clicking anywhere here puts the caret in the line. */
+ *  Chips are the offered-action list (G.9a), ranked and highlighted by the
+ *  arrows, plus at most one documentation keyword hit always last. Enter
+ *  confirms. Taking anything other than the first-ranked action is an
+ *  overrule — local feedback ranking learns from. Membership lives in
+ *  `actions/offer`; this file only presents it. Clicking anywhere here puts
+ *  the caret in the line. */
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 
 import { warm } from "../embed/model";
 import { useEmbeddings } from "../embed/useEmbeddings";
 import { tile } from "../geometry/layout";
-import type { Question } from "./router";
-import { note, shape_of } from "./feedback";
+import { note, shape_of } from "../actions/feedback";
 import { doc_for, doc_hit, type DocHit } from "./docs";
-import { nudges } from "./guidance";
-import { fill_args, phrases, ranked, ready } from "./rank";
+import { fill_args, phrases, ready, scored } from "../actions/rank";
 import { walk_for } from "./tutorial";
-import type { Graph, Step } from "../graph/types";
+import type { Graph } from "../graph/types";
 import { refTo } from "../graph/types";
 import type { Action, Args, Context, Picked } from "../actions";
 import { useSettling } from "./useSettling";
 import { useTypewriter } from "./useTypewriter";
 import { Icon } from "../modules/icons";
-import "./loop";
+// Side effect only: registers per-domain terms with the project seam (Z.9
+// deleted the question loop that used to do this; this is what is left of it).
+import "./terms";
 
-/** How many past exchanges stay on screen before they fade off the top. */
-const RECENT = 6;
+/** Standing in for the old question loop's opening line — chosen once so it
+ *  does not change under the user (Z.9: expanded asks nothing real any more). */
+const PROMPTS = ["What's next?", "What action would you like to take?"];
+const PROMPT = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
 
 type Props = {
   graph: Graph;
-  steps: Step[];
-  question: Question | null;
   view: string | null;
   picked: Picked;
   /** Project in context — bare refs resolve here. */
@@ -51,16 +52,12 @@ type Props = {
   locked?: boolean;
   draft: string;
   onDraft: (text: string) => void;
-  onTurn: (input: string) => void;
   onAct: (name: string, args?: Args) => boolean;
 };
 
 export function Chat(props: Props) {
-  const {
-    graph, steps, question, view, picked, project, open, chosen, locked,
-    draft, onDraft, onTurn, onAct,
-  } = props;
-  const { shown, done } = useTypewriter(question?.prompt ?? "");
+  const { graph, view, picked, project, open, chosen, locked, draft, onDraft, onAct } = props;
+  const { shown, done } = useTypewriter(PROMPT);
   // Scoring reads a sync cache that fills async — re-rank as vectors land.
   const { revision } = useEmbeddings();
   const field = useRef<HTMLInputElement>(null);
@@ -69,17 +66,6 @@ export function Chat(props: Props) {
   const [expanded, setExpanded] = useState(false);
   /** Doc chip taken from the ranked list — surfaced under the line. */
   const [surfaced, setSurfaced] = useState<DocHit | null>(null);
-
-  /** The tail of the conversation. Only answered questions: hand edits are
-   *  already listed in the action log, and repeating them here would bury the
-   *  exchange that the terminal is for. */
-  const history = useMemo(
-    () => steps.filter((step) => step.question).slice(-RECENT),
-    [steps],
-  );
-
-  /** Same scope the question loop reads — selection, else the open layer. */
-  const scope = picked?.kind === "node" ? picked.id : view;
 
   const refs = useMemo(() => {
     if (chosen.length) return chosen;
@@ -94,51 +80,24 @@ export function Chat(props: Props) {
     [graph, view, picked, locked, project, open],
   );
 
-  const available = useMemo(
-    () => ranked(ctx, "", refs),
-    [ctx, refs],
-  );
-  const actions = useMemo(
-    () => ranked(ctx, draft, refs),
-    [ctx, draft, refs, revision],
-  );
-
-  /** Expanded offers the question's own answers when it has any; collapsed
-   *  always ranks actions. A typed draft filters the answer list in place. */
-  const answers = useMemo(() => {
-    const choices = question?.choices ?? [];
-    if (!expanded || !choices.length) return [] as string[];
-    const typed = draft.trim().toLowerCase();
-    if (!typed) return choices;
-    return choices.filter((c) => c.toLowerCase().includes(typed));
-  }, [expanded, question, draft]);
-
-  const using_answers = expanded && (question?.choices.length ?? 0) > 0;
-  /** Keyword doc hit only on the action list — never among answer choices. */
-  const hit = useMemo(
-    () => (using_answers ? null : doc_hit(draft)),
-    [using_answers, draft],
-  );
-  const tips = useMemo(
-    () => (expanded ? nudges(graph, scope, question) : []),
-    [expanded, graph, scope, question],
-  );
-  const walk = useMemo(
-    () => (expanded ? walk_for(ctx) : []),
-    [expanded, ctx],
-  );
-  const gloss = useMemo(
-    () => (expanded ? doc_for(ctx) : null),
-    [expanded, ctx],
+  const idle = useMemo(() => scored(ctx, "", refs), [ctx, refs]);
+  const ranked = useMemo(() => scored(ctx, draft, refs), [ctx, draft, refs, revision]);
+  const available = useMemo(() => idle.map((r) => r.action), [idle]);
+  const actions = useMemo(() => ranked.map((r) => r.action), [ranked]);
+  const score_of = useMemo(
+    () => new Map(ranked.map((r) => [r.action.name, r.score])),
+    [ranked],
   );
 
-  const chipKey = using_answers
-    ? answers.join("|")
-    : `${actions.map((c) => c.name).join("|")}|${hit?.term ?? ""}`;
-  const availKey = available.map((c) => c.name).join("|");
-  const chip_count = using_answers
-    ? answers.length
-    : actions.length + (hit ? 1 : 0);
+  /** Keyword doc hit — always last, never displacing an action. */
+  const hit = useMemo(() => doc_hit(draft), [draft]);
+  const walk = useMemo(() => (expanded ? walk_for(ctx) : []), [expanded, ctx]);
+  const gloss = useMemo(() => (expanded ? doc_for(ctx) : null), [expanded, ctx]);
+  /** The highlighted chip's own description — the whole of expanded guidance. */
+  const selected = actions[hi] ?? null;
+
+  const chipKey = `${actions.map((c) => c.name).join("|")}|${hit?.term ?? ""}`;
+  const chip_count = actions.length + (hit ? 1 : 0);
 
   // Warm every fillable action's phrases (and the draft) so ranking is not
   // waiting on the first keystroke against a cold cache.
@@ -147,7 +106,7 @@ export function Chat(props: Props) {
     const typed = draft.trim();
     if (typed) words.push(typed);
     if (words.length) warm(words);
-  }, [availKey, draft, available]);
+  }, [available, draft]);
 
   // A new set of chips resets the highlight to the first (default) entry.
   useEffect(() => {
@@ -174,21 +133,6 @@ export function Chat(props: Props) {
     // Without this, the click's default action blurs the field we just focused.
     event.preventDefault();
     field.current?.focus();
-  }
-
-  function submit() {
-    const text = draft.trim();
-    if (!text) return;
-
-    onDraft("");
-    onTurn(text);
-  }
-
-  function answer(value: string) {
-    const text = value.trim();
-    if (!text) return;
-    onDraft("");
-    onTurn(text);
   }
 
   function take(action: Action) {
@@ -239,19 +183,6 @@ export function Chat(props: Props) {
 
     event.preventDefault();
 
-    // Expanded with typed text answers the open question — a ready action
-    // must not steal the turn (collapsed still takes the highlight).
-    if (expanded && draft.trim()) {
-      submit();
-      return;
-    }
-
-    if (using_answers) {
-      const value = answers[hi];
-      if (value) answer(value);
-      return;
-    }
-
     if (hit && hi === actions.length) {
       take_doc(hit);
       return;
@@ -260,12 +191,8 @@ export function Chat(props: Props) {
     const action = actions[hi];
     if (action) {
       const args = fill_args(action, ctx, refs, draft);
-      if (ready(action, args)) {
-        take(action);
-        return;
-      }
+      if (ready(action, args)) take(action);
     }
-    submit();
   }
 
   return (
@@ -274,21 +201,6 @@ export function Chat(props: Props) {
       onMouseDown={focus_line}
     >
       <div className="terminal">
-        {expanded && (
-          <div className="past">
-            {history.map((step) => (
-              <div key={step.id} className={`exchange ${step.status}`}>
-                {step.prompt && <div className="said">{step.prompt}</div>}
-                <div className="typed">
-                  <span className="caret">&gt;</span>
-                  <span>{step.input}</span>
-                  {!step.mutations.length && <span className="noop">no change</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="now">
           {expanded && (
             <>
@@ -296,10 +208,7 @@ export function Chat(props: Props) {
                 {shown}
                 {!done && <span className="cursor" />}
               </div>
-              {done && question?.hint && <div className="hint">{question.hint}</div>}
-              {done && tips.map((tip) => (
-                <div key={tip} className="hint">{tip}</div>
-              ))}
+              {done && selected && <div className="hint">{selected.about}</div>}
               {done && walk.map((line) => (
                 <div key={line} className="hint">{line}</div>
               ))}
@@ -321,9 +230,6 @@ export function Chat(props: Props) {
                 ref={field}
                 value={draft}
                 className={draft ? undefined : "empty"}
-                placeholder={
-                  draft ? "" : expanded ? (question?.placeholder || "") : ""
-                }
                 onChange={(event) => onDraft(event.target.value)}
                 onKeyDown={press}
               />
@@ -346,20 +252,7 @@ export function Chat(props: Props) {
                 : undefined
             }
           >
-            {show_chips && using_answers &&
-              answers.map((value, index) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={["chip", index === hi ? "likely" : ""].join(" ")}
-                  style={{ animationDelay: `${index * 70}ms` }}
-                  onClick={() => answer(value)}
-                  title={value}
-                >
-                  {value}
-                </button>
-              ))}
-            {show_chips && !using_answers &&
+            {show_chips &&
               actions.map((chip, index) => (
                 <button
                   key={chip.name}
@@ -370,12 +263,12 @@ export function Chat(props: Props) {
                   ].join(" ")}
                   style={{ animationDelay: `${index * 70}ms` }}
                   onClick={() => take(chip)}
-                  title={chip.about}
+                  title={(score_of.get(chip.name) ?? 0).toFixed(2)}
                 >
                   {chip.label}
                 </button>
               ))}
-            {show_chips && !using_answers && hit && (
+            {show_chips && hit && (
               <button
                 key={`doc:${hit.term}`}
                 type="button"
