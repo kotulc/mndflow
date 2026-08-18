@@ -24,9 +24,12 @@
  *
  *  The bar's add button follows the selection (G.9d — the target decides): a project
  *  or nothing selected names a new project into the workspace; a block
- *  selected makes a block under it. The tooltip says which. Right-click still
- *  offers create (block) regardless, and empty space below the rows creates at
- *  the root. Rename stays on double-click and the rename button. */
+ *  selected makes a block under it. The tooltip says which. A second button
+ *  beside it makes the same shape typed as a behavior (P) — the one place a
+ *  block can be made one outright, since a project's kind is derived from
+ *  what it holds and never toggled. Right-click still offers create (block)
+ *  regardless, and empty space below the rows creates at the root. Rename
+ *  stays on double-click and the rename button. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -36,11 +39,11 @@ import type { Action, Arg, Args, Context } from "../actions";
 import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
 import {
-  ROOT as ROOT_ID, asTarget, defIdFor, refAt, refTo, type Graph, type Element,
+  ROOT as ROOT_ID, asTarget, refAt, refTo, type Graph, type Element,
 } from "../graph/types";
-import { kindOf, named, viewOf, views } from "../modules/view";
 import { REFERRED } from "../canvas/card";
 import { Icon, type IconName } from "../modules/icons";
+import { asViewKind, layerKind } from "./kind";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
@@ -117,12 +120,13 @@ function shelved(shell: Graph, parent: string | null): Element[] {
 /** A node's role, taken from what it holds and where it sits rather than from
  *  anything declared. One meaning each — the set's own rule.
  *
- *  P.5: a set (members are proxies, `infer`'s `as: "set"` reading, P.4) is
- *  `isContainer` too — `blocksOf` counts proxies — so it reads as a plain
- *  container until a branch here tells the two apart and wears the folder
+ *  P.5: a set (children of mixed kind — `kind.ts`'s `layerKind`, settled
+ *  stream P) is `isContainer` too — `blocksOf` counts proxies — so it reads
+ *  as a plain container until this tells the two apart and wears the folder
  *  mark instead. */
-function role_of(graph: Graph, node: Element): IconName {
+function role_of(graph: Graph, open: Record<string, Graph>, node: Element): IconName {
   if (isPort(node)) return "role_interface";
+  if (layerKind(graph, node.id, open) === "set") return "role_set";
   if (isContainer(graph, node.id)) return "role_container";
 
   return "role_leaf";
@@ -159,6 +163,9 @@ type Props = {
   /** Open a layer in a project — sets context, then the canvas layer. */
   onOpen: (projectId: string, id: string | null) => void;
   onCreate: (label: string, parent: string | null) => void;
+  /** The same door, typed as a behavior (P) — the same selection rule as
+   *  `onCreate`, but what it makes is what the behavior modules `create`. */
+  onCreateBehavior: (label: string, parent: string | null) => void;
   /** Whether a name is already spoken for in a layer, so a field can say so. */
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
   /** Say something in full, where there is room for it. */
@@ -178,8 +185,9 @@ type Props = {
   onRename: (id: string, label: string) => void;
   onRenameProject: (label: string) => void;
   /** The `new` page action — name a project into being. Returns false when the
-   *  name was refused, so the field can stay open. */
-  onNewProject: (name: string) => boolean;
+   *  name was refused, so the field can stay open. `kind` is which create
+   *  button asked (P) — absent reads as structure, same as today. */
+  onNewProject: (name: string, kind?: "structure" | "behavior") => boolean;
   /** Why this project may not be called that, or null. */
   onNameProject: (name: string, except: string) => string | null;
   /** Run a registry action — the offered list reaches `infer` through here. */
@@ -204,7 +212,7 @@ type Props = {
 export function Files(props: Props) {
   const { shell, graphs, projects, context, view, chosen, onChoose } = props;
   const { showPorts, onShowPorts } = props;
-  const { onOpen, onCreate, onNameTaken, onSay, unit } = props;
+  const { onOpen, onCreate, onCreateBehavior, onNameTaken, onSay, unit } = props;
   const {
     onDelete, onDropProject, onMove, onExtract, onRename, onRenameProject,
     onNewProject, onNameProject,
@@ -240,10 +248,12 @@ export function Files(props: Props) {
   /** Null when nothing is being named; otherwise the layer the new element
    *  lands in. Held rather than read from the scope, because the two creation
    *  gestures mean different places: the bar's button acts on what is open,
-   *  and the clear space below the rows is the root's own background. */
-  const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
-  /** Naming a new project — the first step, before anything can go in it. */
-  const [naming, setNaming] = useState(false);
+   *  and the clear space below the rows is the root's own background.
+   *  `behavior` says which of the bar's two create buttons asked (P). */
+  const [adding, setAdding] = useState<{ parent: string | null; behavior?: boolean } | null>(null);
+  /** Naming a new project — the first step, before anything can go in it.
+   *  Which kind asked (P): `false` is nothing open, otherwise which button. */
+  const [naming, setNaming] = useState<false | "structure" | "behavior">(false);
   /** Shut to a strip so the stage keeps the width — chrome yields, stage does not. */
   const [collapsed, setCollapsed] = useState(false);
   /** Offered-action menu at a pointer — membership from `offer`, order fixed. */
@@ -431,33 +441,6 @@ export function Files(props: Props) {
     return context === projectId && (elementId === ROOT_ID ? view === null : elementId === view);
   }
 
-  /** Cross the structure/behavior line on a project's own root — the door
-   *  nothing else reaches (P.6). `local_ids` excludes the root from every
-   *  selection, so `retype` can never be offered against it through the menu;
-   *  this cycles the three behavior modules and back to plain structure.
-   *  A definition already named for the module is reused rather than
-   *  twinned, the same rule X.3 settled for a free-text type. */
-  function cycleKind(projectId: string) {
-    const here = graphs[projectId];
-    const root = here?.elements[ROOT_ID];
-    if (!here || !root) return;
-
-    const behaviors = views().filter((m) => m.kind === "behavior").map((m) => m.name);
-    const at = behaviors.indexOf(viewOf(here, root).module);
-    const next = at === -1 ? behaviors[0] : behaviors[at + 1];
-
-    if (!next) {
-      onAct("retype", { id: ROOT_ID, type: "" });
-      return;
-    }
-
-    const found = Object.values(here.defs).find((d) => d.name === next);
-    if (!found) {
-      onAct("define", { name: next, patch: { components: { view: { module: next } } } });
-    }
-    onAct("retype", { id: ROOT_ID, type: found?.id ?? defIdFor(next) });
-  }
-
   /** Fold or unfold a whole project from its root icon. */
   function foldProject(key: string) {
     setShut((prior) => {
@@ -594,6 +577,9 @@ export function Files(props: Props) {
   const plus_title = plus.kind === "project"
     ? "New project — name it first (nothing selected)"
     : `New ${unit} in what is selected`;
+  const behavior_title = plus.kind === "project"
+    ? "New behavior project — name it first (nothing selected)"
+    : "New behavior block in what is selected";
 
   /** Commit a rename. The project renames through its own action — the tree's
    *  root is not a node. */
@@ -625,7 +611,10 @@ export function Files(props: Props) {
   }
 
   function create(label: string) {
-    if (label.trim() && adding) onCreate(label.trim(), adding.parent);
+    if (label.trim() && adding) {
+      if (adding.behavior) onCreateBehavior(label.trim(), adding.parent);
+      else onCreate(label.trim(), adding.parent);
+    }
 
     setAdding(null);
   }
@@ -634,7 +623,7 @@ export function Files(props: Props) {
   function add() {
     if (plus.kind === "project") {
       setAdding(null);
-      setNaming(true);
+      setNaming("structure");
       return;
     }
 
@@ -642,12 +631,20 @@ export function Files(props: Props) {
     setAdding({ parent: plus.parent });
   }
 
-  /** The bar's other door to a project — outright, no deselect first (P.2).
-   *  `add()` still follows the selection (V.14); this one never does, so
-   *  making a project is never gated on knowing that deselecting reaches it. */
-  function newProject() {
-    setAdding(null);
-    setNaming(true);
+  /** The bar's other create button (P) — the same selection rule as `add()`
+   *  (V.14), so making a behavior block is never a second, hidden gesture,
+   *  but what it makes is typed rather than plain. This replaces P.6's
+   *  cycle-by-fiat: a project's kind is derived from what it holds, and this
+   *  is the one place a block can be made a behavior one outright. */
+  function addBehavior() {
+    if (plus.kind === "project") {
+      setAdding(null);
+      setNaming("behavior");
+      return;
+    }
+
+    setNaming(false);
+    setAdding({ parent: plus.parent, behavior: true });
   }
 
   /** Finish a drag.
@@ -765,6 +762,7 @@ export function Files(props: Props) {
       const foldKey = `${projectId}:${node.id}`;
       const active = lit(projectId, node.id);
       const mark = scoped(projectId, node.id);
+      const role = role_of(hereGraph, graphs, node);
 
       return (
         <li key={`${projectId}:${node.id}`}>
@@ -819,7 +817,7 @@ export function Files(props: Props) {
                 fold(foldKey);
               }}
             >
-              <Icon name={role_of(hereGraph, node)} solid={role_of(hereGraph, node) === "role_container"} />
+              <Icon name={role} solid={role === "role_container" || role === "role_set"} />
             </span>
             {editing === node.id && context === projectId
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
@@ -846,10 +844,10 @@ export function Files(props: Props) {
     const active = lit(projectId, ROOT_ID);
     const hereScoped = scoped(projectId, ROOT_ID);
     const tip = tips.get(projectId);
-    // Kind from the root's definition — three offers, never six.
-    const root = here.elements[ROOT_ID];
-    const module = root ? viewOf(here, root).module : "block";
-    const kind = kindOf(module);
+    // Kind derived from the root's own children (P), never stored — a set
+    // (mixed children) reads as structure for the icon, the same collapse
+    // `offered()` makes for the view toggle.
+    const kind = asViewKind(layerKind(here, null, graphs));
     const folded = shut.has(editKey);
 
     return (
@@ -900,18 +898,6 @@ export function Files(props: Props) {
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
             : <span className="label">{title}</span>}
-          {/* The door onto the root's own kind (P.6) — shown only for the
-              project in context, which is the one a click would act on. */}
-          {context === projectId && (
-            <div className="row-tools" onClick={(event) => event.stopPropagation()}>
-              <button
-                title={`Kind: ${named(module)?.word ?? module} — click to change`}
-                onClick={() => cycleKind(projectId)}
-              >
-                <Icon name={(named(module)?.icon ?? "view_block") as never} />
-              </button>
-            </div>
-          )}
         </div>
         {!folded && <ul className="branch">{branch(projectId, ROOT)}</ul>}
       </li>
@@ -1033,8 +1019,8 @@ export function Files(props: Props) {
           <button onClick={add} title={plus_title}>
             <Icon name="add" />
           </button>
-          <button onClick={newProject} title="New project">
-            <Icon name="new_project" />
+          <button onClick={addBehavior} title={behavior_title}>
+            <Icon name="add_behavior" />
           </button>
           <button
             onClick={() => setEditing(view ?? `proj:${context}`)}
@@ -1129,7 +1115,7 @@ export function Files(props: Props) {
               // (NameField's own sentence is about layers and must not fire here).
               taken={(name) => Boolean(name.trim()) && onNameProject(name, "") !== null}
               onCommit={(name) => {
-                if (onNewProject(name)) setNaming(false);
+                if (onNewProject(name, naming === "behavior" ? "behavior" : "structure")) setNaming(false);
               }}
               onCancel={() => setNaming(false)}
             />
@@ -1154,7 +1140,7 @@ export function Files(props: Props) {
 
         {empty && !adding && !naming && !prompt && (
           <p className="empty">
-            No project yet — <button className="link" onClick={() => setNaming(true)}>
+            No project yet — <button className="link" onClick={() => setNaming("structure")}>
               name one
             </button> to start.
           </p>

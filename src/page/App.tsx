@@ -13,20 +13,23 @@
 
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 
-import { axisOf, compact, fold, isCheckpoint, nameOf, stepsIn, titleOf } from "../graph/fold";
+import {
+  axisOf, compact, fold, isCheckpoint, nameFree, nameOf, nextNum, stepsIn, titleOf,
+} from "../graph/fold";
 import { entering } from "../graph/check";
 import * as file from "../graph/file";
 import { useProject } from "../project";
 import * as store from "../graph/store";
 import { lookup } from "../actions";
 import {
-  ROOT, refAt, step as makeStep,
-  type EdgeForm, type Graph, type Layout, type Mutation, type Step,
+  ROOT, defIdFor, element as makeElement, refAt, refTo, step as makeStep,
+  type EdgeForm, type Element, type Graph, type Layout, type Mutation, type Step,
 } from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
 import { type Grazed } from "../canvas/card";
-import { viewOf, views, kindOf, named, type ViewName } from "../modules/view";
-import { Rail, groupsFor, type ExportLook } from "./Rail";
+import { createsFor, viewOf, views, named, type ViewName } from "../modules/view";
+import { asViewKind, layerKind } from "./kind";
+import { Rail, groupsFor } from "./Rail";
 import { Activity } from "../modules/view/activity";
 import { Sequence } from "../modules/view/sequence";
 import { State } from "../modules/view/state";
@@ -167,10 +170,12 @@ function writeViews(map: Record<string, ViewName>) {
   }
 }
 
-/** The three modules a project's kind offers — kind from the root's definition. */
-function offered(graph: Graph): ViewName[] {
-  const root = graph.elements[ROOT];
-  const kind = root ? kindOf(viewOf(graph, root).module) : "structure";
+/** The three modules the *open layer* offers — kind derived from that
+ *  layer's own children (`kind.ts`, settled stream P), never from the root's
+ *  definition. A fresh, childless layer defaults to structure, and a set
+ *  (mixed children) is viewed as one too — `ViewKind` stays two. */
+function offered(graph: Graph, layer: string | null, open: Record<string, Graph> = {}): ViewName[] {
+  const kind = asViewKind(layerKind(graph, layer, open));
 
   return views().filter((m) => m.kind === kind).map((m) => m.name);
 }
@@ -182,8 +187,9 @@ function moduleOf(
   projectId: string,
   graph: Graph,
   layer: string | null,
+  open: Record<string, Graph> = {},
 ): ViewName {
-  const options = offered(graph);
+  const options = offered(graph, layer, open);
   const fallback = options[0] ?? "block";
   const sticky = prefs[projectId];
   if (sticky && options.includes(sticky)) return sticky;
@@ -191,6 +197,29 @@ function moduleOf(
   const el = graph.elements[layer ?? ROOT];
   const opens = el ? viewOf(graph, el).module : fallback;
   return options.includes(opens) ? opens : fallback;
+}
+
+/** The type a fresh behavior block gets — `creates`' word under the one
+ *  shipped package whose definitions read as behavior. Reads the same source
+ *  of truth `kind.ts` derives from, rather than naming a definition here. */
+function behaviorType(): string {
+  const word = createsFor("behavior");
+
+  return word ? refTo(defIdFor(word), workspace.packId("behavior")) : "";
+}
+
+/** Mutations that add one behavior-typed child, importing the package it
+ *  names first when this graph does not already — a package is additive,
+ *  never a replacement (`extraction`'s own rule). Shared by `newProject`'s
+ *  fresh root and `createBehavior`'s child under an existing selection. */
+function seedBehavior(graph: Graph, type: string, fresh: Element): Mutation[] {
+  const pack = workspace.packId("behavior");
+  const vocabulary = graph.vocabulary.includes(pack) ? null : [...graph.vocabulary, pack];
+
+  return [
+    ...(vocabulary ? [{ op: "set_vocabulary" as const, vocabulary }] : []),
+    { op: "add_element" as const, element: fresh },
+  ];
 }
 
 /** Projects this graph depends on, transitively, excluding itself and shipped
@@ -326,8 +355,13 @@ export function App() {
   /** The `new` page action: name it, and that naming is its first step.
    *
    *  Naming is what brings a project into being — it earns a key, a place in
-   *  the workspace and the context, all from having been called something. */
-  function newProject(name: string): string | null {
+   *  the workspace and the context, all from having been called something.
+   *  `kind` (P) is which of the bar's two create buttons asked: a behavior
+   *  root reads as one only once it holds a behavior child, since kind is
+   *  derived from what a layer holds and an empty root always defaults to
+   *  structure — so this seeds one, typed the same way `createBehavior`
+   *  types a child under an existing selection. */
+  function newProject(name: string, kind: "structure" | "behavior" = "structure"): string | null {
     // `begin` is the one door: it names, mints the id, writes the first step
     // and admits the project to the shell in one go. App used to do all four
     // itself, which is how `begin` sat unwired with the page's own copy of the
@@ -340,7 +374,12 @@ export function App() {
       return null;
     }
 
-    store.saveProject(out.id, out.steps);
+    const type = kind === "behavior" ? behaviorType() : "";
+    const projectSteps = type ? [...out.steps, makeStep("new: behavior", "create",
+      seedBehavior(fold(out.steps), type, makeElement("", { parent: null, type, num: 1 })))]
+      : out.steps;
+
+    store.saveProject(out.id, projectSteps);
     store.adoptId(out.id);
     workspace.save(out.held);
     store.saveProject(held.id, compact([
@@ -352,6 +391,24 @@ export function App() {
     setContextId(out.id);
 
     return out.id;
+  }
+
+  /** The bar's other create button (P): the same door as `project.create`
+   *  and the same selection rule the tree already follows, but the block it
+   *  makes is typed to what the behavior modules `create` — one atomic write,
+   *  since folding a package-qualified type needs no separate `define`. */
+  function createBehavior(label: string, parent: string | null): void {
+    const text = label.trim();
+    const type = behaviorType();
+    if (!text || !type || !nameFree(graph, parent, text)) return;
+
+    const fresh = makeElement(text, { parent, type, num: nextNum(graph, parent, "block") });
+    project.home(
+      contextId,
+      seedBehavior(graph, type, fresh),
+      { say: `new: ${text}`, action: "create" },
+      workspace.isLocked(held, contextId),
+    );
   }
 
   // Held here so the rail can watch it being typed.
@@ -403,7 +460,6 @@ export function App() {
   /** What the next export renders in. Page state beside `form` and `angular`
    *  for the same reason: the tool in hand, not a per-project preference
    *  (Y.6a). `shown` — the default — follows whatever `theme` is. */
-  const [exportLook, setExportLook] = useState<ExportLook>("shown");
   /** The one verb the page cannot work out for itself: arranging needs the
    *  laid-out geometry only the canvas has, so the canvas publishes it here
    *  rather than the page reaching in. Dependencies still run one way. */
@@ -600,31 +656,16 @@ export function App() {
     setRefoldAt((n) => n + 1);
   }
 
-  /** The concrete look one export renders in. `shown` is `lookNow`'s own
-   *  answer — the ramp the screen is actually in (Y.6). Forcing one of the
-   *  three named looks (Y.6a) swaps the root's theme just long enough for
-   *  `lookNow` to resolve it against that ramp instead, then puts the
-   *  screen's own theme back before anything repaints. */
-  function lookFor(choice: ExportLook) {
-    if (choice === "shown") return lookNow();
-
-    document.documentElement.dataset.theme = choice;
-    const look = lookNow();
-    document.documentElement.dataset.theme = theme;
-
-    return look;
-  }
-
   /** Export the project in context, bundling what it depends on, and offer a
    *  rendered SVG of the open layer beside that source (F.3). */
   async function exportProject(): Promise<void> {
     const wrote = await project.save(companions(graph, contextId));
     if (!wrote) return;
-    // The picture leaves in the look `exportLook` names — the screen's own
-    // ramp by default, so an export never stamps a theme nobody chose, or one
-    // of the three forced regardless of what is on screen. A caller with no
-    // page still gets `PAPER`.
-    store.downloadSvg(svgOf(graph, view, lookFor(exportLook)), titleOf(graph) || "mndflow");
+    // The picture leaves in the ramp the screen is actually in (Y.6), so an
+    // export never stamps a theme nobody chose. A caller with no page still
+    // gets `PAPER`. The look is not a per-project setting and has no control
+    // of its own — the theme toggle in the header is the only door.
+    store.downloadSvg(svgOf(graph, view, lookNow()), titleOf(graph) || "mndflow");
   }
 
   // Shortcuts that belong to the whole app rather than to one panel. Inside a
@@ -830,7 +871,7 @@ export function App() {
   /** Which view module draws the open layer — sticky preference when it still
    *  fits the project kind; otherwise how the layer's definition opens. */
   const module = contextId
-    ? moduleOf(viewPrefs, contextId, graph, view)
+    ? moduleOf(viewPrefs, contextId, graph, view, graphs)
     : "block";
 
   /** What the open view's `types` group lists — the module's answer, since a
@@ -854,6 +895,7 @@ export function App() {
         id,
         g,
         id === contextId ? view : null,
+        graphs,
       );
     }
     return next;
@@ -1011,7 +1053,8 @@ export function App() {
             onShowPorts={setTreePorts}
             onOpen={navigate}
             onCreate={project.create}
-            onNewProject={(name) => Boolean(newProject(name))}
+            onCreateBehavior={createBehavior}
+            onNewProject={(name, kind) => Boolean(newProject(name, kind))}
             onNameProject={(name, except) => workspace.mayName(takenNames, name, except)}
             onNameTaken={project.nameTaken}
             onSay={say}
@@ -1167,7 +1210,7 @@ export function App() {
           <Rail
             groups={groupsFor({
               offers: named(module)?.chrome ?? [],
-              views: offered(graph).map((name) => ({
+              views: offered(graph, view, graphs).map((name) => ({
                 name,
                 icon: (named(name)?.icon ?? "view_block") as never,
                 on: name === module,
@@ -1183,7 +1226,6 @@ export function App() {
               onArrange: (shape) => arranging.current?.(shape),
               onRelax: project.relax,
               onExport: () => void exportProject(),
-              exportLook, onExportLook: setExportLook, screenLook: theme,
             })}
           />
         </section>

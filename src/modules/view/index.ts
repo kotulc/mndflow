@@ -32,7 +32,9 @@ export const MODULES = [
 
 export type ViewName = (typeof MODULES)[number];
 
-/** What the project holds, visible from the module rather than declared. */
+/** Which family a module belongs to. A layer's own kind is a different,
+ *  derived question (`page/kind.ts`, settled stream P) — this only says which
+ *  family a registered module draws, never what a project or a layer is. */
 export type ViewKind = "structure" | "behavior";
 
 /** A control group the options rail can draw (Y.1).
@@ -116,6 +118,15 @@ export function named(name: string): ViewModule | null {
 /** Which kind a module belongs to — read from the registry, never a second list. */
 export function kindOf(name: ViewName): ViewKind {
   return held.get(name)!.kind;
+}
+
+/** The word a fresh block of this kind gets when nothing more specific is
+ *  asked — the first registered module's own `creates`, since a kind may
+ *  register more than one (P's two create buttons read this rather than
+ *  naming a type of their own). Empty is what `creates` already means for a
+ *  module that makes a plain untyped block. */
+export function createsFor(kind: ViewKind): string {
+  return views().find((m) => m.kind === kind)?.creates ?? "";
 }
 
 // The set. Structure modules carry surfaces; behavior ones are stubs until

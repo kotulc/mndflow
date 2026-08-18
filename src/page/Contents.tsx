@@ -44,7 +44,6 @@ import { LAYOUTS, LABELS, PLAIN, SHAPES, type CardConfig } from "../modules/card
 import { constraintsOf } from "../modules/constraints";
 import { among, rulesOf, type Bound } from "../modules/rules";
 import { EMPHASES, SETS, SLOTS, VOICES, WEIGHTS } from "../modules/style";
-import { MODULES } from "../modules/view";
 import { Crumbs } from "../modules/view/diagram";
 import { trailOf } from "../modules/view/table";
 import { NameField } from "../NameField";
@@ -456,15 +455,6 @@ type Dial = "slot" | "emphasis" | "weight" | "voice";
 /** One `style` dial a definition has set, or "" for the component's default. */
 function dialOn(def: Definition, key: Dial): string {
   const held = def.components?.style?.[key];
-  return typeof held === "string" ? held : "";
-}
-
-/** Which of the six views a definition's own usages draw as, or "" for the
- *  default (`block`). This is a project's only door onto its kind (P.6): the
- *  root has no row of its own here, but once something has retyped it to a
- *  definition, that definition is a row like any other. */
-function moduleOn(def: Definition): string {
-  const held = def.components?.view?.module;
   return typeof held === "string" ? held : "";
 }
 
@@ -1206,20 +1196,6 @@ export function Contents(props: Props) {
                 placeholder="name"
                 onCommit={(icon) => amend(def, { icon: icon.trim() || undefined })}
               />
-            </span>
-            <span className="held value">
-              view
-              <select
-                value={moduleOn(def)}
-                onClick={stop}
-                onChange={(event) => {
-                  const module = event.target.value;
-                  setComponent(def, "view", module ? { module } : null);
-                }}
-              >
-                <option value="">—</option>
-                {MODULES.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
             </span>
             <span className="held value">
               style

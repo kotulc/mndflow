@@ -130,7 +130,9 @@ export function Panel(props: Props) {
   return (
     <section className={`tray ${stage ? "open" : ""} ${full ? "full" : ""}`} ref={hostRef}>
       <div className="tray-bar">
-        <span className="name">{where}</span>
+        {/* At full size the table names the layer itself, in its crumb — so the
+            bar's chip would be the same word twice on one screen. */}
+        {!full && <span className="name">{where}</span>}
 
         {joining && (
           <select

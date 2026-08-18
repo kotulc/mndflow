@@ -68,6 +68,7 @@ per-domain terms were checked in a real browser.
 | **Freed by what landed** | `X.3` (needs `R.9` ✓), `W.1a`, `W.3`, `P.7` | `W.1a` owns three defects *and* the sizes; `P.7` unblocks `P.8` and `P.9` |
 | **Untouched all sitting** | `Y.10`, `T.3`, `S7` | `T.3` now has its harness (`T.5` ✓); `S7` should stay last so it splits a finished `Files.tsx` |
 | **The rename pass** | `S8.1` → `S8.2` → `S8.3` | deliberately moved to the **end**: `S8.2` renames 257 sites across `src/` and collides with every feature row. `S8.1` is smaller than the row says — `contextId` lives in `App.tsx` alone, not across `page/`, and `src/project.ts` does not contain it |
+| **Done since** | kind derivation (supersedes `P.6`), `P.5`, the two create buttons, `Y.6a` reverted, the tray's duplicate name chip | not driven |
 | **Repairs owed** | `R.9`'s element vocabulary | the strip's block/group/note/port candidates are project-local; edges get the full package chain via `kinds`. Needs an `elementKinds` analog from `App.tsx` |
 | **Blocked on Clay** | — | **both cleared.** `P.12` is *copy*; `P.14`'s *beside* does not exist — every drop is *into* |
 
@@ -196,6 +197,38 @@ arrive by decision rather than by the back door.
 
 ## P — everything is a block, and what kind it is, is derived
 
+**Settled 2026-08-18 (Clay): a layer's kind is derived from its children, per layer.**
+
+| The layer's children | It reads as |
+|---|---|
+| all **structure** blocks | **structure** |
+| all **behavior** blocks | **behavior** |
+| **mixed** | **set** — a folder of stuff, so nothing constrains it |
+| none | **structure** (the default) |
+
+**Per layer, never per project** — behaviours nest inside structures, so a project's top layer can be
+structure while a layer below it is an activity. **A definition's own kind comes from its package**;
+a shipped package may carry either kind of definition.
+
+**`ViewKind` stays two.** A set is *viewed* as a structure — block, table, matrix — and its setness
+shows up only as the folder mark. Nothing declares `kind: "set"`.
+
+**Set comes from mixedness, not from proxies.** Model B's *members are proxies* is superseded as the
+derivation: a set of proxies that all point at structure blocks is a **structure** layer.
+
+**The one rule that keeps it open: the vocabulary is never filtered by kind.** Types in scope are
+types in scope. That is what makes a sealed room structurally impossible — and the sealed room is
+what this replaces. `offered()` filtered the choosable views by the kind of the view already chosen
+(`App.tsx`), so no view choice could ever cross from structure to behaviour and a fresh project was
+trapped in structure forever. `P.6` answered that with a control that set the kind by fiat, which is
+the wrong shape and comes back out.
+
+**Two create buttons, differentiated** — *new structure block* and *new behavior block*. Since a
+block at the top level **is** a project, each makes a project of its kind when nothing is selected.
+**This replaces `P.2`'s separate *new project* button.**
+
+
+
 **Clay's rule, from playing with the built app.** Making a project should be as ordinary as making a
 block, because it *is* one: a project is a block that nothing contains. Promoting a block is moving
 it to the top; filing one is moving it back in.
@@ -260,9 +293,9 @@ line of the same function.
 | **block** | it holds nothing | `role_leaf` (built) |
 | **container** | it holds blocks of its own | `role_container` (built) |
 | **interface** | it sits on a frame edge (`side != null`) | `role_interface` (built) |
-| **set / view** | **its members are proxies** — it holds references, not things | *new mark* |
+| **set / view** | **its children are of mixed kinds** — a folder of stuff, so nothing constrains it | *new mark* (`P.5`) |
 | **project** | it is at the top level and owns a log | `project` (built) |
-| **behavior** | its module is activity, sequence or state | `project_behavior` (built) |
+| **behavior** | **its children are behavior blocks** — derived, never declared | derived per layer |
 
 **And that answers the folder.** A folder is *a set whose proxies are project roots* — which is
 literally what the workspace already is, since `admit` files a project by placing a proxy of its
@@ -291,8 +324,8 @@ role *has* one.
 | **P.2** | **The explorer bar gains a visible way to make a project.** Today the only route is *deselect, then `＋`*, and the deselect is invisible — which is how Clay came to believe projects could not be made at all. One control that makes one outright, no gesture first. **One control, not two**: under model B a folder *is* a set of projects, so there is nothing else for a second icon to make **Landed (not driven)**: A dedicated *New project* button on the explorer bar reaching the same naming prompt with no deselect first; new `new_project` icon. The selection-following `+` is untouched. | `page/Files.tsx`, `src/modules/icons/` | ⊘ |
 | **P.3** | **Nothing anywhere special-cases making a project.** With `P.1` and `P.2` landed, `infer` (`A.7d`), a dropped block and the bar's control all reach the same door, and the door is *a block at the top level*. This row is the check that they do — if any caller still needs its own path, the rule has not landed **Landed (not driven)**: `Effect` gained `admit?: boolean`, `enact` an `onAdmit` callback, `App` wires it to the existing `openIn`. Three paths to making a project became one; `infer`'s result is reachable. (`extract` had already been folded into `newProject` by P.1.) | `src/actions/`, `page/` | P.1, P.2 |
 | **P.4** | **Save a cross-section as a set.** With a cross-project selection made, one action mints a block holding a proxy of each — the general form of what `infer` already does for behaviour, taking the same `of[]` argument. It opens like any project, and its view module decides whether it reads as a **requirements table** or an **allocation matrix**. **Prefer generalising `infer` to registering a second action**: the action set is closed, and *one registered action offered N times* is the wording `R.5` already established. If it will not generalise cleanly, that is a gate, not a licence to add one **Landed (not driven)**: `infer` generalised via `expand: true` and an `as` choice (`behavior` / `set`) - one registered action offered twice, so the action set never widened. The set mints a block of proxies and reaches P.3's single admit door. Also fixed `fill_args` silently dropping `action.chose` for `infer`. | `src/actions/`, `page/Files.tsx` | P.1 |
-| **P.5** | **Every node role carries a mark of its own, and a set gets the folder.** `role_of` gains one line — *its members are proxies* — and the explorer draws that with a **folder** icon, since a set of projects and a folder are the same thing under model B. **The gap this closes is a rule, not one icon**: block, container and interface are marked and a set is not, so two different things read alike. **V.2's property test holds that no two names draw one path; the other half is that every role has one**, which is what to add to the icon conformance test | `page/Files.tsx`, `src/modules/icons/`, `tests/modules/icons.test.ts` | P.4 |
-| **P.6** | **A project can be made a behavior — nothing can today.** Found while answering *I cannot create sets or behaviors*: **nothing anywhere writes `components.view.module`**, and `offered(graph)` filters the view toggle to the modules of the project's own kind, where kind is read back off that same key. A fresh project's root has no definition, so it is `block`, so it is *structure*, so activity / sequence / state are never offered — **a one-way door with nothing that opens it**. The only behavior projects that can exist are `infer`'s, and those are unreachable (`A.7d`). Give the root's kind a door: setting it is `define` on the root's own definition, which is built — what is missing is a control that reaches it **Landed (not driven)**: A root-kind cycle control on the project row (structure -> activity -> sequence -> state) reusing a same-named definition where one exists, plus a `view` dial in the definition editor. Both write `components.view.module` through the built `define`; no closed set widened. | `page/Contents.tsx`, `page/Files.tsx` | ⊘ |
+| **P.5** | **Every node role carries a mark of its own, and a set gets the folder.** `role_of` gains one line — **its children are of mixed kinds** (settled: mixedness, not proxies) — and the explorer draws that with a **folder** icon, since a set of projects and a folder are the same thing under model B. **The gap this closes is a rule, not one icon**: block, container and interface are marked and a set is not, so two different things read alike. **V.2's property test holds that no two names draw one path; the other half is that every role has one**, which is what to add to the icon conformance test | `page/Files.tsx`, `src/modules/icons/`, `tests/modules/icons.test.ts` | P.4 |
+| **P.6** | **A project can be made a behavior — nothing can today.** Found while answering *I cannot create sets or behaviors*: **nothing anywhere writes `components.view.module`**, and `offered(graph)` filters the view toggle to the modules of the project's own kind, where kind is read back off that same key. A fresh project's root has no definition, so it is `block`, so it is *structure*, so activity / sequence / state are never offered — **a one-way door with nothing that opens it**. The only behavior projects that can exist are `infer`'s, and those are unreachable (`A.7d`). Give the root's kind a door: setting it is `define` on the root's own definition, which is built — what is missing is a control that reaches it **SUPERSEDED — comes back out (Clay, 2026-08-18).** The kind is derived from a layer's children, never toggled; see the settled rule above. What landed: A root-kind cycle control on the project row (structure -> activity -> sequence -> state) reusing a same-named definition where one exists, plus a `view` dial in the definition editor. Both write `components.view.module` through the built `define`; no closed set widened. | `page/Contents.tsx`, `page/Files.tsx` | ⊘ |
 
 
 ### Columns are the table's and the matrix's, not the set's

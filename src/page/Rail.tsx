@@ -74,18 +74,11 @@ const DRAWS: { angular: boolean; icon: IconName; word: string; tip: string }[] =
  *  named looks regardless of what the screen shows (Y.6a). Not a fourth
  *  theme: the screen still only ever shows one of three, this only widens
  *  what a file leaving it may be drawn in. */
-export type ExportLook = "shown" | "retro" | "modern" | "light";
 
 /** `shown`'s icon borrows whichever of the three the screen is actually
  *  showing, so the control draws the look it will produce rather than a
  *  fourth glyph meaning "whatever" — reusing a mark rather than minting
  *  one U.2 would call a second thing. */
-const LOOK_ICON: Record<Exclude<ExportLook, "shown">, IconName> = {
-  retro: "theme_retro",
-  modern: "theme_modern",
-  light: "theme_light",
-};
-
 /** How many relation types the rail lists. The rest are on the edge menu and
  *  the strip, which is where a list that grows with the vocabulary belongs. */
 const TYPE_CAP = 6;
@@ -117,9 +110,6 @@ export type RailOpts = {
   onExport: () => void;
   /** Which look the next export renders in, and what the screen shows now —
    *  `shown`'s icon reads off the latter rather than a glyph of its own. */
-  exportLook: ExportLook;
-  onExportLook: (look: ExportLook) => void;
-  screenLook: Exclude<ExportLook, "shown">;
 };
 
 /** The groups for one view, built from what it offers. Pure — the rail draws
@@ -234,30 +224,11 @@ export function groupsFor(o: RailOpts): RailGroup[] {
     });
   }
 
-  // Not `verbs: true`: the look picker beside export is a state, on like
-  // `form` and `angular` are, so this group is the one place a verb and a
-  // setting share a rule — the label still carries the boundary export's
-  // never lighting draws for it.
   out.push({
     key: "project",
     label: "project",
+    verbs: true,
     controls: [
-      {
-        key: "shown",
-        icon: LOOK_ICON[o.screenLook],
-        word: "shown",
-        tip: "Export in the look shown on screen",
-        on: o.exportLook === "shown",
-        run: () => o.onExportLook("shown"),
-      },
-      ...(["retro", "modern", "light"] as const).map((look) => ({
-        key: look,
-        icon: LOOK_ICON[look],
-        word: look,
-        tip: `Export in ${look}, whatever the screen shows`,
-        on: o.exportLook === look,
-        run: () => o.onExportLook(look),
-      })),
       {
         key: "export", icon: "export_project" as IconName, word: "export",
         tip: "Export this project (bundles what it depends on)", run: o.onExport,

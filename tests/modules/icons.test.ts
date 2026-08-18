@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { known, names, paths } from "../../src/modules/icons";
+import { known, names, paths, ROLES } from "../../src/modules/icons";
 import { views } from "../../src/modules/view";
 
 describe("the set", () => {
@@ -46,6 +46,22 @@ describe("no mark means two things", () => {
 
   it("draws a non-empty path for every name", () => {
     for (const name of names()) expect(paths(name).length).toBeGreaterThan(0);
+  });
+});
+
+describe("every explorer role has a mark", () => {
+  // P.5: block, container, interface and set are the closed set a tree row
+  // can read as. Walking `ROLES` — the same list `role_of` draws from —
+  // rather than a list copied here means a role added without a matching
+  // path fails this test instead of a row rendering blank.
+  it("draws something for every role the explorer can read", () => {
+    expect(ROLES.length).toBeGreaterThan(0);
+    for (const role of ROLES) expect(known(role)).toBe(true);
+  });
+
+  it("no two roles share a mark", () => {
+    const drawn = ROLES.map((role) => paths(role));
+    expect(new Set(drawn).size).toBe(drawn.length);
   });
 });
 

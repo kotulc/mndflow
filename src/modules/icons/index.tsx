@@ -21,10 +21,10 @@ const WEIGHT = 1.5;
 const PATHS = {
   // Making, naming, removing.
   add: "M12 5v14M5 12h14",
-  // A project outright, whatever is selected — the bar's second door (P.2).
-  // The `project` frame with a plus in place of its window, so it reads as
-  // *make one of these* rather than *this is one*.
-  new_project: "M3.5 5h17v14h-17zM12 9v6M9 12h6",
+  // The bar's other create button (P) — the same plus, over the run-of-steps
+  // mark `project_behavior` uses for its own frame, so the two read as one
+  // family: *make one of these*, typed as a behavior rather than untyped.
+  add_behavior: "M12 4v6M9 7h6M9.5 16h1.5M13 16h1.5M12 14.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3",
   rename: "M4 20h4L18 10a2.1 2.1 0 0 0-3-3L5 17v3z",
   remove: "M6 6l12 12M18 6L6 18",
 
@@ -48,6 +48,9 @@ const PATHS = {
   // A container is the leaf's square, larger and filled — it holds things, so
   // it is solid. It was a box with a rule across it, which read as a table.
   role_container: "M6 6h12v12H6z",
+  // A set: children of mixed kind, so nothing constrains it (P.5) — the same
+  // shape a folder and a set of projects share under model B.
+  role_set: "M3.5 7.5h6l2 2h9v9h-17z",
   project: "M3.5 5h17v14h-17zM7.5 9h9v6h-9z",
   // A behavior project holds actions and states rather than parts, so its
   // mark is the same frame around a run of steps instead of a block.
@@ -120,6 +123,12 @@ const PATHS = {
 } as const;
 
 export type IconName = keyof typeof PATHS;
+
+/** The explorer's own closed set — what a tree row can read as (P.5). The
+ *  source of truth `role_of` draws from and the conformance test below walks,
+ *  so a role added here without a matching path in `PATHS` fails loudly
+ *  rather than a row silently rendering blank. */
+export const ROLES = ["role_leaf", "role_container", "role_interface", "role_set"] as const;
 
 /** Whether a name is one this set draws — the guard a stored name goes through. */
 export function known(name: string): name is IconName {
