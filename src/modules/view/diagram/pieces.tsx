@@ -9,7 +9,7 @@
  *
  *  Nothing here knows what a card looks like; that is `NodeCard`. */
 
-import { useRef, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 
 import { isContainer, isLinked, nameOf, portsOf } from "../../../graph/fold";
@@ -97,6 +97,26 @@ export const LIFTED = "application/mndflow-node";
 /** What a row dragged out of the explorer carries. Dropping it on another
  *  layer's canvas places a reference there rather than moving the node. */
 export const REFERRED = "application/mndflow-ref";
+
+/** What a surface with no plane needs to take that row (P.7): one gesture,
+ *  three surfaces, one action. The canvas keeps its own handlers because it
+ *  is the only one with a spot to drop onto — a table and a matrix place the
+ *  proxy in the layer and let the view say where it appears. */
+export function takesRef(onRefer: (target: string) => void) {
+  return {
+    onDragOver: (event: DragEvent<HTMLElement>) => {
+      if (!event.dataTransfer.types.includes(REFERRED)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "link";
+    },
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      const referred = event.dataTransfer.getData(REFERRED);
+      if (!referred) return;
+      event.preventDefault();
+      onRefer(referred);
+    },
+  };
+}
 
 /** Where a port sits along its host's edge, as the seated fraction. */
 export function along(at: number, extent: number, origin: number): number {

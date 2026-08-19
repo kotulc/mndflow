@@ -35,9 +35,9 @@ import { Sequence } from "../modules/view/sequence";
 import { State } from "../modules/view/state";
 import { lookNow, svgOf } from "../modules/view/diagram";
 import { Matrix } from "../modules/view/matrix";
-// Registration only: `table` has no component of its own since W.1 — the
-// view toggle fills the tray with Contents instead of a second listing.
-import "../modules/view/table";
+// No component of its own since W.1 — the view toggle fills the tray with
+// Contents instead of a second listing; the import also registers the module.
+import { fieldsIn } from "../modules/view/table";
 import * as workspace from "../workspace";
 import { Files, type Chosen } from "./Files";
 import { Icon } from "../modules/icons";
@@ -197,6 +197,35 @@ function moduleOf(
   const el = graph.elements[layer ?? ROOT];
   const opens = el ? viewOf(graph, el).module : fallback;
   return options.includes(opens) ? opens : fallback;
+}
+
+/** The two families a definition's form falls into — what the strip's two
+ *  halves are gathered by. Both are the closed form sets, read here rather
+ *  than restated as a rule. */
+const EDGE_FORMS = new Set(["line", "directed"]);
+const ELEM_FORMS = new Set(["block", "note", "group", "proxy"]);
+
+/** Definitions of these forms in scope — packages this project imports in
+ *  order, then its own, each once. Only the page can gather it: `actions/`
+ *  reads `graph` and `geometry` and never the workspace, so the strip is
+ *  handed the vocabulary rather than reaching for it (`X.2`). */
+function kindsInScope(graph: Graph, forms: Set<string>) {
+  const open = workspace.gather(graph.vocabulary);
+  const out: { name: string; path: string; form: string }[] = [];
+  const drawn = new Set<string>();
+
+  for (const row of workspace.scoped(graph.vocabulary, open)) {
+    if (!forms.has(row.def.form) || drawn.has(row.path)) continue;
+    drawn.add(row.path);
+    out.push({ name: row.def.name, path: row.path, form: row.def.form });
+  }
+  for (const def of Object.values(graph.defs)) {
+    if (!forms.has(def.form) || drawn.has(def.id)) continue;
+    drawn.add(def.id);
+    out.push({ name: def.name, path: def.id, form: def.form });
+  }
+
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /** The type a fresh behavior block gets — `creates`' word under the one
@@ -413,9 +442,9 @@ export function App() {
 
   // Held here so the rail can watch it being typed.
   const [draft, setDraft] = useState("");
-  /** The tray, so a click outside it can put it away. Its height no longer
-   *  needs measuring: it takes half the canvas and the drawing takes the rest,
-   *  rather than covering it. */
+  /** The tray, so the canvas can keep its own controls above it. Nothing else
+   *  reads it: the tab and the view toggle are the only doors, and its height
+   *  is a share of the stage rather than something to measure (`W.1a`). */
   const tray = useRef<HTMLElement>(null);
   /** Plain-file fallback when File System Access is absent. */
   const importInput = useRef<HTMLInputElement>(null);
@@ -457,6 +486,10 @@ export function App() {
    *  reason `form` is: the rail owns the control and table and matrix stopped
    *  drawing one of their own (Y.4). */
   const [shownType, setShownType] = useState<string | null>(null);
+  /** Which fields the table gives a column of their own (P.8). The table's
+   *  state, never a definition's — beside `shownType` for the same reason,
+   *  since the rail is what picks both. */
+  const [shownColumns, setShownColumns] = useState<string[]>([]);
   /** What the next export renders in. Page state beside `form` and `angular`
    *  for the same reason: the tool in hand, not a per-project preference
    *  (Y.6a). `shown` — the default — follows whatever `theme` is. */
@@ -803,26 +836,17 @@ export function App() {
    *  name would be minted as a local twin under a derived id, and where that id
    *  matches the package's own it would shadow it. Two packages may ship the
    *  same name, and both stay on offer (SC.4). */
-  const relationKinds = useMemo(() => {
-    const open = workspace.gather(graph.vocabulary);
-    const out: { name: string; path: string; form: string }[] = [];
-    const drawn = new Set<string>();
+  const relationKinds = useMemo(() => kindsInScope(graph, EDGE_FORMS), [graph]);
 
-    for (const row of workspace.scoped(graph.vocabulary, open)) {
-      if (row.def.form !== "line" && row.def.form !== "directed") continue;
-      if (drawn.has(row.path)) continue;
-      drawn.add(row.path);
-      out.push({ name: row.def.name, path: row.path, form: row.def.form });
-    }
-    for (const def of Object.values(graph.defs)) {
-      if (def.form !== "line" && def.form !== "directed") continue;
-      if (drawn.has(def.id)) continue;
-      drawn.add(def.id);
-      out.push({ name: def.name, path: def.id, form: def.form });
-    }
-
-    return out.sort((a, b) => a.name.localeCompare(b.name));
-  }, [graph]);
+  /** The element half of the same vocabulary, for the strip (`X.2`). Only the
+   *  page can see past this project, so what a block, a group or a note could
+   *  become is gathered here and handed down beside the relation kinds — the
+   *  gap that left `R.9` offering the project's own definitions alone. */
+  const elementKinds = useMemo(() => kindsInScope(graph, ELEM_FORMS), [graph]);
+  const vocabulary = useMemo(
+    () => ({ relations: relationKinds, elements: elementKinds }),
+    [relationKinds, elementKinds],
+  );
 
   /** Unlock the project in context — workspace word only; file unchanged. */
   function unlockPackage() {
@@ -883,6 +907,15 @@ export function App() {
     [module, graph, view],
   );
   const narrowed = shownType && layerTypes.includes(shownType) ? shownType : null;
+
+  /** Fields the open layer's rows carry — what a column can be made of, and
+   *  the list the rail offers (P.8). A pick that is no longer on the layer
+   *  simply draws no column, the way a stale type reads as *everything*. */
+  const layerFields = useMemo(() => fieldsIn(graph, view), [graph, view]);
+  const columned = useMemo(
+    () => shownColumns.filter((name) => layerFields.includes(name)),
+    [shownColumns, layerFields],
+  );
 
   /** Resolved shown module per open project — what the explorer marks as on. */
   const shownViews = useMemo(() => {
@@ -1094,6 +1127,7 @@ export function App() {
                 path={path}
                 onUp={project.up}
                 shown={narrowed}
+                onRefer={project.refer}
               />
             ) : module === "activity" ? (
               <Activity
@@ -1150,7 +1184,7 @@ export function App() {
               onNameTaken={project.nameTaken}
               onLift={project.lift}
               onWire={project.wire}
-              kinds={relationKinds}
+              scope={vocabulary}
               kind={kind}
               arranging={arranging}
               onAddPort={project.addPort}
@@ -1204,6 +1238,8 @@ export function App() {
               onUndefine={project.undefine}
               hostRef={tray}
               full={module === "table"}
+              onRefer={project.refer}
+              columns={columned}
             />
           </div>
 
@@ -1221,6 +1257,11 @@ export function App() {
               form, onForm: setForm,
               types: layerTypes, typeIcon: (named(module)?.types?.icon ?? "role_leaf") as never,
               shownType: narrowed, onShownType: setShownType,
+              columns: layerFields,
+              shownColumns: columned,
+              onColumn: (name) => setShownColumns((prior) => (prior.includes(name)
+                ? prior.filter((held) => held !== name)
+                : [...prior, name])),
               kind, onKind: setKind, kinds: relationKinds,
               axis: axisOf(graph, view), onAxis: project.setAxis,
               onArrange: (shape) => arranging.current?.(shape),

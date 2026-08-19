@@ -1575,10 +1575,10 @@ main:has(.files.collapsed) {
 }
 .opts button:disabled { opacity: 0.4; }
 
-/* A third of the canvas when open, whatever it holds. A tray that grew to its
-   contents moved every time a filter changed the row count, so the row you
-   were reaching for was never where you last saw it — and a third leaves the
-   drawing the larger share, which is what is being described. */
+/* A quarter of the canvas when open, whatever it holds (W.1a). A tray that
+   grew to its contents moved every time a filter changed the row count, so the
+   row you were reaching for was never where you last saw it — and a quarter
+   leaves the drawing more of the stage, which is what is being described. */
 .tray {
   position: relative;
   z-index: 6;
@@ -1589,11 +1589,11 @@ main:has(.files.collapsed) {
   background: var(--surface);
 }
 
-.tray.open { height: 33%; }
+.tray.open { height: 25%; }
 
 /* The table view at full stage size (W.1): the toggle is the door, so the
    tray covers the space a diagram would draw in rather than sitting beside
-   one at a third. */
+   one at a quarter. */
 .tray.full { height: 100%; }
 
 .tray-bar {
@@ -2465,6 +2465,10 @@ header .unsaved:hover { background: var(--error); color: var(--on-loud); }
 
 .contents-table td.sort { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; }
 .contents-table td.what { color: var(--muted); }
+/* A chosen field's column (P.8). Muted like `what`, since a value is what a
+   row says rather than what it is; the dash stands for no value. */
+.contents-table td.field { color: var(--muted); }
+.contents-table td.field .none { opacity: 0.4; }
 .contents-table td.type .none { color: var(--muted); opacity: 0.4; }
 
 /* The matrix's heatmap cell (W.4): hue from the relationship kind's own

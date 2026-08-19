@@ -16,6 +16,7 @@ export {
   type Reaches, type Target,
 } from "./map";
 export { rowsOf, type Row } from "./rows";
+export { fieldsIn } from "./columns";
 export { kindsOf, trailOf } from "./chrome";
 
 import { register } from "../index";
@@ -26,8 +27,9 @@ import { rowsOf } from "./rows";
 // Replace the stub: same name, now carrying a surface.
 register({
   name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE,
-  // Rows, so nothing to draw and nothing to arrange — only what to list.
-  chrome: ["types"],
+  // Rows, so nothing to draw and nothing to arrange — only what to list,
+  // and which fields it lists in columns of their own (P.8).
+  chrome: ["types", "columns"],
   // A row's type is its definition's name, so the mark is a block's.
   types: { icon: "role_leaf", of: (graph, layer) => kindsOf(rowsOf(graph, layer)) },
 });

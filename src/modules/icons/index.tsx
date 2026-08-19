@@ -116,6 +116,10 @@ const PATHS = {
   // The six view modules (U.9). Distinct at a glance and from everything above.
   view_block: "M5 5h14v14H5z",
   view_table: "M4 6h16M4 12h16M4 18h16",
+  // A field shown as a column of its own (P.8) — one column standing out of
+  // the table's own head, so it reads as *this field, listed* rather than as
+  // the table view's mark.
+  column: "M4 5h16v14H4zM10 5v14M14 5v14",
   view_matrix: "M4 4.5h16v15H4zM4 9.5h16M4 14.5h16M9.5 4.5v15M14.5 4.5v15",
   view_activity: "M6 12h4M14 12h4M10 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7",
   view_sequence: "M7 4v3M7 10v3M7 16v4M17 4v3M17 10v3M17 16v4M9 8h6",

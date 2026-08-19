@@ -44,7 +44,7 @@ export type ViewKind = "structure" | "behavior";
  *  `interfaces` is why it has no interfaces toggle, instead of being handed one
  *  greyed out. **Open set**: add a key here and teach the rail to build it. */
 export type ChromeGroup =
-  | "flow" | "arrange" | "interfaces" | "lines" | "relations" | "types";
+  | "flow" | "arrange" | "interfaces" | "lines" | "relations" | "types" | "columns";
 
 /** The order every rail draws its groups in, whatever order a module lists
  *  them. **`relations` is last on purpose**: it is the only group that grows
@@ -52,7 +52,7 @@ export type ChromeGroup =
  *  that scrolls rather than the one to squeeze. `project` and `views` are the
  *  page's own and lead, since what you are looking at comes before how. */
 export const CHROME_ORDER = [
-  "project", "views", "arrange", "flow", "interfaces", "lines", "types", "relations",
+  "project", "views", "arrange", "flow", "interfaces", "lines", "columns", "types", "relations",
 ] as const;
 
 /** One registered view module. A name, its kind, its word, its icon, and what

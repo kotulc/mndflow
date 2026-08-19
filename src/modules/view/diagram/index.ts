@@ -12,10 +12,6 @@ export { Crumbs } from "./chrome";
 export { Ask, type Act, type Prompt, type Said } from "./ask";
 export { SelectionStrip, type SelectionStripProps } from "./strip";
 export {
-  candidatesFor, noteTypePick, rankedTypes, shapeOf, TYPE_CAP,
-  type TypeCandidate,
-} from "./typelist";
-export {
   MAP, ADJUSTMENTS, takes, reaches,
   type GestureMap, type Adjustment, type Binding, type Hand, type Motion, type Target, type Reaches,
 } from "./map";
@@ -36,7 +32,7 @@ export { Note, type NoteData } from "./Note";
 export { Wire, type WireData } from "./Wire";
 export {
   Name, Port, Berth, Perch, Anchor, fitTag, along, seat, FACING, SIDES,
-  LIFTED, REFERRED,
+  LIFTED, REFERRED, takesRef,
   type Grazed, type CardData, type Seated, type PortProps,
 } from "./pieces";
 

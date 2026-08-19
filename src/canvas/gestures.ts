@@ -25,6 +25,7 @@ import type { Picked } from "../actions";
 import { groupsIn, isProxy, membersOf, refOf } from "../graph/fold";
 import { around, cell, HUG, LEAF, middled, seatAt, sizeOf } from "../geometry/layout";
 import type { Box } from "../geometry/route";
+import { refAt } from "../graph/types";
 import type { EdgeForm, Element, End, Graph, Side } from "../graph/types";
 import {
   type GestureMap, type OfferTarget, type Prompt, MAP, reaches, takes,
@@ -934,9 +935,12 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
     const y = at.y - LEAF.h / 2;
 
     // A chip out of a treemap is the node itself, moving here. A row out
-    // of the explorer is a mention of it, staying where it is.
+    // of the explorer is a mention of it, staying where it is. The row names
+    // the project it came from, so the id is read out of the path before it
+    // is compared with anything in this fold; `refer` refuses the rest.
     if (lifted) return onLift(lifted, x, y);
-    if (referred !== view && !members.some((n) => n.id === referred)) {
+    const { project, id } = refAt(referred);
+    if (project || (id !== view && !members.some((n) => n.id === id))) {
       onRefer(referred, x, y);
     }
   }

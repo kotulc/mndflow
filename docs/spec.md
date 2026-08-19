@@ -597,6 +597,14 @@ landed with S4.3.
   root, which is how a diagram comes to be about a project rather than a handful of its parts.
 - **Adding something to a view creates a proxy in the view**, and touches nothing else. Dragging a
   block into a matrix does not write to that block's project.
+- **`refer` takes a cross-project path**, not only a local id: a row dragged out of the explorer
+  names the project it came from, and a reference into the project in context is stored bare, the
+  way `of` already reads. A target in another project is not in this fold, so the path is the whole
+  of what is checked — which is what lets a set be composed from more than one project.
+  A reference to the **open layer itself** is refused — a layer cannot hold a stand-in for itself,
+  and the action says so rather than each surface guarding it.
+  **(planned)** A cross-project proxy still draws as *missing*: nothing resolves another project's
+  element for a label, and `workspace.resolve` is the resolver waiting to be handed down.
 - **A diagram's own variation is its contents and its fields**, never configuration: its definition
   configures every diagram of that subtype alike, so two matrices differ in what they hold and what
   their fields say.
@@ -1324,9 +1332,15 @@ about like any other, and the drag sticks.
   kinds on it. **Nothing picked is everything**, and picking the lit one again is how you get back;
   a pick that is no longer on the layer reads as everything rather than as a filter hiding all of
   it, so navigation resets nothing. An empty group is dropped, so an untyped layer shows none.
-- **The order is the overflow plan**: views, flow, arrange, interfaces, lines, relations, project.
-  **Relations is last** because it is the only group that grows with the vocabulary, so it is the
-  one to push off the bottom. **The column scrolls** — twenty-odd controls against a window's height
+- **`columns` is the table's own group** (P.8): every field name the layer's rows carry, and
+  picking one gives that field a column of its own. A state, not a filter — the rows are the same
+  either way, and it only widens what each one says.
+- **The relation types group is the list-of-types rule's exception**: the same three the strip
+  caps at, and no expansion. It is a setting for what the next drag draws rather than a list of
+  things to act on, and the rest are on the strip.
+- **The order is the overflow plan**: views, flow, arrange, interfaces, lines, columns, types,
+  relations, project. **Relations is last** because it is the only group that grows with the
+  vocabulary, so it is the one to push off the bottom. **The column scrolls** — twenty-odd controls against a window's height
   makes overflow ordinary — and no group ever collapses, since that is hidden state.
 - **A structural stroke divides by the zoom.** Everything the flow draws sits inside a
   `scale(zoom)` transform, so a plain 1px border is a pixel *of layer*, not of screen — zoomed out
@@ -1351,6 +1365,17 @@ about like any other, and the drag sticks.
 - **One verb could not simply move.** Arranging needs the laid-out geometry only the canvas has, so
   **the canvas publishes it upward** and the column calls what it was handed. The page never reaches
   into the canvas; dependencies still run one way.
+- **A strip at the foot of the stage says what is selected and what it could be** (R.9): the
+  selection's name, then the types the list-of-types rule offers for it — the top three by learned
+  preference, vocabulary import order cold, a *More…* entry expanding the same surface in place,
+  and the same list on right-click. **Universal**: a block, a group, a note, an interface and a
+  relationship all answer it. Picking one runs `retype`, and overruling the top pick is what the
+  ranking learns from.
+- **The vocabulary the strip offers is handed down by the page** — packages this project imports,
+  in order, then its own — because `actions/` reads `graph` and `geometry` and never the workspace.
+  Both halves, relation kinds and element ones; either absent falls back to the project's own
+  definitions. The ranking, the cap and the candidates live in `actions/typelist.ts`, one list for
+  every surface that offers types.
 - Zoom controls bottom-left, riding above the contents tray.
 - Pan with the middle button, or by holding `Space` and dragging; zoom with the wheel. A plain
   left drag never pans.
@@ -1432,14 +1457,15 @@ not delete or rewrite Contents.
 
 **Opening and closing**
 
-- Shut until asked for: the `contents` tab in the middle of the tray bar opens it, and a click
-  anywhere outside puts it away. The bar shows which layer is being listed.
-- **Open, it takes a third of the canvas** and the drawing keeps the other two thirds — the drawing
-  shrinks and re-centres rather than being covered. Its height does not change with what it
-  lists, so filtering never moves a row out from under the pointer.
-  **(planned, `W.1a`)** The partial size becomes **25%**, and a third size — **full** — is what
-  setting the project's view toggle to `table` means. Three sizes, two doors: the tab shuts it, the
-  toggle fills it.
+- **Three sizes, two doors.** Shut is the bar alone; **partial is a quarter of the stage**; full
+  is what setting the project's view toggle to `table` means. The `contents` tab shuts and opens
+  it, the toggle fills it, and **nothing else closes it** — a click on the canvas is how a row gets
+  selected, so shutting on one hid the thing being inspected. The bar shows which layer is listed.
+- **The chosen size sticks across a reload**, kept beside the other display preferences and never
+  in the log: it is how somebody is looking, not anything about the model.
+- Open, the drawing keeps the rest of the stage — it shrinks and re-centres rather than being
+  covered. The tray's height does not change with what it lists, so filtering never moves a row out
+  from under the pointer.
 - **The frame reshapes to the room it is left**, rather than keeping its old proportions and
   letterboxing. How far it can grow is still bounded by the zoom ceiling, so a sparse layer keeps
   room around it instead of being magnified.
@@ -1478,6 +1504,20 @@ not delete or rewrite Contents.
 
 - **What it says** opens the row out: its body, the groups it belongs to, and its fields,
   with a field for adding one.
+
+**Columns, and what the table takes from elsewhere**
+
+- The head is **kind / name / what / type** — the default set, because every row answers it.
+- **Beyond it, a column is a field in scope**: the rail's `columns` group lists every field name the
+  layer's rows carry, and picking one gives that field a column of its own. Which are shown is the
+  **table's** state, never a definition's — one view saying what its columns are, not one type
+  saying what its card shows. A row that does not carry the field reads as a dash.
+- **A row dragged out of the explorer lands here as a reference** — the same `refer` the canvas
+  takes, on the table at full size and on the matrix alike. One gesture, three surfaces, one
+  action. The partial tray does not take it: at that size the table is scoped to what is in focus,
+  and the proxy would land in the layer instead.
+- **A column reads through a proxy**, as the name column does: a reference shows what the block it
+  stands for says.
 
 ## Naming
 

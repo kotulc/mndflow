@@ -10,6 +10,7 @@
 import { useState } from "react";
 
 import { Crumbs } from "../diagram/chrome";
+import { takesRef } from "../diagram/pieces";
 import { nameOf, titleOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";
 import { trailOf } from "./chrome";
@@ -32,11 +33,15 @@ export type MatrixProps = {
    *  module says what the group lists (`ViewModule.types`) and stops drawing a
    *  cycle of its own. Absent is everything. */
   shown?: string | null;
+  /** Place a proxy of a dragged explorer row in this layer (P.7) — one
+   *  gesture, three surfaces. A grid has no spot to drop onto, so the proxy
+   *  lands in the layer and shows up as another axis member. */
+  onRefer?: (target: string) => void;
 };
 
 /** Proxies (and blocks) of the open layer, read against each other. */
 export function Matrix({
-  graph, layer, picked, onPick, onOpen, path, onUp, shown = null,
+  graph, layer, picked, onPick, onOpen, path, onUp, shown = null, onRefer,
 }: MatrixProps) {
   const [expanded, setExpanded] = useState(true);
 
@@ -61,7 +66,11 @@ export function Matrix({
   };
 
   return (
-    <div className="stage" style={{ display: "flex", flexDirection: "column" }}>
+    <div
+      className="stage"
+      style={{ display: "flex", flexDirection: "column" }}
+      {...(onRefer ? takesRef(onRefer) : {})}
+    >
       <Crumbs
         graph={graph}
         view={layer}

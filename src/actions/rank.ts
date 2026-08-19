@@ -16,20 +16,10 @@ import { fill, fillable, rank, type Supply } from "./fill";
 import { sayable, type Action, type Args, type Context } from "./index";
 import { FLOOR, scoreAny } from "../embed/match";
 import { ROOT, refAt } from "../graph/types";
-import { read, shape_of } from "./feedback";
+import { read, shape_of, weights as shape_weights } from "./feedback";
 
 /** Navigation — a text surface never offers these (spec.md). */
 const NAV = new Set(["open", "up", "reveal"]);
-
-/** How often each action was chosen when overruling, for one situation shape. */
-function shape_weights(shape: string): Map<string, number> {
-  const weights = new Map<string, number>();
-  for (const hit of read()) {
-    if (hit.shape !== shape) continue;
-    weights.set(hit.chose, (weights.get(hit.chose) ?? 0) + 1);
-  }
-  return weights;
-}
 
 /** Last action chosen for this exact typed entry — the literal tier. */
 function entry_recall(entry: string): string | null {

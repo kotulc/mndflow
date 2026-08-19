@@ -19,6 +19,7 @@
 
 import { Icon, type IconName } from "../modules/icons";
 import { CHROME_ORDER, type ChromeGroup } from "../modules/view";
+import { TYPE_CAP } from "../actions/typelist";
 import type { Axis, EdgeForm, Layout } from "../graph/types";
 
 /** One control. `on` lights it; a verb leaves it undefined, since there is no
@@ -79,9 +80,12 @@ const DRAWS: { angular: boolean; icon: IconName; word: string; tip: string }[] =
  *  showing, so the control draws the look it will produce rather than a
  *  fourth glyph meaning "whatever" — reusing a mark rather than minting
  *  one U.2 would call a second thing. */
-/** How many relation types the rail lists. The rest are on the edge menu and
- *  the strip, which is where a list that grows with the vocabulary belongs. */
-const TYPE_CAP = 6;
+/** How many relation types the rail lists — the list-of-types rule's three,
+ *  read off the one place the cap is written rather than a second number
+ *  beside it (`X.2`). **The group is the rule's exception**: no *More…*, no
+ *  expansion. It is a setting for what the next drag draws, not a list of
+ *  things to act on, and the rest are on the strip and the edge menu, which
+ *  is where a list that grows with the vocabulary belongs. */
 
 export type RailOpts = {
   /** What the open view module offers. */
@@ -100,6 +104,12 @@ export type RailOpts = {
   typeIcon: IconName;
   shownType: string | null;
   onShownType: (next: string | null) => void;
+  /** Fields the table could give a column of its own, and which of them have
+   *  one (P.8). Toggled one at a time — the head's four are always there, so
+   *  an empty pick is the default set rather than a table with no columns. */
+  columns: string[];
+  shownColumns: string[];
+  onColumn: (name: string) => void;
   kind: { path: string; form: string } | null;
   onKind: (next: { path: string; form: string } | null) => void;
   kinds: { name: string; path: string; form: string }[];
@@ -178,6 +188,23 @@ export function groupsFor(o: RailOpts): RailGroup[] {
       controls: DRAWS.map(({ angular, icon, word, tip }) => ({
         key: word, icon, word, tip, on: o.angular === angular,
         run: () => o.onAngular(angular),
+      })),
+    });
+  }
+
+  // Which fields the table gives a column of their own. Not a filter: the
+  // rows are the same either way, and this only widens what each one says.
+  if (has("columns")) {
+    out.push({
+      key: "columns",
+      label: "columns",
+      controls: o.columns.map((name) => ({
+        key: name,
+        icon: "column" as IconName,
+        word: name,
+        tip: `Show “${name}” as a column`,
+        on: o.shownColumns.includes(name),
+        run: () => o.onColumn(name),
       })),
     });
   }

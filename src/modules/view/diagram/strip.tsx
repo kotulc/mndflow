@@ -8,13 +8,15 @@
  *  N times over, exactly as an edge menu's `expand` does (`R.5`), rather than
  *  registering anything new.
  *
- *  Ranking, the cap and the expand-in-place behaviour are `typelist.ts`'s;
- *  this is only the chrome around them. */
+ *  Ranking, the cap and the expand-in-place behaviour are
+ *  `actions/typelist.ts`'s (`X.2`); this is only the chrome around them. */
 
 import { useEffect, useRef, useState } from "react";
 
 import { nameOf, typeName } from "../../../graph/fold";
-import { candidatesFor, noteTypePick, rankedTypes, shapeOf, TYPE_CAP } from "./typelist";
+import {
+  candidatesFor, noteTypePick, rankedTypes, shapeOf, TYPE_CAP, type Vocabulary,
+} from "../../../actions/typelist";
 import type { Args, Picked } from "../../../actions";
 import type { Graph } from "../../../graph/types";
 
@@ -38,13 +40,14 @@ function currentOf(picked: Exclude<Picked, null>, graph: Graph): string {
 export type SelectionStripProps = {
   graph: Graph;
   picked: Picked;
-  /** Relation kinds in scope — the same list the toolbar's `kind` picker
-   *  draws from, package vocabulary included. */
-  kinds?: { name: string; path: string }[];
+  /** The vocabulary in scope, packages included — gathered by the page,
+   *  since only it can see past this project (`X.2`). Absent falls back to
+   *  the project's own definitions. */
+  scope?: Vocabulary;
   onAct: (name: string, args?: Args) => boolean;
 };
 
-export function SelectionStrip({ graph, picked, kinds, onAct }: SelectionStripProps) {
+export function SelectionStrip({ graph, picked, scope, onAct }: SelectionStripProps) {
   const [expanded, setExpanded] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -66,7 +69,7 @@ export function SelectionStrip({ graph, picked, kinds, onAct }: SelectionStripPr
   if (!picked || picked.kind === "attr") return null;
 
   const shape = shapeOf(picked, graph);
-  const list = rankedTypes(candidatesFor(picked, graph, kinds), shape);
+  const list = rankedTypes(candidatesFor(picked, graph, scope), shape);
   const shown = expanded ? list : list.slice(0, TYPE_CAP);
   const current = currentOf(picked, graph);
 

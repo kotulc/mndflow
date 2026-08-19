@@ -30,6 +30,7 @@ import "@xyflow/react/dist/style.css";
 
 import type { Picked } from "../actions";
 import type { Action, Arg, Args } from "../actions";
+import type { Vocabulary } from "../actions/typelist";
 import {
   axisOf, blocksOf, groupsIn, notesIn, tiesOf,
 } from "../graph/fold";
@@ -113,9 +114,10 @@ type Props = {
   onLift: (id: string, x: number, y: number) => void;
   /** Draw a relationship, with an interface at each end. */
   onWire: (a: End, b: End, form: EdgeForm, type?: string) => void;
-  /** Relationship kinds in scope, each with the path it is addressed by and
-   *  the form it declares. Packages first, then the project's own. */
-  kinds?: { name: string; path: string; form: string }[];
+  /** The vocabulary in scope for the strip — relation kinds and element ones,
+   *  each with the path it is addressed by. Packages first, then the
+   *  project's own, which only the page can gather (`X.2`). */
+  scope?: Vocabulary;
   /** Which of them the next right drag draws, or null for an untyped line. A
    *  display preference like `form` and `angular`, so the page holds it — the
    *  rail that picks it is page-level and cannot reach inside here (Y.1). */
@@ -682,7 +684,7 @@ function Flow(props: Props) {
 
       {/* What is selected, and what it could be (R.9) — Contents' old slot,
           open now that W.1 moved Contents into the table view. */}
-      <SelectionStrip graph={graph} picked={picked} kinds={props.kinds} onAct={onAct} />
+      <SelectionStrip graph={graph} picked={picked} scope={props.scope} onAct={onAct} />
 
 
       {/* The settings and the verbs left for the page's rail (Y.1). What stays

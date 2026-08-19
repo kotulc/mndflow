@@ -44,7 +44,7 @@ import { LAYOUTS, LABELS, PLAIN, SHAPES, type CardConfig } from "../modules/card
 import { constraintsOf } from "../modules/constraints";
 import { among, rulesOf, type Bound } from "../modules/rules";
 import { EMPHASES, SETS, SLOTS, VOICES, WEIGHTS } from "../modules/style";
-import { Crumbs } from "../modules/view/diagram";
+import { Crumbs, takesRef } from "../modules/view/diagram";
 import { trailOf } from "../modules/view/table";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
@@ -220,6 +220,13 @@ type Props = {
   /** Make or amend a project definition — fields, body, presentation. */
   onDefine: (name: string, id?: string, form?: string, patch?: DefPatch) => void;
   onUndefine: (id: string) => void;
+  /** Place a proxy of a dragged explorer row in this layer (P.7). Only the
+   *  stage-sized table takes the drop: at partial size the table is scoped to
+   *  what is in focus, and the proxy would land in the layer instead. */
+  onRefer?: (target: string) => void;
+  /** Fields given a column of their own, beyond the fixed head (P.8). The
+   *  rail picks them and the table draws them — empty is the default set. */
+  columns?: string[];
 };
 
 /** What a block's row says about it: what it holds, and what it is wired to. */
@@ -723,7 +730,8 @@ export function Contents(props: Props) {
   const { graph, view, picked, unit, onPick, onHint, onRename, onRetype } = props;
   const { onRelation, onNameTaken, onSay, onDelete, onUnlink, onSave, onSetDir, onFlip } = props;
   const { onMarkPort, onAddField, onUpdateField, onDropField, onLeaveGroup, onReveal } = props;
-  const { onDefine, onUndefine, onOpen, path, onUp, full = false } = props;
+  const { onDefine, onUndefine, onOpen, path, onUp, full = false, onRefer } = props;
+  const { columns = [] } = props;
   const [only, setOnly] = useState<Sort | "all">("all");
   const [by, setBy] = useState<"name" | "sort">("sort");
   const [down, setDown] = useState(false);
@@ -894,6 +902,20 @@ export function Contents(props: Props) {
     advise(edge ? edgeNotes(graph, edge) : node ? elementNotes(graph, node) : [], onSay);
   }, [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps — id only
 
+  /** What one chosen column says about a row (P.8): the field's value, or
+   *  nothing where that row does not carry it. A definition's own declared
+   *  default answers for a type row, so the column reads the same either way. */
+  const cell = (row: Row, name: string): string => {
+    // Through the proxy, as the name column already reads: a reference shows
+    // what the block it stands for says, or the column is blank for every
+    // referenced row.
+    const held = row.sort === "definition"
+      ? (graph.defs[row.id]?.fields ?? [])
+      : fieldsOf(graph, actual(graph, row.id)?.id ?? row.id);
+
+    return held.find((f) => f.name === name)?.value ?? "";
+  };
+
   const head = (key: "name" | "sort", label: string) => (
     <th
       className={`sortable ${by === key ? "on" : ""}`}
@@ -1012,7 +1034,7 @@ export function Contents(props: Props) {
 
     return (
       <tr className="opened" key={`${row.id}-open`}>
-        <td colSpan={5}>
+        <td colSpan={5 + columns.length}>
           <textarea
             defaultValue={def.body ?? ""}
             placeholder={`What is a "${def.name}"?`}
@@ -1283,7 +1305,7 @@ export function Contents(props: Props) {
 
     return (
       <tr className="opened" key={`${row.id}-open`}>
-        <td colSpan={5}>
+        <td colSpan={5 + columns.length}>
           <textarea
             defaultValue={row.body}
             placeholder={`What is "${row.name}" for?`}
@@ -1359,7 +1381,11 @@ export function Contents(props: Props) {
   });
 
   return (
-    <div className="contents" onMouseLeave={() => (onHint(null), setOver(null))}>
+    <div
+      className="contents"
+      onMouseLeave={() => (onHint(null), setOver(null))}
+      {...(full && onRefer ? takesRef(onRefer) : {})}
+    >
       {full && (
         <Crumbs graph={graph} view={view} path={trail} onOpen={onOpen} onUp={climb} />
       )}
@@ -1416,6 +1442,7 @@ export function Contents(props: Props) {
                 {head("name", "name")}
                 <th>what</th>
                 <th>{only === "definition" ? "form" : "type"}</th>
+                {columns.map((name) => <th key={name}>{name}</th>)}
                 <th />
               </tr>
             </thead>
@@ -1553,6 +1580,11 @@ export function Contents(props: Props) {
                     </span>
                   )}
                 </td>
+                {columns.map((name) => (
+                  <td className="field" key={name}>
+                    {cell(row, name) || <span className="none">—</span>}
+                  </td>
+                ))}
                 <td className="doing">{doing(row)}</td>
               </tr>,
               // A single opened focus (W.2) stays open — except a relationship,
@@ -1566,7 +1598,7 @@ export function Contents(props: Props) {
             ])}
             {!openingRow && only === "definition" && (
               <tr key="add-type" className="opened">
-                <td colSpan={5}>
+                <td colSpan={5 + columns.length}>
                   <input
                     className="add-attr"
                     placeholder="+ type"

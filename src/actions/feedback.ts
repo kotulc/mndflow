@@ -74,3 +74,19 @@ export function read(): Overrule[] {
     return [];
   }
 }
+
+/** How often each choice was taken when overruling, for one situation shape.
+ *
+ *  The one place the store is counted: the action ranking (`rank.ts`) and the
+ *  type list (`typelist.ts`) both weight by shape, and two copies of this
+ *  drifting apart is the whole reason it sits with the store it reads. */
+export function weights(shape: string): Map<string, number> {
+  const out = new Map<string, number>();
+
+  for (const hit of read()) {
+    if (hit.shape !== shape) continue;
+    out.set(hit.chose, (out.get(hit.chose) ?? 0) + 1);
+  }
+
+  return out;
+}
