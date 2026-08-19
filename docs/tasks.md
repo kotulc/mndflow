@@ -196,6 +196,12 @@ one idea, arrived at by accident. `P.12` is Clay's call.
 
 ### Stream P — making a project, and saving a view
 
+> **The model-B reading below is SUPERSEDED by the simplified block model** (Clay, 2026-08-18,
+> later the same day) — see *Open questions* at the head of this file. A **set** derived from what
+> its members are is gone; a **folder** is an ordinary definition and a **view** holds
+> **references**. The rest of this stream — the doors, the drags, the two logs, the bugs — stands.
+> Kept for the record of what was tried and why it did not hold.
+
 **Clay played with the built app and could not make a project.** Four things
 were expected; **none of them work**, checked against the code:
 
@@ -250,11 +256,13 @@ proxies are project roots, which is what the workspace itself already is, since
 `admit` files a project by placing a proxy of its root. So there is no folder
 concept to add — the recommendation deletes one.
 
-**Settled — model B, Clay's call.** A set is **derived**: a block whose members
+~~**Settled — model B, Clay's call.** A set is **derived**: a block whose members
 are proxies. No stored field, no `components.set` key, and **no folder concept**
-— filing is a set of projects, which is what the workspace itself already is.
-`workspace.folder()` stays dead. **A set wears a folder mark**, because under
-this model a set of projects and a folder are the same thing.
+— filing is a set of projects. `workspace.folder()` stays dead. A set wears a
+folder mark.~~ **Reversed the same day.** Mixedness was never the signal — a
+folder of five structure blocks is still a folder — and *set* collided with
+*style set* and *closed set*. **`folder` is an ordinary definition**, `set` is
+retired, and a **view** is the thing that holds references.
 
 **And a second rule from the same conversation**: *every node role carries a
 mark of its own*. Block, container and interface have theirs. **Two do not**:
@@ -466,6 +474,28 @@ already exists as `about`, required on all 29 descriptors.
 ## Open questions
 
 *Kept at the front. Everything here blocks something in [plan.md](plan.md).*
+
+### The simplified block model — settled, and what it left open
+
+**Settled 2026-08-18 (Clay).** One block, no element forms; `proxy` → **reference**; `ref` the
+value form → **`link`**; `set` → **folder**, an ordinary definition; **no `kind`** — behavior is one
+package plus three view modules; `view` holds **references only** and the engine enforces it.
+Vocabulary in [definitions.md](definitions.md), reasoning in [design.md](design.md) under *The
+simplified block model*, queue shape in [plan.md](plan.md) under stream **B**.
+
+**Closed by it, so nothing is owed:** the *kind signal* and *kind by fiat* repairs, `P.6`, `P.5`'s
+mixed-children reading, and `S8.3`.
+
+**Left open, and each blocks a row in stream B:**
+
+| | The question |
+|---|---|
+| **B-a** | **What does the engine actually key off?** The rule is *drawing and placement only, by base-definition id*. The list of places that currently branch on `form` has not been taken — `graph/`, `modules/view/diagram/`, `page/Files.tsx` at least. Until it is, the size of the migration is a guess |
+| **B-b** | **Does `holds` reach far enough to enforce *`view` holds references only*?** `holds` names which definitions may be children; *what kind of child link* is a different axis. Either `holds` grows a second half or the engine checks this one case directly — and it is the one case it is allowed to |
+| **B-c** | **Where does a `resource` keep its content?** Inline in the log, or a path to something outside it. Inline means the log carries bytes; a path means a broken link is possible. Embedded scripts / images / video are recorded under *Out of scope* and must not force this answer early |
+| **B-d** | **What happens to existing files?** Schema `1.2` writes `form: "proxy"` and `form: "note"`. Healing at the door (the `asVocabulary` pattern) or a schema bump — the door already heals a legacy domain stem, so the precedent is there, but nobody has decided |
+| **B-e** | **Does the workspace itself become a `folder`?** Its children are references to project roots, which is a *view* by the definition above, not a folder. Either the workspace is a view, or filing is references-inside-a-folder and `view` is not the only thing holding them |
+| **B-f** | **What is a pattern package, concretely?** A locked project holding blocks rather than definitions, referenced or copied rather than listed in `vocabulary`. The suite of predefined design-pattern and behavior packages Clay wants is a story of its own and has no rows |
 
 *Recently closed: **a project is named into being.** Naming is the first step and nothing goes in
 one before it; **project names are unique**, the layer rule one level up. Storage reads a pointer and
@@ -1919,6 +1949,12 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 ## Found while working the queue (2026-08-17/18)
 
 **Defects — not any row's work, none fixed.**
+
+> **`1b`, `1c`, `1d`, `1e`, `1f` and `1h` are all the kind derivation, and stream `B` removes it
+> rather than repairing it.** Do not fix them individually — a fix keeps `page/kind.ts` alive, and
+> the whole file goes. They are kept below because *what each one got wrong* is evidence for why
+> the derivation could not work: it needed a package id, a view module key, a seeded child and a
+> resolved reference to answer a question that turned out not to need asking.
 
 | | What | Where |
 |---|---|---|

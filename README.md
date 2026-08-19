@@ -37,6 +37,12 @@ The tracked documents live in [`docs/`](docs), kept in step with the code:
 - [plan.md](docs/plan.md) — the queue: one row, one chunk of work.
 - [actions.md](docs/actions.md) — every action, adjustment and gesture.
 - [definitions.md](docs/definitions.md) — the vocabulary each of them is written in.
+- [definitions-legacy.md](docs/definitions-legacy.md) — the pre-rework glossary, archived for
+  comparison. **Nothing may be built from it.**
+
+The vocabulary was reworked on 2026-08-18: **everything is a block**, there are no element forms,
+and a new sort of thing is a definition in a shipped `base` package. design.md, *The simplified
+block model*, is the reasoning; `src/` has not caught up yet.
 
 ---
 

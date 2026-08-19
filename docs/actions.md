@@ -4,8 +4,14 @@ Reference for [S1, S2 and S4](tasks.md). Every **action** the engine offers, eve
 reaches one, and what is deliberately **not** on the surface.
 
 The shape each record takes is in [spec.md](spec.md) under *Action surface*; why it takes that
-shape is in [design.md](design.md) under *The action surface is the input seam*. The words used
-here — project, view, package, module — are defined in design.md under *The words*.
+shape is in [design.md](design.md) under *The action surface is the input seam*. The words are
+defined in [definitions.md](definitions.md).
+
+> **Like spec.md, this file is the present.** The simplified block model (2026-08-18) renames
+> **proxy → reference** and removes element forms, so `add_element{proxy}` below is what the
+> mutation currently writes, not what it should say. **The action set itself does not change** —
+> `refer` still places one thing standing for another, which is the whole point of a closed action
+> set surviving a model change. Stream `B` in [plan.md](plan.md) is the migration.
 
 *The registry these go into is built — `actions/index.ts`, S1.1. **S1.2–S1.5 registered the
 actions**; **S1.6** side-effect-imports them, generates the `act.*` wrappers, moves the queries

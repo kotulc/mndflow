@@ -7,6 +7,15 @@ target.
 - **What is not built, and what is undecided** → [tasks.md](tasks.md).
 - **(planned)** marks a line that is the target but not yet the behaviour.
 
+> **This file is the present, and it speaks the pre-rework vocabulary.** On 2026-08-18 Clay settled
+> the **simplified block model** — one block, no element forms, `proxy` → **reference**, `set` →
+> **folder**, no `kind` — recorded in [definitions.md](definitions.md) and argued in
+> [design.md](design.md) under *The simplified block model*. **The code has not moved yet**, so the
+> lines below still say `proxy`, `set`, `kind` and `element form` where the code does, and that is
+> correct for this file. Where the two disagree, definitions.md is the target and this is what
+> runs. The migration is story `ST.4` / stream `B` in [plan.md](plan.md). **Do not add a new use of
+> a retired word here** — describe what landed, in the new words, as each row lands.
+
 mndflow is a client-only web app for assembling systems out of simple descriptive building
 blocks. There is no server: a step log lives in the tab, and the graph is folded from it.
 

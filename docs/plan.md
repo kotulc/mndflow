@@ -43,12 +43,74 @@ was not.
 
 | | The goal | Rows | State |
 |---|---|---|---|
+| **ST.4** | **One block, and everything else is data.** Make a folder, a view, a note, a script and a behavior without the app ever asking which *sort* of thing you mean — because there are no sorts. Drag blocks from three projects into a view, pin it, and come back to it. **This is the primary story and everything else waits behind it** | none yet — see *B*, below | **settled, not started.** design.md *The simplified block model*; vocabulary in [definitions.md](definitions.md) |
 | **ST.1** | **Reorganising is easy.** Move a block anywhere it could sensibly go — into another branch of the same project, into a different project, or out to the workspace — and see where it is going to land while dragging. Nothing announces itself afterwards, because the move was obvious as it happened | `P.1` ✓, `P.13` ✓, `P.14` ◐, `P.15` ✓ | **all rows landed — not closed.** Needs Clay to drive it, and `P.14` landed short of *beside* |
 | **ST.2** | **A saved view is worth saving.** Pick a cross-section of several projects, keep it, name it, come back to it, and read it as a requirements table or an allocation matrix | `P.4` ✓, `P.5`, `P.7` ◐, `P.8` ✓, `P.9` | `P.7` and `P.8` landed — a set takes drops from three surfaces and a table chooses its columns. **`P.7` short**: a cross-project proxy has no label yet, which this story cannot close without |
 | **ST.3** | **Nothing is unreachable.** Every kind of thing the app can hold can be made from the app: a project, a set, a behavior. None of them needs an invisible gesture or an import | `P.2` ✓, `P.3` ✓, `P.6` ✓, `P.10` ✓ | **all rows landed — not closed.** Needs Clay to drive it |
 
 
+## B — the simplified block model
+
+**Settled 2026-08-18 (Clay), and it supersedes stream `P`'s derivation rule.** The reasoning is
+[design.md](design.md) under *The simplified block model*; the vocabulary is
+[definitions.md](definitions.md); the pre-rework glossary is archived at
+[definitions-legacy.md](definitions-legacy.md) and **nothing may be built from it**.
+
+**In one table**, because every row in this stream is one line of it:
+
+| Was | Is | Because |
+|---|---|---|
+| four element forms (`block` `note` `group` `proxy`) | **no forms** — one block | none of them passed the *a form is earned* test |
+| a sort of thing is a form | a sort of thing is a **definition**, in a shipped locked `base` package | a definition is data, which was the second goal all along |
+| `proxy` | **reference** | one word was doing five jobs, and a sixth in the SysML map |
+| `ref`, the value form | **`link`** | it collided with the reference block. *A reference is drawn, a link is not* |
+| the `reference` relationship form | an ordinary relationship reaching a reference | it was only ever derived from what sat at the end |
+| `parent` vs a proxy's `of` | **`part`** vs **`reference`** | ownership, not distance. The one distinction every notation draws |
+| `set`, derived from mixed children | **`folder`**, an ordinary definition | mixedness was never the signal, and *set* collided twice over |
+| `kind` (`structure` / `behavior`), derived per layer | **nothing** — behavior is one package plus three view modules | the engine branched on something the glossary said did not exist |
+| `layerKind` decides which modules are offered | the definition's **`view` component** does | it is what closes `P.6`'s one-way door instead of working around it |
+
+**The base package**, and the rule that stops it becoming forms again:
+
+| Definition | Holds |
+|---|---|
+| `structure` | parts, and references. The default |
+| `view` | **references only — the engine enforces this**, and it is the one thing it enforces |
+| `resource` | content, no children — a file, a script, a data file, an image, a note |
+| `folder` / `group` / `note` | extend the three above |
+
+> The engine may key off a base definition **only for how a block draws and where it sits**. Never
+> for what it is, and never for what may contain what — that is a `holds` rule, which is data.
+
+**A view holds views**, so a matrix's two axes are child views and a filter or a nesting costs
+nothing new. **A reference carries a `depth`** (`self` / `children` / `all`), which is what makes
+dragging a whole project into a view give you its blocks as rows, live. **A view block's
+configuration is its content**, not its presentation — *presentation lives on the definition* still
+governs how the view block itself draws.
+
+**What this stream retires from the queue**, so nothing is built on it:
+
+| | Why it goes |
+|---|---|
+| `P.5`'s mixed-children → `set` reading, and `role_set` | folder is a definition; mixedness signals nothing |
+| the *kind signal* repair (`layerKind` hardcodes `packId("behavior")`) | there is no kind to signal |
+| the *kind by fiat* repair (`childKind` reads `viewOf(...).module`) | the `view` component is the answer, not the workaround |
+| `P.6` entirely (already `SUPERSEDED`) | the door it opened has nothing behind it |
+| `S8.3` *the glossary is distilled* | **done** — 149 terms to 75, this sitting |
+
+**No rows yet, deliberately.** The ordering is a proposal to Clay before anything is written, since
+this touches `src/graph/types.ts`, every module and every doc. See the sitting note at the head of
+this file.
+
+
 ## What is startable now
+
+> **The queue below is pre-rework.** On 2026-08-18 Clay settled the simplified block model (stream
+> **B**, story **`ST.4`**), which supersedes stream `P`'s derivation and renames vocabulary every
+> row below touches. **Nothing here is cancelled and nothing here should start** until the `B`
+> ordering is agreed — a row landing in the old words is a row that has to be landed twice. The two
+> exceptions are `T.3` and `T.5`, which own `tests/` alone, and `Y.10`, which is panel edges and
+> touches no vocabulary.
 
 **A sitting on 2026-08-17/18 worked the queue top to bottom**, then a second pass reworked `P.6` on
 Clay's settled derivation rule. **A third pass on 2026-08-18 landed five more rows — `W.1a`, `W.3`,
@@ -75,8 +137,8 @@ outside click was quietly hiding three other rows' work.
 
 | | What | Why it is owed |
 |---|---|---|
-| **kind signal** | `layerKind` decides behavior by `refAt(type).project === packId("behavior")` | hardcodes one package id. Clay settled that **a package may carry either kind**, which this cannot express. The signal belongs on the definition |
-| **kind by fiat** | `childKind`'s fallback reads `kindOf(viewOf(...).module)` | that key must never answer *what kind is this*. `P.6`'s dial is gone; its mechanism is not |
+| ~~**kind signal**~~ | ~~`layerKind` hardcodes `packId("behavior")`~~ | **dissolved by `ST.4`** — there is no kind to signal. It comes out with the derivation, not as a repair |
+| ~~**kind by fiat**~~ | ~~`childKind` reads `kindOf(viewOf(...).module)`~~ | **dissolved by `ST.4`** — the `view` component answers *which modules apply*, which is the only question that was ever being asked |
 | **seeded block** | a new behavior project holds one **unnamed** block | derivation needs a child, but an empty label is an invented behaviour |
 
 ~~**`R.9` element vocabulary**~~ — **closed by `X.2`**: `App.tsx`'s `kindsInScope` hands the strip
@@ -218,6 +280,12 @@ arrive by decision rather than by the back door.
 
 
 ## P — everything is a block, and what kind it is, is derived
+
+> **SUPERSEDED by `ST.4` / stream `B` (Clay, 2026-08-18, later the same day).** The derivation
+> below — mixed children reads as a **set**, kind per layer — comes out entirely. A **folder** is an
+> ordinary definition and a **view** holds references; neither is guessed from what a layer happens
+> to contain. The landed rows below stay for the record and for what else they did; **the
+> derivation rule is not to be built on or extended.**
 
 **Settled 2026-08-18 (Clay): a layer's kind is derived from its children, per layer.**
 
@@ -533,7 +601,7 @@ time nothing else owns it. The next thing to reach in should find a seam already
 ## S8 — one word, one meaning
 
 **Clay asked whether the language is getting in the way. It is, and it is measurable.**
-[definitions.md](definitions.md) holds **149 terms**, and three of the most-used ones mean three
+[definitions.md](definitions.md) held **149 terms** when this was written, and three of the most-used ones meant three
 different things each. This is the rule `U.2` set for icons — *no mark means two things* — never
 applied to the words.
 
@@ -563,7 +631,7 @@ enough to be its own row and to want the browser drive after it, which is why th
 |---|---|---|---|
 | **S8.1** | **`contextId` → `project`, and definitions.md's *context* → *selection*.** 29 call sites and one glossary row. The small half, done first so the big one lands against settled words | `page/`, `src/project.ts`, `docs/definitions.md` | ⊘ |
 | **S8.2** | **`view` → `layer` wherever it means the open layer**, leaving *view* to the module alone. 257 sites, almost all mechanical, but `ViewModule` / `viewOf` / `views()` must **not** be caught in it — which is the whole reason the rename is worth doing. **Drive it after**: a wrong rename here silently opens the wrong layer, and no test covers the page | `src/`, `docs/` | S8.1 |
-| **S8.3** | **The glossary is distilled.** 149 terms is more than anyone holds, and a term nobody uses is a term that drifts. Keep what the code names or a decision turns on; fold the rest into the entries they qualify. **Not a deletion pass for its own sake** — the test is *could somebody read this in a few minutes*, which is the standard CLAUDE.md already sets for every doc | `docs/definitions.md` | S8.2 |
+| **S8.3 ✓** | **The glossary is distilled** — **done 2026-08-18, ahead of `S8.1`/`S8.2` rather than behind them**, because the rework changed what the renames would be renaming. 149 terms to 75; the old file is archived at `definitions-legacy.md` for comparison. **This changes `S8.2`**: `view` → `layer` is still right, but *view* now also names the `view` base definition and the view block, so the rename has three meanings to keep apart rather than two | `docs/definitions.md` | ✓ done |
 
 
 ## Not in the queue
