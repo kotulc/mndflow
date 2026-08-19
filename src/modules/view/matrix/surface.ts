@@ -2,7 +2,7 @@
  *
  *  A grid with two axes and a scrollbar, no frame and no camera. Declared
  *  here so a definition that picks `matrix` never inherits a border it cannot
- *  draw. */
+ *  draw. The panel shell hosts crumbs and types beside the grid. */
 
 import type { Surface } from "../diagram/surface";
 

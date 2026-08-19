@@ -1,6 +1,13 @@
 /** The style component: how a usage of a definition is coloured.
  *
- *  A **style set** by name, over the portable typed fields — colour, line,
+ *  **A definition picks within the theme's palette; it never names a colour.**
+ *  `slot` is one of six hue families and `emphasis` says how loudly to take it —
+ *  both closed sets, so contrast is a property of the *step* and *ink reads on
+ *  fill* holds in every theme without anybody checking. `Definition.color` was
+ *  the one free-form value in the surface, and the only way a definition could
+ *  look wrong; it is gone (Y.7).
+ *
+ *  A **style set** by name sits over the portable typed fields — line and
  *  arrowhead — that render without one. Absent a set, a usage still draws on
  *  those fields; a set missing from the build degrades the same way.
  *
@@ -28,24 +35,88 @@ const SHEETS: Record<string, Sheet> = {
 /** Names of every style set in the build — the open set a definition picks from. */
 export const SETS = Object.keys(SHEETS) as readonly string[];
 
+/** The hue families a definition may pick from. **Closed** — the theme decides
+ *  what each is in each theme, so `primary` is green in retro and blue in
+ *  modern. `away`, `note`, the error roles, selection, hover and focus are the
+ *  theme's alone and deliberately absent. */
+export const SLOTS = [
+  "primary", "secondary", "tertiary", "quaternary", "neutral", "muted",
+] as const;
+
+export type Slot = (typeof SLOTS)[number];
+
+/** How loudly a usage takes its slot — which **steps** its fill and its border
+ *  take, never which colour. Closed for the same reason. */
+export const EMPHASES = ["quiet", "normal", "strong"] as const;
+
+export type Emphasis = (typeof EMPHASES)[number];
+
+/** How heavy a usage's border is drawn. **Closed for the same reason a colour
+ *  is**: a 6px border breaks a visual system as surely as magenta does. Units
+ *  are the theme's — a definition says *thick*, never a pixel count. */
+export const WEIGHTS = ["hairline", "thin", "thick"] as const;
+
+export type Weight = (typeof WEIGHTS)[number];
+
+/** How loudly a usage's name is set. A definition never names a font or a
+ *  size; it says how much the label should carry.
+ *
+ *  **`voice`, not `label`** — `components.card.label` already means *where the
+ *  label sits*, and one word meaning two things is the mistake U.2 exists to
+ *  stop. */
+export const VOICES = ["quiet", "normal", "loud"] as const;
+
+export type Voice = (typeof VOICES)[number];
+
+/** The whole of what emphasis decides: two step names on the chosen slot. */
+const STEPS: Record<Emphasis, { fill: string; line: string }> = {
+  quiet: { fill: "fill", line: "line" },
+  normal: { fill: "fill", line: "stroke" },
+  strong: { fill: "raised", line: "edge" },
+};
+
 export type StyleConfig = {
   /** Which style set colours usages of this. `null` means the portable fields
    *  alone. */
   set: string | null;
+  /** Which hue family usages take. */
+  slot: Slot;
+  /** Which steps of it they take. */
+  emphasis: Emphasis;
+  /** How heavy the border is. */
+  weight: Weight;
+  /** How loudly the name is set. */
+  voice: Voice;
 };
 
-/** What every definition that says nothing gets: no set, portable fields alone. */
-export const NONE: StyleConfig = { set: null };
+/** What every definition that says nothing gets: no set, and the calm end of
+ *  the ramp — an unstyled model reads as one quiet thing rather than every
+ *  definition claiming the theme's own hue. */
+export const NONE: StyleConfig = {
+  set: null, slot: "neutral", emphasis: "normal", weight: "thin", voice: "normal",
+};
 
 /** The portable typed fields a usage draws from without a style set. */
 export type Look = {
-  color?: string;
+  slot: Slot;
+  emphasis: Emphasis;
+  weight: Weight;
+  voice: Voice;
   icon?: string;
   line?: Definition["line"];
   head?: Definition["head"];
   /** Set name when one is named and in the build; absent means portable alone. */
   set?: string;
+  /** False when nothing was named at all — an untyped usage has no definition
+   *  to read presentation from, so the engine's own default stands. */
+  typed: boolean;
 };
+
+/** One ramp step of a look, as the page's own variable — which is what lets a
+ *  card or a route follow the theme rather than carry a baked colour. */
+export function ramp(look: Look, part: "fill" | "line"): string {
+  return `var(--s-${look.slot}-${STEPS[look.emphasis][part]})`;
+}
 
 /** The sheet for a name, or undefined when this build does not ship it. */
 export function sheet(name: string): Sheet | undefined {
@@ -58,6 +129,22 @@ export function sheet(name: string): Sheet | undefined {
  *  owns the whole of it — a misspelt `sett` is a mistake this build can see,
  *  unlike an unknown *component*, which may be a newer build's. */
 function check(config: Config): string | null {
+  if (config.slot !== undefined && !SLOTS.includes(config.slot as Slot)) {
+    return `\`style.slot\` has to be one of ${SLOTS.join(", ")}`;
+  }
+
+  if (config.emphasis !== undefined && !EMPHASES.includes(config.emphasis as Emphasis)) {
+    return `\`style.emphasis\` has to be one of ${EMPHASES.join(", ")}`;
+  }
+
+  if (config.weight !== undefined && !WEIGHTS.includes(config.weight as Weight)) {
+    return `\`style.weight\` has to be one of ${WEIGHTS.join(", ")}`;
+  }
+
+  if (config.voice !== undefined && !VOICES.includes(config.voice as Voice)) {
+    return `\`style.voice\` has to be one of ${VOICES.join(", ")}`;
+  }
+
   if (config.set !== undefined) {
     if (typeof config.set !== "string" || !SHEETS[config.set]) {
       return SETS.length
@@ -91,14 +178,18 @@ export function styleOf(graph: Graph, element: Element): StyleConfig {
  *  custom look, gained only where it is present. */
 export function lookOf(graph: Graph, element: Element): Look {
   const def = graph.defs[element.type];
-  const named = styleOf(graph, element).set;
-  const held = named && SHEETS[named] ? named : undefined;
+  const config = styleOf(graph, element);
+  const held = config.set && SHEETS[config.set] ? config.set : undefined;
 
   return {
-    color: def?.color,
+    slot: config.slot,
+    emphasis: config.emphasis,
+    weight: config.weight,
+    voice: config.voice,
     icon: def?.icon,
     line: def?.line,
     head: def?.head,
     ...(held ? { set: held } : {}),
+    typed: Boolean(resolved(graph, element.type)),
   };
 }

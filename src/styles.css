@@ -1,22 +1,261 @@
-:root {
-  --bg: #0a0f0d;
-  --surface: #0f1613;
-  --border: #1e2f28;
-  --divider: #16211c;
-  --text: #c8e6d0;
-  --muted: #6b8f7d;
-  --accent: #4ade80;
-  /* Not from here. Green is structure and amber is attributes, so a mention of
-     something living in another layer gets the one hue neither has claimed. */
-  --away: #a78bfa;
-  --away-dim: #4c3f78;
-  /* Attributes, and the notes that draw them on the canvas. */
-  --note: #d9a441;
-  --note-dim: #6b5426;
-  --error: #ff6b6b;
-  --hover: #16221c;
+/* The colour ramp (Y.5). Slots × steps, and nothing anywhere names a colour.
+   Reverses U.4: a theme reaches the drawing now, not only the shell.
 
+   A **step** is a job — `fill` is what a thing rests on, `ink` is text on it —
+   and it means the same job in every slot and every theme, which is what makes
+   contrast structural instead of checked by eye three times.
+
+   A **slot** is a family. `primary` is green in retro and blue in modern: slots
+   are theme-relative, never hues, because a slot meaning *jade* everywhere is
+   what left the diagram green inside a blue shell. There is deliberately no
+   slot named for a lightness — lightness is the ladder's, and a `dark` slot
+   could not survive the light theme.
+
+   Steps are **computed**, not written: a theme declares a lightness ladder and
+   two numbers a slot, and `oklch()` does the rest. It is perceptually uniform,
+   so one ladder holds its contrast across every hue. Twenty numbers a theme
+   rather than sixty hand-picked hexes.
+
+   Slot variables are `--s-<slot>-<step>`. The `--s-` is not decoration: it
+   keeps the `muted` *slot* clear of `--muted`, the chrome's dim text. */
+
+:root {
+  /* Four accent families, spread to stay apart, and two greys. Per theme. */
+  --primary-h: 150; --primary-c: 0.19;
+  --secondary-h: 200; --secondary-c: 0.12;
+  --tertiary-h: 250; --tertiary-c: 0.12;
+  --quaternary-h: 330; --quaternary-c: 0.12;
+  --neutral-h: 160; --neutral-c: 0.05;
+  --muted-h: 160; --muted-c: 0.025;
+
+  /* Reserved: the app speaking about your model rather than the model
+     speaking, so a definition can never pick one. Their **hue is fixed across
+     themes** — violet always means elsewhere, amber always a note — while
+     their lightness follows the ladder, which is what the old flat hexes could
+     not do and why they were invisible in `light`. */
+  --away-h: 285; --away-c: 0.16;
+  --note-h: 78; --note-c: 0.14;
+  --error-h: 25; --error-c: 0.18;
+  --warn-h: 50; --warn-c: 0.14;
+}
+
+/* A theme is its ladder plus twelve numbers. `--l-outside` is the ground beyond
+   the frame — dimmer than the working area in every theme, but *relative* to it
+   rather than a fixed near-black, which is what left a dark surround around a
+   pale canvas. */
+
+/* `retro` — the greens the app was built in. */
+:root,
+:root[data-theme="retro"] {
+  --l-ground: 0.145;
+  --l-fill: 0.195;
+  --l-raised: 0.255;
+  --l-divide: 0.245;
+  --l-line: 0.335;
+  --l-stroke: 0.420;
+  --l-edge: 0.800;
+  --l-dim: 0.600;
+  --l-ink: 0.880;
+  --l-outside: 0.085;
+  --outside-a: 0.72;
   color-scheme: dark;
+
+  --primary-h: 150; --primary-c: 0.19;
+  --secondary-h: 200; --secondary-c: 0.12;
+  --tertiary-h: 250; --tertiary-c: 0.12;
+  --quaternary-h: 330; --quaternary-c: 0.12;
+  --neutral-h: 160; --neutral-c: 0.05;
+  --muted-h: 160; --muted-c: 0.025;
+}
+
+/* `modern` — a cyanotype. The paper is *blue*, not black, which is why this one
+   needs its own ladder rather than retro's: a blueprint's ground sits well off
+   the floor, and the chroma on the greys is what makes it read as paper instead
+   of as a dark grey shell with blue accents. */
+:root[data-theme="modern"] {
+  --l-ground: 0.225;
+  --l-fill: 0.275;
+  --l-raised: 0.335;
+  --l-divide: 0.320;
+  --l-line: 0.450;
+  --l-stroke: 0.545;
+  --l-edge: 0.860;
+  --l-dim: 0.680;
+  --l-ink: 0.945;
+  --l-outside: 0.150;
+  --outside-a: 0.62;
+  color-scheme: dark;
+
+  --primary-h: 205; --primary-c: 0.13;
+  --secondary-h: 240; --secondary-c: 0.11;
+  --tertiary-h: 300; --tertiary-c: 0.10;
+  --quaternary-h: 40; --quaternary-c: 0.11;
+  --neutral-h: 245; --neutral-c: 0.075;
+  --muted-h: 245; --muted-c: 0.045;
+}
+
+/* `light` — the whiteprint the cyanotype became: blue ink on pale paper. The
+   ladder inverts, and `quaternary` is the red pencil an annotation is made in. */
+:root[data-theme="light"] {
+  --l-ground: 0.958;
+  --l-fill: 0.985;
+  --l-raised: 0.930;
+  --l-divide: 0.900;
+  --l-line: 0.800;
+  --l-stroke: 0.620;
+  --l-edge: 0.500;
+  --l-dim: 0.495;
+  --l-ink: 0.265;
+  --l-outside: 0.895;
+  --outside-a: 0.55;
+  color-scheme: light;
+
+  --primary-h: 235; --primary-c: 0.14;
+  --secondary-h: 200; --secondary-c: 0.11;
+  --tertiary-h: 265; --tertiary-c: 0.11;
+  --quaternary-h: 25; --quaternary-c: 0.12;
+  --neutral-h: 232; --neutral-c: 0.026;
+  --muted-h: 232; --muted-c: 0.014;
+}
+
+/* The steps, written once. Chroma is scaled per step as well as per slot: a
+   card filled with `primary` must not be neon, while its border and its text
+   still have to carry the family.
+
+   **`line` and `stroke` are two jobs, not one.** `line` is a border drawn on a
+   card — it sits against `fill`. `stroke` is a line drawn on the **canvas
+   ground**: the frame, the walls, a route. One step served both until the
+   whiteprint made the difference visible, where a `line` on pale paper all but
+   vanished while the flow walls stayed — the frame looked deleted. */
+:root {
+  --s-primary-fill: oklch(var(--l-fill) calc(var(--primary-c) * 0.18) var(--primary-h));
+  --s-primary-raised: oklch(var(--l-raised) calc(var(--primary-c) * 0.26) var(--primary-h));
+  --s-primary-line: oklch(var(--l-line) calc(var(--primary-c) * 0.40) var(--primary-h));
+  --s-primary-stroke: oklch(var(--l-stroke) calc(var(--primary-c) * 0.45) var(--primary-h));
+  --s-primary-edge: oklch(var(--l-edge) var(--primary-c) var(--primary-h));
+  --s-primary-dim: oklch(var(--l-dim) calc(var(--primary-c) * 0.30) var(--primary-h));
+  --s-primary-ink: oklch(var(--l-ink) calc(var(--primary-c) * 0.32) var(--primary-h));
+
+  --s-secondary-fill: oklch(var(--l-fill) calc(var(--secondary-c) * 0.18) var(--secondary-h));
+  --s-secondary-raised: oklch(var(--l-raised) calc(var(--secondary-c) * 0.26) var(--secondary-h));
+  --s-secondary-line: oklch(var(--l-line) calc(var(--secondary-c) * 0.40) var(--secondary-h));
+  --s-secondary-stroke: oklch(var(--l-stroke) calc(var(--secondary-c) * 0.45) var(--secondary-h));
+  --s-secondary-edge: oklch(var(--l-edge) var(--secondary-c) var(--secondary-h));
+  --s-secondary-dim: oklch(var(--l-dim) calc(var(--secondary-c) * 0.30) var(--secondary-h));
+  --s-secondary-ink: oklch(var(--l-ink) calc(var(--secondary-c) * 0.32) var(--secondary-h));
+
+  --s-tertiary-fill: oklch(var(--l-fill) calc(var(--tertiary-c) * 0.18) var(--tertiary-h));
+  --s-tertiary-raised: oklch(var(--l-raised) calc(var(--tertiary-c) * 0.26) var(--tertiary-h));
+  --s-tertiary-line: oklch(var(--l-line) calc(var(--tertiary-c) * 0.40) var(--tertiary-h));
+  --s-tertiary-stroke: oklch(var(--l-stroke) calc(var(--tertiary-c) * 0.45) var(--tertiary-h));
+  --s-tertiary-edge: oklch(var(--l-edge) var(--tertiary-c) var(--tertiary-h));
+  --s-tertiary-dim: oklch(var(--l-dim) calc(var(--tertiary-c) * 0.30) var(--tertiary-h));
+  --s-tertiary-ink: oklch(var(--l-ink) calc(var(--tertiary-c) * 0.32) var(--tertiary-h));
+
+  --s-quaternary-fill: oklch(var(--l-fill) calc(var(--quaternary-c) * 0.18) var(--quaternary-h));
+  --s-quaternary-raised: oklch(var(--l-raised) calc(var(--quaternary-c) * 0.26) var(--quaternary-h));
+  --s-quaternary-line: oklch(var(--l-line) calc(var(--quaternary-c) * 0.40) var(--quaternary-h));
+  --s-quaternary-stroke: oklch(var(--l-stroke) calc(var(--quaternary-c) * 0.45) var(--quaternary-h));
+  --s-quaternary-edge: oklch(var(--l-edge) var(--quaternary-c) var(--quaternary-h));
+  --s-quaternary-dim: oklch(var(--l-dim) calc(var(--quaternary-c) * 0.30) var(--quaternary-h));
+  --s-quaternary-ink: oklch(var(--l-ink) calc(var(--quaternary-c) * 0.32) var(--quaternary-h));
+
+  /* The greys carry the shell, so these two are the only slots with a ground
+     and a divider — the steps a card has no use for. */
+  --s-neutral-ground: oklch(var(--l-ground) calc(var(--neutral-c) * 0.30) var(--neutral-h));
+  --s-neutral-fill: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h));
+  --s-neutral-raised: oklch(var(--l-raised) calc(var(--neutral-c) * 0.40) var(--neutral-h));
+  --s-neutral-divide: oklch(var(--l-divide) calc(var(--neutral-c) * 0.40) var(--neutral-h));
+  --s-neutral-line: oklch(var(--l-line) calc(var(--neutral-c) * 0.55) var(--neutral-h));
+  --s-neutral-stroke: oklch(var(--l-stroke) calc(var(--neutral-c) * 0.60) var(--neutral-h));
+  --s-neutral-dim: oklch(var(--l-dim) calc(var(--neutral-c) * 0.70) var(--neutral-h));
+  --s-neutral-ink: oklch(var(--l-ink) var(--neutral-c) var(--neutral-h));
+
+  --s-muted-fill: oklch(var(--l-fill) calc(var(--muted-c) * 0.35) var(--muted-h));
+  --s-muted-line: oklch(var(--l-line) calc(var(--muted-c) * 0.55) var(--muted-h));
+  --s-muted-stroke: oklch(var(--l-stroke) calc(var(--muted-c) * 0.60) var(--muted-h));
+  --s-muted-dim: oklch(var(--l-dim) calc(var(--muted-c) * 0.70) var(--muted-h));
+  --s-muted-ink: oklch(var(--l-ink) var(--muted-c) var(--muted-h));
+
+  --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.22) var(--away-h));
+  --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.55) var(--away-h));
+  --s-away-stroke: oklch(var(--l-stroke) calc(var(--away-c) * 0.60) var(--away-h));
+  --s-away-edge: oklch(var(--l-edge) var(--away-c) var(--away-h));
+  --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.45) var(--away-h));
+  --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.40) var(--away-h));
+
+  --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.22) var(--note-h));
+  --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.55) var(--note-h));
+  --s-note-stroke: oklch(var(--l-stroke) calc(var(--note-c) * 0.60) var(--note-h));
+  --s-note-edge: oklch(var(--l-edge) var(--note-c) var(--note-h));
+  --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.45) var(--note-h));
+  --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.40) var(--note-h));
+
+  --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
+  --s-error-ink: oklch(var(--l-ink) calc(var(--error-c) * 0.45) var(--error-h));
+  --s-warn-edge: oklch(var(--l-edge) var(--warn-c) var(--warn-h));
+}
+
+/* The shell reads the ramp rather than a palette of its own (Y.5). Two colour
+   systems drifting apart is how the diagram stayed green inside a blue shell,
+   so these are names for steps now and not values. */
+:root {
+  --bg: var(--s-neutral-ground);
+  --surface: var(--s-neutral-fill);
+  --hover: var(--s-neutral-raised);
+  --divider: var(--s-neutral-divide);
+  --border: var(--s-neutral-line);
+  --line: var(--s-neutral-line);
+  --raised: var(--s-neutral-raised);
+  --text: var(--s-neutral-ink);
+  --muted: var(--s-neutral-dim);
+  --faint: var(--s-muted-dim);
+  --accent: var(--s-primary-edge);
+  --tint: var(--s-primary-fill);
+  --away: var(--s-away-edge);
+  --away-dim: var(--s-away-dim);
+  --note: var(--s-note-edge);
+  --note-dim: var(--s-note-dim);
+  --error: var(--s-error-edge);
+  --warn: var(--s-warn-edge);
+  /* Translucent panels ride over whatever is behind them, so this one keeps an
+     alpha the steps do not carry. */
+  --chrome: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h) / 0.92);
+
+  /* What the drawing reads (Y.6). Named for the thing rather than the slot, so
+     `Y.7` can point a definition at another slot without touching a rule. The
+     default is `neutral`, which is what an unstyled model gets. */
+  --card-fill: var(--s-neutral-fill);
+  --card-line: var(--s-neutral-line);
+  --card-raised: var(--s-neutral-raised);
+  --card-lit: var(--s-primary-dim);
+  --card-veil: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h) / 0.6);
+  --card-veil-lit: oklch(var(--l-raised) calc(var(--neutral-c) * 0.4) var(--neutral-h) / 0.75);
+  --glow: color-mix(in oklch, var(--accent) 35%, transparent);
+  /* Walls and interfaces are the engine's own structure, so they carry the
+     app's hue rather than a definition's. */
+  --wall: var(--s-primary-stroke);
+  --wall-lit: var(--s-primary-dim);
+  /* Ink that has to read on a filled warning or error patch. */
+  --on-loud: var(--s-neutral-ground);
+  /* Routes. Read from `paint.ts`, which hands these to React Flow as stroke
+     values — a `var()` resolves there because the edge is drawn in the page. */
+  --route: var(--s-primary-stroke);
+  --route-head: var(--s-primary-dim);
+  --route-away: var(--s-away-dim);
+  /* Beyond the frame. Dimmer than the working area in every theme, but taken
+     from the ladder rather than fixed — a near-black surround is right in a
+     cyanotype and wrong on a whiteprint. */
+  --outside: oklch(var(--l-outside) calc(var(--neutral-c) * 0.3) var(--neutral-h)
+                   / var(--outside-a));
+
+  /* What a definition's `style.weight` names comes to (Y.9). Theme-wide and
+     not per-theme, since a stroke weight is not a colour — but here rather
+     than in the component, so the numbers stay the stylesheet's. */
+  --weight-hairline: 0.5px;
+  --weight-thin: 1px;
+  --weight-thick: 2px;
+
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
   color: var(--text);
@@ -33,17 +272,43 @@ body { margin: 0; background: var(--bg); }
   overflow: hidden;
 }
 
+/* Chrome yields under pressure; the tools and the stage do not. A long name
+   truncates in the identity rather than colliding with export, and the
+   working-area crumbs / option strip each keep to their own half. */
 header {
   display: flex;
   align-items: baseline;
   gap: 12px;
+  min-width: 0;
   padding: 8px 20px;
   border-bottom: 1px solid var(--border);
+  overflow: hidden;
 }
 
-header h1 { font-size: 13px; margin: 0; font-weight: 600; letter-spacing: 0.14em; }
+header .identity {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+header h1 {
+  flex: none;
+  font-size: 13px;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
 header h1::before { content: "▚ "; color: var(--accent); }
-.domain { color: var(--muted); }
+.domain {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
 .domain::before { content: "["; }
 .domain::after { content: "]"; }
 .error { color: var(--error); }
@@ -63,24 +328,138 @@ button:hover:not(:disabled) { background: var(--hover); border-color: var(--acce
 button:disabled { opacity: 0.4; cursor: default; }
 
 
-/* Terminal — no frame of its own; it is the top of the page. Past exchanges
-   rise and fade off the edge, with the live line pinned at the foot. */
+/* Terminal — no frame of its own; it is the top of the page. Collapsed it is
+   one line (entry + inline chips); expanded, past exchanges rise and fade off
+   the edge with the live line pinned at the foot and chips in the other half. */
 
 .chat {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 28px;
-  padding: 10px 20px 22px;
-  height: 208px;
+  min-width: 0;
+  overflow: hidden;
+  /* Its own ground, a step off the page's, so the rail reads as a surface
+     rather than as text floating above the explorer. */
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* Shut: text entry and chips share one row so the stage keeps the height. */
+.chat.collapsed {
+  display: flex;
+  align-items: center;
+  padding-block: 6px;
+  gap: 12px;
+  padding: 6px 20px;
+}
+
+.chat.collapsed .terminal {
+  flex: 1 1 36%;
+  min-width: 10em;
+  display: block;
+}
+
+.chat.collapsed .now { padding-top: 0; }
+.chat.collapsed .typed.input { margin-top: 0; }
+
+.chat.collapsed .rail {
+  flex: 1 1 64%;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chat.collapsed .rail-pane {
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 0;
+}
+
+.chat.collapsed .choices {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  justify-content: flex-end;
   overflow: hidden;
 }
 
-.terminal {
+.chat.collapsed .chip {
+  flex: none;
+  min-height: 0;
+  padding: 3px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chat.collapsed .rail > .bound {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.chat.collapsed .rail > .bound:hover { color: var(--accent); background: var(--hover); }
+
+/* Open: guidance beside the option cluster — same marks, more room. */
+.chat.expanded {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 10px 20px 14px;
+  height: 208px;
+}
+
+.chat.expanded .terminal {
   display: grid;
   grid-template-rows: 1fr auto;
   min-width: 0;
   overflow: hidden;
 }
+
+.chat.expanded .rail {
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.chat.expanded .rail-pane {
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 7px;
+  min-height: 0;
+  flex: 1;
+}
+
+.chat.expanded .choices {
+  display: grid;
+  gap: 6px;
+  justify-content: end;
+  max-width: 100%;
+}
+
+.chat.expanded .chip {
+  min-height: 44px;
+  padding: 7px 9px;
+}
+
+.chat.expanded .rail > .bound {
+  flex: none;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.chat.expanded .rail > .bound:hover { color: var(--accent); background: var(--hover); }
 
 .past {
   display: flex;
@@ -107,9 +486,29 @@ button:disabled { opacity: 0.4; cursor: default; }
 .typed .noop { color: var(--muted); font-size: 11px; flex: none; }
 .typed.input { margin-top: 4px; cursor: text; }
 
+/* Input line: the block cursor overlays the insertion point, not a flex slot
+   ahead of the field (that sat one gap left of where typing starts). */
+.typed.input .line {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+}
+
+.typed.input .line .cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  pointer-events: none;
+}
+
 .typed.input input {
   flex: 1;
   min-width: 0;
+  width: 100%;
   padding: 0;
   border: none;
   background: transparent;
@@ -117,6 +516,10 @@ button:disabled { opacity: 0.4; cursor: default; }
   font: inherit;
   caret-color: var(--accent);
 }
+
+/* Empty: the block cursor is the caret; hide the native one so they do not
+   stack. With text, the native caret takes over. */
+.typed.input input.empty { caret-color: transparent; }
 
 .typed.input input:focus { outline: none; }
 .typed.input input::placeholder { color: var(--muted); }
@@ -133,88 +536,19 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 @keyframes blink { 50% { opacity: 0; } }
 
-/* The option cluster, sharing the row. Matching swaps this for the score
-   readout via a slide; the toggle sits on the rail's far-right edge. */
+/* The option cluster, sharing the row. */
 
 .rail {
   position: relative;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: flex-end;
-  gap: 7px;
   min-width: 0;
   overflow: hidden;
 }
 
 .rail-pane {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: flex-end;
-  gap: 7px;
   min-width: 0;
-  min-height: 0;
   overflow: hidden;
-}
-
-/* The readout's own control, at the end of the header's tools — the same row
-   as export, import and new, since it is one more thing you do to the page
-   rather than to the graph. */
-
-.readout-toggle {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 22px;
-  padding: 0;
-  color: var(--muted);
-}
-
-.readout-toggle:hover:not(:disabled) { color: var(--text); }
-
-.readout-toggle.on {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: #12241a;
-}
-
-/* The readout, sliding in from the right edge over the canvas rather than
-   taking a column from it. Bounded by the working area, so the terminal above
-   stays visible while it is out. */
-
-.drawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 8;
-  width: min(360px, 46vw);
-  display: flex;
-  padding: 8px;
-  border-left: 1px solid var(--border);
-  background: var(--bg);
-  transform: translateX(100%);
-  transition: transform 240ms ease;
-}
-
-.drawer.open { transform: none; }
-
-/* Its own controls stay reachable while it is out. */
-
-
-.match-icon {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 12px;
-  height: 10px;
-}
-
-.match-icon i {
-  display: block;
-  height: 1px;
-  background: currentColor;
 }
 
 .settling {
@@ -228,11 +562,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .settling.on { opacity: 1; }
 
-.choices { display: grid; gap: 6px; justify-content: end; max-width: 100%; }
-
 .chip {
-  min-height: 44px;
-  padding: 7px 9px;
   color: var(--accent);
   text-align: left;
   line-height: 1.35;
@@ -244,7 +574,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* The likeliest reading of what is typed, put forward as the default. */
 .chip.likely {
   border-color: var(--accent);
-  background: #12241a;
+  background: var(--tint);
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
@@ -262,11 +592,13 @@ button:disabled { opacity: 0.4; cursor: default; }
   .rail-pane { transition: none; }
 }
 
-/* Explorer */
+/* Explorer — bounds itself under pressure (width cap + collapse); the stage
+   keeps what is left. Same yield rule as the header / crumbs (U.1). */
 
 .side {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
   border-right: 1px solid var(--border);
   overflow: hidden;
 }
@@ -274,11 +606,26 @@ button:disabled { opacity: 0.4; cursor: default; }
 .files {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
 }
 .files:focus { outline: none; }
 .files:focus-visible { outline: 1px solid var(--divider); outline-offset: -1px; }
+
+/* Shut: a strip with the reopen control. Tree, foot and tree tools leave. */
+.files.collapsed { width: 28px; }
+.files.collapsed .tree,
+.files.collapsed .files-foot { display: none; }
+.files.collapsed .files-bar {
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 5px 2px;
+  border-bottom: none;
+}
+.files.collapsed .files-bar .title,
+.files.collapsed .files-bar .actions > button:not(.bound) { display: none; }
 
 .files-bar {
   flex: none;
@@ -286,14 +633,33 @@ button:disabled { opacity: 0.4; cursor: default; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 4px;
+  min-width: 0;
   padding: 5px 8px 5px 12px;
   border-bottom: 1px solid var(--divider);
   background: var(--bg);
 }
 
-.files-bar .title { color: var(--muted); letter-spacing: 0.12em; }
-.files-bar .actions { display: flex; gap: 2px; }
+/* The title is the workspace's own row now (P.13): the same wash `.files
+   .item.open` uses, since this is a pick like any other row, not a heading
+   that happens to sit above them. */
+.files-bar .title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border-radius: 2px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+.files-bar .title:hover { background: var(--hover); color: var(--accent); }
+.files-bar .title.open { background: var(--hover); }
+.files-bar .actions { display: flex; flex: none; gap: 2px; }
 
+/* Bar glyphs share the app vocabulary: ＋ add, ✎ rename, ⊟/⊡ fold, □/⊏
+   interfaces, ✕ delete, ❮/❯ bound. ⊞ and ▸ stay free for view modules (U.9). */
 .files-bar button {
   width: 22px;
   height: 20px;
@@ -307,6 +673,88 @@ button:disabled { opacity: 0.4; cursor: default; }
 .files-bar button:hover:not(:disabled) { background: var(--hover); color: var(--accent); }
 .files-bar button.on { color: var(--accent); background: var(--hover); }
 
+/* Undo / redo as words, with the last action named — always at the foot while
+   the explorer is open, so reaching them never means opening anything first. */
+.files-foot {
+  flex: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px 5px 12px;
+  border-top: 1px solid var(--divider);
+  background: var(--bg);
+}
+.files-foot .last {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+.files-foot .history {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Names the pair, the way every other group of controls is named. */
+.files-foot .group-word {
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.files-foot button.word {
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.files-foot button.word:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--accent);
+}
+.files-foot button.word:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Offered-action list — fixed order, membership from `offer`. Minimal chrome. */
+.offer {
+  position: fixed;
+  z-index: 40;
+  min-width: 10em;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.offer button {
+  display: block;
+  width: 100%;
+  padding: 4px 12px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.offer button:hover { background: var(--hover); color: var(--accent); }
+
 .files .item {
   position: relative;
   display: flex;
@@ -318,9 +766,33 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .files .item .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .files .item:hover { background: var(--hover); }
-.files .item.active { background: var(--hover); color: var(--accent); }
-.files .item.over { outline: 1px dashed var(--accent); outline-offset: -1px; }
+/* Two states, two looks, and they stack (Y.8).
+
+   `open` is where the canvas is pointed; `active` is what an action would act
+   on. They used to share one appearance, so a row stayed lit after a deselect
+   and *nothing is selected* was unsayable — which breaks V.14, where letting go
+   is how a new project is reached. Open is a wash and no more; selected takes
+   the accent and a bar, so it reads first when a row is both. */
+.files .item.open { background: var(--hover); }
+
+.files .item.active {
+  background: var(--hover);
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+/* A drag rests on this row and would nest inside it — the same signal a card
+   or a group gives on the canvas (`.card.dropping`, `.region.dropping`),
+   rather than the flat dashed line this used to wear on its own. */
+.files .item.over {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
 .files .item.root { color: var(--muted); padding-left: 10px; }
+
+/* The clear space below the rows is a target too — dropping there makes the
+   block a project (P.1), and it gets the same lit treatment a row does. */
+.tree.over { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Canvas cards */
 
@@ -331,6 +803,24 @@ button:disabled { opacity: 0.4; cursor: default; }
 .canvas { position: relative; min-height: 0; display: flex; flex-direction: column; }
 
 .canvas .react-flow__controls { bottom: 30px; }
+
+/* The zoom controls are React Flow's own, and it ships them light-on-white.
+   That went unnoticed while every theme was dark (Y.6): they read as a black
+   block the moment the shell turned pale. Put them on the ramp with everything
+   else — chrome the theme did not reach is the whole of what Y.5 was for. */
+.react-flow__controls-button {
+  border: none;
+  border-bottom: 1px solid var(--divider);
+  background: var(--chrome);
+  fill: var(--muted);
+}
+
+/* The glyph is an inner `svg` that React Flow fills itself, so the button's own
+   `fill` never reaches it. */
+.react-flow__controls-button svg { fill: var(--muted); }
+.react-flow__controls-button:hover { background: var(--hover); }
+.react-flow__controls-button:hover svg { fill: var(--text); }
+.react-flow__controls-button:last-child { border-bottom: none; }
 
 /* The card fills the size the canvas states for it, rather than sizing itself
    from its text. `sizeOf` is what every other piece of geometry measures
@@ -346,22 +836,31 @@ button:disabled { opacity: 0.4; cursor: default; }
   flex-direction: column;
   width: 100%;
   height: 100%;
-  border: 1px solid var(--border);
+  border: calc(var(--card-weight, var(--weight-thin)) / var(--zoom, 1)) solid var(--border);
   border-radius: 2px;
-  background: #111a16;
+  background: var(--card-fill);
   /* Tight vertically: the card is one grid row of content, and every pixel of
      padding comes straight off the room the name has. */
   padding: 5px 9px;
   font-size: 12px;
 }
 
+/* What a definition's `style.weight` and `style.voice` come to (Y.9). Names,
+   not values, on the definition; the numbers are the theme's, so a definition
+   cannot break the system by choosing a 6px border or a font of its own.
+   `voice` rather than `label`, because `card.label` already means where the
+   label sits. */
+.card-head.voice-quiet .label { opacity: 0.72; font-weight: 400; }
+.card-head.voice-normal .label { font-weight: 500; }
+.card-head.voice-loud .label { font-weight: 700; letter-spacing: 0.01em; }
+
 /* No dashed border: the grid inside already says this holds something, and two
    signals for one fact only make the canvas noisier. */
-.card.group { background: rgba(15, 22, 19, 0.6); }
+.card.group { background: var(--card-veil); }
 .card { position: relative; }
-.card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35); }
+.card.picked { border-color: var(--accent); box-shadow: 0 0 0 2px var(--glow); }
 .card.chosen { box-shadow: 0 0 0 2px var(--accent); }
-.card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: #16281d; }
+.card.dropping { outline: 2px solid var(--accent); outline-offset: 2px; background: var(--s-primary-raised); }
 
 /* What the pointer is over, and only that — the canvas picks one element and
    sets the class, since `:hover` would light the card under every interface
@@ -370,14 +869,14 @@ button:disabled { opacity: 0.4; cursor: default; }
    One highlight for the whole card, border included: right-click makes an
    interface wherever on it the click lands, so there is no longer a second
    context along its edge for a second highlight to describe. */
-.card.grazed { border-color: #5f8f73; background: #16211b; }
-.card.group.grazed { background: rgba(22, 33, 27, 0.75); }
+.card.grazed { border-color: var(--card-lit); background: var(--card-raised); }
+.card.group.grazed { background: var(--card-veil-lit); }
 
 .card.grazed::after {
   content: "";
   position: absolute;
   inset: -3px;
-  border: 1px solid rgba(74, 222, 128, 0.35);
+  border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);
   border-radius: 5px;
   pointer-events: none;
 }
@@ -417,8 +916,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .region-name .region-label { cursor: context-menu; }
 
 .card-head.grazed .label {
-  color: #eaffef;
-  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--glow);
   border-radius: 2px;
 }
 
@@ -461,7 +960,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   overflow: hidden;
 }
 
-.cell.group { border: 1px solid rgba(107, 143, 125, 0.45); }
+.cell.group { border: 1px solid color-mix(in oklch, var(--muted) 45%, transparent); }
 
 .cell .tag {
   position: relative;
@@ -489,17 +988,29 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* The open node, drawn behind its contents — as though we stepped into it */
 
 .canvas .react-flow { --xy-background-color: transparent; background: transparent; }
-.stage { position: relative; flex: 1; min-height: 0; }
+.stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* Inside the frame is the canvas itself, left clear to the grid; everything
-   outside it is dimmed by a shadow wide enough to reach any corner. */
+   outside it is dimmed by a shadow wide enough to reach any corner.
+
+   **Its border divides by the zoom.** Everything the flow draws sits inside a
+   `scale(zoom)` transform, so a plain 1px border is a pixel *of layer* rather
+   than of screen — at the resting zoom of a large layer it lands under a device
+   pixel and the browser drops it, which is how the frame could vanish zoomed
+   out and come back zoomed in. The canvas publishes `--zoom` for this. */
 .frame {
   width: 100%;
   height: 100%;
-  border: 1px solid #3a5c4b;
+  border: calc(1px / var(--zoom, 1)) solid var(--wall);
   border-radius: 4px;
   background: transparent;
-  box-shadow: 0 0 0 9000px rgba(6, 10, 8, 0.72);
+  box-shadow: 0 0 0 9000px var(--outside);
 }
 
 /* The two walls a flow relationship enters and leaves by, when the layer has an
@@ -535,28 +1046,28 @@ button:disabled { opacity: 0.4; cursor: default; }
   top: -1px;
   bottom: -1px;
   left: -4px;
-  border-left: 2px solid #6d9a7e;
+  border-left: calc(2px / var(--zoom, 1)) solid var(--wall-lit);
 }
 
 .frame.flow-across::after {
   top: -1px;
   bottom: -1px;
   right: -4px;
-  border-right: 2px solid #395a4b;
+  border-right: calc(2px / var(--zoom, 1)) solid var(--wall);
 }
 
 .frame.flow-down::before {
   left: -1px;
   right: -1px;
   top: -4px;
-  border-top: 2px solid #6d9a7e;
+  border-top: calc(2px / var(--zoom, 1)) solid var(--wall-lit);
 }
 
 .frame.flow-down::after {
   left: -1px;
   right: -1px;
   bottom: -4px;
-  border-bottom: 2px solid #395a4b;
+  border-bottom: calc(2px / var(--zoom, 1)) solid var(--wall);
 }
 
 /* The layer's border answers the pointer the way a card's does, since it is
@@ -568,7 +1079,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    block's own border, running through the dimmed margin on either side and
    stopping where this frame begins. */
 .wall .before,
-.wall .after { position: absolute; background: #3a5c4b; }
+.wall .after { position: absolute; background: var(--wall); }
 
 .wall.upright .before,
 .wall.upright .after { left: 50%; width: 1px; height: 9000px; }
@@ -600,7 +1111,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    name is its own target — set into the border, never part of it — so it
    lights on its own and the border stays dark under it. */
 .frame-name.grazed .frame-label { color: var(--text); }
-.frame-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
+.frame-name.grazed { box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 35%, transparent); border-radius: 2px; }
 
 .frame-name .rename {
   width: 12em;
@@ -676,7 +1187,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   width: 9px;
   height: 9px;
   border: 1px solid var(--border);
-  background: #3a5c4b;
+  background: var(--wall);
   transform: translate(-50%, -50%);
 }
 
@@ -699,7 +1210,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* Filled when a relationship attaches to it, open when none does — so a
    glance at a card says which of its ports are wired and which are only
    describing its shape. */
-.port.wired .mark { background: #3a5c4b; }
+.port.wired .mark { background: var(--wall); }
 
 /* A port holding blocks of its own says so, without being opened. */
 .port.deep .mark {
@@ -707,10 +1218,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 
 .port.wired.deep .mark {
-  background: linear-gradient(to right, #3a5c4b 0 45%, var(--border) 45% 55%, #3a5c4b 55%);
+  background: linear-gradient(to right, var(--wall) 0 45%, var(--border) 45% 55%, var(--wall) 55%);
 }
 
-.port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.3); }
+.port.picked .mark { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent); }
 .port.grazed .mark { border-color: var(--accent); }
 .port.flow-in .mark { border-left-width: 3px; }
 .port.flow-out .mark { border-right-width: 3px; }
@@ -739,19 +1250,19 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .card.reference {
   border-style: dashed;
-  border-color: #4a5d53;
+  border-color: var(--s-away-line);
   color: var(--muted);
   background:
     repeating-linear-gradient(
       135deg,
-      rgba(120, 140, 130, 0.06) 0 5px,
+      color-mix(in oklch, var(--muted) 6%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    #101613;
+    var(--card-fill);
 }
 
-.card.reference .card-head .label { color: #8aa295; font-style: italic; }
-.card.reference .card-head .kind { color: #4c5f55; }
+.card.reference .card-head .label { color: var(--s-away-dim); font-style: italic; }
+.card.reference .card-head .kind { color: var(--s-muted-dim); }
 
 /* The mark for what it is: away, not here. On `::before`, because `::after`
    is the hover ring every card gets and an element has only one of each. */
@@ -760,14 +1271,14 @@ button:disabled { opacity: 0.4; cursor: default; }
   position: absolute;
   top: 2px;
   right: 5px;
-  color: #4c5f55;
+  color: var(--s-muted-dim);
   font-size: 11px;
   line-height: 1;
   pointer-events: none;
 }
 
-.card.reference.grazed { border-color: #587a6a; }
-.card.reference.grazed::before { color: #8aa295; }
+.card.reference.grazed { border-color: var(--s-away-edge); }
+.card.reference.grazed::before { color: var(--s-away-dim); }
 
 .card.reference.picked {
   border-color: var(--accent);
@@ -797,7 +1308,7 @@ button:disabled { opacity: 0.4; cursor: default; }
    green selection box the left button draws in the same place. Dashed because
    it is provisional — the same reason the relationship being drawn is. */
 .wiring rect.sweep {
-  fill: rgba(217, 164, 65, 0.06);
+  fill: color-mix(in oklch, var(--note) 6%, transparent);
   stroke: var(--note);
   stroke-width: 1;
   stroke-dasharray: 4 3;
@@ -833,14 +1344,19 @@ button:disabled { opacity: 0.4; cursor: default; }
 .floating input::placeholder { color: var(--muted); }
 .floating .caret { color: var(--accent); }
 
-/* Panes */
+/* Panes — explorer capped so high zoom / a narrow window cannot eat the stage.
+   Collapsed, the first track sizes to the strip Files owns. */
 
 main {
   position: relative;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: minmax(0, min(280px, 36vw)) 1fr;
   border-top: 1px solid var(--border);
   overflow: hidden;
+}
+
+main:has(.files.collapsed) {
+  grid-template-columns: auto 1fr;
 }
 
 .files ul { list-style: none; margin: 0; padding: 0; }
@@ -855,6 +1371,12 @@ main {
      row is always open and is not a foldable node for a line to hang from. */
   padding-left: calc(10px + 0.5em);
 }
+/* Sibling projects are told apart — several open read as several, not one tree. */
+.files li + li.project { margin-top: 10px; }
+
+/* And room above the first one, so the tree does not start hard against the
+   bar (U.17 spaced siblings and left the top edge tight). */
+.files .roots > li.project:first-child { margin-top: 8px; }
 .files .item { width: max-content; min-width: 100%; }
 .files .item.new { padding-left: calc(20px + 0.5em); }
 .files .icon { width: 1em; flex: none; text-align: center; color: var(--border); }
@@ -863,6 +1385,17 @@ main {
 .files .item.group > .icon { color: var(--accent); }
 .files .item.port > .icon,
 .files .item.port > .label { color: var(--muted); }
+/* Role marks: ■ leaf, □ interface, ◫ container, ▣ project — each once. */
+/* A view module's own glyph — sits where a role icon does, so a shrunken
+   explorer still tells the six apart. The character comes from the module. */
+.view-icon {
+  width: 1em;
+  flex: none;
+  display: inline-block;
+  text-align: center;
+  line-height: 1;
+  color: var(--muted);
+}
 .files .item.quiet { color: var(--muted); letter-spacing: 0.08em; cursor: default; }
 .files .item.quiet:hover { background: none; }
 
@@ -927,12 +1460,125 @@ main {
 
 /* The canvas takes what is left; the attribute tray rides at its foot */
 
-.work { display: grid; overflow: hidden; }
+/* The stage and the options rail, side by side (Y.1). A real column rather than
+   something floating over the drawing: the stage ends where the rail begins, so
+   chrome never sits on top of what is being described. */
+.work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  overflow: hidden;
+}
 
-/* A third of the canvas when open, whatever it holds. A tray that grew to its
-   contents moved every time a filter changed the row count, so the row you
-   were reaching for was never where you last saw it — and a third leaves the
-   drawing the larger share, which is what is being described. */
+/* One column, fixed to the page's right, holding every control the thing on the
+   stage has (Y.2). It **scrolls**: twenty-odd controls against the height of a
+   window makes overflow ordinary, and collapsing a group would be the hidden
+   state U.8 turned down.
+
+   `.opts`, not `.rail` — the terminal's Chat has owned `.rail` since S6. */
+.opts {
+  display: flex;
+  flex-direction: column;
+  /* Far enough apart to read as separate groups. Adjacent icon columns
+     otherwise run together into one long column, which is the failure the
+     labels alone did not prevent. */
+  gap: 20px;
+  /* Narrow, and long words wrap rather than setting the width. Sizing the
+     column to its longest label — `interfaces`, `depends on` — spent the space
+     on one word and left every short one swimming; each chip carries a tooltip,
+     so a name over two lines costs nothing.
+
+     The extra width is edge padding, not chip: a chip flush to the border read
+     as part of it. */
+  width: 68px;
+  padding: 12px 8px 16px;
+  border-left: 1px solid var(--border);
+  /* The explorer's ground, so the two edges of the page are one surface and the
+     stage is what sits between them. */
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.opts-group { display: flex; flex-direction: column; gap: 4px; }
+
+/* Every group is ruled off from the one above it — never the first, where the
+   rule would divide the column from nothing.
+
+   **What this costs, recorded rather than discovered later**: the rule used to
+   fall only between the settings and the verbs, which is how design.md's
+   *toolbars divide by states against verbs* was drawn. With every group ruled,
+   that boundary is carried by the group's own label and by the fact that a verb
+   never lights — `arrange` has no state to be in, so nothing in it is ever on,
+   which in use is the plainer signal of the two. */
+.opts-group + .opts-group {
+  border-top: 1px solid var(--divider);
+  padding-top: 12px;
+}
+
+.opts-label {
+  padding: 0 1px 5px;
+  color: var(--faint);
+  /* Sized to the longest label rather than to taste: `INTERFACES` at the old
+     size ran past the column and was cut in half. */
+  font-size: 7.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* An icon over one word. U.15's rule holds — the word only cost width when it
+   sat beside the glyph, and under it the column stays slim.
+
+   **Chips, like the terminal's actions.** Each keeps the base button's border
+   and ground rather than stripping them, so a control here reads as the same
+   kind of thing as a control there — one app, not two toolbars that happened to
+   grow separately. */
+.opts button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  /* Barely any side padding: the word is the widest thing in here and every
+     pixel spent beside it is a pixel the word has to wrap for. */
+  padding: 5px 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  line-height: 1.15;
+}
+
+.opts button .word {
+  display: block;
+  width: 100%;
+  font-size: 8px;
+  letter-spacing: -0.01em;
+  text-align: center;
+  /* A relation type's label is a *definition's* name, so it is the one word
+     nobody here gets to choose — those wrap rather than being clipped. */
+  overflow-wrap: anywhere;
+}
+
+.opts button svg { width: 20px; height: 20px; }
+.opts button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+
+/* The one that is on takes the terminal's `likely` treatment — accent border,
+   tinted ground and a bar down the leading edge — so *which is current* reads
+   the same everywhere it is asked. */
+.opts button.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--tint);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.opts button:disabled { opacity: 0.4; }
+
+/* A quarter of the canvas when open, whatever it holds (W.1a). A tray that
+   grew to its contents moved every time a filter changed the row count, so the
+   row you were reaching for was never where you last saw it — and a quarter
+   leaves the drawing more of the stage, which is what is being described. */
 .tray {
   position: relative;
   z-index: 6;
@@ -943,7 +1589,12 @@ main {
   background: var(--surface);
 }
 
-.tray.open { height: 33%; }
+.tray.open { height: 25%; }
+
+/* The table view at full stage size (W.1): the toggle is the door, so the
+   tray covers the space a diagram would draw in rather than sitting beside
+   one at a quarter. */
+.tray.full { height: 100%; }
 
 .tray-bar {
   display: flex;
@@ -1157,39 +1808,10 @@ main {
 
 
 
-/* Action log */
-
-.log {
-  display: flex;
-  flex-direction: column;
-  height: 170px;
-  min-width: 0;
-  background: var(--surface);
-}
-
-.log-bar .actions { display: flex; gap: 5px; }
-
-.log-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 12px;
-  border-bottom: 1px solid var(--divider);
-  color: var(--muted);
-  letter-spacing: 0.1em;
-}
-
-.log-lines { flex: 1; overflow-y: auto; padding: 4px 0; font-size: 12px; }
-
-.line { display: flex; gap: 10px; padding: 2px 12px; }
-.line.reverted { opacity: 0.4; text-decoration: line-through; }
-.line .status { width: 68px; color: var(--muted); }
-.line .action { width: 120px; color: var(--accent); }
-.line .text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.line .count { color: var(--muted); }
-.line.empty { color: var(--muted); }
-
-/* Breadcrumb over the canvas — which layer is open */
+/* Breadcrumb over the canvas — which layer is open.
+ *
+ * Left half only. Long names ellipsize inside it; the option strip keeps the
+ * right half, so the two never climb over each other when the stage is narrow. */
 
 .crumbs {
   position: absolute;
@@ -1199,24 +1821,97 @@ main {
   display: flex;
   align-items: center;
   gap: 2px;
+  max-width: calc(50% - 16px);
+  min-width: 0;
   padding: 3px 6px;
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: rgba(15, 22, 19, 0.85);
+  background: var(--chrome);
   font-size: 12px;
+  overflow: hidden;
 }
 
+.crumbs > span { display: flex; align-items: center; min-width: 0; }
+
 .crumbs button {
+  min-width: 0;
+  max-width: 12em;
   padding: 1px 5px;
   border: none;
   background: none;
   color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.crumbs button.elided,
+.crumbs button.up {
+  max-width: none;
+  flex: none;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .crumbs button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .crumbs button.here { color: var(--accent); }
-.crumbs .sep { color: var(--border); }
+.crumbs .sep { color: var(--border); flex: none; }
 .crumbs .up { margin-left: 4px; border: 1px solid var(--border); }
+
+/* The selection strip over the canvas — what is picked, and what it could be
+ * (R.9). Chips only: colour, hover and focus stay the theme's (var(--accent),
+ * var(--hover)), same as every other chip on the canvas — a definition never
+ * gets a say in how its own chip looks. */
+
+.selection-strip {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: calc(100% - 20px);
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--chrome);
+  font-size: 12px;
+}
+
+.selection-strip .name {
+  flex: none;
+  max-width: 10em;
+  padding: 1px 5px;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.selection-strip .types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-height: 6.5em;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.selection-strip button {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: none;
+  color: var(--text);
+}
+
+.selection-strip button:hover { background: var(--hover); color: var(--text); border-color: var(--accent); }
+.selection-strip button.here { color: var(--accent); border-color: var(--accent); }
+.selection-strip button.more { color: var(--muted); border-style: dashed; }
 
 /* Properties pane header */
 
@@ -1238,109 +1933,49 @@ main {
 
 
 
-/* The readout — relations, actions and matching, sharing the rail */
+/* Header tools — never shrink; the identity and the where-control yield first.
+ * Transfer marks are unique in the app vocabulary: ⤓ workspace, ↧ project,
+ * ⤒ import. Rare destructive acts stay words (U.13), not glyphs. */
 
-.readout {
+header .tools {
+  flex: none;
+  margin-left: auto;
   display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: var(--surface);
-  overflow: hidden;
-}
-
-.readout .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--divider); }
-
-.readout .tabs button {
-  flex: 1;
-  padding: 3px 8px;
-  border: none;
-  border-radius: 0;
-  background: none;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-}
-
-.readout .tabs button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
-.readout .tabs button.on { color: var(--accent); background: var(--hover); }
-
-.readout-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-
-/* The three of them fill the readout rather than keeping the heights they had
-   when each sat in a column of its own. */
-.readout .log,
-.readout .relations,
-.readout .scores {
-  flex: 1;
-  min-height: 0;
-  height: auto;
-  border: none;
-  padding-right: 0;
-  overflow: auto;
-}
-
-/* Matching readout — lives in the terminal rail when toggled */
-
-.scores {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  padding-right: 28px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  background: var(--surface);
-}
-
-.scores-bar {
-  display: flex;
-  justify-content: space-between;
+  gap: 6px;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  border-bottom: 1px solid var(--divider);
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  flex: none;
 }
-
-.scores .subject {
-  color: var(--muted);
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-
-.score-lines { flex: 1; overflow-y: auto; padding: 4px 0; font-size: 12px; }
-
-.score { display: flex; align-items: center; gap: 8px; padding: 3px 12px; }
-.score .name {
-  width: 11.5em;
-  flex: none;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.score .value { width: 2.6em; text-align: right; color: var(--muted); }
-.score .bar { flex: 1; height: 6px; background: var(--divider); border-radius: 1px; }
-.score .bar i { display: block; height: 100%; background: var(--border); }
-.score.lead .bar i { background: var(--accent); }
-.score.lead .name, .score.lead .value { color: var(--text); }
-.score.active .name { color: var(--accent); }
-
-/* Header tools */
-
-header .tools { margin-left: auto; display: flex; gap: 6px; align-items: center; }
 header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
+/* One weight across the header. Export and import sat on `--text` while every
+   neighbour sat on `--muted`, so they read as louder than the controls around
+   them. Discard joins them: V.3's confirm is what stands in front of it, and a
+   colour that never followed the theme was doing the job twice. */
+header .tools button { color: var(--muted); }
+header .tools button:hover:not(:disabled) { color: var(--text); }
+
+/* Rare destructive acts read as words — a glyph hides how big they are. */
+header .tools button.word {
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* Theme: labelled, shows its state — not a cycle (design.md). Compact so the
+   tools row still yields identity first under pressure (U.1). */
+.themes {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+.themes button {
+  padding: 2px 6px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.themes button.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--tint);
+}
 
 .import {
   border: 1px solid var(--border);
@@ -1378,55 +2013,6 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .cell { cursor: grab; }
 .cell.grazed { outline: 1px solid var(--accent); outline-offset: -1px; }
 
-/* Relation kinds, under the explorer */
-
-.relations {
-  max-height: 210px;
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-}
-
-.relations ul { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; }
-.relations .empty { color: var(--muted); padding: 2px 12px; }
-
-.relations .kind {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 2px 8px 2px 12px;
-}
-
-.relations .kind:hover { background: var(--hover); }
-.relations .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; }
-.relations .count { color: var(--muted); font-size: 11px; min-width: 1.4em; text-align: right; }
-.relations .count.unused { opacity: 0.4; }
-
-.relations .drop {
-  width: 18px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--divider);
-  line-height: 1;
-}
-
-.relations .kind:hover .drop { color: var(--muted); }
-.relations .drop:hover:not(:disabled) { color: var(--error); background: none; }
-
-.relations .rename {
-  flex: 1;
-  padding: 0 4px;
-  border: 1px solid var(--accent);
-  border-radius: 2px;
-  background: var(--bg);
-  color: inherit;
-  font: inherit;
-}
-
-.relations .rename:focus { outline: none; }
-
 /* Hit-test precedence on the canvas: relations above everything else, then
    cards (with interfaces above their host), then group bands. React Flow draws
    edges and nodes in separate layers; without this, cards always win the
@@ -1441,7 +2027,17 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); stroke-width: 2.5; }
 /* Relations sit above the cards, so hovering one lights only the line — nothing
    under it shares the pointer. */
-.react-flow__edge:hover .react-flow__edge-path { stroke: var(--text); }
+/* The kind's own colour, set per edge as a property so hover and selection can
+   still win — an inline `stroke` would outrank both. */
+.react-flow__edge-path { stroke: var(--edge-stroke, var(--line)); }
+
+/* Hovering a line lifts it out of its neighbours: brighter, thicker, and a
+   wider invisible band so it can be caught without pixel-hunting. */
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: var(--text);
+  stroke-width: 2.5;
+}
+.react-flow__edge .react-flow__edge-interaction { stroke-width: 18; }
 .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
 .react-flow__edge-textbg { fill: var(--bg); }
 .react-flow__edge.selected .react-flow__edge-text { fill: var(--accent); }
@@ -1455,30 +2051,8 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    cursor for the way it moves; the mark under the pointer says which part of
    the line is being offered, since a run is one shape and its segments are not
    otherwise told apart. Selecting the line shows them all faintly at once. */
-/* The band is a rectangle sized in the component, so it stays the same size on
-   screen however far the layer is zoomed out. Filled rather than stroked
-   because hit testing on a fill is the one thing every browser agrees about. */
-.leg-grab { fill: transparent; stroke: none; pointer-events: all; }
-
-/* The mark keeps its weight on screen too, so a segment reads the same at any
-   zoom rather than thinning away as the layer shrinks. */
-.leg-mark {
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  fill: none;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms;
-}
-
-.leg.shown .leg-mark { opacity: 0.28; }
-
-/* A curved line has no segments of its own, so hovering it shows the whole run
-   it would take rather than one piece of it floating off the curve. */
-.react-flow__edge:hover .leg.ghost .leg-mark { opacity: 0.3; }
-.leg-grab:hover + .leg-mark { opacity: 0.6; }
+/* Segment grab bands were removed with `Wire`; the rules that dressed them
+   went with them (V.4). Hovering a line is the edge path's own business. */
 
 /* A reference — a relation with a proxy at one end, so it reaches something
    living in another layer. Its own colour as well as dashed: in the same green
@@ -1489,20 +2063,21 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    itself, so the violet sits under the green lines in weight and lets the kind
    and the label read first. Hover and selection bring it back up to full. */
 .react-flow__edge.reaching .react-flow__edge-path { opacity: 0.55; }
-.react-flow__edge.reaching .leg-mark { opacity: 0.55; }
 .react-flow__edge.reaching:hover .react-flow__edge-path,
 .react-flow__edge.reaching.selected .react-flow__edge-path,
-.react-flow__edge.reaching:hover .leg-mark,
-.react-flow__edge.reaching.selected .leg-mark { opacity: 1; }
+.react-flow__edge.reaching.selected .react-flow__edge-path { opacity: 1; }
 .react-flow__edge.reaching .react-flow__edge-text {
-  fill: #8a7ab0; font-style: italic; opacity: 0.75;
+  fill: var(--s-away-dim); font-style: italic; opacity: 0.75;
 }
 .react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-text { fill: var(--away); }
-.react-flow__edge.reaching .leg-mark { stroke: var(--away); }
 
-/* Display toggles, top right of the canvas */
+/* Display options, top right of the canvas.
+ *
+ * Right half only. Diagram chrome stacks subject groups vertically (U.15);
+ * table/matrix still host a single types control in the same shell. A tall
+ * list scrolls rather than overlapping the crumbs or eating the stage. */
 
 .arrange {
   position: absolute;
@@ -1510,27 +2085,64 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   right: 10px;
   z-index: 5;
   display: flex;
+  flex-direction: column;
   gap: 3px;
+  /* Hug the words. Left to stretch, a settings box reads as a panel rather
+     than a cluster — the bottom-right pair is the width these should be. */
+  width: max-content;
+  max-width: calc(50% - 16px);
+  max-height: calc(100% - 96px);
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: rgba(15, 22, 19, 0.9);
+  background: var(--chrome);
+}
+
+.arrange.options { gap: 0; }
+
+.arrange .option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Groups stack, and a rule divides them. Each also carries its label (V.17),
+   which is what says where one ends when the rule is not enough. */
+.arrange .option-group + .option-group,
+.shape .option-group + .option-group {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--divider);
 }
 
 .arrange button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  flex: none;
   padding: 2px 7px;
   border: none;
   background: none;
   color: var(--muted);
   font-size: 11px;
+  line-height: 1.3;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .arrange button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .arrange button.on { color: var(--accent); }
+.arrange button:disabled { opacity: 0.4; }
 
 /* How the layer is drawn: a column opposite the zoom controls, riding above the
-   attribute tray the same way they do. Icons only — these are settings you set
-   once and read at a glance, not labels to be scanned. */
+   attribute tray the same way they do. Arrangement marks are distinct shapes
+   (▦ grid, ⊙ radial, ⇄ across, ⇅ down, ∿ relax) — never three hatched squares
+   or two near-identical circles. Words match the options strip (U.15); U.16
+   moves the verbs to the frame. */
 .shape {
   position: absolute;
   right: 10px;
@@ -1538,38 +2150,37 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  width: max-content;
   padding: 3px;
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: rgba(15, 22, 19, 0.9);
+  background: var(--chrome);
+}
+
+.shape .option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .shape button {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  /* Reset, not inherit: the base button padding is 10px a side, which leaves a
-     two-pixel content box in a button this size and shunts every glyph right. */
-  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  /* Reset, not inherit: the base button padding is 10px a side. */
+  padding: 2px 7px;
   border: none;
   background: none;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1;
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 
 .shape button:hover:not(:disabled) { background: var(--hover); color: var(--text); }
 .shape button.on { color: var(--accent); }
-
-/* Which way the layer reads is its own thing among the relationship options,
-   so it is fenced off. A row divides on its left, a column on its top. */
-.arrange button.apart {
-  margin-left: 5px;
-  border-left: 1px solid var(--divider);
-  padding-left: 9px;
-}
 
 .shape button.apart { margin-top: 5px; border-top: 1px solid var(--divider); padding-top: 4px; }
 
@@ -1580,7 +2191,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 /* Selection box, while it is being drawn */
 
 .react-flow__selection {
-  background: rgba(74, 222, 128, 0.07);
+  background: color-mix(in oklch, var(--accent) 7%, transparent);
   border: 1px solid var(--accent);
 }
 
@@ -1594,9 +2205,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   /* Half a cell, the same hug a group's boundary uses — see HUG in Canvas. */
   margin: -12px;
   padding: 12px;
-  border: 1px dashed rgba(74, 222, 128, 0.6);
+  border: 1px dashed color-mix(in oklch, var(--accent) 60%, transparent);
   border-radius: 4px;
-  background: rgba(74, 222, 128, 0.05);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
 }
 
 /* A group's boundary — one shared attribute, drawn around its members.
@@ -1611,22 +2222,22 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  border: 1px dashed rgba(107, 143, 125, 0.4);
+  border: 1px dashed color-mix(in oklch, var(--muted) 40%, transparent);
   border-radius: 4px;
-  background: rgba(107, 143, 125, 0.04);
+  background: color-mix(in oklch, var(--muted) 4%, transparent);
   background-clip: padding-box;
   cursor: grab;
 }
 
 .region.grazed {
-  border-color: rgba(74, 222, 128, 0.7);
-  background: rgba(74, 222, 128, 0.06);
+  border-color: color-mix(in oklch, var(--accent) 70%, transparent);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
   background-clip: padding-box;
 }
 
 .region.picked {
-  border-color: rgba(74, 222, 128, 0.6);
-  background: rgba(74, 222, 128, 0.05);
+  border-color: color-mix(in oklch, var(--accent) 60%, transparent);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
   background-clip: padding-box;
 }
 
@@ -1634,7 +2245,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
    container gives, because it is the same gesture. */
 .region.dropping {
   border-color: var(--accent);
-  background: rgba(74, 222, 128, 0.08);
+  background: color-mix(in oklch, var(--accent) 8%, transparent);
   background-clip: padding-box;
 }
 
@@ -1660,7 +2271,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 /* Its own target for rename highlight — a right-click there edits rather than
    acting on the boundary. */
 .region-name.grazed .region-label { color: var(--text); }
-.region-name.grazed { box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35); border-radius: 2px; }
+.region-name.grazed { box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 35%, transparent); border-radius: 2px; }
 
 .region-name .rename {
   width: 10em;
@@ -1692,7 +2303,7 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
   border: 1px solid var(--note-dim);
   border-left: 3px solid var(--note-dim);
   border-radius: 2px;
-  background: rgba(217, 164, 65, 0.05);
+  background: color-mix(in oklch, var(--note) 5%, transparent);
   background-clip: padding-box;
   color: var(--muted);
   font-size: 12px;
@@ -1714,9 +2325,9 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 .note.picked {
   border-color: var(--note);
   color: var(--text);
-  background: rgba(217, 164, 65, 0.09);
+  background: color-mix(in oklch, var(--note) 9%, transparent);
   background-clip: padding-box;
-  box-shadow: 0 0 0 2px rgba(217, 164, 65, 0.3);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--note) 30%, transparent);
 }
 
 .note .rename {
@@ -1730,17 +2341,32 @@ header .tools button, header .import { padding: 2px 8px; font-size: 11px; }
 
 .note .rename:focus { outline: none; }
 
-/* A note's leaders. Fainter and finer than any relationship, and transparent to
-   the pointer: they are drawn *about* the diagram rather than being part of it,
-   so there is nothing to select and nothing to route. Dotted rather than
-   dashed, which is what tells them from a reference's violet dashes. */
-.react-flow__edge.tether { pointer-events: none; }
+/* A note's leaders. Fainter and finer than any relationship — drawn *about*
+   the diagram rather than as part of it, and never routed by hand. Dotted
+   rather than dashed, which is what tells them from a reference's violet.
+
+   A tie takes the pointer now (V.16) — it can be picked and untied like any
+   relationship. It stays the faintest thing on the canvas until it is one of
+   those, and then it has to actually say so: these rules come after the base
+   below, so they are what wins. */
+.react-flow__edge.tether .react-flow__edge-interaction { stroke-width: 14; }
 
 .react-flow__edge.tether .react-flow__edge-path {
   stroke: var(--note-dim);
   stroke-width: 1;
   stroke-dasharray: 1 4;
   stroke-linecap: round;
+}
+
+.react-flow__edge.tether:hover .react-flow__edge-path {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.react-flow__edge.tether.selected .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: none;
 }
 
 /* A name that is already taken by a sibling.
@@ -1774,7 +2400,7 @@ header .unsaved {
   font-weight: 600;
 }
 
-header .unsaved:hover { background: var(--error); color: #1a1d1b; }
+header .unsaved:hover { background: var(--error); color: var(--on-loud); }
 
 /* Two ways of reading the same layer, on the one bottom surface: what is
    selected, and everything there is. Tabs rather than a second panel — the
@@ -1832,14 +2458,34 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
 .contents-table th.sortable:hover { color: var(--text); }
 .contents-table th.sortable.on { color: var(--accent); }
 
-.contents-table td { padding: 1px 10px; border-bottom: 1px solid var(--line, #1f2623); }
+.contents-table td { padding: 1px 10px; border-bottom: 1px solid var(--line); }
 .contents-table tr { cursor: pointer; }
-.contents-table tbody tr:hover { background: var(--raised, rgba(255, 255, 255, 0.03)); }
-.contents-table tr.picked { background: rgba(122, 168, 143, 0.12); }
+.contents-table tbody tr:hover { background: var(--raised); }
+.contents-table tr.picked { background: color-mix(in oklch, var(--accent) 12%, transparent); }
 
 .contents-table td.sort { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; }
 .contents-table td.what { color: var(--muted); }
+/* A chosen field's column (P.8). Muted like `what`, since a value is what a
+   row says rather than what it is; the dash stands for no value. */
+.contents-table td.field { color: var(--muted); }
+.contents-table td.field .none { opacity: 0.4; }
 .contents-table td.type .none { color: var(--muted); opacity: 0.4; }
+
+/* The matrix's heatmap cell (W.4): hue from the relationship kind's own
+   style, opacity from the count — both dimensions read without a mode
+   switch. A cell with two kinds splits into equal bands rather than
+   blending, which degrades to one solid band in the common single-kind
+   case. Grading by count is local to this view, not a style dial. */
+.contents-table td.matrix-cell { padding: 0; }
+.cell-heat { display: flex; height: 100%; min-height: 20px; }
+.cell-heat .band { flex: 1; }
+.cell-heat .band + .band { border-left: 1px solid var(--surface); }
+.contents-table td.matrix-cell .none {
+  display: block;
+  padding: 2px 10px;
+  color: var(--muted);
+  opacity: 0.4;
+}
 .contents-table td.name input,
 .contents-table td.type input {
   width: 100%;
@@ -1868,7 +2514,7 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
   flex: none;
   padding: 6px 10px;
   border-bottom: 1px solid var(--border);
-  background: var(--raised, rgba(255, 255, 255, 0.03));
+  background: var(--raised);
   font-size: 11px;
   display: flex;
   align-items: baseline;
@@ -1978,12 +2624,18 @@ header .unsaved:hover { background: var(--error); color: #1a1d1b; }
   flex: none;
 }
 
-.floating.saying .act:hover { background: var(--error); color: #1a1d1b; }
+.floating.saying .act:hover { background: var(--error); color: var(--on-loud); }
 
 /* Where the work lives, said all the time. Quiet while it is true; the same
    control turns into the warning when the browser stops accepting the log,
    because the answer to both is the same button. */
 header .where {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 18em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   border-color: transparent;
   background: none;
   color: var(--muted);
@@ -2005,4 +2657,63 @@ header .where.unsaved {
   color: var(--error);
 }
 
-header .where.unsaved:hover { background: var(--error); color: #1a1d1b; }
+header .where.unsaved:hover { background: var(--error); color: var(--on-loud); }
+
+
+/* The icon set (V.2). One size and one alignment for every mark in the app, so
+   a button never has to know how its glyph sits — the SVG takes the text
+   colour and the line-height it is dropped into. */
+.icon-svg {
+  display: inline-block;
+  vertical-align: -0.18em;
+  flex: none;
+  color: inherit;
+}
+
+/* On a control that is only its icon, the mark carries the whole button. */
+.files .actions .icon-svg,
+.tools .icon-svg { vertical-align: -0.22em; }
+
+
+/* An icon-only control group — the theme toggle. The mark carries the button,
+   so the padding that made room for a word comes off (V.1). Tooltips are not
+   optional here: the icon is the only signal left. */
+.themes.compact button {
+  padding: 2px 5px;
+  line-height: 1;
+}
+
+/* The one control that throws work away. A mark alone would not say so, and it
+   is the reason U.13 made it a word — so it keeps a colour instead, and its
+   confirm (V.3). */
+
+
+.group-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: 0 7px 1px;
+  opacity: 0.65;
+}
+
+/* A project row's own tools — the view it is drawn as, and its options. Held
+   to the right so the names still line up down the left however many tools a
+   row carries, and shown only on the project in context, which is the one they
+   would act on. */
+.files .item.root .row-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  margin-left: auto;
+}
+
+.files .item.root .row-tools button {
+  padding: 2px 5px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.files .item.root .row-tools button:hover { color: var(--text); }

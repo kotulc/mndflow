@@ -22,6 +22,8 @@ import { SEQUENCE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "sequence", kind: "behavior", word: "action", creates: "action",
+  name: "sequence", kind: "behavior", word: "action", icon: "view_sequence", creates: "action",
   surface: SEQUENCE,
+  // Columns are the layout, so an arrangement would fight it.
+  chrome: ["flow"],
 });

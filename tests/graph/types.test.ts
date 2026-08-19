@@ -7,8 +7,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { edge, element, field, definition, newId, asTarget, refAt, refTo, rootElement, ROOT, EMPTY,
-         type ElemForm } from "../../src/graph/types";
+import { edge, element, field, definition, newId, asTarget, asVocabulary, refAt, refTo,
+         rootElement, stemOf, ROOT, EMPTY, type ElemForm } from "../../src/graph/types";
 
 const FORMS: ElemForm[] = ["block", "note", "group", "proxy"];
 
@@ -83,5 +83,27 @@ describe("a reference that may leave the project", () => {
       project: "proj_2", element: "block_1",
     });
     expect(asTarget("block_1")).toEqual({ element: "block_1" });
+  });
+});
+
+describe("vocabulary as an ordered package list", () => {
+  it("heals a legacy domain stem into a package id", () => {
+    const listed = asVocabulary("Software");
+
+    expect(listed).toHaveLength(1);
+    expect(listed[0].startsWith("pkg_")).toBe(true);
+    expect(stemOf(listed).toLowerCase()).toBe("software");
+  });
+
+  it("leaves an already-minted package id alone", () => {
+    const id = asVocabulary("pkg_demo")[0];
+
+    expect(id.startsWith("pkg_")).toBe(true);
+    expect(asVocabulary(id)).toEqual([id]);
+  });
+
+  it("recovers the stem from the first import", () => {
+    expect(stemOf([])).toBe("");
+    expect(stemOf(asVocabulary("systems"))).toBe(stemOf(asVocabulary(["systems"])));
   });
 });

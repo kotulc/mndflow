@@ -7,8 +7,9 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { inScope, offered, register, run, sayable, writes,
+import { inScope, register, run, sayable, writes,
          type Action, type Context, type Effect } from "../src/actions/index";
+import { offer } from "../src/actions/offer";
 import { fold } from "../src/graph/fold";
 import { element, step, type Mutation } from "../src/graph/types";
 
@@ -61,7 +62,7 @@ describe("scope", () => {
   it("offers a layer action with nothing selected", () => {
     const { graph } = layer();
 
-    expect(offered(at(graph, null)).map((a) => a.name)).toContain("test.named");
+    expect(offer(at(graph, null)).map((a) => a.name)).toContain("test.named");
   });
 
   it("keeps a form-narrowed action away from the wrong form", () => {
@@ -79,9 +80,19 @@ describe("scope", () => {
     expect(inScope(scope, at(graph, block.id))).toBe(false);
   });
 
+  it("lets one scope name more than one thing", () => {
+    const { graph, block } = layer();
+    const scope = { on: ["element", "edge"] } as const;
+    const edge: Context = { graph, view: null, picked: { kind: "edge", id: "e1" } };
+
+    expect(inScope(scope, at(graph, block.id))).toBe(true);
+    expect(inScope(scope, edge)).toBe(true);
+    expect(inScope({ on: "element" }, edge)).toBe(false);
+  });
+
   it("offers nothing element-scoped when nothing is selected", () => {
     const { graph } = layer();
-    const names = offered(at(graph, null)).map((a) => a.name);
+    const names = offer(at(graph, null)).map((a) => a.name);
 
     expect(names).not.toContain("test.notes");
   });
@@ -97,7 +108,7 @@ describe("refusing", () => {
   it("does not hide the action — a refusal is an answer, not an absence", () => {
     const { graph } = layer();
 
-    expect(offered(at(graph, null)).map((a) => a.name)).toContain("test.named");
+    expect(offer(at(graph, null)).map((a) => a.name)).toContain("test.named");
   });
 
   it("says so when nothing is registered under that name", () => {
@@ -126,7 +137,7 @@ describe("refusing", () => {
   it("keeps writing actions offered when locked — the refusal is the answer", () => {
     const { graph } = layer();
 
-    expect(offered(at(graph, null, true)).map((a) => a.name)).toContain("test.named");
+    expect(offer(at(graph, null, true)).map((a) => a.name)).toContain("test.named");
   });
 });
 

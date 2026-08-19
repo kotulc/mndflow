@@ -11,6 +11,7 @@
  *  the door so no reader downstream has to guard itself. */
 
 import type { Mutation, Step } from "./types";
+import { asVocabulary } from "./types";
 
 /** Something a log said that this build could not take at face value. */
 export type Fault = {
@@ -77,9 +78,13 @@ function healElemForm(it: Record<string, unknown>): boolean {
   return true;
 }
 
-/** An element carried a colour of its own before presentation belonged to the
- *  definition it names. Dropped rather than carried: nothing reads it, and a
- *  field nothing reads is written back out on every save forever. */
+/** A colour was written free-form before the theme owned the palette — first on
+ *  an element, then on the definition it names (Y.7).
+ *
+ *  **Dropped, not mapped.** Nothing reads it, and a field nothing reads is
+ *  written back out on every save forever. A nearest-slot guess would be wrong
+ *  more often than the default is: `neutral` / `normal` is a definition saying
+ *  nothing, which is exactly what a dropped colour leaves it saying. */
 function healColour(it: Record<string, unknown>): boolean {
   if (!("color" in it)) return false;
 
@@ -152,6 +157,26 @@ function healFields(it: Record<string, unknown>): boolean {
   return true;
 }
 
+/** Vocabulary was a domain stem before it became the package import list.
+ *  One string heals to one `pkg_*` id; a list is normalised in place. */
+function healVocabulary(it: Record<string, unknown>): boolean {
+  if (!("vocabulary" in it)) return false;
+
+  const was = it.vocabulary;
+  const next = asVocabulary(was);
+  const same = Array.isArray(was)
+    && was.length === next.length
+    && was.every((v, at) => v === next[at]);
+  if (same) return false;
+
+  it.vocabulary = next;
+
+  // An empty stem was already no packages, so the normalisation carried
+  // nothing. Reporting it gave every pre-migration project without a domain a
+  // repair notice for a repair it did not need.
+  return next.length > 0;
+}
+
 /** Every element and relationship inside a checkpoint's graph — and every
  *  definition in it, since a checkpoint carries a whole one. What comes back is
  *  why each repair was needed, so a dropped component still says which. */
@@ -160,11 +185,18 @@ function healGraph(graph: Record<string, unknown>): string[] {
   let shaped = false;
   let figured = false;
 
+  if (healVocabulary(graph)) {
+    why.push("vocabulary was a domain stem; read it as a package list");
+  }
+
   if (graph.defs && typeof graph.defs === "object") {
     for (const raw of Object.values(graph.defs as Record<string, unknown>)) {
       if (!raw || typeof raw !== "object") continue;
       const def = raw as Record<string, unknown>;
       figured = healElemForm(def) || figured;
+      if (healColour(def)) {
+        why.push("definition named a colour; the theme owns the palette now");
+      }
       why.push(...healComponents(def));
     }
   }
@@ -273,6 +305,10 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
   // A definition is where every component's configuration is held, so it is
   // the one place the door has to ask anybody else anything.
   if (op === "set_def") {
+    if (healColour(it)) {
+      faults.push({ step, op, why: "definition named a colour; the theme owns the palette now",
+                    healed: true });
+    }
     if (healElemForm(it)) {
       faults.push({ step, op, why: "definition named the retired `figure` form; read it as a block",
                     healed: true });
@@ -283,6 +319,11 @@ function pass(m: unknown, step: number, faults: Fault[]): Mutation | null {
   if (op === "update_edge" && typeof it.type !== "string") {
     it.type = typeof it.relation === "string" ? it.relation : "";
     faults.push({ step, op, why: "rename had no type; took its old `relation`", healed: true });
+  }
+
+  if (op === "set_vocabulary" && healVocabulary(it)) {
+    faults.push({ step, op, why: "vocabulary was a domain stem; read it as a package list",
+                  healed: true });
   }
 
   return it as Mutation;

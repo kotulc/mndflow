@@ -8,14 +8,19 @@
 export { DIAGRAM, CHROME, type Surface, type ChromeKind, type Surround, type Viewport } from "./surface";
 export { framed, MARGIN, BAND, LEAST } from "./surround";
 export { floorOf, restOf, extentOf, type Camera } from "./viewport";
-export { Crumbs, Toggles, Arrangements } from "./chrome";
+export { Crumbs } from "./chrome";
 export { Ask, type Act, type Prompt, type Said } from "./ask";
+export { SelectionStrip, type SelectionStripProps } from "./strip";
 export {
   MAP, ADJUSTMENTS, takes, reaches,
   type GestureMap, type Adjustment, type Binding, type Hand, type Motion, type Target, type Reaches,
 } from "./map";
+export {
+  OfferMenu, ORDER, can_fill, fill_args, offered_for, rank,
+  type OfferTarget,
+} from "./offer";
 export { paint } from "./paint";
-export { svgOf } from "./svg";
+export { PAPER, lookNow, svgOf, type Look as SvgLook } from "./svg";
 export {
   NOTE, DEPTH, stageOf, laidOf, nodesOf, edgesOf, placementKey, standInOf,
   type Laid, type Band, type Stage, type NodeReach,
@@ -27,7 +32,7 @@ export { Note, type NoteData } from "./Note";
 export { Wire, type WireData } from "./Wire";
 export {
   Name, Port, Berth, Perch, Anchor, fitTag, along, seat, FACING, SIDES,
-  LIFTED, REFERRED,
+  LIFTED, REFERRED, takesRef,
   type Grazed, type CardData, type Seated, type PortProps,
 } from "./pieces";
 

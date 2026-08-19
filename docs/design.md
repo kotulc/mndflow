@@ -329,9 +329,25 @@ collides with itself and takes the stage with it.
   per-definition presentation and means what a *usage* looks like. A theme is what the *page* looks
   like. They are two unrelated things that happen to share a word, and merging them would put a
   user's colour preference where a definition's presentation lives.
-- **A control shows its state rather than cycling it.** An icon that advances through three views on
-  click hides both what is available and what is current; a labelled control says both. Cheaper to
-  read, and it never changes the canvas without saying why.
+- **The theme owns the palette; a definition chooses within it** (Y.5–Y.7, revising U.4). A theme
+  was once held out of the canvas entirely, which left a blue shell around a green diagram and
+  called it a look. **Layering them the other way — definition overrides theme — fixes nothing**,
+  because a definition naming a colour is off-palette however the precedence runs. So they answer
+  different questions instead: the theme is a **ramp of hue slots and fixed-function steps**, and a
+  definition says *which slot, how intense* and never *what colour*. Neither overrides the other,
+  and there is no combination that comes out wrong. The test is that the default theme looks the
+  same before and after.
+- **A definition tunes; it cannot break the system.** Everything it can set is a closed set or a
+  step on a ramp — slot, intensity, border weight, text emphasis, what is shown. Nothing it can set
+  is a colour, a pixel count or a font. **Selection, hover, focus, icons and the error roles are
+  the theme's alone**: those are the app speaking about the model, and a definition able to restyle
+  them could hide the app's own signals.
+- **A control shows its state — by wearing it, or by showing the set.** A labelled row of three
+  says what is available and what is current at once, and is right wherever there is room. Where
+  there is not — a tree row capped at 36vw — **one icon that wears the current state and names the
+  next in its tooltip says the same two things in a third of the width** (V.19). What is refused is
+  the third form: a control that cycles while showing neither, which is what the original rule was
+  written against.
 - **A saved view is a block, not a kind of project.** A block whose definition carries a `view`
   component, holding proxies of what it shows, filed in a folder like anything else. No classifier
   was added, for the same reason *structure* and *behavior* are not classifiers.
@@ -615,13 +631,38 @@ declines to write a non-compliant file.
 **Several projects are open at once**, each with its own log and its own export, and the workspace
 gathers them. A single project can still be opened, shared or imported alone.
 
+**Everything is a block, and what kind it is, is derived.** A project is a block that nothing
+contains; a container is a block holding blocks; an interface is a block sitting on a frame edge;
+and a **set** is a block whose members are **proxies** — it holds references rather than things.
+Nothing declares any of these. Making a project is making a top-level block, so making one is as
+ordinary as making anything else, and every caller — a drag out of the tree, the explorer's own
+control, `infer` — goes through the one door instead of each carrying its own.
+
+**A set is what a saved view is.** A requirements table is a set of requirements; an allocation view
+is the same set drawn as a matrix. The cross-section is chosen with the ordinary multi-select, each
+member is an ordinary proxy, and which module draws it is the ordinary sticky preference — so a
+saved view needed no new concept, only the one already named *(spec.md: a **set** is whatever it
+holds proxies of)*.
+
+**So there is no folder.** Filing is a set whose proxies are project roots, which is exactly what
+the workspace itself already is — `admit` files a project by placing a proxy of its root. A set is
+drawn with a folder mark, because at that point the two are the same thing. Chosen over keeping
+folders as a third concept, and over letting a definition declare itself a set: one duplicates
+something derivable, and the other makes *container* mean three different things in one tree.
+
+**A move across projects is two steps in two logs.** A project is a log, not only a place, so
+nothing spans both — the rule `Effect.into` and the `home` batches already keep. Undoing in the
+source brings the block back; it does not unmake the project.
+
 **The workspace is itself a project** and needs no new schema to be one: its elements are proxies of
 other projects' roots, and folders are ordinary blocks. So filing is undoable and it draws as a
 block diagram whose dependencies are derived from who holds proxies into whom.
 
 **A change is recorded where its element lives.** Ownership routes it, and nothing branches or
-merges. A relationship across two projects is a proxy plus an ordinary edge, both in the project of
-the end making the claim — so no relationship ever spans two logs.
+merges. Every cross-project write goes through one door — an applied step appended to the target's
+log, never a raw replace of it — so an action can get *which* project wrong but never leave a write
+half-done. A relationship across two projects is a proxy plus an ordinary edge, both in the project
+of the end making the claim — so no relationship ever spans two logs.
 
 **A proxy tolerates a missing target and never records the absence**, so undoing a deletion in one
 project brings the reference back in another. Only deletion is breaking, and only breaking changes

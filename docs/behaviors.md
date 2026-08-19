@@ -235,7 +235,6 @@ the structure said nothing, so it learned nothing.
 | **The thin result is the common case** | Most structures have unnamed or absent relationships, so an activity of dimmed actions with lanes and refs is what people usually get. It has to read as a starting point rather than as a failure — undesigned |
 | **A nudge toward naming** | Naming relationships is the highest-leverage thing a user can do and nothing says so. Worth a strip line when every edge in a selection is unnamed. Not designed |
 | **`N`'s default** | 5, chosen not measured — now on `view` (A.7c). Create / `infer` not wired to `creates` / `word` yet |
-| **Page → `infer`** | explorer `Chosen[]` exists (E.4); not yet wired to the action |
 | **App refresh after foreign write** | `Effect.into` lands the step (S4.9); UI may not refresh |
 | **The activity-final double ring** | The one SysML ornament that is not shape + size; wants a `style` that strokes twice — parked from A.7b |
 | **RF framed host / activity gestures** | Activity mounts; RF framed host and gestures on the activity plane still open — parked from A.7b |

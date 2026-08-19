@@ -10,22 +10,44 @@
  *  group to join needs the layer's groups and the selection together — one
  *  control on the bar, not another column.
  *
- *  It stays shut until asked for. The table covers the drawing it describes,
- *  so it opens on the tab and closes on a click anywhere else. */
+ *  **Three sizes and two doors (W.1a).** Shut is a bar; partial is a quarter
+ *  of the stage; full is the project's view toggle set to `table`. The tab
+ *  and the toggle are the only doors — it no longer shuts on a click
+ *  elsewhere, because picking the block you wanted to inspect was that click.
+ *  The chosen size sticks across a reload, so a working tray is chosen once.
+ *
+ *  **`full` is the table view at full stage size (W.1).** Setting the
+ *  project's view toggle to `table` is the door — App reads no diagram in
+ *  that mode, so this is what fills the space it would have drawn in,
+ *  instead of the module drawing a second listing of the same layer. The tab
+ *  is withheld there rather than left bound to nothing: the toggle that
+ *  opened it is the way back. */
 
 import { useEffect, useMemo, useState, type Ref } from "react";
 
 import { Contents } from "./Contents";
 import { Guard } from "./Guard";
+import { Icon } from "../modules/icons";
 import type { Picked } from "../project";
 import type { Dir, Definition, Field, Flow, Graph } from "../graph/types";
 import { childrenOf, nameOf, titleOf } from "../graph/fold";
 import { type Grazed } from "../canvas/card";
 
+/** The chosen size, kept out of the log: it is how somebody is looking, not
+ *  anything about the model. */
+const SIZE = "mndflow.tray.open.v1";
+
+function stuck(): boolean {
+  try {
+    return localStorage.getItem(SIZE) === "open";
+  } catch {
+    return false;
+  }
+}
+
 type DefPatch = {
   fields?: Field[];
   body?: string;
-  color?: string;
   icon?: string;
   line?: Definition["line"];
   head?: Definition["head"];
@@ -37,6 +59,14 @@ type Props = {
   graph: Graph;
   view: string | null;
   picked: Picked;
+  /** Descend into a row, or navigate the crumb trail (null = project) — the
+   *  crumbs only draw at full stage size (W.1), but the door is the same one
+   *  either way. */
+  onOpen: (id: string | null) => void;
+  /** Trail for the crumbs. Derived from the graph when the page omits it. */
+  path?: string[];
+  /** One layer up. Defaults to opening the open layer's parent. */
+  onUp?: () => void;
   onSave: (id: string, body: string) => void;
   onRetype: (id: string, type: string) => void;
   onMarkPort: (id: string, flow: Flow | null) => void;
@@ -66,27 +96,30 @@ type Props = {
   onUndefine: (id: string) => void;
   /** So the canvas can measure the tray and keep its own controls above it. */
   hostRef?: Ref<HTMLElement>;
+  /** The table view at full stage size — the project's view toggle set to
+   *  `table` (W.1). Forces the tray open regardless of its own state. */
+  full?: boolean;
+  /** Passed to `Contents`: a row dragged out of the explorer lands here as a
+   *  reference (P.7). Only the stage-sized table takes it. */
+  onRefer?: (target: string) => void;
+  /** Passed to `Contents`: fields the table gives a column of their own (P.8). */
+  columns?: string[];
 };
 
 export function Panel(props: Props) {
-  const { graph, view, picked, onJoinGroup, hostRef } = props;
-  const [open, setOpen] = useState(false);
+  const { graph, view, picked, onJoinGroup, hostRef, full = false } = props;
+  const [open, setOpen] = useState(stuck);
+  const stage = full || open;
 
-  /** A click anywhere outside puts it away. The table covers the drawing it is
-   *  describing, so getting back to the canvas should not need aiming at a
-   *  chevron first — and the tab is one click either way. */
+  /** The size sticks, so a working tray is chosen once rather than on every
+   *  reload. Full is the toggle's and is not a size anybody chose here. */
   useEffect(() => {
-    if (!open) return undefined;
-
-    const away = (event: PointerEvent) => {
-      const host = (hostRef as { current?: HTMLElement | null })?.current;
-      if (host && !host.contains(event.target as Node)) setOpen(false);
-    };
-
-    document.addEventListener("pointerdown", away);
-
-    return () => document.removeEventListener("pointerdown", away);
-  }, [open, hostRef]);
+    try {
+      localStorage.setItem(SIZE, open ? "open" : "shut");
+    } catch {
+      // The size is lost on reload, nothing more.
+    }
+  }, [open]);
 
   // Where you are, so the table's scope is never in doubt.
   // At the top of a project the scope is the project itself, which is named.
@@ -108,9 +141,11 @@ export function Panel(props: Props) {
   }, [graph, view, picked]);
 
   return (
-    <section className={`tray ${open ? "open" : ""}`} ref={hostRef}>
+    <section className={`tray ${stage ? "open" : ""} ${full ? "full" : ""}`} ref={hostRef}>
       <div className="tray-bar">
-        <span className="name">{where}</span>
+        {/* At full size the table names the layer itself, in its crumb — so the
+            bar's chip would be the same word twice on one screen. */}
+        {!full && <span className="name">{where}</span>}
 
         {joining && (
           <select
@@ -132,18 +167,20 @@ export function Panel(props: Props) {
           </select>
         )}
 
-        <button
-          className={`tray-tab ${open ? "on" : ""}`}
-          aria-expanded={open}
-          title={open ? "Hide what this layer holds" : "Everything this layer holds"}
-          onClick={() => setOpen(!open)}
-        >
-          contents {open ? "▾" : "▴"}
-        </button>
+        {!full && (
+          <button
+            className={`tray-tab ${open ? "on" : ""}`}
+            aria-expanded={open}
+            title={open ? "Hide what this layer holds" : "Everything this layer holds"}
+            onClick={() => setOpen(!open)}
+          >
+            contents <Icon name={open ? "more" : "less"} />
+          </button>
+        )}
       </div>
 
       <div className="tray-body">
-        {open && (
+        {stage && (
           <Guard what="This layer's contents">
             <Contents {...props} />
           </Guard>

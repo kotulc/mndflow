@@ -22,7 +22,7 @@ import { similarity } from "../../../embed/match";
 import type { Graph, Element, Side } from "../../../graph/types";
 import { useEmbeddings } from "../../../embed/useEmbeddings";
 import { cardOf, outline, type Outline } from "../../card";
-import { lookOf } from "../../style";
+import { lookOf, ramp } from "../../style";
 import {
   fitTag, Anchor, Berth, LIFTED, Name, Perch, Port, SIDES,
   type CardData, type Grazed,
@@ -107,7 +107,12 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
               "cell", "nodrag", isContainer(graph, kid.id) ? "group" : "object",
               grazed?.kind === "cell" && grazed.id === kid.id ? "grazed" : "",
             ].join(" ")}
-            style={cellStyle(seat, `rgba(74, 222, 128, ${0.08 + affinity(graph, kid) * 0.5})`)}
+            // Mixed off the accent rather than a literal, so a chip follows the
+            // theme like everything else (Y.6). It was the one colour a `rgba()`
+            // sweep of the stylesheet could not reach: the alpha is computed
+            // from affinity, so it only ever existed here.
+            style={cellStyle(seat, `color-mix(in oklch, var(--accent) ${
+              Math.round((0.08 + affinity(graph, kid) * 0.5) * 100)}%, transparent)`)}
             title={`${label} — drag onto the canvas to lift it out`}
             data-cell={kid.id}
             draggable
@@ -170,7 +175,7 @@ function Stroke({ drawn, color }: { drawn: Outline; color: string }) {
       <svg style={SHAPE} aria-hidden>
         <ellipse
           cx={drawn.cx} cy={drawn.cy} rx={drawn.rx} ry={drawn.ry}
-          fill="#111a16" stroke={color} strokeWidth={1}
+          fill="var(--card-fill)" stroke={color} strokeWidth={1}
         />
       </svg>
     );
@@ -179,7 +184,7 @@ function Stroke({ drawn, color }: { drawn: Outline; color: string }) {
   const points = drawn.points.map((p) => `${p.x},${p.y}`).join(" ");
   return (
     <svg style={SHAPE} aria-hidden>
-      <polygon points={points} fill="#111a16" stroke={color} strokeWidth={1} />
+      <polygon points={points} fill="var(--card-fill)" stroke={color} strokeWidth={1} />
     </svg>
   );
 }
@@ -202,7 +207,9 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   const held = cardOf(graph, node);
   const look = lookOf(graph, node);
   const drawn = outline(held.shape, { w: size.w, h: size.h });
-  const ink = look.color ?? "var(--border)";
+  // Same rule as a route: an untyped card has no definition to read a slot
+  // from, so the theme's own border stands (Y.7).
+  const ink = look.typed ? ramp(look, "line") : "var(--border)";
   const shaped = held.shape !== "rect";
   const titled = held.label !== "none";
   const chipped = held.layout === "type";
@@ -222,6 +229,10 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
 
   const boxStyle: CSSProperties = {
     borderColor: shaped ? "transparent" : ink,
+    // The weight is a name, never a pixel count (Y.9); the stylesheet holds
+    // what each name comes to and still divides by the zoom, so an apparent
+    // width stays constant.
+    ...(look.typed ? { "--card-weight": `var(--weight-${look.weight})` } : {}),
     ...(shaped ? { background: "transparent" } : {}),
     ...(held.label === "below" ? { flexDirection: "column-reverse" } : {}),
     ...(drawn.kind === "rect" && drawn.round
@@ -229,7 +240,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   };
 
   const title = titled && (
-    <div className={`card-head${
+    <div className={`card-head voice-${look.typed ? look.voice : "normal"}${
       grazed?.kind === "title" && grazed.id === node.id ? " grazed" : ""}`}>
       <Name
         text={nameOf(graph, node)}

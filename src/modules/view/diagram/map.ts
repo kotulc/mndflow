@@ -26,11 +26,11 @@ export type Target =
 
 /**
  *  What a binding reaches. Action names match the registry; the rest are
- *  local — selection, clear, marquee, fit, abandon — or `nothing` while the
- *  menu is unbuilt.
+ *  local — selection, clear, marquee, fit, abandon — or `offer` for the
+ *  fixed-order list (G.9d).
  */
 export type Reaches =
-  | "selection" | "clear" | "marquee" | "fit" | "abandon" | "nothing"
+  | "selection" | "clear" | "marquee" | "fit" | "abandon" | "offer"
   | "open" | "reveal" | "up" | "move" | "place" | "refer"
   | "create" | "interface" | "retype" | "group" | "relate" | "tie" | "note"
   | "rename" | "delete" | "unlink";
@@ -68,12 +68,12 @@ export const MAP: GestureMap = {
     { hand: "left", motion: "drop", on: "explorer", reaches: "refer" },
     { hand: "left", motion: "drop", on: "chip", reaches: "move" },
 
-    // Right button — make something new.
+    // Right button — create on empty; offer the list on anything that exists.
+    // Drags are unchanged: relate, tie, note.
     { hand: "right", motion: "click", on: "empty", reaches: "create" },
-    { hand: "right", motion: "click", on: ["card", "frame"], reaches: "interface" },
-    { hand: "right", motion: "click", on: "edge", reaches: "retype" },
-    { hand: "right", motion: "click", on: "selection", reaches: "group" },
-    { hand: "right", motion: "click", on: ["name", "interface"], reaches: "nothing" },
+    { hand: "right", motion: "click",
+      on: ["card", "frame", "edge", "selection", "name", "interface", "group", "note"],
+      reaches: "offer" },
     { hand: "right", motion: "drag", on: ["card", "frame"], reaches: "relate" },
     { hand: "right", motion: "drag", on: "note", reaches: "tie" },
     { hand: "right", motion: "drag", on: "empty", reaches: "note" },

@@ -7,7 +7,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { lookOf, NONE, SETS, sheet, style, styleOf } from "../../src/modules/style/index";
+import {
+  EMPHASES, lookOf, NONE, SETS, SLOTS, VOICES, WEIGHTS, ramp, sheet, style, styleOf,
+} from "../../src/modules/style/index";
 import { element, EMPTY } from "../../src/graph/types";
 import type { Element, Graph } from "../../src/graph/types";
 
@@ -59,9 +61,60 @@ describe("how a usage is coloured", () => {
   it("takes what the definition says", () => {
     const [graph, element] = typed({ style: { set: SETS[0] } });
 
-    expect(styleOf(graph, element)).toEqual({ set: SETS[0] });
+    expect(styleOf(graph, element)).toEqual({ ...NONE, set: SETS[0] });
   });
 
+});
+
+describe("a definition picks within the palette, never a colour", () => {
+  it("accepts every slot and every emphasis the build offers", () => {
+    for (const slot of SLOTS) expect(style.check({ slot })).toBeNull();
+    for (const emphasis of EMPHASES) expect(style.check({ emphasis })).toBeNull();
+  });
+
+  it("refuses a slot or an emphasis outside the closed set", () => {
+    expect(style.check({ slot: "magenta" })).toContain("slot");
+    expect(style.check({ emphasis: "shouting" })).toContain("emphasis");
+  });
+
+  it("accepts every weight and voice it offers, and refuses a value instead", () => {
+    for (const weight of WEIGHTS) expect(style.check({ weight })).toBeNull();
+    for (const voice of VOICES) expect(style.check({ voice })).toBeNull();
+    expect(style.check({ weight: "6px" })).toContain("weight");
+    expect(style.check({ voice: "Helvetica" })).toContain("voice");
+  });
+
+  it("names no colour anywhere — a slot resolves to a step of the theme's ramp", () => {
+    for (const slot of SLOTS) {
+      for (const emphasis of EMPHASES) {
+        for (const part of ["fill", "line"] as const) {
+          const drawn = ramp(
+            { slot, emphasis, weight: NONE.weight, voice: NONE.voice, typed: true },
+            part,
+          );
+
+          expect(drawn).toContain(slot);
+          expect(drawn.startsWith("var(--")).toBe(true);
+          expect(drawn).not.toMatch(/#|rgb|oklch/);
+        }
+      }
+    }
+  });
+
+  it("gives a definition that says nothing the calm end of the ramp", () => {
+    const [graph, element] = typed();
+    const look = lookOf(graph, element);
+
+    expect(look.slot).toBe(NONE.slot);
+    expect(look.emphasis).toBe(NONE.emphasis);
+  });
+
+  it("tells a definition that says nothing from no definition at all", () => {
+    const [graph] = typed();
+    const bare = element("untyped", { id: "block_2" });
+
+    expect(lookOf(graph, bare).typed).toBe(false);
+  });
 });
 
 describe("style sets as an open set", () => {
@@ -80,23 +133,20 @@ describe("style sets as an open set", () => {
 
 describe("portable fields without a set", () => {
   it("draws on the definition's fields when no set is named", () => {
-    const [graph, element] = typed(undefined, {
-      color: "#3f6552", line: "dashed", head: "hollow",
-    });
+    const [graph, element] = typed(undefined, { line: "dashed", head: "hollow" });
 
     expect(lookOf(graph, element)).toEqual({
-      color: "#3f6552", line: "dashed", head: "hollow",
+      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, voice: NONE.voice,
+      line: "dashed", head: "hollow", typed: true,
     });
   });
 
   it("carries the set when one is named and in the build", () => {
-    const [graph, element] = typed(
-      { style: { set: SETS[0] } },
-      { color: "#3f6552" },
-    );
+    const [graph, element] = typed({ style: { set: SETS[0] } }, {});
 
     expect(lookOf(graph, element)).toEqual({
-      color: "#3f6552", set: SETS[0],
+      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, voice: NONE.voice,
+      set: SETS[0], typed: true,
     });
   });
 
@@ -106,6 +156,9 @@ describe("portable fields without a set", () => {
       { line: "dotted" },
     );
 
-    expect(lookOf(graph, element)).toEqual({ line: "dotted" });
+    expect(lookOf(graph, element)).toEqual({
+      slot: NONE.slot, emphasis: NONE.emphasis, weight: NONE.weight, voice: NONE.voice,
+      line: "dotted", typed: true,
+    });
   });
 });

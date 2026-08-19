@@ -1,16 +1,16 @@
 /** Workflow definitions, read from YAML at build time.
  *
- *  Four kinds of file. `entry` is the catalogue of domains a first answer
+ *  Three kinds of file. `entry` is the catalogue of domains a first answer
  *  routes into. `operations` is the global list of things the conversation can
  *  ask for — no domain may invent one. A domain file supplies wording only.
- *  Starting relations live in `packages/core/<name>.yaml` and are bridged into
- *  `Domain.relations` here until seeding reads packages directly.
  *  What each domain calls things lives in `packages/terms/<name>.yaml` — a
  *  general need, not the rail's — and is merged into `Domain.terms` here so
  *  the question loop can still speak the same words the explorer does.
  *
- *  Control flow is deliberately absent: which operation to ask about is
- *  decided in `router`, from the graph itself. A new domain is wording only. */
+ *  Starting relations live in shipped packages (`packages/core/…`); a project's
+ *  `vocabulary` list names them. Control flow is deliberately absent: which
+ *  operation to ask about is decided in `router`, from the graph itself. A new
+ *  domain is wording only. */
 
 import entryFile from "../../workflows/entry.yaml";
 import operationsFile from "../../workflows/operations.yaml";
@@ -52,8 +52,6 @@ export type Domain = {
   name: string;
   lead: string;
   terms: Terms;
-  /** Relation kinds a new project in this domain starts with. */
-  relations: string[];
   prompts: Record<string, Wording>;
 };
 
@@ -67,12 +65,6 @@ const files = import.meta.glob("../../workflows/*.yaml", {
 
 /** Words keyed by domain name — stem matches `name` in the domain file. */
 const termFiles = import.meta.glob("../../packages/terms/*.yaml", {
-  eager: true,
-  import: "default",
-}) as Record<string, any>;
-
-/** Relation seeds from packages/core — stem matches domain `name`. Bridge only. */
-const coreFiles = import.meta.glob("../../packages/core/*.yaml", {
   eager: true,
   import: "default",
 }) as Record<string, any>;
@@ -106,18 +98,6 @@ const TERMS: Record<string, Terms> = Object.fromEntries(
   ]),
 );
 
-/** Definition names only — entry still mints `set_def` with form `line`. */
-const RELATIONS: Record<string, string[]> = Object.fromEntries(
-  Object.entries(coreFiles).map(([path, raw]) => [
-    stem(path),
-    Array.isArray(raw?.definitions)
-      ? raw.definitions
-          .map((d: any) => String(d?.name ?? "").trim())
-          .filter(Boolean)
-      : [],
-  ]),
-);
-
 function domain(raw: any): Domain {
   const name = String(raw?.name ?? "freeform");
   const prompts: Record<string, Wording> = {};
@@ -129,7 +109,6 @@ function domain(raw: any): Domain {
     name,
     lead: String(raw?.lead ?? ""),
     terms: TERMS[name] ?? GENERIC,
-    relations: RELATIONS[name] ?? [],
     prompts,
   };
 }

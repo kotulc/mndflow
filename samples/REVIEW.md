@@ -64,20 +64,11 @@ does; most keys here are good). The keys are doing more readability work than th
 records. Keep that: require meaningful `edge_*` keys in samples even though the
 runtime treats them as opaque.
 
-## The bad key
+## The bad key — fixed (Z.5)
 
-```json
-"undefined": {
-  "source": "block_page",
-  "target": "block_graph",
-  …
-}
-```
-
-Loads. Round-trips. Violates “ids say what they point at” (`edge_…`). Almost certainly
-a template slip when the file was authored. **Not load-breaking**; left as-is per H.2.
-Rename when next touching the sample (e.g. `edge_page_feeds_graph`).
-
+Was `"undefined"` on the Page→Graph feeds edge; renamed to `edge_page_feeds_graph`
+so the key says what it points at. Loads and round-trips either way; the opaque
+runtime never cared — only hand readers did.
 ## `meta` — should it carry more?
 
 Today: `steps` and `module` only. Spec: nothing in `meta` affects how a file is read;

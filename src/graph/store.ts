@@ -27,12 +27,14 @@ import { fold, isCheckpoint, stepsIn } from "./fold";
 import { ROOT, newId, step as makeStep, type Step } from "./types";
 
 /** The Chromium handle surface. Typed locally: the DOM lib this build uses
- *  does not yet name these, and a missing API is detected at the call site. */
+ *  does not yet name these, and a missing API is detected at the call site.
+ *  `getFile` only promises what we read — lastModified and text — so a test
+ *  stand-in is a real handle as far as this seam cares. */
 type FileHandle = {
   /** Present on real FileSystemFileHandle — used so a workspace export does
    *  not silently overwrite a bound project file (and the reverse). */
   name?: string;
-  getFile(): Promise<File>;
+  getFile(): Promise<{ lastModified: number; text(): Promise<string> }>;
   createWritable(): Promise<{
     write(data: string | Blob): Promise<void>;
     close(): Promise<void>;
@@ -89,7 +91,11 @@ export function canBind(): boolean {
 let held: { handle: FileHandle; known: number } | null = null;
 let drifted = false;
 let tick: ReturnType<typeof setInterval> | null = null;
-let pageWatched = false;
+/** Which document the focus / visibility listeners are on — a replaced
+ *  `document` (tests) must re-attach; the same tab must not double-bind. */
+let watchedDoc: Document | null = null;
+let onVisible: (() => void) | null = null;
+let onFocus: (() => void) | null = null;
 const listeners = new Set<(next: boolean) => void>();
 
 function sayDrift(next: boolean) {
@@ -117,13 +123,21 @@ async function permit(handle: FileHandle, mode: "read" | "readwrite"): Promise<b
 /** Re-check as soon as the tab is looked at again — the interval alone would
  *  leave drift invisible for up to two seconds after a switch back. */
 function watchPage(): void {
-  if (pageWatched || typeof document === "undefined") return;
-  pageWatched = true;
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) void poll();
-  });
+  if (typeof document === "undefined" || watchedDoc === document) return;
+
+  if (watchedDoc && onVisible) {
+    watchedDoc.removeEventListener("visibilitychange", onVisible);
+  }
+  if (onFocus && typeof globalThis.removeEventListener === "function") {
+    globalThis.removeEventListener("focus", onFocus);
+  }
+
+  watchedDoc = document;
+  onVisible = () => { if (!document.hidden) void poll(); };
+  onFocus = () => { void poll(); };
+  document.addEventListener("visibilitychange", onVisible);
   if (typeof globalThis.addEventListener === "function") {
-    globalThis.addEventListener("focus", () => { void poll(); });
+    globalThis.addEventListener("focus", onFocus);
   }
 }
 
@@ -135,6 +149,18 @@ async function take(handle: FileHandle, known?: number): Promise<void> {
   if (tick === null && typeof setInterval === "function") {
     tick = setInterval(() => { void poll(); }, 2000);
   }
+}
+
+/** Bind a live handle without the picker — hosts (and automation) that already
+ *  hold one. Same watch as a successful export / open. */
+export async function hold(handle: FileHandle, known?: number): Promise<void> {
+  await take(handle, known);
+}
+
+/** Re-check the bound file for drift now. Focus and the two-second tick also
+ *  do this; call it when a host knows the disk may have moved. */
+export async function probe(): Promise<void> {
+  await poll();
 }
 
 async function poll(): Promise<void> {
@@ -377,12 +403,6 @@ export function currentProject(): string {
   }
 }
 
-/** A fresh project id. Minting is deliberate now — only the `new` action does
- *  it, and only once a name has been accepted. */
-export function newProjectId(): string {
-  return newId("proj");
-}
-
 export function projectId(): string {
   try {
     const held = localStorage.getItem(CURRENT);
@@ -475,6 +495,53 @@ export function saveWorkspace(held: unknown): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Drop one project's log, and the session pointer with it when it named that
+ *  project.
+ *
+ *  The workspace list stays the caller's. The pointer does not: left naming a
+ *  key that is gone, the next load opens a ghost id — a blank canvas over
+ *  somebody else's tree, and the first edit writing the deleted project back
+ *  under its old key. */
+export function dropProject(id: string): boolean {
+  try {
+    localStorage.removeItem(stepsKey(id));
+    if (localStorage.getItem(CURRENT) === id) localStorage.removeItem(CURRENT);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Drop every keyed project log, the workspace filing list, and the session
+ *  pointer. Display preferences stay — they are not the session. The live
+ *  file handle goes too: nothing on disk is this session any more. */
+export function clearSession(): void {
+  release();
+  sayPressure(null);
+
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key) keys.push(key);
+    }
+
+    for (const key of keys) {
+      if (
+        key === CURRENT
+        || key === WORKSPACE
+        || key === LEGACY_STEPS
+        || (key.startsWith(STEPS_PREFIX) && key.endsWith(STEPS_SUFFIX))
+      ) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // Best-effort; the shell still resets what it holds in the tab.
   }
 }
 

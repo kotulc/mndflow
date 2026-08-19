@@ -6,7 +6,7 @@
 
 import { childrenOf, isPort, nameOf, nextNum } from "../graph/fold";
 import {
-  edge as makeEdge, element as makeElement,
+  defIdFor, edge as makeEdge, element as makeElement,
   type Dir, type EdgeForm, type Flow, type Mutation, type Side,
 } from "../graph/types";
 import { register, type Action, type Args, type Context, type Effect } from "./index";
@@ -124,6 +124,8 @@ const mark: Action = {
   label: "Mark",
   about: "marks an interface as in, out, both, or clears the mark",
   scope: { on: "element", form: "interface" },
+  // The marks are the entries — a menu asks no questions (R.5).
+  expand: true,
   args: [
     { kind: "element", name: "id", optional: true },
     { kind: "choice", name: "flow", options: [...FLOWS] },
@@ -155,6 +157,11 @@ const relate: Action = {
     { kind: "element", name: "from" },
     { kind: "element", name: "to" },
     { kind: "choice", name: "form", options: [...FORMS], optional: true },
+    // What kind of relationship this is, by name. Optional, because a drag
+    // that says nothing still draws a plain line; supplied, it is what the
+    // canvas's relation-types group picks before the drag (V.17a). A name
+    // nothing declares becomes a definition — `defineNamed` is the bridge.
+    { kind: "text", name: "type", optional: true },
   ],
   check: (ctx, args) => {
     const from = typeof args.from === "string" ? args.from : "";
@@ -170,22 +177,45 @@ const relate: Action = {
   run: (ctx, args): Effect => {
     const from = args.from as string;
     const to = args.to as string;
-    const form = as_form(args.form) ?? "line";
+    const named = String(args.type ?? "").trim();
     const ports = ports_of(args);
     const sides = sides_of(args);
+    const mutations: Mutation[] = [];
+
+    // A path (`pkg_x/def_y`) or a bare id already addresses a definition, so it
+    // is used as it stands. Only a bare *name* nothing declares is minted —
+    // `defineNamed`'s bridge — and minting one for an imported type would put
+    // a local stub under a derived id in front of the package's own.
+    const declared = ctx.graph.defs[named] || named.includes("/");
+    const held = declared
+      ? undefined
+      : Object.values(ctx.graph.defs).find(
+          (d) => d.name.trim().toLowerCase() === named.toLowerCase(),
+        );
+    const type = named ? (declared ? named : (held?.id ?? defIdFor(named))) : "";
+    if (named && !declared && !held) {
+      mutations.push({ op: "set_def", id: type, name: named, form: "line" });
+    }
+    // A named type carries its own form; the toolbar's setting is what an
+    // untyped drag uses. `form` always arrives from the gesture, so leaving
+    // this to `??` would never consult the type at all.
+    const form = as_form(args.form) ?? "line";
 
     // It makes no interfaces. Where a line meets each card is worked out by
     // the layer it is drawn in. An end that landed on an interface somebody
     // made keeps it — that one is a choice, and choices are stored.
+    mutations.push({
+      op: "link_elements",
+      edge: makeEdge(from, to, {
+        form,
+        type,
+        from: ports.from, to: ports.to,
+        fromSide: sides.from, toSide: sides.to,
+      }),
+    });
+
     return {
-      mutations: [{
-        op: "link_elements",
-        edge: makeEdge(from, to, {
-          form,
-          from: ports.from, to: ports.to,
-          fromSide: sides.from, toSide: sides.to,
-        }),
-      }],
+      mutations,
       say: `link: ${nameOf(ctx.graph, ctx.graph.elements[from]) || from}`,
     };
   },
@@ -260,6 +290,8 @@ const direct: Action = {
   label: "Direct",
   about: "sets which way a relationship's arrows point",
   scope: { on: "edge" },
+  // The directions are the entries; this is the edge menu's only home (R.6).
+  expand: true,
   args: [
     { kind: "text", name: "id", optional: true },
     { kind: "choice", name: "dir", options: [...DIRS] },
@@ -287,6 +319,8 @@ const reform: Action = {
   label: "Reform",
   about: "sets whether a relationship is a plain line or a directed one",
   scope: { on: "edge" },
+  // The forms are the entries; this is the edge menu's only home (R.6).
+  expand: true,
   args: [
     { kind: "text", name: "id", optional: true },
     { kind: "choice", name: "form", options: [...FORMS] },

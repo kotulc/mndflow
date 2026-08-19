@@ -96,8 +96,14 @@ function placement(step: Step | undefined): string | null {
 }
 
 /** One project's log and every action on it. The page picks which project is
- *  in context by passing its id — this hook does not decide. */
-export function useProject(projectId: string, locked = false) {
+ *  in context by passing its id — this hook does not decide.
+ *
+ *  `onAdmit` is the workspace door for a mutation that mints a project rather
+ *  than writing into one already open — `infer`'s fresh behavior project is
+ *  the one caller today. Held state (which projects the workspace lists) is
+ *  the page's, not this hook's, so admitting is the page's own `openIn`,
+ *  called back through here rather than duplicated. */
+export function useProject(projectId: string, locked = false, onAdmit?: (id: string) => void) {
   // Compacted on the way in as well: an imported or long-idle log can arrive
   // over the cap without this session having added a thing.
   /** What the strip should say from this project — a repaired log, or an
@@ -295,8 +301,11 @@ export function useProject(projectId: string, locked = false) {
    *
    *  `into` on the effect routes the primary step to that project's log
    *  through the door ({@link workspace.writeInto}); absent or matching
-   *  `bound` keeps the ordinary commit. `home` batches are further writes
-   *  into structure projects via {@link home} — same door, not a second path. */
+   *  `bound` keeps the ordinary commit. `admit` follows a successful write —
+   *  the mint gets a place in the workspace, the same door a dropped block or
+   *  the bar's control reaches, so nothing that makes a project keeps its own
+   *  path (P.3). `home` batches are further writes into structure projects via
+   *  {@link home} — same door, not a second path. */
   const enact = (name: string, args: Args = {}): Effect | null => {
     const outcome = run(name, { graph, view, picked, locked, project: bound }, args);
     if ("refused" in outcome) {
@@ -321,6 +330,7 @@ export function useProject(projectId: string, locked = false) {
           });
           return null;
         }
+        if (outcome.admit) onAdmit?.(target);
       } else {
         commit(makeStep(outcome.say ?? name, name, outcome.mutations));
       }
@@ -420,9 +430,9 @@ export function useProject(projectId: string, locked = false) {
       go("relate", { from, to, form, ...(ports ? { ports } : {}), ...(sides ? { sides } : {}) }),
     link: (source: string, target: string, form: EdgeForm = "line") =>
       go("relate", { from: source, to: target, form }),
-    wire: (a: End, b: End, form: EdgeForm = "line") =>
+    wire: (a: End, b: End, form: EdgeForm = "line", type = "") =>
       go("relate", {
-        from: a.node, to: b.node, form,
+        from: a.node, to: b.node, form, type,
         ports: { from: a.port, to: b.port },
         sides: { from: a.side, to: b.side },
       }),
@@ -506,7 +516,7 @@ export function useProject(projectId: string, locked = false) {
       go("arrange", { spots, notes }),
     relax: (layer?: string | null) =>
       go("relax", layer !== undefined ? { layer } : {}),
-    vocabulary: (name: string) => go("vocabulary", { name }),
+    vocabulary: (packages: string[]) => go("vocabulary", { packages }),
 
     place: (moved: { id: string; x: number; y: number }[], what = "",
             membership: { attr: string; holder: string; join: boolean }[] = []) =>
@@ -664,6 +674,8 @@ export function useProject(projectId: string, locked = false) {
     redo,
     /** Land mutations in a named project's log — see {@link home}. */
     home,
+    /** Run any registry action by name — menu and rail reach `infer` here. */
+    go,
     // Queries — readable state, off the action surface.
     nameTaken: (parent: string | null, label: string, except: string | null = null) =>
       !nameFree(graph, parent, label, except),

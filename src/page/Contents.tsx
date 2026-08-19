@@ -18,7 +18,17 @@
  *
  *  Constraints and rules advise here and never refuse. A model is unfinished
  *  by nature while somebody is still drawing it; a note in the tray and a
- *  line in the strip say what is missing, and every edit still goes through. */
+ *  line in the strip say what is missing, and every edit still goes through.
+ *
+ *  **Two sizes, two inputs (W.2).** At full stage size the selection never
+ *  narrows the table — it is always the whole open layer, plus the crumb
+ *  trail Panel forces open there. At partial size the table reads what is
+ *  picked instead: a container (a group, or a block that holds something)
+ *  narrows to its own contents; a note or a leaf block has no children to
+ *  filter into rows, so its own opened-out row is shown on its own; a
+ *  relationship has neither, so its one summary row is the honest stop.
+ *  Nothing picked is the layer either way, keeping the two sizes honest
+ *  with each other. */
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -33,10 +43,13 @@ import { field as blankField, refAt } from "../graph/types";
 import { LAYOUTS, LABELS, PLAIN, SHAPES, type CardConfig } from "../modules/card";
 import { constraintsOf } from "../modules/constraints";
 import { among, rulesOf, type Bound } from "../modules/rules";
-import { SETS } from "../modules/style";
+import { EMPHASES, SETS, SLOTS, VOICES, WEIGHTS } from "../modules/style";
+import { Crumbs, takesRef } from "../modules/view/diagram";
+import { trailOf } from "../modules/view/table";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
 import { defOf, gather, packs, scoped } from "../workspace";
+import { Icon } from "../modules/icons";
 
 /** What a row is, which is also how it is filtered and what it lights. */
 type Sort = "block" | "interface" | "group" | "note" | "relationship" | "definition";
@@ -71,7 +84,6 @@ const HEADS: NonNullable<Definition["head"]>[] = ["none", "open", "filled", "hol
 type DefPatch = {
   fields?: Field[];
   body?: string;
-  color?: string;
   icon?: string;
   line?: Definition["line"];
   head?: Definition["head"];
@@ -95,11 +107,11 @@ const ELEM: Set<string> = new Set<ElemForm>([
   "block", "note", "group", "proxy",
 ]);
 
-/** Definitions in scope for the type cell: shipped packages in catalog order,
- *  then this project's own. Two alike names stay two offers — SC.4. */
+/** Definitions in scope for the type cell: packages this project imports, then
+ *  its own. Two alike names stay two offers — SC.4. */
 function offerings(graph: Graph): Offer[] {
+  const order = graph.vocabulary;
   const catalog = packs();
-  const order = Object.keys(catalog);
   const open = gather(order);
   const out: Offer[] = [];
 
@@ -178,6 +190,15 @@ type Props = {
   view: string | null;
   picked: { kind: string; id: string } | null;
   unit: string;
+  /** Descend into a row, or navigate the crumb trail (null = project). */
+  onOpen: (id: string | null) => void;
+  /** Trail for the crumbs. Derived from the graph when the page omits it. */
+  path?: string[];
+  /** One layer up. Defaults to opening the open layer's parent. */
+  onUp?: () => void;
+  /** The table view at full stage size (W.1) — the crumb trail only draws
+   *  here; the partial tray keeps Panel's own single-name bar. */
+  full?: boolean;
   onPick: (next: { kind: "node" | "edge"; id: string } | null) => void;
   onHint: (next: Grazed) => void;
   onRename: (id: string, label: string) => void;
@@ -199,6 +220,13 @@ type Props = {
   /** Make or amend a project definition — fields, body, presentation. */
   onDefine: (name: string, id?: string, form?: string, patch?: DefPatch) => void;
   onUndefine: (id: string) => void;
+  /** Place a proxy of a dragged explorer row in this layer (P.7). Only the
+   *  stage-sized table takes the drop: at partial size the table is scoped to
+   *  what is in focus, and the proxy would land in the layer instead. */
+  onRefer?: (target: string) => void;
+  /** Fields given a column of their own, beyond the fixed head (P.8). The
+   *  rail picks them and the table draws them — empty is the default set. */
+  columns?: string[];
 };
 
 /** What a block's row says about it: what it holds, and what it is wired to. */
@@ -427,6 +455,16 @@ function styleOn(def: Definition): string {
   return typeof set === "string" ? set : "";
 }
 
+/** The four closed dials `style` carries — a definition picks within the
+ *  theme's palette and the theme's weights, and names neither. */
+type Dial = "slot" | "emphasis" | "weight" | "voice";
+
+/** One `style` dial a definition has set, or "" for the component's default. */
+function dialOn(def: Definition, key: Dial): string {
+  const held = def.components?.style?.[key];
+  return typeof held === "string" ? held : "";
+}
+
 /** The declaration a usage's type names for this field, if any.
  *
  *  Form, unit, choices and many live on the definition; the usage holds the
@@ -492,9 +530,7 @@ function ChoicesList({ choices, onChange }: {
               const next = choices.filter((c) => c !== choice);
               onChange(next.length ? next : undefined);
             }}
-          >
-            ✕
-          </button>
+          ><Icon name="remove" /></button>
         </span>
       ))}
       <input
@@ -532,9 +568,7 @@ function TagsEdit({ tags, onChange }: {
               stop(event);
               onChange(tags.filter((t) => t !== tag));
             }}
-          >
-            ✕
-          </button>
+          ><Icon name="remove" /></button>
         </span>
       ))}
       <input
@@ -696,7 +730,8 @@ export function Contents(props: Props) {
   const { graph, view, picked, unit, onPick, onHint, onRename, onRetype } = props;
   const { onRelation, onNameTaken, onSay, onDelete, onUnlink, onSave, onSetDir, onFlip } = props;
   const { onMarkPort, onAddField, onUpdateField, onDropField, onLeaveGroup, onReveal } = props;
-  const { onDefine, onUndefine } = props;
+  const { onDefine, onUndefine, onOpen, path, onUp, full = false, onRefer } = props;
+  const { columns = [] } = props;
   const [only, setOnly] = useState<Sort | "all">("all");
   const [by, setBy] = useState<"name" | "sort">("sort");
   const [down, setDown] = useState(false);
@@ -708,11 +743,25 @@ export function Contents(props: Props) {
   const [opened, setOpened] = useState<string | null>(null);
   const [over, setOver] = useState<Row | null>(null);
 
+  // W.2: the tray shows the contents of whatever is in focus. Full ignores
+  // the selection outright — the whole point of the two sizes reading
+  // different inputs; partial reads it, and nothing picked is the layer.
+  const focusId = full ? null : (picked?.id ?? null);
+
+  /** A block that holds something narrows to its own contents, exactly the
+   *  way opening a layer would — the "row filter" half of what focus means. */
+  const container = focusId && graph.elements[focusId]?.form === "block"
+    && isContainer(graph, focusId) ? focusId : null;
+
+  /** The layer the table draws over — the focused container's when there is
+   *  one, the open layer otherwise. */
+  const scope = container ?? view;
+
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
     const said = (id: string) => graph.elements[id]?.body ?? "";
 
-    for (const node of blocksOf(graph, view)) {
+    for (const node of blocksOf(graph, scope)) {
       out.push({
         id: node.id, sort: "block", name: nameOf(graph, node),
         detail: blockDetail(graph, node.id, unit),
@@ -731,7 +780,7 @@ export function Contents(props: Props) {
     }
 
     // The frame's own interfaces belong to the layer, not to a card in it.
-    for (const port of portsOf(graph, view)) {
+    for (const port of portsOf(graph, scope)) {
       out.push({
         id: port.id, sort: "interface", name: nameOf(graph, port),
         detail: `frame · ${port.side}${port.flow ? ` · ${port.flow}` : ""}`,
@@ -740,7 +789,7 @@ export function Contents(props: Props) {
       });
     }
 
-    for (const { attr } of groupsIn(graph, view)) {
+    for (const { attr } of groupsIn(graph, scope)) {
       const held = membersOf(graph, attr.id).length;
       out.push({
         id: attr.id, sort: "group", name: nameOf(graph, attr),
@@ -750,7 +799,7 @@ export function Contents(props: Props) {
       });
     }
 
-    for (const note of notesIn(graph, view)) {
+    for (const note of notesIn(graph, scope)) {
       const tied = tiesOf(graph, note.id).length;
       out.push({
         id: note.id, sort: "note", name: nameOf(graph, note),
@@ -760,7 +809,7 @@ export function Contents(props: Props) {
       });
     }
 
-    for (const edge of edgesIn(graph, view)) {
+    for (const edge of edgesIn(graph, scope)) {
       out.push({
         id: edge.id, sort: "relationship", name: typeName(graph, edge.type ?? ""),
         detail: `${nameOf(graph, graph.elements[edge.source])} ${ARROW[edge.dir]} ` +
@@ -771,7 +820,7 @@ export function Contents(props: Props) {
     }
 
     return out;
-  }, [graph, view, unit]);
+  }, [graph, scope, unit]);
 
   /** This project's definitions only — packages resist editing. */
   const types = useMemo<Row[]>(() => {
@@ -799,8 +848,23 @@ export function Contents(props: Props) {
     const counts = new Map<string, number>();
     for (const o of all) counts.set(o.name, (counts.get(o.name) ?? 0) + 1);
 
-    return { typeOffers: all, typeCounts: counts, typeOpen: gather(Object.keys(packs())) };
+    return { typeOffers: all, typeCounts: counts, typeOpen: gather(graph.vocabulary) };
   }, [graph]);
+
+  /** A group narrows the same way a container does, but by membership
+   *  rather than nesting — its members are siblings, not its own children,
+   *  so they are filtered out of what the layer already lists. */
+  const groupId = !container && focusId && graph.elements[focusId]?.form === "group"
+    ? focusId : null;
+  const memberIds = useMemo(
+    () => (groupId ? new Set(membersOf(graph, groupId).map((m) => m.id)) : null),
+    [graph, groupId],
+  );
+
+  /** Nothing else in focus has children of its own to list — a note, a leaf
+   *  block, a relationship. Its own opened-out row is the whole answer
+   *  (W.2): not a row filter, the one case that is not. */
+  const openingId = focusId && !container && !groupId ? focusId : null;
 
   const shown = useMemo(() => {
     // Types are project-level: they never mix into the layer's "all".
@@ -810,7 +874,8 @@ export function Contents(props: Props) {
       return down ? sorted.reverse() : sorted;
     }
 
-    const kept = only === "all" ? rows : rows.filter((r) => r.sort === only);
+    const base = memberIds ? rows.filter((r) => r.sort === "block" && memberIds.has(r.id)) : rows;
+    const kept = only === "all" ? base : base.filter((r) => r.sort === only);
     const order = ["block", "interface", "relationship", "group", "note"];
     // Defensively: one row with something missing must not take the panel
     // down, which is what an unguarded compare did.
@@ -820,22 +885,43 @@ export function Contents(props: Props) {
       : order.indexOf(a.sort) - order.indexOf(b.sort) || named(a).localeCompare(named(b))));
 
     return down ? sorted.reverse() : sorted;
-  }, [rows, types, only, by, down]);
+  }, [rows, types, only, by, down, memberIds]);
+
+  /** The one row `openingId` names, opened out on its own — undefined only
+   *  while the graph and the pick are momentarily out of step. */
+  const openingRow = openingId ? rows.find((r) => r.id === openingId) ?? null : null;
 
   // Strip on selection change — tray click or canvas pick alike. Not on every
   // graph edit: filling a missing field should not keep restating the rest.
+  // Read straight off the graph rather than `rows`, which W.2 can now scope
+  // away from whatever was just picked.
   useEffect(() => {
     if (!picked) return;
-    const row = rows.find((r) => r.id === picked.id);
-    if (row) advise(row.notes, onSay);
+    const edge = graph.edges[picked.id];
+    const node = graph.elements[picked.id];
+    advise(edge ? edgeNotes(graph, edge) : node ? elementNotes(graph, node) : [], onSay);
   }, [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps — id only
+
+  /** What one chosen column says about a row (P.8): the field's value, or
+   *  nothing where that row does not carry it. A definition's own declared
+   *  default answers for a type row, so the column reads the same either way. */
+  const cell = (row: Row, name: string): string => {
+    // Through the proxy, as the name column already reads: a reference shows
+    // what the block it stands for says, or the column is blank for every
+    // referenced row.
+    const held = row.sort === "definition"
+      ? (graph.defs[row.id]?.fields ?? [])
+      : fieldsOf(graph, actual(graph, row.id)?.id ?? row.id);
+
+    return held.find((f) => f.name === name)?.value ?? "";
+  };
 
   const head = (key: "name" | "sort", label: string) => (
     <th
       className={`sortable ${by === key ? "on" : ""}`}
       onClick={() => (by === key ? setDown(!down) : (setBy(key), setDown(false)))}
     >
-      {label}{by === key ? (down ? " ▾" : " ▴") : ""}
+      {label}{by === key ? <Icon name={down ? "sort_down" : "sort_up"} /> : null}
     </th>
   );
 
@@ -865,6 +951,15 @@ export function Contents(props: Props) {
     amend(def, { components });
   }
 
+  /** One `style` dial, merged into the key rather than replacing it — `set`,
+   *  `slot` and `emphasis` are three answers under one component. */
+  function setDial(def: Definition, key: Dial, value: string) {
+    const held = { ...(def.components?.style ?? {}) };
+    if (value) held[key] = value;
+    else delete held[key];
+    setComponent(def, "style", Object.keys(held).length ? held : null);
+  }
+
   /** The buttons a row carries: whatever that kind can be told to do. Between
    *  them they cover everything the selection panel used to change. */
   function doing(row: Row) {
@@ -878,10 +973,8 @@ export function Contents(props: Props) {
             className={opened === row.id ? "on" : ""}
             title="Fields, defaults, and how it draws"
             onClick={stop(() => setOpened(opened === row.id ? null : row.id))}
-          >
-            ✎
-          </button>
-          <button title="Drop this type" onClick={stop(() => onUndefine(row.id))}>✕</button>
+          ><Icon name="rename" /></button>
+          <button title="Drop this type" onClick={stop(() => onUndefine(row.id))}><Icon name="remove" /></button>
         </>
       );
     }
@@ -895,8 +988,10 @@ export function Contents(props: Props) {
         <>
           <button title={`Direction: ${dir}`}
                   onClick={stop(() => onSetDir(row.id, next))}>{ARROW[dir]}</button>
-          <button title="Turn it around" onClick={stop(() => onFlip(row.id))}>⇄</button>
-          <button title="Remove this relationship" onClick={stop(() => onUnlink(row.id))}>✕</button>
+          <button title="Turn it around" onClick={stop(() => onFlip(row.id))}>
+              <Icon name="flip" />
+            </button>
+          <button title="Remove this relationship" onClick={stop(() => onUnlink(row.id))}><Icon name="remove" /></button>
         </>
       );
     }
@@ -922,10 +1017,8 @@ export function Contents(props: Props) {
           className={opened === row.id ? "on" : ""}
           title="What it says, and what it carries"
           onClick={stop(() => setOpened(opened === row.id ? null : row.id))}
-        >
-          ✎
-        </button>
-        <button title="Delete it" onClick={stop(() => onDelete(row.id))}>✕</button>
+        ><Icon name="rename" /></button>
+        <button title="Delete it" onClick={stop(() => onDelete(row.id))}><Icon name="remove" /></button>
       </>
     );
   }
@@ -941,7 +1034,7 @@ export function Contents(props: Props) {
 
     return (
       <tr className="opened" key={`${row.id}-open`}>
-        <td colSpan={5}>
+        <td colSpan={5 + columns.length}>
           <textarea
             defaultValue={def.body ?? ""}
             placeholder={`What is a "${def.name}"?`}
@@ -1024,7 +1117,7 @@ export function Contents(props: Props) {
                   onChange={(tags) => setDeclared(def, held.name, { ...held, tags })}
                 />
                 <button title="Remove it"
-                        onClick={() => setDeclared(def, held.name, null)}>✕</button>
+                        onClick={() => setDeclared(def, held.name, null)}><Icon name="remove" /></button>
               </span>
             ))}
             <input
@@ -1042,13 +1135,53 @@ export function Contents(props: Props) {
             />
           </div>
           <div className="carries">
+            {/* Two dials rather than a colour (Y.7): the theme owns the
+                palette and a definition chooses within it, so there is no
+                value here that can look wrong in one theme and right in
+                another. */}
             <span className="held value">
-              colour
-              <Draft
-                value={def.color ?? ""}
-                placeholder="#…"
-                onCommit={(color) => amend(def, { color: color.trim() || undefined })}
-              />
+              slot
+              <select
+                value={dialOn(def, "slot")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "slot", event.target.value)}
+              >
+                <option value="">—</option>
+                {SLOTS.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+              </select>
+            </span>
+            <span className="held value">
+              emphasis
+              <select
+                value={dialOn(def, "emphasis")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "emphasis", event.target.value)}
+              >
+                <option value="">—</option>
+                {EMPHASES.map((how) => <option key={how} value={how}>{how}</option>)}
+              </select>
+            </span>
+            <span className="held value">
+              weight
+              <select
+                value={dialOn(def, "weight")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "weight", event.target.value)}
+              >
+                <option value="">—</option>
+                {WEIGHTS.map((w) => <option key={w} value={w}>{w}</option>)}
+              </select>
+            </span>
+            <span className="held value">
+              voice
+              <select
+                value={dialOn(def, "voice")}
+                onClick={stop}
+                onChange={(event) => setDial(def, "voice", event.target.value)}
+              >
+                <option value="">—</option>
+                {VOICES.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
             </span>
             <span className="held value">
               line
@@ -1093,7 +1226,10 @@ export function Contents(props: Props) {
                 onClick={stop}
                 onChange={(event) => {
                   const set = event.target.value;
-                  setComponent(def, "style", set ? { set } : null);
+                  const held = { ...(def.components?.style ?? {}) };
+                  if (set) held.set = set;
+                  else delete held.set;
+                  setComponent(def, "style", Object.keys(held).length ? held : null);
                 }}
               >
                 <option value="">—</option>
@@ -1169,7 +1305,7 @@ export function Contents(props: Props) {
 
     return (
       <tr className="opened" key={`${row.id}-open`}>
-        <td colSpan={5}>
+        <td colSpan={5 + columns.length}>
           <textarea
             defaultValue={row.body}
             placeholder={`What is "${row.name}" for?`}
@@ -1181,7 +1317,7 @@ export function Contents(props: Props) {
               <span className="held" key={id}>
                 {nameOf(graph, graph.elements[id])}
                 <button title="Out of the group"
-                        onClick={() => onLeaveGroup(row.id, id)}>✕</button>
+                        onClick={() => onLeaveGroup(row.id, id)}><Icon name="remove" /></button>
               </span>
             ))}
             {held.map((held) => {
@@ -1199,7 +1335,7 @@ export function Contents(props: Props) {
                     tags={held.tags}
                     onChange={(tags) => onUpdateField(row.id, held.name, { tags })}
                   />
-                  <button title="Remove it" onClick={() => onDropField(row.id, held.name)}>✕</button>
+                  <button title="Remove it" onClick={() => onDropField(row.id, held.name)}><Icon name="remove" /></button>
                 </span>
               );
             })}
@@ -1235,20 +1371,39 @@ export function Contents(props: Props) {
     );
   }
 
+  // W.1: the crumb trail draws only at full stage size — the partial tray
+  // keeps Panel's own single-name bar, exactly as the old full-size table
+  // did alongside its own tray-bar.
+  const trail = path ?? trailOf(graph, view);
+  const climb = onUp ?? (() => {
+    if (!view) { onOpen(null); return; }
+    onOpen(graph.elements[view]?.parent ?? null);
+  });
+
   return (
-    <div className="contents" onMouseLeave={() => (onHint(null), setOver(null))}>
-      <div className="contents-tabs">
-        {FILTERS.map(({ sort, label }) => (
-          <button
-            key={sort}
-            className={only === sort ? "on" : ""}
-            disabled={sort !== "definition" && counted(sort) === 0}
-            onClick={() => setOnly(sort)}
-          >
-            {label} <i>{counted(sort)}</i>
-          </button>
-        ))}
-      </div>
+    <div
+      className="contents"
+      onMouseLeave={() => (onHint(null), setOver(null))}
+      {...(full && onRefer ? takesRef(onRefer) : {})}
+    >
+      {full && (
+        <Crumbs graph={graph} view={view} path={trail} onOpen={onOpen} onUp={climb} />
+      )}
+
+      {!openingRow && (
+        <div className="contents-tabs">
+          {FILTERS.map(({ sort, label }) => (
+            <button
+              key={sort}
+              className={only === sort ? "on" : ""}
+              disabled={sort !== "definition" && counted(sort) === 0}
+              onClick={() => setOnly(sort)}
+            >
+              {label} <i>{counted(sort)}</i>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* What the selection panel used to say, where the pointer already is.
           Read-only — changing something is what the row's buttons are for.
@@ -1276,21 +1431,24 @@ export function Contents(props: Props) {
         </div>
       )}
 
-      {shown.length === 0 && only !== "definition" ? (
+      {!openingRow && shown.length === 0 && only !== "definition" ? (
         <p className="empty">Nothing in this layer yet</p>
       ) : (
         <table className="contents-table">
-          <thead>
-            <tr>
-              {head("sort", "kind")}
-              {head("name", "name")}
-              <th>what</th>
-              <th>{only === "definition" ? "form" : "type"}</th>
-              <th />
-            </tr>
-          </thead>
+          {!openingRow && (
+            <thead>
+              <tr>
+                {head("sort", "kind")}
+                {head("name", "name")}
+                <th>what</th>
+                <th>{only === "definition" ? "form" : "type"}</th>
+                {columns.map((name) => <th key={name}>{name}</th>)}
+                <th />
+              </tr>
+            </thead>
+          )}
           <tbody>
-            {shown.flatMap((row) => [
+            {(openingRow ? [openingRow] : shown).flatMap((row) => [
               <tr
                 key={row.id}
                 className={picked?.id === row.id ? "picked" : ""}
@@ -1309,6 +1467,14 @@ export function Contents(props: Props) {
                     return;
                   }
                   onPick({ kind: row.edge ? "edge" : "node", id: row.id });
+                }}
+                onDoubleClick={(event) => {
+                  // The name cell owns its own double-click (rename) and the
+                  // doing/type cells own theirs; everywhere else on a block's
+                  // row, descend — the gesture the deleted Table/Row carried.
+                  if (row.sort !== "block" || !row.renameable) return;
+                  if ((event.target as HTMLElement).closest("td.doing, td.type")) return;
+                  onOpen(row.id);
                 }}
               >
                 <td className="sort">{row.sort === "definition" ? "type" : row.sort}</td>
@@ -1414,13 +1580,25 @@ export function Contents(props: Props) {
                     </span>
                   )}
                 </td>
+                {columns.map((name) => (
+                  <td className="field" key={name}>
+                    {cell(row, name) || <span className="none">—</span>}
+                  </td>
+                ))}
                 <td className="doing">{doing(row)}</td>
               </tr>,
-              ...(opened === row.id ? [detail(row)] : []),
+              // A single opened focus (W.2) stays open — except a relationship,
+              // which has no "opened" detail today (`doing` offers it no
+              // toggle either): its ends already sit in the "what" column, and
+              // "what it could be" is R.9's, so the summary row is the honest
+              // stopping point here rather than an editable field that would
+              // always be refused. Anything else follows the row's own toggle.
+              ...(openingRow ? (row.edge ? [] : [detail(row)])
+                : opened === row.id ? [detail(row)] : []),
             ])}
-            {only === "definition" && (
+            {!openingRow && only === "definition" && (
               <tr key="add-type" className="opened">
-                <td colSpan={5}>
+                <td colSpan={5 + columns.length}>
                   <input
                     className="add-attr"
                     placeholder="+ type"

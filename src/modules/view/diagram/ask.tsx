@@ -6,6 +6,7 @@
 
 import { relationNames, typeName } from "../../../graph/fold";
 import { LEAF } from "../../../geometry/layout";
+import { Icon } from "../../icons";
 import type { EdgeForm, End, Graph } from "../../../graph/types";
 
 /** What the floating input is asking for. One prompt, several errands. */
@@ -77,7 +78,7 @@ export function Ask({
               {act.label}
             </button>
           ))}
-          <button onClick={onHeard} title="Dismiss">✕</button>
+          <button onClick={onHeard} title="Dismiss"><Icon name="remove" /></button>
         </div>
       )}
 
@@ -98,14 +99,14 @@ export function Ask({
             {relationNames(graph).map((name) => <option key={name} value={name} />)}
           </datalist>
           <button onClick={() => (onUnlink(prompt.id), setPrompt(null))} title="Remove it">
-            ✕
+            <Icon name="remove" />
           </button>
         </div>
       )}
 
       {prompt?.kind === "rename" && (
         <div className="floating">
-          <span className="caret">✎</span>
+          <span className="caret"><Icon name="rename" /></span>
           <input
             autoFocus
             className={clash ? "clash" : undefined}

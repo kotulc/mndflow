@@ -23,6 +23,7 @@ import { STATE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "state", kind: "behavior", word: "state", creates: "state",
+  name: "state", kind: "behavior", word: "state", icon: "view_state", creates: "state",
   surface: STATE,
+  chrome: ["flow", "arrange"],
 });

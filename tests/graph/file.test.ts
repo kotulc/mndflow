@@ -22,7 +22,7 @@ function sample(): { graph: Graph; steps: number } {
   const group = element("Set", { form: "group", parent: null });
   const mutations: Mutation[] = [
     { op: "update_element", id: ROOT, label: "Rig" },
-    { op: "set_vocabulary", vocabulary: "software" },
+    { op: "set_vocabulary", vocabulary: ["pkg_software"] },
     { op: "add_element", element: a },
     { op: "add_element", element: b },
     { op: "add_element", element: note },

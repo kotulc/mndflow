@@ -22,14 +22,16 @@
  *  Nothing here draws the explorer, the tray, or an export bundle. */
 
 import { entering, type Fault } from "../graph/check";
-import { compact, fold, nextNum, titleOf } from "../graph/fold";
+import { compact, descendsFrom as descends, fold, nextNum, titleOf } from "../graph/fold";
 import { loadProject, loadWorkspace, saveProject, saveWorkspace } from "../graph/store";
 import {
-  EMPTY, ROOT, asTarget, defIdFor, definition, element, field, newId, refAt, refTo,
-  step as makeStep,
+  EMPTY, ROOT, asTarget, asVocabulary, defIdFor, definition, element, field, newId,
+  refAt, refTo, stemOf, step as makeStep,
   type Definition, type EdgeForm, type ElemForm, type Element, type Field,
   type Graph, type Mutation, type Spot, type Step,
 } from "../graph/types";
+
+export { stemOf };
 
 /** What the workspace key holds, apart from every project's log. */
 export type Held = {
@@ -199,11 +201,155 @@ export function mayName(
   return null;
 }
 
+/** The package a project with no domain of its own starts from — the
+ *  relationship kinds a model is built out of, which `packages/core/freeform`
+ *  says in its own first line. Without it a new project imports nothing, and
+ *  the type picker offers nothing at all.
+ *
+ *  A `core/` file is its own package: the folder has no `definitions.yaml`, so
+ *  each domain there is keyed by its file stem, not by `core`. */
+const BASE = "freeform";
+
 /** The log a newly named project starts from — naming it is its first step, and
- *  what makes it real enough to store and to list. */
+ *  what makes it real enough to store and to list.
+ *
+ *  The naming carries the base import with it. `vocabulary` is the list of
+ *  packages a project uses (D.2), and everything reading types reads that list
+ *  — so a project that imports nothing offers nothing, which is a blank type
+ *  picker on the first thing a new user meets. */
 export function started(name: string): Step[] {
-  return [makeStep(`new project: ${name.trim()}`, "rename",
-                   [{ op: "update_element", id: ROOT, label: name.trim() }])];
+  return [makeStep(`new project: ${name.trim()}`, "rename", [
+    { op: "update_element", id: ROOT, label: name.trim() },
+    { op: "set_vocabulary", vocabulary: [packId(BASE)] },
+  ])];
+}
+
+/** Name a project into the workspace — unlock and fork's sibling.
+ *
+ *  The project exists once named: required, unique, then a log whose first
+ *  step is that naming. Never mints an untitled blank. The caller stores the
+ *  steps and adopts the id; nothing here touches a project key. */
+export function begin(
+  held: Held,
+  workspace: Graph,
+  name: string,
+  taken: Record<string, string>,
+  parent: string | null = null,
+  spot?: Spot,
+): { held: Held; id: string; steps: Step[]; mutations: Mutation[] } | { refuse: string } {
+  const why = mayName(taken, name);
+  if (why) return { refuse: why };
+
+  const id = newId("proj");
+  const admitted = admit(held, workspace, id, parent, spot);
+  if ("refuse" in admitted) return admitted;
+
+  return {
+    held: admitted.held,
+    id,
+    steps: started(name),
+    mutations: admitted.mutations,
+  };
+}
+
+/** Everything a block's subtree needs to stand up in another project's log.
+ *
+ *  **A project is a log, not only a place**, so a block cannot simply *move*
+ *  between two: it is written into the destination and deleted from the source,
+ *  as two steps in two logs. This half builds the writing; the deleting is the
+ *  ordinary `delete` action, which already cascades to descendants and sheds
+ *  what the block was joined to.
+ *
+ *  **What travels**: the block re-parented to `parent`, every descendant as it
+ *  stood, every relationship with *both* ends inside the subtree, and the
+ *  definitions those elements name — without the last, a promoted block would
+ *  silently lose its types, which is the same kind of quiet loss the strip
+ *  exists to prevent. Packages the source imported travel too, **added to what
+ *  the destination already imports** rather than replacing them, so a type held
+ *  in a package still resolves and the destination keeps its own.
+ *
+ *  **What does not**: a relationship with one end left behind. That is Clay's
+ *  call — nothing stands in for the block it left — so {@link lost} counts them
+ *  and the caller says so. */
+export function extraction(
+  from: Graph,
+  id: string,
+  parent: string | null = null,
+  becomes: "root" | "child" = "child",
+  into: Graph = EMPTY,
+): { mutations: Mutation[]; lost: number } | { refuse: string } {
+  const held = from.elements[id];
+  if (!held || id === ROOT) return { refuse: "Nothing to take out." };
+
+  const moving = Object.values(from.elements)
+    .filter((node) => descends(from, node.id, id));
+  const inside = new Set(moving.map((node) => node.id));
+
+  // **Promoted, the block *is* the project** — Clay's rule that a project is a
+  // block nothing contains. So it becomes the destination's root rather than
+  // landing inside a project of the same name, and everything that pointed at
+  // it points at root instead.
+  const at = (node: string) => (becomes === "root" && node === id ? ROOT : node);
+
+  const edges = Object.values(from.edges);
+  const travelling = edges.filter((e) => inside.has(e.source) && inside.has(e.target));
+  const lost = edges.filter(
+    (e) => inside.has(e.source) !== inside.has(e.target),
+  ).length;
+
+  // Only the definitions this subtree actually names, so a promotion does not
+  // drag a whole vocabulary along with it.
+  const named = new Set<string>();
+  for (const node of moving) if (node.type) named.add(node.type);
+  for (const edge of travelling) if (edge.type) named.add(edge.type);
+
+  const mutations: Mutation[] = [];
+
+  // **The destination gains packages; it never has them replaced.** Writing the
+  // source's list flat would wipe whatever the destination imported — silent
+  // loss in a part of the project the drag never touched. Import order is kept:
+  // what was there stays where it was, and anything new lands after it.
+  const packages = [...into.vocabulary];
+  for (const held of from.vocabulary) if (!packages.includes(held)) packages.push(held);
+  if (packages.length > into.vocabulary.length) {
+    mutations.push({ op: "set_vocabulary", vocabulary: packages });
+  }
+
+  for (const key of named) {
+    const def = from.defs[key];
+    if (!def) continue;
+    mutations.push({ op: "set_def", ...def });
+  }
+
+  for (const node of moving) {
+    if (becomes === "root" && node.id === id) {
+      // The root already exists in the destination, so this amends it rather
+      // than adding a second one.
+      mutations.push({ op: "update_element", id: ROOT, label: node.label, type: node.type });
+      if (node.body) mutations.push({ op: "set_body", id: ROOT, body: node.body });
+      for (const held of node.fields) mutations.push({ op: "set_field", id: ROOT, ...held });
+      continue;
+    }
+
+    mutations.push({
+      op: "add_element",
+      element: {
+        ...node,
+        parent: node.id === id
+          ? parent
+          : becomes === "root" && node.parent === id ? null : node.parent,
+      },
+    });
+  }
+
+  for (const edge of travelling) {
+    mutations.push({
+      op: "link_elements",
+      edge: { ...edge, source: at(edge.source), target: at(edge.target) },
+    });
+  }
+
+  return { mutations, lost };
 }
 
 /** Drop a project from the workspace: its proxy goes and its entry with it.
@@ -401,6 +547,15 @@ export function packId(name: string): string {
   return `pkg_${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_")}`;
 }
 
+/** Package ids a domain or template stem draws on, in import order.
+ *
+ *  Today one core seed per stem (`packages/core/<stem>.yaml`). A later row may
+ *  widen the list; callers already take an ordered array. The minting itself
+ *  lives next to `asVocabulary` so the terminal never reaches here for it. */
+export function packagesOf(stem: string): string[] {
+  return asVocabulary(stem);
+}
+
 /** Package name from a path under `packages/`.
  *
  *  `…/requirements/definitions.yaml` → the folder; `…/core/software.yaml` →
@@ -470,7 +625,6 @@ function defOfRaw(raw: unknown): Definition | null {
     form,
     fields: fieldsOf(it.fields),
     ...(typeof it.body === "string" ? { body: it.body } : {}),
-    ...(typeof it.color === "string" ? { color: it.color } : {}),
     ...(typeof it.icon === "string" ? { icon: it.icon } : {}),
     ...(it.line === "solid" || it.line === "dashed" || it.line === "dotted"
       ? { line: it.line } : {}),

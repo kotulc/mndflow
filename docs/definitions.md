@@ -32,7 +32,7 @@ join them. Everything else describes one of the two.
 | **derived** | a fact the engine works out rather than being told: an **interface** from `side` being set, a **container** from holding blocks, a **reference** from a proxy at an end, a **tie** from a note at an end. Derived does not mean the engine is ignorant of it — only that nobody had to say it |
 | **type** | **open and the user's.** The definition a thing names. It subtypes **within** a form, never across one, which is what keeps engine rules off user data. Empty until somebody sets one |
 | **the module's word** | what a module calls its elementary block — `block`, and one day `activity`. A property of the **module**, not of the subject matter: a block diagram is built from blocks whether it describes software or a story. Derived, never stored. Not called a *unit*, which is spoken for twice over — by layout, and by a `number` field's unit of measure |
-| **vocabulary** | what is left of the old `domain`: the words and starting relations a subject matter supplies. Consumed only by the terminal — see tasks.md |
+| **vocabulary** | the **list of packages** a project draws definitions from, in import order — `graph.vocabulary` / `set_vocabulary` as `string[]` of package ids. A legacy subject-matter stem heals to that list (`asVocabulary`). The old `domain`'s words and workflow prompts are separate concerns (terms packages; Z) |
 
 
 ## Structure
@@ -115,7 +115,8 @@ named value carried by an element or a relationship, and never changes what cont
 |---|---|
 | **layer** | a **cross-section of the tree at one block**: that block's immediate contents, seen from within. Not its whole subtree — descending a level is a different cross-section of the same branch. The layer is the current **scope** |
 | **layer view** | the **projection** of a layer: what that layer looks like once the rules and packages in scope are applied to it, rendered by one of the six view modules. The layer is what is being looked at; the layer view is the looking. A layer is scoped to one or more **structures**, its own project's or an imported package's. All six surfaces mount: block, table, matrix, activity, sequence, state |
-| **projection surface** | what a view module must provide to show a layer at all — the frame or its equivalent, the viewport, the chrome, and the place a gesture asks a question. **Per module, never per definition**: a diagram has a frame and a camera, a table scrolls and has neither. Not one of the components, which configure the things *in* a layer. Block diagram surface live under `modules/view/diagram/` |
+| **projection surface** | what a view module must provide to show a layer at all — the frame or its equivalent, the viewport, the chrome, and the place a gesture asks a question. **Per module, never per definition**: a diagram has a frame and a camera; table and matrix open as Contents-modelled panel shells with crumbs/types chrome (U.7 ◐) and scroll rather than frame. Not one of the components, which configure the things *in* a layer. Block diagram surface live under `modules/view/diagram/` |
+| **set** | **(planned)** a block whose members are **proxies** — it holds references rather than things, which is what tells it from a container. **Derived, never declared.** A *saved view* is a set: a requirements table is a set of requirements, an allocation view the same set drawn as a matrix. **A folder is a set of projects**, which is why there is no separate folder concept and why a set wears a folder mark |
 | **scope** | the layer being drawn. Set by clicking in the explorer |
 | **context** | what is selected within the layer. Set by clicking on the canvas |
 | **frame** | the border of the open layer, seen from within. The diagram module's answer to the projection surface; a table has no frame |
@@ -193,7 +194,7 @@ packages refuse writes and the strip offers unlock / fork (S4.8, seeded lock pro
 | **workspace** | the projects currently loaded, and their order. Held apart from all of them: neither project data, nor a display preference, nor what the terminal has learned |
 | **module** | **engine code.** An *open* module publishes components; a closed one simply does its job. Layout, routing, rules, constraints and each view type are modules |
 | **component** | a capability an open module offers, switched on and shaped by a definition. Configured **per definition, never per element** |
-| **view module** | the engine code behind one way of presenting a layer. **Six**, and closed: `block`, `table`, `matrix` for a structure; `activity`, `sequence`, `state` for a behavior. `diagram` names no module — it is what a layer looks like drawn |
+| **view module** | the engine code behind one way of presenting a layer. **Six**, and closed: `block`, `table`, `matrix` for a structure; `activity`, `sequence`, `state` for a behavior. Each publishes a distinct **`icon`** glyph (U.9) for chrome to scan by; the labelled view toggle beside the project root draws them (U.8). `diagram` names no module — it is what a layer looks like drawn |
 | **structure** | ordinary description, never a classifier: a project that owns its objects. What things there are, and how they are composed and connected |
 | **behavior** | the same, for a project that owns its actions and holds proxies of the participants: what happens, in what order, under what conditions |
 | **package** | a project whose elements are **definitions**. Data: it costs no code, and it must be useful with portable presentation alone |
@@ -238,7 +239,8 @@ The **constraints** component is published (`required`, `constraintsOf`); **card
 and tray/strip reporting are live** (S5.3); the module **`validate` hook and `findings` are live**
 (S5.4) — no shipped module supplies a real hook yet, and Contents still surfaces constraint/rule
 notes only. The block diagram draws from card / `lookOf` (S2.6b); **table** mounts when
-`view.module` is `table` (A.1, proven); **matrix** when named (A.2, suite); **activity** when
+`view.module` is `table` (A.1, proven); **matrix** when named (A.2, suite); both as
+Contents-modelled panel shells with crumbs/types (U.7 ◐); **activity** when
 `view.module` is `activity` (A.7b, proven); **state** (A.8, proven) and **sequence** (A.9,
 proven). See [design.md](design.md) under *Constraints and rules*.
 
@@ -268,8 +270,10 @@ code a module supplies, written by somebody who has already accepted writing cod
 | **`components`** | the field on a definition holding one entry per component, keyed by component name. **The one place the schema grows** — a new capability adds a key rather than a field |
 | **`card`** | the component drawing a usage: which **card layout**, its **shape**, where its label sits, and `shows`. Published; the canvas does not yet draw from it |
 | **`constraints`** | the component declaring checks on a usage in itself. Published with `required`; evaluation and tray reporting are live |
-| **`style`** | the component colouring a usage: a **style set** by name (`set`), over the portable typed fields that render without one. Published; `styleOf` / `lookOf` resolve it. The canvas does not yet draw from it |
-| **`view`** | the component on a definition: which **view module**, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Published with the six-module registry. Create / `infer` not yet wired to `word` / `creates`. Sets how a layer of that definition **opens**; the toggle (U.8) picks what is shown now and writes nothing |
+| **`style`** | the component colouring a usage. **A definition picks within the theme's palette and never names a colour** (Y.7): `slot` is one of six hue families and `emphasis` (`quiet\|normal\|strong`) says which steps its fill and border take. `weight` (`hairline\|thin\|thick`) and `voice` (`quiet\|normal\|loud`) are the same kind of dial for the border and the name (Y.9) — **`voice`, not `label`**, because `card.label` already means *where the label sits*. A **style set** by name (`set`) sits over them, and `line` / `head` render without one. Published; `styleOf` / `lookOf` resolve it, `ramp()` turns a slot and an emphasis into the theme's own variable |
+| **slot** | one of `primary`, `secondary`, `tertiary`, `quaternary`, `neutral`, `muted` — a **hue family**, never a hue. Closed. `primary` is green in retro and blue in modern, so the same definition is right in every theme. `away`, `note`, the error roles, selection, hover and focus are the theme's alone and are not pickable |
+| **emphasis** | how loudly a usage takes its slot — which *steps* of the ramp its fill and border take, never which colour. `quiet` fill+line, `normal` fill+stroke, `strong` raised+edge |
+| **`view`** | the component on a definition: which **view module**, its arrangement, the module's **`word`** / **`creates`** (default definition for a created block), and the abstraction cap **`N`** (default 5). Published with the six-module registry; each module carries a distinct **`icon`**. Create / `infer` not yet wired to `word` / `creates`. Sets how a layer of that definition **opens**; the labelled toggle (U.8) picks what is shown now (sticky in `mndflow.view.v1`) and writes nothing |
 | **`rules`** | the component declaring how usages interact — `ends`, `holds`, `degree`, `match`. Published; `among` walks `isa`. Evaluation and tray reporting are live |
 | **card layout** | one of the standard ways a card is composed — `name`, `type` (label and subtype chip), `fields`, `compartments`, `icon`, `shape` (a shape drawn in the box, label beneath). **Open**: extended by a code change, additively |
 | **shape** | what is drawn inside a card's box: `rect`, `round`, `diamond`, `ellipse`, `hex`. The engine always places a **rectangle** — every seat, route and port reads the box — so a shape changes what is drawn and never where anything attaches. `shaped` / `outline` compute it; the canvas does not stroke it yet |

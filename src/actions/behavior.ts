@@ -1,15 +1,18 @@
-/** The `infer` action — a selection becomes one behavior block.
+/** The `infer` action — a selection becomes one behavior block, or a plain
+ *  set of proxies over it (P.4). One registered action, offered twice via its
+ *  `as` choice — R.5's "one action, offered N times" — so the closed action
+ *  set does not widen for the set reading.
  *
- *  Built against behaviors.md. Guess freely in the behavior; write home only
- *  what a tier-1 flow stated. Re-inferring always mints a new block. The page
- *  wire that feeds explorer `chosen` is not here — this module publishes the
- *  record and the inference. */
+ *  Built against behaviors.md for the behavior reading. Guess freely in the
+ *  behavior; write home only what a tier-1 flow stated. Re-inferring always
+ *  mints a new block. The page wire that feeds explorer `chosen` is not
+ *  here — this module publishes the record and the inference. */
 
 import {
   axisOf, blocksOf, childrenOf, isContainer, isPort, isa, nameOf, nextNum, portsOf,
 } from "../graph/fold";
 import {
-  ROOT, edge as makeEdge, element as makeElement, newId, refAt, refTo,
+  ROOT, defIdFor, edge as makeEdge, element as makeElement, newId, refAt, refTo,
   type Axis, type Definition, type Edge, type Element, type Graph, type Mutation,
   type Side,
 } from "../graph/types";
@@ -20,6 +23,9 @@ const DEFAULT_N = 5;
 
 const ACTION_TYPE = refTo("def_action", "pkg_behavior");
 const STATE_TYPE = refTo("def_state", "pkg_behavior");
+
+/** The two readings `infer` offers — the menu's expanded entries. */
+const AS = ["behavior", "set"] as const;
 
 type Hit = {
   project: string;
@@ -477,6 +483,33 @@ function build_state_tree(
   return { mutations, root: root.id };
 }
 
+/** Set reading (P.4): a block holding a direct proxy of every hit — no tree,
+ *  no inferred order, no kind mutation. A set's members are proxies and
+ *  nothing else, which is what lets `role_of` derive the role rather than
+ *  storing one (P.5). This is the general form `build_action_tree` and
+ *  `build_state_tree` specialise with structure. */
+function build_set(hits: Hit[], into: string, fresh: boolean): Effect {
+  const root = makeElement("", { parent: null, num: 1 });
+  const mutations: Mutation[] = [{ op: "add_element", element: root }];
+
+  let num = 1;
+  for (const hit of hits) {
+    mutations.push({
+      op: "add_element",
+      element: makeElement("", {
+        form: "proxy", parent: root.id, of: refTo(hit.id, hit.project || undefined), num: num++,
+      }),
+    });
+  }
+
+  return {
+    mutations,
+    into,
+    ...(fresh ? { admit: true } : {}),
+    say: "infer: set",
+  };
+}
+
 function home_batches(links: OrderLink[]): HomeBatch[] {
   const by_project = new Map<string, { graph: Graph; mutations: Mutation[] }>();
 
@@ -506,15 +539,31 @@ function home_batches(links: OrderLink[]): HomeBatch[] {
     }));
 }
 
+/** The root's own kind (P.6's door) — activity or state, matching the tree
+ *  just built. Only for a freshly minted project: an `into` the caller named
+ *  may already be a project of some other kind, and re-inferring into it is
+ *  not a licence to reclassify it. */
+function kind_mutations(module: "activity" | "state"): Mutation[] {
+  const def_id = defIdFor(module);
+  return [
+    { op: "set_def", id: def_id, name: module, components: { view: { module } } },
+    { op: "update_element", id: ROOT, type: def_id },
+  ];
+}
+
 /** `of` (selection refs) and `open` (cross-project graphs) stay off Arg —
  *  the page injects them; Arg has no list/record kind, and selection is not a
  *  prompt. `into` and `N` are what a tray or sentence can fill. */
 const infer: Action = {
   name: "infer",
   label: "Infer",
-  about: "turns a selection into one behavior block — activity, or state when the selection is actions",
+  about: "turns a selection into one behavior block, or a saved set holding a proxy of each",
   scope: { on: "layer" },
+  // Behavior and set are the entries — the choice's options are the menu's
+  // two lines, both this one registered action (fill.ts's `entries`).
+  expand: true,
   args: [
+    { kind: "choice", name: "as", options: [...AS] },
     { kind: "text", name: "into", optional: true, prompt: "Behavior project" },
     { kind: "number", name: "N", optional: true },
   ],
@@ -536,14 +585,18 @@ const infer: Action = {
         .map((h) => [h.path, h]),
     ).values()].sort(hit_order);
 
-    const n = cap_n(args);
-    const parts = participants(hits, n);
-    const links = order_links(parts, open);
-
     const into_arg = typeof args.into === "string" && args.into.trim()
       ? args.into.trim()
       : "";
     const into = into_arg || newId("proj");
+
+    // Set reading (P.4): every hit becomes a direct proxy, nothing else — the
+    // participant-capping and ordering below are the behavior reading's own.
+    if (args.as === "set") return build_set(hits, into, !into_arg);
+
+    const n = cap_n(args);
+    const parts = participants(hits, n);
+    const links = order_links(parts, open);
     const compose = parts.length > 0 && parts.every((h) => is_action_typed(h, open));
 
     const built = compose
@@ -551,10 +604,15 @@ const infer: Action = {
       : build_action_tree(parts, links, null, ACTION_TYPE);
 
     const home = home_batches(links);
+    // Fresh mint only — see kind_mutations.
+    const kind = into_arg ? [] : kind_mutations(compose ? "state" : "activity");
 
     return {
-      mutations: built.mutations,
+      mutations: [...built.mutations, ...kind],
       into,
+      // A named destination is already open; a fresh mint needs the workspace
+      // door too, or it writes a project nothing shows (P.3).
+      ...(into_arg ? {} : { admit: true }),
       ...(home.length ? { home } : {}),
       say: compose ? "infer: state" : "infer: action",
     };

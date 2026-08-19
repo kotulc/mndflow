@@ -8,7 +8,7 @@
 import {
   actual, descendsFrom, isProxy, isTie, membersOf, nameFree, nameOf, nextNum, proxyIn,
 } from "../graph/fold";
-import { ROOT, element as makeElement, type Mutation, type Spot } from "../graph/types";
+import { ROOT, element as makeElement, refAt, type Mutation, type Spot } from "../graph/types";
 import { register, type Action, type Args, type Context, type Effect } from "./index";
 
 const label_of = (ctx: Context, id: string) =>
@@ -199,10 +199,9 @@ const retype: Action = {
   name: "retype",
   label: "Retype",
   about: "sets what kind of thing an element or a relationship is",
-  // actions.md scopes this to element and edge; Scope today holds one `on`, so
-  // element is declared and run still accepts an edge id. Offering on an edge
-  // waits on Scope being able to name both.
-  scope: { on: "element" },
+  // `run` has always taken either, and actions.md has always said both; only
+  // the descriptor disagreed, which is what kept it off an edge's menu.
+  scope: { on: ["element", "edge"] },
   args: [
     { kind: "element", name: "id" },
     { kind: "text", name: "type", prompt: "Type" },
@@ -299,6 +298,16 @@ const move: Action = {
   },
 };
 
+/** A dropped row's path in this project's terms — bare when it points here,
+ *  which is what `of` stores for anything local. The explorer always names
+ *  the project it dragged from, so without this a local drop reads as
+ *  foreign and its proxy would never match the one already placed. */
+const here_ref = (ctx: Context, ref: string): string => {
+  const { project, id } = refAt(ref);
+
+  return !project || project === ctx.project ? id : ref;
+};
+
 const refer: Action = {
   name: "refer",
   label: "Refer",
@@ -309,12 +318,23 @@ const refer: Action = {
     { kind: "spot", name: "spot", optional: true },
   ],
   check: (ctx, args) => {
-    const target = as_id(args, "target");
-    if (!target || !ctx.graph.elements[target]) return "Nothing to refer to.";
+    const raw = as_id(args, "target");
+    if (!raw) return "Nothing to refer to.";
+
+    const target = here_ref(ctx, raw);
+    // A block in another project is not in this fold, so the path is the
+    // whole of what can be checked — which is what makes a set of proxies
+    // from several projects possible at all (P.7).
+    const away = Boolean(refAt(target).project);
+    if (!away && !ctx.graph.elements[target]) return "Nothing to refer to.";
+    // A layer cannot hold a reference to itself. The surfaces used to guard
+    // this by comparing the dropped id to the open layer, which stopped
+    // working the moment the payload became a path — so it belongs here.
+    if (target === ctx.view) return "That is this layer.";
     // One proxy per layer per block: a second appearance of the same thing
     // in the same layer says nothing the first did not. Nor is a proxy for
     // something already in this layer meaningful.
-    if ((ctx.graph.elements[target]?.parent ?? null) === ctx.view) {
+    if (!away && (ctx.graph.elements[target]?.parent ?? null) === ctx.view) {
       return "That already lives in this layer.";
     }
     if (proxyIn(ctx.graph, ctx.view, target)) {
@@ -323,7 +343,7 @@ const refer: Action = {
     return null;
   },
   run: (ctx, args) => {
-    const target = as_id(args, "target")!;
+    const target = here_ref(ctx, as_id(args, "target")!);
     const spot = as_spot(args);
     const stand = makeElement("", {
       form: "proxy", parent: ctx.view, of: target,

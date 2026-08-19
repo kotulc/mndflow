@@ -1,8 +1,8 @@
 /** The view component and the view-module registry.
  *
- *  The seam is settled — six names, a kind each, a word and a create answer,
- *  a component that owns its key including the abstraction cap — so these
- *  are property tests against that contract. The block module carries a
+ *  The seam is settled — six names, a kind each, a word, an icon and a create
+ *  answer, a component that owns its key including the abstraction cap — so
+ *  these are property tests against that contract. The block module carries a
  *  projection surface; drawing from configuration is a later half. */
 
 import { describe, expect, it } from "vitest";
@@ -53,6 +53,13 @@ describe("the registered set", () => {
       expect(module.word.length).toBeGreaterThan(0);
       expect(module.creates === null || typeof module.creates === "string").toBe(true);
     }
+  });
+
+  it("gives every module a distinct icon", () => {
+    const icons = views().map((module) => module.icon);
+
+    for (const icon of icons) expect(icon.length).toBeGreaterThan(0);
+    expect(new Set(icons).size).toBe(icons.length);
   });
 
   it("lets matrix create nothing, and activity create an action", () => {

@@ -6,9 +6,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  adoptId, canBind, clearPressure, download, downloadSvg, isDrifted, load, loadProject,
-  loadWorkspace, pickIn, pressureNote, projectId, readBound, release, save,
-  saveProject, saveWorkspace, settleBound, watch, watchPressure, writeOut,
+  adoptId, canBind, clearPressure, clearSession, currentProject, download, dropProject,
+  downloadSvg, hold, isDrifted, isKeyed, load, loadProject, loadWorkspace,
+  pickIn, pressureNote, probe, projectId, readBound, release, save, saveProject,
+  saveWorkspace, settleBound, watch, watchPressure, writeOut,
 } from "../../src/graph/store";
 import { EMPTY, element, step, type Step } from "../../src/graph/types";
 
@@ -118,6 +119,48 @@ describe("workspace storage is not a project log", () => {
 
   it("reports absence when nothing has been filed", () => {
     expect(loadWorkspace()).toBeNull();
+  });
+});
+
+describe("clearing the session", () => {
+  it("drops every project slot, the filing list, and the session pointer", () => {
+    saveProject("proj_a", sample("a"));
+    saveProject("proj_b", sample("b"));
+    adoptId("proj_a");
+    saveWorkspace({ id: "ws", projects: ["proj_a", "proj_b"] });
+    localStorage.setItem("mndflow.theme.v1", "modern");
+    localStorage.setItem("mndflow.angular.v1", "true");
+
+    clearSession();
+
+    expect(isKeyed("proj_a")).toBe(false);
+    expect(isKeyed("proj_b")).toBe(false);
+    expect(loadProject("proj_a")).toEqual([]);
+    expect(loadProject("proj_b")).toEqual([]);
+    expect(loadWorkspace()).toBeNull();
+    expect(currentProject()).toBe("");
+    // Chrome preferences are not the session.
+    expect(localStorage.getItem("mndflow.theme.v1")).toBe("modern");
+    expect(localStorage.getItem("mndflow.angular.v1")).toBe("true");
+  });
+
+  it("releases a bound file handle", async () => {
+    const handle = {
+      name: "kept.mndflow.json",
+      getFile: async () => ({ lastModified: 1, text: async () => "{}" }),
+      createWritable: async () => ({
+        write: async () => {},
+        close: async () => {},
+      }),
+    };
+    await hold(handle, 1);
+    expect(isDrifted()).toBe(false);
+
+    clearSession();
+
+    // Unbound — a later probe has nothing to watch.
+    await probe();
+    expect(isDrifted()).toBe(false);
   });
 });
 
@@ -330,11 +373,19 @@ describe("live bind and drift", () => {
       value: {
         hidden: false,
         addEventListener() {},
+        removeEventListener() {},
         createElement: () => ({ href: "", download: "", click() {} }),
       },
       configurable: true,
       writable: true,
     });
+    // Focus re-check uses the window EventTarget — Node has none by default.
+    if (typeof globalThis.addEventListener !== "function") {
+      const bus = new EventTarget();
+      globalThis.addEventListener = bus.addEventListener.bind(bus);
+      globalThis.removeEventListener = bus.removeEventListener.bind(bus);
+      globalThis.dispatchEvent = bus.dispatchEvent.bind(bus);
+    }
     if (typeof URL.createObjectURL !== "function") {
       URL.createObjectURL = () => "blob:test";
       URL.revokeObjectURL = () => {};
@@ -391,6 +442,45 @@ describe("live bind and drift", () => {
 
     stop();
     restore();
+  });
+
+  it("hold binds without a picker; probe sees drift without waiting on the tick", async () => {
+    const handle = fakeHandle("bound.mndflow.json", '{"schema":"1.2"}');
+    const heard: boolean[] = [];
+    const stop = watch((next) => heard.push(next));
+
+    await hold(handle);
+    expect(isDrifted()).toBe(false);
+
+    handle.bump();
+    await probe();
+
+    expect(isDrifted()).toBe(true);
+    expect(heard.at(-1)).toBe(true);
+
+    stop();
+  });
+
+  it("focus re-checks after the document object is replaced", async () => {
+    const handle = fakeHandle("untitled.mndflow.json", "{}");
+    await hold(handle);
+
+    Object.defineProperty(globalThis, "document", {
+      value: {
+        hidden: false,
+        addEventListener() {},
+        removeEventListener() {},
+        createElement: () => ({ href: "", download: "", click() {} }),
+      },
+      configurable: true,
+      writable: true,
+    });
+    // Re-bind so watchPage sees a new document and re-attaches focus.
+    await hold(handle);
+    handle.bump();
+
+    globalThis.dispatchEvent(new Event("focus"));
+    await vi.waitFor(() => expect(isDrifted()).toBe(true));
   });
 
   it("settleBound clears drift only after the shell accepts the disk copy", async () => {
@@ -484,3 +574,32 @@ describe("live bind and drift", () => {
     restore();
   });
 });
+
+describe("dropProject", () => {
+  it("forgets the log, so a deleted project stays deleted across a reload", () => {
+    saveProject("proj_gone", [step("made", "create", [])]);
+    expect((loadProject("proj_gone") as Step[]).length).toBeGreaterThan(0);
+
+    dropProject("proj_gone");
+    expect((loadProject("proj_gone") as Step[]).length).toBe(0);
+  });
+
+  it("clears the session pointer when it named that project", () => {
+    // Left naming a key that is gone, the next load opens a ghost id and the
+    // first edit writes the deleted project back under its old key.
+    saveProject("proj_gone", [step("made", "create", [])]);
+    adoptId("proj_gone");
+    expect(currentProject()).toBe("proj_gone");
+
+    dropProject("proj_gone");
+    expect(currentProject()).not.toBe("proj_gone");
+  });
+
+  it("leaves a pointer that named some other project alone", () => {
+    adoptId("proj_kept");
+    dropProject("proj_other");
+
+    expect(currentProject()).toBe("proj_kept");
+  });
+});
+

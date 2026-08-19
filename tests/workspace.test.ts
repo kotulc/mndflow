@@ -5,12 +5,13 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { fold } from "../src/graph/fold";
+import { compact, fold } from "../src/graph/fold";
+import { saveProject } from "../src/graph/store";
 import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../src/graph/types";
 import {
-  admit, blank, defOf, folder, fork, fromDefs, gather, isLocked, isSelf, load,
-  mayAdmit, named, opened, pack, packId, packs, read, resolve, rootOf, save,
-  scoped, unlock, writeInto,
+  admit, begin, blank, defOf, extraction, folder, fork, fromDefs, gather, isLocked, isSelf, load,
+  mayAdmit, mayName, named, names, opened, pack, packId, packagesOf, packs, read, resolve,
+  rootOf, save, scoped, started, stemOf, unlock, writeInto,
 } from "../src/workspace/index";
 
 /** An in-memory localStorage so the suite does not need a browser. */
@@ -160,6 +161,59 @@ describe("folder", () => {
   });
 });
 
+describe("begin", () => {
+  it("names a project into being and keeps what it holds across save and reopen", () => {
+    const held = blank();
+    const out = begin(held, EMPTY, "coolant loop", {});
+    expect("refuse" in out).toBe(false);
+    if ("refuse" in out) return;
+
+    expect(out.id).toMatch(/^proj_/);
+    expect(out.held.projects).toContain(out.id);
+    expect(fold(out.steps).elements[ROOT].label).toBe("coolant loop");
+
+    const block = element("Pump", { parent: null });
+    const steps = compact([
+      ...out.steps,
+      step("added", "create", [{ op: "add_element", element: block }]),
+    ]);
+    expect(saveProject(out.id, steps)).toBe(true);
+    expect(save(out.held)).toBe(true);
+
+    const shell = applied(...out.mutations);
+    expect(named(shell)).toContain(out.id);
+    expect(load().projects).toContain(out.id);
+
+    const again = opened(out.id);
+    expect(again.graph.elements[ROOT].label).toBe("coolant loop");
+    expect(again.graph.elements[block.id]?.label).toBe("Pump");
+  });
+
+  it("brings the project into being with a vocabulary it can pick types from", () => {
+    // A project whose import list is empty offers no types at all, which is a
+    // blank type picker on the first thing a new user meets.
+    const graph = fold(started("coolant loop"));
+
+    expect(graph.vocabulary.length).toBeGreaterThan(0);
+
+    const open = gather(graph.vocabulary);
+    expect(Object.keys(open).length).toBe(graph.vocabulary.length);
+    expect(scoped(graph.vocabulary, open).length).toBeGreaterThan(0);
+  });
+
+  it("refuses a blank or taken name rather than minting a blank project", () => {
+    const taken = names({ proj_a: fold(started("alpha")) });
+
+    expect(begin(blank(), EMPTY, "   ", taken)).toEqual({
+      refuse: mayName(taken, "   "),
+    });
+    expect(begin(blank(), EMPTY, "alpha", taken)).toEqual({
+      refuse: mayName(taken, "alpha"),
+    });
+    expect("refuse" in begin(blank(), EMPTY, "beta", taken)).toBe(false);
+  });
+});
+
 describe("resolve", () => {
   it("finds a foreign root in the open project's graph", () => {
     const other = {
@@ -265,10 +319,64 @@ describe("writeInto", () => {
   });
 });
 
+describe("ownership routing", () => {
+  // design.md: "a change is recorded where its element lives." `writeInto` is
+  // the one door every cross-project write funnels through, so this is the
+  // layer where a future action confusing "current context" with "the
+  // element's project" would first show: the mutation would land in the
+  // wrong log, as it did in R.10. Property, over several projects and
+  // several mutation ops: a write named for one project's log never reaches
+  // another open project's, whatever op it is.
+  it("lands every mutation op in the log of the project it names, and no other open one", () => {
+    const homes = ["proj_route_a", "proj_route_b", "proj_route_c"];
+    const seed: Record<string, ReturnType<typeof element>> = {};
+    for (const id of homes) seed[id] = element(`${id} root`, { parent: null });
+
+    for (const id of homes) {
+      const out = writeInto(id, [{ op: "add_element", element: seed[id]! }], { say: "seed", action: "test" });
+      if ("refuse" in out) throw new Error("seed refused");
+    }
+
+    for (const id of homes) {
+      const out = writeInto(id, [
+        { op: "update_element", id: seed[id]!.id, label: `${id} renamed` },
+        { op: "set_field", id: seed[id]!.id, name: "note", value: "x" },
+      ], { say: "route", action: "test" });
+      if ("refuse" in out) throw new Error("writeInto refused");
+    }
+
+    for (const owner of homes) {
+      const { graph } = opened(owner);
+
+      // The write named for this project's element landed here…
+      expect(graph.elements[seed[owner]!.id]?.label).toBe(`${owner} renamed`);
+      expect(graph.elements[seed[owner]!.id]?.fields.some((f) => f.name === "note")).toBe(true);
+
+      // …and every other project's element — named in a write to a different
+      // door — never appears in this log.
+      for (const other of homes) {
+        if (other === owner) continue;
+        expect(graph.elements[seed[other]!.id]).toBeUndefined();
+      }
+    }
+  });
+});
+
 describe("packages", () => {
   it("mints a stable package id from the name", () => {
     expect(packId("Requirements")).toMatch(/^pkg_/);
     expect(packId("Requirements")).toBe(packId("requirements"));
+  });
+
+  it("maps a domain stem to its package import list", () => {
+    const listed = packagesOf("software");
+
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.every((id) => id.startsWith("pkg_"))).toBe(true);
+    expect(listed).toEqual([packId("software")]);
+    expect(packagesOf("")).toEqual([]);
+    expect(stemOf(listed)).toBe("software");
+    expect(stemOf([])).toBe("");
   });
 
   it("loads definitions by id and derives a missing one from the name", () => {
@@ -420,5 +528,75 @@ describe("packages", () => {
 
     expect(Object.keys(open)).toEqual([id]);
     expect(Object.keys(open[id]!.defs).length).toBeGreaterThan(0);
+  });
+});
+
+
+describe("extraction", () => {
+  /** One project holding a branch, a sibling, a relationship between them and
+   *  one wholly inside the branch. */
+  function scene() {
+    return applied(
+      { op: "set_vocabulary", vocabulary: ["pkg_a"] },
+      { op: "set_def", id: "def_1", name: "Part", form: "block", fields: [] },
+      { op: "add_element", element: element("Branch", { id: "b" }) },
+      { op: "add_element", element: element("Leaf", { id: "l", parent: "b", type: "def_1" }) },
+      { op: "add_element", element: element("Other", { id: "o" }) },
+      { op: "link_elements", edge: { id: "e_in", source: "b", target: "l", type: "", dir: "none" } },
+      { op: "link_elements", edge: { id: "e_out", source: "b", target: "o", type: "", dir: "none" } },
+    );
+  }
+
+  it("carries the subtree, what it is joined to inside, and what it names", () => {
+    const out = extraction(scene(), "b");
+    if ("refuse" in out) throw new Error(out.refuse);
+    const ops = out.mutations.map((m) => m.op);
+
+    expect(ops).toContain("set_def");
+    expect(ops).toContain("link_elements");
+    // One end left behind is one relationship lost, and it is counted.
+    expect(out.lost).toBe(1);
+  });
+
+  it("leaves a relationship with one end behind rather than half-writing it", () => {
+    const out = extraction(scene(), "b");
+    if ("refuse" in out) throw new Error(out.refuse);
+    const linked = out.mutations.filter((m) => m.op === "link_elements");
+
+    // Every edge that travelled has both of its ends among what travelled.
+    const ids = new Set(out.mutations.flatMap(
+      (m) => (m.op === "add_element" ? [m.element.id] : []),
+    ));
+    ids.add(ROOT);
+    for (const m of linked) {
+      if (m.op !== "link_elements") continue;
+      expect(ids.has(m.edge.source) && ids.has(m.edge.target)).toBe(true);
+    }
+  });
+
+  it("makes the block the root when it is promoted, and a child when it is not", () => {
+    const promoted = extraction(scene(), "b", null, "root");
+    const filed = extraction(scene(), "b", null, "child");
+    if ("refuse" in promoted || "refuse" in filed) throw new Error("refused");
+
+    // Promoted, the block amends the destination's root rather than adding one.
+    expect(promoted.mutations.some((m) => m.op === "update_element" && m.id === ROOT)).toBe(true);
+    expect(filed.mutations.some((m) => m.op === "add_element" && m.element.id === "b")).toBe(true);
+  });
+
+  it("adds the source's packages to the destination's rather than replacing them", () => {
+    const destination = applied({ op: "set_vocabulary", vocabulary: ["pkg_b"] });
+    const out = extraction(scene(), "b", null, "child", destination);
+    if ("refuse" in out) throw new Error(out.refuse);
+    const set = out.mutations.find((m) => m.op === "set_vocabulary");
+
+    expect(set && set.op === "set_vocabulary" && set.vocabulary).toEqual(
+      expect.arrayContaining(["pkg_a", "pkg_b"]),
+    );
+  });
+
+  it("says no when there is nothing to take out", () => {
+    expect("refuse" in extraction(scene(), ROOT)).toBe(true);
+    expect("refuse" in extraction(scene(), "nobody")).toBe(true);
   });
 });

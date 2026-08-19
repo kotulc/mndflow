@@ -6,8 +6,8 @@
  *  one thing, several things, or nothing at all.
  *
  *  The note *is* its text. There is no head, no border zone and nothing else on
- *  it to aim at, so it takes the same rule every other name on the canvas takes:
- *  right-click it to write it.
+ *  it to aim at, so right-click opens the offered list for it the way every
+ *  other existing thing does.
  *
  *  Its size is the larger of what was asked for — the drag that made it, or a
  *  later resize — and what its text needs. A minimum rather than a measurement:

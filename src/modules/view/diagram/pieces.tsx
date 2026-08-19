@@ -1,19 +1,18 @@
 /** The pieces every drawn thing is built from.
  *
  *  A card, a frame, a group boundary and a note are all assembled out of the
- *  same parts: a name that edits in place, a seat on a border, an anchor a
- *  relationship can meet, and the vocabulary for saying what the pointer is
- *  over. Held apart from the card itself because most of what imports them is
- *  not a card — the frame and the note draw with them, and the page uses the
- *  drag keys and `Grazed` to say what it is pointing at.
+ *  same parts: a name, a seat on a border, an anchor a relationship can meet,
+ *  and the vocabulary for saying what the pointer is over. Held apart from the
+ *  card itself because most of what imports them is not a card — the frame and
+ *  the note draw with them, and the page uses the drag keys and `Grazed` to say
+ *  what it is pointing at.
  *
  *  Nothing here knows what a card looks like; that is `NodeCard`. */
 
-import { useRef, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 
 import { isContainer, isLinked, nameOf, portsOf } from "../../../graph/fold";
-import { NameField } from "../../../NameField";
 import { freeSeat, seatAt, sizeOf, LEAF } from "../../../geometry/layout";
 import type { Graph, Element, Side } from "../../../graph/types";
 import { takes } from "./map";
@@ -76,78 +75,18 @@ export const SIDES: Record<Side, Position> = {
   left: Position.Left,
 };
 
-/** A name edited where it is drawn, opened by right-clicking it.
- *
- *  One rule for every name on the canvas — a card's, a group boundary's, the
- *  layer's own frame — because a name should be changed the same way wherever
- *  it is written.
- *
- *  The right button means "make the thing this place is for", and what a name
- *  is for is being written. It collides with nothing: a name is the one place
- *  where making a node or an interface would be meaningless. It also replaced
- *  three rules and a timer — renaming used to be the second click on something
- *  already selected, and on a card that click had to wait a quarter of a second
- *  to see whether a double-click was coming to descend instead. */
-export function Name({ text, className = "label", onRename, taken, onSay }: {
+/** A name drawn where it sits. Renaming reaches Ask via Enter or the offered
+ *  list (G.9d) — the glyph itself is not an editor. */
+export function Name({ text, className = "label" }: {
   text: string;
   className?: string;
-  onRename: (label: string) => void;
-  /** Whether a name is already spoken for beside this one. Left off where
-   *  nothing competes for it — a note is its own text. */
+  /** Kept so call sites stay stable; editing is no longer on the glyph. */
+  onRename?: (label: string) => void;
   taken?: (name: string) => boolean;
   onSay?: (message: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  /** Where the right button went down, so that a right *drag* setting off from
-   *  a name is not also read as a request to write it. */
-  const from = useRef<{ x: number; y: number } | null>(null);
-
-  function done(value: string) {
-    // An unnamed thing shows its role, so leaving that untouched is not a
-    // rename to the word "block".
-    if (value.trim() && value.trim() !== text) onRename(value.trim());
-    setEditing(false);
-  }
-
-  if (editing) {
-    // `guarded` because this one sits on the canvas: React Flow listens
-    // natively on the node, so the events have to be held off there too.
-    return (
-      <NameField
-        initial={text}
-        className="rename"
-        guarded
-        taken={taken}
-        onSay={onSay}
-        onCommit={done}
-        onCancel={() => setEditing(false)}
-      />
-    );
-  }
-
   return (
-    <span
-      className={className}
-      title="right-click to rename"
-      onPointerDown={(event) => {
-        if (event.button === 2) from.current = { x: event.clientX, y: event.clientY };
-      }}
-      onContextMenu={(event) => {
-        // The canvas is watching the right button too, and would otherwise make
-        // an interface out of the border this name is set into.
-        event.preventDefault();
-        event.stopPropagation();
-
-        const down = from.current;
-        from.current = null;
-        // Nothing happens until a drag pulls clear of the press, and nothing
-        // happens after one either: a drag that began here meant to go
-        // somewhere, not to open an editor back where it started.
-        if (down && Math.hypot(event.clientX - down.x, event.clientY - down.y) > NUDGE) return;
-
-        setEditing(true);
-      }}
-    >
+    <span className={className} title={text}>
       {text}
     </span>
   );
@@ -158,6 +97,26 @@ export const LIFTED = "application/mndflow-node";
 /** What a row dragged out of the explorer carries. Dropping it on another
  *  layer's canvas places a reference there rather than moving the node. */
 export const REFERRED = "application/mndflow-ref";
+
+/** What a surface with no plane needs to take that row (P.7): one gesture,
+ *  three surfaces, one action. The canvas keeps its own handlers because it
+ *  is the only one with a spot to drop onto — a table and a matrix place the
+ *  proxy in the layer and let the view say where it appears. */
+export function takesRef(onRefer: (target: string) => void) {
+  return {
+    onDragOver: (event: DragEvent<HTMLElement>) => {
+      if (!event.dataTransfer.types.includes(REFERRED)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "link";
+    },
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      const referred = event.dataTransfer.getData(REFERRED);
+      if (!referred) return;
+      event.preventDefault();
+      onRefer(referred);
+    },
+  };
+}
 
 /** Where a port sits along its host's edge, as the seated fraction. */
 export function along(at: number, extent: number, origin: number): number {
@@ -204,7 +163,7 @@ export function seat(side: Side, at: number): React.CSSProperties {
  *  act on: the innermost wins, so a chip beats the container holding it and an
  *  interface beats the card it sits on. A card is one target, border included.
  *  `title` is a frame's or a boundary's name, which is set into that border and
- *  is not it: the right button renames there, and makes nothing. */
+ *  is not it: the offered list opens there rather than acting on the border. */
 export type Grazed = {
   kind: "selection" | "port" | "cell" | "card" | "frame" | "group" | "title" | "edge";
   id: string;
@@ -315,8 +274,8 @@ export function Berth({ port, graph, shown, inward, host }: {
  *
  *  An anchor still shows itself when its relationship or its card is selected,
  *  the same way a hidden interface does, so a line's ends can always be found.
- *  Right-clicking either promotes it to a real interface, where it sits. */
-export function Perch({ seated, side, at, port, lit, inward, onPromote }: {
+ *  Promoting one is an offered-list entry (G.9d), not an immediate right-click. */
+export function Perch({ seated, side, at, port, lit, inward }: {
   seated: string;
   side: Side;
   at: number;
@@ -325,21 +284,16 @@ export function Perch({ seated, side, at, port, lit, inward, onPromote }: {
   /** Its relationship or its card is selected, so an anchor shows its handle. */
   lit: boolean;
   inward?: boolean;
-  onPromote: (edge: string, side: Side, at: number) => void;
+  /** Kept for call-site stability; promotion is no longer immediate. */
+  onPromote?: (edge: string, side: Side, at: number) => void;
 }) {
   return (
     <span
       className={`berth port-${side} perch`}
       style={seat(side, at)}
-      // On the press, not on the menu event: the canvas makes an interface from
-      // its own `pointerdown`, so a `contextmenu` handler stops nothing — the
-      // card had already been given a second port by the time it fired.
-      onPointerDown={(event) => {
-        if (event.button !== 2) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onPromote(seated, side, at);
-      }}
+      data-edge={seated}
+      data-side={side}
+      data-at={String(at)}
       onContextMenu={(event) => event.preventDefault()}
     >
       {port ? <span className="seat-mark" /> : lit && <span className="seat" />}

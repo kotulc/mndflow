@@ -29,15 +29,17 @@ import "@xyflow/react/dist/style.css";
 
 
 import type { Picked } from "../actions";
+import type { Action, Arg, Args } from "../actions";
+import type { Vocabulary } from "../actions/typelist";
 import {
-  axisOf, blocksOf, groupsIn, notesIn, relationNames, tiesOf, typeName,
+  axisOf, blocksOf, groupsIn, notesIn, tiesOf,
 } from "../graph/fold";
 import { around, CELL, cell, HUG, arranged, sizeOf, type Box } from "../geometry/layout";
 import { type Axis, type EdgeForm, type End, type Graph, type Layout, type Side, type Spot } from "../graph/types";
 import {
-  Arrangements, Ask, Crumbs, EDGES, NOTE, NODES, edgesOf, extentOf,
-  floorOf, laidOf, nodesOf, placementKey, restOf, stageOf,
-  Toggles, type Prompt,
+  Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, SelectionStrip, edgesOf, extentOf,
+  fill_args, floorOf, laidOf, nodesOf, offered_for, placementKey, restOf, stageOf,
+  type OfferTarget, type Prompt,
 } from "../modules/view/diagram";
 import { useGestures } from "./gestures";
 import { type Grazed } from "./card";
@@ -111,7 +113,20 @@ type Props = {
   onRename: (id: string, label: string) => void;
   onLift: (id: string, x: number, y: number) => void;
   /** Draw a relationship, with an interface at each end. */
-  onWire: (a: End, b: End, form: EdgeForm) => void;
+  onWire: (a: End, b: End, form: EdgeForm, type?: string) => void;
+  /** The vocabulary in scope for the strip — relation kinds and element ones,
+   *  each with the path it is addressed by. Packages first, then the
+   *  project's own, which only the page can gather (`X.2`). */
+  scope?: Vocabulary;
+  /** Which of them the next right drag draws, or null for an untyped line. A
+   *  display preference like `form` and `angular`, so the page holds it — the
+   *  rail that picks it is page-level and cannot reach inside here (Y.1). */
+  kind?: { path: string; form: string } | null;
+  /** Where to publish the arrange verb. **Arranging needs the laid-out geometry
+   *  only this component has**, so the rail cannot work it out — the canvas
+   *  hands it up instead of the page reaching in, which is the same direction
+   *  every other dependency here runs. */
+  arranging?: { current: ((shape: Layout) => void) | null };
   onAddPort: (parent: string | null, side: Side, at: number) => void;
   /** Turn a derived seat into an interface of its own, where it sits. */
   onPromotePort: (edge: string, end: "from" | "to", owner: string,
@@ -140,12 +155,14 @@ type Props = {
   onRefer: (target: string, x?: number, y?: number) => void;
   /** Go to where a node actually lives, and mark it there. */
   onReveal: (id: string) => void;
+  /** Run a registry action — the offered list reaches the door through here. */
+  onAct: (name: string, args?: Args) => boolean;
 };
 
 
 function Flow(props: Props) {
   const { graph, view, picked, path, showPorts, onShowPorts, angular, onAngular, unit } = props;
-  const { hinted, said, onHeard, onSay } = props;
+  const { hinted, said, onHeard, onSay, onAct } = props;
   const { onArrangeLayer, onRelax, onAxis, onPick, onOpen, onUp } = props;
   const { onCreateAt, onSprout, onNameTaken } = props;
   const { form, onForm } = props;
@@ -162,10 +179,22 @@ function Flow(props: Props) {
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   /** Whether the name being typed is already spoken for in this layer. */
   const [clash, setClash] = useState(false);
+  /** Offered-action menu at a pointer — membership from `offer`, order fixed. */
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    items: Action[];
+    target: OfferTarget;
+  } | null>(null);
+  /** A required text argument the menu could not fill from the gesture. */
+  const [offerAsk, setOfferAsk] = useState<{
+    action: Action;
+    args: Args;
+    arg: Arg;
+  } | null>(null);
   /** Which relationship type to draw. `null` is every type — a display
    *  preference held on the canvas, not in the project, so it records no
    *  history and never reaches an export. */
-  const [shown, setShown] = useState<string | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   /** The nodes as React Flow has them. Held by reference because the two ends
    *  of this cannot both be passed forwards: the gestures read what is
@@ -237,40 +266,12 @@ function Flow(props: Props) {
   const { boxes, frameBox, bands } = stage;
 
 
-  /** Every relationship type the project knows, plus any free name still
-   *  carried by an edge — the set the filter steps through. */
-  const kinds = useMemo(() => {
-    const names = new Set(relationNames(graph));
-    for (const edge of Object.values(graph.edges)) {
-      const named = typeName(graph, edge.type);
-      if (named) names.add(named);
-    }
 
 
-    return [...names].sort((a, b) => a.localeCompare(b));
-  }, [graph]);
-
-
-  /** Whether this relationship is drawn under the current filter. */
-  const shows = useCallback(
-    (edge: { type: string }) => shown === null || typeName(graph, edge.type) === shown,
-    [graph, shown],
-  );
-
-
-  // A type that left the project cannot stay selected as the filter.
-  useEffect(() => {
-    if (shown !== null && !kinds.includes(shown)) setShown(null);
-  }, [kinds, shown]);
-
-
-  // Hiding a selected relationship leaves nothing to find — drop the pick so
-  // seats and the tray do not keep pointing at a line that is not there.
-  useEffect(() => {
-    if (picked?.kind !== "edge" || shown === null) return;
-    const edge = graph.edges[picked.id];
-    if (edge && !shows(edge)) onPick(null);
-  }, [shown, picked, graph, shows, onPick]);
+  // Every relationship draws. The per-type filter came out with its control
+  // (V.15): filtering what is already on the canvas earned less than picking
+  // what the next drag makes, which is what the bar offers instead.
+  const shows = useCallback(() => true, []);
 
 
   /** Relationships whose ends should show themselves: the selected one. An
@@ -288,6 +289,8 @@ function Flow(props: Props) {
     return new Set([edge?.from, edge?.to].filter(Boolean) as string[]);
   }, [graph, picked]);
 
+
+  const kind = props.kind ?? null;
 
   const laid = useMemo(
     () => laidOf(graph, stage, view, axis, showPorts, shows),
@@ -312,10 +315,89 @@ function Flow(props: Props) {
   );
 
 
+  /** Context the menu asks `offer` against — pick follows what was named. */
+  function menu_ctx(target: OfferTarget): { graph: typeof graph; view: string | null; picked: Picked } {
+    if (target.kind === "edge") {
+      return { graph, view, picked: { kind: "edge", id: target.id } };
+    }
+    if (target.kind === "selection") {
+      return { graph, view, picked: null };
+    }
+    if (target.kind === "interface" || target.kind === "group" || target.kind === "note") {
+      return { graph, view, picked: { kind: "node", id: target.id } };
+    }
+
+    return { graph, view, picked: { kind: "node", id: target.id } };
+  }
+
+
+  /** Sort `offer` into the fixed order and open the menu at the pointer. */
+  const show_offer = useSteady((x: number, y: number, target: OfferTarget) => {
+    const ctx = menu_ctx(target);
+    if (ctx.picked) onPick(ctx.picked);
+    else if (target.kind === "selection") onPick(null);
+
+    const items = offered_for(ctx, target);
+    setOfferAsk(null);
+    if (!items.length) {
+      setMenu(null);
+      return;
+    }
+    setMenu({ x, y, items, target });
+  });
+
+
+  // Esc dismisses the offer menu / text ask before the gesture abandon path.
+  useEffect(() => {
+    if (!menu && !offerAsk) return;
+
+    function press(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setMenu(null);
+      setOfferAsk(null);
+    }
+
+    window.addEventListener("keydown", press, true);
+    return () => window.removeEventListener("keydown", press, true);
+  }, [menu, offerAsk]);
+
+
+  /** Run a menu pick — rename/retype on an edge use Ask; other text is prompted. */
+  const take_offer = useSteady((action: Action, target: OfferTarget) => {
+    setMenu(null);
+    const ctx = menu_ctx(target);
+    const args = fill_args(action, ctx, target);
+    const focus = ctx.picked?.id ?? (target.kind !== "selection" ? target.id : undefined);
+
+    if (action.name === "rename" && focus) {
+      setPrompt({ kind: "rename", id: focus });
+      return;
+    }
+
+    // `retype` reaches an edge now that Scope names both (G.9e); the relation
+    // Ask stays its door, since asking for a type by name is what it does.
+    if (action.name === "retype" && ctx.picked?.kind === "edge") {
+      setPrompt({ kind: "relation", id: ctx.picked.id });
+      return;
+    }
+
+    const missing = action.args.find(
+      (arg) => !arg.optional && arg.kind === "text" && args[arg.name] == null,
+    );
+    if (missing) {
+      setOfferAsk({ action, args, arg: missing });
+      return;
+    }
+    onAct(action.name, args);
+  });
+
+
   /** What the pointer and the keyboard mean here. It reads the layer as worked
    *  out above and reaches the actions the canvas was handed; the props go in
    *  whole, since every one it can reach is among them. */
-  const gestures = useGestures(props, {
+  const gestures = useGestures({ ...props, kind: kind?.path ?? "",
+                                 kindForm: kind?.form ?? "", onOffer: show_offer }, {
     nodes: flowNodes,
     members,
     boxes,
@@ -346,6 +428,12 @@ function Flow(props: Props) {
     onArrangeLayer(laid, reNoted(spots));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reNoted is stable per graph
   }, [onArrangeLayer, graph, members, view]);
+
+  // Publish it for the rail (Y.1). Assigned on every render rather than in an
+  // effect: the rail reads it at click time, and an effect would leave one
+  // paint's worth of stale geometry behind a button that lays out a layer.
+  const arrangingRef = props.arranging;
+  if (arrangingRef) arrangingRef.current = onArrange;
 
 
   /** Where each tied note should sit once this layer is laid out afresh.
@@ -537,8 +625,30 @@ function Flow(props: Props) {
   // the floor is left alone.
   const zoomAboveFloor = useRef(false);
   const settlingRest = useRef(false);
+  /** Publish the zoom so a line can hold its width through it.
+   *
+   *  Everything the flow draws lives inside a `scale(zoom)` transform, so a 1px
+   *  border is 1px *of layer*, not of screen: at the resting zoom of a large
+   *  layer it lands under a device pixel and the browser drops it — which is
+   *  how the frame could look deleted zoomed out and reappear zoomed in. The
+   *  strokes that describe structure divide by this instead. */
+  const shownZoom = useRef(0);
+  const showZoom = useCallback((zoom: number) => {
+    const z = zoom || 1;
+    if (Math.abs(z - shownZoom.current) < 1e-4) return;
+    shownZoom.current = z;
+    surface.current?.style.setProperty("--zoom", String(z));
+  }, []);
+
+  // The first paint and every camera fit land without a move event, so read it
+  // back rather than waiting to be told.
+  useEffect(() => {
+    showZoom(flow.getViewport().zoom);
+  });
+
   const onMove = useCallback(
     (_: unknown, vp: Viewport) => {
+      showZoom(vp.zoom);
       if (settlingRest.current) return;
       const atFloor = vp.zoom <= floorZoom + 1e-3;
       if (!atFloor) {
@@ -556,7 +666,7 @@ function Flow(props: Props) {
         settlingRest.current = false;
       });
     },
-    [flow, floorZoom, restViewport],
+    [flow, floorZoom, restViewport, showZoom],
   );
 
 
@@ -572,25 +682,13 @@ function Flow(props: Props) {
     <div className="stage" ref={surface} {...gestures.surface}>
       <Crumbs graph={graph} view={view} path={path} onOpen={onOpen} onUp={onUp} />
 
-
-      <Toggles
-        showPorts={showPorts}
-        onShowPorts={onShowPorts}
-        form={form}
-        onForm={onForm}
-        angular={angular}
-        onAngular={onAngular}
-        shown={shown}
-        kinds={kinds}
-        onShown={setShown}
-        axis={axis}
-        onAxis={onAxis}
-      />
+      {/* What is selected, and what it could be (R.9) — Contents' old slot,
+          open now that W.1 moved Contents into the table view. */}
+      <SelectionStrip graph={graph} picked={picked} scope={props.scope} onAct={onAct} />
 
 
-      <Arrangements onArrange={onArrange} onRelax={onRelax} />
-
-
+      {/* The settings and the verbs left for the page's rail (Y.1). What stays
+          here is what is *of* the drawing: the trail, and the stage itself. */}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -716,6 +814,41 @@ function Flow(props: Props) {
         onCreateAt={onCreateAt}
         enclosing={enclosing}
       />
+
+
+      {offerAsk && (
+        <div className="floating">
+          <span className="caret">&gt;</span>
+          <input
+            autoFocus
+            placeholder={offerAsk.arg.kind === "text"
+              ? (offerAsk.arg.prompt ?? offerAsk.arg.name)
+              : offerAsk.arg.name}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setOfferAsk(null);
+                return;
+              }
+              if (event.key !== "Enter") return;
+              const wanted = (event.target as HTMLInputElement).value.trim();
+              if (!wanted) return;
+              onAct(offerAsk.action.name, { ...offerAsk.args, [offerAsk.arg.name]: wanted });
+              setOfferAsk(null);
+            }}
+          />
+        </div>
+      )}
+
+
+      {menu && (
+        <OfferMenu
+          x={menu.x}
+          y={menu.y}
+          items={menu.items}
+          onTake={(action) => take_offer(action, menu.target)}
+          onDismiss={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }

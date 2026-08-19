@@ -8,15 +8,18 @@
 
 import { describe, expect, it } from "vitest";
 
+import { lookup } from "../../../src/actions/index";
+import "../../../src/actions/groups";
 import { CELL } from "../../../src/geometry/layout";
 import { cardOf, outline, PLAIN } from "../../../src/modules/card";
 import { lookOf } from "../../../src/modules/style";
-import { element, EMPTY, ROOT } from "../../../src/graph/types";
+import { definition, edge, element, EMPTY, ROOT } from "../../../src/graph/types";
 import type { Graph } from "../../../src/graph/types";
 import {
-  ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP, MARGIN, NOTE,
-  NODES, edgesOf, extentOf, floorOf, framed, laidOf, nodesOf, paint, reaches,
-  restOf, stageOf, svgOf, takes,
+  ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP,
+  MARGIN, NOTE, NODES, edgesOf, extentOf, fill_args, floorOf,
+  framed, laidOf, nodesOf, paint, PAPER, reaches, restOf,
+  stageOf, svgOf, takes, type OfferTarget, type SvgLook,
 } from "../../../src/modules/view/diagram/index";
 
 describe("the block module's surface", () => {
@@ -46,14 +49,16 @@ describe("the block module's gesture map", () => {
     expect(takes("seat", none)).toBe(false);
   });
 
-  it("binds the inventory's right-click defaults", () => {
+  it("binds right-click: create on empty, offer the list on what exists", () => {
     expect(reaches("right", "click", "empty")).toBe("create");
-    expect(reaches("right", "click", "card")).toBe("interface");
-    expect(reaches("right", "click", "frame")).toBe("interface");
-    expect(reaches("right", "click", "edge")).toBe("retype");
-    expect(reaches("right", "click", "selection")).toBe("group");
-    expect(reaches("right", "click", "name")).toBe("nothing");
-    expect(reaches("right", "click", "interface")).toBe("nothing");
+    expect(reaches("right", "click", "card")).toBe("offer");
+    expect(reaches("right", "click", "frame")).toBe("offer");
+    expect(reaches("right", "click", "edge")).toBe("offer");
+    expect(reaches("right", "click", "selection")).toBe("offer");
+    expect(reaches("right", "click", "name")).toBe("offer");
+    expect(reaches("right", "click", "interface")).toBe("offer");
+    expect(reaches("right", "click", "group")).toBe("offer");
+    expect(reaches("right", "click", "note")).toBe("offer");
   });
 
   it("binds left navigation and placement", () => {
@@ -74,6 +79,41 @@ describe("the block module's gesture map", () => {
     expect(reaches("key", "Delete", "any")).toBe("delete");
   });
 
+});
+
+describe("offer fill_args", () => {
+  it("never fills optional into with a non-group focus", () => {
+    const a = element("A", { id: "a", parent: null });
+    const b = element("B", { id: "b", parent: null, x: 40 });
+    const graph: Graph = { ...EMPTY, elements: { ...EMPTY.elements, a, b } };
+    const action = lookup("group")!;
+    const targets: OfferTarget[] = [
+      { kind: "selection", id: "", members: ["a", "b"] },
+      { kind: "card", id: "a", members: ["a", "b"] },
+    ];
+
+    for (const target of targets) {
+      const picked = target.kind === "selection" ? null : { kind: "node" as const, id: target.id };
+      const args = fill_args(action, { graph, view: null, picked }, target);
+      expect(args.into == null || graph.elements[String(args.into)]?.form === "group").toBe(true);
+      expect(Array.isArray(args.members) && (args.members as string[]).length > 0).toBe(true);
+    }
+  });
+
+  it("fills into when the target is already a group", () => {
+    const a = element("A", { id: "a", parent: null });
+    const g = element("", { id: "g", form: "group", parent: null });
+    const graph: Graph = { ...EMPTY, elements: { ...EMPTY.elements, a, g } };
+    const action = lookup("group")!;
+    const target: OfferTarget = { kind: "group", id: "g", members: ["a"] };
+    const args = fill_args(
+      action,
+      { graph, view: null, picked: { kind: "node", id: "g" } },
+      target,
+    );
+
+    expect(args.into).toBe("g");
+  });
 });
 
 describe("the surround", () => {
@@ -141,7 +181,8 @@ describe("the configured half", () => {
       defs: {
         def_1: {
           id: "def_1", name: "satisfy", form: "line", fields: [],
-          color: "#abc", line: "dashed", head: "open",
+          line: "dashed", head: "open",
+          components: { style: { slot: "secondary", emphasis: "strong" } },
         },
       },
       elements: { ...EMPTY.elements, e1: held },
@@ -150,7 +191,8 @@ describe("the configured half", () => {
     const own = paint(look, false);
     const away = paint(look, true);
 
-    expect(own.stroke).toBe(look.color);
+    // The slot the definition picked, resolved to a ramp step — never a colour.
+    expect(own.stroke).toContain(look.slot);
     expect(own.dash).toBeDefined();
     expect(own.head("forward")).toBeTruthy();
     // Derived presentation wins over the definition's look.
@@ -251,6 +293,28 @@ describe("SVG export of a layer", () => {
     expect(markup).not.toContain("react-flow");
   });
 
+  it("inlines the look it was handed, and never a variable", () => {
+    const look: SvgLook = {
+      frame: "#010203", band: "#040506", fill: "#070809",
+      stroke: "#0a0b0c", ink: "#0d0e0f", route: "#101112",
+    };
+    const markup = svgOf(layered(), "L", look);
+
+    // A file has no page, so nothing may leave as something to resolve later.
+    expect(markup).not.toContain("var(--");
+    // Every part this scene draws — a band needs a group, which it has none of.
+    for (const part of ["frame", "fill", "stroke", "ink", "route"] as const) {
+      expect(markup).toContain(look[part]);
+    }
+  });
+
+  it("falls back to a look that reads on paper when handed none", () => {
+    const markup = svgOf(layered(), "L");
+
+    expect(markup).toContain(PAPER.fill);
+    expect(markup).not.toContain("var(--");
+  });
+
   it("still returns an svg when the layer is empty", () => {
     const markup = svgOf(EMPTY, ROOT);
 
@@ -258,3 +322,8 @@ describe("SVG export of a layer", () => {
     expect(markup).toContain("</svg>");
   });
 });
+
+/** The list-of-types rule (docs/plan.md): what the selection strip, the edge
+ *  menu and the relation-types group all rest on. Properties only — nothing
+ *  here asserts a cap of three or a particular ranked position, since tuning
+ *  is free to change either. */

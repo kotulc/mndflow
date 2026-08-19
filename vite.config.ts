@@ -12,4 +12,20 @@ export default defineConfig({
   optimizeDeps: { include: ["@xenova/transformers"] },
   build: { chunkSizeWarningLimit: 900 },
   server: { port: 5173 },
+  // Agent sittings used to leave orphan vitest trees; keep workers few and
+  // individual tests bounded. The hard wall clock is scripts/test-ci.mjs.
+  // Both ends are named: a lone maxWorkers leaves the minimum at the CPU
+  // count, which conflicts with it and kills the run before it collects.
+  test: {
+    pool: "forks",
+    minWorkers: 1,
+    maxWorkers: 2,
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+    teardownTimeout: 10_000,
+    // happy-dom over jsdom: vitest-native, and nothing here needs jsdom's
+    // deeper spec cover (no canvas, no navigation). Global rather than a
+    // per-file pragma — every page test wants it, not only this one (T.3).
+    environment: "happy-dom",
+  },
 });

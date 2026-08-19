@@ -1,0 +1,12 @@
+{
+  "project": "its graph, its metadata, and the history that built them. Only the history is stored; the other two are folded from it.",
+  "layer": "a cross-section of the tree at one block: that block's immediate contents, seen from within.",
+  "element": "anything the graph holds as an object: a block, a note, a group, a proxy.",
+  "block": "the base element, and the default: one discrete thing the tree is built from. The only structural element.",
+  "note": "an element drawn as a card of text.",
+  "group": "the generic organizational element, local to one layer: a boundary round a set. It organizes without structuring.",
+  "proxy": "a virtual block standing in for one that lives in another layer, so a relationship can cross a structural boundary.",
+  "interface": "a block sitting on its parent's frame edge. Also called a port. Derived from having a side.",
+  "relationship": "a join between exactly two elements. Not an element — placed by its ends, drawn as a line, and joins rather than sits.",
+  "field": "a named, typed value on an element or a relationship. Never structural."
+}

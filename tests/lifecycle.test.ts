@@ -14,7 +14,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { entering } from "../src/graph/check";
 import * as file from "../src/graph/file";
 import { fold, stepsIn } from "../src/graph/fold";
-import { edge, element, step, ROOT, type Graph, type Mutation, type Step } from "../src/graph/types";
+import { edge, element, step, ROOT, stemOf, type Graph, type Mutation, type Step } from "../src/graph/types";
 import { loadProject, saveProject } from "../src/graph/store";
 import * as workspace from "../src/workspace";
 
@@ -154,7 +154,8 @@ describe("a project from an older build", () => {
     expect(graph.elements.n_2.form).toBe("block");
     expect(graph.elements.n_2.fields[0]).toMatchObject({ name: "mass", form: "text" });
     expect(graph.edges.e_1.form).toBe("directed");
-    expect(graph.vocabulary).toBe("software");
+    expect(graph.vocabulary.every((id) => id.startsWith("pkg_"))).toBe(true);
+    expect(stemOf(graph.vocabulary)).toBe("software");
   });
 
   it("saves out in the current format, which is how a project stops being old", () => {
