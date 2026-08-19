@@ -1795,6 +1795,11 @@ not a wave open to redesign, and the queue should not have been answering both a
   Recorded here because this is the one thing that would reopen *where the rail runs* — understanding
   a sentence may not fit in a tab, and the "must work with it unavailable" rule would come back with
   it. Nothing may be built assuming it is coming.
+- **Embedded content in a resource block** — a script, an image or a video carried *inside* the
+  project rather than pointed at. **Future use case, recorded not scheduled** (Clay, 2026-08-18,
+  during the vocabulary rework). A resource block holds content; whether that content is inline
+  or a path is the open half, and inline means the log carries bytes, which is a durability and a
+  file-size decision nobody has taken. Nothing may be built assuming it is coming.
 - **Merging two divergent logs.** A project file is a single-owner asset, like a `.psd`. Git's line
   merge or nothing; `check.ts` reports the wreckage of a bad merge rather than preventing it.
 - **Local variation, for multi-user work.** Somewhere for a view to hold a change that never
