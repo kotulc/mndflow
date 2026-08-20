@@ -166,6 +166,7 @@ and is absorbed by `move`.
 | | Does | Scope | Arguments | Writes | Replaces |
 |---|---|---|---|---|---|
 | `axis` | which way the layer reads | layer | layer, axis | `set_axis` | `setAxis` |
+| | *renamed **`flow`** by stream `B`, gaining `left` / `right` / `top` / `bottom` / none. The action does not change — only what it is called and how many values it takes* | | | | |
 | `arrange` | lay the layer out again | layer | layer, shape | `place_element`… | `arrange` |
 | `relax` | hand the layer back to automatic placement | layer | layer | `relax_layer` | ∿ on the canvas (G.2 / U.2) |
 | `vocabulary` | which packages this project draws definitions from | project | packages | `set_vocabulary` | the entry turn |

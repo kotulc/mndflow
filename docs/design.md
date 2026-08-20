@@ -106,7 +106,7 @@ a sentence: **a reference is drawn, a link is not.**
 ### Behavior is not a classifier — and never was supposed to be
 
 Checked against what a behavior model actually needs: ordering is a directed relationship or the
-axis, participants are references, lanes are *group children by what they reference*, and actions
+arrangement, participants are references, lanes are *group children by what they reference*, and actions
 and states are definitions in `packages/behavior/`. Not one of them is behavioral machinery. **A
 behavior model is one package plus three view modules**, which is what the glossary claimed all
 along while the code branched on it anyway.
@@ -135,6 +135,149 @@ five structure blocks is still a folder, and a set of references that all point 
 never a set. Both readings existed at once, which is how *set* and *folder* came to be two words
 for one idea. Keeping `folder` and dropping `set` also frees a word colliding with *style set* and
 *closed set*.
+
+### The three tiers: workspace, project, folder
+
+**Settled 2026-08-19 (Clay).** The model has a top, and it is not another project.
+
+| | Contains | Owns | Holds |
+|---|---|---|---|
+| **workspace** | projects, packages, folders | nothing | the **log**, the metadata, the explorer settings |
+| **folder** | anything — independent roots | nothing | nothing of its own |
+| **project** | — | **a graph of blocks** | its own settings: canvas toggles, the sticky view per layer |
+
+**Containment and ownership are different questions, and conflating them is what made *set* and
+*folder* two words.** A folder is a filing structure: it says where something sits, and deleting it
+must never delete what it held. A project is an ownership boundary: its blocks are parts, and
+deleting the project deletes them. That is one line, drawn once, and every earlier attempt drew it
+somewhere else each time.
+
+**And it is derived, so nothing new is stored** (Clay, 2026-08-19). **Filing a block makes it a
+root**; a root owns its own graph; so *contained* means *the child is a graph root* and *owned*
+means everything else. This is the built rule that a block at the top level **is** a project,
+applied one level down — dragging a loose block into a folder promotes it, dragging it into a
+project files it. Chosen over a third stored link, which would have made every containment rule ask
+three questions where two will do.
+
+### A block module is code; a definition is data
+
+**Every block names a block module, and may name a view module.** The block module supplies the
+configuration surface and what the engine does with the block; the view module says how a layer of
+it is drawn, defaulting to the block view.
+
+This is the old *a package is data, a module is code* split applied one level down, and it is what
+gives the engine back the dispatch it lost when forms collapsed — without giving it a closed set of
+sorts. **A package may subtype any base definition freely and may never add a module.** So
+*define every object and relation through data alone* stays true for vocabulary, and code is needed
+only where genuinely new behaviour is.
+
+**The rule is the same rule**: a module supplies drawing, placement and a configuration surface. It
+never answers *what may contain what*, which is a `holds` rule and therefore data. Without that
+line, block modules are element forms with a longer name.
+
+### One log, at the workspace
+
+**Settled 2026-08-19 (Clay): the workspace is one document, and it has one history.** Today every project holds
+its own log and a change is routed to the log of whoever owns the element it names — `Effect.into`,
+`writeInto`, the `home` batches, and a property test to hold them. With a single workspace log
+**nothing routes**, because there is nowhere else to route to. `R.10` and the `onMove` defect are
+both instances of a class that stops existing.
+
+**What has to be accepted for it**, and none of it is a blocker on its own:
+
+- **Undo is workspace-wide, and that is the intent.** One timeline over the page and everything on
+  it. Undoing after switching projects reaches back into the other one, which is what a single
+  document means and is the reason to want this rather than a cost of it.
+- **A project export becomes a query**, filtering the workspace log for steps naming that project,
+  rather than copying a log that already exists.
+- **A fold for one project replays everything.** Checkpoints exist for exactly this and already
+  carry the count of steps before them.
+
+**Display state goes with it, to the same place.** The workspace holds the explorer fold, the
+canvas toggles and which view each layer was last shown in — so reopening a workspace finds every
+project as it was left, and **an exported project carries no opinion about how to draw it**. That is
+the older rule (*a display preference is not project data*) finally given somewhere to live, rather
+than being kept out of the log and then having nowhere to be.
+
+### What a file carries: blocks, relations, views
+
+**Definitions are grouped by what they describe** — a **block** definition, a **relation**
+definition, a **view** definition — and that is the shape a project or a package file takes:
+
+```
+project { id, name, schema, defs { views, relations, blocks }, graph { root, … }, meta }
+```
+
+**One id space, three groups.** The grouping is how a file reads and how import-time validation
+dispatches; it is **not** three id spaces, because *typed-by* and *points-at* must stay one
+operation and a rename must orphan nothing. That was the one result the module walk produced that
+has survived every revision since, and splitting the id space would give it up for a nicer-looking
+file.
+
+**A view definition is reusable, and a block definition names one.** It carries exactly one required
+view module plus that module's options, so *how a layer is drawn* stops being copied into every
+definition that wants it. A **view block** — a saved cross-section — is a block whose definition
+names one of these. The two uses of the word are the same idea at two levels: *how to look*, and
+*a looking that was kept*.
+
+**`schema` is the module schema version.** Import is checked against it: a definition must match the
+registered option surface of the module it names, and **a module the build does not know falls back
+to the base block — and says so**. Falling back silently is the one thing to avoid, because a file
+from a newer build would open looking subtly wrong with nothing to explain it; the door already
+reports everything else it repairs as a fault, and this is no different.
+
+### Arrangement is how a graph reads, not how it is displayed
+
+**Clay's catch, 2026-08-19**, and it corrects the tier split: *flow and arrangement are not simply
+display — they are how a graph reads.* So they sit on the **layer**, with the model, and not in the
+workspace's display state.
+
+The line that falls out is worth keeping, because it decides where every later setting goes:
+
+| | Where | Because |
+|---|---|---|
+| explorer fold, canvas toggles, **which view module is showing** | workspace metadata | change nothing about what the model says |
+| **arrangement** (direction included), stored placement | the layer | **inference reads them**, and an inference is permanent |
+
+*This revises the earlier account, which put arrangement among the display preferences.* It also
+retires **arrangement as a one-time action that only writes placement**: `relax` is continuous and
+stores no positions at all, so arrangement is a **setting** with `free` as the case where placement
+happens to be stored. The older rule was true of the four arrangements that existed when it was
+written.
+
+**One setting absorbed all three.** `axis`, `flow` and `arrangement` were three fields answering
+overlapping questions, and `column` / `row` were only `down` / `right` with the direction left
+unsaid. They collapse into **one arrangement with seven values** — `free`, `right`, `left`, `down`,
+`up`, `radial`, `relax` — of which four carry a reading direction and three do not.
+
+**Why this is model data and not a preference — it is forced, not chosen.** Inference reads
+position along the reading direction (order tier 3), and behaviors.md requires that *the same
+selection infers the same way every time*. If the reading direction were display state, the same
+model would infer differently depending on how somebody was looking at it, and the result would be
+a **permanent** block. So anything inference reads is model data. That single test decides this, and
+will decide the next setting somebody proposes.
+
+**The corollary, and it is a real one:** `relax` positions are not stable, so a `relax` layer cannot
+feed order tier 3 either. `radial` and `relax` carry no reading direction, so a layer using them has
+no implied order and inference falls through to connectivity. Better than a tier that silently
+returns a different answer each time it runs.
+
+**Nothing is discarded by arranging.** A block's `at` is always kept; a computed arrangement
+replaces where things *draw*, never what somebody placed, so returning to `free` returns their
+layout. That was already the rule — *retained placement: something an arrangement replaces rather
+than honours, and which is yours again afterwards* — and it is what makes arrangement safe to be a
+setting rather than an action.
+
+**A `derived` relationship is a flag, not a module.** `line` and `directed` say how a relationship
+draws and whether it carries direction; *derived* says nobody drew it and the engine computed it —
+a different axis entirely, and one any relationship could sit on. So it is a property: not in the
+log, recomputed on fold, not deletable. Chosen over a third relation module, which would have made
+*how it draws* and *where it came from* one question.
+
+**And an interface is declared, not derived.** It was *derived from having a `side`*; as a block
+module it is made deliberately, and `side` becomes only where it sits. `promotion` already existed
+as the explicit act of making one, and a declared interface is what can carry an anchor-slot surface
+— which is what lets a lifeline occurrence and a proxy port be the same object.
 
 ### What it costs, said plainly
 
@@ -594,9 +737,9 @@ as a ref, which is an appearance and not composition, so the two trees never int
 can drift into being a copy of the other.
 
 **Order is read from the model, and only guessed at as a fallback.** A directed relation between two
-blocks *is* the sequence, and it wins. Where none exists, position along the layer's own axis says
+blocks *is* the sequence, and it wins. Where none exists, position along the layer's own arrangement says
 the same thing. So somebody who has laid ten blocks out in a row has already said what happens in
-what order without drawing a single arrow — and that is the reason the axis was worth having as a
+what order without drawing a single arrow — and that is the reason a directional arrangement was worth having as a
 setting separate from an arrangement. The cheapest possible modelling gesture carries meaning, which
 is what *rapid* has to mean if it means anything. The full chain is four tiers deep and lives in
 [behaviors.md](behaviors.md).
@@ -662,7 +805,7 @@ authority already ends.
 
 **None of this needs a schema change**, which is the test that it belongs. An activity is a block,
 its parent is the activity above it, a participant is a **reference**, the sequence is `dir` on
-ordinary relationships, the implied order is position against the layer axis, and a partition is a
+ordinary relationships, the implied order is position against the layer arrangement, and a partition is a
 group. What is new is inference — code — and never a field.
 
 ### The action surface is the input seam
@@ -771,9 +914,11 @@ simplified block model*.
 nothing spans both — the rule `Effect.into` and the `home` batches already keep. Undoing in the
 source brings the block back; it does not unmake the project.
 
-**The workspace is itself a project** and needs no new schema to be one: its children are
-references to other projects roots, and folders are ordinary blocks. So filing is undoable and it
-draws as a block diagram whose dependencies are derived from who references whom.
+**The workspace is itself a block, and needs no new schema to be one**: its children are project
+roots and folders, contained rather than owned, and it draws as a block diagram whose dependencies
+are derived from who references whom. *It was called a **project** here until 2026-08-19; it is now
+the tier above one — it owns no graph of its own and holds the log for everything. See The three
+tiers.*
 
 **A change is recorded where its element lives.** Ownership routes it, and nothing branches or
 merges. Every cross-project write goes through one door — an applied step appended to the target's

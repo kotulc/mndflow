@@ -24,9 +24,11 @@ from what it holds and how its definition says to draw it.
 | **block** | the one element. Placed, drawn, carries fields, holds other blocks. Held in `graph.elements` |
 | **part** | a child the block **owns**. The tree is `parent` and nothing else; deleting the whole deletes it |
 | **reference** | a child that **stands for a block living elsewhere** — another layer, another project. It appears, it is not owned, and it shows the real block's name. `of` holds the path |
-| **relationship** | a join between **exactly two** blocks. Not a block: placed by its ends, drawn as a line, joins rather than sits |
+| **relationship** | a join between **exactly two** blocks. Not a block: placed by its ends, drawn as a line, joins rather than sits. Names a **relation module** — `line` or `directed` |
+| **derived** *(of a relationship)* | **a flag, never a module**: nobody drew this, the engine computed it. Not in the log, recomputed on every fold, and not deletable. The workspace's project-to-project dependencies are the built example |
 | **field** | a named, typed value on a block or a relationship. Never structural |
-| **definition** | a reusable subtype: a name, the fields its usages carry, how they draw, and what they may hold. Held in `graph.defs`. **One record for block and relationship types alike** |
+| **definition** | a reusable subtype: a name, the fields its usages carry, how they draw, and what they may hold. Held in `graph.defs`, **one id space**, and grouped in a file by what it describes — **blocks**, **relations**, **views** |
+| **view definition** | **a view subtype.** It configures one required **view module** exactly the way a block definition configures a block module, and what the options are is the module's to declare. Reusable — many block definitions may name the same one. *Not the same as a **view block**, which is a saved cross-section and names one of these* |
 | **type** | the definition a block or relationship names. Open, and the user's |
 | **usage** | anything naming a definition in its `type`. The definition declares; the usage holds the values it gives |
 
@@ -34,37 +36,68 @@ from what it holds and how its definition says to draw it.
 a `link` field. A reference occupies space, takes relationships and sits in a layer; a link is a
 value inside a field, pointing without appearing.
 
-**Two child links and no third.** Ownership, not distance, is what separates them: a part is in the
-tree, a reference names something the tree does not compose. Every notation draws that line and no
-notation draws another.
+**Ownership, not distance, is what separates them**: a part is in the tree, a reference names
+something the tree does not compose. Every notation draws that line.
+
+**And one more thing a block can do with a child: contain it without owning it.** The workspace and
+a folder both do this — their children are **independent roots**, so deleting the container never
+deletes what it held.
+
+**It is derived, and nothing new is stored** (settled 2026-08-19). **Filing a block makes it a
+root**, and a root owns its own graph — so *contained* is simply *the child is a graph root*, and
+*owned* is everything else. This is the built rule that *a block at the top level is a project*,
+applied one level down: dragging a loose block into a folder promotes it, and dragging it into a
+project files it.
 
 
-## The base package
+## The base package and the block modules
 
-**A shipped, locked package of definitions the engine knows by id.** This is where the sorts of
-thing live now that forms are gone. It is **open** — a code change may ship one more, additively.
+**A block module is engine code behind one sort of block** — its configuration surface, and what
+the engine does with it. **Open**: a code change ships one more, additively. **A shipped, locked
+`base` package** carries one definition per module, and everything a user or a package defines
+**extends** one of them.
 
-**The rule that keeps it from becoming forms again:** the engine may key off a base definition
-**only for how a block draws and where it sits**. Never for what it is, and never for what may
-contain what — containment is a `holds` rule, which is data.
+**Two layers, and the split is the old one**: a module is **code**, a definition is **data**. A
+package may subtype any base definition freely and may never add a module — which is what keeps
+*define every object and relation through data alone* true for vocabulary while leaving genuinely
+new behaviour to code.
 
-| Definition | Holds | Is |
-|---|---|---|
-| **structure** | parts, and references | the default. What there is, and how it is composed |
-| **view** | **references only, engine-enforced** | a perspective: which blocks, through which module, configured how |
-| **resource** | content, no children | something attached rather than modelled — a file, a script, a data file, an image, a note |
-| **folder** | parts, of any definition | organization. A structure block, marked as one because filing is what it is for |
-| **group** | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary, a trace assertion. A `view` at layer scope, which is why it is never a parent |
-| **note** | text | a `resource` drawn as a card of text |
+| Base definition | Module | Holds | Is |
+|---|---|---|---|
+| **workspace** | its own | projects, packages, folders — **contained, never owned** | the top-level root. Holds **the log**, the metadata, and **all display state** — explorer fold, canvas toggles, and which view each layer was last shown in. Renders with the block view. **Its graph stops at project roots** |
+| **project** | its own | **owns** a graph of blocks | a model, and nothing about how it is shown. Contained by the workspace or a folder |
+| **folder** | its own | anything, **contained, never owned** — its children are independent roots | the organizational tool, and the only place *mixed* means anything. Renders with the block view |
+| **package** | project's | a project you are using rather than writing | locked; unlock or fork to change it |
+| **structure** | base | parts, and references | the default. What there is, and how it is composed |
+| **view** | view's | **references only**, and **the module regulates it entirely** | a perspective: which blocks, through which module, configured how |
+| **resource** | its own | a **workspace-relative path or link** | a file, a script, a data file, an image, a note. *Embedded content is a later story* |
+| **group** | view's | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary, a trace assertion. A view at layer scope, which is why it is never a parent |
+| **note** | resource's | text | a resource drawn as a card of text |
 
-Everything else **extends** one of these, and a package ships the extensions.
+**Every block names a block module and may name a view definition**, which defaults to the block
+view. The block module says what the block *is* to the engine; the view definition says how a
+**layer of it** is drawn. **A definition naming no module gets the base block defaults**, so a
+half-written package is usable rather than broken.
+
+**A block definition names an ordered list of view definitions, and the first is the default.** One
+field, not two — which view a layer opens in is a presentation detail and does not deserve a field
+of its own. Default: block, table, matrix. The base package ships a trivial view definition per
+module, so *unconfigured* still has a name and every entry in the list is the same kind of thing.
+
+**What a view definition may configure is the module's to say.** Block view: arrangement, whether
+interfaces show. Table view: filters, sort, and the child scope or depth. Matrix: its two axis views
+and which relation kinds count. Each is its own discussion, held with that module.
+
+**The rule that keeps this from becoming forms again:** a module supplies **drawing, placement and
+a configuration surface**. It never answers *what may contain what* — that is a `holds` rule, which
+is data.
 
 | Term | Means |
 |---|---|
 | **container** | a block that holds children. Derived from what it holds, so it is how a block *looks*, never what it is |
-| **interface** | a block sitting on its parent's frame edge. Also **port**. Derived from having a `side`. **The one anchor for every port-like thing**: a proxy port, a full port, an activity pin and a constraint parameter are all interfaces |
+| **interface** | a block seated on an **edge** — its parent's frame, or a lifeline, or any other edge set. Also **port**. **The one anchor for every port-like thing**: a proxy port, a full port, an activity pin and a constraint parameter are all interfaces. A block module of its own, so it carries a configuration surface: the **anchor slot** it takes (`line`, `circle`, `diamond`, …) and its own shape and fill |
 | **root** | the block that holds every other in a project. Carries the project's metadata and definitions, `parent: null`, no frame |
-| **behavior** | **ordinary description, never a classifier.** A behavior model is `packages/behavior/` plus three view modules: actions and states are definitions extending `structure`, participants are references, order is a directed relationship or the axis. The engine has no behavior branch and needs none |
+| **behavior** | **ordinary description, never a classifier.** A behavior model is `packages/behavior/` plus three view modules: actions and states are definitions extending `structure`, participants are references, order is a directed relationship or the arrangement. The engine has no behavior branch and needs none |
 
 
 ## Layers and looking
@@ -90,12 +123,12 @@ derived kind. That is what keeps a model from being trapped in the sort of thing
 
 | Term | Means |
 |---|---|
-| **arrangement** | a one-time action that lays a layer out and writes down where everything landed: `grid`, `radial`, `across`, `down`. Never a mode |
-| **axis** | which way a layer reads: `none`, `across`, `down`. A setting, per layer. Biases rank, placement and routing, and is the fallback the **implied order** is read along |
-| **rank** | one step along the axis |
+| **arrangement** | **one setting, seven values, and it carries the reading direction**: `free`, `right`, `left`, `down`, `up`, `radial`, `relax`. **Model data, held on the layer and in the log** — because the four directional values are what **implied order** is read along, and inference must not depend on how somebody happened to be looking. **This absorbed both `axis` and `flow`**: `column` and `row` were `down` and `right` with the direction left unsaid |
+| **retained placement** | a block's `at` is **always kept**, whatever the arrangement. A computed arrangement replaces where things *draw*, never what you placed — so returning to `free` returns your layout |
+| **rank** | one step along a directional arrangement |
 | **seat** / **anchor** / **promotion** | a place on a border a line may meet; a seat with no block behind it; turning an anchor into an interface where it sits |
 | **explicit order** | sequence stated by a directed relationship. Read first, and it wins |
-| **implied order** | sequence read from where blocks sit along the axis. The fallback |
+| **implied order** | sequence read from where blocks sit along a **directional arrangement**. The fallback. **`radial` and `relax` carry no direction**, so a layer using either has no implied order and inference falls through to connectivity |
 | **lane** | a participant's column or band in a behavior view. **Derived from the reference** an action holds |
 
 
@@ -103,18 +136,20 @@ derived kind. That is what keeps a model from being trapped in the sort of thing
 
 | Term | Means |
 |---|---|
-| **project** | its graph, its metadata, and the history that built them. **Only the history is stored**; the rest is folded from it |
+| **project** | a graph it **owns**. Contained by the workspace or a folder, never owned by either. **It says nothing about how it is shown** — no log, no view state, no toggles |
 | **graph** | the current state — blocks and the relationships between them. Derived, never edited in place |
-| **workspace** | the projects currently loaded, and their order. **It is a project**: its children are references to project roots, so filing is undoable and works like everything else |
-| **package** | **a project you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's — the same project is a package or a working model depending on which you are doing |
+| **workspace** | **the top-level root, and there is exactly one.** It contains every project, package and folder without owning any of them; it holds **the log**, the metadata and **every display preference**. Its own graph is its filing tree and **stops at project roots** |
+| **the log** | **one log, at the workspace** (settled 2026-08-19). One history for everything, so **undo is workspace-wide** — the workspace is one document, and that is the intent. Nothing routes a write any more, which is what dissolves `Effect.into`, `writeInto`, the `home` batches and the whole class of bug they existed to prevent |
+| **display state** | how things were last shown — explorer fold, canvas toggles, which view module each layer was in. **Workspace metadata, never a project's and never the log**, so reopening a workspace finds every project as it was left, and an exported project carries no opinion about how to draw it |
+| **package** | **a project you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's. A **pattern package** ships template blocks to copy and customise rather than definitions to draw on — a later story |
 | **vocabulary** | the list of packages a project draws **definitions** from, in import order. A package of *patterns* is referenced or copied instead, and does not go in this list |
 | **extends** | the definition another refines, by reference. **Subtyping, never overriding**; fields union, components merge per key, and a rule naming a definition reaches everything below it |
 | **snapshot** / **bundle** | a project written out; one carrying the external projects it references, so it stands alone |
 | **translator** / **artifact** | code that reads a project and emits source, a drawing or a standard's file; and what it emits. **One way** — the action that ran it may record a `resource` block, the translator never writes the graph |
 
-**A change is recorded where its element lives.** Admitting a project writes the workspace's log
-because the reference is the workspace's; renaming a block writes that project's log. Nobody
-decides case by case, and no action knows it is a cross-project one.
+~~**A change is recorded where its element lives.**~~ **Retired by the single log** (2026-08-19).
+There is one log, so nothing routes and no action can pick the wrong one. The rule was the best
+available answer while every project held its own history; it is not needed once none does.
 
 
 ## History
@@ -164,6 +199,7 @@ The full enumeration is in [actions.md](actions.md).
 | **adjustment** | something positional and unsayable. Four, gesture-only, never ranked. A module declares which it accepts |
 | **navigation** | an action writing no mutations — `open`, `up`, `reveal`. No step, nothing to undo |
 | **pin** | saving the current layer view as a **view block**, from the canvas |
+| **infer map** | what a block becomes in a given view — **declared by each view module**, its dials set by the view definition. `ViewModule.word` / `.creates` and `ViewConfig.N` are the built half (A.7c); the behaviour chain in [behaviors.md](behaviors.md) is one module's map, written out long |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |
 
 
@@ -171,7 +207,7 @@ The full enumeration is in [actions.md](actions.md).
 
 | Closed — never add one | Open — extend by a code change, additively |
 |---|---|
-| relationship forms (`line`, `directed`) | base definitions |
+| relation modules (`line`, `directed`) | base definitions, block modules |
 | value forms (`text`, `number`, `flag`, `choice`, `link`) | card layouts, style sets, arrangements |
 | the six view modules | components, rule kinds, routing strategies |
 | mutation ops, the action set, the four adjustments | |

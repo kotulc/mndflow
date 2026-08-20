@@ -43,7 +43,7 @@ was not.
 
 | | The goal | Rows | State |
 |---|---|---|---|
-| **ST.4** | **One block, and everything else is data.** Make a folder, a view, a note, a script and a behavior without the app ever asking which *sort* of thing you mean — because there are no sorts. Drag blocks from three projects into a view, pin it, and come back to it. **This is the primary story and everything else waits behind it** | none yet — see *B*, below | **settled, not started.** design.md *The simplified block model*; vocabulary in [definitions.md](definitions.md) |
+| **ST.4** | **One block, and everything else is data.** Make a folder, a view, a note, a script and a behavior without the app ever asking which *sort* of thing you mean — because there are no sorts. Drag blocks from three projects into a view, pin it, and come back to it. **This is the primary story and everything else waits behind it** | `B.0` → `B.17` | **settled, not started.** design.md *The simplified block model* and *The three tiers*; vocabulary in [definitions.md](definitions.md). Nothing gated — `B-g`…`B-j` answered 2026-08-19 |
 | **ST.1** | **Reorganising is easy.** Move a block anywhere it could sensibly go — into another branch of the same project, into a different project, or out to the workspace — and see where it is going to land while dragging. Nothing announces itself afterwards, because the move was obvious as it happened | `P.1` ✓, `P.13` ✓, `P.14` ◐, `P.15` ✓ | **all rows landed — not closed.** Needs Clay to drive it, and `P.14` landed short of *beside* |
 | **ST.2** | **A saved view is worth saving.** Pick a cross-section of several projects, keep it, name it, come back to it, and read it as a requirements table or an allocation matrix | `P.4` ✓, `P.5`, `P.7` ◐, `P.8` ✓, `P.9` | `P.7` and `P.8` landed — a set takes drops from three surfaces and a table chooses its columns. **`P.7` short**: a cross-project proxy has no label yet, which this story cannot close without |
 | **ST.3** | **Nothing is unreachable.** Every kind of thing the app can hold can be made from the app: a project, a set, a behavior. None of them needs an invisible gesture or an import | `P.2` ✓, `P.3` ✓, `P.6` ✓, `P.10` ✓ | **all rows landed — not closed.** Needs Clay to drive it |
@@ -98,9 +98,63 @@ governs how the view block itself draws.
 | `P.6` entirely (already `SUPERSEDED`) | the door it opened has nothing behind it |
 | `S8.3` *the glossary is distilled* | **done** — 149 terms to 75, this sitting |
 
-**No rows yet, deliberately.** The ordering is a proposal to Clay before anything is written, since
-this touches `src/graph/types.ts`, every module and every doc. See the sitting note at the head of
-this file.
+### The three tiers, settled 2026-08-19
+
+| | Contains | Owns | Holds |
+|---|---|---|---|
+| **workspace** | projects, packages, folders — never owns them | nothing | **the log**, the metadata, and **all display state** (explorer fold, canvas toggles, last view per layer). Its graph stops at project roots |
+| **folder** | anything; its children are independent roots | nothing | — |
+| **project** | — | **a graph of blocks** | nothing about how it is shown |
+
+**Contains is derived, not stored**: filing a block makes it a root, so *contained* means *the child
+is a graph root* and *owned* means everything else. **One log, at the workspace**, so undo is
+workspace-wide — the workspace is the page and everything on it.
+
+**Every block names a block module** (code: its configuration surface and engine behaviour) and may
+name a **view module** (defaults to the block view). A package subtypes base definitions freely and
+may never add a module.
+
+**A resource is a workspace-relative path or link.** Embedded images, video and data are a later
+story. **A pattern package** — template blocks to copy and customise — is a later story too.
+
+### Rows
+
+**Order, not commitments.** `B.0` comes first because the size of everything after it is currently
+a guess. **Nothing else is gated** — `B-g` through `B-j` were all answered on 2026-08-19.
+
+**One migration, at the end.** `B.6` changes the element record, `B.8` changes where the log lives,
+and `B.11`–`B.15` change what a definition carries. They are migrated **once**, in `B.17`, rather
+than five times — which is why it is last and why none of them may ship without it.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **B.0** | **Count the branches.** Every read of `form`, every read of `proxy`, every caller of `page/kind.ts`, and every place a log is chosen. No code change — a table in tasks.md. Without it the size of this stream is a guess | `docs/tasks.md` | ⊘ |
+| **B.1** | **`proxy` → `reference`, mechanical.** The rename only — `form: "proxy"` stays a form for now. Biggest site count, no design risk, and it stops every later row fighting two names | `src/`, `tests/` | B.0 |
+| **B.2** | **Ship the `base` package and the block-module registry.** `workspace` / `project` / `folder` / `structure` / `view` / `resource` / `group` / `note` as definitions, each naming a module. Published in `modules/base.ts`, read by nothing yet | `packages/base/`, `src/modules/` | B.0 |
+| **B.3** | **Delete the kind derivation.** `page/kind.ts` goes; which view modules a layer offers comes from the definition. Closes `P.6`'s one-way door and defects `1b`–`1h` at once | `page/kind.ts`, `page/App.tsx`, `page/Files.tsx` | B.2 |
+| **B.4** | **`folder` becomes a definition**, `role_set` → `role_folder`, and the mixed-children reading comes out | `page/Files.tsx`, `src/modules/icons/` | B.2 |
+| **B.5** | **`part` and `reference`, and contains is derived.** Two stored links; *contained* is *the child is a graph root*, so filing a block promotes it and nothing new is stored | `src/graph/`, `graph/check.ts` | B.2 |
+| **B.6** | **Forms collapse.** `note` and `group` become base definitions; `form` leaves the element record. The largest row, and what `B.1`–`B.5` exist to make safe | `src/graph/types.ts`, the door | B.5 |
+| **B.7** | **`ref` value form → `link`.** Small and independent; any time after `B.1` | `src/graph/`, `packages/` | B.1 |
+| **B.8** | **One log, at the workspace.** Undo becomes workspace-wide, which is the intent. Dissolves `Effect.into`, `writeInto`, the `home` batches and `P.11`'s test; a project export becomes a query over the log and a per-project fold leans on checkpoints. **Sized only after `B.0`** | `workspace/`, `src/graph/`, `project.ts` | B.0 |
+| **B.9** | **Display state moves to workspace metadata** — explorer fold, canvas toggles, and which view each layer was last shown in. Reopening a workspace finds every project as it was left; an exported project carries no opinion about how it is drawn. **Reverses `U.8`'s `localStorage` on purpose** | `page/`, `workspace/` | B.8 |
+| **B.11** | **One arrangement, seven values, absorbing `axis` and `flow`.** `free` / `right` / `left` / `down` / `up` / `radial` / `relax`; the four directional ones carry the reading direction. **Model data, in the log** — inference reads it, and an inference is permanent. **Watch**: `implied order` is read along it, so `A.9`'s sequence and `A.7b`'s activity must keep their fallback, and **tier 3 must stop firing under `radial` and `relax`**, whose positions say nothing stable | `src/graph/`, `actions/layer.ts`, `modules/view/` | B.0 |
+| **B.12** | **Arrangement becomes a setting**, not a one-time action. **Reverses *an arrangement is never a mode*** — deliberately, because `relax` cannot be anything else. **`at` is never discarded**: a computed arrangement replaces where things draw, and returning to `free` returns the layout (*retained placement*, already the rule) | `actions/layer.ts`, `modules/layout/`, `page/Rail.tsx` | B.11 |
+| **B.13** | **`derived` as a relationship flag.** Not in the log, recomputed on fold, not deletable. The relation module set stays `line` / `directed`. First consumer is the workspace's project-to-project dependencies, which are drawn today and stored nowhere | `src/graph/`, `workspace/` | B.5 |
+| **B.14** | **An interface is declared, not derived.** Retire the `side` derivation; `side` becomes only where it sits. Reaches `promotion`, which was already the explicit act | `src/graph/`, `modules/view/diagram/` | B.6 |
+| **B.15** | **View definitions become their own records** — a **view subtype**: one required view module plus its options, reusable rather than copied into every definition. A block definition carries **`views`, an ordered list of them, first entry the default** — one field, because which view opens is a presentation detail. The base package ships a trivial view definition per module so every entry is the same kind of thing | `src/graph/types.ts`, `src/modules/view/` | B.2 |
+| **B.16** | **The module schema is enforced at import, and an unknown module reports a fault.** A definition must match the registered option surface of the module it names; a module the build does not know falls back to the base block **and says so**. Never silent — a file from a newer build must not open looking subtly wrong with nothing to explain it | the door, `graph/check.ts` | B.2, B.15 |
+| **B.17** | **Migrate old files, once, covering every change in this stream.** Schema `1.2` writes `form: "proxy"` / `form: "note"` and a log per project. The door already heals a legacy domain stem, so heal there rather than bumping by fiat. **Nothing in this stream ships without it** — a build that cannot read yesterday's file is the one unrecoverable outcome in this stream | the door, `tests/` | B.6, B.8, B.11–B.16 |
+
+**Added by the third round, and none of it is scheduled**: generalised edges and anchor slots
+(port / interface lifted off the frame edge), multi-select inference, a behavioural gamification
+package, and the explorer's show/hide-empty-blocks filter. All four are in [tasks.md](tasks.md)
+under the block model questions.
+
+**Held back deliberately**: the **pin**, and **a view holds views** with the `depth` dial. Both are
+`ST.4`'s payoff rather than its plumbing, and both belong after `B.6`. **`S8.2`** (`view` → `layer`,
+257 sites) goes **last** — *view* has gained a third meaning and renaming into a moving target is
+what made the first estimate expensive.
 
 
 ## What is startable now

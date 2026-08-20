@@ -486,6 +486,748 @@ simplified block model*, queue shape in [plan.md](plan.md) under stream **B**.
 **Closed by it, so nothing is owed:** the *kind signal* and *kind by fiat* repairs, `P.6`, `P.5`'s
 mixed-children reading, and `S8.3`.
 
+**Answered 2026-08-19 (Clay).** The six that were open:
+
+| | Answer |
+|---|---|
+| **B-a** | **The engine keys off registered modules.** A **block module** is code behind one sort of block — its configuration surface and its engine behaviour. Every block names one; a **view module** is optional and defaults to the block view. Modules are what the engine leverages to interpret packages, projects and workspaces |
+| **B-b** | **A view is regulated entirely by its module.** It holds nothing but references to workspace blocks. So the enforcement is the module's, not a second half of `holds` |
+| **B-c** | **A resource is a workspace-relative path or link.** The workspace holds packages, projects, references to resources, and its own settings and log. **Embedding** images, video and data is a later story |
+| **B-d** | **Migrate and translate old files** — rows, not a schema bump by fiat. See stream `B` in [plan.md](plan.md) |
+| **B-e** | **The workspace contains without owning, exactly like a folder**, plus two things a folder has not: it is *the* top-level root, and it holds the log and metadata. **It gets its own module** |
+| **B-f** | **A pattern package is a set of template blocks** to import, copy and customise, built on the base definitions. Not a vocabulary package and not in the `vocabulary` list. **A later story** |
+
+**The shape those answers produce**, recorded so nothing drifts from it:
+
+| | |
+|---|---|
+| **workspace** | the top-level root. **Contains** projects, packages and folders without owning them; holds the **log**, the metadata and the explorer settings — fold state, toggles, last view. Renders with the block view. Its own module |
+| **project** | **owns** a graph of blocks. Contained, never owned. Carries canvas toggles and the **sticky view per layer** in its own settings. *Proposed: it no longer holds a log* |
+| **folder** | contains anything without owning it — its children are independent roots. Renders with the block view. **The only place *mixed* means anything** |
+| **every block** | names a **block module**, and optionally a **view module** |
+
+**Answered 2026-08-19, second round — nothing in stream `B` is gated any more:**
+
+| | Answer |
+|---|---|
+| **B-g** | **Contains is derived, and nothing new is stored.** **Filing a block makes it a root**, and a root owns its own graph — so *contained* means *the child is a graph root* and *owned* means everything else. Dragging a loose block into a folder promotes it; dragging it into a project files it. Chosen over a third stored link |
+| **B-h** | **One log, at the workspace. Undo is workspace-wide, and that is the intent** — the workspace is the page and everything on it, so it has one history. `Effect.into`, `writeInto`, the `home` batches and `P.11`'s property test all come out, and so does the bug class `R.10` and defect **1** belong to |
+| **B-i** | **The workspace graph is its filing tree and stops at project roots.** It contains; it owns no model blocks |
+| **B-j** | **Display state lives in workspace metadata** — not the project's, and not the log. Explorer fold, canvas toggles, and which view each layer was last shown in. Reopening a workspace finds every project as it was left, and **an exported project carries no opinion about how it is drawn** |
+
+**One detail this second round absorbed, worth naming because it moved:** *canvas toggles* were
+recorded as project settings in the first round and are now workspace display state with everything
+else. The rule that produced the move is worth keeping — **the project holds what it is, the
+workspace holds how it was last seen** — because it is the one that gives *a display preference is
+not project data* somewhere to live instead of only somewhere to be kept out of.
+
+**The module sets and the file shape, 2026-08-19 (third round).**
+
+**Settled**: definitions are grouped by what they describe — **blocks**, **relations**, **views** —
+in **one id space**; a **view definition** carries exactly one required view module plus its
+options and is named by block definitions; a definition naming no module gets the **base block**
+defaults; `schema` is the **module schema version** and import is checked against the registered
+option surface. **Arrangement and flow are layer settings, not display state** (Clay's catch — they
+are how a graph reads).
+
+| Module set | Members |
+|---|---|
+| **block** | base, view, interface, group, note, resource — and workspace, project, folder, package |
+| **arrangement** | free, column, row, radial, relax |
+| **flow** (under `relax`) | left, right, top, bottom |
+| **relation** | line, directed, derived |
+| **view** | block, table, matrix, activity, state, sequence |
+
+**Inference**: each view module declares its own **infer map** — what a block infers into, in that
+module. Multi-select inference is a **future story**.
+
+**Answered 2026-08-19 (fourth round):**
+
+| | Answer |
+|---|---|
+| **B-k** | **`derived` is a flag on a relationship, never a relation module.** The module set stays `line` / `directed`. A derived relationship is not in the log, is recomputed on every fold, and cannot be deleted |
+| **B-l** | **`flow` absorbs `axis`.** One setting — `left`, `right`, `top`, `bottom`, or none — per layer, under **every** arrangement rather than only `relax`. It biases rank, placement and routing and is what **implied order** is read along, so `A.9`'s sequence and `A.7b`'s activity keep their fallback under the new name |
+| **B-m** | **An interface is declared, not derived.** The `side` derivation is retired; `side` becomes only where it sits. `promotion` was already the explicit act of making one, and a declared interface is what carries the anchor-slot surface |
+| **unknown module** | **Falls back to the base block *and reports a fault*.** Never silent — the door already reports everything it repairs |
+
+| **B-n** | **Both, and they are two questions.** A **view definition is a view subtype** — it configures one required view module exactly as a block definition configures a block module, and what the options are is the module's to declare. A block definition names **one** for how its layer *opens*, and **a set of modules** it may be *switched* to (default block / table / matrix). Switching to a module with no view definition uses that module's defaults |
+
+**Nothing in the block model is open.** What is left is detail, held per module.
+
+### The infer map — already half-built
+
+**Clay is right that this was discussed.** `ViewModule` carries **`word`** and **`creates`** (the
+default definition for a block it makes) and `ViewConfig` carries the abstraction cap **`N`**,
+default 5 — all landed as **A.7c** and **never wired to `create` or `infer`** (parked, and still
+listed under stream A). [behaviors.md](behaviors.md) is one module's map written out at length: the
+shape discriminator, the four order tiers, lanes from the ref, the cap, derived naming from the
+module's verb, and the A/B activity→state reading.
+
+**So generalising it is a wire-up, not an invention**: what behaviours.md describes for the activity
+and state modules is what *every* view module declares.
+
+| | Whose |
+|---|---|
+| **the map** — what a block of this shape becomes here | the **view module**, in code |
+| **the dials** — `word`, `creates`, `N`, the verb | the **view definition**, in data |
+
+**Multi-select inference stays a future story.** One block in, one block out, is the case to settle
+first.
+
+### The schema, settled 2026-08-19 (fifth round)
+
+| | |
+|---|---|
+| **stored** | **only the workspace** — `{ schema, id, name, log, meta }`. Everything else folds from the log |
+| **a block** | `id, name?, parent, type?, of?, fields?, at?, side?, slot?, arrange?`. **No `form`** — *reference* is derived from `of`, *container* from holding children, *contained-not-owned* from the child's definition extending `project` |
+| **a relation** | `id, from, to, type?, fields?` plus a folded-only `derived?`. Its module (`line` / `directed`) comes from its definition |
+| **definitions** | one id space, three groups — `blocks`, `relations`, `views`. A block definition carries `module?` (absent ⇒ base) and **`views`, an ordered list of view definition ids whose first entry is the default** |
+| **a file** | `project { schema, id, name, defs, graph, meta? }` — a **checkpoint**, since a project export is a query over the workspace log rather than a copy of its own |
+
+**One arrangement, seven values, and it is model data.** `axis`, `flow` and `arrangement` collapse
+into one — `free`, `right`, `left`, `down`, `up`, `radial`, `relax`. **The test that decided it, and
+that decides the next one: anything inference reads is model data**, because an inference is
+permanent and behaviors.md requires the same selection to infer the same way every time. `radial`
+and `relax` carry no direction, so order tier 3 does not fire under them.
+
+**Nothing is discarded by arranging** — `at` is always kept, and returning to `free` returns the
+layout. That is *retained placement*, which was already the rule.
+
+**A project export loses its history, and that is correct.** The workspace export is the backup —
+it carries the log; a project export is a **share**, and it carries a checkpoint. Two doors that
+already differ (S4.6), now for a stated reason. Replaying a foreign log into your own would mean id
+collisions and somebody else's history interleaved with yours, which nobody wants.
+
+**Recorded as future stories, not scheduled:**
+
+- **Generalised edges and anchors.** Port / interface / anchor lifted off the frame edge to a
+  general **edge set** — a frame side, a lifeline, anything else that seats things. An **anchor slot
+  definition** (`line`, `circle`, `diamond`, …) and a variable port shape (square against rectangle,
+  open against filled). This is what makes a lifeline occurrence and a proxy port the same object.
+- **Multi-select inference.** Inferring from a selection rather than one block.
+- **A behavioural gamification package.** A goal to expand on later.
+- **Explorer: show or hide empty blocks.** Basic blocks, interfaces and references are usually
+  empty, so hiding them is what makes a large tree readable. **A project or package root is always
+  shown, even when empty.** Display state, so workspace metadata.
+
+**Next, still undiscussed**: the schema in detail under one log and no forms, and how inference
+reads the reworked vocabulary.
+
+
+### Stream P — making a project, and saving a view
+
+> **The model-B reading below is SUPERSEDED by the simplified block model** (Clay, 2026-08-18,
+> later the same day) — see *Open questions* at the head of this file. A **set** derived from what
+> its members are is gone; a **folder** is an ordinary definition and a **view** holds
+> **references**. The rest of this stream — the doors, the drags, the two logs, the bugs — stands.
+> Kept for the record of what was tried and why it did not hold.
+
+**Clay played with the built app and could not make a project.** Four things
+were expected; **none of them work**, checked against the code:
+
+- `＋` names a project only after clicking empty tree space to deselect first.
+- The empty tree area has **no drop target at all**.
+- Drag is wired only *inside* the project in context, so no block can cross.
+- `workspace.folder()` is built and **has no caller** — folders render, nothing
+  makes one.
+
+**plan.md predicted the first one exactly**: *click nothing to enable something
+is obvious to whoever built it and invisible to everyone else*. That prediction
+coming true on the first play is the evidence `V.14`'s gesture cannot be the
+only door. It is not reversed — it gains a visible sibling.
+
+**The rule Clay wants**: a project is a block that nothing contains. Making one
+is making a top-level block; promoting one is moving a block to the top.
+
+**Settled — nothing is left behind** when a block leaves. It takes its subtree;
+relationships from its old siblings go with it the way `delete`'s partings
+already do. Against a proxy standing in for it, which was the other option.
+**The consequence is silent data loss on the lines**, so the strip has to name
+what went.
+
+**A move across projects is two steps in two logs.** A project is a log, not
+only a place. That is already the rule everywhere (`Effect.into` / `writeInto`,
+`home` batches: *never a single step spanning two logs*). Undo in the source
+brings the block back; it does not remove the project that was made.
+
+**`A.7d` was mis-framed and is retired into this stream.** It read as *`infer`
+needs a hook to admit its project*. It is not: the explorer has no way to make a
+project that does not begin with an invisible gesture, so `infer` was being
+asked for a door the app does not have. Cut the door and `infer` needs nothing.
+
+**The larger ask, and the design already named it.** What is wanted is a
+requirements table, or an allocation view over a cross-section of several
+projects, stored and organised freely. spec.md has carried the concept as
+**(planned)** since W0 — *a **set** is whatever it holds proxies of*, and *a
+view appears as a root like any other and lists what it holds proxies of*. So a
+saved view is a **set**: a block whose members are proxies of things elsewhere.
+`Chosen[]` picks the cross-section (E.4), `refer` places each proxy, and the
+sticky view module decides whether it reads as a table or a matrix — all built.
+
+**`infer` is the existing proof.** It already takes a cross-project selection
+and mints a project holding proxies of the participants. It is the *behavior*
+special case of the general move, which is why generalising it beats inventing a
+second mechanism.
+
+**How the kinds are told apart — derived, never declared.** `role_of` already
+reads a node's role from what it holds and where it sits; *members are proxies*
+is one more line of it. **And that answers the folder**: a folder is a set whose
+proxies are project roots, which is what the workspace itself already is, since
+`admit` files a project by placing a proxy of its root. So there is no folder
+concept to add — the recommendation deletes one.
+
+~~**Settled — model B, Clay's call.** A set is **derived**: a block whose members
+are proxies. No stored field, no `components.set` key, and **no folder concept**
+— filing is a set of projects. `workspace.folder()` stays dead. A set wears a
+folder mark.~~ **Reversed the same day.** Mixedness was never the signal — a
+folder of five structure blocks is still a folder — and *set* collided with
+*style set* and *closed set*. **`folder` is an ordinary definition**, `set` is
+retired, and a **view** is the thing that holds references.
+
+**And a second rule from the same conversation**: *every node role carries a
+mark of its own*. Block, container and interface have theirs. **Two do not**:
+
+- **a set has no mark**, so it would read as a container — `P.5`.
+- **a behavior cannot be reached at all.** Nothing anywhere writes
+  `components.view.module`, and `offered(graph)` filters the view toggle to the
+  modules of the project's own kind, where kind is read back off that same key.
+  A fresh project's root has no definition, so it is `block`, so it is
+  *structure*, so activity / sequence / state are never offered. **A one-way
+  door with nothing that opens it** — the only behavior projects that can exist
+  are `infer`'s, and those are unreachable. `P.6`.
+
+V.2's property test already holds that no two icon names draw one path; the
+missing half is that every *role* has one, which is what `P.5` adds to the icon
+conformance test.
+
+**Recorded, not scheduled**: a set holds proxies of *whole blocks*. *These three
+fields of those five blocks* is a column selection — a different shape, and one
+a requirements table may want. It should arrive by decision, not by the back
+door.
+
+**`P.1` landed and was driven.** Three things it turned up that the row did not
+name:
+
+- **The drag payload was a bare element id**, so even where a row was draggable
+  it could not say which log the block was leaving. It is a cross-project ref
+  now — which `refer` has always accepted and nothing ever handed it.
+- **A promoted block was landing *inside* a project of its own name.** Clay's
+  rule is that the block **is** the project, so it becomes the destination's
+  root and everything pointing at it points at root instead.
+- **Definitions have to travel.** Without them a promoted block loses its types
+  silently — the same class of quiet loss the strip exists to prevent — so
+  `extraction()` carries the definitions the subtree names and the package
+  import list with it.
+
+**Two bugs the closing review found, both fixed with tests.** *(a)*
+`set_vocabulary` was written **flat**, so moving a block into an existing project
+replaced that project's package list with the source's — silent loss in a part
+of the project the drag never touched. It unions now, keeping import order.
+*(b)* The two logs are written one after the other, so a source that turned out
+to be **locked after the destination had already taken the subtree** left the
+block in both projects; the lock is checked before either write.
+
+**Recorded, not fixed**: a copied definition's `extends` can point at a parent no
+moved element named, leaving it dangling. It degrades safely — SC.2's walk ends
+at a missing parent — and `P.12` decides copy-versus-reference anyway.
+
+**The refold defect became `P.15`**, not a park: Clay hit it, so it is a row
+under story `ST.1`.
+
+### The style surface closed
+
+**`Y.7` and `Y.9` landed and were driven.** `Definition.color` is gone and
+`components.style` carries four closed dials instead: `slot` (six hue families),
+`emphasis` (`quiet|normal|strong`), `weight` (`hairline|thin|thick`) and `voice`
+(`quiet|normal|loud`). Nothing a definition can set is a colour, a pixel count or
+a font. Driven: setting all four on `Module` moved every usage's border from
+`oklch(0.42 .0855 150)` at 1px to `oklch(0.8 .12 330)` at 2px with its name at
+700, and the door refuses `slot: "magenta"` by name — *`style.slot` has to be one
+of primary, secondary, tertiary, quaternary, neutral, muted*.
+
+**One judgement the row did not settle.** *A definition that says nothing gets
+`neutral` / `normal`* is true of a definition — but a usage with **no type at
+all** has no definition to read, so it keeps the engine's own default (`--route`,
+`--border`) rather than the neutral slot. Otherwise *no type yet* and
+*deliberately quiet* draw the same, and the untyped canvas would lose its green.
+`Look.typed` is the flag.
+
+**The name collision is settled: `voice`.** `components.card.label` means *where
+the label sits*; the style dial is `components.style.voice` — *how loudly the
+name is set*. Clay's call, taken because one word meaning two things is what U.2
+exists to stop, and `Contents.tsx` was already aliasing a constant to import
+both.
+
+### The offered list grew a rule
+
+**`Y.4` closed its `◐`.** The rail builds the `types` group now, so table and matrix stopped
+drawing an inline cycle each. **`types` is the one group the page cannot build from its own state**
+— a table filters by the definition names on its rows, a matrix by the relationship marks in its
+cells — so `ViewModule` gained a `types` answer beside `chrome`: an icon and a function from the
+layer to the kinds on it. Declaring the group without answering it now fails the module conformance
+contract, so the two cannot drift. **A pick that is no longer on the layer reads as *everything***,
+which is why nothing has to be reset on navigation.
+
+**`R.5`–`R.8` and `R.10` / `R.11` landed and were driven.** Five things, one theme: the menu was
+thin because a rule was missing, not because entries had been forgotten.
+
+- **A required `choice` expands into one entry per option** (`R.5`). `expand` on the descriptor,
+  `entries()` in `actions/fill.ts`, and both menus call it — so the canvas and the explorer cannot
+  drift the way the three copied fill functions did. `mark`, `direct` and `reform` carry it;
+  `axis` and `arrange` deliberately do not, since the bar and the `.shape` cluster are their doors.
+  **The action set does not widen**: one registered action, offered N times with different args.
+- **`direct` and `reform` now have a home** (`R.6`) — the edge menu, proven end to end: *Directed*
+  turns a plain line into a directed one and *Back* moves the arrowhead to the other end.
+- **A directed relationship draws an arrowhead** (`R.7`). The form says there is a direction and
+  `dir` only refines which way, which is how `behavior.ts` has always read it; the canvas required
+  an explicit `dir` and so drew nothing for every edge the toolbar makes.
+- **`Scope.on` takes a list** (`G.9e`), so `retype` is offered on an edge. Widening a descriptor's
+  own field is not widening the closed action set.
+- **The explorer menu writes where it was clicked** (`R.10`). It built its context from the project
+  in context whatever the row, so a menu on B's row wrote A's log. It now builds from the row's own
+  project and brings that project into context, which is what the left-click path always did.
+- **An empty domain stem is not a repair** (`R.11`). Normalising `""` to `[]` carried nothing, so
+  every pre-migration project without a domain opened with a trouble notice it did not earn.
+- **actions.md gained a Does column** (`R.8`), copied from each descriptor's `about`. The
+  descriptor stays the source.
+
+**Watch, unresolved**: an edge menu now reads `Create Retype Refer Up Unlink Flip None Forward Back
+Both Line Directed Note Define Relax Vocabulary` — sixteen flat entries with the four directions and
+two forms unlabelled. It is legible because the options sit together in `ORDER`, but **`X.2`'s capped
+list is what makes it good**, and a large vocabulary will make it worse before then.
+
+### The tray, the table and the strip
+
+**Contents already *is* the table view**, stuck at one size. Not a thing to move: U.7 already said
+*both open partially, as the panel does now, and expand to the full canvas*, and landed `◐` on
+exactly that — expand does not cover or replace Contents. The shipped `table` module's own listing is
+the duplicate.
+
+**The rule the rest falls out of: the tray shows the contents of whatever is in focus** — a block its
+fields, a group its members, a note its text, a relationship its ends and what it could be. That is
+why the capped type list stopped looking like a relationship special case: it is the *what could this
+be* half of the same tray.
+
+**The two sizes take different inputs.** **Full** — the `table` view on the stage — shows the layer
+and everything in it, and **the selection does not narrow it**. **Partial** — the tray at the foot —
+is that same table **scoped to what is in focus**. With nothing in focus the two agree, so *expand*
+is only a size. Taking different inputs is what keeps this clear of the hidden state U.8 rejected:
+the two never disagree about one input. A full stage given over to one note's text was the tell that
+focus should not drive both.
+
+**Matrix should be a heatmap** — the one thing a grid gives that a listing does not. **Hue is the
+relationship kind, opacity is the count**: transparent at zero, grading up, so both dimensions read
+at once without a mode switch. **The hue is the definition's existing `style`** (`styleOf` /
+`lookOf`, `styles/sysml.ts`) — never a new matrix palette, so the matrix and the diagram cannot
+disagree and there is no second colour vocabulary to keep in step. A cell holding two kinds draws as
+**bands**, degrading to a solid cell in the common single-kind case.
+
+**U.7 modelled table and matrix on Contents and deliberately did not delete it**, so this
+duplication was known and accepted at the time; what changed is that the duplication turned out to
+be the wrong way round.
+
+### Listing the types in scope
+
+**Three surfaces ask the same question** — the edge context menu, the selection strip and the canvas
+*relation types* group — and each grows with the vocabulary. **One rule**: top three ranked by use,
+a *More…* that expands in place, scrolling past a height, and no submenus. The relation types group
+is the exception at three and no expansion, being a setting inline beside the crumbs rather than a
+list of things to act on.
+
+**The ranking already exists and is in the wrong place.** `Z.3` computes shape-weighted learned
+preference in `terminal/rank.ts` and `terminal/feedback.ts` — measured *use*, which is what "the
+three most common" should mean — but `terminal/` is **optional** (S6.3: delete it and the app still
+runs). A menu ranking by preference therefore cannot live downstream of the rail, which is the same
+argument that put `offer()` in `actions/` rather than `terminal/` (G.9a). Moving it also gives Z.3 a
+second consumer; until now it ranked rail chips alone. **Cold start** falls back to vocabulary import
+order, which Contents already uses for type offerings (D.2), so a fresh project needs no new rule.
+
+**A typed name is a type.** The strip carries a text field beside the capped list: type a name and
+the selection takes it. **Already built** — `fold.defineNamed` mints a definition for a bare name
+under a derived id and describes itself as *the bridge from free text to a real definition*, and the
+suite holds it. **Match before minting**: a free-text mint derives its id from the name while a
+deliberate definition carries its own, so typing a name already in scope would produce a twin — the
+duplicate-name case SC.4 needed disambiguation for.
+
+**The strip re-defines the selected thing, never its type.** Name, which type it is, field values —
+all instance-level. What fields a *type* carries and how it presents stays behind deselect on the
+types chip (`W.3`). Splitting it the other way rebuilds, somewhere new, the duplication U.11 deleted
+`Relations.tsx` to remove.
+
+### Where each action lives
+
+**A required `choice` is a question no menu asks**, so five actions were withheld from every offered
+list while holding reserved `ORDER` slots — `mark` (`flow`), `direct` (`dir`), `reform` (`form`),
+`axis` (`axis`), `arrange` (`shape`). Driving it: a card's menu offers *Relax* but never *Mark* or
+*Arrange*. Asking where each of the five actually lives turned up more than the original defect.
+
+| | Home | |
+|---|---|---|
+| `axis` | canvas bar, *flow* group | fine |
+| `arrange` | `.shape` cluster, bottom right | fine |
+| `mark` | Panel and Contents, `onMarkPort` — an interface's flow | fine |
+| `direct` | — | **homeless** |
+| `reform` | — | **homeless** |
+
+**`direct` and `reform` have no home at all.** The canvas relation group is `onForm`, a **draft**
+setting for what the *next* right-drag draws — a display preference beside `showPorts` and `angular`,
+recorded as such under S2.6. It never touches an existing edge. `project.direct` / `setDir` /
+`reform` exist and nothing calls them, so **once a relationship is drawn, its direction and its form
+cannot be changed anywhere**.
+
+**Settled — the options become the entries.** Right-clicking a relationship lists the relation types
+and forms themselves rather than an action that then asks which. No submenu, and no open text prompt.
+The list is tailored to the target because the options are. **It does not widen the closed action
+set**: one registered action offered N times with different args, which is the wording U.16 used
+before it was dropped. The flag goes on the **descriptor** (`expand`), keeping one rule instead of
+the per-surface special-casing R.2 removed; `arrange` and `axis` leave it off because they have
+homes. **Watch**: an edge menu then lists every relation type in the project.
+
+**Two things fell out of the same question.** A **directed relationship draws no arrowhead**, so
+direction is invisible even where the graph holds it — `direct` being unreachable is what hid it,
+and arrowheads are the engine's visual language rather than chrome, so it is not Wave V's. And
+**actions.md never says what an action does** — name, scope, arguments, mutations and what each
+replaced, but no description, which is why `reform` had to be read out of the source. The text
+already exists as `about`, required on all 29 descriptors.
+
+
+## Open questions
+
+*Kept at the front. Everything here blocks something in [plan.md](plan.md).*
+
+### The simplified block model — settled, and what it left open
+
+**Settled 2026-08-18 (Clay).** One block, no element forms; `proxy` → **reference**; `ref` the
+value form → **`link`**; `set` → **folder**, an ordinary definition; **no `kind`** — behavior is one
+package plus three view modules; `view` holds **references only** and the engine enforces it.
+Vocabulary in [definitions.md](definitions.md), reasoning in [design.md](design.md) under *The
+simplified block model*, queue shape in [plan.md](plan.md) under stream **B**.
+
+**Closed by it, so nothing is owed:** the *kind signal* and *kind by fiat* repairs, `P.6`, `P.5`'s
+mixed-children reading, and `S8.3`.
+
+**Answered 2026-08-19 (Clay).** The six that were open:
+
+| | Answer |
+|---|---|
+| **B-a** | **The engine keys off registered modules.** A **block module** is code behind one sort of block — its configuration surface and its engine behaviour. Every block names one; a **view module** is optional and defaults to the block view. Modules are what the engine leverages to interpret packages, projects and workspaces |
+| **B-b** | **A view is regulated entirely by its module.** It holds nothing but references to workspace blocks. So the enforcement is the module's, not a second half of `holds` |
+| **B-c** | **A resource is a workspace-relative path or link.** The workspace holds packages, projects, references to resources, and its own settings and log. **Embedding** images, video and data is a later story |
+| **B-d** | **Migrate and translate old files** — rows, not a schema bump by fiat. See stream `B` in [plan.md](plan.md) |
+| **B-e** | **The workspace contains without owning, exactly like a folder**, plus two things a folder has not: it is *the* top-level root, and it holds the log and metadata. **It gets its own module** |
+| **B-f** | **A pattern package is a set of template blocks** to import, copy and customise, built on the base definitions. Not a vocabulary package and not in the `vocabulary` list. **A later story** |
+
+**The shape those answers produce**, recorded so nothing drifts from it:
+
+| | |
+|---|---|
+| **workspace** | the top-level root. **Contains** projects, packages and folders without owning them; holds the **log**, the metadata and the explorer settings — fold state, toggles, last view. Renders with the block view. Its own module |
+| **project** | **owns** a graph of blocks. Contained, never owned. Carries canvas toggles and the **sticky view per layer** in its own settings. *Proposed: it no longer holds a log* |
+| **folder** | contains anything without owning it — its children are independent roots. Renders with the block view. **The only place *mixed* means anything** |
+| **every block** | names a **block module**, and optionally a **view module** |
+
+**Still open, and each blocks a row in stream B:**
+
+| | The question |
+|---|---|
+| **B-g** | **Is *contains* a third child link, or is it derived?** `part` was settled as *the tree owns it, deleting the whole deletes it* — and a folder now **contains parts it does not own**, which is a contradiction in terms as the words stand. Three readings, and one has to be picked before any of `B.5`/`B.6` can be written: **(a)** a third stored link `contains`; **(b)** it is **derived** — a child that is itself a graph root is contained, one that is not is owned, so nothing new is stored; **(c)** filing a block in a folder **makes it a root**, and then (b) covers every case. **(c) is the recommendation** — it needs no new link, and it agrees with the built rule that *a block at the top level is a project* |
+| **B-h** | **The single log — feasible, and what does undo mean?** Moving the log from the project to the workspace **dissolves** `Effect.into`, `writeInto`, the `home` batches, `P.11`'s property test and the whole class of bug that `R.10` and defect **1** are instances of. That is a large, real win. Three consequences to accept: **undo becomes workspace-wide** (undoing after switching projects undoes work elsewhere — this is the question that decides it); **a project export becomes a query** over the log rather than a copy of one; and **a fold for one project replays everything**, which checkpoints already exist to absorb |
+| **B-i** | **Does the workspace have a graph?** It is written *contains, does not own, has no graph* — but it renders with the block view, which needs elements to draw. Reading: **its graph is its filing tree** and it owns no model blocks. Confirm the wording or the model |
+| **B-j** | **Where does a per-layer sticky view live?** Settled as *project metadata*. That is legal — `meta` is the safely-ignorable half of the envelope — but it reverses `U.8`, which put it in `localStorage` precisely so it was not project data. It now **travels with the file**, so two people opening one project see the same view. Intended, or should it stay local? |
+
+
+### Stream P — making a project, and saving a view
+
+> **The model-B reading below is SUPERSEDED by the simplified block model** (Clay, 2026-08-18,
+> later the same day) — see *Open questions* at the head of this file. A **set** derived from what
+> its members are is gone; a **folder** is an ordinary definition and a **view** holds
+> **references**. The rest of this stream — the doors, the drags, the two logs, the bugs — stands.
+> Kept for the record of what was tried and why it did not hold.
+
+**Clay played with the built app and could not make a project.** Four things
+were expected; **none of them work**, checked against the code:
+
+- `＋` names a project only after clicking empty tree space to deselect first.
+- The empty tree area has **no drop target at all**.
+- Drag is wired only *inside* the project in context, so no block can cross.
+- `workspace.folder()` is built and **has no caller** — folders render, nothing
+  makes one.
+
+**plan.md predicted the first one exactly**: *click nothing to enable something
+is obvious to whoever built it and invisible to everyone else*. That prediction
+coming true on the first play is the evidence `V.14`'s gesture cannot be the
+only door. It is not reversed — it gains a visible sibling.
+
+**The rule Clay wants**: a project is a block that nothing contains. Making one
+is making a top-level block; promoting one is moving a block to the top.
+
+**Settled — nothing is left behind** when a block leaves. It takes its subtree;
+relationships from its old siblings go with it the way `delete`'s partings
+already do. Against a proxy standing in for it, which was the other option.
+**The consequence is silent data loss on the lines**, so the strip has to name
+what went.
+
+**A move across projects is two steps in two logs.** A project is a log, not
+only a place. That is already the rule everywhere (`Effect.into` / `writeInto`,
+`home` batches: *never a single step spanning two logs*). Undo in the source
+brings the block back; it does not remove the project that was made.
+
+**`A.7d` was mis-framed and is retired into this stream.** It read as *`infer`
+needs a hook to admit its project*. It is not: the explorer has no way to make a
+project that does not begin with an invisible gesture, so `infer` was being
+asked for a door the app does not have. Cut the door and `infer` needs nothing.
+
+**The larger ask, and the design already named it.** What is wanted is a
+requirements table, or an allocation view over a cross-section of several
+projects, stored and organised freely. spec.md has carried the concept as
+**(planned)** since W0 — *a **set** is whatever it holds proxies of*, and *a
+view appears as a root like any other and lists what it holds proxies of*. So a
+saved view is a **set**: a block whose members are proxies of things elsewhere.
+`Chosen[]` picks the cross-section (E.4), `refer` places each proxy, and the
+sticky view module decides whether it reads as a table or a matrix — all built.
+
+**`infer` is the existing proof.** It already takes a cross-project selection
+and mints a project holding proxies of the participants. It is the *behavior*
+special case of the general move, which is why generalising it beats inventing a
+second mechanism.
+
+**How the kinds are told apart — derived, never declared.** `role_of` already
+reads a node's role from what it holds and where it sits; *members are proxies*
+is one more line of it. **And that answers the folder**: a folder is a set whose
+proxies are project roots, which is what the workspace itself already is, since
+`admit` files a project by placing a proxy of its root. So there is no folder
+concept to add — the recommendation deletes one.
+
+~~**Settled — model B, Clay's call.** A set is **derived**: a block whose members
+are proxies. No stored field, no `components.set` key, and **no folder concept**
+— filing is a set of projects. `workspace.folder()` stays dead. A set wears a
+folder mark.~~ **Reversed the same day.** Mixedness was never the signal — a
+folder of five structure blocks is still a folder — and *set* collided with
+*style set* and *closed set*. **`folder` is an ordinary definition**, `set` is
+retired, and a **view** is the thing that holds references.
+
+**And a second rule from the same conversation**: *every node role carries a
+mark of its own*. Block, container and interface have theirs. **Two do not**:
+
+- **a set has no mark**, so it would read as a container — `P.5`.
+- **a behavior cannot be reached at all.** Nothing anywhere writes
+  `components.view.module`, and `offered(graph)` filters the view toggle to the
+  modules of the project's own kind, where kind is read back off that same key.
+  A fresh project's root has no definition, so it is `block`, so it is
+  *structure*, so activity / sequence / state are never offered. **A one-way
+  door with nothing that opens it** — the only behavior projects that can exist
+  are `infer`'s, and those are unreachable. `P.6`.
+
+V.2's property test already holds that no two icon names draw one path; the
+missing half is that every *role* has one, which is what `P.5` adds to the icon
+conformance test.
+
+**Recorded, not scheduled**: a set holds proxies of *whole blocks*. *These three
+fields of those five blocks* is a column selection — a different shape, and one
+a requirements table may want. It should arrive by decision, not by the back
+door.
+
+**`P.1` landed and was driven.** Three things it turned up that the row did not
+name:
+
+- **The drag payload was a bare element id**, so even where a row was draggable
+  it could not say which log the block was leaving. It is a cross-project ref
+  now — which `refer` has always accepted and nothing ever handed it.
+- **A promoted block was landing *inside* a project of its own name.** Clay's
+  rule is that the block **is** the project, so it becomes the destination's
+  root and everything pointing at it points at root instead.
+- **Definitions have to travel.** Without them a promoted block loses its types
+  silently — the same class of quiet loss the strip exists to prevent — so
+  `extraction()` carries the definitions the subtree names and the package
+  import list with it.
+
+**Two bugs the closing review found, both fixed with tests.** *(a)*
+`set_vocabulary` was written **flat**, so moving a block into an existing project
+replaced that project's package list with the source's — silent loss in a part
+of the project the drag never touched. It unions now, keeping import order.
+*(b)* The two logs are written one after the other, so a source that turned out
+to be **locked after the destination had already taken the subtree** left the
+block in both projects; the lock is checked before either write.
+
+**Recorded, not fixed**: a copied definition's `extends` can point at a parent no
+moved element named, leaving it dangling. It degrades safely — SC.2's walk ends
+at a missing parent — and `P.12` decides copy-versus-reference anyway.
+
+**The refold defect became `P.15`**, not a park: Clay hit it, so it is a row
+under story `ST.1`.
+
+### The style surface closed
+
+**`Y.7` and `Y.9` landed and were driven.** `Definition.color` is gone and
+`components.style` carries four closed dials instead: `slot` (six hue families),
+`emphasis` (`quiet|normal|strong`), `weight` (`hairline|thin|thick`) and `voice`
+(`quiet|normal|loud`). Nothing a definition can set is a colour, a pixel count or
+a font. Driven: setting all four on `Module` moved every usage's border from
+`oklch(0.42 .0855 150)` at 1px to `oklch(0.8 .12 330)` at 2px with its name at
+700, and the door refuses `slot: "magenta"` by name — *`style.slot` has to be one
+of primary, secondary, tertiary, quaternary, neutral, muted*.
+
+**One judgement the row did not settle.** *A definition that says nothing gets
+`neutral` / `normal`* is true of a definition — but a usage with **no type at
+all** has no definition to read, so it keeps the engine's own default (`--route`,
+`--border`) rather than the neutral slot. Otherwise *no type yet* and
+*deliberately quiet* draw the same, and the untyped canvas would lose its green.
+`Look.typed` is the flag.
+
+**The name collision is settled: `voice`.** `components.card.label` means *where
+the label sits*; the style dial is `components.style.voice` — *how loudly the
+name is set*. Clay's call, taken because one word meaning two things is what U.2
+exists to stop, and `Contents.tsx` was already aliasing a constant to import
+both.
+
+### The offered list grew a rule
+
+**`Y.4` closed its `◐`.** The rail builds the `types` group now, so table and matrix stopped
+drawing an inline cycle each. **`types` is the one group the page cannot build from its own state**
+— a table filters by the definition names on its rows, a matrix by the relationship marks in its
+cells — so `ViewModule` gained a `types` answer beside `chrome`: an icon and a function from the
+layer to the kinds on it. Declaring the group without answering it now fails the module conformance
+contract, so the two cannot drift. **A pick that is no longer on the layer reads as *everything***,
+which is why nothing has to be reset on navigation.
+
+**`R.5`–`R.8` and `R.10` / `R.11` landed and were driven.** Five things, one theme: the menu was
+thin because a rule was missing, not because entries had been forgotten.
+
+- **A required `choice` expands into one entry per option** (`R.5`). `expand` on the descriptor,
+  `entries()` in `actions/fill.ts`, and both menus call it — so the canvas and the explorer cannot
+  drift the way the three copied fill functions did. `mark`, `direct` and `reform` carry it;
+  `axis` and `arrange` deliberately do not, since the bar and the `.shape` cluster are their doors.
+  **The action set does not widen**: one registered action, offered N times with different args.
+- **`direct` and `reform` now have a home** (`R.6`) — the edge menu, proven end to end: *Directed*
+  turns a plain line into a directed one and *Back* moves the arrowhead to the other end.
+- **A directed relationship draws an arrowhead** (`R.7`). The form says there is a direction and
+  `dir` only refines which way, which is how `behavior.ts` has always read it; the canvas required
+  an explicit `dir` and so drew nothing for every edge the toolbar makes.
+- **`Scope.on` takes a list** (`G.9e`), so `retype` is offered on an edge. Widening a descriptor's
+  own field is not widening the closed action set.
+- **The explorer menu writes where it was clicked** (`R.10`). It built its context from the project
+  in context whatever the row, so a menu on B's row wrote A's log. It now builds from the row's own
+  project and brings that project into context, which is what the left-click path always did.
+- **An empty domain stem is not a repair** (`R.11`). Normalising `""` to `[]` carried nothing, so
+  every pre-migration project without a domain opened with a trouble notice it did not earn.
+- **actions.md gained a Does column** (`R.8`), copied from each descriptor's `about`. The
+  descriptor stays the source.
+
+**Watch, unresolved**: an edge menu now reads `Create Retype Refer Up Unlink Flip None Forward Back
+Both Line Directed Note Define Relax Vocabulary` — sixteen flat entries with the four directions and
+two forms unlabelled. It is legible because the options sit together in `ORDER`, but **`X.2`'s capped
+list is what makes it good**, and a large vocabulary will make it worse before then.
+
+### The tray, the table and the strip
+
+**Contents already *is* the table view**, stuck at one size. Not a thing to move: U.7 already said
+*both open partially, as the panel does now, and expand to the full canvas*, and landed `◐` on
+exactly that — expand does not cover or replace Contents. The shipped `table` module's own listing is
+the duplicate.
+
+**The rule the rest falls out of: the tray shows the contents of whatever is in focus** — a block its
+fields, a group its members, a note its text, a relationship its ends and what it could be. That is
+why the capped type list stopped looking like a relationship special case: it is the *what could this
+be* half of the same tray.
+
+**The two sizes take different inputs.** **Full** — the `table` view on the stage — shows the layer
+and everything in it, and **the selection does not narrow it**. **Partial** — the tray at the foot —
+is that same table **scoped to what is in focus**. With nothing in focus the two agree, so *expand*
+is only a size. Taking different inputs is what keeps this clear of the hidden state U.8 rejected:
+the two never disagree about one input. A full stage given over to one note's text was the tell that
+focus should not drive both.
+
+**Matrix should be a heatmap** — the one thing a grid gives that a listing does not. **Hue is the
+relationship kind, opacity is the count**: transparent at zero, grading up, so both dimensions read
+at once without a mode switch. **The hue is the definition's existing `style`** (`styleOf` /
+`lookOf`, `styles/sysml.ts`) — never a new matrix palette, so the matrix and the diagram cannot
+disagree and there is no second colour vocabulary to keep in step. A cell holding two kinds draws as
+**bands**, degrading to a solid cell in the common single-kind case.
+
+**U.7 modelled table and matrix on Contents and deliberately did not delete it**, so this
+duplication was known and accepted at the time; what changed is that the duplication turned out to
+be the wrong way round.
+
+### Listing the types in scope
+
+**Three surfaces ask the same question** — the edge context menu, the selection strip and the canvas
+*relation types* group — and each grows with the vocabulary. **One rule**: top three ranked by use,
+a *More…* that expands in place, scrolling past a height, and no submenus. The relation types group
+is the exception at three and no expansion, being a setting inline beside the crumbs rather than a
+list of things to act on.
+
+**The ranking already exists and is in the wrong place.** `Z.3` computes shape-weighted learned
+preference in `terminal/rank.ts` and `terminal/feedback.ts` — measured *use*, which is what "the
+three most common" should mean — but `terminal/` is **optional** (S6.3: delete it and the app still
+runs). A menu ranking by preference therefore cannot live downstream of the rail, which is the same
+argument that put `offer()` in `actions/` rather than `terminal/` (G.9a). Moving it also gives Z.3 a
+second consumer; until now it ranked rail chips alone. **Cold start** falls back to vocabulary import
+order, which Contents already uses for type offerings (D.2), so a fresh project needs no new rule.
+
+**A typed name is a type.** The strip carries a text field beside the capped list: type a name and
+the selection takes it. **Already built** — `fold.defineNamed` mints a definition for a bare name
+under a derived id and describes itself as *the bridge from free text to a real definition*, and the
+suite holds it. **Match before minting**: a free-text mint derives its id from the name while a
+deliberate definition carries its own, so typing a name already in scope would produce a twin — the
+duplicate-name case SC.4 needed disambiguation for.
+
+**The strip re-defines the selected thing, never its type.** Name, which type it is, field values —
+all instance-level. What fields a *type* carries and how it presents stays behind deselect on the
+types chip (`W.3`). Splitting it the other way rebuilds, somewhere new, the duplication U.11 deleted
+`Relations.tsx` to remove.
+
+### Where each action lives
+
+**A required `choice` is a question no menu asks**, so five actions were withheld from every offered
+list while holding reserved `ORDER` slots — `mark` (`flow`), `direct` (`dir`), `reform` (`form`),
+`axis` (`axis`), `arrange` (`shape`). Driving it: a card's menu offers *Relax* but never *Mark* or
+*Arrange*. Asking where each of the five actually lives turned up more than the original defect.
+
+| | Home | |
+|---|---|---|
+| `axis` | canvas bar, *flow* group | fine |
+| `arrange` | `.shape` cluster, bottom right | fine |
+| `mark` | Panel and Contents, `onMarkPort` — an interface's flow | fine |
+| `direct` | — | **homeless** |
+| `reform` | — | **homeless** |
+
+**`direct` and `reform` have no home at all.** The canvas relation group is `onForm`, a **draft**
+setting for what the *next* right-drag draws — a display preference beside `showPorts` and `angular`,
+recorded as such under S2.6. It never touches an existing edge. `project.direct` / `setDir` /
+`reform` exist and nothing calls them, so **once a relationship is drawn, its direction and its form
+cannot be changed anywhere**.
+
+**Settled — the options become the entries.** Right-clicking a relationship lists the relation types
+and forms themselves rather than an action that then asks which. No submenu, and no open text prompt.
+The list is tailored to the target because the options are. **It does not widen the closed action
+set**: one registered action offered N times with different args, which is the wording U.16 used
+before it was dropped. The flag goes on the **descriptor** (`expand`), keeping one rule instead of
+the per-surface special-casing R.2 removed; `arrange` and `axis` leave it off because they have
+homes. **Watch**: an edge menu then lists every relation type in the project.
+
+**Two things fell out of the same question.** A **directed relationship draws no arrowhead**, so
+direction is invisible even where the graph holds it — `direct` being unreachable is what hid it,
+and arrowheads are the engine's visual language rather than chrome, so it is not Wave V's. And
+**actions.md never says what an action does** — name, scope, arguments, mutations and what each
+replaced, but no description, which is why `reform` had to be read out of the source. The text
+already exists as `about`, required on all 29 descriptors.
+
+
+## Open questions
+
+*Kept at the front. Everything here blocks something in [plan.md](plan.md).*
+
+### The simplified block model — settled, and what it left open
+
+**Settled 2026-08-18 (Clay).** One block, no element forms; `proxy` → **reference**; `ref` the
+value form → **`link`**; `set` → **folder**, an ordinary definition; **no `kind`** — behavior is one
+package plus three view modules; `view` holds **references only** and the engine enforces it.
+Vocabulary in [definitions.md](definitions.md), reasoning in [design.md](design.md) under *The
+simplified block model*, queue shape in [plan.md](plan.md) under stream **B**.
+
+**Closed by it, so nothing is owed:** the *kind signal* and *kind by fiat* repairs, `P.6`, `P.5`'s
+mixed-children reading, and `S8.3`.
+
 **Left open, and each blocks a row in stream B:**
 
 | | The question |

@@ -4,6 +4,13 @@ How a behavior comes to exist, what it infers, and what it writes back. **A.7a l
 writing home); **A.7b–A.9 landed** (activity / state / sequence views — dimmed derived labels and
 inferred order; state empty-infer offer + Reading A/B; sequence columns, directed then axis).
 
+> **`axis` is absorbed into `arrangement` by stream `B`** (2026-08-19). One layer setting, seven
+> values — `free`, `right`, `left`, `down`, `up`, `radial`, `relax` — of which the four directional
+> ones carry the reading direction. **Tier 1 and 2 do not change**; tier 3 reads position along a
+> **directional arrangement**. **`radial` and `relax` carry no direction, so tier 3 does not fire
+> under them** and the chain falls through to tier 4 — deliberately, because `relax` positions are
+> not stable and *the same selection must infer the same way every time*.
+
 - **Why any of it** → [design.md](design.md) under *Structure and behavior*.
 - **What the surface does** → [spec.md](spec.md); the action → [actions.md](actions.md).
 - **The words** → [definitions.md](definitions.md). **The queue** → [plan.md](plan.md).
@@ -69,7 +76,7 @@ Read in order. The first that speaks, wins.
 |---|---|---|
 | **1** | a directed relationship that `isa` **flow** | **yes** — implies interfaces |
 | **2** | **any** directed relationship, direction as given | no |
-| **3** | position along the layer's axis | no |
+| **3** | position along a **directional arrangement** — not under `radial` or `relax` | no |
 | **4** | undirected connectivity — adjacency only, never direction | no |
 
 **Tier 2 is deliberate.** A plain `line` and a plain directed edge are the default gestures; most
@@ -208,7 +215,7 @@ scales with how much the structure already says**, not with how many blocks it h
 ### 2 — cross-project, position only, one group
 
 ```
-Vehicle:  Cabin (group) { Driver@0, Display@200 }   axis: across
+Vehicle:  Cabin (group) { Driver@0, Display@200 }   arrangement: right
 Cloud:    Telemetry@400
 No relationships anywhere.
 ```
