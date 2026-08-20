@@ -48,7 +48,7 @@ describe("the state module's gesture map", () => {
 });
 
 describe("stage composition", () => {
-  /** Reading A: states with action proxies, bare directed transitions. */
+  /** Reading A: states with action references, bare directed transitions. */
   function reading_a(): Graph {
     const layer = element("machine", { id: "L", parent: ROOT, form: "block", type: STATE_TYPE });
     const a = element("", { id: "a", parent: "L", form: "block", type: STATE_TYPE });

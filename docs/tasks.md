@@ -554,7 +554,7 @@ module. Multi-select inference is a **future story**.
 
 **Nothing in the block model is open.** What is left is detail, held per module.
 
-### The infer map — already half-built
+### Inference and composition — two things, and only one is inference
 
 **Clay is right that this was discussed.** `ViewModule` carries **`word`** and **`creates`** (the
 default definition for a block it makes) and `ViewConfig` carries the abstraction cap **`N`**,
@@ -563,16 +563,26 @@ listed under stream A). [behaviors.md](behaviors.md) is one module's map written
 shape discriminator, the four order tiers, lanes from the ref, the cap, derived naming from the
 module's verb, and the A/B activity→state reading.
 
-**So generalising it is a wire-up, not an invention**: what behaviours.md describes for the activity
-and state modules is what *every* view module declares.
+**But the per-module infer map is withdrawn** (Clay, 2026-08-19). Two different things were both
+being called inference:
 
-| | Whose |
-|---|---|
-| **the map** — what a block of this shape becomes here | the **view module**, in code |
-| **the dials** — `word`, `creates`, `N`, the verb | the **view definition**, in data |
+| | Makes | Runs | Is |
+|---|---|---|---|
+| **`infer`** | **new blocks** — the block to activity to state chain | once, when asked | model, permanent |
+| **composition** | **nothing** — a grouping, spacing and ordering of references | every draw | presentation, recomputed |
 
-**Multi-select inference stays a future story.** One block in, one block out, is the case to settle
-first.
+**`infer` is unchanged** and behaviors.md still describes it. **Composition is the open area**: a view
+holds references drawn from many layers and nothing decides how they group, space and order.
+
+| View | Groups by | Orders by |
+|---|---|---|
+| **block** | source layer | the arrangement direction |
+| **table** | a chosen column | sort |
+| **matrix** | axis membership — its two child views | within-axis order |
+| **activity / state / sequence** | lane, from the reference | the four order tiers |
+
+`ViewModule.word` and `.creates` stay, serving `create` and the behaviour chain. **Multi-select
+inference stays a future story.**
 
 ### The schema, settled 2026-08-19 (fifth round)
 
@@ -584,14 +594,30 @@ first.
 | **definitions** | one id space, three groups — `blocks`, `relations`, `views`. A block definition carries `module?` (absent ⇒ base) and **`views`, an ordered list of view definition ids whose first entry is the default** |
 | **a file** | `project { schema, id, name, defs, graph, meta? }` — a **checkpoint**, since a project export is a query over the workspace log rather than a copy of its own |
 
-**One arrangement, seven values, and it is model data.** `axis`, `flow` and `arrangement` collapse
-into one — `free`, `right`, `left`, `down`, `up`, `radial`, `relax`. **The test that decided it, and
+**One arrangement, six values, and it is model data.** `axis`, `flow` and `arrangement` collapse into
+one — `free`, `grid`, `right`, `left`, `down`, `up`. **`relax` is not a layout** (it nulls x/y, so it
+stays an action and is the counterpart to retained placement) and **`radial` is dropped** (narrow,
+and wrong-looking outside a hub and its attendants). **The test that decided it, and
 that decides the next one: anything inference reads is model data**, because an inference is
-permanent and behaviors.md requires the same selection to infer the same way every time. `radial`
-and `relax` carry no direction, so order tier 3 does not fire under them.
+permanent and behaviors.md requires the same selection to infer the same way every time. `free` and
+`grid` carry no direction, so order tier 3 does not fire under them.
 
 **Nothing is discarded by arranging** — `at` is always kept, and returning to `free` returns the
 layout. That is *retained placement*, which was already the rule.
+
+**`relax` is retired outright** (Clay, 2026-08-19): the action, the `relax_layer` mutation op and
+its `fill.ts` entry. Once arrangement is a setting, *hand it back to automatic* has nothing left to
+mean — picking a computed arrangement already does it, and picking `free` already gives the
+placement back. **The named loss: nothing clears hand placement any more.** Accepted rather than
+kept; if it is wanted later it comes back as one action with a describable job, not as a value in
+the arrangement set.
+
+**Composition runs on proximity.** How far apart two referenced blocks sit in the tree — same
+parent, same branch, same project, different project — **groups** by nearest common ancestor,
+**orders** by tree path, and **spaces** by distance where the view has room. Block takes all three;
+table and matrix take grouping and order and drop the spacing; a matrix applies it per axis. A
+proximity group is a **derived group**. **The default must be overridable** — a cross-cut view
+wants grouping by type, not by project, which is a view definition option.
 
 **A project export loses its history, and that is correct.** The workspace export is the backup —
 it carries the log; a project export is a **share**, and it carries a checkpoint. Two doors that
@@ -610,8 +636,71 @@ collisions and somebody else's history interleaved with yours, which nobody want
   empty, so hiding them is what makes a large tree readable. **A project or package root is always
   shown, even when empty.** Display state, so workspace metadata.
 
-**Next, still undiscussed**: the schema in detail under one log and no forms, and how inference
-reads the reworked vocabulary.
+### B.0 — the branch count, taken 2026-08-20
+
+**The row asked for the size of stream `B`, measured rather than guessed.** Counts are from `src/`,
+excluding `tests/`.
+
+| What | Count | Where it concentrates |
+|---|---|---|
+| files touching `form` at all | **33** | every layer — `graph/`, `actions/`, `modules/view/*`, `page/`, `canvas/`, `geometry/` |
+| `form ===` comparisons | **76** | of which **29 are element forms** and the rest are field and relation forms |
+| element-form branches, by value | `block` 12, `note` 6, `group` 6, `proxy` 5 | `fold.ts`, `check.ts`, `compose.ts`, `Files.tsx`, `Contents.tsx` |
+| mentions of `proxy` | **144**, across 26 files | `graph/fold.ts` **27**, `workspace/index.ts` **13**, `graph/types.ts` **13**, `page/Contents.tsx` **10** |
+| `page/kind.ts` | **85 lines, 4 call sites** | `App.tsx` ×2, `Files.tsx` ×2 — plus `ViewKind` / `kindOf` / `createsFor` in `modules/view/index.ts` |
+| files choosing a log | **9** | `actions/index.ts`, `actions/elements.ts`, `actions/behavior.ts`, `graph/file.ts`, `graph/store.ts`, `project.ts`, `workspace/index.ts`, `App.tsx`, `Files.tsx` |
+| id minting | **one function** — `newId` at `graph/types.ts:388` | counter + 8 random chars, monotonic per session |
+
+**What the numbers change:**
+
+- **`B.1` (rename `proxy`) is the biggest row by site count and the safest by risk** — 144 mentions,
+  no design decision in any of them. Doing it first is confirmed as correct.
+- **`B.6` (forms collapse) is smaller than feared.** Only **29** comparisons are element forms; the
+  other 47 are field forms and relation forms, which both survive. The row is *29 branches plus the
+  record change*, not 182.
+- **`B.3` (delete the kind derivation) is genuinely small** — 85 lines and 4 call sites, plus
+  retiring `ViewKind` / `kindOf` / `createsFor` from `modules/view/index.ts`. It was described as
+  closing six defects at once and that holds.
+- **`B.19` (globally unique ids) is one function.** `newId` already appends 8 random characters and
+  its own comment says a collision *silently fuses two elements into one* — so the change is to make
+  the guarantee real and stop treating ids as project-scoped, not to invent a minting scheme.
+- **`B.8` (one log) touches 9 files**, and `graph/fold.ts` carries the largest single concentration
+  of `proxy` (27) as well — so `B.1` landing first genuinely does clear the way.
+
+**Order confirmed by the count**: `B.1` → `B.19` → `B.2` → `B.3` / `B.4` → `B.5` → `B.6` → the rest.
+
+### Stream C — from driving, 2026-08-20
+
+Five small features, none depending on stream `B`. Rows are in [plan.md](plan.md).
+
+**The one-anchor-per-side rule is retired** (Clay, 2026-08-20). `NodeCard.tsx:270`,
+`Frame.tsx:92` and `Note.tsx:92` each render four anchors per card whether or not a line meets any
+of them. **They read as clutter and they go**: an anchor is drawn where a relationship actually
+meets the block, and nowhere else. `C.2`.
+
+| | |
+|---|---|
+| **C.1** | a project's name carries its block count — `Coolant Loop (34)`. **Watch**: must not count references, or a view of forty things reads as a forty-block project |
+| **C.2** | an anchor exists **where a line meets a block** (the always-four rule goes), and drags between seats **without promotion**, drawing **solid** once moved. Promotion stays the separate act of making a real interface |
+| **C.6** | **hand-adjusting a block, an anchor or an interface sets the layer to `free`** — the arrangement follows the gesture. Under any non-free arrangement the engine owns all three. One rule replacing three, and what makes `C.2`'s solid anchor mean something |
+| **C.3** | selecting on the canvas sets the explorer context and expands the branch — the mirror of `reveal`, and it should reuse it |
+| **C.4** | `f` zooms to the selection and centres it |
+| **C.5** | a frame edge lights as a drop target, each of the four walls independently, reusing `P.14`'s lit-target look |
+
+### Two things one log has not answered
+
+| | The question |
+|---|---|
+| **B-o ✓** | **Settled: globally unique** (Clay, 2026-08-20). Rowed as `B.19`; `B.8` waits on it. **Ids must become globally unique, and nobody has said when.** An id is unique *within a project* today and a cross-project reference is a path — which worked because each project had its own log. **One log cannot hold two elements with the same id**, so either ids are minted globally unique or every mutation carries a project on every op. **Recommendation: globally unique**, which also kills the bare-versus-path ambiguity behind `P.7`'s refused drops and defect **2b**. Rowed as `B.19`, and `B.8` waits on it |
+| **B-p ✓** | **Settled: the fold merges checkpointed definitions with the folded ones** (Clay, 2026-08-20). Rowed as `B.26`. **Where do an imported package's definitions live under one log?** A package arrives as a **checkpoint**, not as steps, so its definitions are not in the workspace log — which means the fold has to merge checkpointed graphs with the folded one. Checkpoints already do this, so it is probably nothing; it has not been checked, and *probably nothing* is how the last two schema surprises started |
+
+**Settled and worth stating, because it removes a rule rather than adding one**: with one log,
+*no relationship ever spans two logs* is moot, and so is every question about which log a
+cross-project edge belongs to.
+
+**Next, still undiscussed**: view composition per module beyond the proximity rule — what a table
+does with a reference whose `depth` is `all`, and what a sequence does with participants from four
+projects.
 
 
 ### Stream P — making a project, and saving a view
@@ -2722,7 +2811,7 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 | **12** | The rail never calls `entries()`, so no `expand` action (`mark`, `direct`, `reform`, now `infer`) can offer its second reading from the rail — only the explorer and canvas menus can | `actions/rank.ts` |
 | **13** | `Y.6a` dropped `verbs: true` from the rail's `project` group as a side effect; the group now mixes a one-shot verb with four stateful picks. Nothing keyed off it | `page/Rail.tsx` |
 | **14** | `table` is the only view module shipping no component, and `App.tsx` name-checks all six modules in one ternary chain. Legal, but record it so it does not read as an accident | `modules/view/table/`, `page/App.tsx` |
-| **15** | **A cross-project proxy draws as *missing*.** `refer` takes a foreign path now (`P.7`), so a row dragged out of another project lands and survives a reload — but `actual()` resolves in one fold by design, so the card and the table row have no label. `workspace.resolve(here, open, of)` is the resolver; handing it down is a dependency inversion like `graph/check.ts`'s `validating()`, and a row of its own | `canvas/`, `page/App.tsx`, `page/Contents.tsx` |
+| **15** | **A cross-project reference draws as *missing*.** *(`proxy` in the code; stream `B` renames it.)* `refer` takes a foreign path now (`P.7`), so a row dragged out of another project lands and survives a reload — but `actual()` resolves in one fold by design, so the card and the table row have no label. `workspace.resolve(here, open, of)` is the resolver; handing it down is a dependency inversion like `graph/check.ts`'s `validating()`, and a row of its own | `canvas/`, `page/App.tsx`, `page/Contents.tsx` |
 | **16** | **`Y.6a` was reverted in `683676d` and left its comments behind.** `ExportLook`, `LOOK_ICON`, the three `RailOpts` fields and the four look controls are gone; the two doc comments that described them now sit orphaned above `TYPE_CAP` and at the foot of `RailOpts`, describing nothing. Either the row comes back or the comments go — a comment for absent code is worse than neither. (Supersedes **13**, whose `verbs: true` came back with the revert) | `page/Rail.tsx` |
 | **17** | **The rail's relation types are capped at three but not *ranked* by use.** The list-of-types rule says top three by learned preference; the group takes the first three in vocabulary order. Nothing records a pick there as an overrule yet, so there is nothing to rank by — deciding what an overrule *is* for a "what the next drag draws" setting is the open half | `page/Rail.tsx`, `actions/typelist.ts` |
 | **19** | **`childKind` never reaches its `extends` fallback.** It returns on the type ref's package alone, so `packages/uaf`'s `def_operational_activity extends pkg_behavior/def_action` — and sysml's mapped `action`/`activity` — both read as **structure**. In practice only the ref `behaviorType()` itself mints can produce a behavior layer, which is the same defect as **1b** seen from the other side | `page/kind.ts` |

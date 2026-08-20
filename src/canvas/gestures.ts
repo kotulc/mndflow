@@ -22,7 +22,7 @@ import {
 } from "@xyflow/react";
 
 import type { Picked } from "../actions";
-import { groupsIn, isProxy, membersOf, refOf } from "../graph/fold";
+import { groupsIn, isReference, membersOf, refOf } from "../graph/fold";
 import { around, cell, HUG, LEAF, middled, seatAt, sizeOf } from "../geometry/layout";
 import type { Box } from "../geometry/route";
 import { refAt } from "../graph/types";
@@ -309,7 +309,7 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
       for (const [id, box] of Object.entries(boxes)) {
         if (id === dragged.id) continue;
         // A reference holds nothing, so nothing lands in one.
-        if (isProxy(graph.elements[id])) continue;
+        if (isReference(graph.elements[id])) continue;
 
         const near = Math.max(box.x - mid.x, mid.x - (box.x + box.w),
                               box.y - mid.y, mid.y - (box.y + box.h));
@@ -884,7 +884,7 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
   function nodeDoubleClick(_: unknown, node: FlowNode) {
     if (node.type !== "card") return;
 
-    // A proxy has no inside: going into one goes to where its block
+    // A reference has no inside: going into one goes to where its block
     // actually lives, which is what the reference is for.
     const stands = refOf(graph, node.id);
 

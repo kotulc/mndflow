@@ -9,7 +9,7 @@ import {
   EMPTY, ROOT, asTarget, asVocabulary, defIdFor, definition as newDefinition, edge as newEdge, element as newElement,
   field as newField, step as makeStep,
   type Axis, type Definition, type Edge, type Element, type Field, type Graph, type Mutation,
-  type ProxyTarget, type Step,
+  type ReferenceTarget, type Step,
 } from "./types";
 
 /** The two form families, so a definition can be sorted into the one it
@@ -26,43 +26,43 @@ export function isPort(node: Element | undefined): boolean {
 }
 
 /** Whether an element stands in for a block living somewhere else. */
-export function isProxy(node: Element | undefined): boolean {
+export function isReference(node: Element | undefined): boolean {
   return node?.form === "proxy";
 }
 
-/** What a proxy stands in for — the held path, bare or `project/element`. */
+/** What a reference stands in for — the held path, bare or `project/element`. */
 export function refOf(graph: Graph, id: string): string | null {
   return graph.elements[id]?.of ?? null;
 }
 
-/** A proxy's target as `{ project, element }`. Absent when it has none. */
-export function targetOf(graph: Graph, id: string): ProxyTarget | null {
+/** A reference's target as `{ project, element }`. Absent when it has none. */
+export function targetOf(graph: Graph, id: string): ReferenceTarget | null {
   const of = graph.elements[id]?.of;
 
   return of ? asTarget(of) : null;
 }
 
 /** Whether a relationship crosses a structural boundary: one of its ends is a
- *  proxy, so it reaches something living in another layer.
+ *  reference, so it reaches something living in another layer.
  *
  *  Derived, and never stored — it follows from where the ends are, so drawing a
- *  line to a proxy makes a reference without anybody saying so. It says nothing
+ *  line to a reference makes a reference without anybody saying so. It says nothing
  *  about the relationship's own kind, which is still plain, flow or assoc. */
-export function isReference(graph: Graph, edge: { source: string; target: string }): boolean {
-  return isProxy(graph.elements[edge.source]) || isProxy(graph.elements[edge.target]);
+export function reachesReference(graph: Graph, edge: { source: string; target: string }): boolean {
+  return isReference(graph.elements[edge.source]) || isReference(graph.elements[edge.target]);
 }
 
 /** What an element really is: itself, or whatever it stands in for.
  *
- *  One hop and no more. A proxy is made one way — dragging a row out of the
- *  object explorer — and the explorer does not list proxies, so a proxy always
+ *  One hop and no more. A reference is made one way — dragging a row out of the
+ *  object explorer — and the explorer does not list references, so a reference always
  *  points at a real block and a chain of them cannot be built.
  *
  *  A target in another project is not in this fold: absence is tolerated, and
  *  resolving across projects is the workspace's. */
 export function actual(graph: Graph, id: string | null): Element | undefined {
   const node = id ? graph.elements[id] : undefined;
-  if (!node || !isProxy(node)) return node;
+  if (!node || !isReference(node)) return node;
 
   const target = targetOf(graph, node.id);
   if (!target || target.project) return undefined;
@@ -70,16 +70,16 @@ export function actual(graph: Graph, id: string | null): Element | undefined {
   return graph.elements[target.element];
 }
 
-/** The proxy in one layer standing in for a given block, if there is one.
+/** The reference in one layer standing in for a given block, if there is one.
  *
  *  At most one: a second appearance of the same block in the same layer says
  *  nothing the first did not. `target` is the same path convention as `of` —
  *  bare for this project, `project/element` for another. */
-export function proxyIn(graph: Graph, layer: string | null, target: string): Element | undefined {
+export function referenceIn(graph: Graph, layer: string | null, target: string): Element | undefined {
   const wanted = asTarget(target);
 
   return Object.values(graph.elements).find((n) => {
-    if (!isProxy(n) || (n.parent ?? null) !== layer || !n.of) return false;
+    if (!isReference(n) || (n.parent ?? null) !== layer || !n.of) return false;
     const held = asTarget(n.of);
 
     return held.element === wanted.element && held.project === wanted.project;
@@ -143,7 +143,7 @@ export function childrenOf(graph: Graph, parent: string | null): Element[] {
 }
 
 /** Children that sit inside the frame — everything the treemap shows. Blocks
- *  and proxies only: a note or a group is drawn in the layer, not held by it. */
+ *  and references only: a note or a group is drawn in the layer, not held by it. */
 export function blocksOf(graph: Graph, parent: string | null): Element[] {
   return childrenOf(graph, parent).filter(
     (n) => !isPort(n) && (n.form === "block" || n.form === "proxy"),
@@ -182,9 +182,9 @@ export function axisOf(graph: Graph, layer: string | null): Axis {
 
 /** Whether a block holds children of its own. Interfaces do not count: a block
  *  with ports on its edge is still a block, and draws as one. Neither does a
- *  proxy ever hold anything — its contents live where it points. */
+ *  reference ever hold anything — its contents live where it points. */
 export function isContainer(graph: Graph, id: string): boolean {
-  if (isProxy(graph.elements[id])) return false;
+  if (isReference(graph.elements[id])) return false;
 
   return blocksOf(graph, id).length > 0;
 }
@@ -244,9 +244,9 @@ export function numberedName(graph: Graph, node: Element): string {
  *  says it instead. */
 export function nameOf(graph: Graph, node: Element | undefined): string {
   if (!node) return "";
-  // A proxy has no name of its own: it shows whatever it stands in for, which
+  // A reference has no name of its own: it shows whatever it stands in for, which
   // is also what renaming it renames.
-  if (isProxy(node)) {
+  if (isReference(node)) {
     const real = actual(graph, node.id);
 
     return real ? nameOf(graph, real) : "missing";
@@ -474,7 +474,7 @@ export function notesIn(graph: Graph, layer: string | null): Element[] {
   return childrenOf(graph, layer).filter((n) => n.form === "note");
 }
 
-/** Everything drawn in one layer: its blocks and proxies, their interfaces, and
+/** Everything drawn in one layer: its blocks and references, their interfaces, and
  *  the layer itself, which the frame stands for. */
 export function drawnIn(graph: Graph, layer: string | null): Set<string> {
   const here = new Set<string>(layer ? [layer] : []);
@@ -489,14 +489,14 @@ export function drawnIn(graph: Graph, layer: string | null): Set<string> {
 }
 
 /** The relationships a layer draws: both ends reach something in it, either
- *  directly or through a proxy standing in for something that lives elsewhere.
+ *  directly or through a reference standing in for something that lives elsewhere.
  *
  *  The same rule the canvas draws by, kept here so a second reader — the
  *  contents table — cannot drift from it. */
 export function edgesIn(graph: Graph, layer: string | null) {
   const here = drawnIn(graph, layer);
   const reaches = (id: string) =>
-    here.has(id) || Boolean(proxyIn(graph, layer, actual(graph, id)?.id ?? id));
+    here.has(id) || Boolean(referenceIn(graph, layer, actual(graph, id)?.id ?? id));
 
   return Object.values(graph.edges).filter((e) => reaches(e.source) && reaches(e.target));
 }
@@ -817,8 +817,8 @@ function apply(graph: Graph, mutation: Mutation): void {
  *  after itself however it happened — by hand, by a workflow, or by an undo
  *  further back in the log putting the graph in a different shape.
  *
- *  A proxy whose target is gone is kept. Absence is never recorded, so undoing
- *  a deletion elsewhere brings the reference back; only a proxy with no `of`
+ *  A reference whose target is gone is kept. Absence is never recorded, so undoing
+ *  a deletion elsewhere brings the reference back; only a reference with no `of`
  *  at all is nothing.
  *
  *  A group down to one member is *not* swept up here. Deliberately grouping a
@@ -826,9 +826,9 @@ function apply(graph: Graph, mutation: Mutation): void {
  *  decayed — so decay is refused where it happens, in the action that takes the
  *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
-  // A proxy must name something; a named target that is merely missing stays.
+  // A reference must name something; a named target that is merely missing stays.
   for (const [id, node] of Object.entries(graph.elements)) {
-    if (isProxy(node) && !node.of) delete graph.elements[id];
+    if (isReference(node) && !node.of) delete graph.elements[id];
   }
 
   for (const node of Object.values(graph.elements)) {

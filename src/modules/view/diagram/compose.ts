@@ -8,7 +8,7 @@ import type { Edge, Node as FlowNode } from "@xyflow/react";
 
 import type { Picked } from "../../../actions";
 import {
-  blocksOf, groupsIn, isReference, nameOf, notesIn, portsOf, proxyIn,
+  blocksOf, groupsIn, nameOf, notesIn, portsOf, reachesReference, referenceIn,
   isTie, tiesOf, typeName,
 } from "../../../graph/fold";
 import { around, CELL, cell, HUG, place, sizeOf } from "../../../geometry/layout";
@@ -254,7 +254,7 @@ export function stageOf(graph: Graph, view: string | null, seen: { w: number; h:
 export function standInOf(graph: Graph, view: string | null, members: Element[], id: string) {
   if (id === view || members.some((n) => n.id === id)) return id;
 
-  return proxyIn(graph, view, id)?.id ?? null;
+  return referenceIn(graph, view, id)?.id ?? null;
 }
 
 /** Every relationship's geometry for this layer, worked out in one pass.
@@ -590,11 +590,11 @@ export function edgesOf(
       if (!shows(edge)) return null;
 
       // A reference: it reaches something living in another layer. Either an
-      // end was substituted by a proxy standing in for it, or an end simply
-      // is a proxy because the line was drawn straight onto one. Both are the
+      // end was substituted by a reference standing in for it, or an end simply
+      // is a reference because the line was drawn straight onto one. Both are the
       // same fact about the relationship, so both draw alike.
       const away = source !== edge.source || target !== edge.target ||
-        isReference(graph, edge);
+        reachesReference(graph, edge);
 
       // **The form says there is a direction; `dir` only refines which way.**
       // A `directed` relationship left at `dir: "none"` — which is every one

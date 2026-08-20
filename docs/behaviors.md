@@ -2,14 +2,23 @@
 
 How a behavior comes to exist, what it infers, and what it writes back. **A.7a landed** (`infer` +
 writing home); **A.7b–A.9 landed** (activity / state / sequence views — dimmed derived labels and
-inferred order; state empty-infer offer + Reading A/B; sequence columns, directed then axis).
+inferred order; state empty-infer offer + Reading A/B; sequence columns, directed then arrangement).
 
-> **`axis` is absorbed into `arrangement` by stream `B`** (2026-08-19). One layer setting, seven
-> values — `free`, `right`, `left`, `down`, `up`, `radial`, `relax` — of which the four directional
-> ones carry the reading direction. **Tier 1 and 2 do not change**; tier 3 reads position along a
-> **directional arrangement**. **`radial` and `relax` carry no direction, so tier 3 does not fire
-> under them** and the chain falls through to tier 4 — deliberately, because `relax` positions are
-> not stable and *the same selection must infer the same way every time*.
+> **Updated by stream `B`** (2026-08-19). Four words moved and **no rule below changed**:
+> **`ref` → `reference`** throughout; **`group` is a base definition**, not a form, since forms are
+> gone; **`N` is a view definition option**, not a `view` component field; and a *behavior project*
+> is an ordinary project whose blocks use `packages/behavior/` definitions — **behavior is not a
+> classifier and the engine never reads one**.
+>
+> **`axis` is absorbed into `arrangement`**: one layer setting, six values — `free`, `grid`,
+> `right`, `left`, `down`, `up` — of which the four directional ones carry the reading direction.
+> Tier 3 reads position along a directional arrangement; **`free` and `grid` carry no direction, so
+> tier 3 does not fire under them** and the chain falls to tier 4.
+>
+> **`infer` is unaffected by the rest of the rework.** It makes new blocks, once, when asked — which
+> is a different thing from **composition**, how a view groups and orders the references it holds.
+> There is no per-module infer map; see [design.md](design.md), *Inference makes blocks; composition
+> arranges references*.
 
 - **Why any of it** → [design.md](design.md) under *Structure and behavior*.
 - **What the surface does** → [spec.md](spec.md); the action → [actions.md](actions.md).
@@ -38,8 +47,8 @@ One action. A selection becomes **one behavior block**.
 | | |
 |---|---|
 | **takes** | any cross-section — blocks, branches, whole projects, across as many projects as it reaches |
-| **into** | a named behavior project, or a new one where none is given |
-| **gives** | one behavior block, holding **refs** to the participants |
+| **into** | a named project using `packages/behavior/`, or a new one where none is given |
+| **gives** | one behavior block, holding **references** to the participants |
 
 - **One-way and one-time.** Nothing re-syncs afterwards.
 - **Deterministic.** The same selection infers the same way every time — so nothing may depend on
@@ -76,7 +85,7 @@ Read in order. The first that speaks, wins.
 |---|---|---|
 | **1** | a directed relationship that `isa` **flow** | **yes** — implies interfaces |
 | **2** | **any** directed relationship, direction as given | no |
-| **3** | position along a **directional arrangement** — not under `radial` or `relax` | no |
+| **3** | position along a **directional arrangement** — not under `free` or `grid` | no |
 | **4** | undirected connectivity — adjacency only, never direction | no |
 
 **Tier 2 is deliberate.** A plain `line` and a plain directed edge are the default gestures; most
@@ -98,8 +107,8 @@ you. Same device as the derived subtype chip; no new concept.
 
 ## Lanes, groups and abstraction
 
-**A lane is a ref.** The action came *from* a block and the behavior block already holds a ref to it,
-so the performer is known by construction. Lanes fire every time, need no vocabulary and need no
+**A lane is a reference.** The action came *from* a block and the behavior block already holds a
+reference to it, so the performer is known by construction. Lanes fire every time, need no vocabulary and need no
 field.
 
 *Not from a `performs` relationship.* That was carried over from an earlier walk and is wrong for
@@ -111,13 +120,14 @@ does it.
 spokes puts all eleven in one lane, which is as useless as one lane per action.
 
 **A group stays a group.** A structure group infers to an ordinary `group` in the behavior, not to a
-lane. Two different devices, no precedence rule, and `group` is already a form.
+lane. Two different devices, no precedence rule, and `group` is already a **base definition**, so it
+costs nothing to carry across.
 
 **The cap, and abstraction.** Beyond **N** actions the inference cuts higher in the tree: a container
 becomes one action and its children fold in as detail, reachable by descending, since layers already
 nest. Deterministic — *the shallowest level whose count is ≤ N*.
 
-- **N is `view` component configuration**, not an engine constant, so a module chooses. **Default 5.**
+- **N is a view definition option**, not an engine constant, so a module chooses. **Default 5.**
 - Connected components do the same job where the selection is flat and ungrouped.
 
 
@@ -137,7 +147,7 @@ and a plain card's chip falls back to the module's word:
 - The **verb** comes from the module's vocabulary (`packages/behavior` ships it — A.10; the activity
   view reads it for derived labels, A.7b), so a SysML reading and a plain reading can differ without
   either being stored.
-- The **name** is read through the ref, so renaming the block flows through.
+- The **name** is read through the reference, so renaming the block flows through.
 - Where a **tier 1** relationship carries a name, that name is used instead — still derived, still
   dimmed.
 - **Typing over it stores a real name** and the dimming goes. That is the only way an action gets one.
@@ -145,8 +155,8 @@ and a plain card's chip falls back to the module's word:
 
 ## Writing home
 
-A behavior modifies the structure blocks it acts on, through the ref, in their own project. This is
-the ownership rule and not an exception to it.
+A behavior modifies the structure blocks it acts on, through the reference, in their own project.
+This is the ownership rule and not an exception to it.
 
 > **Only a fact that still stands once the behavior is deleted may be written.**
 
@@ -179,9 +189,9 @@ them.
 **Nothing is pinned on a rare field.** `outcome` is an ordinary field nobody has to discover; A fires
 when it is absent, which will usually be always. B switches on by itself when somebody fills one in.
 
-**Under B, an outcome becomes a ref.** The value naming a resulting state is rewritten into a ref to
-the state block the inference made, so the name lives in one place and the two notations cannot
-disagree.
+**Under B, an outcome becomes a reference.** The value naming a resulting state is rewritten into a
+reference to the state block the inference made, so the name lives in one place and the two
+notations cannot disagree.
 
 
 ## Two worked examples
@@ -202,7 +212,7 @@ Select `Coolant Loop`.
 | shape | one container → an **activity** with three actions |
 | order | **tier 1** — a clean chain |
 | labels | flows unnamed → `do Pump`, `do Heat Exchanger`, `do Reservoir`, dimmed |
-| lanes | three, one per ref |
+| lanes | three, one per reference |
 | cap | 3 ≤ 5, so no aggregation |
 | control nodes | none — no branching, no guards |
 | **writes home** | **4 interfaces** — out on Pump, in + out on Heat Exchanger, in on Reservoir |
@@ -226,7 +236,7 @@ Select Driver, Display, Telemetry.
 |---|---|
 | shape | three leaves → an **activity** with three actions |
 | order | **tier 3** within Vehicle; **stable guess** across to Cloud; all **dimmed** |
-| lanes | three, from the refs |
+| lanes | three, from the references |
 | group | `Cabin` infers to an ordinary group |
 | **writes home** | **nothing** — no tier 1 relationship stated anything |
 
@@ -239,10 +249,10 @@ the structure said nothing, so it learned nothing.
 
 | | |
 |---|---|
-| **The thin result is the common case** | Most structures have unnamed or absent relationships, so an activity of dimmed actions with lanes and refs is what people usually get. It has to read as a starting point rather than as a failure — undesigned |
+| **The thin result is the common case** | Most structures have unnamed or absent relationships, so an activity of dimmed actions with lanes and references is what people usually get. It has to read as a starting point rather than as a failure — undesigned |
 | **A nudge toward naming** | Naming relationships is the highest-leverage thing a user can do and nothing says so. Worth a strip line when every edge in a selection is unnamed. Not designed |
 | **`N`'s default** | 5, chosen not measured — now on `view` (A.7c). Create / `infer` not wired to `creates` / `word` yet |
 | **App refresh after foreign write** | `Effect.into` lands the step (S4.9); UI may not refresh |
 | **The activity-final double ring** | The one SysML ornament that is not shape + size; wants a `style` that strokes twice — parked from A.7b |
 | **RF framed host / activity gestures** | Activity mounts; RF framed host and gestures on the activity plane still open — parked from A.7b |
-| **Swimlanes-from-`performs` docs drift** | design is lanes from the ref; wipe any leftover `performs` wording when next touching activity chrome — parked from A.7b |
+| **Swimlanes-from-`performs` docs drift** | design is lanes from the reference; wipe any leftover `performs` wording when next touching activity chrome — parked from A.7b |

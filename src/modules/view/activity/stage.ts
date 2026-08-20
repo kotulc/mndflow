@@ -7,7 +7,7 @@
 
 import { shaped, type CardConfig, type Shape } from "../../card";
 import {
-  blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isProxy, nameOf,
+  blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isReference, nameOf,
 } from "../../../graph/fold";
 import type { Edge, Element, Graph } from "../../../graph/types";
 
@@ -43,7 +43,7 @@ export type ControlNode = {
 };
 
 export type Lane = {
-  /** Participant ref (`proxy.of`), stable across the layer. */
+  /** Participant ref (`reference.of`), stable across the layer. */
   ref: string;
   /** Display name read through the ref when the graph can resolve it. */
   name: string;
@@ -117,9 +117,9 @@ export function guardOf(graph: Graph, edge: Edge): string {
   return held?.value.trim() ?? "";
 }
 
-/** Participant ref under an action — the proxy child infer placed. */
+/** Participant ref under an action — the reference child infer placed. */
 function ref_under(graph: Graph, action: Element): { ref: string; name: string } | null {
-  const stand = childrenOf(graph, action.id).find(isProxy);
+  const stand = childrenOf(graph, action.id).find(isReference);
   if (!stand?.of) return null;
   const shown = nameOf(graph, stand);
   const bare = stand.of.includes("/") ? stand.of.slice(stand.of.lastIndexOf("/") + 1) : stand.of;

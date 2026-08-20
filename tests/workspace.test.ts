@@ -1,4 +1,4 @@
-/** The workspace seam: a project of root-proxies and folders, never itself.
+/** The workspace seam: a project of root-references and folders, never itself.
  *
  *  Properties only — nothing asserts a particular id, label, or count that a
  *  later row is free to refine. */
@@ -89,7 +89,7 @@ describe("held shape", () => {
 });
 
 describe("admit", () => {
-  it("places a proxy of the other project's root and remembers it", () => {
+  it("places a reference of the other project's root and remembers it", () => {
     const held = blank();
     const out = admit(held, EMPTY, "proj_other");
 
@@ -108,7 +108,7 @@ describe("admit", () => {
     expect(named(graph)).toContain("proj_other");
   });
 
-  it("refuses a workspace proxying itself", () => {
+  it("refuses a workspace referencing itself", () => {
     const held = blank();
 
     expect(mayAdmit(held, EMPTY, held.id)).not.toBeNull();

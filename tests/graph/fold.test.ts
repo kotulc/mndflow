@@ -4,12 +4,13 @@
  *  still moving. What must not move is that the fold is a pure function of the
  *  log, that a reverted step leaves no trace, that a mutation with nowhere to
  *  land is skipped rather than thrown, and that `tidy` removes only what cannot
- *  exist — never a proxy whose target is merely gone. Those are the properties
+ *  exist — never a reference whose target is merely gone. Those are the properties
  *  every refactor of `fold` can break without a single type error. */
 
 import { describe, expect, it } from "vitest";
 
 import { blocksOf, childrenOf, compact, fold, isa, isPort, isReference, isTie, membersOf,
+        reachesReference,
          portsOf, relationNames, resolved, stepsIn, targetOf, tiesOf, COMPACT_AT } from "../../src/graph/fold";
 import { edge, element, field, refTo, step, ROOT, type Mutation, type Step } from "../../src/graph/types";
 
@@ -117,7 +118,7 @@ describe("the children index", () => {
 });
 
 describe("tidy", () => {
-  it("keeps a proxy whose target is gone — absence is never recorded", () => {
+  it("keeps a reference whose target is gone — absence is never recorded", () => {
     const real = element("Pump", { parent: null });
     const stand = element("", { form: "proxy", parent: null, of: real.id });
     const orphan = fold([did({ op: "add_element", element: stand })]);
@@ -131,7 +132,7 @@ describe("tidy", () => {
     expect(live.elements[stand.id]?.of).toBe(real.id);
   });
 
-  it("drops a proxy that names no target at all", () => {
+  it("drops a reference that names no target at all", () => {
     const stand = element("", { form: "proxy", parent: null, of: null });
     const graph = fold([did({ op: "add_element", element: stand })]);
 
@@ -275,7 +276,7 @@ describe("compaction", () => {
 });
 
 describe("the two derived relation forms", () => {
-  /** A note tied to a block, and a proxy pointing at one — the two ends that
+  /** A note tied to a block, and a reference pointing at one — the two ends that
    *  make a relationship something without anybody saying so. */
   function layer() {
     const block = element("Pump", { parent: null });
@@ -299,11 +300,11 @@ describe("the two derived relation forms", () => {
     expect(isTie(graph, graph.edges[plain.id])).toBe(false);
   });
 
-  it("reads a reference from a proxy being at an end", () => {
+  it("reads a reference from a reference being at an end", () => {
     const { graph, ref, plain } = layer();
 
-    expect(isReference(graph, graph.edges[ref.id])).toBe(true);
-    expect(isReference(graph, graph.edges[plain.id])).toBe(false);
+    expect(reachesReference(graph, graph.edges[ref.id])).toBe(true);
+    expect(reachesReference(graph, graph.edges[plain.id])).toBe(false);
   });
 
   it("keeps its declared form either way — derived says nothing about that", () => {

@@ -7,6 +7,17 @@ instead. Clay may tidy rows into this file later if he wants; agents never do.
 **This is a record, not a queue.** Nothing here is waiting on anything. A row
 that landed *short* stays in plan.md marked `◐`.
 
+> **It is written in the pre-rework vocabulary, and that is correct.** These rows
+> describe work as it shipped, in the words that were true then — `proxy`, `set`,
+> `kind`, `element form`, `axis`, `arrangement as an action`. The simplified block
+> model (2026-08-19) retired all of them; see [definitions.md](definitions.md) for
+> what each became and [design.md](design.md) for why.
+>
+> **Nothing here is guidance.** Do not read a row in this file as a description of
+> how the app should work, and never copy a word out of it into a new document.
+> Where it disagrees with definitions.md, this file is history and definitions.md
+> is the target.
+
 - **What each part does now** → [spec.md](spec.md). **Why** → [design.md](design.md).
 - **What is still missing** → [tasks.md](tasks.md).
 - **What to do next** → [plan.md](plan.md).

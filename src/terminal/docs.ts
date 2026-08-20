@@ -33,7 +33,7 @@ const TERM: Record<string, string> = {
   block: "block",
   note: "note",
   group: "group",
-  proxy: "proxy",
+  reference: "proxy",
   interface: "interface",
   edge: "relationship",
   attr: "field",

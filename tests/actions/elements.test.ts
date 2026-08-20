@@ -150,7 +150,7 @@ describe("writes", () => {
     expect(ops(done)).toContain("move_element");
   });
 
-  it("refer returns add_element for a proxy into another layer", () => {
+  it("refer returns add_element for a reference into another layer", () => {
     const host = element("Host", { parent: null });
     const elsewhere = element("Elsewhere", { parent: host.id });
     const graph = graph_of(

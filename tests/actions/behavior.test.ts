@@ -190,10 +190,10 @@ describe("infer", () => {
 });
 
 // P.4: the set reading — same registered action, `as: "set"` — mints a block
-// holding a direct proxy of each hit, with none of the behavior reading's
+// holding a direct reference of each hit, with none of the behavior reading's
 // tree, order or kind.
 describe("infer — set reading", () => {
-  it("mints a block whose members are a proxy of each hit, one each", () => {
+  it("mints a block whose members are a reference of each hit, one each", () => {
     const a = element("A", { parent: null, x: 0, y: 0 });
     const b = element("B", { parent: null, x: 100, y: 0 });
     const graph = graph_of(
@@ -204,7 +204,7 @@ describe("infer — set reading", () => {
     expect("refused" in done).toBe(false);
     if ("refused" in done) return;
 
-    // One root plus one proxy per hit — no wrapper action nodes.
+    // One root plus one reference per hit — no wrapper action nodes.
     expect(done.mutations.filter((m) => m.op === "add_element")).toHaveLength(3);
     expect(done.mutations.filter((m) => m.op === "add_element" && m.element.form === "proxy"))
       .toHaveLength(2);

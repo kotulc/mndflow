@@ -101,7 +101,7 @@ export const REFERRED = "application/mndflow-ref";
 /** What a surface with no plane needs to take that row (P.7): one gesture,
  *  three surfaces, one action. The canvas keeps its own handlers because it
  *  is the only one with a spot to drop onto — a table and a matrix place the
- *  proxy in the layer and let the view say where it appears. */
+ *  reference in the layer and let the view say where it appears. */
 export function takesRef(onRefer: (target: string) => void) {
   return {
     onDragOver: (event: DragEvent<HTMLElement>) => {

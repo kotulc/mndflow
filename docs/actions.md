@@ -8,7 +8,7 @@ shape is in [design.md](design.md) under *The action surface is the input seam*.
 defined in [definitions.md](definitions.md).
 
 > **Like spec.md, this file is the present.** The simplified block model (2026-08-18) renames
-> **proxy → reference** and removes element forms, so `add_element{proxy}` below is what the
+> **reference → reference** and removes element forms, so `add_element{proxy}` below is what the
 > mutation currently writes, not what it should say. **The action set itself does not change** —
 > `refer` still places one thing standing for another, which is the whole point of a closed action
 > set surviving a model change. Stream `B` in [plan.md](plan.md) is the migration.
@@ -19,7 +19,7 @@ off the surface, and keeps aliases for the old names. Gestures and the page reac
 the registry. The third column still names which closure each row replaced.*
 
 **Most actions act within one project.** Where an argument names something in another, it is a
-proxy that brings it into this one — see *Across projects* below. **`infer` may also write home**
+reference that brings it into this one — see *Across projects* below. **`infer` may also write home**
 into participants' projects (`Effect.home` / `into`) — each write is still one undoable step in
 that target's log, never a single step spanning two logs.
 
@@ -50,10 +50,10 @@ and bring the column with it.
 | `retype` | sets what kind of thing an element or a relationship is | element, edge | id, type | `update_element{type}` / `update_edge` | `retype`, `relation` |
 | `describe` | writes the body text of an element | element | id, body | `set_body` | `write` |
 | `move` | puts an element under a different parent, and places it if told where | element | id, parent, spot? | `move_element` + shed (+ `place_element`) | `move`, `nest`, `promote`, `lift` |
-| `refer` | places a proxy of an element into this layer | layer | target, spot? | `add_element{proxy}` | `refer` |
+| `refer` | places a reference of an element into this layer | layer | target, spot? | `add_element{proxy}` | `refer` |
 
 **`refer`'s target is `{ project, element }`** (a same-project target may still be a bare path).
-A proxy of another project's **root** refers to that whole project, which is what the workspace's
+A reference of another project's **root** refers to that whole project, which is what the workspace's
 own elements are.
 
 **`move` absorbs four** because they differ only in where the parent comes from: a sibling, the
@@ -69,7 +69,7 @@ these**. The explorer and the pointer navigate.
 |---|---|---|---|---|---|
 | `open` | opens an element as the layer being drawn | element | id | `open` | `open` |
 | `up` | leaves the open layer for the one containing it | layer | — | `open` | `up` |
-| `reveal` | opens the layer an element lives in and selects it there | element, proxy | id | `open` + `focus` | `reveal` |
+| `reveal` | opens the layer an element lives in and selects it there | element, reference | id | `open` + `focus` | `reveal` |
 
 **No other action returns `open` or `focus` when a text interface reached it.** Typing three names
 makes three siblings, because creating one selected nothing.
@@ -184,8 +184,8 @@ argument.
 
 | | Scope | Does |
 |---|---|---|
-| `refer` | layer | brings a proxy of an element in another project into this layer |
-| `relate` | layer | relating to something elsewhere refers to it first, then draws an ordinary edge to the proxy — so the edge's ends stay plain ids and one log takes both mutations |
+| `refer` | layer | brings a reference of an element in another project into this layer |
+| `relate` | layer | relating to something elsewhere refers to it first, then draws an ordinary edge to the reference — so the edge's ends stay plain ids and one log takes both mutations |
 | `define` | project | a definition ref may name another project's, which is how a package is used |
 
 **The workspace is a project**, so working in it uses these same actions: filing something is
@@ -252,9 +252,9 @@ offered (G.9e).
 | Gesture | On | Reaches |
 |---|---|---|
 | click | card, group boundary, edge | selection |
-| click | proxy | selection — of what it stands for, not the stand-in |
+| click | reference | selection — of what it stands for, not the stand-in |
 | click | frame, empty | clears; empty inside a boundary selects the boundary |
-| double-click | card | `open`, or `reveal` if it is a proxy |
+| double-click | card | `open`, or `reveal` if it is a reference |
 | double-click | empty, outside the frame | `up` |
 | drag | card → another card | `move` |
 | drag | card → past the frame | `move`, to whatever contains the layer |

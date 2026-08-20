@@ -1,9 +1,9 @@
 /** The workspace: open projects held as a project of their own.
  *
  *  The workspace is itself a project and needs no new schema to be one. Its
- *  elements are proxies of other projects' roots; folders are ordinary blocks.
+ *  elements are references of other projects' roots; folders are ordinary blocks.
  *  Filing is undoable because it is ordinary mutation, and it draws as a block
- *  diagram whose dependencies fall out of who holds proxies into whom.
+ *  diagram whose dependencies fall out of who holds references into whom.
  *
  *  The workspace key remembers which projects are open (and an untouched import
  *  that has no key of its own), and which of them are locked. Locked is this
@@ -11,7 +11,7 @@
  *
  *  A change is recorded where its element lives. {@link writeInto} is that
  *  path: mutations go through the door into the named project's log as one
- *  undoable step — writing home, a matrix cell, a rename through a proxy.
+ *  undoable step — writing home, a matrix cell, a rename through a reference.
  *  Raw `saveProject` of a whole step list is not a substitute.
  *
  *  Shipped packages live under `packages/` and load here as graphs of
@@ -93,7 +93,7 @@ export function save(held: Held): boolean {
   return saveWorkspace(held);
 }
 
-/** Path a workspace proxy writes for another project's root. */
+/** Path a workspace reference writes for another project's root. */
 export function rootOf(projectId: string): string {
   return refTo(ROOT, projectId);
 }
@@ -103,7 +103,7 @@ export function isSelf(held: Held, of: string): boolean {
   return asTarget(of).project === held.id;
 }
 
-/** Whether this graph already holds a proxy of that project's root. */
+/** Whether this graph already holds a reference of that project's root. */
 export function holds(graph: Graph, projectId: string): boolean {
   const wanted = asTarget(rootOf(projectId));
 
@@ -118,7 +118,7 @@ export function holds(graph: Graph, projectId: string): boolean {
 /** Why admitting this project would fail, in words, or null. */
 export function mayAdmit(held: Held, graph: Graph, projectId: string): string | null {
   if (!projectId) return "Nothing to open.";
-  // A workspace proxying itself is a cycle with no outside, and nothing useful
+  // A workspace referencing itself is a cycle with no outside, and nothing useful
   // to open — refuse it rather than let the tree contain its own root.
   if (projectId === held.id) return "A workspace cannot hold itself.";
   if (held.projects.includes(projectId) || holds(graph, projectId)) {
@@ -128,7 +128,7 @@ export function mayAdmit(held: Held, graph: Graph, projectId: string): string | 
   return null;
 }
 
-/** Admit a project into the workspace: remember it, and place a proxy of its
+/** Admit a project into the workspace: remember it, and place a reference of its
  *  root. Parent defaults to the workspace root layer; a folder (ordinary block)
  *  is how filing nests.
  *
@@ -352,7 +352,7 @@ export function extraction(
   return { mutations, lost };
 }
 
-/** Drop a project from the workspace: its proxy goes and its entry with it.
+/** Drop a project from the workspace: its reference goes and its entry with it.
  *
  *  The inverse of {@link admit}. Used to clear an abandoned empty session —
  *  never to close a project holding work, which is the user's to do. */
@@ -439,7 +439,7 @@ export function folder(
   return [{ op: "add_element", element: fresh }];
 }
 
-/** Resolve a proxy target against the open projects' graphs.
+/** Resolve a reference target against the open projects' graphs.
  *
  *  A bare id reads from `here`. A path with a project half reads from that
  *  project's graph when it is open. Missing is tolerated — same rule as tidy —
@@ -455,8 +455,8 @@ export function resolve(
   return open[project]?.elements[id];
 }
 
-/** Project ids this workspace graph currently holds as root proxies, in the
- *  order the proxies appear among the elements. */
+/** Project ids this workspace graph currently holds as root references, in the
+ *  order the references appear among the elements. */
 export function named(graph: Graph): string[] {
   const ids: string[] = [];
 

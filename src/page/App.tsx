@@ -276,7 +276,7 @@ function companions(
   return out;
 }
 
-/** Admit a project into the workspace list and place its root proxy. Already
+/** Admit a project into the workspace list and place its root reference. Already
  *  open is a no-op. */
 function openIn(held: workspace.Held, projectId: string): workspace.Held {
   if (held.projects.includes(projectId)) return held;
@@ -787,7 +787,7 @@ export function App() {
   /** Drop a project from the workspace, log and all.
    *
    *  A workspace operation the way `begin`, unlock and fork are, not a registry
-   *  action — the closed set is untouched. `forget` takes the proxy out of the
+   *  action — the closed set is untouched. `forget` takes the reference out of the
    *  shell; the keyed log has to go too, or a reload brings the project back.
    *
    *  Asked first (V.13). Deleting a block is one undoable step; this is not in

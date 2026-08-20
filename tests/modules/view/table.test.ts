@@ -2,7 +2,7 @@
  *
  *  The surface seam is settled — surround / viewport / chrome / asking — and
  *  the map settles that a table accepts none of the four adjustments. Rows
- *  are the claim that a proxy draws as a line rather than a card. */
+ *  are the claim that a reference draws as a line rather than a card. */
 
 import { describe, expect, it } from "vitest";
 
@@ -41,7 +41,7 @@ describe("the table module's gesture map", () => {
 });
 
 describe("row composition", () => {
-  /** A layer with a block and a proxy standing in for another. */
+  /** A layer with a block and a reference standing in for another. */
   function layered(): Graph {
     const layer = element("layer", { id: "L", parent: ROOT, form: "block" });
     const a = element("pump", { id: "a", parent: "L", form: "block", type: "def_1" });
@@ -56,7 +56,7 @@ describe("row composition", () => {
     };
   }
 
-  it("lists every block and proxy, and marks a proxy as one", () => {
+  it("lists every block and reference, and marks a reference as one", () => {
     const graph = layered();
     const rows = rowsOf(graph, "L");
 

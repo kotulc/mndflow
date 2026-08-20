@@ -78,7 +78,7 @@ describe("a reference that may leave the project", () => {
     },
   );
 
-  it("names a proxy's halves project and element", () => {
+  it("names a reference's halves project and element", () => {
     expect(asTarget(refTo("block_1", "proj_2"))).toEqual({
       project: "proj_2", element: "block_1",
     });

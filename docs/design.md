@@ -247,8 +247,20 @@ written.
 
 **One setting absorbed all three.** `axis`, `flow` and `arrangement` were three fields answering
 overlapping questions, and `column` / `row` were only `down` / `right` with the direction left
-unsaid. They collapse into **one arrangement with seven values** — `free`, `right`, `left`, `down`,
-`up`, `radial`, `relax` — of which four carry a reading direction and three do not.
+unsaid. They collapse into **one arrangement with six values** — `free`, `grid`, `right`, `left`,
+`down`, `up` — of which four carry a reading direction and two do not.
+
+**Two values were dropped after reading what they actually did.** **`relax` is not a layout at all**
+— it nulls `x`/`y`, handing the layer back to automatic placement, so it has no look of its own and
+appears to do nothing unless something was hand-placed. **It is retired outright**, not moved: once
+an arrangement is a *setting*, *hand it back to automatic* has nothing left to mean, because picking
+a computed arrangement already does it and picking `free` already gives the placement back. *The
+small named loss: nothing clears hand placement any more.* Accepted rather than kept, because a
+door nobody can describe is worse than a door that is missing. **`radial`** is real but narrow — the busiest block takes the centre and the rest
+ring outward, which reads only for a hub and its attendants and looks wrong everywhere else, with
+unreachable blocks dumped into one final ring. Removed rather than fixed: a value that looks wrong
+more often than right is a value that makes the tool look complicated, and it can return as a view
+definition option if anybody wants it.
 
 **Why this is model data and not a preference — it is forced, not chosen.** Inference reads
 position along the reading direction (order tier 3), and behaviors.md requires that *the same
@@ -257,10 +269,9 @@ model would infer differently depending on how somebody was looking at it, and t
 a **permanent** block. So anything inference reads is model data. That single test decides this, and
 will decide the next setting somebody proposes.
 
-**The corollary, and it is a real one:** `relax` positions are not stable, so a `relax` layer cannot
-feed order tier 3 either. `radial` and `relax` carry no reading direction, so a layer using them has
-no implied order and inference falls through to connectivity. Better than a tier that silently
-returns a different answer each time it runs.
+**The corollary:** `free` and `grid` carry no reading direction, so a layer using either has no
+implied order and inference falls through to connectivity. One rule, and no tier that quietly
+returns a different answer depending on how the layer was arranged.
 
 **Nothing is discarded by arranging.** A block's `at` is always kept; a computed arrangement
 replaces where things *draw*, never what somebody placed, so returning to `free` returns their
@@ -278,6 +289,54 @@ log, recomputed on fold, not deletable. Chosen over a third relation module, whi
 module it is made deliberately, and `side` becomes only where it sits. `promotion` already existed
 as the explicit act of making one, and a declared interface is what can carry an anchor-slot surface
 — which is what lets a lifeline occurrence and a proxy port be the same object.
+
+### Inference makes blocks; composition arranges references
+
+**Two different things were both called inference, and separating them is what makes the view work
+tractable.**
+
+| | Makes | Runs | Is |
+|---|---|---|---|
+| **`infer`** | **new blocks** — the block → activity → state chain | once, when somebody asks | model, and permanent |
+| **composition** | **nothing** — a grouping, spacing and ordering of references | every draw | presentation, and recomputed |
+
+**`infer` stays exactly as [behaviors.md](behaviors.md) describes it.** It is the path to behaviour
+blocks and it is worth having; nothing about the block model changes it.
+
+**Composition is the open area, and it is what a view block needs.** A view holds references to
+blocks drawn from many layers, and something has to decide how they group, space and order — which
+is a different answer per view module and no answer at all today:
+
+| View | Groups by | Orders by |
+|---|---|---|
+| **block** | source layer | the arrangement's direction |
+| **table** | a chosen column | sort |
+| **matrix** | axis membership — its two child views | within-axis order |
+| **activity / state / sequence** | lane, from the reference | the four order tiers |
+
+**There is no per-module infer map.** That idea came from conflating the two, and it is withdrawn:
+`ViewModule.word` and `.creates` stay, serving `create` and the behaviour chain, and no view module
+declares what a block *becomes*.
+
+**And composition runs on one metric: proximity.** How far apart two referenced blocks are in the
+tree — same parent, same branch, same project, different project — is a path distance, computable
+and deterministic. It answers all three questions at once, which is why three view modules need one
+rule rather than three:
+
+| | Reads proximity as |
+|---|---|
+| **group** | the **nearest common ancestor** of a set of references. No dial: the grouping falls out of what was dragged in |
+| **order** | the **tree path**, lexicographically — which is what turns a pairwise metric into the linear order a list needs |
+| **space** | distance, **where the view has room**. The block view does; a table and a matrix have rows, so they take the grouping and the order and drop the spacing |
+
+**A proximity group is a derived group**, in the same sense a computed relationship is derived: the
+`group` base definition already draws a boundary round a set of references, and nothing needs
+storing for one to appear.
+
+**The default has to be overridable, and that is the one thing this rule cannot decide.** A view
+whose whole point is a cross-cut — every requirement across five projects — wants grouping by
+*type*, not by project, and proximity would give it exactly the grouping it was built to escape. So
+grouping by proximity is the **default**, and the alternative is a view definition option.
 
 ### What it costs, said plainly
 

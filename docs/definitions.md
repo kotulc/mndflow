@@ -123,12 +123,14 @@ derived kind. That is what keeps a model from being trapped in the sort of thing
 
 | Term | Means |
 |---|---|
-| **arrangement** | **one setting, seven values, and it carries the reading direction**: `free`, `right`, `left`, `down`, `up`, `radial`, `relax`. **Model data, held on the layer and in the log** — because the four directional values are what **implied order** is read along, and inference must not depend on how somebody happened to be looking. **This absorbed both `axis` and `flow`**: `column` and `row` were `down` and `right` with the direction left unsaid |
-| **retained placement** | a block's `at` is **always kept**, whatever the arrangement. A computed arrangement replaces where things *draw*, never what you placed — so returning to `free` returns your layout |
+| **arrangement** | **one setting, six values, and it carries the reading direction**: `free`, `grid`, `right`, `left`, `down`, `up`. **Model data, held on the layer and in the log**, because the four directional values are what **implied order** is read along and inference must not depend on how somebody happened to be looking. **It absorbed `axis` and `flow`** — `column` and `row` were `down` and `right` with the direction left unsaid |
+| **retained placement** | a block's `at` is **kept** by every arrangement, and nothing discards it. A computed arrangement replaces where things *draw*, never what you placed, so returning to `free` returns your layout. **`relax` is retired** — with arrangement a setting rather than an action, there is nothing left for *hand it back to automatic* to mean |
 | **rank** | one step along a directional arrangement |
-| **seat** / **anchor** / **promotion** | a place on a border a line may meet; a seat with no block behind it; turning an anchor into an interface where it sits |
+| **seat** | a place on a border a line may meet |
+| **anchor** | a seat a relationship actually arrives at, with no block behind it. **One per arriving line, never one per side.** Placed by the engine until somebody drags it, and then drawn **solid** to say the position is theirs |
+| **promotion** | turning an anchor into an **interface** where it sits — a separate act from moving one, because an interface is a real element with a name and a type |
 | **explicit order** | sequence stated by a directed relationship. Read first, and it wins |
-| **implied order** | sequence read from where blocks sit along a **directional arrangement**. The fallback. **`radial` and `relax` carry no direction**, so a layer using either has no implied order and inference falls through to connectivity |
+| **implied order** | sequence read from where blocks sit along a **directional arrangement**. The fallback. **`free` and `grid` carry no direction**, so a layer using either has no implied order and inference falls through to connectivity |
 | **lane** | a participant's column or band in a behavior view. **Derived from the reference** an action holds |
 
 
@@ -199,7 +201,9 @@ The full enumeration is in [actions.md](actions.md).
 | **adjustment** | something positional and unsayable. Four, gesture-only, never ranked. A module declares which it accepts |
 | **navigation** | an action writing no mutations — `open`, `up`, `reveal`. No step, nothing to undo |
 | **pin** | saving the current layer view as a **view block**, from the canvas |
-| **infer map** | what a block becomes in a given view — **declared by each view module**, its dials set by the view definition. `ViewModule.word` / `.creates` and `ViewConfig.N` are the built half (A.7c); the behaviour chain in [behaviors.md](behaviors.md) is one module's map, written out long |
+| **infer** | **the action that makes new blocks** — the block → activity → state chain, run once when somebody asks. Model, and permanent. Rules in [behaviors.md](behaviors.md) |
+| **composition** | **how a view groups, spaces and orders the references it holds** — recomputed every draw, making nothing. Presentation, and **not inference**; confusing the two is what briefly put an infer map on every view module |
+| **proximity** | **how far apart two referenced blocks are in the tree** — same parent, same branch, same project, different project. The one metric composition runs on: it **groups** by nearest common ancestor, **orders** by tree path, and in a view with room it **spaces** by distance. Derived every draw, stored nowhere |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |
 
 
