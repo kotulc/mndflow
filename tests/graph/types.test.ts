@@ -23,6 +23,24 @@ describe("newId", () => {
     expect(new Set(many).size).toBe(many.length);
   });
 
+  // B.19. One log for the whole workspace cannot hold two elements under one
+  // id, so uniqueness may not come from the session counter — which restarts.
+  // Stripping it leaves the random tail, and that has to carry uniqueness on
+  // its own or two projects minting in step would fuse.
+  it("is unique on its tail alone, so a restarted counter cannot collide", () => {
+    const tails = Array.from({ length: 2000 }, () => newId("block"))
+      .map((id) => id.replace(/^block_[0-9a-z]{1,4}/, ""));
+
+    expect(new Set(tails).size).toBe(tails.length);
+  });
+
+  it("mints ids no project owns, so a path says where rather than which", () => {
+    const one = Array.from({ length: 500 }, () => newId("block"));
+    const other = Array.from({ length: 500 }, () => newId("block"));
+
+    expect(one.some((id) => other.includes(id))).toBe(false);
+  });
+
   it("keeps a caller's own id, so a fold can rebuild what a log named", () => {
     expect(element("x", { id: "block_kept" }).id).toBe("block_kept");
   });

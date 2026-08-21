@@ -1468,7 +1468,9 @@ not delete or rewrite Contents.
 **Opening and closing**
 
 - **Three sizes, two doors.** Shut is the bar alone; **partial is a quarter of the stage**; full
-  is what setting the project's view toggle to `table` means. The `contents` tab shuts and opens
+  is what setting the project's view toggle to `table` means. *(**Superseded by `W.5`**, 2026-08-20:
+  the tray has **two** sizes, shut and open. `full` was never a tray size — it is the toggle putting
+  the **table module** on the stage, and the two are different things. This line is what runs.)* The `contents` tab shuts and opens
   it, the toggle fills it, and **nothing else closes it** — a click on the canvas is how a row gets
   selected, so shutting on one hid the thing being inspected. The bar shows which layer is listed.
 - **The chosen size sticks across a reload**, kept beside the other display preferences and never

@@ -33,6 +33,10 @@ story gets closer, and a green suite never closes one.
 has to be *true for a person* before any of it counts. One story spans several rows and often
 several waves.
 
+**A row id in a story may point into [landed.md](landed.md).** Rows that landed whole were archived
+on 2026-08-20; the story still names them, because what a story is made of does not change when the
+work is filed.
+
 **A story is finished only when Clay says it is.** Rows land the ordinary way — suite, `tsc`, the
 browser drive, docs. **That makes the row done and the story only closer.** When every row under a
 story has landed, it goes to Clay to be driven, and he closes it or sends it back with what is still
@@ -45,10 +49,17 @@ was not.
 
 | | The goal | Rows | State |
 |---|---|---|---|
-| **ST.4** | **One block, and everything else is data.** Make a folder, a view, a note, a script and a behavior without the app ever asking which *sort* of thing you mean — because there are no sorts. Drag blocks from three projects into a view, pin it, and come back to it. **This is the primary story and everything else waits behind it** | `B.0` ✓ `B.1` ✓ → `B.26` | **two landed, `B.1` needs driving.** design.md *The simplified block model* and *The three tiers*; vocabulary in [definitions.md](definitions.md). Nothing gated — `B-g`…`B-j` answered 2026-08-19 |
-| **ST.1** | **Reorganising is easy.** Move a block anywhere it could sensibly go — into another branch of the same project, into a different project, or out to the workspace — and see where it is going to land while dragging. Nothing announces itself afterwards, because the move was obvious as it happened | `P.1` ✓, `P.13` ✓, `P.14` ◐, `P.15` ✓ | **all rows landed — not closed.** Needs Clay to drive it, and `P.14` landed short of *beside* |
+| **ST.4** | **One block, and everything else is data.** Make a folder, a view, a note, a script and a behavior without the app ever asking which *sort* of thing you mean — because there are no sorts. Drag blocks from three projects into a view, pin it, and come back to it. **This is the primary story and everything else waits behind it** | `B.0` `B.1` `B.19` ✓ → `B.26` | **three landed and driven; 20 rows left.** design.md *The simplified block model* and *The three tiers*; vocabulary in [definitions.md](definitions.md). Nothing gated — `B-g`…`B-j` answered 2026-08-19 |
+| **ST.5** | **The workspace reaches outside itself.** Pull a package or a resource from a **public GitHub repo** and have it land as blocks you can use — not as a file you then have to import by hand | `O.1`, `O.2` | **settled, not started.** Public fetch only; local-folder import deferred |
+| **ST.6** | **A model becomes something else.** Translate a project out — **the site first**, then simulator, parametrics and code in an order nobody has set. One way out, and it never writes back | `O.3` | **settled, not started** |
+| **ST.7** | **The terminal earns its place.** One collapsible strip that says where you are, what you just did, and what you could do next — with **four commands**, flexible verbs, and **the whole action surface behind `?`**. Not a command palette and not a chat | `I.1` → `I.7` | **settled, not started** |
+| **ST.11** | **The action surface is as small as the app needs and no larger.** Three things that each carried machinery are gone or shrinking — the per-project log, the ranked offer list, and the capped type list — and what supported them should go with them rather than being left in place *just in case* | none yet — see *Not in the queue* | **future story, Clay 2026-08-20**, sized against the code below |
+| **ST.10** | **A context menu offers what makes sense here, and nothing else.** Right-click a block and see the handful of things worth doing *to a block* — not every action that technically applies. What appears is the **block module's** to declare, because the module is what knows the block is for | none yet — see *Not in the queue* | **future story, Clay 2026-08-20.** Cause found, design not started. **Wants `I.7` under it first**: narrowing a menu is only honest once help is a text route to every action |
+| **ST.8** | **Interaction is consistent, and the app always answers back.** Every part you can adjust by hand — a card, a frame edge, a block anchor, an interface — targets the same way, lights the same way, and moves smoothly. Nothing is aim-and-hope, and no two surfaces teach different gestures for the same act | `C.1` → `C.8` | **settled, not started.** Consistency is the goal; the individual features are how it is reached |
+| **ST.9** | **Each surface has one job.** The tray inspects, the stage draws, the explorer files, the terminal says. No two of them show the same thing twice, and no one of them quietly does another's work | `W.5`, `W.6`, `A.7d` | **settled, not started.** `A.7d` belongs here: *`infer`'s result is reachable by the same path everything else uses* is this story stated for one action |
+| **ST.1 ✗** | **Reorganising is easy.** Move a block anywhere it could sensibly go — into another branch of the same project, into a different project, or out to the workspace — and see where it is going to land while dragging | `P.1` ✓, `P.13` ✓, `P.14` ◐, `P.15` ✓, **`N.1`–`N.3`** | **DRIVEN AND FAILED** (Clay, 2026-08-20). Every row landed and the story does not work: **a project root cannot be moved at all**, **a block promoted to the workspace cannot come back**, and **a cross-project move does not redraw until you click something else** — which is exactly what `P.15` claimed to fix. Reopened as stream `N` |
 | **ST.2** | **A saved view is worth saving.** Pick a cross-section of several projects, keep it, name it, come back to it, and read it as a requirements table or an allocation matrix | `P.4` ✓, `P.5`, `P.7` ◐, `P.8` ✓, `P.9` | `P.7` and `P.8` landed — a set takes drops from three surfaces and a table chooses its columns. **`P.7` short**: a cross-project proxy has no label yet, which this story cannot close without |
-| **ST.3** | **Nothing is unreachable.** Every kind of thing the app can hold can be made from the app: a project, a set, a behavior. None of them needs an invisible gesture or an import | `P.2` ✓, `P.3` ✓, `P.6` ✓, `P.10` ✓ | **all rows landed — not closed.** Needs Clay to drive it |
+| **ST.3 ✗** | **Nothing is unreachable, and nothing is unreadable.** Every kind of thing the app can hold can be made from the app, **and told apart once it is there** | `P.2` ✓, `P.3` ✓, `P.6` ✓, `P.10` ✓, **`N.4`–`N.7`** | **DRIVEN AND FAILED** (Clay, 2026-08-20). **A behavior cannot be told from a structure** — no icon distinguishes them. **Right-clicking empty explorer space offers no choice of base type.** The story also grew: *reachable* is not enough if the result is unreadable. Reopened as stream `N` |
 
 
 ## B — the simplified block model
@@ -60,8 +71,7 @@ was not.
 
 **In one table**, because every row in this stream is one line of it:
 
-| Was | Is | Because |
-|---|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | four element forms (`block` `note` `group` `proxy`) | **no forms** — one block | none of them passed the *a form is earned* test |
 | a sort of thing is a form | a sort of thing is a **definition**, in a shipped locked `base` package | a definition is data, which was the second goal all along |
 | `proxy` | **reference** | one word was doing five jobs, and a sixth in the SysML map |
@@ -74,8 +84,7 @@ was not.
 
 **The base package**, and the rule that stops it becoming forms again:
 
-| Definition | Holds |
-|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | `structure` | parts, and references. The default |
 | `view` | **references only — the engine enforces this**, and it is the one thing it enforces |
 | `resource` | content, no children — a file, a script, a data file, an image, a note |
@@ -92,8 +101,7 @@ governs how the view block itself draws.
 
 **What this stream retires from the queue**, so nothing is built on it:
 
-| | Why it goes |
-|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | `P.5`'s mixed-children → `set` reading, and `role_set` | folder is a definition; mixedness signals nothing |
 | the *kind signal* repair (`layerKind` hardcodes `packId("behavior")`) | there is no kind to signal |
 | the *kind by fiat* repair (`childKind` reads `viewOf(...).module`) | the `view` component is the answer, not the workaround |
@@ -119,6 +127,68 @@ may never add a module.
 **A resource is a workspace-relative path or link.** Embedded images, video and data are a later
 story. **A pattern package** — template blocks to copy and customise — is a later story too.
 
+### Running this stream unattended
+
+**Read this before picking a row.** It is written so a cold agent can work the stream without
+asking, and the standing rules are the ones that have already cost a sitting each.
+
+**The order is the table, not the numbers.** Ids were assigned as the design settled; `B.19` landed
+third. Follow *Waits*.
+
+**Three standing rules for every row here:**
+
+1. **Never widen a closed set, and never re-introduce a set of element sorts.** A new sort of thing
+   is a **definition** in the shipped `base` package. If a row seems to need a new `form` value,
+   stop — that is the mistake this whole stream exists to remove.
+2. **Schema tokens are `B.17`'s alone.** `form: "proxy"`, `form: "note"`, `ElemForm`,
+   `add_element{…}` payload shapes. A row may rename code around them and may not change them, so a
+   half-finished stream still opens yesterday's file.
+3. **Definition ids are name-derived and project-scoped.** `defIdFor` builds them from the name on
+   purpose (`X.3` depends on it). Only elements, relationships and steps are globally unique.
+
+**Done when**, per row — beyond `tsc`, `npm run test:ci` and the browser drive that every row needs:
+
+| | Proven by |
+|---|---|
+| **B.2** | `base` package published in `modules/base.ts`, one definition per block module, `conformance.test.ts` runs the component contract over each. Nothing reads it yet, and the app is unchanged on screen |
+| **B.3** | `page/kind.ts` **deleted**; `ViewKind` / `kindOf` / `createsFor` gone from `modules/view/index.ts`. Drive: a fresh project can be switched to **activity** — the one-way door `P.6` worked around |
+| **B.4** | `role_set` → `role_folder`; the mixed-children reading gone from `role_of`. Drive: a folder made from the explorer wears the folder mark and a container of unlike blocks does not |
+| **B.5** | `part` / `reference` as the two links; *contained* derived from *the child is a graph root*. A property test: deleting a container never deletes a contained root |
+| **B.6** | `form` off the element record; `note` and `group` are base definitions. **The largest row** — if it will not land in a sitting, split it by base definition and say so |
+| **B.7** | `ref` value form → `link` everywhere including `packages/` |
+| **B.8** | one log at the workspace; `Effect.into`, `writeInto` and the `home` batches gone, and `P.11`'s property test with them. Drive: undo after switching projects reaches back into the other one — **that is correct, not a bug** |
+| **B.9** | display state in workspace metadata. Drive: set a view and a canvas toggle, reload, find them; export a project and confirm it carries no view opinion |
+| **B.11** | one arrangement, six values. **Watch**: order tier 3 must stop firing under `free` and `grid` (behaviors.md), and `radial` and `relax` come out of `src/` entirely — action, `relax_layer` op, `fill.ts` entry |
+| **B.12** | arrangement is a setting. Drive: arrange, return to `free`, get your layout back |
+| **B.13** | `derived` as a relationship flag. Drive: the workspace's project-to-project dependencies draw and cannot be deleted |
+| **B.14** | interface declared; the `side` derivation retired |
+| **B.15** | view definitions as records; a block definition carries `views`, first entry the default |
+| **B.16** | an unknown module falls back to base block **and reports a fault**. A test that seeds a file naming a module the build does not have |
+| **B.18** | composition on proximity. Drive: a view holding blocks from three projects groups them and reads in a stable order |
+| **B.20** | a resource block holds a path; explorer and canvas draw one. **No bytes in the log** |
+| **B.21** | a view holds views; a reference carries `depth`. Drive: drag a project root in with `children` and get its blocks as rows |
+| **B.22** | a pin on the canvas makes a view block that survives a reload |
+| **B.23** | a right-click in an activity makes an **action**, not a plain block |
+| **B.24** | dragging a loose block into a folder promotes it; into a project files it |
+| **B.25** | empty blocks hide; a project root shows even when empty |
+| **B.26** | an imported package's definitions resolve after a reload |
+| **W.5** | tray has two sizes; nothing offers a third; a card pick scopes it and an empty click returns it to the layer |
+| **W.6** | switching a layer to `table` fills the stage; columns and drops work there; the tray at its foot shows the **selection**, not the layer twice |
+| **B.27** | no path makes a project without a name; a duplicate is refused wherever it comes from |
+| **N.1** | a project drags into a folder, out again, and the tree redraws without a second click |
+| **N.2** | a project dragged into another becomes a block there, its definitions travel, and undo puts it back |
+| **N.3** | a cross-project drop shows the block gone from the source and present in the destination **with no further input**, driven |
+| **N.4** | an action and an activity are distinguishable from a block and a container at a glance |
+| **N.5** | every published base definition is offered on empty explorer space |
+| **N.6** | explorer offers the choice, canvas makes what suits the layer, neither grows a submenu |
+| **N.7** | **one** create control remains and it makes a block; a project is still one gesture from empty space; nothing on the bar names a type |
+| **I.8** | an **unlisted** synonym reaches the right command, a preferred verb rises over repeated use, and the same code ranks the four commands that ranked the action list |
+| **B.17** | **last.** A file written by the pre-stream build opens and draws. Seed one into `localStorage` and read `.saying .what` — the `run` skill has the procedure |
+
+**Defect 19 sits under this stream and belongs to nobody yet**: the canvas creates blocks with no
+project, into `mndflow.steps..v1`. It is pre-existing and it will bite `B.8` hardest, since a null
+project id under one log has nowhere to go. Whoever takes `B.8` should read it first.
+
 ### Rows
 
 **Order, not commitments.** `B.0` comes first because the size of everything after it is currently
@@ -135,10 +205,23 @@ not run in order. Read top to bottom and follow *Waits*.
 **`B.19` is a prerequisite for `B.8`, not a nicety.** One log cannot hold two elements with the same
 id, and ids are project-scoped today.
 
+**What `B.19` found, and every later row has to honour it: *definition* ids are not minted, they are
+derived.** `fold.defineNamed` builds a definition's id **from its name** (`defIdFor`), deliberately —
+it is the bridge that turns free text typed on the canvas into a real type, and `X.3` depends on it.
+So two projects that both define *flow* produce the **same** definition id, and no amount of entropy
+changes that. **The rule splits in two:**
+
+| | Unique | Addressed |
+|---|---|---|
+| **elements, relationships, steps** | **globally**, by minting | a path says *where* it lives, not *which* it is |
+| **definitions** | **within a project**, by name | a path is still the **resolution rule** — `proj_a9f/def_pump` |
+
+This does not block `B.8`: definitions live under their project either way. It does mean the row
+that said *a path becomes a readability aid* is true of elements and **false of definitions**, and
+`B.15` / `B.17` must not assume otherwise.
+
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **B.0 ✓** | **Count the branches — done 2026-08-20**, table in [tasks.md](tasks.md). **What it changed**: `B.6` is far smaller than feared (only **29** of 76 `form ===` comparisons are element forms; the rest are field and relation forms, which survive), `B.3` is 85 lines and 4 call sites, `B.19` is **one function** (`newId`, whose own comment already warns a collision *silently fuses two elements into one*), and `B.1` is confirmed biggest-by-count and safest-by-risk at **144** mentions across 26 files. `graph/fold.ts` carries 27 of them and is also the heart of `B.8`, so `B.1` first genuinely clears the way | `docs/tasks.md` | ✓ done |
-| **B.1 ✓** | **`proxy` → `reference`, mechanical.** The rename only — `form: "proxy"` stays a form for now. Biggest site count, no design risk, and it stops every later row fighting two names **Landed (not driven)**: 182 occurrences across 33 files under `src/` and `tests/`, plus the prose in spec.md and actions.md. `isProxy` → `isReference`, `proxyIn` → `referenceIn`, `ProxyTarget` → `ReferenceTarget`, `withProxy` → `withReference`. **Every schema token was guarded and survives**: 61 `"proxy"` form values, `ElemForm`, and `add_element{proxy}` — those are `B.6`/`B.17`'s. **One collision the row did not predict**: `isProxy` renamed onto an existing `isReference(graph, edge)`, the predicate for *this relationship reaches a proxy*. The edge predicate became **`reachesReference`**, which is what it actually says; no behaviour changed. `tsc` clean, **37 files / 685 tests green**. **Needs a browser drive** — it touched `canvas/gestures.ts`, `page/` and four view modules | `src/`, `tests/` | B.0 |
 | **B.2** | **Ship the `base` package and the block-module registry.** `workspace` / `project` / `folder` / `structure` / `view` / `resource` / `group` / `note` as definitions, each naming a module. Published in `modules/base.ts`, read by nothing yet | `packages/base/`, `src/modules/` | B.0 |
 | **B.3** | **Delete the kind derivation.** `page/kind.ts` goes; which view modules a layer offers comes from the definition. Closes `P.6`'s one-way door and defects `1b`–`1h` at once | `page/kind.ts`, `page/App.tsx`, `page/Files.tsx` | B.2 |
 | **B.4** | **`folder` becomes a definition**, `role_set` → `role_folder`, and the mixed-children reading comes out | `page/Files.tsx`, `src/modules/icons/` | B.2 |
@@ -153,7 +236,6 @@ id, and ids are project-scoped today.
 | **B.14** | **An interface is declared, not derived.** Retire the `side` derivation; `side` becomes only where it sits. Reaches `promotion`, which was already the explicit act | `src/graph/`, `modules/view/diagram/` | B.6 |
 | **B.15** | **View definitions become their own records** — a **view subtype**: one required view module plus its options, reusable rather than copied into every definition. A block definition carries **`views`, an ordered list of them, first entry the default** — one field, because which view opens is a presentation detail. The base package ships a trivial view definition per module so every entry is the same kind of thing | `src/graph/types.ts`, `src/modules/view/` | B.2 |
 | **B.16** | **The module schema is enforced at import, and an unknown module reports a fault.** A definition must match the registered option surface of the module it names; a module the build does not know falls back to the base block **and says so**. Never silent — a file from a newer build must not open looking subtly wrong with nothing to explain it | the door, `graph/check.ts` | B.2, B.15 |
-| **B.19** | **Ids become globally unique, before the log moves.** Today an id is unique *within a project* and a cross-project reference is a path (`proj_a9f/def_pump`), which worked because each project had its own log. **One log cannot carry two elements with the same id**, so a mutation would have to name a project on every op. Mint with enough entropy instead and a path becomes a readability aid rather than a resolution rule. **It also kills the bare-versus-path ambiguity** that produced `P.7`'s refused drops and defect **2b**, where a moved subtree's local references silently re-pointed at the destination | `src/graph/`, `workspace/`, the door | B.0 |
 | **B.20** | **A `resource` block carries a workspace-relative path or link**, and the explorer and canvas draw one. A file, a script, a data file, an image, a note. **Embedded content is out of scope** — a path only, so the log never carries bytes | `packages/base/`, `src/modules/`, `page/Files.tsx` | B.2 |
 | **B.21** | **A view holds views, and a reference carries `depth`.** A matrix's two axes are child views; `self` / `children` / `all` says how far each reference reaches, which is what makes dragging a whole project in give you its blocks as rows and keep them live. **`ST.4`'s payoff, and it needs `B.6` under it** | `src/modules/view/`, `src/graph/` | B.6, B.15 |
 | **B.22** | **Pin a layer view as a view block.** A pin at the canvas's top right; the block holds references to what is on stage, names the view definition in force, and is filed like anything else. **The other half of `ST.4`'s payoff** — `P.4` made a set from the explorer, this makes one from what you are looking at | `canvas/`, `src/actions/`, `src/modules/view/` | B.21 |
@@ -161,6 +243,7 @@ id, and ids are project-scoped today.
 | **B.24** | **Filing a block promotes it.** The rule `B.5` derives *contained* from — dragging a loose block into a folder or onto the workspace retypes it to `project`, dragging it into a project files it as a part. **`P.14` already dissolved *beside*: every drop is *into* something**, so this is that rule finishing rather than a new gesture | `page/Files.tsx`, `src/actions/` | B.5 |
 | **B.25** | **The explorer hides empty blocks.** Basic blocks, interfaces and references are usually empty, and hiding them is what makes a large tree readable. **A project or package root is always shown, even when empty.** Display state, so it lives in workspace metadata | `page/Files.tsx` | B.9 |
 | **B.26** | **The fold merges checkpointed definitions with folded ones.** A package arrives as a checkpoint, not as steps, so its definitions are not in the workspace log — the fold has to read both. Checkpoints already carry a graph, so this is probably a merge and a lookup order, but *probably* is how the last two schema surprises started | `src/graph/fold.ts`, `workspace/` | B.8 |
+| **B.27** | **Every minted project goes through `workspace.begin`.** tasks.md defect **2**: a project minted by `infer` (and by anything else reaching `writeInto` + `onAdmit` directly) gets a root labelled `""`, so it draws blank — and it **skips `mayName`**, the duplicate check `workspace.begin` exists to enforce. `P.3` made three paths into one *admit* door; this makes them one *naming* door too. **Done when**: no path can make a project without a name, a duplicate name is refused wherever it comes from, and `infer`'s result is named | `src/actions/behavior.ts`, `workspace/`, `page/App.tsx` | B.8 |
 | **B.18** | **View composition, on one metric: proximity.** How far apart two referenced blocks sit in the tree — same parent, same branch, same project, different project — **groups** by nearest common ancestor, **orders** by tree path, and **spaces** by distance where the view has room. Block takes all three; table and matrix take grouping and order and drop the spacing; matrix applies it per axis, each axis being a child view. A proximity group is a **derived group**, stored nowhere. **Nothing answers this today**, and it is what a view block full of distant references needs to be readable. Not `infer` — it makes no blocks and is recomputed every draw. **The default must be overridable**: a cross-cut view wants grouping by type, not by project | `src/modules/view/`, `geometry/layout.ts` | B.15 |
 | **B.17** | **Migrate old files, once, covering every change in this stream.** Schema `1.2` writes `form: "proxy"` / `form: "note"` and a log per project. The door already heals a legacy domain stem, so heal there rather than bumping by fiat. **Nothing in this stream ships without it** — a build that cannot read yesterday's file is the one unrecoverable outcome in this stream | the door, `tests/` | every other B row |
 
@@ -179,6 +262,39 @@ what made the first estimate expensive.
 
 ## What is startable now
 
+### The waves, in order
+
+**Handed off cold, work them in this order.** Each leaves the app running and drivable, and each
+names the story it serves. **Waves 1 and 3 are independent** — a second owner can take 3 while the
+first works 1.
+
+| | Rows | Story | Why here |
+|---|---|---|---|
+| **1** | `B.2` → `B.9` | `ST.4` | the model core. Everything later is written against it, and **`B.8` carries live defect 1** (a write to the wrong project's log), so it is not deferrable |
+| **2** | `B.11` → `B.16`, `B.26`, `B.27`, `B.17` | `ST.4` | settings, definitions, the naming door — and **one migration last** |
+| **3** | `N.1`, `N.3`, then `N.4` → `N.7` | `ST.1`, `ST.3` | **two failed stories.** `N.1` and `N.3` need nothing and are most of what Clay tried to do; `N.4`–`N.7` want `B.2`'s base package. **`N.2` is wave 6**, behind `B.8` |
+| **4** | `I.1` → `I.5`, `I.7`, `I.8` | `ST.7`, `ST.11` | **the terminal, moved up from last.** Three reasons, in order of weight: it **deletes ~840 lines** every other stream currently works around; `I.2`'s narrowing is what frees `rank.ts`, which is what lets `C-a` be answered cleanly in wave 5; and **`I.7` is the safety net under `ST.10`** — narrowing context menus is only honest once help is a text route to every action. **`I.6` does not come with it**, since it needs `W.6` |
+| **5** | `C.1` → `C.8`, defects 19–21 | `ST.8` | explorer and canvas consistency. `C-a` is answerable by now, and `C.8` lands beside `I.8` |
+| **6** | `N.2`, `W.5`, `W.6`, then `I.6`, `B.18`, `B.20` → `B.25` | `ST.1`, `ST.9`, `ST.7`, `ST.4` | demotion once one log makes it cheap; the tray/table split; then the payoff — results on the stage, the pin, views holding views |
+| **7** | `O.1` → `O.3` | `ST.5`, `ST.6` | reaching outside. Waits on `B.2` and `B.20` |
+
+**`ST.11` is not a wave.** Its deletions attach to the rows that free them, under one rule:
+**nothing is deleted for being old; a thing goes when the row that removed its last consumer lands.**
+`B.8` takes the write routing, `B.11` takes `relax` and `axis`, `I.8` takes the ranker, `I.1`–`I.7`
+take the old terminal. A row that frees something and leaves it standing has landed short.
+
+**Left out of the waves on purpose**: `S7` and `S8.1`/`S8.2` (renames and a seam — after wave 2, or
+they collide with every row), `T.3` (waits on `B.9`; *do not test a design that is still moving*),
+`P.9` and `X.3` (both `⚠`, superseded in mechanism by `B.15`), and `Y.10`.
+
+**`ST.1` and `ST.3` were driven on 2026-08-20 and both failed** — see stream `N`. Every row under
+them had landed. **Nothing under a story counts until Clay has driven the story**, and this is the
+second time that has been proven rather than asserted. `ST.2` is still undriven and `P.7`'s gap
+(`C.7`) is known to block it.
+
+> **Stream `B` is the queue. Start there** — its *Running this stream unattended* block carries the
+> order, the standing rules and a *done when* per row.
+>
 > **The queue below is pre-rework.** On 2026-08-18 Clay settled the simplified block model (stream
 > **B**, story **`ST.4`**), which supersedes stream `P`'s derivation and renames vocabulary every
 > row below touches. **Nothing here is cancelled and nothing here should start** until the `B`
@@ -209,8 +325,7 @@ outside click was quietly hiding three other rows' work.
 
 ### Repairs owed on rows that landed — 3
 
-| | What | Why it is owed |
-|---|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | ~~**kind signal**~~ | ~~`layerKind` hardcodes `packId("behavior")`~~ | **dissolved by `ST.4`** — there is no kind to signal. It comes out with the derivation, not as a repair |
 | ~~**kind by fiat**~~ | ~~`childKind` reads `kindOf(viewOf(...).module)`~~ | **dissolved by `ST.4`** — the `view` component answers *which modules apply*, which is the only question that was ever being asked |
 | **seeded block** | a new behavior project holds one **unnamed** block | derivation needs a child, but an empty label is an invented behaviour |
@@ -218,12 +333,13 @@ outside click was quietly hiding three other rows' work.
 ~~**`R.9` element vocabulary**~~ — **closed by `X.2`**: `App.tsx`'s `kindsInScope` hands the strip
 both halves of the vocabulary, packages included.
 
-### Waiting on Clay — 1
+### Waiting on Clay — none
 
-**Bug 2, the matrix's partial tray.** `full` currently means two things — *no partial expansion* and
-*Contents becomes the stage*. Table wants both; matrix wants only the first. **(a)** matrix suppresses
-the tray entirely (loses field editing without leaving matrix view), or **(b)** matrix keeps the tab
-but only shut-or-full. Not written either way.
+~~**Bug 2, the matrix's partial tray.**~~ **Answered 2026-08-20, and the question dissolved rather
+than picking (a) or (b).** Neither option was right because the premise was: *the tray and the table
+are the same thing.* **They are not — that was a placeholder.** See stream `W` below: the tray is a
+layer-and-selection inspector with **two** sizes, and table and matrix are **stage views that are
+always full**, like the canvas.
 
 ### Bugs found on the way — 25, one fixed
 
@@ -238,6 +354,156 @@ re-point** at the destination project. None is any row's work.
 
 **Stories.** `ST.1` and `ST.3` have every row landed. **That does not close them** — both need Clay to
 drive them, and `P.14` is settled rather than built out (*beside* does not exist).
+
+
+## I — the terminal overhaul
+
+**Specified by Clay, 2026-08-20.** A major re-think of what the terminal is, and mostly a
+**narrowing**: fewer things it can do, more it says. `Z.9` already trimmed the wave to a ranking
+surface and a fixed prompt pane; this decides what the surface is *for*.
+
+**What it is.** An interactive, adaptive, context-aware, **collapsible** strip. It **reflects
+context and action as you use the app** — you act on the canvas, the terminal says what happened —
+so it is a mirror as much as an input. It can **focus and highlight parts of the workspace and the
+page**, which is what makes filtering visible and interactive help possible at all.
+
+**Two views, and a mute.**
+
+| | Shows |
+|---|---|
+| **expanded** | prompt / context history, plus a chip, plus the chip's description |
+| **minimal** | the current context or completion, plus a chip |
+| **both** | a toggle at the **far right** to a static cursor — **quiet mode** |
+
+**Four commands, and the verbs are flexible** — a user reaches for their own word and it is matched,
+which is the same *rank what was picked* machinery `rank.ts` already holds.
+
+| Command | Reached by |
+|---|---|
+| **add blocks** | `+` `b` `block` `new` `add` `insert` `create` |
+| **filter workspace** | `:` `f` `find` `filter` `scope` `view` |
+| **search packages** | `*` `s` `search` `import` `load` |
+| **interactive help** | `?` `h` `help` `doc` `guide` `how` |
+
+**Completions show the matched command and its description**, and **fill with example arguments**.
+A name typed with underscores or separators reads as spaced words.
+
+**Results are a table.** Package search, workspace filtering and workspace status all present as a
+**table view** rather than as terminal text — which is why this waits on `W.6`, where the table
+becomes a real stage view rather than the tray.
+
+**Help is the fallback.** Anything unmatched lands in interactive docs, tutorial and prompts, which
+is where `Z.5`'s tutorial finally has somewhere to live.
+
+**Where the rest of the action surface goes — settled 2026-08-20: behind interactive help.** The
+rail offers every registered action today; four commands is a deliberate narrowing, and `arrange`,
+`group`, `relate` and `infer` are reached by `?`. **Help knows every action and can run one**, so
+nothing becomes unreachable by text and the strip stays four commands wide. *This is what makes help
+load-bearing rather than a courtesy* — it is the whole action surface's text route, and `Z.5`'s
+tutorial lives in the same place.
+
+**Results open on the stage — settled**: package search, workspace filtering and workspace status
+present through `W.6`'s real table view, not a second listing inside the terminal.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **I.1** | **Two views and a mute.** **Minimal**: the current context or completion, plus a chip. **Expanded**: prompt and context history, plus the chip and its description. **Both carry a toggle at the far right to a static cursor — quiet mode.** Collapsible is the shape of the whole thing, so this row is the frame every other `I` row fills. **Done when**: both views draw, the toggle mutes, and the choice survives a reload as workspace display state (`B.9`) | `src/terminal/`, `src/styles.css` | B.9 |
+| **I.2** | **Four commands, and the verb is the user's.** `add blocks` (`+` `b` `block` `new` `add` `insert` `create`), `filter workspace` (`:` `f` `find` `filter` `scope` `view`), `search packages` (`*` `s` `search` `import` `load`), `interactive help` (`?` `h` `help` `doc` `guide` `how`). **Flexible matching is `rank.ts`'s job, already built** — it ranks what was picked when a default was overruled, which is exactly *this person says `find` where I said `filter`*. **Done when**: every listed verb and character reaches its command, and a verb the user prefers rises | `src/actions/rank.ts`, `src/terminal/` | I.1 |
+| **I.3** | **Completions say what they matched and fill an example.** The matched command with its description, and arguments filled with an example rather than left blank — a prompt that shows its own shape needs no syntax to learn. **A name typed with underscores or separators reads as spaced words** (`heat_exchanger` → `Heat Exchanger`). **Done when**: choosing a completion leaves a runnable line, and the separator rule is a property test | `src/terminal/` | I.2 |
+| **I.4** | **The terminal mirrors what you do.** Act on the canvas and the terminal says the context and the action — so it is a mirror as much as an input, and quiet mode is what turns that off. **This is the row that makes it worth keeping open**; `U.12` already puts the last action at the explorer foot, and that surface is the one to move rather than duplicate. **Done when**: a create, a relate and a descend each show, and mute silences all three | `src/terminal/`, `page/App.tsx` | I.1 |
+| **I.5** | **The terminal can focus and highlight the workspace and the page.** Filtering lights what matched; help points at the control it is describing. **One mechanism, two callers** — and it is the same lit-target treatment `P.14` and `C.5` use, never a third look. **Done when**: a filter lights matching blocks in the explorer and on the stage, and help can point at a named control | `src/terminal/`, `page/`, `src/styles.css` | I.1, C.5 |
+| **I.6** | **Search, filter and status open on the stage as a table.** Not a listing inside the terminal — `W.6`'s table view, given a result set instead of a layer. **Watch**: this is the first caller that hands the table something that is not a layer's contents, so the seam it needs is the same one a **view block** needs (`B.21`) — do not invent a second | `src/terminal/`, `modules/view/table/` | W.6, B.21 |
+| **I.8** | **The ranker is re-aimed, not removed.** `rank.ts` (186) and `feedback.ts` (92) rank **33 actions** today by embedding lead plus learned overrule preference. **They keep both mechanisms and point them at the four commands instead** — because **`I.2`'s verb lists are examples, not an enumeration** (Clay, 2026-08-20). Somebody will type a word nobody listed, and **substring matching cannot answer that**; an *intelligent* terminal has to match meaning, which is what the embedding lead is for, and has to learn the word this person actually reaches for, which is what the overrule store is for. **So this row shrinks the ranker's *subject* and keeps its *machinery*.** Its other consumer is `typelist.ts`, whose fate `C.8` decides — this row and `C.8` **must agree or land together**. **Done when**: an unlisted synonym still reaches the right command, a preferred verb rises over repeated use, and the four-command surface is ranked by the same code the action list was | `src/actions/rank.ts`, `src/actions/feedback.ts`, `src/terminal/` | I.2, C-a |
+| **I.7** | **Interactive help is the fallback, and it carries the action surface.** Anything unmatched lands in docs, tutorial and prompts. **Every registered action is reachable and runnable here**, which is what `I.2`'s narrowing rests on. `Z.5`'s tutorial is this row's, at last — it waited because *a tutorial teaches whatever the app currently is*, and this is what it will be. **Done when**: `?` with no argument offers the tutorial, `? <action>` describes and can run it, and no registered action is unreachable. **`ST.10` depends on this row existing** — per-module context menus narrow what is offered on an element, and that is only honest once there is a text route to everything | `src/terminal/`, `docs/` | I.2 |
+
+
+## O — reaching outside the workspace
+
+**Two stories, sketched 2026-08-20**, and both are the same shape: something crosses the boundary
+between this browser tab and the world.
+
+**In — packages, scripts and resources** from a **GitHub repo or a local folder**. A resource is
+already a workspace-relative path (`B.20`), so what is missing is the fetch and what it lands as.
+
+**Out — translation** to a **site, a simulator, parametrics, or code**. `translator` and `artifact`
+are already defined and deliberately one-way: a translator reads a project and emits, and never
+writes back. The action that runs one may record a `resource` block pointing at what it made.
+
+**Settled 2026-08-20 (Clay).** **In: a public GitHub repo, read over `fetch`** — no server, no
+credentials, nothing stored, so design.md's client-only rule holds as written. **Out: the site
+first**, because it is closest to what already exists (the SVG export) and needs the least new
+machinery, so it teaches the `translator` seam rather than a target's own problems.
+
+**Deferred deliberately**: **local folder** import (File System Access API — Chromium-only, and a
+user gesture per session) was not taken and is not in scope. Simulator, parametrics and code follow
+the site, in an order nobody has set.
+
+> **Recorded, not scheduled, and it reopens a design decision**: Clay wants eventually to supply
+> **enhanced packages as a value add from a private repo or a server**. That is a hosted component,
+> and design.md currently says *no server, no cloud home, no sync* — so it is a **product decision
+> that changes a founding rule**, not a row. It is written down here so nothing is built assuming it
+> is coming, and so nobody quietly relaxes the rule to make room for it.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **O.1** | **A package comes in from a public GitHub repo.** Given a repo path, read its raw files over `fetch` and admit what it holds as a **package** — locked, in the workspace, in the vocabulary list if it carries definitions. **No credentials, nothing stored, no sync**: it is an import that happens to reach the network, and a failed fetch is a fault at the door like everything else read in. **Watch**: rate limits and CORS are real and unglamorous — prove them before the row is called done. **Done when**: a named public repo's package loads, its definitions are offered, and it survives a reload | `src/graph/file.ts`, `workspace/`, `page/` | B.2 |
+| **O.2** | **A resource comes in the same way.** `B.20` makes a resource block hold a workspace-relative path; this is where a path may point at a repo file. **No bytes in the log** — the path travels, the content does not | `packages/base/`, `workspace/` | B.20, O.1 |
+| **O.3** | **The translator seam, proven by the site.** A translator reads a project and emits an **artifact**; it never writes back, and the action that runs one may record a `resource` block pointing at the output. **The site is the first target** — a static, readable rendering of a project. **The seam is the deliverable, the site is the proof** | `src/translate/` (new), `src/actions/` | O.1 |
+
+
+## N — back to the drawing board
+
+**Clay drove `ST.1` and `ST.3` on 2026-08-20 and both failed.** Every row under them had landed.
+That is the whole argument for *a story is closed only by Clay, after he has driven it* — and it is
+the second time this project has learned it.
+
+**One sentence holds all of it:**
+
+> **"Everything is a block" only works when the workspace treats them all equally.**
+
+It does not. A project root is special-cased in three separate places, none of them a decision
+anybody took — they are omissions that were never noticed because nobody tried.
+
+### What driving found, checked against the code
+
+| | What Clay saw | What is actually there |
+|---|---|---|
+| **a** | *I cannot move root / project blocks at all* | `projectRoot` in `page/Files.tsx` renders a row with a **`dropzone` but no `draggable` and no `onDragStart`** — it can receive and can never be picked up. Workspace folder rows in `shellBranch` are the same. **Not a rule, an omission** |
+| **b** | *…and `extraction` would refuse anyway* | `workspace/index.ts:282` — `if (!held \|\| id === ROOT) return { refuse: "Nothing to take out." }` |
+| **c** | *If I make them part of the workspace I cannot move them back* | **There is no demotion path at all.** `B.24` settled that *filing a block promotes it*; nothing anywhere says how a project becomes an ordinary block again. **A gap in the settled model, not a bug** |
+| **d** | *A moved sub-block does not show as moved until I click something else* | `P.15` claims a `refoldAt` counter fixes exactly this and is annotated **landed (not driven)**. It does not work |
+| **e** | *I cannot tell a behavior from a structure* | `ROLES` in `modules/icons/index.tsx` is `role_leaf`, `role_container`, `role_interface`, `role_set` — **there is no behavior role at all**, so `P.5`'s *every role carries a mark* held only over the structure half |
+| **f** | *Right-click empty explorer space should offer every base type* | `Files.tsx:1066` opens the naming prompt with `setAdding({ parent: null })` — one thing, no choice |
+
+### What this changes in the settled model
+
+**Demotion is the real hole.** `B.5` derives *contained* from *the child is a graph root*, and `B.24`
+makes filing promote a block. **Both are one-way.** Dragging a project into another project has to
+mean *this stops being a root and becomes a part* — which is a **merge of two graphs under one log**,
+and it is only cheap once `B.8` has landed. Until then it is expensive and fiddly; after it, it is
+moving a subtree. **So `N.2` waits on `B.8` deliberately** rather than being forced early.
+
+**And the context menu needs re-thinking, not extending** — Clay's words. Two surfaces, one rule:
+
+| Right-click on | Offers |
+|---|---|
+| **empty explorer space** | **every base type** — the choice of what to make, because the workspace holds all of them equally |
+| **empty canvas** | **no choice** — it makes the type appropriate to the layer you are in, because you have already said what you are working on by being there |
+
+That is not two designs; it is one rule about **where the choice has already been made**.
+
+**`N.6` is the *empty space* rule only.** What a right-click **on an element** should offer is a
+separate and larger question — story `ST.10`, in *Not in the queue*. Do not widen `N.6` into it.
+
+| | Does | Owns | Waits |
+|---|---|---|---|
+| **N.1** | **A project root is draggable, like anything else.** Give `projectRoot` and the workspace folder rows the `draggable` / `onDragStart` that every other row has, and lift `extraction`'s `id === ROOT` refusal for the case where a root moves **to another place in the workspace** — into a folder, out of one, beside another project. **This is the cheap half and it is most of what Clay tried to do**; the expensive half is `N.2`. **Done when**: a project drags into a folder, out again, and the tree redraws without a second click | `page/Files.tsx`, `workspace/index.ts` | ⊘ |
+| **N.2** | **A project can become an ordinary block again — demotion.** Dropping a project **into** another project means *stop being a root, become a part*, which is merging one graph into another. **Deliberately waits on `B.8`**: with one log it is moving a subtree and re-parenting it; with a log per project it is a merge, a re-mint and a cascade, which is how `P.12` came to exist. **Done when**: a project dragged into another becomes a block there, its definitions travel, and undo puts it back as a project | `workspace/index.ts`, `src/actions/` | B.8, B.24 |
+| **N.3** | **A move redraws immediately — for real this time.** `P.15` is annotated landed and does not work; **start by finding out why** before writing anything, because the `refoldAt` counter is either not firing, not reaching the source tree, or being overwritten by a later memo. **Done when**: a cross-project drop shows the block gone from the source and present in the destination **with no further input**, driven in a browser | `page/Files.tsx`, `page/App.tsx` | ⊘ |
+| **N.4** | **A behavior block is visibly a behavior block.** `ROLES` carries no behavior mark, so `P.5`'s *every role carries a mark* was only ever true of structure. Add them, on Clay's rule: **hollow for a leaf** (block, action, state), **filled for one with children** (container, activity, machine). **The icon conformance test walks a closed `ROLES` set**, so adding a role without a mark fails loudly — extend the set and the test comes free. **Done when**: an action and an activity are distinguishable from a block and a container at a glance, and no two roles draw one path | `src/modules/icons/`, `page/Files.tsx` | B.2 |
+| **N.5** | **Right-clicking empty explorer space offers every base type.** Not the naming prompt for one thing — the choice of what to make: structure, behavior, folder, view, resource, note, group. **The workspace holds them all equally, so the menu that makes them must too.** **Done when**: every published base definition is offered, and picking one makes it where the click was | `page/Files.tsx`, `src/actions/` | B.2, N.6 |
+| **N.7** | **One create button, and it makes a block.** The explorer bar carries **two** create controls today — `add()` and `addBehavior()`, the second added when a behavior could not be made any other way (`P.6`'s replacement). **`N.5` removes the reason for both**: every base type is offered on a right-click, so the bar does not need one control per type and never will. **The `+` becomes plain *block*** — the common case, one click, no menu — and everything else is a right-click away. **And `P.2`'s dedicated *New project* button goes with them** (Clay, 2026-08-20): it existed because *deselect, then `+`* was invisible, and **a project is implicit now** — a top-level block **is** one, and right-clicking empty space makes one. **This is a deletion row**: `addBehavior`, the `behavior?` flag on `adding`, the second create button and the *New project* control all go. **Done when**: **one** create control remains, it makes a block, a project is still one gesture from empty space, and nothing on the bar names a type | `page/Files.tsx`, `src/modules/icons/` | N.5 |
+| **N.6** | **The context menu, re-thought.** Clay's rule: **the choice belongs where it has not already been made.** Empty explorer space offers every base type; **empty canvas offers none and makes what suits the layer** — being in an activity is already saying what you want. This is also where `B.23` (`create` wired to the module's `word` / `creates`) becomes visible, and where `R.5`'s *no submenus* rule has to hold against a list that now includes every base type. **Done when**: the two surfaces follow the one rule, and neither grows a submenu | `page/Files.tsx`, `canvas/gestures.ts`, `modules/view/*/map.ts` | B.23 |
 
 
 ## The list-of-types rule
@@ -266,7 +532,6 @@ duplication U.11 deleted `Relations.tsx` to remove is rebuilt in a new place.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **X.1** | **The ranker leaves `terminal/`.** `rank.ts` and `feedback.ts` hold the learned preference the rule above depends on, and they sit in `src/terminal/` — which is **optional**, S6.3's acceptance test being that the folder can be deleted and everything still runs. **A menu that ranks by preference cannot depend on the rail**, exactly as the offered list could not (G.9a). Move the ordering and its local store beside `offer()`; the rail keeps consuming it and owns none of it. **Give `Z.3` its second consumer** — until now the learning ranked rail chips alone **Landed (not driven)**: `rank.ts` and `feedback.ts` moved to `src/actions/` with `git mv`; the rail imports them and owns none of it. Nothing in `actions/` imports `terminal/`. Picked up 10 property tests in a previously uncovered area. | `src/actions/`, `terminal/` | Z.9 |
 | **X.2 ◐** | **One capped, expandable list, used by all three surfaces.** Top three by learned preference, import order cold; a *More…* entry expands in place; the expanded list scrolls past a height. The relation types group takes the top three and no expansion **Landed short (driven)**: `typelist.ts` moved to `src/actions/` by `git mv` - one list beside `offer()`, owned by no component - and its tests moved with it to `tests/actions/`. **`R.9`'s two gaps are closed**: the overrule store is counted in one place, `feedback.weights`, which `rank.ts` and the type list both call; and the page hands down **both halves** of the vocabulary (`kindsInScope` - packages in order, then the project's own), so a block, a group or a note is offered package stereotypes rather than the project's own alone. The rail's relation group takes the rule's three and reads the cap from the one place it is written. Driven: two types defined in the tray appeared as strip chips, and picking one retyped the card. **Two gaps: the group is capped but not *ranked* by use** (nothing records a pick there as an overrule yet), and **the edge menu is still not a consumer** - tasks.md **17** and **18**. | `src/actions/`, `modules/view/diagram/`, `src/styles.css` | X.1, R.5, R.9 |
 | **X.3 ⚠** | **`B.15` changes what it mints**: definitions are grouped `blocks` / `relations` / `views`, so a typed name on a selection mints a **block or relation** definition and must land in the right group. The want and the duplicate-name catch are unchanged. **The strip takes a typed name as well as a pick.** Beside the capped list, a text field: type a name and the selection takes that type. **Nothing new is needed** — `fold.defineNamed` already mints a definition for a bare name under a derived id, and calls itself *the bridge from free text to a real definition*; the suite holds it as *a free-text type becomes a definition with a stable id*. So this is a surface for a built capability, feeding `retype`. **The catch**: a free-text mint derives its id from the name while a deliberate definition carries its own, so typing a name that already exists in scope would mint a **twin** — the duplicate-name case SC.4 needed package-disambiguation for. **Match first, mint only when nothing matches** | `modules/view/diagram/`, `page/Contents.tsx` | R.9 |
 
@@ -277,16 +542,26 @@ The closing review's nine defects and the four rows that followed them are in
 [landed.md](landed.md). **One is left**, and it is the only one that was never a defect: the strip
 at the foot of the stage still says nothing about what the selection could be.
 
-| | Does | Owns | Waits |
-|---|---|---|---|
-| **R.9** | **The strip at the foot of the stage becomes *what is selected, and what it could be*.** The selection's **name** plus **the types available to it**, capped to a readable number, picked in one click — and the same list on right-click. **It is not only for relationships and ports**: a block, a group and a note answer the same question, so the strip is universal rather than a relationship special case. This is what makes `R.5`'s expansion usable instead of a menu that grows with the vocabulary. **The slot is Contents' slot**, so it opens once `W.1` moves Contents into the table view **Landed short (not driven)**: A universal `SelectionStrip` - block, group, note, port and edge share one path - with the top three ranked, *More...* expanding in place, calling the closed `retype`. Found and wired `Canvas`'s `kinds` prop, which was declared but never read. **Two gaps: element candidates are project-local only** (`defsOf(graph, false)`), so package-imported stereotypes are missing for anything that is not an edge; and `typelist.ts` reimplements `rank.ts`'s private `shape_weights` because `actions/` was not in its owns. Both were X.2's to close — **and X.2 closed both**: the strip now takes the page's `kindsInScope` vocabulary (packages included) and the weighting lives once in `feedback.weights`. | `modules/view/diagram/`, `canvas/Canvas.tsx`, `src/styles.css` | R.5, W.1 |
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 
 
-## C — the canvas answers back
+## C — the explorer and the canvas answer back
 
-**Small features from driving the app, 2026-08-20.** None depends on stream `B`, and none of them
-is a design question — they are things the canvas and the explorer do not say yet. Kept as their own
-stream so they do not queue behind the block model.
+**Story `ST.8`. From driving the app, 2026-08-20.** None of it depends on stream `B`, so it can run
+beside the block model with a second owner.
+
+**The goal is consistency, not the features.** Every part somebody can adjust by hand — a card, a
+frame edge, a block anchor, an interface — should **target the same way, light the same way and move
+the same way**, and say so while it is happening. The rows below are how that is reached; a row that
+lands its feature while inventing a fifth way to show a drop target has missed the point.
+
+**Two standing rules for this stream:**
+
+1. **One lit-target look, everywhere.** `P.14` set it for the explorer tree and the canvas already
+   had it. `C.5`'s frame edges, `C.2`'s anchors and `I.5`'s highlights all reuse it — **never a
+   second treatment**.
+2. **Hand-adjusting anything means the layer is `free`** (`C.6`). It is one rule covering blocks,
+   anchors and interfaces, and it is what makes a solid anchor legible.
 
 **The one-anchor-per-side rule is retired** (Clay, 2026-08-20). `NodeCard.tsx:270`,
 `Frame.tsx:92` and `Note.tsx:92` each draw **four anchors per card, always**, whether or not
@@ -295,8 +570,10 @@ anything meets them — invisible at rest and shown on selection. **They read as
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **C.1** | **A project's name carries its block count** — `Coolant Loop (34)`, so the weight of a folded project reads at a glance. Counted over the folded graph, derived, never stored. **Watch**: it must not count references as blocks, or a view of forty things reads as a forty-block project | `page/Files.tsx` | ⊘ |
+| **C.1** | **A project's name carries its block count, in the explorer** — `Coolant Loop (34)`, so the weight of a folded project reads at a glance. **The explorer's alone**; nothing on the canvas draws it. Counted over the folded graph, derived, never stored. **Watch**: it must not count references as blocks, or a view of forty things reads as a forty-block project. **Done when**: a project row shows its count, the count follows a create and a delete, and a folder of references does not inflate it | `page/Files.tsx` | ⊘ |
 | **C.2** | **An anchor exists where a line meets a block, and is draggable between seats without promotion.** Two halves. **(a)** The always-four rule goes: an anchor is drawn where a relationship actually arrives, so a card with one line has one. **(b)** Dragging it moves it between the seats available on that border; **a moved anchor draws solid**, to say its position is yours rather than the engine's. **Promotion stays a separate act** — an interface is a real element with a name and a type, and moving a line's end is not that | `modules/view/diagram/`, `src/actions/`, `src/geometry/` | ⊘ |
+| **C.7** | **A reference shows what it stands for, across projects.** Today `actual()` resolves inside **one** fold, so a reference to another project's block draws as *missing* on the card and in the table — which is what `P.7` landed short on (tasks.md **15**). **`workspace.resolve` is the resolver and the workspace already holds every open project's graph**; handing it down is a dependency inversion of the same shape as `graph/check.ts`'s `validating()`. **`B.19` makes this easier than it was**: an id is globally unique now, so the lookup needs no project half and a bare id cannot resolve to the wrong element. **The honest limit, and it must be drawn honestly**: a reference into a project that is *not open* still cannot resolve — it draws as missing because it genuinely is. **Done when**: a cross-project reference shows the target's name on a card and in a table row, survives a reload, and a reference to a closed project says so rather than looking broken. **This is what `ST.2` cannot close without** | `page/App.tsx`, `canvas/`, `page/Contents.tsx`, `modules/view/table/` | ⊘ |
+| **C.8 ◆** | **The relation type lists stop being a capped guess** — tasks.md **17** and **18**, the two gaps `X.2` left. **Clay's direction, 2026-08-20**: show them all, ordered by **similarity between what was keyed and the registered keys**, rather than capping at three and ranking by learned overrules. **This needs one answer before any code** — see `C-a` in [tasks.md](tasks.md): *show all* is obviously right for the terminal's four commands and obviously wrong for a vocabulary of fifty relation types, so which surfaces take *all* and which still cap. It also decides whether similarity **replaces** `rank.ts`'s learned preference on these lists or sits in front of it, and `X.1`/`X.2` moved that machinery days ago | `src/actions/`, `modules/view/diagram/` | ◆ C-a |
 | **C.6** | **Hand-adjusting anything sets the layer to `free`.** Moving a block, an anchor or an interface by hand is a statement that the positions are yours, so the arrangement follows the gesture rather than being set separately — and under any **non-free** arrangement the engine owns **all three**: block positions, anchor seats and interface seats. One rule replacing three, and it is what makes `C.2`'s solid anchor legible: solid means *free, and placed by you*. **Watch**: `at` is still retained across the switch, so returning to `free` returns the whole layout — anchors included | `src/actions/`, `src/graph/`, `modules/view/diagram/` | C.2, B.11 |
 | **C.3** | **Selecting on the canvas moves the explorer with you.** Picking a card sets the explorer's context and expands the branch to it, so the two panels never disagree about where you are. **`reveal` already does exactly this in the other direction** — explorer to canvas — so this is its mirror and should reuse it rather than growing a second path | `page/App.tsx`, `page/Files.tsx` | ⊘ |
 | **C.4** | **`f` zooms to the selection and centres it.** One key, the standard one, over whatever is picked — a card, a group, an edge, several. **The camera already has fit** (the viewport is part of every projection surface); what is missing is a binding and a target | `canvas/`, `modules/view/diagram/` | ⊘ |
@@ -328,11 +605,24 @@ on a door that already exists (`Y.6`).
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **Y.6a** | **The export offers the look as a *choice*.** `Y.6` made it follow the theme in use, which is the default the wave settled on; what is left is the override — somebody exporting for a white document wants the pale look whatever the screen is showing. **One control on a door that already exists**: the rail's `project` group, beside `export`, cycling *as shown* / retro / modern / light. **Not a new capability and not a stored preference per project** — it is the tool in hand, like `form` and `angular`, so it lives beside them on the page **Landed (not driven)**: Four look picks beside `export` in the rail's `project` group, matching the `form`/`angular` idiom; `lookFor()` resolves the chosen theme without disturbing the screen. No stored preference. Side effect to review: dropped `verbs: true` from the group. | `page/Rail.tsx`, `page/App.tsx` | Y.6 |
 | **Y.10** | **One design for every panel edge, and one for every panel label.** **The edge**: explorer, terminal and tray each fold, and each does it differently today — `◂`/`▸` on the explorer, a chevron on the tray, its own control on the terminal. They become **one thick edge that lights on hover, carrying an arrow that says which way it folds**. The options column is **not** one of them: it is a fixed width and does not fold. **The label**: the canvas frame writes its name *on* its own border, straddling it with the ground showing through (`.frame-name`) — every panel takes that treatment, so a panel and a frame are visibly the same kind of thing. **Not a resize handle**: drag-to-size means a stored width per panel and a canvas refit on every drag, and that is a different row if it is wanted at all | `page/`, `src/styles.css` | ⊘ |
 
 
 ## W — the tray shows what is in focus
+
+> **Settled 2026-08-20 (Clay): the tray and the table are two different things, and their being one
+> was a placeholder.** Everything under *Contents already is the table view* below was built on that
+> placeholder and is superseded in shape by `W.5` and `W.6`. What landed still runs; what it means
+> has changed.
+>
+> | | Is |
+> |---|---|
+> | **the tray** | a **layer-and-selection inspector** at the foot of every view. **Two sizes — shut and open.** Lists the current layer's elements, or the selected element's details. Keeps the hover-row-lights-the-canvas tie |
+> | **table** and **matrix** | **stage view modules, always open full**, exactly like the canvas. They own **column choice** and **drops from the explorer**, and they need **no** hover-to-canvas tie because there is no canvas beside them |
+>
+> **So `full` stops being a tray size.** It was the toggle's all along: setting a layer to `table`
+> puts the table on the stage. The tray's third size, and `U.18`'s `tray.full` that `W.1` closed,
+> both come back out.
 
 **Contents already *is* the table view.** It is not a thing to move into `modules/view/table/`; it is
 stuck at one size. U.7 said as much — *both open partially, as the panel does now, and expand to the
@@ -353,11 +643,8 @@ relation kinds*, so a focus-driven tray must not take that capability down with 
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **W.1** | **The tray expands to the full stage**, finishing U.7's `◐`. Contents is the table view at full size — same component, same listing, same filters and sort; the shipped `table` module's own listing is the duplicate and goes. `tray.full` in `styles.css`, and expand covers Contents rather than sitting beside it **`U.18` handed `tray.full` here**: nothing asks for a full tray today — no control, no state, no class — so the size and the door it is reached by are one piece of work, not a CSS rule somebody can add ahead of it **Landed (not driven)**: `Panel` takes `full`, forcing the tray open at `.tray.full` and rendering the real `Contents`; the module's duplicate `Table.tsx`/`Row.tsx` deleted, registration and contract intact. **This closes U.18's `tray.full`.** Repaired after review: the crumb and descend that lived in the deleted components were restored to `Contents` via `path`/`onOpen`/`onUp`, which is what U.18 had wired. | `modules/view/table/`, `page/Contents.tsx`, `page/App.tsx`, `page/Panel.tsx`, `src/styles.css` | ⊘ |
-| **W.1a** | **The tray's three sizes, settled.** **Partial is 25% of the stage** by default — `.tray.open` is `33%` today, and the comment there argues for *a third* on grounds (a fixed height beats one that moves with the row count) that 25% keeps; only the number changes, so the drawing gets more of the stage. **Shut is a bar**, one click away on the tab, which already works. **Full is what the view toggle means**: setting a project to `table` makes the listing the stage, and the tray is that listing at full size rather than a second one under it. **This is the row that removes the duplicate V.19 left visible** — a table filling the stage with a `contents` bar still at its foot, both listing the same layer. Do not add a fourth size or a hidden mode: three, and the toggle and the tab are the only two doors. **Three defects belong to this row, all from driving it**: the size **does not stick** (every reload starts shut, so a working size has to be re-chosen); the partial tray **does not follow the selection** — it lists the layer whatever is picked, which is the whole of what `W.2` promises; and it **shuts on selection**, because `Panel` closes on any click outside itself, so picking the block you wanted to inspect is the gesture that hides its fields **Landed (driven)**: The three sizes settled - partial is 25%, full is the toggle's, shut is the bar - and the size **sticks over a reload** (`mndflow.tray.open.v1`, out of the log like every display preference). **The shut-on-any-outside-click is gone**, which is the whole of the third defect: picking a block on the canvas was the gesture that hid its fields. The second defect (*the partial tray does not follow the selection*) was already closed by `W.2` and needed nothing. Driven: the tab opens it at a quarter, a card pick leaves it open and scoped to that pick, an empty click un-focuses it back to the layer, and a reload comes back open. | `page/Contents.tsx`, `page/App.tsx`, `page/Panel.tsx`, `src/styles.css` | W.1 |
-| **W.2** | **The two sizes take different inputs, and that is what keeps them honest.** **Full — the `table` view on the stage — shows the layer and everything in it, and the selection does not narrow it.** **Partial — the tray at the foot — is the same table scoped to what is in focus**: its name and available types at the head, its contents as rows. Nothing in focus and the partial tray shows the layer, so the two agree and *expand* is genuinely only a size. This is not the hidden state U.8 rejected — the sizes never disagree about one input, they read different ones. **Recommended for the one case that is not a row filter**: a group or a block with children narrows to rows of the same shape, but a note has text and a leaf block has fields, and Contents already carries an opened-row presentation for exactly that (`styles.css`, *A row opened out*) **Landed (not driven)**: Full reads the layer and the selection does not narrow it; partial reads what is in focus and falls back to the layer when nothing is. The two never disagree about one input - they read different ones. | `page/Contents.tsx`, `modules/view/table/` | W.1 |
-| **W.3** | **Vocabulary editing needs no new door — deselecting is the door.** Definitions are not the contents of anything, but **the layer listing already holds the types chip** (E.1), and the layer listing is what the tray shows when nothing is in focus. So: click empty space, the tray un-focuses back to the whole layer, and the vocabulary is one chip away. **The tray sits at the foot in every view**, so this is reachable from a block diagram, a matrix or an activity alike — which is what keeps U.11's deletion of `Relations.tsx` honest. **The same gesture as `V.14`**: empty space deselects, on the canvas and in the explorer both, and it is what unlocks *new project* there and *edit the vocabulary* here **Landed (driven), and it needed no code of its own**: the door was already there - `paneClick` deselects on empty canvas and Contents un-focuses to the layer listing with the types chip on it - but the tray *shut* on that same click, so nobody ever reached it. `W.1a` removing that is what opened this. Driven: click empty canvas, the filter chips come back, `types` shows the project's definitions with `+ type` under them. | `page/Contents.tsx`, `canvas/Canvas.tsx` | W.2 |
-| **W.4** | **Matrix draws a heatmap.** **Hue is the relationship kind and opacity is the count** — transparent at zero, grading up — so both dimensions read at once. **The hue comes from the definition's existing `style`** (`styleOf` / `lookOf`, `styles/sysml.ts`), never a new matrix palette, so the matrix and the diagram cannot disagree and there is no second colour vocabulary to keep. **A cell holding two kinds draws as bands**, one per kind, degrading to a solid cell in the common single-kind case; the strip lists them all on selection **Landed (not driven)**: Cells draw as bands - hue via the same `ramp(lookOf(...))` call the diagram uses, so the two cannot disagree; opacity `1 - 1/(count+1)`, asymptotic so one edge and a hundred are both legible. Nothing added to the style surface. `group()` is the named seam for P.9. | `modules/view/matrix/`, `src/styles.css` | W.1 |
+| **W.5** | **The tray stops being the table, and has two sizes.** **Shut** (the bar) and **open** (a quarter of the stage) — `full` comes out, and with it `U.18`'s `tray.full` that `W.1` closed. What it shows is one question answered at the depth the pointer is at: **nothing selected → the current layer's elements; something selected → that element's details** (a block's fields, a note's text, a relationship's ends). **The hover-row-lights-the-canvas tie stays** — it is the tray's whole reason to sit beside a drawing. **Done when**: the tab opens and shuts it, a card pick scopes it to that card, an empty click returns it to the layer, the size survives a reload, and **no control anywhere offers a third size** | `page/Contents.tsx`, `page/Panel.tsx`, `page/App.tsx`, `src/styles.css` | ⊘ |
+| **W.6** | **Table and matrix are stage views, always full.** Like the canvas: the view toggle puts one on the stage and it fills it. **They own what the tray must not** — choosing columns (`P.8` landed it on the rail), taking drops from the explorer (`P.7` landed `takesRef`), and, for the matrix, its axes and kinds (`P.9`). **They need no hover-to-canvas tie**; there is no canvas beside them. **`W.1` deleted the module's own listing as a duplicate — it was not one**, and this row is where it comes back, as the stage rather than as a second copy of the tray. **Watch**: do not rebuild it by widening `Contents.tsx` again; that is the coupling this row exists to cut. **Done when**: switching a layer to `table` fills the stage, columns and drops work there, and the tray at its foot is showing the **selection**, not the same layer twice | `modules/view/table/`, `modules/view/matrix/`, `page/App.tsx` | W.5 |
 
 **Watch**: `V.15` takes the relationship type filter off the canvas bar, and a matrix over a busy
 vocabulary may want one of its own. A different surface, so not a contradiction — but it should
@@ -384,8 +671,7 @@ arrive by decision rather than by the back door.
 
 **Settled 2026-08-18 (Clay): a layer's kind is derived from its children, per layer.**
 
-| The layer's children | It reads as |
-|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | all **structure** blocks | **structure** |
 | all **behavior** blocks | **behavior** |
 | **mixed** | **set** — a folder of stuff, so nothing constrains it |
@@ -413,15 +699,13 @@ block at the top level **is** a project, each makes a project of its kind when n
 **This replaces `P.2`'s separate *new project* button.**
 
 
-
 **Clay's rule, from playing with the built app.** Making a project should be as ordinary as making a
 block, because it *is* one: a project is a block that nothing contains. Promoting a block is moving
 it to the top; filing one is moving it back in.
 
 **Four things were expected and none of them work.** Checked against the code, not guessed:
 
-| Expected | What is there |
-|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | Make a project easily | `＋` does name one — but only after clicking empty tree space to deselect first |
 | Drag a block to empty space → a project | the empty tree area has **no drop target at all** |
 | Drag a block into another project | drag is wired only *inside* the project in context |
@@ -457,8 +741,7 @@ planned** — two lines sitting there since W0:
 **So a saved view is a set: a block whose members are proxies of things elsewhere.** Nothing new is
 invented; three built things meet.
 
-| Already built | Does |
-|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | `Chosen[]` cross-project multi-select (E.4) | picks the cross-section |
 | `refer` | places a proxy of another project's element |
 | sticky per-project view module (U.8) | decides whether it draws as a table or a matrix |
@@ -503,14 +786,9 @@ property test already holds that no two icon names draw one path; the missing ha
 role *has* one.
 
 
-
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **P.2** | **The explorer bar gains a visible way to make a project.** Today the only route is *deselect, then `＋`*, and the deselect is invisible — which is how Clay came to believe projects could not be made at all. One control that makes one outright, no gesture first. **One control, not two**: under model B a folder *is* a set of projects, so there is nothing else for a second icon to make **Landed (not driven)**: A dedicated *New project* button on the explorer bar reaching the same naming prompt with no deselect first; new `new_project` icon. The selection-following `+` is untouched. | `page/Files.tsx`, `src/modules/icons/` | ⊘ |
-| **P.3** | **Nothing anywhere special-cases making a project.** With `P.1` and `P.2` landed, `infer` (`A.7d`), a dropped block and the bar's control all reach the same door, and the door is *a block at the top level*. This row is the check that they do — if any caller still needs its own path, the rule has not landed **Landed (not driven)**: `Effect` gained `admit?: boolean`, `enact` an `onAdmit` callback, `App` wires it to the existing `openIn`. Three paths to making a project became one; `infer`'s result is reachable. (`extract` had already been folded into `newProject` by P.1.) | `src/actions/`, `page/` | P.1, P.2 |
-| **P.4** | **Save a cross-section as a set.** With a cross-project selection made, one action mints a block holding a proxy of each — the general form of what `infer` already does for behaviour, taking the same `of[]` argument. It opens like any project, and its view module decides whether it reads as a **requirements table** or an **allocation matrix**. **Prefer generalising `infer` to registering a second action**: the action set is closed, and *one registered action offered N times* is the wording `R.5` already established. If it will not generalise cleanly, that is a gate, not a licence to add one **Landed (not driven)**: `infer` generalised via `expand: true` and an `as` choice (`behavior` / `set`) - one registered action offered twice, so the action set never widened. The set mints a block of proxies and reaches P.3's single admit door. Also fixed `fill_args` silently dropping `action.chose` for `infer`. | `src/actions/`, `page/Files.tsx` | P.1 |
-| **P.5** | **Landed (not driven)**: `role_of` gained the mixed-children -> `set` reading drawn with a folder mark, and the icon conformance test now walks a closed `ROLES` set so a role with no mark fails loudly rather than relying on a hardcoded list. Landed with the kind-derivation rework, not as its own sitting. **Every node role carries a mark of its own, and a set gets the folder.** `role_of` gains one line — **its children are of mixed kinds** (settled: mixedness, not proxies) — and the explorer draws that with a **folder** icon, since a set of projects and a folder are the same thing under model B. **The gap this closes is a rule, not one icon**: block, container and interface are marked and a set is not, so two different things read alike. **V.2's property test holds that no two names draw one path; the other half is that every role has one**, which is what to add to the icon conformance test | `page/Files.tsx`, `src/modules/icons/`, `tests/modules/icons.test.ts` | P.4 |
-| **P.6** | **A project can be made a behavior — nothing can today.** Found while answering *I cannot create sets or behaviors*: **nothing anywhere writes `components.view.module`**, and `offered(graph)` filters the view toggle to the modules of the project's own kind, where kind is read back off that same key. A fresh project's root has no definition, so it is `block`, so it is *structure*, so activity / sequence / state are never offered — **a one-way door with nothing that opens it**. The only behavior projects that can exist are `infer`'s, and those are unreachable (`A.7d`). Give the root's kind a door: setting it is `define` on the root's own definition, which is built — what is missing is a control that reaches it **SUPERSEDED — comes back out (Clay, 2026-08-18).** The kind is derived from a layer's children, never toggled; see the settled rule above. What landed: A root-kind cycle control on the project row (structure -> activity -> sequence -> state) reusing a same-named definition where one exists, plus a `view` dial in the definition editor. Both write `components.view.module` through the built `define`; no closed set widened. | `page/Contents.tsx`, `page/Files.tsx` | ⊘ |
+| **P.2 ⚠** | **Comes back out at `N.7`** (Clay, 2026-08-20): a project is implicit — a top-level block **is** one, and `N.5` puts every base type on a right-click, so a control that names one type on the bar is the duplicate this row created. The *reason* it existed still stands and is what `N.5` answers. **The explorer bar gains a visible way to make a project.** Today the only route is *deselect, then `＋`*, and the deselect is invisible — which is how Clay came to believe projects could not be made at all. One control that makes one outright, no gesture first. **One control, not two**: under model B a folder *is* a set of projects, so there is nothing else for a second icon to make **Landed (not driven)**: A dedicated *New project* button on the explorer bar reaching the same naming prompt with no deselect first; new `new_project` icon. The selection-following `+` is untouched. | `page/Files.tsx`, `src/modules/icons/` | ⊘ |
 
 
 ### Columns are the table's and the matrix's, not the set's
@@ -532,7 +810,6 @@ itself already accepts `{ project, element }`; nothing hands it one.
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **P.7 ◐** | **A block dragged from the tree lands on whatever is on the stage.** Two halves, both real gaps. **The payload becomes a cross-project ref** (`refTo`) rather than a bare id, and every row is draggable rather than only the ones in context — without both, a set cannot be composed from more than one project, which is the whole point of it. **And table and matrix take the drop**, which they do not today: they have no drag handling at all, while the block canvas has had `onRefer` since G. One gesture, three surfaces, one action (`refer`) **Landed short (driven)**: table and matrix take the drop through one shared `takesRef` beside `REFERRED` - one gesture, three surfaces, one action. **`refer` had never actually accepted a cross-project path**: its check looked the target up in this fold, so every explorer drag has been refused since `P.1` made the payload a ref. It now reads a ref into the project in context as bare (what `of` stores) and takes a foreign one on its path alone. Driven: a row dropped on the table inside another layer becomes *stands for X*; two rows dropped on a matrix become its axes; a repeat drop is refused; a **cross-project** drop lands and survives a reload. **The gap: that foreign proxy draws as *missing*** - nothing resolves another project's element for a label. `workspace.resolve` is the resolver and handing it down is a row of its own (tasks.md **15**). Two defects the review then found and this row fixed: the canvas's *don't refer to the open layer* guard compared a **path** against bare ids, so it never fired once the payload became a ref (`refer` now refuses it itself — driven: dropping the open layer's own row says *That is this layer.* and makes nothing); and a column read a proxy's fields without the hop its name already takes (driven: a referenced block's `priority` reads `high` on the proxy row). Owns corrected: the table's listing is `page/Contents.tsx` since `W.1` deleted the module's own, the check is `actions/elements.ts`, and the guard is `canvas/gestures.ts`. | `page/Files.tsx`, `modules/view/table/`, `modules/view/matrix/`, `page/App.tsx` | P.1 |
-| **P.8** | **A table's columns are chosen.** They are fixed at `form / name / type` today, which is the one thing a requirements table cannot live with. Columns are the **fields in scope** across the rows, picked from a list; `form / name / type` stay as the default set rather than as the only one. **`components.card.shows` is the precedent and not the mechanism** — that is one definition saying what its own card shows; this is one *view* saying what its columns are, so it is the table's state and not a definition's **Landed (driven)**: a `columns` group on the rail lists every field name the layer's rows carry (`table/columns.ts`'s `fieldsIn`), and picking one gives that field a column of its own. The **table's** state, held beside `shownType` - never a definition's; the head's four stay as the default set. Driven: adding a field to a block put it on the group, and toggling it added the column, with a dash where a row does not carry it. Owns corrected: `page/Contents.tsx` is the table's listing, and `ChromeGroup` - an open set - gained the key. | `modules/view/table/`, `page/Rail.tsx` | P.7 |
 | **P.9 ⚠** | **Superseded in shape by `B.15` / `B.18`** — a matrix's axes are now **two child views**, and *which relation kinds count* is a view definition option rather than a control of its own. The want is unchanged; the mechanism is. Do not build it against the old shape. **A matrix's axes and kinds are chosen.** Rows against columns is one reading of a set; *these blocks against those requirements* is the one an allocation view needs. Which relationship kinds count is the same question the heatmap asks, so **`W.4` and this row are one design and should land together or in order** — do not let two different answers to *which kinds* appear. **`B.15` settles it**: *which kinds* is a view definition option, so both rows read it from there | `modules/view/matrix/`, `page/Rail.tsx` | P.7, W.4 |
 
 
@@ -541,8 +818,7 @@ itself already accepts `{ project, element }`; nothing hands it one.
 **Checked, not assumed.** Clay's reading is not a new idea to encode — **it is the built model with
 no door on it**, which is the shape of every gap this stream has found.
 
-| Clay's reading | What is already true |
-|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | The workspace is the true root | `Held.id` **is a project id**; its graph is keyed and folded from its own log like any other (`graphOf(held.id)`) |
 | It keeps its own history | it already does — `admit`, `forget` and `folder` write steps into it |
 | It works the same way as a project | actions.md already says so: *"**The workspace is a project**, so working in it uses these same actions… It has no actions of its own"* |
@@ -560,11 +836,7 @@ cross-project one.
 project export is one log; a workspace export is the workspace's log plus the logs it names (S4.6).
 Nothing to design — the rule was there first.
 
-| | Does | Owns | Waits |
-|---|---|---|---|
-| **P.10** | **The workspace opens like anything else.** `P.13` found its door — the panel's own title — so this row is the half behind it: `contextId` may be `held.id`, and the stage draws the workspace's graph. It gets a row of its own at the top of the tree, it can be selected, and selecting it puts **its** graph on the stage — a block diagram of the projects it holds, with the proxies as cards and the imports as lines. **Nothing new is stored**: its log, its graph and its actions all exist; what is missing is that `contextId` can never be `held.id` and the tree draws its contents without ever drawing it. **Watch**: the explorer must not then draw the workspace twice, once as a root and once as the tree it already is **Landed (not driven)**: `contextId` may be `held.id`; the Workspace title navigates there and the stage folds the workspace's own log as an ordinary block diagram. The double-draw watch was already structurally impossible - `held.id` is never in `held.projects`. | `page/Files.tsx`, `page/App.tsx` | ⊘ |
-| **P.11** | **The rule that draws the line gets written down and held.** *A change is recorded where its element lives* is implemented and is **in a module comment**, which is where a rule goes to be forgotten. It belongs in design.md, and it belongs in a property test — *every mutation lands in the log of the project holding the element it names* — which is the one assertion that would catch a future action writing to the wrong log, as `R.10` did **Landed (not driven)**: The write-path rule moved from a module comment into design.md, plus a property test over three open projects asserting every mutation lands only in the log of the project it names. | `docs/design.md`, `tests/workspace.test.ts` | ⊘ |
-| **P.12** | **Settled: copy — and the two are not one mechanism, they are two gestures.** **Tree to tree** (explorer to explorer) carries the branch and **copies the definitions it names**, so its types survive the source being deleted. **Explorer to canvas** makes a **reference** — a proxy from the canvas layer to that block; nothing moves and nothing is copied. A package stays referenced because it is immutable. So the destination decides, and there was never an inconsistency to resolve. **Clay's call, taken** | `workspace/`, `src/graph/types.ts` | ✓ settled |
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 
 
 ### Reorganising — what driving it turned up
@@ -595,9 +867,8 @@ relationship left behind is still said, because that is the one thing the gestur
 
 | | Does | Owns | Waits |
 |---|---|---|---|
-| **P.13** | **The panel is titled *Workspace*, and its title is the workspace's row.** The word at the top names what is shown rather than the panel showing it; *explorer* stays the name of the pane. **Selecting it puts the workspace on the stage** as a block view of the projects it holds — which is `P.10`'s door, found rather than invented. **Watch**: the header is a heading today and a row is a selectable thing, so it takes the selection treatment `Y.8` settled — the wash for open, the accent for selected — or it will be a title that mysteriously highlights **Landed (not driven)**: The files-bar title is the word *Workspace* and is a selectable row taking the Y.8 wash; `onOpenWorkspace`/`workspaceOpen` left optional, wired by P.10. | `page/Files.tsx`, `src/styles.css` | ⊘ |
 | **P.14** | **A drag says where it will land, the way the canvas does.** Three things the tree lacks and the canvas has: the target **lights as a target** rather than wearing one flat outline; *into this branch* and *beside it* look different, since they are different drops; and **a folded branch opens when the pointer rests on it**, which is what makes a nested target reachable at all. **`move` already accepts nesting** — this is entirely feedback, so the acceptance is *drag a block into a folded branch three levels down without guessing* **Landed short (not driven)**: Lit drop targets matching the canvas, the clear-space *nowhere* target given a rule it never had, and a 500ms spring-open on a folded branch. **The *beside* question is dissolved, not deferred (Clay's call): every drop is *into* something.** A block takes the dragged block as a child, a project root takes it as a child of the root, and empty space makes it a project - a member of the workspace set. All three are already wired (`dropzone(.., node.id)`, `dropzone(.., null)`, `drop(null, null)`), so nothing was missing. | `page/Files.tsx`, `src/styles.css` | ⊘ |
-| **P.15** | **A drop is visible immediately, and says nothing afterwards.** The source tree refolds on the drop rather than on the next click, so a block that moved looks moved. **And the strip stops announcing a plain move** (Clay's call — a fluid gesture needs no receipt), while still saying when a relationship was **left behind**, since that is the part the gesture cannot show **Landed (not driven)**: A `refoldAt` counter in the `graphs` memo makes a cross-project drop redraw the source tree instantly; a plain move no longer announces itself, while *N relationships left behind* still does, and a stale notice is cleared rather than left standing. | `page/Files.tsx`, `page/App.tsx` | P.1 |
+| **P.15 ✗** | **DOES NOT WORK — driven by Clay 2026-08-20.** A cross-project drop still does not redraw until something else is clicked, which is the whole of what this row claimed. Reopened as `N.3`; **start by finding out why the `refoldAt` counter does not fire** rather than writing a second mechanism beside it. **A drop is visible immediately, and says nothing afterwards.** The source tree refolds on the drop rather than on the next click, so a block that moved looks moved. **And the strip stops announcing a plain move** (Clay's call — a fluid gesture needs no receipt), while still saying when a relationship was **left behind**, since that is the part the gesture cannot show **Landed (not driven)**: A `refoldAt` counter in the `graphs` memo makes a cross-project drop redraw the source tree instantly; a plain move no longer announces itself, while *N relationships left behind* still does, and a stale notice is cleared rather than left standing. | `page/Files.tsx`, `page/App.tsx` | P.1 |
 
 
 ## Wave U — what is left of it
@@ -607,9 +878,7 @@ U.14 left, both parked on the same words — *App not owned*. **U's *chrome, not
 language* boundary held through V and is reversed by `Y.5`** — a theme now supplies the diagram's
 defaults, while a definition's `style` still wins.
 
-| | Does | Owns | Waits |
-|---|---|---|---|
-| **U.18** | **The two `◐` gaps Wave U left in `App.tsx`.** Both were parked on the same words — *App not owned* — and both are a wire rather than a design: **U.7**'s `path` / `onUp` are never passed to table and matrix (so both fall back to deriving the trail from the graph), `tray.full` is missing from `styles.css` (so expand does not cover Contents), and **U.14**'s `App.newProject` still does not call `workspace.begin`. One row because they are one file, and leaving them as two `◐`s means two rows that each wait for the same owner **Landed short (proven)**: `path` / `onUp` reach table and matrix — the crumb reads the trail App already holds instead of re-deriving it — and `newProject` goes through `workspace.begin`, which names, mints, writes the first step and admits in one call rather than App doing all four beside an unwired door. Driven: two projects made, a duplicate name refused, both surviving a reload. **The gap is `tray.full`**: nothing anywhere asks for a full tray — no control, no state, no class — so the rule would be dead CSS. It is `W.1`'s, which owns the size *and* the door it is reached by **Closed**: **`tray.full` closed by W.1**, which owns the size and the door together as this row asked. | `page/App.tsx` | ⊘ |
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 
 
 ## Wave T — the suite
@@ -626,7 +895,6 @@ harness to write them against.
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **T.3 ⚠** | **`App.tsx`, `Files.tsx` and `Panel.tsx` get cover** — ~2,200 lines, no tests, and the place every browser-found bug lived. **The design has started moving again**: `B.3` deletes `page/kind.ts` and rewrites App and Files, `B.4` rewrites the explorer roles, `B.9` moves display state into App. *Do not write tests for a design that is still moving* applies exactly as it did through U and V — **this now waits on `B.9`**, not on `T.5` alone | `tests/page/` | T.5, B.9 |
-| **T.5** | **A DOM harness, so page interaction can be tested at all.** There is no jsdom, happy-dom or `@testing-library` in the tree, which is why T.2 stopped at SSR markup and left filter chips, column sort, row pick, hover lighting and strip `onSay` unproven. **`happy-dom` + `@testing-library/react`** — happy-dom because it is vitest-native and nothing here needs jsdom's deeper spec cover (no canvas, no navigation); testing-library because its queries are *role and text*, which is *properties, never values* applied to markup. **It proves itself on T.2's leftovers over `Contents.tsx`** — which Wave U did not rewrite — rather than waiting for T.3. Two dependencies, against *never add a dependency where a few lines will do*: a DOM harness is not a few lines **Landed (not driven)**: happy-dom + @testing-library/react; `test.environment` set globally so T.3 gets the harness free. contents.test.ts 11 -> 21 tests, covering filter chips, column sort, row pick, hover lighting and strip `onSay`. | `tests/`, `package.json`, `vite.config.ts` | ⊘ |
 
 ## Wave 3 — the rail
 
@@ -640,9 +908,7 @@ ranking and completing what the context offers and surfacing the documentation t
 adapting to how one person words things. **It never changes context**: it ranks *against* context,
 so the explorer and the pointer still navigate. **As scoped it is wholly client-side.**
 
-| | Does | Owns | Waits |
-|---|---|---|---|
-| **Z.9** | **Trim Z to what is wanted, and stop there.** Z.1–Z.8 are annotated *landed (proven)* but are **thin against what they claim** — the wave is half-built, and the honest reading is below. It is trimmed rather than finished because **the UI refinements in Wave V come first**. **Keep and finish**: chip order from `rank.ts` (225 lines — embedding lead, learned preference, fixed `ORDER` fallback; this part is real), `feedback.ts` (74) behind it, and **the score on hover, which does not exist anywhere yet** — that is the whole of the ranking surface Clay asked for. **Cut back**: expanded mode becomes **a fixed placeholder prompt set** on the theme of *"What's next?"* plus **the selected action's description**, which takes `guidance.ts` (32 lines, two hardcoded strings) out and stands the expanded pane down off `router.ts` / `workflows.ts` / `turn.ts` — the question loop tasks.md already said would *lose its centre*. **Delete**: `Scores.tsx` (55 lines, unmounted since U.11 and now never remounted — the hover score replaces it). **Collapse `ORDER`**, now duplicated **four** ways — `rank.ts`, `page/Files.tsx`, diagram offer chrome, `terminal/` **Landed (not driven)**: Hover score on each chip; expanded pane is a fixed prompt plus the chip's own description. Deleted `guidance.ts`, `Scores.tsx`, `loop.ts`, `turn.ts`, `router.ts`. `rank.ts`'s ORDER duplicate collapsed onto `fill.ts` - the other two alleged duplicates were already shared. Repaired after review: `terms.ts` restores per-domain vocabulary through the seam, and App's stale loop comment fixed. | `terminal/`, `page/App.tsx` | ⊘ |
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 
 
 ## Wave V — the shell, second pass
@@ -713,8 +979,7 @@ selected* is exactly the confusion that produced `R.10`.
 **The renames are mechanical and the words already exist.** definitions.md says a layer *is* the
 current scope and the code already calls the selection `picked`:
 
-| Now | Becomes | Why |
-|---|---|---|
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
 | `view: string \| null` | **`layer`** | it **is** the layer; the glossary already says so, and it frees *view* for the module |
 | `contextId` | **`project`** / `openProject` | it is which project is open, and nothing else |
 | definitions.md *context* | **`selection`** | the code has called it `picked` all along |
@@ -730,6 +995,64 @@ enough to be its own row and to want the browser drive after it, which is why th
 
 
 ## Not in the queue
+
+**`ST.11` — the action surface shrinks.** *Future story, Clay 2026-08-20. Sized, not scheduled.*
+
+**Measured, not guessed.** `src/actions/` is **2,873 lines**, `src/terminal/` is **741**, and the
+action set is **33 actions** across seven registrations.
+
+*Every row here is in [landed.md](landed.md) under *Archived 2026-08-20*.*
+| `Effect.into`, `writeInto`, the `home` batches, `onAdmit` routing, `P.11`'s test | spread over 9 files | **`B.8`** — one log, so nothing routes and no action can pick the wrong one |
+| the `relax` action, `relax_layer`, `set_axis`, the `Axis` type | across `actions/layer.ts`, `fold.ts`, `check.ts`, `types.ts` | **`B.11`** — one arrangement absorbs both |
+| ~~`rank.ts` + `feedback.ts`~~ — **stays** | **0** | **Corrected 2026-08-20 (Clay).** `I.2`'s verb lists are **examples, not an enumeration**: somebody will type a word nobody listed, and substring matching cannot answer that. Meaning-matching (the embedding lead) and learned preference (the overrule store) are both what an *intelligent* terminal needs. `I.8` re-aims them at the four commands and **keeps the machinery** |
+| `typelist.ts` (78) and `TYPE_CAP` | 78 | **`C-a`** — *show all, ordered by similarity* removes the cap, the *More…* expansion and the overrule counting behind them |
+| `terminal/Chat.tsx` (302), `workflows.ts` (156), `tutorial.ts` (105) | 563 | **`I.1`–`I.7`** rewrite what the terminal is. `Z.9` already stood down the question loop; this finishes it |
+| the explorer's second create button | — | `N.5` — see `N.7` |
+
+**The rule for the story, so it does not become a demolition derby**: *nothing is deleted for being
+old; a thing is deleted when the row that removed its last consumer lands.* Each entry above names
+that row. **Do not delete `rank.ts` before `C-a` is answered** — if similarity sits *in front of*
+learned preference rather than replacing it, the store stays and only the cap goes.
+
+**`ST.10` — a context menu offers what makes sense here.** *Future story, Clay 2026-08-20. The
+cause is found; the design is not started, and it should not be started inside `N.6`.*
+
+**The cause, checked rather than guessed.** [`inScope`](../src/actions/index.ts) opens with:
+
+```ts
+if (where.includes("layer") || where.includes("project")) return true;
+```
+
+**Any action scoped to the layer or the project is offered unconditionally**, whatever is selected —
+so right-clicking a block offers `create`, `relax`, `arrange` and the navigation actions `up` and
+`reveal`, none of which mean anything *to a block*. The line is not a bug: it correctly answers
+*can this run here*. It is being asked the wrong question.
+
+**Two questions, two owners, and today one filter answers both:**
+
+| Question | Owner | Exists |
+|---|---|---|
+| **can this run here** | `inScope` + the action's own `check` | yes, and it is right |
+| **is this worth offering on *this* element** | the **block module** | **no** |
+
+**The block module is the right owner** — under the simplified block model a module already declares
+what its block *is* to the engine and its configuration surface, and *what is worth doing to one* is
+the same kind of knowledge. An action cannot answer it: `create` does not know about every block
+type, and never should.
+
+**`when` stays, and is not the answer.** It is the action's own veto (*absent is always*), which is
+the right shape for *this action never makes sense with nothing selected*. It is the wrong shape for
+*a note's menu should be short* — that is the note's opinion, not the action's. **Two filters,
+different owners, neither redundant.**
+
+**Settled 2026-08-20 (Clay): explicit lists.** A module names the actions its blocks offer. The
+fear was staleness, and it does not apply: **the action set is closed and has 33 members**, and the
+block model **shrinks** it rather than growing it — `relax` and `axis` both come out at `B.11`, and
+the pin follows `P.4`'s precedent of *one registered action offered twice* rather than adding a
+34th. A list that never changes is not a maintenance burden; it is documentation.
+
+**And the same measurement says the surface can shrink a long way** — see `ST.11` below.
+
 
 **The IBD layout law** (was A.12) — **dropped**: the view inside a child block already *is* an
 internal block diagram, so no separate law or view module is wanted. Kept as something to expand on

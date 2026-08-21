@@ -371,7 +371,25 @@ export type Step = {
 
 let counter = 0;
 
-/** Short readable id, prefixed with what it points at.
+/** 64 bits of randomness in base36, for the tail of an id.
+ *
+ *  `Math.random` is not a source of unique values — it is seeded per context
+ *  and gives no collision guarantee at all, which was tolerable while an id
+ *  only had to be unique inside one project. It no longer is. The fallback
+ *  stays for a host without `crypto`, where a weak id still beats a crash. */
+function entropy(): string {
+  const bytes = new Uint8Array(8);
+
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let at = 0; at < bytes.length; at += 1) bytes[at] = Math.floor(Math.random() * 256);
+
+  let value = 0n;
+  for (const byte of bytes) value = (value << 8n) | BigInt(byte);
+
+  return value.toString(36);
+}
+
+/** Short readable id, prefixed with what it points at. **Globally unique.**
  *
  *  The prefix costs nothing and makes every reference legible in a diff — a
  *  `parent` or a `source` says what it reaches without a lookup. A **name** is
@@ -381,14 +399,26 @@ let counter = 0;
  *
  *  Monotonic within a session, which keeps the action log and the canvas stable
  *  across a refold. The counter restarts each session, so the random tail is
- *  what has to keep two sessions apart — eight characters rather than four,
- *  because a collision does not fail loudly: it silently fuses two elements
- *  into one. Older `n_`/`e_`/`s_` ids stay valid, since an id is opaque and
- *  nothing reads its prefix. */
+ *  what keeps two sessions — and two projects — apart.
+ *
+ *  **Unique everywhere, not merely inside one project** (B.19). One log for the
+ *  whole workspace cannot hold two elements under one id, and a collision does
+ *  not fail loudly: it silently fuses two elements into one. So the tail is 64
+ *  bits from `crypto` rather than eight characters of `Math.random`, and a
+ *  path (`proj_a9f/block_x`) says *where* an element lives without being what
+ *  identifies it.
+ *
+ *  **Definition ids are the deliberate exception**: {@link defIdFor} derives one
+ *  from the name so that two people typing "flow" mean one definition, which is
+ *  what makes free text become a real type. Those stay project-scoped and are
+ *  addressed by path.
+ *
+ *  Older `n_`/`e_`/`s_` ids stay valid, since an id is opaque and nothing reads
+ *  its prefix. */
 export function newId(prefix: string): string {
   counter += 1;
 
-  return `${prefix}_${counter.toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}_${counter.toString(36)}${entropy()}`;
 }
 
 /** Where a reference points, when it may point outside this project.

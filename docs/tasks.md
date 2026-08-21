@@ -388,6 +388,12 @@ fields, a group its members, a note its text, a relationship its ends and what i
 why the capped type list stopped looking like a relationship special case: it is the *what could this
 be* half of the same tray.
 
+> **Superseded in shape by `W.5` / `W.6`** (Clay, 2026-08-20). *The tray and the table are the same
+> thing* was a **placeholder**. The tray is a layer-and-selection inspector with **two** sizes and
+> keeps the hover-to-canvas tie; **table and matrix are stage views, always full**, and own column
+> choice and explorer drops instead. The reasoning below still explains why *focus* drives the tray;
+> it no longer explains what the table is.
+
 **The two sizes take different inputs.** **Full** — the `table` view on the stage — shows the layer
 and everything in it, and **the selection does not narrow it**. **Partial** — the tray at the foot —
 is that same table **scoped to what is in focus**. With nothing in focus the two agree, so *expand*
@@ -686,6 +692,64 @@ meets the block, and nowhere else. `C.2`.
 | **C.3** | selecting on the canvas sets the explorer context and expands the branch — the mirror of `reveal`, and it should reuse it |
 | **C.4** | `f` zooms to the selection and centres it |
 | **C.5** | a frame edge lights as a drop target, each of the four walls independently, reusing `P.14`'s lit-target look |
+
+### The action surface shrinks — `ST.11`, sized 2026-08-20
+
+**Measured**: `src/actions/` is **2,873 lines**, `src/terminal/` is **741**, and the action set is
+**33 actions** across seven registrations.
+
+**Settled: a module names the actions its blocks offer, as an explicit list** (Clay). The staleness
+fear does not apply — the set is closed and the block model **shrinks** it: `relax` and `axis` come
+out at `B.11`, and the pin follows `P.4`'s *one registered action offered twice* rather than adding
+a 34th.
+
+| What loses its reason | Lines | Freed by |
+|---|---|---|
+| `Effect.into`, `writeInto`, `home` batches, `onAdmit` routing, `P.11`'s test | across 9 files | `B.8` |
+| `relax`, `relax_layer`, `set_axis`, the `Axis` type | 4 files | `B.11` |
+| ~~`rank.ts` + `feedback.ts`~~ — **stays, re-aimed** | **0** | **Corrected 2026-08-20 (Clay)**: `I.2`'s verb lists are **examples, not an enumeration**. Substring matching cannot reach a word nobody listed, so the embedding lead and the learned overrule store are both still needed — `I.8` points them at four commands and keeps them |
+| `typelist.ts`, `TYPE_CAP` | 78 | `C-a` |
+| `Chat.tsx`, `workflows.ts`, `tutorial.ts` | 563 | `I.1`–`I.7` |
+| the explorer's second create button **and `P.2`'s *New project* control** | — | `N.5`, deleted by `N.7` |
+
+**The rule, so this does not become a demolition derby**: *nothing is deleted for being old; a thing
+goes when the row that removed its last consumer lands.* **A row that frees something and leaves it
+standing has landed short.**
+
+**`rank.ts` is not a deletion candidate.** The first sizing of this story assumed four commands
+meant substring matching; Clay corrected it — the verb lists are examples, and an *intelligent*
+terminal has to match a word nobody listed and learn the one this person reaches for. `I.8`
+re-aims the ranker rather than removing it, and **`C-a` still decides `typelist.ts`**, which is a
+separate consumer. `I.8` and `C.8` must agree or land together.
+
+**So the honest total is smaller than the first pass claimed** — roughly **640 lines**, not 920, and
+most of it is the old terminal rather than the ranker.
+
+### Stream C — one question open
+
+| | The question |
+|---|---|
+| **C-a** | **Which surfaces show *all* their types, and which still cap?** Clay's direction (2026-08-20) is to stop capping at three and instead **show all, ordered by similarity between what was keyed and the registered keys** — which closes tasks.md **17** (the group is capped but not ranked) and **18** (the edge menu is not a consumer). **It is obviously right for the terminal's four commands and obviously wrong for a vocabulary of fifty relation types**, so the rule needs its boundary: *all* below some size and *ranked and capped* above it, or *all* everywhere with a scroll. **And it decides the fate of the learned ranking**: does similarity **replace** `rank.ts`'s overrule-weighted preference on these lists, or sit in front of it as a first sort? `X.1` and `X.2` moved that machinery days ago and gave it its second consumer, so replacing it is a real reversal rather than a tidy-up. `C.8` is `◆` until this is answered |
+
+### Streams I and O — answered 2026-08-20
+
+*Renamed off `D`/`E`, which are already vocabulary and definitions-and-fields.*
+
+| | Answer |
+|---|---|
+| **I-a** | **The rest of the action surface goes behind interactive help.** Four commands is a deliberate narrowing; `arrange`, `group`, `relate` and `infer` are reached by `?`, which knows every action and can run one. **This makes help load-bearing rather than a courtesy** — it is the action surface's only text route, so `I.7` cannot be trimmed later without making actions unreachable |
+| **I-b** | **Results open on the stage**, through `W.6`'s real table view given a result set instead of a layer. No second listing inside the terminal |
+| **O-a** | **A public GitHub repo, read over `fetch`.** No credentials, nothing stored, no sync — design.md's client-only rule holds as written. **Local-folder import was not taken** and is out of scope (File System Access API is Chromium-only and needs a gesture per session) |
+| **O-b** | **The site first**, because it is closest to the existing SVG export and needs the least new machinery — so it teaches the `translator` seam rather than a target's own problems. Simulator, parametrics and code follow, unordered |
+
+**Recorded, not scheduled, and it reopens a founding rule.** Clay wants eventually to supply
+**enhanced packages as a value add from a private repo or a server**. design.md says *no server, no
+cloud home, no sync* — so this is a **product decision that changes that rule**, not a row and not
+something to design around. Written down so nothing is built assuming it is coming, and so nobody
+relaxes the rule quietly to make room for it. If it is taken, the questions it opens are
+credentials in a browser tab, who hosts, and what happens to a project whose package is behind a
+paywall the reader does not have.
+
 
 ### Two things one log has not answered
 
@@ -2781,6 +2845,22 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 
 **Defects — not any row's work, none fixed.**
 
+| | What | Where |
+|---|---|---|
+| **22** | **The context menu offers every layer-scoped action on every element.** `inScope` returns `true` for anything scoped `layer` or `project` **before looking at the selection**, so right-clicking a block offers `create`, `relax`, `arrange`, `up` and `reveal` — none of which mean anything to a block. **Not a bug in that line**: it answers *can this run here*, correctly. It is being asked *is this worth offering here*, which is a different question and belongs to the **block module**. Story `ST.10`, in plan.md under *Not in the queue*. **Do not fix it by adding `when` clauses** — that puts a note's opinion about its own menu inside `create` | `src/actions/index.ts`, `src/modules/` |
+
+| | What | Where |
+|---|---|---|
+| **21** | **The tray's hover highlight does not reach relationship lines.** Hovering a row in Contents lights the matching card on the canvas; hovering a **relationship** row lights nothing. The tie is the tray's whole reason to sit beside a drawing, and an edge is exactly the thing hardest to find by eye — so it is the case that needed it most. `W.5` keeps the hover tie, so this is that row's to close or a fix of its own | `page/Contents.tsx`, `canvas/Canvas.tsx`, `modules/view/diagram/` |
+
+| | What | Where |
+|---|---|---|
+| **20** | **The tray and a full table list the same layer twice.** `V.19` saw it, `W.1a` narrowed it, and `W.5`/`W.6` settle *what each is for* without settling *what the tray shows when the stage is already the layer*. **Clay's rule leaves one case open**: the tray lists the current layer when nothing is selected — but a full table on the stage is already that list. **Recommended**: in `table` and `matrix` the tray **starts shut** and opens on a selection, showing that element's details; the layer listing is the stage's job there. One line, and it removes the duplicate without a mode | `page/Panel.tsx`, `page/App.tsx` |
+
+| | What | Where |
+|---|---|---|
+| **19** | **The canvas makes blocks when there is no project, into a malformed storage key.** Found driving `B.1`/`B.19` on 2026-08-20, and **confirmed pre-existing** by re-driving the same script against the pre-change tree. A fresh context has no project — the explorer correctly says *No project yet — name one to start* — but a right-click on the canvas still creates, and the work is written to **`mndflow.steps..v1`**, the keyed slot with an empty id (`mndflow.project.v1` is `null`). It round-trips a reload, so nothing is lost *yet*; but that slot is not any project's, no explorer row lists it, and `workspace.begin` — which is where naming and the uniqueness check live — was never reached. **Two doors disagree**: `V.14` and `P.2` made the explorer refuse to work without a project, and the canvas never learned. **Fix is one of**: the canvas refuses to create with no project and says so, or a right-click with no project runs the naming prompt first and creates into the project it makes. The second matches *making a project should be as ordinary as making a block* | `page/App.tsx`, `canvas/gestures.ts`, `src/graph/store.ts` |
+
 > **`1b`, `1c`, `1d`, `1e`, `1f` and `1h` are all the kind derivation, and stream `B` removes it
 > rather than repairing it.** Do not fix them individually — a fix keeps `page/kind.ts` alive, and
 > the whole file goes. They are kept below because *what each one got wrong* is evidence for why
@@ -2789,8 +2869,8 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 
 | | What | Where |
 |---|---|---|
-| **1** | **`onMove` writes to the wrong project's log.** `project.move` takes no project argument and always writes to the bound/context project. Every tree row is draggable regardless of context, and `drop()` routes a same-project drag to `onMove` — so dragging inside project A while B is in context records the move in **B's** log. Silent corruption, same class as `R.10`. `P.11`'s property test covers `writeInto` directly, not the page path, so it does not catch this. Needs a signature change through `onMove` → `act.move` / `home` | `page/Files.tsx`, `project.ts` |
-| **2** | **A minted `set` project has no name and skips the uniqueness check.** `build_set` makes its root with label `""`, and `titleOf` is the root's label — so the project draws blank. It reaches the workspace via `writeInto` + `onAdmit`, bypassing `workspace.begin`, which is where `mayName` refuses a duplicate | `actions/behavior.ts` |
+| **1 — dissolved by `B.8`** | **`onMove` writes to the wrong project's log.** *(2026-08-20: **one log at the workspace removes this entirely** — there is no second log to write to, and no action can pick the wrong one. Do not fix it; it goes with `Effect.into` and `writeInto`. Until `B.8` lands it is still live, so **`B.8` should not be deferred behind cosmetic work**.)* `project.move` takes no project argument and always writes to the bound/context project. Every tree row is draggable regardless of context, and `drop()` routes a same-project drag to `onMove` — so dragging inside project A while B is in context records the move in **B's** log. Silent corruption, same class as `R.10`. `P.11`'s property test covers `writeInto` directly, not the page path, so it does not catch this. Needs a signature change through `onMove` → `act.move` / `home` | `page/Files.tsx`, `project.ts` |
+| **2 — rowed as `B.27`** | **A minted project has no name and skips the uniqueness check.** *(2026-08-20: *set* is retired — this is any project minted by reaching `writeInto` + `onAdmit` directly. Still real, and now owned.)* **A minted `set` project has no name and skips the uniqueness check.** `build_set` makes its root with label `""`, and `titleOf` is the root's label — so the project draws blank. It reaches the workspace via `writeInto` + `onAdmit`, bypassing `workspace.begin`, which is where `mayName` refuses a duplicate | `actions/behavior.ts` |
 | **1b** | **`layerKind` hardcodes one package id.** `src/page/kind.ts` derives behavior as `refAt(type).project === packId("behavior")`. Clay settled that *shipped packages may carry either kind of definition* — this cannot express that: a package holding both kinds is judged wholly by its id, and a behavior package under any other name reads as structure. The signal belongs on the **definition** (its form, or a key under `components`), not on the package name | `page/kind.ts` |
 | **1c** | **`components.view.module` can still declare a kind by fiat.** `childKind`'s fallback for a packageless definition is `kindOf(viewOf(...).module)` — the exact key the settled rule says must never answer *what kind is this*. `P.6`'s dial is gone but its mechanism survives, so any definition carrying that key still sets its block's kind | `page/kind.ts` |
 | **1d** | A new **behavior project silently contains one unnamed block** (`makeElement("", …)` in `App.newProject`). Derivation needs a child or the root reads structure, so something must be seeded — but an empty-labelled block in a fresh project is an invented behaviour the design did not ask for. Name it, or find another way to carry intent | `page/App.tsx` |
@@ -2798,7 +2878,7 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 | **1f** | An **unresolved proxy counts as structure**, so one dangling reference can silently flip a behavior layer to `set` | `page/kind.ts` |
 | **1g** | `infer` types elements to `pkg_behavior/…` without adding that package to the destination's `vocabulary`, so those types may draw as raw paths. The new create buttons do add it | `actions/behavior.ts` |
 | **1h** | `shellBranch`'s workspace folder rows still hardcode `role_container` regardless of contents | `page/Files.tsx` |
-| **2b** | **A moved subtree's local proxies silently re-point.** `extract` copies each element with `{...node}` and rewrites only `parent`; a proxy's `of` travels unchanged. `refTo(id)` with no project yields a **bare** id and `refAt` reads a bare ref as local — so a proxy pointing at a sibling in the source project re-resolves against the **destination** after the drop, dangling or hitting a different element with the same id. `lost` counts only edges, so nothing warns. This is exactly the population the explorer→canvas gesture creates. **Open (Clay):** re-qualify to the source project on the way out (`refTo(id, source)` — the reference survives, the destination gains a dependency), or drop it and count it like a left-behind relationship | `workspace/index.ts` |
+| **2b — mostly closed by `B.19`, finished by `C.7`** | *(2026-08-20: **globally unique ids remove the dangerous half.** A bare id can no longer resolve to a *different* element in the destination, because no two elements share one — so the silent corruption is gone. What is left is a reference that **dangles**, which is visible and tolerated by design; `C.7` then resolves it through `workspace.resolve` wherever the target is still open. **The open choice about re-qualifying on the way out is therefore no longer urgent** and may be dropped.)* **A moved subtree's local references silently re-point.** `extract` copies each element with `{...node}` and rewrites only `parent`; a proxy's `of` travels unchanged. `refTo(id)` with no project yields a **bare** id and `refAt` reads a bare ref as local — so a proxy pointing at a sibling in the source project re-resolves against the **destination** after the drop, dangling or hitting a different element with the same id. `lost` counts only edges, so nothing warns. This is exactly the population the explorer→canvas gesture creates. **Open (Clay):** re-qualify to the source project on the way out (`refTo(id, source)` — the reference survives, the destination gains a dependency), or drop it and count it like a left-behind relationship | `workspace/index.ts` |
 | **3** | The `terms` prop chain is dead: `project.ts` → `App.tsx` → `Files.tsx` Props, never destructured or rendered. The explorer's word is `const UNIT = "block"`. Pre-existing. Either wire it or delete the chain and `terminal/terms.ts` with it | `page/`, `terminal/terms.ts` |
 | **4** | `type Terms` is declared twice — `Files.tsx` duplicates `terminal/workflows.ts` | both |
 | **5** | Dead CSS left by `Z.9`'s removed history block: `.past`, `.exchange`, `.exchange.reverted`, `.typed .noop` | `styles.css` |
@@ -2811,7 +2891,7 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 | **12** | The rail never calls `entries()`, so no `expand` action (`mark`, `direct`, `reform`, now `infer`) can offer its second reading from the rail — only the explorer and canvas menus can | `actions/rank.ts` |
 | **13** | `Y.6a` dropped `verbs: true` from the rail's `project` group as a side effect; the group now mixes a one-shot verb with four stateful picks. Nothing keyed off it | `page/Rail.tsx` |
 | **14** | `table` is the only view module shipping no component, and `App.tsx` name-checks all six modules in one ternary chain. Legal, but record it so it does not read as an accident | `modules/view/table/`, `page/App.tsx` |
-| **15** | **A cross-project reference draws as *missing*.** *(`proxy` in the code; stream `B` renames it.)* `refer` takes a foreign path now (`P.7`), so a row dragged out of another project lands and survives a reload — but `actual()` resolves in one fold by design, so the card and the table row have no label. `workspace.resolve(here, open, of)` is the resolver; handing it down is a dependency inversion like `graph/check.ts`'s `validating()`, and a row of its own | `canvas/`, `page/App.tsx`, `page/Contents.tsx` |
+| **15 — rowed as `C.7`** | **A cross-project reference draws as *missing*.** *(`proxy` in the code; stream `B` renames it.)* `refer` takes a foreign path now (`P.7`), so a row dragged out of another project lands and survives a reload — but `actual()` resolves in one fold by design, so the card and the table row have no label. `workspace.resolve(here, open, of)` is the resolver; handing it down is a dependency inversion like `graph/check.ts`'s `validating()`, and a row of its own | `canvas/`, `page/App.tsx`, `page/Contents.tsx` |
 | **16** | **`Y.6a` was reverted in `683676d` and left its comments behind.** `ExportLook`, `LOOK_ICON`, the three `RailOpts` fields and the four look controls are gone; the two doc comments that described them now sit orphaned above `TYPE_CAP` and at the foot of `RailOpts`, describing nothing. Either the row comes back or the comments go — a comment for absent code is worse than neither. (Supersedes **13**, whose `verbs: true` came back with the revert) | `page/Rail.tsx` |
 | **17** | **The rail's relation types are capped at three but not *ranked* by use.** The list-of-types rule says top three by learned preference; the group takes the first three in vocabulary order. Nothing records a pick there as an overrule yet, so there is nothing to rank by — deciding what an overrule *is* for a "what the next drag draws" setting is the open half | `page/Rail.tsx`, `actions/typelist.ts` |
 | **19** | **`childKind` never reaches its `extends` fallback.** It returns on the type ref's package alone, so `packages/uaf`'s `def_operational_activity extends pkg_behavior/def_action` — and sysml's mapped `action`/`activity` — both read as **structure**. In practice only the ref `behaviorType()` itself mints can produce a behavior layer, which is the same defect as **1b** seen from the other side | `page/kind.ts` |
