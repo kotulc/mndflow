@@ -43,7 +43,7 @@ import {
 } from "../graph/types";
 import { REFERRED } from "../canvas/card";
 import { Icon, type IconName } from "../modules/icons";
-import { asViewKind, layerKind } from "./kind";
+import { defOf } from "../workspace";
 
 const ROOT = "__root__";
 const SHELL = "__shell__";
@@ -117,16 +117,11 @@ function shelved(shell: Graph, parent: string | null): Element[] {
   return out.sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
 }
 
-/** A node's role, taken from what it holds and where it sits rather than from
- *  anything declared. One meaning each — the set's own rule.
- *
- *  P.5: a set (children of mixed kind — `kind.ts`'s `layerKind`, settled
- *  stream P) is `isContainer` too — `blocksOf` counts references — so it reads
- *  as a plain container until this tells the two apart and wears the folder
- *  mark instead. */
+/** A node's role is what it is or what it contains. A folder has a declared
+ * definition; unlike children say nothing about a block's role. */
 function role_of(graph: Graph, open: Record<string, Graph>, node: Element): IconName {
   if (isPort(node)) return "role_interface";
-  if (layerKind(graph, node.id, open) === "set") return "role_set";
+  if (node.type && defOf(graph, open, node.type)?.name === "folder") return "role_folder";
   if (isContainer(graph, node.id)) return "role_container";
 
   return "role_leaf";
@@ -194,7 +189,7 @@ type Props = {
   /** The `new` page action — name a project into being. Returns false when the
    *  name was refused, so the field can stay open. `kind` is which create
    *  button asked (P) — absent reads as structure, same as today. */
-  onNewProject: (name: string, kind?: "structure" | "behavior") => boolean;
+  onNewProject: (name: string, behavior?: boolean) => boolean;
   /** Why this project may not be called that, or null. */
   onNameProject: (name: string, except: string) => string | null;
   /** Run a registry action — the offered list reaches `infer` through here. */
@@ -868,7 +863,7 @@ export function Files(props: Props) {
                 fold(foldKey);
               }}
             >
-              <Icon name={role} solid={role === "role_container" || role === "role_set"} />
+              <Icon name={role} solid={role === "role_container"} />
             </span>
             {editing === node.id && context === projectId
               ? field(node.label, (value) => rename(node.id, value), () => setEditing(null),
@@ -895,10 +890,6 @@ export function Files(props: Props) {
     const active = lit(projectId, ROOT_ID);
     const hereScoped = scoped(projectId, ROOT_ID);
     const tip = tips.get(projectId);
-    // Kind derived from the root's own children (P), never stored — a set
-    // (mixed children) reads as structure for the icon, the same collapse
-    // `offered()` makes for the view toggle.
-    const kind = asViewKind(layerKind(here, null, graphs));
     const folded = shut.has(editKey);
 
     return (
@@ -937,9 +928,7 @@ export function Files(props: Props) {
                            })
                          : undefined)}
         >
-          {/* The icon folds, as a branch's does, and says which kind of project
-              this is — both from the same span, since a project's kind is
-              already derived one line above rather than stored. */}
+          {/* The icon folds, as a branch's does. */}
           <span
             ref={hereScoped ? marker : undefined}
             className="icon fold"
@@ -950,7 +939,7 @@ export function Files(props: Props) {
               foldProject(editKey);
             }}
           >
-            <Icon name={kind === "behavior" ? "project_behavior" : "project"} />
+            <Icon name="project" />
           </span>
           {editing === editKey && context === projectId
             ? field(title, (value) => rename(editKey, value), () => setEditing(null))
@@ -1020,7 +1009,7 @@ export function Files(props: Props) {
                     fold(foldKey);
                   }}
                 >
-                  <Icon name="role_container" />
+                  <Icon name={role_of(shell, graphs, node)} />
                 </span>
                 <span className="label">{nameOf(shell, node) || "folder"}</span>
               </div>
@@ -1201,7 +1190,7 @@ export function Files(props: Props) {
               // (NameField's own sentence is about layers and must not fire here).
               taken={(name) => Boolean(name.trim()) && onNameProject(name, "") !== null}
               onCommit={(name) => {
-                if (onNewProject(name, naming === "behavior" ? "behavior" : "structure")) setNaming(false);
+                if (onNewProject(name, naming === "behavior")) setNaming(false);
               }}
               onCancel={() => setNaming(false)}
             />

@@ -25,9 +25,28 @@ export function isPort(node: Element | undefined): boolean {
   return Boolean(node && node.side != null);
 }
 
-/** Whether an element stands in for a block living somewhere else. */
+/** Whether an element stands in for a block living somewhere else.
+ *
+ * `form: "proxy"` is still the schema token while B.17 keeps old logs
+ * readable. The link is what makes the appearance a reference: without `of`,
+ * it stands for nothing. */
 export function isReference(node: Element | undefined): boolean {
-  return node?.form === "proxy";
+  return Boolean(node?.of);
+}
+
+/** Whether this is an independent graph root filed under another block.
+ *
+ * Containment needs no third link: a reference to a root names a graph of its
+ * own, while every other child is a part of the graph it sits in. */
+export function isContained(node: Element | undefined): boolean {
+  return Boolean(node?.of && asTarget(node.of).element === ROOT);
+}
+
+/** Whether this block belongs to the graph around it rather than standing for
+ * one elsewhere. `parent` is the stored part link; the root layer is simply
+ * its implicit parent. */
+export function isPart(node: Element | undefined): boolean {
+  return Boolean(node && !isReference(node));
 }
 
 /** What a reference stands in for — the held path, bare or `project/element`. */
@@ -835,8 +854,10 @@ function apply(graph: Graph, mutation: Mutation): void {
  *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
   // A reference must name something; a named target that is merely missing stays.
+  // `proxy` remains the on-disk spelling until B.17, so this also discards an
+  // old-shaped reference before its link can make it one.
   for (const [id, node] of Object.entries(graph.elements)) {
-    if (isReference(node) && !node.of) delete graph.elements[id];
+    if (node.form === "proxy" && !node.of) delete graph.elements[id];
   }
 
   for (const node of Object.values(graph.elements)) {

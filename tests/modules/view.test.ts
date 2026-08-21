@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  BLOCK, MODULES, kindOf, named, view, viewOf, views,
+  BLOCK, MODULES, named, view, viewOf, views,
 } from "../../src/modules/view/index";
 import type { ViewName } from "../../src/modules/view/index";
 import { element, EMPTY } from "../../src/graph/types";
@@ -27,12 +27,10 @@ function typed(components?: Record<string, Record<string, unknown>>): [Graph, El
 }
 
 describe("the registered set", () => {
-  it("holds exactly the six, three per kind", () => {
+  it("holds exactly the six", () => {
     const held = views();
 
     expect(held.map((m) => m.name).sort()).toEqual([...MODULES].sort());
-    expect(held.filter((m) => m.kind === "structure")).toHaveLength(3);
-    expect(held.filter((m) => m.kind === "behavior")).toHaveLength(3);
   });
 
   it("names no module `diagram` — that is the picture, not a projection", () => {
@@ -43,7 +41,6 @@ describe("the registered set", () => {
   it("answers every registered name and none outside the set", () => {
     for (const name of MODULES) {
       expect(named(name)?.name).toBe(name);
-      expect(kindOf(name)).toBe(named(name)?.kind);
     }
     expect(named("invented")).toBeNull();
   });
@@ -121,7 +118,6 @@ describe("how a usage is projected", () => {
 describe("the base diagram as one configuration among others", () => {
   it("describes today's canvas: the block view, with an abstraction cap", () => {
     expect(BLOCK.module).toBe("block");
-    expect(kindOf(BLOCK.module)).toBe("structure");
     expect(Number.isInteger(BLOCK.N) && BLOCK.N > 0).toBe(true);
   });
 

@@ -159,6 +159,38 @@ describe("a layer after a link mutation", () => {
     expect(anchors(node_of(container, spare.id))).toEqual([]);
   });
 
+  it("draws a relationship that meets an interface", async () => {
+    // The case `C.11` did not cover. An end sitting on a hand-made interface
+    // is never seated — the interface is already drawn — so the card stated
+    // only its anchor seats, which took the interface's own handle out of
+    // React Flow's view and dropped every line meeting one.
+    const a = element("Pump", { x: 0, y: 0 });
+    const b = element("Valve", { x: 240, y: 0 });
+    const inlet = element("inlet", { parent: a.id, side: "right", at: 0.5 });
+    const spare = element("Spare", { x: 0, y: 160 });
+    const loose = edge(a.id, spare.id, { form: "line" });
+    const seated = edge(a.id, b.id, { form: "line", from: inlet.id });
+    const members: Mutation[] = [
+      { op: "add_element", element: a },
+      { op: "add_element", element: b },
+      { op: "add_element", element: inlet },
+      { op: "add_element", element: spare },
+      // A second relationship gives the card an anchor seat, which is what
+      // made it state handles at all — and hide the interface's.
+      { op: "link_elements", edge: loose },
+    ];
+    const before = drawn(...members);
+    const after = drawn(...members, { op: "link_elements", edge: seated });
+
+    const { container, show } = draw(before);
+    show(after);
+
+    await waitFor(() => {
+      const line = container.querySelector(`.react-flow__edge[data-id="${seated.id}"]`);
+      if (!line) throw new Error("a relationship meeting an interface is not in the DOM");
+    });
+  });
+
   it("keeps a note's handles after cards are related", async () => {
     const { graph, linked, note } = scene();
     const { container, show } = draw(graph);

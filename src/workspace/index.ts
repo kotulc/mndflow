@@ -476,10 +476,10 @@ export function fork(
   };
 }
 
-/** A folder in the workspace is an ordinary block — nothing else.
+/** A folder in the workspace is a local use of the base folder definition.
  *
- *  Filing something into one is `admit` or `move` with that block as parent;
- *  the word "folder" is the workspace's reading of a block that holds others. */
+ *  The base package supplies the shape and module, but this project names it
+ *  locally so fold never rewrites the element's type as a package path. */
 export function folder(
   graph: Graph,
   label: string,
@@ -491,13 +491,27 @@ export function folder(
     if (!into || into.form !== "block") return { refuse: "Nowhere to file that." };
   }
 
+  const type = defIdFor("folder");
   const fresh = element(label, {
     parent,
+    type,
     num: nextNum(graph, parent, "block"),
     ...(spot ? { x: spot.x, y: spot.y } : {}),
   });
 
-  return [{ op: "add_element", element: fresh }];
+  return [
+    {
+      op: "set_def",
+      ...definition("folder", {
+        id: type,
+        form: "block",
+        fields: [],
+        body: "Contains anything without owning it — its children are independent roots.",
+        components: { block: { module: "folder" } },
+      }),
+    },
+    { op: "add_element", element: fresh },
+  ];
 }
 
 /** Resolve a reference target against the open projects' graphs.

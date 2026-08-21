@@ -6,21 +6,26 @@
  *  card is one configuration among others, and that relationships paint from
  *  `lookOf`. */
 
-import { describe, expect, it } from "vitest";
+import { createElement, type ComponentType } from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { lookup } from "../../../src/actions/index";
 import "../../../src/actions/groups";
 import { CELL } from "../../../src/geometry/layout";
 import { cardOf, outline, PLAIN } from "../../../src/modules/card";
 import { lookOf } from "../../../src/modules/style";
-import { definition, edge, element, EMPTY, ROOT } from "../../../src/graph/types";
+import { definition, edge, element, EMPTY, refTo, ROOT } from "../../../src/graph/types";
 import type { Graph } from "../../../src/graph/types";
+import { shownName } from "../../../src/modules/named";
 import {
   ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP,
   MARGIN, NOTE, NODES, boxOf, edgesOf, extentOf, fill_args, fitOf, floorOf,
   framed, laidOf, nearestSide, nodesOf, paint, PAPER, reaches, restOf,
   stageOf, svgOf, takes, type OfferTarget, type SvgLook,
 } from "../../../src/modules/view/diagram/index";
+
+afterEach(cleanup);
 
 describe("the block module's surface", () => {
   it("is the framed camera with the full chrome and a place to ask", () => {
@@ -299,6 +304,47 @@ describe("layer list composition", () => {
     }
     expect(edges.some((e) => e.id === "e1" && e.type === "wire")).toBe(true);
     expect(laid.runs.e1).toBeTruthy();
+  });
+
+  it("draws an open project's target name on a reference card", () => {
+    const layer = element("layer", { id: "L", parent: ROOT, form: "block" });
+    const stand = element("", {
+      id: "p1", parent: "L", form: "proxy", of: refTo("valve", "proj_b"),
+    });
+    const graph: Graph = {
+      ...EMPTY,
+      elements: { ...EMPTY.elements, L: layer, p1: stand },
+    };
+    const open = {
+      proj_b: {
+        ...EMPTY,
+        elements: {
+          ...EMPTY.elements,
+          valve: element("valve", { id: "valve", parent: null, form: "block" }),
+        },
+      },
+    };
+    const stage = stageOf(graph, "L", { w: 800, h: 600 });
+    const laid = laidOf(graph, stage, "L", "none", false, () => true);
+    const noop = () => {};
+    const nodes = nodesOf(graph, "L", stage, laid, {
+      unit: "block", shownName: (node) => shownName(graph, open, node),
+      axis: "none", showPorts: false, picked: null, grazed: null, dropping: null, joining: [],
+      litSeats: new Set(), litEdges: new Set(), onPick: noop, onOpen: noop, onSlidePort: noop,
+      onSlideAnchor: noop, onRename: noop, onNameAttr: noop, onSize: noop,
+      onNameTaken: () => false, onSay: noop, onPromotePort: noop,
+    });
+    const card = nodes.find((node) => node.id === stand.id)!;
+
+    const Card = NODES.card as unknown as ComponentType<{
+      id: string;
+      data: typeof card.data;
+      selected: boolean;
+    }>;
+
+    render(createElement(Card, { id: card.id, data: card.data, selected: false }));
+
+    expect(screen.getByText("valve")).toBeTruthy();
   });
 });
 

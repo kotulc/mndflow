@@ -176,10 +176,6 @@ describe("every registered view module", () => {
       expect(mod.name).toBe(name);
     });
 
-    it("is one of the two kinds and no other", () => {
-      expect(["structure", "behavior"]).toContain(mod.kind);
-    });
-
     it("names no chrome kind outside the open set", () => {
       for (const kind of mod.surface?.chrome ?? []) expect(CHROME).toContain(kind);
     });

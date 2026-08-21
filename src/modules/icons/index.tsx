@@ -48,9 +48,8 @@ const PATHS = {
   // A container is the leaf's square, larger and filled — it holds things, so
   // it is solid. It was a box with a rule across it, which read as a table.
   role_container: "M6 6h12v12H6z",
-  // A set: children of mixed kind, so nothing constrains it (P.5) — the same
-  // shape a folder and a set of projects share under model B.
-  role_set: "M3.5 7.5h6l2 2h9v9h-17z",
+  // Folder: a definition, not a reading inferred from mixed children.
+  role_folder: "M3.5 7.5h6l2 2h9v9h-17z",
   project: "M3.5 5h17v14h-17zM7.5 9h9v6h-9z",
   // A behavior project holds actions and states rather than parts, so its
   // mark is the same frame around a run of steps instead of a block.
@@ -132,7 +131,7 @@ export type IconName = keyof typeof PATHS;
  *  source of truth `role_of` draws from and the conformance test below walks,
  *  so a role added here without a matching path in `PATHS` fails loudly
  *  rather than a row silently rendering blank. */
-export const ROLES = ["role_leaf", "role_container", "role_interface", "role_set"] as const;
+export const ROLES = ["role_leaf", "role_container", "role_interface", "role_folder"] as const;
 
 /** Whether a name is one this set draws — the guard a stored name goes through. */
 export function known(name: string): name is IconName {

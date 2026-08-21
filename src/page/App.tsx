@@ -28,8 +28,7 @@ import {
 import { Canvas } from "../canvas/Canvas";
 import { OpenProvider } from "../canvas/open";
 import { type Grazed } from "../canvas/card";
-import { createsFor, viewOf, views, named, type ViewName } from "../modules/view";
-import { asViewKind, layerKind } from "./kind";
+import { viewOf, views, named, type ViewName } from "../modules/view";
 import { Rail, groupsFor } from "./Rail";
 import { Activity } from "../modules/view/activity";
 import { Sequence } from "../modules/view/sequence";
@@ -171,26 +170,21 @@ function writeViews(map: Record<string, ViewName>) {
   }
 }
 
-/** The three modules the *open layer* offers — kind derived from that
- *  layer's own children (`kind.ts`, settled stream P), never from the root's
- *  definition. A fresh, childless layer defaults to structure, and a set
- *  (mixed children) is viewed as one too — `ViewKind` stays two. */
-function offered(graph: Graph, layer: string | null, open: Record<string, Graph> = {}): ViewName[] {
-  const kind = asViewKind(layerKind(graph, layer, open));
-
-  return views().filter((m) => m.kind === kind).map((m) => m.name);
+/** View modules the open layer may show. A layer's definition decides which
+ *  module it opens in; a display pick may use any module registered here. */
+function offered(): ViewName[] {
+  return views().map((m) => m.name);
 }
 
-/** What is on screen for a project: sticky pick when it still belongs to the
- *  kind, else how the open layer's definition opens. Writes nothing. */
+/** What is on screen for a project: sticky pick, else how the layer's
+ *  definition opens. Writes nothing. */
 function moduleOf(
   prefs: Record<string, ViewName>,
   projectId: string,
   graph: Graph,
   layer: string | null,
-  open: Record<string, Graph> = {},
 ): ViewName {
-  const options = offered(graph, layer, open);
+  const options = offered();
   const fallback = options[0] ?? "block";
   const sticky = prefs[projectId];
   if (sticky && options.includes(sticky)) return sticky;
@@ -229,13 +223,9 @@ function kindsInScope(graph: Graph, forms: Set<string>) {
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** The type a fresh behavior block gets — `creates`' word under the one
- *  shipped package whose definitions read as behavior. Reads the same source
- *  of truth `kind.ts` derives from, rather than naming a definition here. */
+/** The type a fresh behavior block gets from the shipped behavior package. */
 function behaviorType(): string {
-  const word = createsFor("behavior");
-
-  return word ? refTo(defIdFor(word), workspace.packId("behavior")) : "";
+  return refTo(defIdFor("action"), workspace.packId("behavior"));
 }
 
 /** Mutations that add one behavior-typed child, importing the package it
@@ -386,12 +376,9 @@ export function App() {
    *
    *  Naming is what brings a project into being — it earns a key, a place in
    *  the workspace and the context, all from having been called something.
-   *  `kind` (P) is which of the bar's two create buttons asked: a behavior
-   *  root reads as one only once it holds a behavior child, since kind is
-   *  derived from what a layer holds and an empty root always defaults to
-   *  structure — so this seeds one, typed the same way `createBehavior`
-   *  types a child under an existing selection. */
-  function newProject(name: string, kind: "structure" | "behavior" = "structure"): string | null {
+   *  `behavior` is which of the bar's two create buttons asked, and seeds one
+   *  behavior block through the same door `createBehavior` uses. */
+  function newProject(name: string, behavior = false): string | null {
     // `begin` is the one door: it names, mints the id, writes the first step
     // and admits the project to the shell in one go. App used to do all four
     // itself, which is how `begin` sat unwired with the page's own copy of the
@@ -404,7 +391,7 @@ export function App() {
       return null;
     }
 
-    const type = kind === "behavior" ? behaviorType() : "";
+    const type = behavior ? behaviorType() : "";
     const projectSteps = type ? [...out.steps, makeStep("new: behavior", "create",
       seedBehavior(fold(out.steps), type, makeElement("", { parent: null, type, num: 1 })))]
       : out.steps;
@@ -731,6 +718,32 @@ export function App() {
     setRefoldAt((n) => n + 1);
   }
 
+  /** Create in the current project, except that the workspace can create only
+   * folders. Its shell is a project too, so it writes through the same door. */
+  function create(label: string, parent: string | null) {
+    if (contextId !== held.id) {
+      project.create(label, parent);
+      return;
+    }
+
+    const shell = graphOf(held.id);
+    const out = workspace.folder(shell.graph, label, parent);
+    if ("refuse" in out) {
+      say(out.refuse);
+      return;
+    }
+
+    const landed = workspace.writeInto(held.id, out, {
+      say: `new: ${label}`, action: "create",
+    });
+    if ("refuse" in landed) {
+      say(landed.refuse);
+      return;
+    }
+
+    setRefoldAt((n) => n + 1);
+  }
+
   /** Export the project in context, bundling what it depends on, and offer a
    *  rendered SVG of the open layer beside that source (F.3). */
   async function exportProject(): Promise<void> {
@@ -934,10 +947,10 @@ export function App() {
     })),
   } : project.pressure ? { text: project.pressure } : null);
 
-  /** Which view module draws the open layer — sticky preference when it still
-   *  fits the project kind; otherwise how the layer's definition opens. */
+  /** Which view module draws the open layer — sticky preference, otherwise
+   *  how the layer's definition opens. */
   const module = contextId
-    ? moduleOf(viewPrefs, contextId, graph, view, graphs)
+    ? moduleOf(viewPrefs, contextId, graph, view)
     : "block";
 
   /** What the open view's `types` group lists — the module's answer, since a
@@ -970,7 +983,6 @@ export function App() {
         id,
         g,
         id === contextId ? view : null,
-        graphs,
       );
     }
     return next;
@@ -1128,9 +1140,9 @@ export function App() {
             showPorts={treePorts}
             onShowPorts={setTreePorts}
             onOpen={navigate}
-            onCreate={project.create}
+            onCreate={create}
             onCreateBehavior={createBehavior}
-            onNewProject={(name, kind) => Boolean(newProject(name, kind))}
+            onNewProject={(name, behavior) => Boolean(newProject(name, behavior))}
             onNameProject={(name, except) => workspace.mayName(takenNames, name, except)}
             onNameTaken={project.nameTaken}
             onSay={say}
@@ -1293,7 +1305,7 @@ export function App() {
           <Rail
             groups={groupsFor({
               offers: named(module)?.chrome ?? [],
-              views: offered(graph, view, graphs).map((name) => ({
+              views: offered().map((name) => ({
                 name,
                 icon: (named(name)?.icon ?? "view_block") as never,
                 on: name === module,

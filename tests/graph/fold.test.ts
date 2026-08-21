@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { blocksOf, childrenOf, compact, fold, isa, isPort, isReference, isTie, membersOf,
+import { blocksOf, childrenOf, compact, fold, isa, isContained, isPart, isPort, isReference, isTie, membersOf,
         reachesReference,
          portsOf, relationNames, resolved, stepsIn, targetOf, tiesOf, COMPACT_AT } from "../../src/graph/fold";
 import { edge, element, field, refTo, step, ROOT, type Mutation, type Step } from "../../src/graph/types";
@@ -114,6 +114,35 @@ describe("the children index", () => {
     expect(portsOf(graph, parent.id).map((n) => n.id)).toEqual([port.id]);
     expect(portsOf(graph, parent.id).every(isPort)).toBe(true);
     expect(blocksOf(graph, parent.id).some(isPort)).toBe(false);
+  });
+});
+
+describe("the two stored links", () => {
+  it("reads part and reference from their links, not the retired proxy form", () => {
+    const part = element("Valve", { parent: ROOT });
+    const reference = element("", { parent: ROOT, of: part.id });
+    const graph = fold([did(
+      { op: "add_element", element: part },
+      { op: "add_element", element: reference },
+    )]);
+
+    expect(isPart(graph.elements[part.id])).toBe(true);
+    expect(isReference(graph.elements[reference.id])).toBe(true);
+    expect(isPart(graph.elements[reference.id])).toBe(false);
+  });
+
+  it("derives containment from a filed graph root", () => {
+    const folder = element("Folder", { parent: null });
+    const project = element("", { parent: folder.id, of: ROOT });
+    const graph = fold([did(
+      { op: "add_element", element: folder },
+      { op: "add_element", element: project },
+      { op: "delete_element", id: folder.id },
+    )]);
+
+    expect(isContained(project)).toBe(true);
+    expect(graph.elements[ROOT]).toBeDefined();
+    expect(graph.elements[project.id]).toBeUndefined();
   });
 });
 

@@ -140,26 +140,14 @@ describe("infer", () => {
     expect(done.mutations.some((m) => m.op === "add_element")).toBe(true);
   });
 
-  // P.6: a fresh mint's own root gets a kind, so it reads as a behavior view
-  // rather than the default structure block once it is admitted.
-  it("classifies a freshly minted project's own root", () => {
+  it("does not retype a freshly minted project's own root by view kind", () => {
     const leaf = element("Alone", { parent: null });
     const graph = graph_of({ op: "add_element", element: leaf });
     const done = run("infer", at(graph), { of: [leaf.id] });
     expect("refused" in done).toBe(false);
     if ("refused" in done) return;
 
-    const retype = done.mutations.find(
-      (m): m is Extract<Mutation, { op: "update_element" }> =>
-        m.op === "update_element" && m.id === ROOT,
-    );
-    expect(retype?.type).toBeTruthy();
-
-    const kind = done.mutations.find(
-      (m): m is Extract<Mutation, { op: "set_def" }> =>
-        m.op === "set_def" && m.id === retype!.type,
-    );
-    expect(kind?.components?.view?.module).toBe("activity");
+    expect(done.mutations.some((m) => m.op === "update_element" && m.id === ROOT)).toBe(false);
   });
 
   it("does not reclassify a target the caller already named", () => {

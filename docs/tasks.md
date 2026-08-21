@@ -29,6 +29,11 @@ has no page mount (component still unmounted — remount when ranking needs a su
 Z.2 / Z.3 landed**: collapsed chips rank by embedding when typed; idle by shape-weighted
 preference; overrule feedback in sticky storage; Chat warms embeddings; `suggest.ts` gone.
 
+**`ST.8` is parked (Clay, 2026-08-21) and the working rule changed**: finish the block migration
+in full, then work the bug list. Repairing between rows was not paying. The one exception allowed
+through was defect **34** — every remaining `B` row has a browser clause, and none could be driven
+honestly on a canvas that silently dropped relationship lines.
+
 **The suite can now see a broken canvas** (*done*, T.6, proven; browser skipped) —
 `tests/canvas/layer.test.ts` mounts a layer. **`C.11` turned the remaining assertion green**: after
 a link the relationship is in the DOM. One perch per arriving relationship already holds; a note
@@ -36,9 +41,20 @@ keeps its handles.
 
 **`T.7` landed and passes**: `tests/structure.test.ts` walks every import under `src/` against one allowlist; README.md points at it. `C.9` inverted the arrows, and legal imports do not trip it.
 
-**A batch was driven on 2026-08-20** (`B.2`, `B.7`, `N.1`, `C.2`, `C.4`, `C.5`, `C.7`). Four rows came through whole; `N.1` remains short and puts **defects 21–30** on the list below.
+**A batch was driven on 2026-08-20** (`B.2`, `B.7`, `N.1`, `C.2`, `C.4`, `C.5`, `C.7`, `C.10`). Five rows came through whole; `N.1` remains short and puts **defects 21–30** on the list below.
 **`C.11` closed 21** (and `C.2`'s drawing remainder): a new relationship draws immediately; `T.6`
-is green. `C.9` also closed the cross-project naming remainder and defect 24. Remaining repair is `C.10`, with `N.8` in [plan.md](plan.md).
+is green. `C.9` also closed the cross-project naming remainder and defect 24. `C.10` closed
+defect 25; `N.8` remains in [plan.md](plan.md).
+
+**`B.4` landed and was proven on 2026-08-20.** `workspace.folder()` now writes a local
+`def_folder` definition and element; the explorer creates it from empty space, and its row carries
+the folder mark. The old mixed-children `set` reading and `role_set` are gone. The workspace tests
+pass (43), and the full suite is proven.
+
+**`B.5` landed short and was proven on 2026-08-20.** `fold.ts` now derives `isReference`,
+`isContained` and `isPart` from the stored `of` link and root references; graph property tests
+cover parts, references and deletion-safe filed roots. The `actions/elements.ts` mutation payload
+shape remains unchanged and is still outside this landing.
 
 **Three bugs found by driving the app, all fixed.**
 
@@ -219,8 +235,8 @@ were expected; **none of them work**, checked against the code:
 - `＋` names a project only after clicking empty tree space to deselect first.
 - The empty tree area has **no drop target at all**.
 - Drag is wired only *inside* the project in context, so no block can cross.
-- `workspace.folder()` is built and **has no caller** — folders render, nothing
-  makes one.
+- `workspace.folder()` is built and now has an explorer caller: empty explorer space creates and
+  names a folder, whose row carries the folder mark (`B.4`, proven).
 
 **plan.md predicted the first one exactly**: *click nothing to enable something
 is obvious to whoever built it and invisible to everyone else*. That prediction
@@ -661,10 +677,13 @@ excluding `tests/`.
 | What | Count | Where it concentrates |
 |---|---|---|
 | files touching `form` at all | **33** | every layer — `graph/`, `actions/`, `modules/view/*`, `page/`, `canvas/`, `geometry/` |
+| ~~**34**~~ — **fixed 2026-08-21** | **No relationship meeting an interface drew at all.** `C.11` states a node's handles from `laidOf`'s seat map — and **stating handles replaces measurement**, so a card carrying one anchor seat published that seat and nothing else, taking its interfaces' own `port-<id>` handles out of React Flow's view. Every line with an end on an interface was created, stored, and silently dropped. **Fixed**: `handlesOf` states a card's interface handles alongside its seats, and `edgesOf` asks for `port-<id>` on an end that has one (`handleOf` — one reader, so the two cannot drift). Guarded in `tests/canvas/layer.test.ts`, **verified red without the fix** | `modules/view/diagram/compose.ts` |
+| **35** | **A card dragged away leaves its relation lines behind** (Clay, driven 2026-08-21). Parked with `ST.8` | `modules/view/diagram/` |
+| **36** | **An anchor is 12×12 — near-impossible to hit and harder to drag** (Clay, driven 2026-08-21). `C.2` landed the mechanism at a size nobody can use. Parked with `ST.8` | `modules/view/diagram/pieces.tsx`, `src/styles.css` |
 | `form ===` comparisons | **76** | of which **29 are element forms** and the rest are field and relation forms |
 | element-form branches, by value | `block` 12, `note` 6, `group` 6, `proxy` 5 | `fold.ts`, `check.ts`, `compose.ts`, `Files.tsx`, `Contents.tsx` |
 | mentions of `proxy` | **144**, across 26 files | `graph/fold.ts` **27**, `workspace/index.ts` **13**, `graph/types.ts` **13**, `page/Contents.tsx` **10** |
-| `page/kind.ts` | **85 lines, 4 call sites** | `App.tsx` ×2, `Files.tsx` ×2 — plus `ViewKind` / `kindOf` / `createsFor` in `modules/view/index.ts` |
+| `page/kind.ts` | **85 lines, 4 call sites before B.3** | `App.tsx` ×2, `Files.tsx` ×2 — plus `ViewKind` / `kindOf` / `createsFor` in `modules/view/index.ts` |
 | files choosing a log | **9** | `actions/index.ts`, `actions/elements.ts`, `actions/behavior.ts`, `graph/file.ts`, `graph/store.ts`, `project.ts`, `workspace/index.ts`, `App.tsx`, `Files.tsx` |
 | id minting | **one function** — `newId` at `graph/types.ts:388` | counter + 8 random chars, monotonic per session |
 
@@ -675,9 +694,9 @@ excluding `tests/`.
 - **`B.6` (forms collapse) is smaller than feared.** Only **29** comparisons are element forms; the
   other 47 are field forms and relation forms, which both survive. The row is *29 branches plus the
   record change*, not 182.
-- **`B.3` (delete the kind derivation) is genuinely small** — 85 lines and 4 call sites, plus
-  retiring `ViewKind` / `kindOf` / `createsFor` from `modules/view/index.ts`. It was described as
-  closing six defects at once and that holds.
+- **`B.3` (delete the kind derivation) was genuinely small** — 85 lines and 4 call sites, plus
+  retiring `ViewKind` / `kindOf` / `createsFor` from `modules/view/index.ts`. It closed the six
+  derivation defects at once, and the fresh-project activity drive proves the one-way door is gone.
 - **`B.19` (globally unique ids) is one function.** `newId` already appends 8 random characters and
   its own comment says a collision *silently fuses two elements into one* — so the change is to make
   the guarantee real and stop treating ids as project-scoped, not to invent a minting scheme.
@@ -792,8 +811,8 @@ were expected; **none of them work**, checked against the code:
 - `＋` names a project only after clicking empty tree space to deselect first.
 - The empty tree area has **no drop target at all**.
 - Drag is wired only *inside* the project in context, so no block can cross.
-- `workspace.folder()` is built and **has no caller** — folders render, nothing
-  makes one.
+- `workspace.folder()` is built and now has an explorer caller: empty explorer space creates and
+  names a folder, whose row carries the folder mark (`B.4`, proven).
 
 **plan.md predicted the first one exactly**: *click nothing to enable something
 is obvious to whoever built it and invisible to everyone else*. That prediction
@@ -1090,11 +1109,11 @@ mixed-children reading, and `S8.3`.
 | **folder** | contains anything without owning it — its children are independent roots. Renders with the block view. **The only place *mixed* means anything** |
 | **every block** | names a **block module**, and optionally a **view module** |
 
-**Still open, and each blocks a row in stream B:**
+**B-g is closed by B.5. The remaining questions still block rows in stream B:**
 
 | | The question |
 |---|---|
-| **B-g** | **Is *contains* a third child link, or is it derived?** `part` was settled as *the tree owns it, deleting the whole deletes it* — and a folder now **contains parts it does not own**, which is a contradiction in terms as the words stand. Three readings, and one has to be picked before any of `B.5`/`B.6` can be written: **(a)** a third stored link `contains`; **(b)** it is **derived** — a child that is itself a graph root is contained, one that is not is owned, so nothing new is stored; **(c)** filing a block in a folder **makes it a root**, and then (b) covers every case. **(c) is the recommendation** — it needs no new link, and it agrees with the built rule that *a block at the top level is a project* |
+| **B-g — answered by B.5** | **Contains is derived, not a third link.** A root reference is contained; a non-reference child is a part, so nothing new is stored. Filing promotes the block to a root, and deleting a container leaves that independent root intact |
 | **B-h** | **The single log — feasible, and what does undo mean?** Moving the log from the project to the workspace **dissolves** `Effect.into`, `writeInto`, the `home` batches, `P.11`'s property test and the whole class of bug that `R.10` and defect **1** are instances of. That is a large, real win. Three consequences to accept: **undo becomes workspace-wide** (undoing after switching projects undoes work elsewhere — this is the question that decides it); **a project export becomes a query** over the log rather than a copy of one; and **a fold for one project replays everything**, which checkpoints already exist to absorb |
 | **B-i** | **Does the workspace have a graph?** It is written *contains, does not own, has no graph* — but it renders with the block view, which needs elements to draw. Reading: **its graph is its filing tree** and it owns no model blocks. Confirm the wording or the model |
 | **B-j** | **Where does a per-layer sticky view live?** Settled as *project metadata*. That is legal — `meta` is the safely-ignorable half of the envelope — but it reverses `U.8`, which put it in `localStorage` precisely so it was not project data. It now **travels with the file**, so two people opening one project see the same view. Intended, or should it stay local? |
@@ -1114,8 +1133,8 @@ were expected; **none of them work**, checked against the code:
 - `＋` names a project only after clicking empty tree space to deselect first.
 - The empty tree area has **no drop target at all**.
 - Drag is wired only *inside* the project in context, so no block can cross.
-- `workspace.folder()` is built and **has no caller** — folders render, nothing
-  makes one.
+- `workspace.folder()` is built and now has an explorer caller: empty explorer space creates and
+  names a folder, whose row carries the folder mark (`B.4`, proven).
 
 **plan.md predicted the first one exactly**: *click nothing to enable something
 is obvious to whoever built it and invisible to everyone else*. That prediction
@@ -2400,12 +2419,9 @@ and the two reversals.
   each other**, staying visibly distinct — distance carried that separation before, and a group
   boundary has to carry it now.
 - **The project root icon folds, and the row click still switches** (V.9 + V.10, one span so one
-  row). **Why it does not work today**: `projectRoot` is a separate render path from `row`, and its
-  icon is a plain `<span className="icon">▣</span>` — no `fold` class, no `onClick`, no
-  `onMouseDown`. The block row has all three, the `onMouseDown` there to stop the row's drag
-  swallowing the click. The handler was simply never written. The same span also answers **V.9**:
-  `kind` is *already computed* one line above it from `kindOf(viewOf(here, root).module)` and the
-  icon ignores it. Kind stays derived, never stored.
+  row). **Historical pre-B.3 note**: the old implementation computed `kind` from
+  `kindOf(viewOf(here, root).module)`; B.3 removed that derivation. The current icon says the
+  project's role and the view toggle reads the current definition's offered modules.
 
 **Two reversals of landed decisions**, taken deliberately — there is not enough room for the words —
 and recorded so the reasoning is read rather than rediscovered. **V.3** puts *new workspace* back on
@@ -2880,7 +2896,7 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 |---|---|---|
 | **19** | **The canvas makes blocks when there is no project, into a malformed storage key.** Found driving `B.1`/`B.19` on 2026-08-20, and **confirmed pre-existing** by re-driving the same script against the pre-change tree. A fresh context has no project — the explorer correctly says *No project yet — name one to start* — but a right-click on the canvas still creates, and the work is written to **`mndflow.steps..v1`**, the keyed slot with an empty id (`mndflow.project.v1` is `null`). It round-trips a reload, so nothing is lost *yet*; but that slot is not any project's, no explorer row lists it, and `workspace.begin` — which is where naming and the uniqueness check live — was never reached. **Two doors disagree**: `V.14` and `P.2` made the explorer refuse to work without a project, and the canvas never learned. **Fix is one of**: the canvas refuses to create with no project and says so, or a right-click with no project runs the naming prompt first and creates into the project it makes. The second matches *making a project should be as ordinary as making a block* | `page/App.tsx`, `canvas/gestures.ts`, `src/graph/store.ts` |
 
-> **`1b`, `1c`, `1d`, `1e`, `1f` and `1h` are all the kind derivation, and stream `B` removes it
+> **`1b`, `1c`, `1d`, `1e`, `1f` and `1h` were all the kind derivation, and `B.3` removes it
 > rather than repairing it.** Do not fix them individually — a fix keeps `page/kind.ts` alive, and
 > the whole file goes. They are kept below because *what each one got wrong* is evidence for why
 > the derivation could not work: it needed a package id, a view module key, a seeded child and a
@@ -2890,13 +2906,13 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 |---|---|---|
 | **1 — dissolved by `B.8`** | **`onMove` writes to the wrong project's log.** *(2026-08-20: **one log at the workspace removes this entirely** — there is no second log to write to, and no action can pick the wrong one. Do not fix it; it goes with `Effect.into` and `writeInto`. Until `B.8` lands it is still live, so **`B.8` should not be deferred behind cosmetic work**.)* `project.move` takes no project argument and always writes to the bound/context project. Every tree row is draggable regardless of context, and `drop()` routes a same-project drag to `onMove` — so dragging inside project A while B is in context records the move in **B's** log. Silent corruption, same class as `R.10`. `P.11`'s property test covers `writeInto` directly, not the page path, so it does not catch this. Needs a signature change through `onMove` → `act.move` / `home` | `page/Files.tsx`, `project.ts` |
 | **2 — rowed as `B.27`** | **A minted project has no name and skips the uniqueness check.** *(2026-08-20: *set* is retired — this is any project minted by reaching `writeInto` + `onAdmit` directly. Still real, and now owned.)* **A minted `set` project has no name and skips the uniqueness check.** `build_set` makes its root with label `""`, and `titleOf` is the root's label — so the project draws blank. It reaches the workspace via `writeInto` + `onAdmit`, bypassing `workspace.begin`, which is where `mayName` refuses a duplicate | `actions/behavior.ts` |
-| **1b** | **`layerKind` hardcodes one package id.** `src/page/kind.ts` derives behavior as `refAt(type).project === packId("behavior")`. Clay settled that *shipped packages may carry either kind of definition* — this cannot express that: a package holding both kinds is judged wholly by its id, and a behavior package under any other name reads as structure. The signal belongs on the **definition** (its form, or a key under `components`), not on the package name | `page/kind.ts` |
-| **1c** | **`components.view.module` can still declare a kind by fiat.** `childKind`'s fallback for a packageless definition is `kindOf(viewOf(...).module)` — the exact key the settled rule says must never answer *what kind is this*. `P.6`'s dial is gone but its mechanism survives, so any definition carrying that key still sets its block's kind | `page/kind.ts` |
-| **1d** | A new **behavior project silently contains one unnamed block** (`makeElement("", …)` in `App.newProject`). Derivation needs a child or the root reads structure, so something must be seeded — but an empty-labelled block in a fresh project is an invented behaviour the design did not ask for. Name it, or find another way to carry intent | `page/App.tsx` |
-| **1e** | `layerKind` runs per explorer row via `role_of`, each call doing `blocksOf` plus proxy resolution — O(rows × children) every render. Fine now, worth watching on a large tree | `page/kind.ts`, `page/Files.tsx` |
-| **1f** | An **unresolved proxy counts as structure**, so one dangling reference can silently flip a behavior layer to `set` | `page/kind.ts` |
+| ~~**1b**~~ — **dissolved by B.3, 2026-08-20** | **`layerKind` hardcoded one package id.** `src/page/kind.ts` derived behavior from the package id, so mixed or renamed packages read incorrectly. View choice now comes from the definition | `page/kind.ts` |
+| ~~**1c**~~ — **dissolved by B.3, 2026-08-20** | **`components.view.module` declared a kind by fiat.** The derivation and its fallback are gone; a view component now supplies view offerings | `page/kind.ts`, `modules/view/index.ts` |
+| ~~**1d**~~ — **dissolved by B.3, 2026-08-20** | A fresh behavior project needed an invented unnamed child so derivation could classify its root. Fresh roots are no longer typed by view derivation | `page/App.tsx`, `actions/behavior.ts` |
+| ~~**1e**~~ — **dissolved by B.3, 2026-08-20** | `layerKind` recalculated children and references for every explorer row. The per-row derivation is gone | `page/kind.ts`, `page/Files.tsx` |
+| ~~**1f**~~ — **dissolved by B.3, 2026-08-20** | An unresolved reference could silently flip a behavior layer to structure. No classifier reads references now | `page/kind.ts` |
 | **1g** | `infer` types elements to `pkg_behavior/…` without adding that package to the destination's `vocabulary`, so those types may draw as raw paths. The new create buttons do add it | `actions/behavior.ts` |
-| **1h** | `shellBranch`'s workspace folder rows still hardcode `role_container` regardless of contents | `page/Files.tsx` |
+| ~~**1h**~~ — **dissolved by B.3, 2026-08-20** | `shellBranch`'s workspace folder rows still hardcoded `role_container` as part of the old kind-driven page path | `page/Files.tsx` |
 | **2b — mostly closed by `B.19`, finished by `C.7`** | *(2026-08-20: **globally unique ids remove the dangerous half.** A bare id can no longer resolve to a *different* element in the destination, because no two elements share one — so the silent corruption is gone. What is left is a reference that **dangles**, which is visible and tolerated by design; `C.7` then resolves it through `workspace.resolve` wherever the target is still open. **The open choice about re-qualifying on the way out is therefore no longer urgent** and may be dropped.)* **A moved subtree's local references silently re-point.** `extract` copies each element with `{...node}` and rewrites only `parent`; a proxy's `of` travels unchanged. `refTo(id)` with no project yields a **bare** id and `refAt` reads a bare ref as local — so a proxy pointing at a sibling in the source project re-resolves against the **destination** after the drop, dangling or hitting a different element with the same id. `lost` counts only edges, so nothing warns. This is exactly the population the explorer→canvas gesture creates. **Open (Clay):** re-qualify to the source project on the way out (`refTo(id, source)` — the reference survives, the destination gains a dependency), or drop it and count it like a left-behind relationship | `workspace/index.ts` |
 | **3** | The `terms` prop chain is dead: `project.ts` → `App.tsx` → `Files.tsx` Props, never destructured or rendered. The explorer's word is `const UNIT = "block"`. Pre-existing. Either wire it or delete the chain and `terminal/terms.ts` with it | `page/`, `terminal/terms.ts` |
 | **4** | `type Terms` is declared twice — `Files.tsx` duplicates `terminal/workflows.ts` | both |
@@ -2913,23 +2929,28 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 | ~~**15**~~ — **closed by `C.7` and `C.9`, 2026-08-20** | A cross-project reference reads its target's name on a card and in a table, across a reload; a closed project reads **`closed`**, distinct from a gone target's **`missing`** | `src/modules/named.ts`
 | **16** | **`Y.6a` was reverted in `683676d` and left its comments behind.** `ExportLook`, `LOOK_ICON`, the three `RailOpts` fields and the four look controls are gone; the two doc comments that described them now sit orphaned above `TYPE_CAP` and at the foot of `RailOpts`, describing nothing. Either the row comes back or the comments go — a comment for absent code is worse than neither. (Supersedes **13**, whose `verbs: true` came back with the revert) | `page/Rail.tsx` |
 | **17** | **The rail's relation types are capped at three but not *ranked* by use.** The list-of-types rule says top three by learned preference; the group takes the first three in vocabulary order. Nothing records a pick there as an overrule yet, so there is nothing to rank by — deciding what an overrule *is* for a "what the next drag draws" setting is the open half | `page/Rail.tsx`, `actions/typelist.ts` |
-| **19** | **`childKind` never reaches its `extends` fallback.** It returns on the type ref's package alone, so `packages/uaf`'s `def_operational_activity extends pkg_behavior/def_action` — and sysml's mapped `action`/`activity` — both read as **structure**. In practice only the ref `behaviorType()` itself mints can produce a behavior layer, which is the same defect as **1b** seen from the other side | `page/kind.ts` |
+| ~~**19**~~ — **dissolved by B.3, 2026-08-20** | **`childKind` never reached its `extends` fallback.** The package-based classifier is gone, so mapped behavior definitions no longer depend on that fallback to choose a view | `page/kind.ts` |
 | **20** | **The two create buttons disagree about a duplicate name.** `createBehavior` returns silently and `Files.create()` closes the field anyway; the structure button goes through the `create` action and says *"pump" is already used here*. Two adjacent buttons, one input, two behaviours | `page/App.tsx` |
 | ~~**21**~~ — **closed by `C.11`, 2026-08-20** | A new relationship draws immediately; handles stated on the node from `laidOf`'s seat map. One perch per arriving line still holds | `modules/view/diagram/compose.ts` |
 | **22** | **A project dropped into a folder vanishes from the explorer** until the folder is clicked, and again after every reload. The folder was empty when the drag began, so `holds` was false and the dropzone was handed no spring callback; nothing opens it after the drop. **Rowed as `N.1 ◐`** | `page/Files.tsx` |
-| **23** | **`workspace.folder()` has no caller anywhere in `src/`** — exported and tested since the workspace landed, reachable only from the suite. No workspace folder can be made from the app. **Rowed as `N.8`** | `page/Files.tsx`, `workspace/index.ts` |
+| ~~**23**~~ — **closed by `B.4`, 2026-08-20** | **`workspace.folder()` now has an explorer caller** — empty explorer space creates a named folder and its row carries the folder mark. | `page/Files.tsx`, `workspace/index.ts` |
 | ~~**24**~~ — **closed by `C.9`, 2026-08-20** | The resolver now lives below the dependency boundary: `modules/` no longer imports `canvas/`, and `canvas/` no longer imports `workspace/` | `src/modules/named.ts`, `src/canvas/named.ts`
-| **25** | **The card renderer exists twice.** `canvas/NodeCard.tsx` is a 285-line copy of the module's 348-line one; `Canvas.tsx` overrides `NODES.card` with it, so the module's copy draws nothing while the suite still tests it. **Rowed as `C.10`** | `canvas/NodeCard.tsx` |
+| ~~**25**~~ — **closed by `C.10`, 2026-08-20** | The duplicate canvas card was deleted; the module diagram card is now the sole renderer, with `shownName` injected through the open-project resolver and covered across projects | `canvas/Canvas.tsx`, `modules/view/diagram/NodeCard.tsx`, `modules/view/diagram/compose.ts`, `tests/modules/view/diagram.test.ts` |
 | **26** | `Anchor` is imported but unused in `modules/view/diagram/Frame.tsx` — the four static anchors it drew came out with `C.2` and the import stayed. `tsconfig` has no `noUnusedLocals`, so nothing says | `modules/view/diagram/Frame.tsx` |
 | **27** | **The `seat` action's `scope` still says `{ on: "element", form: "interface" }`** while its `check` and `run` now also take an edge end (`C.2`). Harmless while `when: () => false` keeps it off every offered list — wrong the moment `I.7` puts the whole action surface behind `?` | `actions/layer.ts` |
 | **28** | `set_side` can leave `fromAt` set with `fromSide` deleted, if ever called with `side: null` and a numeric `at`. Unreachable from the two callers there are; the branch reads as though it guards it and does not | `graph/fold.ts` |
 | **29** | **`Files.tsx`'s `filed` overlay duplicates state the shell prop now delivers.** `N.1` added both the overlay and `refoldAt` in `App.tsx`'s `shellGraph` memo; with the memo re-reading, the overlay is a second source of truth for where a project is filed — which is the shape of bug **22** | `page/Files.tsx` |
 | **30** | Dragging an anchor writes `say: "anchor"` and nothing appears in `.saying .what`. Every other adjustment answers back; this one is silent (`ST.8`: *the app always answers back*) | `actions/layer.ts` |
+| **31** | **`isContained` and `isPart` have no caller in `src/`** — every call site is in `tests/`, so containment is derived nowhere in the running app. The predicates exist and are tested. Carried by `B.5 ◐` | `graph/fold.ts` |
+| **32** | **`B.5`'s property test does not test its property.** *Deleting a container never deletes a contained root* is asserted by checking `isContained` on an **un-folded local object**, plus `ROOT` surviving (undeletable by construction) and the contained reference **being** deleted with its container. It passes whether or not the property holds. Carried by `B.5 ◐` | `tests/graph/fold.test.ts` |
+| **33** | `Canvas.tsx` imports `NODES as DIAGRAM_NODES` and then does `const NODES = DIAGRAM_NODES` — a double-alias `C.10` left behind. Import `NODES` directly and delete both halves | `canvas/Canvas.tsx` |
 | **18** | **The edge context menu still does not use the capped type list.** `X.2`'s third surface: `offered_for` lists `Retype` once, which prompts, rather than the three ranked kinds `R.5` describes. The list is now in `actions/typelist.ts` where the menu can reach it | `modules/view/diagram/offer.tsx` |
 
-**Decisions taken — Clay, 2026-08-18.**
+**Decisions taken — Clay, 2026-08-18.** The kind-derivation decision below was superseded by
+`B.3` on 2026-08-20; it remains as historical reasoning for why the derivation was removed.
 
-- **A layer's kind is derived from its children, per layer** — all structure → structure, all behavior
+- ~~**A layer's kind is derived from its children, per layer**~~ — **superseded by B.3, 2026-08-20**:
+  all structure → structure, all behavior
   → behavior, **mixed → set**, empty → structure. A definition's kind comes from its package; shipped
   packages may carry either. `ViewKind` stays two members: a set is *viewed* as a structure and its
   setness is only the folder mark. **Set comes from mixedness, not proxies.** The vocabulary is never

@@ -216,7 +216,7 @@ describe("file", () => {
 });
 
 describe("folder", () => {
-  it("is an ordinary block — nothing else", () => {
+  it("is a local use of the folder definition", () => {
     const made = folder(EMPTY, "Views");
     if ("refuse" in made) throw new Error("folder refused");
 
@@ -224,7 +224,11 @@ describe("folder", () => {
     const node = Object.values(graph.elements).find((n) => n.label === "Views");
 
     expect(node?.form).toBe("block");
+    expect(node?.type).toBe("def_folder");
+    expect(node?.type).not.toContain("/");
     expect(node?.of).toBeNull();
+    expect(graph.defs[node!.type]?.name).toBe("folder");
+    expect(graph.defs[node!.type]?.components?.block?.module).toBe("folder");
   });
 });
 

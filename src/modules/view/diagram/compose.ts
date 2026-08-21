@@ -70,6 +70,8 @@ type Used = Record<string, Seat[]>;
 /** Handlers the node list closes over — steadied by the host. */
 export type NodeReach = {
   unit: string;
+  /** Naming crosses projects in the host; the renderer only calls this. */
+  shownName?: (node: Element) => string;
   axis: Axis;
   showPorts: boolean;
   picked: Picked;
@@ -144,6 +146,25 @@ function pinnedAt(graph: Graph, port: string | undefined, owner: string): Seat |
   if (!node || node.parent !== owner) return undefined;
 
   return node.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
+}
+
+/** The handle an end draws through.
+ *
+ *  **These two readers have to agree or the line vanishes.** `laidOf` skips
+ *  seating an end that already has an interface — the interface is drawn, so
+ *  no anchor is minted for it — and `Port` / `Berth` name that handle after
+ *  the interface. An end without one gets the anchor minted with the
+ *  relationship. Naming the anchor unconditionally is what stopped every
+ *  relationship touching an interface from drawing at all. */
+function handleOf(
+  graph: Graph,
+  edge: { id: string; source: string; target: string; from?: string; to?: string },
+  end: "from" | "to",
+): string {
+  const port = end === "from" ? edge.from : edge.to;
+  const owner = end === "from" ? edge.source : edge.target;
+
+  return pinnedAt(graph, port, owner) ? `port-${port}` : anchorOf(edge.id);
 }
 
 /** Seats a card starts the pass with: every interface on it that somebody
@@ -405,12 +426,31 @@ function noteCorner(attr: { id: string; x: number | null; y: number | null },
  *  library never records the new handle and drops the line. Stating the
  *  seats here — they are already on the node's data — is what lets a
  *  relationship draw the moment it is made. */
-function handlesOf(seats: Seated[], box: { w: number; h: number }, inward = false) {
-  return seats.flatMap((s) => {
+/** The handles a block's own interfaces render, in the shape `handlesOf` takes.
+ *  Seats come and go with relationships; these are always there. */
+function portHandles(graph: Graph, owner: string) {
+  return portsOf(graph, owner)
+    .filter((p) => p.side != null)
+    .map((p) => ({ name: `port-${p.id}`, side: p.side!, at: p.at ?? 0.5 }));
+}
+
+function handlesOf(
+  seats: Seated[], box: { w: number; h: number }, inward = false,
+  ports: { name: string; side: Side; at: number }[] = [],
+) {
+  // **Stating handles replaces measurement, so this list has to be complete.**
+  // An interface renders its own handle (`port-<id>`), and a card carrying one
+  // anchor seat used to state that seat and nothing else — which took every
+  // interface's handle out of React Flow's view and silently dropped every
+  // relationship meeting one.
+  const held = [...seats.map((s) => ({ name: anchorOf(s.edge), side: s.side, at: s.at })),
+                ...ports];
+
+  return held.flatMap((s) => {
     const position = SIDES[inward ? FACING[s.side] : s.side];
     const x = s.side === "left" ? 0 : s.side === "right" ? box.w : s.at * box.w;
     const y = s.side === "top" ? 0 : s.side === "bottom" ? box.h : s.at * box.h;
-    const name = anchorOf(s.edge);
+    const name = s.name;
 
     return [
       { id: `${name}-s`, type: "source" as const, position, x, y },
@@ -429,7 +469,7 @@ export function nodesOf(
 ): FlowNode[] {
   const { members, notes, boxes, bands, frameBox, noteRest } = stage;
   const {
-    unit, axis, showPorts, picked, grazed, dropping, joining,
+    unit, shownName, axis, showPorts, picked, grazed, dropping, joining,
     litSeats, litEdges, onPick, onOpen, onSlidePort, onSlideAnchor, onRename, onNameAttr,
     onSize, onNameTaken, onSay, onPromotePort,
   } = reach;
@@ -462,10 +502,18 @@ export function nodesOf(
       width: box.w,
       height: box.h,
       style: { width: box.w, height: box.h },
-      ...(seats.length ? { handles: handlesOf(seats, box) } : {}),
+      // Ports are stated alongside the seats: a card whose only relationship
+      // meets an interface has no seat at all and must still name its handle,
+      // and stating seats alone would hide the interfaces it does have.
+      // Nothing to state stays unstated, so React Flow measures as before.
+      ...(() => {
+        const held = handlesOf(seats, box, false, portHandles(graph, node.id));
+        return held.length ? { handles: held } : {};
+      })(),
       data: {
         node,
         graph,
+        shownName,
         dropping: dropping === node.id,
         picked: node.id === pickedNode,
         grazed,
@@ -571,7 +619,8 @@ export function nodesOf(
         width: frameBox.w,
         height: frameBox.h,
         ...(laid.seats[view]?.length
-          ? { handles: handlesOf(laid.seats[view], frameBox, true) }
+          ? { handles: handlesOf(laid.seats[view] ?? [], frameBox, true,
+                                 portHandles(graph, view)) }
           : {}),
         // Transparent to the pointer, or it would cover the whole layer and
         // no drag on empty canvas could ever reach the pane to draw a
@@ -706,8 +755,8 @@ export function edgesOf(
         // Bookkeeping only — the drawn endpoints come from `run`. Naming the
         // side the plan chose keeps the library's idea of the edge and ours
         // pointing the same way.
-        sourceHandle: `${anchorOf(edge.id)}-s`,
-        targetHandle: `${anchorOf(edge.id)}-t`,
+        sourceHandle: `${handleOf(graph, edge, "from")}-s`,
+        targetHandle: `${handleOf(graph, edge, "to")}-t`,
         // Stated on the edge rather than left to the container's defaults,
         // so a relation is always clickable and always deletable.
         selectable: true,

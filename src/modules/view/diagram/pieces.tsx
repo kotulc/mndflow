@@ -185,6 +185,8 @@ export function nearestSide(box: DOMRect, x: number, y: number): Side {
 export type CardData = {
   node: Element;
   graph: Graph;
+  /** What this card calls a block, resolved by the host when it crosses projects. */
+  shownName?: (node: Element) => string;
   dropping: boolean;
   picked: boolean;
   grazed: Grazed;

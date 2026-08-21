@@ -7,10 +7,10 @@ target.
 - **What is not built, and what is undecided** → [tasks.md](tasks.md).
 - **(planned)** marks a line that is the target but not yet the behaviour.
 
-> **This file is the present, and it speaks the pre-rework vocabulary.** On 2026-08-18 Clay settled
+> **This file is the present, and it still speaks some pre-rework vocabulary.** On 2026-08-18 Clay settled
 > the **simplified block model** — one block, no element forms, `proxy` → **reference**, `set` →
 > **folder**, no `kind` — recorded in [definitions.md](definitions.md) and argued in
-> [design.md](design.md) under *The simplified block model*. **The code has not moved yet**, so the
+> [design.md](design.md) under *The simplified block model*. **The migration is still in progress**, so the
 > lines below still say `set`, `kind` and `element form` where the code does, and that is correct
 > for this file. **`B.1` landed on 2026-08-20**, so *proxy* is gone from the prose here and from
 > `src/` — what remains is the schema token `form: "proxy"`, which is `B.6`/`B.17`'s to change. Where the two disagree, definitions.md is the target and this is what
@@ -43,6 +43,11 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
   not a form and not a branch in the `interface` action.
 - `type` names the element's **definition** — its reusable subtype. It subtypes **within** a form,
   never across one. **Empty until somebody sets one.**
+- **`of` is the stored link for a reference.** The fold derives `isReference` from its presence;
+  an element without `of` is a part of the graph around it.
+- **A reference to the root of another graph is contained.** The fold derives `isContained` from
+  the referenced element being `root`; no third containment link is stored. A reference to any
+  other element remains a reference, but is not contained.
 - **A card's chip shows its subtype, or the module's word for a plain one** — `Module`,
   `Character`, and one day `Activity`. The fallback is derived, never stored, and is dimmed so
   it reads as a default rather than as a distinction. A container reads `Module group`.
@@ -134,7 +139,7 @@ the project.
 - **A weaker mention drawn lighter is not a form** — that is presentation, so it is a definition
   subtyping `line`.
 - **Containment is not a relationship.** The tree is `parent`, and being inside something is
-  implied by it rather than stored as an edge.
+  implied by it rather than stored as an edge; folded root references identify contained graphs.
 - `from`/`to` are set only where an end landed on an interface somebody made. Absent is the
   normal case, and the layer works that end out.
 - `fromSide`/`toSide` pin an end to one of the frame's four walls. The seat along it is still
@@ -565,9 +570,10 @@ Chosen → offer → `run("infer")` → fold → activity draw (T.4, proven; bro
 ## Views
 
 *The **block** diagram's projection surface lives under `modules/view/diagram/` — frame, crumbs,
-prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). `Canvas.tsx` still
-hosts. **Which module mounts** follows the sticky pick when it fits the project kind, else the
-layer's `view.module` (U.8, proven). **Table** — rows pick/open; reference open withheld (A.1,
+prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). Its `NodeCard` is the
+sole card renderer; `Canvas.tsx` hosts the surface and injects the open-project name resolver.
+**Which module mounts** follows the sticky pick when it is offered by the definition, else the
+definition's default view (U.8, proven). **Table** — rows pick/open; reference open withheld (A.1,
 proven). **Matrix** when named (A.2, suite). **Both open as Contents-modelled panel shells**
 (**filling the stage by default** since V.19 — the tab shrinks them back to ~⅓) and host **A.1's
 crumbs**. **The types filter went to the rail** (Y.4, proven): each declares a `types` answer —
@@ -590,18 +596,11 @@ landed with S4.3.
 
 - ***Diagram* means one thing**: what a layer looks like drawn on the canvas. It names no module,
   and it is not a second name for the block above.
-- **Which view is showing is a display preference** — sticky per project in `mndflow.view.v1`,
-  never in the log (U.8, proven). A labelled control beside the project root lists the three
-  modules the project kind offers, each with its U.9 glyph. **Writes nothing.** The definition's
-  `view.module` says how a layer **opens**; the toggle says what is shown **now**. App mounts from
-  the sticky pick when it fits the kind; otherwise it mounts the layer's `view.module`.
-- **Six view modules, three per kind of project**, and the kind is visible from what is being drawn
-  rather than declared:
-
-  | | Object structures | Behavior structures |
-  |---|---|---|
-  | default | **block** | **activity** |
-  | others | **table**, **matrix** | **sequence**, **state** |
+- **Which view is showing is display state** — kept in workspace metadata, never in the log. A
+  labelled control beside the project root lists the view modules offered by the current
+  definition, each with its U.9 glyph. **Writes nothing.** The definition's `view` component
+  supplies the offered modules and its default; the toggle says what is shown **now**. There is
+  no derived project kind, so a fresh project can be switched to **activity**.
 
   - **Each module publishes a distinct `icon`** on `ViewModule` — block ▭, table ☰, matrix ⊞,
     activity ▸, sequence ⋮, state ◯ — sized and coloured by `.view-icon` (U.9). Re-registers keep
@@ -626,7 +625,8 @@ landed with S4.3.
   and the action says so rather than each surface guarding it.
   A cross-project reference reads its target's name through `shownName` / `stoodFor`, using the open
   project graphs passed down to the view. A reference into a closed project reads **`closed`**;
-  a genuinely gone target reads **`missing`**.
+  a genuinely gone target reads **`missing`**. The same resolver reaches the surviving diagram card
+  renderer on the stage (C.10, proven).
 - **A diagram's own variation is its contents and its fields**, never configuration: its definition
   configures every diagram of that subtype alike, so two matrices differ in what they hold and what
   their fields say.
@@ -905,21 +905,21 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   stays a project and its own log is untouched; demotion into another project's log is `N.2`.
   **Known break**: a project dropped into a folder disappears from the tree until the folder is
   clicked, because the folder was empty when the drag began and nothing opens it after the drop.
-  **And no folder can be made from the app** — `workspace.folder()` has no caller in `src/` (`N.8`).
+  **A folder can be made from the app**: right-clicking empty explorer space creates one through
+  `workspace.folder()` and gives it the folder mark (B.4, proven). The redraw gap remains `N.1`.
 - **A move across projects is two steps in two logs**, never one spanning both: the subtree is
   written into the destination through `writeInto` and deleted from the source through the door.
   Its definitions and the package list travel with it, so types still resolve. **Relationships with
   one end left behind are lost** — deliberate, nothing stands in for the block that left — and the
   strip says how many.
-- **(planned)** A **set** appears as a root like any other and lists what it holds references of. It
-  is the one place a reference *is* listed, because in a set there is nothing else to list. **Derived,
-  never declared** — members are references, so it is a set. This is what a *saved view* is: a
-  requirements table is a set of requirements, an allocation view the same set drawn as a matrix.
-  **A folder is a set of projects**, so there is no folder concept and a set wears a folder mark
-  (stream `P`).
-- **(planned)** **Every node role carries a mark of its own.** Block, container and interface have
-  theirs; a set has none, and a behavior's cannot be reached because nothing writes
-  `components.view.module` — so a fresh project is structure for ever (`P.5`, `P.6`).
+- There is no `set` role inferred from a node's children. A saved view is a **view definition** that
+  holds references, while a folder is an ordinary `folder` definition and may contain independent
+  roots.
+  **A folder is an ordinary definition**, not a role inferred from mixed children. It may contain
+  independent roots and wears the folder mark when its definition is `folder` (B.4, proven).
+- **Every node role carries a mark of its own.** Block, container and interface have theirs; a
+  folder has its own mark. View choice is supplied by the definition's `view` component, not by
+  a derived project kind, so a fresh project can be switched to **activity** (`B.3`).
 
 **Navigation**
 
@@ -932,9 +932,9 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   are chosen. **The menu is built against the project the row lives in, and brings it into
   context** (R.10, proven) — the same switch a left-click makes. It read the project in context
   whatever was clicked before, so a menu on B's row wrote A's log with nothing saying so.
-- Right-clicking the clear space below the rows (or an empty tree) makes a block **at the root**,
-  wherever you are scoped: the rows are what layers look like here, so the space around all of
-  them is the root's own background.
+- Right-clicking the clear space below the rows (or an empty tree) creates a **folder** at the
+  workspace root, through `workspace.folder()`, and the new row carries the folder mark (B.4,
+  proven).
 - **The bar's `＋` follows the selection** (V.14, proven) — the same *target decides* rule as the
   canvas right button (G.9d): **nothing selected** names a **project**; a **project** selected
   makes a block inside it; a **block** makes a block under it. The tooltip names which, so the
@@ -956,12 +956,11 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 - **Fold everything and expand everything are one control**, and it reads *anything open at all* —
   a branch or a project root. Reading only the branches meant a collapsed project kept forcing the
   fold branch, so the control could never open one again.
-- **A project root's icon says its kind and folds the project** (V.9 + V.10, proven) — a structure
-  and a behavior project draw differently; clicking the icon folds, while the **row click still
-  switches project**, so the two never collide. Projects are open by default: one that hid its
-  tree on sight would read as empty.
+- **A project root's icon says its role and folds the project** (V.9 + V.10, proven) — clicking
+  the icon folds, while the **row click still switches project**, so the two never collide.
+  Projects are open by default: one that hid its tree on sight would read as empty.
 - **The view toggle is one icon that cycles** (U.8 → V.5 → V.19, proven) — it wears the view that
-  is *on*, and clicking moves to the next the project kind offers. Sticky per project in
+  is *on*, and clicking moves to the next the current definition offers. Sticky per project in
   `mndflow.view.v1`; writes nothing. **This reverses U.8's *not an icon that cycles* deliberately**:
   three buttons cost width a capped-width tree does not have, and the objection U.8 raised — that a
   cycling control hides which state it is in — does not apply when the icon *is* the state. The
@@ -1182,6 +1181,11 @@ about like any other, and the drag sticks.
 - **A port and an anchor are different things.** A `directed` relationship's ends are typed — one
   in, one out — so they draw as interfaces. Every other relationship simply meets the card: its
   end is an **anchor**, a place on the border and no more, and draws nothing.
+- **A relationship's end draws through whichever handle actually exists** — its interface's when
+  that end has one, the anchor minted with the relationship when it does not. One reader decides
+  both (`handleOf`), and a card publishes **its interfaces as well as its seats**, because stating
+  handles at all replaces measurement: publishing seats alone once took every interface's handle
+  out of view and silently dropped every line that met one.
 - **An anchor exists only where a relationship actually meets the block** (C.2). There is no
   always-four rule: a card with one line carries one anchor, and a card with none carries none.
 - An anchor shows a small round handle while its relationship or its card is selected, the same
