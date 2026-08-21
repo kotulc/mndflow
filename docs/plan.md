@@ -268,13 +268,26 @@ first works 1.
 
 | | Rows | Story | Why here |
 |---|---|---|---|
-| **1** | `B.2` → `B.9` | `ST.4` | the model core. Everything later is written against it, and **`B.8` carries live defect 1** (a write to the wrong project's log), so it is not deferrable |
+| **0** | `T.7`, `T.6` | — | **the guards, and they run before anything else.** Own `tests/` alone, contend with nothing, and both are red on today's tree. Added 2026-08-20 after a green suite missed a broken canvas |
+| **1** | `B.3` → `B.9` | `ST.4` | the model core (`B.2` landed 2026-08-20). Everything later is written against it, and **`B.8` carries live defect 1** (a write to the wrong project's log), so it is not deferrable |
 | **2** | `B.11` → `B.16`, `B.26`, `B.27`, `B.17` | `ST.4` | settings, definitions, the naming door — and **one migration last** |
-| **3** | `N.1`, `N.3`, then `N.4` → `N.7` | `ST.1`, `ST.3` | **two failed stories.** `N.1` and `N.3` need nothing and are most of what Clay tried to do; `N.4`–`N.7` want `B.2`'s base package. **`N.2` is wave 6**, behind `B.8` |
+| **3** | `N.1` ◐, `N.3`, then `N.4` → `N.7`, `N.8` | `ST.1`, `ST.3` | **two failed stories.** `N.1` and `N.3` need nothing and are most of what Clay tried to do; `N.4`–`N.7` want `B.2`'s base package. **`N.2` is wave 6**, behind `B.8` |
 | **4** | `I.1` → `I.5`, `I.7`, `I.8` | `ST.7`, `ST.11` | **the terminal, moved up from last.** Three reasons, in order of weight: it **deletes ~840 lines** every other stream currently works around; `I.2`'s narrowing is what frees `rank.ts`, which is what lets `C-a` be answered cleanly in wave 5; and **`I.7` is the safety net under `ST.10`** — narrowing context menus is only honest once help is a text route to every action. **`I.6` does not come with it**, since it needs `W.6` |
-| **5** | `C.1` → `C.8`, defects 19–21 | `ST.8` | explorer and canvas consistency. `C-a` is answerable by now, and `C.8` lands beside `I.8` |
+| **5** | `C.1`, `C.3`, `C.6`, `C.8`, defects 19–21 | `ST.8` | explorer and canvas consistency. `C-a` is answerable by now, and `C.8` lands beside `I.8`. **`C.2`, `C.4`, `C.5` and `C.7` were taken out of turn on 2026-08-20** and their repairs `C.9`–`C.11` are in *The next batch* above, not here |
 | **6** | `N.2`, `W.5`, `W.6`, then `I.6`, `B.18`, `B.20` → `B.25` | `ST.1`, `ST.9`, `ST.7`, `ST.4` | demotion once one log makes it cheap; the tray/table split; then the payoff — results on the stage, the pin, views holding views |
 | **7** | `O.1` → `O.3` | `ST.5`, `ST.6` | reaching outside. Waits on `B.2` and `B.20` |
+
+> **The next batch, in order** (Clay, 2026-08-20). Read this before picking anything.
+>
+> | | Rows | Why here |
+> |---|---|---|
+> | **1** | `T.7`, then `T.6` | **the guards first, and they must fail on today's tree.** Both are red right now — that is the point. `T.7` is minutes and turns the dependency map into something that cannot be broken silently again; `T.6` is what would have caught `C.11` at the moment it was written. Owning `tests/` alone, neither contends with anything below |
+> | **2** | `C.11`, then `C.9`, then `C.10` | **the repairs owed on code already in the tree.** `C.11` first because the app currently cannot draw a relationship without a reload, which blocks driving anything else on the canvas. `C.9` turns `T.7` green; `C.10` waits on `C.9` because the one surviving card is the one that takes the resolver |
+> | **3** | `B.3` → `B.9` | **wave 1 resumes where it was left.** Nothing above touches the model core |
+>
+> **`N.1`'s remainder and `N.8` stay in wave 3** — they are not repairs owed on this batch, they are
+> the rest of a row and a hole `N.5` will close on its way past. **`C.7`'s remainder** (a closed
+> project reads a bare `missing`) rides with `C.9`, since both are in the same two files.
 
 > **The order was not followed on 2026-08-20, and nobody asked for that** (Clay). A batch landed
 > `B.2` and `B.7` from wave 1, `N.1` from wave 3, and **`C.2`, `C.4`, `C.5` and `C.7` from wave 5** —
@@ -325,7 +338,7 @@ outside click was quietly hiding three other rows' work.
 |---|---|---|
 | **Never started** | `X.3` | a typed name on the strip; `fold.defineNamed` already mints one, so this is a surface over a built capability |
 | **Freed by what landed** | `P.9` | `P.7` landed, so its blocker is gone; `P.9` and `W.4` ✓ must not give two answers to *which kinds* — and it is a **design decision**, not a queued chunk: one axis group or two, and what an overrule means there |
-| **Untouched** | `Y.10`, `T.3`, `S7` | `T.3` has its harness (`T.5` ✓); `S7` stays last so it splits a finished `Files.tsx` |
+| **Untouched** | `Y.10`, `T.3`, `S7` (and the new `T.6` / `T.7`, which are wave 0) | `T.3` has its harness (`T.5` ✓); `S7` stays last so it splits a finished `Files.tsx` |
 | **The rename pass, last** | `S8.1` → `S8.2` → `S8.3` | `S8.2` renames 257 sites and collides with every feature row. `S8.1` is smaller than its row says — `contextId` is in `App.tsx` alone, and `src/project.ts` does not contain it |
 | **The two ◐ this pass left** | `P.7`, `X.2` | a cross-project proxy draws as *missing* (tasks.md **15**); the relation group is capped but not ranked, and the edge menu is still not a consumer (**17**, **18**) |
 
@@ -897,12 +910,20 @@ implementation row. Detail in tasks.md, stream **T**.
 **The largest gap is startable at last.** `App.tsx`, `Files.tsx` and `Panel.tsx` have no cover and
 every browser-found bug lived there. `T.3` waited first on U and then on V for the same reason —
 *do not write tests for a design that is still moving* — and **both waves are complete**, so the
-header, the explorer and the chrome have stopped moving. `T.5` comes first: there is no DOM
-harness to write them against.
+header, the explorer and the chrome have stopped moving. `T.5` landed the harness, and **`T.3` has
+since moved behind `B.9`** because App and Files started moving again.
+
+**`T.6` and `T.7` are a different job from `T.3`, and they come first.** `T.3` is *cover for three
+files*; these two are **guards against a class of defect the suite cannot currently express** —
+a canvas that does not draw, and an arrow pointed the wrong way. Both were written on 2026-08-20
+after a batch landed green, typechecked, and broke making a relationship. **Both should fail on
+today's tree**; a T row that passes the moment it is written is not guarding anything.
 
 | | Does | Owns | Waits |
 |---|---|---|---|
 | **T.3 ⚠** | **`App.tsx`, `Files.tsx` and `Panel.tsx` get cover** — ~2,200 lines, no tests, and the place every browser-found bug lived. **The design has started moving again**: `B.3` deletes `page/kind.ts` and rewrites App and Files, `B.4` rewrites the explorer roles, `B.9` moves display state into App. *Do not write tests for a design that is still moving* applies exactly as it did through U and V — **this now waits on `B.9`**, not on `T.5` alone | `tests/page/` | T.5, B.9 |
+| **T.6** | **The canvas gets enough cover to see a broken canvas.** `C.2` broke *making a relationship* — the line does not draw until a reload — and **763 green tests and `tsc` saw none of it**, because nothing in `tests/` mounts a layer. That is not a coverage gap in a file, it is a whole class of defect the suite cannot express, and it is the class every driven failure so far has belonged to (`P.15`, `V.14`, `ST.1`, `ST.3`, now `C.2` and `N.1`). **Deliberately small**: mount a layer through `T.5`'s harness and assert **properties, never values** — an edge is in the DOM after a link mutation; a card carries an anchor for each relationship arriving at it and none for those that do not; a note keeps its handles. **Not a page suite** — that is `T.3`, which waits on `B.9`. **This waits on nothing**: the diagram's node/edge composition is the oldest settled surface in the app, and `B` does not touch it. **Done when**: a suite that fails on today's tree, and passes once `C.11` lands | `tests/modules/view/diagram.test.ts`, `tests/canvas/` | ⊘ |
+| **T.7** | **The dependency map is enforced, not described.** README.md's table is the one structural rule CLAUDE.md calls *the easy accident*, and it is prose — so `C.7` shipped `modules/` importing `canvas/` and `canvas/` importing `workspace/`, and `tsc`, the suite and review-by-reading all passed it. **One test, walking the imports under `src/` against the table**, turns the rule into something that fails loudly the first time somebody points an arrow the wrong way. **Keep the table in one place**: the test reads a list it owns and README.md points at it, or the reverse — never two copies to drift. **Done when**: the test fails on today's tree (`C.9` is what makes it pass), names the offending file and the arrow it drew, and no legal import trips it | `tests/structure.test.ts`, `README.md` | ⊘ |
 
 ## Wave 3 — the rail
 

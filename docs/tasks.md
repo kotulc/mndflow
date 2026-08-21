@@ -29,6 +29,11 @@ has no page mount (component still unmounted — remount when ranking needs a su
 Z.2 / Z.3 landed**: collapsed chips rank by embedding when typed; idle by shape-weighted
 preference; overrule feedback in sticky storage; Chat warms embeddings; `suggest.ts` gone.
 
+**The suite cannot see a broken canvas, and that is now rowed.** Nothing in `tests/` mounts a
+layer, so *making a relationship draws no line* passed 763 tests and `tsc`. `T.6` adds the few
+property tests that would have caught it and `T.7` turns README.md's dependency map into a test
+rather than prose — both **wave 0**, both red on today's tree, both owning `tests/` alone.
+
 **A batch was driven on 2026-08-20** (`B.2`, `B.7`, `N.1`, `C.2`, `C.4`, `C.5`, `C.7`). Four rows
 came through whole; `C.2`, `C.7` and `N.1` landed short and put **defects 21–30** on the list below.
 The one that matters: **making a relationship draws no line until the page is reloaded** (21), a
