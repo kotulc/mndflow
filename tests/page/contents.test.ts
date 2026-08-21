@@ -108,7 +108,7 @@ function draw(graph: Graph, extra: Partial<Props> = {}) {
 }
 
 /** One of each tray sort — a group only lists once it holds a member, and a
- *  relationship only when both ends are drawn (blocks / proxies / ports). */
+ *  relationship only when both ends are drawn (blocks / references / ports). */
 function layered() {
   const a = element("Pump", { parent: null });
   const b = element("Valve", { parent: null });
@@ -274,8 +274,8 @@ describe("constraint and rule notes", () => {
   });
 });
 
-describe("proxies", () => {
-  it("lists a proxy as a block and says what it stands for", () => {
+describe("references", () => {
+  it("lists a reference as a block and says what it stands for", () => {
     const stand = element("", {
       parent: null, form: "proxy", of: refTo("gone", "proj_other"),
     });
@@ -440,7 +440,7 @@ describe("double-clicking a block's row descends into it", () => {
     expect(calls.onOpen).not.toHaveBeenCalled();
   });
 
-  it("withholds descend from a proxy, which has nowhere to go", () => {
+  it("withholds descend from a reference, which has nowhere to go", () => {
     const stand = element("", { parent: null, form: "proxy", of: refTo("gone", "proj_other") });
     const graph = drawn({ op: "add_element", element: stand });
     const { calls, container } = draw(graph);

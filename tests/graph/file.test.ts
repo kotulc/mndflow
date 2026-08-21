@@ -221,7 +221,7 @@ describe("the state hash", () => {
 });
 
 describe("what a project depends on", () => {
-  it("names every external project a proxy points at, and nothing local", () => {
+  it("names every external project a reference points at, and nothing local", () => {
     const stand = element("", {
       form: "proxy",
       parent: null,
@@ -255,13 +255,13 @@ describe("a bundle", () => {
     parent: null,
     of: refTo(ROOT, "proj_dep"),
   });
-  const withProxy = fold([step("", "test", [
+  const withReference = fold([step("", "test", [
     { op: "update_element", id: ROOT, label: "Rig" },
     { op: "add_element", element: stand },
   ])]);
 
   it("carries companions so the file stands alone, and round-trips them", () => {
-    const text = write(withProxy, "proj_main", 1, {
+    const text = write(withReference, "proj_main", 1, {
       proj_dep: { graph: dep, steps: 1 },
     });
     const back = read(JSON.parse(text))!;
@@ -280,9 +280,9 @@ describe("a bundle", () => {
 
   it("writes the same bytes for the same bundle", () => {
     const others = { proj_dep: { graph: dep, steps: 1 } };
-    const once = write(withProxy, "proj_main", 1, others);
+    const once = write(withReference, "proj_main", 1, others);
 
-    expect(write(withProxy, "proj_main", 1, others)).toBe(once);
+    expect(write(withReference, "proj_main", 1, others)).toBe(once);
   });
 });
 

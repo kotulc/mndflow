@@ -1,5 +1,5 @@
 /** The `infer` action — a selection becomes one behavior block, or a plain
- *  set of proxies over it (P.4). One registered action, offered twice via its
+ *  set of references over it (P.4). One registered action, offered twice via its
  *  `as` choice — R.5's "one action, offered N times" — so the closed action
  *  set does not widen for the set reading.
  *
@@ -483,8 +483,8 @@ function build_state_tree(
   return { mutations, root: root.id };
 }
 
-/** Set reading (P.4): a block holding a direct proxy of every hit — no tree,
- *  no inferred order, no kind mutation. A set's members are proxies and
+/** Set reading (P.4): a block holding a direct reference of every hit — no tree,
+ *  no inferred order, no kind mutation. A set's members are references and
  *  nothing else, which is what lets `role_of` derive the role rather than
  *  storing one (P.5). This is the general form `build_action_tree` and
  *  `build_state_tree` specialise with structure. */
@@ -557,7 +557,7 @@ function kind_mutations(module: "activity" | "state"): Mutation[] {
 const infer: Action = {
   name: "infer",
   label: "Infer",
-  about: "turns a selection into one behavior block, or a saved set holding a proxy of each",
+  about: "turns a selection into one behavior block, or a saved set holding a reference of each",
   scope: { on: "layer" },
   // Behavior and set are the entries — the choice's options are the menu's
   // two lines, both this one registered action (fill.ts's `entries`).
@@ -590,7 +590,7 @@ const infer: Action = {
       : "";
     const into = into_arg || newId("proj");
 
-    // Set reading (P.4): every hit becomes a direct proxy, nothing else — the
+    // Set reading (P.4): every hit becomes a direct reference, nothing else — the
     // participant-capping and ordering below are the behavior reading's own.
     if (args.as === "set") return build_set(hits, into, !into_arg);
 

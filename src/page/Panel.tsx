@@ -89,7 +89,7 @@ type Props = {
   onRelation: (id: string, relation: string) => void;
   onSetDir: (id: string, dir: Dir) => void;
   onFlip: (id: string) => void;
-  /** Go to where a proxy's block actually lives. */
+  /** Go to where a reference's block actually lives. */
   onReveal: (id: string) => void;
   /** Make or amend a project definition. */
   onDefine: (name: string, id?: string, form?: string, patch?: DefPatch) => void;

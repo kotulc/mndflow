@@ -6,7 +6,7 @@
  *  records. */
 
 import {
-  actual, descendsFrom, isProxy, isTie, membersOf, nameFree, nameOf, nextNum, proxyIn,
+  actual, descendsFrom, isReference, isTie, membersOf, nameFree, nameOf, nextNum, referenceIn,
 } from "../graph/fold";
 import { ROOT, element as makeElement, refAt, type Mutation, type Spot } from "../graph/types";
 import { register, type Action, type Args, type Context, type Effect } from "./index";
@@ -276,7 +276,7 @@ const move: Action = {
     }
     // A reference holds nothing — whatever is inside the thing it points at is
     // inside the thing it points at.
-    if (parent && isProxy(ctx.graph.elements[parent])) {
+    if (parent && isReference(ctx.graph.elements[parent])) {
       return "A reference cannot hold anything.";
     }
     return null;
@@ -301,7 +301,7 @@ const move: Action = {
 /** A dropped row's path in this project's terms — bare when it points here,
  *  which is what `of` stores for anything local. The explorer always names
  *  the project it dragged from, so without this a local drop reads as
- *  foreign and its proxy would never match the one already placed. */
+ *  foreign and its reference would never match the one already placed. */
 const here_ref = (ctx: Context, ref: string): string => {
   const { project, id } = refAt(ref);
 
@@ -311,7 +311,7 @@ const here_ref = (ctx: Context, ref: string): string => {
 const refer: Action = {
   name: "refer",
   label: "Refer",
-  about: "places a proxy of an element into this layer",
+  about: "places a reference of an element into this layer",
   scope: { on: "layer" },
   args: [
     { kind: "element", name: "target" },
@@ -323,7 +323,7 @@ const refer: Action = {
 
     const target = here_ref(ctx, raw);
     // A block in another project is not in this fold, so the path is the
-    // whole of what can be checked — which is what makes a set of proxies
+    // whole of what can be checked — which is what makes a set of references
     // from several projects possible at all (P.7).
     const away = Boolean(refAt(target).project);
     if (!away && !ctx.graph.elements[target]) return "Nothing to refer to.";
@@ -331,13 +331,13 @@ const refer: Action = {
     // this by comparing the dropped id to the open layer, which stopped
     // working the moment the payload became a path — so it belongs here.
     if (target === ctx.view) return "That is this layer.";
-    // One proxy per layer per block: a second appearance of the same thing
-    // in the same layer says nothing the first did not. Nor is a proxy for
+    // One reference per layer per block: a second appearance of the same thing
+    // in the same layer says nothing the first did not. Nor is a reference for
     // something already in this layer meaningful.
     if (!away && (ctx.graph.elements[target]?.parent ?? null) === ctx.view) {
       return "That already lives in this layer.";
     }
-    if (proxyIn(ctx.graph, ctx.view, target)) {
+    if (referenceIn(ctx.graph, ctx.view, target)) {
       return "This layer already has a reference to that.";
     }
     return null;

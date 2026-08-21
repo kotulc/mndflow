@@ -16,7 +16,7 @@
 import { memo, type CSSProperties } from "react";
 import type { NodeProps } from "@xyflow/react";
 
-import { blocksOf, fieldsOf, isContainer, isProxy, nameOf, portsOf, typeName } from "../../../graph/fold";
+import { blocksOf, fieldsOf, isContainer, isReference, nameOf, portsOf, typeName } from "../../../graph/fold";
 import { CHIP_CAP, GRID, LEAF, pack, sizeOf } from "../../../geometry/layout";
 import { similarity } from "../../../embed/match";
 import type { Graph, Element, Side } from "../../../graph/types";
@@ -221,7 +221,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
     : [];
 
   const classes = ["card", holds ? "group" : "object",
-                   isProxy(node) ? "reference" : "",
+                   isReference(node) ? "reference" : "",
                    selected || picked ? "picked" : "",
                    selected ? "chosen" : "",
                    grazed?.kind === "card" && grazed.id === node.id ? "grazed" : "",

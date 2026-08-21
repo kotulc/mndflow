@@ -22,7 +22,7 @@ export type Dir = "none" | "forward" | "back" | "both";
  *  reach it. `block` is the base and the default — the discrete structural
  *  thing the tree is built from. `note` and `group` describe rather than
  *  structure, and a group is the generic set, meaning whatever its definition
- *  says. `proxy` stands in for a block living in another layer. Ornament a
+ *  says. `reference` stands in for a block living in another layer. Ornament a
  *  package ships is still a block: its definition carries a shape and a size.
  *
  *  A user's own subtypes go in `type` and subtype **within** one of these,
@@ -40,7 +40,7 @@ export type ElemForm = "block" | "note" | "group" | "proxy";
  *  decides which way the arrows point.
  *
  *  **`reference` and `tie` are not among them, because nobody has to say so.** A
- *  relationship is a reference when an end is a proxy and a tie when an end is a
+ *  relationship is a reference when an end is a reference and a tie when an end is a
  *  note — facts about where its ends live rather than forms it was given. Being
  *  derived does not make either less the engine's business: a tie still draws as
  *  a leader taking no seats. It only means the engine works it out.
@@ -149,13 +149,13 @@ export type Element = {
    *  who names it, so the two can never disagree. Membership is descriptive,
    *  not structural — a group is never a parent. */
   groups: string[];
-  /** What a proxy stands in for: `{ project, element }`, both by id.
+  /** What a reference stands in for: `{ project, element }`, both by id.
    *
    *  Written as a path — `proj_a9f/block_1` — via {@link refTo}, and a bare id
-   *  means this project, so every proxy written before projects could see one
-   *  another still reads. Held here rather than as a relationship: a proxy is
+   *  means this project, so every reference written before projects could see one
+   *  another still reads. Held here rather than as a relationship: a reference is
    *  not two things being joined — it is one thing appearing twice, which is a
-   *  property of the appearance. The relationships that *reach* a proxy are the
+   *  property of the appearance. The relationships that *reach* a reference are the
    *  references, and they are ordinary relationships drawn by hand. */
   of: string | null;
   /** Descriptive values, addressed by name. */
@@ -371,7 +371,25 @@ export type Step = {
 
 let counter = 0;
 
-/** Short readable id, prefixed with what it points at.
+/** 64 bits of randomness in base36, for the tail of an id.
+ *
+ *  `Math.random` is not a source of unique values — it is seeded per context
+ *  and gives no collision guarantee at all, which was tolerable while an id
+ *  only had to be unique inside one project. It no longer is. The fallback
+ *  stays for a host without `crypto`, where a weak id still beats a crash. */
+function entropy(): string {
+  const bytes = new Uint8Array(8);
+
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let at = 0; at < bytes.length; at += 1) bytes[at] = Math.floor(Math.random() * 256);
+
+  let value = 0n;
+  for (const byte of bytes) value = (value << 8n) | BigInt(byte);
+
+  return value.toString(36);
+}
+
+/** Short readable id, prefixed with what it points at. **Globally unique.**
  *
  *  The prefix costs nothing and makes every reference legible in a diff — a
  *  `parent` or a `source` says what it reaches without a lookup. A **name** is
@@ -381,21 +399,33 @@ let counter = 0;
  *
  *  Monotonic within a session, which keeps the action log and the canvas stable
  *  across a refold. The counter restarts each session, so the random tail is
- *  what has to keep two sessions apart — eight characters rather than four,
- *  because a collision does not fail loudly: it silently fuses two elements
- *  into one. Older `n_`/`e_`/`s_` ids stay valid, since an id is opaque and
- *  nothing reads its prefix. */
+ *  what keeps two sessions — and two projects — apart.
+ *
+ *  **Unique everywhere, not merely inside one project** (B.19). One log for the
+ *  whole workspace cannot hold two elements under one id, and a collision does
+ *  not fail loudly: it silently fuses two elements into one. So the tail is 64
+ *  bits from `crypto` rather than eight characters of `Math.random`, and a
+ *  path (`proj_a9f/block_x`) says *where* an element lives without being what
+ *  identifies it.
+ *
+ *  **Definition ids are the deliberate exception**: {@link defIdFor} derives one
+ *  from the name so that two people typing "flow" mean one definition, which is
+ *  what makes free text become a real type. Those stay project-scoped and are
+ *  addressed by path.
+ *
+ *  Older `n_`/`e_`/`s_` ids stay valid, since an id is opaque and nothing reads
+ *  its prefix. */
 export function newId(prefix: string): string {
   counter += 1;
 
-  return `${prefix}_${counter.toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}_${counter.toString(36)}${entropy()}`;
 }
 
 /** Where a reference points, when it may point outside this project.
  *
  *  Written as a path — `proj_a9f/def_pump` — and a bare id means "here", so
  *  every reference written before projects could see one another still reads.
- *  One convention for all three places a reference is held: a proxy's `of`, an
+ *  One convention for all three places a reference is held: a reference's `of`, an
  *  element's `type`, and a `ref` field's value. Ids never contain a slash, so
  *  there is nothing to escape and nothing ambiguous. */
 export function refTo(id: string, project?: string | null): string {
@@ -410,13 +440,13 @@ export function refAt(ref: string): { project?: string; id: string } {
   return { project: ref.slice(0, cut), id: ref.slice(cut + 1) };
 }
 
-/** A proxy's target: the block, and the project it lives in when that is not
+/** A reference's target: the block, and the project it lives in when that is not
  *  this one. The same path as every other cross-project ref, named for how a
- *  proxy reads it. */
-export type ProxyTarget = { project?: string; element: string };
+ *  reference reads it. */
+export type ReferenceTarget = { project?: string; element: string };
 
-/** {@link refAt} as a proxy target — `id` is the element half. */
-export function asTarget(of: string): ProxyTarget {
+/** {@link refAt} as a reference target — `id` is the element half. */
+export function asTarget(of: string): ReferenceTarget {
   const { project, id: element } = refAt(of);
 
   return { project, element };

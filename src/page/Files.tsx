@@ -36,7 +36,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { offer } from "../actions/offer";
 import { entries, fill, fillable, rank, type Offered, type Supply } from "../actions/fill";
 import type { Action, Arg, Args, Context } from "../actions";
-import { isContainer, isPort, isProxy, nameOf, titleOf } from "../graph/fold";
+import { isContainer, isPort, isReference, nameOf, titleOf } from "../graph/fold";
 import { NameField } from "../NameField";
 import {
   ROOT as ROOT_ID, asTarget, refAt, refTo, type Graph, type Element,
@@ -74,10 +74,10 @@ function branches(graph: Graph): Record<string, Element[]> {
   const kids: Record<string, Element[]> = {};
 
   for (const node of Object.values(graph.elements)) {
-    // The explorer is the tree, and the tree is blocks. A proxy is a second
+    // The explorer is the tree, and the tree is blocks. A reference is a second
     // appearance of one; a note or a group describes rather than structures;
     // root is the tree itself and has its own row above these.
-    if (node.id === ROOT_ID || isProxy(node) || node.form !== "block") continue;
+    if (node.id === ROOT_ID || isReference(node) || node.form !== "block") continue;
 
     const parent = node.parent && graph.elements[node.parent] ? node.parent : ROOT;
     (kids[parent] ??= []).push(node);
@@ -97,8 +97,8 @@ function branches(graph: Graph): Record<string, Element[]> {
   return kids;
 }
 
-/** Children of a workspace layer: folders (blocks) and root-proxies, in label
- *  order. Proxies stay — they are how open projects appear in the filing tree. */
+/** Children of a workspace layer: folders (blocks) and root-references, in label
+ *  order. References stay — they are how open projects appear in the filing tree. */
 function shelved(shell: Graph, parent: string | null): Element[] {
   const out: Element[] = [];
 
@@ -121,7 +121,7 @@ function shelved(shell: Graph, parent: string | null): Element[] {
  *  anything declared. One meaning each — the set's own rule.
  *
  *  P.5: a set (children of mixed kind — `kind.ts`'s `layerKind`, settled
- *  stream P) is `isContainer` too — `blocksOf` counts proxies — so it reads
+ *  stream P) is `isContainer` too — `blocksOf` counts references — so it reads
  *  as a plain container until this tells the two apart and wears the folder
  *  mark instead. */
 function role_of(graph: Graph, open: Record<string, Graph>, node: Element): IconName {
@@ -144,11 +144,11 @@ export type OpenProject = {
 export type Chosen = string;
 
 type Props = {
-  /** Workspace graph: folders and proxies of open projects' roots. */
+  /** Workspace graph: folders and references of open projects' roots. */
   shell: Graph;
   /** Every open project's graph, keyed by id. */
   graphs: Record<string, Graph>;
-  /** Open projects in filing order — fallback when a proxy is missing. */
+  /** Open projects in filing order — fallback when a reference is missing. */
   projects: OpenProject[];
   /** Which project's log the page is writing to. */
   context: string;
@@ -276,7 +276,7 @@ export function Files(props: Props) {
 
   const tips = useMemo(() => new Map(projects.map((p) => [p.id, p.tip])), [projects]);
 
-  /** Project ids the shell already shows as root-proxies. */
+  /** Project ids the shell already shows as root-references. */
   const placed = useMemo(() => {
     const ids = new Set<string>();
     for (const node of Object.values(shell.elements)) {

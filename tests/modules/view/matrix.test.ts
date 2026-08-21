@@ -65,7 +65,7 @@ describe("grid composition", () => {
     };
   }
 
-  it("puts every block and proxy on both axes", () => {
+  it("puts every block and reference on both axes", () => {
     const grid = gridOf(layered(), "L");
 
     expect(grid.rows.map((r) => r.id).sort()).toEqual(["a", "b"]);

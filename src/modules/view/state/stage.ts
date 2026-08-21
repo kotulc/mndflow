@@ -8,7 +8,7 @@
 
 import { shaped, type CardConfig, type Shape } from "../../card";
 import {
-  blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isProxy, nameOf,
+  blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isReference, nameOf,
 } from "../../../graph/fold";
 import { refAt, type Edge, type Element, type Graph } from "../../../graph/types";
 
@@ -135,9 +135,9 @@ function is_action_edge(graph: Graph, edge: Edge): boolean {
   return name === "action";
 }
 
-/** Participant ref under a state — Reading A places a proxy child. */
+/** Participant ref under a state — Reading A places a reference child. */
 function ref_under(graph: Graph, state: Element): { ref: string; name: string } | null {
-  const stand = childrenOf(graph, state.id).find(isProxy);
+  const stand = childrenOf(graph, state.id).find(isReference);
   if (!stand?.of) return null;
   const shown = nameOf(graph, stand);
   const bare = stand.of.includes("/") ? stand.of.slice(stand.of.lastIndexOf("/") + 1) : stand.of;

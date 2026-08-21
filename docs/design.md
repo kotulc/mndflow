@@ -34,6 +34,319 @@ for: the engine's forms are closed and the `type` on each element is open, so a 
 stereotypes and changes no engine code.
 
 
+## The simplified block model
+
+**Settled 2026-08-18 (Clay).** The reasoning below supersedes every earlier account of forms,
+proxies, sets and kinds. The vocabulary it produces is [definitions.md](definitions.md); the old
+one is kept at [definitions-legacy.md](definitions-legacy.md) for comparison while the migration
+runs, and **nothing may be built from it**.
+
+**Why it was reopened.** *Everything is a block* was the goal from the first week, and the model
+kept not being that. Four element forms hung off the block, `proxy` had quietly grown from *a
+stand-in so a line can cross a boundary* into five unrelated jobs, `set` and `folder` were two
+words for one thing, and the engine branched on a `structure` / `behavior` classifier the glossary
+said flatly did not exist. The glossary reached 149 terms and three of the most-used ones meant
+three things each. None of that was one bad decision — it was the accumulated cost of adding a word
+whenever something new needed saying.
+
+### Nothing earned a form
+
+The old rule was honest: *a form is earned when the engine must know something about placement or
+behaviour and cannot tell from a field.* Applied to the four forms it had, none of them passes.
+
+| Form | The engine could tell from | So |
+|---|---|---|
+| `note` | it holds content and no children | a `resource` definition |
+| `group` | it holds references and draws a boundary | a `view` definition, at layer scope |
+| `proxy` | it stands for something else | a property of a block, not a sort of block |
+| `block` | — | the only one left, so not a set at all |
+
+**So there are no element forms.** A new sort of thing is a definition, and a definition is data.
+That is the second goal stated plainly: *define every object and relation we expect to use through
+data alone*, which a closed set of engine-side sorts can never allow.
+
+### The base package, and the rule that stops it becoming forms again
+
+The engine still needs a floor — something to draw and place a block that names no type. It gets it
+as **a shipped, locked package of definitions the engine knows by id**: `structure`, `view`,
+`resource`, and `folder` / `group` / `note` extending them. It is **open**, so shipping one more is
+a code change made additively, not a closed set being widened.
+
+**The engine may key off a base definition only for how a block draws and where it sits.** Never
+for what it is, and never for what may contain what — containment is a `holds` rule, which is data.
+Without that line the base package is element forms wearing a different hat, and it would grow back
+into one within a wave.
+
+The single exception is deliberate and named: **`view` holds references only, and the engine
+enforces it.** A view whose members could be owned is a folder, and then the two words mean one
+thing again.
+
+### One word for one thing appearing somewhere it does not live
+
+`proxy` was doing all of this: a cross-layer stand-in, a set membership token, the workspace filing
+entry, a behavior participant, and a view member — plus `proxy port` in the SysML map, which is
+unrelated. All five model cases are the same statement, so they get one word: **reference**.
+
+**The relationship form `reference` goes with it.** It was only ever derived from *a proxy sits at
+one end*, so it is an ordinary relationship that happens to reach a reference block. Drawing it
+dashed is presentation.
+
+The word was avoided originally because of that collision, and the collision was the symptom.
+
+### Two child links, and ownership is what separates them
+
+A block **owns** a child (a **part**) or **stands for** one living elsewhere (a **reference**). Not
+distance — ownership. This is the one distinction every notation draws, it was already written down
+as `part` / `ref` and marked *(planned)*, and it is what makes a folder and a view different
+without either declaring anything: **a folder children are parts, a view children are references.**
+
+`ref` as a *value form* is renamed **`link`** so the word means one thing. The test between them is
+a sentence: **a reference is drawn, a link is not.**
+
+### Behavior is not a classifier — and never was supposed to be
+
+Checked against what a behavior model actually needs: ordering is a directed relationship or the
+arrangement, participants are references, lanes are *group children by what they reference*, and actions
+and states are definitions in `packages/behavior/`. Not one of them is behavioral machinery. **A
+behavior model is one package plus three view modules**, which is what the glossary claimed all
+along while the code branched on it anyway.
+
+**And that closes the one-way door for free.** Which modules a layer may show now comes from its
+definition `view` component rather than from a derived kind — so a project can never be trapped in
+the sort of thing it started as, which is the trap `P.6` was invented to work around and which no
+longer has anywhere to live.
+
+### A view is a perspective, a folder is a container
+
+**A view holds only references, a module, and that module settings.** It is composed by dragging
+blocks in from anywhere in the workspace, and **pinning** a layer view is how one is made.
+
+**A view holds views.** A matrix two axes are child views, each holding references — recursion
+instead of an axis concept, so a filter, a nesting or a third dimension costs nothing new. A
+reference carries a **depth** (`self` / `children` / `all`), which is how dragging a whole project
+in gives you its blocks as rows and keeps them live as that project grows.
+
+**A view block configuration is its content, not its presentation.** *Presentation lives on the
+definition* still holds — it governs how the view block draws as a card. What it shows and how it
+is arranged is the only content a view has, which is why it sits on the usage.
+
+**A folder is a definition, not a derivation.** Mixed contents was never the signal — a folder of
+five structure blocks is still a folder, and a set of references that all point at structure was
+never a set. Both readings existed at once, which is how *set* and *folder* came to be two words
+for one idea. Keeping `folder` and dropping `set` also frees a word colliding with *style set* and
+*closed set*.
+
+### The three tiers: workspace, project, folder
+
+**Settled 2026-08-19 (Clay).** The model has a top, and it is not another project.
+
+| | Contains | Owns | Holds |
+|---|---|---|---|
+| **workspace** | projects, packages, folders | nothing | the **log**, the metadata, the explorer settings |
+| **folder** | anything — independent roots | nothing | nothing of its own |
+| **project** | — | **a graph of blocks** | its own settings: canvas toggles, the sticky view per layer |
+
+**Containment and ownership are different questions, and conflating them is what made *set* and
+*folder* two words.** A folder is a filing structure: it says where something sits, and deleting it
+must never delete what it held. A project is an ownership boundary: its blocks are parts, and
+deleting the project deletes them. That is one line, drawn once, and every earlier attempt drew it
+somewhere else each time.
+
+**And it is derived, so nothing new is stored** (Clay, 2026-08-19). **Filing a block makes it a
+root**; a root owns its own graph; so *contained* means *the child is a graph root* and *owned*
+means everything else. This is the built rule that a block at the top level **is** a project,
+applied one level down — dragging a loose block into a folder promotes it, dragging it into a
+project files it. Chosen over a third stored link, which would have made every containment rule ask
+three questions where two will do.
+
+### A block module is code; a definition is data
+
+**Every block names a block module, and may name a view module.** The block module supplies the
+configuration surface and what the engine does with the block; the view module says how a layer of
+it is drawn, defaulting to the block view.
+
+This is the old *a package is data, a module is code* split applied one level down, and it is what
+gives the engine back the dispatch it lost when forms collapsed — without giving it a closed set of
+sorts. **A package may subtype any base definition freely and may never add a module.** So
+*define every object and relation through data alone* stays true for vocabulary, and code is needed
+only where genuinely new behaviour is.
+
+**The rule is the same rule**: a module supplies drawing, placement and a configuration surface. It
+never answers *what may contain what*, which is a `holds` rule and therefore data. Without that
+line, block modules are element forms with a longer name.
+
+### One log, at the workspace
+
+**Settled 2026-08-19 (Clay): the workspace is one document, and it has one history.** Today every project holds
+its own log and a change is routed to the log of whoever owns the element it names — `Effect.into`,
+`writeInto`, the `home` batches, and a property test to hold them. With a single workspace log
+**nothing routes**, because there is nowhere else to route to. `R.10` and the `onMove` defect are
+both instances of a class that stops existing.
+
+**What has to be accepted for it**, and none of it is a blocker on its own:
+
+- **Undo is workspace-wide, and that is the intent.** One timeline over the page and everything on
+  it. Undoing after switching projects reaches back into the other one, which is what a single
+  document means and is the reason to want this rather than a cost of it.
+- **A project export becomes a query**, filtering the workspace log for steps naming that project,
+  rather than copying a log that already exists.
+- **A fold for one project replays everything.** Checkpoints exist for exactly this and already
+  carry the count of steps before them.
+
+**Display state goes with it, to the same place.** The workspace holds the explorer fold, the
+canvas toggles and which view each layer was last shown in — so reopening a workspace finds every
+project as it was left, and **an exported project carries no opinion about how to draw it**. That is
+the older rule (*a display preference is not project data*) finally given somewhere to live, rather
+than being kept out of the log and then having nowhere to be.
+
+### What a file carries: blocks, relations, views
+
+**Definitions are grouped by what they describe** — a **block** definition, a **relation**
+definition, a **view** definition — and that is the shape a project or a package file takes:
+
+```
+project { id, name, schema, defs { views, relations, blocks }, graph { root, … }, meta }
+```
+
+**One id space, three groups.** The grouping is how a file reads and how import-time validation
+dispatches; it is **not** three id spaces, because *typed-by* and *points-at* must stay one
+operation and a rename must orphan nothing. That was the one result the module walk produced that
+has survived every revision since, and splitting the id space would give it up for a nicer-looking
+file.
+
+**A view definition is reusable, and a block definition names one.** It carries exactly one required
+view module plus that module's options, so *how a layer is drawn* stops being copied into every
+definition that wants it. A **view block** — a saved cross-section — is a block whose definition
+names one of these. The two uses of the word are the same idea at two levels: *how to look*, and
+*a looking that was kept*.
+
+**`schema` is the module schema version.** Import is checked against it: a definition must match the
+registered option surface of the module it names, and **a module the build does not know falls back
+to the base block — and says so**. Falling back silently is the one thing to avoid, because a file
+from a newer build would open looking subtly wrong with nothing to explain it; the door already
+reports everything else it repairs as a fault, and this is no different.
+
+### Arrangement is how a graph reads, not how it is displayed
+
+**Clay's catch, 2026-08-19**, and it corrects the tier split: *flow and arrangement are not simply
+display — they are how a graph reads.* So they sit on the **layer**, with the model, and not in the
+workspace's display state.
+
+The line that falls out is worth keeping, because it decides where every later setting goes:
+
+| | Where | Because |
+|---|---|---|
+| explorer fold, canvas toggles, **which view module is showing** | workspace metadata | change nothing about what the model says |
+| **arrangement** (direction included), stored placement | the layer | **inference reads them**, and an inference is permanent |
+
+*This revises the earlier account, which put arrangement among the display preferences.* It also
+retires **arrangement as a one-time action that only writes placement**: `relax` is continuous and
+stores no positions at all, so arrangement is a **setting** with `free` as the case where placement
+happens to be stored. The older rule was true of the four arrangements that existed when it was
+written.
+
+**One setting absorbed all three.** `axis`, `flow` and `arrangement` were three fields answering
+overlapping questions, and `column` / `row` were only `down` / `right` with the direction left
+unsaid. They collapse into **one arrangement with six values** — `free`, `grid`, `right`, `left`,
+`down`, `up` — of which four carry a reading direction and two do not.
+
+**Two values were dropped after reading what they actually did.** **`relax` is not a layout at all**
+— it nulls `x`/`y`, handing the layer back to automatic placement, so it has no look of its own and
+appears to do nothing unless something was hand-placed. **It is retired outright**, not moved: once
+an arrangement is a *setting*, *hand it back to automatic* has nothing left to mean, because picking
+a computed arrangement already does it and picking `free` already gives the placement back. *The
+small named loss: nothing clears hand placement any more.* Accepted rather than kept, because a
+door nobody can describe is worse than a door that is missing. **`radial`** is real but narrow — the busiest block takes the centre and the rest
+ring outward, which reads only for a hub and its attendants and looks wrong everywhere else, with
+unreachable blocks dumped into one final ring. Removed rather than fixed: a value that looks wrong
+more often than right is a value that makes the tool look complicated, and it can return as a view
+definition option if anybody wants it.
+
+**Why this is model data and not a preference — it is forced, not chosen.** Inference reads
+position along the reading direction (order tier 3), and behaviors.md requires that *the same
+selection infers the same way every time*. If the reading direction were display state, the same
+model would infer differently depending on how somebody was looking at it, and the result would be
+a **permanent** block. So anything inference reads is model data. That single test decides this, and
+will decide the next setting somebody proposes.
+
+**The corollary:** `free` and `grid` carry no reading direction, so a layer using either has no
+implied order and inference falls through to connectivity. One rule, and no tier that quietly
+returns a different answer depending on how the layer was arranged.
+
+**Nothing is discarded by arranging.** A block's `at` is always kept; a computed arrangement
+replaces where things *draw*, never what somebody placed, so returning to `free` returns their
+layout. That was already the rule — *retained placement: something an arrangement replaces rather
+than honours, and which is yours again afterwards* — and it is what makes arrangement safe to be a
+setting rather than an action.
+
+**A `derived` relationship is a flag, not a module.** `line` and `directed` say how a relationship
+draws and whether it carries direction; *derived* says nobody drew it and the engine computed it —
+a different axis entirely, and one any relationship could sit on. So it is a property: not in the
+log, recomputed on fold, not deletable. Chosen over a third relation module, which would have made
+*how it draws* and *where it came from* one question.
+
+**And an interface is declared, not derived.** It was *derived from having a `side`*; as a block
+module it is made deliberately, and `side` becomes only where it sits. `promotion` already existed
+as the explicit act of making one, and a declared interface is what can carry an anchor-slot surface
+— which is what lets a lifeline occurrence and a proxy port be the same object.
+
+### Inference makes blocks; composition arranges references
+
+**Two different things were both called inference, and separating them is what makes the view work
+tractable.**
+
+| | Makes | Runs | Is |
+|---|---|---|---|
+| **`infer`** | **new blocks** — the block → activity → state chain | once, when somebody asks | model, and permanent |
+| **composition** | **nothing** — a grouping, spacing and ordering of references | every draw | presentation, and recomputed |
+
+**`infer` stays exactly as [behaviors.md](behaviors.md) describes it.** It is the path to behaviour
+blocks and it is worth having; nothing about the block model changes it.
+
+**Composition is the open area, and it is what a view block needs.** A view holds references to
+blocks drawn from many layers, and something has to decide how they group, space and order — which
+is a different answer per view module and no answer at all today:
+
+| View | Groups by | Orders by |
+|---|---|---|
+| **block** | source layer | the arrangement's direction |
+| **table** | a chosen column | sort |
+| **matrix** | axis membership — its two child views | within-axis order |
+| **activity / state / sequence** | lane, from the reference | the four order tiers |
+
+**There is no per-module infer map.** That idea came from conflating the two, and it is withdrawn:
+`ViewModule.word` and `.creates` stay, serving `create` and the behaviour chain, and no view module
+declares what a block *becomes*.
+
+**And composition runs on one metric: proximity.** How far apart two referenced blocks are in the
+tree — same parent, same branch, same project, different project — is a path distance, computable
+and deterministic. It answers all three questions at once, which is why three view modules need one
+rule rather than three:
+
+| | Reads proximity as |
+|---|---|
+| **group** | the **nearest common ancestor** of a set of references. No dial: the grouping falls out of what was dragged in |
+| **order** | the **tree path**, lexicographically — which is what turns a pairwise metric into the linear order a list needs |
+| **space** | distance, **where the view has room**. The block view does; a table and a matrix have rows, so they take the grouping and the order and drop the spacing |
+
+**A proximity group is a derived group**, in the same sense a computed relationship is derived: the
+`group` base definition already draws a boundary round a set of references, and nothing needs
+storing for one to appear.
+
+**The default has to be overridable, and that is the one thing this rule cannot decide.** A view
+whose whole point is a cross-cut — every requirement across five projects — wants grouping by
+*type*, not by project, and proximity would give it exactly the grouping it was built to escape. So
+grouping by proximity is the **default**, and the alternative is a view definition option.
+
+### What it costs, said plainly
+
+The engine loses cheap dispatch on `form` and moves it to base definition plus card layout. Stream
+`P` derivation rule — mixed children reads as a set, kind per layer — comes out entirely, and it
+landed only days ago. `proxy` is named across `src/` and every doc. This is the largest revision the
+project has taken, and it was taken deliberately: the alternative was a fifth form and a seventh job
+for `proxy`.
+
+
 ## Five ideas
 
 These carry most of the weight, and most of the rules below are one of them applied.
@@ -123,18 +436,19 @@ so that there was always somewhere to draw; untitled, it drew as the bare word
 abandoned session. The fallback label is gone with it — a blank name is now a bug
 to see rather than a word to paper over.
 
-**Nothing declares what a project is.** One holding only proxies is a view, one holding only
-definitions is a package, one holding its own objects is a structure. It is visible from what it
-has, so there is no field to keep true — and a project is free to become something else by being
+**Nothing declares what a project is.** One holding only references is a view, one you are using
+rather than writing is a package, one holding its own objects is a structure. It is visible from
+what it has and from what you are doing with it, so there is no field to keep true — and a project is free to become something else by being
 worked on. What its things *mean* comes from the packages it draws definitions from, not from a
 class: one idea doing the work two would have done badly.
 
 **Everything is a block or a relationship.** Those two are the fundamental units and there is no
-third: a folder in a workspace is a block, a diagram is a block, a note is a block, a swimlane is a
-group of them. What varies is which form one takes, what its definition configures, and what it
-holds — never what sort of thing it fundamentally is. That is the property the whole model is built
-to keep, because every rule that has to ask *"but what if it is one of those instead"* is a rule
-that will be wrong about something later.
+third: a folder is a block, a diagram is a block, a note is a block, a swimlane is a block holding
+references to blocks. What varies is what its definition configures and what it holds — **never
+what sort of thing it fundamentally is**, because there is no longer a set of sorts to be one of.
+That is the property the whole model is built to keep, because every rule that has to ask *"but
+what if it is one of those instead"* is a rule that will be wrong about something later. *The
+simplified block model* above is that property finally taken seriously.
 
 
 ## The decisions everything rests on
@@ -211,13 +525,15 @@ a rename, or force the id to be rewritten everywhere — which is the whole poin
 
 ### Two things, and no more
 
-An **element** is placed and drawn; a **relationship** joins two of them. Everything else describes
+A **block** is placed and drawn; a **relationship** joins two of them. Everything else describes
 one of the two.
 
-**Everything the project holds is an element, not only its structure.** Blocks, notes, groups and
-proxies are one record with one set of operations, because they were already being placed, dragged,
-named and laid out alike — a second table for annotations meant a parallel mechanism for each of
-those, and two cleanup paths where one would do.
+**Everything the project holds is a block, not only its structure.** A note, a group, a folder and
+a reference are one record with one set of operations, because they were already being placed,
+dragged, named and laid out alike — a second table for annotations meant a parallel mechanism for
+each of those, and two cleanup paths where one would do. *The simplified block model* is this
+argument taken to its end: they are not four sorts of one record, they are one record with
+different definitions.
 
 **Anything joining two elements is a relationship.** A form may draw as something other than a
 routed line — a tie is a leader — but drawing is not identity. The alternative was a second way to
@@ -243,12 +559,12 @@ graph already knows, the other is presentation.
 
 The engine knowing something is different from somebody having to say it. **Container** and
 **interface** are ways a block looks, derived from what it holds and whether it sits on a frame
-edge. **Reference** and **tie** are derived from what sits at a relationship's ends. **Seats**,
+edge. A relationship reaching a **reference** is derived from what sits at its ends. **Seats**,
 **routes** and **lanes** are worked out from the layer every time it is drawn. **Control nodes and
 messages** are counted from the relationships and their guards.
 
-- **Naming them in `form` would make a closed engine-level set answer to something that changes the
-  moment a child is added.**
+- **Naming any of them as a sort of thing would make an engine-level answer to something that
+  changes the moment a child is added.** This is why forms went entirely.
 - **A default is derived, never written.** A card falls back to its module's word where nothing has
   given it a type, exactly as an unnamed element falls back to `block 1`. Only a distinction
   somebody actually drew is written down.
@@ -348,9 +664,9 @@ collides with itself and takes the stage with it.
   next in its tooltip says the same two things in a third of the width** (V.19). What is refused is
   the third form: a control that cycles while showing neither, which is what the original rule was
   written against.
-- **A saved view is a block, not a kind of project.** A block whose definition carries a `view`
-  component, holding proxies of what it shows, filed in a folder like anything else. No classifier
-  was added, for the same reason *structure* and *behavior* are not classifiers.
+- **A saved view is a block, not a kind of project.** A `view` usage holding **references** to
+  what it shows, filed in a folder like anything else. No classifier was added, for the same reason
+  *behavior* is not one. See *The simplified block model*.
 - **Which view is showing is a display preference**, so it is sticky per project and never enters
   the log. The definition's `view.module` says how a layer *opens*; the toggle says what is on
   screen now. Same rule as `showPorts` and `angular`.
@@ -414,18 +730,19 @@ one possible exception is the rail (above), which is the optional input path and
 
 ### One graph, and a view is one too
 
-**A view is a project of proxies**, with its own tree, its own log and its own export. It costs no
-new concept: a diagram is a block whose definition names a view module, a folder beside it is an
-ordinary block, and everything a diagram shows is a proxy of something living elsewhere.
+**A view is a block of references**, and a view at the top level is a project like any other —
+its own log, its own export. It costs no new concept: a diagram is a block whose definition names a
+view module, a folder beside it is an ordinary block, and everything a view shows is a reference to
+something living elsewhere.
 
 **Things arrive by being put there**, and adding something to a view touches nothing else. A
 relationship, though, goes to the log of the project that owns its ends — so filling in a matrix
 cell is a real relationship in the real project, and undo reverts wherever the work landed rather
 than where the user was standing.
 
-**What is done through a proxy reaches home.** Renaming a proxy renames the block; a behaviour
-acting on one modifies the block it stands for. One rule, no exception: the change is written where
-the element lives.
+**What is done through a reference reaches home.** Renaming a reference renames the block; a
+behaviour acting on one modifies the block it stands for. One rule, no exception: the change is
+written where the element lives.
 
 ### The block tree is the foundation
 
@@ -479,9 +796,9 @@ as a ref, which is an appearance and not composition, so the two trees never int
 can drift into being a copy of the other.
 
 **Order is read from the model, and only guessed at as a fallback.** A directed relation between two
-blocks *is* the sequence, and it wins. Where none exists, position along the layer's own axis says
+blocks *is* the sequence, and it wins. Where none exists, position along the layer's own arrangement says
 the same thing. So somebody who has laid ten blocks out in a row has already said what happens in
-what order without drawing a single arrow — and that is the reason the axis was worth having as a
+what order without drawing a single arrow — and that is the reason a directional arrangement was worth having as a
 setting separate from an arrangement. The cheapest possible modelling gesture carries meaning, which
 is what *rapid* has to mean if it means anything. The full chain is four tiers deep and lives in
 [behaviors.md](behaviors.md).
@@ -533,11 +850,11 @@ is still its own **module**, because each projects differently enough to need co
 not is separate copies of the facts. One behavior block encodes the interaction and three modules
 read it three ways.
 
-**A behavior block is a block, and its definition says which kind.** `action` and `state` are the
-two, shipped as definitions rather than earned as forms — doing against being is the vocabulary, not
-the shape. A container is an *activity* and a leaf an *action*, which the engine already tells apart,
-so nobody declares it. What a right-click makes follows from **the module in scope**, so creating one
-stays the single fluid gesture that making a structure block already is.
+**A behavior block is a block, and only its definition differs.** `action` and `state` are shipped
+definitions extending `structure`, never forms and never a classifier — doing against being is the
+vocabulary, not the shape. A container is an *activity* and a leaf an *action*, which the engine
+already tells apart, so nobody declares it. What a right-click makes follows from **the module in
+scope**, so creating one stays the single fluid gesture that making any block already is.
 
 **A control node is drawn, never stored.** Two outgoing orders with different guards is a decision,
 two without is a fork, two arriving is a merge or join. Every one is a count, so the module draws
@@ -546,9 +863,9 @@ reading draws them because a reader expects them — which is presentation, exac
 authority already ends.
 
 **None of this needs a schema change**, which is the test that it belongs. An activity is a block,
-its parent is the activity above it, a ref is a proxy, the sequence is `dir` on ordinary
-relationships, the implied order is position against the layer's axis, and a partition is a group.
-What is new is inference — code — and never a field.
+its parent is the activity above it, a participant is a **reference**, the sequence is `dir` on
+ordinary relationships, the implied order is position against the layer arrangement, and a partition is a
+group. What is new is inference — code — and never a field.
 
 ### The action surface is the input seam
 
@@ -631,41 +948,45 @@ declines to write a non-compliant file.
 **Several projects are open at once**, each with its own log and its own export, and the workspace
 gathers them. A single project can still be opened, shared or imported alone.
 
-**Everything is a block, and what kind it is, is derived.** A project is a block that nothing
-contains; a container is a block holding blocks; an interface is a block sitting on a frame edge;
-and a **set** is a block whose members are **proxies** — it holds references rather than things.
-Nothing declares any of these. Making a project is making a top-level block, so making one is as
-ordinary as making anything else, and every caller — a drag out of the tree, the explorer's own
-control, `infer` — goes through the one door instead of each carrying its own.
+**Everything is a block, and how it reads is derived from what it holds.** A project is a block
+that nothing contains; a container is a block holding children; an interface is a block sitting on
+a frame edge. Nothing declares any of these. Making a project is making a top-level block, so making
+one is as ordinary as making anything else, and every caller — a drag out of the tree, the explorer
+own control, `infer` — goes through the one door instead of each carrying its own.
 
-**A set is what a saved view is.** A requirements table is a set of requirements; an allocation view
-is the same set drawn as a matrix. The cross-section is chosen with the ordinary multi-select, each
-member is an ordinary proxy, and which module draws it is the ordinary sticky preference — so a
-saved view needed no new concept, only the one already named *(spec.md: a **set** is whatever it
-holds proxies of)*.
+*The **set**, derived from mixed children, was part of this reading and is gone.* A **folder** is an
+ordinary definition and a **view** holds references; neither is guessed. See *The simplified block
+model*.
 
-**So there is no folder.** Filing is a set whose proxies are project roots, which is exactly what
-the workspace itself already is — `admit` files a project by placing a proxy of its root. A set is
-drawn with a folder mark, because at that point the two are the same thing. Chosen over keeping
-folders as a third concept, and over letting a definition declare itself a set: one duplicates
-something derivable, and the other makes *container* mean three different things in one tree.
+**A saved view is a view block.** A requirements table is a view of requirements; an allocation
+matrix is a view whose two axes are child views. The cross-section is chosen with the ordinary
+multi-select or by dragging blocks in, each member is an ordinary **reference**, and which module
+draws it is the definition `view` component.
+
+*This replaces the earlier reading, that a saved view is a **set** and a set is derived from mixed
+children.* Both halves came out with the block model: **set** is gone as a word, and **folder** is
+an ordinary definition rather than a derivation. A view and a folder are told apart by what their
+children are — references against parts — which needs nothing stored and nothing guessed. See *The
+simplified block model*.
 
 **A move across projects is two steps in two logs.** A project is a log, not only a place, so
 nothing spans both — the rule `Effect.into` and the `home` batches already keep. Undoing in the
 source brings the block back; it does not unmake the project.
 
-**The workspace is itself a project** and needs no new schema to be one: its elements are proxies of
-other projects' roots, and folders are ordinary blocks. So filing is undoable and it draws as a
-block diagram whose dependencies are derived from who holds proxies into whom.
+**The workspace is itself a block, and needs no new schema to be one**: its children are project
+roots and folders, contained rather than owned, and it draws as a block diagram whose dependencies
+are derived from who references whom. *It was called a **project** here until 2026-08-19; it is now
+the tier above one — it owns no graph of its own and holds the log for everything. See The three
+tiers.*
 
 **A change is recorded where its element lives.** Ownership routes it, and nothing branches or
 merges. Every cross-project write goes through one door — an applied step appended to the target's
 log, never a raw replace of it — so an action can get *which* project wrong but never leave a write
-half-done. A relationship across two projects is a proxy plus an ordinary edge, both in the project
-of the end making the claim — so no relationship ever spans two logs.
+half-done. A relationship across two projects is a reference plus an ordinary edge, both in the
+project of the end making the claim — so no relationship ever spans two logs.
 
-**A proxy tolerates a missing target and never records the absence**, so undoing a deletion in one
-project brings the reference back in another. Only deletion is breaking, and only breaking changes
+**A reference tolerates a missing target and never records the absence**, so undoing a deletion in
+one project brings it back in another. Only deletion is breaking, and only breaking changes
 are reported.
 
 ### The terminal

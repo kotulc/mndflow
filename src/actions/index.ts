@@ -73,7 +73,7 @@ export type HomeBatch = {
  *  so neither is replayed: where somebody is looking is theirs.
  *
  *  `into` is which project's log the primary mutations land in — a matrix
- *  cell, a rename through a proxy, an inferred behavior project. Absent means
+ *  cell, a rename through a reference, an inferred behavior project. Absent means
  *  the project in context. One primary log per effect; {@link home} batches
  *  are extra writes into structure projects, still through the same door. */
 export type Effect = {

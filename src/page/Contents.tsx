@@ -33,7 +33,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  actual, blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isContainer, isProxy, membersOf,
+  actual, blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isContainer, isReference, membersOf,
   nameOf, notesIn, resolved, typeName, portsOf, tiesOf,
 } from "../graph/fold";
 import type {
@@ -220,9 +220,9 @@ type Props = {
   /** Make or amend a project definition — fields, body, presentation. */
   onDefine: (name: string, id?: string, form?: string, patch?: DefPatch) => void;
   onUndefine: (id: string) => void;
-  /** Place a proxy of a dragged explorer row in this layer (P.7). Only the
+  /** Place a reference of a dragged explorer row in this layer (P.7). Only the
    *  stage-sized table takes the drop: at partial size the table is scoped to
-   *  what is in focus, and the proxy would land in the layer instead. */
+   *  what is in focus, and the reference would land in the layer instead. */
   onRefer?: (target: string) => void;
   /** Fields given a column of their own, beyond the fixed head (P.8). The
    *  rail picks them and the table draws them — empty is the default set. */
@@ -233,7 +233,7 @@ type Props = {
 function blockDetail(graph: Graph, id: string, unit: string): string {
   const node = graph.elements[id];
   if (!node) return "";
-  if (isProxy(node)) return `stands for ${nameOf(graph, actual(graph, id)) || "something gone"}`;
+  if (isReference(node)) return `stands for ${nameOf(graph, actual(graph, id)) || "something gone"}`;
 
   const kids = blocksOf(graph, id).length;
   const ports = portsOf(graph, id).length;
@@ -765,8 +765,8 @@ export function Contents(props: Props) {
       out.push({
         id: node.id, sort: "block", name: nameOf(graph, node),
         detail: blockDetail(graph, node.id, unit),
-        type: isProxy(node) ? null : node.type,
-        edge: false, renameable: !isProxy(node), body: said(node.id),
+        type: isReference(node) ? null : node.type,
+        edge: false, renameable: !isReference(node), body: said(node.id),
         notes: elementNotes(graph, node),
       });
       for (const port of portsOf(graph, node.id)) {
@@ -906,7 +906,7 @@ export function Contents(props: Props) {
    *  nothing where that row does not carry it. A definition's own declared
    *  default answers for a type row, so the column reads the same either way. */
   const cell = (row: Row, name: string): string => {
-    // Through the proxy, as the name column already reads: a reference shows
+    // Through the reference, as the name column already reads: a reference shows
     // what the block it stands for says, or the column is blank for every
     // referenced row.
     const held = row.sort === "definition"
@@ -1009,7 +1009,7 @@ export function Contents(props: Props) {
             {node?.flow ? node.flow[0] : "·"}
           </button>
         )}
-        {isProxy(node) && (
+        {isReference(node) && (
           <button title="Go to where it lives"
                   onClick={stop(() => onReveal(actual(graph, row.id)?.id ?? row.id))}>↗</button>
         )}

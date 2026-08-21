@@ -7,6 +7,16 @@ target.
 - **What is not built, and what is undecided** → [tasks.md](tasks.md).
 - **(planned)** marks a line that is the target but not yet the behaviour.
 
+> **This file is the present, and it speaks the pre-rework vocabulary.** On 2026-08-18 Clay settled
+> the **simplified block model** — one block, no element forms, `proxy` → **reference**, `set` →
+> **folder**, no `kind` — recorded in [definitions.md](definitions.md) and argued in
+> [design.md](design.md) under *The simplified block model*. **The code has not moved yet**, so the
+> lines below still say `set`, `kind` and `element form` where the code does, and that is correct
+> for this file. **`B.1` landed on 2026-08-20**, so *proxy* is gone from the prose here and from
+> `src/` — what remains is the schema token `form: "proxy"`, which is `B.6`/`B.17`'s to change. Where the two disagree, definitions.md is the target and this is what
+> runs. The migration is story `ST.4` / stream `B` in [plan.md](plan.md). **Do not add a new use of
+> a retired word here** — describe what landed, in the new words, as each row lands.
+
 mndflow is a client-only web app for assembling systems out of simple descriptive building
 blocks. There is no server: a step log lives in the tab, and the graph is folded from it.
 
@@ -21,7 +31,7 @@ drawn; a relationship joins two of them. Everything else describes one of the tw
 - **`form` is closed and the engine's; `type` is open and the user's.** One rule, and it holds for
   elements, relationships and fields alike.
 - `form` says which of four it is: **block** (the base and the default), **note**, **group**, or
-  **proxy**. It decides what draws an element and which rules reach it.
+  **reference**. It decides what draws an element and which rules reach it.
 - **`figure` was a fifth form and is retired**: nothing in the core ever placed one.
   An activity's fork, decision, initial, final, merge and join are **derived from counting
   relationships and guards**, so a module draws them and the graph stores none; and the ornament a
@@ -114,12 +124,12 @@ the project.
 
   | | Derived from | Draws |
   |---|---|---|
-  | **reference** | an end is a **proxy** — it reaches something in another layer or project | violet and dashed, held back at reduced opacity so the form and the label read first; hover and selection bring it to full |
+  | **reference** | an end is a **reference** — it reaches something in another layer or project | violet and dashed, held back at reduced opacity so the form and the label read first; hover and selection bring it to full |
   | **tie** | an end is a **note** — a note relates to what it describes and to nothing else | a faint leader with no seats; it takes the pointer and can be picked and untied (V.16) |
 
 - A reference keeps whichever form it was given and keeps its direction. Both routes to one draw
-  alike — an end drawn straight onto a proxy, and an end substituted by the proxy standing in for it.
-- What a proxy stands for is a property of the appearance, not a relationship: one thing appearing
+  alike — an end drawn straight onto a reference, and an end substituted by the reference standing in for it.
+- What a reference stands for is a property of the appearance, not a relationship: one thing appearing
   twice rather than two things joined.
 - **A weaker mention drawn lighter is not a form** — that is presentation, so it is a definition
   subtyping `line`.
@@ -233,7 +243,7 @@ the project.
     module compute a shape inside the engine's box. Control nodes are counted and drawn by the
     activity module (A.7b).
   - **Style is drawn from** via `lookOf` on the diagram; **table** mounts when `view.module` is
-    `table` — rows pick/open, proxy open withheld (A.1, proven); **matrix** mounts when named
+    `table` — rows pick/open, reference open withheld (A.1, proven); **matrix** mounts when named
     (A.2, suite). Both are **Contents-modelled panel shells** (~⅓ stage; expand fills stage) with
     crumbs. **App wires `path` / `onUp`** (U.18, proven), so the crumb reads the trail the page
     already holds, and **the types filter is the rail's group** (Y.4, proven) rather than a cycle
@@ -298,7 +308,7 @@ the project.
   are using or one you are writing depending on which you are doing, so nothing in it says.
 - **A reference reaching another project is written as a path**, `proj_a9f/def_pump` — the
   project, a slash, then the id inside it. An id alone means this project, so every reference
-  written so far still reads. One convention serves all three places one is held: a proxy's `of`,
+  written so far still reads. One convention serves all three places one is held: a reference's `of`,
   an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
   ambiguous, and a reader splits on the first one or does not have to split at all. `refTo` and
   `refAt` are the two ends of it. The workspace admits another project (and a shipped package)
@@ -432,8 +442,8 @@ the project.
     exposes `watchPressure` / `pressureNote`; the strip shows that note when pressure rises.
   - **The workspace keeps its own list of what has been imported** (`Held.projects` on
     `mndflow.workspace.v1`), which is what an untouched project is remembered by when it has no
-    key of its own.     `admit` places a proxy of another project's root and appends that id; `folder`
-    mints an ordinary block for filing; proxying the workspace itself is refused. **`begin`
+    key of its own.     `admit` places a reference of another project's root and appends that id; `folder`
+    mints an ordinary block for filing; referencing the workspace itself is refused. **`begin`
     names a project into the workspace** — required, unique, then a log whose first step is that
     naming; never an untitled blank. **`App.newProject` goes through it** (U.18, proven). Explorer listing and context switch are live (S4.5).
     Workspace `⤓` and project `↧` export/import at schema `1.2` (S4.6).
@@ -508,7 +518,7 @@ registry, read by every input method: gestures, the contents tray, and later the
   are worth learning, like the header's; a list built from the selection has no positions to keep,
   so an entry that cannot run is only noise.
 - **An action refuses in words**, and the refusal goes to the strip like everything else the app
-  says. A name already taken, a node moved inside itself, a second proxy for the same block. A
+  says. A name already taken, a node moved inside itself, a second reference for the same block. A
   write against a locked package refuses with the reason and offers **unlock** or **fork** (S4.8).
 - **One step per action**, whatever it took to do it — a card dropped in a group moved and joined,
   and undo takes back both.
@@ -546,7 +556,7 @@ Chosen → offer → `run("infer")` → fold → activity draw (T.4, proven; bro
 *The **block** diagram's projection surface lives under `modules/view/diagram/` — frame, crumbs,
 prompts, compose, and a declared gesture map (S2.6 / S2.6b / S2.6c / S2.7). `Canvas.tsx` still
 hosts. **Which module mounts** follows the sticky pick when it fits the project kind, else the
-layer's `view.module` (U.8, proven). **Table** — rows pick/open; proxy open withheld (A.1,
+layer's `view.module` (U.8, proven). **Table** — rows pick/open; reference open withheld (A.1,
 proven). **Matrix** when named (A.2, suite). **Both open as Contents-modelled panel shells**
 (**filling the stage by default** since V.19 — the tab shrinks them back to ~⅓) and host **A.1's
 crumbs**. **The types filter went to the rail** (Y.4, proven): each declares a `types` answer —
@@ -562,9 +572,9 @@ on the activity plane; activity-final double ring. The rest of this section is s
 for multi-view work.*
 
 **A saved view is a block, and there is no kind of project for it.** A block whose definition
-carries a `view` component, holding proxies of what it shows, filed in a folder — which is itself
+carries a `view` component, holding references of what it shows, filed in a folder — which is itself
 an ordinary block. It can be organised by behaviour, by requirement, by function, wherever it is
-filed, and it costs no concept: blocks nest, `view` is a published component, and external proxies
+filed, and it costs no concept: blocks nest, `view` is a published component, and external references
 landed with S4.3.
 
 - ***Diagram* means one thing**: what a layer looks like drawn on the canvas. It names no module,
@@ -590,12 +600,12 @@ landed with S4.3.
     interacting and those already have both. Nothing structural stops one — a module reads a layer,
     and a behavior layer is a layer — so this is what is *offered*, and an allocation matrix of
     participants against actions is the obvious thing to reconsider it for.
-- **Everything a diagram shows is a proxy**, whatever it looks like: a card, a table row, a label
+- **Everything a diagram shows is a reference**, whatever it looks like: a card, a table row, a label
   along a matrix axis. How one draws is its subtype's, so a table is the same objects as a diagram
   drawn differently rather than a second kind of thing.
 - **Things arrive by being put there** — a block, a selection of them, or a whole project by its
   root, which is how a diagram comes to be about a project rather than a handful of its parts.
-- **Adding something to a view creates a proxy in the view**, and touches nothing else. Dragging a
+- **Adding something to a view creates a reference in the view**, and touches nothing else. Dragging a
   block into a matrix does not write to that block's project.
 - **`refer` takes a cross-project path**, not only a local id: a row dragged out of the explorer
   names the project it came from, and a reference into the project in context is stored bare, the
@@ -603,27 +613,27 @@ landed with S4.3.
   of what is checked — which is what lets a set be composed from more than one project.
   A reference to the **open layer itself** is refused — a layer cannot hold a stand-in for itself,
   and the action says so rather than each surface guarding it.
-  **(planned)** A cross-project proxy still draws as *missing*: nothing resolves another project's
+  **(planned)** A cross-project reference still draws as *missing*: nothing resolves another project's
   element for a label, and `workspace.resolve` is the resolver waiting to be handed down.
 - **A diagram's own variation is its contents and its fields**, never configuration: its definition
   configures every diagram of that subtype alike, so two matrices differ in what they hold and what
   their fields say.
 - **Nothing about *how a view looks* enters the project it reads** — its contents, its arrangement
-  and its fields are its own. **What is done through a proxy does reach home**, and always did: a
-  proxy is a stand-in, so renaming one renames the block, and a behavior acting on one modifies the
+  and its fields are its own. **What is done through a reference does reach home**, and always did: a
+  reference is a stand-in, so renaming one renames the block, and a behavior acting on one modifies the
   block it stands for. That is one rule, not an exception — the change is written where the element
   lives.
 - **A relationship goes to the log of the project that owns its ends**, resolved through the
-  proxies — so filling in a matrix cell is a real relationship in the real project, while a view's
+  references — so filling in a matrix cell is a real relationship in the real project, while a view's
   flows between its own elements stay in its own log. **A write into a project that is not the one
   in context** goes through `Effect.into` / `writeInto` — the same door, an undoable step in the
   target's log (S4.9). **Parked**: App may not refresh after a foreign write.
-- **A relationship across two projects is a proxy and an ordinary edge**, both in the project of the
-  end making the claim. An edge's ends stay plain ids; only a proxy's target widens.
+- **A relationship across two projects is a reference and an ordinary edge**, both in the project of the
+  end making the claim. An edge's ends stay plain ids; only a reference's target widens.
 - **Undo reverts wherever the work landed**, not where the user was standing.
-- **A view may hold proxies into as many projects as it likes.** Nothing limits it to one.
+- **A view may hold references into as many projects as it likes.** Nothing limits it to one.
 - **A project opened alone is read in isolation** — its own root, its own contents, and nothing
-  about who imported it. A proxy is a one-way import, so the project it points at never needs to
+  about who imported it. A reference is a one-way import, so the project it points at never needs to
   know. Cross-project relationships are read in the **workspace** view, where the workspace's root
   is the root, every project below it is a block, and the lines between them are the imports.
 
@@ -632,7 +642,7 @@ components, and nothing else:
 
 | | Is |
 |---|---|
-| **scope** | a **layer** — one element's contents — or a **set**, which is whatever it holds proxies of |
+| **scope** | a **layer** — one element's contents — or a **set**, which is whatever it holds references of |
 | **vocabulary** | what this notation calls a block, a group, a relationship, an interface — and which definitions it offers |
 | **renderers** | how to draw, keyed by an element's or relationship's `type` |
 | **layout law** | sizes, and either positions or nothing |
@@ -853,7 +863,7 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 - Groups, notes and every field never appear.
 - Interfaces are hidden behind a toggle; when shown they sit at the same level as child blocks,
   sorted after them, with their own icon and no branch of their own.
-- Proxies are never listed — a proxy is a second appearance of something already there.
+- References are never listed — a reference is a second appearance of something already there.
 - Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
 - Every open project is a root in the same tree, filed into the folders the workspace
@@ -876,9 +886,9 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   Its definitions and the package list travel with it, so types still resolve. **Relationships with
   one end left behind are lost** — deliberate, nothing stands in for the block that left — and the
   strip says how many.
-- **(planned)** A **set** appears as a root like any other and lists what it holds proxies of. It
-  is the one place a proxy *is* listed, because in a set there is nothing else to list. **Derived,
-  never declared** — members are proxies, so it is a set. This is what a *saved view* is: a
+- **(planned)** A **set** appears as a root like any other and lists what it holds references of. It
+  is the one place a reference *is* listed, because in a set there is nothing else to list. **Derived,
+  never declared** — members are references, so it is a set. This is what a *saved view* is: a
   requirements table is a set of requirements, an allocation view the same set drawn as a matrix.
   **A folder is a set of projects**, so there is no folder concept and a set wears a folder mark
   (stream `P`).
@@ -960,7 +970,7 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 **Editing**
 
 - Add, rename, delete, and drag rows between levels.
-- Dragging a row onto the canvas places a proxy for it in the open layer.
+- Dragging a row onto the canvas places a reference for it in the open layer.
 - A move to another layer drops what does not travel: the node's annotations — group
   memberships and note ties — and its relationships to anything staying behind. Its children,
   its interfaces and all the wiring inside it arrive exactly as they were.
@@ -1108,17 +1118,17 @@ about like any other, and the drag sticks.
   - A chip's name shrinks to fit and hides when even the floor will not fit; hover names it.
   - Nesting stops at the first layer: a child container is marked as one and no further.
   - A container is barely bigger than a block; the cells shrink instead of the card growing.
-- **Proxy** — a stand-in for a block living in another layer, so that a relationship reaching
+- **Reference** — a stand-in for a block living in another layer, so that a relationship reaching
   it can be seen here. A visual shortcut; it changes nothing about the relationship.
   - **It is bound to its block by `of`** — a path id for a same-project block, or
-    `{ project, element }` when the target lives elsewhere — never by a relationship. A proxy is
+    `{ project, element }` when the target lives elsewhere — never by a relationship. A reference is
     not two things joined, it is one thing appearing twice, which is a property of the appearance.
   - **A missing target is kept, never deleted by tidy** — the card reads as a missing block so
     undoing a deletion elsewhere can bring the reference back.
-  - **An appearance is the proxy's; the thing is the block's.** Where it sits, how it draws and
+  - **An appearance is the reference's; the thing is the block's.** Where it sits, how it draws and
     its colour are its own, because they are true only of this layer. Its name, body, fields,
     interfaces, children and type are the block's, because there is only one thing to have them.
-  - **A relationship drawn to a proxy is stored here and reaches the block.** That is all
+  - **A relationship drawn to a reference is stored here and reaches the block.** That is all
     "reference" means, and it is derived from where the ends live rather than given as a form.
   - Greyed, hatched and dashed, marked `↗`; the only dashed card on the canvas. The colour is on
     the lines, not the card: **a relationship reaching a reference draws violet and dashed**,
@@ -1126,7 +1136,7 @@ about like any other, and the drag sticks.
   - Shows the name of the block it stands for; renaming it renames that block.
   - Has no inside: double-clicking goes to where that block actually lives and selects it there.
   - Nothing nests into one, and it never becomes an interface.
-  - Points at a real block, never at another proxy — the explorer is the only place one is
+  - Points at a real block, never at another reference — the explorer is the only place one is
     dragged from and it does not list them.
   - **One per layer per block**, and never for a block already in that layer — a second
     appearance of the same thing says nothing the first did not.
@@ -1458,7 +1468,9 @@ not delete or rewrite Contents.
 **Opening and closing**
 
 - **Three sizes, two doors.** Shut is the bar alone; **partial is a quarter of the stage**; full
-  is what setting the project's view toggle to `table` means. The `contents` tab shuts and opens
+  is what setting the project's view toggle to `table` means. *(**Superseded by `W.5`**, 2026-08-20:
+  the tray has **two** sizes, shut and open. `full` was never a tray size — it is the toggle putting
+  the **table module** on the stage, and the two are different things. This line is what runs.)* The `contents` tab shuts and opens
   it, the toggle fills it, and **nothing else closes it** — a click on the canvas is how a row gets
   selected, so shutting on one hid the thing being inspected. The bar shows which layer is listed.
 - **The chosen size sticks across a reload**, kept beside the other display preferences and never
@@ -1499,7 +1511,7 @@ not delete or rewrite Contents.
   |---|---|
   | relationship | direction, turn it around, remove |
   | interface | marking, what it says, delete |
-  | proxy | go to where it lives, what it says, delete |
+  | reference | go to where it lives, what it says, delete |
   | block, group, note | what it says, delete |
 
 - **What it says** opens the row out: its body, the groups it belongs to, and its fields,
@@ -1515,8 +1527,8 @@ not delete or rewrite Contents.
 - **A row dragged out of the explorer lands here as a reference** — the same `refer` the canvas
   takes, on the table at full size and on the matrix alike. One gesture, three surfaces, one
   action. The partial tray does not take it: at that size the table is scoped to what is in focus,
-  and the proxy would land in the layer instead.
-- **A column reads through a proxy**, as the name column does: a reference shows what the block it
+  and the reference would land in the layer instead.
+- **A column reads through a reference**, as the name column does: a reference shows what the block it
   stands for says.
 
 ## Naming
