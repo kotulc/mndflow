@@ -66,7 +66,7 @@ describe("row composition", () => {
     expect(rows.find((r) => r.id === "a")?.type).toBeTruthy();
     expect(rows.find((r) => r.id === "p1")?.form).toBe("proxy");
     expect(rows.find((r) => r.id === "p1")?.type).toBe("");
-    expect(rows.find((r) => r.id === "p1")?.name).toBe("missing");
+    expect(rows.find((r) => r.id === "p1")?.name).toBe("closed");
   });
 
   it("shows a cross-project reference's target name when that project is open", () => {

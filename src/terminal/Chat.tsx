@@ -29,7 +29,6 @@ import { refTo } from "../graph/types";
 import type { Action, Args, Context, Picked } from "../actions";
 import { useSettling } from "./useSettling";
 import { useTypewriter } from "./useTypewriter";
-import { Icon } from "../modules/icons";
 // Side effect only: registers per-domain terms with the project seam (Z.9
 // deleted the question loop that used to do this; this is what is left of it).
 import "./terms";
@@ -54,6 +53,21 @@ type Props = {
   onDraft: (text: string) => void;
   onAct: (name: string, args?: Args) => boolean;
 };
+
+/** The one glyph the terminal draws. Inline rather than from `modules/icons`,
+ *  because the terminal is optional and a build without `modules` still has to
+ *  render it — see the dependency map in `tests/structure.test.ts`. */
+function Chevron({ up }: { up: boolean }) {
+  return (
+    <svg
+      className="icon-svg" width={16} height={16} viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth={1.5}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    >
+      <path d={up ? "M6.5 14.5l5.5-5 5.5 5" : "M6.5 9.5l5.5 5 5.5-5"} />
+    </svg>
+  );
+}
 
 export function Chat(props: Props) {
   const { graph, view, picked, project, open, chosen, locked, draft, onDraft, onAct } = props;
@@ -294,7 +308,7 @@ export function Chat(props: Props) {
           title={expanded ? "Collapse Page Intelligence" : "Expand Page Intelligence"}
           onClick={() => setExpanded((was) => !was)}
         >
-          <Icon name={expanded ? "less" : "more"} />
+          <Chevron up={expanded} />
         </button>
       </div>
     </div>

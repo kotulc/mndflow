@@ -6,7 +6,7 @@
 
 import { blocksOf, isReference, typeName } from "../../../graph/fold";
 import type { Element, Graph } from "../../../graph/types";
-import { shownName } from "../../../canvas/named";
+import { shownName } from "../../named";
 
 /** One line in the table: the member, and whether it stands in for another. */
 export type Row = {

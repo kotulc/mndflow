@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import { element, EMPTY, ROOT, refTo } from "../../src/graph/types";
-import { shownName, stoodFor } from "../../src/canvas/named";
+import { shownName, stoodFor } from "../../src/modules/named";
 
 describe("cross-project naming", () => {
   it("reads a bare reference through the local fold", () => {
@@ -42,7 +42,7 @@ describe("cross-project naming", () => {
     expect(stoodFor(graph, open, "p1")?.id).toBe("valve");
   });
 
-  it("draws missing when the target project is not open", () => {
+  it("says closed when the target project is not open", () => {
     const layer = element("layer", { id: "L", parent: ROOT, form: "block" });
     const stand = element("", {
       id: "p1", parent: "L", form: "proxy", of: refTo("valve", "proj_closed"),
@@ -52,7 +52,22 @@ describe("cross-project naming", () => {
       elements: { ...EMPTY.elements, L: layer, p1: stand },
     };
 
-    expect(shownName(graph, {}, stand)).toBe("missing");
+    expect(shownName(graph, {}, stand)).toBe("closed");
     expect(stoodFor(graph, {}, "p1")).toBeUndefined();
+  });
+
+  it("draws missing when the target is gone from an open project", () => {
+    const layer = element("layer", { id: "L", parent: ROOT, form: "block" });
+    const stand = element("", {
+      id: "p1", parent: "L", form: "proxy", of: refTo("valve", "proj_b"),
+    });
+    const graph = {
+      ...EMPTY,
+      elements: { ...EMPTY.elements, L: layer, p1: stand },
+    };
+    const open = { proj_b: { ...EMPTY, elements: { ...EMPTY.elements } } };
+
+    expect(shownName(graph, open, stand)).toBe("missing");
+    expect(stoodFor(graph, open, "p1")).toBeUndefined();
   });
 });

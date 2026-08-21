@@ -29,16 +29,16 @@ has no page mount (component still unmounted — remount when ranking needs a su
 Z.2 / Z.3 landed**: collapsed chips rank by embedding when typed; idle by shape-weighted
 preference; overrule feedback in sticky storage; Chat warms embeddings; `suggest.ts` gone.
 
-**The suite cannot see a broken canvas, and that is now rowed.** Nothing in `tests/` mounts a
-layer, so *making a relationship draws no line* passed 763 tests and `tsc`. `T.6` adds the few
-property tests that would have caught it and `T.7` turns README.md's dependency map into a test
-rather than prose — both **wave 0**, both red on today's tree, both owning `tests/` alone.
+**The suite can now see a broken canvas** (*done*, T.6, proven; browser skipped) —
+`tests/canvas/layer.test.ts` mounts a layer. **`C.11` turned the remaining assertion green**: after
+a link the relationship is in the DOM. One perch per arriving relationship already holds; a note
+keeps its handles.
 
-**A batch was driven on 2026-08-20** (`B.2`, `B.7`, `N.1`, `C.2`, `C.4`, `C.5`, `C.7`). Four rows
-came through whole; `C.2`, `C.7` and `N.1` landed short and put **defects 21–30** on the list below.
-The one that matters: **making a relationship draws no line until the page is reloaded** (21), a
-regression the suite could not see because no test opens a layer. The repairs are `C.9`–`C.11` and
-`N.8` in [plan.md](plan.md).
+**`T.7` landed and passes**: `tests/structure.test.ts` walks every import under `src/` against one allowlist; README.md points at it. `C.9` inverted the arrows, and legal imports do not trip it.
+
+**A batch was driven on 2026-08-20** (`B.2`, `B.7`, `N.1`, `C.2`, `C.4`, `C.5`, `C.7`). Four rows came through whole; `N.1` remains short and puts **defects 21–30** on the list below.
+**`C.11` closed 21** (and `C.2`'s drawing remainder): a new relationship draws immediately; `T.6`
+is green. `C.9` also closed the cross-project naming remainder and defect 24. Remaining repair is `C.10`, with `N.8` in [plan.md](plan.md).
 
 **Three bugs found by driving the app, all fixed.**
 
@@ -2843,6 +2843,14 @@ the common operation.
 `run("infer")` → fold → activity draw. The older behaviour-view fixtures still prove renderers over
 hand-built graphs; keep them.
 
+**A mounted layer is a test** (*done*, T.6, proven; browser skipped) — `tests/canvas/layer.test.ts`
+mounts a layer through `T.5`'s harness. **`C.11` turned the remaining assertion green**: after a
+link the relationship is in the DOM. One perch per arriving relationship and none on a spare card
+already hold; a note still has its handles after the cards are related.
+
+**The dependency map is a test** (*done*, T.7, proven; browser skipped) — `tests/structure.test.ts`
+walks every import under `src/` against one allowlist; README.md points at it. `C.9` inverted the arrows. Legal imports do not trip it.
+
 **Deliberately untested:** the terminal — `router`, `turn`, `workflows`, `rank` — whose shape
 stream Z is still changing, so a suite now would be rewritten by it; `embed` and `match`, which
 need a model *(and which Z.8's scope-down does not summon — it is a keyword lookup, not a model)*;
@@ -2902,15 +2910,15 @@ no row — stream Z changes its shape, so a suite would be rewritten by it.
 | **12** | The rail never calls `entries()`, so no `expand` action (`mark`, `direct`, `reform`, now `infer`) can offer its second reading from the rail — only the explorer and canvas menus can | `actions/rank.ts` |
 | **13** | `Y.6a` dropped `verbs: true` from the rail's `project` group as a side effect; the group now mixes a one-shot verb with four stateful picks. Nothing keyed off it | `page/Rail.tsx` |
 | **14** | `table` is the only view module shipping no component, and `App.tsx` name-checks all six modules in one ternary chain. Legal, but record it so it does not read as an accident | `modules/view/table/`, `page/App.tsx` |
-| ~~**15**~~ — **closed by `C.7`, 2026-08-20** | A cross-project reference now reads its target's name on a card and in a table, across a reload. **What is left is narrower and is `C.7 ◐`**: a reference into a *closed* project reads the same bare `missing` as one whose target is gone | `canvas/named.ts` |
+| ~~**15**~~ — **closed by `C.7` and `C.9`, 2026-08-20** | A cross-project reference reads its target's name on a card and in a table, across a reload; a closed project reads **`closed`**, distinct from a gone target's **`missing`** | `src/modules/named.ts`
 | **16** | **`Y.6a` was reverted in `683676d` and left its comments behind.** `ExportLook`, `LOOK_ICON`, the three `RailOpts` fields and the four look controls are gone; the two doc comments that described them now sit orphaned above `TYPE_CAP` and at the foot of `RailOpts`, describing nothing. Either the row comes back or the comments go — a comment for absent code is worse than neither. (Supersedes **13**, whose `verbs: true` came back with the revert) | `page/Rail.tsx` |
 | **17** | **The rail's relation types are capped at three but not *ranked* by use.** The list-of-types rule says top three by learned preference; the group takes the first three in vocabulary order. Nothing records a pick there as an overrule yet, so there is nothing to rank by — deciding what an overrule *is* for a "what the next drag draws" setting is the open half | `page/Rail.tsx`, `actions/typelist.ts` |
 | **19** | **`childKind` never reaches its `extends` fallback.** It returns on the type ref's package alone, so `packages/uaf`'s `def_operational_activity extends pkg_behavior/def_action` — and sysml's mapped `action`/`activity` — both read as **structure**. In practice only the ref `behaviorType()` itself mints can produce a behavior layer, which is the same defect as **1b** seen from the other side | `page/kind.ts` |
 | **20** | **The two create buttons disagree about a duplicate name.** `createBehavior` returns silently and `Files.create()` closes the field anyway; the structure button goes through the `create` action and says *"pump" is already used here*. Two adjacent buttons, one input, two behaviours | `page/App.tsx` |
-| **21** | **A relationship draws no line until the page is reloaded.** `C.2` regression, found by driving 2026-08-20 and confirmed against `HEAD`. The per-edge anchor handles are minted by the same render that adds the edge, so React Flow drops it. **Rowed as `C.11`** | `modules/view/diagram/pieces.tsx` |
+| ~~**21**~~ — **closed by `C.11`, 2026-08-20** | A new relationship draws immediately; handles stated on the node from `laidOf`'s seat map. One perch per arriving line still holds | `modules/view/diagram/compose.ts` |
 | **22** | **A project dropped into a folder vanishes from the explorer** until the folder is clicked, and again after every reload. The folder was empty when the drag began, so `holds` was false and the dropzone was handed no spring callback; nothing opens it after the drop. **Rowed as `N.1 ◐`** | `page/Files.tsx` |
 | **23** | **`workspace.folder()` has no caller anywhere in `src/`** — exported and tested since the workspace landed, reachable only from the suite. No workspace folder can be made from the app. **Rowed as `N.8`** | `page/Files.tsx`, `workspace/index.ts` |
-| **24** | **`modules/` imports `canvas/` and `canvas/` imports `workspace/`.** `modules/view/table/{rows,columns}.ts` reach up into `canvas/named.ts`, which reaches up into `workspace`. Both are backwards against README.md's dependency table, and `named.ts`'s own comment claims an inversion it does not perform. **Rowed as `C.9`** | `modules/view/table/`, `canvas/named.ts` |
+| ~~**24**~~ — **closed by `C.9`, 2026-08-20** | The resolver now lives below the dependency boundary: `modules/` no longer imports `canvas/`, and `canvas/` no longer imports `workspace/` | `src/modules/named.ts`, `src/canvas/named.ts`
 | **25** | **The card renderer exists twice.** `canvas/NodeCard.tsx` is a 285-line copy of the module's 348-line one; `Canvas.tsx` overrides `NODES.card` with it, so the module's copy draws nothing while the suite still tests it. **Rowed as `C.10`** | `canvas/NodeCard.tsx` |
 | **26** | `Anchor` is imported but unused in `modules/view/diagram/Frame.tsx` — the four static anchors it drew came out with `C.2` and the import stayed. `tsconfig` has no `noUnusedLocals`, so nothing says | `modules/view/diagram/Frame.tsx` |
 | **27** | **The `seat` action's `scope` still says `{ on: "element", form: "interface" }`** while its `check` and `run` now also take an edge end (`C.2`). Harmless while `when: () => false` keeps it off every offered list — wrong the moment `I.7` puts the whole action surface behind `?` | `actions/layer.ts` |

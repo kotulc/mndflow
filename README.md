@@ -178,20 +178,23 @@ the node hierarchy.
 
 `src` is organised by what a thing is *for*, in the words the design documents
 already use. **Dependencies run one way**, and a folder that reaches upward is a
-design problem you can see rather than one you have to trace.
+design problem you can see rather than one you have to trace. The allowed edges
+live in [`tests/structure.test.ts`](tests/structure.test.ts) — one list, not a
+second copy here — and the suite names the file and the arrow the first time
+somebody points it the wrong way.
 
-| Folder | Is | Depends on |
-|---|---|---|
-| [`graph/`](src/graph) | the project: log, fold, schema, files | nothing |
-| [`embed/`](src/embed) | MiniLM over ONNX, and scoring text against it | nothing |
-| [`geometry/`](src/geometry) | sizing, placement and routing, derived from the graph | `graph` |
-| [`actions/`](src/actions) | the action registry: every action, its scope and its check | `graph`, `geometry` |
-| [`workspace/`](src/workspace) | the workspace as a project: held roots, folders, packages | `graph` |
-| [`modules/`](src/modules) | what open modules publish — the components a definition configures, and the view modules that project a layer | `graph`, `geometry`, `embed`, `actions` |
-| [`canvas/`](src/canvas) | the drawing half the diagram module composes | `graph`, `geometry`, `actions`, `modules` |
-| [`page/`](src/page) | the shell a module sits in | `graph`, `canvas`, `modules`, `workspace`, `terminal`, `project` |
-| [`terminal/`](src/terminal) | the optional way to give input | `graph`, `geometry`, `embed` |
-| [`project.ts`](src/project.ts) | the seam: state and dispatch | `graph`, `actions`, `embed` |
+| Folder | Is |
+|---|---|
+| [`graph/`](src/graph) | the project: log, fold, schema, files |
+| [`embed/`](src/embed) | MiniLM over ONNX, and scoring text against it |
+| [`geometry/`](src/geometry) | sizing, placement and routing, derived from the graph |
+| [`actions/`](src/actions) | the action registry: every action, its scope and its check |
+| [`workspace/`](src/workspace) | the workspace as a project: held roots, folders, packages |
+| [`modules/`](src/modules) | what open modules publish — the components a definition configures, and the view modules that project a layer |
+| [`canvas/`](src/canvas) | the drawing half the diagram module composes |
+| [`page/`](src/page) | the shell a module sits in |
+| [`terminal/`](src/terminal) | the optional way to give input |
+| [`project.ts`](src/project.ts) | the seam: state and dispatch |
 
 | Module | Purpose |
 |---|---|

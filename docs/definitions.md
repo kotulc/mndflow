@@ -23,7 +23,7 @@ from what it holds and how its definition says to draw it.
 |---|---|
 | **block** | the one element. Placed, drawn, carries fields, holds other blocks. Held in `graph.elements` |
 | **part** | a child the block **owns**. The tree is `parent` and nothing else; deleting the whole deletes it |
-| **reference** | a child that **stands for a block living elsewhere** — another layer, another project. It appears, it is not owned, and it shows the real block's name. `of` holds the path |
+| **reference** | a child that **stands for a block living elsewhere** — another layer, another project. It appears, it is not owned, and it shows the real block's name when open. A closed project reads **closed**; a gone target reads **missing**. `of` holds the path |
 | **relationship** | a join between **exactly two** blocks. Not a block: placed by its ends, drawn as a line, joins rather than sits. Names a **relation module** — `line` or `directed` |
 | **derived** *(of a relationship)* | **a flag, never a module**: nobody drew this, the engine computed it. Not in the log, recomputed on every fold, and not deletable. The workspace's project-to-project dependencies are the built example |
 | **field** | a named, typed value on a block or a relationship. Never structural |

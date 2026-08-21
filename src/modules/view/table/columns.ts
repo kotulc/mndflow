@@ -11,7 +11,7 @@
 
 import { blocksOf, childrenOf, edgesIn, fieldsOf, portsOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";
-import { stoodFor } from "../../../canvas/named";
+import { stoodFor } from "../../named";
 
 /** Everything the table lists for a layer — not `rowsOf`'s blocks and references
  *  alone, because a column is drawn against every row there is, and a field

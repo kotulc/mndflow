@@ -21,7 +21,7 @@ import {
 import { lookOf } from "../../style";
 import { framed } from "./surround";
 import { paint } from "./paint";
-import { anchorOf, type Grazed, type Seated } from "./pieces";
+import { anchorOf, FACING, SIDES, type Grazed, type Seated } from "./pieces";
 
 /** A note's drawn size, used only to decide which of its sides a leader leaves
  *  by. Its real height is its text's; being a few pixels out picks the same
@@ -399,6 +399,26 @@ function noteCorner(attr: { id: string; x: number | null; y: number | null },
   return { x: cell(noteRest.x + loose * (NOTE.w + CELL)), y: cell(noteRest.y) };
 }
 
+/** Handle geometry React Flow can use before it has measured the DOM.
+ *
+ *  A perch is minted with its edge, and `restated` keeps `measured`, so the
+ *  library never records the new handle and drops the line. Stating the
+ *  seats here — they are already on the node's data — is what lets a
+ *  relationship draw the moment it is made. */
+function handlesOf(seats: Seated[], box: { w: number; h: number }, inward = false) {
+  return seats.flatMap((s) => {
+    const position = SIDES[inward ? FACING[s.side] : s.side];
+    const x = s.side === "left" ? 0 : s.side === "right" ? box.w : s.at * box.w;
+    const y = s.side === "top" ? 0 : s.side === "bottom" ? box.h : s.at * box.h;
+    const name = anchorOf(s.edge);
+
+    return [
+      { id: `${name}-s`, type: "source" as const, position, x, y },
+      { id: `${name}-t`, type: "target" as const, position, x, y },
+    ];
+  });
+}
+
 /** React Flow nodes for one layer: frame, groups, cards, notes. */
 export function nodesOf(
   graph: Graph,
@@ -424,42 +444,48 @@ export function nodesOf(
       onPromotePort(edgeId, end, owner, side, at);
     };
 
-  const cards = members.map((node) => ({
-    id: node.id,
-    type: "card",
-    position: { x: boxes[node.id].x, y: boxes[node.id].y },
-    zIndex: DEPTH.card,
-    // Stated, not measured. `sizeOf` is what every other piece of geometry
-    // reads — the group boundaries, which side a relation leaves by, where a
-    // port sits in canvas units — and a card left to size itself from its
-    // text agreed with none of it. A port is placed as a percentage of the
-    // card it is drawn in, so a card 150 wide while the arithmetic said 170
-    // put every one of its interfaces somewhere the lines did not expect.
-    width: boxes[node.id].w,
-    height: boxes[node.id].h,
-    style: { width: boxes[node.id].w, height: boxes[node.id].h },
-    data: {
-      node,
-      graph,
-      dropping: dropping === node.id,
-      picked: node.id === pickedNode,
-      grazed,
-      unit,
-      onNameTaken,
-      onSay,
-      showPorts,
-      litSeats,
-      pickedPort: pickedNode,
-      seats: laid.seats[node.id] ?? [],
-      litEdges,
-      onPick: (id: string) => onPick({ kind: "node", id }),
-      onOpen,
-      onSlidePort,
-      onSlideAnchor,
-      onRename,
-      onPromote: promoteSeat(node.id),
-    },
-  })) as FlowNode[];
+  const cards = members.map((node) => {
+    const box = boxes[node.id];
+    const seats = laid.seats[node.id] ?? [];
+
+    return {
+      id: node.id,
+      type: "card",
+      position: { x: box.x, y: box.y },
+      zIndex: DEPTH.card,
+      // Stated, not measured. `sizeOf` is what every other piece of geometry
+      // reads — the group boundaries, which side a relation leaves by, where a
+      // port sits in canvas units — and a card left to size itself from its
+      // text agreed with none of it. A port is placed as a percentage of the
+      // card it is drawn in, so a card 150 wide while the arithmetic said 170
+      // put every one of its interfaces somewhere the lines did not expect.
+      width: box.w,
+      height: box.h,
+      style: { width: box.w, height: box.h },
+      ...(seats.length ? { handles: handlesOf(seats, box) } : {}),
+      data: {
+        node,
+        graph,
+        dropping: dropping === node.id,
+        picked: node.id === pickedNode,
+        grazed,
+        unit,
+        onNameTaken,
+        onSay,
+        showPorts,
+        litSeats,
+        pickedPort: pickedNode,
+        seats,
+        litEdges,
+        onPick: (id: string) => onPick({ kind: "node", id }),
+        onOpen,
+        onSlidePort,
+        onSlideAnchor,
+        onRename,
+        onPromote: promoteSeat(node.id),
+      },
+    };
+  }) as FlowNode[];
 
   const groups = bands.map(({ attr, box }) => {
     const chosen = picked?.kind === "node" && picked.id === attr.id;
@@ -502,6 +528,9 @@ export function nodesOf(
   let loose = 0;
   const written = notes.map((attr) => {
     const at = noteCorner(attr, noteRest, attr.x == null || attr.y == null ? loose++ : 0);
+    const size = { w: Math.max(NOTE.w, cell(attr.w ?? 0)),
+                   h: Math.max(NOTE.h, cell(attr.h ?? 0)) };
+    const seats = laid.seats[attr.id] ?? [];
 
     return {
       id: attr.id,
@@ -510,18 +539,18 @@ export function nodesOf(
       position: at,
       zIndex: DEPTH.note,
       selectable: false,
+      ...(seats.length ? { handles: handlesOf(seats, size) } : {}),
       data: {
         text: nameOf(graph, attr),
         picked: picked?.kind === "node" && picked.id === attr.id,
         // A note *is* its text, so it lights as a name does — there is nothing
         // else on it to be over.
         grazed: grazed?.kind === "title" && grazed.id === attr.id,
-        least: { w: Math.max(NOTE.w, cell(attr.w ?? 0)),
-                 h: Math.max(NOTE.h, cell(attr.h ?? 0)) },
+        least: size,
         onPick: () => onPick({ kind: "node", id: attr.id }),
         onLabel: (text: string) => onNameAttr(attr.id, text),
         onSize: (w: number, h: number) => onSize(attr.id, cell(w), cell(h)),
-        seats: laid.seats[attr.id] ?? [],
+        seats,
         litEdges,
         onSlideAnchor,
       },
@@ -541,6 +570,9 @@ export function nodesOf(
         // relation attached to this frame's interfaces silently vanished.
         width: frameBox.w,
         height: frameBox.h,
+        ...(laid.seats[view]?.length
+          ? { handles: handlesOf(laid.seats[view], frameBox, true) }
+          : {}),
         // Transparent to the pointer, or it would cover the whole layer and
         // no drag on empty canvas could ever reach the pane to draw a
         // selection box. Its ports opt back in; its edge is found by

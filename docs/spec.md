@@ -624,8 +624,9 @@ landed with S4.3.
   of what is checked — which is what lets a set be composed from more than one project.
   A reference to the **open layer itself** is refused — a layer cannot hold a stand-in for itself,
   and the action says so rather than each surface guarding it.
-  **(planned)** A cross-project reference still draws as *missing*: nothing resolves another project's
-  element for a label, and `workspace.resolve` is the resolver waiting to be handed down.
+  A cross-project reference reads its target's name through `shownName` / `stoodFor`, using the open
+  project graphs passed down to the view. A reference into a closed project reads **`closed`**;
+  a genuinely gone target reads **`missing`**.
 - **A diagram's own variation is its contents and its fields**, never configuration: its definition
   configures every diagram of that subtype alike, so two matrices differ in what they hold and what
   their fields say.
@@ -879,8 +880,8 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   fold, so the canvas, the contents tray and the table read through `shownName` / `stoodFor`
   instead, which take every open project's graph and resolve a `proj/id` path in whichever one owns
   it. Proven on a card and in a table row, and across a reload. **The honest limit**: a reference
-  into a project that is *not open* cannot resolve and reads `missing` — **and so does one whose
-  target is genuinely gone**, which is a gap the story cannot close on (`C.7 ◐`).
+  into a project that is *not open* reads **`closed`**; **a target that is genuinely gone** reads
+  **`missing`**.
 - Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
 - Every open project is a root in the same tree, filed into the folders the workspace
@@ -1190,9 +1191,9 @@ about like any other, and the drag sticks.
   engine's; `fromAt` / `toAt` on the relationship hold it, and flipping the relation carries them
   with the ends. Promotion stays a separate act — an interface is a real element with a name and a
   type, and moving a line's end is not that.
-- **Known break (C.11)**: a relationship made *now* draws no line until the page is reloaded. The
-  anchors that carry its handles are minted by the same render that adds the edge, so React Flow
-  has not measured them yet and drops it. Everything above is what a reloaded page does.
+- **A new relationship draws the moment it is made** (C.11). Its handles are stated on the node
+  from `laidOf`'s seat map, so the edge can draw in the same pass. One perch per arriving line
+  still holds; there is no return to four handles per side.
 - A line stops at the **outer face** of the square it meets, not at the border under it, so it
   meets an interface rather than running into it.
 - Promotion is what an end is for when it needs a name, contents, or a place of its own that the
