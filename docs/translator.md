@@ -45,12 +45,12 @@ most of the value.
 | Term | Means | Verdict |
 |---|---|---|
 | **story** | a goal a person has — *true for a person*, not *built*. Spans rows. **Only Clay closes one, after driving it** | **keep.** The best thing in the system; it caught `ST.1`, `ST.3`, `ST.8` |
-| **row** | one unit of work: small enough for a sitting, with the files it owns | **keep.** This is the atom |
+| **row** | one unit of work: small enough for a sitting; says what it does and what it waits on | **keep.** This is the atom |
 | **chunk** | …a row | **retire.** Pure synonym, 8 uses |
 | **stream** | a lettered family of rows (`B` block model, `C` canvas, `N` reorganising) — **and** where settled decisions and standing rules are written | **split.** The grouping is a **tag**; the decisions belong in `design.md`. One thing doing two jobs is most of why the file is 1,100 lines |
 | **wave** | which phase a row runs in. Orthogonal to stream — a wave cuts across several | **keep**, as a field, not a section |
 | **batch** | the rows one sitting takes together: `waits` met, `owns` disjoint, ≤3 | **keep, never author.** It is *computed*. Writing a batch down is how the plan and reality drift |
-| **owns** | the files a row may edit — an exclusive lock for the length of the row | **keep**, as a real path list |
+| **owns** | the files a row may edit — an exclusive lock for the length of the row | **keep, never author.** Like a batch it is *computed* — **decided when the row is drafted** (2026-08-21), never a column in `plan.md`. A real path list, normalised from the repo root |
 | **waits** | rows that must land first; a dependency edge | **keep** |
 | **done** | what makes the row true — today split between an inline *Done when* and a separate *Proven by* table | **keep, merged.** One field |
 | **holds** | *the product's* containment rule (`rules.holds`) | **never process vocabulary.** A homonym; using it for rows collides with the model |
