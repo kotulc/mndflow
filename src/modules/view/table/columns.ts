@@ -9,10 +9,9 @@
  *  definition saying what its own card shows, and this is one view saying what
  *  its columns are. */
 
-import {
-  actual, blocksOf, childrenOf, edgesIn, fieldsOf, portsOf,
-} from "../../../graph/fold";
+import { blocksOf, childrenOf, edgesIn, fieldsOf, portsOf } from "../../../graph/fold";
 import type { Graph } from "../../../graph/types";
+import { stoodFor } from "../../../canvas/named";
 
 /** Everything the table lists for a layer — not `rowsOf`'s blocks and references
  *  alone, because a column is drawn against every row there is, and a field
@@ -31,11 +30,15 @@ function listed(graph: Graph, layer: string | null): string[] {
 /** Field names the layer's rows carry, once each, in the order they are met —
  *  the list a column picker offers. Read through a reference, since that is what
  *  the row itself shows. */
-export function fieldsIn(graph: Graph, layer: string | null): string[] {
+export function fieldsIn(
+  graph: Graph, layer: string | null, open: Record<string, Graph> = {},
+): string[] {
   const seen = new Set<string>();
 
   for (const id of listed(graph, layer)) {
-    for (const field of fieldsOf(graph, actual(graph, id)?.id ?? id)) seen.add(field.name);
+    for (const field of fieldsOf(graph, stoodFor(graph, open, id)?.id ?? id)) {
+      seen.add(field.name);
+    }
   }
 
   return [...seen];

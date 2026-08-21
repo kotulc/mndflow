@@ -708,9 +708,15 @@ function applyEdge(graph: Graph, mutation: EdgeOp): void {
     case "set_side": {
       const edge = graph.edges[mutation.id];
       if (!edge) return;
-      const field = mutation.end === "from" ? "fromSide" : "toSide";
-      if (mutation.side) edge[field] = mutation.side;
-      else delete edge[field];
+      const sideField = mutation.end === "from" ? "fromSide" : "toSide";
+      const atField = mutation.end === "from" ? "fromAt" : "toAt";
+      if (mutation.side) edge[sideField] = mutation.side;
+      else {
+        delete edge[sideField];
+        delete edge[atField];
+      }
+      if (mutation.at != null) edge[atField] = mutation.at;
+      else if ("at" in mutation && mutation.at === null) delete edge[atField];
       break;
     }
 
@@ -719,6 +725,8 @@ function applyEdge(graph: Graph, mutation: EdgeOp): void {
       if (edge) {
         [edge.source, edge.target] = [edge.target, edge.source];
         [edge.from, edge.to] = [edge.to, edge.from];
+        [edge.fromSide, edge.toSide] = [edge.toSide, edge.fromSide];
+        [edge.fromAt, edge.toAt] = [edge.toAt, edge.fromAt];
       }
       break;
     }

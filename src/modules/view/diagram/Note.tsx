@@ -17,7 +17,7 @@
 import { memo, useRef, useState } from "react";
 import { useReactFlow, type NodeProps } from "@xyflow/react";
 
-import { Anchor, Name } from "./pieces";
+import { Name, Perch, type Seated } from "./pieces";
 import { takes } from "./map";
 import type { Side } from "../../../graph/types";
 
@@ -32,22 +32,23 @@ export type NoteData = {
   grazed: boolean;
   /** The least room it was asked for, from the drag that made it or a resize. */
   least: { w: number; h: number };
+  seats: Seated[];
+  litEdges: Set<string>;
   onPick: () => void;
   onLabel: (text: string) => void;
-  /** Commit a new least size — the `size` adjustment. */
   onSize: (w: number, h: number) => void;
+  onSlideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) => void;
 };
 
-const SIDES: Side[] = ["top", "right", "bottom", "left"];
-
-export const Note = memo(({ data }: NodeProps) => {
-  const { text, picked, grazed, least, onPick, onLabel, onSize } =
+export const Note = memo(({ data, positionAbsoluteX = 0, positionAbsoluteY = 0 }: NodeProps) => {
+  const { text, picked, grazed, least, seats, litEdges, onPick, onLabel, onSize, onSlideAnchor } =
     data as unknown as NoteData;
   const { getZoom } = useReactFlow();
   /** Live least size while the SE handle is dragged; null when not resizing. */
   const [draft, setDraft] = useState<{ w: number; h: number } | null>(null);
   const drag = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const room = draft ?? least;
+  const host = { x: positionAbsoluteX, y: positionAbsoluteY, w: room.w, h: room.h };
 
   function sized(event: React.PointerEvent) {
     if (!drag.current) return { w: room.w, h: room.h };
@@ -89,9 +90,21 @@ export const Note = memo(({ data }: NodeProps) => {
       style={{ minWidth: room.w, minHeight: room.h }}
       onClick={onPick}
     >
-      {/* One anchor per side, so a leader leaves by whichever faces what it is
-          tied to — the same arrangement a card uses for an implied interface. */}
-      {SIDES.map((side) => <Anchor key={side} name={`auto-${side}`} side={side} />)}
+      {seats.map((s) => (
+        <Perch
+          key={`${s.edge}-${s.end}`}
+          seated={s.edge}
+          end={s.end}
+          side={s.side}
+          at={s.at}
+          port={s.port}
+          placed={s.placed}
+          show={s.show}
+          lit={litEdges.has(s.edge) || picked}
+          host={host}
+          onSlide={onSlideAnchor}
+        />
+      ))}
 
       <Name text={text || "note"} className="note-text" onRename={onLabel} />
 

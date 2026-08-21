@@ -5,7 +5,7 @@ words: what it calls an action, a state, a message, and the verb a derived
 label opens with (`do Pump`). Data only — no module, no renderer, no layout
 law.
 
-An `action` may carry an `outcome` ref; that is the ordinary field that flips
+An `action` may carry an `outcome` link; that is the ordinary field that flips
 activity→state reading B in [behaviors.md](../../docs/behaviors.md). A
 container typed `action` is an *activity* and a leaf an *action* — shape, not
 a second definition.

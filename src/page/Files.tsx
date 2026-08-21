@@ -176,6 +176,13 @@ type Props = {
   /** Drop a whole project from the workspace — asks first. */
   onDropProject: (projectId: string) => void;
   onMove: (id: string, parent: string | null) => void;
+  /** Where a project root lands in the workspace tree — a folder id, the root
+   *  beside folders, or `"loose"` back to the unplaced list. */
+  onFile?: (projectId: string, parent: string | null | "loose") => void;
+  /** Move a folder block within the workspace shell. */
+  onShellMove?: (id: string, parent: string | null) => void;
+  /** The workspace project's id — shell rows and filing write here. */
+  workspaceId?: string;
   /** Take a block out of one project and into another — or into none, which
    *  makes it a project of its own. Two steps in two logs (P.1). `into` is the
    *  layer it lands in, null being the destination's root. */
@@ -214,10 +221,10 @@ export function Files(props: Props) {
   const { showPorts, onShowPorts } = props;
   const { onOpen, onCreate, onCreateBehavior, onNameTaken, onSay, unit } = props;
   const {
-    onDelete, onDropProject, onMove, onExtract, onRename, onRenameProject,
+    onDelete, onDropProject, onMove, onFile, onShellMove, onExtract, onRename, onRenameProject,
     onNewProject, onNameProject,
     onAct, onUndo, onRedo, undoable, redoable, lastAction,
-    workspaceOpen, onOpenWorkspace,
+    workspaceOpen, onOpenWorkspace, workspaceId,
   } = props;
   const graph = graphs[context] ?? graphs[projects[0]?.id ?? ""] ?? shell;
   const kidsBy = useMemo(() => {
@@ -274,22 +281,40 @@ export function Files(props: Props) {
   const marker = useRef<HTMLSpanElement>(null);
   const menuBox = useRef<HTMLUListElement>(null);
 
+  /** Filing overrides until the workspace shell prop catches up — the tree
+   *  redraws on the drop, not on the next click (N.1). */
+  const [filed, setFiled] = useState<Record<string, string | null | "loose">>({});
+  useEffect(() => { setFiled({}); }, [shell]);
+
   const tips = useMemo(() => new Map(projects.map((p) => [p.id, p.tip])), [projects]);
 
-  /** Project ids the shell already shows as root-references. */
-  const placed = useMemo(() => {
-    const ids = new Set<string>();
+  /** Where the shell already files each project root — absent means unplaced. */
+  const shelvedAt = useMemo(() => {
+    const map = new Map<string, string | null>();
     for (const node of Object.values(shell.elements)) {
       if (node.form !== "proxy" || !node.of) continue;
       const { project, element } = asTarget(node.of);
-      if (project && element === ROOT_ID) ids.add(project);
+      if (project && element === ROOT_ID) {
+        map.set(project, node.parent && shell.elements[node.parent] ? node.parent : null);
+      }
     }
 
-    return ids;
+    return map;
   }, [shell]);
 
-  /** Open projects the shell has not filed yet — still listed, at the top. */
-  const loose = projects.filter((p) => !placed.has(p.id));
+  /** Effective filing — overlay wins until the shell prop catches up. */
+  function filing(projectId: string): "unplaced" | { at: string | null } {
+    const held = filed[projectId];
+    if (held === "loose") return "unplaced";
+    if (held !== undefined) return { at: held };
+
+    if (!shelvedAt.has(projectId)) return "unplaced";
+
+    return { at: shelvedAt.get(projectId)! };
+  }
+
+  /** Open projects with no proxy yet — listed above the filed tree. */
+  const loose = projects.filter((p) => filing(p.id) === "unplaced");
 
   /** Keys currently picked — a Set so toggle is O(1) and membership reads clean. */
   const picked = useMemo(() => new Set(chosen), [chosen]);
@@ -649,12 +674,12 @@ export function Files(props: Props) {
 
   /** Finish a drag.
    *
-   *  **Three cases, and only the first is a move.** Within one project it is
-   *  `move` and one step. Into another project, or onto the clear space that
-   *  means *nowhere*, it is an **extraction**: two steps in two logs, because a
-   *  project is a log and nothing spans both (P.1). A drop that would leave the
-   *  block where it already is does nothing. */
-  function drop(intoProject: string | null, into: string | null) {
+   *  **Four cases.** Within one project it is `move` and one step. Into another
+   *  project, or onto the clear space that means *nowhere*, it is an
+   *  **extraction**: two steps in two logs (P.1). A project root **files** in
+   *  the workspace instead — it stays a project and only its reference moves
+   *  (N.1). A drop that would leave the block where it already is does nothing. */
+  function drop(intoProject: string | null, into: string | null, loose = false) {
     clear_spring();
     const from = held;
     setHeld(null);
@@ -663,7 +688,27 @@ export function Files(props: Props) {
 
     const { project: source, id } = refAt(from);
     const home = source ?? context;
-    if (id === ROOT_ID) return;
+
+    if (id === ROOT_ID) {
+      // Demotion into another project's log is N.2 — only workspace filing here.
+      if (intoProject !== null) return;
+      const target = loose ? "loose" as const : into;
+      const now = filing(home);
+      const stays = loose
+        ? now === "unplaced"
+        : now !== "unplaced" && typeof now === "object" && now.at === target;
+      if (stays) return;
+      setFiled((prior) => ({ ...prior, [home]: target }));
+      onFile?.(home, target);
+      return;
+    }
+
+    if (workspaceId && home === workspaceId) {
+      if (intoProject !== null) return;
+      const stays = (shell.elements[id]?.parent ?? null) === into;
+      if (!stays) onShellMove?.(id, into);
+      return;
+    }
 
     if (home === intoProject) {
       const stays = (graphs[home]?.elements[id]?.parent ?? null) === into;
@@ -696,7 +741,13 @@ export function Files(props: Props) {
    *  `opens`, given only where `id` is currently folded, is a nested target's
    *  way in: without it, reaching a branch three levels down means letting go
    *  of the drag to click it open first, then dragging again. */
-  function dropzone(id: string, project: string | null, into: string | null, opens?: () => void) {
+  function dropzone(
+    id: string,
+    project: string | null,
+    into: string | null,
+    opens?: () => void,
+    loose = false,
+  ) {
     return {
       onDragOver: (event: React.DragEvent) => {
         event.preventDefault();
@@ -704,7 +755,7 @@ export function Files(props: Props) {
         spring(id, opens ?? null);
       },
       onDragLeave: () => { setOver(null); clear_spring(); },
-      onDrop: (event: React.DragEvent) => (event.preventDefault(), drop(project, into)),
+      onDrop: (event: React.DragEvent) => (event.preventDefault(), drop(project, into, loose)),
     };
   }
 
@@ -856,6 +907,12 @@ export function Files(props: Props) {
           className={`item root ${active ? "active" : ""} ${hereScoped ? "open" : ""} ${
             over === editKey ? "over" : ""}`}
           title={tip}
+          draggable={editing !== editKey}
+          onDragStart={(event) => {
+            setHeld(refTo(ROOT_ID, projectId));
+            event.dataTransfer.setData(REFERRED, refTo(ROOT_ID, projectId));
+            event.dataTransfer.effectAllowed = "all";
+          }}
           onClick={(event) => {
             // Picking the project that is already picked lets go of it, so the
             // add button falls back to naming a new project. The context does
@@ -906,25 +963,54 @@ export function Files(props: Props) {
 
   /** Workspace folders and the projects filed into them. */
   function shellBranch(parent: string | null) {
-    const here = shelved(shell, parent);
+    const folders = shelved(shell, parent).filter((n) => n.form === "block");
+    const here = [
+      ...folders.map((node) => ({ kind: "folder" as const, node })),
+      ...projects
+        .filter((p) => {
+          const where = filing(p.id);
+          return where !== "unplaced" && typeof where === "object" && where.at === parent;
+        })
+        .map((p) => ({ kind: "project" as const, id: p.id })),
+    ].sort((a, b) => {
+      const al = a.kind === "folder" ? nameOf(shell, a.node) : titleOf(graphs[a.id] ?? graph);
+      const bl = b.kind === "folder" ? nameOf(shell, b.node) : titleOf(graphs[b.id] ?? graph);
+
+      return al.localeCompare(bl) || (a.kind === "folder" ? a.node.id : a.id)
+        .localeCompare(b.kind === "folder" ? b.node.id : b.id);
+    });
 
     return (
       <>
-        {here.map((node) => {
-          if (node.form === "proxy" && node.of) {
-            const { project } = asTarget(node.of);
+        {here.map((row) => {
+          if (row.kind === "project") return projectRoot(row.id);
 
-            return project ? projectRoot(project) : null;
-          }
-
+          const node = row.node;
           const foldKey = `${SHELL}:${node.id}`;
-          const holds = shelved(shell, node.id).length > 0;
+          const holds = shelved(shell, node.id).some((n) => n.form === "block")
+            || projects.some((p) => {
+              const where = filing(p.id);
+              return where !== "unplaced" && typeof where === "object" && where.at === node.id;
+            });
 
           return (
             <li key={foldKey}>
               <div
                 className={["item", "group", over === foldKey ? "over" : ""].join(" ")}
+                draggable={Boolean(workspaceId)}
+                onDragStart={(event) => {
+                  if (!workspaceId) return;
+                  setHeld(refTo(node.id, workspaceId));
+                  event.dataTransfer.setData(REFERRED, refTo(node.id, workspaceId));
+                  event.dataTransfer.effectAllowed = "all";
+                }}
                 onClick={() => holds && fold(foldKey)}
+                {...dropzone(
+                  foldKey, null, node.id,
+                  holds && !open.has(foldKey)
+                    ? () => setOpen((prior) => new Set(prior).add(foldKey))
+                    : undefined,
+                )}
               >
                 <span
                   className={`icon ${holds ? "fold" : ""}`}
@@ -1091,7 +1177,7 @@ export function Files(props: Props) {
         onDrop={(event) => {
           if (event.target !== event.currentTarget) return;
           event.preventDefault();
-          drop(null, null);
+          drop(null, null, held ? refAt(held).id === ROOT_ID : false);
         }}
       >
         <ul className="roots">

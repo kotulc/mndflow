@@ -26,6 +26,7 @@ import {
   type EdgeForm, type Element, type Graph, type Layout, type Mutation, type Step,
 } from "../graph/types";
 import { Canvas } from "../canvas/Canvas";
+import { OpenProvider } from "../canvas/open";
 import { type Grazed } from "../canvas/card";
 import { createsFor, viewOf, views, named, type ViewName } from "../modules/view";
 import { asViewKind, layerKind } from "./kind";
@@ -689,6 +690,47 @@ export function App() {
     setRefoldAt((n) => n + 1);
   }
 
+  /** File an open project in the workspace tree (N.1). */
+  function fileProject(projectId: string, parent: workspace.FileTarget) {
+    const shell = graphOf(held.id);
+    const out = workspace.file(shell.graph, projectId, parent);
+    if ("refuse" in out) {
+      if (out.refuse !== "Nothing to write.") say(out.refuse);
+      return;
+    }
+
+    const title = titleOf(graphs[projectId] ?? graph) || projectId;
+    const landed = workspace.writeInto(held.id, out.mutations, {
+      say: parent === "loose" ? `unfiled: ${title}` : `filed: ${title}`,
+      action: "move",
+    });
+    if ("refuse" in landed) {
+      say(landed.refuse);
+      return;
+    }
+
+    setRefoldAt((n) => n + 1);
+  }
+
+  /** Move a workspace folder block within the shell (N.1). */
+  function shellMove(id: string, parent: string | null) {
+    const shell = graphOf(held.id);
+    const node = shell.graph.elements[id];
+    if (!node) return;
+    if ((node.parent ?? null) === parent) return;
+
+    const landed = workspace.writeInto(held.id, [{ op: "move_element", id, parent }], {
+      say: `moved: ${nameOf(shell.graph, node) || UNIT}`,
+      action: "move",
+    });
+    if ("refuse" in landed) {
+      say(landed.refuse);
+      return;
+    }
+
+    setRefoldAt((n) => n + 1);
+  }
+
   /** Export the project in context, bundling what it depends on, and offer a
    *  rendered SVG of the open layer beside that source (F.3). */
   async function exportProject(): Promise<void> {
@@ -761,7 +803,7 @@ export function App() {
   // Re-read after admit writes the workspace log (`held.projects` is the token).
   const shellGraph = useMemo(
     () => graphOf(held.id).graph,
-    [held.id, held.projects],
+    [held.id, held.projects, refoldAt],
   );
 
   /** Drop every open project and the workspace with them — a fresh session.
@@ -911,7 +953,7 @@ export function App() {
   /** Fields the open layer's rows carry — what a column can be made of, and
    *  the list the rail offers (P.8). A pick that is no longer on the layer
    *  simply draws no column, the way a stale type reads as *everything*. */
-  const layerFields = useMemo(() => fieldsIn(graph, view), [graph, view]);
+  const layerFields = useMemo(() => fieldsIn(graph, view, graphs), [graph, view, graphs]);
   const columned = useMemo(
     () => shownColumns.filter((name) => layerFields.includes(name)),
     [shownColumns, layerFields],
@@ -1071,6 +1113,7 @@ export function App() {
         />
       )}
 
+      <OpenProvider open={graphs}>
       <main>
         <div className="side">
           <Files
@@ -1095,6 +1138,9 @@ export function App() {
             onDelete={project.remove}
             onDropProject={dropProject}
             onMove={project.move}
+            onFile={fileProject}
+            onShellMove={shellMove}
+            workspaceId={held.id}
             onExtract={extract}
             onRename={project.rename}
             onRenameProject={project.renameProject}
@@ -1190,6 +1236,7 @@ export function App() {
               onAddPort={project.addPort}
               onPromotePort={project.promotePort}
               onSlidePort={project.setPort}
+              onSlideAnchor={project.slideAnchor}
               onDropAttr={project.remove}
               onRefer={project.refer}
               onReveal={project.reveal}
@@ -1271,6 +1318,7 @@ export function App() {
           />
         </section>
       </main>
+      </OpenProvider>
     </div>
   );
 }

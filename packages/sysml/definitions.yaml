@@ -179,7 +179,7 @@ mappings:
   - sysml: part property
     as: block with parent
   - sysml: reference property
-    as: ref field
+    as: link field
   - sysml: value property
     as: field (number / text / flag)
   - sysml: enum
@@ -214,7 +214,7 @@ mappings:
     as: derived count, or ornament def below
     via: def_decision / def_fork / def_initial / …
   - sysml: item flow
-    as: item ref on object flow
+    as: item link on object flow
     via: pkg_flow/def_object_flow
   - sysml: swimlane / partition
     as: group

@@ -12,12 +12,14 @@
  *  inside the port, looking out at the wall it is set into. It runs across or
  *  down depending on which edge of the parent the port sits on. */
 
-import { memo } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 
 import { nameOf, portsOf } from "../../../graph/fold";
 import type { Axis, Graph, Side } from "../../../graph/types";
-import { Anchor, Berth, type Grazed, Name, Perch, Port, type Seated } from "./pieces";
+import {
+  Anchor, Berth, type Grazed, Name, nearestSide, Perch, Port, type Seated,
+} from "./pieces";
 
 export type FrameData = {
   id: string;
@@ -39,13 +41,14 @@ export type FrameData = {
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onSlideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
   onNameTaken: (parent: string | null, label: string, except: string | null) => boolean;
   onSay: (message: string) => void;
   /** Turn one of those seats into an interface of its own. */
   onPromote: (edge: string, side: Side, at: number) => void;
-  /** What the pointer is over. The border lights up when it is this frame,
-   *  since that is where the gestures that make interfaces live. */
+  /** What the pointer is over. When the frame rim is the target, one wall
+   *  lights at a time — see the rim spans in the draw. */
   grazed: Grazed;
 };
 
@@ -55,7 +58,7 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
     data as unknown as FrameData;
   const { onPick, onOpen, onSlidePort, onRename, onNameTaken, onSay } =
     data as unknown as FrameData;
-  const { seats, litEdges, onPromote } = data as unknown as FrameData;
+  const { seats, litEdges, onPromote, onSlideAnchor } = data as unknown as FrameData;
   // A port on the left or right of its parent sits in a vertical wall; one on
   // the top or bottom sits in a horizontal one.
   const upright = straddles === "left" || straddles === "right";
@@ -65,10 +68,38 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
     w: width ?? 0,
     h: height ?? 0,
   };
+  const root = useRef<HTMLDivElement>(null);
+  /** Which wall the pointer is over, when this frame is the graze target.
+   *  Worked out here rather than in the gesture layer so one side lights at
+   *  a time — the whole border used to take the accent together. */
+  const [litWall, setLitWall] = useState<Side | null>(null);
+
+  useEffect(() => {
+    const rim = grazed?.kind === "frame" && grazed.id === id;
+    if (!rim) {
+      setLitWall(null);
+      return;
+    }
+
+    const move = (event: PointerEvent) => {
+      const box = root.current?.getBoundingClientRect();
+      if (!box) return;
+      setLitWall(nearestSide(box, event.clientX, event.clientY));
+    };
+
+    window.addEventListener("pointermove", move);
+    return () => window.removeEventListener("pointermove", move);
+  }, [grazed, id]);
 
   return (
-    <div className={`frame flow-${axis} ${
-      grazed?.kind === "frame" && grazed.id === id ? "grazed" : ""}`}>
+    <div className={`frame flow-${axis}`} ref={root}>
+      {(["top", "right", "bottom", "left"] as Side[]).map((side) => (
+        <span
+          key={side}
+          className={`rim rim-${side}${litWall === side ? " lit" : ""}`}
+          aria-hidden
+        />
+      ))}
       {/* Always live: this layer is where you already are, so there is no
           first click to spend selecting it. */}
       <span className={`frame-name nodrag nopan${
@@ -88,12 +119,6 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
           <span className="after" />
         </span>
       )}
-
-      {/* Anchors for relations reaching the frame itself without an interface
-          of their own, matching the ones every card carries. */}
-      {(["top", "right", "bottom", "left"] as Side[]).map((side) => (
-        <Anchor key={side} name={`auto-${side}`} side={side} inward />
-      ))}
 
       {/* Hidden, an interface still leaves its seat behind — see `Berth`. */}
       {portsOf(graph, id).map((port) => (showPorts ? (
@@ -123,13 +148,20 @@ export const Frame = memo(({ data, width, height, positionAbsoluteX = 0,
       {/* And the seats worked out for relationships with no interface here. */}
       {seats.map((s) => (
         <Perch
-          key={s.edge}
+          key={`${s.edge}-${s.end}`}
           seated={s.edge}
+          end={s.end}
           side={s.side}
           at={s.at}
           port={s.port}
+          placed={s.placed}
+          show={s.show}
           lit={litEdges.has(s.edge)}
           inward
+          graph={graph}
+          owner={id}
+          host={host}
+          onSlide={onSlideAnchor}
           onPromote={onPromote}
         />
       ))}

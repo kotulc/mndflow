@@ -150,6 +150,24 @@ describe("adjustments", () => {
     expect(ops(done)).toEqual(["set_port"]);
   });
 
+  it("seat pins an anchor on a relationship end without making an interface", () => {
+    const a = element("A", { parent: null });
+    const b = element("B", { parent: null, x: 100 });
+    const link = edge(a.id, b.id);
+    const graph = graph_of(
+      { op: "add_element", element: a },
+      { op: "add_element", element: b },
+      { op: "link_elements", edge: link },
+    );
+    const done = as_effect(run("seat", at(graph, { kind: "edge", id: link.id }), {
+      edge: link.id, end: "from", side: "left", at: 0.5,
+    }));
+    expect(ops(done)).toEqual(["set_side"]);
+    expect(done.mutations[0]).toMatchObject({
+      op: "set_side", id: link.id, end: "from", side: "left", at: 0.5,
+    });
+  });
+
   it("wall returns set_side for a relationship end", () => {
     const a = element("A", { parent: null });
     const b = element("B", { parent: null, x: 100 });

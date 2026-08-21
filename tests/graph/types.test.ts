@@ -90,7 +90,7 @@ describe("a reference that may leave the project", () => {
     expect(refAt(held)).toEqual({ project: "proj_a9f", id: "def_pump" });
   });
 
-  it.each(["of", "type", "a ref field's value"])(
+  it.each(["of", "type", "a link field's value"])(
     "reads the same wherever one is held — %s", () => {
       expect(refAt(refTo("block_1", "proj_2")).id).toBe("block_1");
     },

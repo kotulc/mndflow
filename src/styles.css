@@ -1072,8 +1072,35 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* The layer's border answers the pointer the way a card's does, since it is
    where right-click makes an interface and right-drag draws a relation from
-   one. Tracked by the canvas: the frame takes no pointer events of its own. */
-.frame.grazed { border-color: var(--accent); }
+   one. Tracked by the canvas: the frame takes no pointer events of its own.
+   One wall lights at a time — the same lit-target look a card, a group or a
+   tree row wears when a drag would land there (P.14). */
+.frame .rim {
+  position: absolute;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+.frame .rim-top,
+.frame .rim-bottom {
+  left: 0;
+  right: 0;
+  height: calc(28px / var(--zoom, 1));
+}
+.frame .rim-left,
+.frame .rim-right {
+  top: 0;
+  bottom: 0;
+  width: calc(28px / var(--zoom, 1));
+}
+.frame .rim-top { top: calc(-14px / var(--zoom, 1)); }
+.frame .rim-bottom { bottom: calc(-14px / var(--zoom, 1)); }
+.frame .rim-left { left: calc(-14px / var(--zoom, 1)); }
+.frame .rim-right { right: calc(-14px / var(--zoom, 1)); }
+.frame .rim.lit {
+  outline: calc(2px / var(--zoom, 1)) solid var(--accent);
+  outline-offset: calc(-2px / var(--zoom, 1));
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+}
 
 /* The wall this layer is set into, when the layer is an interface: the parent
    block's own border, running through the dimmed margin on either side and

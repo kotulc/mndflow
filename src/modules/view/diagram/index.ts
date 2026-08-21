@@ -7,7 +7,7 @@
 
 export { DIAGRAM, CHROME, type Surface, type ChromeKind, type Surround, type Viewport } from "./surface";
 export { framed, MARGIN, BAND, LEAST } from "./surround";
-export { floorOf, restOf, extentOf, type Camera } from "./viewport";
+export { floorOf, restOf, extentOf, boxOf, fitOf, type Camera } from "./viewport";
 export { Crumbs } from "./chrome";
 export { Ask, type Act, type Prompt, type Said } from "./ask";
 export { SelectionStrip, type SelectionStripProps } from "./strip";
@@ -31,8 +31,8 @@ export { GroupFrame, type GroupData } from "./GroupFrame";
 export { Note, type NoteData } from "./Note";
 export { Wire, type WireData } from "./Wire";
 export {
-  Name, Port, Berth, Perch, Anchor, fitTag, along, seat, FACING, SIDES,
-  LIFTED, REFERRED, takesRef,
+  Name, Port, Berth, Perch, Anchor, anchorOf, fitTag, along, seat, nearestSide,
+  FACING, SIDES, LIFTED, REFERRED, takesRef,
   type Grazed, type CardData, type Seated, type PortProps,
 } from "./pieces";
 

@@ -4,8 +4,9 @@
  *  not a second kind of thing. Groups and notes stay off this list — they are
  *  drawn on a plane, not as entries in the structure. */
 
-import { blocksOf, isReference, nameOf, typeName } from "../../../graph/fold";
+import { blocksOf, isReference, typeName } from "../../../graph/fold";
 import type { Element, Graph } from "../../../graph/types";
+import { shownName } from "../../../canvas/named";
 
 /** One line in the table: the member, and whether it stands in for another. */
 export type Row = {
@@ -19,13 +20,15 @@ export type Row = {
 };
 
 /** Every block and reference in the layer, as rows, in tree order. */
-export function rowsOf(graph: Graph, layer: string | null): Row[] {
+export function rowsOf(
+  graph: Graph, layer: string | null, open: Record<string, Graph> = {},
+): Row[] {
   return blocksOf(graph, layer).map((node) => {
     const reference = isReference(node);
 
     return {
       id: node.id,
-      name: nameOf(graph, node),
+      name: shownName(graph, open, node),
       type: reference ? "" : typeName(graph, node.type),
       form: reference ? "proxy" : "block",
       node,

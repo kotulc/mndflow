@@ -153,12 +153,12 @@ the project.
   | `number` | a quantity | `unit` |
   | `flag` | true or false | — |
   | `choice` | one of a list the definition names | `choices` |
-  | `ref` | another element, by id | `many` |
+  | `link` | another element or definition, by id | `many` |
 
 - **No identity of its own**: a field is addressed by its name on the thing carrying it, and
   setting the same name again rewrites it.
 - Never structural: never in the explorer, never changing what contains what.
-- **A `ref` field points at an element without drawing a line**, which is how a part property or a
+- **A `link` field points at an element without drawing a line**, which is how a part property or a
   satisfied requirement is stated.
 - **Membership is neither a field nor a relationship.** A block names the groups it belongs to in
   `groups`, and a group's member list is derived from that, so the two can never disagree. A group
@@ -253,6 +253,17 @@ the project.
   - **A component owning a key owns the whole of it**, so a key `card` does not recognise is
     refused. That is the opposite of an unrecognised *component*, which is left alone: one is a
     misspelling this build can see, the other may be a newer build's.
+  - **`block` is the sixth published component, and it names a block module** (B.2). A **block
+    module** is engine code behind one sort of block — its configuration surface and its
+    behaviour — and the set is **open**: a code change ships one more, additively. Eight are
+    registered: `workspace`, `project`, `folder`, `base`, `view`, `resource`, `group`, `note`.
+    Each owns its own `check`, and `block` delegates the module-specific keys to it; a definition
+    saying nothing gets `base`. **The shipped `base` package** (`packages/base/definitions.yaml`)
+    carries one definition per module, and every package or project subtype extends one of them.
+    **Nothing keys off it yet** — later rows wire drawing, placement and import-time enforcement
+    (`B.3`, `B.15`, `B.16`). It is loaded by the ordinary `packages/**` glob, so it is in the
+    catalog and importable by name, and it reaches the type strip only where a project's
+    `vocabulary` names it.
   - **Presets** — `ship` / `presets` / `preset` register a named set of component choices. The
     registry is empty of concrete presets until a package or build ships one.
 
@@ -309,7 +320,7 @@ the project.
 - **A reference reaching another project is written as a path**, `proj_a9f/def_pump` — the
   project, a slash, then the id inside it. An id alone means this project, so every reference
   written so far still reads. One convention serves all three places one is held: a reference's `of`,
-  an element's `type`, and a `ref` field's value. Ids never contain a slash, so nothing is
+  an element's `type`, and a `link` field's value. Ids never contain a slash, so nothing is
   ambiguous, and a reader splits on the first one or does not have to split at all. `refTo` and
   `refAt` are the two ends of it. The workspace admits another project (and a shipped package)
   under that path; a project's own `vocabulary` list chooses which packages it draws on, in
@@ -330,7 +341,7 @@ the project.
 - **A data structure is a definition**, not an element form: it declares fields, and a block typed
   by it is drawn only where somebody places one.
 - Definitions are not elements: no id in `graph.elements`, no row in the explorer.
-- A `ref` field may target an element or a definition — "typed by" and "points at" are one
+- A `link` field may target an element or a definition — "typed by" and "points at" are one
   operation.
 - **A `type` naming no definition is minted into one**, under an id derived from its name. That is
   how a relation typed onto the canvas becomes something declarable, and how a log written before
@@ -864,6 +875,12 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
 - Interfaces are hidden behind a toggle; when shown they sit at the same level as child blocks,
   sorted after them, with their own icon and no branch of their own.
 - References are never listed — a reference is a second appearance of something already there.
+- **A reference reads its target's name across open projects** (C.7). `actual()` resolves inside one
+  fold, so the canvas, the contents tray and the table read through `shownName` / `stoodFor`
+  instead, which take every open project's graph and resolve a `proj/id` path in whichever one owns
+  it. Proven on a card and in a table row, and across a reload. **The honest limit**: a reference
+  into a project that is *not open* cannot resolve and reads `missing` — **and so does one whose
+  target is genuinely gone**, which is a gap the story cannot close on (`C.7 ◐`).
 - Notes and groups are never listed either: the explorer is the tree, and the tree is blocks.
 - A node whose only children are interfaces still reads as a block.
 - Every open project is a root in the same tree, filed into the folders the workspace
@@ -881,6 +898,13 @@ is Z.8. Reasoning in [design.md](design.md) under *The terminal*.*
   clear space below the rows takes one too** — dropping there makes the block a project, since a
   project is a block nothing contains. **Promoted, the block *is* the project**: it becomes the new
   root rather than landing inside a project of its own name.
+- **A project root is filed, not moved** (N.1). Dragging one in the explorer writes **one** step in
+  the workspace log: `workspace.file` mints the root's reference or moves the one already there —
+  into a folder, beside folders at the workspace root, or back out to the unplaced list. The project
+  stays a project and its own log is untouched; demotion into another project's log is `N.2`.
+  **Known break**: a project dropped into a folder disappears from the tree until the folder is
+  clicked, because the folder was empty when the drag began and nothing opens it after the drop.
+  **And no folder can be made from the app** — `workspace.folder()` has no caller in `src/` (`N.8`).
 - **A move across projects is two steps in two logs**, never one spanning both: the subtree is
   written into the destination through `writeInto` and deleted from the source through the door.
   Its definitions and the package list travel with it, so types still resolve. **Relationships with
@@ -1157,8 +1181,18 @@ about like any other, and the drag sticks.
 - **A port and an anchor are different things.** A `directed` relationship's ends are typed — one
   in, one out — so they draw as interfaces. Every other relationship simply meets the card: its
   end is an **anchor**, a place on the border and no more, and draws nothing.
+- **An anchor exists only where a relationship actually meets the block** (C.2). There is no
+  always-four rule: a card with one line carries one anchor, and a card with none carries none.
 - An anchor shows a small round handle while its relationship or its card is selected, the same
   way a hidden interface does, so a line's ends can always be found.
+- **Dragging an anchor slides it between the free seats on that border, and around corners, without
+  promoting it** (C.2). A moved anchor **draws solid**, to say the position is yours rather than the
+  engine's; `fromAt` / `toAt` on the relationship hold it, and flipping the relation carries them
+  with the ends. Promotion stays a separate act — an interface is a real element with a name and a
+  type, and moving a line's end is not that.
+- **Known break (C.11)**: a relationship made *now* draws no line until the page is reloaded. The
+  anchors that carry its handles are minted by the same render that adds the edge, so React Flow
+  has not measured them yet and drops it. Everything above is what a reloaded page does.
 - A line stops at the **outer face** of the square it meets, not at the border under it, so it
   meets an interface rather than running into it.
 - Promotion is what an end is for when it needs a name, contents, or a place of its own that the
@@ -1172,6 +1206,9 @@ about like any other, and the drag sticks.
 - **No two sit in the same seat.** A drop onto an occupied one takes the next seat along.
 - **The layer chooses seats** for relationship ends: a free lattice seat on a side that faces
   the path. Dragging an interface somebody made still slides it, and that placement is kept.
+- **A frame wall lights on its own as a drop target** (C.5) — four rim spans track the pointer
+  and the nearest one takes the accent, in the same lit-target look the explorer tree and the
+  canvas already wear. One wall at a time; never a second treatment.
 - **A right drag on the layer's frame names a wall**, and that end keeps it: the seat along it
   is still derived, but which of the four walls the line uses is the user's. It beats the side
   an axis would have given. `arrange` hands it back along with hand placement.

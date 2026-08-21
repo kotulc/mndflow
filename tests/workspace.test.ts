@@ -9,7 +9,7 @@ import { compact, fold } from "../src/graph/fold";
 import { saveProject } from "../src/graph/store";
 import { EMPTY, ROOT, asTarget, element, refTo, step, type Mutation } from "../src/graph/types";
 import {
-  admit, begin, blank, defOf, extraction, folder, fork, fromDefs, gather, isLocked, isSelf, load,
+  admit, begin, blank, defOf, extraction, file, folder, fork, fromDefs, gather, isLocked, isSelf, load,
   mayAdmit, mayName, named, names, opened, pack, packId, packagesOf, packs, read, resolve,
   rootOf, save, scoped, started, stemOf, unlock, writeInto,
 } from "../src/workspace/index";
@@ -145,6 +145,73 @@ describe("admit", () => {
     const stand = Object.values(graph.elements).find((n) => n.form === "proxy")!;
 
     expect(stand.parent).toBe(pack.id);
+  });
+});
+
+describe("file", () => {
+  it("places an unfiled project under a folder", () => {
+    const made = folder(EMPTY, "Packs");
+    if ("refuse" in made) throw new Error("folder refused");
+
+    const withFolder = applied(...made);
+    const pack = Object.values(withFolder.elements).find((n) => n.form === "block" && n.id !== ROOT)!;
+    const out = file(withFolder, "proj_other", pack.id);
+    if ("refuse" in out) throw new Error("file refused");
+
+    const graph = applied(...out.mutations);
+    const stand = Object.values(graph.elements).find((n) => n.form === "proxy")!;
+
+    expect(stand.parent).toBe(pack.id);
+    expect(asTarget(stand.of!).project).toBe("proj_other");
+  });
+
+  it("moves a filed project between folders", () => {
+    const f1 = folder(EMPTY, "One");
+    if ("refuse" in f1) throw new Error("folder refused");
+
+    const withOne = applied(...f1);
+    const one = Object.values(withOne.elements).find((n) => n.label === "One")!;
+    const f2 = folder(withOne, "Two");
+    if ("refuse" in f2) throw new Error("folder refused");
+
+    let graph = fold([
+      step("a", "test", f1),
+      step("b", "test", f2),
+    ]);
+    const two = Object.values(graph.elements).find((n) => n.label === "Two")!;
+    const placed = file(graph, "proj_a", one.id);
+    if ("refuse" in placed) throw new Error("file refused");
+
+    graph = fold([
+      step("a", "test", f1),
+      step("b", "test", f2),
+      step("c", "test", placed.mutations),
+    ]);
+    const moved = file(graph, "proj_a", two.id);
+    if ("refuse" in moved) throw new Error("file refused");
+
+    graph = fold([
+      step("a", "test", f1),
+      step("b", "test", f2),
+      step("c", "test", placed.mutations),
+      step("d", "test", moved.mutations),
+    ]);
+    const stand = Object.values(graph.elements).find((n) => n.form === "proxy")!;
+
+    expect(stand.parent).toBe(two.id);
+  });
+
+  it("pulls a filed project back to the unplaced list", () => {
+    const out = file(EMPTY, "proj_a", null);
+    if ("refuse" in out) throw new Error("file refused");
+
+    const graph = applied(...out.mutations);
+    const loose = file(graph, "proj_a", "loose");
+    if ("refuse" in loose) throw new Error("file refused");
+
+    const after = applied(...loose.mutations);
+
+    expect(Object.values(after.elements).some((n) => n.form === "proxy")).toBe(false);
   });
 });
 

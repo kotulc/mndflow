@@ -21,7 +21,7 @@ import {
 import { lookOf } from "../../style";
 import { framed } from "./surround";
 import { paint } from "./paint";
-import type { Grazed, Seated } from "./pieces";
+import { anchorOf, type Grazed, type Seated } from "./pieces";
 
 /** A note's drawn size, used only to decide which of its sides a leader leaves
  *  by. Its real height is its text's; being a few pixels out picks the same
@@ -81,6 +81,7 @@ export type NodeReach = {
   onPick: (next: Picked) => void;
   onOpen: (id: string | null) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onSlideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
   onNameAttr: (id: string, label: string) => void;
   onSize: (id: string, w: number, h: number) => void;
@@ -110,6 +111,18 @@ function flowSides(axis: Axis): { from: Side; to: Side } | null {
   if (axis === "down") return { from: "bottom", to: "top" };
 
   return null;
+}
+
+/** The seat somebody dragged an anchor to, when this end has no interface. */
+function pinnedSeat(
+  edge: { fromSide?: Side; toSide?: Side; fromAt?: number; toAt?: number },
+  end: "from" | "to",
+): Seat | undefined {
+  const side = end === "from" ? edge.fromSide : edge.toSide;
+  const at = end === "from" ? edge.fromAt : edge.toAt;
+  if (side == null || at == null) return undefined;
+
+  return { side, at };
 }
 
 /** Card boxes that a route must clear, excluding the two ends it attaches to. */
@@ -177,8 +190,8 @@ function planEdge(
     toBox,
     [...obstaclesOf(boxes, edge.source, edge.target), ...solid],
     {
-      pinFrom: pinnedAt(graph, edge.from, edge.source),
-      pinTo: pinnedAt(graph, edge.to, edge.target),
+      pinFrom: pinnedAt(graph, edge.from, edge.source) ?? pinnedSeat(edge, "from"),
+      pinTo: pinnedAt(graph, edge.to, edge.target) ?? pinnedSeat(edge, "to"),
       sideFrom,
       sideTo,
       fromTaken: used[edge.source] ?? [],
@@ -273,7 +286,7 @@ export function laidOf(
   showPorts: boolean,
   shows: (edge: { type: string }) => boolean,
 ): { runs: Record<string, Laid>; seats: Record<string, Seated[]> } {
-  const { members, boxes, frameBox, noteBoxes } = stage;
+  const { members, notes, boxes, frameBox, noteBoxes, noteRest } = stage;
   const used: Used = {};
   const runs: Record<string, Laid> = {};
   const seats: Record<string, Seated[]> = {};
@@ -326,18 +339,45 @@ export function laidOf(
       toSide: planned.to.side,
     };
 
-    for (const [owner, port, seat] of [
-      [source, edge.from, planned.from],
-      [target, edge.to, planned.to],
+    for (const [owner, port, seat, end] of [
+      [source, edge.from, planned.from, "from"],
+      [target, edge.to, planned.to, "to"],
     ] as const) {
       // A hand-made interface is already on the card and already counted;
       // only a derived seat has to be claimed and drawn.
       if (pinnedAt(graph, port, owner)) continue;
       claim(owner, seat);
+      const placed = end === "from" ? edge.fromAt != null : edge.toAt != null;
       (seats[owner] ??= []).push({
-        edge: edge.id, side: seat.side, at: seat.at, port: drawsPort,
+        edge: edge.id, end, side: seat.side, at: seat.at, port: drawsPort, placed,
       });
     }
+  }
+
+  // Ties meet a note on one side and a block on the other — no routed run,
+  // but each end still needs the handle React Flow draws the leader through.
+  for (const edge of Object.values(graph.edges)) {
+    if (!isTie(graph, edge) || !shows(edge)) continue;
+
+    const targetBox = boxes[edge.target];
+    const note = graph.elements[edge.source];
+    if (!note || note.form !== "note" || !targetBox) continue;
+
+    const loose = notes.filter((n) => n.x == null || n.y == null).indexOf(note);
+    const corner = noteCorner(note, noteRest, note.x == null || note.y == null ? loose : 0);
+    const mine = {
+      x: corner.x, y: corner.y,
+      w: Math.max(NOTE.w, cell(note.w ?? 0)),
+      h: Math.max(NOTE.h, cell(note.h ?? 0)),
+    };
+
+    (seats[note.id] ??= []).push({
+      edge: edge.id, end: "from", side: facing(mine, targetBox), at: 0.5, port: false,
+    });
+    (seats[edge.target] ??= []).push({
+      edge: edge.id, end: "to", side: facing(targetBox, mine), at: 0.5, port: false,
+      show: false,
+    });
   }
 
   // Runs sharing a line are spread apart last, once every one of them is
@@ -370,7 +410,7 @@ export function nodesOf(
   const { members, notes, boxes, bands, frameBox, noteRest } = stage;
   const {
     unit, axis, showPorts, picked, grazed, dropping, joining,
-    litSeats, litEdges, onPick, onOpen, onSlidePort, onRename, onNameAttr,
+    litSeats, litEdges, onPick, onOpen, onSlidePort, onSlideAnchor, onRename, onNameAttr,
     onSize, onNameTaken, onSay, onPromotePort,
   } = reach;
   const pickedNode = picked?.kind === "node" ? picked.id : null;
@@ -415,6 +455,7 @@ export function nodesOf(
       onPick: (id: string) => onPick({ kind: "node", id }),
       onOpen,
       onSlidePort,
+      onSlideAnchor,
       onRename,
       onPromote: promoteSeat(node.id),
     },
@@ -480,6 +521,9 @@ export function nodesOf(
         onPick: () => onPick({ kind: "node", id: attr.id }),
         onLabel: (text: string) => onNameAttr(attr.id, text),
         onSize: (w: number, h: number) => onSize(attr.id, cell(w), cell(h)),
+        seats: laid.seats[attr.id] ?? [],
+        litEdges,
+        onSlideAnchor,
       },
     };
   }) as FlowNode[];
@@ -520,6 +564,7 @@ export function nodesOf(
           onPick: (id: string) => onPick({ kind: "node", id }),
           onOpen,
           onSlidePort,
+          onSlideAnchor,
           onRename,
           onPromote: promoteSeat(view),
           grazed,
@@ -572,8 +617,8 @@ export function edgesOf(
       selected: picked?.kind === "edge" && picked.id === edge.id,
       type: "straight",
       zIndex: DEPTH.group,
-      sourceHandle: `auto-${facing(mine, boxes[edge.target])}-s`,
-      targetHandle: `auto-${facing(boxes[edge.target], mine)}-t`,
+      sourceHandle: `${anchorOf(edge.id)}-s`,
+      targetHandle: `${anchorOf(edge.id)}-t`,
       selectable: true,
       focusable: true,
       deletable: true,
@@ -629,8 +674,8 @@ export function edgesOf(
         // Bookkeeping only — the drawn endpoints come from `run`. Naming the
         // side the plan chose keeps the library's idea of the edge and ours
         // pointing the same way.
-        sourceHandle: `auto-${run.fromSide}-s`,
-        targetHandle: `auto-${run.toSide}-t`,
+        sourceHandle: `${anchorOf(edge.id)}-s`,
+        targetHandle: `${anchorOf(edge.id)}-t`,
         // Stated on the edge rather than left to the container's defaults,
         // so a relation is always clickable and always deletable.
         selectable: true,

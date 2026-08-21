@@ -15,6 +15,9 @@ import { describe, expect, it } from "vitest";
 import { EMPTY, element, type Element, type Graph } from "../../src/graph/types";
 import { CHROME } from "../../src/modules/view/diagram/surface";
 import { MODULES, named, views } from "../../src/modules/view/index";
+import {
+  base, block, blockOf, folder, group, modOf, note, project, resource, view as viewBlock, workspace,
+} from "../../src/modules/block/index";
 import { card, cardOf } from "../../src/modules/card/index";
 import { constraints, constraintsOf } from "../../src/modules/constraints/index";
 import { rules, rulesOf } from "../../src/modules/rules/index";
@@ -43,6 +46,16 @@ const PUBLISHED: Case[] = [
     mine: { set: "sysml" }, other: {} },
   { component: view, resolve: viewOf,
     mine: { module: "table" }, other: { module: "matrix" } },
+  { component: block, resolve: blockOf,
+    mine: { module: "workspace" }, other: { module: "folder" } },
+  { component: workspace, resolve: modOf("workspace"), mine: {}, other: {} },
+  { component: project, resolve: modOf("project"), mine: {}, other: {} },
+  { component: folder, resolve: modOf("folder"), mine: {}, other: {} },
+  { component: base, resolve: modOf("base"), mine: {}, other: {} },
+  { component: viewBlock, resolve: modOf("view"), mine: {}, other: {} },
+  { component: resource, resolve: modOf("resource"), mine: {}, other: {} },
+  { component: group, resolve: modOf("group"), mine: {}, other: {} },
+  { component: note, resolve: modOf("note"), mine: {}, other: {} },
 ];
 
 /** A graph holding one element of one definition, configured as given. */
@@ -131,6 +144,22 @@ describe.each(PUBLISHED)("the $component.name component", (held) => {
 
     // The whole key is replaced, never merged into — the parent's does not leak.
     expect(held.resolve(chain, one)).toEqual(held.resolve(alone, two));
+  });
+});
+
+describe("block.module delegation", () => {
+  it("routes modOf through components.block.module", () => {
+    const [graph, held] = typed("block", { block: { module: "workspace" } });
+
+    expect(modOf("workspace")(graph, held)).toEqual({});
+    expect(blockOf(graph, held)).toEqual({ module: "workspace" });
+  });
+
+  it("reads structure as the base module", () => {
+    const [graph, held] = typed("block", { block: { module: "base" } });
+
+    expect(modOf("base")(graph, held)).toEqual({});
+    expect(blockOf(graph, held)).toEqual({ module: "base" });
   });
 });
 

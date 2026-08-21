@@ -279,6 +279,8 @@ export function extraction(
   into: Graph = EMPTY,
 ): { mutations: Mutation[]; lost: number } | { refuse: string } {
   const held = from.elements[id];
+  // Workspace filing uses {@link file} instead — a project root stays a
+  // project and only its reference moves (N.1). Demotion into another log is N.2.
   if (!held || id === ROOT) return { refuse: "Nothing to take out." };
 
   const moving = Object.values(from.elements)
@@ -350,6 +352,65 @@ export function extraction(
   }
 
   return { mutations, lost };
+}
+
+/** The workspace proxy standing for a project's root, if one is filed. */
+function proxyOf(graph: Graph, projectId: string): Element | undefined {
+  const wanted = asTarget(rootOf(projectId));
+
+  return Object.values(graph.elements).find((n) => {
+    if (n.form !== "proxy" || !n.of) return false;
+    const held = asTarget(n.of);
+
+    return held.element === wanted.element && held.project === wanted.project;
+  });
+}
+
+/** Where a project root lands in the workspace filing tree.
+ *
+ *  `null` files it at the workspace root beside folders. `"loose"` pulls it
+ *  back to the unplaced list — the proxy goes. A folder id nests it there. */
+export type FileTarget = string | null | "loose";
+
+/** File an open project in the workspace tree — into a folder, beside folders
+ *  at the root, or back out to the unplaced list. One step in the workspace
+ *  log; the project stays a project (demotion into another log is N.2). */
+export function file(
+  graph: Graph,
+  projectId: string,
+  parent: FileTarget,
+): { mutations: Mutation[] } | { refuse: string } {
+  if (!projectId) return { refuse: "Nothing to file." };
+
+  const stand = proxyOf(graph, projectId);
+
+  if (parent === "loose") {
+    if (!stand) return { refuse: "Nothing to write." };
+
+    return { mutations: [{ op: "delete_element", id: stand.id }] };
+  }
+
+  if (parent !== null) {
+    const into = graph.elements[parent];
+    if (!into || into.form !== "block") return { refuse: "Nowhere to file that." };
+  }
+
+  if (stand) {
+    const held = stand.parent && graph.elements[stand.parent] ? stand.parent : null;
+    if (held === parent) return { refuse: "Nothing to write." };
+
+    return { mutations: [{ op: "move_element", id: stand.id, parent }] };
+  }
+
+  const of = rootOf(projectId);
+  const fresh = element("", {
+    form: "proxy",
+    parent,
+    of,
+    num: nextNum(graph, parent, "proxy"),
+  });
+
+  return { mutations: [{ op: "add_element", element: fresh }] };
 }
 
 /** Drop a project from the workspace: its reference goes and its entry with it.

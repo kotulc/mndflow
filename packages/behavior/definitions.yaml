@@ -1,47 +1,47 @@
-# Action and state blocks, and the words each behavior view module uses.
-# A container typed `action` is an activity; a leaf is an action — the SysML
-# mapping, not a stored distinction.
-# `words` sit ready for activity / sequence / state; the catalog loader only
-# reads `definitions`.
-
-definitions:
-  - id: def_action
-    name: action
-    form: block
-    body: Something that happens — a step in a process.
-    fields:
-      - name: outcome
-        form: ref
-    names:
-      sysml: Action
-      uml: Action
-      uaf: OperationalActivity
-
-  - id: def_state
-    name: state
-    form: block
-    body: A condition that holds — being rather than doing.
-    names:
-      sysml: State
-      uml: State
-
-# What activity, sequence and state call an action, a state, a message, and
-# the verb a derived label opens with (`do Pump`). Plain reading only;
-# a SysML reading can differ later without either word being stored on a block.
-words:
-  activity:
-    action: action
-    state: state
-    message: message
-    verb: do
-  sequence:
-    action: action
-    state: state
-    message: message
-    verb: do
-  state:
-    action: action
-    state: state
-    message: message
-    verb: do
+# Action and state blocks, and the words each behavior view module uses.
+# A container typed `action` is an activity; a leaf is an action — the SysML
+# mapping, not a stored distinction.
+# `words` sit ready for activity / sequence / state; the catalog loader only
+# reads `definitions`.
+
+definitions:
+  - id: def_action
+    name: action
+    form: block
+    body: Something that happens — a step in a process.
+    fields:
+      - name: outcome
+        form: link
+    names:
+      sysml: Action
+      uml: Action
+      uaf: OperationalActivity
+
+  - id: def_state
+    name: state
+    form: block
+    body: A condition that holds — being rather than doing.
+    names:
+      sysml: State
+      uml: State
+
+# What activity, sequence and state call an action, a state, a message, and
+# the verb a derived label opens with (`do Pump`). Plain reading only;
+# a SysML reading can differ later without either word being stored on a block.
+words:
+  activity:
+    action: action
+    state: state
+    message: message
+    verb: do
+  sequence:
+    action: action
+    state: state
+    message: message
+    verb: do
+  state:
+    action: action
+    state: state
+    message: message
+    verb: do
 

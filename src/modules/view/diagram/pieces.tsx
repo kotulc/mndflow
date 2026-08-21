@@ -13,7 +13,7 @@ import { useRef, useState, type DragEvent } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
 
 import { isContainer, isLinked, nameOf, portsOf } from "../../../graph/fold";
-import { freeSeat, seatAt, sizeOf, LEAF } from "../../../geometry/layout";
+import { freeAlong, freeSeat, seatAt, sizeOf, takenOn, LEAF } from "../../../geometry/layout";
 import type { Graph, Element, Side } from "../../../graph/types";
 import { takes } from "./map";
 
@@ -169,6 +169,19 @@ export type Grazed = {
   id: string;
 } | null;
 
+/** Which edge of a screen box the pointer is nearest — the one wall a frame
+ *  drop target or a graze on the rim would name. Side only; the seat along it
+ *  is still the gesture's to work out. */
+export function nearestSide(box: DOMRect, x: number, y: number): Side {
+  const gaps = {
+    left: x - box.left, right: box.right - x,
+    top: y - box.top, bottom: box.bottom - y,
+  };
+
+  return (Object.keys(gaps) as Side[])
+    .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left");
+}
+
 export type CardData = {
   node: Element;
   graph: Graph;
@@ -199,13 +212,29 @@ export type CardData = {
   /** Enter something's own contents. Only a double-click reaches this. */
   onOpen: (id: string) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onSlideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
   /** Turn one of those seats into an interface of its own. */
   onPromote: (edge: string, side: Side, at: number) => void;
 };
 
 /** One derived seat: which relationship put it there, and where it sits. */
-export type Seated = { edge: string; side: Side; at: number; port: boolean };
+export type Seated = {
+  edge: string;
+  end: "from" | "to";
+  side: Side;
+  at: number;
+  port: boolean;
+  /** Somebody dragged this anchor — draw solid. */
+  placed?: boolean;
+  /** False when the handle exists only for geometry (e.g. a tie's far end). */
+  show?: boolean;
+};
+
+/** React Flow handle prefix for one relationship end on a card. */
+export function anchorOf(edge: string): string {
+  return `anchor-${edge}`;
+}
 
 /** The face opposite a side. Used for anchors looked at from the inside, and
  *  for seating the far end of a relationship so it faces back the way it came. */
@@ -274,30 +303,101 @@ export function Berth({ port, graph, shown, inward, host }: {
  *
  *  An anchor still shows itself when its relationship or its card is selected,
  *  the same way a hidden interface does, so a line's ends can always be found.
+ *  Dragging it slides between the seats on that border without promotion.
  *  Promoting one is an offered-list entry (G.9d), not an immediate right-click. */
-export function Perch({ seated, side, at, port, lit, inward }: {
+export function Perch({ seated, end, side, at, port, lit, placed, show = true, inward,
+                       graph, owner, host, onSlide }: {
   seated: string;
+  end: "from" | "to";
   side: Side;
   at: number;
   /** Draw it as an interface: a `flow` end, with interfaces turned on. */
   port: boolean;
   /** Its relationship or its card is selected, so an anchor shows its handle. */
   lit: boolean;
+  /** Somebody dragged this anchor — draw solid. */
+  placed?: boolean;
+  /** False when only the handle is needed, not the round mark. */
+  show?: boolean;
   inward?: boolean;
+  graph?: Graph;
+  owner?: string;
+  host?: { x: number; y: number; w: number; h: number };
+  onSlide?: (edge: string, end: "from" | "to", side: Side, at: number) => void;
   /** Kept for call-site stability; promotion is no longer immediate. */
   onPromote?: (edge: string, side: Side, at: number) => void;
 }) {
+  const flow = useReactFlow();
+  const [drag, setDrag] = useState<{ side: Side; at: number } | null>(null);
+  const held = useRef<{ x: number; y: number } | null>(null);
+  const face = drag?.side ?? side;
+  const alongAt = drag?.at ?? at;
+
+  function nearest(event: React.PointerEvent) {
+    const el = (event.currentTarget as HTMLElement).closest(".card, .frame, .note");
+    const box = el?.getBoundingClientRect();
+    if (!box || !graph || !owner) return { side: face, at: alongAt };
+
+    const x = Math.min(Math.max(event.clientX - box.left, 0), box.width);
+    const y = Math.min(Math.max(event.clientY - box.top, 0), box.height);
+    const gaps = { left: x, right: box.width - x, top: y, bottom: box.height - y };
+    const closest = (Object.keys(gaps) as Side[])
+      .reduce((best, name) => (gaps[name] < gaps[best] ? name : best), "left" as Side);
+    const flat = closest === "top" || closest === "bottom";
+    const frac = flat ? x / box.width : y / box.height;
+    const zoom = flow.getZoom() || 1;
+    const span = (flat ? box.width : box.height) / zoom;
+    const corner = flow.screenToFlowPosition({ x: box.left, y: box.top });
+    const start = flat ? corner.x : corner.y;
+    const taken = takenOn(graph, owner, closest, span, start,
+      { edge: seated, end });
+
+    return { side: closest, at: freeAlong(frac, span, start, taken) };
+  }
+
   return (
     <span
-      className={`berth port-${side} perch`}
-      style={seat(side, at)}
+      className={["berth", "nodrag", "nopan", `port-${face}`, "perch",
+                  placed ? "placed" : ""].join(" ")}
+      style={seat(face, alongAt)}
       data-edge={seated}
-      data-side={side}
-      data-at={String(at)}
+      data-side={face}
+      data-at={String(alongAt)}
       onContextMenu={(event) => event.preventDefault()}
     >
-      {port ? <span className="seat-mark" /> : lit && <span className="seat" />}
-      <Anchor name={`auto-${side}`} side={side} inward={inward} />
+      {show && (port
+        ? <span className="seat-mark" />
+        : lit && (
+          <span
+            className="seat"
+            style={placed ? { background: "var(--wall)" } : undefined}
+            onPointerDown={(event) => {
+              if (event.button !== 0 || port) return;
+              event.stopPropagation();
+              held.current = { x: event.clientX, y: event.clientY };
+              (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+            }}
+            onPointerMove={(event) => {
+              const from = held.current;
+              if (!from || port) return;
+              if (!drag && Math.hypot(event.clientX - from.x, event.clientY - from.y) < NUDGE) {
+                return;
+              }
+              setDrag(nearest(event));
+            }}
+            onPointerUp={(event) => {
+              if (!held.current || port) return;
+              held.current = null;
+              if (!drag) return;
+              const landed = nearest(event);
+              setDrag(null);
+              if ((landed.side !== side || landed.at !== at) && takes("seat")) {
+                onSlide?.(seated, end, landed.side, landed.at);
+              }
+            }}
+          />
+        ))}
+      <Anchor name={anchorOf(seated)} side={face} inward={inward} />
     </span>
   );
 }

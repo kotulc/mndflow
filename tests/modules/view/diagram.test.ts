@@ -17,8 +17,8 @@ import { definition, edge, element, EMPTY, ROOT } from "../../../src/graph/types
 import type { Graph } from "../../../src/graph/types";
 import {
   ADJUSTMENTS, BAND, CHROME, DEPTH, DIAGRAM, EDGES, LEAST, MAP,
-  MARGIN, NOTE, NODES, edgesOf, extentOf, fill_args, floorOf,
-  framed, laidOf, nodesOf, paint, PAPER, reaches, restOf,
+  MARGIN, NOTE, NODES, boxOf, edgesOf, extentOf, fill_args, fitOf, floorOf,
+  framed, laidOf, nearestSide, nodesOf, paint, PAPER, reaches, restOf,
   stageOf, svgOf, takes, type OfferTarget, type SvgLook,
 } from "../../../src/modules/view/diagram/index";
 
@@ -116,6 +116,18 @@ describe("offer fill_args", () => {
   });
 });
 
+describe("nearestSide", () => {
+  it("names the closest edge of a box, one side at a time", () => {
+    const box = { left: 100, top: 100, right: 300, bottom: 200,
+                  width: 200, height: 100, x: 100, y: 100, toJSON: () => "" };
+
+    expect(nearestSide(box as DOMRect, 110, 150)).toBe("left");
+    expect(nearestSide(box as DOMRect, 290, 150)).toBe("right");
+    expect(nearestSide(box as DOMRect, 200, 105)).toBe("top");
+    expect(nearestSide(box as DOMRect, 200, 195)).toBe("bottom");
+  });
+});
+
 describe("the surround", () => {
   it("sizes a frame onto the grid, never smaller than the floor", () => {
     const box = framed([{ x: 0, y: 0, w: 100, h: 80 }], { w: 800, h: 600 });
@@ -153,6 +165,28 @@ describe("the viewport", () => {
     expect(y0).toBeLessThan(frame.y);
     expect(x1).toBeGreaterThan(frame.x + frame.w);
     expect(y1).toBeGreaterThan(frame.y + frame.h);
+  });
+
+  it("names the box under each kind of pick", () => {
+    const boxes = { a: { x: 0, y: 0, w: 100, h: 40 } };
+    const bands = [{ attr: { id: "g" }, box: { x: -10, y: -10, w: 120, h: 60 } }];
+    const runs = { e1: { points: [{ x: 10, y: 5 }, { x: 90, y: 35 }], fromSide: "right" as const,
+                          toSide: "left" as const } };
+
+    expect(boxOf({ kind: "node", id: "a" }, boxes, bands, runs)).toEqual(boxes.a);
+    expect(boxOf({ kind: "attr", id: "g" }, boxes, bands, runs)).toEqual(bands[0].box);
+    expect(boxOf({ kind: "edge", id: "e1" }, boxes, bands, runs)?.w).toBeGreaterThan(0);
+    expect(boxOf(null, boxes, bands, runs)).toBeNull();
+  });
+
+  it("centres a target region in the seen area", () => {
+    const target = { x: 100, y: 50, w: 200, h: 100 };
+    const seen = { w: 800, h: 600 };
+    const camera = fitOf(target, seen);
+
+    expect(camera.zoom).toBeGreaterThan(0);
+    expect(camera.x).toBeGreaterThan(0);
+    expect(camera.y).toBeGreaterThan(0);
   });
 });
 
@@ -242,11 +276,16 @@ describe("layer list composition", () => {
     const nodes = nodesOf(graph, "L", stage, laid, {
       unit: "block", axis: "none", showPorts: false, picked: null, grazed: null,
       dropping: null, joining: [], litSeats: new Set(), litEdges: new Set(),
-      onPick: noop, onOpen: noop, onSlidePort: noop, onRename: noop,
+      onPick: noop, onOpen: noop, onSlidePort: noop, onSlideAnchor: noop, onRename: noop,
       onNameAttr: noop, onSize: noop, onNameTaken: () => false, onSay: noop,
       onPromotePort: noop,
     });
     const edges = edgesOf(graph, "L", stage, laid, false, null, () => true);
+
+    const cardA = nodes.find((n) => n.id === "a");
+    expect((cardA?.data as { seats: { edge: string }[] }).seats).toHaveLength(1);
+    expect(edges.find((e) => e.id === "e1")?.sourceHandle).toBe("anchor-e1-s");
+    expect(edges.find((e) => e.id === "e1")?.targetHandle).toBe("anchor-e1-t");
 
     expect(DEPTH.frame).toBeLessThan(DEPTH.group);
     expect(DEPTH.group).toBeLessThan(DEPTH.card);
