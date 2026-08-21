@@ -132,17 +132,34 @@ describe("the two stored links", () => {
   });
 
   it("derives containment from a filed graph root", () => {
+    const project = element("", { parent: null, of: ROOT });
+
+    expect(isContained(project)).toBe(true);
+  });
+
+  it("spares a contained root when its container is deleted, but sweeps an ordinary child", () => {
+    // Deleting a container never deletes a contained root: the folder going away
+    // un-files the project reference rather than deleting it, while an ordinary
+    // (owned, non-contained) child of the same folder is still swept away with it.
     const folder = element("Folder", { parent: null });
     const project = element("", { parent: folder.id, of: ROOT });
+    const child = element("Valve", { parent: folder.id });
     const graph = fold([did(
       { op: "add_element", element: folder },
       { op: "add_element", element: project },
+      { op: "add_element", element: child },
       { op: "delete_element", id: folder.id },
     )]);
 
-    expect(isContained(project)).toBe(true);
     expect(graph.elements[ROOT]).toBeDefined();
-    expect(graph.elements[project.id]).toBeUndefined();
+    expect(graph.elements[folder.id]).toBeUndefined();
+    expect(graph.elements[child.id]).toBeUndefined();
+
+    expect(graph.elements[project.id]).toBeDefined();
+    expect(isContained(graph.elements[project.id])).toBe(true);
+    // Un-filed, not orphaned invisibly: it surfaces at the root layer the same
+    // way any element with an undone parent already does.
+    expect(childrenOf(graph, null).map((n) => n.id)).toContain(project.id);
   });
 });
 

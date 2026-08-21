@@ -49,6 +49,16 @@ export function isPart(node: Element | undefined): boolean {
   return Boolean(node && !isReference(node));
 }
 
+/** Whether a node cascades away when an ancestor is deleted. A part always
+ *  does — it belongs to the subtree outright. A reference only does when it
+ *  is not a contained root: an independent graph root filed here is un-filed
+ *  by its container going away, never deleted along with it. One predicate,
+ *  shared by the fold's own cascade and the `delete` action's own accounting
+ *  of what it is about to sweep, so the two can never drift apart. */
+export function cascades(node: Element | undefined): boolean {
+  return isPart(node) || !isContained(node);
+}
+
 /** What a reference stands in for — the held path, bare or `project/element`. */
 export function refOf(graph: Graph, id: string): string | null {
   return graph.elements[id]?.of ?? null;
@@ -597,8 +607,14 @@ function applyElement(graph: Graph, mutation: ElementOp): void {
 
     case "delete_element": {
       if (mutation.id === ROOT) return;
+      // A contained descendant is an independent graph root filed here, not owned by the
+      // subtree beneath it — its container going away un-files it (it surfaces at the root
+      // layer, the same way any element with an undone parent already does) rather than
+      // deleting the root it stands for.
       const gone = Object.keys(graph.elements).filter((id) =>
-        descendsFrom(graph, id, mutation.id),
+        id === mutation.id
+          ? true
+          : cascades(graph.elements[id]) && descendsFrom(graph, id, mutation.id),
       );
       for (const id of gone) delete graph.elements[id];
       for (const [id, edge] of Object.entries(graph.edges)) {

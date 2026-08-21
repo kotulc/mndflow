@@ -7,7 +7,7 @@ import { lookup, run, writes, type Context, type Effect, type Refusal } from "..
 import "../../src/actions/elements";
 import { fold } from "../../src/graph/fold";
 import {
-  ROOT, element, step, type Mutation,
+  ROOT, edge, element, step, type Mutation,
 } from "../../src/graph/types";
 
 function at(
@@ -135,6 +135,51 @@ describe("writes", () => {
       id: leaf.id, body: "about it",
     }));
     expect(ops(done)).toEqual(["set_body"]);
+  });
+
+  it("delete spares a contained root's group membership and ties, but sweeps an ordinary child's", () => {
+    // B.5's remainder: a contained descendant is un-filed by the fold rather than
+    // deleted, so the action's own cleanup list must agree — or it would strip the
+    // group membership and ties of something that, per the fold, still exists.
+    const folder = element("Folder", { parent: null });
+    const project = element("", { parent: folder.id, of: ROOT });
+    const child = element("Valve", { parent: folder.id });
+    const note = element("watch", { form: "note", parent: null });
+    const group = element("Set", { form: "group", parent: null });
+    const tie = edge(note.id, project.id);
+    const graph = graph_of(
+      { op: "add_element", element: folder },
+      { op: "add_element", element: project },
+      { op: "add_element", element: child },
+      { op: "add_element", element: note },
+      { op: "add_element", element: group },
+      { op: "join_group", id: project.id, group: group.id },
+      { op: "join_group", id: child.id, group: group.id },
+      { op: "link_elements", edge: tie },
+    );
+
+    const done = as_effect(run("delete", at(graph, { kind: "node", id: folder.id }), {
+      id: folder.id,
+    }));
+
+    const leaves = done.mutations.filter(
+      (m): m is Extract<Mutation, { op: "leave_group" }> => m.op === "leave_group",
+    );
+    const drops = done.mutations.filter(
+      (m): m is Extract<Mutation, { op: "delete_edge" }> => m.op === "delete_edge",
+    );
+    const deletes = done.mutations.filter(
+      (m): m is Extract<Mutation, { op: "delete_element" }> => m.op === "delete_element",
+    );
+
+    // The contained reference keeps its group membership and its tie.
+    expect(leaves.some((m) => m.id === project.id)).toBe(false);
+    expect(drops.some((m) => m.id === tie.id)).toBe(false);
+    // Only the container itself is deleted outright — the cascade is the fold's.
+    expect(deletes).toEqual([{ op: "delete_element", id: folder.id }]);
+
+    // An ordinary (non-contained) child of the same folder still leaves the group.
+    expect(leaves.some((m) => m.id === child.id)).toBe(true);
   });
 
   it("move returns move_element", () => {
