@@ -5,3 +5,4 @@ The workspace explorer is a file explorer that displays the top-level nodes of t
 The header of the explorer component displays the workspace chip (a view button that displays the top-level blocks) followed by the standard workspace options: Add block, Add folder, Fold/Unfold toggle, Hide/Show empty block toggle, and Delete.
 
 ## Explorer Tree
+A minimal file (block) tree with each block name listed after its identifying icon. Icons display empty/subtle when the block has no children and filled/bright when the block contains children. The selected (in context) layer of the tree is highlighted. Each top-level block under the workspace appears as its own subtree. Hide/Show toggle option hides all empty childless blocks except for the top-level blocks.

@@ -87,9 +87,9 @@ re-parenting moves a record — which is what a structural change should look li
 ```
 Graph {
   root    Id                      // the workspace block; parent: null
+  defs    Record<Id, Definition>
   blocks  Record<Id, Block>
   edges   Record<Id, Relation>
-  defs    Record<Id, Definition>
 }
 ```
 
