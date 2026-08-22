@@ -10,10 +10,26 @@
  *  `dissolve` from a menu or tray waits on G.9. */
 
 import { isTie, membersOf, nextNum } from "../graph/fold";
-import { edge as makeEdge, element as makeElement, type Mutation, type Spot } from "../graph/types";
+import {
+  defIdFor, definition, edge as makeEdge, element as makeElement, type Mutation, type Spot,
+} from "../graph/types";
 import { register, type Action, type Args, type Context, type Effect } from "./index";
 
 const label_of = (ctx: Context, id: string) => ctx.graph.elements[id]?.label || id;
+
+/** Mint the shipped `group`/`note` definition locally, if this graph does not
+ *  already have it — same shape as `packages/base/definitions.yaml`, so an
+ *  element typed here resolves identically whether or not the base package
+ *  was ever imported. Precedent: `workspace.folder()`. */
+function mint_def(ctx: Context, name: "group" | "note", body: string): Mutation[] {
+  const id = defIdFor(name);
+  if (ctx.graph.defs[id]) return [];
+
+  return [{
+    op: "set_def",
+    ...definition(name, { id, form: "block", fields: [], body, components: { block: { module: name } } }),
+  }];
+}
 
 /** Members going out of one group.
  *
@@ -96,12 +112,14 @@ const group: Action = {
 
     const box = makeElement("", {
       form: "group",
+      type: defIdFor("group"),
       parent: ctx.view,
       num: nextNum(ctx.graph, ctx.view, "group"),
     });
 
     return {
       mutations: [
+        ...mint_def(ctx, "group", "A boundary round a set of references — a swimlane, a region, a package boundary."),
         { op: "add_element", element: box },
         ...members.map((id) => ({ op: "join_group" as const, id, group: box.id })),
       ],
@@ -192,18 +210,22 @@ const note: Action = {
     const size = as_size(args);
 
     return {
-      mutations: [{
-        op: "add_element",
-        element: makeElement(text, {
-          form: "note",
-          parent: ctx.view,
-          x: spot?.x ?? null,
-          y: spot?.y ?? null,
-          w: size?.w ?? null,
-          h: size?.h ?? null,
-          num: nextNum(ctx.graph, ctx.view, "note"),
-        }),
-      }],
+      mutations: [
+        ...mint_def(ctx, "note", "Text carried as a resource and drawn as a card."),
+        {
+          op: "add_element",
+          element: makeElement(text, {
+            form: "note",
+            type: defIdFor("note"),
+            parent: ctx.view,
+            x: spot?.x ?? null,
+            y: spot?.y ?? null,
+            w: size?.w ?? null,
+            h: size?.h ?? null,
+            num: nextNum(ctx.graph, ctx.view, "note"),
+          }),
+        },
+      ],
       say: `note: ${text}`,
     };
   },

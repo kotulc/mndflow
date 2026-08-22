@@ -49,14 +49,13 @@ export function isPart(node: Element | undefined): boolean {
   return Boolean(node && !isReference(node));
 }
 
-/** Whether a node cascades away when an ancestor is deleted. A part always
- *  does — it belongs to the subtree outright. A reference only does when it
- *  is not a contained root: an independent graph root filed here is un-filed
+/** Whether a node cascades away when an ancestor is deleted. Every node does
+ *  except a contained root: an independent graph root filed here is un-filed
  *  by its container going away, never deleted along with it. One predicate,
  *  shared by the fold's own cascade and the `delete` action's own accounting
  *  of what it is about to sweep, so the two can never drift apart. */
 export function cascades(node: Element | undefined): boolean {
-  return isPart(node) || !isContained(node);
+  return !isContained(node);
 }
 
 /** What a reference stands in for — the held path, bare or `project/element`. */

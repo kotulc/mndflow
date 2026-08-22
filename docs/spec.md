@@ -1284,7 +1284,9 @@ about like any other, and the drag sticks.
 
 - **The generic organizational element** — a boundary round a set, meaning whatever its
   definition says. A swimlane, a region, a package boundary and a trace assertion are all groups.
-  **(planned)** — only the bare group exists today.
+  A new group and a new note carry a `type` naming the shipped `group` / `note` base definition,
+  minting a local copy of it when the project has none, so both resolve through `resolved()`.
+  **(planned)** — what a block *draws* is still read from `form`, not from that definition (`B.6b`).
 - Drawn round the blocks that name it. Its members are derived from their membership, never
   stored on the group.
 - The boundary is its members' bounds plus half a cell of margin, so it lands on the grid when

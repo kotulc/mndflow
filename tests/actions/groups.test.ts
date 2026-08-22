@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { lookup, run, writes, type Context, type Effect, type Refusal } from "../../src/actions/index";
 import "../../src/actions/groups";
-import { fold } from "../../src/graph/fold";
+import { fold, resolved } from "../../src/graph/fold";
 import {
   edge, element, step, type Mutation,
 } from "../../src/graph/types";
@@ -74,10 +74,23 @@ describe("group, leave, dissolve", () => {
       { op: "add_element", element: b },
     );
     const done = as_effect(run("group", at(graph), { members: [a.id, b.id] }));
-    expect(ops(done)[0]).toBe("add_element");
-    expect(ops(done).slice(1).every((op) => op === "join_group")).toBe(true);
+    expect(ops(done)[0]).toBe("set_def");
+    expect(ops(done)[1]).toBe("add_element");
+    expect(ops(done).slice(2).every((op) => op === "join_group")).toBe(true);
     expect(ops(done).filter((op) => op === "join_group").length).toBe(2);
     expect(writes(done)).toBe(true);
+  });
+
+  it("group mints a group element whose type resolves through resolved()", () => {
+    const a = element("A", { parent: null });
+    const seed = graph_of({ op: "add_element", element: a });
+    const done = as_effect(run("group", at(seed), { members: [a.id] }));
+    const graph = fold([
+      step("", "seed", [{ op: "add_element", element: a }]),
+      step("", "test", done.mutations),
+    ]);
+    const box = Object.values(graph.elements).find((e) => e.form === "group");
+    expect(box && resolved(graph, box.type)).toBeTruthy();
   });
 
   it("group with into only joins", () => {
@@ -141,8 +154,16 @@ describe("note and tie", () => {
   it("note returns add_element when it has something to say", () => {
     const graph = graph_of();
     const done = as_effect(run("note", at(graph), { text: "remember" }));
-    expect(ops(done)).toEqual(["add_element"]);
+    expect(ops(done)).toEqual(["set_def", "add_element"]);
     expect(writes(done)).toBe(true);
+  });
+
+  it("note mints a note element whose type resolves through resolved()", () => {
+    const seed = graph_of();
+    const done = as_effect(run("note", at(seed), { text: "remember" }));
+    const graph = fold([step("", "test", done.mutations)]);
+    const card = Object.values(graph.elements).find((e) => e.form === "note");
+    expect(card && resolved(graph, card.type)).toBeTruthy();
   });
 
   it("tie links a note to a holder when none exists", () => {
