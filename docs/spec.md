@@ -493,8 +493,9 @@ needs none — a behavior model is one package plus three view modules.
 
 - **A behavior project holds references to the participants, never parts**, so a structure block
   never appears in a behavior tree.
-- **`infer` is how one comes to exist**: a selection becomes one behavior block, in a named project
-  or a new one. One-way, one-time, deterministic over the selection; re-inferring makes a new block.
+- **`infer` is how one comes to exist**: a selection becomes one behavior block, **always a new
+  top-level one**. One-way, one-time, deterministic over the selection; re-inferring makes a new
+  block rather than disturbing one somebody has worked on.
 - **It composes** — a selection of actions infers a `state` block the way structure infers an
   `activity`.
 - **A container is an activity, a leaf is an action.** Derived, not stored.

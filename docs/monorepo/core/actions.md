@@ -137,10 +137,11 @@ action: an activity is blocks and relationships, and the ordinary actions make t
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `infer` | turns a selection into one behavior block — activity, or state when the selection is actions | selection | of[], into? | `add_block`… + `link_blocks`… |
+| `infer` | turns a selection into one behavior block — activity, or state when the selection is actions | selection | of[] | `add_block`… + `link_blocks`… |
 
-**Any cross-section**: blocks, whole branches, entire projects, across as many projects as the
-selection reaches. `into` names where the result lands; without one, a new project is made.
+**Any cross-section**: blocks, whole branches, entire projects, across as much of the workspace as
+the selection reaches. **The result is always a new top-level block**, so an inference can never
+disturb a behavior somebody has already worked on. Filing it afterwards is ordinary reorganising.
 
 **One-way, one-time and deterministic.** Nothing re-syncs afterwards, and re-inferring makes a
 **new** block rather than touching an existing one, so hand-adjusted work is never clobbered.
