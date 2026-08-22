@@ -1,4 +1,4 @@
 # Canvas
-## Canvas Viewer (rendering)
-## Options Column (config)
+## Canvas Viewer (views)
+## Options Rail (config)
 ## Context Tray (context)

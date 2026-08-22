@@ -4,7 +4,7 @@
 
 - **Why any of it is this way** → [design.md](design.md). **What each word means** →
   [definitions.md](definitions.md).
-- **The action surface in full** → [actions.md](actions.md). **Behaviour rules** →
+- **The action surface in full** → [actions.md](monorepo/core/actions.md). **Behaviour rules** →
   [behaviors.md](behaviors.md).
 - **What is missing** → [tasks.md](tasks.md). **The queue** → [plan.md](plan.md).
 
@@ -40,8 +40,8 @@ set** — anything else enumerating sorts of things is doing the engine's job in
   `graph.blocks`. There is **no closed set of element sorts** — what a block *is* comes from its
   definition.
 - **A block carries** `label`, `type`, `parent`, `body`, `x`/`y`, `w`/`h` where it has a least size,
-  `flow` for when it is the open layer, `groups` for its membership, `of` where it is a reference,
-  and `fields`.
+  `arrangement` for when it is the open layer, `groups` for its membership, `of` where it is a
+  reference, and `fields`.
 - **A block carries no presentation of its own.** Colour, shape and the rest belong to its
   definition, so two things looking alike is two things *being* alike.
 - **`type` names a definition** — open, and the user's. Empty until somebody sets one.
@@ -51,15 +51,19 @@ set** — anything else enumerating sorts of things is doing the engine's job in
   something living elsewhere. The tree is `parent` and nothing else.
 - **Contained is derived**: a child that is a graph root is contained, not owned. That is what a
   folder and the workspace do, and it stores nothing new.
-- **Container and interface are derived, never declared.** A block holding blocks draws as a
-  container; a block seated on an edge is an interface. Both are ways a block *looks*.
+- **A container is derived, never declared** — a block holding blocks draws as one. It is a way a
+  block *looks*, and naming it a sort of thing would make an engine-level answer to something that
+  changes the moment a child is added.
+- **An interface is declared, not derived.** It is a block module, made deliberately, and `side` is
+  only where it sits — which is what lets it carry an anchor-slot surface, so a lifeline occurrence
+  and a proxy port are the same object.
 - **An interface carries** `side`, `at` (0–1 along that edge), `num` and `flow` instead of `x`/`y`.
   It exists only where somebody made one — a relationship makes none.
 - `flow` on an interface (in / out / both) is decorative and constrains nothing.
 
 **Root** — the block that holds every other in a project, under the reserved id `root`.
 
-- Carries the project's name as its `label`, plus its own flow, body and fields.
+- Carries the project's name as its `label`, plus its own arrangement, body and fields.
 - `parent: null` means *in the root layer*; root is told from its children by its id.
 - No frame: a frame is a block seen from inside, and root has no outside.
 
@@ -68,8 +72,8 @@ set** — anything else enumerating sorts of things is doing the engine's job in
 - Carry `type`, the **relation module**, `dir` (none / forward / back / both), `from`/`to`
   interfaces, and the walls and offsets an end was given by hand.
 - **The relation module is `line` or `directed`, and that is the whole set.** It says what the ends
-  *are*: a line's are plain seats the layer places; a directed one's take the sides the layer's flow
-  gives them. The module says there is a direction, `dir` only refines which way.
+  *are*: a line's are plain seats the layer places; a directed one's take the sides the layer's
+  reading direction gives them. The module says there is a direction, `dir` only refines which way.
 - **Anything joining two blocks is a relationship.** One may draw as something other than a routed
   line — a leader to a note takes no seats — but that is a rule about drawing.
 - **Two properties are derived**: a relationship reaching a **reference** draws dashed and held
@@ -256,7 +260,8 @@ interact. Both are declared on a definition and hold over every usage.
 boundaries, roles, control nodes. Only choices are written down.
 
 **A hand-laid thing is a hard constraint; a derived one is not.** What somebody placed or declared
-is honoured; everything else is the layer's to arrange. `relax` hands it back.
+is honoured; everything else is the layer's to arrange. A computed arrangement replaces where
+things draw and never what was placed, so returning to `free` gives it back.
 
 ### The grid
 
@@ -274,29 +279,31 @@ is honoured; everything else is the layer's to arrange. `relax` hands it back.
   one row tall, which holds a single seat at its centre. Counting from the canvas rather than from
   each card's corner is what lines a container's port up with a block beside it.
 
-### Flow and arrangement
+### Arrangement
 
-**Both sit on the layer, with the model** — they are how a graph *reads*, not how it is displayed.
+**One setting on the layer, with the model** — how a graph *reads*, not how it is displayed. It must
+be model data, because **inference reads it** and an inference is permanent: were the reading
+direction display state, the same model would infer differently depending on how somebody was
+looking at it.
 
-- **Flow** is `none`, `left`, `right`, `top` or `bottom`. It decides which sides a `directed`
-  relationship attaches to, biases rank and placement, and routes the line along that bias.
+**Six values**, of which four carry a reading direction and two do not:
+
+| | Does |
+|---|---|
+| `free` | hand placement is what draws; anything unplaced fills the room around it |
+| `grid` | tiles outward from the middle, cells sized to their contents |
+| `right` / `left` / `down` / `up` | ranks by relationships, reading that way |
+
 - **Ranked**: nothing pointing at it comes first, each rank one step further along. Within a rank,
   things are ordered by where what they relate to sat in the rank before, swept forward then back,
   so a chain comes out on one row and every line along it is straight.
-- **Four arrangements, each a one-time action.** None is a mode, so none is ever *current*.
-
-  | | Does |
-  |---|---|
-  | `grid` | tiles outward from the middle, cells sized to their contents |
-  | `radial` | the busiest unit at the centre, the rest ringed around it |
-  | `across` | ranks by relationships, left to right |
-  | `down` | ranks by relationships, top to bottom |
-
-- **An arrangement writes down where everything landed**, and afterwards every card drags like any
-  other. It keeps walls a relationship was pinned to — a wall is a constraint, not placement — and
-  never changes the direction the layer reads.
-- Between arrangements the layer rests: whatever is placed stays, and anything unplaced fills the
-  room around it.
+- **A reading direction decides which sides a `directed` relationship attaches to**, biases rank and
+  placement, and routes the line along that bias. `free` and `grid` carry none, so a layer using
+  either has no implied order and inference falls through to connectivity.
+- **Nothing is discarded by arranging.** A block's placement is always kept; a computed arrangement
+  replaces where things *draw*, never what somebody placed, so returning to `free` returns their
+  layout. That is what makes arrangement safe to be a setting rather than an act.
+- **It keeps walls a relationship was pinned to** — a wall is a constraint, not placement.
 
 ### Units and spacing
 
@@ -330,8 +337,8 @@ is honoured; everything else is the layer's to arrange. `relax` hands it back.
 - **Every elbow is a right angle**, guaranteed on the way to being drawn.
 - **One pass, so each line sees the seats taken before it.** No two ends share a seat; several
   relationships may still meet at one interface.
-- **A `directed` relationship takes the sides the flow gives it** — out on the forward face, in on
-  the one behind — and its path runs with that bias.
+- **A `directed` relationship takes the sides the reading direction gives it** — out on the forward
+  face, in on the one behind — and its path runs with that bias.
 - **Lanes**: runs that would share a line spread half a cell apart, centred on where they would have
   gone. Only interior segments move; the ends stay on their seats.
 - **Cheap first.** Seats try a plain orthogonal path; a visibility-graph skirt runs only when every
@@ -366,7 +373,7 @@ is honoured; everything else is the layer's to arrange. `relax` hands it back.
 - **A module adds no action for anything it draws.** A module is a vocabulary, renderers, a layout
   law and a gesture map.
 
-**Every action, adjustment and gesture is enumerated in [actions.md](actions.md).**
+**Every action, adjustment and gesture is enumerated in [actions.md](monorepo/core/actions.md).**
 
 
 ## views
@@ -446,6 +453,38 @@ icon and a word for what it calls its elementary block.
 - **Depth** says how far a reference reaches — `self`, `children` or `all`. Drop a project root into
   a view with `children` and its blocks are the rows.
 - **Nothing about how a view looks enters the project it reads.**
+
+### Composition
+
+**Inference makes blocks; composition arranges references.** Two different things, and separating
+them is what makes view work tractable.
+
+| | Makes | Runs | Is |
+|---|---|---|---|
+| `infer` | **new blocks** | once, when somebody asks | model, and permanent |
+| composition | **nothing** — a grouping, spacing and ordering | every draw | presentation, recomputed |
+
+**A view holds references drawn from many layers**, and something has to decide how they group,
+space and order:
+
+| View | Groups by | Orders by |
+|---|---|---|
+| `block` | source layer | the arrangement's reading direction |
+| `table` | a chosen column | sort |
+| `matrix` | axis membership — its two child views | within-axis order |
+| `activity` / `state` / `sequence` | lane, from the reference | the four order tiers |
+
+**It runs on one metric: proximity** — how far apart two referenced blocks are in the tree, which is
+a path distance and deterministic. **Group** by nearest common ancestor, **order** by tree path,
+**space** by distance where the view has room. A table and a matrix have rows, so they take the
+grouping and the order and drop the spacing.
+
+- **A proximity group is a derived group.** The `group` definition already draws a boundary round a
+  set of references, so nothing needs storing for one to appear.
+- **Proximity is the default and must be overridable.** A view whose point is a cross-cut — every
+  requirement across five projects — wants grouping by type, and proximity would give it exactly the
+  grouping it was built to escape. The alternative is a view definition option.
+- **No view module declares what a block becomes.**
 
 ### Behavior
 

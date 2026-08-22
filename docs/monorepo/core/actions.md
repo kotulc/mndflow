@@ -25,7 +25,7 @@ against — names are too short — and it is the **Does** column. The descripto
 
 ## Actions
 
-Thirty.
+Twenty-eight.
 
 ### Blocks
 
@@ -155,13 +155,22 @@ Determinism is over the selection, so nothing may depend on the order things wer
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `flow` | which way the layer reads — `left`, `right`, `top`, `bottom`, or none | layer | layer, flow | `set_flow` |
-| `arrange` | lay the layer out again | layer | layer, shape | `place_block`… |
-| `relax` | hand the layer back to automatic placement | layer | layer | `relax_layer` |
+| `arrange` | how the layer lays out and which way it reads | layer | layer, shape | `set_arrangement` |
 | `vocabulary` | which packages this project draws definitions from | project | packages | `set_vocabulary` |
 
-**Flow and arrangement are how a graph reads, not how it is shown**, so they sit on the layer with
-the model rather than in display state.
+**One setting, six values** — `free`, `grid`, `right`, `left`, `down`, `up` — of which four carry a
+reading direction and two do not. Axis, flow and arrangement were three fields answering overlapping
+questions.
+
+**Arrangement is how a graph reads, not how it is shown**, so it sits on the layer with the model
+rather than in display state — and it must, because **inference reads it** and an inference is
+permanent. If the reading direction were display state, the same model would infer differently
+depending on how somebody was looking at it.
+
+**It is a setting, not a one-time act.** `free` is the value where hand placement is what draws;
+every other value computes, keeping what was placed so returning to `free` gives it back. There is
+no `relax` — *hand it back to automatic* has nothing left to mean once picking a computed
+arrangement already does it.
 
 ### One log, so nothing routes
 
@@ -186,7 +195,7 @@ which of these it accepts**, and may accept none.
 | `wall` | which wall a relationship leaves by | edge | id, end, side | `set_side` |
 
 **A hand-laid thing is a hard constraint; a derived one is not.** What an adjustment writes is
-honoured until `relax` hands it back.
+honoured until a computed arrangement replaces where things draw, and `free` gives it back.
 
 
 ## Gestures
@@ -289,7 +298,7 @@ data, and to the theme, which owns the palette. Nothing carries presentation per
 
 | | |
 |---|---|
-| actions | **30** — three of them navigation, writing nothing |
+| actions | **28** — three of them navigation, writing nothing |
 | adjustments | **4** |
 | shell actions, off the registry | **9** |
 | mutation ops, the action set, the adjustments | **closed** |
