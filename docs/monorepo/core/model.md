@@ -31,4 +31,14 @@ The engine code that interprets each base block type.
 
 ## View
 ### View Modules
-**three, and closed**: `block`, `table`, `matrix`. `block` is **any planar projection** — it carries lifelines, columns and segments, so the behavior views (`activity`, `sequence`, `state`) are a subset of the standard block view with their own specialized modules with `activity` being the default behavior view and `sequence` and `state` being inferred from one or more action or activity blocks.
+**three, and closed**: `block`, `table`, `matrix`. `block` is **any planar projection** — it carries lifelines, columns and segments.
+
+**`activity`, `sequence` and `state` are readings, not modules.** A view definition names the block module plus a reading, so the module set stays at three and a notation costs data rather than code:
+
+```
+view def "activity"  { module: block, reading: activity }
+view def "sequence"  { module: block, reading: sequence }
+view def "state"     { module: block, reading: state }
+```
+
+**A reading is how you look, never something inferred.** `infer` makes new blocks, once, when asked; a reading projects blocks that already exist. `activity` is the default reading for a behavior layer. See [behaviors.md](behaviors.md), *The three readings*.
