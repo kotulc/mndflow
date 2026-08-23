@@ -3,11 +3,10 @@
 **How a behavior comes to exist, what it infers, and what it writes back.** The detail, so the other
 documents stay short.
 
-- **Why any of it** → [design.md](design.md), *Structure and behavior*.
-- **What each part does** → [spec.md](spec.md). **The surface** →
-  [actions.md](monorepo/core/actions.md). **The data contract** →
-  [schema.md](monorepo/core/schema.md).
-- **The words** → [definitions.md](definitions.md).
+- **Why any of it** → design.md, *Structure and behavior*.
+- **What each part does** → spec.md. **The surface** → actions.md.
+  **The data contract** → schema.md.
+- **The words** → definitions.md.
 
 **If a rule here contradicts design.md, design.md wins and this file is wrong.**
 

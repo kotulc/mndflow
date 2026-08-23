@@ -4,9 +4,6 @@
 Boundaries exist to enforce direction and to let each package be proven on its own; they are not an
 API surface anyone has to keep.
 
-- **Why this shape** → [design.md](../design.md), *The shape of the code*. **The blueprint** →
-  [blueprint.md](../blueprint.md).
-- **What each part does** → [spec.md](../spec.md). **The goals** → [stories.md](../stories.md).
 
 ## The one law
 
@@ -18,28 +15,28 @@ graph must match the table below, and no package outside `core` may declare a cl
 
 **Headless — no React, no DOM, no `window`.**
 
-| | Is | Depends on |
+| | Package Purpose | Depends on |
 |---|---|---|
-| [core](core/) | the graph, the log, the door, the action set, the ports | — |
-| [layout](layout/) | sizing, placement, [arrange](layout/arrange.md), [route](layout/route.md) | core |
-| [views](views/) | the three view modules, each projecting a layer to a **Scene** | core, layout |
-| [defs](defs/) | the shipped definition packages. **Data, no code** | — |
+| core | the graph, the log, the door, the action set, the ports | — |
+| layout | sizing, placement, arrange, route | core |
+| views | the three view modules, each projecting a layer to a **Scene** | core, layout |
+| defs | the shipped definition packages. **Data, no code** | — |
 | `theme` | the ramp, as CSS custom properties. **No code.** Ported | — |
 | `fixtures` | sample **logs**, shared by the CLI, every suite and every dev harness. Ported | — |
 
 **Presentation.**
 
-| | Is | Depends on |
+| | Package Purpose | Depends on |
 |---|---|---|
-| [render](render/) | Scene → React: cards, the ramp, icons, [animate](render/animate.md) | core, views |
-| [ui](ui/) | [explorer](ui/explorer.md), [stage](ui/stage.md), [options](ui/options.md), [tray](ui/tray.md), [terminal](ui/terminal.md) | render, core |
+| render | Scene → React: cards, the ramp, icons, animate | core, views |
+| ui | explorer, stage, options, tray, terminal | render, core |
 
-**Apps — they bind [ports](core/ports.md) and nothing else.**
+**Apps — they bind ports and nothing else.**
 
-| | Is |
+| | Package Purpose |
 |---|---|
-| [web](apps/web.md) | Vite. The primary product |
-| [cli](apps/cli.md) | headless. Folds, checks, projects to text. **The harness that makes the rest provable** |
+| web | Vite. The primary product |
+| cli | headless. Folds, checks, projects to text. **The harness that makes the rest provable** |
 
 **No package is named after a dependency.** React Flow is a rendering choice that lives inside
 `render`; placement and routing are pure functions over the graph and belong to `layout`, where they
@@ -57,7 +54,7 @@ anything is drawn.
 
 ## What is proven where
 
-| | By | Needs a browser |
+| | Package Proven By | Needs a browser |
 |---|---|---|
 | core | fold determinism, door repairs, containment, undo-by-refold, file round-trip | no |
 | layout | no overlap, containment, route termination, stability under reorder | no |
@@ -83,6 +80,6 @@ values** — nothing asserts a coordinate, an id or a message that tuning would 
 | `defs/base` alone | every other definition package |
 | `storage` and `files` ports | `net`, and `score` unless the scorer ships |
 
-**How it gets built** → [build.md](build.md). In short: **contracts first, then five tracks that do
+**How it gets built** → build.md. In short: **contracts first, then five tracks that do
 not wait on each other**, each provable on its own, with `apps/cli` growing beside them so nothing is
 built in the dark.

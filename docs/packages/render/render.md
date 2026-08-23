@@ -8,5 +8,5 @@ graph, the log or the actions.
   `apps/web` would make the second host depend on the first.
 - **It draws what a Scene says**: boxes, routes, marks and the hit regions a gesture lands on.
   Binding a hit to an action id is the whole of its input job.
-- **It owns the look**: cards, the theme ramp, icons, and [animate](animate.md).
+- **It owns the look**: cards, the theme ramp, icons, and animate.
 - **Proven by** one conformance test — every Scene element kind draws, and every hit binds.

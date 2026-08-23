@@ -117,7 +117,7 @@ with **four commands**, flexible verbs, and **the whole action surface behind `?
 ### ST.12 — The plan stops being prose that agents parse
 
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as
-[translator.md](translator.md), and **probably its own project** rather than anything to build here.
+translator.md, and **probably its own project** rather than anything to build here.
 
 
 ## Recent Decisions

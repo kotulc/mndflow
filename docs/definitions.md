@@ -180,7 +180,7 @@ so a violation is a note in the tray; a translator asks the same checks as it em
 
 ## The surface
 
-The full enumeration is in [actions.md](actions.md).
+The full enumeration is in actions.md.
 
 | Term | Means |
 |---|---|
@@ -188,7 +188,7 @@ The full enumeration is in [actions.md](actions.md).
 | **adjustment** | something positional and unsayable. Four, gesture-only, never ranked. A module declares which it accepts |
 | **navigation** | an action writing no mutations — `open`, `up`, `reveal`. No step, nothing to undo |
 | **pin** | saving the current layer view as a **view block**, from the canvas |
-| **infer** | **the action that makes new blocks** — the block → activity → state chain, run once when somebody asks. Model, and permanent. Rules in [behaviors.md](behaviors.md) |
+| **infer** | **the action that makes new blocks** — the block → activity → state chain, run once when somebody asks. Model, and permanent. Rules in behaviors.md |
 | **composition** | **how a view groups, spaces and orders the references it holds** — recomputed every draw, making nothing. Presentation, and **not inference**; confusing the two is what briefly put an infer map on every view module |
 | **proximity** | **how far apart two referenced blocks are in the tree** — same parent, same branch, same project, different project. The one metric composition runs on: it **groups** by nearest common ancestor, **orders** by tree path, and in a view with room it **spaces** by distance. Derived every draw, stored nowhere |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |

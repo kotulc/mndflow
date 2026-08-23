@@ -41,4 +41,4 @@ view def "sequence"  { module: block, reading: sequence }
 view def "state"     { module: block, reading: state }
 ```
 
-**A reading is how you look, never something inferred.** `infer` makes new blocks, once, when asked; a reading projects blocks that already exist. `activity` is the default reading for a behavior layer. See [behaviors.md](behaviors.md), *The three readings*.
+**A reading is how you look, never something inferred.** `infer` makes new blocks, once, when asked; a reading projects blocks that already exist. `activity` is the default reading for a behavior layer. See behaviors.md, *The three readings*.

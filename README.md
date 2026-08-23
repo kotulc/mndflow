@@ -29,15 +29,15 @@ suggestions — everything is local, and a turn is instant.
 └─────────────────────────────────────────┴──────────────────┘  match scoring
 ```
 
-The tracked documents live in [`docs/`](docs), kept in step with the code:
+The tracked documents live in `docs/`, kept in step with the code:
 
-- [spec.md](docs/spec.md) — what each part does, component by component. Short, scannable.
-- [design.md](docs/design.md) — why it is that way, and what each rule was chosen over.
-- [tasks.md](docs/tasks.md) — what is missing, and what is still undecided.
-- [plan.md](docs/plan.md) — the queue: one row, one chunk of work.
-- [actions.md](docs/actions.md) — every action, adjustment and gesture.
-- [definitions.md](docs/definitions.md) — the vocabulary each of them is written in.
-- [definitions-legacy.md](docs/definitions-legacy.md) — the pre-rework glossary, archived for
+- spec.md — what each part does, component by component. Short, scannable.
+- design.md — why it is that way, and what each rule was chosen over.
+- tasks.md — what is missing, and what is still undecided.
+- plan.md — the queue: one row, one chunk of work.
+- actions.md — every action, adjustment and gesture.
+- definitions.md — the vocabulary each of them is written in.
+- definitions-legacy.md — the pre-rework glossary, archived for
   comparison. **Nothing may be built from it.**
 
 The vocabulary was reworked on 2026-08-18: **everything is a block**, there are no element forms,

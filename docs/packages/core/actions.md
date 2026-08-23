@@ -1,10 +1,10 @@
 # The surface
 
 **Every action the engine offers, every gesture that reaches one, and what is deliberately not on
-the surface.** This is the goal state, written in [definitions.md](definitions.md)'s vocabulary.
+the surface.** This is the goal state, written in definitions.md's vocabulary.
 
-- **Why it takes this shape** → [design.md](design.md), *The action surface is the input seam*.
-- **What each part does** → [spec.md](spec.md). **Behaviour rules** → [behaviors.md](behaviors.md).
+- **Why it takes this shape** → design.md, *The action surface is the input seam*.
+- **What each part does** → spec.md. **Behaviour rules** → behaviors.md.
 
 **Three properties hold over everything below.**
 

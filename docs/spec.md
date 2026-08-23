@@ -367,7 +367,7 @@ looking at it.
 - **A module adds no action for anything it draws.** A module is a vocabulary, renderers, a layout
   law and a gesture map.
 
-**Every action, adjustment and gesture is enumerated in [actions.md](monorepo/core/actions.md).**
+**Every action, adjustment and gesture is enumerated in actions.md.**
 
 
 ## views

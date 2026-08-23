@@ -4,7 +4,7 @@
 run and proven **without any other package being finished** — so work never queues behind work, and
 nothing cascades.
 
-- **What v1 has to do** → [README.md](README.md), *v1 — the block loop*.
+- **What v1 has to do** → README.md, *v1 — the block loop*.
 
 ## The three rules that make isolation real
 
@@ -130,7 +130,7 @@ back, undo, reload, export and re-import.
 
 - **One entry per package.** Everything public is exported from `index.ts`; nothing imports a deep
   path. A reach into another package's internals is a build error, not a review comment.
-- **The dependency law is a test.** The workspace graph must match [README.md](README.md)'s table,
+- **The dependency law is a test.** The workspace graph must match README.md's table,
   and no package outside `core` may declare a closed set.
 - **One version, never published.** There is no semver, no changelog and no bump — a boundary that
   turns out wrong is moved in one commit.
@@ -267,6 +267,6 @@ whole of it on hover. Nothing was clipping.
 - **A matrix's two axes are child views.** A layer is read against itself, which is the common case
   and not the design — a filter or a third dimension is meant to cost nothing new.
 - **`views/table.md` and `views/matrix.md` are stubs.** Both modules were built from *The six* and
-  *Composition* in [spec.md](../spec.md); the notation documents do not exist yet.
+  *Composition* in spec.md; the notation documents do not exist yet.
 - **The activity-final double ring**, and whether the abstraction cap applies to a sequence's
   columns as it does to its actions. Both were open before and are open still.
