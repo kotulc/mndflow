@@ -24,6 +24,8 @@ graph must match the table below, and no package outside `core` may declare a cl
 | [layout](layout/) | sizing, placement, [arrange](layout/arrange.md), [route](layout/route.md) | core |
 | [views](views/) | the three view modules, each projecting a layer to a **Scene** | core, layout |
 | [defs](defs/) | the shipped definition packages. **Data, no code** | — |
+| `theme` | the ramp, as CSS custom properties. **No code.** Ported | — |
+| `fixtures` | sample **logs**, shared by the CLI, every suite and every dev harness. Ported | — |
 
 **Presentation.**
 
@@ -81,17 +83,6 @@ values** — nothing asserts a coordinate, an id or a message that tuning would 
 | `defs/base` alone | every other definition package |
 | `storage` and `files` ports | `net`, and `score` unless the scorer ships |
 
-**Build order.** Each stage ends with something that runs, and nothing is drawn until stage 5.
-
-| | Stage | Ends with |
-|---|---|---|
-| 0 | workspaces, project references, the law as one test | `tsc` green on nothing |
-| 1 | **core** — model, schema, the door, the fold, ports | `cli fold` prints a tree |
-| 2 | **defs/base**, validated at the door | every base definition passes |
-| 3 | **layout** — placement and routing, pure | `cli` prints placements |
-| 4 | **views/block** → Scene, and text projection | **the engine drivable headless** |
-| 5 | **core/actions** — the closed set | `cli run create`, `relate`, `move`, `undo` |
-| 6 | **render** + **apps/web**, minimal | first browser drive |
-| 7 | **ui** — explorer and stage | the block loop, end to end |
-
-**Stages 1–5 have no React and no browser**, and they are where most of the product lives.
+**How it gets built** → [build.md](build.md). In short: **contracts first, then five tracks that do
+not wait on each other**, each provable on its own, with `apps/cli` growing beside them so nothing is
+built in the dark.
