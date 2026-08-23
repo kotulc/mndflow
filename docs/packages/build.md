@@ -4,7 +4,25 @@
 run and proven **without any other package being finished** — so work never queues behind work, and
 nothing cascades.
 
-- **What v1 has to do** → README.md, *v1 — the block loop*.
+
+## v1 — the block loop, end to end
+
+**One pass through every seam, and nothing more.**
+
+> Make a block · nest it · relate two · descend and come back · undo · reload and it is still there ·
+> export and re-import.
+
+| In v1 | Out of v1 |
+|---|---|
+| core, layout, `views/block`, render, `apps/cli` | table, matrix, behaviors, translate |
+| explorer, stage (canvas only) | tray, options rail, terminal |
+| `defs/base` alone | every other definition package |
+| `storage` and `files` ports | `net`, and `score` unless the scorer ships |
+
+**How it gets built** → build.md. In short: **contracts first, then five tracks that do
+not wait on each other**, each provable on its own, with `apps/cli` growing beside them so nothing is
+built in the dark.
+
 
 ## The three rules that make isolation real
 

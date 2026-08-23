@@ -28,7 +28,7 @@ set** — anything else enumerating sorts of things is doing the engine's job in
 
 ### The graph
 
-**Everything is a block; a relationship joins two of them. There is no third thing.**
+**Everything is a block; a relationship joins two of them.**
 
 - **A block is the one element.** Placed, drawn, carries fields, holds other blocks. Held in
   `graph.blocks`. There is **no closed set of element sorts** — what a block *is* comes from its
@@ -834,3 +834,14 @@ would change — the suite pins what must stay true, not what happens to be true
   and no package outside `model` declares a closed set.
 - **A contract many modules keep is tested once over all of them.**
 - **Driving the app is the acceptance test**, and a green suite closes nothing on its own.
+
+
+## User Interface
+
+- **The left button handles what already exists; the right button makes something new.** 
+
+- **A click in the explorer navigates; a click on the stage selects and never navigates.**
+
+- **Every message goes to one strip**, carrying the text plus at most one thing to do about it. A repaired log, a refused name, and the question before discarding a project all arrive the same way.
+
+- **The theme owns the palette; a definition chooses within it.** The theme is a **ramp of hue slots and fixed-function steps**, and a definition says *which slot, how intense* and never *what colour*. Neither overrides the other, and there is no combination that comes out wrong.

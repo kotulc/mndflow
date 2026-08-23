@@ -298,7 +298,7 @@ failure**: the structure said nothing, so it learned nothing.
 
 ## Still open
 
-| | |
+| Issue | Description |
 |---|---|
 | **The thin result is the common case** | Most structures have unnamed or absent relationships, so an activity of dimmed actions with lanes and references is what people usually get. **It has to read as a starting point rather than as a failure** — undesigned |
 | **A nudge toward naming** | Naming relationships is the highest-leverage thing somebody can do, and nothing says so. Worth a line in the strip when every relationship in a selection is unnamed. Not designed |
@@ -306,3 +306,36 @@ failure**: the structure said nothing, so it learned nothing.
 | **What a sequence does with participants drawn from far apart** | Lanes are one per reference, but a column per participant across four unrelated subtrees may be unreadable. Whether the cap applies to columns as it does to actions is undecided |
 | **Whether a sequence accepts an adjustment** | The only thing worth dragging on a lifeline is where an occurrence sits on it, which is `seat`. Every other position is the reading's |
 | **The activity-final double ring** | The one SysML ornament that is not shape plus size; it wants a style that strokes twice |
+
+
+## [Working] Structure and Behavior
+
+**Behavior is an overlay on a structure, not a second model of it.** A structure sub-tree is the truth behaviors get built on. A behavior scopes to one or more structures and describes what happens *over* them, bound to the structural blocks they act on.
+
+**A behavior project holds references — never the structure it acts on**, which is precisely why its tree stays its own and a structure block never appears in it. A participant structure `block` appears inside a behavior *layer* as a reference, which is an appearance and not composition, so the two trees never interleave.
+
+**Order is read from the model, and only guessed at as a fallback.** A directed relationship between two blocks *is* the sequence, and it wins. Where none exists, position along the layer's arrangement
+says the same thing.
+
+**A behavior may be inferred from a selection, once, and then it is the user's.** It is one-way and deterministic, nothing re-syncs, and **re-inferring makes a new behavior block rather than editing one** — so hand-adjusted work can never be clobbered by running it again. Opening with the structure's containment is the guess and not a rule it keeps.
+
+**Guess freely in the behavior; never guess into the structure.** This is the line the whole design rests on. A wrong guess in a behavior costs an edit, so the inference can afford to be loose and
+should be — *an inference that is wrong but workable beats one that never runs*. A wrong guess written into a **structure** is another matter: it modifies the truth invisibly.
+
+> **A write to a structure block must be a fact about the structure that still stands once the
+> behavior is deleted.** If deleting the behavior would leave it stale, it should have been derived.
+
+| Block property | Lives on | Survives deleting the behavior |
+|---|---|---|
+| an **interface** the interaction needs, a **relationship** it implies, a **definition** it fills in | the structure block | **yes** — true of the structure on its own |
+| the **interaction**: order, guard, message | the behavior block | no |
+| **participation** — who takes part in what | the behavior block | no |
+
+**So only what the structure stated is infered**, and everything guessed from position or adjacency writes nothing. That is what makes loose inference safe rather than reckless.
+
+**Participation is derived, never stored.** A stored back-reference would duplicate a fact that already lives in another log and leave a structure project opened alone carrying references to behaviors that are not there.
+
+**Inference composes, and that is the whole chain.** A selection of actions gives a **state** block exactly as a selection of structure gives an **activity** — structure, then activity, then state, each harder to write from nothing than the one before. There is no separate promotion step and no machine that exists before somebody asks for one.
+
+**Activity, sequence and state are three projections of one behavior layer**, not three models. Each is its own **module**, because each projects differently enough to need code; what they are not is
+separate copies of the facts.
