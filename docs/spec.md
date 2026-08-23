@@ -2,12 +2,6 @@
 
 **What each part does, package by package.** Short statements of the target.
 
-- **Why any of it is this way** → [design.md](design.md). **What each word means** →
-  [definitions.md](definitions.md).
-- **The action surface in full** → [actions.md](monorepo/core/actions.md). **Behaviour rules** →
-  [behaviors.md](behaviors.md).
-- **What is missing** → [tasks.md](tasks.md). **The queue** → [plan.md](plan.md).
-
 mndflow is a client-only app for assembling systems out of simple descriptive blocks. **There is no
 server**: a step log lives in the session, and the graph is folded from it.
 
@@ -30,7 +24,7 @@ set** — anything else enumerating sorts of things is doing the engine's job in
 **Hosts** bind ports and nothing else: `web`, `vscode`, `cli`.
 
 
-## model
+## Model
 
 ### The graph
 

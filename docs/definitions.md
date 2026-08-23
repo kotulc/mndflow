@@ -3,15 +3,6 @@
 **The canonical vocabulary.** One entry per term, so a rule written anywhere else reads without
 guessing. Where any other document uses a word, this is what it means.
 
-> **This is the settled model, and most of it is not built yet.** It was agreed on 2026-08-18 and
-> replaces a 149-term glossary kept at [definitions-legacy.md](definitions-legacy.md). **spec.md
-> says what the code currently does** and still speaks the old words in places — where the two
-> disagree, this file is the target and spec.md is the present. The migration is story `ST.4` in
-> [plan.md](plan.md).
-
-- **What each part does now** → [spec.md](spec.md). **Why** → [design.md](design.md).
-- **What is missing** → [tasks.md](tasks.md). **The queue** → [plan.md](plan.md).
-
 
 ## The one shape
 
@@ -149,10 +140,6 @@ derived kind. That is what keeps a model from being trapped in the sort of thing
 | **snapshot** / **bundle** | a project written out; one carrying the external projects it references, so it stands alone |
 | **translator** / **artifact** | code that reads a project and emits source, a drawing or a standard's file; and what it emits. **One way** — the action that ran it may record a `resource` block, the translator never writes the graph |
 
-~~**A change is recorded where its element lives.**~~ **Retired by the single log** (2026-08-19).
-There is one log, so nothing routes and no action can pick the wrong one. The rule was the best
-available answer while every project held its own history; it is not needed once none does.
-
 
 ## History
 
@@ -218,19 +205,3 @@ The full enumeration is in [actions.md](actions.md).
 
 **There is no closed set of element sorts.** That is the point of the rework: a new sort of thing
 is a definition, and a definition is data.
-
-
-## What was retired
-
-Kept while the migration runs, so an old document still reads.
-
-| Retired | Because | Now |
-|---|---|---|
-| **element form** (`block`/`note`/`group`/`proxy`) | nothing earned one — every case was expressible as a definition plus a `holds` rule | base definitions |
-| **proxy** | did five unrelated jobs, and a sixth in the SysML map | **reference** |
-| **external proxy** | not a different thing | a reference whose target is in another project |
-| **`reference`, the relationship form** | derived from a proxy at an end | an ordinary relationship with a reference at one end; dashed is presentation |
-| **`ref`, the value form** | collided with the reference block | **`link`** |
-| **set** | mixedness was never the signal, and *set* collides with *style set* and *closed set* | **folder**, which is a definition |
-| **kind** (`structure` / `behavior` as classifiers) | the engine branched on something the glossary declared absent | the definition's `view` component says which modules apply |
-| **node**, **annotation**, **tie**, **membership**, **hug**, **figure** | each restated something with a second word | block; a resource or a group; a relationship; references; layout's business; gone |

@@ -3,10 +3,6 @@
 **Why mndflow is the way it is** — the vision, the goals, and the reasoning behind the rules that
 shape everything else. Not what each part does, and not what each word means.
 
-- **What each part does** → [spec.md](spec.md). **What each word means** → [definitions.md](definitions.md).
-- **The action surface** → [actions.md](monorepo/core/actions.md). **Behaviour rules** → [behaviors.md](behaviors.md).
-- **What is missing and undecided** → [tasks.md](tasks.md). **The queue** → [plan.md](plan.md).
-
 mndflow is for rapidly building and composing descriptive visual blocks into systems models. It is
 a client-only app. Visual scope is constantly constrained, so a reader is never shown more than one
 layer's worth of anything.
@@ -44,12 +40,7 @@ These carry most of the weight, and most of the rules below are one of them appl
   structure learns what it needs: the states a thing can be in, the interfaces it has to offer, the
   actions it performs. Somebody draws what happens and the definitions fill in behind them, so the
   work of modelling is spent saying things once rather than restating them in a second notation.
-- **A hand-laid thing is a hard constraint; a derived one is not.** What somebody placed or declared
-  is honoured; everything else is the layer's to arrange.
 - **The log is the truth.** The graph is folded from it, so undo needs no inverses.
-- **An accident is the failure worth designing against.** Where a rule looks like it is protecting
-  the user, check which it is doing: preventing a slip is worth a gesture's design, and preventing
-  a choice is not.
 
 
 ## The one shape

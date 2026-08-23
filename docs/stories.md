@@ -8,9 +8,6 @@ done. **A green suite never closes one** — every real defect this project has 
 the built app, not from the suite. Twice, every piece of a story was built and the story still did
 not work.
 
-- **What each part does** → [spec.md](spec.md). **Why** → [design.md](design.md).
-- **What each word means** → [definitions.md](definitions.md). **The surface** →
-  [monorepo/core/actions.md](monorepo/core/actions.md).
 
 ---
 
@@ -208,4 +205,20 @@ rather than by the back door.
   fold. **The label**: the frame writes its name *on* its own border with the ground showing
   through, and every panel takes that treatment, so a panel and a frame read as the same kind of
   thing. **Not a resize handle** — drag-to-size means a stored width per panel and a refit on every
-  drag.
+  drag.  
+  
+
+## Migration: What was retired
+
+Kept while the migration runs, so an old document still reads.
+
+| Retired | Because | Now |
+|---|---|---|
+| **element form** (`block`/`note`/`group`/`proxy`) | nothing earned one — every case was expressible as a definition plus a `holds` rule | base definitions |
+| **proxy** | did five unrelated jobs, and a sixth in the SysML map | **reference** |
+| **external proxy** | not a different thing | a reference whose target is in another project |
+| **`reference`, the relationship form** | derived from a proxy at an end | an ordinary relationship with a reference at one end; dashed is presentation |
+| **`ref`, the value form** | collided with the reference block | **`link`** |
+| **set** | mixedness was never the signal, and *set* collides with *style set* and *closed set* | **folder**, which is a definition |
+| **kind** (`structure` / `behavior` as classifiers) | the engine branched on something the glossary declared absent | the definition's `view` component says which modules apply |
+| **node**, **annotation**, **tie**, **membership**, **hug**, **figure** | each restated something with a second word | block; a resource or a group; a relationship; references; layout's business; gone |
