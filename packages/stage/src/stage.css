@@ -1,0 +1,27 @@
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.crumbs {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 60%;
+  overflow: hidden;
+  color: var(--muted);
+}
+
+.crumbs button { padding: 1px 4px; white-space: nowrap; }
+.crumbs button:hover { color: var(--accent); }
+.crumbs b { color: var(--muted); font-weight: 400; }
+.crumbs .elided { padding: 0 2px; cursor: default; }
+.crumbs .up { margin-left: 6px; }

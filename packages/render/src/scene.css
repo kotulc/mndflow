@@ -1,0 +1,256 @@
+/* What a Scene looks like. Every value is a step on the ramp — a definition
+ * picks a slot and an emphasis, and never a colour. */
+
+.scene {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--bg);
+  user-select: none;
+  touch-action: none;
+}
+
+/* The frame ---------------------------------------------------------------
+ *
+ * A layer seen from inside. Drawn on the canvas ground rather than against a
+ * fill, so it takes `stroke` and not `line` — one step served both until a pale
+ * theme made a frame at `line` all but vanish. */
+
+.scene .frame rect {
+  fill: none;
+  stroke: var(--s-neutral-stroke);
+  stroke-width: 1;
+}
+
+/* The name sits *on* its own border, with the ground showing through. */
+.scene .frame text {
+  fill: var(--s-neutral-dim);
+  font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 6px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* Cards ------------------------------------------------------------------ */
+
+.scene .card rect {
+  fill: var(--s-neutral-fill);
+  stroke: var(--s-neutral-line);
+  stroke-width: 1;
+}
+
+.scene .card text {
+  fill: var(--s-neutral-ink);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  pointer-events: none;
+}
+
+/* A container is filled — the fill is what says it holds something. */
+.scene .card.container rect {
+  fill: var(--s-primary-fill);
+  stroke: var(--s-primary-edge);
+}
+
+/* A reference is the only dashed card, and the colour is on the line. */
+.scene .card.reference rect {
+  fill: none;
+  stroke: var(--s-away-edge);
+  stroke-dasharray: 4 3;
+}
+.scene .card.reference text { fill: var(--s-away-edge); }
+
+.scene .card.missing rect { stroke: var(--s-error-edge); }
+.scene .card.missing text { fill: var(--s-error-edge); }
+
+/* A note is its text, and amber is description where green is structure. */
+.scene .card.note rect {
+  fill: var(--s-note-fill);
+  stroke: var(--s-note-line);
+}
+.scene .card.note text { fill: var(--s-note-ink); }
+
+/* A boundary is a faint dashed line — a default rather than a rule. */
+.scene .card.group rect {
+  fill: var(--s-muted-fill);
+  fill-opacity: 0.4;
+  stroke: var(--s-muted-line);
+  stroke-dasharray: 6 4;
+}
+.scene .card.group text {
+  fill: var(--s-muted-dim);
+  dominant-baseline: hanging;
+}
+
+/* Selection is the app speaking about your model, so it is the theme's alone. */
+.scene .card.picked rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.scene .card.over rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+
+.scene .card:hover rect { stroke: var(--s-neutral-edge); }
+
+/* A derived name is dimmed. An inferred thing the user cannot tell from a
+ * stated one is the mistake worth designing against — the default is invisible
+ * and changes under you. */
+.scene .card.derived text { fill: var(--s-neutral-dim); font-style: italic; }
+
+/* A card being dragged says so, and follows the pointer rather than jumping
+ * when it lands. What snaps it to the grid is the layer, on release. */
+.scene .card.moving rect {
+  stroke: var(--accent);
+  stroke-dasharray: none;
+  opacity: 0.9;
+}
+.scene .card.moving { pointer-events: none; }
+
+/* The swept rectangle. Green where a right sweep would be amber, so the two
+ * buttons never look alike. */
+.scene .sweep {
+  fill: var(--s-primary-fill);
+  fill-opacity: 0.18;
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+/* Routes ----------------------------------------------------------------- */
+
+.scene .route path {
+  stroke: var(--s-neutral-stroke);
+  stroke-width: 1.5;
+  stroke-linejoin: miter;
+}
+
+.scene .route .head { fill: var(--s-neutral-stroke); }
+
+.scene .route text {
+  fill: var(--s-neutral-dim);
+  font: 10px ui-monospace, monospace;
+  pointer-events: none;
+}
+
+.scene .route.directed path { stroke: var(--s-primary-edge); }
+.scene .route.directed .head { fill: var(--s-primary-edge); }
+
+/* Held back so the form and the label read first; hover brings it to full. */
+.scene .route.reference path {
+  stroke: var(--s-away-edge);
+  stroke-dasharray: 5 3;
+  opacity: 0.6;
+}
+
+/* A tie is the faintest thing on the canvas until it is picked. */
+.scene .route.tie path {
+  stroke: var(--s-note-line);
+  stroke-dasharray: 2 4;
+  stroke-width: 1;
+  opacity: 0.55;
+}
+
+.scene .route:hover path { opacity: 1; stroke: var(--s-neutral-edge); }
+
+.scene .route.picked path {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 1;
+}
+.scene .route.picked .head { fill: var(--accent); }
+
+/* Interfaces --------------------------------------------------------------
+ *
+ * An interface is seated on its owner's edge rather than placed on the layer,
+ * so it draws small, over the card, and carries no label — its name is what a
+ * hover says. The mark is decoration and constrains nothing. */
+
+.scene .card.interface rect {
+  fill: var(--bg);
+  stroke: var(--s-neutral-edge);
+  stroke-width: 1.5;
+}
+
+.scene .card.interface.in rect { fill: var(--s-primary-edge); }
+.scene .card.interface.out rect { fill: none; }
+.scene .card.interface.in.out rect { fill: var(--s-primary-fill); }
+
+.scene .card.interface:hover rect { stroke: var(--accent); }
+
+/* The handles a picked line offers. Taking one to another wall is `wall`. */
+.scene .ends rect {
+  fill: var(--bg);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+/* Readings ----------------------------------------------------------------
+ *
+ * A lane is the same derivation in all three readings — one per referenced
+ * participant — and only its shape changes. A band across an activity, a
+ * column in a sequence, and nothing at all in a state. */
+
+.scene .card.lane rect {
+  fill: var(--s-muted-fill);
+  fill-opacity: 0.25;
+  stroke: var(--s-muted-line);
+  stroke-width: 1;
+}
+.scene .card.lane text { fill: var(--s-muted-dim); }
+.scene .card.lane { pointer-events: none; }
+
+/* What a sequence hangs its occurrences on. */
+.scene .card.lifeline rect {
+  fill: var(--s-neutral-stroke);
+  fill-opacity: 0.45;
+  stroke: none;
+}
+.scene .card.lifeline { pointer-events: none; }
+
+/* A control is a rendering of a count, so nothing reaches it. A bar for a fork
+ * or a join, a diamond for a decision or a merge. */
+.scene .card.control rect,
+.scene .card.control polygon {
+  fill: var(--s-primary-edge);
+  stroke: var(--s-primary-edge);
+}
+.scene .card.control.decision polygon,
+.scene .card.control.merge polygon {
+  fill: var(--bg);
+  stroke-width: 1.5;
+}
+.scene .card.control { pointer-events: none; }
+
+/* The two projections that are not a plane -------------------------------- 
+ *
+ * A table and a matrix are boxes like everything else — the notation is in
+ * where they were placed, not in what draws them. */
+
+.scene .card.header rect {
+  fill: var(--s-muted-fill);
+  stroke: var(--s-muted-line);
+}
+.scene .card.header text { fill: var(--s-muted-dim); font-size: 11px; }
+
+.scene .card.cell rect {
+  fill: none;
+  stroke: var(--s-muted-line);
+  stroke-width: 0.5;
+}
+.scene .card.cell text { fill: var(--s-neutral-dim); font-size: 11px; }
+
+/* A filled cell is where a relationship already runs. */
+.scene .card.cell.filled rect {
+  fill: var(--s-primary-fill);
+  stroke: var(--s-primary-edge);
+  stroke-width: 1;
+}
+.scene .card.cell.filled text { fill: var(--s-primary-edge); }

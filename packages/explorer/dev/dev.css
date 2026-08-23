@@ -1,0 +1,44 @@
+/* The harness, not the component. Kept plain so nothing here is mistaken for
+   the thing being looked at. */
+
+.harness { display: flex; flex-direction: column; height: 100%; }
+
+.harness > header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--divide);
+  background: var(--surface);
+}
+
+.harness > header .where { margin-left: auto; color: var(--muted); }
+
+.harness select {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+.harness .split { display: flex; flex: 1; min-height: 0; }
+.harness .split > :first-child { flex: 1; min-width: 0; }
+
+/* The explorer bounds itself, so let it — the harness must not make a
+   component draw at a size it would never take in the app. */
+.harness .split > .explorer { flex: none; }
+
+.harness .log {
+  width: 300px;
+  flex: none;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border-left: 1px solid var(--divide);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  white-space: pre-wrap;
+}

@@ -1,14 +1,12 @@
 {
-  "name": "mndflow-web",
+  "name": "mndflow",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dev": "npm run dev -w @mnd/web",
     "test": "vitest run",
-    "test:ci": "node scripts/test-ci.mjs",
-    "test:watch": "vitest"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "legacy:dev": "vite"
   },
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
@@ -28,5 +26,9 @@
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
     "vitest": "^2.1.9"
-  }
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

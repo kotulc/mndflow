@@ -1,0 +1,24 @@
+{
+  "name": "@mnd/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mnd/core": "*",
+    "@mnd/views": "*",
+    "@mnd/render": "*",
+    "@mnd/explorer": "*",
+    "@mnd/stage": "*",
+    "@mnd/theme": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@mnd/layout": "*",
+    "@mnd/defs": "*"
+  }
+}

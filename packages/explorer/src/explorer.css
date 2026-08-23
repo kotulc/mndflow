@@ -1,0 +1,106 @@
+/* The explorer bounds itself; the stage keeps its room. */
+
+.explorer {
+  display: flex;
+  flex-direction: column;
+  width: min(280px, 36vw);
+  border-right: 1px solid var(--divide);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.explorer .bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--divide);
+  min-width: 0;
+}
+
+.explorer .bar .chip {
+  cursor: pointer;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.explorer .bar .chip:hover { color: var(--accent); }
+.explorer .bar .tools { margin-left: auto; display: flex; gap: 2px; flex: none; }
+
+.explorer .tree {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow: auto;
+  flex: 1;
+}
+
+.explorer .tree li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 0;
+  cursor: default;
+  white-space: nowrap;
+  border-left: 2px solid transparent;
+}
+
+/* Two states, two looks. Open is where the stage is pointed; picked is what an
+   action would act on, and it reads first. */
+.explorer .tree li.open { background: var(--hover); }
+.explorer .tree li.picked {
+  border-left-color: var(--accent);
+  color: var(--accent);
+  background: var(--hover);
+}
+
+/* One lit-target look, everywhere. */
+.explorer .tree li.over {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+}
+
+.explorer .tree li:hover { background: var(--hover); }
+.explorer .tree .mark { color: var(--muted); flex: none; cursor: pointer; }
+.explorer .tree li.picked .mark { color: var(--accent); }
+.explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
+
+/* The clear space below takes a drop too: a block dropped there becomes a
+   project, since a project is a block nothing contains. */
+.explorer .tree .floor { min-height: 48px; border-left-color: transparent; }
+
+/* The offered list. Membership only, in a fixed order — a menu has no positions
+   worth learning, so what does not apply is not shown rather than greyed out. */
+
+.menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 132px;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+}
+
+.menu .entry {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+
+.menu .entry:hover { background: var(--hover); color: var(--accent); }
+
+.menu .asking { padding: 6px 8px; display: grid; gap: 6px; min-width: 200px; }
+.menu .asking label { color: var(--muted); }
+.menu .asking input { width: 100%; }
+.menu .asking .choices { display: flex; flex-wrap: wrap; gap: 4px; }
+.menu .asking .choices button { border-color: var(--border); }
+.menu .asking .choices button:hover { color: var(--accent); }
+.menu .asking .about { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }

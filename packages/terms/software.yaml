@@ -1,7 +1,0 @@
-# What this domain calls things. Chips and the object explorer use these
-# instead of the generic group/object/relation. Separate from the prompt
-# sets so a package can consume the words without the question loop.
-
-group: Layer
-node: Module
-relation: Dependency
