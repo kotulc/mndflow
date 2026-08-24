@@ -8,7 +8,7 @@
  *  The engine may key off one of these only for **how a block draws and where
  *  it sits**. Never for what it is, and never for what may contain what. */
 
-import { ROOT, type Definition } from "@mnd/core";
+import { empty_graph, ROOT, type Definition, type Graph } from "@mnd/core";
 
 function def(name: string, module: string, extend?: string,
              card: Record<string, unknown> = {}): Definition {
@@ -77,4 +77,14 @@ export function by_id(id: string): Definition | null {
  *  everything else rather than being spliced into a graph. */
 export function seed(): { op: "set_def"; def: Definition }[] {
   return ALL.map((d) => ({ op: "set_def" as const, def: d }));
+}
+
+/** The same package as state: a fresh workspace with the floor already in it.
+ *
+ *  `seed` hands mutations to a session. This hands a graph to anything that
+ *  has no session and wants one to build on. */
+export function base_graph(): Graph {
+  const defs: Graph["defs"] = {};
+  for (const d of ALL) defs[d.id] = d;
+  return { ...empty_graph(), defs };
 }

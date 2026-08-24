@@ -158,6 +158,7 @@ export function fold(log: Log): Graph {
   return graph;
 }
 
+
 /** Every block under this one, itself included. */
 export function subtree(graph: Graph, id: Id): Id[] {
   const out: Id[] = [id];

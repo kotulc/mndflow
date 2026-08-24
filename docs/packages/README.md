@@ -21,7 +21,7 @@ graph must match the table below, and no package outside `core` may declare a cl
 | views | the three view modules, each projecting a layer to a **Scene** | core, layout |
 | defs | the shipped definition packages. **Data, no code** | core |
 | `theme` | the ramp, as CSS custom properties. **No code** | — |
-| `fixtures` | sample **logs**, shared by the CLI, every suite and every dev harness | core, defs |
+| `fixtures` | sample **logs**, and sample **files** for the seam. Shared by the CLI, every suite and every dev harness | core, defs |
 
 Headless — no React, no DOM, no `window`.
 
@@ -58,6 +58,10 @@ Apps bind ports and nothing else.
 | `kit` | the whole headless stack as **one built package**, plus `kit/react` and `kit/react.css`. Bundled, so nothing outside sees a workspace | core, defs, layout, views, render, theme |
 
 Twelve packages are the shape of the design; one is the shape of the seam. **Packed, never published** — `npm pack -w @mnd/kit` is how a translator installs mndflow. It adds nothing and only re-exports, so it cannot put a dependency anywhere the map does not already allow, and it declares its siblings as **build** dependencies because it carries them.
+
+**Data in, data and artifacts out, and the export list is written out.** The log, the steps, the mutations, the session, the action registry, the inference and `layout` are all internal: a log is intent replayed against one engine, and a graph is a statement of fact. **A signature naming `Log`, `Step` or `Mutation` is internal; graph to graph, and graph to Scene, is the seam.** `export *` from the engine is how that leaks, so what ships is named one by one.
+
+`kit/react` carries one component — `Viewer`, which is interactive and **not editable**. It is the one place a package adds code rather than re-exporting, and it can break nothing the map forbids: it is built from packages `kit` already bundles.
 
 
 ## The Scene is the seam

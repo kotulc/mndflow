@@ -1,16 +1,56 @@
 /** The one surface mndflow offers anything outside this repo.
  *
- *  Six packages are the shape of the design; **one is the shape of the seam**.
- *  A translator does not want to know that placing and projecting are two
- *  packages — it wants a graph to build, a file to write and a Scene to draw —
- *  and a boundary the repo keeps for direction is not a boundary anyone else
- *  should have to track version by version.
+ *  **Data in, data and artifacts out.** A graph is what travels: a statement of
+ *  what the model *is*, self-describing and validatable without executing
+ *  anything. What comes back is another graph, a file, or a drawing.
  *
- *  Headless. Nothing here reaches React or the DOM, so a Node consumer that
- *  only wants a drawing never pulls a renderer in. `@mnd/kit/react` is where
- *  the React renderer lives, and importing this never loads it. */
+ *  **The test, and it is the whole of the rule:** a signature naming `Log`,
+ *  `Step` or `Mutation` is internal. Graph to graph, and graph to Scene, is the
+ *  seam. Nothing else is offered, and there are no exceptions to look up.
+ *
+ *  So the log, the steps, the mutations, the session, the action registry and
+ *  the inference are all inside. So is `layout`: a consumer does not place
+ *  anything, because projecting is what places, and the Scene it hands back
+ *  already carries the geometry.
+ *
+ *  The consequence is intended: a consumer says what a model *is*, never what
+ *  changed. Round-tripping is read a graph and write a graph, and diffing
+ *  belongs to whoever cares. What buys it is a mutation union free to grow,
+ *  because nothing outside this repo has ever been able to name one.
+ *
+ *  Headless. Nothing here reaches React or the DOM, so a consumer that only
+ *  wants a drawing never pulls a renderer in. `@mnd/kit/react` is where the
+ *  React viewer lives, and importing this never loads it. */
 
-export * from "@mnd/core";
-export * from "@mnd/defs";
-export * from "@mnd/layout";
-export * from "@mnd/views";
+/** The model, and the vocabulary it is written in. */
+export {
+  type Arrangement, type Block, type BlockModule, type Components, type Definition,
+  type Dir, type Field, type FieldDef, type File, type Flow, type Graph, type Id,
+  type Point, type Reading, type RelationModule, type Relation, type Side,
+  type ValueForm, type ViewModule,
+  ARRANGEMENTS, BLOCK_MODULES, READINGS, READS, ROOT, SCHEMA, VIEW_MODULES,
+  def_id, empty_graph, new_id,
+} from "@mnd/core";
+
+/** Files. An envelope holding a graph, in and out. */
+export { type Opened, hash, open, write, write_subtree } from "@mnd/core";
+
+/** The door, asked rather than run: what a graph violates, and how to say it. */
+export { type Fault, say, validate } from "@mnd/core";
+
+/** Reading a graph. Every derived answer the engine gives about one. */
+export {
+  arrangement_of, children, defs_in_scope, derived_name, edges_in, isa, is_container,
+  is_interface, is_reference, is_tier_root, layer_id, module_of, owner_of, path,
+  resolve_def, shown_name, stands_for, subtree, word_of,
+} from "@mnd/core";
+
+/** The floor. `base_graph()` is a fresh workspace with the base package in it. */
+export { ALL, BASE, BEHAVIOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
+
+/** A layer, projected — and the two artifacts a projection makes on its own. */
+export {
+  type Box, type Config, type Frame, type Hit, type Mark, type Paper, type Route,
+  type Scene, type Slot, type View,
+  block, draw, draw_svg, matrix, outline, table, view, views,
+} from "@mnd/views";

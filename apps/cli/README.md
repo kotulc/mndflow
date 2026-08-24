@@ -26,7 +26,7 @@ npm run start -w @mnd/cli -- fold related    # the one to try first
 | `run` | apply an action and print what it wrote |
 | `export` | fold and write the file |
 
-`<source>` is a fixture name or a path to a `.json` log. `--how` sets the arrangement, `--read` the reading of a behavior layer, and `--view` the module.
+`<source>` is a fixture name, an exported file, or a raw log — **a log is harness input only**, since a file is a graph. `--how` sets the arrangement, `--read` the reading of a behavior layer, and `--view` the module.
 
 ## Why it exists
 

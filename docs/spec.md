@@ -13,7 +13,7 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 | `views` | the three view modules, each projecting a layer to a **Scene** | `core`, `layout` |
 | `defs` | the shipped definition packages. **Data, no code** | — |
 | `theme` | the ramp, as CSS custom properties. **No code** | — |
-| `fixtures` | sample **logs**, shared by the apps, every suite and every dev harness | `core`, `defs` |
+| `fixtures` | sample **logs**, and sample **files** for the seam, shared by the apps, every suite and every dev harness | `core`, `defs` |
 | `render` | Scene → React | `core`, `views`, `theme` |
 | `ui` | explorer, stage, options, tray, terminal | `render`, `core`, `theme` |
 
@@ -162,8 +162,11 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 - **One gesture is one step**, however many things it changed.
 - **Successive placements of the same thing are one step** — nudging a card writes one `place`, replaced as the run goes on.
 - **Capped.** Past the cap the oldest steps fold into a single **checkpoint** holding the whole graph. The graph is unchanged; what is lost is reach. A checkpoint is not something anybody did, so it cannot be undone.
+- **The log is internal, and it is a workspace concern.** It exists so undo can be a refold, and it goes no further — no step and no mutation is ever offered outside. What leaves is state. See *kit*.
 
 ### Files
+
+**A file is state, never history.** What travels is what the model *is* — self-describing, and readable without replaying anything against the engine that wrote it.
 
 - **An export is the graph, not the log** — `{ schema, id, graph, meta }`, pretty-printed JSON. Its size follows the model rather than how long somebody worked.
 - **Any subtree exports**, and the workspace export is simply the root folder's. One path, no special case, and no type had to exist for it.
@@ -177,6 +180,7 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 - **Exporting changes nothing**, so re-exporting an unchanged subtree is byte-identical — which is what the canonical layout is for.
 - **Laid out for reading**: definitions first, then the block tree, then relationships. Blocks nest under their parents so `parent` is never written; siblings sort by id so a rename is one line.
 - **Ids say what they point at** — `block_`, `edge_`, `def_`, `step_`. A name is never part of an id.
+- **A log is not a file.** The reader takes envelopes only, so nothing can hand the engine a history it did not write itself.
 - **Session state stays out**, `meta` included: opening somebody's file must not rearrange your toggles.
 
 ### The door
@@ -500,9 +504,37 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 **The CLI is the harness that makes the rest provable.** A passing suite proves the code agrees with itself; the CLI proves the packages compose — that a log folds, an action writes, a layer projects, and a Scene is complete enough to draw from, with no React anywhere in the process. **When a track can be driven from the CLI it is done being built in the dark.**
 
 
+## kit
+
+**The one surface offered outside this repo, and it speaks in state.** The whole headless stack as one built package — `kit`, `kit/react`, `kit/react.css` — bundled so nothing outside sees a workspace. **Packed, never published.**
+
+**The log, the steps, the mutations, the session and the action registry are internal.** A log is a history of intent replayed against one engine: reading one means matching this build's mutation semantics, its defaults and its action set, version for version. A graph is a statement of fact — validatable without executing anything, and stable across builds.
+
+> **A signature naming `Log`, `Step` or `Mutation` is internal. Graph to graph, and graph to Scene, is the seam.**
+
+| | Is |
+|---|---|
+| `base_graph` | a fresh workspace with the floor already in it |
+| `open` | a file in, as a graph — validated at the door and repaired where it can be |
+| `validate` | what a graph violates. **Mending it stays the engine's** |
+| `write` · `write_subtree` | a graph out, in the canonical layout |
+| `project` · `draw` · `draw_svg` | a layer as a Scene, as text, as a standalone drawing |
+| `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable |
+
+**What is sealed, and there are no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, the inference, and `layout`. A consumer places nothing, because projecting is what places and the Scene already carries the geometry.
+
+- **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **This is the price of a mutation union that stays free to grow**, and it is the right one — a new sort of change costs nothing outside because nothing outside can name one.
+- **The engine keeps its own reader.** `read` produces the log a session works in and is not offered; `open` is the same journey one step later.
+- **The export list is written out.** `export *` from the engine is how the log leaks, so what ships is named one by one.
+- **An embedded view is interactive and still an artifact.** `Viewer` holds a graph, projects the layer being looked at, and walks in and out of layers. The renderer underneath offers drag callbacks meaning move, seat, wall and relate; they are not re-exported, so **an edit is unreachable rather than merely unadvised**.
+- **`kit` is the one package that adds code**, and it is one component. The rule it keeps is dependency direction, which a viewer built from packages `kit` already carries cannot break.
+
+
 ## tests
 
 **Properties, never values.** Nothing asserts a coordinate, an id, a message or a count that tuning would change — the suite pins what must stay true, not what happens to be true.
+
+**Two kinds of sample data, because there are two ways in.** A **log** fixture proves the engine agrees with itself — it folds what this build wrote, through the door this build owns. A **file** fixture is a graph this engine never wrote, hand-written and mostly wrong on purpose, and it is the only thing that proves the outward seam repairs rather than folds a broken graph. **After `open`, `validate` finds nothing left** — that is the property, not the wording of any fault.
 
 **Contract tests, never integration tests.** A producer proves its output satisfies the invariants; a consumer proves it handles anything that satisfies them. **Neither imports the other.** When they meet in an app there is nothing left to discover.
 

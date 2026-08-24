@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { check, children, fold, read, say, session, shown_name, write,
          type Id, type Log, type Storage } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { fixture, NAMES } from "@mnd/fixtures";
+import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, view } from "@mnd/views";
 
 const USAGE = `mnd — the headless harness
@@ -21,18 +21,30 @@ const USAGE = `mnd — the headless harness
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
   mnd export <source> [out.json]       fold and write the file
 
-  <source> is a fixture name (${NAMES.join(", ")}) or a path to a .json log.
+  <source> is a log fixture (${NAMES.join(", ")}),
+           a file fixture (${GRAPH_NAMES.join(", ")}),
+           an exported file, or a raw log.
+  A log is harness input only: a file is a graph, and that is what export writes.
   --how sets the arrangement: free grid right left down up
   --read sets the reading of a behavior layer: activity sequence state
   --view picks the module: block table matrix
   --svg writes the drawing instead of the text projection`;
 
-/** A fixture, a log, or an exported file. **The door decides which**: `read`
- *  takes an array as a log and an envelope as a checkpoint, so what `export`
- *  writes is what every other verb can open. */
+/** A fixture of either kind, an exported file, or a raw log.
+ *
+ *  **A log is not a file** — `read` takes envelopes only. This is the harness,
+ *  and log fixtures are logs, so it opens one itself through the door rather
+ *  than asking the file format to keep a second shape alive for it.
+ *
+ *  A **file** fixture is a graph this engine never wrote, so `check <name>` is
+ *  how the outward reader is driven: what it repairs is printed like anything
+ *  else the door says. */
 function load(source: string): Log {
   if (NAMES.includes(source as never)) return fixture(source);
-  const got = read(readFileSync(source, "utf8"));
+  const text = GRAPH_NAMES.includes(source as never)
+    ? graph_file(source)
+    : readFileSync(source, "utf8");
+  const got = text.trimStart().startsWith("[") ? check(JSON.parse(text)) : read(text);
   if (got.faults.length) console.error(`  ${say(got.faults)}`);
   return got.log;
 }

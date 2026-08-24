@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Entry** | `src/index.ts` — `ALL`, `by_id`, and `seed()`, which hands the base package in as mutations |
+| **Entry** | `src/index.ts` — `ALL`, `by_id`, `seed()`, which hands the base package to a session as mutations, and `base_graph()`, which hands the same package to anything without one as a graph |
 | **Depends on** | `core`, for the `Definition` shape alone |
 | **Proven by** | every shipped definition passes the door, and every module any of them names exists |
 

@@ -33,9 +33,15 @@ npm run typecheck -w @mnd/core
 | `actions.ts` | the registry: name, sentence, scope, arguments, `check`, `run` — plus the four adjustments |
 | `infer.ts` | a selection becomes one behavior block. The four order tiers, and the gate on what writes home |
 | `session.ts` | hold the log, fold it, run an action, append what it wrote |
-| `file.ts` | the export envelope, its canonical layout, and compaction |
+| `file.ts` | the export envelope, its canonical layout, and compaction. **Two readers**: `read` gives the log a session works in, `open` gives the graph and is the one offered outward |
 | `ports.ts` | the host contract, declared and never implemented |
 | `ids.ts` | id minting |
+
+## What stays inside
+
+**The log, the steps, the mutations, the session and the action registry are internal.** A log is a history of intent replayed against one engine; a graph is a statement of fact. Everything here is public *to the repo* — what leaves it is named one by one in `kit`.
+
+> **A signature naming `Log`, `Step` or `Mutation` is internal. Graph to graph is the seam.**
 
 ## The detail
 

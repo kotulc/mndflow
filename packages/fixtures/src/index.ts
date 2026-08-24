@@ -145,3 +145,6 @@ export function fixture(name: string): Log {
   if (!make) throw new Error(`no fixture called "${name}" — try ${NAMES.join(", ")}`);
   return make();
 }
+
+/** Sample **files**, for the seam that takes state rather than history. */
+export { GRAPHS, GRAPH_NAMES, graph_file, type GraphName } from "./graphs";

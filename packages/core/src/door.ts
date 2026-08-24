@@ -126,6 +126,12 @@ export function inspect(graph: Graph): Inspection {
   return { faults, repairs };
 }
 
+/** What is wrong with a graph. The door's question without its answer: a
+ *  caller may ask what a graph violates, and mending it stays the engine's. */
+export function validate(graph: Graph): Fault[] {
+  return inspect(graph).faults;
+}
+
 /** What to say, once. Empty when the log was clean. */
 export function say(faults: Fault[]): string {
   if (faults.length === 0) return "";

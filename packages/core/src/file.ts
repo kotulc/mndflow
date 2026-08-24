@@ -8,7 +8,7 @@
  *  Exporting changes nothing, so re-exporting an unchanged workspace is
  *  byte-identical — which is what the canonical layout is for. */
 
-import { check, inspect, type Fault } from "./door";
+import { inspect, type Fault } from "./door";
 import { fold, subtree } from "./fold";
 import { new_id } from "./ids";
 import { empty_graph, SCHEMA, type File, type Graph, type Id, type Log, type Step }
@@ -71,8 +71,12 @@ export function write_subtree(graph: Graph, root: Id): string {
 
 export type Read = { log: Log; faults: Fault[] };
 
-/** Read a file in. It becomes a log holding a single checkpoint step, so there
- *  is no second reader and importing costs no new mechanism. */
+/** Read a file in, as the log a session works in — a single checkpoint step,
+ *  so importing costs no new mechanism.
+ *
+ *  **A log is not a file.** What a file holds is state, and nothing may hand
+ *  the engine a history it did not write itself. `open` is the same journey
+ *  stopping one step later, and is the one offered outward. */
 export function read(text: string): Read {
   let raw: unknown;
   try {
@@ -80,7 +84,6 @@ export function read(text: string): Read {
   } catch {
     return { log: [], faults: [{ kind: "dropped", what: "a file that is not JSON" }] };
   }
-  if (Array.isArray(raw)) return check(raw);
 
   const file = raw as Partial<File>;
   if (!file.graph || typeof file.graph !== "object") {
@@ -99,6 +102,19 @@ export function read(text: string): Read {
                mutations: mend.repairs });
   }
   return { log, faults: mend.faults };
+}
+
+export type Opened = { graph: Graph; faults: Fault[] };
+
+/** A file in, as a graph. **The reader anything outside the engine gets.**
+ *
+ *  State arrives, the door validates it, what can be repaired is, and a graph
+ *  comes back — no log, no steps, and nothing that has to agree with this
+ *  engine's history to be understood. An unreadable file is the empty graph
+ *  and a fault saying why. */
+export function open(text: string): Opened {
+  const got = read(text);
+  return { graph: fold(got.log), faults: got.faults };
 }
 
 function major(v: string): string {
