@@ -114,9 +114,12 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     ...(frame ? { frame } : {}),
     boxes: drawn,
     routes,
+    /** **A slot says what this projection can offer, never what it is doing.**
+     *  Dropping the interfaces group when interfaces are hidden would take away
+     *  the only control that could bring them back. */
     slots: seen ? [...(reading === "sequence" ? ["columns" as Slot] : ["arrange" as Slot]),
                    ...READ_SLOTS]
-                : config.interfaces === false ? SLOTS.filter((s) => s !== "interfaces") : SLOTS,
+                : SLOTS,
     hits,
     /** Everything drawn, the frame included — a band reaches past the cards
      *  inside it, and a layer that measured only its cards would be drawn

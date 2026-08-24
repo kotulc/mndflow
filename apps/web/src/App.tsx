@@ -7,13 +7,16 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useRef, useState } from "react";
-import { adjustments, session, type Id, type Reading } from "@mnd/core";
+import { adjustments, offer, session, type Id, type Reading } from "@mnd/core";
 import { snap } from "@mnd/layout";
 import { seed } from "@mnd/defs";
 import { reseat, rewall, view } from "@mnd/views";
 import { Explorer } from "@mnd/explorer";
 import { Stage } from "@mnd/stage";
 import type { Drag } from "@mnd/render";
+import { Options, groups_of } from "@mnd/options";
+import { Tray } from "@mnd/tray";
+import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_storage } from "./ports";
 
 const THEMES = ["retro", "modern", "light"] as const;
@@ -33,6 +36,13 @@ export function App() {
   /** Which view is showing is **display state**: it changes what you see and
    *  nothing about the project, so it never enters the log. */
   const [showing, set_showing] = useState("view.block");
+  /** Chrome the shell holds and the log never sees. */
+  const [tray, set_tray] = useState(false);
+  /** Shown at all, and open rather than shut — two states, two controls: the
+   *  header says whether it is there, its own toggle says how big. */
+  const [terminal, set_terminal] = useState(false);
+  const [wide, set_wide] = useState(false);
+  const [shown, set_shown] = useState({ interfaces: true, angles: true });
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
   useEffect(() => {
@@ -43,13 +53,15 @@ export function App() {
   const graph = s.graph();
   const layer = s.layer();
   const said = s.said();
+  const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
 
   /** The definition supplies which module draws and how it is read, so three
    *  of the six offered here are the same module read differently. */
   const offered = Object.values(graph.defs).filter((d) => d.group === "view");
   const named = graph.defs[showing]?.components?.["view"] ?? {};
   const module = view(String(named["module"] ?? "block"))!;
-  const scene = module.project(graph, layer, { reading: named["reading"] as Reading });
+  const scene = module.project(graph, layer, { reading: named["reading"] as Reading,
+                                              interfaces: shown.interfaces });
 
   const act = (name: string, args?: Record<string, unknown>) => {
     s.go(name, args ?? {});
@@ -79,6 +91,22 @@ export function App() {
     s.adjust("place", adjustments.place([{ id: drag.on, x: snap(at.x), y: snap(at.y) }]));
   };
 
+  /** The rail's controls are display state or ordinary actions — it writes
+   *  nothing itself, so this is where each one lands. */
+  const chrome = (name: string, args?: Record<string, unknown>) => {
+    if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
+    if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
+    if (name === "arrange") { act("arrange", { layer, ...args }); return; }
+    if (name === "export") { void s.save(); return; }
+  };
+
+  /** One of the terminal's four. **Help is the fallback**, so only the three
+   *  that write anything are answered here. */
+  const command = (match: Match) => {
+    if (match.command === "add") act("create", { label: match.rest });
+    else s.say(`${match.command} is not built yet — “${match.rest}”`);
+  };
+
   const load = async () => {
     const text = await browser_files().open();
     if (text !== null) s.load(text);
@@ -102,11 +130,26 @@ export function App() {
           <button title="redo" onClick={() => s.redo()}>↦</button>
           <button title="export the workspace" onClick={() => void s.save()}>⤒</button>
           <button title="import a workspace" onClick={() => void load()}>⤓</button>
+          <button title="the terminal" aria-pressed={terminal}
+                  onClick={() => set_terminal((t) => !t)}>&gt;_</button>
           <button title={`theme: ${theme}`}
                   onClick={() => set_theme(THEMES[(THEMES.indexOf(theme as never) + 1)
                                                   % THEMES.length]!)}>◐</button>
         </span>
       </header>
+
+      {terminal ? (
+        <Terminal
+          offered={offer({ graph, layer, picked: s.picked() })
+            .map((a) => ({ name: a.name, about: a.about }))}
+          said={said?.text ?? null}
+          context={layer ? `in ${graph.blocks[layer]?.label ?? "a layer"}` : "the workspace"}
+          expanded={wide}
+          onExpand={set_wide}
+          onAct={(name) => act(name)}
+          onCommand={command}
+        />
+      ) : null}
 
       <Explorer
         graph={graph}
@@ -129,7 +172,20 @@ export function App() {
           onAct={act}
           onAdjust={adjust}
         />
+        <Tray
+          graph={graph}
+          layer={layer}
+          label={layer ? graph.blocks[layer]?.label ?? "layer" : "workspace"}
+          open={tray}
+          onOpen={set_tray}
+          picked={s.picked()}
+          onPick={(ids) => s.pick(ids)}
+        />
       </main>
+
+      <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
+                                   interfaces: shown.interfaces, angles: shown.angles },
+                                 chrome)} />
     </div>
   );
 }

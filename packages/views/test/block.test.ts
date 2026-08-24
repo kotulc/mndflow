@@ -119,11 +119,19 @@ describe("what the projection shows", () => {
     expect(trail.at(-1)).toBe("block_rate");
   });
 
-  it("offers the control groups it can answer, and drops one it is told to hide", () => {
+  /** A slot says what the projection **can** offer, never what it is doing —
+   *  so hiding interfaces must not take away the control that shows them. */
+  it("offers the control groups it can answer, hiding one or not", () => {
     const graph = fold(related());
     expect(block.project(graph, "block_loop").slots).toContain("interfaces");
     expect(block.project(graph, "block_loop", { interfaces: false }).slots)
-      .not.toContain("interfaces");
+      .toContain("interfaces");
+  });
+
+  it("still draws no interface when it is told to hide them", () => {
+    const graph = fold(fixture("interfaced"));
+    const off = block.project(graph, "block_loop", { interfaces: false });
+    expect(off.boxes.some((b) => b.marks.includes("interface"))).toBe(false);
   });
 
   it("is a pure function of the graph — it writes nothing", () => {

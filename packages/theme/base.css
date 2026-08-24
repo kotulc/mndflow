@@ -45,11 +45,15 @@ input {
 
 input:focus { outline: none; border-color: var(--accent); }
 
-/* Chrome yields under pressure; the stage does not. */
+/* Chrome yields under pressure; the stage does not.
+ *
+ * Header and terminal span the page; the explorer, the stage and the options
+ * rail share the row below, and the tray sits inside the stage's own column so
+ * that opening it shrinks the drawing rather than the whole row. */
 .app {
   display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-columns: auto 1fr auto;
   height: 100%;
 }
 
@@ -59,7 +63,7 @@ input:focus { outline: none; border-color: var(--accent); }
   align-items: center;
   gap: 12px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--divide);
+  border-bottom: 1px solid var(--divider);
   background: var(--surface);
   min-width: 0;
 }
@@ -78,12 +82,20 @@ input:focus { outline: none; border-color: var(--accent); }
   flex: none;
 }
 
+.app > .chat { grid-column: 1 / -1; }
+
+/* The stage never yields, so it takes the free space and the tray takes what
+   it asks for beneath it. */
 .app > main {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
+
+.app > main > .stage { flex: 1; min-height: 0; height: auto; }
 
 /* One strip, and everything the app says goes to it. */
 .strip {

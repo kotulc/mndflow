@@ -1,7 +1,6 @@
 # Stories
 
-**A story is a goal somebody has, not a chunk of work.** It says what has to be *true for a person*
-before any of it counts. One story spans a lot of building.
+**A story is a goal somebody has,** It says what has to be *true for a person* before any of it counts. One story spans a lot of building.
 
 **A story is finished only when it has been driven.** Work landing makes a story *closer*, never
 done. **A green suite never closes one** — every real defect this project has had came from driving

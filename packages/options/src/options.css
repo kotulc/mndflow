@@ -1,0 +1,77 @@
+/* One column, fixed to the right, holding every control the thing on the stage
+   has. **It scrolls**: twenty-odd controls against the height of a window makes
+   overflow ordinary rather than an edge case, and collapsing a group would be
+   hidden state. */
+
+.opts {
+  display: flex;
+  flex-direction: column;
+  /* Far enough apart to read as separate groups. Adjacent icon columns
+     otherwise run together into one long column. */
+  gap: 20px;
+  /* Narrow, and long words wrap rather than setting the width. Sizing the
+     column to its longest label spends the space on one word and leaves every
+     short one swimming; each control carries a tooltip, so a name over two
+     lines costs nothing. */
+  width: 68px;
+  padding: 12px 8px 16px;
+  border-left: 1px solid var(--border);
+  /* The explorer's ground, so the two edges of the page are one surface and the
+     stage is what sits between them. */
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.opts-group { display: flex; flex-direction: column; gap: 4px; }
+
+/* Every group is ruled off from the one above it — never the first, where the
+   rule would divide the column from nothing. */
+.opts-group + .opts-group {
+  border-top: 1px solid var(--divider);
+  padding-top: 12px;
+}
+
+.opts-label {
+  padding: 0 1px 5px;
+  color: var(--faint);
+  font-size: 7.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* A glyph over one word. The word only costs width when it sits beside the
+   glyph; under it the column stays slim. */
+.opts button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.opts button .glyph { font-size: 15px; line-height: 1; }
+
+.opts button .word {
+  font-size: 9px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.opts button:hover { color: var(--text); border-color: var(--accent); }
+
+/* Selection is the app speaking about your model, so it takes the accent. */
+.opts button.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--hover);
+}

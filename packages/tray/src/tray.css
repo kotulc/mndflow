@@ -1,0 +1,108 @@
+/* A quarter of the stage when open, whatever it holds. A tray that grew to its
+   contents moved every time a filter changed the row count, so the row you were
+   reaching for was never where you last saw it — and a quarter leaves the
+   drawing more of the stage, which is what is being described. */
+
+.tray {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tray.open { height: 25%; }
+
+.tray-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px 4px 6px;
+  color: var(--accent);
+  cursor: default;
+}
+
+.tray-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tray-bar .holds {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  flex: none;
+  margin-left: auto;
+}
+
+.tray-bar .chevron {
+  flex: none;
+  width: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tray-bar .chevron:hover { color: var(--accent); }
+
+/* The table scrolls **down** inside the tray, never sideways: columns are given
+   widths and long text is cut instead. */
+.tray-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; flex: 1; }
+
+.contents-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.contents-table thead,
+.contents-table tbody { display: table; width: 100%; table-layout: fixed; }
+
+.contents-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+  color: var(--faint);
+  font-size: 9px;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.contents-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contents-table td.kind, .contents-table td.type { color: var(--muted); }
+.contents-table td.what { color: var(--muted); }
+
+/* Hovering a row lights that thing on the stage; clicking selects it. */
+.contents-table tbody tr:hover td { background: var(--hover); color: var(--text); }
+.contents-table tbody tr { cursor: pointer; }
+
+.contents-table tr.picked td {
+  background: var(--hover);
+  color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
+.contents-table tr.empty:hover td { background: none; }

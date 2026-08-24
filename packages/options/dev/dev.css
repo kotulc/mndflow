@@ -42,3 +42,19 @@
   font-size: 11px;
   white-space: pre-wrap;
 }
+
+/* A component that fills its own column needs something beside it, or it draws
+   at a width it would never take in the app. */
+.harness .down { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.harness .down > .log { width: auto; border-left: none; border-top: 1px solid var(--divider); }
+
+.harness .stand {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 20px;
+  color: var(--muted);
+  background: var(--bg);
+  overflow: auto;
+}
+
+.harness .stand p { max-width: 46em; margin: 0; line-height: 1.6; }

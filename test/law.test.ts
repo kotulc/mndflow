@@ -28,6 +28,9 @@ const ALLOWED: Record<string, readonly string[]> = {
   render: ["core", "views", "theme"],
   explorer: ["core", "theme"],
   stage: ["core", "views", "render", "theme"],
+  options: ["core", "theme"],
+  tray: ["core", "theme"],
+  terminal: ["core", "theme"],
 };
 
 /** Sample data is for proving things, never for shipping. A test and a dev

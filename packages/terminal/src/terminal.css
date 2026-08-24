@@ -1,0 +1,142 @@
+/* One collapsible strip. Its own ground, a step off the page's, so it reads as
+   a surface rather than as text floating above the explorer. */
+
+.chat {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
+}
+
+/* Shut: text entry and chips share one row, so the stage keeps the height. */
+.chat.collapsed {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+}
+
+/* Shut it shows **the current context or completion, plus a chip** — one row,
+   so the completion sits beside the prompt rather than above it. */
+.chat.collapsed .terminal {
+  flex: 1 1 52%;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.chat.collapsed .typed.input { order: 0; flex: 0 1 16em; margin-top: 0; }
+.chat.collapsed .now { order: 1; min-width: 0; overflow: hidden; padding-top: 0; }
+.chat.collapsed .said, .chat.collapsed .now > .hint { display: none; }
+
+.chat.collapsed .matched {
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat.collapsed .rail { flex: 1 1 64%; display: flex; align-items: center; gap: 8px; }
+.chat.collapsed .choices { flex-wrap: nowrap; overflow: hidden; }
+
+/* Open: the history and the offered list stand side by side. */
+.chat.expanded {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 10px 20px 14px;
+  height: 208px;
+}
+
+.chat.expanded .terminal {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.chat.expanded .rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chat.expanded .choices { overflow-y: auto; }
+
+.chat .now { overflow: hidden; padding-top: 2px; }
+
+/* A completion says what it matched and fills an example, so the prompt shows
+   its own shape and there is no syntax to learn. */
+.chat .matched { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.chat .matched b { color: var(--accent); font-weight: 600; }
+.chat .matched em { color: var(--text); font-style: normal; }
+.chat .matched em.example { color: var(--faint); font-style: italic; }
+.chat .matched .asks { white-space: nowrap; }
+.chat .said { color: var(--text); }
+.chat .hint { color: var(--muted); font-size: 11px; }
+
+/* The prompt. A caret and a line, and nothing that looks like a form. */
+.chat .typed.input {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.chat .caret { color: var(--accent); flex: none; }
+
+.chat .typed input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.chat .typed input::placeholder { color: var(--faint); }
+
+/* Chips are the offered list. Each keeps the base button's border and ground,
+   so a control here reads as the same kind of thing as a control on the rail —
+   one app, not two toolbars that happened to grow separately. */
+.chat .choices { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
+
+.chat .chip {
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chat .chip:hover { color: var(--text); border-color: var(--accent); }
+
+.chat .chip.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--hover);
+}
+
+/* The toggle to a static cursor — quiet mode — sits at the far right. */
+.chat .bound {
+  flex: none;
+  align-self: flex-end;
+  margin-left: auto;
+  width: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chat .bound:hover { color: var(--accent); background: var(--hover); }
