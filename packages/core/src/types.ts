@@ -7,6 +7,11 @@ export type Id = string;
 
 export const ROOT = "ws";
 
+/** A place on a layer. The model already carries coordinates — a block has an
+ *  `x` and a `y` — so the pair they make is named here, once, rather than
+ *  redeclared identically by everything that computes or reads one. */
+export type Point = { x: number; y: number };
+
 /** Which edge of a frame something sits on. */
 export type Side = "top" | "right" | "bottom" | "left";
 

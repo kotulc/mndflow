@@ -6,8 +6,9 @@
 
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { Box, Hit, Route, Scene } from "@mnd/views";
+import type { Point } from "@mnd/core";
 import { begins, caught, far_enough, grabbed, swept, REACH,
-         type Drag, type Point } from "./drag";
+         type Drag } from "./drag";
 
 /** What a gesture on a region meant. The consumer decides what to do with it. */
 export type Gesture = {

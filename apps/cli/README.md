@@ -2,8 +2,19 @@
 
 **The headless app, and the harness that makes *independent and testable* true.** It binds `storage` to a file and `files` to `fs`, and exercises core, layout and views exactly the way a real consumer would — with no React anywhere in the process.
 
+## Where it sits
+
 ```
-npx tsx apps/cli/src/main.ts <verb> <source> [args]
+cli   ◀
+└─ views · layout · fixtures · defs
+   └─ core
+```
+
+## Running it
+
+```sh
+npm run start -w @mnd/cli -- <verb> <source> [args]
+npm run start -w @mnd/cli -- fold related    # the one to try first
 ```
 
 | Verb | Does |

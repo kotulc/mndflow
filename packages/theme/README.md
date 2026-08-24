@@ -8,10 +8,26 @@
 | **Depends on** | nothing |
 | **Proven by** | nothing to prove — it declares values. What reads them is proven in `render` |
 
+## Where it sits
+
 ```
+web · kit
+└─ render · explorer · stage · options · tray · terminal
+   └─ theme   ◀ stylesheets, and nothing below
+```
+
+## Running it
+
+```sh
+npm run dev -w @mnd/explorer         # any harness shows the ramp; there is nothing else to run
+```
+
+```ts
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 ```
+
+**Nothing to build and nothing to test** — it declares values, and what reads them is proven in `render`.
 
 ## What is in here
 

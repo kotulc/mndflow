@@ -43,6 +43,15 @@
 - **Help is the fallback and it is not a refusal.** Anything unmatched lands there rather than being rejected, which is what keeps every action reachable by text while the strip stays four wide.
 - **A name typed with separators reads as spaced words**, so nobody has to reach for the shift key: `heat_exchanger` → `Heat Exchanger`.
 
+
+## The rules that hold it in place
+
+- **It reaches actions and never writes a mutation of its own.**
+- **The strip stays four wide**, because help is the fallback and carries the whole action surface — so nothing becomes unreachable by text without a fifth thing appearing.
+- **Chips are the offered list**, ranked through the `score` port with **substring as the cold fallback** — which is what is built, since `score` is unbound.
+- **`Enter` confirms the highlight and arrows move it**, because a default that is invisible and changes under the user is the version of adaptive ranking worth avoiding.
+
+
 ## What is built
 
 | | |

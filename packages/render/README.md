@@ -8,8 +8,22 @@
 | **Depends on** | `core`, `views`, `theme` |
 | **Proven by** | one conformance test — every Scene element kind draws and every hit binds, over **hand-written** Scenes no view module would produce |
 
+## Where it sits
+
 ```
-npm test -w @mnd/render
+web · kit
+└─ stage
+   └─ render   ◀
+      └─ views · theme
+         └─ layout
+            └─ core
+```
+
+## Running it
+
+```sh
+npx vitest run packages/render       # its suite, from the repo root — happy-dom, no real browser
+npm run typecheck -w @mnd/render
 ```
 
 ## What is in here

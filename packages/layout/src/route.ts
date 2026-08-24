@@ -8,11 +8,10 @@
  *  One pass, so each line sees the seats the ones before it took: no two ends
  *  share a seat. */
 
-import { READS, type Arrangement, type Relation, type Side } from "@mnd/core";
+import { READS, type Arrangement, type Point, type Relation, type Side } from "@mnd/core";
 import { SEAT } from "./size";
 import type { Placed } from "./arrange";
 
-export type Point = { x: number; y: number };
 
 export type Routed = {
   id: string;

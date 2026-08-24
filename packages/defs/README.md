@@ -8,9 +8,22 @@
 | **Depends on** | `core`, for the `Definition` shape alone |
 | **Proven by** | every shipped definition passes the door, and every module any of them names exists |
 
+## Where it sits
+
 ```
-npm test -w @mnd/defs
+web · cli · kit · fixtures
+└─ defs   ◀
+   └─ core
 ```
+
+## Running it
+
+```sh
+npm run start -w @mnd/cli -- check flat   # the door, over a log the base package seeded
+npm run typecheck -w @mnd/defs
+```
+
+**No suite of its own yet.** The door in `core` and `test/law.test.ts` at the root are what stand in.
 
 ## What it ships
 

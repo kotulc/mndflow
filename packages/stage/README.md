@@ -8,9 +8,19 @@
 | **Depends on** | `core`, `views`, `render`, `theme` |
 | **Proven by** | its own dev server over a fixture Scene — driven, emitting action names and mutating nothing |
 
+## Where it sits
+
 ```
-npm run dev  -w @mnd/stage
-npm test     -w @mnd/stage
+web
+└─ stage   ◀
+   └─ render · views · core · theme
+```
+
+## Running it
+
+```sh
+npm run dev -w @mnd/stage            # its harness, over a fixture Scene
+npx vitest run packages/stage        # its suite, from the repo root
 ```
 
 ## What is in here

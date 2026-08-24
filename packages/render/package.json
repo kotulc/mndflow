@@ -10,8 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@mnd/views": "*",
+    "@mnd/core": "*",
     "@mnd/theme": "*",
+    "@mnd/views": "*",
     "react": "^18.3.1"
   }
 }

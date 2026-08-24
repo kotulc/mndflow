@@ -8,9 +8,22 @@
 | **Depends on** | `core`, `theme` |
 | **Proven by** | its own dev server over a fixture — driven, emitting selections and mutating nothing |
 
+## Where it sits
+
 ```
-npm run dev -w @mnd/tray
+web
+└─ tray   ◀
+   └─ core · theme
 ```
+
+## Running it
+
+```sh
+npm run dev -w @mnd/tray             # its harness, over a fixture
+npm run typecheck -w @mnd/tray
+```
+
+**No suite of its own yet.** The harness is the verification: drive it and read the selections it logs.
 
 ## What is in here
 

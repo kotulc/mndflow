@@ -12,7 +12,7 @@
 
 export type Command = "add" | "filter" | "search" | "help";
 
-export type Said = {
+export type Wording = {
   command: Command;
   /** What it does, so a completion can say what it matched. */
   about: string;
@@ -22,7 +22,7 @@ export type Said = {
   example: string;
 };
 
-export const COMMANDS: Record<Command, Said> = {
+export const COMMANDS: Record<Command, Wording> = {
   add: { command: "add", about: "make blocks here", asks: "name them",
          example: "Heat Exchanger" },
   filter: { command: "filter", about: "narrow the workspace to what matches",

@@ -8,8 +8,20 @@
 | **Depends on** | `core` |
 | **Proven by** | no overlap · on the grid · stable under reorder · every elbow square · no two ends share a seat — over all six arrangements |
 
+## Where it sits
+
 ```
-npm test -w @mnd/layout
+web · cli
+└─ views
+   └─ layout   ◀
+      └─ core
+```
+
+## Running it
+
+```sh
+npx vitest run packages/layout       # its suite, from the repo root
+npm run typecheck -w @mnd/layout
 ```
 
 ## What is in here

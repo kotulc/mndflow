@@ -4,7 +4,7 @@
  *  builder below turns the slots a projection declared into the standard
  *  groups, so the shell knows how to draw each and no module has to. */
 
-import { ARRANGEMENTS, type Arrangement } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement } from "@mnd/core";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
  *  no arrangement a layer is currently *in*. */
@@ -39,8 +39,6 @@ export type Chrome = {
   columns?: readonly string[];
   sorted?: string | null;
 };
-
-export type Act = (name: string, args?: Record<string, unknown>) => void;
 
 const ARRANGE: Record<Arrangement, { glyph: string; tip: string }> = {
   free: { glyph: "⬚", tip: "Hand placement is what draws" },

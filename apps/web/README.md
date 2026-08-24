@@ -2,15 +2,29 @@
 
 **The product, assembled.** It binds the ports, holds the one log, and passes derived data down.
 
-```
-npm run dev    -w @mnd/web
-npm run build  -w @mnd/web
-```
-
 | | |
 |---|---|
 | **Entry** | `src/main.tsx` → `src/App.tsx` |
 | **Binds** | `storage` to `localStorage`, and `files` to a download and a picker — in `src/ports.ts`, the only file in the app that knows a browser is what it is running in |
+
+## Where it sits
+
+```
+web   ◀
+└─ explorer · stage · options · tray · terminal
+   └─ render
+      └─ views
+         └─ layout
+            └─ core · defs · theme
+```
+
+## Running it
+
+```sh
+npm run dev -w @mnd/web              # http://localhost:5173
+npm run build -w @mnd/web
+npx vitest run                       # every suite in the workspace, from the repo root
+```
 
 ## The loop
 

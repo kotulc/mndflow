@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, render, fireEvent, screen } from "@testing-library/react";
 import { fold, ROOT, type Graph } from "@mnd/core";
 import { flat, nested, related } from "@mnd/fixtures";
-import { Explorer, rows_of } from "../src/index";
+import { Explorer, tree_of } from "../src/index";
 
 function mount(graph: Graph, over: Partial<Parameters<typeof Explorer>[0]> = {}) {
   const onAct = vi.fn();
@@ -28,34 +28,34 @@ afterEach(cleanup);
 
 describe("it shows structure and only structure", () => {
   it("lists blocks nested to any depth", () => {
-    const rows = rows_of(fold(nested()), [], true);
+    const rows = tree_of(fold(nested()), [], true);
     expect(rows.map((r) => r.label)).toContain("Rate Limit");
     expect(rows.find((r) => r.label === "Rate Limit")!.depth).toBeGreaterThan(1);
   });
 
   it("never lists a boundary, a note or a reference", () => {
-    const rows = rows_of(fold(related()), [], true);
+    const rows = tree_of(fold(related()), [], true);
     expect(rows.map((r) => r.label)).not.toContain("Hot side");
     expect(rows.map((r) => r.label)).not.toContain("the loop runs clockwise");
   });
 
   it("stops at a folded branch", () => {
     const graph = fold(nested());
-    const all = rows_of(graph, [], true).length;
-    const shut = rows_of(graph, ["block_ledger"], true).length;
+    const all = tree_of(graph, [], true).length;
+    const shut = tree_of(graph, ["block_ledger"], true).length;
     expect(shut).toBeLessThan(all);
-    expect(rows_of(graph, ["block_ledger"], true).map((r) => r.label)).not.toContain("Edge");
+    expect(tree_of(graph, ["block_ledger"], true).map((r) => r.label)).not.toContain("Edge");
   });
 
   it("hides what holds nothing when told to, but never a top-level block", () => {
     const graph = fold(nested());
-    const lean = rows_of(graph, [], false).map((r) => r.label);
+    const lean = tree_of(graph, [], false).map((r) => r.label);
     expect(lean).not.toContain("Auth");
     expect(lean).toContain("Site");
   });
 
   it("marks a container differently from a leaf, and a folder from both", () => {
-    const rows = rows_of(fold(nested()), [], true);
+    const rows = tree_of(fold(nested()), [], true);
     const mark = (label: string) => rows.find((r) => r.label === label)!.mark;
     expect(mark("Shelf")).toBe("folder");
     expect(mark("Edge")).toBe("container");
@@ -183,7 +183,7 @@ describe("folding", () => {
   });
 
   it("reads anything open at all, so it can always open again", () => {
-    const shut = rows_of(fold(nested()), ["block_shelf", "block_site"], true);
+    const shut = tree_of(fold(nested()), ["block_shelf", "block_site"], true);
     expect(shut.every((r) => r.depth === 0)).toBe(true);
   });
 });
@@ -196,7 +196,7 @@ describe("an empty workspace", () => {
   });
 
   it("lists a flat project's children under it", () => {
-    expect(rows_of(fold(flat()), [], true).map((r) => r.label))
+    expect(tree_of(fold(flat()), [], true).map((r) => r.label))
       .toEqual(["Ledger", "Edge", "Auth", "Billing"]);
   });
 });

@@ -8,9 +8,22 @@
 | **Depends on** | `core`, `defs` |
 | **Proven by** | being used. Every suite that folds one proves it parses |
 
+## Where it sits
+
 ```
-npx tsx apps/cli/src/main.ts fold related
+cli · every suite · every dev harness
+└─ fixtures   ◀
+   └─ core · defs
 ```
+
+## Running it
+
+```sh
+npm run start -w @mnd/cli -- fold related   # folds one and prints the block tree
+npm run typecheck -w @mnd/fixtures
+```
+
+**No suite of its own**, by design — a fixture is proven by every suite that folds it.
 
 ## The logs
 

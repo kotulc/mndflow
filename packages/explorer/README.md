@@ -8,9 +8,19 @@
 | **Depends on** | `core`, `theme` |
 | **Proven by** | its own dev server over a fixture — driven, emitting action names and mutating nothing |
 
+## Where it sits
+
 ```
-npm run dev  -w @mnd/explorer
-npm test     -w @mnd/explorer
+web
+└─ explorer   ◀
+   └─ core · theme
+```
+
+## Running it
+
+```sh
+npm run dev -w @mnd/explorer         # its harness, over a fixture
+npx vitest run packages/explorer     # its suite, from the repo root
 ```
 
 ## What is in here

@@ -6,10 +6,8 @@
 
 import { useState } from "react";
 import { children, is_interface, is_reference, module_of, shown_name,
-         type Graph, type Id } from "@mnd/core";
+         type Act, type Graph, type Id } from "@mnd/core";
 import { Menu } from "./Menu";
-
-export type Act = (name: string, args?: Record<string, unknown>) => void;
 
 export type ExplorerProps = {
   graph: Graph;
@@ -29,7 +27,7 @@ type Mark = "leaf" | "container" | "folder" | "interface" | "reference" | "note"
 
 /** The tree is blocks. A boundary, a note, a field and a reference are never
  *  listed — a reference is a second appearance of something already there. */
-function rows_of(graph: Graph, folded: readonly Id[], empties: boolean): Row[] {
+function tree_of(graph: Graph, folded: readonly Id[], empties: boolean): Row[] {
   const out: Row[] = [];
   const walk = (parent: Id | null, depth: number) => {
     for (const b of children(graph, parent)) {
@@ -60,7 +58,7 @@ export function Explorer(props: ExplorerProps) {
   const [over, set_over] = useState<Id | null>(null);
   const [menu, set_menu] = useState<{ x: number; y: number } | null>(null);
 
-  const rows = rows_of(graph, folded, empties);
+  const rows = tree_of(graph, folded, empties);
   const one = picked.length === 1 ? picked[0]! : null;
   const target = one ?? graph.root;
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
@@ -85,7 +83,7 @@ export function Explorer(props: ExplorerProps) {
                   onClick={() => add("folder")}>▤</button>
           <button title={any_open ? "fold everything" : "open everything"}
                   onClick={() => {
-                    for (const r of rows_of(graph, [], true)) {
+                    for (const r of tree_of(graph, [], true)) {
                       if (r.kids > 0) onFold(r.id, any_open);
                     }
                   }}>{any_open ? "▾" : "▸"}</button>
@@ -154,4 +152,4 @@ export function Explorer(props: ExplorerProps) {
   );
 }
 
-export { rows_of };
+export { tree_of };

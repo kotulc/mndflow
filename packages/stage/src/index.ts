@@ -1,1 +1,1 @@
-export { Stage, type Act, type StageProps } from "./Stage";
+export { Stage, type StageProps } from "./Stage";

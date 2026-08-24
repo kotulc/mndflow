@@ -9,10 +9,9 @@
  *  a point and a drag makes the thing that has extent. */
 
 import { useEffect } from "react";
+import type { Act } from "@mnd/core";
 import { SceneView, type Drag, type Gesture } from "@mnd/render";
 import type { Scene } from "@mnd/views";
-
-export type Act = (name: string, args?: Record<string, unknown>) => void;
 
 /** An adjustment: positional, unsayable, gesture-only. Never named or ranked,
  *  and it writes and undoes like everything else. */

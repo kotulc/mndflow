@@ -9,9 +9,8 @@
  *  Nothing here writes: a drag ends as a name and a number, like every other
  *  gesture. */
 
+import type { Point } from "@mnd/core";
 import type { Hit, Scene } from "@mnd/views";
-
-export type Point = { x: number; y: number };
 
 export type Drag =
   | { kind: "move"; on: string; from: Point; to: Point; over: string | null }

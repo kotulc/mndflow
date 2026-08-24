@@ -8,9 +8,22 @@
 | **Depends on** | `core`, `theme` |
 | **Proven by** | its own dev server over static chrome — driven, emitting action names and mutating nothing |
 
+## Where it sits
+
 ```
-npm run dev -w @mnd/options
+web
+└─ options   ◀
+   └─ core · theme
 ```
+
+## Running it
+
+```sh
+npm run dev -w @mnd/options          # its harness, over static chrome
+npm run typecheck -w @mnd/options
+```
+
+**No suite of its own yet.** The harness is the verification: drive it and read the action names it logs.
 
 ## What is in here
 

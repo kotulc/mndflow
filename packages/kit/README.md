@@ -8,6 +8,14 @@
 | **Depends on** | core, defs, layout, views, render, theme — all bundled **in**, and declared as build dependencies because of it |
 | **Proven by** | packing it and building a graph, a file and a drawing from outside the workspace |
 
+## Where it sits
+
+```
+anything outside this repo
+└─ kit   ◀ bundles them in
+   └─ core · defs · layout · views · render · theme
+```
+
 ## Building it
 
 ```sh

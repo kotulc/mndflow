@@ -8,8 +8,19 @@
 | **Depends on** | nothing. It may not even reach `defs`, which supplies its floor — an app hands the base definitions in, the same way it hands in a port |
 | **Proven by** | fold determinism, undo-by-refold, the door's repairs, file round-trip, byte-identical re-export, compaction |
 
+## Where it sits
+
 ```
-npm test -w @mnd/core
+web · cli · kit
+└─ every other package
+   └─ core   ◀ nothing below it
+```
+
+## Running it
+
+```sh
+npx vitest run packages/core       # its suite, from the repo root
+npm run typecheck -w @mnd/core
 ```
 
 ## What is in here

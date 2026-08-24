@@ -8,8 +8,21 @@
 | **Depends on** | `core`, `layout` |
 | **Proven by** | every Scene it emits is well-formed, over every layer of every fixture, and the invariants catch what they are for |
 
+## Where it sits
+
 ```
-npm test -w @mnd/views
+web · cli
+└─ render                            (the cli reaches views directly)
+   └─ views   ◀
+      └─ layout
+         └─ core
+```
+
+## Running it
+
+```sh
+npx vitest run packages/views                 # its suite, from the repo root
+npm run start -w @mnd/cli -- project related  # a Scene as text, which is the second renderer
 ```
 
 ## What is in here

@@ -30,6 +30,11 @@ export type Scope = "layer" | "block" | "edge" | "interface" | "selection";
 
 export type Args = Record<string, unknown>;
 
+/** How a surface reaches an action. Every panel takes one and none of them
+ *  knows what happens next — which is the whole of what a surface may do to
+ *  the model, so it is named once here rather than three identical times. */
+export type Act = (name: string, args?: Args) => void;
+
 /** Where the app should be looking afterwards. Never a mutation. */
 export type Effect = { open?: Id | null; focus?: Id | null; say?: string };
 
