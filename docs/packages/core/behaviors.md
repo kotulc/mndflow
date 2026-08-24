@@ -37,14 +37,11 @@ could carry, and nothing the engine could work out from a block that is not one.
 | **lanes** | one per referenced participant, derived from the references the layer already holds |
 | **controls** | counts relationships and guards, and draws forks, decisions, merges and joins |
 | **labels** | the derived `<verb> <participant>` fallback, dimmed |
-| **`holds`** | behavior blocks and references, **never structure parts** |
 | **writes** | the gate: **only tier 1 writes home**, and only what survives the behavior's deletion |
 
-**The two gates are the module's rather than data**, and that is the one place this departs from
-*a module never answers what may contain what*. It is deliberate: **only behavior blocks are in the
-behavior tree** is the rule that stops the two trees interleaving, and the write gate is what makes
-loose guessing safe. Both are load-bearing enough that leaving them to a `holds` rule somebody could
-edit would give up the guarantee.
+**Containment is not the module's — it is the engine's.** *A tree holds its own tier as parts; a lower tier appears only by reference* is a law above every module, so **only behavior blocks are in the behavior tree** needs nothing here to enforce it. A structure block dropped into a behavior layer is coerced to an action holding a reference rather than refused, which is the same thing this module already assumes about every participant it reads.
+
+**The write gate is the module's**, and it is the one thing here that could not be data: it is what makes loose guessing safe, and a rule somebody could edit would give the guarantee away.
 
 **Everything else is package data.** `action` and `state` are definitions extending the base
 `behavior` definition; the verb is vocabulary; whether bars and diamonds are drawn at all is the
@@ -312,15 +309,13 @@ failure**: the structure said nothing, so it learned nothing.
 
 **Behavior is an overlay on a structure, not a second model of it.** A structure sub-tree is the truth behaviors get built on. A behavior scopes to one or more structures and describes what happens *over* them, bound to the structural blocks they act on.
 
-**A behavior project holds references — never the structure it acts on**, which is precisely why its tree stays its own and a structure block never appears in it. A participant structure `block` appears inside a behavior *layer* as a reference, which is an appearance and not composition, so the two trees never interleave.
+**A behavior tree holds references — never the structure it acts on**, which is precisely why its tree stays its own and a structure block never appears in it. A participant structure `block` appears inside a behavior *layer* as a reference, which is an appearance and not composition, so the two trees never interleave.
 
-**Order is read from the model, and only guessed at as a fallback.** A directed relationship between two blocks *is* the sequence, and it wins. Where none exists, position along the layer's arrangement
-says the same thing.
+**Order is read from the model, and only guessed at as a fallback.** A directed relationship between two blocks *is* the sequence, and it wins. Where none exists, position along the layer's arrangement says the same thing.
 
 **A behavior may be inferred from a selection, once, and then it is the user's.** It is one-way and deterministic, nothing re-syncs, and **re-inferring makes a new behavior block rather than editing one** — so hand-adjusted work can never be clobbered by running it again. Opening with the structure's containment is the guess and not a rule it keeps.
 
-**Guess freely in the behavior; never guess into the structure.** This is the line the whole design rests on. A wrong guess in a behavior costs an edit, so the inference can afford to be loose and
-should be — *an inference that is wrong but workable beats one that never runs*. A wrong guess written into a **structure** is another matter: it modifies the truth invisibly.
+**Guess freely in the behavior; never guess into the structure.** This is the line the whole design rests on. A wrong guess in a behavior costs an edit, so the inference can afford to be loose and should be — *an inference that is wrong but workable beats one that never runs*. A wrong guess written into a **structure** is another matter: it modifies the truth invisibly.
 
 > **A write to a structure block must be a fact about the structure that still stands once the
 > behavior is deleted.** If deleting the behavior would leave it stale, it should have been derived.
@@ -331,11 +326,10 @@ should be — *an inference that is wrong but workable beats one that never runs
 | the **interaction**: order, guard, message | the behavior block | no |
 | **participation** — who takes part in what | the behavior block | no |
 
-**So only what the structure stated is infered**, and everything guessed from position or adjacency writes nothing. That is what makes loose inference safe rather than reckless.
+**So only what the structure stated is inferred**, and everything guessed from position or adjacency writes nothing. That is what makes loose inference safe rather than reckless.
 
-**Participation is derived, never stored.** A stored back-reference would duplicate a fact that already lives in another log and leave a structure project opened alone carrying references to behaviors that are not there.
+**Participation is derived, never stored.** A stored back-reference would duplicate a fact the graph already holds, and leave a structure tree exported on its own carrying references to behaviors that did not travel with it.
 
 **Inference composes, and that is the whole chain.** A selection of actions gives a **state** block exactly as a selection of structure gives an **activity** — structure, then activity, then state, each harder to write from nothing than the one before. There is no separate promotion step and no machine that exists before somebody asks for one.
 
-**Activity, sequence and state are three projections of one behavior layer**, not three models. Each is its own **module**, because each projects differently enough to need code; what they are not is
-separate copies of the facts.
+**Activity, sequence and state are three readings of one behavior layer**, not three models and not three modules. `block` is any planar projection and a view definition names the reading, so what differs is what a block means and what a lane becomes — never the facts underneath.

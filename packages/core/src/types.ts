@@ -1,7 +1,7 @@
 /** Every shared shape: the graph, the mutations, the steps.
  *
  *  Two element kinds and no third — a block and a relation. Definitions group
- *  three ways by what they describe, in one id space. See docs/monorepo/core/schema.md. */
+ *  three ways by what they describe, in one id space. See schema.md. */
 
 export type Id = string;
 

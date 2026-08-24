@@ -11,7 +11,7 @@
  *  participant, known by construction because the action already holds the
  *  reference. That is why one module carries all three.
  *
- *  The rules in full are docs/monorepo/core/behaviors.md. */
+ *  The rules in full are behaviors.md. */
 
 import { children, edges_in, is_interface, is_reference, module_of, shown_name,
          type Graph, type Id, type Reading, type Relation } from "@mnd/core";

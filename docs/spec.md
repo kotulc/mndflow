@@ -36,7 +36,7 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 - **Ownership and containment are different questions.** A block **owns** a part; a **reference** stands for something living elsewhere. The tree is `parent` and nothing else.
 - **A container is derived, never declared** — a block holding blocks draws as one. It is a way a block *looks*, and naming it a sort of thing would make an engine-level answer to something that changes the moment a child is added.
 - **An interface is declared, not derived.** It is a block module, made deliberately, and carries `side`, `at` (0–1 along that edge), `num` and `flow` instead of `x`/`y`. `flow` is decorative and constrains nothing.
-- **A project is not a thing in the schema.** It is a top-level block under the workspace root, read from position and stored nowhere.
+- **A top-level block is nothing special in the schema.** It is a block whose parent is the workspace root, read from position and stored nowhere.
 - **Root** is the block that holds every other, under a reserved id. `parent: null` means *in the root layer*. No frame: a frame is a block seen from inside, and root has no outside.
 
 **Relationships.**
@@ -94,42 +94,60 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 | `style` | `slot` and `emphasis`, `weight` and `voice` |
 | `view` | which view definitions this offers, the first being the default, and the abstraction cap `N` |
 | `constraints` | `required` |
-| `rules` | `ends`, `holds`, `degree`, `match` |
+| `rules` | `ends`, `degree`, `match`. **Not containment** — the tier law is the engine's |
 
 - **A component owns its key and reads no other's.**
 - **Each validates its own key at the door.** One absent from the build validates nothing, so its configuration is *unvalidated* rather than wrong — which is how an older build opens a newer package. What a component refuses is dropped, and only that key.
-- **A module supplies drawing, placement and a configuration surface**, never what may contain what.
+- **A module supplies drawing, placement and a configuration surface.** What may contain what is the tier law, and nothing below it is configurable.
 - **The engine always places a rectangle.** A shape changes what is drawn, never where anything attaches.
 
-### Composition rules
+### Tiers
 
-**What may contain what is a `holds` rule, which is data.** It is declared on a definition, holds over every usage, and **can be redefined like anything else** — the base package ships the few that keep a subtree interpretable, and nothing stops a user replacing them.
+**Three trees, and the layering is the engine's.** Views build on structure and behaviors; behaviors build on structure. This is the one place a choice is taken away from the user, and it is what keeps a subtree interpretable — a structure holding a view that looks at it is self-referential and means nothing.
 
-| Base definition | Holds |
-|---|---|
-| `folder` | anything. The general organizational tool |
-| `structure` | `structure` children. It may *refer* to other kinds without owning them |
-| `behavior` | behavior blocks and references, never structure parts |
-| `view` | references only. A view whose members could be owned is a folder |
+> **A tree holds its own tier as parts. A lower tier appears only by reference.**
 
-**Why the base ships any at all**: a structure subtree holding a view block may be self-referential and loses its meaning. **These are the exception, not the pattern** — every other design decision is the user's.
+- **A tier is derived, never stored** — the nearest ancestor whose module is `structure`, `behavior` or `view`. Nothing new in the schema, and the same walk that answers *what tier is this* answers *what happens to this drop*.
+- **Crossing a tier is a coercion, not a refusal.** Every gesture still succeeds — what arrives is an appearance rather than a part, and it draws the way every reference draws, so the difference is visible without being explained.
+- **What a drop arrives as** is the tier's elementary unit, so a drag and an inference produce the same thing:
 
-**One constraint and four rules**, each a lookup, a count or one fixed comparison. No operators, nothing to parse, and **no rule language**. What the five cannot say is a module's `validate` hook — code, local, one usage at a time.
+  | Dropped into | Arrives as |
+  |---|---|
+  | a **behavior** tree | an **action** holding a reference |
+  | a **view** tree | a **reference** |
+  | a **structure** tree, from elsewhere | a **reference** |
+
+- **References point down the tiers only.** Upward is a derived query — which behaviors a block takes part in is asked of the graph, never stored, because a stored back-reference would leave an exported structure pointing at behaviors that did not travel with it.
+- **Within a tier, nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
+
+**The nine base modules read in three groups:**
+
+| | Modules | Role |
+|---|---|---|
+| **tiers** | `structure`, `behavior`, `view` | own a tree; the layering is enforced |
+| **filing** | `folder` | holds tier roots. **Above them only** — a folder never sits inside a tier, which is what keeps the tier walk unambiguous |
+| **accessories** | `reference`, `interface`, `group`, `note`, `resource` | appear inside any tier and own no tree |
+
+**Everything else about containment is the user's.** The tiers are the exception that makes the rest safe to leave open.
+
+**One constraint and three rules** — `required`, and `ends`, `degree`, `match` — each a lookup, a count or one fixed comparison. No operators, nothing to parse, and **no rule language**. What they cannot say is a module's `validate` hook: code, local, one usage at a time.
 
 **They advise while modelling and refuse only at translation.** A model is legitimately unfinished, so a violation is a note rather than a refusal.
 
 ### The workspace
 
-| | Contains | Owns | Holds |
-|---|---|---|---|
-| **workspace** | projects, packages, folders | nothing | **the log**, the metadata, all session state |
-| **folder** | anything — independent roots | nothing | nothing of its own |
-| **project** | — | a graph of blocks | its own vocabulary and settings |
+**The workspace is the root folder.** There is no workspace type and no project type — one graph, one log, and the tree above the tiers is folders.
 
-- **The workspace is a block** and needs no new schema to be one.
-- **Making a project is making a top-level block**, through the same door as anything else.
-- **A project comes into being by being named** — required, unique among siblings. The app opens with no project rather than one nobody asked for.
-- **A project carries an `id`**, minted once and kept for life, so renaming breaks no reference.
+| | Contains | Holds |
+|---|---|---|
+| **workspace** | folders and tier roots | **the log**, the metadata, all session state |
+| **folder** | folders and tier roots | nothing of its own |
+| **tier root** | its own tree | a subtree of blocks |
+
+- **A top-level block is informally a *project*** — a word for a tier root, the way *container* is a word for a block with children. Not a type, not a tier, and not in the schema.
+- **Making one is making a block**, through the same door as anything else.
+- **Every block carries an `id`**, minted once and kept for life, so renaming breaks no reference.
+- **Names are unique among siblings**, which needs no special case for a top-level block.
 
 **Session state is held outside the log and never in a file** — the open layer, the selection, the explorer fold, which view each layer was last shown in, the theme, and every toggle. **The test: is it in the log?** A block's name is, so it exports and it undoes. Whether interfaces are shown is not, so it does neither.
 
@@ -148,12 +166,15 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 ### Files
 
 - **An export is the graph, not the log** — `{ schema, id, graph, meta }`, pretty-printed JSON. Its size follows the model rather than how long somebody worked.
+- **Any subtree exports**, and the workspace export is simply the root folder's. One path, no special case, and no type had to exist for it.
+- **A subtree travels with its dependencies** — the definitions anything in it names, and their `extends` chains. That closure is what makes it open somewhere else.
+- **A reference out of the subtree is kept, not tidied away**, and reads *missing* where it lands. Same rule as a deleted target, so importing needs no second answer. A relationship with one end outside is dropped, exactly as moving a block drops what does not travel.
 - **Importing one is a checkpoint**, so there is no second format and no second reader.
 - **Importing replaces the session and is saved from then on** — a file is a snapshot, the session is the working copy.
-- **The base is what cannot be ignored**; everything else is `meta`, free-form and safely ignorable. The test is whether dropping a field changes what the project *is*.
+- **The base is what cannot be ignored**; everything else is `meta`, free-form and safely ignorable. The test is whether dropping a field changes what the model *is*.
 - **Nothing still at its default is written** — a file the size of the choices in it.
 - **Major schema must match; a higher minor is readable.**
-- **Exporting changes nothing**, so re-exporting an unchanged project is byte-identical — which is what the canonical layout is for.
+- **Exporting changes nothing**, so re-exporting an unchanged subtree is byte-identical — which is what the canonical layout is for.
 - **Laid out for reading**: definitions first, then the block tree, then relationships. Blocks nest under their parents so `parent` is never written; siblings sort by id so a rename is one line.
 - **Ids say what they point at** — `block_`, `edge_`, `def_`, `step_`. A name is never part of an id.
 - **Session state stays out**, `meta` included: opening somebody's file must not rearrange your toggles.
@@ -176,14 +197,14 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 | `net` | fetching something from outside the workspace | `fetch` | `fetch` |
 | `score` | text similarity, for ranking | the scorer, lazily | absent |
 
-- **Nothing but a port may assume where a project lives.**
+- **Nothing but a port may assume where the workspace lives.**
 - **An unbound port is a capability the app does without**, never a feature reimplemented. With no `score`, ranking falls back to substring and everything else still works.
 - **A port is an interface, not a service.** Core declares the shape and calls it; it never constructs one.
 - **A new capability is a port or it is a package**, never a direct reach for a browser API from somewhere that is not an app.
 
 ### Actions
 
-**Everything that changes a project is a record on one registry**, read by every input surface.
+**Everything that changes the model is a record on one registry**, read by every input surface.
 
 - Each carries a **name**, a **sentence** saying what it does, the **scope** it applies to, typed **arguments**, and a **run** returning mutations.
 - **The sentence is what gets matched**, so *lay it out* reaches `arrange`. Names are too short.
@@ -305,7 +326,7 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 
 - **The lane is the same derivation in all three** — one per referenced participant. Only its shape changes, which is why one module carries all three.
 - **The six offered views are view definitions**, three of them naming `block` with a reading. **Which one is showing is session state**, never in the log.
-- **There is no derived project kind**, so any layer can be switched to any view it is offered.
+- **There is no derived kind of layer**, so any layer can be switched to any view it is offered.
 - **A control is a rendering of a count** and answers no gesture. A branch keeps its own relationship id; only the stub into the control is derived.
 
 ### Views as blocks
@@ -314,11 +335,11 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 - **Everything a view shows is a reference** — a card, a table row, a matrix axis label alike.
 - **A view holds views.** A matrix's two axes are child views, so a filter or a third dimension costs nothing new.
 - **A view is filed beside what it looks at**, never inside it — a view of a layer that lived in that layer would show itself.
-- **A reference resolves across open projects.** One into a closed project reads **closed**; a genuinely gone target reads **missing**, and is kept rather than tidied away, so undoing a deletion elsewhere brings it back.
+- **A reference resolves anywhere in the workspace.** A gone target reads **missing**, and is kept rather than tidied away, so undoing a deletion elsewhere brings it back.
 - **What is done through a reference reaches home.** Renaming one renames the block.
-- **A relationship across two projects is a reference plus an ordinary edge**, both in the project of the end making the claim, so no relationship spans two projects.
+- **A relationship into another tree is a reference plus an ordinary edge**, both filed with the end making the claim.
 - **Depth** says how far a reference reaches — `self`, `children` or `all`.
-- **Nothing about how a view looks enters the project it reads.**
+- **Nothing about how a view looks enters the tree it reads.**
 
 ### Composition
 
@@ -348,7 +369,7 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 - **An action's label is derived and dimmed** — the definition's verb and the participant's name, `do Pump`. Typing over it stores a real name and the dimming goes.
 - **Lanes come from the references**, one per participant, so they always exist. Past **N** actions the inference cuts higher in the tree; `N` is view configuration.
 - **Only the tier that writes home writes home.** Interfaces a flow implies are written to the participants; anything guessed from position writes nothing. **Only a fact that still stands once the behavior is deleted may be written.**
-- **Participation is derived**, so a structure project opened alone reads clean.
+- **Participation is derived**, so a structure tree exported alone reads clean.
 - **Nothing is derived that somebody edits.** Control nodes, messages and lanes are counted and drawn; states are blocks, because people name and nest them.
 
 
@@ -358,12 +379,12 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 
 | | Ships |
 |---|---|
-| `base` | one definition per block module — `folder`, `structure`, `behavior`, `reference`, `interface`, `resource`, `group`, `note`, `view` — plus one view definition per offered view. **Shipped and locked, and the engine knows it by id** |
+| `base` | one definition per block module — the three tiers, `folder`, and the five accessories — plus one view definition per offered view. **Shipped and locked, and the engine knows it by id** |
 | `behavior` | `action` and `state`, extending the base behavior definition, plus the verb |
 | `requirements` · `flow` · `parametrics` | the worked vocabularies |
 | `sysml` · `uml` · `uaf` | formal `names` and mappings over the definitions above |
 
-- **The engine may key off a base definition only for how a block draws and where it sits** — never for what it is. What it may contain is a `holds` rule, which is data.
+- **The engine may key off a base definition only for how a block draws, where it sits, and which tier it is** — never for anything a package could have said instead.
 - **Core cannot reach the package that supplies its floor.** `defs` depends on core, so core may not depend back — an app hands the base definitions in, the same way it hands in a port.
 - **A package is data; a module is code.** A package ships definitions and costs nobody anything. **A package maps names and presentation, never structure** — a notation needing structural change is a module instead, and then it is one engine capability plus a package, shipping together.
 - **A package must be useful with portable presentation alone.** It degrades rather than breaks.
@@ -403,9 +424,9 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 - **Every top-level block is its own subtree**, filed into the folders the workspace keeps.
 - **The open layer and the selection are two states with two looks.** *Open* is where the stage is pointed; *selected* is what an action would act on. They stack, and selected reads first.
 - **Every role carries a mark** — leaf, container, interface, folder — and a container is filled where a leaf is outlined, because the fill is what says it holds something.
-- **The bar's `＋` follows the selection**, and its tooltip names which, so the meaning is never hidden. **Add folder is a shortcut, not a second concept** — the same `create`, arriving with its type filled.
+- **The bar's `＋` follows the selection**, and its tooltip names which, so the meaning is never hidden. **Add folder is a shortcut, not a second concept** — the same `create`, arriving with its type filled, and offered only where a folder can go.
 - **Right-click opens the offered list** for the selection, in fixed order.
-- **Every row is draggable**, and the drag carries a reference. **Dropping in the clear space below makes the block a project**, since a project is a block nothing contains.
+- **Every row is draggable**, and a drag crossing a tier lands as that tier's elementary unit rather than refusing. **Dropping in the clear space below makes the block top-level**, since a tier root is a block no other block contains.
 - **A move drops what does not travel** — group memberships, note ties, and relationships to anything staying behind. A move is never confirmed first; undo is the answer.
 - **Folding is the user's alone**: walking into a layer never rearranges the tree.
 

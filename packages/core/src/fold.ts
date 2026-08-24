@@ -217,8 +217,12 @@ export function is_container(graph: Graph, id: Id): boolean {
   return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
 }
 
-/** A top-level block is a project. Read from position, stored nowhere. */
-export function is_project(graph: Graph, id: Id): boolean {
+/** A block no other block contains: the root of a tier's tree.
+ *
+ *  Read from position and stored nowhere. There is no project type — a
+ *  top-level block is informally a *project*, the way a block with children is
+ *  informally a container. */
+export function is_tier_root(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   return !!b && b.parent === graph.root;
 }

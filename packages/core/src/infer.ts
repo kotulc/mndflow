@@ -5,7 +5,7 @@
  *  modifies the truth, invisibly. So the inference is deliberately loose, and
  *  only a fact the structure actually stated is written home.
  *
- *  The rules in full are docs/behaviors.md. */
+ *  The rules in full are behaviors.md. */
 
 import { children, edges_in, isa, path, subtree } from "./fold";
 import { new_id } from "./ids";

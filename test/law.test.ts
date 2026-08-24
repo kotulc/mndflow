@@ -16,7 +16,7 @@ const ROOT = join(__dirname, "..");
 const PACKAGES = join(ROOT, "packages");
 
 /** Who may import whom **in `src/`**. A package may import itself and these,
- *  and nothing else. Keep in step with docs/monorepo/README.md — this file owns
+ *  and nothing else. Keep in step with the monorepo README — this file owns
  *  the list. */
 const ALLOWED: Record<string, readonly string[]> = {
   core: [],
