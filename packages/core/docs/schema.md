@@ -305,3 +305,53 @@ Step {
 | **participation** | asked of the behavior blocks in scope; never a back-reference |
 | **which of two definitions wins** | the nearer ancestor |
 | **the content hash** | the graph. A stored hash lies the moment anyone edits the file by hand |
+
+## The model, in rules
+
+**Everything is a block; a relationship joins two of them.** One workspace, one graph, one log.
+
+- **A block is the one element.** Placed, drawn, carries fields, holds other blocks. **There is no closed set of element sorts** — what a block *is* comes from its definition.
+- **A block carries no presentation of its own.** Colour, shape and the rest belong to its definition, so two things looking alike is two things *being* alike.
+- **Ownership and containment are different questions.** A block **owns** a part; a **reference** stands for something living elsewhere. The tree is `parent` and nothing else.
+- **A container is derived, never declared** — a block holding blocks draws as one. It is a way a block *looks*, and naming it a sort of thing would make an engine-level answer to something that changes the moment a child is added.
+- **An interface is declared, not derived.** It is a block module, made deliberately, and carries `side`, `at`, `num` and `flow` instead of `x`/`y`. `flow` is decorative and constrains nothing.
+- **A top-level block is nothing special in the schema.** It is a block whose parent is the workspace root, read from position and stored nowhere.
+- **Root** is the block that holds every other, under a reserved id. `parent: null` means *in the root layer*. No frame: a frame is a block seen from inside, and root has no outside.
+- **Anything joining two blocks is a relationship.** One may draw as something other than a routed line, but that is a rule about drawing. **Containment is not a relationship** — the tree is `parent`.
+- **No relationship carries a route.** Where a line goes is derived from the layer, every draw.
+- **A `link` points without drawing**, which is how a part property or a satisfied requirement is stated. **A reference is drawn; a link is not** — that is the whole difference.
+- **Membership is neither.** A block names its `groups`, and a group's members are derived from that, so the two can never disagree. A group is never a parent.
+- **Fields are never structural**: never in the explorer, never changing what contains what. **No identity** either — a field is addressed by name on its holder.
+
+## Tiers
+
+**Three trees, and the layering is the engine's.** Views build on structure and behaviors; behaviors build on structure. This is the one place a choice is taken away from the user, and it is what keeps a subtree interpretable — a structure holding a view that looks at it is self-referential and means nothing.
+
+> **A tree holds its own tier as parts. A lower tier appears only by reference.**
+
+- **A tier is derived, never stored** — the nearest ancestor whose module is `structure`, `behavior` or `view`. Nothing new in the schema, and the same walk that answers *what tier is this* answers *what happens to this drop*.
+- **Crossing a tier is a coercion, not a refusal.** Every gesture still succeeds — what arrives is an appearance rather than a part, and it draws the way every reference draws, so the difference is visible without being explained.
+- **What a drop arrives as** is the tier's elementary unit, so a drag and an inference produce the same thing:
+
+  | Dropped into | Arrives as |
+  |---|---|
+  | a **behavior** tree | an **action** holding a reference |
+  | a **view** tree | a **reference** |
+  | a **structure** tree, from elsewhere | a **reference** |
+
+- **References point down the tiers only.** Upward is a derived query — which behaviors a block takes part in is asked of the graph, never stored, because a stored back-reference would leave an exported structure pointing at behaviors that did not travel with it.
+- **Within a tier, nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
+
+**The nine base modules read in three groups:**
+
+| | Modules | Role |
+|---|---|---|
+| **tiers** | `structure`, `behavior`, `view` | own a tree; the layering is enforced |
+| **filing** | `folder` | holds tier roots. **Above them only** — a folder never sits inside a tier, which is what keeps the tier walk unambiguous |
+| **accessories** | `reference`, `interface`, `group`, `note`, `resource` | appear inside any tier and own no tree |
+
+**Everything else about containment is the user's.** The tiers are the exception that makes the rest safe to leave open.
+
+**One constraint and three rules** — `required`, and `ends`, `degree`, `match` — each a lookup, a count or one fixed comparison. No operators, nothing to parse, and **no rule language**. What they cannot say is a module's `validate` hook: code, local, one usage at a time.
+
+**They advise while modelling and refuse only at translation.** A model is legitimately unfinished, so a violation is a note rather than a refusal.

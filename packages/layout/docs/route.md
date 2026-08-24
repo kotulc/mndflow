@@ -41,3 +41,9 @@ route(spots, edges, how) → Routed[]
 ## Proven by
 
 No two ends share a seat · every route terminates on the card it names · every elbow is square · routing twice gives the same lines · an edge naming something not drawn is skipped rather than throwing.
+
+## Seats and walls
+
+- **An interface is seated on its owner's edge rather than laid out beside it**: a side and a fraction along it, so the seat survives the card moving, growing or being arranged some other way.
+- **An end seated on an interface is drawn on the card the interface sits on** — for what a layer holds, for how a rank is worked out, and for which matrix cell is filled.
+- **Sliding one along its edge is `seat`; taking a line's end to another wall is `wall`.** Both are adjustments.

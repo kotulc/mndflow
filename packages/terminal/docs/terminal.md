@@ -73,3 +73,14 @@
 - **Focus and highlight.** Filtering should light what matched and help should point at the control it is describing — **one mechanism, two callers**, reusing the one lit-target look rather than a third.
 - **Interactive help and the tutorial.** A tutorial teaches whatever the app currently is, which is why it waits for this and not the other way round.
 - **Quiet mode silences the mirror.** The toggle collapses the strip today; it does not yet mute what it reflects.
+
+## What holds it in place
+
+**One collapsible strip. Not a chat, not a command palette.** The app is whole without it, and nothing below it may import it.
+
+- **It reflects context and action as you use the app** — you act on the canvas, the terminal says what happened — so it is a mirror as much as an input.
+- **It reads context and never changes it**, because it *ranks against* context and a surface that moved context would shift the ground its own ranking stands on.
+- **It reaches actions and never writes a mutation of its own.**
+- **Chips are the offered list**, ranked through the `score` port with substring as the cold fallback.
+- **`Enter` confirms the highlight and arrows move it**, because a default that is invisible and changes under the user is the version of adaptive ranking worth avoiding.
+- **Every capability it adds must exist without it.** If the only way to do something is to say it, it has stopped being optional.

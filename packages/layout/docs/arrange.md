@@ -39,3 +39,11 @@ laid(graph, layer) → Placed[]
 **`bounds` is twice the furthest edge from the origin**, plus the room a new thing needs. Twice the furthest *corner* plus that box's own width counts the same box twice and leaves a layer drawn at a third of the size it could be.
 
 **`boundary` is its members' bounds plus half a cell** — a fact about what a group holds, never a stored size. A group is never a parent, so the boundary owns nothing.
+
+## The grid
+
+- Positions are relative to the layer's centre origin, so a layer stays centred as it grows.
+- **Everything with a place of its own lands on the grid** — cards, notes, the frame, and whatever automatic layout puts down. The backdrop dots are that grid.
+- **Cards are as small as their contents allow.** Nothing is held for text that might arrive; **a name too long for its card is clipped**, with the whole of it on hover.
+- **Seat count follows edge length**, and seats never fall on a corner.
+- **Space is a signal** — what matters is the contrast, tight inside a unit and open between them.

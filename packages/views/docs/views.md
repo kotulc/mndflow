@@ -71,3 +71,18 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 | composition | **nothing** — a grouping, spacing and ordering | every draw | presentation, recomputed |
 
 **One metric: proximity** — how far apart two referenced blocks sit in the tree, which is a path distance and deterministic. **Group** by nearest common ancestor, **order** by tree path, **space** by distance where the view has room. A table and a matrix have rows, so they take the grouping and the order and drop the spacing.
+
+- **A proximity group is a derived group**, so nothing needs storing for one to appear.
+- **Proximity is the default and must be overridable.** A view whose point is a cross-cut wants grouping by type, and proximity would give it exactly the grouping it was built to escape.
+
+## Views as blocks
+
+- **A saved view is a block** whose definition names a view module, holding one reference per thing shown. It costs no concept.
+- **Everything a view shows is a reference** — a card, a table row, a matrix axis label alike.
+- **A view holds views.** A matrix's two axes are child views, so a filter or a third dimension costs nothing new.
+- **A view is filed beside what it looks at**, never inside it — a view of a layer that lived in that layer would show itself.
+- **A reference resolves anywhere in the workspace.** A gone target reads **missing**, and is kept rather than tidied away, so undoing a deletion elsewhere brings it back.
+- **What is done through a reference reaches home.** Renaming one renames the block.
+- **A relationship into another tree is a reference plus an ordinary edge**, both filed with the end making the claim.
+- **Depth** says how far a reference reaches — `self`, `children` or `all`.
+- **Nothing about how a view looks enters the tree it reads.**

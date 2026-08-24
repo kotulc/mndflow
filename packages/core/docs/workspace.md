@@ -11,6 +11,9 @@
 - **It is a block**, with `parent: null` and a reserved id, and needs no new schema to be one.
 - **A top-level block is informally a *project*** — a word for a tier root, the way *container* is a word for a block with children. Not a type, not a tier, and not in the schema.
 - **`is_tier_root` reads it from position.** Nothing stores it.
+- **Making one is making a block**, through the same door as anything else.
+- **Every block carries an `id`**, minted once and kept for life, so renaming breaks no reference.
+- **Names are unique among siblings**, which needs no special case for a top-level block.
 
 ## One log
 

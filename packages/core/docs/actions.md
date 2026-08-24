@@ -235,3 +235,22 @@ Drawn in that order whatever order a module lists them. **`relations` is last on
 | adjustments | **4** |
 | shell actions, off the registry | **9** |
 | mutation ops, the action set, the adjustments | **closed** |
+
+## The registry
+
+**Everything that changes the model is a record on one registry**, read by every input surface.
+
+- Each carries a **name**, a **sentence** saying what it does, the **scope** it applies to, typed **arguments**, and a **run** returning mutations.
+- **The sentence is what gets matched**, so *lay it out* reaches `arrange`. Names are too short.
+- **Arguments are typed** — text, block, choice, number, or a position. An input surface offers whatever it can fill, so eligibility is derived rather than declared.
+- **A position can only come from a gesture.** An action needing one is reachable only that way; one where it is optional is reachable from anywhere, and the layer places what it was not given.
+- **`when` decides whether an action is shown; `check` decides what happens when it runs.** Not the same test, and `check` cannot be answered until the arguments are filled.
+- **An action returns mutations and may also ask** for a layer to be opened, a selection moved, or a line to be said. It changes nothing itself.
+- **An action refuses in words**, and the refusal goes to the strip like everything else the app says.
+- **The offered list is membership only** — everything whose scope matches and whose `when` says yes, with no ordering of its own. Menus draw it in a fixed order; the terminal ranks it.
+- **What does not apply is not shown.** Greying out is for a fixed row whose positions are worth learning.
+- **A module adds no action for anything it draws.** A module is a vocabulary, renderers, a layout law and a gesture map.
+
+**Adjustments are positional, unsayable and gesture-only** — never named, ranked or listed. They write mutations and they undo like anything else. **A view module declares which it accepts, and may accept none.**
+
+**Every action, adjustment and gesture is enumerated above.**

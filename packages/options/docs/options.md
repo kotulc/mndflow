@@ -38,3 +38,11 @@ project · views · arrange · flow · interfaces · lines · columns · types �
 
 - **`views` and `flow`** are in the draw order and nothing builds them yet.
 - **Whether the rail should scroll per group or as a column.** It scrolls as a column today.
+
+## The rules it lives by
+
+**Every control the thing on the stage has is in one column, fixed to the right.** A real column, not an overlay: the stage ends where it begins, so chrome never sits on the drawing.
+
+- **A view module declares which groups it offers** and the column draws them in a fixed order. A matrix has no interfaces toggle because it declares none, never because one was greyed out.
+- **`types` is the one group the page cannot build alone**, so a module declaring it also answers it. **Nothing picked is everything.**
+- **A verb never lights** — `arrange` has no state to be in, which is the plainer signal.
