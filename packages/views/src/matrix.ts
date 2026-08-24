@@ -13,7 +13,7 @@ import { children, edges_in, is_interface, owner_of, shown_name,
          type Graph, type Id } from "@mnd/core";
 import { GRID } from "@mnd/layout";
 import type { Config } from "./block";
-import { trail_of } from "./derive";
+import { link_of, trail_of } from "./derive";
 import type { Box, Hit, Scene, Slot } from "./scene";
 
 const CELL = GRID * 2;
@@ -39,11 +39,12 @@ export function project(graph: Graph, layer: Id | null, _config: Config = {}): S
   const heads: Box[] = [
     ...axis.map((id, n): Box => ({
       id: `column:${id}`, x: left + HEAD + n * CELL, y: top, w: CELL, h: HEAD,
-      label: shown_name(graph, id), marks: ["header", "turned"],
+      label: shown_name(graph, id), link: link_of(graph, id),
+      marks: ["header", "turned"],
     })),
     ...axis.map((id, n): Box => ({
       id: `row:${id}`, x: left, y: top + HEAD + n * CELL, w: HEAD, h: CELL,
-      label: shown_name(graph, id), marks: ["header"],
+      label: shown_name(graph, id), link: link_of(graph, id), marks: ["header"],
     })),
   ];
 

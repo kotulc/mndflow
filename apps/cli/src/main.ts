@@ -5,16 +5,17 @@
  *  is complete enough to draw from, with no React anywhere in the process. */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { check, children, fold, say, session, shown_name, write,
+import { check, children, fold, read, say, session, shown_name, write,
          type Id, type Log, type Storage } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
-import { draw, faults, outline, view } from "@mnd/views";
+import { draw, draw_svg, faults, outline, view } from "@mnd/views";
 
 const USAGE = `mnd — the headless harness
 
   mnd fold <source>                    fold a log and print the block tree
   mnd project <source> [layer] [--how] project a layer and print it
+  mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
   mnd check <source>                   run the door, print faults
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
@@ -23,12 +24,15 @@ const USAGE = `mnd — the headless harness
   <source> is a fixture name (${NAMES.join(", ")}) or a path to a .json log.
   --how sets the arrangement: free grid right left down up
   --read sets the reading of a behavior layer: activity sequence state
-  --view picks the module: block table matrix`;
+  --view picks the module: block table matrix
+  --svg writes the drawing instead of the text projection`;
 
+/** A fixture, a log, or an exported file. **The door decides which**: `read`
+ *  takes an array as a log and an envelope as a checkpoint, so what `export`
+ *  writes is what every other verb can open. */
 function load(source: string): Log {
   if (NAMES.includes(source as never)) return fixture(source);
-  const raw = JSON.parse(readFileSync(source, "utf8"));
-  const got = check(Array.isArray(raw) ? raw : raw.log ?? []);
+  const got = read(readFileSync(source, "utf8"));
   if (got.faults.length) console.error(`  ${say(got.faults)}`);
   return got.log;
 }
@@ -72,6 +76,23 @@ function flag(args: string[], name: string): string | undefined {
   return at >= 0 ? args[at + 1] : undefined;
 }
 
+/** The flags that take the argument after them. Without knowing which do, a
+ *  flag's value reads as a positional and `--view matrix` asks for a layer
+ *  called "matrix". */
+const VALUED = ["--how", "--read", "--view", "--layer"];
+
+/** What is left once every flag, every flag's value and every pair is taken
+ *  out: the positionals, and nothing else. */
+function loose(args: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (VALUED.includes(a)) i++;
+    else if (!a.startsWith("--") && !a.includes("=")) out.push(a);
+  }
+  return out;
+}
+
 function pairs(args: string[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const a of args) {
@@ -94,7 +115,7 @@ function main(argv: string[]): void {
 
   const log = load(source);
   const how = flag(rest, "how");
-  const plain = rest.filter((a) => !a.startsWith("--") && !a.includes("="));
+  const plain = loose(rest);
 
   switch (verb) {
     case "fold":
@@ -126,7 +147,9 @@ function main(argv: string[]): void {
         for (const w of wrong) console.error(`  ${w}`);
         process.exit(1);
       }
-      console.log(verb === "project" ? draw(scene) : outline(scene));
+      if (verb === "outline") console.log(outline(scene));
+      else if (rest.includes("--svg")) process.stdout.write(draw_svg(scene));
+      else console.log(draw(scene));
       return;
     }
 

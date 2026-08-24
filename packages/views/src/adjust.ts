@@ -6,10 +6,8 @@
  *  — which is what lets a renderer ask them without reaching for either. */
 
 import type { Side } from "@mnd/core";
-import { nearest_seat, nearest_wall, type Seat } from "@mnd/layout";
+import { nearest_seat, nearest_wall, type Seat, type Spot } from "@mnd/layout";
 import type { Box, Scene } from "./scene";
-
-export type Spot = { x: number; y: number };
 
 /** Where a slide would seat this interface: a side of the card it sits on, and
  *  how far along. Null where it is not seated on anything drawn. */

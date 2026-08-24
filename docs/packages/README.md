@@ -46,6 +46,15 @@ Apps bind ports and nothing else.
 ---
 
 
+## The one that ships
+
+| | Package Purpose | Depends on |
+|---|---|---|
+| `kit` | the whole headless stack as **one built package**, plus `kit/react` and `kit/react.css`. Bundled, so nothing outside sees a workspace | core, defs, layout, views, render, theme |
+
+Six packages are the shape of the design; one is the shape of the seam. **Packed, never published** — `npm pack -w @mnd/kit` is how a translator installs mndflow. It adds nothing and only re-exports, so it cannot put a dependency anywhere the map does not already allow, and it declares its siblings as **build** dependencies because it carries them.
+
+
 ## The Scene is the seam
 
 ```

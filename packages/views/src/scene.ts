@@ -20,6 +20,10 @@ export type Box = {
    *  interface sits on its owner's edge, so a slide is a question about that
    *  card and not about the layer. */
   on?: Id;
+  /** Where the box points, if it points anywhere. Derived from a field, so a
+   *  translator makes a box clickable by saying where it came from and never
+   *  by reaching into a renderer. A renderer that cannot follow one ignores it. */
+  link?: string;
   /** How it reads, derived: a container, a reference, a note, a boundary. */
   marks: readonly Mark[];
 };

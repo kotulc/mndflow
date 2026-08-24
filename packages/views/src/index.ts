@@ -1,10 +1,14 @@
 /** The view modules. Three, and closed: `block` is any planar projection,
- *  `table` and `matrix` are the two that are not a plane. */
+ *  `table` and `matrix` are the two that are not a plane.
+ *
+ *  **What a consumer needs, and not everything there is.** `read` is how the
+ *  block module reads a behavior layer — its own working, reached by nothing
+ *  outside this package, and a name `core` already uses for reading a file. */
 
 export * from "./adjust";
 export * from "./derive";
-export * from "./read";
 export * from "./scene";
+export * from "./svg";
 export * from "./text";
 
 import { project, type Config } from "./block";

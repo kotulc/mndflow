@@ -31,6 +31,19 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
   return out;
 }
 
+/** The field a box's link is read from. One name, so a translator and every
+ *  renderer agree without either naming the other. */
+export const SOURCE = "source";
+
+/** Where a block points, if it says. A `link` field is an ordinary value the
+ *  model already has a form for, so nothing new had to exist for a box to be
+ *  clickable — and a block that names none simply is not. */
+export function link_of(graph: Graph, id: Id): string | undefined {
+  const said = graph.blocks[id]?.fields
+    ?.find((f) => f.name === SOURCE && f.form === "link");
+  return said?.value || undefined;
+}
+
 /** The trail from the root down to the layer, for a breadcrumb. The root is
  *  its own trail: a null layer is the root layer. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {

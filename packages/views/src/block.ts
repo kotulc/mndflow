@@ -7,7 +7,7 @@ import { arrangement_of, children, edges_in, is_interface, module_of, owner_of,
          shown_name, READS,
          type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
 import { boundary, bounds, laid, route, seated, GAP, GRID, type Placed } from "@mnd/layout";
-import { marks_of, trail_of } from "./derive";
+import { link_of, marks_of, trail_of } from "./derive";
 import { read, reading_of } from "./read";
 import type { Box, Frame, Hit, Mark, Route, Scene, Slot } from "./scene";
 
@@ -46,6 +46,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
       id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
       label: shown_name(graph, p.id),
       def: b.type,
+      link: link_of(graph, p.id),
       marks: marks_of(graph, p.id),
     };
   });
@@ -62,7 +63,8 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const at = boxes.findIndex((x) => x.id === g.id);
     if (at >= 0) boxes.splice(at, 1);
     groups.push({ id: g.id, x: box.x, y: box.y, w: box.w, h: box.h,
-                  label: shown_name(graph, g.id), def: g.type, marks: ["group"] });
+                  label: shown_name(graph, g.id), def: g.type,
+                  link: link_of(graph, g.id), marks: ["group"] });
   }
 
   /** A seated interface draws over the card it sits on, so it comes last. */
@@ -70,7 +72,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const b = graph.blocks[p.id]!;
     return { id: p.id, x: p.x, y: p.y, w: p.w, h: p.h,
              label: shown_name(graph, p.id), def: b.type, on: b.parent ?? undefined,
-             marks: marks_of(graph, p.id) };
+             link: link_of(graph, p.id), marks: marks_of(graph, p.id) };
   });
 
   /** Lanes and lifelines are drawn behind, controls in front of neither — all

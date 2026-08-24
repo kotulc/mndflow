@@ -28,6 +28,10 @@ const ALLOWED: Record<string, readonly string[]> = {
   render: ["core", "views", "theme"],
   explorer: ["core", "theme"],
   stage: ["core", "views", "render", "theme"],
+  /** The seam, and the one package allowed to reach everything: it adds
+   *  nothing and only re-exports, so it cannot put a dependency anywhere the
+   *  map does not already allow. */
+  kit: ["core", "defs", "layout", "views", "render", "theme"],
   options: ["core", "theme"],
   tray: ["core", "theme"],
   terminal: ["core", "theme"],
@@ -102,11 +106,16 @@ describe("dependencies run one way", () => {
     expect(reached.every((a) => a.where !== "src")).toBe(true);
   });
 
+  /** **Declared, and not necessarily at run time.** A package that bundles its
+   *  siblings into one artifact must not also ask a consumer to fetch them, so
+   *  `kit` declares them as build dependencies. What this rule is for is an
+   *  import nobody wrote down at all. */
   it("keeps every manifest in step with what its src imports", () => {
     const missing: string[] = [];
     for (const from of packages()) {
       const manifest = JSON.parse(readFileSync(join(PACKAGES, from, "package.json"), "utf8"));
-      const declared = new Set(Object.keys(manifest.dependencies ?? {}));
+      const declared = new Set([...Object.keys(manifest.dependencies ?? {}),
+                                ...Object.keys(manifest.devDependencies ?? {})]);
       for (const a of arrows().filter((x) => x.from === from && x.where === "src")) {
         if (!declared.has(`@mnd/${a.to}`)) missing.push(`${from} imports ${a.to} undeclared`);
       }

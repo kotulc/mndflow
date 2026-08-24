@@ -1,0 +1,43 @@
+{
+  "name": "@mnd/kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The one surface mndflow offers anything outside this repo.",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./react.css": "./dist/react.css"
+  },
+  "scripts": {
+    "build": "tsup && tsc -p tsconfig.types.json && rollup -c rollup.dts.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@mnd/core": "*",
+    "@mnd/defs": "*",
+    "@mnd/layout": "*",
+    "@mnd/render": "*",
+    "@mnd/theme": "*",
+    "@mnd/views": "*"
+  }
+}

@@ -11,7 +11,7 @@
 import { children, is_interface, shown_name, type Graph, type Id } from "@mnd/core";
 import { GRID } from "@mnd/layout";
 import type { Config } from "./block";
-import { marks_of, trail_of } from "./derive";
+import { link_of, marks_of, trail_of } from "./derive";
 import type { Box, Hit, Scene, Slot } from "./scene";
 
 const ROW = GRID * 1.5;
@@ -44,7 +44,8 @@ export function project(graph: Graph, layer: Id | null, _config: Config = {}): S
   rows.forEach((b, r) => {
     const y = top + (r + 1) * ROW;
     body.push({ id: b.id, x: at(0), y, w: NAME, h: ROW,
-                label: shown_name(graph, b.id), def: b.type, marks: marks_of(graph, b.id) });
+                label: shown_name(graph, b.id), def: b.type,
+                link: link_of(graph, b.id), marks: marks_of(graph, b.id) });
     cols.slice(1).forEach((name, n) => {
       const said = (b.fields ?? []).find((f) => f.name === name);
       body.push({ id: `${b.id}:${name}`, x: at(n + 1), y, w: CELL, h: ROW,
