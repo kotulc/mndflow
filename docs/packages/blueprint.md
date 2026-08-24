@@ -10,20 +10,6 @@ that reads import strings because nothing structural can enforce it.
 This is what the project looks like built to the design instead of toward it — greenfield, with
 today's repo as the reference implementation rather than the starting point.
 
----
-
-## Why not React components
-
-React is the wrong unit of decoupling here, for four reasons that are specific to this project.
-
-| | |
-|---|---|
-| **Most of it does not render.** | The log, the fold, the door, containment, rules, ids, references, placement, routing, the action set — the whole closed engine — has no visual output. A component tree cannot hold it, so it ends up in hooks and context. `project.ts` is that outcome, and it is why the app cannot be driven without a browser |
-| **Components do not enforce direction.** | design.md's central rule is that dependencies run one way. React is indifferent: `<Canvas>` may import from `page/` and everything still compiles. Today that law lives in `tests/structure.test.ts` parsing import strings — a lint, discovered after the fact. A workspace boundary makes the same arrow a **build error** |
-| **The unit of extension is not a component.** | A package ships YAML. A module publishes a **named component key** resolved at load (`modules/index.ts`'s `publish()`), and *a component owns its key and reads no other's*. That is a registry keyed by name, not a parent–child tree — a card layout is not a child of a style set. React composition cannot express it, so the registry exists anyway, alongside the components |
-| **A projection must outlive the DOM.** | `ST.6` translates a model out — site, simulator, parametrics, code — and `ST.5` reaches outside the workspace. If *what a layer looks like* is JSX, then every one of those re-derives layout for itself, and the six notations can only ever be tested through happy-dom |
-
-**React is the adapter at the leaves, not the architecture.** It renders a scene it did not compute.
 
 ### The claim this rests on: a view module returns a Scene
 

@@ -17,6 +17,15 @@ route(spots, edges, how) → Routed[]
 
 **One pass, so each line sees the seats the ones before it took.** No two ends share a seat, though several relationships may still meet at one interface, which is the point of an interface.
 
+## Crossings
+
+**A line crosses as little as it can** — neither another line nor a card it has no business touching. **Neither half is built**: a seat is taken in the order the edges arrive, which is what makes an avoidable crossing possible at all.
+
+- **A line does not cross a card.** A side facing the other end is preferred already, but where the run between two seats would pass through a third card, the pass should take a side that does not.
+- **Two lines to the same side do not swap over each other.** Seats along a side want ordering by where the far end sits, rather than by which edge was routed first — the same rule the ranking already uses to order within a rank, applied to seats.
+
+**It is a preference, never a guarantee.** A layer can be arranged so that some crossing is unavoidable, and a route that failed to terminate rather than cross would be worse than the crossing. **Every elbow stays square**, which is the one constraint crossing avoidance may not buy its way out of.
+
 ## Every elbow is a right angle
 
 **This is the one thing a route may never get wrong**, and it is guaranteed on the way to being drawn rather than checked afterwards.

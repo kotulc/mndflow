@@ -11,11 +11,12 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 | `core` | the graph, the log, the door, the file, the action set, the ports | — |
 | `layout` | sizing, placement, arrangement, routing | `core` |
 | `views` | the three view modules, each projecting a layer to a **Scene** | `core`, `layout` |
-| `defs` | the shipped definition packages. **Data, no code** | — |
+| `defs` | the shipped definition packages. **Data, no code** | `core` |
 | `theme` | the ramp, as CSS custom properties. **No code** | — |
 | `fixtures` | sample **logs**, and sample **files** for the seam, shared by the apps, every suite and every dev harness | `core`, `defs` |
 | `render` | Scene → React | `core`, `views`, `theme` |
-| `ui` | explorer, stage, options, tray, terminal | `render`, `core`, `theme` |
+| `explorer` · `stage` · `options` · `tray` · `terminal` | one surface each, and **never a `ui` package** | `core`, `theme`, and `views` · `render` for the stage |
+| `kit` | the headless stack as one built package, for anything outside this repo | bundles core, defs, layout, views, render, theme |
 
 **Apps bind ports and nothing else**: `web` — Vite, the primary product — and `cli`, headless, which folds, checks and projects to text.
 
@@ -205,6 +206,7 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 - **An unbound port is a capability the app does without**, never a feature reimplemented. With no `score`, ranking falls back to substring and everything else still works.
 - **A port is an interface, not a service.** Core declares the shape and calls it; it never constructs one.
 - **A new capability is a port or it is a package**, never a direct reach for a browser API from somewhere that is not an app.
+- **Ports stay four.** The set is the host contract, and a fifth is a claim that a host has to answer something new — which is nearly always a package instead. **`storage` and `files` are declared and bound; `net` and `score` are neither.** An app does without them today, which is what an unbound port is for.
 
 ### Actions
 
@@ -264,6 +266,7 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 - **Every elbow is a right angle**, guaranteed on the way to being drawn.
 - **One pass, so each line sees the seats taken before it.** No two ends share a seat; several relationships may still meet at one interface.
 - **Runs that would share a line spread apart**, and only where a bend can move without bending a stub. A run with no middle is not spread — the seats it lands on were already spread apart.
+- **A line crosses as little as it can**, neither another line nor a card it has no business touching — a preference, never a guarantee, and never at the cost of a square elbow. **Not built**: seats are taken in the order the edges arrive.
 
 ### Seats and walls
 
@@ -414,9 +417,11 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 **The theme is a ramp, and it reaches the drawing.** **Slots × steps**: a step is a job and means the same job everywhere; a slot is a family. Six pickable slots and four reserved to the app — `away`, `note`, `error`, `warn`, which keep their hue across themes because *elsewhere* and *a note* mean one thing everywhere. **Steps are computed, not written**, so a new theme is about twenty numbers. **The shell reads the same ramp**, so the header cannot drift from the canvas.
 
 
-## ui
+## the surfaces
 
-**Branding, navigation and the workspace. It owns nothing about a diagram.** Every component is a pure function of its props: it holds nothing, and every gesture leaves as an action name somebody else runs.
+**Branding, navigation and the workspace. They own nothing about a diagram.** Every component is a pure function of its props: it holds nothing, and every gesture leaves as an action name somebody else runs.
+
+**One surface, one package, and never a `ui` package** — `explorer`, `stage`, `options`, `tray`, `terminal`. Five panels split five ways is what keeps one of them from quietly doing another's work, and **only two of them know what a Scene is**. Each carries its own dev harness, which is what makes a surface runnable before the app that hosts it exists.
 
 **One page**: header, optional terminal, then explorer beside the stage, options to the right.
 
@@ -538,14 +543,20 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 
 **Contract tests, never integration tests.** A producer proves its output satisfies the invariants; a consumer proves it handles anything that satisfies them. **Neither imports the other.** When they meet in an app there is nothing left to discover.
 
+**A component is a pure function of its props.** No component reaches for state, storage or a graph — the explorer takes a tree and emits an action name, the stage takes a Scene and emits one. **The app is the only stateful thing in the repo**, and this is the rule that makes an isolated dev server possible at all: a component with no way to fetch anything can always be handed a fixture.
+
+**A dev harness holds the state the component refuses to.** It folds a fixture, hands the result down as props, and logs every action emitted. **Every surface package carries its own Vite root**, so no package depends on a central harness.
+
 | Package | Proven by | Needs a browser |
 |---|---|---|
 | `core` | fold determinism, door repairs, undo-by-refold, file round-trip, byte-identical re-export | no |
 | `layout` | no overlap, on the grid, stable under reorder, every elbow square, no two ends share a seat | no |
 | `views` | Scene invariants per module, over text projections of **shape, not coordinates** | no |
 | `defs` | every shipped definition passes the door; every module it names exists | no |
+| `fixtures` | every log folds clean, and **every file the seam opens leaves nothing for `validate` to find** | no |
+| `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |
 | `render` | one conformance test: every Scene element draws, every hit binds, over **hand-written** Scenes | yes |
-| `ui` | driven, not asserted | yes |
+| `explorer` · `stage` · `options` · `tray` · `terminal` | driven, not asserted | yes |
 
 - **The dependency law is a test**: the workspace graph matches the table at the top of this file, no package outside `core` declares a closed set, and nothing imports a deep path.
 - **Design first, test second.** While a design is still moving, running the thing is the verification that counts.
