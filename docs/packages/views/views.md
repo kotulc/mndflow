@@ -1,2 +1,0 @@
-# Views
-Views are the common representation of project block data. The block data may be sourced from one or more layers. Each project block (representing the current graph tree `layer`) can toggle between the three primary views. The user may also create new `view blocks` that include multiple blocks from any part of the project.

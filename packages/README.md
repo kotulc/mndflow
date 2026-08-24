@@ -1,4 +1,4 @@
-# The monorepo
+# The Monorepo
 
 **mndflow built to its own design** — one repo, npm workspaces, one version, never published.
 Boundaries exist to enforce direction and to let each package be proven on its own; they are not an

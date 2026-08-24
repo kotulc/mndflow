@@ -1,2 +1,0 @@
-# Workspace
-The workspace maintains the session state and supports importing new packages or exporting subsets of the working project graph. **The workspace is the graph root** — a folder with `parent: null`, holding every project, imported package and folder as a child. It maintains the one action log. **Definition resolution walks up the tree** rather than following an import list: a block finds a definition by climbing its ancestors, nearest first, so there is no order to maintain and nothing to keep in step with what exists.
