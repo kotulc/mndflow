@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Entry** | `@mnd/kit` — headless. `@mnd/kit/react` — one component, `Viewer`. `@mnd/kit/react.css` — the stylesheet it reads |
-| **Depends on** | core, defs, layout, views, render, theme — all bundled **in**, and declared as build dependencies because of it |
+| **Entry** | `@mnd/kit` — headless. `@mnd/kit/react` — `Viewer` and `Explorer`. `@mnd/kit/react.css` — the one stylesheet they read |
+| **Depends on** | core, defs, explorer, layout, views, render, theme — all bundled **in**, and declared as build dependencies because of it |
 | **Proven by** | packing it, then building a graph, a file and a drawing from outside the workspace — with no log, step or mutation in the round trip |
 
 ## Where it sits
@@ -13,7 +13,7 @@
 ```
 anything outside this repo
 └─ kit   ◀ bundles them in
-   └─ core · defs · layout · views · render · theme
+   └─ core · defs · explorer · layout · views · render · theme
 ```
 
 ## Building it
@@ -28,15 +28,18 @@ Three steps, because they answer two different questions. `tsup` bundles the mod
 ## Using it
 
 ```ts
-import { base_graph, validate, write, open, block, draw_svg } from "@mnd/kit";
+import { base_graph, validate, review, write, open, block, draw_svg } from "@mnd/kit";
 
 const graph = base_graph();           // a workspace with the floor in it
 const faults = validate(graph);       // what it violates, if anything
+const notes = review(graph);          // what its definitions asked for and did not get
 const file = write(graph, "docs");    // what mndflow reads back
 const back = open(file).graph;        // and the same state, in again
 
 const svg = draw_svg(block.project(back, layer, {}));
 ```
+
+**Two questions, and only one of them mends.** `validate` asks whether a graph can be *read*; `review` asks whether it says what its definitions asked for. A model is legitimately unfinished, so a note is advice — **a translator is where it becomes a refusal.**
 
 `@mnd/kit/react` is a separate entry so the common case — a build step turning documents into drawings — never resolves React at all.
 
@@ -64,10 +67,25 @@ import "@mnd/kit/react.css";
 
 The renderer underneath also offers drag callbacks meaning move, seat, wall and relate. They are not passed and not re-exported, so **an edit is unreachable rather than merely unadvised** — a host that needs them lives in this repo and imports `@mnd/render` directly.
 
+## The tree
+
+```tsx
+import { Explorer } from "@mnd/kit/react";
+
+<Explorer graph={graph} open={at} picked={picked} folded={folded}
+          menu={false}                       // your vocabulary, not this engine's
+          onAct={(name, args) => { /* mean whatever you like by it */ }}
+          onFold={...} onPick={...} />
+```
+
+**It emits intent, never change.** `onAct` is a name and arguments — `Act = (name, args?) => void` — so nothing here writes and nothing here assumes a log exists. A host over a **derived** graph handles `move` by rewriting its own store and rebuilding; a host over a real workspace runs the action. The explorer cannot tell the difference, which is the point.
+
+**`menu={false}` drops this engine's offered list** and keeps the rows, the drag, the fold and the marks. A consumer with actions of its own — *rename file*, *move section* — should pass it, because the default list is mndflow's actions and means nothing elsewhere.
+
 ## What it is not
 
 **Not an API anyone has to keep.** The boundaries inside the repo exist to enforce direction and to let each package be proven on its own. This flattens them for one consumer at one moment, and a version is a git SHA rather than a promise.
 
-**Not a renderer you drive.** `Viewer` is the one component here and it is the one place this package adds code rather than re-exporting. The rule that mattered was dependency direction, and a viewer built from packages `kit` already bundles cannot break it.
+**Not a renderer you drive, and not an editor.** `Viewer` and `Explorer` are what is here. `Viewer` is the one place this package adds code rather than re-exporting. The rule that mattered was dependency direction, and components built from packages `kit` already bundles cannot break it.
 
 **Packed, never published.** `npm pack` works on a private package; `npm publish` refuses one. That is deliberate.

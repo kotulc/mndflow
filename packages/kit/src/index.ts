@@ -38,6 +38,14 @@ export { type Opened, hash, open, write, write_subtree } from "@mnd/core";
 /** The door, asked rather than run: what a graph violates, and how to say it. */
 export { type Fault, say, validate } from "@mnd/core";
 
+/** The vocabulary's own checks, which the door does not make.
+ *
+ *  **They advise while modelling and refuse only at translation**, so this is
+ *  the half of validity a translator owns: `validate` says whether the graph
+ *  can be read, and `review` says whether it says what its definitions asked
+ *  for. A note is never repaired, because an unfinished model is not broken. */
+export { type Note, type NoteKind, type Range, type Rules, review, rules_of } from "@mnd/core";
+
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
   arrangement_of, children, defs_in_scope, derived_name, edges_in, isa, is_container,

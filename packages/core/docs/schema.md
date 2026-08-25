@@ -288,6 +288,42 @@ Step {
 
 ---
 
+## What the rules ask
+
+**The door and the rules are two different questions, and only one of them is answered on the way in.** The door asks whether a graph can be *read* and repairs what it can. The rules ask whether a graph says what its definitions *asked for* — and nothing here is ever repaired, because an unfinished model is not a broken one.
+
+```
+validate(graph)          -> Fault[]    // can this be read? the door, and it mends
+review(graph, scope?)    -> Note[]     // does it say what was asked? advice, and it never mends
+```
+
+**Scoped, because that is how it is asked.** The tray asks about the open layer and a translator asks about the subtree it is emitting; neither wants to hear about the rest of the workspace.
+
+### One constraint and four rules
+
+**Each is a lookup, a count or one fixed comparison.** No operators, nothing to parse, and **no rule language**.
+
+```
+constraints { required: string[] }                       // field names a usage must fill
+
+rules {
+  ends    { from?: Id[]; to?: Id[]; fromFlow?; toFlow? } // who may sit at each end
+  holds   Id[]                                           // what this may contain
+  degree  { in?: {min?,max?}; out?: {min?,max?} }        // how many relations may meet it
+  match   string[]                                       // fields that must agree across a relation
+}
+```
+
+- **A rule naming a definition means it or anything below it.** Matching walks the `extends` chain, so a rule written once reaches every subtype.
+- **Rules merge along the chain, nearest first, per kind.** A subtype restating one kind leaves the others in force — the same *merge per key* every component follows.
+- **`degree` counts every relationship meeting a usage**, wherever it is drawn. It is about the thing, never about the layer somebody is looking at.
+- **`holds` is the vocabulary's containment rule.** The engine owns exactly one of its own — a `view` holds references — and it is checked at the door because it is what makes a view readable. Everything else about what may contain what is data, and is asked here.
+- **A malformed rule is ignored, never thrown on**, the same way a component validates its own key and no other.
+
+**They advise while modelling and refuse only at translation.** A violation is a note in the tray; a translator asks the same checks as it emits, and that is where a note becomes a refusal.
+
+---
+
 ## What is derived, never stored
 
 **Derived beats stored.** Anything workable out from the graph is worked out, so it can never go stale and nothing has to be kept true.
@@ -352,6 +388,4 @@ Step {
 
 **Everything else about containment is the user's.** The tiers are the exception that makes the rest safe to leave open.
 
-**One constraint and three rules** — `required`, and `ends`, `degree`, `match` — each a lookup, a count or one fixed comparison. No operators, nothing to parse, and **no rule language**. What they cannot say is a module's `validate` hook: code, local, one usage at a time.
-
-**They advise while modelling and refuse only at translation.** A model is legitimately unfinished, so a violation is a note rather than a refusal.
+**One constraint and four rules** — `required`, and `ends`, `holds`, `degree`, `match` — asked by `review` and never by the door. See *What the rules ask*.

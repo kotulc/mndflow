@@ -35,6 +35,7 @@
   "devDependencies": {
     "@mnd/core": "*",
     "@mnd/defs": "*",
+    "@mnd/explorer": "*",
     "@mnd/layout": "*",
     "@mnd/render": "*",
     "@mnd/theme": "*",

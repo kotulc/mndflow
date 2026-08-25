@@ -5,7 +5,7 @@
  *  is complete enough to draw from, with no React anywhere in the process. */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { check, children, fold, read, say, session, shown_name, write,
+import { check, children, fold, read, review, say, session, shown_name, write,
          type Id, type Log, type Storage } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
@@ -18,6 +18,7 @@ const USAGE = `mnd — the headless harness
   mnd project <source> [layer] --svg  project a layer and draw it as SVG
   mnd outline <source> [layer]         list what a projection holds
   mnd check <source>                   run the door, print faults
+  mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
   mnd export <source> [out.json]       fold and write the file
 
@@ -138,6 +139,17 @@ function main(argv: string[]): void {
       const got = check(log);
       console.log(got.faults.length ? say(got.faults) : "clean");
       for (const f of got.faults) console.log(`  ${f.kind}: ${f.what}`);
+      return;
+    }
+
+    /** The other half of validity. `check` runs the door; this asks what the
+     *  definitions in scope wanted and did not get, which is advice until a
+     *  translator turns it into a refusal. */
+    case "review": {
+      const graph = fold(log);
+      const notes = review(graph, find_layer(log, plain[0]) ?? undefined);
+      console.log(notes.length ? `${notes.length} to answer for` : "clean");
+      for (const n of notes) console.log(`  ${n.kind}: ${n.what}`);
       return;
     }
 

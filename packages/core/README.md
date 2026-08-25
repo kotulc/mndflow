@@ -30,6 +30,7 @@ npm run typecheck -w @mnd/core
 | `types.ts` | every shared shape, and **the only place a closed set may be named** |
 | `fold.ts` | mutation replay, and the derived readings of a graph — `children`, `path`, `module_of`, `shown_name` |
 | `door.ts` | the one way a log comes in. Repairs what it can, drops what it cannot, and writes the repair as a step |
+| `rules.ts` | what the definitions asked for, and the door does not check. `review` advises; it never repairs |
 | `actions.ts` | the registry: name, sentence, scope, arguments, `check`, `run` — plus the four adjustments |
 | `infer.ts` | a selection becomes one behavior block. The four order tiers, and the gate on what writes home |
 | `session.ts` | hold the log, fold it, run an action, append what it wrote |

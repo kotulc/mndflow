@@ -4,7 +4,7 @@
  *  workspace references and a consumer installs one thing. React stays out:
  *  a host brings its own, and two copies in one page is a broken app. */
 
-import { copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { defineConfig } from "tsup";
 
 export default defineConfig({
@@ -16,10 +16,13 @@ export default defineConfig({
   external: ["react", "react-dom", "react/jsx-runtime"],
   treeshake: true,
   clean: true,
-  /** The stylesheet the React renderer reads. It is a file rather than an
-   *  import because `render` does not import it either — a host loads it,
-   *  and here the host is whoever installs this. */
+  /** The stylesheets the React entry reads, as **one file**. They are files
+   *  rather than imports because neither package imports its own — a host
+   *  loads it, and here the host is whoever installs this. One `react.css`
+   *  because the entry is one thing: a consumer should never have to know
+   *  which component came from which package. */
   onSuccess: async () => {
-    copyFileSync("../render/src/scene.css", "dist/react.css");
+    const sheets = ["../render/src/scene.css", "../explorer/src/explorer.css"];
+    writeFileSync("dist/react.css", sheets.map((f) => readFileSync(f, "utf8")).join("\n"));
   },
 });

@@ -20,6 +20,10 @@ export type ExplorerProps = {
   onAct: Act;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
+  /** Whether right-click opens **this engine's** offered list. A host with a
+   *  vocabulary of its own turns it off and keeps the tree: `onAct` is a name
+   *  and arguments, so what the rows mean was never the explorer's to decide. */
+  menu?: boolean;
 };
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark };
@@ -52,7 +56,7 @@ const GLYPH: Record<Mark, string> = {
 };
 
 export function Explorer(props: ExplorerProps) {
-  const { graph, open, picked, folded, onAct, onFold, onPick } = props;
+  const { graph, open, picked, folded, onAct, onFold, onPick, menu: offered = true } = props;
   const [empties, set_empties] = useState(true);
   const [dragging, set_dragging] = useState<Id | null>(null);
   const [over, set_over] = useState<Id | null>(null);
@@ -144,7 +148,7 @@ export function Explorer(props: ExplorerProps) {
                                     set_menu({ x: e.clientX, y: e.clientY }); }} />
       </ul>
 
-      {menu ? (
+      {menu && offered ? (
         <Menu ctx={{ graph, layer: open, picked: [...picked] }} at={menu}
               onAct={onAct} onShut={() => set_menu(null)} />
       ) : null}

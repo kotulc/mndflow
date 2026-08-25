@@ -31,7 +31,7 @@ const ALLOWED: Record<string, readonly string[]> = {
   /** The seam, and the one package allowed to reach everything: it adds
    *  nothing and only re-exports, so it cannot put a dependency anywhere the
    *  map does not already allow. */
-  kit: ["core", "defs", "layout", "views", "render", "theme"],
+  kit: ["core", "defs", "explorer", "layout", "views", "render", "theme"],
   options: ["core", "theme"],
   tray: ["core", "theme"],
   terminal: ["core", "theme"],

@@ -10,6 +10,7 @@
 | schema | the data contract, and what the door enforces on the way in |
 | workspace | the root, the one log, and definition resolution up the tree |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
+| rules | the one constraint and four rules, asked rather than enforced. Advice while modelling, a refusal at translation |
 | behaviors | the behavior module: inference, order, lanes, and the write-home gate |
 | ports | the entire host contract. Nothing else may assume where a project lives |
 
