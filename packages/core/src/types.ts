@@ -36,6 +36,8 @@ export type Dir = "none" | "forward" | "back" | "both";
 /** Closed, and permanent. */
 export type ValueForm = "text" | "number" | "flag" | "choice" | "link";
 
+export const VALUE_FORMS: readonly ValueForm[] = ["text", "number", "flag", "choice", "link"];
+
 export type Field = {
   name: string;
   form: ValueForm;

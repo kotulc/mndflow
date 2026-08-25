@@ -12,8 +12,9 @@ import { arrangement_of, children, edges_in, is_interface, is_reference, layer_i
 import { name_taken } from "./door";
 import { infer as run_infer, ABSTRACTION } from "./infer";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, type Arrangement, type Dir, type Flow, type Graph, type Id,
-         type Mutation, type RelationModule, type Side } from "./types";
+import { ARRANGEMENTS, VALUE_FORMS, type Arrangement, type Dir, type FieldDef, type Flow,
+         type Graph, type Id, type Mutation, type RelationModule, type Side,
+         type ValueForm } from "./types";
 
 /** What an input method can fill. A position can only come from a gesture. */
 export type ArgForm = "text" | "block" | "choice" | "number" | "spot";
@@ -500,6 +501,51 @@ register(
         id: def_id(name), home: here(ctx),
         group: (args["group"] as "block" | "relation" | "view") ?? "block",
         name, extends: args["extends"] ? def_id(text(args, "extends")) : undefined,
+      } }] };
+    },
+  },
+  {
+    name: "declare",
+    about: "adds a named field to a definition, so every usage of it carries one",
+    on: ["layer", "block", "edge"],
+    args: [{ name: "def", form: "text", required: true },
+           { name: "name", form: "text", required: true },
+           { name: "form", form: "choice", choices: VALUE_FORMS },
+           { name: "unit", form: "text" },
+           { name: "choices", form: "text" }],
+    check: (ctx, args) => {
+      if (!ctx.graph.defs[id_of(args, "def")]) return "that definition is not there";
+      return text(args, "name") ? null : "a field needs a name";
+    },
+    /** **Fields union with the subtype's winning by name**, so declaring one
+     *  that is already there rewrites it rather than doubling it. */
+    run: (ctx, args) => {
+      const d = ctx.graph.defs[id_of(args, "def")];
+      const name = text(args, "name");
+      if (!d) return { mutations: [] };
+      const form = String(args["form"] ?? "text") as ValueForm;
+      const said: FieldDef = {
+        name, form: VALUE_FORMS.includes(form) ? form : "text",
+        unit: text(args, "unit") || undefined,
+        choices: list(args["choices"]).length ? list(args["choices"]) : undefined,
+      };
+      const rest = (d.fields ?? []).filter((f) => f.name !== name);
+      return { mutations: [{ op: "set_def", def: { ...d, fields: [...rest, said] } }] };
+    },
+  },
+  {
+    name: "undeclare",
+    about: "drops a named field from a definition, leaving what carries one alone",
+    on: ["layer", "block", "edge"],
+    args: [{ name: "def", form: "text", required: true },
+           { name: "name", form: "text", required: true }],
+    check: (ctx, args) =>
+      ctx.graph.defs[id_of(args, "def")] ? null : "that definition is not there",
+    run: (ctx, args) => {
+      const d = ctx.graph.defs[id_of(args, "def")];
+      if (!d) return { mutations: [] };
+      return { mutations: [{ op: "set_def", def: {
+        ...d, fields: (d.fields ?? []).filter((f) => f.name !== text(args, "name")),
       } }] };
     },
   },

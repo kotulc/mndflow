@@ -5,14 +5,27 @@
  *  back was built by the same fold that built the original. */
 
 import { run, type Args, type Context, type Effect, type Result } from "./actions";
-import { check, say } from "./door";
+import { check, inspect, say } from "./door";
 import { fold } from "./fold";
-import { compact, read, write } from "./file";
+import { compact, parse, read, write } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
+import { ROOT } from "./types";
+import type { Fault } from "./door";
 import type { Graph, Id, Log, Mutation, Step } from "./types";
 
-export type Said = { text: string; at: number };
+/** **Everything the app says goes to one strip, and not all of it is a
+ *  mirror.** A create echoed back is; a refusal, a repair report or a rule note
+ *  is the app answering for itself. Quiet mode silences the one and never the
+ *  other, which is the only reason the two are told apart. */
+export type Said = { text: string; at: number; kind: "mirror" | "note" };
+
+/** A package that arrived, and what the door had to say about it. */
+export type Found = { name: string; about: string; faults: Fault[] };
+
+/** One row of the catalogue a `net` binding points at. Read defensively: it is
+ *  written outside this workspace and nothing here wrote it. */
+type Listed = { name: string; about: string; at: string };
 
 export type Session = {
   log: () => Log;
@@ -28,19 +41,31 @@ export type Session = {
 
   look: (layer: Id | null) => void;
   pick: (ids: Id[]) => void;
-  say: (text: string) => void;
+  say: (text: string, kind?: Said["kind"]) => void;
 
   undo: () => boolean;
   redo: () => boolean;
 
   save: (name?: string) => Promise<void>;
   load: (text: string) => void;
+  /** **A file in, grafted rather than opened.** Its definitions are taken and
+   *  its blocks are appended to a layer, as one ordinary step — so a package
+   *  fetched from outside and a subtree imported from a file arrive the same
+   *  way, through the same door, and both undo. Returns what the door found. */
+  graft: (text: string, into?: Id | null) => Fault[];
+  /** **A definition package from outside the workspace, in through the door.**
+   *  Null where there is nowhere to search, nothing by that name, or nothing
+   *  there — the strip is told which, and the workspace is unchanged. */
+  search: (want: string) => Promise<Found | null>;
 
   /** Called after every change. One subscriber is all a host needs. */
   watch: (fn: () => void) => void;
 };
 
 export type Seed = {
+  /** Where the definition packages are listed. A host fact, like a port —
+   *  nothing above an app may assume where *outside the workspace* is. */
+  catalogue?: string;
   /** The definitions a fresh workspace opens with.
    *
    *  The engine needs a floor — something to draw and place a block that names
@@ -53,6 +78,7 @@ export type Seed = {
 export function session(ports: Partial<Ports> & Seed = {}): Session {
   const storage = ports.storage ?? no_storage();
   const files = ports.files ?? no_files();
+  const net = ports.net;
 
   let log: Log = [];
   let graph: Graph = fold(log);
@@ -77,7 +103,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
              mutations: ports.defs }];
   }
   graph = fold(log);
-  if (opened_faults.length) said = { text: say(opened_faults), at: Date.now() };
+  if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
     graph = fold(log);
@@ -86,6 +112,12 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   };
 
   const ctx = (): Context => ({ graph, layer, picked });
+
+  const refuse = (why: string): null => {
+    said = { text: why, at: Date.now(), kind: "note" };
+    listener?.();
+    return null;
+  };
 
   const append = (action: string, mutations: Mutation[]) => {
     if (mutations.length === 0) return;
@@ -98,7 +130,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     if (!e) return;
     if (e.open !== undefined) { layer = e.open; picked = []; }
     if (e.focus !== undefined) picked = e.focus ? [e.focus] : [];
-    if (e.say) said = { text: e.say, at: Date.now() };
+    if (e.say) said = { text: e.say, at: Date.now(), kind: "mirror" };
   };
 
   return {
@@ -111,7 +143,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     go(name, args = {}) {
       const out: Result | { refused: string } = run(name, ctx(), args);
       if ("refused" in out) {
-        said = { text: out.refused, at: Date.now() };
+        said = { text: out.refused, at: Date.now(), kind: "note" };
         listener?.();
         return out.refused;
       }
@@ -136,13 +168,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener?.();
     },
 
-    say(text) {
-      said = text ? { text, at: Date.now() } : null;
+    say(text, kind = "mirror") {
+      said = text ? { text, at: Date.now(), kind } : null;
       listener?.();
     },
 
     undo() {
-      const last = [...log].reverse().find((s) => s.status === "applied" && s.action !== "checkpoint");
+      const last = [...log].reverse()
+        .find((s) => s.status === "applied" && s.action !== "checkpoint");
       if (!last) return false;
       last.status = "reverted";
       settle();
@@ -161,10 +194,69 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       await files.save(`${name}.json`, write(graph, name));
     },
 
+    /** Ids survive the round trip, so a collision means the two really are the
+     *  same thing and the newer record replaces it. Anything the package held
+     *  at its own root lands in the target layer. */
+    graft(text, into) {
+      const got = parse(text);
+      if (!got.graph) {
+        said = { text: say(got.faults) || "that file could not be read",
+                 at: Date.now(), kind: "note" };
+        listener?.();
+        return got.faults;
+      }
+      const from = got.graph;
+      const target = into ?? layer ?? graph.root;
+      const mutations: Mutation[] = [];
+      for (const d of Object.values(from.defs)) mutations.push({ op: "set_def", def: d });
+      for (const b of Object.values(from.blocks)) {
+        if (b.id === from.root) continue;
+        const parent = b.parent === from.root || !b.parent ? target : b.parent;
+        mutations.push({ op: "add_block", block: { ...b, parent } });
+      }
+      for (const e of Object.values(from.edges)) mutations.push({ op: "link_blocks", edge: e });
+      append("import", mutations);
+
+      /** **The door runs over what arrived, not over what was sent.** A package
+       *  extending the workspace's own definitions is whole once it is here and
+       *  broken on its own, so checking it in isolation would repair away the
+       *  very thing it came for. A repair is a step, like any other. */
+      const mend = inspect(graph);
+      if (mend.repairs.length) append("repair", mend.repairs);
+      const faults = [...got.faults, ...mend.faults];
+      if (faults.length) said = { text: say(faults), at: Date.now(), kind: "note" };
+      listener?.();
+      return faults;
+    },
+
+    async search(want) {
+      const catalogue = ports.catalogue;
+      const name = want.trim();
+      if (!net || !catalogue) return refuse("there is nowhere to search from");
+      if (!name) return refuse("search for what?");
+
+      const listed = await fetch_list(net, catalogue);
+      if (!listed) return refuse("that catalogue could not be read");
+      const hit = listed.find((p) => p.name.toLowerCase() === name.toLowerCase())
+        ?? listed.find((p) => `${p.name} ${p.about}`.toLowerCase().includes(name.toLowerCase()));
+      if (!hit) return refuse(`nothing out there is called “${name}”`);
+
+      const text = await net.get(beside(catalogue, hit.at));
+      if (text === null) return refuse(`“${hit.name}” could not be fetched`);
+
+      /** **Filed under the workspace**, so every layer can reach it: a package
+       *  brought in for one block would be invisible from the next. */
+      const faults = this.graft(text, ROOT);
+      said = { text: faults.length ? `brought in ${hit.name} — ${say(faults)}`
+                                   : `brought in ${hit.name}`, at: Date.now(), kind: "note" };
+      listener?.();
+      return { name: hit.name, about: hit.about, faults };
+    },
+
     load(text) {
       const got = read(text);
       if (got.log.length === 0) {
-        said = { text: "that file could not be read", at: Date.now() };
+        said = { text: "that file could not be read", at: Date.now(), kind: "note" };
         listener?.();
         return;
       }
@@ -178,6 +270,30 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener = fn;
     },
   };
+}
+
+/** The catalogue, read defensively — it was written outside this workspace. */
+async function fetch_list(net: NonNullable<Ports["net"]>,
+                          where: string): Promise<Listed[] | null> {
+  const text = await net.get(where);
+  if (text === null) return null;
+  try {
+    const raw = JSON.parse(text) as { packages?: unknown };
+    if (!Array.isArray(raw.packages)) return null;
+    return raw.packages
+      .map((p) => p as Partial<Listed>)
+      .filter((p): p is Listed => typeof p.name === "string" && typeof p.at === "string")
+      .map((p) => ({ name: p.name, about: String(p.about ?? ""), at: p.at }));
+  } catch {
+    return null;
+  }
+}
+
+/** A package's address, relative to the catalogue that listed it. Absolute
+ *  stays absolute, so a catalogue may point anywhere. */
+function beside(catalogue: string, at: string): string {
+  if (/^(https?:)?\/\//.test(at) || at.startsWith("/")) return at;
+  return catalogue.replace(/[^/\\]*$/, "") + at;
 }
 
 /** Redo is only ever the run of reverted steps at the end. Anything done after

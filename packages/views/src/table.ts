@@ -21,9 +21,14 @@ const CELL = GRID * 5;
 /** `types` is the module's to fill: a table filters by definition name. */
 const SLOTS: readonly Slot[] = ["columns", "types"];
 
-/** Project a layer through the table view. */
-export function project(graph: Graph, layer: Id | null, _config: Config = {}): Scene {
-  const rows = children(graph, layer).filter((b) => !is_interface(b));
+/** Project a layer through the table view — or, where the caller said what to
+ *  show, that set instead. **One seam**: a view block holds its rows, and a
+ *  filter hands the same list without a block to hold it. */
+export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
+  const shown = config.holds
+    ? config.holds.map((id) => graph.blocks[id]).filter((b) => !!b)
+    : children(graph, layer);
+  const rows = shown.filter((b) => !is_interface(b));
   const cols = columns_of(graph, rows.map((b) => b.id));
 
   const width = NAME + (cols.length - 1) * CELL;

@@ -69,6 +69,30 @@ export function write_subtree(graph: Graph, root: Id): string {
   return write({ root, blocks, edges, defs }, root);
 }
 
+export type Parsed = { graph: Graph | null; faults: Fault[] };
+
+/** The envelope, opened and no more. **Parsed, never checked** — what makes a
+ *  graph readable depends on what it is joining, so a package that extends the
+ *  workspace's own definitions is whole once it is there and broken on its own.
+ *  Every caller runs the door; this is what they run it over. */
+export function parse(text: string): Parsed {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { graph: null, faults: [{ kind: "dropped", what: "a file that is not JSON" }] };
+  }
+  const file = raw as Partial<File>;
+  if (!file.graph || typeof file.graph !== "object") {
+    return { graph: null, faults: [{ kind: "dropped", what: "a file with no graph" }] };
+  }
+  if (typeof file.schema === "string" && major(file.schema) !== major(SCHEMA)) {
+    return { graph: null,
+             faults: [{ kind: "dropped", what: `a file written for schema ${file.schema}` }] };
+  }
+  return { graph: { ...empty_graph(), ...file.graph }, faults: [] };
+}
+
 export type Read = { log: Log; faults: Fault[] };
 
 /** Read a file in, as the log a session works in — a single checkpoint step,
@@ -78,22 +102,10 @@ export type Read = { log: Log; faults: Fault[] };
  *  the engine a history it did not write itself. `open` is the same journey
  *  stopping one step later, and is the one offered outward. */
 export function read(text: string): Read {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(text);
-  } catch {
-    return { log: [], faults: [{ kind: "dropped", what: "a file that is not JSON" }] };
-  }
+  const got = parse(text);
+  if (!got.graph) return { log: [], faults: got.faults };
 
-  const file = raw as Partial<File>;
-  if (!file.graph || typeof file.graph !== "object") {
-    return { log: [], faults: [{ kind: "dropped", what: "a file with no graph" }] };
-  }
-  if (typeof file.schema === "string" && major(file.schema) !== major(SCHEMA)) {
-    return { log: [], faults: [{ kind: "dropped",
-      what: `a file written for schema ${file.schema}` }] };
-  }
-  const graph: Graph = { ...empty_graph(), ...file.graph };
+  const graph = got.graph;
   const mend = inspect(graph);
   const log: Log = [{ id: new_id("step"), action: "import", at: 0, status: "applied",
                       mutations: [{ op: "checkpoint", graph }] }];

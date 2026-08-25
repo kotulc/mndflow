@@ -28,6 +28,13 @@ const link = (id: string, from: string, to: string,
 /** The base package, through the same door as everything else. */
 const base = (): Step => step("seed", seed());
 
+/** The floor and nothing else: a workspace as it opens for the first time.
+ *  What the question loop starts from, and what a fresh session folds to. */
+export function blank(): Log {
+  start();
+  return [base()];
+}
+
 /** One project, three siblings, nothing else. The simplest thing that draws. */
 export function flat(): Log {
   start();
@@ -134,7 +141,7 @@ export function behaved(): Log {
   ];
 }
 
-export const FIXTURES = { flat, nested, related, interfaced, behaved };
+export const FIXTURES = { blank, flat, nested, related, interfaced, behaved };
 
 export type FixtureName = keyof typeof FIXTURES;
 

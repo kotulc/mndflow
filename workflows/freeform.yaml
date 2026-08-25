@@ -3,8 +3,12 @@
 
 name: freeform
 
-# Starting relations live in packages/core/<name>.yaml. Words live in terms/.
-# workflows.ts bridges core into Domain.relations until A0.3 loads packages.
+# What this domain calls things. Chips and counts read these, so a domain is
+# a file rather than a name the code knows.
+terms:
+  group: Group
+  node: Object
+  relation: Relation
 
 prompts:
   add_root:

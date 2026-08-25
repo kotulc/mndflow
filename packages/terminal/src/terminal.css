@@ -29,6 +29,8 @@
 .chat.collapsed .typed.input { order: 0; flex: 0 1 16em; margin-top: 0; }
 .chat.collapsed .now { order: 1; min-width: 0; overflow: hidden; padding-top: 0; }
 .chat.collapsed .said, .chat.collapsed .now > .hint { display: none; }
+/* Collapsed, the question stays: it is what the strip is for while one runs. */
+.chat.collapsed .asked .asks { display: none; }
 
 .chat.collapsed .matched {
   margin-top: 0;
@@ -75,6 +77,16 @@
 .chat .matched em.example { color: var(--faint); font-style: italic; }
 .chat .matched .asks { white-space: nowrap; }
 .chat .said { color: var(--text); }
+
+/* Quiet reads as off rather than as another state to learn: the control dims
+   with the thing it silenced. */
+.chat .bound.mute[aria-pressed="true"] { color: var(--faint); }
+
+/* The question, when the conversation is running. Louder than a completion:
+   it is the one thing on the strip actually waiting for you. */
+.chat .asked { color: var(--text); font-size: 12px; margin-top: 2px; }
+.chat .asked b { color: var(--accent); font-weight: 600; }
+.chat .asked .asks { color: var(--muted); font-size: 11px; }
 .chat .hint { color: var(--muted); font-size: 11px; }
 
 /* The prompt. A caret and a line, and nothing that looks like a form. */

@@ -1,0 +1,14 @@
+{
+  "packages": [
+    {
+      "name": "sysml",
+      "about": "SysML names and stereotypes over the base definitions",
+      "at": "sysml.json"
+    },
+    {
+      "name": "requirements",
+      "about": "requirements, with a shall statement and a verification method",
+      "at": "requirements.json"
+    }
+  ]
+}

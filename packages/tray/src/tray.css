@@ -106,3 +106,42 @@
 
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
+
+/* The editor: two panels side by side, because a value and a field are two
+   different things. It sits above the table rather than replacing it — what is
+   being edited has to stay findable in the list it was picked from. */
+.editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px 8px 10px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.editor .panel { min-width: 0; }
+
+.editor .panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.editor .panel-head b { color: var(--accent); }
+.editor .panel-head .muted { color: var(--faint); font-size: 11px; }
+.editor .panel-head select { margin-left: auto; }
+
+.editor .values { width: 100%; border-collapse: collapse; font-size: 12px; }
+.editor .values td { padding: 2px 4px; border-bottom: 1px solid var(--divider); }
+.editor .values td.key { color: var(--muted); white-space: nowrap; width: 34%; }
+.editor .values td.form { color: var(--faint); white-space: nowrap; }
+.editor .values td.drop { width: 1%; }
+.editor .values tr.empty td { color: var(--faint); font-style: italic; }
+.editor .values input { width: 100%; }
+
+.editor .add { display: flex; gap: 4px; padding-top: 6px; }
+.editor .add input { flex: 1 1 auto; min-width: 0; }
+
+/* The tray is a fixed quarter, so the editor scrolls with the list rather than
+   pushing it out of reach. */
+.tray.open .tray-body { overflow: auto; }

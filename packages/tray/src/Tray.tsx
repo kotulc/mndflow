@@ -8,7 +8,8 @@
  *  every gesture leaves as an action name or a selection. */
 
 import { rows_of, type Row } from "./rows";
-import type { Graph, Id } from "@mnd/core";
+import { Editor } from "./Editor";
+import type { Act, Graph, Id } from "@mnd/core";
 
 export type TrayProps = {
   graph: Graph;
@@ -20,6 +21,10 @@ export type TrayProps = {
   onPick: (ids: Id[]) => void;
   /** Hovering a row lights that thing on the stage. */
   onHover?: (id: Id | null) => void;
+  /** **Values and definitions are edited here**, and every change leaves as an
+   *  action name like every other gesture in the app. Absent, the tray lists
+   *  and edits nothing — which is what it did before. */
+  onAct?: Act;
 };
 
 const HEAD: { key: keyof Row; label: string; width: string }[] = [
@@ -30,8 +35,11 @@ const HEAD: { key: keyof Row; label: string; width: string }[] = [
 ];
 
 export function Tray(props: TrayProps) {
-  const { graph, layer, label, open, onOpen, picked, onPick, onHover } = props;
+  const { graph, layer, label, open, onOpen, picked, onPick, onHover, onAct } = props;
   const rows = rows_of(graph, layer);
+  /** One row, one editor. Two things picked is a selection, and a selection is
+   *  something you act on rather than something you fill in. */
+  const one = picked.length === 1 ? picked[0]! : null;
 
   return (
     <section className={["tray", open ? "open" : "shut"].join(" ")} aria-label="Contents">
@@ -44,6 +52,7 @@ export function Tray(props: TrayProps) {
 
       {open ? (
         <div className="tray-body">
+          {one && onAct ? <Editor graph={graph} id={one} onAct={onAct} /> : null}
           <table className="contents-table">
             <colgroup>{HEAD.map((h) => <col key={h.key} style={{ width: h.width }} />)}</colgroup>
             <thead>

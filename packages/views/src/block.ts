@@ -12,6 +12,17 @@ import { read, reading_of } from "./read";
 import type { Box, Frame, Hit, Mark, Route, Scene, Slot } from "./scene";
 
 export type Config = {
+  /** **What to show, when it is not the layer's own contents.**
+   *
+   *  A view block holds one reference per thing it shows, and projecting one
+   *  projects what it holds. A caller with a set of blocks and no block to hold
+   *  them — a filter, a search, a workspace status — hands the same set through
+   *  the same door, so there is **one seam rather than two**.
+   *
+   *  Read by the table, which is where a result belongs. A plane places by the
+   *  layer it is a plane of, the same way `reading` and `interfaces` are the
+   *  block module's and no other's. */
+  holds?: readonly Id[];
   /** Which reading of a behavior layer, where one applies. */
   reading?: Reading;
   /** Beyond this many, inference cuts higher in the tree. */

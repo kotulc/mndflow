@@ -112,7 +112,36 @@ export function garbage(): string {
   return "{ this is not a file";
 }
 
-export const GRAPHS = { clean, orphaned, dangling, rootless, unmoored, ahead, future, garbage };
+/** Definitions saying things their own components cannot read, and one saying
+ *  something no component in this build claims at all.
+ *
+ *  **Each key is dropped alone and the rest of the definition stands** — a
+ *  misspelt shape costs a card, never a definition. The `sketch` key belongs to
+ *  no component here, so it is carried untouched: unvalidated rather than
+ *  wrong, which is how this build opens a package a later one wrote. */
+export function muddled(): string {
+  return file({
+    root: "ws",
+    defs: {
+      def_valve: { id: "def_valve", home: "ws", group: "block", name: "Valve",
+                   components: { card: { layout: "type", shape: "blob" },
+                                 block: { module: "structure" } } },
+      def_pipe: { id: "def_pipe", home: "ws", group: "block", name: "Pipe",
+                  components: { block: { module: "sprocket" },
+                                sketch: { hatching: "cross" } } },
+      def_feeds: { id: "def_feeds", home: "ws", group: "relation", name: "feeds",
+                   components: { rules: { ends: { from: "def_valve" } } } },
+    },
+    blocks: {
+      ws: ROOT_BLOCK,
+      block_valve: { id: "block_valve", parent: "ws", label: "Valve", type: "def_valve", num: 1 },
+    },
+    edges: {},
+  });
+}
+
+export const GRAPHS = { clean, orphaned, dangling, rootless, unmoored, muddled,
+                        ahead, future, garbage };
 
 export type GraphName = keyof typeof GRAPHS;
 

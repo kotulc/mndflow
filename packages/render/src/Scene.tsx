@@ -9,6 +9,7 @@ import type { Box, Hit, Route, Scene } from "@mnd/views";
 import type { Point } from "@mnd/core";
 import { begins, caught, far_enough, grabbed, swept, REACH,
          type Drag } from "./drag";
+import { useFlight } from "./animate";
 
 /** What a gesture on a region meant. The consumer decides what to do with it. */
 export type Gesture = {
@@ -43,6 +44,11 @@ export function SceneView(props: SceneViewProps) {
     const h = Math.max(scene.bounds.h, 200);
     return { x: -w / 2 - PAD, y: -h / 2 - PAD, w: w + PAD * 2, h: h + PAD * 2 };
   }, [scene.bounds.w, scene.bounds.h]);
+
+  /** **The camera, and the only animation in the product.** Where a pointer
+   *  lands is read against the settled view rather than the flying one: a
+   *  gesture means the same thing whether or not something is in the air. */
+  const camera = useFlight(scene, view);
 
   /** What a right drag set off from, and what a left drag is doing. Refs, not
    *  locals: both have to survive the renders between press and release. */
@@ -99,7 +105,7 @@ export function SceneView(props: SceneViewProps) {
   return (
     <svg
       className="scene"
-      viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+      viewBox={`${camera.x} ${camera.y} ${camera.w} ${camera.h}`}
       preserveAspectRatio="xMidYMid meet"
       onContextMenu={(e) => e.preventDefault()}
       onPointerDown={(e) => {

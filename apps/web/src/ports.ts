@@ -3,7 +3,7 @@
  *  The whole host contract, and the only place in the app that knows a browser
  *  is what it is running in. */
 
-import { check, type Files, type Log, type Storage } from "@mnd/core";
+import { check, type Files, type Log, type Net, type Storage } from "@mnd/core";
 
 const KEY = "mnd.log.v2";
 
@@ -29,6 +29,22 @@ export function browser_storage(): Storage {
     },
     clear() {
       localStorage.removeItem(KEY);
+    },
+  };
+}
+
+/** Fetching, and nothing else. What comes back is text and goes through the
+ *  door like any other file — **nothing fetched is trusted more than something
+ *  opened**. */
+export function browser_net(): Net {
+  return {
+    async get(where) {
+      try {
+        const got = await fetch(where);
+        return got.ok ? await got.text() : null;
+      } catch {
+        return null;
+      }
     },
   };
 }

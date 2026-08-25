@@ -56,6 +56,17 @@
   background: var(--hover);
 }
 
+/* What a narrowing found, and what it did not. **Lit, never hidden** — the
+   tree is the only place a match can be seen where it lives. One lit-target
+   look, reused rather than a third: the same wash and rule a drop target takes. */
+.explorer .tree li.lit {
+  background: var(--hover);
+  border-left-color: var(--accent);
+}
+.explorer .tree li.lit .label { color: var(--text); font-weight: 600; }
+.explorer .tree li.dim { color: var(--faint); }
+.explorer .tree li.dim .mark { color: var(--faint); }
+
 /* One lit-target look, everywhere. */
 .explorer .tree li.over {
   outline: 1px dashed var(--accent);

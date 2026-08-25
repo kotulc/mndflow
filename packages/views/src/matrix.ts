@@ -9,7 +9,7 @@
  *  already runs between the two things its row and column name, so drawing one
  *  is reading the graph rather than keeping a second copy of it. */
 
-import { children, edges_in, is_interface, owner_of, shown_name,
+import { children, is_interface, module_of, owner_of, shown_name, stands_for,
          type Graph, type Id } from "@mnd/core";
 import { GRID } from "@mnd/layout";
 import type { Config } from "./block";
@@ -22,13 +22,39 @@ const HEAD = GRID * 6;
 /** `types` is the module's to fill: a matrix filters by relationship type. */
 const SLOTS: readonly Slot[] = ["types", "relations"];
 
-/** Project a layer through the matrix view. */
-export function project(graph: Graph, layer: Id | null, _config: Config = {}): Scene {
-  const axis = children(graph, layer).filter((b) => !is_interface(b)).map((b) => b.id);
-  const links = related(graph, layer);
+/** What a view shows: what each reference it holds stands for. **Everything a
+ *  view shows is a reference**, so an axis is read the same way a projection of
+ *  that view would read it. */
+function shows(graph: Graph, view: Id): Id[] {
+  return children(graph, view).map((b) => stands_for(graph, b.id)?.id ?? b.id);
+}
 
-  const width = HEAD + axis.length * CELL;
-  const height = HEAD + axis.length * CELL;
+/** The two axes. **A view holds views**, so a layer holding two of them is read
+ *  one against the other; holding one is read against itself; holding none is
+ *  read against its own contents, which is the common case.
+ *
+ *  A caller with a set and no block to hold it hands it through `holds`, the
+ *  same seam a table takes — so a filtered axis costs nothing new. */
+function axes(graph: Graph, layer: Id | null, config: Config): [Id[], Id[]] {
+  if (config.holds) return [[...config.holds], [...config.holds]];
+
+  const held = children(graph, layer).filter((b) => module_of(graph, b.id) === "view");
+  if (held.length >= 2) return [shows(graph, held[0]!.id), shows(graph, held[1]!.id)];
+  if (held.length === 1) {
+    const one = shows(graph, held[0]!.id);
+    return [one, one];
+  }
+  const own = children(graph, layer).filter((b) => !is_interface(b)).map((b) => b.id);
+  return [own, own];
+}
+
+/** Project a layer through the matrix view. */
+export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
+  const [rows, cols] = axes(graph, layer, config);
+  const links = related(graph);
+
+  const width = HEAD + cols.length * CELL;
+  const height = HEAD + rows.length * CELL;
   const left = -width / 2;
   const top = -height / 2;
 
@@ -37,20 +63,20 @@ export function project(graph: Graph, layer: Id | null, _config: Config = {}): S
    *  **A column label is turned**: a cell is as wide as a mark needs to be and
    *  a name is not, so the one that has to fit sideways is read sideways. */
   const heads: Box[] = [
-    ...axis.map((id, n): Box => ({
+    ...cols.map((id, n): Box => ({
       id: `column:${id}`, x: left + HEAD + n * CELL, y: top, w: CELL, h: HEAD,
       label: shown_name(graph, id), link: link_of(graph, id),
       marks: ["header", "turned"],
     })),
-    ...axis.map((id, n): Box => ({
+    ...rows.map((id, n): Box => ({
       id: `row:${id}`, x: left, y: top + HEAD + n * CELL, w: HEAD, h: CELL,
       label: shown_name(graph, id), link: link_of(graph, id), marks: ["header"],
     })),
   ];
 
   const cells: Box[] = [];
-  axis.forEach((row, r) => {
-    axis.forEach((col, c) => {
+  rows.forEach((row, r) => {
+    cols.forEach((col, c) => {
       const link = links.get(`${row}|${col}`);
       cells.push({
         id: `${row}:${col}`,
@@ -81,10 +107,14 @@ export function project(graph: Graph, layer: Id | null, _config: Config = {}): S
 
 /** Which pairs a relationship runs between, by the ends as drawn — so a
  *  relationship seated on an interface marks the cell of the card it sits on.
- *  Undirected, both ways: a matrix cell says *related*, not *which way*. */
-function related(graph: Graph, layer: Id | null): Map<string, Id> {
+ *  Undirected, both ways: a matrix cell says *related*, not *which way*.
+ *
+ *  **Every relationship, not the layer's.** Two axes may name things living
+ *  anywhere, and what fills a cell is whether the two are joined — never where
+ *  somebody happens to be looking. */
+function related(graph: Graph): Map<string, Id> {
   const out = new Map<string, Id>();
-  for (const e of edges_in(graph, layer)) {
+  for (const e of Object.values(graph.edges).sort((a, b) => a.id.localeCompare(b.id))) {
     const from = owner_of(graph, e.from);
     const to = owner_of(graph, e.to);
     if (!out.has(`${from}|${to}`)) out.set(`${from}|${to}`, e.id);

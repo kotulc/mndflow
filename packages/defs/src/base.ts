@@ -25,7 +25,7 @@ export const BASE: Definition[] = [
   def("structure", "structure", undefined, { layout: "type", shape: "rect" }),
   def("behavior", "behavior", "structure", { layout: "type", shape: "round" }),
   def("reference", "reference", undefined, { layout: "name", shape: "rect" }),
-  def("interface", "interface", undefined, { layout: "none", shape: "rect" }),
+  def("interface", "interface", undefined, { layout: "name", label: "none", shape: "rect" }),
   def("resource", "resource", undefined, { layout: "name", shape: "rect" }),
   def("group", "group", undefined, { layout: "name", shape: "rect" }),
   def("note", "note", "resource", { layout: "fields", shape: "rect" }),

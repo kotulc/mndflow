@@ -18,5 +18,10 @@
   },
   "devDependencies": {
     "@mnd/fixtures": "*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./loop": "./src/loop/index.ts",
+    "./*": "./*"
   }
 }

@@ -10,20 +10,20 @@ name: operations
 
 operations:
   - id: describe
-    action: describe_module
+    action: describe
     chip: describe
     # A document that has no text of its own yet.
     when: no_summary
 
   - id: add
-    action: add_module
+    action: create
     chip: break down
     # The default: there is always something more that could go in, so this is
     # what the conversation returns to between the other two.
     when: always
 
   - id: relate
-    action: link_modules
+    action: relate
     chip: relate
     # Two or more documents in view, so there is something to connect.
     when: has_parts

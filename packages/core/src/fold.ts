@@ -4,6 +4,7 @@
  *  drift from the log that produced it — and undo is a refold, so no mutation
  *  needs an inverse. */
 
+import type { Settings } from "./components";
 import { empty_graph, type Arrangement, type Block, type BlockModule, type Definition,
          type Graph, type Id, type Log, type Mutation, type Relation, type Step } from "./types";
 
@@ -291,11 +292,27 @@ export function derived_name(graph: Graph, id: Id): string | null {
 /** The verb a definition calls its usages by. Vocabulary, so a SysML reading
  *  and a plain one can differ without either being stored. */
 export function word_of(graph: Graph, type: Id | undefined): string {
-  for (const d of isa(graph, type)) {
-    const said = d.components?.["card"]?.["word"];
-    if (typeof said === "string") return said;
-  }
-  return "";
+  const said = config_of(graph, type, "card")["word"];
+  return typeof said === "string" ? said : "";
+}
+
+/** Everything a word matches: the name it is shown by, its body, and the name
+ *  of the definition it uses.
+ *
+ *  **Substring, and the whole workspace** — narrowing is about finding a thing
+ *  wherever it lives, so it is not asked of a layer. Ranking what comes back by
+ *  meaning is a host's, through the `score` port; this is what is there to rank.
+ *  The root is never a match: everything is inside it. */
+export function matches(graph: Graph, want: string): Id[] {
+  const text = want.trim().toLowerCase();
+  if (!text) return [];
+  const holds = (said: string | undefined) => !!said?.toLowerCase().includes(text);
+  return Object.values(graph.blocks)
+    .filter((b) => b.id !== graph.root)
+    .filter((b) => holds(shown_name(graph, b.id)) || holds(b.body)
+                || holds(b.type ? graph.defs[b.type]?.name : undefined))
+    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
+    .map((b) => b.id);
 }
 
 /** The lowest number not in use among siblings. */
@@ -361,6 +378,21 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
   return out;
 }
 
+/** What one component reads for a usage of this definition: the **nearest
+ *  declaration of its key** in the chain.
+ *
+ *  Components merge per key and never inside one, so a subtype restating `card`
+ *  replaces the whole of it and leaves every other key alone. What comes back
+ *  is what the door let through — a key it could not validate is already gone,
+ *  so nothing downstream guards for a shape this build cannot read. */
+export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
+  for (const d of isa(graph, type)) {
+    const said = d.components?.[key];
+    if (said) return said;
+  }
+  return {};
+}
+
 /** Which block module interprets this block.
  *
  *  `of` and `side` win because they are what the block *is* doing, whatever it
@@ -370,11 +402,8 @@ export function module_of(graph: Graph, id: Id): BlockModule {
   if (!b) return "structure";
   if (b.of) return "reference";
   if (b.side !== undefined) return "interface";
-  for (const d of isa(graph, b.type)) {
-    const named = d.components?.["block"]?.["module"];
-    if (typeof named === "string") return named as BlockModule;
-  }
-  return "structure";
+  const named = config_of(graph, b.type, "block")["module"];
+  return typeof named === "string" ? named as BlockModule : "structure";
 }
 
 /** One step, applied. */

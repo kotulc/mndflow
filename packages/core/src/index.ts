@@ -4,6 +4,7 @@
 export * from "./types";
 export * from "./ids";
 export * from "./ports";
+export * from "./components";
 export * from "./fold";
 export * from "./door";
 export * from "./rules";

@@ -30,7 +30,8 @@ describe("the registry", () => {
                              label: "x", body: "x", text: "x", name: "f", owner: "block_pump",
                              target: "block_hx", parent: ROOT, holder: "block_pump",
                              members: ["block_pump"], group: "block_hot", dir: "forward",
-                             module: "line", arrangement: "grid", flow: "in" });
+                             module: "line", arrangement: "grid", flow: "in",
+                             def: "structure", form: "number" });
       expect(out.mutations.length > 0, a.name).toBe(writes(a.name));
     }
   });

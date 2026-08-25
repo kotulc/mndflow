@@ -17,6 +17,10 @@ export type ExplorerProps = {
   picked: readonly Id[];
   /** Which branches are shut. Session state, handed down. */
   folded: readonly Id[];
+  /** What a narrowing matched. **Lit, never hidden** — the tree is the one
+   *  place you can still see where a match sits, so hiding the rest would take
+   *  away the answer along with the noise. Empty is nothing narrowed. */
+  lit?: readonly Id[];
   onAct: Act;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
@@ -56,13 +60,19 @@ const GLYPH: Record<Mark, string> = {
 };
 
 export function Explorer(props: ExplorerProps) {
-  const { graph, open, picked, folded, onAct, onFold, onPick, menu: offered = true } = props;
+  const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
+          menu: offered = true } = props;
   const [empties, set_empties] = useState(true);
   const [dragging, set_dragging] = useState<Id | null>(null);
   const [over, set_over] = useState<Id | null>(null);
   const [menu, set_menu] = useState<{ x: number; y: number } | null>(null);
 
-  const rows = tree_of(graph, folded, empties);
+  /** A match inside a shut branch cannot be lit, so narrowing opens the way to
+   *  what it found. Derived, never a fold anybody has to undo afterwards. */
+  const shut = lit.length
+    ? folded.filter((id) => !lit.some((m) => on_path(graph, m, id)))
+    : folded;
+  const rows = tree_of(graph, shut, empties);
   const one = picked.length === 1 ? picked[0]! : null;
   const target = one ?? graph.root;
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
@@ -103,6 +113,8 @@ export function Explorer(props: ExplorerProps) {
           <li key={r.id}
               className={[
                 picked.includes(r.id) ? "picked" : "",
+                lit.includes(r.id) ? "lit" : "",
+                lit.length && !lit.includes(r.id) ? "dim" : "",
                 open === r.id ? "open" : "",
                 over === r.id ? "over" : "",
               ].filter(Boolean).join(" ")}
@@ -130,7 +142,7 @@ export function Explorer(props: ExplorerProps) {
               }}>
             <span className="mark"
                   onClick={(e) => { e.stopPropagation();
-                                    if (r.kids) onFold(r.id, !folded.includes(r.id)); }}>
+                                    if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
               {GLYPH[r.mark]}
             </span>
             <span className="label">{r.label}</span>
@@ -154,6 +166,19 @@ export function Explorer(props: ExplorerProps) {
       ) : null}
     </nav>
   );
+}
+
+/** Whether an ancestor of this block is that one. What lighting a match has to
+ *  know to open its way down. */
+function on_path(graph: Graph, id: Id, ancestor: Id): boolean {
+  let at: Id | null = id;
+  const seen = new Set<Id>();
+  while (at && !seen.has(at)) {
+    if (at === ancestor) return true;
+    seen.add(at);
+    at = graph.blocks[at]?.parent ?? null;
+  }
+  return false;
 }
 
 export { tree_of };

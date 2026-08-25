@@ -12,9 +12,11 @@
  *  A normalisation that carried nothing is not a repair — a false alarm is what
  *  teaches people to ignore the real ones. */
 
+import { unreadable } from "./components";
 import { fold, subtree } from "./fold";
 import { new_id } from "./ids";
-import { ROOT, type Graph, type Id, type Log, type Mutation, type Step } from "./types";
+import { ROOT, type Definition, type Graph, type Id, type Log, type Mutation, type Step }
+  from "./types";
 
 export type Fault = {
   kind: "repaired" | "dropped";
@@ -113,17 +115,39 @@ export function inspect(graph: Graph): Inspection {
     }
   }
 
+  /** One definition, one repair. Filing, extension and every component key it
+   *  claims are three separate faults and one mended record — two `set_def`s
+   *  for the same definition would leave the later one undoing the earlier. */
   for (const d of Object.values(graph.defs)) {
+    let mended = d;
     if (!graph.blocks[d.home]) {
       faults.push({ kind: "repaired", what: `"${d.name}" was filed under nothing` });
-      repairs.push({ op: "set_def", def: { ...d, home: ROOT } });
-    } else if (d.extends && !graph.defs[d.extends]) {
-      faults.push({ kind: "repaired", what: `"${d.name}" extended something that is not there` });
-      repairs.push({ op: "set_def", def: { ...d, extends: undefined } });
+      mended = { ...mended, home: ROOT };
     }
+    if (d.extends && !graph.defs[d.extends]) {
+      faults.push({ kind: "repaired", what: `"${d.name}" extended something that is not there` });
+      mended = { ...mended, extends: undefined };
+    }
+    /** **A component validates its own key and no other's**, so what it
+     *  refuses is dropped and only that key. An unknown component is left
+     *  alone — unvalidated rather than wrong, which is how this build opens a
+     *  package a later one wrote. */
+    for (const { key, why } of unreadable(d)) {
+      faults.push({ kind: "dropped", what: `"${d.name}" said ${why}` });
+      mended = { ...mended, components: without(mended.components, key) };
+    }
+    if (mended !== d) repairs.push({ op: "set_def", def: mended });
   }
 
   return { faults, repairs };
+}
+
+/** A definition's components without one key, and no `components` at all once
+ *  the last one goes — nothing still at its default is written. */
+function without(components: Definition["components"], key: string): Definition["components"] {
+  const out = { ...components };
+  delete out[key];
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** What is wrong with a graph. The door's question without its answer: a
