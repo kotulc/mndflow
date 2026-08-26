@@ -6,6 +6,7 @@
     "dev": "npm run dev -w @mnd/web",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "release:kit": "node scripts/release-kit.mjs",
     "legacy:dev": "vite"
   },
   "dependencies": {

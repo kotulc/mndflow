@@ -16,7 +16,10 @@ import type { Box, Route, Scene } from "./scene";
 export type Paper = {
   /** The accessible name. Defaults to what the layer is called. */
   title?: string;
-  /** Replaces the default stylesheet outright. */
+  /** Replaces the default stylesheet outright. **`""` drops the `<style>`
+   *  block**, which is what a page embedding the drawing in MDX wants: CSS is
+   *  braces, and MDX reads a brace as the start of an expression. Load `SHEET`
+   *  once on such a page instead of once per drawing. */
   style?: string;
   /** Room around the drawing. */
   pad?: number;
@@ -33,8 +36,11 @@ const PAD = 24;
  *  carrying the theme it takes the page's, and standing alone it takes the
  *  whiteprint, which is what a documentation site is. These are the only
  *  colours outside `theme`, and they exist so a file works with nothing loaded
- *  — never as a second palette to pick from. */
-const SHEET = `
+ *  — never as a second palette to pick from.
+ *
+ *  Exported so a page holding several drawings can carry it once and pass
+ *  `style: ""` to each. */
+export const SHEET = `
 svg.scene {
   --ground: var(--s-neutral-ground, oklch(0.958 0.008 232));
   --fill: var(--s-neutral-fill, oklch(0.985 0.009 232));
@@ -203,7 +209,12 @@ function round(n: number): string {
   return String(Math.round(n * 10) / 10);
 }
 
+/** **Braces are escaped along with the markup characters.** They mean nothing
+ *  in SVG and everything in MDX, where a `{` opens an expression — so a label
+ *  carrying one would break the page holding the drawing rather than the
+ *  drawing. A reference costs nothing anywhere else, and reads as the brace. */
 function esc(text: string): string {
-  return text.replace(/[<>&"']/g, (c) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]!);
+  return text.replace(/[<>&"'{}]/g, (c) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;",
+       "{": "&#123;", "}": "&#125;" })[c]!);
 }

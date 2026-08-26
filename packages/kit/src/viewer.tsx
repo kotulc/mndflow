@@ -4,7 +4,8 @@
  *  those. This is the other artifact: it holds a graph, projects the layer you
  *  are looking at, and lets you look somewhere else. **Nothing here writes.**
  *
- *  So the left button only ever changes what is being looked at, and the right
+ *  So the left button only ever changes what is being looked at — a layer, or
+ *  wherever a box says it came from — and the right
  *  button — which is how the app makes something new — is dropped on the floor.
  *  The editing props `SceneView` offers are not passed and not forwarded, which
  *  is why they are absent from `@mnd/kit/react` too: a consumer cannot reach an
@@ -25,9 +26,14 @@ export type ViewerProps = {
   config?: Config;
   /** Told where the viewer is looking, whenever that changes. */
   onLook?: (layer: Id | null) => void;
+  /** Told where a box points, when one that holds nothing is opened. Unset,
+   *  the browser is sent there — the same thing `draw_svg`'s anchor does. A
+   *  host with routing of its own passes this and the page never reloads. */
+  onFollow?: (link: string, id: Id) => void;
 };
 
-export function Viewer({ graph, layer = null, module = "block", config, onLook }: ViewerProps) {
+export function Viewer({ graph, layer = null, module = "block", config,
+                        onLook, onFollow }: ViewerProps) {
   const [at, set_at] = useState<Id | null>(layer);
   const [picked, set_picked] = useState<string[]>([]);
 
@@ -39,14 +45,31 @@ export function Viewer({ graph, layer = null, module = "block", config, onLook }
     onLook?.(next);
   };
 
-  /** Double-click walks: into a box that holds something, out to the parent
-   *  where there is nothing under the pointer. A single click selects, which
-   *  is a highlight and not a change. */
+  /** Where a box points, if it points anywhere. The Scene carries it, so this
+   *  reads the drawing rather than the graph — `draw_svg` reads the same. */
+  const link_of = (id: string) => scene.boxes.find((b) => b.id === id)?.link;
+
+  const follow = (link: string, id: Id) => {
+    if (onFollow) onFollow(link, id);
+    else if (typeof window !== "undefined") window.location.assign(link);
+  };
+
+  /** Double-click **opens** what is under it: a box that holds something opens
+   *  as a layer, a box that holds nothing opens where it points, and empty
+   *  space goes back out to the parent. A single click selects, which is a
+   *  highlight and not a change.
+   *
+   *  Holding beats pointing, and deliberately: a linked container is a page
+   *  with sections in it, and walking in is what the viewer is for. Its link
+   *  is still reachable — from the leaf, or from a host reading `Box.link`. */
   const gesture = (g: Gesture) => {
     if (g.button !== "left") return;
     if (g.count === 2) {
-      if (g.on && g.kind === "box" && children(graph, g.on).length) look(g.on);
-      else if (!g.on) look(at ? graph.blocks[at]?.parent ?? null : null);
+      if (g.on && g.kind === "box") {
+        const link = link_of(g.on);
+        if (children(graph, g.on).length) look(g.on);
+        else if (link) follow(link, g.on);
+      } else if (!g.on) look(at ? graph.blocks[at]?.parent ?? null : null);
       return;
     }
     set_picked(g.on ? [g.on] : []);

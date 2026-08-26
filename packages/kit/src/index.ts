@@ -60,5 +60,5 @@ export { ALL, BASE, BEHAVIOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
 export {
   type Box, type Config, type Frame, type Hit, type Mark, type Paper, type Route,
   type Scene, type Slot, type View,
-  block, draw, draw_svg, matrix, outline, table, view, views,
+  SHEET, block, draw, draw_svg, matrix, outline, table, view, views,
 } from "@mnd/views";

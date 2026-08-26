@@ -155,3 +155,6 @@ export function fixture(name: string): Log {
 
 /** Sample **files**, for the seam that takes state rather than history. */
 export { GRAPHS, GRAPH_NAMES, graph_file, type GraphName } from "./graphs";
+
+/** A graph as a **translator** hands one over, for the seam's contract test. */
+export { TIER, translated } from "./translated";
