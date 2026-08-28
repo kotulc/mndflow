@@ -112,6 +112,15 @@ function ranked(graph: Graph, layer: Id | null, all: Sized[], how: Arrangement):
   const into = new Map<Id, Id[]>(order.map((id) => [id, []]));
   for (const l of forward) into.get(l.to)!.push(l.from);
 
+  /** **Nothing relating them leaves order as the only structure**, so each
+   *  takes its own rank and the arrangement says which way that order runs:
+   *  `down` reads as a column, `right` as a row. Ranking them all together
+   *  would lay a folder of unrelated documents out in one line across the
+   *  screen, whichever direction was asked for. */
+  if (forward.length === 0) {
+    return laid_in_order(order, all, how);
+  }
+
   /** Longest path from a source. The graph is acyclic here, so it settles. */
   const rank = new Map<Id, number>();
   const depth_of = (id: Id, seen: Set<Id>): number => {
@@ -159,6 +168,20 @@ function ranked(graph: Graph, layer: Id | null, all: Sized[], how: Arrangement):
     }
   }
   return out;
+}
+
+/** One per rank, in the order they were stated. */
+function laid_in_order(order: Id[], all: Sized[], how: Arrangement): Placed[] {
+  const by_id = new Map(all.map((it) => [it.b.id, it.s]));
+  const down = how === "down" || how === "up";
+  const back = how === "left" || how === "up";
+  const stride = Math.max(...all.map((it) => (down ? it.s.h : it.s.w))) + GAP.rank;
+  const steps = order.map((id, n) => ({ id, at: (back ? order.length - 1 - n : n) * stride }));
+  return centred(steps.map(({ id, at }) => ({
+    id, ...by_id.get(id)!,
+    x: snap(down ? 0 : at),
+    y: snap(down ? at : 0),
+  })));
 }
 
 /** Positions are relative to the layer's centre, so a layer stays centred as it

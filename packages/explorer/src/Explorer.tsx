@@ -126,6 +126,7 @@ export function Explorer(props: ExplorerProps) {
                 open === r.id ? "open" : "",
                 over === r.id ? "over" : "",
               ].filter(Boolean).join(" ")}
+              data-mark={r.mark}
               style={{ paddingLeft: 8 + r.depth * 14 }}
               draggable
               onDragStart={() => set_dragging(r.id)}
@@ -148,7 +149,7 @@ export function Explorer(props: ExplorerProps) {
                 const label = prompt("rename", r.label);
                 if (label !== null) onAct("rename", { id: r.id, label });
               }}>
-            <span className="mark"
+            <span className={`mark ${r.mark}`}
                   onClick={(e) => { e.stopPropagation();
                                     if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
               {GLYPH[r.mark]}
