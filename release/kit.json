@@ -1,8 +1,8 @@
 {
-  "tarball": "mnd-kit-0.2.0.tgz",
-  "version": "0.2.0",
-  "commit": "64cf444f402e21437581b709540746406117e412",
+  "tarball": "mnd-kit-0.3.0.tgz",
+  "version": "0.3.0",
+  "commit": "df21c4c61cd07c89468eaad62748e39a29e57d83",
   "branch": "flow-monorepo",
   "packed": "2026-08-28",
-  "integrity": "sha512-LEPE/I4Xs5yAh4FUT7A6pJJ+H/gegC0pdTwq4tCqNkRHr4KGoPXzaCuNCI0Eo67ol+IcXhNLxMbc7eDLivmE3A=="
+  "integrity": "sha512-EgptA4oVyyb0cl7W7V5zxSVTneJXV7nSqgFhbfYYfPtUaZgKnCsnAoLg/XuHOEVR0E9sW3n/xWHK2NYOEfURaw=="
 }
