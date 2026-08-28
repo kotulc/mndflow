@@ -87,11 +87,24 @@ export function SceneView(props: SceneViewProps) {
   const dropped_on = (at: Point, dragged: string | null) =>
     under(at, "box", dragged)?.on ?? null;
 
+  /** The layer, when the pointer is on the frame's own name. A label has no
+   *  region the projection could compute — text measures itself, and only once
+   *  it is drawn — so the one hit that cannot come from the Scene is read off
+   *  the DOM. Glyphs rise above the border they sit on, so this answers for
+   *  itself rather than leaning on the region underneath. */
+  const named = (e: ReactPointerEvent<SVGSVGElement>): string | null => {
+    const el = e.target as Element;
+    if (el.tagName !== "text" || !el.parentElement?.classList.contains("frame")) return null;
+    return scene.hits.find((h) => h.kind === "frame")?.on ?? null;
+  };
+
   const fire = (e: ReactPointerEvent<SVGSVGElement>, count: 1 | 2) => {
     if (!onGesture) return;
     const at = spot(e);
-    const hit = under(at);
-    onGesture({ on: hit?.on ?? null, kind: hit?.kind ?? "empty",
+    const title = named(e);
+    const hit = title ? null : under(at);
+    onGesture({ on: title ?? hit?.on ?? null,
+                kind: title ? "title" : hit?.kind ?? "empty",
                 button: e.button === 2 ? "right" : "left", count, at });
   };
 

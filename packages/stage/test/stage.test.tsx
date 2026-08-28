@@ -29,7 +29,8 @@ function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
 
 /** Click a point in scene coordinates, the way a viewer maps one. */
 function at(view: { container: HTMLElement }, scene: Scene,
-            p: { x: number; y: number }, opts: { button?: number; double?: boolean } = {}) {
+            p: { x: number; y: number },
+            opts: { button?: number; double?: boolean; on?: Element } = {}) {
   const svg = view.container.querySelector("svg")!;
   const w = Math.max(scene.bounds.w, 200) + PAD * 2;
   const h = Math.max(scene.bounds.h, 200) + PAD * 2;
@@ -37,9 +38,16 @@ function at(view: { container: HTMLElement }, scene: Scene,
     right: w, bottom: h, x: 0, y: 0, toJSON: () => ({}) });
   /** The stub box is square with the viewBox, so the mapping is one to one. */
   const e = { clientX: p.x + w / 2, clientY: p.y + h / 2, button: opts.button ?? 0 };
-  if (opts.double) fireEvent.doubleClick(svg, e);
-  else fireEvent.pointerDown(svg, e);
+  /** What the pointer is **on** is its own question: a label sits inside the
+   *  card it names, so where the click lands and what it lands on differ. */
+  const target = opts.on ?? svg;
+  if (opts.double) fireEvent.doubleClick(target, e);
+  else fireEvent.pointerDown(target, e);
 }
+
+/** The frame's own name, as drawn — the one name on the stage. */
+const frame_name = (view: { container: HTMLElement }) =>
+  view.container.querySelector(".frame text")!;
 
 const middle = (scene: Scene, id: string) => {
   const b = scene.boxes.find((x) => x.id === id)!;
@@ -63,6 +71,17 @@ describe("the left button works what is already there", () => {
     const view = mount();
     at(view, view.scene, middle(view.scene, "block_pump"), { double: true });
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
+  });
+
+  /** The one place two clicks mean edit rather than descend, and it is a name
+   *  rather than a card — so renaming a block is done from inside it. */
+  it("renames the layer on a double click on the frame's name", () => {
+    const view = mount();
+    at(view, view.scene, middle(view.scene, "block_pump"),
+       { double: true, on: frame_name(view) });
+    expect(view.onAct).toHaveBeenCalledWith("rename",
+      { id: "block_loop", label: "Typed" });
+    expect(view.onAct).not.toHaveBeenCalledWith("open", expect.anything());
   });
 
   it("comes back out on a double click outside", () => {

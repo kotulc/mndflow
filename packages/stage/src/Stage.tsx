@@ -60,7 +60,14 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: 
   const gesture = (g: Gesture) => {
     if (g.button === "left") {
       if (g.count === 2) {
-        if (g.on && g.kind === "box") onAct("open", { id: g.on });
+        /** Two clicks navigate: into a card, or back out of the layer. The one
+         *  name drawn here is the frame's, and a name is renamed where it is
+         *  read — so renaming a block is done from inside it. */
+        if (g.on && g.kind === "title") {
+          const label = prompt("rename", scene.frame?.label);
+          if (label !== null) onAct("rename", { id: g.on, label });
+        }
+        else if (g.on && g.kind === "box") onAct("open", { id: g.on });
         else if (!g.on) onAct("up");
         return;
       }

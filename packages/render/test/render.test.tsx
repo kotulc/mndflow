@@ -132,7 +132,9 @@ describe("every hit binds", () => {
     boxes: [box("a"), box("b", [], 300, 0)],
     routes: [{ id: "r", from: "a", to: "b", module: "line", dir: "none",
                points: [{ x: 168, y: 18 }, { x: 300, y: 18 }] }],
+    frame: { x: -24, y: -24, w: 516, h: 84, label: "Loop" },
     hits: [
+      { on: "layer", kind: "frame", region: { x: -24, y: -24, w: 516, h: 84 } },
       { on: "a", kind: "box", region: { x: 0, y: 0, w: 168, h: 36 } },
       { on: "r", kind: "route", region: { x: 168, y: 12, w: 132, h: 12 } },
     ],
@@ -162,6 +164,19 @@ describe("every hit binds", () => {
 
   it("tells a double click from a single one", () => {
     expect(click(0, 2).mock.calls[0]![0].count).toBe(2);
+  });
+
+  /** A name has no region in the Scene — text measures itself once drawn — so
+   *  the renderer is the only thing that can say the pointer was on one. */
+  it("names the frame's own label a title, whatever lies under it", () => {
+    const onGesture = vi.fn();
+    const { container } = render(<SceneView scene={s} onGesture={onGesture} />);
+    fireEvent.doubleClick(container.querySelector(".frame text")!, { button: 0 });
+    expect(onGesture.mock.calls[0]![0]).toMatchObject({ on: "layer", kind: "title" });
+  });
+
+  it("keeps a card a box, so two clicks on one still mean walking in", () => {
+    expect(click(0, 2).mock.calls[0]![0]).toMatchObject({ on: "a", kind: "box" });
   });
 
   it("reports empty where nothing is under the pointer", () => {

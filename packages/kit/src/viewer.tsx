@@ -16,33 +16,48 @@ import { children, type Graph, type Id, type ViewModule } from "@mnd/core";
 import { EMPTY, view, type Config } from "@mnd/views";
 import { SceneView, type Gesture } from "@mnd/render";
 
+/** Nothing picked. A constant, because a fresh `[]` every render would read as
+ *  the host changing its mind on every render. */
+const NONE: readonly Id[] = [];
+
 export type ViewerProps = {
   graph: Graph;
-  /** Where to start looking. The root layer unless said otherwise, and the
-   *  starting point rather than a controlled value — walking is the viewer's. */
+  /** Which layer to draw. The root layer unless said otherwise. Driven: the
+   *  viewer walks on its own, and follows this whenever the host changes it. */
   layer?: Id | null;
+  /** Which blocks are lit. Driven the same way, so a host with a tree beside
+   *  the drawing can light what the tree selected — **without moving the
+   *  layer**, which is the whole point of the two being separate. */
+  picked?: readonly Id[];
   /** Which module draws it. `block` is any planar projection. */
   module?: ViewModule;
   config?: Config;
   /** Told where the viewer is looking, whenever that changes. */
   onLook?: (layer: Id | null) => void;
+  /** Told what is lit, whenever that changes. */
+  onPick?: (ids: Id[]) => void;
   /** Told where a box points, when one that holds nothing is opened. Unset,
    *  the browser is sent there — the same thing `draw_svg`'s anchor does. A
    *  host with routing of its own passes this and the page never reloads. */
   onFollow?: (link: string, id: Id) => void;
 };
 
-export function Viewer({ graph, layer = null, module = "block", config,
-                        onLook, onFollow }: ViewerProps) {
-  const [at, set_at] = useState<Id | null>(layer);
-  const [picked, set_picked] = useState<string[]>([]);
+export function Viewer({ graph, layer = null, picked = NONE, module = "block",
+                        config, onLook, onPick, onFollow }: ViewerProps) {
+  const [at, set_at] = driven<Id | null>(layer);
+  const [lit, set_lit] = driven<readonly Id[]>(picked);
 
   const scene = view(module)?.project(graph, at, config) ?? EMPTY;
 
+  const pick = (ids: Id[]) => {
+    set_lit(ids);
+    onPick?.(ids);
+  };
+
   const look = (next: Id | null) => {
     set_at(next);
-    set_picked([]);
     onLook?.(next);
+    pick([]);
   };
 
   /** Where a box points, if it points anywhere. The Scene carries it, so this
@@ -72,8 +87,18 @@ export function Viewer({ graph, layer = null, module = "block", config,
       } else if (!g.on) look(at ? graph.blocks[at]?.parent ?? null : null);
       return;
     }
-    set_picked(g.on ? [g.on] : []);
+    pick(g.on ? [g.on] : []);
   };
 
-  return <SceneView scene={scene} picked={picked} onGesture={gesture} />;
+  return <SceneView scene={scene} picked={lit} onGesture={gesture} />;
+}
+
+/** A value the host may drive: the viewer's own until the host changes its
+ *  mind, and the host's from then on. An embed that passes nothing still
+ *  walks and still highlights, which is what makes it self-contained. */
+function driven<T>(sent: T): [T, (next: T) => void] {
+  const [held, set_held] = useState(sent);
+  const [was, set_was] = useState(sent);
+  if (sent !== was) { set_was(sent); set_held(sent); }
+  return [held, set_held];
 }

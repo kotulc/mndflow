@@ -54,8 +54,10 @@ export type Hit = {
   /** What is under the pointer. */
   on: Id;
   region: { x: number; y: number; w: number; h: number };
-  /** Which gesture map entry applies. */
-  kind: "box" | "route" | "frame" | "field" | "seat";
+  /** Which gesture map entry applies. `title` is the frame's own name, and is
+   *  the one region a projection cannot place — text measures itself, and only
+   *  once drawn — so a renderer reports it instead. */
+  kind: "box" | "route" | "frame" | "field" | "seat" | "title";
 };
 
 /** The open layer seen from within: a border with the name set into it, and

@@ -6,7 +6,14 @@
  *  **Two components: one draws a layer, one lists the tree. Neither edits.**
  *
  *  `Viewer` takes a graph and gives an interactive view of it: click to
- *  highlight, double-click to walk in and out. The renderer underneath also
+ *  highlight, double-click to walk in and out. `Explorer` reads the same way,
+ *  and that is deliberate — **the two are one pair of gestures**. A click
+ *  reveals and never navigates; opening a layer is the double click; and a
+ *  block holding nothing has no inside, so neither one enters it. Both take
+ *  `layer` and `picked` as values a host may drive, so a tree beside a drawing
+ *  can light what it selected without moving the layer.
+ *
+ *  The renderer underneath also
  *  offers drag callbacks that mean move, seat, wall and relate; they are not
  *  re-exported, so an edit is unreachable rather than merely unadvised. A host
  *  that needs them lives in this repo and imports `@mnd/render` directly.

@@ -74,21 +74,27 @@ describe("it emits action names and mutates nothing", () => {
     expect(onAct).toHaveBeenCalled();
   });
 
-  it("opens what was clicked, and picks it", () => {
+  it("reveals what was clicked, and picks it", () => {
     const { onAct, onPick } = mount(fold(nested()));
     fireEvent.click(screen.getByText("Ledger"));
     expect(onPick).toHaveBeenCalledWith(["block_ledger"]);
-    expect(onAct).toHaveBeenCalledWith("open", { id: "block_ledger" });
+    expect(onAct).toHaveBeenCalledWith("reveal", { id: "block_ledger" });
   });
 
-  it("opens before it picks, so what is picked survives the navigation", () => {
+  it("never opens a row on a click, however many rows are clicked", () => {
+    const { onAct } = mount(fold(nested()));
+    for (const label of ["Ledger", "Edge", "Auth"]) fireEvent.click(screen.getByText(label));
+    expect(onAct).not.toHaveBeenCalledWith("open", expect.anything());
+  });
+
+  it("reveals before it picks, so what is picked survives the navigation", () => {
     const order: string[] = [];
     const onAct = vi.fn((name: string) => order.push(`act:${name}`));
     const onPick = vi.fn(() => order.push("pick"));
     render(<Explorer graph={fold(nested())} open={null} picked={[]} folded={[]}
                      onAct={onAct} onPick={onPick} onFold={vi.fn()} />);
     fireEvent.click(screen.getByText("Ledger"));
-    expect(order).toEqual(["act:open", "pick"]);
+    expect(order).toEqual(["act:reveal", "pick"]);
   });
 
   it("renames on a double click", () => {

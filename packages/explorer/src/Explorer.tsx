@@ -2,7 +2,13 @@
  *
  *  A pure function of its props. It holds no state, reaches for nothing, and
  *  emits an action name — which is what lets it be handed a fixture and run on
- *  its own. */
+ *  its own.
+ *
+ *  **One click sets context, two edit what it is on.** A click reveals: it
+ *  goes to the layer holding the row and picks it there, so selecting always
+ *  shows a thing among its siblings and never lands you inside it. Walking in
+ *  is clicking a child. A double click renames — the Stage reads the same
+ *  pair, and edits the name there too. */
 
 import { useState } from "react";
 import { children, is_interface, is_reference, module_of, shown_name,
@@ -21,6 +27,8 @@ export type ExplorerProps = {
    *  place you can still see where a match sits, so hiding the rest would take
    *  away the answer along with the noise. Empty is nothing narrowed. */
   lit?: readonly Id[];
+  /** Told `reveal` on a click and `rename` on a double click, plus whatever
+   *  the offered list names. Never a mutation. */
   onAct: Act;
   onFold: (id: Id, shut: boolean) => void;
   onPick: (ids: Id[]) => void;
@@ -130,10 +138,10 @@ export function Explorer(props: ExplorerProps) {
                 if (dragging && dragging !== r.id) onAct("move", { id: dragging, parent: r.id });
                 set_dragging(null);
               }}
-              onClick={() => { onAct("open", { id: r.id }); onPick([r.id]); }}
+              onClick={() => { onAct("reveal", { id: r.id }); onPick([r.id]); }}
               onContextMenu={(e) => {
                 e.preventDefault();
-                if (!picked.includes(r.id)) { onAct("open", { id: r.id }); onPick([r.id]); }
+                if (!picked.includes(r.id)) { onAct("reveal", { id: r.id }); onPick([r.id]); }
                 set_menu({ x: e.clientX, y: e.clientY });
               }}
               onDoubleClick={() => {
