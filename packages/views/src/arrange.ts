@@ -3,8 +3,16 @@
  *  One setting, six values. Four carry a reading direction and two do not.
  *  `free` is the value where hand placement is what draws; every other value
  *  computes, and **nothing is discarded by arranging** — a block's stored
- *  position is always kept, so returning to `free` returns the layout. */
+ *  position is always kept, so returning to `free` returns the layout.
+ *
+ *  **The four directional values are dagre's.** Breaking cycles, ranking,
+ *  ordering within a rank and packing the ranks are a solved problem with a
+ *  maintained library behind it, and the hand-rolled version did the first
+ *  three badly and the fourth not at all — nothing here ever minimised a
+ *  crossing. `free` and `grid` stay local because dagre has no answer for
+ *  them: one is hand placement and the other is tiling. */
 
+import dagre from "@dagrejs/dagre";
 import { arrangement_of, children, edges_in, is_interface, owner_of,
          type Arrangement, type Block, type Graph, type Id } from "@mnd/core";
 import { GRID, size_of, snap, type Size } from "./size";
@@ -62,15 +70,17 @@ function grid(all: Sized[]): Placed[] {
 
 type Link = { from: Id; to: Id };
 
-/** Ranking wants a DAG, and a model is free to hold a cycle — a coolant loop
- *  is one on purpose. So an edge that would close one is set aside for the
- *  ranking and drawn like any other: a loop still reads left to right, with the
- *  return leg running back.
+/** The one thing about ranking that stays ours: **which edge a cycle is broken
+ *  at**.
  *
- *  **The first relationship drawn wins.** Edges are taken in order and one is
- *  kept unless it closes a cycle over what is already kept, so the direction a
- *  layer reads follows the order somebody stated it in — and the same input
- *  always drops the same edge. */
+ *  A model is free to hold a cycle — a coolant loop is one on purpose — and
+ *  dagre will happily break it, but it breaks it by a feedback-arc heuristic
+ *  that knows nothing about the order somebody drew the relationships in. Ours
+ *  is **first drawn wins**: edges are taken in order and one is kept unless it
+ *  closes a cycle over what is already kept, so a loop reads the way it was
+ *  stated with the return leg running back. Handing dagre a graph that is
+ *  already acyclic leaves it nothing to guess at, and the ranking, the ordering
+ *  and the packing are still entirely its work. */
 function forward_only(order: Id[], links: Link[]): Link[] {
   const out = new Map<Id, Id[]>(order.map((id) => [id, []]));
   const reaches = (from: Id, to: Id): boolean => {
@@ -95,79 +105,48 @@ function forward_only(order: Id[], links: Link[]): Link[] {
   return kept;
 }
 
-/** Ranks by relationships: nothing pointing at it comes first, and each rank
- *  sits one step further along. Within a rank, things are ordered by where what
- *  they relate to sat in the rank before — so a chain comes out on one row and
- *  every line along it is straight. */
+/** Which way dagre reads a rank. Ours is where the *first* rank sits, which
+ *  is what `rankdir` says, so the two line up without a translation table
+ *  beyond this one. */
+const RANKDIR: Partial<Record<Arrangement, string>> = {
+  right: "LR", left: "RL", down: "TB", up: "BT",
+};
+
+/** Ranks by relationships, through dagre.
+ *
+ *  Three things are ours rather than dagre's, and each is a statement about
+ *  *this* model rather than about graph drawing. **An end seated on an
+ *  interface ranks the card it sits on**, so promoting a seat never moves a
+ *  chain — that is `owner_of`, and dagre cannot know it. **A cycle breaks at
+ *  the edge drawn last**, above. And **a layer with no relationships in it is
+ *  not one rank**: dagre would lay a folder of unrelated documents out in a
+ *  single line across the screen, whichever direction was asked for, so order
+ *  becomes the only structure and each takes a rank of its own. */
 function ranked(graph: Graph, layer: Id | null, all: Sized[], how: Arrangement): Placed[] {
   const order = all.map((it) => it.b.id);
   const here = new Set(order);
-  /** Through the owner: an end seated on an interface ranks the card it sits
-   *  on, so promoting a seat never changes where a chain lands. */
   const links = edges_in(graph, layer)
     .map((e) => ({ from: owner_of(graph, e.from), to: owner_of(graph, e.to) }))
     .filter((l) => here.has(l.from) && here.has(l.to) && l.from !== l.to);
 
+  if (links.length === 0) return laid_in_order(order, all, how);
   const forward = forward_only(order, links);
-  const into = new Map<Id, Id[]>(order.map((id) => [id, []]));
-  for (const l of forward) into.get(l.to)!.push(l.from);
 
-  /** **Nothing relating them leaves order as the only structure**, so each
-   *  takes its own rank and the arrangement says which way that order runs:
-   *  `down` reads as a column, `right` as a row. Ranking them all together
-   *  would lay a folder of unrelated documents out in one line across the
-   *  screen, whichever direction was asked for. */
-  if (forward.length === 0) {
-    return laid_in_order(order, all, how);
-  }
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({ rankdir: RANKDIR[how] ?? "LR", nodesep: GAP.unit, ranksep: GAP.rank });
+  g.setDefaultEdgeLabel(() => ({}));
+  /** Nodes in the order the layer states them, so the same input always draws
+   *  the same picture — dagre is deterministic, but only per insertion order. */
+  for (const it of all) g.setNode(it.b.id, { width: it.s.w, height: it.s.h });
+  for (const l of forward) g.setEdge(l.from, l.to);
+  dagre.layout(g);
 
-  /** Longest path from a source. The graph is acyclic here, so it settles. */
-  const rank = new Map<Id, number>();
-  const depth_of = (id: Id, seen: Set<Id>): number => {
-    if (rank.has(id)) return rank.get(id)!;
-    if (seen.has(id)) return 0;
-    seen.add(id);
-    const ups = into.get(id) ?? [];
-    const r = ups.length === 0 ? 0 : Math.max(...ups.map((u) => depth_of(u, seen) + 1));
-    rank.set(id, r);
-    return r;
-  };
-  for (const id of order) depth_of(id, new Set());
-
-  const rows = new Map<number, Id[]>();
-  for (const id of order) {
-    const r = rank.get(id) ?? 0;
-    rows.set(r, [...(rows.get(r) ?? []), id]);
-  }
-  for (const [r, ids] of rows) {
-    if (r === 0) continue;
-    const before = rows.get(r - 1) ?? [];
-    const seat = (id: Id) => {
-      const ups = (into.get(id) ?? []).map((u) => before.indexOf(u)).filter((i) => i >= 0);
-      return ups.length ? ups.reduce((a, b) => a + b, 0) / ups.length : Number.MAX_SAFE_INTEGER;
-    };
-    rows.set(r, [...ids].sort((a, b) => seat(a) - seat(b) || a.localeCompare(b)));
-  }
-
-  const by_id = new Map(all.map((it) => [it.b.id, it.s]));
-  const down = how === "down" || how === "up";
-  const back = how === "left" || how === "up";
-  const stride = Math.max(...all.map((it) => (down ? it.s.h : it.s.w))) + GAP.rank;
-  const depth = Math.max(...rank.values()) + 1;
-
-  const out: Placed[] = [];
-  for (const [r, ids] of [...rows].sort((a, b) => a[0] - b[0])) {
-    const along = back ? (depth - 1 - r) * stride : r * stride;
-    let across = 0;
-    for (const id of ids) {
-      const s = by_id.get(id)!;
-      out.push({ id, ...s,
-        x: snap(down ? across : along),
-        y: snap(down ? along : across) });
-      across += (down ? s.w : s.h) + GAP.unit;
-    }
-  }
-  return out;
+  /** dagre centres a node on its position; everything here is a top-left. */
+  return all.map((it) => {
+    const n = g.node(it.b.id);
+    return { id: it.b.id, ...it.s,
+             x: snap(n.x - it.s.w / 2), y: snap(n.y - it.s.h / 2) };
+  });
 }
 
 /** One per rank, in the order they were stated. */

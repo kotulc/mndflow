@@ -1,0 +1,200 @@
+/* What a Scene looks like on React Flow's canvas.
+ *
+ * Every value is a step on the ramp — a definition picks a slot and an
+ * emphasis, and never a colour. The library's own stylesheet draws the
+ * viewport, the handles and the edge paths; everything here is the notation
+ * sitting on top of it, plus the few places React Flow's defaults have to be
+ * told what theme they are in. */
+
+@import "@xyflow/react/dist/style.css";
+
+.mnd-flow { width: 100%; height: 100%; }
+
+/* React Flow paints its own ground and its own chrome. Both take the ramp. */
+.mnd-flow .react-flow__background { background: var(--bg); }
+.mnd-flow .react-flow__background pattern circle { fill: var(--line); }
+
+.mnd-flow .react-flow__controls-button {
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
+  fill: var(--muted);
+}
+.mnd-flow .react-flow__controls-button:hover { background: var(--hover); fill: var(--text); }
+
+.mnd-flow .react-flow__minimap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.mnd-flow .react-flow__minimap-mask { fill: var(--outside); }
+.mnd-flow .react-flow__minimap-node { fill: var(--card-line); stroke: none; }
+
+/* ── The notation ──────────────────────────────────────────────────────── */
+
+/* One card, and every mark that is still a rectangle. `--card-*` is what a
+   definition's slot resolves to, so a look is chosen there and never here. */
+.mnd-card {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid var(--card-line);
+  border-radius: 3px;
+  background: var(--card-fill);
+  color: var(--text);
+  font: inherit;
+  overflow: hidden;
+}
+
+.mnd-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* A container holds a layer of its own, so it says so before you descend. */
+.mnd-card.container { border-width: 2px; }
+
+/* Somewhere else, and a description rather than structure. */
+.mnd-card.reference { border-style: dashed; color: var(--away); border-color: var(--away); }
+.mnd-card.missing { border-color: var(--error); color: var(--error); }
+.mnd-card.note {
+  border-color: var(--note);
+  background: none;
+  color: var(--note);
+  justify-content: flex-start;
+  font-style: italic;
+}
+
+/* A boundary is a band behind its members, never a card in front of them. */
+.mnd-card.group {
+  background: var(--card-veil);
+  border-style: dashed;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 3px 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* A reading's own furniture: a lane names itself at the top, a lifeline is a
+   rule rather than a box, and neither is anything you may move. */
+.mnd-card.lane {
+  background: none;
+  border-color: var(--divider);
+  align-items: flex-start;
+  padding-top: 4px;
+  color: var(--muted);
+}
+.mnd-card.lifeline { border: none; border-left: 1px dashed var(--stroke); border-radius: 0; }
+.mnd-card.derived { cursor: default; }
+
+/* A table's own cells, drawn on the canvas until a table has a surface of its
+   own. A head reads as a head; a filled cell says a relationship runs here. */
+.mnd-card.header { background: var(--raised); color: var(--muted); font-weight: 600; }
+.mnd-card.cell { border-color: var(--divider); }
+.mnd-card.filled { background: var(--tint); border-color: var(--accent); }
+.mnd-card.turned .mnd-label { writing-mode: vertical-rl; transform: rotate(180deg); }
+
+/* Which way a flow enters and leaves, on the interface that carries it. */
+.mnd-card.in, .mnd-seat.in { border-color: var(--accent); }
+.mnd-card.out, .mnd-seat.out { border-color: var(--away); }
+
+/* Selection is the app speaking about your model, so it takes the accent and
+   no definition may claim it. */
+.mnd-card.picked, .mnd-control.picked .mnd-diamond, .mnd-seat.picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* A decision and a merge: a rotated square, with the name beside it. */
+.mnd-control {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.mnd-control .mnd-diamond {
+  position: absolute;
+  inset: 15%;
+  border: 1px solid var(--card-line);
+  background: var(--card-fill);
+  transform: rotate(45deg);
+}
+.mnd-control .mnd-label {
+  position: relative;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* An interface, seated on a wall. The mark is the whole of it. */
+.mnd-seat {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--card-line);
+  background: var(--surface);
+}
+
+/* The open layer, seen from within. It takes no pointer of its own — the
+   ground inside it is what a double click comes back out of — but its name
+   does, because a name is renamed where it is read. */
+.mnd-frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--stroke);
+  border-radius: 3px;
+  background: none;
+  pointer-events: none;
+}
+.mnd-frame-name {
+  position: absolute;
+  top: -0.75em;
+  left: 12px;
+  padding: 0 6px;
+  background: var(--bg);
+  color: var(--muted);
+  pointer-events: auto;
+  cursor: text;
+}
+
+/* ── Routes ────────────────────────────────────────────────────────────── */
+
+.mnd-flow .react-flow__edge-path { stroke: var(--route); }
+.mnd-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); }
+.mnd-flow .react-flow__arrowhead * { fill: var(--route-head); stroke: none; }
+.mnd-flow .react-flow__edge.selected .react-flow__arrowhead * { fill: var(--accent); }
+.mnd-flow .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
+.mnd-flow .react-flow__edge-textbg { fill: var(--bg); }
+
+/* An association is quieter than a flow — the two are told apart by weight
+   rather than by colour, so a definition's slot still means what it says. */
+.mnd-flow .react-flow__edge.line .react-flow__edge-path { stroke-width: 1; opacity: 0.6; }
+.mnd-flow .react-flow__edge.directed .react-flow__edge-path { stroke-width: 1.75; }
+
+/* Handles are for connecting, not for looking at: they appear while a
+   connection is being made and are invisible the rest of the time. */
+.mnd-flow .react-flow__handle {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.mnd-flow .react-flow__node:hover .react-flow__handle,
+.mnd-flow.react-flow__container--connecting .react-flow__handle { opacity: 1; }
+.mnd-flow .react-flow__connectionline path { stroke: var(--accent); stroke-dasharray: 4 3; }
+
+/* What a sweep has covered so far. */
+.mnd-flow .react-flow__selection {
+  background: var(--tint);
+  border: 1px dashed var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mnd-flow .react-flow__handle { transition: none; }
+}

@@ -38,7 +38,7 @@ describe("a translator's graph", () => {
 
   it("projects the layer it filed its vocabulary on", () => {
     const tier = block.project(graph, TIER, {});
-    expect(tier.boxes.map((b) => b.id)).toEqual(["set_guides"]);
+    expect(tier.nodes.map((n) => n.id)).toEqual(["set_guides"]);
   });
 });
 
@@ -47,7 +47,7 @@ describe("a translator's graph", () => {
  *  reaching into a drawing — so these are the tests that keep that true. */
 describe("a drawing as navigation", () => {
   it("carries the source link on every navigable box", () => {
-    for (const box of scene.boxes) expect(box.link).toBeTruthy();
+    for (const n of scene.nodes) expect(n.data.link).toBeTruthy();
   });
 
   it("wraps a linked box in an anchor", () => {
@@ -65,7 +65,7 @@ describe("a drawing inlined in a page", () => {
 
   it("leaves no brace behind when the sheet is carried by the page", () => {
     const braced = { ...scene,
-                     boxes: scene.boxes.map((b) => ({ ...b, label: `{${b.label}}` })) };
+                     nodes: scene.nodes.map((n) => ({ ...n, data: { ...n.data, label: `{${n.data.label}}` } })) };
     expect(draw_svg(braced, { style: "" })).not.toMatch(/[{}]/);
   });
 

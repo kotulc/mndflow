@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
 import { children, fold, session, ROOT, type Graph, type Id } from "@mnd/core";
-import { block, draw, faults, matrix, outline, reseat, rewall, table, view, views, EMPTY,
+import { block, box_of, draw, faults, matrix, outline, table, view, views, EMPTY,
          type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
@@ -27,33 +27,32 @@ describe("every scene is well-formed", () => {
     expect(faults(block.project(fold([]), null))).toEqual([]);
   });
 
-  it("and the empty scene is well-formed except for having no bounds", () => {
-    expect(faults({ ...EMPTY, bounds: { w: 1, h: 1 } })).toEqual([]);
+  it("and the empty scene is well-formed, having nothing to be wrong about", () => {
+    expect(faults(EMPTY)).toEqual([]);
   });
 });
 
 describe("the invariants catch what they are for", () => {
   const good = block.project(fold(related()), "block_loop");
 
-  it("a route reaching a box that is not drawn", () => {
+  it("an edge reaching a node that is not drawn", () => {
     const bad: Scene = { ...good,
-      routes: [{ ...good.routes[0]!, to: "nowhere" }] };
+      edges: [{ ...good.edges[0]!, target: "nowhere" }] };
     expect(faults(bad)).toContainEqual(expect.stringContaining("not drawn"));
   });
 
-  it("a bend that is not square", () => {
-    const bad: Scene = { ...good, routes: [{ ...good.routes[0]!,
-      points: [{ x: 0, y: 0 }, { x: 10, y: 10 }] }] };
-    expect(faults(bad)).toContainEqual(expect.stringContaining("not square"));
-  });
-
-  it("a box with no size", () => {
-    const bad: Scene = { ...good, boxes: [{ ...good.boxes[0]!, w: 0 }] };
+  it("a node with no size", () => {
+    const bad: Scene = { ...good, nodes: [{ ...good.nodes[0]!, width: 0 }] };
     expect(faults(bad)).toContainEqual(expect.stringContaining("no size"));
   });
 
-  it("two boxes sharing an id", () => {
-    const bad: Scene = { ...good, boxes: [good.boxes[0]!, good.boxes[0]!] };
+  it("a node that says nothing about how it draws", () => {
+    const bad: Scene = { ...good, nodes: [{ ...good.nodes[0]!, type: undefined }] };
+    expect(faults(bad)).toContainEqual(expect.stringContaining("how it draws"));
+  });
+
+  it("two nodes sharing an id", () => {
+    const bad: Scene = { ...good, nodes: [good.nodes[0]!, good.nodes[0]!] };
     expect(faults(bad)).toContainEqual(expect.stringContaining("share an id"));
   });
 });
@@ -62,25 +61,24 @@ describe("what the projection shows", () => {
   it("draws one box per unit in the layer, and no more", () => {
     const graph = fold(nested());
     const scene = block.project(graph, "block_ledger");
-    expect(scene.boxes.map((b) => b.id).sort())
+    expect(scene.nodes.map((b) => b.id).sort())
       .toEqual(children(graph, "block_ledger").map((b) => b.id).sort());
   });
 
   it("draws nothing from another layer", () => {
     const graph = fold(nested());
     const scene = block.project(graph, "block_ledger");
-    expect(scene.boxes.map((b) => b.id)).not.toContain("block_rate");
+    expect(scene.nodes.map((b) => b.id)).not.toContain("block_rate");
   });
 
-  it("gives every box a hit, and every route one too", () => {
+  it("gives every node a type, so a renderer never guesses", () => {
     const scene = block.project(fold(related()), "block_loop");
-    for (const b of scene.boxes) expect(scene.hits.some((h) => h.on === b.id)).toBe(true);
-    for (const r of scene.routes) expect(scene.hits.some((h) => h.on === r.id)).toBe(true);
+    expect(scene.nodes.every((n) => !!n.type)).toBe(true);
   });
 
   it("marks how a block reads without anything declaring it", () => {
     const scene = block.project(fold(related()), "block_loop");
-    const mark = (id: string) => scene.boxes.find((b) => b.id === id)!.marks;
+    const mark = (id: string) => scene.nodes.find((b) => b.id === id)!.data.marks;
     expect(mark("block_note")).toContain("note");
     expect(mark("block_hot")).toContain("group");
     expect(mark("block_pump")).not.toContain("container");
@@ -88,11 +86,11 @@ describe("what the projection shows", () => {
 
   it("sizes a boundary to what it holds", () => {
     const scene = block.project(fold(related()), "block_loop");
-    const group = scene.boxes.find((b) => b.marks.includes("group"))!;
+    const band = box_of(scene.nodes.find((b) => b.data.marks.includes("group"))!);
     for (const id of ["block_hx", "block_tank"]) {
-      const box = scene.boxes.find((b) => b.id === id)!;
-      expect(box.x).toBeGreaterThanOrEqual(group.x);
-      expect(box.x + box.w).toBeLessThanOrEqual(group.x + group.w);
+      const box = box_of(scene.nodes.find((b) => b.id === id)!);
+      expect(box.x).toBeGreaterThanOrEqual(band.x);
+      expect(box.x + box.w).toBeLessThanOrEqual(band.x + band.w);
     }
   });
 
@@ -104,12 +102,12 @@ describe("what the projection shows", () => {
     const auth = children(s.graph(), ledger)[0]!.id;
     s.go("refer", { target: auth });
 
-    const ref = () => block.project(s.graph(), null).boxes.find((b) =>
-      b.marks.includes("reference"))!;
-    expect(ref().label).toBe("Auth");
+    const ref = () => block.project(s.graph(), null).nodes.find((b) =>
+      b.data.marks.includes("reference"))!;
+    expect(ref().data.label).toBe("Auth");
 
     s.go("delete", { id: auth });
-    expect(ref().marks).toContain("missing");
+    expect(ref().data.marks).toContain("missing");
   });
 
   it("carries a trail from the root down to the layer", () => {
@@ -131,7 +129,7 @@ describe("what the projection shows", () => {
   it("still draws no interface when it is told to hide them", () => {
     const graph = fold(fixture("interfaced"));
     const off = block.project(graph, "block_loop", { interfaces: false });
-    expect(off.boxes.some((b) => b.marks.includes("interface"))).toBe(false);
+    expect(off.nodes.some((b) => b.data.marks.includes("interface"))).toBe(false);
   });
 
   it("is a pure function of the graph — it writes nothing", () => {
@@ -177,54 +175,32 @@ describe("the text renderer", () => {
 
 describe("interfaces are seated, not placed", () => {
   const scene = block.project(fold(fixture("interfaced")), "block_loop");
-  const port = () => scene.boxes.find((b) => b.id === "port_out")!;
+  const port = () => scene.nodes.find((b) => b.id === "port_out")!;
 
   it("draws one, on the card it belongs to", () => {
-    expect(port().on).toBe("block_pump");
-    expect(port().marks).toContain("interface");
+    expect(port().data.on).toBe("block_pump");
+    expect(port().data.marks).toContain("interface");
   });
 
   it("marks which way it flows, and the mark constrains nothing", () => {
-    expect(port().marks).toContain("out");
-    expect(scene.boxes.find((b) => b.id === "port_in")!.marks).toContain("in");
+    expect(port().data.marks).toContain("out");
+    expect(scene.nodes.find((b) => b.id === "port_in")!.data.marks).toContain("in");
   });
 
-  it("answers a gesture as a seat rather than as a card", () => {
-    const hit = scene.hits.find((h) => h.on === "port_out")!;
-    expect(hit.kind).toBe("seat");
+  it("draws as a seat rather than as a card", () => {
+    expect(port().type).toBe("seat");
   });
 
   it("lands a relationship on the seat it names", () => {
-    const line = scene.routes.find((r) => r.id === "edge_flow")!;
-    expect([line.from, line.to]).toEqual(["port_out", "port_in"]);
+    const line = scene.edges.find((r) => r.id === "edge_flow")!;
+    expect([line.source, line.target]).toEqual(["port_out", "port_in"]);
   });
 
   it("hides the seats and never the lines", () => {
     const off = block.project(fold(fixture("interfaced")), "block_loop", { interfaces: false });
-    expect(off.boxes.some((b) => b.marks.includes("interface"))).toBe(false);
-    expect(off.routes.map((r) => r.id).sort()).toEqual(scene.routes.map((r) => r.id).sort());
+    expect(off.nodes.some((b) => b.data.marks.includes("interface"))).toBe(false);
+    expect(off.edges.map((r) => r.id).sort()).toEqual(scene.edges.map((r) => r.id).sort());
     expect(faults(off)).toEqual([]);
-  });
-});
-
-describe("what a positional drag is asking for", () => {
-  const scene = block.project(fold(fixture("interfaced")), "block_loop");
-  const on = scene.boxes.find((b) => b.id === "block_pump")!;
-
-  it("seats an interface on the wall the point is nearest", () => {
-    const above = reseat(scene, "port_out", { x: on.x + on.w / 2, y: on.y - 20 })!;
-    expect(above.side).toBe("top");
-    expect(above.at).toBeGreaterThan(0);
-  });
-
-  it("says nothing about a box that is seated on nothing", () => {
-    expect(reseat(scene, "block_pump", { x: 0, y: 0 })).toBeNull();
-    expect(reseat(scene, "nobody", { x: 0, y: 0 })).toBeNull();
-  });
-
-  it("walls a line's end by the card the end is on, never by the seat", () => {
-    expect(rewall(scene, "edge_flow", "from", { x: on.x + on.w / 2, y: on.y - 20 })).toBe("top");
-    expect(rewall(scene, "nothing", "from", { x: 0, y: 0 })).toBeNull();
   });
 });
 
@@ -233,7 +209,7 @@ describe("one behavior layer, read three ways", () => {
   const LAYER = "block_flow";
   const of = (reading?: "activity" | "sequence" | "state") =>
     block.project(graph, LAYER, reading ? { reading } : {});
-  const lanes = (s: Scene) => s.boxes.filter((b) => b.marks.includes("lane"));
+  const lanes = (s: Scene) => s.nodes.filter((b) => b.data.marks.includes("lane"));
 
   it.each([undefined, "activity", "sequence", "state"] as const)(
     "is well-formed read as %s", (reading) => {
@@ -245,23 +221,23 @@ describe("one behavior layer, read three ways", () => {
   });
 
   it("draws one lane per participant, named through the reference", () => {
-    expect(lanes(of("activity")).map((b) => b.label))
+    expect(lanes(of("activity")).map((b) => b.data.label))
       .toEqual(["Pump", "Heat Exchanger", "Reservoir"]);
   });
 
   it("draws the same lanes as columns in a sequence, and hangs a lifeline", () => {
     const seq = of("sequence");
-    expect(lanes(seq).map((b) => b.label)).toEqual(lanes(of("activity")).map((b) => b.label));
-    expect(seq.boxes.filter((b) => b.marks.includes("lifeline")))
+    expect(lanes(seq).map((b) => b.data.label)).toEqual(lanes(of("activity")).map((b) => b.data.label));
+    expect(seq.nodes.filter((b) => b.data.marks.includes("lifeline")))
       .toHaveLength(lanes(seq).length);
   });
 
   it("stands a sequence's columns side by side and runs its order down", () => {
     const seq = of("sequence");
-    const [first, second] = lanes(seq);
+    const [first, second] = lanes(seq).map(box_of);
     expect(second!.x).toBeGreaterThan(first!.x);
     expect(second!.y).toBe(first!.y);
-    const act = (id: string) => seq.boxes.find((b) => b.id === id)!;
+    const act = (id: string) => box_of(seq.nodes.find((b) => b.id === id)!);
     expect(act("act_hx").y).toBeGreaterThan(act("act_pump").y);
   });
 
@@ -270,27 +246,35 @@ describe("one behavior layer, read three ways", () => {
   });
 
   it("counts a branch as a fork and what it rejoins as a join", () => {
-    const kinds = of("activity").boxes.filter((b) => b.marks.includes("control"))
-      .flatMap((b) => b.marks.filter((m) => m !== "control"));
+    const kinds = of("activity").nodes.filter((b) => b.data.marks.includes("control"))
+      .flatMap((b) => b.data.marks.filter((m) => m !== "control"));
     expect(kinds.sort()).toEqual(["fork", "join"]);
   });
 
   it("takes every branch through the control, keeping its own id", () => {
     const act = of("activity");
-    const fork = act.boxes.find((b) => b.marks.includes("fork"))!;
-    expect(act.routes.find((r) => r.id === "order_a")!.from).toBe(fork.id);
-    expect(act.routes.map((r) => r.id)).toContain("order_b");
+    const fork = act.nodes.find((b) => b.data.marks.includes("fork"))!;
+    expect(act.edges.find((r) => r.id === "order_a")!.source).toBe(fork.id);
+    expect(act.edges.map((r) => r.id)).toContain("order_b");
   });
 
   it("draws no control in a sequence — order already runs down the page", () => {
-    expect(of("sequence").boxes.some((b) => b.marks.includes("control"))).toBe(false);
+    expect(of("sequence").nodes.some((b) => b.data.marks.includes("control"))).toBe(false);
   });
 
+  /** Nothing anybody made is one, so none of them takes a drag or a click —
+   *  which the projection says on the node rather than by leaving it out of a
+   *  list of regions somebody else has to consult. */
   it("offers no gesture on anything derived", () => {
     for (const scene of [of("activity"), of("sequence"), of("state")]) {
-      const derived = scene.boxes.filter((b) =>
-        b.marks.includes("lane") || b.marks.includes("lifeline") || b.marks.includes("control"));
-      for (const b of derived) expect(scene.hits.some((h) => h.on === b.id)).toBe(false);
+      const derived = scene.nodes.filter((b) =>
+        b.data.marks.includes("lane") || b.data.marks.includes("lifeline")
+        || b.data.marks.includes("control"));
+      expect(derived.length).toBeGreaterThan(0);
+      for (const b of derived) {
+        expect(b.draggable).toBe(false);
+        expect(b.selectable).toBe(false);
+      }
     }
   });
 
@@ -319,15 +303,15 @@ describe("the two projections that are not a plane", () => {
 
   describe("table", () => {
     const scene = table.project(graph, LAYER);
-    const head = scene.boxes.filter((b) => b.marks.includes("header"));
+    const head = scene.nodes.filter((b) => b.data.marks.includes("header"));
 
     it("draws no frame — a table is a list and has no inside", () => {
       expect(scene.frame).toBeUndefined();
     });
 
     it("gives one row per thing the layer holds", () => {
-      const rows = scene.boxes.filter((b) => !b.marks.includes("header")
-                                          && !b.marks.includes("cell"));
+      const rows = scene.nodes.filter((b) => !b.data.marks.includes("header")
+                                          && !b.data.marks.includes("cell"));
       expect(rows.map((b) => b.id).sort())
         .toEqual(children(graph, LAYER).map((b) => b.id).sort());
     });
@@ -336,17 +320,21 @@ describe("the two projections that are not a plane", () => {
       const fielded: Graph = structuredClone(graph);
       fielded.blocks["block_pump"]!.fields = [{ name: "duty", form: "text", value: "high" }];
       const with_field = table.project(fielded, LAYER);
-      expect(with_field.boxes.filter((b) => b.marks.includes("header")).map((b) => b.label))
+      expect(with_field.nodes.filter((b) => b.data.marks.includes("header")).map((b) => b.data.label))
         .toEqual(["name", "duty"]);
-      expect(head.map((b) => b.label)).toEqual(["name"]);
+      expect(head.map((b) => b.data.label)).toEqual(["name"]);
     });
 
-    it("answers a cell as a field and a row as a block", () => {
+    /** A cell is reachable on its own — a table is where a value is edited —
+     *  and it says which it is in its marks. */
+    it("draws a cell as a cell and a row as the block it names", () => {
       const fielded: Graph = structuredClone(graph);
       fielded.blocks["block_pump"]!.fields = [{ name: "duty", form: "text", value: "high" }];
       const scene2 = table.project(fielded, LAYER);
-      expect(scene2.hits.find((h) => h.on === "block_pump:duty")!.kind).toBe("field");
-      expect(scene2.hits.find((h) => h.on === "block_pump")!.kind).toBe("box");
+      const cell = scene2.nodes.find((n) => n.id === "block_pump:duty")!;
+      expect(cell.data.marks).toContain("cell");
+      expect(scene2.nodes.find((n) => n.id === "block_pump")!.data.marks)
+        .not.toContain("cell");
     });
 
     it("offers columns and types, and nothing a plane offers", () => {
@@ -356,29 +344,29 @@ describe("the two projections that are not a plane", () => {
 
   describe("matrix", () => {
     const scene = matrix.project(graph, LAYER);
-    const cell = (row: string, col: string) => scene.boxes.find((b) => b.id === `${row}:${col}`)!;
+    const cell = (row: string, col: string) => scene.nodes.find((b) => b.id === `${row}:${col}`)!;
 
     it("names both axes from the same layer, once each way", () => {
       const here = children(graph, LAYER).map((b) => b.id);
       for (const id of here) {
-        expect(scene.boxes.some((b) => b.id === `row:${id}`)).toBe(true);
-        expect(scene.boxes.some((b) => b.id === `column:${id}`)).toBe(true);
+        expect(scene.nodes.some((b) => b.id === `row:${id}`)).toBe(true);
+        expect(scene.nodes.some((b) => b.id === `column:${id}`)).toBe(true);
       }
     });
 
     it("fills the cell where a relationship already runs, both ways round", () => {
-      expect(cell("block_pump", "block_hx").marks).toContain("filled");
-      expect(cell("block_hx", "block_pump").marks).toContain("filled");
+      expect(cell("block_pump", "block_hx").data.marks).toContain("filled");
+      expect(cell("block_hx", "block_pump").data.marks).toContain("filled");
     });
 
     it("leaves a cell empty where nothing relates them", () => {
-      expect(cell("block_pump", "block_valve").marks).not.toContain("filled");
+      expect(cell("block_pump", "block_valve").data.marks).not.toContain("filled");
     });
 
     it("draws a cell for every pair, and no route — a matrix has no lines", () => {
       const here = children(graph, LAYER).length;
-      expect(scene.boxes.filter((b) => b.marks.includes("cell"))).toHaveLength(here * here);
-      expect(scene.routes).toEqual([]);
+      expect(scene.nodes.filter((b) => b.data.marks.includes("cell"))).toHaveLength(here * here);
+      expect(scene.edges).toEqual([]);
     });
   });
 });

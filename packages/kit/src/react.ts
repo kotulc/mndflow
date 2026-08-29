@@ -16,7 +16,7 @@
  *  The renderer underneath also
  *  offers drag callbacks that mean move, seat, wall and relate; they are not
  *  re-exported, so an edit is unreachable rather than merely unadvised. A host
- *  that needs them lives in this repo and imports `@mnd/render` directly.
+ *  that needs them lives in this repo and imports `@mnd/stage` directly.
  *
  *  `Explorer` is the tree, and it is here because **it emits intent rather
  *  than change**: `onAct` is a name and arguments, so a host is free to mean

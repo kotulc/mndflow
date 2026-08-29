@@ -15,7 +15,7 @@
 
 import { children, edges_in, is_interface, is_reference, module_of, shown_name,
          type Graph, type Id, type Reading, type Relation } from "@mnd/core";
-import { centred, size_of, snap, GAP, GRID, type Placed } from "@mnd/layout";
+import { centred, size_of, snap, GAP, GRID, type Placed } from "@mnd/views";
 
 /** A lane: a band across an activity, a column in a sequence, and nothing at
  *  all in a state. One per participant, named through the reference. */

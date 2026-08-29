@@ -58,7 +58,7 @@ export { ALL, BASE, BEHAVIOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
 
 /** A layer, projected — and the two artifacts a projection makes on its own. */
 export {
-  type Box, type Config, type Frame, type Hit, type Mark, type Paper, type Route,
-  type Scene, type Slot, type View,
-  SHEET, block, draw, draw_svg, matrix, outline, table, view, views,
+  type BoxData, type BoxNode, type Config, type Frame, type LineData,
+  type LineEdge, type Mark, type Paper, type Scene, type Slot, type View,
+  SHEET, block, box_of, draw, draw_svg, extent, matrix, outline, table, view, views,
 } from "@mnd/views";

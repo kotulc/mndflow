@@ -8,13 +8,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { adjustments, matches, offer, session, type Id, type Reading } from "@mnd/core";
-import { snap } from "@mnd/layout";
+import { nearest_seat, snap } from "@mnd/views";
 import { seed } from "@mnd/defs";
-import { reseat, rewall, view } from "@mnd/views";
-import { Explorer } from "@mnd/explorer";
+import { box_of, view } from "@mnd/views";
+import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
-import type { Drag } from "@mnd/render";
+import type { Adjust } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
@@ -152,27 +152,25 @@ export function App() {
   };
 
   /** An adjustment is positional and unsayable, and undoable like anything
-   *  else. Where it lands is the Scene's to say — the app only writes it. */
-  const adjust = (drag: Drag) => {
-    if (drag.kind === "seat") {
-      const seat = reseat(scene, drag.on, drag.to);
-      if (seat) s.adjust("seat", adjustments.seat(drag.on, seat.side, seat.at));
+   *  else. **The canvas already worked out where it landed** — it snaps to the
+   *  grid and constrains a seated interface to its own card — so the app only
+   *  writes what it was handed. */
+  const adjust = (a: Adjust) => {
+    if (a.kind === "wall") {
+      const end = graph.blocks[a.to] ? a.to : null;
+      if (end) s.go("relink", { id: a.on, end: a.end, to: end });
       return;
     }
-    if (drag.kind === "wall") {
-      const side = rewall(scene, drag.on, drag.end, drag.to);
-      if (side) s.adjust("wall", adjustments.wall(drag.on, drag.end, side));
+    /** A seated interface slides along the card it sits on: what changed is
+     *  which wall and how far, and both are read off where it came to rest. */
+    const drawn = scene.nodes.find((n) => n.id === a.on);
+    const on = drawn?.data.on ? scene.nodes.find((n) => n.id === drawn.data.on) : null;
+    if (on) {
+      const seat = nearest_seat(box_of(on), a.to);
+      s.adjust("seat", adjustments.seat(a.on, seat.side, seat.at));
       return;
     }
-    /** A card dropped where nothing was is a **place**. The layer snaps it to
-     *  the grid, so what is stored is where it came to rest rather than where
-     *  the pointer was. */
-    if (drag.kind !== "move") return;
-    const box = scene.boxes.find((b) => b.id === drag.on);
-    if (!box) return;
-    const at = { x: box.x + (drag.to.x - drag.from.x),
-                 y: box.y + (drag.to.y - drag.from.y) };
-    s.adjust("place", adjustments.place([{ id: drag.on, x: snap(at.x), y: snap(at.y) }]));
+    s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
   };
 
   /** The rail's controls are display state or ordinary actions — it writes
@@ -293,6 +291,16 @@ export function App() {
       <main>
         <Stage
           scene={scene}
+          /** **The same offered list the tree hangs off a row.** One menu, two
+           *  callers — the app mounts it, so neither package has to know the
+           *  other exists. */
+          menu={(at, on, shut) => (
+            <Menu ctx={{ graph, layer, picked: on ? [on] : [...s.picked()] }}
+                  at={at} onAct={act} onShut={shut} />
+          )}
+          /** A row dragged out of the tree lands where it was dropped. */
+          onDrop={(id, spot) => s.adjust("place",
+            adjustments.place([{ id, x: snap(spot.x), y: snap(spot.y) }]))}
           picked={s.picked()}
           said={said?.text ?? null}
           onSaid={() => s.say("")}

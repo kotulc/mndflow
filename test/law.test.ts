@@ -22,16 +22,21 @@ const ALLOWED: Record<string, readonly string[]> = {
   core: [],
   defs: ["core"],
   fixtures: ["core", "defs"],
-  layout: ["core"],
-  views: ["core", "layout"],
   theme: [],
-  render: ["core", "views", "theme"],
+  /** Sizing, placement and the notation, in one package. **A layout package
+   *  stopped earning its boundary** once ranking became a call into dagre and
+   *  routing became the canvas's — what was left was two files nothing but
+   *  this called. */
+  views: ["core"],
   explorer: ["core", "theme"],
-  stage: ["core", "views", "render", "theme"],
+  /** The drawing, and the components it draws with. **A render package stopped
+   *  earning its boundary** for the same reason: it existed to be the seam
+   *  between a Scene and React, and React Flow is that seam now. */
+  stage: ["core", "views", "theme"],
   /** The seam, and the one package allowed to reach everything: it adds
    *  nothing and only re-exports, so it cannot put a dependency anywhere the
    *  map does not already allow. */
-  kit: ["core", "defs", "explorer", "layout", "views", "render", "theme"],
+  kit: ["core", "defs", "explorer", "views", "stage", "theme"],
   options: ["core", "theme"],
   tray: ["core", "theme"],
   terminal: ["core", "theme"],

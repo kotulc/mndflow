@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mnd/core": "*",
-    "@mnd/layout": "*"
+    "@dagrejs/dagre": "^3.1.1",
+    "@xyflow/react": "^12.3.5"
   }
 }

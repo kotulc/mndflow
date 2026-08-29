@@ -6,9 +6,9 @@
 
 import { describe, expect, it } from "vitest";
 import { fixture, related } from "@mnd/fixtures";
-import { arrangement_of, children, edges_in, fold, is_interface,
+import { children, fold, is_interface,
          type Arrangement, type Graph, type Id } from "@mnd/core";
-import { bounds, boundary, laid, nearest_seat, route, seated, size_of, snap, GRID, GAP,
+import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, GRID, GAP,
          type Placed } from "../src/index";
 
 const ARRANGEMENTS: Arrangement[] = ["free", "grid", "right", "left", "down", "up"];
@@ -125,74 +125,6 @@ describe("a directional arrangement reads one way", () => {
   });
 });
 
-describe("routing", () => {
-  const laid_related = () => {
-    const graph = fold(related());
-    return { graph, spots: laid(graph, "block_loop"),
-             edges: edges_in(graph, "block_loop"),
-             how: arrangement_of(graph, "block_loop") };
-  };
-
-  it("routes every relation in the layer", () => {
-    const { spots, edges, how } = laid_related();
-    expect(route(spots, edges, how)).toHaveLength(edges.length);
-  });
-
-  it("terminates on the cards it names", () => {
-    const { spots, edges, how } = laid_related();
-    const at = (id: string) => spots.find((p) => p.id === id)!;
-    const on = (p: { x: number; y: number }, c: Placed) =>
-      p.x >= c.x - 1 && p.x <= c.x + c.w + 1 && p.y >= c.y - 1 && p.y <= c.y + c.h + 1;
-    for (const r of route(spots, edges, how)) {
-      expect(on(r.points[0]!, at(r.from)), `${r.id} start`).toBe(true);
-      expect(on(r.points.at(-1)!, at(r.to)), `${r.id} end`).toBe(true);
-    }
-  });
-
-  it("draws every elbow as a right angle", () => {
-    const { spots, edges, how } = laid_related();
-    for (const r of route(spots, edges, how)) {
-      for (let i = 1; i < r.points.length; i++) {
-        const a = r.points[i - 1]!;
-        const b = r.points[i]!;
-        expect(a.x === b.x || a.y === b.y, `${r.id} segment ${i}`).toBe(true);
-      }
-    }
-  });
-
-  it("gives no two ends the same seat", () => {
-    const { spots, edges, how } = laid_related();
-    const seen = new Set<string>();
-    for (const r of route(spots, edges, how)) {
-      for (const end of [r.points[0]!, r.points.at(-1)!]) {
-        const key = `${end.x},${end.y}`;
-        expect(seen.has(key), `${r.id} shares a seat`).toBe(false);
-        seen.add(key);
-      }
-    }
-  });
-
-  it("spreads runs that would share a line onto lanes", () => {
-    const { spots, how } = laid_related();
-    const twice = [
-      { id: "e1", from: "block_pump", to: "block_hx", module: "line" as const },
-      { id: "e2", from: "block_pump", to: "block_hx", module: "line" as const },
-    ];
-    const [a, b] = route(spots, twice, how);
-    expect(a!.points).not.toEqual(b!.points);
-  });
-
-  it("routes nothing for a relation whose end is not in the layer", () => {
-    const { spots, how } = laid_related();
-    expect(route(spots, [{ id: "e", from: "block_pump", to: "nowhere", module: "line" }], how))
-      .toHaveLength(0);
-  });
-
-  it("is stable — routing twice gives the same lines", () => {
-    const { spots, edges, how } = laid_related();
-    expect(route(spots, edges, how)).toEqual(route(spots, edges, how));
-  });
-});
 
 describe("boundaries", () => {
   it("is its members' bounds plus a margin, and holds them", () => {

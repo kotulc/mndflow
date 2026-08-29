@@ -14,7 +14,7 @@
 import { useState } from "react";
 import { children, type Graph, type Id, type ViewModule } from "@mnd/core";
 import { EMPTY, view, type Config } from "@mnd/views";
-import { SceneView, type Gesture } from "@mnd/render";
+import { FlowView, type Gesture } from "@mnd/stage";
 
 /** Nothing picked. A constant, because a fresh `[]` every render would read as
  *  the host changing its mind on every render. */
@@ -62,7 +62,7 @@ export function Viewer({ graph, layer = null, picked = NONE, module = "block",
 
   /** Where a box points, if it points anywhere. The Scene carries it, so this
    *  reads the drawing rather than the graph — `draw_svg` reads the same. */
-  const link_of = (id: string) => scene.boxes.find((b) => b.id === id)?.link;
+  const link_of = (id: string) => scene.nodes.find((n) => n.id === id)?.data.link;
 
   const follow = (link: string, id: Id) => {
     if (onFollow) onFollow(link, id);
@@ -90,7 +90,7 @@ export function Viewer({ graph, layer = null, picked = NONE, module = "block",
     pick(g.on ? [g.on] : []);
   };
 
-  return <SceneView scene={scene} picked={lit} onGesture={gesture} />;
+  return <FlowView scene={scene} picked={lit} onGesture={gesture} onPick={pick} />;
 }
 
 /** A value the host may drive: the viewer's own until the host changes its

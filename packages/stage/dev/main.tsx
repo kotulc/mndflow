@@ -12,7 +12,7 @@ import { Stage } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
-import "@mnd/render/src/scene.css";
+import "@mnd/stage/src/scene.css";
 import "../src/stage.css";
 import "./dev.css";
 
@@ -66,7 +66,7 @@ function Harness() {
           {HOWS.map((h) => <option key={h}>{h}</option>)}
         </select>
         <span className="where">
-          {scene.boxes.length} boxes · {scene.routes.length} routes
+          {scene.nodes.length} nodes · {scene.edges.length} edges
         </span>
       </header>
       <div className="split">

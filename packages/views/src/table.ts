@@ -9,10 +9,10 @@
  *  the order and drops the spacing. */
 
 import { children, is_interface, shown_name, type Graph, type Id } from "@mnd/core";
-import { GRID } from "@mnd/layout";
+import { GRID } from "@mnd/views";
 import type { Config } from "./block";
 import { link_of, marks_of, trail_of } from "./derive";
-import type { Box, Hit, Scene, Slot } from "./scene";
+import { cell, type BoxNode, type Scene, type Slot } from "./scene";
 
 const ROW = GRID * 1.5;
 const NAME = GRID * 8;
@@ -40,38 +40,28 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
 
   /** The head names the columns and answers a click on one, which is what a
    *  sort is asked for by. */
-  const head: Box[] = cols.map((name, n) => ({
-    id: `column:${name}`, x: at(n), y: top, w: wide(n), h: ROW,
-    label: name, marks: ["header"],
-  }));
+  const head: BoxNode[] = cols.map((name, n) =>
+    cell(`column:${name}`, { x: at(n), y: top, w: wide(n), h: ROW },
+         { label: name, marks: ["header"] }));
 
-  const body: Box[] = [];
+  const body: BoxNode[] = [];
   rows.forEach((b, r) => {
     const y = top + (r + 1) * ROW;
-    body.push({ id: b.id, x: at(0), y, w: NAME, h: ROW,
-                label: shown_name(graph, b.id), def: b.type,
-                link: link_of(graph, b.id), marks: marks_of(graph, b.id) });
+    body.push(cell(b.id, { x: at(0), y, w: NAME, h: ROW },
+                   { label: shown_name(graph, b.id), def: b.type,
+                     link: link_of(graph, b.id), marks: marks_of(graph, b.id) }));
     cols.slice(1).forEach((name, n) => {
       const said = (b.fields ?? []).find((f) => f.name === name);
-      body.push({ id: `${b.id}:${name}`, x: at(n + 1), y, w: CELL, h: ROW,
-                  label: said?.value ?? "", marks: ["cell"] });
+      body.push(cell(`${b.id}:${name}`, { x: at(n + 1), y, w: CELL, h: ROW },
+                     { label: said?.value ?? "", marks: ["cell"] }));
     });
   });
 
-  const drawn = [...head, ...body];
   return {
     layer,
-    boxes: drawn,
-    routes: [],
+    nodes: [...head, ...body],
+    edges: [],
     slots: SLOTS,
-    /** A row answers as a block and a cell as a field: a table is where a value
-     *  is edited, so the cell has to be reachable on its own. */
-    hits: drawn.map((b): Hit => ({
-      on: b.id,
-      kind: b.marks.includes("cell") || b.marks.includes("header") ? "field" : "box",
-      region: { x: b.x, y: b.y, w: b.w, h: b.h },
-    })),
-    bounds: { w: width + GRID * 2, h: height + GRID * 2 },
     trail: trail_of(graph, layer),
   };
 }

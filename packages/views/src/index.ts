@@ -5,9 +5,11 @@
  *  block module reads a behavior layer — its own working, reached by nothing
  *  outside this package, and a name `core` already uses for reading a file. */
 
-export * from "./adjust";
 export * from "./derive";
 export * from "./scene";
+export * from "./size";
+export * from "./arrange";
+export * from "./seat";
 export * from "./svg";
 export * from "./text";
 

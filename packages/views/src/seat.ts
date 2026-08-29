@@ -1,14 +1,18 @@
-/** Where an interface sits, and where a drag would put it.
+/** Where an interface sits.
  *
  *  An interface is **seated** on its owner's edge rather than laid out beside
  *  it: a side and a fraction along it, so the seat survives the owner moving,
- *  growing or being arranged some other way. */
+ *  growing or being arranged some other way.
+ *
+ *  **A slide is still ours to read.** The canvas says where a drag came to
+ *  rest; which wall that is and how far along it are questions about this
+ *  model, and no drawing library has an opinion on them. What *is* gone is
+ *  asking the same question of a line's end — that is `onReconnect` now, which
+ *  names the card it landed on rather than a point to measure. */
 
 import { children, is_interface, type Graph, type Side } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { PORT, seat_at, seats } from "./size";
-
-export type Spot = { x: number; y: number };
 
 export type Seat = { side: Side; at: number };
 
@@ -40,7 +44,7 @@ export function at_seat(on: Placed, seat: Seat): Rect {
 /** Which seat a point asks for: the nearest edge, and the seat along it the
  *  point falls closest to. Seats are discrete, so a slide lands somewhere it
  *  can be landed on again. */
-export function nearest_seat(on: Placed, at: Spot): Seat {
+export function nearest_seat(on: Rect, at: { x: number; y: number }): Seat {
   /** How far out of the middle, in halves of the card. Measuring against the
    *  walls themselves would give a wide, short card a top wall that reaches
    *  further than its right one — every point outside would read *top*. */
@@ -56,10 +60,4 @@ export function nearest_seat(on: Placed, at: Spot): Seat {
   const count = seats(length);
   const n = Math.min(count - 1, Math.max(0, Math.round(along * (count + 1) - 1)));
   return { side, at: seat_at(n, count) };
-}
-
-/** Which wall a point asks a relationship's end to leave by. The nearest edge
- *  of the card it lands on, and nothing else — an end has no fraction. */
-export function nearest_wall(on: Placed, at: Spot): Side {
-  return nearest_seat(on, at).side;
 }

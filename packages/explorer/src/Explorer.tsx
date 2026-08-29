@@ -139,7 +139,14 @@ export function Explorer(props: ExplorerProps) {
               data-mark={r.mark}
               style={{ paddingLeft: 8 + r.depth * 14 }}
               draggable
-              onDragStart={() => set_dragging(r.id)}
+              onDragStart={(e) => {
+                set_dragging(r.id);
+                /** **The same drag, one target further.** A row dropped on
+                 *  another row re-parents; dropped on the drawing it is placed
+                 *  there, and the canvas reads this to know which it got. */
+                e.dataTransfer?.setData("text/mnd-block", r.id);
+                if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+              }}
               onDragEnd={() => { set_dragging(null); set_over(null); }}
               onDragOver={(e) => { e.preventDefault(); if (dragging !== r.id) set_over(r.id); }}
               onDragLeave={() => set_over((o) => (o === r.id ? null : o))}

@@ -17,10 +17,9 @@ graph must match the table below, and no package outside `core` may declare a cl
 | Core | Package Purpose | Depends on |
 |---|---|---|
 | core | the graph, the log, the door, the action set, the ports | — |
-| layout | sizing, placement, arrange, route | core |
-| views | the three view modules, each projecting a layer to a **Scene** | core, layout |
+| views | sizing, placement, and the three view modules, each projecting a layer to a **Scene**. Ranking is `dagre`'s | core |
 | defs | the shipped definition packages. **Data, no code** | core |
-| `theme` | the ramp, as CSS custom properties. **No code** | — |
+| `theme` | the ramp as CSS custom properties, and the icon set | — |
 | `fixtures` | sample **logs**, and sample **files** for the seam. Shared by the CLI, every suite and every dev harness | core, defs |
 
 Headless — no React, no DOM, no `window`.
@@ -29,8 +28,7 @@ Headless — no React, no DOM, no `window`.
 
 | Presentation | Package Purpose | Depends on |
 |---|---|---|
-| render | Scene → React: cards, the ramp, the gesture binding | core, views, theme |
-| stage | the drawing, framed: a Scene mounted and driven | core, views, render, theme |
+| stage | the drawing, framed: a Scene mounted on **React Flow** and driven | core, views, theme |
 | explorer | the tree, and the menu that hangs off it | core, theme |
 | tray | what the open layer holds, as rows | core, theme |
 | options | the control groups a projection's slots ask for | core, theme |
@@ -55,11 +53,11 @@ Apps bind ports and nothing else.
 
 | | Package Purpose | Depends on |
 |---|---|---|
-| `kit` | the whole headless stack as **one built package**, plus `kit/react` and `kit/react.css`. Bundled, so nothing outside sees a workspace | core, defs, explorer, layout, views, render, theme |
+| `kit` | the whole headless stack as **one built package**, plus `kit/react` and `kit/react.css`. Bundled, so nothing outside sees a workspace | core, defs, explorer, views, stage, theme |
 
-Twelve packages are the shape of the design; one is the shape of the seam. **Packed, never published** — `npm pack -w @mnd/kit` is how a translator installs mndflow. It adds nothing and only re-exports, so it cannot put a dependency anywhere the map does not already allow, and it declares its siblings as **build** dependencies because it carries them.
+Ten packages are the shape of the design; one is the shape of the seam. **Packed, never published** — `npm pack -w @mnd/kit` is how a translator installs mndflow. It adds nothing and only re-exports, so it cannot put a dependency anywhere the map does not already allow, and it declares its siblings as **build** dependencies because it carries them.
 
-**Data in, data and artifacts out, and the export list is written out.** The log, the steps, the mutations, the session, the action registry, the inference and `layout` are all internal: a log is intent replayed against one engine, and a graph is a statement of fact. **A signature naming `Log`, `Step` or `Mutation` is internal; graph to graph, and graph to Scene, is the seam.** `export *` from the engine is how that leaks, so what ships is named one by one.
+**Data in, data and artifacts out, and the export list is written out.** The log, the steps, the mutations, the session, the action registry, the inference and the placement are all internal: a log is intent replayed against one engine, and a graph is a statement of fact. **A signature naming `Log`, `Step` or `Mutation` is internal; graph to graph, and graph to Scene, is the seam.** `export *` from the engine is how that leaks, so what ships is named one by one.
 
 `kit/react` carries two components, and neither edits. `Viewer` draws a layer and walks it. `Explorer` lists the tree and **emits intent rather than change** — `onAct` is a name and arguments, so a host may mean something else by it entirely, which is what lets a tree sit over a graph no log ever wrote. Both are built from packages `kit` already bundles, so they can break nothing the map forbids.
 
@@ -67,24 +65,28 @@ Twelve packages are the shape of the design; one is the shape of the seam. **Pac
 ## The Scene is the seam
 
 ```
-project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
+project(graph, layer, config) → Scene { nodes, edges, slots, frame, trail }
 ```
 
-Plain data, importing nothing drawable. `render` turns a Scene into DOM; the `cli` turns one into
-text. **A notation becomes a pure function**, and most of the product is provably correct before
-anything is drawn.
+Plain data in **React Flow's own node and edge shape** — the types are imported for their shape and
+erased at build, so nothing headless resolves React. `stage` hands those arrays straight to the
+canvas; the `cli` turns them into text and SVG, drawing edges with React Flow's own path functions
+so the two cannot drift. **A notation becomes a pure function**, and most of the product is provably
+correct before anything is drawn.
+
+**Where a line runs and what answers a click are not in there.** Routing, hit testing, the viewport
+and the drag are the library's, which is the point: a boundary that exists to re-implement one is
+not a boundary worth keeping.
 
 ## What is proven where
 
 | | Package Proven By | Needs a browser |
 |---|---|---|
 | core | fold determinism, door repairs, containment, undo-by-refold, file round-trip | no |
-| layout | no overlap, containment, route termination, stability under reorder | no |
-| views | Scene invariants per module, over text and SVG projections of **shape, not coordinates** | no |
+| views | no overlap, containment, stability under reorder, and Scene invariants per module over text and SVG projections of **shape, not coordinates** | no |
 | defs | every definition passes the door; every module it names exists | no |
 | fixtures | every sample folds clean | no |
 | kit | packed, then a graph, a file and a drawing built from outside the workspace | no |
-| render | one conformance test: every Scene element draws, every hit binds | yes |
 | stage · explorer · tray · options · terminal | driven, not asserted | yes |
 
 **Everything that decides anything is proven headless.** What needs a browser is what only draws,

@@ -10,7 +10,8 @@
  *  this knows about the outside: where a block came from is a field on the
  *  block, and following one is a renderer's business. */
 
-import type { Box, Route, Scene } from "./scene";
+import { getSmoothStepPath, Position } from "@xyflow/system";
+import { box_of, extent, type BoxNode, type LineEdge, type Scene } from "./scene";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
 export type Paper = {
@@ -120,8 +121,9 @@ svg.scene .route.tie path {
 export function draw_svg(scene: Scene, paper: Paper = {}): string {
   const pad = paper.pad ?? PAD;
   const key = paper.id ?? "mnd";
-  const w = Math.max(scene.bounds.w, 200) + pad * 2;
-  const h = Math.max(scene.bounds.h, 200) + pad * 2;
+  const seen = extent(scene);
+  const w = Math.max(seen.w, 200) + pad * 2;
+  const h = Math.max(seen.h, 200) + pad * 2;
   const name = paper.title ?? scene.frame?.label ?? scene.trail.at(-1)?.label ?? "diagram";
 
   const parts = [
@@ -143,8 +145,9 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
       + `<text x="${round(f.x + 12)}" y="${round(f.y)}">${esc(f.label)}</text></g>`);
   }
 
-  for (const r of scene.routes) parts.push(line(r, key));
-  scene.boxes.forEach((b, n) => parts.push(card(b, `${key}-clip-${n}`)));
+  const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
+  for (const e of scene.edges) parts.push(line(e, at, key));
+  scene.nodes.forEach((n, i) => parts.push(card(n, `${key}-clip-${i}`)));
 
   parts.push(`</svg>`);
   return parts.join("\n") + "\n";
@@ -152,51 +155,88 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
 
 /** One card. A box that names a link is **wrapped** rather than drawn
  *  differently: where it points is not a look. */
-function card(box: Box, clip: string): string {
-  const shape = box.marks.includes("decision") || box.marks.includes("merge")
-    ? `<polygon points="${diamond(box)}" />`
-    : `<rect x="${round(box.x)}" y="${round(box.y)}"`
-      + ` width="${round(box.w)}" height="${round(box.h)}" rx="3" />`;
-  const drawn = `<g class="${["card", ...box.marks].join(" ")}"`
-    + (box.def ? ` data-def="${esc(box.def)}"` : "") + `>`
-    + shape + `<title>${esc(box.label)}</title>`
-    + (box.on ? `` : label(box, clip)) + `</g>`;
-  return box.link ? `<a href="${esc(box.link)}">${drawn}</a>` : drawn;
+function card(node: BoxNode, clip: string): string {
+  const d = node.data;
+  const at = box_of(node);
+  const shape = d.marks.includes("decision") || d.marks.includes("merge")
+    ? `<polygon points="${diamond(at)}" />`
+    : `<rect x="${round(at.x)}" y="${round(at.y)}"`
+      + ` width="${round(at.w)}" height="${round(at.h)}" rx="3" />`;
+  const drawn = `<g class="${["card", ...d.marks].join(" ")}"`
+    + (d.def ? ` data-def="${esc(d.def)}"` : "") + `>`
+    + shape + `<title>${esc(d.label)}</title>`
+    + (d.on ? `` : label(node, clip)) + `</g>`;
+  return d.link ? `<a href="${esc(d.link)}">${drawn}</a>` : drawn;
 }
 
 /** A name too long for its card is clipped, and a turned one reads up the box —
  *  the same two rules the React renderer draws by. */
-function label(box: Box, clip: string): string {
-  if (!box.label) return ``;
-  const turned = box.marks.includes("turned");
+function label(node: BoxNode, clip: string): string {
+  const d = node.data;
+  if (!d.label) return ``;
+  const box = box_of(node);
+  const turned = d.marks.includes("turned");
   const x = box.x + box.w / 2;
   const y = turned ? box.y + box.h - 6
-          : box.marks.includes("lane") ? box.y + 14 : box.y + box.h / 2;
+          : d.marks.includes("lane") ? box.y + 14 : box.y + box.h / 2;
   const spin = turned ? ` transform="rotate(-90 ${round(x)} ${round(y)})"` : ``;
   const cut = turned ? `` : ` clip-path="url(#${clip})"`;
   return `<clipPath id="${clip}"><rect x="${round(box.x)}" y="${round(box.y)}"`
     + ` width="${round(box.w)}" height="${round(box.h)}" /></clipPath>`
     + `<text x="${round(x)}" y="${round(y)}" dominant-baseline="central"`
-    + ` text-anchor="${turned ? "start" : "middle"}"${spin}${cut}>${esc(box.label)}</text>`;
+    + ` text-anchor="${turned ? "start" : "middle"}"${spin}${cut}>${esc(d.label)}</text>`;
 }
 
-function line(route: Route, key: string): string {
-  const d = route.points.map((p, i) => `${i ? "L" : "M"} ${round(p.x)} ${round(p.y)}`).join(" ");
-  const forward = route.dir === "forward" || route.dir === "both" || route.module === "directed";
-  const back = route.dir === "back" || route.dir === "both";
-  const at = route.points[Math.floor(route.points.length / 2)] ?? { x: 0, y: 0 };
-  return `<g class="route ${route.module}"><path d="${d}"`
+/** One line. **The same path the canvas draws** — `getSmoothStepPath` is React
+ *  Flow's own, it is a pure function of six numbers, and calling it here is
+ *  what keeps the headless drawing and the browser one from drifting.
+ *
+ *  Which walls it leaves by is read off where the two ends sit, the same rule
+ *  the canvas applies. */
+function line(edge: LineEdge, at: Map<string, At>, key: string): string {
+  const a = at.get(edge.source);
+  const b = at.get(edge.target);
+  if (!a || !b) return ``;
+  const dx = (b.x + b.w / 2) - (a.x + a.w / 2);
+  const dy = (b.y + b.h / 2) - (a.y + a.h / 2);
+  const across = Math.abs(dx) >= Math.abs(dy);
+  const out = across ? (dx >= 0 ? Position.Right : Position.Left)
+                     : (dy >= 0 ? Position.Bottom : Position.Top);
+  const into = across ? (dx >= 0 ? Position.Left : Position.Right)
+                      : (dy >= 0 ? Position.Top : Position.Bottom);
+  const from = wall(a, out);
+  const to = wall(b, into);
+  const [d, cx, cy] = getSmoothStepPath({
+    sourceX: from.x, sourceY: from.y, sourcePosition: out,
+    targetX: to.x, targetY: to.y, targetPosition: into,
+  });
+
+  const data = edge.data;
+  const forward = data?.dir === "forward" || data?.dir === "both"
+               || data?.module === "directed";
+  const back = data?.dir === "back" || data?.dir === "both";
+  return `<g class="route ${data?.module ?? "line"}"><path d="${d}"`
     + (forward ? ` marker-end="url(#${key}-arrow)"` : ``)
     + (back ? ` marker-start="url(#${key}-arrow)"` : ``) + ` />`
-    + (route.label
-        ? `<text x="${round(at.x)}" y="${round(at.y - 4)}" text-anchor="middle">`
-          + `${esc(route.label)}</text>`
+    + (edge.label
+        ? `<text x="${round(cx)}" y="${round(cy - 4)}" text-anchor="middle">`
+          + `${esc(String(edge.label))}</text>`
         : ``)
     + `</g>`;
 }
 
+/** The middle of one wall of a box. */
+function wall(b: At, side: Position): { x: number; y: number } {
+  if (side === Position.Left) return { x: b.x, y: b.y + b.h / 2 };
+  if (side === Position.Right) return { x: b.x + b.w, y: b.y + b.h / 2 };
+  if (side === Position.Top) return { x: b.x + b.w / 2, y: b.y };
+  return { x: b.x + b.w / 2, y: b.y + b.h };
+}
+
 /** A decision and a merge are the one pair of controls that is not a bar. */
-function diamond(b: Box): string {
+type At = { x: number; y: number; w: number; h: number };
+
+function diamond(b: At): string {
   const cx = b.x + b.w / 2;
   const cy = b.y + b.h / 2;
   return `${round(cx)},${round(b.y)} ${round(b.x + b.w)},${round(cy)} `

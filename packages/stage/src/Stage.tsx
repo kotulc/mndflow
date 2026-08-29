@@ -8,29 +8,40 @@
  *  something new. Within the right button, a click makes the thing that sits at
  *  a point and a drag makes the thing that has extent. */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Act } from "@mnd/core";
+import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
-import { SceneView, type Drag, type Gesture } from "@mnd/render";
 import type { Scene } from "@mnd/views";
 
-/** An adjustment: positional, unsayable, gesture-only. Never named or ranked,
- *  and it writes and undoes like everything else. */
-export type Adjust = (drag: Drag) => void;
+export type { Adjust };
 
 export type StageProps = {
   scene: Scene;
   picked: readonly string[];
   onAct: Act;
-  onAdjust?: Adjust;
+  onAdjust?: (adjust: Adjust) => void;
   onPick: (ids: string[]) => void;
-  /** What the app is saying, if anything. One channel, one place to look. */
+  /** A row dropped from the tree onto the drawing. */
+  onDrop?: (id: string, at: { x: number; y: number }) => void;
+  /** The offered-action list, where the host has one. **Given rather than
+   *  built**: the canvas and the tree offer the same actions, so the same menu
+   *  serves both and neither package owns it. */
+  menu?: (at: { x: number; y: number }, on: string | null,
+          shut: () => void) => React.ReactNode;
+  /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
 };
 
-export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: StageProps) {
-  /** The shell owns the global keys; a view module owns the rest. */
+export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
+                       said, onSaid }: StageProps) {
+  const [at, set_at] = useState<{ x: number; y: number; on: string | null } | null>(null);
+  /** The shell owns the global keys; a view module owns the rest.
+   *
+   *  **Shorter than it was.** Selection, the sweep and the multi-select
+   *  modifier are the canvas's now; what is left is the handful that mean
+   *  something to the *log* rather than to the drawing. */
   useEffect(() => {
     const on_key = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
@@ -42,7 +53,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: 
         if (label !== null) onAct("rename", { id: one, label });
       }
       else if ((e.key === "Delete" || e.key === "Backspace") && one) {
-        onAct(scene.routes.some((r) => r.id === one) ? "unlink" : "delete", { id: one });
+        onAct(scene.edges.some((r) => r.id === one) ? "unlink" : "delete", { id: one });
       }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "g" && picked.length) {
         e.preventDefault();
@@ -50,7 +61,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: 
       }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        onPick(scene.boxes.map((b) => b.id));
+        onPick(scene.nodes.map((n) => n.id));
       }
       else return;
     };
@@ -70,12 +81,15 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: 
         }
         else if (g.on && g.kind === "box") onAct("open", { id: g.on });
         else if (!g.on) onAct("up");
-        return;
       }
-      onPick(g.on ? [g.on] : []);
+      /** A single left click is a selection, and the canvas reports that on its
+       *  own — through `onPick`, which is the one place it lands. */
       return;
     }
-    // The right button makes something new where there is nothing.
+    /** The right button offers what can be done here. **A menu where the host
+     *  gave one**, and the prompt it replaces where it did not — so the canvas
+     *  works either way and neither answer is built in. */
+    if (menu) { set_at({ ...g.screen, on: g.on }); return; }
     if (!g.on) {
       const label = prompt("name it");
       if (label !== null) onAct("create", { label, spot: { x: g.at.x, y: g.at.y } });
@@ -85,32 +99,30 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: 
   return (
     <section className="stage">
       <Crumbs trail={scene.trail} onAct={onAct} />
-      <SceneView
+      <FlowView
         scene={scene}
         picked={picked}
         onGesture={gesture}
-        onDragTo={(from, to) => {
-          if (to) onAct("relate", { from, to });
-        }}
-        onDrag={(drag) => {
-          /** A sweep is a selection, which is not an adjustment — nothing is
-           *  written and there is nothing to undo. */
-          if (drag.kind === "sweep") { onPick(drag.caught); return; }
+        onPick={onPick}
+        onDrop={onDrop}
+        onRelate={(from, to) => onAct("relate", { from, to })}
+        onAdjust={(adjust) => {
           /** Dropping one card on another is a **move**, which is sayable;
            *  dropping it anywhere else is a **place**, which is not. */
-          if (drag.kind === "move" && drag.over && drag.over !== drag.on) {
-            onAct("move", { id: drag.on, parent: drag.over });
+          if (adjust.kind === "move" && adjust.over && adjust.over !== adjust.on) {
+            onAct("move", { id: adjust.on, parent: adjust.over });
             return;
           }
-          onAdjust?.(drag);
+          onAdjust?.(adjust);
         }}
+        said={said ? (
+          <>
+            <span>{said}</span>
+            <button onClick={onSaid} title="dismiss"><Icon name="remove" /></button>
+          </>
+        ) : null}
       />
-      {said ? (
-        <div className="strip" role="status">
-          <span>{said}</span>
-          <button onClick={onSaid} title="dismiss"><Icon name="remove" /></button>
-        </div>
-      ) : null}
+      {at && menu ? menu(at, at.on, () => set_at(null)) : null}
     </section>
   );
 }
