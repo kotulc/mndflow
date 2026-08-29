@@ -156,6 +156,18 @@ export function App() {
    *  grid and constrains a seated interface to its own card — so the app only
    *  writes what it was handed. */
   const adjust = (a: Adjust) => {
+    /** A corner dragged writes the two fields a block has always carried, plus
+     *  where it now sits: a resize from a left or top handle moves the card as
+     *  well as sizes it. */
+    if (a.kind === "size") {
+      s.adjust("size", adjustments.size(a.on, a.w, a.h));
+      s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
+      return;
+    }
+    if (a.kind === "wall-seat") {
+      s.adjust("seat", adjustments.seat(a.on, a.side, a.at));
+      return;
+    }
     if (a.kind === "wall") {
       const end = graph.blocks[a.to] ? a.to : null;
       if (end) s.go("relink", { id: a.on, end: a.end, to: end });
@@ -180,6 +192,7 @@ export function App() {
     if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
     if (name === "arrange") { act("arrange", { layer, ...args }); return; }
     if (name === "export") { void s.save(); return; }
+    if (name === "view") { set_showing(String(args!["id"])); return; }
   };
 
   /** One of the terminal's four. **Help is the fallback**, so only the three
@@ -224,12 +237,6 @@ export function App() {
         </button>
 
         <span className="tools">
-          <select title="which view" value={showing}
-                  onChange={(e) => set_showing(e.target.value)}>
-            {offered.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
           <button title="undo" onClick={() => s.undo()}><Icon name="undo" /></button>
           <button title="redo" onClick={() => s.redo()}><Icon name="redo" /></button>
           <button title="export the workspace" onClick={() => void s.save()}>
@@ -294,14 +301,15 @@ export function App() {
           /** **The same offered list the tree hangs off a row.** One menu, two
            *  callers — the app mounts it, so neither package has to know the
            *  other exists. */
-          menu={(at, on, shut) => (
+          menu={(at, on, shut, spot) => (
             <Menu ctx={{ graph, layer, picked: on ? [on] : [...s.picked()] }}
-                  at={at} onAct={act} onShut={shut} />
+                  at={at} spot={spot} onAct={act} onShut={shut} />
           )}
           /** A row dragged out of the tree lands where it was dropped. */
           onDrop={(id, spot) => s.adjust("place",
             adjustments.place([{ id, x: snap(spot.x), y: snap(spot.y) }]))}
           picked={s.picked()}
+          curved={shown.angles === false}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
           onPick={(ids) => s.pick(ids)}
@@ -321,7 +329,9 @@ export function App() {
       </main>
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
-                                   interfaces: shown.interfaces, angles: shown.angles },
+                                   interfaces: shown.interfaces, angles: shown.angles,
+                                   views: offered.map((d) => ({ id: d.id, name: d.name })),
+                                   showing },
                                  chrome)} />
     </div>
   );

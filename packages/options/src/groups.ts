@@ -26,10 +26,18 @@ export type Group = {
   controls: Control[];
 };
 
+/** One view the shell can put on the stage. */
+export type View = { id: string; name: string };
+
 /** What the shell knows about the thing on the stage. */
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
+  /** The views in scope, and the one showing. **Not a slot** — which view is
+   *  on is a question about the shell rather than about the projection, so it
+   *  is offered wherever there is more than one to pick from. */
+  views?: readonly View[];
+  showing?: string;
   arrangement?: Arrangement;
   interfaces?: boolean;
   angles?: boolean;
@@ -39,6 +47,13 @@ export type Chrome = {
   /** Column names a table offers, and which one it is sorted by. */
   columns?: readonly string[];
   sorted?: string | null;
+};
+
+/** The mark each view wears. A view a build does not know draws as a plain
+ *  block, which is the module every unnamed reading falls back to anyway. */
+const VIEW: Record<string, IconName> = {
+  block: "view_block", table: "view_table", matrix: "view_matrix",
+  activity: "view_activity", sequence: "view_sequence", state: "view_state",
 };
 
 const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
@@ -57,6 +72,21 @@ const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
 export function groups_of(chrome: Chrome, act: Act): Group[] {
   const has = (slot: string) => chrome.slots.includes(slot);
   const out: Group[] = [];
+
+  /** **Which view is showing sits with everything else you can change about
+   *  what you are looking at**, not in the header beside undo and export. One
+   *  view on its own is not a choice, so it is not offered. */
+  if ((chrome.views ?? []).length > 1) {
+    out.push({
+      key: "views", label: "views",
+      controls: (chrome.views ?? []).map((v) => ({
+        key: v.id, icon: VIEW[v.name] ?? "view_block", word: v.name,
+        tip: `Read this layer as ${v.name}`,
+        on: chrome.showing === v.id,
+        run: () => act("view", { id: v.id }),
+      })),
+    });
+  }
 
   if (has("arrange")) {
     out.push({

@@ -12,20 +12,43 @@ import { offer, type Action, type Context } from "@mnd/core";
 export type MenuProps = {
   ctx: Context;
   at: { x: number; y: number };
+  /** Where on the drawing this was opened, when it was opened on a drawing.
+   *  **A position can only come from a gesture**, and a menu raised by one can
+   *  pass the gesture's on — so a block made from the canvas lands under the
+   *  pointer, and one made from the tree is placed by the layout. */
+  spot?: { x: number; y: number };
   onAct: (name: string, args?: Record<string, unknown>) => void;
   onShut: () => void;
 };
 
-/** What a menu can fill on its own. A position can only come from a gesture,
- *  so an action needing one is not offered here. */
-function askable(a: Action): boolean {
-  return !a.args.some((arg) => arg.form === "spot" && arg.required);
+/** What a menu can fill on its own. Without a place to point at, an action
+ *  that needs one is not offered. */
+function askable(a: Action, spot: boolean): boolean {
+  return spot || !a.args.some((arg) => arg.form === "spot" && arg.required);
 }
 
-export function Menu({ ctx, at, onAct, onShut }: MenuProps) {
+/** How close to the window's edge a menu may come before it is moved. */
+const EDGE = 8;
+
+export function Menu({ ctx, at, spot, onAct, onShut }: MenuProps) {
   const box = useRef<HTMLDivElement>(null);
   const [asking, set_asking] = useState<Action | null>(null);
   const [typed, set_typed] = useState("");
+  /** Where it actually fits. **A menu opens at the pointer until it cannot** —
+   *  a long list opened near the foot of the window runs off the bottom, and
+   *  the entries nobody can reach are the ones at the end of the alphabet. It
+   *  is measured rather than guessed, because how long it is depends on what
+   *  is offered here. */
+  const [sits, set_sits] = useState(at);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    set_sits({
+      x: Math.max(EDGE, Math.min(at.x, innerWidth - width - EDGE)),
+      y: Math.max(EDGE, Math.min(at.y, innerHeight - height - EDGE)),
+    });
+  }, [at, asking]);
 
   useEffect(() => {
     const away = (e: MouseEvent) => {
@@ -41,18 +64,23 @@ export function Menu({ ctx, at, onAct, onShut }: MenuProps) {
   }, [onShut]);
 
   const one = ctx.picked.length === 1 ? ctx.picked[0]! : null;
-  const entries = offer(ctx).filter(askable);
+  const entries = offer(ctx).filter((a) => askable(a, spot !== undefined));
 
   /** What the context can fill without asking. Anything left over is the one
    *  thing the menu asks for. */
   const known = (): Record<string, unknown> => ({
     id: one, holder: one, owner: one, of: [...ctx.picked],
     members: [...ctx.picked], target: one, layer: ctx.layer,
+    ...(spot ? { spot } : {}),
   });
 
+  /** What the menu stops to ask for: everything the action requires, and the
+   *  name of anything it makes. **Something being made is always worth
+   *  naming** — the derived name is a fallback, not an answer, and typing one
+   *  here is the difference between “pump” and “block 4”. */
+  const held = ["id", "holder", "owner", "of", "members", "target"];
   const wanted = (a: Action) =>
-    a.args.filter((arg) => arg.required && !["id", "holder", "owner", "of", "members", "target"]
-      .includes(arg.name));
+    a.args.filter((arg) => (arg.required || arg.asks) && !held.includes(arg.name));
 
   const take = (a: Action) => {
     const need = wanted(a);
@@ -64,12 +92,18 @@ export function Menu({ ctx, at, onAct, onShut }: MenuProps) {
   const answer = () => {
     if (!asking) return;
     const need = wanted(asking)[0]!;
-    onAct(asking.name, { ...known(), [need.name]: typed });
+    /** **Left blank is left out**, not sent as an empty string. An optional
+     *  name nobody typed is the action deriving one, which is what it does
+     *  when nobody was asked at all. */
+    const said = typed.trim();
+    onAct(asking.name, said || need.required
+      ? { ...known(), [need.name]: said }
+      : known());
     onShut();
   };
 
   return (
-    <div className="menu" ref={box} style={{ left: at.x, top: at.y }} role="menu">
+    <div className="menu" ref={box} style={{ left: sits.x, top: sits.y }} role="menu">
       {asking ? (
         <div className="asking">
           <label>{wanted(asking)[0]!.name}</label>

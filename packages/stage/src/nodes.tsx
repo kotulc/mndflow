@@ -3,16 +3,20 @@
  *  **These are the notation, which is why they are still ours.** Everything
  *  around them — the viewport, the hit testing, the drag, the edge paths — is
  *  the library's. A node here draws a rectangle, a name and its handles, reads
- *  its look off `marks`, and knows nothing about the graph.
+ *  its look off what the projection resolved, and knows nothing about the graph.
  *
  *  One component covers every box that is a rectangle, because they differ only
- *  in the marks they carry and the ramp keys off those. A frame, a seat and a
+ *  in the look they carry and the ramp keys off it. A frame, a seat and a
  *  control are the three that are not. **Which one draws a node is the
  *  projection's to say** — it sets `type`, so nothing here re-derives it from
- *  marks and a new mark cannot silently pick the wrong component. */
+ *  marks and a new mark cannot silently pick the wrong component.
+ *
+ *  **Nothing here chooses a colour, a weight or a size.** A definition picked a
+ *  slot and an emphasis; those arrive as attributes and the stylesheet is what
+ *  turns them into steps on the ramp. */
 
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import type { BoxNode } from "@mnd/views";
+import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
+import { PLAIN, type BoxNode, type Cell, type Look } from "@mnd/views";
 
 /** Where a line may join. **Every side, always** — which side a route actually
  *  leaves by is the router's to decide, and a card that offered fewer would
@@ -38,14 +42,144 @@ function Joins() {
   );
 }
 
+/** What a definition said, as attributes the stylesheet reads. Spread onto the
+ *  element, so a look is one object here and a table of selectors there. */
+function dressed(look: Look) {
+  return {
+    "data-slot": look.slot,
+    "data-emphasis": look.emphasis,
+    "data-weight": look.weight,
+    "data-voice": look.voice,
+    "data-shape": look.shape,
+    "data-layout": look.layout,
+  };
+}
+
+/** A shape that is not a rectangle, stroked inside the box the engine placed.
+ *
+ *  **The engine always places a rectangle**, and every seat, route and
+ *  interface reads it — so this changes what is *drawn* and never where
+ *  anything attaches. A rounded or elliptical card is a border radius and needs
+ *  none of this; a diamond and a hexagon are corners, and corners need a path.
+ *
+ *  Drawn with `preserveAspectRatio="none"` so one set of coordinates fits every
+ *  card, and `non-scaling-stroke` so the line stays the weight the ramp asked
+ *  for rather than being stretched with the box. */
+const CORNERS: Record<string, string> = {
+  diamond: "50,1 99,50 50,99 1,50",
+  hex: "25,1 75,1 99,50 75,99 25,99 1,50",
+};
+
+function Outline({ shape }: { shape: string }) {
+  const points = CORNERS[shape];
+  if (!points) return null;
+  return (
+    <svg className="mnd-outline" viewBox="0 0 100 100" preserveAspectRatio="none"
+         aria-hidden focusable="false">
+      <polygon points={points} vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+/** What a container holds, as a picture inside its own card.
+ *
+ *  **Only the immediate children.** Nesting past one level is what descending
+ *  is for, and a card the height of a few grid rows has room for a handful of
+ *  cells before each of them says nothing.
+ *
+ *  A cell's shade comes from its name and its base from what it is, so a
+ *  container of several distinct things looks like several distinct things —
+ *  and one holding another container says so without being opened. */
+function Holds({ cells }: { cells: readonly Cell[] }) {
+  const cols = cells.length <= 2 ? cells.length : cells.length <= 6 ? 3 : 4;
+  return (
+    <div className="mnd-holds" style={{ "--cols": cols } as React.CSSProperties}>
+      {cells.map((c) => (
+        <span key={c.id} className={`mnd-cell ${c.kind} tint-${c.tint}`}
+              title={c.rest ? `${c.label}, and ${c.rest} more` : c.label}>
+          {c.rest ? `+${c.rest}` : c.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** The ordinary card, and every mark that is still a rectangle: a container, a
- *  reference, a note, a lane, a cell. The class list is the whole look. */
+ *  reference, a note, a lane, a cell.
+ *
+ *  Composed rather than styled: a head that carries the name and the subtype it
+ *  names, then whatever the layout asks for beneath it — the children a
+ *  container holds, or the fields a note shows. */
 export function Card({ data, selected }: NodeProps<BoxNode>) {
+  const look = data.look ?? PLAIN;
+  const named = look.label !== "none";
   return (
     <div className={["mnd-card", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
-         data-def={data.def} title={data.label}>
-      <span className="mnd-label">{data.label}</span>
+         {...dressed(look)} data-def={data.def} title={data.label}>
+      <Outline shape={look.shape} />
+      {named ? (
+        <div className="mnd-head">
+          <span className="mnd-label">{data.label}</span>
+          {/* A subtype where somebody set one. **Absent rather than a default
+              word** — every card that nobody has told apart would otherwise
+              carry the same chip, which is noise on all of them. */}
+          {look.kind ? <span className="mnd-kind">{look.kind}</span> : null}
+        </div>
+      ) : null}
+      {data.cells?.length ? <Holds cells={data.cells} /> : null}
+      {data.fields?.length ? (
+        <dl className="mnd-fields">
+          {data.fields.map((f) => (
+            <div key={f.name}>
+              <dt>{f.name}</dt>
+              <dd>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      <Joins />
+    </div>
+  );
+}
+
+/** A note: text, resized by hand.
+ *
+ *  **The one card whose size is yours to set.** A block already stores `w` and
+ *  `h` and every other card is sized from what it holds, so a note is where
+ *  those fields are worth having a grip on. The handles are the library's;
+ *  where the corner came to rest arrives as an ordinary adjustment. */
+export function Note({ data, selected }: NodeProps<BoxNode>) {
+  const look = data.look ?? PLAIN;
+  return (
+    <div className={["mnd-card", "note", ...data.marks, selected ? "picked" : ""]
+            .filter(Boolean).join(" ")}
+         {...dressed(look)} data-def={data.def}>
+      <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
+                   lineClassName="mnd-edge" handleClassName="mnd-grip" />
+      <span className="mnd-note-text">{data.label}</span>
+      {data.fields?.length ? (
+        <dl className="mnd-fields">
+          {data.fields.map((f) => (
+            <div key={f.name}><dt>{f.name}</dt><dd>{f.value}</dd></div>
+          ))}
+        </dl>
+      ) : null}
+      <Joins />
+    </div>
+  );
+}
+
+/** A boundary: a band behind its members, naming itself along the top.
+ *
+ *  It is its members' bounds rather than a stored size, so there is nothing to
+ *  resize and nothing to place — what it holds is what it is. */
+export function Group({ data, selected }: NodeProps<BoxNode>) {
+  const look = data.look ?? PLAIN;
+  return (
+    <div className={["mnd-group", selected ? "picked" : ""].filter(Boolean).join(" ")}
+         {...dressed(look)} title={data.label}>
+      <span className="mnd-group-name">{data.label}</span>
       <Joins />
     </div>
   );
@@ -77,12 +211,18 @@ export function Seat({ data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** The open layer seen from within: a border with the name set into it. Drawn
- *  as a node so it pans and zooms with everything else, but it takes no
- *  gesture — descending is a double click on the ground it covers. */
+/** The open layer seen from within: a border with the name set into it, the
+ *  interfaces of the layer seated on it, and the band outside it dimmed.
+ *
+ *  Drawn as a node so it pans and zooms with everything else, but the border
+ *  itself takes no gesture — descending is a double click on the band, and the
+ *  name is the one part of it that answers a pointer. */
 export function Frame({ data }: NodeProps<BoxNode>) {
   return (
-    <div className="mnd-frame">
+    <div className="mnd-frame" data-axis={data.look?.layout ?? "name"}>
+      {(["top", "right", "bottom", "left"] as const).map((side) => (
+        <span key={side} className={`mnd-rim mnd-rim-${side}`} aria-hidden />
+      ))}
       <span className="mnd-frame-name">{data.label}</span>
     </div>
   );
@@ -92,6 +232,8 @@ export function Frame({ data }: NodeProps<BoxNode>) {
  *  a fresh object each render remounts every node on the canvas. */
 export const NODE_TYPES = {
   card: Card,
+  note: Note,
+  group: Group,
   control: Control,
   seat: Seat,
   frame: Frame,

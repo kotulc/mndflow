@@ -11,25 +11,42 @@
 import { empty_graph, ROOT, type Definition, type Graph } from "@mnd/core";
 
 function def(name: string, module: string, extend?: string,
-             card: Record<string, unknown> = {}): Definition {
+             card: Record<string, unknown> = {},
+             style: Record<string, unknown> = {}): Definition {
   return {
     id: name, home: ROOT, group: "block", name,
     extends: extend,
-    components: { block: { module }, card },
+    components: { block: { module }, card, style },
   };
 }
 
-/** Nine, and every package or project subtype extends one of them. */
+/** Nine, and every package or project subtype extends one of them.
+ *
+ *  **Each picks a slot, and none names a colour.** A slot is a hue family the
+ *  theme decides per theme, so `primary` is green in retro and blue in modern
+ *  and a definition never learns which. What is being said here is only that
+ *  being, doing, having and connecting are four different kinds of thing — and
+ *  that a folder and a boundary are the furniture around them. */
 export const BASE: Definition[] = [
-  def("folder", "folder", undefined, { layout: "name", shape: "rect" }),
-  def("structure", "structure", undefined, { layout: "type", shape: "rect" }),
-  def("behavior", "behavior", "structure", { layout: "type", shape: "round" }),
-  def("reference", "reference", undefined, { layout: "name", shape: "rect" }),
-  def("interface", "interface", undefined, { layout: "name", label: "none", shape: "rect" }),
-  def("resource", "resource", undefined, { layout: "name", shape: "rect" }),
-  def("group", "group", undefined, { layout: "name", shape: "rect" }),
-  def("note", "note", "resource", { layout: "fields", shape: "rect" }),
-  def("view", "view", undefined, { layout: "name", shape: "rect" }),
+  def("folder", "folder", undefined,
+      { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
+  def("structure", "structure", undefined,
+      { layout: "type", shape: "rect" }, { slot: "primary" }),
+  def("behavior", "behavior", "structure",
+      { layout: "type", shape: "round" }, { slot: "secondary" }),
+  def("reference", "reference", undefined,
+      { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),
+  def("interface", "interface", undefined,
+      { layout: "name", label: "none", shape: "rect" },
+      { slot: "quaternary", weight: "hairline" }),
+  def("resource", "resource", undefined,
+      { layout: "name", shape: "rect" }, { slot: "tertiary" }),
+  def("group", "group", undefined,
+      { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),
+  def("note", "note", "resource",
+      { layout: "fields", shape: "rect" }, { slot: "tertiary", emphasis: "quiet" }),
+  def("view", "view", undefined,
+      { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
 ];
 
 /** The behavior vocabulary: `action` and `state` extend the base behavior
@@ -37,9 +54,11 @@ export const BASE: Definition[] = [
  *  modules** — doing against being is the vocabulary, not the shape. */
 export const BEHAVIOR: Definition[] = [
   { id: "action", home: ROOT, group: "block", name: "action", extends: "behavior",
-    components: { card: { layout: "type", shape: "round", word: "do" } } },
+    components: { card: { layout: "type", shape: "round", word: "do" },
+                  style: { slot: "secondary", voice: "normal" } } },
   { id: "state", home: ROOT, group: "block", name: "state", extends: "behavior",
-    components: { card: { layout: "type", shape: "round", word: "in" } } },
+    components: { card: { layout: "type", shape: "round", word: "in" },
+                  style: { slot: "secondary", emphasis: "quiet" } } },
 ];
 
 /** The six views, as definitions. **A reading is a view definition, never a

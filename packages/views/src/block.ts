@@ -7,9 +7,10 @@ import { arrangement_of, children, edges_in, is_interface, module_of, owner_of,
          shown_name, READS,
          type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
 import { boundary, laid, seated, GAP, GRID, type Placed } from "@mnd/views";
-import { link_of, marks_of, trail_of } from "./derive";
+import { carried, marks_of, trail_of } from "./derive";
+import { look_of } from "./look";
 import { read, reading_of } from "./read";
-import { box_of, cell as node, type BoxNode, type Frame, type LineEdge,
+import { box_of, cell as node, type BoxNode, type Frame, type LineEdge, type Port,
          type Mark, type Scene, type Slot } from "./scene";
 
 export type Config = {
@@ -52,15 +53,12 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  with them, so they are placed once the cards are. */
   const ports = config.interfaces === false ? [] : seated(graph, spots);
 
-  const boxes: BoxNode[] = spots.map((p) => {
-    const b = graph.blocks[p.id]!;
-    return node(p.id, p, {
-      label: shown_name(graph, p.id),
-      def: b.type,
-      link: link_of(graph, p.id),
-      marks: marks_of(graph, p.id),
-    });
-  });
+  /** **Which component draws a box is said here and re-derived nowhere.** A
+   *  note is text you resize and a boundary is a band behind its members;
+   *  everything else is a rectangle, whatever it is a rectangle *of*. */
+  const boxes: BoxNode[] = spots.map((p) =>
+    node(p.id, p, carried(graph, p.id),
+         module_of(graph, p.id) === "note" ? "note" : "card"));
 
   /** A boundary is its members' bounds — a fact about what it holds, never a
    *  stored size. It draws behind whatever it holds. */
@@ -73,16 +71,15 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     if (!box) continue;
     const at = boxes.findIndex((x) => x.id === g.id);
     if (at >= 0) boxes.splice(at, 1);
-    groups.push(node(g.id, box, { label: shown_name(graph, g.id), def: g.type,
-                                  link: link_of(graph, g.id), marks: ["group"] }));
+    groups.push(node(g.id, box, { ...carried(graph, g.id), marks: ["group"], cells: [] },
+                     "group"));
   }
 
   /** A seated interface draws over the card it sits on, so it comes last. */
   const seats: BoxNode[] = ports.map((p) => {
     const b = graph.blocks[p.id]!;
-    return node(p.id, p, {
-      label: shown_name(graph, p.id), def: b.type, on: b.parent ?? undefined,
-      link: link_of(graph, p.id), marks: marks_of(graph, p.id) }, "seat");
+    return node(p.id, p, { ...carried(graph, p.id),
+                           ...(b.parent ? { on: b.parent } : {}) }, "seat");
   });
 
   /** Lanes and lifelines are drawn behind, controls in front of neither — all
@@ -133,9 +130,11 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
  *  margin, and never smaller than the room a first block needs. */
 function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[]): Frame | null {
   if (layer === null || layer === graph.root) return null;
+  const label = shown_name(graph, layer);
+  const ports = wall_of(graph, layer);
   const least = { w: GRID * 14, h: GRID * 9 };
   if (drawn.length === 0) {
-    return { x: -least.w / 2, y: -least.h / 2, ...least, label: shown_name(graph, layer) };
+    return { x: -least.w / 2, y: -least.h / 2, ...least, label, ports };
   }
   const pad = GAP.unit;
   const at = drawn.map(box_of);
@@ -143,7 +142,29 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[]): Fr
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { x, y, w, h, label: shown_name(graph, layer) };
+  return { x, y, w, h, label, ports };
+}
+
+/** The layer's own interfaces, set into its walls and seen from inside.
+ *
+ *  **Where they sit is not decided here.** The frame is grown to whatever panel
+ *  it is drawn in, so a wall's run is a fact about a window; what this knows is
+ *  which wall each one is in and how far along, which is what the model stores.
+ *
+ *  A block with interfaces is still a block, so these are also drawn on its
+ *  card from the layer above — the same interfaces, from the other side. */
+function wall_of(graph: Graph, layer: Id): Port[] {
+  return children(graph, layer)
+    .filter(is_interface)
+    .map((b) => ({
+      id: b.id,
+      label: shown_name(graph, b.id),
+      side: b.side!,
+      at: b.at ?? 0.5,
+      marks: marks_of(graph, b.id),
+      look: look_of(graph, b.id),
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /** A box that stands for nothing in the graph: it is placed, labelled and

@@ -238,7 +238,7 @@
   --wall-lit: var(--s-primary-dim);
   /* Ink that has to read on a filled warning or error patch. */
   --on-loud: var(--s-neutral-ground);
-  /* Routes. Read from `paint.ts`, which hands these to React Flow as stroke
+  /* Routes. Read by the canvas, which hands these to React Flow as stroke
      values — a `var()` resolves there because the edge is drawn in the page. */
   --route: var(--s-primary-stroke);
   --route-head: var(--s-primary-dim);

@@ -107,6 +107,16 @@ const PATHS = {
 
   // A field shown as a column of its own.
   column: "M4 5h16v14H4zM10 5v14M14 5v14",
+
+  // The six views, each drawn as the picture it puts on the stage rather than
+  // as a word: boxes and a line, a list, a grid of cells, a flow with a
+  // decision, messages between two lifelines, and a state with its loop back.
+  view_block: "M3.5 6.5h7v5h-7zM13.5 12.5h7v5h-7zM7 11.5v3.5h6.5",
+  view_table: "M3.5 5.5h17v13h-17zM3.5 10h17M3.5 14h17M9 5.5v13",
+  view_matrix: "M3.5 5.5h17v13h-17zM3.5 9.8h17M3.5 14.2h17M8.5 5.5v13M14 5.5v13",
+  view_activity: "M11 3.5h2v3h-2zM12 6.5v3M12 9.5l3 3-3 3-3-3zM12 15.5v3M11 18.5h2v2h-2z",
+  view_sequence: "M6.5 4v16M17.5 4v16M6.5 9h11M17.5 9l-2-2M17.5 9l-2 2M17.5 15h-11M6.5 15l2-2M6.5 15l2 2",
+  view_state: "M3.5 9.5h7v5h-7zM13.5 9.5h7v5h-7zM10.5 12h3M13.5 12l-1.5-1.2M13.5 12l-1.5 1.2",
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -11,16 +11,17 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-  Background, BackgroundVariant, Controls, Panel, ReactFlow,
-  ReactFlowProvider, SelectionMode, useEdgesState, useNodesState, useReactFlow,
-  useStore,
+  Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
+  ReactFlow, ReactFlowProvider, SelectionMode, useEdgesState, useNodesState,
+  useReactFlow, useStore,
   type Connection, type Edge, type Node, type NodeChange,
   type OnConnectEnd, type OnConnectStart, type OnSelectionChangeFunc,
 } from "@xyflow/react";
-import type { Id, Point } from "@mnd/core";
-import { box_of, snap, type BoxNode, type Frame, type LineEdge,
-         type Scene } from "@mnd/views";
+import type { Id, Point, Side } from "@mnd/core";
+import { at_seat, box_of, nearest_seat, snap, type BoxNode, type Frame,
+         type LineEdge, type Scene } from "@mnd/views";
 import { NODE_TYPES } from "./nodes";
+import { EDGE_TYPES } from "./Wire";
 
 /** What a gesture on the canvas meant. The consumer decides what to do with
  *  it. `kind` is what was under the pointer, never what it looked like. */
@@ -44,13 +45,23 @@ export type Gesture = {
  *  reports it the same way and the app reads the scene to tell them apart. */
 export type Adjust =
   | { kind: "move"; on: string; to: Point; over: string | null }
-  | { kind: "wall"; on: string; end: "from" | "to"; to: string };
+  | { kind: "wall"; on: string; end: "from" | "to"; to: string }
+  /** An interface set into the open layer's own wall, slid along it. **The
+   *  canvas answers this one itself**: which wall and how far along are read
+   *  off the room, and the room is a size only the canvas knows. */
+  | { kind: "wall-seat"; on: string; side: Side; at: number }
+  /** A corner dragged. **The one card whose size is yours to set** — every
+   *  other one is sized from what it holds, and a block has carried `w` and
+   *  `h` all along with no gesture that wrote them. */
+  | { kind: "size"; on: string; w: number; h: number; to: Point };
 
 export type FlowViewProps = {
   scene: Scene;
   picked?: readonly Id[];
   onGesture?: (g: Gesture) => void;
-  /** A right drag from one thing to another. */
+  /** A drag from one card's edge to another. **The library's gesture, not
+   *  ours** — a connection starts on a handle, and React Flow's own drag
+   *  filter takes the left button only, so this cannot be the right one. */
   onRelate?: (from: string, to: string) => void;
   onAdjust?: (adjust: Adjust) => void;
   /** What is selected now — a click, a shift-sweep and a modifier-click all
@@ -64,6 +75,10 @@ export type FlowViewProps = {
   onDrop?: (id: string, at: Point) => void;
   /** Chrome the host may turn off — a thumbnail wants none of it. */
   chrome?: boolean;
+  /** Whether relationships are read with curves rather than right angles.
+   *  Display state: it changes what you are looking at and nothing about the
+   *  project, so it arrives as a prop and never enters the log. */
+  curved?: boolean;
 };
 
 /** What a row being dragged out of the tree carries. */
@@ -78,8 +93,14 @@ const FIT = { padding: 0.25, maxZoom: 1 };
  *  a frame is never fitted tighter than this. */
 const BAND = 56;
 
-/** Long enough to read as one motion, short enough not to be waited on. */
-const FLIGHT = 260;
+/** Long enough to read as one motion, short enough not to be waited on.
+ *  **A nesting doll opening is the slowest thing in the product**, and it was
+ *  over before it registered at half this. */
+const FLIGHT = 440;
+
+/** What React Flow is told it may shrink to, kept here so a flight that starts
+ *  on a small card starts somewhere the viewport will actually go. */
+const MIN_ZOOM = 0.1;
 
 /** The frame sits behind everything and takes no gesture; a seat sits in front
  *  of the card it is on. React Flow paints in this order. */
@@ -128,6 +149,25 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
     zIndex: DEPTH["frame"],
   }] : [];
 
+  /** The layer's own interfaces, set into the room's walls. **Placed here
+   *  because the room is**: the projection said which wall and how far along,
+   *  and the panel decides where that wall actually runs. */
+  for (const p of frame?.ports ?? []) {
+    const at = at_seat(frame!, { side: p.side, at: p.at });
+    out.push({
+      id: p.id,
+      type: "seat",
+      position: { x: at.x, y: at.y },
+      width: at.w,
+      height: at.h,
+      data: { label: p.label, marks: p.marks, on: FRAME,
+              ...(p.look ? { look: p.look } : {}) },
+      selected: picked.includes(p.id),
+      zIndex: DEPTH["seat"],
+      measured: { width: at.w, height: at.h },
+    });
+  }
+
   for (const n of scene.nodes) {
     out.push({
       ...n,
@@ -164,7 +204,14 @@ function walls(scene: Scene): Map<string, { out: string; in: string }> {
   return out;
 }
 
-function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
+/** How a relationship reads, from what it is. **Weight and dash, never a hue**
+ *  — a definition's slot is what colour means on this canvas, and a line
+ *  borrowing one would be saying something the vocabulary already says. */
+const READS: Record<string, string> = {
+  line: "line", directed: "directed", reference: "line dashed", tie: "line away",
+};
+
+function edges_of(scene: Scene, picked: readonly Id[], curved: boolean): LineEdge[] {
   const wall = walls(scene);
   return scene.edges.map((e) => {
     const d = e.data;
@@ -172,11 +219,12 @@ function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
     const back = d?.dir === "back" || d?.dir === "both";
     return {
       ...e,
-      type: "smoothstep",
+      type: "wire",
+      data: { ...(d ?? { module: "line" as const, dir: "none" as const }), curved },
       sourceHandle: wall.get(e.id)?.out,
       targetHandle: wall.get(e.id)?.in,
       selected: picked.includes(e.id),
-      className: d?.module,
+      className: READS[d?.module ?? "line"] ?? "line",
       reconnectable: true,
       markerEnd: forward ? { type: "arrowclosed" as const } : undefined,
       markerStart: back ? { type: "arrowclosed" as const } : undefined,
@@ -195,6 +243,7 @@ function kind_of(scene: Scene, id: string | null,
     return el?.closest(".mnd-frame-name") ? "title" : "frame";
   }
   if (scene.edges.some((e) => e.id === id)) return "route";
+  if (scene.frame?.ports.some((p) => p.id === id)) return "seat";
   return scene.nodes.find((n) => n.id === id)?.data.on ? "seat" : "box";
 }
 
@@ -211,11 +260,24 @@ function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
     frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label}`,
+    frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
     scene.nodes.map((n) => {
       const b = box_of(n);
-      return `${n.id}:${b.x},${b.y},${b.w},${b.h}:${n.data.label}:${n.data.marks.join("")}`;
+      const k = n.data.look;
+      /** **Everything the card draws from, not only where it sits.** Retyping a
+       *  block moves nothing and renames nothing; what it changes is the look,
+       *  and a signature blind to that leaves the old card on the canvas. */
+      return [
+        n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label,
+        n.data.marks.join(""),
+        k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
+        n.data.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(""),
+        n.data.fields?.map((f) => `${f.name}=${f.value}`).join(""),
+      ].join(":");
     }).join("|"),
-    scene.edges.map((e) => `${e.id}:${e.source}>${e.target}:${e.data?.dir}`).join("|"),
+    scene.edges.map((e) =>
+      `${e.id}:${e.source}>${e.target}:${e.data?.dir}:${e.data?.module}:${e.label ?? ""}`)
+      .join("|"),
   ].join("~");
 }
 
@@ -239,8 +301,9 @@ function marked<T extends { id: string; selected?: boolean }>(
 
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop,
-          said, chrome = true } = props;
+          said, chrome = true, curved = false } = props;
   const flow = useReactFlow();
+  { const w = globalThis as any; w.__t = w.__t ?? []; w.__t.push(`R picked=${JSON.stringify(picked)}`); }
 
   /** How much room there is to draw in. React Flow measures its own container,
    *  so the frame is shaped to the panel without a second observer. */
@@ -282,8 +345,8 @@ function Canvas(props: FlowViewProps) {
    *  each node measured, what is mid-drag — and handing it a fresh array every
    *  render without ever applying a change throws that away. */
   const [nodes, set_nodes, moved] = useNodesState<BoxNode>(nodes_of(scene, picked, frame));
-  const [edges, set_edges] = useEdgesState<LineEdge>(edges_of(scene, picked));
-  const key = signature(scene, frame);
+  const [edges, set_edges] = useEdgesState<LineEdge>(edges_of(scene, picked, curved));
+  const key = `${signature(scene, frame)}~${curved ? "curve" : "angle"}`;
 
   /** **Which drawing the arrays on the canvas are of.** Until the effect below
    *  has installed the new ones they are still the last layer's, and what they
@@ -305,6 +368,10 @@ function Canvas(props: FlowViewProps) {
    *  — it is sized to the panel, so leaving the camera where it was would put
    *  the band on one side and nothing on the other. */
   const room = useRef<string>("");
+  /** What was drawn a moment ago. **Descending needs the layer you left**: the
+   *  card you opened is drawn there and nowhere else, so it is the only place
+   *  the flight can start from. */
+  const drawn = useRef<readonly BoxNode[]>([]);
 
   /** Frame the working area, leaving the band. **Aimed at the rectangle rather
    *  than at what is on the canvas**: the arrays are handed over in the same
@@ -327,20 +394,42 @@ function Canvas(props: FlowViewProps) {
     was.current = scene.layer;
     room.current = rect;
 
+    const before = drawn.current;
+    drawn.current = scene.nodes;
+    { const w = globalThis as any; w.__t.push(`STRUCT key-change moved=${moved_layer}`); }
     set_nodes(nodes_of(scene, picked, frame));
-    set_edges(edges_of(scene, picked));
+    set_edges(edges_of(scene, picked, curved));
     installed.current = key;
 
     if (grew) { settle(still ? 0 : FLIGHT); return; }
     if (!moved_layer) return;
     if (still) { settle(0); return; }
-    /** Coming back up, the layer just left is drawn here — so the flight starts
-     *  on that card and opens out. Going down there is no such box, and the
-     *  fit alone reads as the camera closing in. */
-    const from = last ? scene.nodes.find((n) => n.id === last) : undefined;
-    if (from) {
-      const b = box_of(from);
+    /** **Both ways start on the card, and both end on the frame.**
+     *
+     *  Coming back up, the card is the layer you just left, drawn here — so
+     *  `fitBounds` on it puts the camera where you were and the fit opens out.
+     *
+     *  Going down, the card is drawn in the layer you left and not in this one,
+     *  so there is no rectangle here to aim at. What there is, still, is the
+     *  viewport that was showing it: the card's place on the screen is known,
+     *  and the new frame is put there before the fit pulls it open. Without
+     *  this the camera has nowhere to travel from and descending cuts. */
+    const back = last ? scene.nodes.find((n) => n.id === last) : undefined;
+    const into = before.find((n) => n.id === scene.layer);
+    if (back) {
+      const b = box_of(back);
       void flow.fitBounds({ x: b.x, y: b.y, width: b.w, height: b.h }, { duration: 0 });
+    } else if (into && frame) {
+      const b = box_of(into);
+      const vp = flow.getViewport();
+      const on = { x: b.x * vp.zoom + vp.x, y: b.y * vp.zoom + vp.y,
+                   w: b.w * vp.zoom, h: b.h * vp.zoom };
+      const zoom = Math.max(MIN_ZOOM, on.w / frame.w);
+      void flow.setViewport({
+        zoom,
+        x: on.x - frame.x * zoom,
+        y: (on.y + on.h / 2) - (frame.y + frame.h / 2) * zoom,
+      }, { duration: 0 });
     }
     settle(FLIGHT);
     /** The signature is what says the drawing changed; the scene object never
@@ -356,6 +445,7 @@ function Canvas(props: FlowViewProps) {
   const held = chosen(picked);
   useEffect(() => {
     const want = new Set<string>(picked);
+    { const w = globalThis as any; w.__t.push(`MARK want=${JSON.stringify([...want])}`); }
     set_nodes((ns) => marked(ns, want));
     set_edges((es) => marked(es, want));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -371,8 +461,20 @@ function Canvas(props: FlowViewProps) {
                   at: at(e), screen: { x: e.clientX, y: e.clientY } });
   }, [onGesture, scene, at]);
 
-  /** A right drag between two things is a relationship. React Flow calls the
-   *  press `onConnectStart` and the release `onConnectEnd`. */
+  /** The same thing a gesture says, said without a pointer behind it. **A
+   *  control that descends is the double click, spelled out** — so the vocabulary
+   *  stays one thing and nobody downstream learns a second way to be asked. */
+  const tell = useCallback((on: string, count: 1 | 2) => {
+    const n = scene.nodes.find((x) => x.id === on);
+    const b = n ? box_of(n) : { x: 0, y: 0, w: 0, h: 0 };
+    const p = flow.flowToScreenPosition({ x: b.x, y: b.y });
+    onGesture?.({ on, kind: kind_of(scene, on), button: "left", count,
+                  at: { x: b.x, y: b.y }, screen: p });
+  }, [scene, flow, onGesture]);
+
+  /** A drag between two things is a relationship. React Flow calls the press
+   *  `onConnectStart` and the release `onConnectEnd`; both only fire for a drag
+   *  that began on a handle, which is what tells it apart from moving a card. */
   const from = useMemo(() => ({ current: null as string | null }), []);
   const start: OnConnectStart = useCallback((_, p) => { from.current = p.nodeId; }, [from]);
   const end: OnConnectEnd = useCallback((_e, state) => {
@@ -394,6 +496,14 @@ function Canvas(props: FlowViewProps) {
    *  its corner lands somewhere the pointer never went, so what it was dropped
    *  *on* is read off the card's own middle. */
   const dropped = useCallback((node: Node) => {
+    /** An interface in the room's own wall slides along it, and which wall it
+     *  landed in is a question about the room. */
+    const port = frame?.ports.find((p) => p.id === node.id);
+    if (port && frame) {
+      const seat = nearest_seat(frame, { x: node.position.x, y: node.position.y });
+      onAdjust?.({ kind: "wall-seat", on: node.id, side: seat.side, at: seat.at });
+      return;
+    }
     const drawn = scene.nodes.find((n) => n.id === node.id);
     if (!drawn) return;
     const b = box_of(drawn);
@@ -404,7 +514,7 @@ function Canvas(props: FlowViewProps) {
       return p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h;
     })?.id ?? null;
     onAdjust?.({ kind: "move", on: node.id, to: node.position, over });
-  }, [scene, onAdjust]);
+  }, [scene, frame, onAdjust]);
 
   /** Selection is the app's to hold, and **this is the only place it is
    *  reported**. Reporting it from the click handler as well would clobber a
@@ -414,20 +524,45 @@ function Canvas(props: FlowViewProps) {
      *  drawing and the selection in one go, and the canvas reports the old
      *  drawing's selection before it has been handed the new one — taken at
      *  face value that clears the pick that did the descending. */
+    { const w = globalThis as any; w.__t.push(`CHOSE stale=${installed.current !== key}`); }
     if (installed.current !== key) return;
     const ids = [...ns.map((n) => n.id).filter((id) => id !== FRAME),
                  ...es.map((e) => e.id)];
     const same = ids.length === picked.length && ids.every((id) => picked.includes(id));
+    { const w = globalThis as any; w.__t.push(`  ids=${JSON.stringify(ids)} picked=${JSON.stringify(picked)} same=${same}`); }
     if (!same) onPick?.(ids);
   }, [picked, onPick, key]);
 
   /** Everything React Flow reports about its own copy is applied to its own
-   *  copy — that is what keeps a node measured and hittable. */
-  const changed = useCallback((cs: NodeChange<BoxNode>[]) => moved(cs), [moved]);
+   *  copy — that is what keeps a node measured and hittable.
+   *
+   *  **A corner coming to rest passes through here too.** The resizer is drawn
+   *  inside the node, which knows nothing about the app; what it does is report
+   *  a dimension change, and the end of one is the gesture worth recording. */
+  const changed = useCallback((cs: NodeChange<BoxNode>[]) => {
+    moved(cs);
+    for (const c of cs) {
+      if (c.type !== "dimensions" || c.resizing !== false || !c.dimensions) continue;
+      const n = scene.nodes.find((x) => x.id === c.id);
+      if (!n) continue;
+      onAdjust?.({ kind: "size", on: c.id, to: n.position,
+                   w: Math.round(c.dimensions.width),
+                   h: Math.round(c.dimensions.height) });
+    }
+  }, [moved, scene, onAdjust]);
 
   /** **A card cannot be dragged out of the layer it is in.** Containment used
    *  to be an invariant checked after the fact; bounding the drag makes it one
    *  the gesture cannot break. */
+  /** The one card a toolbar would belong to. **One or none** — a toolbar over
+   *  a multi-selection would have to say which card it acted on, and a control
+   *  that has to explain itself is the wrong control. */
+  const only = useMemo(() => {
+    if (picked.length !== 1) return null;
+    const n = scene.nodes.find((x) => x.id === picked[0]);
+    return n && !n.data.on && n.selectable !== false ? n.id : null;
+  }, [picked, scene]);
+
   const extent = useMemo(() => {
     if (!frame) return undefined;
     const to = { x: frame.x + frame.w, y: frame.y + frame.h };
@@ -440,11 +575,12 @@ function Canvas(props: FlowViewProps) {
       nodes={nodes}
       edges={edges}
       nodeTypes={NODE_TYPES}
+      edgeTypes={EDGE_TYPES}
       onNodesChange={changed}
       onSelectionChange={chose}
       fitView
       fitViewOptions={fit}
-      minZoom={0.1}
+      minZoom={MIN_ZOOM}
       maxZoom={4}
       nodeExtent={extent}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
@@ -455,9 +591,11 @@ function Canvas(props: FlowViewProps) {
         onDrop?.(id, at(e));
       }}
       proOptions={{ hideAttribution: true }}
-      /** The left button works what is already there and the right button makes
-       *  something new, so neither one pans: panning is the middle button and
-       *  the wheel, and a sweep is shift and drag. */
+      /** The left button works what is already there, so it never pans: a drag
+       *  on a card moves it, a drag from its edge relates it, and a drag on the
+       *  ground sweeps. Panning is the middle button, the right button and the
+       *  wheel — the right button opens the offered list on a click, and a drag
+       *  is not a click. */
       panOnDrag={[1, 2]}
       selectionKeyCode="Shift"
       selectionMode={SelectionMode.Full}
@@ -488,17 +626,35 @@ function Canvas(props: FlowViewProps) {
         say(null, e as React.MouseEvent, "right", 1);
       }}
       onDoubleClick={(e: React.MouseEvent) => {
-        /** Two clicks on the ground come back out of the layer. React Flow has
-         *  no pane-double-click of its own, so it is read off the target — and
-         *  the frame counts as ground, since it *is* the layer you are in. */
+        /** Two clicks in the band come back out of the layer, and **the band is
+         *  a place rather than an element**. Reading it off the target asks the
+         *  browser which node the two clicks had in common, and for two clicks
+         *  on different cards that answer is the ground — which took you up a
+         *  layer when all you did was pick two things quickly. */
         const el = e.target as HTMLElement;
-        if (el.closest(".react-flow__node") && !el.closest(".mnd-frame")) return;
-        say(el.closest(".mnd-frame") ? FRAME : null, e, "left", 2);
+        if (el.closest(".mnd-frame-name")) { say(FRAME, e, "left", 2); return; }
+        if (el.closest(".react-flow__node")) return;
+        const p = at(e);
+        const inside = frame && p.x >= frame.x && p.y >= frame.y
+          && p.x <= frame.x + frame.w && p.y <= frame.y + frame.h;
+        if (inside) return;
+        say(null, e, "left", 2);
       }}
     >
       {/* One strip, and everything the app says goes to it. Positioned by the
           library, so it stays put through a pan and a zoom. */}
       {said ? <Panel position="top-center" className="strip">{said}</Panel> : null}
+      {/* **Descending, said out loud.** A double click is quick once you know
+          it and indistinguishable from re-selecting until you do, so the one
+          card you have picked carries the control as well. It follows the card
+          through a pan and a zoom, which is why it is the library's. */}
+      {chrome && only ? (
+        <NodeToolbar nodeId={only} isVisible position={Position.Top} className="mnd-tools">
+          <button type="button" title="open this layer" onClick={() => tell(only, 2)}>
+            open
+          </button>
+        </NodeToolbar>
+      ) : null}
       {chrome ? <Background variant={BackgroundVariant.Dots} gap={24} size={1} /> : null}
       {chrome ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>

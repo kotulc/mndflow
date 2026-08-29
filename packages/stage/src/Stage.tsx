@@ -4,9 +4,10 @@
  *  the explorer it is a pure function of its props: it holds nothing, and every
  *  gesture leaves as a name somebody else runs.
  *
- *  The left button works what is already there; the right button makes
- *  something new. Within the right button, a click makes the thing that sits at
- *  a point and a drag makes the thing that has extent. */
+ *  The left button works what is already there; the right button offers what
+ *  can be made here. A relationship is the one thing made with the left button,
+ *  because it is drawn between two cards that already exist and React Flow will
+ *  only start a connection on that button. */
 
 import { useEffect, useState } from "react";
 import type { Act } from "@mnd/core";
@@ -26,17 +27,24 @@ export type StageProps = {
   onDrop?: (id: string, at: { x: number; y: number }) => void;
   /** The offered-action list, where the host has one. **Given rather than
    *  built**: the canvas and the tree offer the same actions, so the same menu
-   *  serves both and neither package owns it. */
-  menu?: (at: { x: number; y: number }, on: string | null,
-          shut: () => void) => React.ReactNode;
+   *  serves both and neither package owns it.
+   *
+   *  `at` is where on the page to open it and `spot` is where on the drawing it
+   *  was opened — two answers because they are two questions, and an action
+   *  that puts something somewhere needs the second. */
+  menu?: (at: { x: number; y: number }, on: string | null, shut: () => void,
+          spot: { x: number; y: number }) => React.ReactNode;
   /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
+  /** Whether relationships are read with curves rather than right angles. */
+  curved?: boolean;
 };
 
 export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
-                       said, onSaid }: StageProps) {
-  const [at, set_at] = useState<{ x: number; y: number; on: string | null } | null>(null);
+                       said, onSaid, curved }: StageProps) {
+  const [at, set_at] = useState<
+    { x: number; y: number; on: string | null; spot: { x: number; y: number } } | null>(null);
   /** The shell owns the global keys; a view module owns the rest.
    *
    *  **Shorter than it was.** Selection, the sweep and the multi-select
@@ -48,7 +56,13 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       if (typing) return;
       const one = picked.length === 1 ? picked[0]! : null;
       if (e.key === "Escape") { onPick([]); onSaid?.(); }
-      else if (e.key === "Enter" && one) {
+      /** **Enter goes in.** Descending had one way in and it was a double
+       *  click, which is the same gesture as picking a card twice quickly —
+       *  so the keyboard says it too, and so does the toolbar on the card. */
+      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
+        onAct("open", { id: one });
+      }
+      else if (e.key === "F2" && one) {
         const label = prompt("rename");
         if (label !== null) onAct("rename", { id: one, label });
       }
@@ -89,7 +103,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
     /** The right button offers what can be done here. **A menu where the host
      *  gave one**, and the prompt it replaces where it did not — so the canvas
      *  works either way and neither answer is built in. */
-    if (menu) { set_at({ ...g.screen, on: g.on }); return; }
+    if (menu) { set_at({ ...g.screen, on: g.on, spot: g.at }); return; }
     if (!g.on) {
       const label = prompt("name it");
       if (label !== null) onAct("create", { label, spot: { x: g.at.x, y: g.at.y } });
@@ -102,6 +116,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       <FlowView
         scene={scene}
         picked={picked}
+        curved={curved}
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
@@ -122,7 +137,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
           </>
         ) : null}
       />
-      {at && menu ? menu(at, at.on, () => set_at(null)) : null}
+      {at && menu ? menu(at, at.on, () => set_at(null), at.spot) : null}
     </section>
   );
 }

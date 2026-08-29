@@ -102,7 +102,7 @@
   position: fixed;
   z-index: 20;
   min-width: 132px;
-  max-height: 60vh;
+  max-height: min(60vh, 520px);
   overflow: auto;
   padding: 3px;
   border: 1px solid var(--border);

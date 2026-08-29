@@ -187,13 +187,10 @@ input:focus { outline: none; border-color: var(--accent); }
 
 .app > main > .stage { flex: 1; min-height: 0; height: auto; }
 
-/* One strip, and everything the app says goes to it. */
+/* One strip, and everything the app says goes to it. **Where it sits is the
+   canvas's** — it is a React Flow panel, so it stays put through a pan and a
+   zoom and nothing here places it. What is left is what it looks like. */
 .strip {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 5;
   display: flex;
   align-items: center;
   gap: 10px;

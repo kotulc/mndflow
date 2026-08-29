@@ -78,10 +78,22 @@ describe("the left button works what is already there", () => {
     expect(view.onAct).not.toHaveBeenCalledWith("open", expect.anything());
   });
 
-  it("comes back out on a double click outside", () => {
+  /** **The band is a place, not an element.** Two clicks land in it or they do
+   *  not, and asking the browser which element the pair had in common answers
+   *  *the ground* for two clicks on different cards — which used to take you up
+   *  a layer when all you did was pick two things quickly. */
+  it("comes back out on a double click in the band", () => {
     const view = mount();
-    fireEvent.doubleClick(ground(view));
+    fireEvent.doubleClick(ground(view), { clientX: 9000, clientY: 9000 });
     expect(view.onAct).toHaveBeenCalledWith("up");
+  });
+
+  it("stays put on a double click inside the frame", () => {
+    const view = mount();
+    const f = view.scene.frame!;
+    fireEvent.doubleClick(ground(view),
+      { clientX: f.x + f.w / 2, clientY: f.y + f.h / 2 });
+    expect(view.onAct).not.toHaveBeenCalledWith("up");
   });
 });
 
@@ -108,9 +120,18 @@ describe("the keyboard", () => {
     expect(view.onPick).toHaveBeenCalledWith([]);
   });
 
-  it("renames the picked block on Enter", () => {
+  /** **Descending has three ways in, and this is the one you can find.** A
+   *  double click is the same gesture as picking a card twice quickly, so it
+   *  cannot be the only one. */
+  it("descends into the picked block on Enter", () => {
     const view = mount({ picked: ["block_pump"] });
     press("Enter");
+    expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
+  });
+
+  it("renames the picked block on F2", () => {
+    const view = mount({ picked: ["block_pump"] });
+    press("F2");
     expect(view.onAct).toHaveBeenCalledWith("rename",
       { id: "block_pump", label: "Typed" });
   });

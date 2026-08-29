@@ -45,3 +45,6 @@ export function views(): View[] {
 }
 
 export type { Config };
+export { CELLS, PLAIN, cells_of, look_of, type Cell, type Emphasis, type Label,
+         type Layout, type Look, type Shape, type Slot, type Voice,
+         type Weight } from "./look";

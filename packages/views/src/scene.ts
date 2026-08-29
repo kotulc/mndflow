@@ -12,7 +12,8 @@
  *  business now** and appear nowhere below. */
 
 import type { Edge, Node } from "@xyflow/react";
-import type { Dir, Id, RelationModule } from "@mnd/core";
+import type { Dir, Id, RelationModule, Side } from "@mnd/core";
+import type { Cell, Look } from "./look";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
@@ -29,6 +30,15 @@ export type BoxData = {
   link?: string;
   /** How it reads, derived: a container, a reference, a note, a boundary. */
   marks: readonly Mark[];
+  /** How its definition says it draws. **Names from closed sets, never
+   *  values** — a renderer looks each one up and a definition cannot invent
+   *  one. Absent on a box that stands for nothing in the graph. */
+  look?: Look;
+  /** What a container holds, for the picture drawn inside its card. Empty or
+   *  absent on everything else. */
+  cells?: readonly Cell[];
+  /** The fields this usage shows, already resolved to what they say. */
+  fields?: readonly { name: string; value: string }[];
 };
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
@@ -42,6 +52,11 @@ export type Mark = "container" | "reference" | "missing" | "note" | "group"
 export type LineData = {
   module: RelationModule;
   dir: Dir;
+  /** Whether this layer is being read with curves rather than right angles.
+   *  **Display state, put on the line rather than beside it** — the renderer
+   *  draws one edge at a time and this is the one thing about a run that is not
+   *  derivable from its two ends. */
+  curved?: boolean;
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */
@@ -58,12 +73,29 @@ export type Slot = "arrange" | "interfaces" | "lines" | "columns" | "types" | "r
  *  the band outside it. A layer with nothing in it still gets one, so
  *  descending into an empty block shows somewhere to put something rather than
  *  a blank page. */
+/** One of the layer's own interfaces, seen from inside.
+ *
+ *  **A side and a fraction, never a place.** The frame is grown to the panel by
+ *  whoever is drawing it, so where on the screen a wall runs is not knowable
+ *  here — what is knowable is which wall this sits in and how far along. */
+export type Port = {
+  id: Id;
+  label: string;
+  side: Side;
+  at: number;
+  marks: readonly Mark[];
+  look?: Look;
+};
+
 export type Frame = {
   x: number;
   y: number;
   w: number;
   h: number;
   label: string;
+  /** The interfaces set into this layer's own walls. A layer with none has an
+   *  empty list rather than no list. */
+  ports: readonly Port[];
 };
 
 export type Scene = {

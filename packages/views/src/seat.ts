@@ -30,8 +30,12 @@ export function seated(graph: Graph, spots: readonly Placed[]): Placed[] {
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** The box an interface takes: straddling the edge, centred on its seat. */
-export function at_seat(on: Placed, seat: Seat): Rect {
+/** The box an interface takes: straddling the edge, centred on its seat.
+ *
+ *  Any rectangle will do, not only a card's — **a layer's own interfaces are
+ *  seated on the frame the same way**, and the frame is a rectangle somebody
+ *  else worked out. */
+export function at_seat(on: Rect, seat: Seat): Rect {
   const t = Math.min(1, Math.max(0, seat.at));
   const along = { x: on.x + on.w * t, y: on.y + on.h * t };
   const mid = seat.side === "top" ? { x: along.x, y: on.y }

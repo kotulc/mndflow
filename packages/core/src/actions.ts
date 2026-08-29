@@ -23,6 +23,12 @@ export type Arg = {
   name: string;
   form: ArgForm;
   required?: boolean;
+  /** Worth asking for, even though the action works without it. **The name of
+   *  a thing being made** is the case this exists for: an unnamed block gets
+   *  one derived from what it is, which is a fallback rather than an answer, so
+   *  a surface with somewhere to type should offer to take it. A surface with
+   *  nowhere to type ignores this and the action still runs. */
+  asks?: boolean;
   choices?: readonly string[];
 };
 
@@ -137,7 +143,8 @@ register(
     name: "create",
     about: "makes a new block in a layer, where you pointed if you did",
     on: ["layer"],
-    args: [{ name: "label", form: "text" }, { name: "parent", form: "block" },
+    args: [{ name: "label", form: "text", asks: true },
+           { name: "parent", form: "block" },
            { name: "type", form: "text" }, { name: "spot", form: "spot" }],
     check: (ctx, args) => {
       const parent = (args["parent"] as Id) ?? here(ctx);

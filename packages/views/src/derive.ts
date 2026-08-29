@@ -6,7 +6,8 @@
 
 import { derived_name, is_container, is_interface, is_reference, module_of,
          path, shown_name, stands_for, type Graph, type Id } from "@mnd/core";
-import type { Mark, Scene } from "./scene";
+import { cells_of, look_of } from "./look";
+import type { BoxData, Mark, Scene } from "./scene";
 
 /** How a block reads. Every one of these is derived from what it holds or from
  *  where it sits — none of them is a sort of thing. */
@@ -29,6 +30,30 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
   /** A guess must never read as a statement, so a name nobody typed says so. */
   if (derived_name(graph, id)) out.push("derived");
   return out;
+}
+
+/** Everything a drawn block carries beyond where it sits.
+ *
+ *  **Written once**, so the three projections cannot drift on what a card is
+ *  told. A box that stands for nothing in the graph does not come through
+ *  here — it has no definition to have a look. */
+export function carried(graph: Graph, id: Id): BoxData {
+  const b = graph.blocks[id]!;
+  const look = look_of(graph, id);
+  const cells = is_container(graph, id) && !is_reference(b)
+    ? cells_of(graph, id, (kid) => shown_name(graph, kid)) : [];
+  const fields = (b.fields ?? [])
+    .filter((f) => (look.shows ? look.shows.includes(f.name) : false))
+    .map((f) => ({ name: f.name, value: String(f.value ?? "") }));
+  return {
+    label: shown_name(graph, id),
+    ...(b.type ? { def: b.type } : {}),
+    ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),
+    marks: marks_of(graph, id),
+    look,
+    ...(cells.length ? { cells } : {}),
+    ...(fields.length ? { fields } : {}),
+  };
 }
 
 /** The field a box's link is read from. One name, so a translator and every

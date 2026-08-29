@@ -21,55 +21,257 @@
 }
 .mnd-flow .react-flow__controls-button:hover { background: var(--hover); fill: var(--text); }
 
-/* ── The notation ──────────────────────────────────────────────────────── */
+/* ── What a definition picked ──────────────────────────────────────────────
+   A definition names a slot and an emphasis; this is the whole of what those
+   come to. Six families and three volumes, and no rule below names a hue —
+   which is what keeps "ink reads on fill" true in every theme without anybody
+   checking it per definition.
 
-/* One card, and every mark that is still a rectangle. `--card-*` is what a
-   definition's slot resolves to, so a look is chosen there and never here. */
+   Only steps every family carries are used: fill, line, ink, stroke, dim. A
+   rule reaching for `raised` would work on four slots and fail on two. */
+
+.mnd-card, .mnd-group, .mnd-seat, .mnd-control {
+  --card-fill: var(--s-neutral-fill);
+  --card-line: var(--s-neutral-line);
+  --card-ink: var(--s-neutral-ink);
+  --card-edge: var(--s-neutral-stroke);
+  --card-dim: var(--s-neutral-dim);
+}
+
+[data-slot="primary"] {
+  --card-fill: var(--s-primary-fill);    --card-line: var(--s-primary-line);
+  --card-ink: var(--s-primary-ink);      --card-edge: var(--s-primary-stroke);
+  --card-dim: var(--s-primary-dim);
+}
+[data-slot="secondary"] {
+  --card-fill: var(--s-secondary-fill);  --card-line: var(--s-secondary-line);
+  --card-ink: var(--s-secondary-ink);    --card-edge: var(--s-secondary-stroke);
+  --card-dim: var(--s-secondary-dim);
+}
+[data-slot="tertiary"] {
+  --card-fill: var(--s-tertiary-fill);   --card-line: var(--s-tertiary-line);
+  --card-ink: var(--s-tertiary-ink);     --card-edge: var(--s-tertiary-stroke);
+  --card-dim: var(--s-tertiary-dim);
+}
+[data-slot="quaternary"] {
+  --card-fill: var(--s-quaternary-fill); --card-line: var(--s-quaternary-line);
+  --card-ink: var(--s-quaternary-ink);   --card-edge: var(--s-quaternary-stroke);
+  --card-dim: var(--s-quaternary-dim);
+}
+[data-slot="neutral"] {
+  --card-fill: var(--s-neutral-fill);    --card-line: var(--s-neutral-line);
+  --card-ink: var(--s-neutral-ink);      --card-edge: var(--s-neutral-stroke);
+  --card-dim: var(--s-neutral-dim);
+}
+[data-slot="muted"] {
+  --card-fill: var(--s-muted-fill);      --card-line: var(--s-muted-line);
+  --card-ink: var(--s-muted-ink);        --card-edge: var(--s-muted-stroke);
+  --card-dim: var(--s-muted-dim);
+}
+
+/* How loudly the family is taken. Quiet keeps the ground and steps the ink
+   back; strong takes the stroke, the same hue one step further out. */
+[data-emphasis="quiet"] {
+  --card-fill: transparent;
+  --card-line: var(--card-dim);
+  --card-ink: var(--card-dim);
+}
+[data-emphasis="strong"] { --card-line: var(--card-edge); }
+
+/* How heavy the border is. Three steps, named on the ramp, so a definition
+   cannot ask for a fourth. */
+[data-weight="hairline"] { --card-weight: var(--weight-hairline); }
+[data-weight="thin"]     { --card-weight: var(--weight-thin); }
+[data-weight="thick"]    { --card-weight: var(--weight-thick); }
+
+/* How loudly the name is set. `voice` rather than `label`, because where the
+   label sits is `card.label` and already means something else. */
+[data-voice="quiet"]  .mnd-label { opacity: 0.72; font-weight: 400; }
+[data-voice="normal"] .mnd-label { font-weight: 500; }
+[data-voice="loud"]   .mnd-label { font-weight: 700; letter-spacing: 0.01em; }
+
+/* ── The card ───────────────────────────────────────────────────────────── */
+
 .mnd-card {
+  position: relative;
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  border: 1px solid var(--card-line);
+  flex-direction: column;
+  padding: 3px 8px;
+  border: var(--card-weight, var(--weight-thin)) solid var(--card-line);
   border-radius: 3px;
   background: var(--card-fill);
-  color: var(--text);
+  color: var(--card-ink);
   font: inherit;
+  /* **The card clips its contents, not itself.** A connection handle straddles
+     the border by design, and `overflow: hidden` here clips the outer half —
+     which takes the whole handle out of hit testing and leaves no way to draw
+     a relationship at all. Each part below clips its own text instead. */
+  overflow: visible;
+}
+
+/* The name, the subtype it names, and whatever room is left over. `min-height`
+   so the head shrinks inside the card's stated height rather than pushing past
+   it, which is what makes the clip take effect. */
+.mnd-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 0;
   overflow: hidden;
 }
 
+/* One line, always. A card is a wide bar, and a name wrapped over two lines in
+   one is a different shape from its neighbours. `min-width: 0` is what lets a
+   flex item shrink below its text and clip. */
 .mnd-label {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   pointer-events: none;
 }
 
-/* A container holds a layer of its own, so it says so before you descend. */
-.mnd-card.container { border-width: 2px; }
+/* The subtype, where somebody set one. It sits back a step: what the card is
+   called is the thing being read, and this is the note beside it. */
+.mnd-kind {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* A shape that is not a rectangle, stroked inside the box the engine placed.
+   The card's own border stands down: two outlines on one card is one too
+   many. A stadium and an ellipse are a radius and need no second drawing. */
+.mnd-outline { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mnd-outline polygon {
+  fill: var(--card-fill);
+  stroke: var(--card-line);
+  stroke-width: var(--card-weight, var(--weight-thin));
+}
+.mnd-card[data-shape="diamond"], .mnd-card[data-shape="hex"] {
+  border-color: transparent;
+  background: none;
+}
+.mnd-card[data-shape="diamond"] .mnd-head,
+.mnd-card[data-shape="hex"] .mnd-head { position: relative; }
+.mnd-card[data-shape="round"] { border-radius: 999px; }
+.mnd-card[data-shape="ellipse"] { border-radius: 50%; }
+
+/* ── What a container holds ────────────────────────────────────────────────
+   The picture that says "this holds several distinct things" without being
+   opened. One cell per immediate child, tiled into the room under the name. */
+
+.mnd-holds {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 3), 1fr);
+  gap: 2px;
+  flex: none;
+  margin: 2px -4px 1px;
+  pointer-events: none;
+}
+
+.mnd-cell {
+  min-width: 0;
+  height: 13px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  border-radius: 1px;
+  background: var(--cell-fill, var(--card-veil));
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Four shades from the child's own name, so neighbours read apart. The steps
+   are of one colour: this says "different", never "better" or "warmer". */
+.mnd-cell.tint-0 { --cell-fill: color-mix(in oklch, var(--card-line) 14%, transparent); }
+.mnd-cell.tint-1 { --cell-fill: color-mix(in oklch, var(--card-line) 26%, transparent); }
+.mnd-cell.tint-2 { --cell-fill: color-mix(in oklch, var(--card-line) 38%, transparent); }
+.mnd-cell.tint-3 { --cell-fill: color-mix(in oklch, var(--card-line) 50%, transparent); }
+
+/* And what the child is, which the shade does not say. A container holds
+   another layer down; a reference lives somewhere else. */
+.mnd-cell.container { box-shadow: inset 0 0 0 1px var(--card-line); }
+.mnd-cell.reference { color: var(--away); font-style: italic; }
+.mnd-cell.note { color: var(--note); font-style: italic; }
+
+/* The fields a card shows, where its layout asks for them. */
+.mnd-fields {
+  margin: 2px 0 0;
+  flex: none;
+  font-size: 10px;
+  color: var(--muted);
+  pointer-events: none;
+  overflow: hidden;
+}
+.mnd-fields > div { display: flex; gap: 6px; }
+.mnd-fields dt { flex: none; opacity: 0.7; }
+.mnd-fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
 
 /* Somewhere else, and a description rather than structure. */
 .mnd-card.reference { border-style: dashed; color: var(--away); border-color: var(--away); }
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
+
+/* A note is text, and the one card whose size is yours to set. */
 .mnd-card.note {
   border-color: var(--note);
   background: none;
   color: var(--note);
-  justify-content: flex-start;
   font-style: italic;
+  padding: 5px 8px;
+}
+.mnd-note-text {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+/* The resizer's own furniture, taking the ramp like everything else. */
+.mnd-flow .mnd-edge { border-color: var(--accent); }
+.mnd-flow .mnd-grip {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
 }
 
 /* A boundary is a band behind its members, never a card in front of them. */
-.mnd-card.group {
+.mnd-group {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: var(--card-weight, var(--weight-thin)) dashed var(--card-line);
+  border-radius: 3px;
   background: var(--card-veil);
-  border-style: dashed;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 3px 6px;
-  font-size: 11px;
   color: var(--muted);
+}
+.mnd-group.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.mnd-group-name {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  font-size: 11px;
+  cursor: text;
 }
 
 /* A reading's own furniture: a lane names itself at the top, a lifeline is a
@@ -77,10 +279,9 @@
 .mnd-card.lane {
   background: none;
   border-color: var(--divider);
-  align-items: flex-start;
-  padding-top: 4px;
   color: var(--muted);
 }
+.mnd-card.lane .mnd-head { align-items: flex-start; }
 .mnd-card.lifeline { border: none; border-left: 1px dashed var(--wall); border-radius: 0; }
 .mnd-card.derived { cursor: default; }
 
@@ -90,6 +291,7 @@
 .mnd-card.cell { border-color: var(--divider); }
 .mnd-card.filled { background: var(--tint); border-color: var(--accent); }
 .mnd-card.turned .mnd-label { writing-mode: vertical-rl; transform: rotate(180deg); }
+.mnd-card.header .mnd-head, .mnd-card.cell .mnd-head { justify-content: center; }
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
 .mnd-card.in, .mnd-seat.in { border-color: var(--accent); }
@@ -101,6 +303,8 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
+.mnd-card.picked[data-shape="diamond"] .mnd-outline polygon,
+.mnd-card.picked[data-shape="hex"] .mnd-outline polygon { stroke: var(--accent); }
 
 /* A decision and a merge: a rotated square, with the name beside it. */
 .mnd-control {
@@ -132,10 +336,14 @@
   background: var(--surface);
 }
 
-/* The open layer, seen from within. It takes no pointer of its own — the
-   ground inside it is what a double click comes back out of — but its name
-   does, because a name is renamed where it is read. */
+/* ── The frame ─────────────────────────────────────────────────────────────
+   The open layer, seen from within. It takes no pointer of its own — the
+   ground inside it is the working area and the band outside is what a double
+   click comes back out of — but its name does, because a name is renamed
+   where it is read. */
+
 .mnd-frame {
+  position: relative;
   width: 100%;
   height: 100%;
   border: 1px solid var(--wall);
@@ -158,19 +366,70 @@
   cursor: text;
 }
 
+/* One wall at a time lights as the pointer nears it, so the border says which
+   edge an interface dropped here would be set into. */
+.mnd-rim { position: absolute; pointer-events: auto; }
+.mnd-rim-top, .mnd-rim-bottom { left: 0; right: 0; height: 14px; }
+.mnd-rim-left, .mnd-rim-right { top: 0; bottom: 0; width: 14px; }
+.mnd-rim-top { top: -7px; }
+.mnd-rim-bottom { bottom: -7px; }
+.mnd-rim-left { left: -7px; }
+.mnd-rim-right { right: -7px; }
+.mnd-rim:hover { background: var(--tint); }
+
+/* What the one picked card offers. Placed by the library so it follows the
+   card through a pan and a zoom, which a hand-placed one would not. */
+.mnd-tools {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+}
+.mnd-tools button {
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 1px 7px;
+  cursor: pointer;
+}
+.mnd-tools button:hover { color: var(--text); background: var(--hover); }
+
 /* ── Routes ────────────────────────────────────────────────────────────── */
 
 .mnd-flow .react-flow__edge-path { stroke: var(--route); }
 .mnd-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); }
 .mnd-flow .react-flow__arrowhead * { fill: var(--route-head); stroke: none; }
 .mnd-flow .react-flow__edge.selected .react-flow__arrowhead * { fill: var(--accent); }
-.mnd-flow .react-flow__edge-text { fill: var(--muted); font-size: 10px; }
-.mnd-flow .react-flow__edge-textbg { fill: var(--bg); }
+
+/* A relationship's name, set as real text rather than as SVG, so it takes the
+   ramp's type like everything else on the page. */
+.mnd-wire-name {
+  position: absolute;
+  padding: 0 5px;
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: all;
+  cursor: context-menu;
+}
+.mnd-wire-name:hover { color: var(--text); }
+.react-flow__edge.selected .mnd-wire-name { color: var(--accent); }
 
 /* An association is quieter than a flow — the two are told apart by weight
    rather than by colour, so a definition's slot still means what it says. */
 .mnd-flow .react-flow__edge.line .react-flow__edge-path { stroke-width: 1; opacity: 0.6; }
 .mnd-flow .react-flow__edge.directed .react-flow__edge-path { stroke-width: 1.75; }
+.mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
+.mnd-flow .react-flow__edge.away .react-flow__edge-path { stroke: var(--route-away); }
 
 /* Handles are for connecting, not for looking at: they appear while a
    connection is being made and are invisible the rest of the time. */
