@@ -1,4 +1,4 @@
-# Plan
+# [Archived] Plan
 
 **What is left to reach parity with the legacy app, and in what order.** The target is in spec.md and the reasoning is in design.md — this is only the queue. One row is one chunk of work.
 

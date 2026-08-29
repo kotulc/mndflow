@@ -58,6 +58,7 @@ input:focus { outline: none; border-color: var(--accent); }
 }
 
 .app > header {
+  grid-row: 1;
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
@@ -166,7 +167,12 @@ input:focus { outline: none; border-color: var(--accent); }
   gap: 4px;
 }
 
-.app > .chat { grid-column: 1 / -1; }
+.app > .chat { grid-row: 2; grid-column: 1 / -1; }
+
+/* The body row is named rather than filled in by auto-placement: with the
+   terminal off there is no row 2, and everything would slide up into it and
+   leave the 1fr row standing empty at the foot of the page. */
+.app > .explorer, .app > main, .app > .opts { grid-row: 3; }
 
 /* The stage never yields, so it takes the free space and the tray takes what
    it asks for beneath it. */

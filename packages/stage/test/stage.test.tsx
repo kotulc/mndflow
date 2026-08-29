@@ -191,9 +191,12 @@ describe("what the canvas draws", () => {
   it("offers the viewport controls the library brings", () => {
     const view = mount();
     expect(view.container.querySelector(".react-flow__background")).not.toBeNull();
-    expect(view.container.querySelector(".react-flow__minimap")).not.toBeNull();
     expect(view.container.querySelectorAll(".react-flow__controls button").length)
       .toBeGreaterThan(0);
+    /** **No map of the layer.** A layer is one screenful by construction — the
+     *  frame is fitted to the panel — so a second, smaller copy of it in the
+     *  corner shows what is already there and covers the drawing to do it. */
+    expect(view.container.querySelector(".react-flow__minimap")).toBeNull();
   });
 });
 

@@ -21,13 +21,6 @@
 }
 .mnd-flow .react-flow__controls-button:hover { background: var(--hover); fill: var(--text); }
 
-.mnd-flow .react-flow__minimap {
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-.mnd-flow .react-flow__minimap-mask { fill: var(--outside); }
-.mnd-flow .react-flow__minimap-node { fill: var(--card-line); stroke: none; }
-
 /* ── The notation ──────────────────────────────────────────────────────── */
 
 /* One card, and every mark that is still a rectangle. `--card-*` is what a
@@ -88,7 +81,7 @@
   padding-top: 4px;
   color: var(--muted);
 }
-.mnd-card.lifeline { border: none; border-left: 1px dashed var(--stroke); border-radius: 0; }
+.mnd-card.lifeline { border: none; border-left: 1px dashed var(--wall); border-radius: 0; }
 .mnd-card.derived { cursor: default; }
 
 /* A table's own cells, drawn on the canvas until a table has a surface of its
@@ -145,9 +138,13 @@
 .mnd-frame {
   width: 100%;
   height: 100%;
-  border: 1px solid var(--stroke);
+  border: 1px solid var(--wall);
   border-radius: 3px;
   background: none;
+  /* Inside is the working area, left clear to the grid; outside is dimmed, so
+     the frame reads as the edge of the thing you are in rather than a panel
+     laid over it. The spread is the band you double click to leave by. */
+  box-shadow: 0 0 0 9999px var(--outside);
   pointer-events: none;
 }
 .mnd-frame-name {
