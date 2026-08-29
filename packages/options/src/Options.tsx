@@ -9,6 +9,7 @@
  *  Like every other surface it is a pure function of its props: it holds
  *  nothing and every control leaves as an action name somebody else runs. */
 
+import { Icon } from "@mnd/theme";
 import type { Group } from "./groups";
 
 export type OptionsProps = {
@@ -42,7 +43,7 @@ export function Options({ groups }: OptionsProps) {
                     {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
                     title={control.tip}
                     onClick={control.run}>
-              <span className="glyph" aria-hidden>{control.glyph}</span>
+              <Icon name={control.icon} />
               <span className="word">{control.word}</span>
             </button>
           ))}

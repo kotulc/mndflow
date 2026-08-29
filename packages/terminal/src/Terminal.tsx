@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { Score } from "@mnd/core";
+import { Icon } from "@mnd/theme";
 import { COMMANDS, rank, reads, spaced, warming, type Match, type Offer } from "./commands";
 import type { Question } from "./loop/router";
 
@@ -223,12 +224,12 @@ export function Terminal(props: TerminalProps) {
         </div>
         <button className="bound" type="button"
                 title={expanded ? "shut the terminal" : "open the terminal"}
-                onClick={() => onExpand(!expanded)}>{expanded ? "▾" : "▸"}</button>
+                onClick={() => onExpand(!expanded)}><Icon name={expanded ? "less" : "more"} /></button>
         {/* The far right, and a static cursor: the mirror off, the strip
             unchanged. */}
         <button className="bound mute" type="button" aria-pressed={quiet}
                 title={quiet ? "mirror what I do" : "quiet: stop mirroring what I do"}
-                onClick={() => onQuiet?.(!quiet)}>{quiet ? "▮" : "◍"}</button>
+                onClick={() => onQuiet?.(!quiet)}><Icon name={quiet ? "mirror_off" : "mirror_on"} /></button>
       </div>
     </div>
   );

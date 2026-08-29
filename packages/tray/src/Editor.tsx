@@ -15,6 +15,7 @@ import { VALUE_FORMS, defs_in_scope, shown_name,
          type Act, type Definition, type Field, type FieldDef, type Graph, type Id }
   from "@mnd/core";
 
+import { Icon } from "@mnd/theme";
 export type EditorProps = {
   graph: Graph;
   /** The row being edited: a block or a relationship. */
@@ -88,7 +89,7 @@ export function Editor(props: EditorProps) {
                 </td>
                 <td className="drop">
                   <button title={`drop ${f.name}`}
-                          onClick={() => onAct("unfield", { holder: id, name: f.name })}>✕</button>
+                          onClick={() => onAct("unfield", { holder: id, name: f.name })}><Icon name="remove" /></button>
                 </td>
               </tr>
             ))}
@@ -104,7 +105,7 @@ export function Editor(props: EditorProps) {
           <input value={adding} placeholder="add a value" aria-label="add a value"
                  onChange={(e) => set_adding(e.target.value)}
                  onKeyDown={(e) => { if (e.key === "Enter") add(); }} />
-          <button onClick={add} disabled={!adding.trim()}>＋</button>
+          <button onClick={add} disabled={!adding.trim()}><Icon name="add" /></button>
         </div>
       </div>
 
@@ -128,7 +129,7 @@ export function Editor(props: EditorProps) {
                     <td className="drop">
                       <button title={`drop ${f.name} from ${def.name}`}
                               onClick={() => onAct("undeclare",
-                                                   { def: def.id, name: f.name })}>✕</button>
+                                                   { def: def.id, name: f.name })}><Icon name="remove" /></button>
                     </td>
                   </tr>
                 ))}
@@ -149,7 +150,7 @@ export function Editor(props: EditorProps) {
                       onChange={(e) => set_form(e.target.value)}>
                 {VALUE_FORMS.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
-              <button onClick={declare} disabled={!declaring.trim()}>＋</button>
+              <button onClick={declare} disabled={!declaring.trim()}><Icon name="add" /></button>
             </div>
           </>
         ) : null}

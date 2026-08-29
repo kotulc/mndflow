@@ -1,16 +1,17 @@
 /** What the rail is handed.
  *
- *  A control is a glyph, one word and something to run — never a mutation. The
+ *  A control is a mark, one word and something to run — never a mutation. The
  *  builder below turns the slots a projection declared into the standard
  *  groups, so the shell knows how to draw each and no module has to. */
 
 import { ARRANGEMENTS, type Act, type Arrangement } from "@mnd/core";
+import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
  *  no arrangement a layer is currently *in*. */
 export type Control = {
   key: string;
-  glyph: string;
+  icon: IconName;
   word: string;
   tip: string;
   on?: boolean;
@@ -40,13 +41,13 @@ export type Chrome = {
   sorted?: string | null;
 };
 
-const ARRANGE: Record<Arrangement, { glyph: string; tip: string }> = {
-  free: { glyph: "⬚", tip: "Hand placement is what draws" },
-  grid: { glyph: "▦", tip: "Tile outward from the middle" },
-  right: { glyph: "→", tip: "Rank by relationships, reading right" },
-  left: { glyph: "←", tip: "Rank by relationships, reading left" },
-  down: { glyph: "↓", tip: "Rank by relationships, reading down" },
-  up: { glyph: "↑", tip: "Rank by relationships, reading up" },
+const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
+  free: { icon: "arrange_free", tip: "Hand placement is what draws" },
+  grid: { icon: "arrange_grid", tip: "Tile outward from the middle" },
+  right: { icon: "arrange_right", tip: "Rank by relationships, reading right" },
+  left: { icon: "arrange_left", tip: "Rank by relationships, reading left" },
+  down: { icon: "arrange_down", tip: "Rank by relationships, reading down" },
+  up: { icon: "arrange_up", tip: "Rank by relationships, reading up" },
 };
 
 /** The standard groups, from the slots a projection declared.
@@ -61,7 +62,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "arrange", label: "arrange",
       controls: ARRANGEMENTS.map((how) => ({
-        key: how, glyph: ARRANGE[how].glyph, word: how, tip: ARRANGE[how].tip,
+        key: how, icon: ARRANGE[how].icon, word: how, tip: ARRANGE[how].tip,
         on: chrome.arrangement === how,
         run: () => act("arrange", { arrangement: how }),
       })),
@@ -72,7 +73,8 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "interfaces", label: "interfaces",
       controls: [{
-        key: "show", glyph: "▫", word: "show", tip: "Draw interfaces on their walls",
+        key: "show", word: "show", tip: "Draw interfaces on their walls",
+        icon: chrome.interfaces === false ? "ports_off" : "ports_on",
         on: chrome.interfaces !== false,
         run: () => act("interfaces", { show: chrome.interfaces === false }),
       }],
@@ -83,9 +85,9 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "lines", label: "lines",
       controls: [
-        { key: "angles", glyph: "⌐", word: "angles", tip: "Right angles",
+        { key: "angles", icon: "angles", word: "angles", tip: "Right angles",
           on: chrome.angles !== false, run: () => act("lines", { angles: true }) },
-        { key: "curves", glyph: "⌒", word: "curves", tip: "Curves",
+        { key: "curves", icon: "smooth", word: "curves", tip: "Curves",
           on: chrome.angles === false, run: () => act("lines", { angles: false }) },
       ],
     });
@@ -95,7 +97,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "columns", label: "columns",
       controls: (chrome.columns ?? []).map((name) => ({
-        key: name, glyph: "▤", word: name, tip: `Sort by ${name}`,
+        key: name, icon: "column", word: name, tip: `Sort by ${name}`,
         on: chrome.sorted === name,
         run: () => act("sort", { column: name }),
       })),
@@ -106,7 +108,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "types", label: "types",
       controls: (chrome.types ?? []).map((name) => ({
-        key: name, glyph: "◇", word: name, tip: `Show only “${name}”`,
+        key: name, icon: "type_tag", word: name, tip: `Show only “${name}”`,
         on: chrome.picked === name,
         run: () => act("filter", { type: chrome.picked === name ? null : name }),
       })),
@@ -117,10 +119,11 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "relations", label: "relations",
       controls: [
-        { key: "line", glyph: "─", word: "plain", tip: "A right drag makes a plain line",
+        { key: "line", icon: "relation_plain", word: "plain",
+          tip: "A right drag makes a plain line",
           on: !chrome.picked, run: () => act("relate_with", { type: null }) },
-        ...(chrome.types ?? []).map((name) => ({
-          key: `rel:${name}`, glyph: "→", word: name,
+        ...(chrome.types ?? []).map((name): Control => ({
+          key: `rel:${name}`, icon: "relation_typed", word: name,
           tip: `A right drag makes a “${name}”`,
           on: chrome.picked === name,
           run: () => act("relate_with", { type: name }),
@@ -133,7 +136,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  is the plainer signal of the two. */
   out.push({
     key: "project", label: "project", verbs: true,
-    controls: [{ key: "export", glyph: "⤒", word: "export",
+    controls: [{ key: "export", icon: "export_project", word: "export",
                  tip: "Export this subtree with what it depends on",
                  run: () => act("export") }],
   });

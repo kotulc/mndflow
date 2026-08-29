@@ -1,7 +1,18 @@
 <!doctype html>
-<meta charset="utf-8" />
-<link rel="icon" href="data:," />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>mndflow</title>
-<div id="root"></div>
-<script type="module" src="./src/main.tsx"></script>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The header's own mark, inline: nothing is fetched, so it cannot 404 and
+         works offline like the rest of the app. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230a0f0d'/%3E%3Cpath d='M2 2h6v6H2zM8 8h6v6H8z' fill='%234ade80'/%3E%3C/svg%3E"
+    />
+    <title>mndflow</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>

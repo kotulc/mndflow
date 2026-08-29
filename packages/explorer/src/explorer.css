@@ -19,6 +19,9 @@
 }
 
 .explorer .bar .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   cursor: pointer;
   color: var(--muted);
   white-space: nowrap;
@@ -28,6 +31,8 @@
 
 .explorer .bar .chip:hover { color: var(--accent); }
 .explorer .bar .tools { margin-left: auto; display: flex; gap: 2px; flex: none; }
+.explorer .bar .tools button { padding: 2px 4px; line-height: 1; color: var(--muted); }
+.explorer .bar .tools button:hover:not(:disabled) { color: var(--text); }
 
 .explorer .tree {
   list-style: none;
@@ -74,7 +79,15 @@
 }
 
 .explorer .tree li:hover { background: var(--hover); }
-.explorer .tree .mark { color: var(--muted); flex: none; cursor: pointer; }
+/* The mark sits on the row's own centre line, whatever the label's height —
+   the icon is a box, not a glyph riding a baseline. */
+.explorer .tree .mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  flex: none;
+  cursor: pointer;
+}
 .explorer .tree li.picked .mark { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 

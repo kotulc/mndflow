@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { children, is_interface, is_reference, module_of, shown_name,
          type Act, type Graph, type Id } from "@mnd/core";
+import { Icon, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 
 export type ExplorerProps = {
@@ -62,9 +63,16 @@ function tree_of(graph: Graph, folded: readonly Id[], empties: boolean): Row[] {
   return out;
 }
 
-const GLYPH: Record<Mark, string> = {
-  leaf: "▫", container: "▪", folder: "▤", interface: "◦",
-  reference: "↗", note: "≡", group: "⌗",
+/** What a row reads as, as a mark. A container is solid because it holds
+ *  something — an outline would read as the empty leaf beside it. */
+const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
+  leaf: { icon: "role_leaf" },
+  container: { icon: "role_container", solid: true },
+  folder: { icon: "role_folder" },
+  interface: { icon: "role_interface" },
+  reference: { icon: "role_reference" },
+  note: { icon: "role_note" },
+  group: { icon: "role_group" },
 };
 
 export function Explorer(props: ExplorerProps) {
@@ -96,23 +104,25 @@ export function Explorer(props: ExplorerProps) {
       <div className="bar">
         <span className="chip" title="the workspace"
               onClick={() => { onAct("open", { id: graph.root }); onPick([]); }}>
-          ▤ workspace
+          <Icon name="role_folder" /> workspace
         </span>
         <span className="tools">
           <button title={`add a block in ${shown_name(graph, target)}`}
-                  onClick={() => add()}>＋</button>
+                  onClick={() => add()}><Icon name="add" /></button>
           <button title={`add a folder in ${shown_name(graph, target)}`}
-                  onClick={() => add("folder")}>▤</button>
+                  onClick={() => add("folder")}><Icon name="add_folder" /></button>
           <button title={any_open ? "fold everything" : "open everything"}
                   onClick={() => {
                     for (const r of tree_of(graph, [], true)) {
                       if (r.kids > 0) onFold(r.id, any_open);
                     }
-                  }}>{any_open ? "▾" : "▸"}</button>
+                  }}><Icon name={any_open ? "fold_all" : "unfold_all"} /></button>
           <button title={empties ? "hide what holds nothing" : "show everything"}
-                  onClick={() => set_empties(!empties)}>{empties ? "◉" : "○"}</button>
+                  onClick={() => set_empties(!empties)}>
+            <Icon name={empties ? "show_empty" : "hide_empty"} />
+          </button>
           <button title="delete what is picked" disabled={!one}
-                  onClick={() => one && onAct("delete", { id: one })}>✕</button>
+                  onClick={() => one && onAct("delete", { id: one })}><Icon name="remove" /></button>
         </span>
       </div>
 
@@ -152,7 +162,7 @@ export function Explorer(props: ExplorerProps) {
             <span className={`mark ${r.mark}`}
                   onClick={(e) => { e.stopPropagation();
                                     if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-              {GLYPH[r.mark]}
+              <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={13} />
             </span>
             <span className="label">{r.label}</span>
           </li>

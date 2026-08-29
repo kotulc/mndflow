@@ -11,6 +11,7 @@ import { fixture, NAMES } from "@mnd/fixtures";
 import { Explorer } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
+import "@mnd/theme/icons.css";
 import "../src/explorer.css";
 import "./dev.css";
 

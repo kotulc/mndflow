@@ -7,6 +7,7 @@
  *  A pure function of its props, like every other surface: it holds nothing and
  *  every gesture leaves as an action name or a selection. */
 
+import { Icon } from "@mnd/theme";
 import { rows_of, type Row } from "./rows";
 import { Editor } from "./Editor";
 import type { Act, Graph, Id } from "@mnd/core";
@@ -45,7 +46,7 @@ export function Tray(props: TrayProps) {
     <section className={["tray", open ? "open" : "shut"].join(" ")} aria-label="Contents">
       <div className="tray-bar">
         <button className="chevron" title={open ? "shut the tray" : "open the tray"}
-                onClick={() => onOpen(!open)}>{open ? "▾" : "▸"}</button>
+                onClick={() => onOpen(!open)}><Icon name={open ? "less" : "more"} /></button>
         <span className="name">{label}</span>
         <span className="holds">{rows.length} held</span>
       </div>

@@ -11,6 +11,7 @@ import { block } from "@mnd/views";
 import { Stage } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
+import "@mnd/theme/icons.css";
 import "@mnd/render/src/scene.css";
 import "../src/stage.css";
 import "./dev.css";

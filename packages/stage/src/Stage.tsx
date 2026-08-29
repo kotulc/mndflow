@@ -10,6 +10,7 @@
 
 import { useEffect } from "react";
 import type { Act } from "@mnd/core";
+import { Icon } from "@mnd/theme";
 import { SceneView, type Drag, type Gesture } from "@mnd/render";
 import type { Scene } from "@mnd/views";
 
@@ -107,7 +108,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, said, onSaid }: 
       {said ? (
         <div className="strip" role="status">
           <span>{said}</span>
-          <button onClick={onSaid} title="dismiss">×</button>
+          <button onClick={onSaid} title="dismiss"><Icon name="remove" /></button>
         </div>
       ) : null}
     </section>
@@ -127,7 +128,7 @@ function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {
         </span>
       ))}
       {trail.length > 1 ? <button className="up" title="up one layer"
-                                  onClick={() => onAct("up")}>↑</button> : null}
+                                  onClick={() => onAct("up")}><Icon name="up" /></button> : null}
     </nav>
   );
 }

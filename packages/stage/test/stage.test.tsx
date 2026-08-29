@@ -31,7 +31,9 @@ function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
 function at(view: { container: HTMLElement }, scene: Scene,
             p: { x: number; y: number },
             opts: { button?: number; double?: boolean; on?: Element } = {}) {
-  const svg = view.container.querySelector("svg")!;
+  /** **The drawing, by its own class** — the chrome around it draws marks of
+   *  its own, so the first `svg` on the page is not necessarily the scene. */
+  const svg = view.container.querySelector("svg.scene")!;
   const w = Math.max(scene.bounds.w, 200) + PAD * 2;
   const h = Math.max(scene.bounds.h, 200) + PAD * 2;
   svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: w, height: h,
@@ -111,7 +113,9 @@ describe("the right button makes something new", () => {
 
   it("relates one card to another when dragged between them", () => {
     const view = mount();
-    const svg = view.container.querySelector("svg")!;
+    /** **The drawing, by its own class** — the chrome around it draws marks of
+   *  its own, so the first `svg` on the page is not necessarily the scene. */
+  const svg = view.container.querySelector("svg.scene")!;
     const w = view.scene.bounds.w + PAD * 2;
     const h = view.scene.bounds.h + PAD * 2;
     svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: w, height: h,

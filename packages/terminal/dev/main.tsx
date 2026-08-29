@@ -9,6 +9,7 @@ import { createRoot } from "react-dom/client";
 import { Terminal, COMMANDS, type Match, type Offer } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
+import "@mnd/theme/icons.css";
 import "../src/terminal.css";
 import "./dev.css";
 

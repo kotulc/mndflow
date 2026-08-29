@@ -42,8 +42,8 @@
   opacity: 0.75;
 }
 
-/* A glyph over one word. The word only costs width when it sits beside the
-   glyph; under it the column stays slim. */
+/* A mark over one word. The word only costs width when it sits beside the
+   mark; under it the column stays slim. */
 .opts button {
   display: flex;
   flex-direction: column;
@@ -59,7 +59,7 @@
   cursor: pointer;
 }
 
-.opts button .glyph { font-size: 15px; line-height: 1; }
+.opts button .icon-svg { vertical-align: baseline; }
 
 .opts button .word {
   font-size: 9px;

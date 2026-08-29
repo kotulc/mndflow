@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import { Options, groups_of, type Chrome } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
+import "@mnd/theme/icons.css";
 import "../src/options.css";
 import "./dev.css";
 

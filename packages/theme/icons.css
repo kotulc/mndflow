@@ -1,0 +1,18 @@
+/* The icon set's own rules — it travels with the marks, not with the page.
+ *
+ * One size and one alignment for every mark in the app, so a button never has
+ * to know how its glyph sits: the SVG takes the text colour and the
+ * line-height it is dropped into. Separate from `base.css` because a host that
+ * draws an Explorer wants the marks without the app's own shell. */
+
+.icon-svg {
+  display: inline-block;
+  vertical-align: -0.18em;
+  flex: none;
+  color: inherit;
+}
+
+/* On a control that is only its mark, the icon carries the whole button. */
+.tools .icon-svg,
+.bar .icon-svg,
+.opts .icon-svg { vertical-align: -0.22em; }

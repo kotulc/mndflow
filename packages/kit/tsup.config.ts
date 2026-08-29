@@ -22,7 +22,8 @@ export default defineConfig({
    *  because the entry is one thing: a consumer should never have to know
    *  which component came from which package. */
   onSuccess: async () => {
-    const sheets = ["../render/src/scene.css", "../explorer/src/explorer.css"];
+    const sheets = ["../theme/icons.css", "../render/src/scene.css",
+                    "../explorer/src/explorer.css"];
     writeFileSync("dist/react.css", sheets.map((f) => readFileSync(f, "utf8")).join("\n"));
   },
 });

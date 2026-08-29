@@ -12,6 +12,7 @@ import { snap } from "@mnd/layout";
 import { seed } from "@mnd/defs";
 import { reseat, rewall, view } from "@mnd/views";
 import { Explorer } from "@mnd/explorer";
+import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
 import type { Drag } from "@mnd/render";
 import { Options, groups_of } from "@mnd/options";
@@ -22,7 +23,13 @@ import { wordings } from "./workflows";
 import { browser_files, browser_net, browser_storage } from "./ports";
 import { browser_score } from "./score";
 
-const THEMES = ["retro", "modern", "light"] as const;
+/** The three looks, each with the mark it wears. One control that cycles: the
+ *  icon shown is the look that is on, so nothing hides behind the press. */
+const THEMES = [
+  { name: "retro", icon: "theme_retro" },
+  { name: "modern", icon: "theme_modern" },
+  { name: "light", icon: "theme_light" },
+] as const;
 
 /** One scorer for the app. It holds a cache, so a second would pay for the
  *  weights twice and answer worse for it. */
@@ -51,6 +58,8 @@ export function App() {
   const [folded, set_folded] = useState<Id[]>([]);
   const [theme, set_theme] = useState<string>(
     () => localStorage.getItem("mnd.theme") ?? "retro");
+  const look = THEMES.find((t) => t.name === theme) ?? THEMES[0];
+  const next_look = THEMES[(THEMES.indexOf(look) + 1) % THEMES.length]!;
   /** Which view is showing is **display state**: it changes what you see and
    *  nothing about the project, so it never enters the log. */
   const [showing, set_showing] = useState("view.block");
@@ -199,10 +208,23 @@ export function App() {
   return (
     <div className="app">
       <header>
-        <span className="name">mndflow</span>
-        <span className="where" title="the working session">
-          {Object.keys(graph.blocks).length - 1} blocks · {s.log().length} steps
+        {/* Identity yields under pressure; the tools never do. A long workspace
+            name truncates here rather than shoving export off the row. */}
+        <span className="identity">
+          <h1>mndflow</h1>
+          <span className="domain">
+            {graph.blocks[graph.root]?.label || "untitled"}
+          </span>
         </span>
+
+        {/* Where the work lives, said all the time rather than only when it
+            breaks. One control: it names the working copy, and clicking it
+            takes a snapshot out. */}
+        <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
+                onClick={() => void s.save()}>
+          working session · {Object.keys(graph.blocks).length - 1} blocks · {s.log().length} steps
+        </button>
+
         <span className="tools">
           <select title="which view" value={showing}
                   onChange={(e) => set_showing(e.target.value)}>
@@ -210,21 +232,28 @@ export function App() {
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
-          <button title="undo" onClick={() => s.undo()}>↤</button>
-          <button title="redo" onClick={() => s.redo()}>↦</button>
-          <button title="export the workspace" onClick={() => void s.save()}>⤒</button>
-          <button title="import a workspace" onClick={() => void load()}>⤓</button>
+          <button title="undo" onClick={() => s.undo()}><Icon name="undo" /></button>
+          <button title="redo" onClick={() => s.redo()}><Icon name="redo" /></button>
+          <button title="export the workspace" onClick={() => void s.save()}>
+            <Icon name="export_workspace" />
+          </button>
+          <button title="import a workspace" onClick={() => void load()}>
+            <Icon name="import_file" />
+          </button>
+          {/* A narrowing you are standing in reads as a word — the term it is
+              holding is the whole point, and a mark would hide it. */}
           {narrowed ? (
-            <button title={`stop narrowing to “${narrowed}”`}
+            <button className="word" title={`stop narrowing to “${narrowed}”`}
                     onClick={() => { set_narrowed(""); s.say(""); }}>
-              ⌫ {narrowed}
+              <Icon name="clear" /> {narrowed}
             </button>
           ) : null}
           <button title="the terminal" aria-pressed={terminal}
-                  onClick={() => set_terminal((t) => !t)}>&gt;_</button>
-          <button title={`theme: ${theme}`}
-                  onClick={() => set_theme(THEMES[(THEMES.indexOf(theme as never) + 1)
-                                                  % THEMES.length]!)}>◐</button>
+                  onClick={() => set_terminal((t) => !t)}><Icon name="terminal" /></button>
+          <button title={`theme: ${theme} — click for ${next_look.name}`}
+                  onClick={() => set_theme(next_look.name)}>
+            <Icon name={look.icon} />
+          </button>
         </span>
       </header>
 

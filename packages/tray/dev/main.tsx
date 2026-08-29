@@ -11,6 +11,7 @@ import { fixture, NAMES } from "@mnd/fixtures";
 import { Tray } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
+import "@mnd/theme/icons.css";
 import "../src/tray.css";
 import "./dev.css";
 
