@@ -56,6 +56,20 @@ describe("the left button works what is already there", () => {
     expect(picks).toEqual([[["block_pump"]]]);
   });
 
+  /** **The canvas never reports back what it was told.**
+   *
+   *  Selection is held in two places — the app's log and React Flow's own copy
+   *  — and every jam this canvas has had came from writing each one into the
+   *  other. Clicking what is already picked changes nothing, so it must say
+   *  nothing: a report here is the start of a round trip, and a round trip that
+   *  begins with no news is a loop. */
+  it("says nothing when the click changes nothing", () => {
+    const view = mount({ picked: ["block_pump"] });
+    view.onPick.mockClear();
+    fireEvent.click(card(view, "block_pump"));
+    expect(view.onPick).not.toHaveBeenCalled();
+  });
+
   it("clears the selection on empty space", () => {
     const view = mount({ picked: ["block_pump"] });
     fireEvent.click(ground(view));

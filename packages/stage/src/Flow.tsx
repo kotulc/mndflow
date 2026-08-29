@@ -303,7 +303,8 @@ function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop,
           said, chrome = true, curved = false } = props;
   const flow = useReactFlow();
-  { const w = globalThis as any; w.__t = w.__t ?? []; w.__t.push(`R picked=${JSON.stringify(picked)}`); }
+  /** What the stable callbacks below read instead of closing over a render. */
+  const latest = useRef({ picked, onPick, key: "" });
 
   /** How much room there is to draw in. React Flow measures its own container,
    *  so the frame is shaped to the panel without a second observer. */
@@ -347,11 +348,24 @@ function Canvas(props: FlowViewProps) {
   const [nodes, set_nodes, moved] = useNodesState<BoxNode>(nodes_of(scene, picked, frame));
   const [edges, set_edges] = useEdgesState<LineEdge>(edges_of(scene, picked, curved));
   const key = `${signature(scene, frame)}~${curved ? "curve" : "angle"}`;
+  latest.current = { picked, onPick, key };
 
   /** **Which drawing the arrays on the canvas are of.** Until the effect below
    *  has installed the new ones they are still the last layer's, and what they
    *  say about the selection is about a drawing nobody is looking at. */
   const installed = useRef(key);
+
+  /** **What the canvas last told us was selected.**
+   *
+   *  Selection lives in two places — the app's log and React Flow's own copy —
+   *  and the write that keeps causing trouble is the echo: the canvas reports a
+   *  pick, the app records it, and the app then writes it straight back to the
+   *  canvas that just made it. Damping that with a guard leaves the ring in
+   *  place. Remembering what came *from* the canvas removes it: a pick the
+   *  canvas already knows about is never written back, and only a pick made
+   *  somewhere else — the tree, the keyboard, the question loop — travels
+   *  inward. One direction each, and no cycle to break. */
+  const reported = useRef(chosen(picked));
 
   /** **The nesting-doll transition, and the only animation in the product.**
    *
@@ -396,10 +410,10 @@ function Canvas(props: FlowViewProps) {
 
     const before = drawn.current;
     drawn.current = scene.nodes;
-    { const w = globalThis as any; w.__t.push(`STRUCT key-change moved=${moved_layer}`); }
     set_nodes(nodes_of(scene, picked, frame));
     set_edges(edges_of(scene, picked, curved));
     installed.current = key;
+    reported.current = chosen(picked);
 
     if (grew) { settle(still ? 0 : FLIGHT); return; }
     if (!moved_layer) return;
@@ -444,8 +458,9 @@ function Canvas(props: FlowViewProps) {
    *  what stops the two copies from echoing each other. */
   const held = chosen(picked);
   useEffect(() => {
+    if (held === reported.current) return;
+    reported.current = held;
     const want = new Set<string>(picked);
-    { const w = globalThis as any; w.__t.push(`MARK want=${JSON.stringify([...want])}`); }
     set_nodes((ns) => marked(ns, want));
     set_edges((es) => marked(es, want));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -524,14 +539,20 @@ function Canvas(props: FlowViewProps) {
      *  drawing and the selection in one go, and the canvas reports the old
      *  drawing's selection before it has been handed the new one — taken at
      *  face value that clears the pick that did the descending. */
-    { const w = globalThis as any; w.__t.push(`CHOSE stale=${installed.current !== key}`); }
+    const { picked, onPick, key } = latest.current;
     if (installed.current !== key) return;
     const ids = [...ns.map((n) => n.id).filter((id) => id !== FRAME),
                  ...es.map((e) => e.id)];
+    /** Said by the canvas, so it is already true of the canvas. */
+    reported.current = chosen(ids);
     const same = ids.length === picked.length && ids.every((id) => picked.includes(id));
-    { const w = globalThis as any; w.__t.push(`  ids=${JSON.stringify(ids)} picked=${JSON.stringify(picked)} same=${same}`); }
     if (!same) onPick?.(ids);
-  }, [picked, onPick, key]);
+    /** **Deliberately never rebuilt.** React Flow re-subscribes when this
+     *  changes and calls it again on subscribing, so a callback rebuilt every
+     *  render fires on every render — which is the noise that made a settled
+     *  selection look like a running one. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Everything React Flow reports about its own copy is applied to its own
    *  copy — that is what keeps a node measured and hittable.

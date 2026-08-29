@@ -370,3 +370,18 @@ describe("the two projections that are not a plane", () => {
     });
   });
 });
+
+/** **A projection is a pure function, and the drawing depends on it.**
+ *
+ *  Every node component is memoised on what it draws rather than on the object
+ *  it arrives in, precisely because these objects are rebuilt on every render
+ *  of the app. That only works while two runs over one graph say the same
+ *  thing — if a projection ever varies, every card on the layer re-renders on
+ *  every keystroke and the canvas goes back to feeling stuck. */
+describe("the same graph projects the same scene", () => {
+  it("says the same thing twice", () => {
+    const graph = fold(related());
+    expect(block.project(graph, "block_loop"))
+      .toEqual(block.project(graph, "block_loop"));
+  });
+});

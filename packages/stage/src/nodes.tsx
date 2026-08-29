@@ -15,8 +15,31 @@
  *  slot and an emphasis; those arrive as attributes and the stylesheet is what
  *  turns them into steps on the ramp. */
 
+import { memo } from "react";
 import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
 import { PLAIN, type BoxNode, type Cell, type Look } from "@mnd/views";
+
+/** What this node would draw, as a value.
+ *
+ *  **A projection is a pure function re-run on every render of the app**, so
+ *  every `data` object is new every time even when nothing about the card has
+ *  changed. Left alone that makes memoising useless and every card on the layer
+ *  re-renders whenever any one of them is picked, dragged or renamed. Comparing
+ *  the handful of things a card actually draws is far cheaper than drawing it,
+ *  and it is what keeps a click costing two renders instead of sixteen. */
+function seen(p: NodeProps<BoxNode>): string {
+  const d = p.data;
+  const k = d.look;
+  return [
+    p.selected, p.dragging, p.width, p.height,
+    d.label, d.def, d.on, d.marks.join(","),
+    k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
+    d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
+    d.fields?.map((f) => `${f.name}=${f.value}`).join(","),
+  ].join("|");
+}
+
+const same = (a: NodeProps<BoxNode>, b: NodeProps<BoxNode>) => seen(a) === seen(b);
 
 /** Where a line may join. **Every side, always** — which side a route actually
  *  leaves by is the router's to decide, and a card that offered fewer would
@@ -110,7 +133,7 @@ function Holds({ cells }: { cells: readonly Cell[] }) {
  *  Composed rather than styled: a head that carries the name and the subtype it
  *  names, then whatever the layout asks for beneath it — the children a
  *  container holds, or the fields a note shows. */
-export function Card({ data, selected }: NodeProps<BoxNode>) {
+function CardNode({ data, selected }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   const named = look.label !== "none";
   return (
@@ -149,7 +172,7 @@ export function Card({ data, selected }: NodeProps<BoxNode>) {
  *  `h` and every other card is sized from what it holds, so a note is where
  *  those fields are worth having a grip on. The handles are the library's;
  *  where the corner came to rest arrives as an ordinary adjustment. */
-export function Note({ data, selected }: NodeProps<BoxNode>) {
+function NoteNode({ data, selected }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   return (
     <div className={["mnd-card", "note", ...data.marks, selected ? "picked" : ""]
@@ -174,7 +197,7 @@ export function Note({ data, selected }: NodeProps<BoxNode>) {
  *
  *  It is its members' bounds rather than a stored size, so there is nothing to
  *  resize and nothing to place — what it holds is what it is. */
-export function Group({ data, selected }: NodeProps<BoxNode>) {
+function GroupNode({ data, selected }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   return (
     <div className={["mnd-group", selected ? "picked" : ""].filter(Boolean).join(" ")}
@@ -187,7 +210,7 @@ export function Group({ data, selected }: NodeProps<BoxNode>) {
 
 /** A decision and a merge are the one pair of controls that is not a bar. The
  *  diamond is a rotated square, so the name inside it turns back. */
-export function Control({ data, selected }: NodeProps<BoxNode>) {
+function ControlNode({ data, selected }: NodeProps<BoxNode>) {
   return (
     <div className={["mnd-control", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
@@ -201,7 +224,7 @@ export function Control({ data, selected }: NodeProps<BoxNode>) {
 
 /** An interface, seated on its owner's wall. It carries no name — the mark is
  *  the whole of it, and a hover says the rest. */
-export function Seat({ data, selected }: NodeProps<BoxNode>) {
+function SeatNode({ data, selected }: NodeProps<BoxNode>) {
   return (
     <div className={["mnd-seat", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
@@ -230,6 +253,15 @@ export function Frame({ data }: NodeProps<BoxNode>) {
 
 /** Keyed by the name a projection asks for. Registered once, at module scope —
  *  a fresh object each render remounts every node on the canvas. */
+/** Memoised on what each draws, never on identity — see `seen`. The frame is
+ *  the one that is not: there is at most one of it, and it changes whenever the
+ *  room does. */
+export const Card = memo(CardNode, same);
+export const Note = memo(NoteNode, same);
+export const Group = memo(GroupNode, same);
+export const Control = memo(ControlNode, same);
+export const Seat = memo(SeatNode, same);
+
 export const NODE_TYPES = {
   card: Card,
   note: Note,

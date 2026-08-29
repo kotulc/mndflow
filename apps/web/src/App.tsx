@@ -6,7 +6,7 @@
  *
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, matches, offer, session, type Id, type Reading } from "@mnd/core";
 import { nearest_seat, snap } from "@mnd/views";
 import { seed } from "@mnd/defs";
@@ -96,19 +96,45 @@ export function App() {
 
   /** The definition supplies which module draws and how it is read, so three
    *  of the six offered here are the same module read differently. */
-  const offered = Object.values(graph.defs).filter((d) => d.group === "view");
-  const named = graph.defs[showing]?.components?.["view"] ?? {};
+  const offered = useMemo(
+    () => Object.values(graph.defs).filter((d) => d.group === "view"), [graph]);
+  const named = graph.defs[showing]?.components?.["view"];
+  /** Read out as values rather than kept as a bag: the bag is a fresh object
+   *  whenever a definition names no view, and nothing below may depend on
+   *  something that is new every time. */
+  const drawn_by = narrowed ? "table" : String(named?.["module"] ?? "block");
+  const reading = named?.["reading"] as Reading | undefined;
 
   /** **A result is a table, on the stage.** What matched is handed to the real
    *  table view as its contents — the same seam a view block hands it what it
    *  holds — so there is never a second listing anywhere. */
-  const lit = narrowed ? matches(graph, narrowed) : pointed;
-  const module = view(narrowed ? "table" : String(named["module"] ?? "block"))!;
-  const scene = module.project(graph, narrowed ? null : layer, {
-    holds: narrowed ? lit : undefined,
-    reading: named["reading"] as Reading,
-    interfaces: shown.interfaces,
-  });
+  /** **What a narrowing found and what help is pointing at are two things.**
+   *  Only the first reaches a projection, so only the first is keyed on the
+   *  graph — pointing at a control while nothing is narrowed must not send the
+   *  whole layer round again. */
+  const found = useMemo(
+    () => (narrowed ? matches(graph, narrowed) : null), [graph, narrowed]);
+  const lit = found ?? pointed;
+  const holds = found ?? undefined;
+  const module = view(drawn_by)!;
+
+  /** **Projected once per change, not once per render.**
+   *
+   *  A projection is a pure function of the graph, the open layer and how it is
+   *  being read — and every one of those is a value the shell already holds. It
+   *  is not cheap: it lays out a layer, resolves a look for every card and
+   *  derives what each container holds. Run in the render body it ran again on
+   *  every keystroke in the terminal and every theme toggle, and handed the
+   *  canvas, the tree and the rail a whole new set of objects each time.
+   *
+   *  **`graph` is a sound key because a graph is never edited in place** — every
+   *  change to the log refolds it from empty and hands back a new one, so its
+   *  identity changing is exactly what "the model changed" means. */
+  const scene = useMemo(
+    () => module.project(graph, narrowed ? null : layer, {
+      holds, reading, interfaces: shown.interfaces,
+    }),
+    [module, graph, layer, narrowed, holds, reading, shown.interfaces]);
 
   /** What the conversation is about: the block in focus, or the open layer when
    *  nothing is. It **reads context and never changes it**. */
