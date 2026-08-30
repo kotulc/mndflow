@@ -367,7 +367,12 @@
 }
 
 /* One wall at a time lights as the pointer nears it, so the border says which
-   edge an interface dropped here would be set into. */
+   edge an interface put here would be set into — and which one a right-click
+   is about to be answered for.
+
+   The band is the target; **the wall itself is what lights**, drawn down the
+   middle of it, because a lit band reads as a region and a lit line reads as
+   the border it is. */
 .mnd-rim { position: absolute; pointer-events: auto; }
 .mnd-rim-top, .mnd-rim-bottom { left: 0; right: 0; height: 14px; }
 .mnd-rim-left, .mnd-rim-right { top: 0; bottom: 0; width: 14px; }
@@ -375,7 +380,14 @@
 .mnd-rim-bottom { bottom: -7px; }
 .mnd-rim-left { left: -7px; }
 .mnd-rim-right { right: -7px; }
-.mnd-rim:hover { background: var(--tint); }
+
+.mnd-rim:hover::after { content: ""; position: absolute; background: var(--accent); }
+.mnd-rim-top:hover::after, .mnd-rim-bottom:hover::after {
+  left: 0; right: 0; top: 6px; height: 2px;
+}
+.mnd-rim-left:hover::after, .mnd-rim-right:hover::after {
+  top: 0; bottom: 0; left: 6px; width: 2px;
+}
 
 /* What the one picked card offers. Placed by the library so it follows the
    card through a pan and a zoom, which a hand-placed one would not. */
@@ -502,7 +514,7 @@
 .mnd-anchor:hover, .mnd-anchor.held { background: var(--accent); }
 .mnd-anchor.held { cursor: grabbing; }
 
-/* Where a line already meets a card. **Geometry, and nothing to look at or
+/* Where a line already meets a border. **Geometry, and nothing to look at or
    point at** — it exists so the library has somewhere to end the line, the
    anchor above is what shows it, and leaving it hittable put a connection
    handle on top of every grip. */
@@ -510,6 +522,23 @@
 .mnd-flow .react-flow__node:hover .react-flow__handle.mnd-perch {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Which wall it sits in, which is not always the face it points. On the frame
+   the contents are inside, so a seat in the right wall points left — the
+   library places by the face, so the wall is said here. Same offsets it uses,
+   restated per wall rather than per face. */
+.mnd-flow .react-flow__handle.mnd-perch-top {
+  top: 0; bottom: auto; transform: translate(-50%, -50%);
+}
+.mnd-flow .react-flow__handle.mnd-perch-bottom {
+  top: auto; bottom: 0; transform: translate(-50%, 50%);
+}
+.mnd-flow .react-flow__handle.mnd-perch-left {
+  left: 0; right: auto; transform: translate(-50%, -50%);
+}
+.mnd-flow .react-flow__handle.mnd-perch-right {
+  left: auto; right: 0; transform: translate(50%, -50%);
 }
 
 /* ── The straddled wall ─────────────────────────────────────────────────────
@@ -527,3 +556,18 @@
 .mnd-wall.flat .before, .mnd-wall.flat .after { top: 50%; height: 1px; width: 9000px; }
 .mnd-wall.flat .before { right: 100%; }
 .mnd-wall.flat .after { left: 100%; }
+
+
+/* ── What the pointer is over ───────────────────────────────────────────────
+   **One thing lights at a time, and it is the thing a gesture would act on.**
+   The innermost wins: a grip beats the seat under it, a seat beats the card it
+   sits on, and a card beats the wall it happens to be drawn over.
+
+   No rule below arranges that. Each is a separate element at its own depth, so
+   the browser answers which one the pointer is on and the order is the
+   drawing's own — a grip is in the viewport above every node, a seat is drawn
+   over the card it is seated on, and a wall is part of the frame behind both. */
+.mnd-card:hover, .mnd-group:hover { border-color: var(--accent); }
+.mnd-card:hover[data-shape="diamond"] .mnd-outline polygon,
+.mnd-card:hover[data-shape="hex"] .mnd-outline polygon { stroke: var(--accent); }
+.mnd-seat:hover { border-color: var(--accent); background: var(--tint); }

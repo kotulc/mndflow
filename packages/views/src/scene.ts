@@ -96,6 +96,13 @@ export type Port = {
   look?: Look;
 };
 
+/** The frame's own id, as an edge end and as a perch's host.
+ *
+ *  **Named once, here.** The frame is not a block — it is the layer you are
+ *  inside, drawn — so it has no id of its own in the graph, and a renderer that
+ *  invented one would be agreeing with this module by coincidence. */
+export const FRAME = "__frame";
+
 export type Frame = {
   x: number;
   y: number;
@@ -109,6 +116,10 @@ export type Frame = {
   /** The interfaces set into this layer's own walls. A layer with none has an
    *  empty list rather than no list. */
   ports: readonly Port[];
+  /** Seats a relationship meets on these walls with no interface of its own.
+   *  **Fractions, like the ports** — the frame is grown to whatever panel it is
+   *  drawn in, so where a wall runs is not knowable here. */
+  seats?: readonly { id: string; side: Side; at: number }[];
 };
 
 export type Scene = {
@@ -188,9 +199,13 @@ export function faults(scene: Scene): string[] {
     if (!n.type) out.push(`node ${n.id} says nothing about how it draws`);
   }
 
+  /** The frame and the interfaces set into it are drawn by whoever draws the
+   *  frame, so they are ends a projection may name without placing. */
+  const walled = new Set<string>([FRAME, ...(scene.frame?.ports ?? []).map((p) => p.id)]);
+  const met = (id: string) => ids.has(id) || walled.has(id);
   for (const e of scene.edges) {
-    if (!ids.has(e.source)) out.push(`edge ${e.id} leaves a node that is not drawn`);
-    if (!ids.has(e.target)) out.push(`edge ${e.id} reaches a node that is not drawn`);
+    if (!met(e.source)) out.push(`edge ${e.id} leaves a node that is not drawn`);
+    if (!met(e.target)) out.push(`edge ${e.id} reaches a node that is not drawn`);
   }
 
   if (scene.frame && (scene.frame.w <= 0 || scene.frame.h <= 0)) {

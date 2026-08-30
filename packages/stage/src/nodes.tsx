@@ -61,6 +61,11 @@ const WALL: Record<Side, Position> = {
   bottom: Position.Bottom, left: Position.Left,
 };
 
+/** The face opposite a side, for a wall looked at from the inside. */
+const FACING: Record<Side, Side> = {
+  top: "bottom", bottom: "top", left: "right", right: "left",
+};
+
 /** Where along a wall a seat sits, as the one CSS offset the library's own
  *  handle rule leaves free. */
 function along(side: Side, at: number): React.CSSProperties {
@@ -79,16 +84,24 @@ function along(side: Side, at: number): React.CSSProperties {
  *  a place to start one — that is what the four joins are for — and it sits
  *  exactly where the grip for that end is drawn, so leaving it connectable put
  *  a handle on top of the anchor and swallowed every drag meant for it. */
-function Seats({ seats }: { seats: NonNullable<BoxData["seats"]> }) {
+function Seats({ seats, inward }: {
+  seats: NonNullable<BoxData["seats"]>;
+  /** Set on the frame, whose contents are on the inside — a line meeting its
+   *  right wall has to set off leftwards or it loops out and comes back in. */
+  inward?: boolean;
+}) {
+  const face = (side: Side) => WALL[inward ? FACING[side] : side];
   return (
     <>
       {seats.map((t) => (
-        <Handle key={`s-${t.id}`} type="source" id={`s-${t.id}`} className="mnd-perch"
-                isConnectable={false} position={WALL[t.side]} style={along(t.side, t.at)} />
+        <Handle key={`s-${t.id}`} type="source" id={`s-${t.id}`}
+                className={`mnd-perch mnd-perch-${t.side}`} isConnectable={false}
+                position={face(t.side)} style={along(t.side, t.at)} />
       ))}
       {seats.map((t) => (
-        <Handle key={`t-${t.id}`} type="target" id={`t-${t.id}`} className="mnd-perch"
-                isConnectable={false} position={WALL[t.side]} style={along(t.side, t.at)} />
+        <Handle key={`t-${t.id}`} type="target" id={`t-${t.id}`}
+                className={`mnd-perch mnd-perch-${t.side}`} isConnectable={false}
+                position={face(t.side)} style={along(t.side, t.at)} />
       ))}
     </>
   );
@@ -308,10 +321,12 @@ function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
  *  either side and stopping where this frame begins: you are inside the port,
  *  looking out at the wall it is set into. It runs down for a port on a left or
  *  right wall and across for one on a top or bottom wall. */
-export function Frame({ data }: NodeProps<BoxNode>) {
+export function Frame({ id, data }: NodeProps<BoxNode>) {
+  useSeats(id, data.seats);
   const upright = data.side === "left" || data.side === "right";
   return (
     <div className="mnd-frame" data-axis={data.look?.layout ?? "name"}>
+      {data.seats?.length ? <Seats seats={data.seats} inward /> : null}
       {(["top", "right", "bottom", "left"] as const).map((side) => (
         <span key={side} className={`mnd-rim mnd-rim-${side}`} aria-hidden />
       ))}

@@ -17,6 +17,11 @@ export type MenuProps = {
    *  pass the gesture's on — so a block made from the canvas lands under the
    *  pointer, and one made from the tree is placed by the layout. */
   spot?: { x: number; y: number };
+  /** What the gesture that raised this already knows. **A menu on a
+   *  relationship's end knows which end, and whose border it meets** — nothing
+   *  here could work either out, and an action needing them is offered only
+   *  where they are given. */
+  given?: Record<string, unknown>;
   onAct: (name: string, args?: Record<string, unknown>) => void;
   onShut: () => void;
 };
@@ -30,7 +35,7 @@ function askable(a: Action, spot: boolean): boolean {
 /** How close to the window's edge a menu may come before it is moved. */
 const EDGE = 8;
 
-export function Menu({ ctx, at, spot, onAct, onShut }: MenuProps) {
+export function Menu({ ctx, at, spot, given, onAct, onShut }: MenuProps) {
   const box = useRef<HTMLDivElement>(null);
   const [asking, set_asking] = useState<Action | null>(null);
   const [typed, set_typed] = useState("");
@@ -64,7 +69,6 @@ export function Menu({ ctx, at, spot, onAct, onShut }: MenuProps) {
   }, [onShut]);
 
   const one = ctx.picked.length === 1 ? ctx.picked[0]! : null;
-  const entries = offer(ctx).filter((a) => askable(a, spot !== undefined));
 
   /** What the context can fill without asking. Anything left over is the one
    *  thing the menu asks for. */
@@ -72,6 +76,7 @@ export function Menu({ ctx, at, spot, onAct, onShut }: MenuProps) {
     id: one, holder: one, owner: one, of: [...ctx.picked],
     members: [...ctx.picked], target: one, layer: ctx.layer,
     ...(spot ? { spot } : {}),
+    ...given,
   });
 
   /** What the menu stops to ask for: everything the action requires, and the
@@ -80,7 +85,17 @@ export function Menu({ ctx, at, spot, onAct, onShut }: MenuProps) {
    *  here is the difference between “pump” and “block 4”. */
   const held = ["id", "holder", "owner", "of", "members", "target"];
   const wanted = (a: Action) =>
-    a.args.filter((arg) => (arg.required || arg.asks) && !held.includes(arg.name));
+    a.args.filter((arg) => (arg.required || arg.asks)
+      && !held.includes(arg.name) && !(given && arg.name in given));
+
+  /** **Offered when this menu could actually finish it.** It stops for one
+   *  thing and no more, so an action still missing two of them would be run
+   *  half-filled — which is how an entry that cannot work gets into a list
+   *  whose whole rule is that what does not apply is not shown. */
+  const fillable = (a: Action) => wanted(a).filter((arg) => arg.required).length <= 1;
+
+  const entries = offer(ctx)
+    .filter((a) => askable(a, spot !== undefined) && fillable(a));
 
   const take = (a: Action) => {
     const need = wanted(a);

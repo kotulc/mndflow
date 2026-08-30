@@ -3,7 +3,7 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { arrangement_of, children, edges_in, is_interface, module_of,
+import { arrangement_of, children, edges_in, is_interface, module_of, owner_of,
          shown_name, READS,
          type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
 import { boundary, laid, perch_id, perched, seated, GAP, GRID,
@@ -11,8 +11,8 @@ import { boundary, laid, perch_id, perched, seated, GAP, GRID,
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
 import { read, reading_of } from "./read";
-import { box_of, cell as node, type BoxData, type BoxNode, type Frame, type LineEdge,
-         type Port, type Mark, type Scene, type Slot } from "./scene";
+import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
+         type LineEdge, type Port, type Mark, type Scene, type Slot } from "./scene";
 
 export type Config = {
   /** **What to show, when it is not the layer's own contents.**
@@ -106,8 +106,15 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
 
   const drawn = [...derived, ...groups, ...boxes, ...controls, ...seats];
   /** An end seated on an interface leaves by that interface's own side; only
-   *  an end the relationship placed itself overrides it. */
-  const linked = seen ? seen.links : edges_in(graph, layer).map((e) => landed(graph, e));
+   *  an end the relationship placed itself overrides it. An end on the layer
+   *  itself meets the frame you are inside. */
+  const linked = seen ? seen.links
+    : edges_in(graph, layer).map((e) => landed(graph, e, layer));
+
+  /** The room, before anything is seated on it. **A wall is a border like a
+   *  card's**, so an end meeting one takes a seat the same way — which is what
+   *  lets one grip mean the same thing wherever a line ends. */
+  const room = frame_of(graph, layer, drawn, hidden);
 
   /** Where every other end meets the border it lands on. **Worked out here
    *  rather than left to the library**: left to itself it takes whichever
@@ -115,7 +122,9 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  top, around and back. Two placed rectangles already say which wall faces
    *  which, and a seat keeps two lines to the same card apart. */
   const at = new Map(drawn.map((n) => [n.id, box_of(n)]));
-  const perches = perched(graph, linked, at);
+  if (room) at.set(FRAME, room);
+  const perches = perched(graph, linked, at,
+                          room && layer ? { id: FRAME, of: layer } : undefined);
   const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
   for (const p of perches) {
     const held = offered.get(p.on) ?? [];
@@ -130,6 +139,12 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     return own ? { ...n, data: { ...n.data, seats: own } } : n;
   });
 
+  /** Which side of a wall an end leaves by. **The frame's contents are inside
+   *  it**, so a line meeting its right wall sets off leftwards; left as it is,
+   *  every relationship to the layer looped out round the frame and came back
+   *  in. */
+  const inward = (id: Id) => id === FRAME || owner_of(graph, id) === layer;
+
   /** **The two ends, and which seat each meets.** Where the run goes between
    *  them is still the renderer's; which point it leaves from is geometry, and
    *  geometry is this module's. */
@@ -137,13 +152,15 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     id: e.id,
     source: e.from,
     target: e.to,
-    sourceHandle: handle(met, e.id, "from", e.fromSide, "s"),
-    targetHandle: handle(met, e.id, "to", e.toSide, "t"),
+    sourceHandle: handle(met, e.id, "from", e.fromSide, "s", inward(e.from)),
+    targetHandle: handle(met, e.id, "to", e.toSide, "t", inward(e.to)),
     label: e.type ? graph.defs[e.type]?.name : undefined,
     data: { module: e.module, dir: e.dir ?? "none" },
   }));
 
-  const frame = frame_of(graph, layer, placed, hidden);
+  /** The walls' own seats, put on the frame that offers them. */
+  const walled = offered.get(FRAME);
+  const frame = room && walled ? { ...room, seats: walled } : room;
 
   return {
     layer,
@@ -225,16 +242,24 @@ function plain(id: Id, at: Placed, label: string, marks: Mark[]): BoxNode {
  *  An end seated on an interface leaves by that interface's side unless it was
  *  walled somewhere else by hand — and with interfaces hidden it lands on the
  *  card instead, so turning them off hides the seats and never the lines. */
-function landed(graph: Graph, e: Relation): Relation {
+function landed(graph: Graph, e: Relation, layer: Id | null): Relation {
   const side = (id: Id): Side | undefined => {
     const b = graph.blocks[id];
     return b && is_interface(b) ? b.side : undefined;
   };
-  return { ...e, fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
+  /** The layer itself is the frame around you, and the frame is not a block. */
+  const here = (id: Id): Id => (layer !== null && id === layer ? FRAME : id);
+  return { ...e, from: here(e.from), to: here(e.to),
+           fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
 }
 
 /** How a side names itself in a handle id. */
 const WALL: Record<Side, string> = { top: "t", right: "r", bottom: "b", left: "l" };
+
+/** The face opposite a side, for a wall looked at from the inside. */
+const FACING: Record<Side, Side> = {
+  top: "bottom", bottom: "top", left: "right", right: "left",
+};
 
 /** Which handle an end leaves by.
  *
@@ -242,9 +267,9 @@ const WALL: Record<Side, string> = { top: "t", right: "r", bottom: "b", left: "l
  *  has a wall already, and leaves by that. **Nothing here picks a point** — both
  *  answers were worked out before this was asked. */
 function handle(met: ReadonlyMap<string, Perch>, edge: Id, end: "from" | "to",
-                side: Side | undefined, role: "s" | "t"): string {
-  return met.has(`${edge}|${end}`)
-    ? `${role}-${perch_id(edge, end)}`
-    : `${role}-${WALL[side ?? "right"]}`;
+                side: Side | undefined, role: "s" | "t", inward: boolean): string {
+  if (met.has(`${edge}|${end}`)) return `${role}-${perch_id(edge, end)}`;
+  const wall = side ?? "right";
+  return `${role}-${WALL[inward ? FACING[wall] : wall]}`;
 }
 

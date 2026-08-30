@@ -334,11 +334,17 @@ export function owner_of(graph: Graph, id: Id): Id {
   return b && is_interface(b) && b.parent ? b.parent : id;
 }
 
-/** Relations with both ends drawn in this layer, an end seated on a child
- *  counting as that child. */
+/** Relations with both ends drawn in this layer.
+ *
+ *  An end seated on a child counts as that child. **The layer itself counts
+ *  too**, and so does an interface of its own: seen from within, the layer is
+ *  the frame around you, and a relationship reaching it is drawn meeting that
+ *  frame. Left out, a block wired to the layer's own interface had a
+ *  relationship that existed in the model and was drawn in no layer at all. */
 export function edges_in(graph: Graph, layer: Id | null): Relation[] {
   const here = new Set(children(graph, layer).map((b) => b.id));
-  const drawn = (id: Id) => here.has(owner_of(graph, id));
+  const room = layer_id(graph, layer);
+  const drawn = (id: Id) => here.has(owner_of(graph, id)) || owner_of(graph, id) === room;
   return Object.values(graph.edges)
     .filter((e) => drawn(e.from) && drawn(e.to))
     .sort((a, b) => a.id.localeCompare(b.id));

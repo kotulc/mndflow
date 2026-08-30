@@ -33,7 +33,11 @@ export type StageProps = {
    *  was opened — two answers because they are two questions, and an action
    *  that puts something somewhere needs the second. */
   menu?: (at: { x: number; y: number }, on: string | null, shut: () => void,
-          spot: { x: number; y: number }) => React.ReactNode;
+          spot: { x: number; y: number },
+          /** What the gesture already knew, for actions that need more than an
+           *  id. A right-click on a relationship's end knows which end and
+           *  whose border — nothing downstream could work either out. */
+          given?: Record<string, unknown>) => React.ReactNode;
   /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
@@ -44,7 +48,8 @@ export type StageProps = {
 export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
                        said, onSaid, curved }: StageProps) {
   const [at, set_at] = useState<
-    { x: number; y: number; on: string | null; spot: { x: number; y: number } } | null>(null);
+    { x: number; y: number; on: string | null; spot: { x: number; y: number };
+      given?: Record<string, unknown> } | null>(null);
   /** The shell owns the global keys; a view module owns the rest.
    *
    *  **Shorter than it was.** Selection, the sweep and the multi-select
@@ -107,7 +112,11 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
     /** The right button offers what can be done here. **A menu where the host
      *  gave one**, and the prompt it replaces where it did not — so the canvas
      *  works either way and neither answer is built in. */
-    if (menu) { set_at({ ...g.screen, on: g.on, spot: g.at }); return; }
+    if (menu) {
+      set_at({ ...g.screen, on: g.on, spot: g.at,
+               ...(g.given ? { given: g.given } : {}) });
+      return;
+    }
     if (!g.on) {
       const label = prompt("name it");
       if (label !== null) onAct("create", { label, spot: { x: g.at.x, y: g.at.y } });
@@ -125,11 +134,6 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         onPick={onPick}
         onDrop={onDrop}
         onRelate={(from, to) => onAct("relate", { from, to })}
-        /** **Making an interface and telling that end about it** — the same
-         *  action a right-click on a border runs, with the two arguments that
-         *  say which line already meets this seat. */
-        onPromote={(edge, end, owner, side, at) =>
-          onAct("interface", { owner, side, at, edge, end })}
         onAdjust={(adjust) => {
           /** Dropping one card on another is a **move**, which is sayable;
            *  dropping it anywhere else is a **place**, which is not. */
@@ -146,7 +150,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
           </>
         ) : null}
       />
-      {at && menu ? menu(at, at.on, () => set_at(null), at.spot) : null}
+      {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.given) : null}
     </section>
   );
 }

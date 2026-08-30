@@ -353,6 +353,43 @@ register(
     },
   },
   {
+    name: "promote",
+    about: "turns where a relationship meets a border into an interface of its own",
+    on: ["edge"],
+    /** **`on` rather than `owner`.** A menu fills `owner` from whatever is
+     *  picked, which here is the relationship — so the border this end meets
+     *  has to be named by something that knows it, and only the gesture on the
+     *  end does. Offered nowhere else for the same reason. */
+    args: [{ name: "id", form: "block", required: true },
+           { name: "end", form: "choice", required: true, choices: ["from", "to"] },
+           { name: "on", form: "block", required: true },
+           { name: "side", form: "choice", choices: ["top", "right", "bottom", "left"] },
+           { name: "at", form: "number" }],
+    check: (ctx, args) => {
+      if (!ctx.graph.edges[id_of(args, "id")]) return "needs a relationship";
+      if (!ctx.graph.blocks[id_of(args, "on")]) return "needs a border to sit on";
+      return null;
+    },
+    /** The seat the end was already meeting becomes a block that owns it.
+     *  Nothing about the line moves, and the wall it was pinned to goes with
+     *  the promotion — it is the interface's own wall now. */
+    run: (ctx, args) => {
+      const edge = id_of(args, "id");
+      const end = args["end"] as "from" | "to";
+      const owner = id_of(args, "on");
+      const id = new_id("block");
+      return { mutations: [
+        { op: "add_block", block: {
+          id, parent: owner, side: (args["side"] as Side) ?? "right",
+          at: typeof args["at"] === "number" ? (args["at"] as number) : 0.5,
+          num: next_num(ctx.graph, owner),
+        } },
+        { op: "set_end", id: edge, end, port: id },
+        { op: "set_side", id: edge, end, side: null },
+      ], effect: { focus: id } };
+    },
+  },
+  {
     name: "unlink",
     about: "removes a relationship and any interfaces it leaves spare",
     on: ["edge"],
@@ -406,37 +443,19 @@ function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
 register(
   {
     name: "interface",
-    about: "puts an interface on an edge of a block, or on a seat a line already meets",
-    on: ["block", "edge"],
+    about: "puts an interface on an edge of a block",
+    on: ["block"],
     args: [{ name: "owner", form: "block", required: true },
            { name: "side", form: "choice", choices: ["top", "right", "bottom", "left"] },
-           { name: "at", form: "number" },
-           { name: "edge", form: "block" },
-           { name: "end", form: "choice", choices: ["from", "to"] }],
-    /** **Promoting a perch is making an interface and telling that end about
-     *  it** — the same act with two more arguments, rather than a second action
-     *  that would have to say how it differed. The end was already meeting this
-     *  seat, so nothing about the line moves; what changes is that the seat is
-     *  now a block somebody can name, mark and open. */
+           { name: "at", form: "number" }],
     run: (ctx, args) => {
       const owner = id_of(args, "owner");
       const id = new_id("block");
-      const side = (args["side"] as Side) ?? "right";
-      const at = typeof args["at"] === "number" ? (args["at"] as number) : 0.5;
-      const edge = text(args, "edge");
-      const end = args["end"] === "from" || args["end"] === "to"
-        ? (args["end"] as "from" | "to") : null;
-      const out: Mutation[] = [{ op: "add_block", block: {
-        id, parent: owner, side, at, num: next_num(ctx.graph, owner),
-      } }];
-      /** The wall the end was pinned to goes with the promotion: it is the
-       *  interface's own wall now, and two answers to one question is one too
-       *  many. */
-      if (edge && end) {
-        out.push({ op: "set_end", id: edge, end, port: id },
-                 { op: "set_side", id: edge, end, side: null });
-      }
-      return { mutations: out, effect: { focus: id } };
+      return { mutations: [{ op: "add_block", block: {
+        id, parent: owner, side: (args["side"] as Side) ?? "right",
+        at: typeof args["at"] === "number" ? (args["at"] as number) : 0.5,
+        num: next_num(ctx.graph, owner),
+      } }] };
     },
   },
   {

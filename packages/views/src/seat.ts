@@ -95,8 +95,13 @@ export function perch_id(edge: Id, end: "from" | "to"): string {
  *  between the two crosses that border — so a line stays short, and two of them
  *  never land on the same spot. */
 export function perched(graph: Graph, links: readonly Relation[],
-                        boxes: ReadonlyMap<Id, Rect>): Perch[] {
+                        boxes: ReadonlyMap<Id, Rect>,
+                        frame?: { id: Id; of: Id }): Perch[] {
   const used = new Map<string, Set<number>>();
+  /** Whose interfaces sit on this border. **The frame is not a block**, so the
+   *  walls you are inside are the layer's and the seats on them are the
+   *  layer's own interfaces. */
+  const holder = (on: Id) => (frame && on === frame.id ? frame.of : on);
 
   /** Seats already spoken for on this wall: the interfaces set into it, plus
    *  whatever earlier ends have taken. */
@@ -105,7 +110,7 @@ export function perched(graph: Graph, links: readonly Relation[],
     const held = used.get(key);
     if (held) return held;
     const taken = new Set<number>();
-    for (const b of children(graph, on)) {
+    for (const b of children(graph, holder(on))) {
       if (is_interface(b) && b.side === side) taken.add(b.at ?? 0.5);
     }
     used.set(key, taken);
@@ -119,7 +124,9 @@ export function perched(graph: Graph, links: readonly Relation[],
       const box = boxes.get(id);
       const other = boxes.get(end === "from" ? e.to : e.from);
       const b = graph.blocks[id];
-      if (!box || !other || !b || is_interface(b)) continue;
+      /** An end already seated on an interface has its wall; the frame has no
+       *  block behind it and is a plain border like any other. */
+      if (!box || !other || (b && is_interface(b))) continue;
       const side = (end === "from" ? e.fromSide : e.toSide) ?? facing(box, other);
       /** A fraction is only ever there because somebody dragged this end, and a
        *  seat somebody chose is not one to hand out again. */

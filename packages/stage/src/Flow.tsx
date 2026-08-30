@@ -18,7 +18,7 @@ import {
   type OnConnectEnd, type OnConnectStart, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side } from "@mnd/core";
-import { at_seat, box_of, nearest_seat, snap, type BoxNode, type Frame,
+import { at_seat, box_of, nearest_seat, snap, FRAME, type BoxNode, type Frame,
          type LineEdge, type Scene } from "@mnd/views";
 import { NODE_TYPES } from "./nodes";
 import { EDGE_TYPES } from "./Wire";
@@ -27,7 +27,7 @@ import { EDGE_TYPES } from "./Wire";
  *  it. `kind` is what was under the pointer, never what it looked like. */
 export type Gesture = {
   on: string | null;
-  kind: "box" | "seat" | "route" | "frame" | "title" | "empty";
+  kind: "box" | "seat" | "route" | "anchor" | "frame" | "title" | "empty";
   button: "left" | "right";
   count: 1 | 2;
   /** Where, in scene coordinates. A position can only come from a gesture. */
@@ -36,6 +36,11 @@ export type Gesture = {
    *  what the model records is a place on the drawing, and what a menu opens
    *  next to is a place on the page. */
   screen: Point;
+  /** What this gesture knows beyond what it is on, as the arguments an action
+   *  would need. **A seat is the case that needs it**: which wall of which
+   *  border, and how far along, are answers only the pointer has — a perch is
+   *  derived and a wall is a place rather than a thing. */
+  given?: Record<string, unknown>;
 };
 
 /** A positional change, which is unsayable and undoable like anything else.
@@ -68,11 +73,6 @@ export type FlowViewProps = {
    *  filter takes the left button only, so this cannot be the right one. */
   onRelate?: (from: string, to: string) => void;
   onAdjust?: (adjust: Adjust) => void;
-  /** A line's end made an interface of its own where it already sits. **The
-   *  one place every argument is known** — which relationship, which end, whose
-   *  border, and the seat on it the line was already meeting. */
-  onPromote?: (edge: string, end: "from" | "to", owner: string,
-               side: Side, at: number) => void;
   /** What is selected now — a click, a shift-sweep and a modifier-click all
    *  arrive here and nowhere else. */
   onPick?: (ids: string[]) => void;
@@ -115,8 +115,6 @@ const MIN_ZOOM = 0.1;
  *  of the card it is on. React Flow paints in this order. */
 const DEPTH: Record<string, number> = { frame: 0, card: 1, control: 1, seat: 2 };
 
-const FRAME = "__frame";
-
 /** The layer's working area, shaped like the panel it is shown in.
  *
  *  **A frame hugging its contents is not a room to work in.** A projection is
@@ -151,7 +149,9 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
     position: { x: frame.x, y: frame.y },
     width: frame.w,
     height: frame.h,
-    data: { label: frame.label, marks: [], ...(frame.side ? { side: frame.side } : {}) },
+    data: { label: frame.label, marks: [],
+            ...(frame.side ? { side: frame.side } : {}),
+            ...(frame.seats ? { seats: frame.seats } : {}) },
     draggable: false,
     selectable: false,
     focusable: false,
@@ -249,6 +249,7 @@ function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
     frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.side ?? ""}`,
+    frame?.seats?.map((t) => `${t.id}${t.side}${t.at}`).join("|"),
     frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
     scene.nodes.map((n) => {
       const b = box_of(n);
@@ -311,7 +312,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 }
 
 function Canvas(props: FlowViewProps) {
-  const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop, onPromote,
+  const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop,
           said, chrome = true, curved = false } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
@@ -338,8 +339,10 @@ function Canvas(props: FlowViewProps) {
       && f.x >= held.room.x && f.y >= held.room.y
       && f.x + f.w <= held.room.x + held.room.w
       && f.y + f.h <= held.room.y + held.room.h;
-    const room = holds ? { ...held!.room, label: f.label, ...(f.side ? { side: f.side } : {}) }
-                       : panelled(f, seen);
+    const room = holds
+      ? { ...held!.room, label: f.label, ports: f.ports,
+          ...(f.side ? { side: f.side } : {}), ...(f.seats ? { seats: f.seats } : {}) }
+      : panelled(f, seen);
     kept.current = { of: scene.layer, seen: seen_key, room };
     return room;
   }, [scene.frame, scene.layer, seen]);
@@ -488,9 +491,18 @@ function Canvas(props: FlowViewProps) {
   const say = useCallback((on: string | null, e: React.MouseEvent,
                           button: "left" | "right", count: 1 | 2) => {
     const kind = kind_of(scene, on, e.target);
-    onGesture?.({ on: kind === "title" ? scene.layer : on, kind, button, count,
-                  at: at(e), screen: { x: e.clientX, y: e.clientY } });
-  }, [onGesture, scene, at]);
+    /** Which wall, and where along it. **A border is a place, not a thing** —
+     *  so an action that puts something on one is offered the answer rather
+     *  than left to default to the right wall of everything. */
+    const box = kind === "frame" ? frame
+      : kind === "box" ? scene.nodes.find((n) => n.id === on) : null;
+    const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
+    onGesture?.({
+      on: kind === "title" || kind === "frame" ? scene.layer : on,
+      kind, button, count, at: at(e), screen: { x: e.clientX, y: e.clientY },
+      ...(seat ? { given: { side: seat.side, at: seat.at } } : {}),
+    });
+  }, [onGesture, scene, at, frame]);
 
   /** The same thing a gesture says, said without a pointer behind it. **A
    *  control that descends is the double click, spelled out** — so the vocabulary
@@ -587,6 +599,10 @@ function Canvas(props: FlowViewProps) {
     if (!picked.length) return [];
     const chosen = new Set(picked);
     const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
+    /** **The frame is a border like a card's.** It is grown to the panel here
+     *  rather than in the projection, so the room is the rectangle a seat on a
+     *  wall is measured against. */
+    if (frame) at.set(FRAME, frame);
     const out: Grip[] = [];
     for (const p of scene.perches) {
       if (!chosen.has(p.edge)) continue;
@@ -596,7 +612,7 @@ function Canvas(props: FlowViewProps) {
                  side: p.side, at: p.at, ...middle(box, p) });
     }
     return out;
-  }, [scene, picked]);
+  }, [scene, picked, frame]);
 
   /** A hidden interface, saying where it is. **Only while the line tied to it
    *  or the card it sits on is picked** — enough to find a line's end without
@@ -631,7 +647,7 @@ function Canvas(props: FlowViewProps) {
    *  library's own reconnect anchors were: they sit exactly here, and a drag
    *  fired both a reconnect and a fresh connection. */
   const anchored = useCallback((g: Grip, e: { clientX: number; clientY: number }) => {
-    const host = scene.nodes.find((n) => n.id === g.on);
+    const host = g.on === FRAME ? frame : scene.nodes.find((n) => n.id === g.on);
     if (!host) return;
     const to = at(e);
     /** The innermost thing under the point: a seat drawn over a card is the
@@ -642,7 +658,7 @@ function Canvas(props: FlowViewProps) {
       return to.x >= b.x && to.x <= b.x + b.w && to.y >= b.y && to.y <= b.y + b.h;
     });
     if (landed) { onAdjust?.({ kind: "wall", on: g.edge, end: g.end, to: landed.id }); return; }
-    const seat = nearest_seat(box_of(host), to);
+    const seat = nearest_seat("w" in host ? host : box_of(host as BoxNode), to);
     if (seat.side === g.side && seat.at === g.at) return;
     onAdjust?.({ kind: "anchor", on: g.edge, end: g.end, side: seat.side, at: seat.at });
   }, [scene, at, onAdjust]);
@@ -786,9 +802,17 @@ function Canvas(props: FlowViewProps) {
                       grab(null);
                       anchored(g, e);
                     }}
-                    onDoubleClick={(e) => {
+                    /** **The right button offers what can be done here**, and
+                     *  promoting this seat is one of them. Two clicks mean
+                     *  going in or renaming everywhere else, so they mean
+                     *  nothing on a grip. */
+                    onContextMenu={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      onPromote?.(g.edge, g.end, g.on, g.side, g.at);
+                      onGesture?.({ on: g.edge, kind: "anchor", button: "right", count: 1,
+                                    at: at(e), screen: { x: e.clientX, y: e.clientY },
+                                    given: { end: g.end, on: g.on,
+                                             side: g.side, at: g.at } });
                     }} />
             );
           })}

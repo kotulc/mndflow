@@ -334,9 +334,9 @@ export function App() {
           /** **The same offered list the tree hangs off a row.** One menu, two
            *  callers — the app mounts it, so neither package has to know the
            *  other exists. */
-          menu={(at, on, shut, spot) => (
+          menu={(at, on, shut, spot, given) => (
             <Menu ctx={{ graph, layer, picked: on ? [on] : [...s.picked()] }}
-                  at={at} spot={spot} onAct={act} onShut={shut} />
+                  at={at} spot={spot} given={given} onAct={act} onShut={shut} />
           )}
           /** A row dragged out of the tree lands where it was dropped. */
           onDrop={(id, spot) => s.adjust("place",
