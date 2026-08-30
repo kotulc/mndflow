@@ -10,6 +10,13 @@
 
 .mnd-flow { width: 100%; height: 100%; }
 
+/* **Where relationships sit in the stack.** The library draws them in one layer
+   of their own, ahead of every node in the DOM, so without a depth they fall
+   behind the boundary bands that are drawn over them. Between a boundary and a
+   card: a band is behind what it holds, and a line passes behind the cards it
+   joins. The numbers are the node depths — see `DEPTH`. */
+.mnd-flow .react-flow__edges { z-index: 2; }
+
 /* React Flow paints its own ground and its own chrome. Both take the ramp. */
 .mnd-flow .react-flow__background { background: var(--bg); }
 .mnd-flow .react-flow__background pattern circle { fill: var(--line); }
@@ -165,31 +172,45 @@
 
 /* ── What a container holds ────────────────────────────────────────────────
    The picture that says "this holds several distinct things" without being
-   opened. One cell per immediate child, tiled into the room under the name. */
+   opened. Cells are **placed, not flowed**: each is a rectangle the projection
+   tiled, given here as percentages of the band. The band's height is set by the
+   card, not by this rule — absolutely placed cells are no content at all, so
+   nothing else would give it a size. */
 
 .mnd-holds {
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 3), 1fr);
-  gap: 2px;
+  position: relative;
   flex: none;
-  margin: 2px -4px 1px;
+  margin: 0 -5px 1px;
+  /* The picture a container draws of itself takes no pointer — **but each chip
+     in it does**, because a chip can be dragged back out to this layer, which
+     is the only way to undo filing something away. */
   pointer-events: none;
 }
 
 .mnd-cell {
-  min-width: 0;
-  height: 13px;
-  padding: 0 3px;
+  position: absolute;
   display: flex;
   align-items: center;
-  border-radius: 1px;
+  justify-content: center;
+  padding: 1px 2px;
+  border: 1px solid transparent;
+  border-radius: 2px;
   background: var(--cell-fill, var(--card-veil));
+  background-clip: padding-box;
   color: var(--muted);
   font-size: 9px;
-  line-height: 1;
+  line-height: 1.15;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+}
+
+/* The name inside a cell. A cell is near enough square and wraps happily, so it
+   does — and what still will not fit is clipped rather than shrunk. */
+.mnd-tag {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  text-align: center;
+  pointer-events: none;
 }
 
 /* Four shades from the child's own name, so neighbours read apart. The steps
@@ -201,7 +222,7 @@
 
 /* And what the child is, which the shade does not say. A container holds
    another layer down; a reference lives somewhere else. */
-.mnd-cell.container { box-shadow: inset 0 0 0 1px var(--card-line); }
+.mnd-cell.container { border-color: color-mix(in oklch, var(--card-line) 70%, transparent); }
 .mnd-cell.reference { color: var(--away); font-style: italic; }
 .mnd-cell.note { color: var(--note); font-style: italic; }
 
@@ -256,20 +277,46 @@
 }
 
 /* A boundary is a band behind its members, never a card in front of them. */
+/* The library ships a look for a node type it happens to call `group` — a pale
+   slab with a solid border — and ours is called that too. It is the grey blob
+   the boundary appeared to be: our dashed outline was drawn inside it all along.
+   The band draws itself; its wrapper draws nothing. */
+.mnd-flow .react-flow__node-group { background: none; border: none; }
+
+/* **A band, not a block.** A boundary says *these belong together* and nothing
+   more, so it is the faintest thing on the canvas: a hairline dashed outline and
+   a wash you can read the grid through. Given a card's weight and fill it came
+   out as a grey slab with everything sitting on top of it. */
 .mnd-group {
   position: relative;
   width: 100%;
   height: 100%;
-  border: var(--card-weight, var(--weight-thin)) dashed var(--card-line);
-  border-radius: 3px;
-  background: var(--card-veil);
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in oklch, var(--muted) 45%, transparent);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--muted) 4%, transparent);
+  background-clip: padding-box;
   color: var(--muted);
 }
-.mnd-group.picked { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.mnd-group:hover {
+  border-color: color-mix(in oklch, var(--accent) 70%, transparent);
+  background: color-mix(in oklch, var(--accent) 6%, transparent);
+  background-clip: padding-box;
+}
+.mnd-group.picked {
+  border-color: color-mix(in oklch, var(--accent) 60%, transparent);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
+  background-clip: padding-box;
+  box-shadow: none;
+}
+/* Set into the outline like a frame's name — a break in the dashed line rather
+   than a caption sitting inside the band. */
 .mnd-group-name {
   position: absolute;
-  top: 3px;
-  left: 6px;
+  top: -0.7em;
+  left: 12px;
+  padding: 0 6px;
+  background: var(--bg);
   font-size: 11px;
   cursor: text;
 }
@@ -342,6 +389,16 @@
    click comes back out of — but its name does, because a name is renamed
    where it is read. */
 
+/* **The frame is a border, not a surface.** Its node covers the whole room, so
+   left as an ordinary node it answered for every press inside it — the ground
+   stopped making blocks, a sweep started on the frame instead of the pane, and
+   a right drag had nowhere empty to begin. Only the parts that offer something
+   take the pointer: the walls, and the name. */
+/* `!important` because the library writes `pointer-events: all` inline on every
+   node that has a click handler, and every node here has one. The walls and the
+   name switch it back on for themselves. */
+.mnd-flow .react-flow__node-frame { pointer-events: none !important; }
+
 .mnd-frame {
   position: relative;
   width: 100%;
@@ -403,13 +460,17 @@
 .mnd-tools button {
   font: inherit;
   font-size: 11px;
-  color: var(--muted);
-  background: none;
-  border: 1px solid transparent;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--accent);
   border-radius: 2px;
-  padding: 1px 7px;
+  padding: 2px 10px;
   cursor: pointer;
 }
+.mnd-tools button:hover { background: var(--accent); color: var(--surface); }
 .mnd-tools button:hover { color: var(--text); background: var(--hover); }
 
 /* ── Routes ────────────────────────────────────────────────────────────── */
@@ -457,10 +518,31 @@
 .mnd-flow.react-flow__container--connecting .react-flow__handle { opacity: 1; }
 .mnd-flow .react-flow__connectionline path { stroke: var(--accent); stroke-dasharray: 4 3; }
 
-/* What a sweep has covered so far. */
+/* What a sweep has covered so far. **You have to see through it** — it is
+   drawn over the very cards it is being dragged across to catch. */
 .mnd-flow .react-flow__selection {
-  background: var(--tint);
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
   border: 1px dashed var(--accent);
+}
+
+/* **What a sweep leaves behind takes no pointer.** The library covers the
+   bounds of everything selected with a rectangle you can drag the whole
+   selection by — and across four cards that rectangle is most of the canvas.
+   It swallowed the click that would have cleared the selection, the double
+   click that would have opened a card, and every drag after: nothing could be
+   done next because the last thing done was still in the way.
+
+   Dragging a selection still works, by dragging any card in it — the library
+   moves the rest with it, which is the gesture people already use. */
+.mnd-flow .react-flow__nodesselection,
+.mnd-flow .react-flow__nodesselection-rect {
+  pointer-events: none;
+  /* **And it draws nothing.** It came with a filled slab over the bounds of
+     everything caught — which read as a grey blob laid across the cards, the
+     boundary and the grid alike. What is selected already says so, one card at
+     a time, in the one colour selection is allowed to use. */
+  background: none;
+  border: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -490,28 +572,44 @@
   border: 1px solid var(--accent);
   background: var(--surface);
   pointer-events: none;
-  /* Above the cards: a node carries a z-index of its own, so a grip drawn into
-     the viewport without one ends up underneath the card it sits on. */
-  z-index: 4;
+  /* Above every node: a node carries a depth of its own — see `DEPTH` — and a
+     mark drawn into the viewport without one ends up under the card it is
+     about. */
+  z-index: 5;
 }
 
 /* A line's end, taken hold of. Round, because it is a place on a border rather
    than a square set into one. */
+/* **The mark is small; the target is not.** A grip sits exactly on a card's
+   border, which is also where an interface goes — so a press three pixels wide
+   of a nine-pixel dot landed on the border band and made an interface instead
+   of taking hold of the end. The dot is drawn by the pseudo-element and the
+   box around it is what answers the pointer. */
 .mnd-anchor {
   position: absolute;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  /* The viewport takes no pointer and every layer in it says so for itself;
+     drawn straight into it, a grip has to say so too. Above every node — see
+     `DEPTH` — since a node carries a depth and this does not. */
+  pointer-events: all;
+  z-index: 5;
+}
+.mnd-anchor::after {
+  content: "";
   width: 9px;
   height: 9px;
   border-radius: 50%;
   border: 1px solid var(--accent);
   background: var(--surface);
-  cursor: grab;
-  /* The viewport takes no pointer and every layer in it says so for itself;
-     drawn straight into it, a grip has to say so too. Above the cards, since a
-     node carries a z-index and something drawn into the viewport does not. */
-  pointer-events: all;
-  z-index: 5;
 }
-.mnd-anchor:hover, .mnd-anchor.held { background: var(--accent); }
+.mnd-anchor:hover::after, .mnd-anchor.held::after { background: var(--accent); }
+/* Wide enough to find, and it says so before you are on the dot. */
+.mnd-anchor:hover::after { transform: scale(1.25); }
 .mnd-anchor.held { cursor: grabbing; }
 
 /* Where a line already meets a border. **Geometry, and nothing to look at or
@@ -567,9 +665,11 @@
    the browser answers which one the pointer is on and the order is the
    drawing's own — a grip is in the viewport above every node, a seat is drawn
    over the card it is seated on, and a wall is part of the frame behind both. */
-.mnd-card:hover, .mnd-group:hover { border-color: var(--accent); }
-.mnd-card:hover[data-shape="diamond"] .mnd-outline polygon,
-.mnd-card:hover[data-shape="hex"] .mnd-outline polygon { stroke: var(--accent); }
+.mnd-group:hover { border-color: var(--accent); }
+.mnd-card:has(.mnd-brim:hover)[data-shape="diamond"] .mnd-outline polygon,
+.mnd-card:has(.mnd-brim:hover)[data-shape="hex"] .mnd-outline polygon {
+  stroke: var(--accent);
+}
 .mnd-seat:hover { border-color: var(--accent); background: var(--tint); }
 
 
@@ -577,29 +677,71 @@
    Its own four targets, sitting on the card's edge the way the frame's rims sit
    on the frame's. **The body is the block and the border is a wall** — one
    region for both made every press near an edge ambiguous. */
-.mnd-brim { position: absolute; pointer-events: auto; z-index: 1; }
-.mnd-brim-top, .mnd-brim-bottom { left: 0; right: 0; height: 9px; }
-.mnd-brim-left, .mnd-brim-right { top: 0; bottom: 0; width: 9px; }
-.mnd-brim-top { top: -4px; }
-.mnd-brim-bottom { bottom: -4px; }
-.mnd-brim-left { left: -4px; }
-.mnd-brim-right { right: -4px; }
+/* **Wide, and almost entirely inside the card.** It has to be wide enough to
+   hit without aiming — a one-pixel border is not a target — but reaching out
+   past the card it stole presses from whatever it overlapped: cards sit close
+   and overlap while they are being arranged, and one card's border band was
+   answering for the middle of its neighbour. Three pixels of overhang is enough
+   to catch the pointer on the way in and too little to reach anything else. */
+.mnd-brim { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.mnd-brim > span { position: absolute; pointer-events: auto; }
+.mnd-brim-top, .mnd-brim-bottom { left: -3px; right: -3px; height: 12px; }
+.mnd-brim-left, .mnd-brim-right { top: -3px; bottom: -3px; width: 12px; }
+.mnd-brim-top { top: -3px; }
+.mnd-brim-bottom { bottom: -3px; }
+.mnd-brim-left { left: -3px; }
+.mnd-brim-right { right: -3px; }
 
-.mnd-brim:hover::after { content: ""; position: absolute; background: var(--accent); }
-.mnd-brim-top:hover::after, .mnd-brim-bottom:hover::after {
-  left: 0; right: 0; top: 4px; height: 2px;
+/* **Two contexts, and they must not look like one thing twice.**
+
+   The border is a border, so it lights *as* the border — the card's own edge
+   takes the accent, and nothing is drawn inside it. The body is the block, so it
+   lights as what the block *is*: the interior, and the chips of whatever it
+   holds. An inner outline for one and an outer outline for the other was two
+   borders a few pixels apart, which is a difference you have to measure. */
+.mnd-card:has(.mnd-brim:hover) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
-.mnd-brim-left:hover::after, .mnd-brim-right:hover::after {
-  top: 0; bottom: 0; left: 4px; width: 2px;
+
+.mnd-card:hover:not(:has(.mnd-brim:hover)) { background: var(--tint); }
+.mnd-card:hover:not(:has(.mnd-brim:hover)) .mnd-cell { color: var(--card-ink); }
+
+/* Where a dragged card would land: the block it would go inside, or the band it
+   would join. Shown while the drag is happening, which is the only moment it
+   can still be changed. */
+.mnd-landing {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--accent) 8%, transparent);
 }
 
-/* One thing lights at a time: pointing at a wall is not pointing at the card. */
-.mnd-card:hover:has(.mnd-brim:hover) { border-color: var(--card-line); }
-
-/* A line answers the pointer like everything else, and says so. */
-.mnd-flow .react-flow__edge:hover .react-flow__edge-path,
-.mnd-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); }
+/* A line answers the pointer like everything else, and says so. **Weight as
+   well as colour**: a line is one pixel of ink on a dark ground and a hue
+   change alone is not something you can see you have hit. */
 .mnd-flow .react-flow__edge { cursor: pointer; }
+.mnd-flow .react-flow__edge:hover .react-flow__edge-path,
+.mnd-flow .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  opacity: 1;
+}
+.mnd-flow .react-flow__edge:hover .mnd-wire-name { color: var(--accent); }
 
-/* What a right drag is making, while it is being made. */
+/* What a right drag is making, while it is being made: a line when it started
+   on a card, and the region a note will fill when it started on the ground. */
 .mnd-drawn { stroke: var(--accent); stroke-width: 1.5px; stroke-dasharray: 4 3; fill: none; }
+.mnd-drawn-area { fill: var(--tint); }
+
+
+/* A chip stands for a block a layer down, and can be dragged back out to this
+   one — so it says so on the way past. **The whole cell lights, not the name
+   in it**: a cell is a rectangle in a picture, and recolouring the two words
+   inside it says nothing about which rectangle the pointer is on. */
+.mnd-cell { cursor: grab; pointer-events: auto; }
+.mnd-cell:hover {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 24%, var(--card-fill));
+  color: var(--card-ink);
+}

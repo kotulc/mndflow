@@ -244,6 +244,10 @@ export function stands_for(graph: Graph, id: Id): Block | null {
 }
 
 function fallback(graph: Graph, b: Block): string {
+  /** **A boundary needs no name.** It says *these belong together*, and the
+   *  band round them already says it — a number nobody chose is a caption on
+   *  every group saying nothing. Named where somebody names one. */
+  if (module_of(graph, b.id) === "group") return "";
   const role = is_interface(b) ? "interface" : is_container(graph, b.id) ? "container" : "block";
   return `${role} ${b.num ?? 1}`;
 }

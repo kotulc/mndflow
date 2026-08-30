@@ -20,6 +20,10 @@ export const BLOCK: Size = { w: GRID * 7, h: GRID * 1.5 };
  *  one cell apart and grid steps can bring them level. */
 export const CONTAINER: Size = { w: GRID * 7, h: GRID * 3.5 };
 
+/** The room a container's picture of itself gets: exactly how much taller a
+ *  container is than a block, so the name above it keeps a block's worth. */
+export const BAND: Size = { w: CONTAINER.w, h: CONTAINER.h - BLOCK.h };
+
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: 11, h: 11 };
 

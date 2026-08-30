@@ -38,6 +38,10 @@ export type BoxData = {
   /** What a container holds, for the picture drawn inside its card. Empty or
    *  absent on everything else. */
   cells?: readonly Cell[];
+  /** Whom a boundary is drawn round. **A band is its members' bounds**, so it
+   *  has no place of its own to move — dragging one is dragging them, and this
+   *  is the only place a renderer could learn who *them* is. */
+  holds?: readonly Id[];
   /** The fields this usage shows, already resolved to what they say. */
   fields?: readonly { name: string; value: string }[];
   /** Which wall this is set into, on a box that is seated rather than placed.

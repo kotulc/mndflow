@@ -8,9 +8,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, matches, offer, session, type Id, type Reading } from "@mnd/core";
-import { nearest_seat, snap } from "@mnd/views";
 import { seed } from "@mnd/defs";
-import { box_of, view } from "@mnd/views";
+import { box_of, clear_of, nearest_seat, snap, view, BLOCK, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
@@ -212,16 +211,38 @@ export function App() {
       s.adjust("anchor", adjustments.wall(a.on, a.end, a.side, a.at));
       return;
     }
+    /** **Several cards put down at once.** A sweep dragged, and a boundary
+     *  dragged — the band is its members' bounds, so what moved is them. One
+     *  step, so one undo puts the lot back. */
+    if (a.kind === "place") {
+      s.adjust("place", adjustments.place(
+        a.at.map((p) => ({ id: p.id, x: snap(p.to.x), y: snap(p.to.y) }))));
+      return;
+    }
     /** A seated interface slides along the card it sits on: what changed is
      *  which wall and how far, and both are read off where it came to rest. */
     const drawn = scene.nodes.find((n) => n.id === a.on);
     const on = drawn?.data.on ? scene.nodes.find((n) => n.id === drawn.data.on) : null;
     if (on) {
-      const seat = nearest_seat(box_of(on), a.to);
+      /** **Its middle, not its corner.** A port straddles the border it is set
+       *  into, so reading the corner puts the answer half a port off it. */
+      const seat = nearest_seat(box_of(on),
+                                { x: a.to.x + PORT.w / 2, y: a.to.y + PORT.h / 2 });
       s.adjust("seat", adjustments.seat(a.on, seat.side, seat.at));
       return;
     }
     s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
+
+    /** **Where it came to rest says which boundary it is in.** A boundary is
+     *  its members' bounds, so being inside one and belonging to one were two
+     *  different facts that could disagree — a card dragged into a band stayed
+     *  out of it, and one dragged clear of a band stayed in. Placed first,
+     *  because the band is worked out from where its members are. */
+    if (a.kind !== "move") return;
+    const held = graph.blocks[a.on]?.groups ?? [];
+    const here = a.into;
+    for (const g of held) if (g !== here) s.go("leave", { id: a.on, group: g });
+    if (here && !held.includes(here)) s.go("group", { members: [a.on], into: here });
   };
 
   /** The rail's controls are display state or ordinary actions — it writes
@@ -351,9 +372,23 @@ export function App() {
                   at={at} spot={spot} only={only} given={given}
                   onAct={act} onShut={shut} />
           )}
-          /** A row dragged out of the tree lands where it was dropped. */
-          onDrop={(id, spot) => s.adjust("place",
-            adjustments.place([{ id, x: snap(spot.x), y: snap(spot.y) }]))}
+          /** A row from the tree, or a chip out of a container, lands where it
+           *  was dropped. **Landing here means being here** — a chip stands for
+           *  a block a layer down, and dragging one onto this ground is how it
+           *  comes back up. Something already in this layer is only placed. */
+          onDrop={(id, spot) => {
+            /** **Where the pointer was, clear of what is already there.** A row
+             *  is dropped by its middle, and a card is placed by its corner. */
+            const at = clear_of(
+              scene.nodes.filter((n) => n.id !== id && n.type !== "group" && !n.data.on)
+                         .map(box_of),
+              { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
+            if (graph.blocks[id]?.parent !== (layer ?? graph.root)) {
+              s.go("move", { id, parent: layer ?? graph.root, spot: at });
+              return;
+            }
+            s.adjust("place", adjustments.place([{ id, ...at }]));
+          }}
           picked={s.picked()}
           curved={shown.angles === false}
           said={said?.text ?? null}

@@ -19,8 +19,13 @@ import { GRID, size_of, snap, type Size } from "./size";
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
 
-/** Tight inside a unit, open between them — what matters is the contrast. */
-export const GAP = { unit: GRID * 2, rank: GRID * 3, member: GRID / 2 };
+/** Tight inside a unit, open between them — what matters is the contrast.
+ *
+ *  `member` is how far a boundary reaches past what it holds. **A full cell,
+ *  not half of one**: hugged tighter than the gap a card leaves for its own
+ *  border, the band read as a box drawn *on* its members rather than round
+ *  them, and there was nowhere on it to point at that was not a card. */
+export const GAP = { unit: GRID * 2, rank: GRID * 3, member: GRID };
 
 /** Every block drawn in this layer, placed. Interfaces are seated on their
  *  owner rather than laid out, so they are not here. */
@@ -29,10 +34,20 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   if (units.length === 0) return [];
   const how = arrangement_of(graph, layer);
   const sized = units.map((b) => ({ b, s: size_of(graph, b.id) }));
-  const spots = how === "free" ? free(sized)
-              : how === "grid" ? grid(sized)
-              : ranked(graph, layer, sized, how);
-  return centred(spots);
+  /** **Hand placement is never re-centred.** Every other arrangement works out
+   *  positions from nothing and has to be put somewhere, so it is centred on
+   *  the origin. `free` was already told where each card goes — and shifting
+   *  the whole layer to keep its bounds centred moved every card a little
+   *  every time any one of them was dropped, so nothing ever landed where it
+   *  was let go of and a card made where you pointed appeared somewhere else. */
+  if (how === "free") return ordered(free(sized));
+  return centred(how === "grid" ? grid(sized) : ranked(graph, layer, sized, how));
+}
+
+/** The one order a layer is ever stated in, so the same graph draws the same
+ *  picture whatever placed it. */
+function ordered(spots: Placed[]): Placed[] {
+  return spots.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 type Sized = { b: Block; s: Size };
@@ -174,9 +189,41 @@ export function centred(spots: Placed[]): Placed[] {
   const bottom = Math.max(...spots.map((p) => p.y + p.h));
   const dx = snap(-(left + right) / 2);
   const dy = snap(-(top + bottom) / 2);
-  return spots.map((p) => ({ ...p, x: p.x + dx || 0, y: p.y + dy || 0 }))
-              .sort((a, b) => a.id.localeCompare(b.id));
+  return ordered(spots.map((p) => ({ ...p, x: p.x + dx || 0, y: p.y + dy || 0 })));
 }
+
+/** Somewhere near `at` a new box of this size can go without landing on
+ *  anything already drawn.
+ *
+ *  **Where you pointed, or the nearest grid step that is free.** A card made on
+ *  what looks like empty ground is 168 wide, so aiming just clear of a
+ *  neighbour still buried it — and two made in the same place stacked exactly.
+ *  Steps outward a cell at a time and takes the first spot that is clear,
+ *  which is nearly always the one you asked for. */
+export function clear_of(taken: readonly Rect[], at: { x: number; y: number },
+                         size: Size): { x: number; y: number } {
+  const free_at = (x: number, y: number) => !taken.some((t) =>
+    x < t.x + t.w && t.x < x + size.w && y < t.y + t.h && t.y < y + size.h);
+  const x0 = snap(at.x);
+  const y0 = snap(at.y);
+  for (let ring = 0; ring <= RINGS; ring++) {
+    for (let dx = -ring; dx <= ring; dx++) {
+      for (let dy = -ring; dy <= ring; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        const x = x0 + dx * GRID;
+        const y = y0 + dy * GRID;
+        if (free_at(x, y)) return { x, y };
+      }
+    }
+  }
+  return { x: x0, y: y0 };
+}
+
+/** How far the search for a clear spot reaches, in cells. Past this the layer
+ *  is full enough that anywhere is as good as anywhere. */
+const RINGS = 16;
+
+type Rect = { x: number; y: number; w: number; h: number };
 
 /** What the whole layer takes up, plus the room a new thing needs.
  *
@@ -191,7 +238,7 @@ export function bounds(spots: readonly Placed[]): { w: number; h: number } {
   return { w: w + GAP.unit * 2, h: h + GAP.unit * 2 };
 }
 
-/** A boundary is its members' bounds plus half a cell — its size is a fact
+/** A boundary is its members' bounds plus a cell of air — its size is a fact
  *  about what it holds, never something stored. */
 export function boundary(spots: Placed[], members: Id[]): Placed | null {
   const inside = spots.filter((p) => members.includes(p.id));

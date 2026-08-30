@@ -114,6 +114,13 @@ export type Cell = {
   kind: "block" | "container" | "reference" | "note";
   /** More than fit, folded into the last cell. */
   rest?: number;
+  /** Where this cell sits in the band, as fractions of it. **A tiling rather
+   *  than a row of chips** — a container reads as a picture of what it holds,
+   *  and equal columns say every child is the same size and shape. */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
   /** One of a few shades, so neighbouring cells read apart.
    *
    *  **From the name, not from a model.** A cell's job is to say *this
@@ -131,12 +138,49 @@ function tint_of(name: string): 0 | 1 | 2 | 3 {
   return (n % 4) as 0 | 1 | 2 | 3;
 }
 
+export type Tile = { x: number; y: number; w: number; h: number };
+
+/** The whole band, which is what a packing is worked out in. */
+const WHOLE: Tile = { x: 0, y: 0, w: 1, h: 1 };
+
+/** One region cut into `n` parts: whole, halved, or large-first with two
+ *  stacked beside it. `stacked` is which way the halving runs — regions sit as
+ *  columns so their cells stay wide, and cells within one sit as rows. */
+function split(n: number, box: Tile, stacked: boolean): Tile[] {
+  const { x, y, w, h } = box;
+  if (n <= 1) return [box];
+  if (n === 2) {
+    return stacked ? [{ x, y, w, h: h / 2 }, { x, y: y + h / 2, w, h: h / 2 }]
+                   : [{ x, y, w: w / 2, h }, { x: x + w / 2, y, w: w / 2, h }];
+  }
+  return [{ x, y, w: w / 2, h },
+          { x: x + w / 2, y, w: w / 2, h: h / 2 },
+          { x: x + w / 2, y: y + h / 2, w: w / 2, h: h / 2 }];
+}
+
+/** Up to {@link CELLS} cells tiled into the band, as fractions of it.
+ *
+ *  **The same cut, twice.** One to three cells fill the band; four to six sit
+ *  as two columns; seven to nine as three regions — and each region is cut the
+ *  same way again. So a container of two reads as halves and one of nine still
+ *  reads as nine distinct things rather than as a grid. */
+export function pack(count: number): Tile[] {
+  const n = Math.min(Math.max(count, 0), CELLS);
+  if (n < 1) return [];
+  const groups = n <= 3 ? 1 : n <= 6 ? 2 : 3;
+  const base = Math.floor(n / groups);
+  const extra = n % groups;
+  return split(groups, WHOLE, false)
+    .flatMap((region, g) => split(base + (g < extra ? 1 : 0), region, true));
+}
+
 export function cells_of(graph: Graph, id: Id, shown: (id: Id) => string): Cell[] {
   const kids = Object.values(graph.blocks)
     .filter((b) => b.parent === id && !is_interface(b));
   if (!kids.length) return [];
 
-  const out = kids.slice(0, CELLS).map((b): Cell => {
+  const seats = pack(kids.length);
+  const out = kids.slice(0, seats.length).map((b, at): Cell => {
     const label = shown(b.id);
     return {
       id: b.id,
@@ -145,6 +189,7 @@ export function cells_of(graph: Graph, id: Id, shown: (id: Id) => string): Cell[
         : config_of(graph, b.type, "block")["module"] === "note" ? "note"
         : is_container(graph, b.id) ? "container" : "block",
       tint: tint_of(label),
+      ...seats[at]!,
     };
   });
   const rest = kids.length - out.length;

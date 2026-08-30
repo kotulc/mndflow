@@ -14,13 +14,14 @@ import {
   Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
   ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useEdgesState,
   useNodesState, useReactFlow, useStore,
-  type Node, type NodeChange,
-  type OnConnectEnd, type OnConnectStart, type OnSelectionChangeFunc,
+  type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side } from "@mnd/core";
-import { at_seat, box_of, nearest_seat, snap, FRAME, type BoxNode, type Frame,
-         type LineEdge, type Scene } from "@mnd/views";
-import { NODE_TYPES } from "./nodes";
+import { at_seat, box_of, nearest_seat, snap, FRAME, PORT, type BoxNode, type Frame,
+         type LineEdge, type Rect, type Scene } from "@mnd/views";
+import { DRAGGED, NODE_TYPES } from "./nodes";
+
+export { DRAGGED };
 import { EDGE_TYPES } from "./Wire";
 
 /** What a gesture on the canvas meant. The consumer decides what to do with
@@ -49,7 +50,19 @@ export type Gesture = {
  *  seat is a move whose node happens to be seated on another, so the canvas
  *  reports it the same way and the app reads the scene to tell them apart. */
 export type Adjust =
-  | { kind: "move"; on: string; to: Point; over: string | null }
+  /** **Two answers, because a drop lands on two different sorts of thing.**
+   *  `over` is a block it came to rest on, which is filing it inside that
+   *  block; `into` is a boundary it came to rest within, which is joining that
+   *  boundary. A boundary is not somewhere a block can live — it is a band
+   *  drawn round blocks that already live here — and treating it as one filed
+   *  cards under it, where the layer could not draw them and the tree did not
+   *  list them. They looked deleted. */
+  | { kind: "move"; on: string; to: Point; over: string | null; into: string | null }
+  /** Several cards put down at once. **A sweep dragged, and a boundary
+   *  dragged** — a band is its members' bounds, so it has no place of its own
+   *  and moving it is moving them. Nothing lands *on* anything here: a drop
+   *  that files one card inside another is one card, one gesture. */
+  | { kind: "place"; at: readonly { id: string; to: Point }[] }
   | { kind: "wall"; on: string; end: "from" | "to"; to: string }
   /** An interface set into the open layer's own wall, slid along it. **The
    *  canvas answers this one itself**: which wall and how far along are read
@@ -70,10 +83,17 @@ export type FlowViewProps = {
   onGesture?: (g: Gesture) => void;
   /** A drag from one card's edge to another. **The library's gesture, not
    *  ours** — a connection starts on a handle, and React Flow's own drag
-   *  filter takes the left button only, so this cannot be the right one. */
-  onRelate?: (from: string, to: string) => void;
-  /** A right drag across empty ground. */
-  onNote?: (at: Point) => void;
+   *  filter takes the left button only, so this cannot be the right one.
+   *
+   *  `walls` is the one thing only the drag knows: which wall of the room an
+   *  end was let go on. A perch is derived from where two rectangles ended up,
+   *  and the room is grown to the panel after the projection placed it — so an
+   *  end aimed at a wall by hand says which, or it lands wherever the geometry
+   *  works out and never where you pointed. */
+  onRelate?: (from: string, to: string,
+              walls?: { fromSide?: Side; toSide?: Side }) => void;
+  /** A right drag across empty ground: the region a note will fill. */
+  onNote?: (box: { x: number; y: number; w: number; h: number }) => void;
   onAdjust?: (adjust: Adjust) => void;
   /** What is selected now — a click, a shift-sweep and a modifier-click all
    *  arrive here and nowhere else. */
@@ -91,9 +111,6 @@ export type FlowViewProps = {
    *  project, so it arrives as a prop and never enters the log. */
   curved?: boolean;
 };
-
-/** What a row being dragged out of the tree carries. */
-export const DRAGGED = "text/mnd-block";
 
 /** **Fitting frames what is there; it never magnifies.** One small card on a
  *  wide canvas blown up to four times its size is not a view of anything. */
@@ -117,10 +134,23 @@ const FLIGHT = 440;
  *  on a small card starts somewhere the viewport will actually go. */
 const MIN_ZOOM = 0.1;
 
-/** The frame sits behind everything and takes no gesture; a seat sits in front
- *  of the card it is on. React Flow paints in this order. */
+/** The four walls, in the order they are drawn. */
+const SIDES: readonly Side[] = ["top", "right", "bottom", "left"];
+
+/** **What sits in front of what, said once.**
+ *
+ *  Four bands, and every one of them is a statement about the notation: the
+ *  room is behind everything, a boundary is a wash behind what it holds, lines
+ *  and cards are the drawing, and an interface is on a card's border so it is
+ *  in front of the card. Relationships are not nodes — the stylesheet puts
+ *  their layer at `LINES`, which is the one place the two scales meet.
+ *
+ *  **Nothing else may reorder this.** React Flow lifts whatever is selected by
+ *  a thousand, which put a picked card in front of its own interfaces and in
+ *  front of every other card on the layer — so that is turned off and this
+ *  table is the whole of the answer. */
 const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, card: 2, control: 2, seat: 3,
+  frame: 0, group: 1, card: 3, control: 3, seat: 4,
 };
 
 /** The layer's working area, shaped like the panel it is shown in.
@@ -269,7 +299,7 @@ function signature(scene: Scene, frame: Frame | null): string {
        *  and a signature blind to that leaves the old card on the canvas. */
       return [
         n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label,
-        n.data.marks.join(""),
+        n.data.marks.join(""), n.data.side ?? "",
         k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
         n.data.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(""),
         n.data.fields?.map((f) => `${f.name}=${f.value}`).join(""),
@@ -313,6 +343,95 @@ function marked<T extends { id: string; selected?: boolean }>(
  *  zoom with the drawing and cost nothing when nothing is picked. */
 type Grip = { key: string; edge: string; end: "from" | "to"; on: string;
               side: Side; at: number; x: number; y: number };
+
+/** The same rectangle, as the attributes an SVG rect wants. */
+function box_svg(d: { from: Point; to: Point }) {
+  const b = spread(d.from, d.to);
+  return { x: b.x, y: b.y, width: b.w, height: b.h };
+}
+
+/** The rectangle two points make, whichever way round they were drawn. */
+function spread(a: Point, b: Point): { x: number; y: number; w: number; h: number } {
+  return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
+           w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+}
+
+/** How a relationship would run between these two without a bend.
+ *
+ *  **A straight run is one both borders can reach.** Where the two boxes
+ *  overlap across the run there is a band a line crosses without a jog, and the
+ *  middle of that band is where both ends go — said as a fraction of each
+ *  border, because that is what a pinned end stores.
+ *
+ *  **Where they overlap nowhere, nothing about the line can straighten it**, so
+ *  the far block is lined up with the near one. That is the thing you would
+ *  otherwise do by hand, and it is a move like any other — snapped to the grid
+ *  first, so the ends are pinned to where the card will actually be. */
+function straight(a: Rect, b: Rect, movable: boolean) {
+  /** Along whichever axis the two stand further apart: that is the way the run
+   *  already goes, and turning it round would move the line rather than
+   *  straighten it. */
+  const apart = { x: Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w)),
+                  y: Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h)) };
+  const across = apart.x >= apart.y;
+  const lo = across ? Math.max(a.y, b.y) : Math.max(a.x, b.x);
+  const hi = across ? Math.min(a.y + a.h, b.y + b.h) : Math.min(a.x + a.w, b.x + b.w);
+
+  let box = b;
+  let align: Point | undefined;
+  if (hi <= lo) {
+    if (!movable) return null;
+    align = across ? { x: b.x, y: snap(a.y + a.h / 2 - b.h / 2) }
+                   : { x: snap(a.x + a.w / 2 - b.w / 2), y: b.y };
+    box = { ...b, ...align };
+  }
+  const band = across
+    ? [Math.max(a.y, box.y), Math.min(a.y + a.h, box.y + box.h)]
+    : [Math.max(a.x, box.x), Math.min(a.x + a.w, box.x + box.w)];
+  if (band[1]! <= band[0]!) return null;
+  const meet = (band[0]! + band[1]!) / 2;
+
+  const ahead = across ? box.x + box.w / 2 >= a.x + a.w / 2
+                       : box.y + box.h / 2 >= a.y + a.h / 2;
+  const walls: [Side, Side] = across ? (ahead ? ["right", "left"] : ["left", "right"])
+                                     : (ahead ? ["bottom", "top"] : ["top", "bottom"]);
+  return {
+    fromSide: walls[0], toSide: walls[1],
+    fromAt: across ? (meet - a.y) / a.h : (meet - a.x) / a.w,
+    toAt: across ? (meet - box.y) / box.h : (meet - box.x) / box.w,
+    ...(align ? { x: align.x, y: align.y } : {}),
+  };
+}
+
+/** How a relationship would have to be pinned to run straight, and the block
+ *  that has to shift for it where one does.
+ *
+ *  **An end seated on an interface is not a border this can say anything
+ *  about** — it meets the interface, and moving that is moving a block. Nor is
+ *  the room, which is grown to the panel and never placed by hand. */
+function straightened(scene: Scene, frame: Frame | null, edge: string) {
+  const e = scene.edges.find((x) => x.id === edge);
+  if (!e) return null;
+  const box = (id: string) => {
+    if (id === FRAME) return frame;
+    const n = scene.nodes.find((x) => x.id === id);
+    return n && !n.data.on && n.selectable !== false ? box_of(n) : null;
+  };
+  const from = box(e.source);
+  const to = box(e.target);
+  if (!from || !to) return null;
+  const found = straight(from, to, e.target !== FRAME);
+  return found ? { ...found, align: e.target } : null;
+}
+
+/** The same boxes, moved by the same amount. **Only what is placed** — a seat
+ *  is worked out from the card it sits on and re-seats itself. */
+function shifted(nodes: readonly BoxNode[], by: Point) {
+  return nodes.filter((n) => n.type !== "seat").map((n) => {
+    const b = box_of(n);
+    return { id: n.id, to: { x: b.x + by.x, y: b.y + by.y } };
+  });
+}
 
 /** The middle of a seat, in scene coordinates. */
 function middle(box: { x: number; y: number; w: number; h: number },
@@ -495,8 +614,17 @@ function Canvas(props: FlowViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [held]);
 
+  /** Where the pointer is, on the drawing.
+   *
+   *  **Not snapped.** The library rounds this to the snap grid unless told not
+   *  to, and a cell is two thirds of a card's height — so every question the
+   *  pointer answers came back in thirds. Which wall of a card you aimed at is
+   *  read from how far out of its middle the point falls, and a press an inch
+   *  below a card's bottom edge rounded up to two thirds of the way down and
+   *  answered *right*. Placing still snaps, where placing is what is meant. */
   const at = useCallback((e: { clientX: number; clientY: number }): Point =>
-    flow.screenToFlowPosition({ x: e.clientX, y: e.clientY }), [flow]);
+    flow.screenToFlowPosition({ x: e.clientX, y: e.clientY }, { snapToGrid: false }),
+    [flow]);
 
   const say = useCallback((on: string | null, e: React.MouseEvent,
                           button: "left" | "right", count: 1 | 2) => {
@@ -509,11 +637,17 @@ function Canvas(props: FlowViewProps) {
     const box = kind === "frame" ? frame
       : kind === "box" || kind === "brim" ? scene.nodes.find((n) => n.id === on) : null;
     const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
+    /** **What only the drawing knows.** A wall and a fraction for a border you
+     *  pointed at; for a relationship, where its two ends would have to meet to
+     *  run straight — neither is anywhere in the graph. */
+    const bend = kind === "route" && on ? straightened(scene, frame, on) : null;
+    const given = seat
+      ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
+      : bend;
     onGesture?.({
       on: kind === "title" || kind === "frame" ? scene.layer : on,
       kind, button, count, at: at(e), screen: { x: e.clientX, y: e.clientY },
-      ...(seat ? { given: { side: seat.side, at: seat.at,
-                            ...(kind === "brim" ? { owner: on } : {}) } } : {}),
+      ...(given ? { given } : {}),
     });
   }, [onGesture, scene, at, frame]);
 
@@ -535,32 +669,40 @@ function Canvas(props: FlowViewProps) {
    *  and what was under each end.
    *
    *  A press that never travels is a click, and a click is the offered list. */
-  const drew = useRef<{ x: number; y: number; on: string | null } | null>(null);
-  const [drawing, draw] = useState<{ from: Point; to: Point } | null>(null);
+  const drew = useRef<
+    { x: number; y: number; on: string | null; side?: Side } | null>(null);
+  const [drawing, draw] = useState<
+    { from: Point; to: Point; on: string | null } | null>(null);
   /** A drag just ended, so the `contextmenu` that follows it is not a click. */
   const swallow = useRef(false);
 
-  /** Which node a point on the page is over. **Asked of the DOM rather than of
-   *  the scene** — the pointer is already there, and a card drawn over another
-   *  answers for itself without anything here sorting by depth. */
-  const over = useCallback((x: number, y: number): string | null => {
+  /** Which node a point on the page is over, and which wall of it where that is
+   *  the room's own border. **Asked of the DOM rather than of the scene** — the
+   *  pointer is already there, and a card drawn over another answers for itself
+   *  without anything here sorting by depth. */
+  const over = useCallback((x: number, y: number): { on: string | null; side?: Side } => {
     const el = document.elementFromPoint(x, y);
+    const rim = el instanceof Element ? el.closest(".mnd-rim") : null;
+    if (rim) {
+      const side = SIDES.find((s) => rim.classList.contains(`mnd-rim-${s}`));
+      return { on: FRAME, ...(side ? { side } : {}) };
+    }
     const node = el instanceof Element ? el.closest(".react-flow__node") : null;
     const id = node?.getAttribute("data-id") ?? null;
-    return id === FRAME ? null : id;
+    return { on: id === FRAME ? null : id };
   }, []);
 
   const pressed = useCallback((e: React.PointerEvent) => {
     swallow.current = false;
     if (e.button !== 2) return;
-    drew.current = { x: e.clientX, y: e.clientY, on: over(e.clientX, e.clientY) };
+    drew.current = { x: e.clientX, y: e.clientY, ...over(e.clientX, e.clientY) };
   }, [over]);
 
   const moved_to = useCallback((e: React.PointerEvent) => {
     const from = drew.current;
     if (!from) return;
     if (!drawing && Math.hypot(e.clientX - from.x, e.clientY - from.y) < NUDGE) return;
-    draw({ from: at({ clientX: from.x, clientY: from.y }), to: at(e) });
+    draw({ from: at({ clientX: from.x, clientY: from.y }), to: at(e), on: from.on });
   }, [drawing, at]);
 
   const released = useCallback((e: React.PointerEvent) => {
@@ -571,54 +713,115 @@ function Canvas(props: FlowViewProps) {
     if (!from || e.button !== 2 || !was) return;
     swallow.current = true;
     const to = over(e.clientX, e.clientY);
-    if (from.on && to && to !== from.on) { onRelate?.(from.on, to); return; }
-    if (!from.on && !to) onNote?.(at(e));
-  }, [drawing, over, onRelate, onNote, at]);
+    /** **A line drawn to or from the wall is a line to or from the layer.** The
+     *  frame is the block you are inside, seen from within — so an end let go on
+     *  it is an end on that block, which is how a layer is wired to what it
+     *  holds. **Both ends**: started on the wall and named by the sentinel, the
+     *  relationship was made against a block that does not exist, and it showed
+     *  in the list of what is here while nothing drew it. */
+    const began = from.on === FRAME ? scene.layer : from.on;
+    const landed = to.on === FRAME ? scene.layer : to.on;
+    if (began && landed && landed !== began) {
+      /** **The wall you let go on is the wall the line meets.** Every other end
+       *  works its own out from two rectangles; a room's border is four places
+       *  to stand, and aiming at one of them is a statement. */
+      onRelate?.(began, landed, {
+        ...(from.on === FRAME && from.side ? { fromSide: from.side } : {}),
+        ...(to.on === FRAME && to.side ? { toSide: to.side } : {}),
+      });
+      return;
+    }
+    if (!from.on && !to.on) onNote?.(spread(was.from, was.to));
+  }, [drawing, over, onRelate, onNote, at, scene.layer]);
 
-  /** A drag between two things is a relationship. React Flow calls the press
-   *  `onConnectStart` and the release `onConnectEnd`; both only fire for a drag
-   *  that began on a handle, which is what tells it apart from moving a card. */
-  const from = useMemo(() => ({ current: null as string | null }), []);
-  const start: OnConnectStart = useCallback((_, p) => { from.current = p.nodeId; }, [from]);
-  const end: OnConnectEnd = useCallback((_e, state) => {
-    const began = from.current;
-    from.current = null;
-    const to = state.toNode?.id;
-    if (began && to && to !== began) onRelate?.(began, to);
-  }, [from, onRelate]);
+  /** What a card let go here would land on, and it is asked once.
+   *
+   *  **Two answers, because a drop lands on two sorts of thing** — a block it
+   *  came to rest on, which files it inside that block, and a boundary it came
+   *  to rest within, which joins that boundary. **A card beats the band it is
+   *  standing in**: a boundary is drawn round blocks that already live here, so
+   *  a group under the pointer must never take a drop meant for a card inside
+   *  it — which is what made dragging one block onto another inside a group
+   *  report the group and file the card nowhere. */
+  /** What travels with this node when it is dragged.
+   *
+   *  **A seat travels with the card it sits on**, because the library knows
+   *  nothing of the seating and a card dragged alone left its interfaces
+   *  standing where they were. **A boundary's members travel with the band**,
+   *  because a band is its members' bounds — it has no place of its own, so
+   *  dragging it and moving nothing was the only thing it could do. */
+  const riders = useCallback((host: BoxNode): BoxNode[] => {
+    const held = new Set<string>(host.data.holds ?? []);
+    if (held.size) {
+      for (const n of scene.nodes) if (n.data.on && held.has(n.data.on)) held.add(n.id);
+    }
+    return scene.nodes.filter((n) => n.data.on === host.id || held.has(n.id));
+  }, [scene]);
+
+  const landing_on = useCallback((id: string, at: Point) => {
+    const holds = (n: BoxNode) => {
+      const o = box_of(n);
+      return at.x >= o.x && at.x <= o.x + o.w && at.y >= o.y && at.y <= o.y + o.h;
+    };
+    const lands = scene.nodes.filter((n) =>
+      n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && holds(n));
+    return { over: lands.find((n) => n.type !== "group") ?? null,
+             into: lands.find((n) => n.type === "group") ?? null };
+  }, [scene]);
 
   /** **Where it came to rest, not where the pointer was.** A card grabbed by
    *  its corner lands somewhere the pointer never went, so what it was dropped
    *  *on* is read off the card's own middle. */
-  const dropped = useCallback((node: Node) => {
+  const dropped = useCallback((node: Node, dragged: readonly Node[]) => {
     /** An interface in the room's own wall slides along it, and which wall it
      *  landed in is a question about the room. */
     const port = frame?.ports.find((p) => p.id === node.id);
     if (port && frame) {
-      const seat = nearest_seat(frame, { x: node.position.x, y: node.position.y });
+      /** **Its middle, not its corner.** A port straddles the wall it is set
+       *  into, so reading the corner puts the answer half a port off the
+       *  border — enough for a nudge nobody meant to move it to another wall. */
+      const seat = nearest_seat(frame, { x: node.position.x + PORT.w / 2,
+                                         y: node.position.y + PORT.h / 2 });
       onAdjust?.({ kind: "wall-seat", on: node.id, side: seat.side, at: seat.at });
       return;
     }
     const drawn = scene.nodes.find((n) => n.id === node.id);
     if (!drawn) return;
     const b = box_of(drawn);
-    const p = { x: node.position.x + b.w / 2, y: node.position.y + b.h / 2 };
-    /** **Dropping on a card is not filing it inside that card.** Cards overlap
-     *  while they are being arranged, and reparenting on any overlap quietly
-     *  moved blocks a layer down — they had not gone anywhere, but the layer
-     *  you were looking at had lost them and nothing said so.
+    const by = { x: node.position.x - b.x, y: node.position.y - b.y };
+
+    /** **A boundary has nowhere of its own to be put down.** It is drawn round
+     *  what it holds, so what moved is what it holds — and it is never filed
+     *  into anything: a band's middle is nearly always over one of its own
+     *  members, so a nudge used to file the boundary inside a card it was
+     *  drawn around, where nothing could draw it and the tree did not list it. */
+    if (drawn.type === "group") {
+      onAdjust?.({ kind: "place", at: shifted(riders(drawn), by) });
+      return;
+    }
+
+    /** **A sweep dragged is every card of it put down.** The library reports
+     *  one gesture and moves them all, so recording only the one under the
+     *  hand left the rest to spring back on the next projection. */
+    const many = dragged.filter((d) => d.id !== node.id && d.type !== "seat");
+    if (many.length) {
+      const at = [{ id: node.id, to: node.position },
+                  ...many.map((d) => ({ id: d.id, to: d.position }))];
+      onAdjust?.({ kind: "place", at });
+      return;
+    }
+
+    /** **Dropping a card on a card puts it inside**, which is how a container
+     *  is made — there is no other gesture for it, and a block that holds
+     *  blocks is a container by that fact alone.
      *
-     *  A container is the one target where dropping *reads* as putting
-     *  something in: it already holds things and draws them. Anywhere else this
-     *  is a move, and filing a block under another one is an action you name. */
-    const over = scene.nodes.find((n) => {
-      if (n.id === node.id || n.data.on) return false;
-      if (!n.data.marks.includes("container")) return false;
-      const o = box_of(n);
-      return p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h;
-    })?.id ?? null;
-    onAdjust?.({ kind: "move", on: node.id, to: node.position, over });
-  }, [scene, frame, onAdjust]);
+     *  Read off the dropped card's own middle rather than the pointer: a card
+     *  grabbed by its corner comes to rest somewhere the pointer never went. */
+    const land = landing_on(node.id, { x: node.position.x + b.w / 2,
+                                       y: node.position.y + b.h / 2 });
+    onAdjust?.({ kind: "move", on: node.id, to: node.position,
+                 over: land.over?.id ?? null, into: land.into?.id ?? null });
+  }, [scene, frame, landing_on, riders, onAdjust]);
 
   /** Selection is the app's to hold, and **this is the only place it is
    *  reported**. Reporting it from the click handler as well would clobber a
@@ -650,7 +853,33 @@ function Canvas(props: FlowViewProps) {
    *  inside the node, which knows nothing about the app; what it does is report
    *  a dimension change, and the end of one is the gesture worth recording. */
   const changed = useCallback((cs: NodeChange<BoxNode>[]) => {
-    moved(cs);
+    /** **An interface travels with the card it is seated on.** It is a node of
+     *  its own and the library knows nothing of the seating, so a card dragged
+     *  on its own left its interfaces standing where they were — inboard,
+     *  outboard, or hidden underneath by the time it came to rest. The move is
+     *  the card's; every seat on it gets the same offset. */
+    const carried: NodeChange<BoxNode>[] = [];
+    /** **Never twice.** A node the library is already moving — the other cards
+     *  of a sweep, a seat that happened to be selected too — carries itself,
+     *  and adding an offset on top of that is what slid an interface off the
+     *  border it is set into. */
+    const own = new Set(cs.filter((c) => c.type === "position").map((c) => c.id));
+    for (const c of cs) {
+      if (c.type !== "position" || !c.position) continue;
+      const host = scene.nodes.find((n) => n.id === c.id);
+      if (!host) continue;
+      const was = box_of(host);
+      const dx = c.position.x - was.x;
+      const dy = c.position.y - was.y;
+      if (!dx && !dy) continue;
+      for (const n of riders(host)) {
+        if (own.has(n.id)) continue;
+        const b = box_of(n);
+        carried.push({ id: n.id, type: "position", dragging: c.dragging,
+                       position: { x: b.x + dx, y: b.y + dy } });
+      }
+    }
+    moved(carried.length ? [...cs, ...carried] : cs);
     for (const c of cs) {
       if (c.type !== "dimensions" || c.resizing !== false || !c.dimensions) continue;
       const n = scene.nodes.find((x) => x.id === c.id);
@@ -659,7 +888,7 @@ function Canvas(props: FlowViewProps) {
                    w: Math.round(c.dimensions.width),
                    h: Math.round(c.dimensions.height) });
     }
-  }, [moved, scene, onAdjust]);
+  }, [moved, scene, riders, onAdjust]);
 
   /** Where the ends of the picked relationships sit. **Only the perched ones**
    *  — an end seated on an interface is that interface, which is a block with a
@@ -703,6 +932,25 @@ function Canvas(props: FlowViewProps) {
     return out;
   }, [scene, picked]);
 
+  /** What the card being dragged would land in, while it is being dragged.
+   *  **A drop with no target shown is a guess** — you find out where a block
+   *  went by letting go of it, which is the wrong moment to find out. */
+  const [landing, land] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  const dragging = useCallback((node: Node) => {
+    const drawn = scene.nodes.find((n) => n.id === node.id);
+    if (!drawn) return;
+    const b = box_of(drawn);
+    /** **The same question the drop asks**, so what is lit is what will happen.
+     *  Asked separately, the preview took the first box under the point and lit
+     *  the boundary while the drop filed the card into the block inside it. */
+    if (drawn.type === "group") { land(null); return; }
+    const land_on = landing_on(node.id, { x: node.position.x + b.w / 2,
+                                          y: node.position.y + b.h / 2 });
+    const on = land_on.over ?? land_on.into;
+    land(on ? box_of(on) : null);
+  }, [scene, landing_on]);
+
   /** Which grip is being dragged and where it has got to, so the mark follows
    *  the pointer instead of waiting for the model to catch up. */
   const [grabbed, grab] = useState<{ key: string; at: Point } | null>(null);
@@ -732,9 +980,11 @@ function Canvas(props: FlowViewProps) {
     onAdjust?.({ kind: "anchor", on: g.edge, end: g.end, side: seat.side, at: seat.at });
   }, [scene, at, onAdjust]);
 
-  /** **A card cannot be dragged out of the layer it is in.** Containment used
-   *  to be an invariant checked after the fact; bounding the drag makes it one
-   *  the gesture cannot break. */
+  /** **A card may be put down anywhere; the room grows to hold it.** Bounding
+   *  the drag to the frame made the last inch of every drag a fight — the card
+   *  stopped against a wall the pointer went straight through, and came to rest
+   *  somewhere nobody had put it. The room is worked out from what the layer
+   *  holds, so putting something near the edge is how you ask for more of it. */
   /** The one card a toolbar would belong to. **One or none** — a toolbar over
    *  a multi-selection would have to say which card it acted on, and a control
    *  that has to explain itself is the wrong control. */
@@ -743,12 +993,6 @@ function Canvas(props: FlowViewProps) {
     const n = scene.nodes.find((x) => x.id === picked[0]);
     return n && !n.data.on && n.selectable !== false ? n.id : null;
   }, [picked, scene]);
-
-  const extent = useMemo(() => {
-    if (!frame) return undefined;
-    const to = { x: frame.x + frame.w, y: frame.y + frame.h };
-    return [[frame.x, frame.y], [to.x, to.y]] as [[number, number], [number, number]];
-  }, [frame]);
 
   return (
     <ReactFlow
@@ -764,7 +1008,6 @@ function Canvas(props: FlowViewProps) {
       fitViewOptions={fit}
       minZoom={MIN_ZOOM}
       maxZoom={4}
-      nodeExtent={extent}
       onPointerDown={pressed}
       onPointerMove={moved_to}
       onPointerUp={released}
@@ -776,6 +1019,11 @@ function Canvas(props: FlowViewProps) {
         onDrop?.(id, at(e));
       }}
       proOptions={{ hideAttribution: true }}
+      /** **Depth is the notation's, not the selection's.** Lifting a picked
+       *  node by a thousand put a card in front of the interfaces seated on it
+       *  and in front of the band it belongs to — see `DEPTH`. */
+      elevateNodesOnSelect={false}
+      elevateEdgesOnSelect={false}
       /** The left button works what is already there and the right button
        *  draws: a left drag on a card moves it and on the ground sweeps out a
        *  selection; a right drag from a card relates it and on the ground makes
@@ -791,15 +1039,23 @@ function Canvas(props: FlowViewProps) {
       nodeDragThreshold={5}
       snapToGrid
       snapGrid={[24, 24]}
+      /** **The shell owns the keys.** The library binds its own to whatever
+       *  node has focus — and its Escape unselects that node, so closing the
+       *  offered list on a card quietly dropped that card out of the selection
+       *  the list was about. Enter, Delete and Escape all mean something here
+       *  already, and they should mean it wherever the focus happens to be. */
+      nodesFocusable={false}
+      edgesFocusable={false}
       /** Deleting is the app's — it writes a log entry and decides whether a
        *  line is unlinked or a block removed — so the canvas applies nothing. */
       deleteKeyCode={null}
       zoomOnDoubleClick={false}
-      nodesConnectable
-      connectionMode={"loose" as never}
-      onConnectStart={start}
-      onConnectEnd={end}
-      onNodeDragStop={(_, node) => dropped(node)}
+      /** **Nothing here offers a connection.** A relationship is a right drag,
+       *  which is ours; the library's own is a left drag from a handle, and the
+       *  handles it wanted were the row of marks every card used to sprout. */
+      nodesConnectable={false}
+      onNodeDrag={(_, node) => dragging(node)}
+      onNodeDragStop={(_, node, dragged) => { land(null); dropped(node, dragged); }}
       onNodeClick={(e, n) => say(n.id, e, "left", 1)}
       onNodeDoubleClick={(e, n) => say(n.id, e, "left", 2)}
       onNodeContextMenu={(e, n) => { e.preventDefault(); say(n.id, e, "right", 1); }}
@@ -848,14 +1104,29 @@ function Canvas(props: FlowViewProps) {
           </button>
         </NodeToolbar>
       ) : null}
-      {/* What the right button is drawing, while it is being drawn. */}
+      {/* Where the card being dragged would land. */}
+      {landing ? (
+        <ViewportPortal>
+          <div className="mnd-landing" style={{
+            position: "absolute", left: landing.x, top: landing.y,
+            width: landing.w, height: landing.h, pointerEvents: "none" }} />
+        </ViewportPortal>
+      ) : null}
+      {/* What the right button is drawing, while it is being drawn. **A line
+          from a card and a region on the ground** — the two things it makes
+          have different shapes, and the drag should look like the one it is
+          about to become. */}
       {drawing ? (
         <ViewportPortal>
           <svg className="mnd-drawing"
                style={{ position: "absolute", overflow: "visible", left: 0, top: 0,
                         pointerEvents: "none" }}>
-            <line className="mnd-drawn" x1={drawing.from.x} y1={drawing.from.y}
-                  x2={drawing.to.x} y2={drawing.to.y} />
+            {drawing.on ? (
+              <line className="mnd-drawn" x1={drawing.from.x} y1={drawing.from.y}
+                    x2={drawing.to.x} y2={drawing.to.y} />
+            ) : (
+              <rect className="mnd-drawn mnd-drawn-area" {...box_svg(drawing)} />
+            )}
           </svg>
         </ViewportPortal>
       ) : null}

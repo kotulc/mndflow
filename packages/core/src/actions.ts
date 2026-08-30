@@ -122,6 +122,21 @@ const here = (ctx: Context): Id => layer_id(ctx.graph, ctx.layer);
 
 const text = (args: Args, key: string): string => String(args[key] ?? "").trim();
 const id_of = (args: Args, key: string): Id => String(args[key] ?? "");
+/** The four walls, as a choice an input method can be offered. */
+const SIDES: readonly Side[] = ["top", "right", "bottom", "left"];
+
+const side_of = (args: Args, key: string): Side | undefined =>
+  SIDES.includes(args[key] as Side) ? (args[key] as Side) : undefined;
+
+/** Every block or relationship an action was pointed at. **One or many is one
+ *  question** — a gesture names one, a selection names several, and an action
+ *  that removes things should not care which it was handed. */
+const ids_of = (ctx: Context, args: Args): Id[] => {
+  const said = args["ids"] ?? args["id"];
+  const many = Array.isArray(said) ? said.map(String) : said ? [String(said)] : [];
+  return (many.length ? many : ctx.picked).filter(Boolean);
+};
+
 const spot = (args: Args): { x: number; y: number } | null => {
   const s = args["spot"] as { x?: number; y?: number } | undefined;
   return s && typeof s.x === "number" && typeof s.y === "number" ? { x: s.x, y: s.y } : null;
@@ -163,19 +178,26 @@ register(
   },
   {
     name: "delete",
-    about: "removes a block and everything it owns, or a relationship",
-    on: ["block", "edge"],
-    args: [{ name: "id", form: "block", required: true }],
-    check: (ctx, args) => id_of(args, "id") === ctx.graph.root ? "the workspace cannot be deleted" : null,
+    about: "removes blocks and everything they own, or relationships",
+    on: ["block", "edge", "selection"],
+    args: [{ name: "ids", form: "block", required: true }],
+    check: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      if (!ids.length) return "nothing is selected";
+      return ids.includes(ctx.graph.root) ? "the workspace cannot be deleted" : null;
+    },
     /** **One word for getting rid of a thing.** A relationship is a thing, and
      *  offering *delete* on a block and *unlink* on a line made the same
-     *  gesture read as two. `unlink` is still there to be typed. */
-    run: (ctx, args) => {
-      const id = id_of(args, "id");
-      return { mutations: [ctx.graph.edges[id]
-                 ? { op: "delete_edge", id } : { op: "delete_block", id }],
-               effect: { focus: null } };
-    },
+     *  gesture read as two. `unlink` is still there to be typed.
+     *
+     *  **One or several, in one step.** Four cards swept up and deleted is one
+     *  thing you did, so it is one entry in the log and one undo — deleting
+     *  them a card at a time left four. */
+    run: (ctx, args) => ({
+      mutations: ids_of(ctx, args).map((id): Mutation => (ctx.graph.edges[id]
+        ? { op: "delete_edge", id } : { op: "delete_block", id })),
+      effect: { focus: null },
+    }),
   },
   {
     name: "rename",
@@ -329,7 +351,9 @@ register(
     args: [{ name: "from", form: "block", required: true },
            { name: "to", form: "block", required: true },
            { name: "type", form: "text" },
-           { name: "module", form: "choice", choices: ["line", "directed"] }],
+           { name: "module", form: "choice", choices: ["line", "directed"] },
+           { name: "fromSide", form: "choice", choices: SIDES },
+           { name: "toSide", form: "choice", choices: SIDES }],
     check: (ctx, args) => {
       const from = id_of(args, "from");
       const to = id_of(args, "to");
@@ -343,8 +367,14 @@ register(
       const picked = (args["module"] as RelationModule) ?? "line";
       const module = derived_module(ctx.graph, from, to) ?? picked;
       const type = text(args, "type");
+      /** **A wall said by the gesture that drew it.** Where a line meets a
+       *  border is worked out from two rectangles; the layer's own border is
+       *  four places to stand, so an end aimed at one of them says which and
+       *  the geometry stops guessing. */
       const out: Mutation[] = [{ op: "link_blocks", edge: {
         id: new_id("edge"), from, to, module, type: type ? def_id(type) : undefined,
+        ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
+        ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
       } }];
       return { mutations: out };
     },
@@ -410,6 +440,42 @@ register(
     },
   },
   {
+    name: "straighten",
+    about: "takes the bend out of a relationship so it runs straight between its ends",
+    on: ["edge"],
+    /** **The geometry is the canvas's, and only the canvas has it.** Where two
+     *  borders can meet without a jog is a fact about two rectangles, and a
+     *  relationship carries neither — so the walls and the fractions are handed
+     *  in, and the action is offered only where a straight run exists. */
+    args: [{ name: "id", form: "block", required: true },
+           { name: "fromSide", form: "choice", required: true, choices: SIDES },
+           { name: "fromAt", form: "number", required: true },
+           { name: "toSide", form: "choice", required: true, choices: SIDES },
+           { name: "toAt", form: "number", required: true },
+           /** The block that has to shift for a straight run to exist at all,
+            *  and where it goes. Absent where the two already line up. */
+           { name: "align", form: "block" },
+           { name: "x", form: "number" }, { name: "y", form: "number" }],
+    check: (ctx, args) => ctx.graph.edges[id_of(args, "id")]
+      ? null : "needs a relationship",
+    /** Both ends pinned, which is the only way to say *there* about a seat that
+     *  is otherwise worked out. Unpinning them is dragging either end again. */
+    run: (_ctx, args) => {
+      const id = id_of(args, "id");
+      const out: Mutation[] = [];
+      if (args["align"] && typeof args["x"] === "number" && typeof args["y"] === "number") {
+        out.push({ op: "place_block", id: id_of(args, "align"),
+                   x: args["x"] as number, y: args["y"] as number });
+      }
+      out.push(
+        { op: "set_side", id, end: "from", side: side_of(args, "fromSide") ?? "right",
+          at: Number(args["fromAt"]) },
+        { op: "set_side", id, end: "to", side: side_of(args, "toSide") ?? "left",
+          at: Number(args["toAt"]) });
+      return { mutations: out };
+    },
+  },
+  {
     name: "unlink",
     about: "removes a relationship and any interfaces it leaves spare",
     on: ["edge"],
@@ -447,6 +513,23 @@ register(
   },
 );
 
+/** Where a new interface sits on the wall it is set into.
+ *
+ *  **The middle, unless the middle is taken.** An interface is a place on a
+ *  border rather than a point somebody aimed at, so one is centred on its wall
+ *  and a second steps aside to the nearest fraction still free — which keeps a
+ *  wall with several on it balanced about its centre instead of ragged. */
+function mid_of(graph: Graph, owner: Id, side: Side): number {
+  const taken = new Set(children(graph, owner)
+    .filter((b) => is_interface(b) && b.side === side).map((b) => b.at ?? 0.5));
+  for (const at of SHARED) if (!taken.has(at)) return at;
+  return 0.5;
+}
+
+/** Fractions along a wall, middle first and then outward in pairs. */
+const SHARED: readonly number[] =
+  [2, 3, 4, 5, 6].flatMap((d) => Array.from({ length: d - 1 }, (_, n) => (n + 1) / d));
+
 /** `reference` and `tie` are assigned from what sits at the ends, never picked. */
 function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
   const a = graph.blocks[from];
@@ -466,14 +549,16 @@ register(
     about: "puts an interface on an edge of a block",
     on: ["block"],
     args: [{ name: "owner", form: "block", required: true },
-           { name: "side", form: "choice", choices: ["top", "right", "bottom", "left"] },
+           { name: "side", form: "choice", choices: SIDES },
            { name: "at", form: "number" }],
     run: (ctx, args) => {
       const owner = id_of(args, "owner");
+      const side = side_of(args, "side") ?? "right";
       const id = new_id("block");
       return { mutations: [{ op: "add_block", block: {
-        id, parent: owner, side: (args["side"] as Side) ?? "right",
-        at: typeof args["at"] === "number" ? (args["at"] as number) : 0.5,
+        id, parent: owner, side,
+        at: typeof args["at"] === "number" ? (args["at"] as number)
+                                           : mid_of(ctx.graph, owner, side),
         num: next_num(ctx.graph, owner),
       } }] };
     },
@@ -533,8 +618,12 @@ register(
     name: "note",
     about: "puts a note here saying what you typed",
     on: ["layer"],
-    args: [{ name: "text", form: "text", required: true }, { name: "spot", form: "spot" }],
+    args: [{ name: "text", form: "text", required: true }, { name: "spot", form: "spot" },
+           { name: "w", form: "number" }, { name: "h", form: "number" }],
     check: (_ctx, args) => text(args, "text") ? null : "a note is its text",
+    /** **A note is the one card whose size is yours to set**, so the gesture
+     *  that draws one may say how big — a region swept out and then filled,
+     *  rather than a default box you resize afterwards. */
     run: (ctx, args) => {
       const id = new_id("block");
       const out: Mutation[] = [
@@ -544,6 +633,10 @@ register(
       ];
       const at = spot(args);
       if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
+      const w = args["w"], h = args["h"];
+      if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
+        out.push({ op: "size_block", id, w, h });
+      }
       return { mutations: out };
     },
   },

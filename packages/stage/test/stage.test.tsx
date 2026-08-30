@@ -150,15 +150,16 @@ describe("the keyboard", () => {
       { id: "block_pump", label: "Typed" });
   });
 
-  it("deletes a block but unlinks a relation", () => {
+  it("deletes everything picked, blocks and relations alike", () => {
     const one = mount({ picked: ["block_pump"] });
     press("Delete");
-    expect(one.onAct).toHaveBeenCalledWith("delete", { id: "block_pump" });
+    expect(one.onAct).toHaveBeenCalledWith("delete", { ids: ["block_pump"] });
     cleanup();
 
-    const other = mount({ picked: ["edge_a"] });
+    const many = mount({ picked: ["block_pump", "edge_a"] });
     press("Backspace");
-    expect(other.onAct).toHaveBeenCalledWith("unlink", { id: "edge_a" });
+    expect(many.onAct).toHaveBeenCalledWith("delete",
+      { ids: ["block_pump", "edge_a"] });
   });
 
   it("groups the selection", () => {

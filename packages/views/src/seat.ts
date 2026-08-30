@@ -147,8 +147,15 @@ export function perched(graph: Graph, links: readonly Relation[],
  *  what the eye reads as *these two are joined*; centre-to-centre alone picks
  *  the near wall and leaves a dog-leg on every pair that is not exactly level.
  *  Where they overlap on neither axis nothing is straight, and the nearer wall
- *  is the shorter run. */
+ *  is the shorter run.
+ *
+ *  **A wall seen from inside is a different question.** The frame is the room
+ *  the other box is standing in, so every wall is level with it and aligned
+ *  with it, and the rule above falls through to a direction from the middle —
+ *  which sends a line from a card near the top of a tall room out of the side.
+ *  Held inside, the wall it faces is simply the nearest one. */
 function facing(box: Rect, other: Rect): Side {
+  if (holds(box, other)) return nearest(box, other);
   const dx = (other.x + other.w / 2) - (box.x + box.w / 2);
   const dy = (other.y + other.h / 2) - (box.y + box.h / 2);
   const level = other.y < box.y + box.h && box.y < other.y + other.h;
@@ -157,6 +164,24 @@ function facing(box: Rect, other: Rect): Side {
   if (aligned && !level) return dy >= 0 ? "bottom" : "top";
   return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "right" : "left")
                                       : (dy >= 0 ? "bottom" : "top");
+}
+
+/** Whether `other` sits wholly within `box`. */
+function holds(box: Rect, other: Rect): boolean {
+  return other.x >= box.x && other.y >= box.y
+      && other.x + other.w <= box.x + box.w && other.y + other.h <= box.y + box.h;
+}
+
+/** The wall of `box` that `other` is closest to, from within. */
+function nearest(box: Rect, other: Rect): Side {
+  const gap: Record<Side, number> = {
+    left: other.x - box.x,
+    right: (box.x + box.w) - (other.x + other.w),
+    top: other.y - box.y,
+    bottom: (box.y + box.h) - (other.y + other.h),
+  };
+  return (["left", "right", "top", "bottom"] as const)
+    .reduce((a, b) => (gap[b] < gap[a] ? b : a));
 }
 
 /** The free seat on this wall nearest where the run between the two crosses it.

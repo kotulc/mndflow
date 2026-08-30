@@ -19,7 +19,14 @@ import { memo, useEffect } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
-import { PLAIN, type BoxData, type BoxNode, type Cell, type Look } from "@mnd/views";
+
+/** What a row or a chip being dragged onto the drawing carries. **Named here**
+ *  because a chip is drawn here, and the canvas that catches one only has to
+ *  agree about the name. */
+export const DRAGGED = "text/mnd-block";
+
+import { BAND, FRAME, PLAIN,
+         type BoxData, type BoxNode, type Cell, type Look } from "@mnd/views";
 
 /** What this node would draw, as a value.
  *
@@ -34,7 +41,7 @@ function seen(p: NodeProps<BoxNode>): string {
   const k = d.look;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.def, d.on, d.marks.join(","),
+    d.label, d.def, d.on, d.side, d.marks.join(","),
     k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
     d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
     d.fields?.map((f) => `${f.name}=${f.value}`).join(","),
@@ -43,17 +50,6 @@ function seen(p: NodeProps<BoxNode>): string {
 }
 
 const same = (a: NodeProps<BoxNode>, b: NodeProps<BoxNode>) => seen(a) === seen(b);
-
-/** Where a line may join. **Every side, always** — which side a route actually
- *  leaves by is the router's to decide, and a card that offered fewer would
- *  make the arrangement decide it instead. Hidden until a connection starts;
- *  React Flow shows them itself. */
-const SIDES = [
-  { id: "t", position: Position.Top },
-  { id: "r", position: Position.Right },
-  { id: "b", position: Position.Bottom },
-  { id: "l", position: Position.Left },
-] as const;
 
 /** How a side names itself to the library. */
 const WALL: Record<Side, Position> = {
@@ -73,19 +69,20 @@ function along(side: Side, at: number): React.CSSProperties {
   return side === "top" || side === "bottom" ? { left: fraction } : { top: fraction };
 }
 
-/** A card's border, as its own four targets.
+/** A card's border, as one target around the whole card.
  *
  *  **The border and the body are different things to point at**: the body is
- *  the block, and the border is a wall you put an interface on. One region for
- *  both made every right-click near an edge ambiguous, and the pointer is
- *  precise enough that it never had to be. */
+ *  the block, and the border is where an interface goes. But a card has *one*
+ *  border, not four — which wall an interface lands on is read off the pointer
+ *  and never chosen by aiming at a region. Four separately-lit edges is the
+ *  frame's idea, because a room's walls are four different places to stand. */
 function Brim() {
   return (
-    <>
+    <span className="mnd-brim" aria-hidden>
       {(["top", "right", "bottom", "left"] as const).map((side) => (
-        <span key={side} className={`mnd-brim mnd-brim-${side}`} data-side={side} aria-hidden />
+        <span key={side} className={`mnd-brim-${side}`} />
       ))}
-    </>
+    </span>
   );
 }
 
@@ -133,15 +130,29 @@ function useSeats(id: string, seats: BoxData["seats"]) {
   useEffect(() => { if (where) remeasure(id); }, [id, where, remeasure]);
 }
 
-function Joins() {
+/** The one place a line meets a seat: its middle.
+ *
+ *  **A card offers no anchors of its own.** It used to carry eight — four sides
+ *  doubled — so that a line could pick one, and they showed on hover as a row
+ *  of marks nobody had asked for. Where a line meets a card is a *perch*, worked
+ *  out from where the two ended up; where it meets an interface is the
+ *  interface, which is a mark small enough to be the answer by itself.
+ *
+ *  **A line leaves an interface by the wall the interface is set into.** The
+ *  point is the same either way; what the face decides is the direction the run
+ *  sets off in, and left at right-and-left every line on a top or bottom port
+ *  set off sideways and ran along the card's own border before turning. A port
+ *  in the room's wall is looked at from the inside, so its run sets off the
+ *  other way. */
+function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
+  const spot = { left: "50%", top: "50%", transform: "translate(-50%, -50%)" };
+  const face = side ? WALL[inward ? FACING[side] : side] : Position.Right;
   return (
     <>
-      {SIDES.map((s) => (
-        <Handle key={`s-${s.id}`} type="source" id={`s-${s.id}`} position={s.position} />
-      ))}
-      {SIDES.map((s) => (
-        <Handle key={`t-${s.id}`} type="target" id={`t-${s.id}`} position={s.position} />
-      ))}
+      <Handle type="source" id="s" className="mnd-perch" isConnectable={false}
+              position={face} style={spot} />
+      <Handle type="target" id="t" className="mnd-perch" isConnectable={false}
+              position={face} style={spot} />
     </>
   );
 }
@@ -187,21 +198,51 @@ function Outline({ shape }: { shape: string }) {
 
 /** What a container holds, as a picture inside its own card.
  *
- *  **Only the immediate children.** Nesting past one level is what descending
- *  is for, and a card the height of a few grid rows has room for a handful of
- *  cells before each of them says nothing.
+ *  **A treemap, not a row of chips.** Equal columns say every child is the same
+ *  size and shape; a tiling says *this holds these several distinct things*,
+ *  which is the one thing a container can say without being opened. Where each
+ *  cell falls is the projection's — it arrives as fractions of the band, and
+ *  the band is the room a container has over a block.
  *
- *  A cell's shade comes from its name and its base from what it is, so a
- *  container of several distinct things looks like several distinct things —
- *  and one holding another container says so without being opened. */
+ *  Only the immediate children: nesting past one level is what descending is
+ *  for. A cell's shade comes from its name and its base from what it is. */
+/** How tall this cell actually is, in the band's own units. */
+const cell_h = (c: Cell) => c.h * BAND.h;
+
+/** **A name only where there is room for one.** Nine children make cells a
+ *  dozen pixels tall, and a name overflowing one says less than no name. */
+const named = (c: Cell) => cell_h(c) >= 10;
+
+const type_size = (c: Cell) => Math.min(9, Math.round(cell_h(c)) - 4);
+
 function Holds({ cells }: { cells: readonly Cell[] }) {
-  const cols = cells.length <= 2 ? cells.length : cells.length <= 6 ? 3 : 4;
   return (
-    <div className="mnd-holds" style={{ "--cols": cols } as React.CSSProperties}>
+    <div className="mnd-holds" style={{ height: BAND.h }}>
       {cells.map((c) => (
-        <span key={c.id} className={`mnd-cell ${c.kind} tint-${c.tint}`}
+        /** **A chip can be taken back out.** It stands for a block one layer
+         *  down, and dragging it onto the ground is the only gesture that
+         *  undoes dropping a card into a container — without it, filing
+         *  something away was one-way and you had to go in after it.
+         *
+         *  `nodrag` because the card underneath would otherwise move instead,
+         *  and the drag is the browser's own so it crosses to the canvas. */
+        <span key={c.id} className={`mnd-cell ${c.kind} tint-${c.tint} nodrag`}
+              style={{ left: `calc(${c.x * 100}% + 1px)`,
+                       top: `calc(${c.y * 100}% + 1px)`,
+                       width: `calc(${c.w * 100}% - 2px)`,
+                       height: `calc(${c.h * 100}% - 2px)` }}
+              draggable={!c.rest}
+              onDragStart={(e) => {
+                e.stopPropagation();
+                e.dataTransfer.setData(DRAGGED, c.id);
+                e.dataTransfer.effectAllowed = "move";
+              }}
               title={c.rest ? `${c.label}, and ${c.rest} more` : c.label}>
-          {c.rest ? `+${c.rest}` : c.label}
+          {named(c) ? (
+            <span className="mnd-tag" style={{ fontSize: type_size(c) }}>
+              {c.rest ? `+${c.rest}` : c.label}
+            </span>
+          ) : null}
         </span>
       ))}
     </div>
@@ -244,7 +285,6 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
           ))}
         </dl>
       ) : null}
-      <Joins />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -273,7 +313,6 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
           ))}
         </dl>
       ) : null}
-      <Joins />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -289,8 +328,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   return (
     <div className={["mnd-group", selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
-      <span className="mnd-group-name">{data.label}</span>
-      <Joins />
+      {data.label ? <span className="mnd-group-name">{data.label}</span> : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -306,7 +344,6 @@ function ControlNode({ id, data, selected }: NodeProps<BoxNode>) {
          title={data.label}>
       <span className="mnd-diamond" />
       <span className="mnd-label">{data.label}</span>
-      <Joins />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -320,8 +357,7 @@ function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
     <div className={["mnd-seat", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          title={data.label}>
-      <Joins />
-      {data.seats?.length ? <Seats seats={data.seats} /> : null}
+      <Middle side={data.side} inward={data.on === FRAME} />
     </div>
   );
 }
