@@ -330,6 +330,29 @@ register(
     },
   },
   {
+    name: "relink",
+    about: "takes one end of a relationship to another block",
+    on: ["edge"],
+    args: [{ name: "id", form: "block", required: true },
+           { name: "end", form: "choice", required: true, choices: ["from", "to"] },
+           { name: "to", form: "block", required: true }],
+    check: (ctx, args) => {
+      if (!ctx.graph.edges[id_of(args, "id")]) return "needs a relationship";
+      if (!ctx.graph.blocks[id_of(args, "to")]) return "needs somewhere to land";
+      return null;
+    },
+    /** **The wall the old end was pinned to goes with it.** A side was said
+     *  about a border this end no longer meets, and keeping it would leave the
+     *  line entering the new block from whichever way the old one faced. */
+    run: (_ctx, args) => {
+      const end = args["end"] as "from" | "to";
+      return { mutations: [
+        { op: "set_end", id: id_of(args, "id"), end, port: id_of(args, "to") },
+        { op: "set_side", id: id_of(args, "id"), end, side: null },
+      ] };
+    },
+  },
+  {
     name: "unlink",
     about: "removes a relationship and any interfaces it leaves spare",
     on: ["edge"],
@@ -383,19 +406,37 @@ function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
 register(
   {
     name: "interface",
-    about: "puts an interface on an edge of a block",
-    on: ["block"],
+    about: "puts an interface on an edge of a block, or on a seat a line already meets",
+    on: ["block", "edge"],
     args: [{ name: "owner", form: "block", required: true },
            { name: "side", form: "choice", choices: ["top", "right", "bottom", "left"] },
-           { name: "at", form: "number" }],
+           { name: "at", form: "number" },
+           { name: "edge", form: "block" },
+           { name: "end", form: "choice", choices: ["from", "to"] }],
+    /** **Promoting a perch is making an interface and telling that end about
+     *  it** — the same act with two more arguments, rather than a second action
+     *  that would have to say how it differed. The end was already meeting this
+     *  seat, so nothing about the line moves; what changes is that the seat is
+     *  now a block somebody can name, mark and open. */
     run: (ctx, args) => {
       const owner = id_of(args, "owner");
       const id = new_id("block");
-      return { mutations: [{ op: "add_block", block: {
-        id, parent: owner, side: (args["side"] as Side) ?? "right",
-        at: typeof args["at"] === "number" ? (args["at"] as number) : 0.5,
-        num: next_num(ctx.graph, owner),
-      } }] };
+      const side = (args["side"] as Side) ?? "right";
+      const at = typeof args["at"] === "number" ? (args["at"] as number) : 0.5;
+      const edge = text(args, "edge");
+      const end = args["end"] === "from" || args["end"] === "to"
+        ? (args["end"] as "from" | "to") : null;
+      const out: Mutation[] = [{ op: "add_block", block: {
+        id, parent: owner, side, at, num: next_num(ctx.graph, owner),
+      } }];
+      /** The wall the end was pinned to goes with the promotion: it is the
+       *  interface's own wall now, and two answers to one question is one too
+       *  many. */
+      if (edge && end) {
+        out.push({ op: "set_end", id: edge, end, port: id },
+                 { op: "set_side", id: edge, end, side: null });
+      }
+      return { mutations: out, effect: { focus: id } };
     },
   },
   {
@@ -670,8 +711,8 @@ export const adjustments = {
     moved.map((m) => ({ op: "place_block", id: m.id, x: m.x, y: m.y })),
   size: (id: Id, w: number, h: number): Mutation[] => [{ op: "size_block", id, w, h }],
   seat: (id: Id, side: Side, at: number): Mutation[] => [{ op: "set_port", id, side, at }],
-  wall: (id: Id, end: "from" | "to", side: Side | null): Mutation[] =>
-    [{ op: "set_side", id, end, side }],
+  wall: (id: Id, end: "from" | "to", side: Side | null, at?: number): Mutation[] =>
+    [{ op: "set_side", id, end, side, ...(at === undefined ? {} : { at }) }],
 };
 
 /** Re-exported so a caller can read a layer without importing the fold too. */

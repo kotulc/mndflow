@@ -199,6 +199,13 @@ export function App() {
       if (end) s.go("relink", { id: a.on, end: a.end, to: end });
       return;
     }
+    /** A line's end slid round the border it meets. **Pinning is what this
+     *  writes** — a perch is worked out from where the two cards ended up, so
+     *  the only way to say *there* is to say it. */
+    if (a.kind === "anchor") {
+      s.adjust("anchor", adjustments.wall(a.on, a.end, a.side, a.at));
+      return;
+    }
     /** A seated interface slides along the card it sits on: what changed is
      *  which wall and how far, and both are read off where it came to rest. */
     const drawn = scene.nodes.find((n) => n.id === a.on);

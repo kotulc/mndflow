@@ -60,7 +60,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   return {
     layer,
     nodes: [...head, ...body],
-    edges: [],
+    edges: [], perches: [],
     slots: SLOTS,
     trail: trail_of(graph, layer),
   };

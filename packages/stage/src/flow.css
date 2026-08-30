@@ -454,3 +454,76 @@
 @media (prefers-reduced-motion: reduce) {
   .mnd-flow .react-flow__handle { transition: none; }
 }
+
+/* ── Seats, berths and anchors ──────────────────────────────────────────────
+   Three things sit on a border, and only one of them is a block.
+
+   An **interface** is a block: it draws a square, it is named, and it can be
+   opened. A **berth** is that same interface with the squares turned off — it
+   holds its seat so no line moves, and says where it is only while what it is
+   tied to is picked. An **anchor** is where a line meets a border with no
+   interface at all: a place, not a port, so it is a grip rather than a mark and
+   drawing a square there would claim something the model does not have. */
+
+/* A hidden interface draws nothing. The node is still there, still seated, and
+   still where every line tied to it meets the border. */
+.mnd-seat.berth { border: none; background: none; }
+
+/* Where one is, said quietly, while its line or its card is picked. */
+.mnd-berth {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  pointer-events: none;
+  /* Above the cards: a node carries a z-index of its own, so a grip drawn into
+     the viewport without one ends up underneath the card it sits on. */
+  z-index: 4;
+}
+
+/* A line's end, taken hold of. Round, because it is a place on a border rather
+   than a square set into one. */
+.mnd-anchor {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  cursor: grab;
+  /* The viewport takes no pointer and every layer in it says so for itself;
+     drawn straight into it, a grip has to say so too. Above the cards, since a
+     node carries a z-index and something drawn into the viewport does not. */
+  pointer-events: all;
+  z-index: 5;
+}
+.mnd-anchor:hover, .mnd-anchor.held { background: var(--accent); }
+.mnd-anchor.held { cursor: grabbing; }
+
+/* Where a line already meets a card. **Geometry, and nothing to look at or
+   point at** — it exists so the library has somewhere to end the line, the
+   anchor above is what shows it, and leaving it hittable put a connection
+   handle on top of every grip. */
+.mnd-flow .react-flow__handle.mnd-perch,
+.mnd-flow .react-flow__node:hover .react-flow__handle.mnd-perch {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── The straddled wall ─────────────────────────────────────────────────────
+   An interface opened from the inside is a thing set into its parent's border,
+   so the border is drawn: the parent's own wall running through the dimmed band
+   on either side of this frame and stopping where the frame begins. Down for a
+   port on a left or right wall, across for one on a top or bottom. */
+.mnd-wall { position: absolute; inset: 0; pointer-events: none; }
+.mnd-wall .before, .mnd-wall .after { position: absolute; background: var(--wall); }
+
+.mnd-wall.upright .before, .mnd-wall.upright .after { left: 50%; width: 1px; height: 9000px; }
+.mnd-wall.upright .before { bottom: 100%; }
+.mnd-wall.upright .after { top: 100%; }
+
+.mnd-wall.flat .before, .mnd-wall.flat .after { top: 50%; height: 1px; width: 9000px; }
+.mnd-wall.flat .before { right: 100%; }
+.mnd-wall.flat .after { left: 100%; }

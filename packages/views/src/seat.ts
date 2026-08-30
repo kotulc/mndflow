@@ -6,11 +6,15 @@
  *
  *  **A slide is still ours to read.** The canvas says where a drag came to
  *  rest; which wall that is and how far along it are questions about this
- *  model, and no drawing library has an opinion on them. What *is* gone is
- *  asking the same question of a line's end — that is `onReconnect` now, which
- *  names the card it landed on rather than a point to measure. */
+ *  model, and no drawing library has an opinion on them.
+ *
+ *  A line's end is seated here too, and **that one is derived** — a perch is
+ *  recomputed from where the two cards ended up, so only the wall it was pinned
+ *  to is ever stored. Which card an end landed on is `onReconnect`'s, which
+ *  names the card rather than a point to measure. */
 
-import { children, is_interface, type Graph, type Side } from "@mnd/core";
+import { children, is_interface, type Graph, type Id, type Relation,
+         type Side } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { PORT, seat_at, seats } from "./size";
 
@@ -64,4 +68,94 @@ export function nearest_seat(on: Rect, at: { x: number; y: number }): Seat {
   const count = seats(length);
   const n = Math.min(count - 1, Math.max(0, Math.round(along * (count + 1) - 1)));
   return { side, at: seat_at(n, count) };
+}
+
+/** One end of a relationship, met on a border it has no interface for.
+ *
+ *  **Derived, and nowhere in the graph.** Where a line reaches a card is a fact
+ *  about where the two cards ended up, so it is recomputed with the layout and
+ *  never stored. Only the wall may be pinned by hand — that is `set_side`, and
+ *  the seat along it is still worked out. */
+export type Perch = { edge: Id; end: "from" | "to"; on: Id; side: Side; at: number };
+
+/** The handle a perch offers. **Named here**, so whoever draws one and whoever
+ *  points an edge at it cannot disagree about what it is called. */
+export function perch_id(edge: Id, end: "from" | "to"): string {
+  return `p-${end}-${edge}`;
+}
+
+/** Where each relationship end meets the box it lands on.
+ *
+ *  **Only the ends with no interface of their own.** An end seated on an
+ *  interface already has a place on that wall; every other end just meets the
+ *  border, and a square drawn there would claim a port the model does not have.
+ *
+ *  The wall is the one facing the box at the other end unless somebody walled
+ *  it by hand. The seat along it is the free one nearest where the straight run
+ *  between the two crosses that border — so a line stays short, and two of them
+ *  never land on the same spot. */
+export function perched(graph: Graph, links: readonly Relation[],
+                        boxes: ReadonlyMap<Id, Rect>): Perch[] {
+  const used = new Map<string, Set<number>>();
+
+  /** Seats already spoken for on this wall: the interfaces set into it, plus
+   *  whatever earlier ends have taken. */
+  const wall = (on: Id, side: Side): Set<number> => {
+    const key = `${on}|${side}`;
+    const held = used.get(key);
+    if (held) return held;
+    const taken = new Set<number>();
+    for (const b of children(graph, on)) {
+      if (is_interface(b) && b.side === side) taken.add(b.at ?? 0.5);
+    }
+    used.set(key, taken);
+    return taken;
+  };
+
+  const out: Perch[] = [];
+  for (const e of links) {
+    for (const end of ["from", "to"] as const) {
+      const id = end === "from" ? e.from : e.to;
+      const box = boxes.get(id);
+      const other = boxes.get(end === "from" ? e.to : e.from);
+      const b = graph.blocks[id];
+      if (!box || !other || !b || is_interface(b)) continue;
+      const side = (end === "from" ? e.fromSide : e.toSide) ?? facing(box, other);
+      /** A fraction is only ever there because somebody dragged this end, and a
+       *  seat somebody chose is not one to hand out again. */
+      const pinned = end === "from" ? e.fromAt : e.toAt;
+      const taken = wall(id, side);
+      const at = pinned ?? free(taken, box, other, side);
+      if (pinned !== undefined) taken.add(pinned);
+      out.push({ edge: e.id, end, on: id, side, at });
+    }
+  }
+  return out;
+}
+
+/** Which wall of `box` faces `other`. */
+function facing(box: Rect, other: Rect): Side {
+  const dx = (other.x + other.w / 2) - (box.x + box.w / 2);
+  const dy = (other.y + other.h / 2) - (box.y + box.h / 2);
+  return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "right" : "left")
+                                      : (dy >= 0 ? "bottom" : "top");
+}
+
+/** The free seat on this wall nearest where the run between the two crosses it.
+ *  Claimed as it is handed out, so two ends never share one. */
+function free(taken: Set<number>, box: Rect, other: Rect, side: Side): number {
+  const down = side === "left" || side === "right";
+  const want = down ? ((other.y + other.h / 2) - box.y) / (box.h || 1)
+                    : ((other.x + other.w / 2) - box.x) / (box.w || 1);
+  const count = seats(down ? box.h : box.w);
+  let best = seat_at(0, count);
+  let gap = Infinity;
+  for (let n = 0; n < count; n++) {
+    const spot = seat_at(n, count);
+    if (taken.has(spot)) continue;
+    const off = Math.abs(spot - want);
+    if (off < gap) { gap = off; best = spot; }
+  }
+  taken.add(best);
+  return best;
 }

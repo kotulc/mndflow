@@ -112,8 +112,11 @@ function apply(graph: Graph, m: Mutation): void {
       const e = graph.edges[m.id];
       if (!e) return;
       const key = m.end === "from" ? "fromSide" : "toSide";
-      if (m.side === null) delete e[key];
-      else e[key] = m.side;
+      const along = m.end === "from" ? "fromAt" : "toAt";
+      if (m.side === null) { delete e[key]; delete e[along]; return; }
+      e[key] = m.side;
+      if (m.at === undefined) delete e[along];
+      else e[along] = m.at;
       return;
     }
     case "mark_port": {

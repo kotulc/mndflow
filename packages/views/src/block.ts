@@ -3,15 +3,16 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { arrangement_of, children, edges_in, is_interface, module_of, owner_of,
+import { arrangement_of, children, edges_in, is_interface, module_of,
          shown_name, READS,
          type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
-import { boundary, laid, seated, GAP, GRID, type Placed } from "@mnd/views";
+import { boundary, laid, perch_id, perched, seated, GAP, GRID,
+         type Perch, type Placed } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
 import { read, reading_of } from "./read";
-import { box_of, cell as node, type BoxNode, type Frame, type LineEdge, type Port,
-         type Mark, type Scene, type Slot } from "./scene";
+import { box_of, cell as node, type BoxData, type BoxNode, type Frame, type LineEdge,
+         type Port, type Mark, type Scene, type Slot } from "./scene";
 
 export type Config = {
   /** **What to show, when it is not the layer's own contents.**
@@ -50,8 +51,14 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
                                                   || READS[how] === "top") : null;
   const spots = seen ? seen.spots : laid(graph, layer);
   /** Interfaces are seated on the cards they belong to rather than laid out
-   *  with them, so they are placed once the cards are. */
-  const ports = config.interfaces === false ? [] : seated(graph, spots);
+   *  with them, so they are placed once the cards are.
+   *
+   *  **Seated whether or not they are drawn.** Turning interfaces off is a
+   *  display preference and says nothing about the relationships tied to them,
+   *  so a hidden one still holds its seat — it becomes a *berth*, which draws
+   *  nothing and keeps every line meeting the border where it always did. */
+  const hidden = config.interfaces === false;
+  const ports = seated(graph, spots);
 
   /** **Which component draws a box is said here and re-derived nowhere.** A
    *  note is text you resize and a boundary is a band behind its members;
@@ -75,11 +82,17 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
                      "group"));
   }
 
-  /** A seated interface draws over the card it sits on, so it comes last. */
+  /** A seated interface draws over the card it sits on, so it comes last. A
+   *  berth answers no gesture — it is not drawn, and picking what you cannot
+   *  see is not a gesture anybody meant. */
   const seats: BoxNode[] = ports.map((p) => {
     const b = graph.blocks[p.id]!;
-    return node(p.id, p, { ...carried(graph, p.id),
-                           ...(b.parent ? { on: b.parent } : {}) }, "seat");
+    const data: BoxData = { ...carried(graph, p.id), side: b.side!,
+                            ...(b.parent ? { on: b.parent } : {}) };
+    return hidden
+      ? { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
+          selectable: false, draggable: false }
+      : node(p.id, p, data, "seat");
   });
 
   /** Lanes and lifelines are drawn behind, controls in front of neither — all
@@ -94,25 +107,50 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   const drawn = [...derived, ...groups, ...boxes, ...controls, ...seats];
   /** An end seated on an interface leaves by that interface's own side; only
    *  an end the relationship placed itself overrides it. */
-  const linked = seen ? seen.links
-    : edges_in(graph, layer).map((e) => landed(graph, e, ports.length > 0));
-  /** **The two ends, and nothing about the run between them.** Where a line
-   *  goes is the renderer's, which is why nothing here routes one. */
+  const linked = seen ? seen.links : edges_in(graph, layer).map((e) => landed(graph, e));
+
+  /** Where every other end meets the border it lands on. **Worked out here
+   *  rather than left to the library**: left to itself it takes whichever
+   *  handle comes first, which sends a line between two neighbours out of the
+   *  top, around and back. Two placed rectangles already say which wall faces
+   *  which, and a seat keeps two lines to the same card apart. */
+  const at = new Map(drawn.map((n) => [n.id, box_of(n)]));
+  const perches = perched(graph, linked, at);
+  const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
+  for (const p of perches) {
+    const held = offered.get(p.on) ?? [];
+    held.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
+    offered.set(p.on, held);
+  }
+  const met = new Map(perches.map((p) => [`${p.edge}|${p.end}`, p]));
+
+  /** The seats each box offers, put onto the box that offers them. */
+  const placed = drawn.map((n) => {
+    const own = offered.get(n.id);
+    return own ? { ...n, data: { ...n.data, seats: own } } : n;
+  });
+
+  /** **The two ends, and which seat each meets.** Where the run goes between
+   *  them is still the renderer's; which point it leaves from is geometry, and
+   *  geometry is this module's. */
   const edges: LineEdge[] = linked.map((e): LineEdge => ({
     id: e.id,
     source: e.from,
     target: e.to,
+    sourceHandle: handle(met, e.id, "from", e.fromSide, "s"),
+    targetHandle: handle(met, e.id, "to", e.toSide, "t"),
     label: e.type ? graph.defs[e.type]?.name : undefined,
     data: { module: e.module, dir: e.dir ?? "none" },
   }));
 
-  const frame = frame_of(graph, layer, drawn);
+  const frame = frame_of(graph, layer, placed, hidden);
 
   return {
     layer,
     ...(frame ? { frame } : {}),
-    nodes: drawn,
+    nodes: placed,
     edges,
+    perches,
     /** **A slot says what this projection can offer, never what it is doing.**
      *  Dropping the interfaces group when interfaces are hidden would take away
      *  the only control that could bring them back. */
@@ -128,13 +166,19 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
  *  **The root has none** — a frame is a block seen from outside, and the
  *  workspace has no outside. Everywhere else it is what the layer holds plus a
  *  margin, and never smaller than the room a first block needs. */
-function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[]): Frame | null {
+function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
+                  hidden: boolean): Frame | null {
   if (layer === null || layer === graph.root) return null;
   const label = shown_name(graph, layer);
-  const ports = wall_of(graph, layer);
+  const ports = wall_of(graph, layer, hidden);
+  /** An interface opened from the inside straddles its parent's border, and the
+   *  wall it is set into is the one thing about this layer that is a fact about
+   *  the layer above it. */
+  const side = graph.blocks[layer]?.side;
+  const set_in = side ? { side } : {};
   const least = { w: GRID * 14, h: GRID * 9 };
   if (drawn.length === 0) {
-    return { x: -least.w / 2, y: -least.h / 2, ...least, label, ports };
+    return { x: -least.w / 2, y: -least.h / 2, ...least, label, ports, ...set_in };
   }
   const pad = GAP.unit;
   const at = drawn.map(box_of);
@@ -142,7 +186,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[]): Fr
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { x, y, w, h, label, ports };
+  return { x, y, w, h, label, ports, ...set_in };
 }
 
 /** The layer's own interfaces, set into its walls and seen from inside.
@@ -153,7 +197,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[]): Fr
  *
  *  A block with interfaces is still a block, so these are also drawn on its
  *  card from the layer above — the same interfaces, from the other side. */
-function wall_of(graph: Graph, layer: Id): Port[] {
+function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
   return children(graph, layer)
     .filter(is_interface)
     .map((b) => ({
@@ -161,7 +205,7 @@ function wall_of(graph: Graph, layer: Id): Port[] {
       label: shown_name(graph, b.id),
       side: b.side!,
       at: b.at ?? 0.5,
-      marks: marks_of(graph, b.id),
+      marks: hidden ? [...marks_of(graph, b.id), "berth" as Mark] : marks_of(graph, b.id),
       look: look_of(graph, b.id),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
@@ -181,17 +225,26 @@ function plain(id: Id, at: Placed, label: string, marks: Mark[]): BoxNode {
  *  An end seated on an interface leaves by that interface's side unless it was
  *  walled somewhere else by hand — and with interfaces hidden it lands on the
  *  card instead, so turning them off hides the seats and never the lines. */
-function landed(graph: Graph, e: Relation, drawn: boolean): Relation {
+function landed(graph: Graph, e: Relation): Relation {
   const side = (id: Id): Side | undefined => {
     const b = graph.blocks[id];
     return b && is_interface(b) ? b.side : undefined;
   };
-  return {
-    ...e,
-    from: drawn ? e.from : owner_of(graph, e.from),
-    to: drawn ? e.to : owner_of(graph, e.to),
-    fromSide: e.fromSide ?? side(e.from),
-    toSide: e.toSide ?? side(e.to),
-  };
+  return { ...e, fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
+}
+
+/** How a side names itself in a handle id. */
+const WALL: Record<Side, string> = { top: "t", right: "r", bottom: "b", left: "l" };
+
+/** Which handle an end leaves by.
+ *
+ *  A perch is a seat of its own and names itself; an end seated on an interface
+ *  has a wall already, and leaves by that. **Nothing here picks a point** — both
+ *  answers were worked out before this was asked. */
+function handle(met: ReadonlyMap<string, Perch>, edge: Id, end: "from" | "to",
+                side: Side | undefined, role: "s" | "t"): string {
+  return met.has(`${edge}|${end}`)
+    ? `${role}-${perch_id(edge, end)}`
+    : `${role}-${WALL[side ?? "right"]}`;
 }
 

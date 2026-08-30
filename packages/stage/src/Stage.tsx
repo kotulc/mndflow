@@ -93,7 +93,11 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
           const label = prompt("rename", scene.frame?.label);
           if (label !== null) onAct("rename", { id: g.on, label });
         }
-        else if (g.on && g.kind === "box") onAct("open", { id: g.on });
+        /** **An interface is a block, so it opens like one.** It is seated
+         *  rather than placed, which is a fact about where it is drawn and not
+         *  about what it is — and opened from the inside it is the one layer
+         *  that shows the wall it is set into. */
+        else if (g.on && (g.kind === "box" || g.kind === "seat")) onAct("open", { id: g.on });
         else if (!g.on) onAct("up");
       }
       /** A single left click is a selection, and the canvas reports that on its
@@ -121,6 +125,11 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         onPick={onPick}
         onDrop={onDrop}
         onRelate={(from, to) => onAct("relate", { from, to })}
+        /** **Making an interface and telling that end about it** — the same
+         *  action a right-click on a border runs, with the two arguments that
+         *  say which line already meets this seat. */
+        onPromote={(edge, end, owner, side, at) =>
+          onAct("interface", { owner, side, at, edge, end })}
         onAdjust={(adjust) => {
           /** Dropping one card on another is a **move**, which is sayable;
            *  dropping it anywhere else is a **place**, which is not. */

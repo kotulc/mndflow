@@ -126,10 +126,16 @@ describe("what the projection shows", () => {
       .toContain("interfaces");
   });
 
-  it("still draws no interface when it is told to hide them", () => {
+  /** Hiding interfaces is a display preference and says nothing about the
+   *  relationships tied to them, so a hidden one keeps its seat as a berth
+   *  that draws nothing and answers no gesture. */
+  it("leaves a berth where an interface is hidden", () => {
     const graph = fold(fixture("interfaced"));
     const off = block.project(graph, "block_loop", { interfaces: false });
-    expect(off.nodes.some((b) => b.data.marks.includes("interface"))).toBe(false);
+    const ports = off.nodes.filter((b) => b.data.marks.includes("interface"));
+    expect(ports.length).toBeGreaterThan(0);
+    expect(ports.every((b) => b.data.marks.includes("berth"))).toBe(true);
+    expect(ports.every((b) => b.selectable === false)).toBe(true);
   });
 
   it("is a pure function of the graph — it writes nothing", () => {
@@ -196,10 +202,15 @@ describe("interfaces are seated, not placed", () => {
     expect([line.source, line.target]).toEqual(["port_out", "port_in"]);
   });
 
-  it("hides the seats and never the lines", () => {
+  /** **A line meets the border in the same place whether or not the square is
+   *  drawn.** Hiding the seats that moved a line's ends would make a display
+   *  preference redraw the model. */
+  it("hides the seats and moves neither the lines nor their ends", () => {
     const off = block.project(fold(fixture("interfaced")), "block_loop", { interfaces: false });
-    expect(off.nodes.some((b) => b.data.marks.includes("interface"))).toBe(false);
-    expect(off.edges.map((r) => r.id).sort()).toEqual(scene.edges.map((r) => r.id).sort());
+    expect(off.nodes.every((b) => !b.data.marks.includes("interface")
+                               || b.data.marks.includes("berth"))).toBe(true);
+    expect(off.edges.map((r) => `${r.id}:${r.source}>${r.target}`).sort())
+      .toEqual(scene.edges.map((r) => `${r.id}:${r.source}>${r.target}`).sort());
     expect(faults(off)).toEqual([]);
   });
 });

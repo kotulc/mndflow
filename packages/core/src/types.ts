@@ -79,6 +79,11 @@ export type Relation = {
   dir?: Dir;
   fromSide?: Side;
   toSide?: Side;
+  /** Where along that wall the end was pinned. **Only ever set by hand** — an
+   *  end nobody has dragged has no fraction, and the seat it meets is worked
+   *  out from where the two blocks ended up. */
+  fromAt?: number;
+  toAt?: number;
   fields?: Field[];
 };
 
@@ -153,7 +158,7 @@ export type Mutation =
   | { op: "flip_edge"; id: Id }
   | { op: "set_end"; id: Id; end: "from" | "to"; port: Id }
   | { op: "set_port"; id: Id; side: Side; at: number }
-  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
+  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null; at?: number }
   | { op: "mark_port"; id: Id; flow: Flow | null }
   | { op: "set_field"; id: Id; field: Field }
   | { op: "drop_field"; id: Id; name: string }

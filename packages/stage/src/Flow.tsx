@@ -9,12 +9,12 @@
  *  is picked, which wall a line leaves by) and the binding of React Flow's
  *  callbacks back to the gesture vocabulary the app already speaks. */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background, BackgroundVariant, Controls, NodeToolbar, Panel, Position,
-  ReactFlow, ReactFlowProvider, SelectionMode, useEdgesState, useNodesState,
-  useReactFlow, useStore,
-  type Connection, type Edge, type Node, type NodeChange,
+  ReactFlow, ReactFlowProvider, SelectionMode, ViewportPortal, useEdgesState,
+  useNodesState, useReactFlow, useStore,
+  type Node, type NodeChange,
   type OnConnectEnd, type OnConnectStart, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side } from "@mnd/core";
@@ -50,6 +50,10 @@ export type Adjust =
    *  canvas answers this one itself**: which wall and how far along are read
    *  off the room, and the room is a size only the canvas knows. */
   | { kind: "wall-seat"; on: string; side: Side; at: number }
+  /** A line's end slid along the border it meets. **A perch is derived**, so
+   *  what this writes is the wall and the fraction the end was pinned to — the
+   *  seat goes back to being worked out the moment it is unpinned. */
+  | { kind: "anchor"; on: string; end: "from" | "to"; side: Side; at: number }
   /** A corner dragged. **The one card whose size is yours to set** — every
    *  other one is sized from what it holds, and a block has carried `w` and
    *  `h` all along with no gesture that wrote them. */
@@ -64,6 +68,11 @@ export type FlowViewProps = {
    *  filter takes the left button only, so this cannot be the right one. */
   onRelate?: (from: string, to: string) => void;
   onAdjust?: (adjust: Adjust) => void;
+  /** A line's end made an interface of its own where it already sits. **The
+   *  one place every argument is known** — which relationship, which end, whose
+   *  border, and the seat on it the line was already meeting. */
+  onPromote?: (edge: string, end: "from" | "to", owner: string,
+               side: Side, at: number) => void;
   /** What is selected now — a click, a shift-sweep and a modifier-click all
    *  arrive here and nowhere else. */
   onPick?: (ids: string[]) => void;
@@ -142,7 +151,7 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
     position: { x: frame.x, y: frame.y },
     width: frame.w,
     height: frame.h,
-    data: { label: frame.label, marks: [] },
+    data: { label: frame.label, marks: [], ...(frame.side ? { side: frame.side } : {}) },
     draggable: false,
     selectable: false,
     focusable: false,
@@ -160,7 +169,7 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
       position: { x: at.x, y: at.y },
       width: at.w,
       height: at.h,
-      data: { label: p.label, marks: p.marks, on: FRAME,
+      data: { label: p.label, marks: p.marks, on: FRAME, side: p.side,
               ...(p.look ? { look: p.look } : {}) },
       selected: picked.includes(p.id),
       zIndex: DEPTH["seat"],
@@ -182,28 +191,6 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
   return out;
 }
 
-/** Which walls a line leaves and arrives by.
- *
- *  **Every card offers four, so something has to choose**, and left to itself
- *  React Flow takes the first — which sends a line between two neighbours out
- *  the top, around and back, reading as a box rather than a link. The two nodes
- *  are already placed, so the answer is just which way one lies from the other. */
-function walls(scene: Scene): Map<string, { out: string; in: string }> {
-  const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
-  const out = new Map<string, { out: string; in: string }>();
-  for (const e of scene.edges) {
-    const a = at.get(e.source);
-    const b = at.get(e.target);
-    if (!a || !b) continue;
-    const dx = (b.x + b.w / 2) - (a.x + a.w / 2);
-    const dy = (b.y + b.h / 2) - (a.y + a.h / 2);
-    out.set(e.id, Math.abs(dx) >= Math.abs(dy)
-      ? (dx >= 0 ? { out: "s-r", in: "t-l" } : { out: "s-l", in: "t-r" })
-      : (dy >= 0 ? { out: "s-b", in: "t-t" } : { out: "s-t", in: "t-b" }));
-  }
-  return out;
-}
-
 /** How a relationship reads, from what it is. **Weight and dash, never a hue**
  *  — a definition's slot is what colour means on this canvas, and a line
  *  borrowing one would be saying something the vocabulary already says. */
@@ -211,8 +198,9 @@ const READS: Record<string, string> = {
   line: "line", directed: "directed", reference: "line dashed", tie: "line away",
 };
 
+/** **Which seat each end meets is the projection's**, and arrives on the edge
+ *  already — so nothing here chooses a point on a border. */
 function edges_of(scene: Scene, picked: readonly Id[], curved: boolean): LineEdge[] {
-  const wall = walls(scene);
   return scene.edges.map((e) => {
     const d = e.data;
     const forward = d?.dir === "forward" || d?.dir === "both" || d?.module === "directed";
@@ -221,11 +209,12 @@ function edges_of(scene: Scene, picked: readonly Id[], curved: boolean): LineEdg
       ...e,
       type: "wire",
       data: { ...(d ?? { module: "line" as const, dir: "none" as const }), curved },
-      sourceHandle: wall.get(e.id)?.out,
-      targetHandle: wall.get(e.id)?.in,
       selected: picked.includes(e.id),
       className: READS[d?.module ?? "line"] ?? "line",
-      reconnectable: true,
+      /** **The end is taken hold of by its own grip**, which appears when the
+       *  line is picked. The library's anchors sit on the same two points and
+       *  cannot be told apart from it. */
+      reconnectable: false,
       markerEnd: forward ? { type: "arrowclosed" as const } : undefined,
       markerStart: back ? { type: "arrowclosed" as const } : undefined,
     };
@@ -259,7 +248,7 @@ function kind_of(scene: Scene, id: string | null,
 function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
-    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label}`,
+    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.side ?? ""}`,
     frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
     scene.nodes.map((n) => {
       const b = box_of(n);
@@ -273,6 +262,11 @@ function signature(scene: Scene, frame: Frame | null): string {
         k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
         n.data.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(""),
         n.data.fields?.map((f) => `${f.name}=${f.value}`).join(""),
+        /** **Where a line meets this card is part of what it draws.** Pinning
+         *  an end to another wall moves nothing and renames nothing; what it
+         *  moves is a handle, and a signature blind to that leaves the line
+         *  entering where it used to. */
+        n.data.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(""),
       ].join(":");
     }).join("|"),
     scene.edges.map((e) =>
@@ -299,8 +293,25 @@ function marked<T extends { id: string; selected?: boolean }>(
     : rows;
 }
 
+/** Where a line's end is taken hold of, and where a hidden interface says it
+ *  is still there.
+ *
+ *  **Both come and go with the selection**, which is why neither is a node: an
+ *  array rebuilt every time anything is picked is the churn the canvas was
+ *  memoised to stop. They are drawn into the viewport instead, so they pan and
+ *  zoom with the drawing and cost nothing when nothing is picked. */
+type Grip = { key: string; edge: string; end: "from" | "to"; on: string;
+              side: Side; at: number; x: number; y: number };
+
+/** The middle of a seat, in scene coordinates. */
+function middle(box: { x: number; y: number; w: number; h: number },
+                seat: { side: Side; at: number }): Point {
+  const r = at_seat(box, seat);
+  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+}
+
 function Canvas(props: FlowViewProps) {
-  const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop,
+  const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop, onPromote,
           said, chrome = true, curved = false } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
@@ -327,7 +338,8 @@ function Canvas(props: FlowViewProps) {
       && f.x >= held.room.x && f.y >= held.room.y
       && f.x + f.w <= held.room.x + held.room.w
       && f.y + f.h <= held.room.y + held.room.h;
-    const room = holds ? { ...held!.room, label: f.label } : panelled(f, seen);
+    const room = holds ? { ...held!.room, label: f.label, ...(f.side ? { side: f.side } : {}) }
+                       : panelled(f, seen);
     kept.current = { of: scene.layer, seen: seen_key, room };
     return room;
   }, [scene.frame, scene.layer, seen]);
@@ -346,7 +358,11 @@ function Canvas(props: FlowViewProps) {
    *  each node measured, what is mid-drag — and handing it a fresh array every
    *  render without ever applying a change throws that away. */
   const [nodes, set_nodes, moved] = useNodesState<BoxNode>(nodes_of(scene, picked, frame));
-  const [edges, set_edges] = useEdgesState<LineEdge>(edges_of(scene, picked, curved));
+  /** **The third of these is not optional.** React Flow reports a selection as
+   *  a change and applies nothing itself; dropping the handler left every edge
+   *  change — a click on a line above all — dispatched into nothing, so a
+   *  relationship could not be picked at all. */
+  const [edges, set_edges, rewired] = useEdgesState<LineEdge>(edges_of(scene, picked, curved));
   const key = `${signature(scene, frame)}~${curved ? "curve" : "angle"}`;
   latest.current = { picked, onPick, key };
 
@@ -499,14 +515,6 @@ function Canvas(props: FlowViewProps) {
     if (began && to && to !== began) onRelate?.(began, to);
   }, [from, onRelate]);
 
-  /** Taking a line's end to another card. **The library's gesture** — it draws
-   *  the handle, tracks the drag and says where it landed. */
-  const rewalled = useCallback((edge: Edge, to: Connection) => {
-    const end: "from" | "to" = to.source === edge.source ? "to" : "from";
-    const landed = end === "to" ? to.target : to.source;
-    if (landed) onAdjust?.({ kind: "wall", on: edge.id, end, to: landed });
-  }, [onAdjust]);
-
   /** **Where it came to rest, not where the pointer was.** A card grabbed by
    *  its corner lands somewhere the pointer never went, so what it was dropped
    *  *on* is read off the card's own middle. */
@@ -572,6 +580,73 @@ function Canvas(props: FlowViewProps) {
     }
   }, [moved, scene, onAdjust]);
 
+  /** Where the ends of the picked relationships sit. **Only the perched ones**
+   *  — an end seated on an interface is that interface, which is a block with a
+   *  drag of its own and needs no second grip. */
+  const grips = useMemo((): Grip[] => {
+    if (!picked.length) return [];
+    const chosen = new Set(picked);
+    const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
+    const out: Grip[] = [];
+    for (const p of scene.perches) {
+      if (!chosen.has(p.edge)) continue;
+      const box = at.get(p.on);
+      if (!box) continue;
+      out.push({ key: `${p.edge}-${p.end}`, edge: p.edge, end: p.end, on: p.on,
+                 side: p.side, at: p.at, ...middle(box, p) });
+    }
+    return out;
+  }, [scene, picked]);
+
+  /** A hidden interface, saying where it is. **Only while the line tied to it
+   *  or the card it sits on is picked** — enough to find a line's end without
+   *  turning every square back on, which is what hiding them asked for. */
+  const berths = useMemo((): Point[] => {
+    if (!picked.length) return [];
+    const chosen = new Set(picked);
+    const tied = new Set<string>();
+    for (const e of scene.edges) {
+      if (chosen.has(e.id)) { tied.add(e.source); tied.add(e.target); }
+    }
+    const out: Point[] = [];
+    for (const n of scene.nodes) {
+      if (!n.data.marks.includes("berth")) continue;
+      if (!tied.has(n.id) && !(n.data.on && chosen.has(n.data.on))) continue;
+      const b = box_of(n);
+      out.push({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+    }
+    return out;
+  }, [scene, picked]);
+
+  /** Which grip is being dragged and where it has got to, so the mark follows
+   *  the pointer instead of waiting for the model to catch up. */
+  const [grabbed, grab] = useState<{ key: string; at: Point } | null>(null);
+
+  /** Where a grip came to rest. **One drag, and where it lands says which of
+   *  the two things it meant**: dropped back on its own card it is a slide, and
+   *  the question is the one a seated interface answers — which wall, and how
+   *  far along; dropped on something else it is that end taken there.
+   *
+   *  Two gestures on the same pixel is one too many, which is what the
+   *  library's own reconnect anchors were: they sit exactly here, and a drag
+   *  fired both a reconnect and a fresh connection. */
+  const anchored = useCallback((g: Grip, e: { clientX: number; clientY: number }) => {
+    const host = scene.nodes.find((n) => n.id === g.on);
+    if (!host) return;
+    const to = at(e);
+    /** The innermost thing under the point: a seat drawn over a card is the
+     *  one you meant, and it is drawn last. */
+    const landed = [...scene.nodes].reverse().find((n) => {
+      if (n.id === g.on || n.selectable === false) return false;
+      const b = box_of(n);
+      return to.x >= b.x && to.x <= b.x + b.w && to.y >= b.y && to.y <= b.y + b.h;
+    });
+    if (landed) { onAdjust?.({ kind: "wall", on: g.edge, end: g.end, to: landed.id }); return; }
+    const seat = nearest_seat(box_of(host), to);
+    if (seat.side === g.side && seat.at === g.at) return;
+    onAdjust?.({ kind: "anchor", on: g.edge, end: g.end, side: seat.side, at: seat.at });
+  }, [scene, at, onAdjust]);
+
   /** **A card cannot be dragged out of the layer it is in.** Containment used
    *  to be an invariant checked after the fact; bounding the drag makes it one
    *  the gesture cannot break. */
@@ -598,6 +673,7 @@ function Canvas(props: FlowViewProps) {
       nodeTypes={NODE_TYPES}
       edgeTypes={EDGE_TYPES}
       onNodesChange={changed}
+      onEdgesChange={rewired}
       onSelectionChange={chose}
       fitView
       fitViewOptions={fit}
@@ -634,7 +710,6 @@ function Canvas(props: FlowViewProps) {
       connectionMode={"loose" as never}
       onConnectStart={start}
       onConnectEnd={end}
-      onReconnect={rewalled}
       onNodeDragStop={(_, node) => dropped(node)}
       onNodeClick={(e, n) => say(n.id, e, "left", 1)}
       onNodeDoubleClick={(e, n) => say(n.id, e, "left", 2)}
@@ -675,6 +750,49 @@ function Canvas(props: FlowViewProps) {
             open
           </button>
         </NodeToolbar>
+      ) : null}
+      {/* The ends of what is picked, and the berths near it. Inside the
+          viewport, so they pan and zoom with the drawing. */}
+      {grips.length || berths.length ? (
+        <ViewportPortal>
+          {berths.map((b, i) => (
+            <span key={`berth-${i}`} className="mnd-berth"
+                  style={{ transform: `translate(-50%, -50%) translate(${b.x}px, ${b.y}px)` }} />
+          ))}
+          {grips.map((g) => {
+            const to = grabbed?.key === g.key ? grabbed.at : g;
+            return (
+              <span key={g.key}
+                    className={["mnd-anchor", "nodrag", "nopan",
+                                grabbed?.key === g.key ? "held" : ""].filter(Boolean).join(" ")}
+                    style={{ transform: `translate(-50%, -50%) translate(${to.x}px, ${to.y}px)` }}
+                    title="drag to move this end along the border · double click to make it an interface"
+                    /** The grip sits inside the pane, and a click that reaches
+                     *  the pane clears the selection — which is the selection
+                     *  that put the grip there. */
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => {
+                      if (e.button !== 0) return;
+                      e.stopPropagation();
+                      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                      grab({ key: g.key, at: g });
+                    }}
+                    onPointerMove={(e) => {
+                      if (grabbed?.key !== g.key) return;
+                      grab({ key: g.key, at: at(e) });
+                    }}
+                    onPointerUp={(e) => {
+                      if (grabbed?.key !== g.key) return;
+                      grab(null);
+                      anchored(g, e);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      onPromote?.(g.edge, g.end, g.on, g.side, g.at);
+                    }} />
+            );
+          })}
+        </ViewportPortal>
       ) : null}
       {chrome ? <Background variant={BackgroundVariant.Dots} gap={24} size={1} /> : null}
       {chrome ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}

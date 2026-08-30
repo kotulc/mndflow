@@ -11,7 +11,9 @@
  *  block, and following one is a renderer's business. */
 
 import { getSmoothStepPath, Position } from "@xyflow/system";
+import type { Side } from "@mnd/core";
 import { box_of, extent, type BoxNode, type LineEdge, type Scene } from "./scene";
+import { at_seat, type Perch } from "./seat";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
 export type Paper = {
@@ -146,7 +148,8 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
   }
 
   const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
-  for (const e of scene.edges) parts.push(line(e, at, key));
+  const met = new Map(scene.perches.map((p) => [`${p.edge}|${p.end}`, p]));
+  for (const e of scene.edges) parts.push(line(e, at, met, key));
   scene.nodes.forEach((n, i) => parts.push(card(n, `${key}-clip-${i}`)));
 
   parts.push(`</svg>`);
@@ -191,21 +194,28 @@ function label(node: BoxNode, clip: string): string {
  *  Flow's own, it is a pure function of six numbers, and calling it here is
  *  what keeps the headless drawing and the browser one from drifting.
  *
- *  Which walls it leaves by is read off where the two ends sit, the same rule
- *  the canvas applies. */
-function line(edge: LineEdge, at: Map<string, At>, key: string): string {
+ *  **Where it meets each end is the projection's**, and arrives as a perch, so
+ *  this and the canvas read one answer rather than each working one out. An end
+ *  seated on an interface has no perch: it meets the middle of the wall the
+ *  interface is set into, which is the whole of that interface. */
+function line(edge: LineEdge, at: Map<string, At>, met: ReadonlyMap<string, Perch>,
+              key: string): string {
   const a = at.get(edge.source);
   const b = at.get(edge.target);
   if (!a || !b) return ``;
   const dx = (b.x + b.w / 2) - (a.x + a.w / 2);
   const dy = (b.y + b.h / 2) - (a.y + a.h / 2);
   const across = Math.abs(dx) >= Math.abs(dy);
-  const out = across ? (dx >= 0 ? Position.Right : Position.Left)
-                     : (dy >= 0 ? Position.Bottom : Position.Top);
-  const into = across ? (dx >= 0 ? Position.Left : Position.Right)
-                      : (dy >= 0 ? Position.Top : Position.Bottom);
-  const from = wall(a, out);
-  const to = wall(b, into);
+  const from_perch = met.get(`${edge.id}|from`);
+  const to_perch = met.get(`${edge.id}|to`);
+  const out = from_perch ? FACE[from_perch.side]
+    : across ? (dx >= 0 ? Position.Right : Position.Left)
+             : (dy >= 0 ? Position.Bottom : Position.Top);
+  const into = to_perch ? FACE[to_perch.side]
+    : across ? (dx >= 0 ? Position.Left : Position.Right)
+             : (dy >= 0 ? Position.Top : Position.Bottom);
+  const from = from_perch ? seated(a, from_perch) : wall(a, out);
+  const to = to_perch ? seated(b, to_perch) : wall(b, into);
   const [d, cx, cy] = getSmoothStepPath({
     sourceX: from.x, sourceY: from.y, sourcePosition: out,
     targetX: to.x, targetY: to.y, targetPosition: into,
@@ -223,6 +233,18 @@ function line(edge: LineEdge, at: Map<string, At>, key: string): string {
           + `${esc(String(edge.label))}</text>`
         : ``)
     + `</g>`;
+}
+
+/** How a side names itself to the path function. */
+const FACE: Record<Side, Position> = {
+  top: Position.Top, right: Position.Right,
+  bottom: Position.Bottom, left: Position.Left,
+};
+
+/** The middle of the seat a perch sits on. */
+function seated(b: At, perch: Perch): { x: number; y: number } {
+  const r = at_seat(b, perch);
+  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 }
 
 /** The middle of one wall of a box. */

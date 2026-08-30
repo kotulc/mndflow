@@ -14,6 +14,7 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, Id, RelationModule, Side } from "@mnd/core";
 import type { Cell, Look } from "./look";
+import type { Perch } from "./seat";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
@@ -39,10 +40,18 @@ export type BoxData = {
   cells?: readonly Cell[];
   /** The fields this usage shows, already resolved to what they say. */
   fields?: readonly { name: string; value: string }[];
+  /** Which wall this is set into, on a box that is seated rather than placed.
+   *  A line reaching an interface leaves by the interface's own wall, which is
+   *  the one fact about it a router cannot work out from two rectangles. */
+  side?: Side;
+  /** Seats a line meets on this box's border, where the end has no interface
+   *  of its own here. **Derived geometry, and nothing in the graph** — the box
+   *  offers a handle at each, and the edge names it. */
+  seats?: readonly { id: string; side: Side; at: number }[];
 };
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
-                 | "interface" | "derived" | "in" | "out"
+                 | "interface" | "berth" | "derived" | "in" | "out"
                  | "lane" | "lifeline" | "control" | "fork" | "join"
                  | "decision" | "merge" | "header" | "cell" | "filled" | "turned";
 
@@ -93,6 +102,10 @@ export type Frame = {
   w: number;
   h: number;
   label: string;
+  /** Which wall of its own parent this layer is set into, when the layer is
+   *  itself an interface. **Absent on an ordinary block** — you are inside a
+   *  thing that straddles a border, and this is the border. */
+  side?: Side;
   /** The interfaces set into this layer's own walls. A layer with none has an
    *  empty list rather than no list. */
   ports: readonly Port[];
@@ -105,13 +118,18 @@ export type Scene = {
   frame?: Frame;
   nodes: readonly BoxNode[];
   edges: readonly LineEdge[];
+  /** Where each relationship end meets the border it lands on, for the ends
+   *  with no interface of their own. **Derived, and repeated on the boxes** —
+   *  a box carries the seats it offers so it can draw them, and this is the
+   *  same list read the other way round, by relationship. */
+  perches: readonly Perch[];
   slots: readonly Slot[];
   /** The trail from the root down to the layer, for a breadcrumb. */
   trail: readonly { id: Id; label: string }[];
 };
 
 export const EMPTY: Scene = {
-  layer: null, nodes: [], edges: [], slots: [], trail: [],
+  layer: null, nodes: [], edges: [], perches: [], slots: [], trail: [],
 };
 
 /** One drawn thing, as a node. **Written once**, so `type`, the size fields
