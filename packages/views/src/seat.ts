@@ -140,10 +140,21 @@ export function perched(graph: Graph, links: readonly Relation[],
   return out;
 }
 
-/** Which wall of `box` faces `other`. */
+/** Which wall of `box` faces `other`.
+ *
+ *  **A straight line beats a short one.** Where the two boxes overlap along an
+ *  axis there is a wall that lets the run cross without a bend, and taking it is
+ *  what the eye reads as *these two are joined*; centre-to-centre alone picks
+ *  the near wall and leaves a dog-leg on every pair that is not exactly level.
+ *  Where they overlap on neither axis nothing is straight, and the nearer wall
+ *  is the shorter run. */
 function facing(box: Rect, other: Rect): Side {
   const dx = (other.x + other.w / 2) - (box.x + box.w / 2);
   const dy = (other.y + other.h / 2) - (box.y + box.h / 2);
+  const level = other.y < box.y + box.h && box.y < other.y + other.h;
+  const aligned = other.x < box.x + box.w && box.x < other.x + other.w;
+  if (level && !aligned) return dx >= 0 ? "right" : "left";
+  if (aligned && !level) return dy >= 0 ? "bottom" : "top";
   return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "right" : "left")
                                       : (dy >= 0 ? "bottom" : "top");
 }

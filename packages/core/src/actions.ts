@@ -163,30 +163,50 @@ register(
   },
   {
     name: "delete",
-    about: "removes a block and everything it owns",
-    on: ["block"],
+    about: "removes a block and everything it owns, or a relationship",
+    on: ["block", "edge"],
     args: [{ name: "id", form: "block", required: true }],
     check: (ctx, args) => id_of(args, "id") === ctx.graph.root ? "the workspace cannot be deleted" : null,
-    run: (_ctx, args) => ({ mutations: [{ op: "delete_block", id: id_of(args, "id") }],
-                            effect: { focus: null } }),
+    /** **One word for getting rid of a thing.** A relationship is a thing, and
+     *  offering *delete* on a block and *unlink* on a line made the same
+     *  gesture read as two. `unlink` is still there to be typed. */
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      return { mutations: [ctx.graph.edges[id]
+                 ? { op: "delete_edge", id } : { op: "delete_block", id }],
+               effect: { focus: null } };
+    },
   },
   {
     name: "rename",
-    about: "changes what a block is called",
-    on: ["block"],
+    about: "changes what a block or a relationship is called",
+    on: ["block", "edge"],
     args: [{ name: "id", form: "block", required: true },
            { name: "label", form: "text", required: true }],
     check: (ctx, args) => {
       const id = id_of(args, "id");
+      if (ctx.graph.edges[id]) return text(args, "label") ? null : "a name is required";
       const b = ctx.graph.blocks[id];
       if (!b) return "that block is not there";
       const label = text(args, "label");
       if (!label) return "a name is required";
       return name_taken(ctx.graph, b.parent, label, id) ? `"${label}" is taken` : null;
     },
-    run: (_ctx, args) => ({ mutations: [
-      { op: "update_block", id: id_of(args, "id"), label: text(args, "label") },
-    ] }),
+    /** **A relationship is named by what it is**, so naming one is filing a
+     *  relation definition under that name and pointing the line at it. A type
+     *  set without one draws no label at all, which is the same as not having
+     *  been named. */
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      const label = text(args, "label");
+      if (!ctx.graph.edges[id]) {
+        return { mutations: [{ op: "update_block", id, label }] };
+      }
+      const def = def_id(label);
+      const out: Mutation[] = ctx.graph.defs[def] ? []
+        : [{ op: "set_def", def: { id: def, home: here(ctx), group: "relation", name: label } }];
+      return { mutations: [...out, { op: "update_edge", id, type: def }] };
+    },
   },
   {
     name: "retype",

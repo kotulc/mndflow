@@ -22,6 +22,12 @@ export type MenuProps = {
    *  here could work either out, and an action needing them is offered only
    *  where they are given. */
   given?: Record<string, unknown>;
+  /** The actions this context offers, in the order they are drawn. **An agreed
+   *  list rather than everything that happens to apply** — the registry says
+   *  what an action *could* act on, which is a wider question than what belongs
+   *  on a card's menu. Absent, the registry answers, which is what the tree
+   *  wants. */
+  only?: readonly string[];
   onAct: (name: string, args?: Record<string, unknown>) => void;
   onShut: () => void;
 };
@@ -35,7 +41,7 @@ function askable(a: Action, spot: boolean): boolean {
 /** How close to the window's edge a menu may come before it is moved. */
 const EDGE = 8;
 
-export function Menu({ ctx, at, spot, given, onAct, onShut }: MenuProps) {
+export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
   const box = useRef<HTMLDivElement>(null);
   const [asking, set_asking] = useState<Action | null>(null);
   const [typed, set_typed] = useState("");
@@ -94,8 +100,13 @@ export function Menu({ ctx, at, spot, given, onAct, onShut }: MenuProps) {
    *  whose whole rule is that what does not apply is not shown. */
   const fillable = (a: Action) => wanted(a).filter((arg) => arg.required).length <= 1;
 
-  const entries = offer(ctx)
-    .filter((a) => askable(a, spot !== undefined) && fillable(a));
+  const offered = offer(ctx).filter((a) => askable(a, spot !== undefined) && fillable(a));
+  /** Named order, not the registry's — a list somebody agreed reads in the
+   *  order they agreed it. What is named and does not apply here is left out
+   *  rather than shown dead. */
+  const entries = only
+    ? only.map((name) => offered.find((a) => a.name === name)).filter((a) => !!a)
+    : offered;
 
   const take = (a: Action) => {
     const need = wanted(a);

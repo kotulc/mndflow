@@ -571,3 +571,35 @@
 .mnd-card:hover[data-shape="diamond"] .mnd-outline polygon,
 .mnd-card:hover[data-shape="hex"] .mnd-outline polygon { stroke: var(--accent); }
 .mnd-seat:hover { border-color: var(--accent); background: var(--tint); }
+
+
+/* ── A card's border ────────────────────────────────────────────────────────
+   Its own four targets, sitting on the card's edge the way the frame's rims sit
+   on the frame's. **The body is the block and the border is a wall** — one
+   region for both made every press near an edge ambiguous. */
+.mnd-brim { position: absolute; pointer-events: auto; z-index: 1; }
+.mnd-brim-top, .mnd-brim-bottom { left: 0; right: 0; height: 9px; }
+.mnd-brim-left, .mnd-brim-right { top: 0; bottom: 0; width: 9px; }
+.mnd-brim-top { top: -4px; }
+.mnd-brim-bottom { bottom: -4px; }
+.mnd-brim-left { left: -4px; }
+.mnd-brim-right { right: -4px; }
+
+.mnd-brim:hover::after { content: ""; position: absolute; background: var(--accent); }
+.mnd-brim-top:hover::after, .mnd-brim-bottom:hover::after {
+  left: 0; right: 0; top: 4px; height: 2px;
+}
+.mnd-brim-left:hover::after, .mnd-brim-right:hover::after {
+  top: 0; bottom: 0; left: 4px; width: 2px;
+}
+
+/* One thing lights at a time: pointing at a wall is not pointing at the card. */
+.mnd-card:hover:has(.mnd-brim:hover) { border-color: var(--card-line); }
+
+/* A line answers the pointer like everything else, and says so. */
+.mnd-flow .react-flow__edge:hover .react-flow__edge-path,
+.mnd-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); }
+.mnd-flow .react-flow__edge { cursor: pointer; }
+
+/* What a right drag is making, while it is being made. */
+.mnd-drawn { stroke: var(--accent); stroke-width: 1.5px; stroke-dasharray: 4 3; fill: none; }

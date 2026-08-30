@@ -73,6 +73,22 @@ function along(side: Side, at: number): React.CSSProperties {
   return side === "top" || side === "bottom" ? { left: fraction } : { top: fraction };
 }
 
+/** A card's border, as its own four targets.
+ *
+ *  **The border and the body are different things to point at**: the body is
+ *  the block, and the border is a wall you put an interface on. One region for
+ *  both made every right-click near an edge ambiguous, and the pointer is
+ *  precise enough that it never had to be. */
+function Brim() {
+  return (
+    <>
+      {(["top", "right", "bottom", "left"] as const).map((side) => (
+        <span key={side} className={`mnd-brim mnd-brim-${side}`} data-side={side} aria-hidden />
+      ))}
+    </>
+  );
+}
+
 /** The seats a line meets on this box's border.
  *
  *  **One handle per end, placed rather than chosen.** Left to itself the
@@ -207,6 +223,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
             .filter(Boolean).join(" ")}
          {...dressed(look)} data-def={data.def} title={data.label}>
       <Outline shape={look.shape} />
+      <Brim />
       {named ? (
         <div className="mnd-head">
           <span className="mnd-label">{data.label}</span>

@@ -33,7 +33,7 @@ export type StageProps = {
    *  was opened — two answers because they are two questions, and an action
    *  that puts something somewhere needs the second. */
   menu?: (at: { x: number; y: number }, on: string | null, shut: () => void,
-          spot: { x: number; y: number },
+          spot: { x: number; y: number }, only: readonly string[] | undefined,
           /** What the gesture already knew, for actions that need more than an
            *  id. A right-click on a relationship's end knows which end and
            *  whose border — nothing downstream could work either out. */
@@ -49,7 +49,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
                        said, onSaid, curved }: StageProps) {
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
-      given?: Record<string, unknown> } | null>(null);
+      only?: readonly string[]; given?: Record<string, unknown> } | null>(null);
   /** The shell owns the global keys; a view module owns the rest.
    *
    *  **Shorter than it was.** Selection, the sweep and the multi-select
@@ -60,7 +60,22 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
       if (typing) return;
       const one = picked.length === 1 ? picked[0]! : null;
-      if (e.key === "Escape") { onPick([]); onSaid?.(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        onAct(e.shiftKey ? "redo" : "undo");
+      }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        onAct("redo");
+      }
+      /** **Escape closes the nearest thing.** An offered list is open in front
+       *  of the drawing, so it goes first — clearing the selection under it is
+       *  how a menu raised on four cards left one card grouped. */
+      else if (e.key === "Escape") {
+        if (at) { set_at(null); return; }
+        onPick([]);
+        onSaid?.();
+      }
       /** **Enter goes in.** Descending had one way in and it was a double
        *  click, which is the same gesture as picking a card twice quickly —
        *  so the keyboard says it too, and so does the toolbar on the card. */
@@ -86,7 +101,25 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
     };
     window.addEventListener("keydown", on_key);
     return () => window.removeEventListener("keydown", on_key);
-  }, [scene, picked, onAct, onPick, onSaid]);
+  }, [scene, picked, at, onAct, onPick, onSaid]);
+
+  /** **What the right button offers, per thing.** Agreed rather than derived:
+   *  the registry says what an action can act on, which is a wider question
+   *  than what belongs on a card's menu. Empty ground has no list — right there
+   *  makes a block, which is one gesture doing one thing. */
+  const OFFERS: Partial<Record<Gesture["kind"], readonly string[]>> = {
+    box: ["rename", "open", "interface", "relate", "delete"],
+    seat: ["rename", "open", "interface", "relate", "delete"],
+    frame: ["interface", "relate"],
+    route: ["rename", "delete"],
+    anchor: ["promote", "rename", "delete"],
+  };
+
+  /** **What several things offer is not what one thing offers.** Rename, open
+   *  and relate each name a single thing; asked of four they have no answer, so
+   *  a card's list against a sweep came out empty. What is left is what a
+   *  handful of blocks can be told to do together. */
+  const MANY: readonly string[] = ["group", "leave", "delete"];
 
   const gesture = (g: Gesture) => {
     if (g.button === "left") {
@@ -112,14 +145,22 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
     /** The right button offers what can be done here. **A menu where the host
      *  gave one**, and the prompt it replaces where it did not — so the canvas
      *  works either way and neither answer is built in. */
-    if (menu) {
-      set_at({ ...g.screen, on: g.on, spot: g.at,
-               ...(g.given ? { given: g.given } : {}) });
-      return;
-    }
-    if (!g.on) {
+    /** **Empty ground makes a block.** There is nothing there to offer actions
+     *  about, and a menu whose only useful entry is *create* is a click in the
+     *  way of the thing you came to do. */
+    /** **A card's border is where an interface goes**, and there is nothing
+     *  else it could mean — so the right button puts one there rather than
+     *  offering a list of one. */
+    if (g.kind === "brim" && g.given) { onAct("interface", { ...g.given }); return; }
+    if (!g.on || g.kind === "empty") {
       const label = prompt("name it");
       if (label !== null) onAct("create", { label, spot: { x: g.at.x, y: g.at.y } });
+      return;
+    }
+    if (menu) {
+      const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
+      set_at({ ...g.screen, on: g.on, spot: g.at, only: among ? MANY : OFFERS[g.kind],
+               ...(g.given ? { given: g.given } : {}) });
     }
   };
 
@@ -134,6 +175,12 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         onPick={onPick}
         onDrop={onDrop}
         onRelate={(from, to) => onAct("relate", { from, to })}
+        /** A right drag across empty ground. **A note is the one thing whose
+         *  making asks for its text** — everything else is named after. */
+        onNote={(spot) => {
+          const text = prompt("note");
+          if (text !== null) onAct("note", { text, spot });
+        }}
         onAdjust={(adjust) => {
           /** Dropping one card on another is a **move**, which is sayable;
            *  dropping it anywhere else is a **place**, which is not. */
@@ -150,7 +197,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
           </>
         ) : null}
       />
-      {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.given) : null}
+      {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );
 }

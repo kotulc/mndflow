@@ -27,7 +27,7 @@ import { EDGE_TYPES } from "./Wire";
  *  it. `kind` is what was under the pointer, never what it looked like. */
 export type Gesture = {
   on: string | null;
-  kind: "box" | "seat" | "route" | "anchor" | "frame" | "title" | "empty";
+  kind: "box" | "brim" | "seat" | "route" | "anchor" | "frame" | "title" | "empty";
   button: "left" | "right";
   count: 1 | 2;
   /** Where, in scene coordinates. A position can only come from a gesture. */
@@ -72,6 +72,8 @@ export type FlowViewProps = {
    *  ours** — a connection starts on a handle, and React Flow's own drag
    *  filter takes the left button only, so this cannot be the right one. */
   onRelate?: (from: string, to: string) => void;
+  /** A right drag across empty ground. */
+  onNote?: (at: Point) => void;
   onAdjust?: (adjust: Adjust) => void;
   /** What is selected now — a click, a shift-sweep and a modifier-click all
    *  arrive here and nowhere else. */
@@ -97,6 +99,10 @@ export const DRAGGED = "text/mnd-block";
  *  wide canvas blown up to four times its size is not a view of anything. */
 const FIT = { padding: 0.25, maxZoom: 1 };
 
+/** How far a press must travel before it is a drag rather than a click that
+ *  shook on the way down. */
+const NUDGE = 5;
+
 /** The band left around a layer's frame, in screen pixels. **It is where you
  *  double click to leave**, so it is the same on every side of every layer and
  *  a frame is never fitted tighter than this. */
@@ -113,7 +119,9 @@ const MIN_ZOOM = 0.1;
 
 /** The frame sits behind everything and takes no gesture; a seat sits in front
  *  of the card it is on. React Flow paints in this order. */
-const DEPTH: Record<string, number> = { frame: 0, card: 1, control: 1, seat: 2 };
+const DEPTH: Record<string, number> = {
+  frame: 0, group: 1, card: 2, control: 2, seat: 3,
+};
 
 /** The layer's working area, shaped like the panel it is shown in.
  *
@@ -227,11 +235,13 @@ function edges_of(scene: Scene, picked: readonly Id[], curved: boolean): LineEdg
 function kind_of(scene: Scene, id: string | null,
                  target?: EventTarget | null): Gesture["kind"] {
   if (!id) return "empty";
-  if (id === FRAME) {
-    const el = target instanceof Element ? target : null;
-    return el?.closest(".mnd-frame-name") ? "title" : "frame";
-  }
+  const el = target instanceof Element ? target : null;
+  if (id === FRAME) return el?.closest(".mnd-frame-name") ? "title" : "frame";
   if (scene.edges.some((e) => e.id === id)) return "route";
+  /** **A card's border is a wall, not the card.** The body is the block; the
+   *  border is where an interface goes, and the pointer is precise enough to
+   *  tell the two apart. */
+  if (el?.closest(".mnd-brim")) return "brim";
   if (scene.frame?.ports.some((p) => p.id === id)) return "seat";
   return scene.nodes.find((n) => n.id === id)?.data.on ? "seat" : "box";
 }
@@ -312,7 +322,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 }
 
 function Canvas(props: FlowViewProps) {
-  const { scene, picked = [], onGesture, onRelate, onAdjust, onPick, onDrop,
+  const { scene, picked = [], onGesture, onRelate, onNote, onAdjust, onPick, onDrop,
           said, chrome = true, curved = false } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
@@ -490,17 +500,20 @@ function Canvas(props: FlowViewProps) {
 
   const say = useCallback((on: string | null, e: React.MouseEvent,
                           button: "left" | "right", count: 1 | 2) => {
+    /** The press that drew something is not also a click on what it began on. */
+    if (swallow.current) return;
     const kind = kind_of(scene, on, e.target);
     /** Which wall, and where along it. **A border is a place, not a thing** —
      *  so an action that puts something on one is offered the answer rather
      *  than left to default to the right wall of everything. */
     const box = kind === "frame" ? frame
-      : kind === "box" ? scene.nodes.find((n) => n.id === on) : null;
+      : kind === "box" || kind === "brim" ? scene.nodes.find((n) => n.id === on) : null;
     const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
     onGesture?.({
       on: kind === "title" || kind === "frame" ? scene.layer : on,
       kind, button, count, at: at(e), screen: { x: e.clientX, y: e.clientY },
-      ...(seat ? { given: { side: seat.side, at: seat.at } } : {}),
+      ...(seat ? { given: { side: seat.side, at: seat.at,
+                            ...(kind === "brim" ? { owner: on } : {}) } } : {}),
     });
   }, [onGesture, scene, at, frame]);
 
@@ -514,6 +527,53 @@ function Canvas(props: FlowViewProps) {
     onGesture?.({ on, kind: kind_of(scene, on), button: "left", count,
                   at: { x: b.x, y: b.y }, screen: p });
   }, [scene, flow, onGesture]);
+
+  /** **The right button draws.** Dragging from a card makes a relationship and
+   *  dragging across empty ground makes a note — one button, and what it lands
+   *  on says which. React Flow's own connection drag takes the left button only
+   *  (its filter is `!event.button`), so this one is ours: a press, a distance,
+   *  and what was under each end.
+   *
+   *  A press that never travels is a click, and a click is the offered list. */
+  const drew = useRef<{ x: number; y: number; on: string | null } | null>(null);
+  const [drawing, draw] = useState<{ from: Point; to: Point } | null>(null);
+  /** A drag just ended, so the `contextmenu` that follows it is not a click. */
+  const swallow = useRef(false);
+
+  /** Which node a point on the page is over. **Asked of the DOM rather than of
+   *  the scene** — the pointer is already there, and a card drawn over another
+   *  answers for itself without anything here sorting by depth. */
+  const over = useCallback((x: number, y: number): string | null => {
+    const el = document.elementFromPoint(x, y);
+    const node = el instanceof Element ? el.closest(".react-flow__node") : null;
+    const id = node?.getAttribute("data-id") ?? null;
+    return id === FRAME ? null : id;
+  }, []);
+
+  const pressed = useCallback((e: React.PointerEvent) => {
+    swallow.current = false;
+    if (e.button !== 2) return;
+    drew.current = { x: e.clientX, y: e.clientY, on: over(e.clientX, e.clientY) };
+  }, [over]);
+
+  const moved_to = useCallback((e: React.PointerEvent) => {
+    const from = drew.current;
+    if (!from) return;
+    if (!drawing && Math.hypot(e.clientX - from.x, e.clientY - from.y) < NUDGE) return;
+    draw({ from: at({ clientX: from.x, clientY: from.y }), to: at(e) });
+  }, [drawing, at]);
+
+  const released = useCallback((e: React.PointerEvent) => {
+    const from = drew.current;
+    drew.current = null;
+    const was = drawing;
+    draw(null);
+    if (!from || e.button !== 2 || !was) return;
+    swallow.current = true;
+    const to = over(e.clientX, e.clientY);
+    if (from.on && to && to !== from.on) { onRelate?.(from.on, to); return; }
+    if (!from.on && !to) onNote?.(at(e));
+  }, [drawing, over, onRelate, onNote, at]);
 
   /** A drag between two things is a relationship. React Flow calls the press
    *  `onConnectStart` and the release `onConnectEnd`; both only fire for a drag
@@ -543,8 +603,17 @@ function Canvas(props: FlowViewProps) {
     if (!drawn) return;
     const b = box_of(drawn);
     const p = { x: node.position.x + b.w / 2, y: node.position.y + b.h / 2 };
+    /** **Dropping on a card is not filing it inside that card.** Cards overlap
+     *  while they are being arranged, and reparenting on any overlap quietly
+     *  moved blocks a layer down — they had not gone anywhere, but the layer
+     *  you were looking at had lost them and nothing said so.
+     *
+     *  A container is the one target where dropping *reads* as putting
+     *  something in: it already holds things and draws them. Anywhere else this
+     *  is a move, and filing a block under another one is an action you name. */
     const over = scene.nodes.find((n) => {
       if (n.id === node.id || n.data.on) return false;
+      if (!n.data.marks.includes("container")) return false;
       const o = box_of(n);
       return p.x >= o.x && p.x <= o.x + o.w && p.y >= o.y && p.y <= o.y + o.h;
     })?.id ?? null;
@@ -696,6 +765,9 @@ function Canvas(props: FlowViewProps) {
       minZoom={MIN_ZOOM}
       maxZoom={4}
       nodeExtent={extent}
+      onPointerDown={pressed}
+      onPointerMove={moved_to}
+      onPointerUp={released}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       onDrop={(e) => {
         const id = e.dataTransfer.getData(DRAGGED);
@@ -704,12 +776,13 @@ function Canvas(props: FlowViewProps) {
         onDrop?.(id, at(e));
       }}
       proOptions={{ hideAttribution: true }}
-      /** The left button works what is already there, so it never pans: a drag
-       *  on a card moves it, a drag from its edge relates it, and a drag on the
-       *  ground sweeps. Panning is the middle button, the right button and the
-       *  wheel — the right button opens the offered list on a click, and a drag
-       *  is not a click. */
-      panOnDrag={[1, 2]}
+      /** The left button works what is already there and the right button
+       *  draws: a left drag on a card moves it and on the ground sweeps out a
+       *  selection; a right drag from a card relates it and on the ground makes
+       *  a note. **Panning is the middle button and the wheel** — the right one
+       *  is spoken for. */
+      panOnDrag={[1]}
+      selectionOnDrag
       selectionKeyCode="Shift"
       selectionMode={SelectionMode.Full}
       multiSelectionKeyCode={["Meta", "Control"]}
@@ -730,6 +803,14 @@ function Canvas(props: FlowViewProps) {
       onNodeClick={(e, n) => say(n.id, e, "left", 1)}
       onNodeDoubleClick={(e, n) => say(n.id, e, "left", 2)}
       onNodeContextMenu={(e, n) => { e.preventDefault(); say(n.id, e, "right", 1); }}
+      /** **A sweep leaves a rectangle over what it caught**, and the rectangle
+       *  takes the pointer — so a right-click on a swept-up selection never
+       *  reached the card under it and the offered list never opened. It is
+       *  still a right-click on one of them; the library just reports it here. */
+      onSelectionContextMenu={(e, ns) => {
+        e.preventDefault();
+        say(ns[0]?.id ?? null, e, "right", 1);
+      }}
       onEdgeClick={(e, edge) => say(edge.id, e, "left", 1)}
       onEdgeContextMenu={(e, edge) => { e.preventDefault(); say(edge.id, e, "right", 1); }}
       onPaneClick={(e) => say(null, e as React.MouseEvent, "left", 1)}
@@ -766,6 +847,17 @@ function Canvas(props: FlowViewProps) {
             open
           </button>
         </NodeToolbar>
+      ) : null}
+      {/* What the right button is drawing, while it is being drawn. */}
+      {drawing ? (
+        <ViewportPortal>
+          <svg className="mnd-drawing"
+               style={{ position: "absolute", overflow: "visible", left: 0, top: 0,
+                        pointerEvents: "none" }}>
+            <line className="mnd-drawn" x1={drawing.from.x} y1={drawing.from.y}
+                  x2={drawing.to.x} y2={drawing.to.y} />
+          </svg>
+        </ViewportPortal>
       ) : null}
       {/* The ends of what is picked, and the berths near it. Inside the
           viewport, so they pan and zoom with the drawing. */}

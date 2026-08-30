@@ -155,6 +155,12 @@ export function App() {
 
   const act = (name: string, args?: Record<string, unknown>) => {
     if (name === GUIDE.name) { set_asking(true); return; }
+    /** **Not actions, and they arrive here anyway.** Undoing writes no
+     *  mutation — it moves the log — so it is not on the registry; but every
+     *  surface reaches the app through one channel, and a second one just for
+     *  these would be a second thing for every panel to learn. */
+    if (name === "undo") { s.undo(); return; }
+    if (name === "redo") { s.redo(); return; }
     s.go(name, args ?? {});
   };
 
@@ -334,9 +340,16 @@ export function App() {
           /** **The same offered list the tree hangs off a row.** One menu, two
            *  callers — the app mounts it, so neither package has to know the
            *  other exists. */
-          menu={(at, on, shut, spot, given) => (
-            <Menu ctx={{ graph, layer, picked: on ? [on] : [...s.picked()] }}
-                  at={at} spot={spot} given={given} onAct={act} onShut={shut} />
+          /** **A right-click inside the selection is about the selection.** It
+           *  is about the one thing only when that thing was not already
+           *  picked — otherwise grouping four cards acted on whichever of them
+           *  the pointer happened to be over. */
+          menu={(at, on, shut, spot, only, given) => (
+            <Menu ctx={{ graph, layer,
+                         picked: !on ? [...s.picked()]
+                               : s.picked().includes(on) ? [...s.picked()] : [on] }}
+                  at={at} spot={spot} only={only} given={given}
+                  onAct={act} onShut={shut} />
           )}
           /** A row dragged out of the tree lands where it was dropped. */
           onDrop={(id, spot) => s.adjust("place",
