@@ -139,7 +139,10 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  pointer-events: none;
+  /* **A name is its own target.** Two clicks on it rename whatever it names, so
+     it answers the pointer rather than letting the card answer for it. */
+  pointer-events: auto;
+  cursor: text;
 }
 
 /* The subtype, where somebody set one. It sits back a step: what the card is
@@ -210,7 +213,7 @@
   max-height: 100%;
   overflow: hidden;
   text-align: center;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 /* Four shades from the child's own name, so neighbours read apart. The steps
@@ -655,6 +658,16 @@
 .mnd-wall.flat .before { right: 100%; }
 .mnd-wall.flat .after { left: 100%; }
 
+
+/* **Every name says it is one, on the way past.** A card's, a boundary's, a
+   chip's inside a container and the room's own all light the same way, because
+   two clicks mean the same thing on all four. */
+.mnd-label, .mnd-group-name, .mnd-frame-name, .mnd-tag { cursor: text; }
+.mnd-label:hover, .mnd-group-name:hover, .mnd-frame-name:hover, .mnd-cell:hover .mnd-tag {
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent);
+  border-radius: 2px;
+}
 
 /* ── What the pointer is over ───────────────────────────────────────────────
    **One thing lights at a time, and it is the thing a gesture would act on.**

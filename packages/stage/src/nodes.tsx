@@ -227,6 +227,7 @@ function Holds({ cells }: { cells: readonly Cell[] }) {
          *  `nodrag` because the card underneath would otherwise move instead,
          *  and the drag is the browser's own so it crosses to the canvas. */
         <span key={c.id} className={`mnd-cell ${c.kind} tint-${c.tint} nodrag`}
+              data-cell={c.id}
               style={{ left: `calc(${c.x * 100}% + 1px)`,
                        top: `calc(${c.y * 100}% + 1px)`,
                        width: `calc(${c.w * 100}% - 2px)`,

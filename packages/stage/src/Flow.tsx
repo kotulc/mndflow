@@ -17,8 +17,8 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side } from "@mnd/core";
-import { at_seat, box_of, nearest_seat, snap, FRAME, PORT, type BoxNode, type Frame,
-         type LineEdge, type Rect, type Scene } from "@mnd/views";
+import { at_seat, box_of, nearest_seat, perch_id, snap, FRAME, PORT,
+         type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
 import { DRAGGED, NODE_TYPES } from "./nodes";
 
 export { DRAGGED };
@@ -28,7 +28,8 @@ import { EDGE_TYPES } from "./Wire";
  *  it. `kind` is what was under the pointer, never what it looked like. */
 export type Gesture = {
   on: string | null;
-  kind: "box" | "brim" | "seat" | "route" | "anchor" | "frame" | "title" | "empty";
+  kind: "box" | "band" | "brim" | "seat" | "route" | "anchor" | "frame" | "title"
+      | "name" | "empty";
   button: "left" | "right";
   count: 1 | 2;
   /** Where, in scene coordinates. A position can only come from a gesture. */
@@ -178,6 +179,41 @@ function panelled(frame: Frame, seen: { w: number; h: number }): Frame {
            y: snap(frame.y + frame.h / 2 - h / 2), w, h };
 }
 
+/** Where a line meets the room's own wall.
+ *
+ *  **Worked out here because the room is.** The projection puts the frame round
+ *  what the layer holds; this grows it to the panel, so a fraction along a wall
+ *  decided back there lands somewhere else entirely once the wall has been
+ *  stretched — which is a line to the layer leaving a card straight and then
+ *  jogging to meet a point that moved. A run between a card and the layer it is
+ *  in should go straight out, so the point on the wall is the card's own perch
+ *  carried across.
+ *
+ *  **The other end only.** Where that end is an interface it has a seat of its
+ *  own and nothing here can improve on it. */
+function met_on(room: Frame, scene: Scene): Frame {
+  if (!room.seats?.length) return room;
+  const box = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
+  const opposite = new Map<string, Point>();
+  for (const p of scene.perches) {
+    /** **A seat somebody dragged is not one to work out again.** */
+    if (p.on !== FRAME || p.pinned) continue;
+    const mate = scene.perches.find((q) => q.edge === p.edge && q.end !== p.end);
+    const on = mate && box.get(mate.on);
+    if (!mate || !on) continue;
+    opposite.set(perch_id(p.edge, p.end), middle(on, mate));
+  }
+  if (!opposite.size) return room;
+  return { ...room, seats: room.seats.map((t) => {
+    const to = opposite.get(t.id);
+    if (!to) return t;
+    const along = t.side === "left" || t.side === "right"
+      ? (to.y - room.y) / (room.h || 1)
+      : (to.x - room.x) / (room.w || 1);
+    return { ...t, at: Math.min(0.98, Math.max(0.02, along)) };
+  }) };
+}
+
 /** The projection's nodes, plus the two things it cannot know: what the app has
  *  selected, and how deep each one sits. */
 function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): BoxNode[] {
@@ -268,13 +304,28 @@ function kind_of(scene: Scene, id: string | null,
   const el = target instanceof Element ? target : null;
   if (id === FRAME) return el?.closest(".mnd-frame-name") ? "title" : "frame";
   if (scene.edges.some((e) => e.id === id)) return "route";
+  /** **A name is renamed where it is read.** It is its own target wherever it
+   *  is drawn — on a card, along a boundary, on a chip inside a container —
+   *  the same way the room's name always was, so there is one gesture for it
+   *  and not one per surface. */
+  if (el?.closest(NAMES)) return "name";
   /** **A card's border is a wall, not the card.** The body is the block; the
    *  border is where an interface goes, and the pointer is precise enough to
    *  tell the two apart. */
   if (el?.closest(".mnd-brim")) return "brim";
   if (scene.frame?.ports.some((p) => p.id === id)) return "seat";
-  return scene.nodes.find((n) => n.id === id)?.data.on ? "seat" : "box";
+  const node = scene.nodes.find((n) => n.id === id);
+  /** **A boundary is not a block you can go into.** It is a band drawn round
+   *  blocks that already live here, so it has no layer of its own to open and
+   *  no border for a line to end on — and saying so here is what keeps every
+   *  surface from having to work it out again from a mark. */
+  if (node?.type === "group") return "band";
+  return node?.data.on ? "seat" : "box";
 }
+
+/** Everywhere a name is drawn on the canvas. A note is not among them: a note
+ *  *is* its text, and there is nothing else on it to name. */
+const NAMES = ".mnd-label, .mnd-group-name, .mnd-tag";
 
 /** What in a Scene would change the drawing. **Identity is no use** — a
  *  projection is a pure function run on every render, so the object is new
@@ -367,13 +418,16 @@ function spread(a: Point, b: Point): { x: number; y: number; w: number; h: numbe
  *  the far block is lined up with the near one. That is the thing you would
  *  otherwise do by hand, and it is a move like any other — snapped to the grid
  *  first, so the ends are pinned to where the card will actually be. */
-function straight(a: Rect, b: Rect, movable: boolean) {
+function straight(a: Rect, b: Rect, movable: boolean, along?: "x" | "y") {
   /** Along whichever axis the two stand further apart: that is the way the run
    *  already goes, and turning it round would move the line rather than
-   *  straighten it. */
+   *  straighten it. **Unless an end says.** A line meeting an interface leaves
+   *  by that interface's own wall, so the way the run goes was decided when the
+   *  port was put there — free to pick for itself, this lined a card up under a
+   *  port set into a side wall and left the run to curl round to reach it. */
   const apart = { x: Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w)),
                   y: Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h)) };
-  const across = apart.x >= apart.y;
+  const across = along ? along === "x" : apart.x >= apart.y;
   const lo = across ? Math.max(a.y, b.y) : Math.max(a.x, b.x);
   const hi = across ? Math.min(a.y + a.h, b.y + b.h) : Math.min(a.x + a.w, b.x + b.w);
 
@@ -406,22 +460,79 @@ function straight(a: Rect, b: Rect, movable: boolean) {
 /** How a relationship would have to be pinned to run straight, and the block
  *  that has to shift for it where one does.
  *
- *  **An end seated on an interface is not a border this can say anything
- *  about** — it meets the interface, and moving that is moving a block. Nor is
- *  the room, which is grown to the panel and never placed by hand. */
+ *  **Either end may be the one that moves.** A line to an interface or to the
+ *  layer itself has one end that cannot go anywhere — a port belongs to its
+ *  card and the room is grown to the panel — so the other end is aligned to it
+ *  instead. Only where neither end can move is there nothing to offer. */
 function straightened(scene: Scene, frame: Frame | null, edge: string) {
   const e = scene.edges.find((x) => x.id === edge);
   if (!e) return null;
   const box = (id: string) => {
     if (id === FRAME) return frame;
     const n = scene.nodes.find((x) => x.id === id);
-    return n && !n.data.on && n.selectable !== false ? box_of(n) : null;
+    return n ? box_of(n) : null;
+  };
+  /** Whether this end is a block somebody placed, and so one that may be
+   *  lined up: a boundary has no place of its own, a port belongs to its
+   *  card, and the room is not a block at all. */
+  const placed = (id: string) => {
+    const n = scene.nodes.find((x) => x.id === id);
+    return id !== FRAME && !!n && !n.data.on
+        && n.type !== "group" && n.selectable !== false;
   };
   const from = box(e.source);
   const to = box(e.target);
   if (!from || !to) return null;
-  const found = straight(from, to, e.target !== FRAME);
-  return found ? { ...found, align: e.target } : null;
+  /** **A line to the layer runs out of one wall of the card and into the same
+   *  wall of the room.** Which wall the room end meets is whichever rim the
+   *  line was drawn to, and the card end works its own out — so the two can
+   *  disagree, and a run that could have been one straight segment goes out of
+   *  the left of a card to meet the ceiling. Straightening it is agreeing:
+   *  both take the wall the card is nearest, and nothing has to move. */
+  if (e.source === FRAME || e.target === FRAME) {
+    if (!frame) return null;
+    const card = e.source === FRAME ? to : from;
+    const wall = inner(frame, card);
+    const down = wall === "left" || wall === "right";
+    const meet = down ? card.y + card.h / 2 : card.x + card.w / 2;
+    const along = down ? (meet - frame.y) / (frame.h || 1)
+                       : (meet - frame.x) / (frame.w || 1);
+    const room = Math.min(0.98, Math.max(0.02, along));
+    return e.source === FRAME
+      ? { fromSide: wall, fromAt: room, toSide: wall, toAt: 0.5 }
+      : { fromSide: wall, fromAt: 0.5, toSide: wall, toAt: room };
+  }
+
+  /** Which way the run has to go, where an end has already said. */
+  const wall = (id: string) => {
+    const n = scene.nodes.find((x) => x.id === id);
+    return n?.data.on ? n.data.side : undefined;
+  };
+  const set = wall(e.source) ?? wall(e.target);
+  const along = set ? (set === "left" || set === "right" ? "x" : "y") : undefined;
+
+  const ahead = straight(from, to, placed(e.target), along);
+  if (ahead) return { ...ahead, ...(ahead.x === undefined ? {} : { align: e.target }) };
+  /** Nothing at the far end could move, so line the near end up instead. The
+   *  two answers come back the other way round and are put back in order. */
+  const back = straight(to, from, placed(e.source), along);
+  if (!back) return null;
+  return { fromSide: back.toSide, fromAt: back.toAt,
+           toSide: back.fromSide, toAt: back.fromAt,
+           ...(back.x === undefined ? {} : { x: back.x, y: back.y, align: e.source }) };
+}
+
+/** Which wall of the room a box standing in it is nearest — and so the wall
+ *  it should leave by, since the other end meets the same one. */
+function inner(room: Rect, box: Rect): Side {
+  const gap: Record<Side, number> = {
+    left: box.x - room.x,
+    right: (room.x + room.w) - (box.x + box.w),
+    top: box.y - room.y,
+    bottom: (room.y + room.h) - (box.y + box.h),
+  };
+  return (["left", "right", "top", "bottom"] as const)
+    .reduce((a, b) => (gap[b] < gap[a] ? b : a));
 }
 
 /** The same boxes, moved by the same amount. **Only what is placed** — a seat
@@ -473,8 +584,8 @@ function Canvas(props: FlowViewProps) {
           ...(f.side ? { side: f.side } : {}), ...(f.seats ? { seats: f.seats } : {}) }
       : panelled(f, seen);
     kept.current = { of: scene.layer, seen: seen_key, room };
-    return room;
-  }, [scene.frame, scene.layer, seen]);
+    return met_on(room, scene);
+  }, [scene, seen]);
 
   /** **The band is the same on every side, whatever the layer holds.** The
    *  frame is already shaped like the panel, so one fraction of it leaves the
@@ -484,6 +595,16 @@ function Canvas(props: FlowViewProps) {
   const fit = useMemo(() => (frame && seen.w > BAND * 2
     ? { padding: (BAND * 2) / (seen.w - BAND * 2), maxZoom: 1 }
     : FIT), [frame, seen.w]);
+
+  /** **Draw the drawing again, without pretending the model moved.**
+   *
+   *  A seat's place is derived — a wall and a fraction along it — so where the
+   *  pointer let go of one is not a position anybody stores. Where the drop
+   *  changes nothing (dropped back on the wall it was already on, or on a wall
+   *  it cannot take), the projection comes back identical, nothing re-installs
+   *  the arrays, and the library goes on drawing the port where it was dragged
+   *  to: adrift inside the card. */
+  const [resync, again] = useState(0);
 
   /** **React Flow keeps its own copy, and we keep ours in step with it.**
    *  It has bookkeeping on that array that nothing here can reproduce — what
@@ -495,7 +616,7 @@ function Canvas(props: FlowViewProps) {
    *  change — a click on a line above all — dispatched into nothing, so a
    *  relationship could not be picked at all. */
   const [edges, set_edges, rewired] = useEdgesState<LineEdge>(edges_of(scene, picked, curved));
-  const key = `${signature(scene, frame)}~${curved ? "curve" : "angle"}`;
+  const key = `${signature(scene, frame)}~${curved ? "curve" : "angle"}~${resync}`;
   latest.current = { picked, onPick, key };
 
   /** **Which drawing the arrays on the canvas are of.** Until the effect below
@@ -644,8 +765,12 @@ function Canvas(props: FlowViewProps) {
     const given = seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
       : bend;
+    /** A chip stands for a block one layer down, so the name on it is that
+     *  block's and not the card's it is drawn inside. */
+    const el = e.target instanceof Element ? e.target : null;
+    const chip = kind === "name" ? el?.closest("[data-cell]")?.getAttribute("data-cell") : null;
     onGesture?.({
-      on: kind === "title" || kind === "frame" ? scene.layer : on,
+      on: kind === "title" || kind === "frame" ? scene.layer : chip ?? on,
       kind, button, count, at: at(e), screen: { x: e.clientX, y: e.clientY },
       ...(given ? { given } : {}),
     });
@@ -689,8 +814,12 @@ function Canvas(props: FlowViewProps) {
     }
     const node = el instanceof Element ? el.closest(".react-flow__node") : null;
     const id = node?.getAttribute("data-id") ?? null;
+    /** **A relationship never ends on a boundary.** A band says *these belong
+     *  together* and holds no border of its own — so a drag that lets go on one
+     *  has let go on the ground it is drawn over. */
+    if (id && scene.nodes.some((n) => n.id === id && n.type === "group")) return { on: null };
     return { on: id === FRAME ? null : id };
-  }, []);
+  }, [scene]);
 
   const pressed = useCallback((e: React.PointerEvent) => {
     swallow.current = false;
@@ -783,10 +912,23 @@ function Canvas(props: FlowViewProps) {
       const seat = nearest_seat(frame, { x: node.position.x + PORT.w / 2,
                                          y: node.position.y + PORT.h / 2 });
       onAdjust?.({ kind: "wall-seat", on: node.id, side: seat.side, at: seat.at });
+      again((n) => n + 1);
       return;
     }
     const drawn = scene.nodes.find((n) => n.id === node.id);
     if (!drawn) return;
+
+    /** **An interface is seated, never filed.** Where it sits is worked out
+     *  from the card it belongs to, so a drop says which wall it came to rest
+     *  against and nothing else — let go over the middle of its own card it
+     *  read as *put this inside that*, which is not a thing an interface can
+     *  be, and the port stayed where the pointer left it. */
+    if (drawn.data.on) {
+      onAdjust?.({ kind: "move", on: node.id, to: node.position,
+                   over: null, into: null });
+      again((n) => n + 1);
+      return;
+    }
     const b = box_of(drawn);
     const by = { x: node.position.x - b.x, y: node.position.y - b.y };
 
@@ -901,13 +1043,19 @@ function Canvas(props: FlowViewProps) {
      *  rather than in the projection, so the room is the rectangle a seat on a
      *  wall is measured against. */
     if (frame) at.set(FRAME, frame);
+    /** **Where the line actually meets the room's wall.** A seat on the frame
+     *  is worked out again once the room has been grown to the panel — see
+     *  `met_on` — so a grip placed from the projection's own answer stood a
+     *  long way down the wall from the line it was the end of. */
+    const met = new Map((frame?.seats ?? []).map((t) => [t.id, t]));
     const out: Grip[] = [];
     for (const p of scene.perches) {
       if (!chosen.has(p.edge)) continue;
       const box = at.get(p.on);
       if (!box) continue;
+      const seat = p.on === FRAME ? met.get(perch_id(p.edge, p.end)) ?? p : p;
       out.push({ key: `${p.edge}-${p.end}`, edge: p.edge, end: p.end, on: p.on,
-                 side: p.side, at: p.at, ...middle(box, p) });
+                 side: seat.side, at: seat.at, ...middle(box, seat) });
     }
     return out;
   }, [scene, picked, frame]);
@@ -970,7 +1118,7 @@ function Canvas(props: FlowViewProps) {
     /** The innermost thing under the point: a seat drawn over a card is the
      *  one you meant, and it is drawn last. */
     const landed = [...scene.nodes].reverse().find((n) => {
-      if (n.id === g.on || n.selectable === false) return false;
+      if (n.id === g.on || n.selectable === false || n.type === "group") return false;
       const b = box_of(n);
       return to.x >= b.x && to.x <= b.x + b.w && to.y >= b.y && to.y <= b.y + b.h;
     });
@@ -991,7 +1139,9 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    return n && !n.data.on && n.selectable !== false ? n.id : null;
+    /** **A boundary has no inside to open.** It is its members' bounds, and the
+     *  control offering to go into one offered something that could not happen. */
+    return n && !n.data.on && n.selectable !== false && n.type !== "group" ? n.id : null;
   }, [picked, scene]);
 
   return (
@@ -1172,9 +1322,15 @@ function Canvas(props: FlowViewProps) {
                     onContextMenu={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      /** **The room is not a block, and the layer is.** An end
+                       *  meeting the room's wall is an end on the block you are
+                       *  inside, so promoting it makes one of that block's own
+                       *  interfaces — named by the sentinel it was refused, for
+                       *  a border that is not there. */
                       onGesture?.({ on: g.edge, kind: "anchor", button: "right", count: 1,
                                     at: at(e), screen: { x: e.clientX, y: e.clientY },
-                                    given: { end: g.end, on: g.on,
+                                    given: { end: g.end,
+                                             on: g.on === FRAME ? scene.layer : g.on,
                                              side: g.side, at: g.at } });
                     }} />
             );

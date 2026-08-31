@@ -79,7 +79,9 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       /** **Enter goes in.** Descending had one way in and it was a double
        *  click, which is the same gesture as picking a card twice quickly —
        *  so the keyboard says it too, and so does the toolbar on the card. */
-      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)) {
+      /** A boundary has no inside, so there is nothing for it to go into. */
+      else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)
+               && scene.nodes.find((n) => n.id === one)?.type !== "group") {
         onAct("open", { id: one });
       }
       else if (e.key === "F2" && one) {
@@ -112,8 +114,13 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
    *  than what belongs on a card's menu. Empty ground has no list — right there
    *  makes a block, which is one gesture doing one thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly string[]>> = {
+    name: ["rename", "delete"],
     box: ["rename", "open", "interface", "relate", "delete"],
     seat: ["rename", "open", "interface", "relate", "delete"],
+    /** **A boundary is not a block you can go into or wire up.** What it is for
+     *  is saying these belong together, so what it offers is naming it and
+     *  taking it away. */
+    band: ["rename", "delete"],
     route: ["straighten", "rename", "delete"],
     anchor: ["promote", "rename", "delete"],
   };
@@ -134,11 +141,31 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
           const label = prompt("rename", scene.frame?.label);
           if (label !== null) onAct("rename", { id: g.on, label });
         }
+        /** **A name is renamed where it is read**, and the room's name was the
+         *  only one that ever was. Every other name — a card's, a boundary's,
+         *  a chip's inside a container — answers the same two clicks, so there
+         *  is one gesture to learn rather than one per surface. */
+        else if (g.on && g.kind === "name") {
+          const label = prompt("rename", named(scene, g.on));
+          if (label !== null) onAct("rename", { id: g.on, label });
+        }
         /** **An interface is a block, so it opens like one.** It is seated
          *  rather than placed, which is a fact about where it is drawn and not
          *  about what it is — and opened from the inside it is the one layer
          *  that shows the wall it is set into. */
-        else if (g.on && (g.kind === "box" || g.kind === "seat")) onAct("open", { id: g.on });
+        /** **A card's border opens it too.** By the time a container holds
+         *  anything its face is nearly all picture and name, and both of those
+         *  are names now — so the one part of a card that is always just card
+         *  is its border, and two clicks on a border never meant anything
+         *  else. */
+        else if (g.on && (g.kind === "box" || g.kind === "seat" || g.kind === "brim")) {
+          onAct("open", { id: g.on });
+        }
+        /** **The room's edge is the band you leave by.** A rim is drawn as part
+         *  of the frame, so two clicks on one reached a node and stopped there
+         *  — aiming at the edge of the layer to come back out did nothing at
+         *  all, which is the one place you would aim. */
+        else if (g.kind === "frame") onAct("up");
         else if (!g.on) onAct("up");
       }
       /** A single left click is a selection, and the canvas reports that on its
@@ -159,7 +186,12 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       /** **Only which wall.** Where along it is the action's to decide — an
        *  interface sits in the middle of the border it is set into, and one
        *  dropped wherever the pointer happened to be read as ragged. */
-      onAct("interface", { owner: g.on, side: g.given["side"] });
+      /** **A card's wall is one short border and its middle is the only place
+       *  on it that reads; the room's wall runs the height of the panel, so
+       *  where along it is a real choice.** So a card's interface is centred
+       *  and the layer's own goes where you pointed. */
+      onAct("interface", { owner: g.on, side: g.given["side"],
+                           ...(g.kind === "frame" ? { at: g.given["at"] } : {}) });
       return;
     }
     if (!g.on || g.kind === "empty") {
@@ -214,6 +246,18 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );
+}
+
+/** What something on the drawing is currently called. A chip stands for a
+ *  block one layer down, so its name is not on any node of its own. */
+function named(scene: Scene, id: string): string {
+  const box = scene.nodes.find((n) => n.id === id);
+  if (box) return box.data.label;
+  for (const n of scene.nodes) {
+    const cell = n.data.cells?.find((c) => c.id === id);
+    if (cell) return cell.label;
+  }
+  return "";
 }
 
 /** Where a card made here goes.

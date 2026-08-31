@@ -76,7 +76,11 @@ export function nearest_seat(on: Rect, at: { x: number; y: number }): Seat {
  *  about where the two cards ended up, so it is recomputed with the layout and
  *  never stored. Only the wall may be pinned by hand — that is `set_side`, and
  *  the seat along it is still worked out. */
-export type Perch = { edge: Id; end: "from" | "to"; on: Id; side: Side; at: number };
+export type Perch = { edge: Id; end: "from" | "to"; on: Id; side: Side; at: number;
+                     /** Whether somebody put this end here. **A seat is worked
+                      *  out unless it was said**, and a renderer that improves
+                      *  on the working out must leave a said one alone. */
+                     pinned?: boolean };
 
 /** The handle a perch offers. **Named here**, so whoever draws one and whoever
  *  points an edge at it cannot disagree about what it is called. */
@@ -103,6 +107,31 @@ export function perched(graph: Graph, links: readonly Relation[],
    *  layer's own interfaces. */
   const holder = (on: Id) => (frame && on === frame.id ? frame.of : on);
 
+  /** Which wall of the room this end is set into, where it is one of the
+   *  layer's own interfaces.
+   *
+   *  **A fact, where the geometry is only a guess.** The room is grown to
+   *  whatever panel it is drawn in, so where a port in its left wall actually
+   *  sits is not known here — but that it is in the *left wall* is, and a card
+   *  inside the room reaches a port in the left wall by its own left wall.
+   *  Worked out from the boxes instead, a card came out facing whichever way
+   *  the hugged room happened to put the port. */
+  const walled = (id: Id): Side | undefined => {
+    const b = graph.blocks[id];
+    return frame && b && is_interface(b) && b.parent === frame.of ? b.side : undefined;
+  };
+
+  /** **A card and the room it stands in leave by the same wall.**
+   *
+   *  One end of such a line is a wall of the room and the other is a wall of a
+   *  card inside it. Asked separately, the card leaves by whichever wall it is
+   *  nearest while the room's end sits on whichever wall was drawn to — so a
+   *  card in one corner wired to the far wall left by the near one and the run
+   *  travelled the length of the border to get back, tracing three sides of the
+   *  room on the way. Said once, the two agree and the run is one leg. */
+  const shared = (id: Id, far: Id, said: Side | undefined): Side | undefined =>
+    frame && (id === frame.id || far === frame.id) ? said : undefined;
+
   /** Seats already spoken for on this wall: the interfaces set into it, plus
    *  whatever earlier ends have taken. */
   const wall = (on: Id, side: Side): Set<number> => {
@@ -127,14 +156,19 @@ export function perched(graph: Graph, links: readonly Relation[],
       /** An end already seated on an interface has its wall; the frame has no
        *  block behind it and is a plain border like any other. */
       if (!box || !other || (b && is_interface(b))) continue;
-      const side = (end === "from" ? e.fromSide : e.toSide) ?? facing(box, other);
+      const far = end === "from" ? e.to : e.from;
+      const side = (end === "from" ? e.fromSide : e.toSide)
+                ?? walled(far)
+                ?? shared(id, far, end === "from" ? e.toSide : e.fromSide)
+                ?? facing(box, other);
       /** A fraction is only ever there because somebody dragged this end, and a
        *  seat somebody chose is not one to hand out again. */
       const pinned = end === "from" ? e.fromAt : e.toAt;
       const taken = wall(id, side);
       const at = pinned ?? free(taken, box, other, side);
       if (pinned !== undefined) taken.add(pinned);
-      out.push({ edge: e.id, end, on: id, side, at });
+      out.push({ edge: e.id, end, on: id, side, at,
+                 ...(pinned === undefined ? {} : { pinned: true }) });
     }
   }
   return out;
@@ -156,14 +190,29 @@ export function perched(graph: Graph, links: readonly Relation[],
  *  Held inside, the wall it faces is simply the nearest one. */
 function facing(box: Rect, other: Rect): Side {
   if (holds(box, other)) return nearest(box, other);
+  /** **And a box standing in the room, which is the same fact the other way
+   *  up.** Every wall of the room is level with what it holds and aligned with
+   *  it, so the rules below fall through to a direction from the middle and
+   *  pick a wall that has nothing to do with where the line is going. The wall
+   *  to leave by is the wall of the room you are nearest — which is the wall
+   *  the other end meets, so the two agree and the run is straight. */
+  if (holds(other, box)) return nearest(other, box);
   const dx = (other.x + other.w / 2) - (box.x + box.w / 2);
   const dy = (other.y + other.h / 2) - (box.y + box.h / 2);
   const level = other.y < box.y + box.h && box.y < other.y + other.h;
   const aligned = other.x < box.x + box.w && box.x < other.x + other.w;
   if (level && !aligned) return dx >= 0 ? "right" : "left";
   if (aligned && !level) return dy >= 0 ? "bottom" : "top";
-  return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "right" : "left")
-                                      : (dy >= 0 ? "bottom" : "top");
+  /** **The wall they are further apart across.** Nothing is straight here, so
+   *  what is left is the wall that actually faces the other box — measured
+   *  between the two borders, not between the two middles: a wide, short card
+   *  beside a tall one has its centre further away sideways than its border is,
+   *  and picking by middles sent the line out of a wall the other box was
+   *  nowhere near and back around the card. */
+  const clear = { x: Math.max(other.x - (box.x + box.w), box.x - (other.x + other.w)),
+                  y: Math.max(other.y - (box.y + box.h), box.y - (other.y + other.h)) };
+  return clear.x >= clear.y ? (dx >= 0 ? "right" : "left")
+                            : (dy >= 0 ? "bottom" : "top");
 }
 
 /** Whether `other` sits wholly within `box`. */
@@ -172,7 +221,9 @@ function holds(box: Rect, other: Rect): boolean {
       && other.x + other.w <= box.x + box.w && other.y + other.h <= box.y + box.h;
 }
 
-/** The wall of `box` that `other` is closest to, from within. */
+/** The wall of `box` that `other` is closest to, from within. Read either way
+ *  round: the wall of the room a card is nearest to is also the wall that card
+ *  should leave by. */
 function nearest(box: Rect, other: Rect): Side {
   const gap: Record<Side, number> = {
     left: other.x - box.x,

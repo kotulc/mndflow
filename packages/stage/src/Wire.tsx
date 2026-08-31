@@ -17,6 +17,14 @@ import type { LineEdge } from "@mnd/views";
  *  enough not to look like an artefact at the zoom a whole layer is seen at. */
 const BEND = 6;
 
+/** How far a line runs straight out of a border before it may turn.
+ *
+ *  **A line leaves by the wall it meets, square to it.** Without a stub the
+ *  first turn happens on the border itself, so a run to something just past the
+ *  corner left the port at an angle and crossed the card it had just left.
+ *  Wider than the border band, so the turn is always clear of the card. */
+const STUB = 16;
+
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
           label, data, markerEnd, markerStart, style } = props;
@@ -24,7 +32,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const ends = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
   const [path, x, y] = data?.curved
     ? getBezierPath(ends)
-    : getSmoothStepPath({ ...ends, borderRadius: BEND });
+    : getSmoothStepPath({ ...ends, borderRadius: BEND, offset: STUB });
 
   return (
     <>

@@ -6,7 +6,7 @@
 import { arrangement_of, children, edges_in, is_interface, module_of,
          shown_name, READS,
          type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
-import { boundary, laid, perch_id, perched, seated, GAP, GRID,
+import { at_seat, boundary, laid, perch_id, perched, seated, GAP, GRID,
          type Perch, type Placed } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
@@ -123,7 +123,16 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  top, around and back. Two placed rectangles already say which wall faces
    *  which, and a seat keeps two lines to the same card apart. */
   const at = new Map(drawn.map((n) => [n.id, box_of(n)]));
-  if (room) at.set(FRAME, room);
+  if (room) {
+    at.set(FRAME, room);
+    /** **The layer's own interfaces are boxes too.** They are set into the room
+     *  rather than laid out with what it holds, so they are nowhere among the
+     *  drawn nodes — and an end that could not be found at all left the *other*
+     *  end with no wall worked out either, which is a line leaving a card by
+     *  whichever handle the library happened to have and arriving on the far
+     *  side of it. */
+    for (const p of room.ports) at.set(p.id, at_seat(room, p));
+  }
   const perches = perched(graph, linked, at,
                           room && layer ? { id: FRAME, of: layer } : undefined);
   const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
