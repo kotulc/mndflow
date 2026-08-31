@@ -432,12 +432,20 @@ function straight(a: Rect, b: Rect, movable: boolean, along?: "x" | "y") {
   const hi = across ? Math.min(a.y + a.h, b.y + b.h) : Math.min(a.x + a.w, b.x + b.w);
 
   let box = b;
-  let align: Point | undefined;
+  let by: { dx: number; dy: number } | undefined;
   if (hi <= lo) {
     if (!movable) return null;
-    align = across ? { x: b.x, y: snap(a.y + a.h / 2 - b.h / 2) }
-                   : { x: snap(a.x + a.w / 2 - b.w / 2), y: b.y };
-    box = { ...b, ...align };
+    /** **Middle to middle, and not rounded.** The far end may be a port eleven
+     *  pixels across while a cell is twenty-four, so rounding the answer to the
+     *  grid could push the two ends further apart than either is wide and leave
+     *  nothing to line up — which is why straightening did nothing at all on
+     *  every line between two interfaces. The block that actually moves is on
+     *  the grid, and it moves by the gap between the two ends, so it lands back
+     *  on the grid wherever the two ends sit alike on their own cards. */
+    const want = across ? { x: b.x, y: a.y + a.h / 2 - b.h / 2 }
+                        : { x: a.x + a.w / 2 - b.w / 2, y: b.y };
+    by = { dx: want.x - b.x, dy: want.y - b.y };
+    box = { ...b, ...want };
   }
   const band = across
     ? [Math.max(a.y, box.y), Math.min(a.y + a.h, box.y + box.h)]
@@ -453,7 +461,7 @@ function straight(a: Rect, b: Rect, movable: boolean, along?: "x" | "y") {
     fromSide: walls[0], toSide: walls[1],
     fromAt: across ? (meet - a.y) / a.h : (meet - a.x) / a.w,
     toAt: across ? (meet - box.y) / box.h : (meet - box.x) / box.w,
-    ...(align ? { x: align.x, y: align.y } : {}),
+    ...(by ? { by } : {}),
   };
 }
 
@@ -472,13 +480,17 @@ function straightened(scene: Scene, frame: Frame | null, edge: string) {
     const n = scene.nodes.find((x) => x.id === id);
     return n ? box_of(n) : null;
   };
-  /** Whether this end is a block somebody placed, and so one that may be
-   *  lined up: a boundary has no place of its own, a port belongs to its
-   *  card, and the room is not a block at all. */
-  const placed = (id: string) => {
+  /** Which block would move for this end to line up.
+   *
+   *  **A port moves by moving the card it is on.** An interface has no place of
+   *  its own — it is seated on a border — so lining one up is sliding the whole
+   *  card, which is what you would do by hand. A boundary has no place either
+   *  and the room is not a block at all, so neither can be the one that moves. */
+  const mover = (id: string): string | null => {
     const n = scene.nodes.find((x) => x.id === id);
-    return id !== FRAME && !!n && !n.data.on
-        && n.type !== "group" && n.selectable !== false;
+    if (!n || id === FRAME || n.type === "group" || n.selectable === false) return null;
+    const host = n.data.on ? scene.nodes.find((x) => x.id === n.data.on) : n;
+    return host && host.id !== FRAME && host.type !== "group" ? host.id : null;
   };
   const from = box(e.source);
   const to = box(e.target);
@@ -511,15 +523,29 @@ function straightened(scene: Scene, frame: Frame | null, edge: string) {
   const set = wall(e.source) ?? wall(e.target);
   const along = set ? (set === "left" || set === "right" ? "x" : "y") : undefined;
 
-  const ahead = straight(from, to, placed(e.target), along);
-  if (ahead) return { ...ahead, ...(ahead.x === undefined ? {} : { align: e.target }) };
+  /** Where a move is called for, it is the mover's own box that shifts — the
+   *  end may be a port, and a port travels with its card. */
+  const shifted = (end: string, by: { dx: number; dy: number }) => {
+    const id = mover(end);
+    const n = id ? scene.nodes.find((x) => x.id === id) : null;
+    if (!id || !n) return {};
+    const b = box_of(n);
+    return { align: id, x: b.x + by.dx, y: b.y + by.dy };
+  };
+
+  const ahead = straight(from, to, !!mover(e.target), along);
+  if (ahead) {
+    return { fromSide: ahead.fromSide, fromAt: ahead.fromAt,
+             toSide: ahead.toSide, toAt: ahead.toAt,
+             ...(ahead.by ? shifted(e.target, ahead.by) : {}) };
+  }
   /** Nothing at the far end could move, so line the near end up instead. The
    *  two answers come back the other way round and are put back in order. */
-  const back = straight(to, from, placed(e.source), along);
+  const back = straight(to, from, !!mover(e.source), along);
   if (!back) return null;
   return { fromSide: back.toSide, fromAt: back.toAt,
            toSide: back.fromSide, toAt: back.fromAt,
-           ...(back.x === undefined ? {} : { x: back.x, y: back.y, align: e.source }) };
+           ...(back.by ? shifted(e.source, back.by) : {}) };
 }
 
 /** Which wall of the room a box standing in it is nearest — and so the wall

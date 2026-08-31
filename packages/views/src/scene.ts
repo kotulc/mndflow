@@ -70,6 +70,12 @@ export type LineData = {
    *  draws one edge at a time and this is the one thing about a run that is not
    *  derivable from its two ends. */
   curved?: boolean;
+  /** The boxes this run must stay outside of: the card each end is a border
+   *  of. **Its own ends, and nothing else** — a line that meets a border has
+   *  just left, or is about to enter, the thing that border belongs to, and a
+   *  run through it reads as going in the wrong way round. The renderer draws
+   *  one edge at a time and cannot know them; the projection placed them. */
+  clear?: readonly { x: number; y: number; w: number; h: number }[];
 };
 
 /** One drawn thing. React Flow's node, with our data on it. */

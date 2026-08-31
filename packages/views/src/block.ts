@@ -152,15 +152,31 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   /** **The two ends, and which seat each meets.** Where the run goes between
    *  them is still the renderer's; which point it leaves from is geometry, and
    *  geometry is this module's. */
-  const edges: LineEdge[] = linked.map((e): LineEdge => ({
-    id: e.id,
-    source: e.from,
-    target: e.to,
-    sourceHandle: handle(met, e.id, "from", "s"),
-    targetHandle: handle(met, e.id, "to", "t"),
-    label: e.type ? graph.defs[e.type]?.name : undefined,
-    data: { module: e.module, dir: e.dir ?? "none" },
-  }));
+  /** The card each end is a border of. **An interface is a border of the card
+   *  it sits on**, and a perch is a border of the card it is on — so the box a
+   *  run must keep out of is that card, at either end. The room is not one of
+   *  them: it is what the run is inside. */
+  const owns = new Map(drawn.map((n) => [n.id, box_of(n)]));
+  const outside_of = (id: Id): { x: number; y: number; w: number; h: number } | null => {
+    const n = drawn.find((x) => x.id === id);
+    const of = n?.data.on ?? (n && n.type !== "group" ? id : null);
+    return of && of !== FRAME ? owns.get(of) ?? null : null;
+  };
+
+  const edges: LineEdge[] = linked.map((e): LineEdge => {
+    const clear = [outside_of(e.from), outside_of(e.to)]
+      .filter((b): b is NonNullable<typeof b> => b !== null);
+    return {
+      id: e.id,
+      source: e.from,
+      target: e.to,
+      sourceHandle: handle(met, e.id, "from", "s"),
+      targetHandle: handle(met, e.id, "to", "t"),
+      label: e.type ? graph.defs[e.type]?.name : undefined,
+      data: { module: e.module, dir: e.dir ?? "none",
+              ...(clear.length ? { clear } : {}) },
+    };
+  });
 
   /** The walls' own seats, put on the frame that offers them. */
   const walled = offered.get(FRAME);

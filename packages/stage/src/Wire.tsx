@@ -9,30 +9,35 @@
  *  that can be hovered and right-clicked like the line it belongs to. SVG text
  *  could do none of those without a second copy of the type scale. */
 
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath,
-         type EdgeProps } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from "@xyflow/react";
 import type { LineEdge } from "@mnd/views";
+import { drawn, middle_of, route } from "./route";
 
 /** How square a right-angled corner is. Small enough to read as a corner, big
  *  enough not to look like an artefact at the zoom a whole layer is seen at. */
 const BEND = 6;
 
-/** How far a line runs straight out of a border before it may turn.
- *
- *  **A line leaves by the wall it meets, square to it.** Without a stub the
- *  first turn happens on the border itself, so a run to something just past the
- *  corner left the port at an angle and crossed the card it had just left.
- *  Wider than the border band, so the turn is always clear of the card. */
-const STUB = 16;
+
 
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
           label, data, markerEnd, markerStart, style } = props;
 
   const ends = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
-  const [path, x, y] = data?.curved
-    ? getBezierPath(ends)
-    : getSmoothStepPath({ ...ends, borderRadius: BEND, offset: STUB });
+  /** **Right angles are ours; curves are the library's.** A curve is read as a
+   *  sketch and nobody asks it to go round anything; a right-angled run is read
+   *  as a route, and a route through the card it ends on is wrong. */
+  let path: string;
+  let x: number;
+  let y: number;
+  if (data?.curved) {
+    [path, x, y] = getBezierPath(ends);
+  } else {
+    const run = route({ x: sourceX, y: sourceY }, sourcePosition,
+                      { x: targetX, y: targetY }, targetPosition, data?.clear ?? []);
+    path = drawn(run, BEND);
+    ({ x, y } = middle_of(run));
+  }
 
   return (
     <>
