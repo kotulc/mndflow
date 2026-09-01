@@ -81,6 +81,43 @@ describe("what an action absorbs", () => {
     expect(s.graph().blocks[auth]!.parent).toBe(ledger);
   });
 
+  /** **Where it sits is where you put it.** A block keeps the number it was
+   *  made with, which among a new set of siblings is somebody else's place — so
+   *  arriving renumbers the list, at the end unless a drop said otherwise. */
+  it("orders siblings as they are added, and as they are dropped", () => {
+    const s = session();
+    for (const label of ["A", "B", "C"]) s.go("create", { label });
+    const named = () => children(s.graph(), ROOT).map((b) => b.label);
+    expect(named()).toEqual(["A", "B", "C"]);
+
+    /** A gap left by a delete is not somewhere to put the next one. */
+    s.go("delete", { ids: [children(s.graph(), ROOT)[1]!.id] });
+    s.go("create", { label: "D" });
+    expect(named()).toEqual(["A", "C", "D"]);
+
+    const [a, c, d] = children(s.graph(), ROOT).map((b) => b.id);
+    s.go("move", { id: d!, parent: ROOT, before: a });
+    expect(named()).toEqual(["D", "A", "C"]);
+
+    /** Nothing to go in front of is the end of the list. */
+    s.go("move", { id: c!, parent: ROOT });
+    expect(named()).toEqual(["D", "A", "C"]);
+    s.go("move", { id: a!, parent: ROOT });
+    expect(named()).toEqual(["D", "C", "A"]);
+  });
+
+  it("appends what arrives from somewhere else", () => {
+    const s = session();
+    s.go("create", { label: "Shelf" });
+    const shelf = children(s.graph(), ROOT)[0]!.id;
+    for (const label of ["A", "B"]) s.go("create", { label, parent: shelf });
+    s.go("create", { label: "Loose" });
+    const loose = children(s.graph(), ROOT).find((b) => b.label === "Loose")!.id;
+
+    s.go("move", { id: loose, parent: shelf });
+    expect(children(s.graph(), shelf).map((b) => b.label)).toEqual(["A", "B", "Loose"]);
+  });
+
   it("group makes a boundary without an into, and joins one with it", () => {
     const s = session();
     s.go("create", { label: "Loop" });
@@ -99,6 +136,37 @@ describe("what an action absorbs", () => {
     expect(s.graph().blocks[b!]!.groups).toContain(group.id);
   });
 
+  /** **What the ends decide is not on offer.** A relationship is a tie because
+   *  one end of it is a note, whichever end that is and however the line came
+   *  to be there. */
+  it("ties a relationship to a note whichever end the note is", () => {
+    const s = session();
+    s.go("create", { label: "Loop" });
+    const loop = children(s.graph(), ROOT)[0]!.id;
+    s.look(loop);
+    s.go("create", { label: "Pump" });
+    s.go("create", { label: "Tank" });
+    s.go("note", { text: "runs clockwise" });
+    const at = (label: string) => children(s.graph(), loop).find((b) => b.label === label)!.id;
+    const note = children(s.graph(), loop).find((b) => b.type === "note")!.id;
+
+    s.go("relate", { from: note, to: at("Pump"), module: "directed" });
+    const edge = Object.values(s.graph().edges)[0]!;
+    expect(edge.module).toBe("tie");
+
+    /** Asked to be a line, it says what it is instead of writing a step. */
+    s.go("reform", { id: edge.id, module: "line" });
+    expect(s.graph().edges[edge.id]!.module).toBe("tie");
+
+    /** And an end taken off the note is an ordinary line again. */
+    s.go("relink", { id: edge.id, end: "from", to: at("Tank") });
+    expect(s.graph().edges[edge.id]!.module).toBe("line");
+
+    /** An end taken back onto it ties it again. */
+    s.go("relink", { id: edge.id, end: "from", to: note });
+    expect(s.graph().edges[edge.id]!.module).toBe("tie");
+  });
+
   it("relate assigns tie and reference from the ends rather than taking them", () => {
     const s = session();
     s.go("create", { label: "Loop" });
@@ -111,6 +179,48 @@ describe("what an action absorbs", () => {
 
     s.go("relate", { from: pump.id, to: note.id, module: "line" });
     expect(Object.values(s.graph().edges)[0]!.module).toBe("tie");
+  });
+});
+
+describe("the way out of a layer", () => {
+  /** An interface is drawn in two layers at once: on its owner's border, out in
+   *  the layer that holds the owner, and in that owner's own wall seen from
+   *  inside. Its parent is only one of those two. */
+  const seated = () => {
+    const s = session();
+    s.go("create", { label: "Loop" });
+    const loop = children(s.graph(), ROOT)[0]!.id;
+    s.look(loop);
+    s.go("create", { label: "Pump" });
+    const pump = children(s.graph(), loop)[0]!.id;
+    s.go("interface", { owner: pump, side: "right" });
+    const port = children(s.graph(), pump)[0]!.id;
+    return { s, loop, pump, port };
+  };
+
+  it("comes back to the layer an interface was opened from", () => {
+    const { s, loop, port } = seated();
+    s.go("open", { id: port });
+    expect(s.layer()).toBe(port);
+    s.go("up");
+    expect(s.layer()).toBe(loop);
+  });
+
+  it("comes back into the card when that is where the interface was opened", () => {
+    const { s, pump, port } = seated();
+    s.look(pump);
+    s.go("open", { id: port });
+    s.go("up");
+    expect(s.layer()).toBe(pump);
+  });
+
+  it("leaves an ordinary block for what holds it", () => {
+    const { s, loop, pump } = seated();
+    s.go("open", { id: pump });
+    s.go("up");
+    expect(s.layer()).toBe(loop);
+    s.go("up");
+    expect(s.layer()).toBe(ROOT);
   });
 });
 

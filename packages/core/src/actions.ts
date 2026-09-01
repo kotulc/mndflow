@@ -7,8 +7,8 @@
  *  An action writing no mutations is navigation: no step, nothing to undo, and
  *  a text interface never offers it. */
 
-import { arrangement_of, children, edges_in, is_interface, is_reference, layer_id, next_num,
-         path } from "./fold";
+import { arrangement_of, children, edges_in, is_interface, is_reference, layer_id, module_of,
+         next_num, path, reorder } from "./fold";
 import { name_taken } from "./door";
 import { infer as run_infer, ABSTRACTION } from "./infer";
 import { def_id, new_id } from "./ids";
@@ -53,6 +53,10 @@ export type Context = {
   layer: Id | null;
   /** What is picked within it. */
   picked: Id[];
+  /** The layer this one was opened from, where anybody knows. **Only the way
+   *  out needs it**, and only for the one thing that is drawn in two layers at
+   *  once — see `up`. */
+  from?: Id | null;
 };
 
 export type Action = {
@@ -255,10 +259,14 @@ register(
   },
   {
     name: "move",
-    about: "puts a block under a different parent, and places it if told where",
+    about: "puts a block under a different parent, in the place you dropped it",
     on: ["block"],
     args: [{ name: "id", form: "block", required: true },
-           { name: "parent", form: "block", required: true }, { name: "spot", form: "spot" }],
+           { name: "parent", form: "block", required: true },
+           /** Which sibling it goes in front of. **Absent is last**, which is
+            *  where anything arriving somewhere new belongs unless you said
+            *  otherwise by dropping it between two things. */
+           { name: "before", form: "block" }, { name: "spot", form: "spot" }],
     check: (ctx, args) => {
       const id = id_of(args, "id");
       const parent = args["parent"] === null ? null : id_of(args, "parent");
@@ -270,10 +278,17 @@ register(
       const label = ctx.graph.blocks[id]?.label;
       return label && name_taken(ctx.graph, parent, label, id) ? `"${label}" is taken there` : null;
     },
-    run: (_ctx, args) => {
+    run: (ctx, args) => {
       const id = id_of(args, "id");
       const parent = args["parent"] === null ? null : id_of(args, "parent");
+      const before = args["before"] ? id_of(args, "before") : null;
       const out: Mutation[] = [{ op: "move_block", id, parent }];
+      /** **Where it sits, not just what holds it.** A block keeps the number it
+       *  was made with, which among its new siblings is somebody else's place
+       *  in the queue — so arriving anywhere renumbers the list it arrives in. */
+      for (const at of reorder(ctx.graph, parent, id, before)) {
+        out.push({ op: "order_block", id: at.id, num: at.num });
+      }
       const at = spot(args);
       if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
       return { mutations: out };
@@ -321,9 +336,22 @@ register(
     on: ["layer"],
     args: [],
     when: (ctx) => ctx.layer !== null,
+    /** **An interface is drawn in two layers at once**: seated on its owner's
+     *  border, out in the layer that holds the owner, and set into the wall of
+     *  that owner seen from the inside. Its parent is the owner, so leaving one
+     *  always landed inside a card you may never have opened — going into a
+     *  port on a card and coming straight back out put you somewhere else.
+     *
+     *  So the way out of an interface is the way in, where the way in is one of
+     *  the two layers that draw it. Everything else leaves for what holds it,
+     *  which is the same answer by a shorter road. */
     run: (ctx) => {
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
-      return { mutations: [], effect: { open: here?.parent ?? null, focus: ctx.layer } };
+      const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
+      const outside = owner?.parent ?? null;
+      const back = here && is_interface(here) && ctx.from !== undefined
+        && ctx.from === outside ? outside : here?.parent ?? null;
+      return { mutations: [], effect: { open: back, focus: ctx.layer } };
     },
   },
   {
@@ -393,12 +421,26 @@ register(
     },
     /** **The wall the old end was pinned to goes with it.** A side was said
      *  about a border this end no longer meets, and keeping it would leave the
-     *  line entering the new block from whichever way the old one faced. */
-    run: (_ctx, args) => {
+     *  line entering the new block from whichever way the old one faced.
+     *
+     *  **And what the line is, is asked again.** A tie and a reference are
+     *  assigned from what sits at the ends, so an end dragged onto a note makes
+     *  a tie of the line the same way drawing one there would. */
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
       const end = args["end"] as "from" | "to";
+      const to = id_of(args, "to");
+      const edge = ctx.graph.edges[id];
+      const ends = end === "from" ? [to, edge?.to ?? ""] : [edge?.from ?? "", to];
+      /** **And back again**: an end taken off a note leaves a tie whose reason
+       *  has gone, and what is left of it is an ordinary line. */
+      const was = edge?.module;
+      const module = derived_module(ctx.graph, ends[0]!, ends[1]!)
+        ?? (was === "tie" || was === "reference" ? "line" : null);
       return { mutations: [
-        { op: "set_end", id: id_of(args, "id"), end, port: id_of(args, "to") },
-        { op: "set_side", id: id_of(args, "id"), end, side: null },
+        { op: "set_end", id, end, port: to },
+        { op: "set_side", id, end, side: null },
+        ...(module && module !== was ? [{ op: "set_form" as const, id, module }] : []),
       ] };
     },
   },
@@ -507,6 +549,16 @@ register(
     on: ["edge"],
     args: [{ name: "id", form: "block", required: true },
            { name: "module", form: "choice", required: true, choices: ["line", "directed"] }],
+    /** **What the ends decide is not on offer.** A line to a note is a tie and
+     *  a line to a reference is a reference — said in words rather than
+     *  written and quietly undone by the next thing that touches an end. */
+    check: (ctx, args) => {
+      const edge = ctx.graph.edges[id_of(args, "id")];
+      if (!edge) return "needs a relationship";
+      const fixed = derived_module(ctx.graph, edge.from, edge.to);
+      return fixed ? `a relationship to a ${fixed === "tie" ? "note" : "reference"} is a ${fixed}`
+                   : null;
+    },
     run: (_ctx, args) => ({ mutations: [
       { op: "set_form", id: id_of(args, "id"), module: String(args["module"]) as RelationModule },
     ] }),
@@ -530,13 +582,19 @@ function mid_of(graph: Graph, owner: Id, side: Side): number {
 const SHARED: readonly number[] =
   [2, 3, 4, 5, 6].flatMap((d) => Array.from({ length: d - 1 }, (_, n) => (n + 1) / d));
 
-/** `reference` and `tie` are assigned from what sits at the ends, never picked. */
+/** `reference` and `tie` are assigned from what sits at the ends, never picked.
+ *
+ *  **A note is whatever says it is one.** The definition answers where there is
+ *  one to ask; the type the block carries answers where the definitions have
+ *  not been read in, which is every log that starts from nothing. */
+const noted = (graph: Graph, id: Id): boolean =>
+  graph.blocks[id]?.type === "note" || module_of(graph, id) === "note";
+
 function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
   const a = graph.blocks[from];
   const b = graph.blocks[to];
   if (!a || !b) return null;
-  const note = (x: typeof a) => x.type === "note";
-  if (note(a) || note(b)) return "tie";
+  if (noted(graph, from) || noted(graph, to)) return "tie";
   if (is_reference(a) || is_reference(b)) return "reference";
   return null;
 }

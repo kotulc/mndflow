@@ -83,6 +83,10 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let log: Log = [];
   let graph: Graph = fold(log);
   let layer: Id | null = null;
+  /** The layer the open one was reached from. **Not a history** — one step, for
+   *  the one question that cannot be answered from the graph: which of the two
+   *  layers that draw an interface you were looking at when you went into it. */
+  let from: Id | null = null;
   let picked: Id[] = [];
   let said: Said | null = null;
   let listener: (() => void) | null = null;
@@ -111,7 +115,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     listener?.();
   };
 
-  const ctx = (): Context => ({ graph, layer, picked });
+  const ctx = (): Context => ({ graph, layer, picked, from });
 
   const refuse = (why: string): null => {
     said = { text: why, at: Date.now(), kind: "note" };
@@ -128,7 +132,11 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
   const effect = (e: Effect | undefined) => {
     if (!e) return;
-    if (e.open !== undefined) { layer = e.open; picked = []; }
+    if (e.open !== undefined) {
+      if (e.open !== layer) from = layer;
+      layer = e.open;
+      picked = [];
+    }
     if (e.focus !== undefined) picked = e.focus ? [e.focus] : [];
     if (e.say) said = { text: e.say, at: Date.now(), kind: "mirror" };
   };
@@ -158,6 +166,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     look(next) {
+      if (next !== layer) from = layer;
       layer = next;
       picked = [];
       listener?.();

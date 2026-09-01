@@ -4,7 +4,7 @@
  *  and mutates nothing, and the two states it draws are told apart. */
 
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, render, fireEvent, screen } from "@testing-library/react";
+import { cleanup, createEvent, render, fireEvent, screen } from "@testing-library/react";
 import { fold, ROOT, type Graph } from "@mnd/core";
 import { flat, nested, related } from "@mnd/fixtures";
 import { Explorer, tree_of } from "../src/index";
@@ -97,10 +97,45 @@ describe("it emits action names and mutates nothing", () => {
     expect(order).toEqual(["act:reveal", "pick"]);
   });
 
-  it("renames on a double click", () => {
-    const { onAct } = mount(fold(nested()));
+  /** **A name is typed where it is read**, on the tree as on the drawing: two
+   *  clicks open the row's own name, and what was typed is said when it is
+   *  left. */
+  it("renames in place on a double click", () => {
+    const { onAct, container } = mount(fold(nested()));
     fireEvent.doubleClick(screen.getByText("Auth"));
+    const field = container.querySelector(".label.mnd-naming")!;
+    field.textContent = "Typed";
+    fireEvent.blur(field);
     expect(onAct).toHaveBeenCalledWith("rename", { id: "block_auth", label: "Typed" });
+  });
+
+  /** **The mark is the fold, and it says which way it is set.** One icon for
+   *  what the row is and whether you are seeing all of it. */
+  it("folds a branch from its mark, which reads as open until it is shut", () => {
+    const { onFold, container } = mount(fold(nested()));
+    const row = container.querySelector('li[data-mark="container"]')!;
+    expect(row.querySelector(".mark.on")).toBeTruthy();
+    fireEvent.click(row.querySelector(".mark")!);
+    expect(onFold).toHaveBeenCalledWith(expect.any(String), true);
+  });
+
+  it("folds nothing from a row that lists nothing", () => {
+    const { onFold, container } = mount(fold(nested()));
+    const leaf = container.querySelector('li[data-mark="leaf"]')!;
+    expect(leaf.querySelector(".mark.on")).toBeNull();
+    fireEvent.click(leaf.querySelector(".mark")!);
+    expect(onFold).not.toHaveBeenCalled();
+  });
+
+  /** **What cannot be listed cannot be unfolded.** With what holds nothing
+   *  hidden, a branch of leaves lists none of them — it still says it is a
+   *  container, because that is what it is, but there is no fold on offer. */
+  it("counts what would be listed, not what is there", () => {
+    const graph = fold(nested());
+    const edge = (rows: ReturnType<typeof tree_of>) => rows.find((r) => r.label === "Edge")!;
+    expect(edge(tree_of(graph, [], true)).holds).toBe(2);
+    expect(edge(tree_of(graph, [], false)).holds).toBe(0);
+    expect(edge(tree_of(graph, [], false)).kids).toBe(2);
   });
 
   it("creates under whatever is picked", () => {
@@ -110,7 +145,16 @@ describe("it emits action names and mutates nothing", () => {
       { label: "Typed", parent: "block_edge", type: undefined });
   });
 
-  it("creates at the workspace when nothing is picked", () => {
+  /** **Where you are, when you have picked nothing.** The canvas makes a block
+   *  in the layer it is showing; the tree said the workspace, so adding one
+   *  from in a layer put it somewhere you were not looking. */
+  it("creates where the stage is pointed when nothing is picked", () => {
+    const { onAct } = mount(fold(nested()), { open: "block_edge" });
+    fireEvent.click(screen.getByTitle(/add a block/));
+    expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: "block_edge" });
+  });
+
+  it("creates at the workspace when nothing is picked and nothing is open", () => {
     const { onAct } = mount(fold(nested()));
     fireEvent.click(screen.getByTitle(/add a block/));
     expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: ROOT });
@@ -142,25 +186,66 @@ describe("it emits action names and mutates nothing", () => {
 });
 
 describe("re-filing", () => {
+  /** A drop a fraction of the way down a row. A row in a headless DOM has no
+   *  size of its own, and where you let go is the whole question here. */
+  function drop_at(el: Element, down: number) {
+    el.getBoundingClientRect = () => ({ top: 0, height: 100 }) as DOMRect;
+    const drop = createEvent.drop(el);
+    /** Written on rather than passed in: a headless `DragEvent` takes no
+     *  pointer of its own, and where you let go is the whole question here. */
+    Object.defineProperty(drop, "clientY", { value: down * 100 });
+    fireEvent(el, drop);
+  }
+
+  const drag = (label: string) => {
+    fireEvent.dragStart(screen.getByText(label).closest("li")!);
+    return (to: string) => screen.getByText(to).closest("li")!;
+  };
+
   it("moves a row dropped onto another row", () => {
     const { onAct } = mount(fold(nested()));
-    fireEvent.dragStart(screen.getByText("Auth").closest("li")!);
-    fireEvent.drop(screen.getByText("Billing").closest("li")!);
+    drop_at(drag("Auth")("Billing"), 0.5);
     expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: "block_billing" });
   });
 
-  it("makes a block a project when it is dropped in the clear space below", () => {
-    const { onAct, container } = mount(fold(nested()));
-    fireEvent.dragStart(screen.getByText("Auth").closest("li")!);
-    fireEvent.drop(container.querySelector(".floor")!);
-    expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: ROOT });
+  /** **On a row is into it; between two rows is beside them.** */
+  it("puts a row in front of the one it was dropped above", () => {
+    const { onAct } = mount(fold(nested()));
+    drop_at(drag("Auth")("Billing"), 0.1);
+    expect(onAct).toHaveBeenCalledWith("move",
+      { id: "block_auth", parent: "block_ledger", before: "block_billing" });
   });
+
+  it("puts a row last when it was dropped below the last of them", () => {
+    const { onAct } = mount(fold(nested()));
+    drop_at(drag("Auth")("Billing"), 0.9);
+    expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: "block_ledger" });
+  });
+
+  /** **One place down, not to the end.** Below a row whose next sibling is the
+   *  block in hand, that block was asked to go in front of itself. */
+  it("puts a row one place down when it is dropped below the one above it", () => {
+    const { onAct } = mount(fold(related()));
+    drop_at(drag("Heat Exchanger")("Pump"), 0.9);
+    expect(onAct).toHaveBeenCalledWith("move",
+      { id: "block_hx", parent: "block_loop", before: "block_tank" });
+  });
+
+  /** **Everything that is not a row is the workspace**, which is how a block
+   *  is dragged out of what holds it. */
+  it.each([[".floor"], [".explorer"], [".tree"]])(
+    "makes a block a project when it is dropped on %s", (where) => {
+      const { onAct, container } = mount(fold(nested()));
+      fireEvent.dragStart(screen.getByText("Auth").closest("li")!);
+      fireEvent.drop(container.querySelector(where)!);
+      expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: ROOT });
+    });
 
   it("does nothing when a row is dropped on itself", () => {
     const { onAct } = mount(fold(nested()));
     const row = screen.getByText("Auth").closest("li")!;
     fireEvent.dragStart(row);
-    fireEvent.drop(row);
+    drop_at(row, 0.5);
     expect(onAct).not.toHaveBeenCalledWith("move", expect.anything());
   });
 });

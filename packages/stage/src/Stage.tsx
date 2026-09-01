@@ -45,8 +45,20 @@ export type StageProps = {
   curved?: boolean;
 };
 
+/** What has no inside to open. A boundary is its members' bounds and a note is
+ *  a remark; neither is somewhere to go. */
+const INERT = ["group", "note"];
+
 export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
                        said, onSaid, curved }: StageProps) {
+  /** The name being typed on the drawing, as the thing it names. **Held here
+   *  because renaming is an action** — the canvas draws the field and says
+   *  what was typed; what that means is settled in the one place every other
+   *  gesture is. */
+  const [naming, set_naming] = useState<string | null>(null);
+  /** Nothing typed survives going somewhere else: the card it was open on is
+   *  not on this layer. */
+  useEffect(() => set_naming(null), [scene.layer]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly string[]; given?: Record<string, unknown> } | null>(null);
@@ -57,7 +69,11 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
    *  something to the *log* rather than to the drawing. */
   useEffect(() => {
     const on_key = (e: KeyboardEvent) => {
-      const typing = (e.target as HTMLElement | null)?.tagName === "INPUT";
+      /** **A field being typed in answers for itself.** A name is typed in
+       *  place now, which is a span rather than an input — read as the canvas's
+       *  own keys, Delete deleted the card being renamed. */
+      const el = e.target as HTMLElement | null;
+      const typing = el?.tagName === "INPUT" || el?.isContentEditable === true;
       if (typing) return;
       const one = picked.length === 1 ? picked[0]! : null;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -79,15 +95,13 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       /** **Enter goes in.** Descending had one way in and it was a double
        *  click, which is the same gesture as picking a card twice quickly —
        *  so the keyboard says it too, and so does the toolbar on the card. */
-      /** A boundary has no inside, so there is nothing for it to go into. */
+      /** A boundary has no inside, and neither has a note — so there is
+       *  nothing for either to go into. */
       else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)
-               && scene.nodes.find((n) => n.id === one)?.type !== "group") {
+               && !INERT.includes(scene.nodes.find((n) => n.id === one)?.type ?? "")) {
         onAct("open", { id: one });
       }
-      else if (e.key === "F2" && one) {
-        const label = prompt("rename");
-        if (label !== null) onAct("rename", { id: one, label });
-      }
+      else if (e.key === "F2" && one) set_naming(one);
       /** **Everything picked, in one step.** Delete asked about one thing and
        *  did nothing to a sweep of four, which is the one gesture where doing
        *  nothing looks exactly like the app having missed the key. A
@@ -115,6 +129,10 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
    *  makes a block, which is one gesture doing one thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly string[]>> = {
     name: ["rename", "delete"],
+    /** **A note is a remark, not a block.** There is nothing inside it to open
+     *  and no wall to set an interface into; what is left is what it says and
+     *  whether it stays. */
+    note: ["rename", "relate", "delete"],
     box: ["rename", "open", "interface", "relate", "delete"],
     seat: ["rename", "open", "interface", "relate", "delete"],
     /** **A boundary is not a block you can go into or wire up.** What it is for
@@ -137,18 +155,12 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         /** Two clicks navigate: into a card, or back out of the layer. The one
          *  name drawn here is the frame's, and a name is renamed where it is
          *  read — so renaming a block is done from inside it. */
-        if (g.on && g.kind === "title") {
-          const label = prompt("rename", scene.frame?.label);
-          if (label !== null) onAct("rename", { id: g.on, label });
-        }
+        if (g.on && g.kind === "title") set_naming(g.on);
         /** **A name is renamed where it is read**, and the room's name was the
          *  only one that ever was. Every other name — a card's, a boundary's,
          *  a chip's inside a container — answers the same two clicks, so there
          *  is one gesture to learn rather than one per surface. */
-        else if (g.on && g.kind === "name") {
-          const label = prompt("rename", named(scene, g.on));
-          if (label !== null) onAct("rename", { id: g.on, label });
-        }
+        else if (g.on && g.kind === "name") set_naming(g.on);
         /** **An interface is a block, so it opens like one.** It is seated
          *  rather than placed, which is a fact about where it is drawn and not
          *  about what it is — and opened from the inside it is the one layer
@@ -161,6 +173,11 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         else if (g.on && (g.kind === "box" || g.kind === "seat" || g.kind === "brim")) {
           onAct("open", { id: g.on });
         }
+        /** **A note is its text.** It has no inside to descend into, so the two
+         *  clicks that go into a card edit what this one says instead — the
+         *  same gesture as every other name, on the one card that is nothing
+         *  but a name. */
+        else if (g.on && g.kind === "note") set_naming(g.on);
         /** **The room's edge is the band you leave by.** A rim is drawn as part
          *  of the frame, so two clicks on one reached a node and stopped there
          *  — aiming at the edge of the layer to come back out did nothing at
@@ -214,6 +231,12 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         scene={scene}
         picked={picked}
         curved={curved}
+        naming={naming}
+        onNamed={(label) => {
+          const id = naming;
+          set_naming(null);
+          if (id && label !== null) onAct("rename", { id, label });
+        }}
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
@@ -246,18 +269,6 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );
-}
-
-/** What something on the drawing is currently called. A chip stands for a
- *  block one layer down, so its name is not on any node of its own. */
-function named(scene: Scene, id: string): string {
-  const box = scene.nodes.find((n) => n.id === id);
-  if (box) return box.data.label;
-  for (const n of scene.nodes) {
-    const cell = n.data.cells?.find((c) => c.id === id);
-    if (cell) return cell.label;
-  }
-  return "";
 }
 
 /** Where a card made here goes.

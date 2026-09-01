@@ -45,6 +45,11 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) { b.parent = m.parent; delete b.x; delete b.y; }
       return;
     }
+    case "order_block": {
+      const b = graph.blocks[m.id];
+      if (b) b.num = m.num;
+      return;
+    }
     case "place_block": {
       const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }
@@ -184,9 +189,11 @@ export function layer_id(graph: Graph, layer: Id | null): Id {
 
 /** The direct children of a layer, in a stable order.
  *
- *  By `num` then id: `num` is fixed at creation, so this reads as the order
- *  things were made, and the id is the tie-break that keeps it deterministic
- *  when two carry the same number. */
+ *  By `num` then id. **The number is where it sits**: it is given at the end
+ *  of the list when a block is made and rewritten when somebody puts one
+ *  somewhere else, so this reads as the order they were made until you move
+ *  one. The id is the tie-break that keeps it deterministic when two carry the
+ *  same number. */
 export function children(graph: Graph, layer: Id | null): Block[] {
   const here = layer_id(graph, layer);
   return Object.values(graph.blocks)
@@ -322,12 +329,30 @@ export function matches(graph: Graph, want: string): Id[] {
     .map((b) => b.id);
 }
 
-/** The lowest number not in use among siblings. */
+/** The number a new sibling takes: one past the last.
+ *
+ *  **Appended, never inserted.** The lowest free number filled the gap a
+ *  deleted sibling left, which put the newest block in the middle of a list
+ *  whose whole meaning is the order things were added. */
 export function next_num(graph: Graph, parent: Id | null): number {
-  const taken = new Set(children(graph, parent).map((b) => b.num ?? 0));
-  let n = 1;
-  while (taken.has(n)) n++;
-  return n;
+  return children(graph, parent).reduce((n, b) => Math.max(n, b.num ?? 0), 0) + 1;
+}
+
+/** The siblings of a layer, renumbered so `moved` sits in front of `before` —
+ *  or last, where nothing is named. **Only what actually shifts**: a move
+ *  inside a list is one step, and every sibling saying its number again would
+ *  bury what happened.
+ *
+ *  The block being moved may be arriving from another layer, so it is taken
+ *  out of the list before it is put back. */
+export function reorder(graph: Graph, parent: Id | null, moved: Id,
+                        before?: Id | null): { id: Id; num: number }[] {
+  const rest = children(graph, parent).filter((b) => b.id !== moved).map((b) => b.id);
+  const at = before ? rest.indexOf(before) : -1;
+  const order = at < 0 ? [...rest, moved] : [...rest.slice(0, at), moved, ...rest.slice(at)];
+  return order
+    .map((id, i) => ({ id, num: i + 1 }))
+    .filter(({ id, num }) => (graph.blocks[id]?.num ?? 0) !== num);
 }
 
 /** What an end is **drawn on**. An interface is drawn on its owner, and

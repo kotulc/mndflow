@@ -16,6 +16,12 @@
    card: a band is behind what it holds, and a line passes behind the cards it
    joins. The numbers are the node depths — see `DEPTH`. */
 .mnd-flow .react-flow__edges { z-index: 2; }
+/* **A relationship's name is on top of the line it names.** The library draws
+   names in a layer of their own behind the edges, and an edge's hit band is
+   twenty pixels wide — so the name sat under it and every press meant for the
+   name reached the line. The same depth, and later in the DOM, which is what
+   puts it over the line and still under the cards. */
+.mnd-flow .react-flow__edgelabel-renderer { z-index: 2; }
 
 /* React Flow paints its own ground and its own chrome. Both take the ramp. */
 .mnd-flow .react-flow__background { background: var(--bg); }
@@ -495,7 +501,7 @@
   line-height: 1.5;
   white-space: nowrap;
   pointer-events: all;
-  cursor: context-menu;
+  cursor: text;
 }
 .mnd-wire-name:hover { color: var(--text); }
 .react-flow__edge.selected .mnd-wire-name { color: var(--accent); }
@@ -662,12 +668,17 @@
 /* **Every name says it is one, on the way past.** A card's, a boundary's, a
    chip's inside a container and the room's own all light the same way, because
    two clicks mean the same thing on all four. */
-.mnd-label, .mnd-group-name, .mnd-frame-name, .mnd-tag { cursor: text; }
-.mnd-label:hover, .mnd-group-name:hover, .mnd-frame-name:hover, .mnd-cell:hover .mnd-tag {
+.mnd-label, .mnd-group-name, .mnd-frame-name, .mnd-tag, .mnd-wire-text { cursor: text; }
+.mnd-label:hover, .mnd-group-name:hover, .mnd-frame-name:hover, .mnd-tag:hover,
+.mnd-cell:hover .mnd-tag {
   color: var(--text);
   box-shadow: 0 0 0 1px var(--accent);
   border-radius: 2px;
 }
+
+/* A note is its text, so the field it is typed in wraps like the note does and
+   takes the pointer the note's own text never has to. */
+.mnd-note-text.mnd-naming { white-space: pre-wrap; overflow-y: auto; pointer-events: auto; }
 
 /* ── What the pointer is over ───────────────────────────────────────────────
    **One thing lights at a time, and it is the thing a gesture would act on.**

@@ -146,6 +146,7 @@ export type Mutation =
   | { op: "delete_block"; id: Id }
   | { op: "move_block"; id: Id; parent: Id | null }
   | { op: "place_block"; id: Id; x: number; y: number }
+  | { op: "order_block"; id: Id; num: number }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   | { op: "join_group"; id: Id; group: Id }

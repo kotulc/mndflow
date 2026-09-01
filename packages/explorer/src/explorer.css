@@ -72,11 +72,19 @@
 .explorer .tree li.dim { color: var(--faint); }
 .explorer .tree li.dim .mark { color: var(--faint); }
 
-/* One lit-target look, everywhere. */
-.explorer .tree li.over {
+/* Where a drop would land. **Three answers, and the row draws which**: inside
+   it, or in the seam above or below — a seam is the gap between two rows, and
+   a line there says *beside these* where an outline says *into this*. */
+.explorer .tree li.to-in {
   outline: 1px dashed var(--accent);
   outline-offset: -1px;
 }
+.explorer .tree li.to-above { box-shadow: inset 0 1px 0 0 var(--accent); }
+.explorer .tree li.to-below { box-shadow: inset 0 -1px 0 0 var(--accent); }
+
+/* The clear space around the tree is the workspace, and says so while
+   something is over it. */
+.explorer.out { outline: 1px dashed var(--accent); outline-offset: -3px; }
 
 .explorer .tree li:hover { background: var(--hover); }
 /* The mark sits on the row's own centre line, whatever the label's height —
@@ -86,9 +94,20 @@
   align-items: center;
   color: var(--muted);
   flex: none;
-  cursor: pointer;
+  /* **Only a branch is a button.** A leaf holds nothing to fold, and a pointer
+     over one promised something it could not do. */
+  cursor: default;
 }
+.explorer .tree .mark.on, .explorer .tree .mark.shut { cursor: pointer; }
 .explorer .tree li.picked .mark { color: var(--accent); }
+/* **An open branch says so in the mark.** The icon is what folds one, so it
+   takes the accent while what it holds is listed and stands down when it is
+   shut — the one place in the tree where a colour is a state and not a role. */
+.explorer .tree .mark.on { color: var(--accent); }
+/* A shut branch stands down even where the row is lit: whether you are seeing
+   what it holds is not the same question as whether it is picked. */
+.explorer .tree li.picked .mark.shut { color: var(--muted); }
+.explorer .tree .mark.shut:hover, .explorer .tree .mark.on:hover { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
 /* The clear space below takes a drop too: a block dropped there becomes a

@@ -42,6 +42,17 @@ const ground = (view: { container: HTMLElement }) =>
 const frame_name = (view: { container: HTMLElement }) =>
   view.container.querySelector(".mnd-frame-name")!;
 
+/** The name that is open for typing, wherever it is drawn. */
+const field = (view: { container: HTMLElement }) =>
+  view.container.querySelector(".mnd-naming")!;
+
+/** Typing a name in place: the field is the element the name was read from,
+ *  and leaving it is what says the name was typed. */
+function typing(el: Element, text: string) {
+  el.textContent = text;
+  fireEvent.blur(el);
+}
+
 describe("the left button works what is already there", () => {
   it("picks what was clicked", () => {
     const view = mount();
@@ -83,13 +94,26 @@ describe("the left button works what is already there", () => {
   });
 
   /** The one place two clicks mean edit rather than descend, and it is a name
-   *  rather than a card — so renaming a block is done from inside it. */
-  it("renames the layer on a double click on the frame's name", () => {
+   *  rather than a card — so renaming a block is done from inside it.
+   *
+   *  **A name is typed where it is read**: two clicks open the name itself, and
+   *  what was typed is said once when it is left. */
+  it("renames the layer where its name is read", () => {
     const view = mount();
     fireEvent.doubleClick(frame_name(view));
-    expect(view.onAct).toHaveBeenCalledWith("rename",
-      { id: "block_loop", label: "Typed" });
+    typing(field(view), "Typed");
+    expect(view.onAct.mock.calls.filter((c) => c[0] === "rename"))
+      .toEqual([["rename", { id: "block_loop", label: "Typed" }]]);
     expect(view.onAct).not.toHaveBeenCalledWith("open", expect.anything());
+  });
+
+  /** A name left as it was is not a rename: it is a log entry and an undo step
+   *  for a name that already read that way. */
+  it("says nothing when a name is left as it was", () => {
+    const view = mount();
+    fireEvent.doubleClick(frame_name(view));
+    fireEvent.blur(field(view));
+    expect(view.onAct).not.toHaveBeenCalledWith("rename", expect.anything());
   });
 
   /** **The band is a place, not an element.** Two clicks land in it or they do
@@ -143,9 +167,11 @@ describe("the keyboard", () => {
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
   });
 
-  it("renames the picked block on F2", () => {
+  it("opens the picked block's name for typing on F2", () => {
     const view = mount({ picked: ["block_pump"] });
     press("F2");
+    expect(card(view, "block_pump").querySelector(".mnd-naming")).toBeTruthy();
+    typing(field(view), "Typed");
     expect(view.onAct).toHaveBeenCalledWith("rename",
       { id: "block_pump", label: "Typed" });
   });

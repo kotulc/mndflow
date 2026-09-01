@@ -17,8 +17,9 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side } from "@mnd/core";
-import { at_seat, box_of, nearest_seat, perch_id, snap, FRAME, PORT,
+import { at_seat, box_of, extent, nearest_seat, perch_id, snap, FRAME, PORT,
          type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
+import { NamingContext } from "@mnd/theme";
 import { DRAGGED, NODE_TYPES } from "./nodes";
 
 export { DRAGGED };
@@ -29,7 +30,7 @@ import { EDGE_TYPES } from "./Wire";
 export type Gesture = {
   on: string | null;
   kind: "box" | "band" | "brim" | "seat" | "route" | "anchor" | "frame" | "title"
-      | "name" | "empty";
+      | "name" | "note" | "empty";
   button: "left" | "right";
   count: 1 | 2;
   /** Where, in scene coordinates. A position can only come from a gesture. */
@@ -105,6 +106,13 @@ export type FlowViewProps = {
    *  landed. The explorer drags rows; anything else that can set a
    *  `text/mnd-block` payload works the same. */
   onDrop?: (id: string, at: Point) => void;
+  /** Which name is being typed in place, and what was typed. **A name is
+   *  edited where it is read**, so the field is drawn on the thing it names
+   *  rather than in a dialog over it — and like every other gesture the canvas
+   *  says what was typed and never writes it. A `null` label is a name left as
+   *  it was. */
+  naming?: string | null;
+  onNamed?: (label: string | null) => void;
   /** Chrome the host may turn off — a thumbnail wants none of it. */
   chrome?: boolean;
   /** Whether relationships are read with curves rather than right angles.
@@ -130,6 +138,11 @@ const BAND = 56;
  *  **A nesting doll opening is the slowest thing in the product**, and it was
  *  over before it registered at half this. */
 const FLIGHT = 440;
+
+/** Whether the camera should not travel. Asked rather than stored: it is a
+ *  setting somebody can change while the app is open. */
+const still = () => typeof matchMedia === "function"
+  && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** What React Flow is told it may shrink to, kept here so a flight that starts
  *  on a small card starts somewhere the viewport will actually go. */
@@ -303,12 +316,14 @@ function kind_of(scene: Scene, id: string | null,
   if (!id) return "empty";
   const el = target instanceof Element ? target : null;
   if (id === FRAME) return el?.closest(".mnd-frame-name") ? "title" : "frame";
-  if (scene.edges.some((e) => e.id === id)) return "route";
   /** **A name is renamed where it is read.** It is its own target wherever it
-   *  is drawn — on a card, along a boundary, on a chip inside a container —
-   *  the same way the room's name always was, so there is one gesture for it
-   *  and not one per surface. */
+   *  is drawn — on a card, along a boundary, on a chip inside a container, off
+   *  to one side of a relationship — the same way the room's name always was,
+   *  so there is one gesture for it and not one per surface. Before the line
+   *  it belongs to, because a relationship's name is the one that is drawn
+   *  away from the thing it names. */
   if (el?.closest(NAMES)) return "name";
+  if (scene.edges.some((e) => e.id === id)) return "route";
   /** **A card's border is a wall, not the card.** The body is the block; the
    *  border is where an interface goes, and the pointer is precise enough to
    *  tell the two apart. */
@@ -320,12 +335,18 @@ function kind_of(scene: Scene, id: string | null,
    *  no border for a line to end on — and saying so here is what keeps every
    *  surface from having to work it out again from a mark. */
   if (node?.type === "group") return "band";
+  /** **A note is not a block you can go into.** It is a remark left on this
+   *  layer — there is nothing inside it and nothing to put there, so two
+   *  clicks on one mean what they mean on every other name: edit the text,
+   *  which is the whole of what a note is. */
+  if (node?.type === "note") return "note";
   return node?.data.on ? "seat" : "box";
 }
 
-/** Everywhere a name is drawn on the canvas. A note is not among them: a note
- *  *is* its text, and there is nothing else on it to name. */
-const NAMES = ".mnd-label, .mnd-group-name, .mnd-tag";
+/** Everywhere a name is drawn on a card. A note is not among them — a note
+ *  *is* its text, so the card is the target and there is nothing narrower on
+ *  it to aim at. */
+const NAMES = ".mnd-label, .mnd-group-name, .mnd-tag, .mnd-wire-text";
 
 /** What in a Scene would change the drawing. **Identity is no use** — a
  *  projection is a pure function run on every render, so the object is new
@@ -694,8 +715,7 @@ function Canvas(props: FlowViewProps) {
   }, [flow, frame, fit]);
 
   useEffect(() => {
-    const still = typeof matchMedia === "function"
-      && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const quiet = still();
     const last = was.current;
     const moved_layer = last !== undefined && last !== scene.layer;
     const rect = frame ? `${frame.x},${frame.y},${frame.w},${frame.h}` : "";
@@ -710,9 +730,9 @@ function Canvas(props: FlowViewProps) {
     installed.current = key;
     reported.current = chosen(picked);
 
-    if (grew) { settle(still ? 0 : FLIGHT); return; }
+    if (grew) { settle(quiet ? 0 : FLIGHT); return; }
     if (!moved_layer) return;
-    if (still) { settle(0); return; }
+    if (quiet) { settle(0); return; }
     /** **Both ways start on the card, and both end on the frame.**
      *
      *  Coming back up, the card is the layer you just left, drawn here — so
@@ -745,6 +765,38 @@ function Canvas(props: FlowViewProps) {
      *  repeats, so watching it would reset the canvas on every render. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  /** **A layer with no frame has no room to grow, so the camera is the room.**
+   *
+   *  A framed layer is fitted again whenever the room outgrows what it held —
+   *  the rectangle is the thing that changed and the camera follows it. The
+   *  workspace has no such rectangle, so a card put down past the edge of the
+   *  view was simply not there, and nothing said the drawing had got bigger.
+   *  What says it here is what the drawing takes up: when that changes and no
+   *  longer fits what is on screen, the camera opens out.
+   *
+   *  **Only when it changes**, and never mid-drag. Asked on every render it
+   *  would pull the camera out of a close-up on any click, which is a fight
+   *  rather than a fit. And it watches the installed nodes rather than the
+   *  scene, because that is when React Flow's own copy is in step with what it
+   *  is being asked to fit.  */
+  const took = useRef<{ of: Id | null; box: string } | null>(null);
+  useEffect(() => {
+    if (frame || !nodes.length || nodes.some((n) => n.dragging)) return;
+    const box = extent(scene);
+    const size = `${box.x},${box.y},${box.w},${box.h}`;
+    const before = took.current;
+    took.current = { of: scene.layer, box: size };
+    if (!before || before.of !== scene.layer || before.box === size) return;
+    const vp = flow.getViewport();
+    const shown = { x: -vp.x / vp.zoom, y: -vp.y / vp.zoom,
+                    w: seen.w / vp.zoom, h: seen.h / vp.zoom };
+    const fits = box.x >= shown.x && box.y >= shown.y
+      && box.x + box.w <= shown.x + shown.w && box.y + box.h <= shown.y + shown.h;
+    if (fits) return;
+    void flow.fitView({ ...FIT, duration: still() ? 0 : FLIGHT });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, frame]);
 
   /** **A pick made somewhere else, put onto the canvas.** The tree and the
    *  question loop both select, and neither goes through React Flow — so the
@@ -1165,9 +1217,11 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** **A boundary has no inside to open.** It is its members' bounds, and the
-     *  control offering to go into one offered something that could not happen. */
-    return n && !n.data.on && n.selectable !== false && n.type !== "group" ? n.id : null;
+    /** **A boundary has no inside to open, and neither has a note.** One is
+     *  its members' bounds and the other is a remark; the control offering to
+     *  go into either offered something that could not happen. */
+    return n && !n.data.on && n.selectable !== false
+      && n.type !== "group" && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
   return (
@@ -1246,6 +1300,17 @@ function Canvas(props: FlowViewProps) {
       onEdgeClick={(e, edge) => say(edge.id, e, "left", 1)}
       onEdgeContextMenu={(e, edge) => { e.preventDefault(); say(edge.id, e, "right", 1); }}
       onPaneClick={(e) => say(null, e as React.MouseEvent, "left", 1)}
+      /** **A relationship's name is drawn over the canvas rather than on the
+       *  line**, so it belongs to no node, no edge and not the ground: the
+       *  library reports nothing for it either way round, and both buttons are
+       *  answered here from what the name says it names. */
+      onContextMenu={(e: React.MouseEvent) => {
+        const wire = (e.target as HTMLElement).closest<HTMLElement>(".mnd-wire-name");
+        const on = wire?.dataset["edge"];
+        if (!on) return;
+        e.preventDefault();
+        say(on, e, "right", 1);
+      }}
       onPaneContextMenu={(e) => {
         e.preventDefault();
         say(null, e as React.MouseEvent, "right", 1);
@@ -1257,7 +1322,13 @@ function Canvas(props: FlowViewProps) {
          *  on different cards that answer is the ground — which took you up a
          *  layer when all you did was pick two things quickly. */
         const el = e.target as HTMLElement;
-        if (el.closest(".mnd-frame-name")) { say(FRAME, e, "left", 2); return; }
+        /** **A relationship's name is drawn over the canvas rather than on the
+         *  line**, so the library reports nothing for it and the two clicks
+         *  land here as ground. Everything else that has a node behind it —
+         *  the frame's own name included — is already reported as that node,
+         *  and answering it here as well opened the rename twice. */
+        const wire = el.closest<HTMLElement>(".mnd-wire-name")?.dataset["edge"];
+        if (wire) { say(wire, e, "left", 2); return; }
         if (el.closest(".react-flow__node")) return;
         const p = at(e);
         const inside = frame && p.x >= frame.x && p.y >= frame.y
@@ -1370,11 +1441,24 @@ function Canvas(props: FlowViewProps) {
 }
 
 /** React Flow keeps its viewport in context, so the provider is not optional —
- *  and a host mounting two drawings gets two cameras rather than one shared. */
-export function FlowView(props: FlowViewProps) {
+ *  and a host mounting two drawings gets two cameras rather than one shared.
+ *
+ *  The name being typed rides a context of its own for the same reason: every
+ *  surface that draws a name is a memoised node several levels down, and a prop
+ *  threaded to all of them would redraw the canvas on every keystroke. */
+export function FlowView({ naming = null, onNamed, ...props }: FlowViewProps) {
+  /** **The layer's own name is drawn on the frame**, which is a node with an id
+   *  of its own — so the one name the app says by layer is said here the way
+   *  the drawing knows it. */
+  const typing = useMemo(() => ({
+    id: naming === props.scene.layer ? FRAME : naming,
+    done: (label: string | null) => onNamed?.(label),
+  }), [naming, props.scene.layer, onNamed]);
   return (
     <ReactFlowProvider>
-      <Canvas {...props} />
+      <NamingContext.Provider value={typing}>
+        <Canvas {...props} />
+      </NamingContext.Provider>
     </ReactFlowProvider>
   );
 }

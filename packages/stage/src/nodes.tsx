@@ -27,6 +27,7 @@ export const DRAGGED = "text/mnd-block";
 
 import { BAND, FRAME, PLAIN,
          type BoxData, type BoxNode, type Cell, type Look } from "@mnd/views";
+import { Name, useNaming } from "@mnd/theme";
 
 /** What this node would draw, as a value.
  *
@@ -216,6 +217,7 @@ const named = (c: Cell) => cell_h(c) >= 10;
 const type_size = (c: Cell) => Math.min(9, Math.round(cell_h(c)) - 4);
 
 function Holds({ cells }: { cells: readonly Cell[] }) {
+  const naming = useNaming();
   return (
     <div className="mnd-holds" style={{ height: BAND.h }}>
       {cells.map((c) => (
@@ -232,17 +234,17 @@ function Holds({ cells }: { cells: readonly Cell[] }) {
                        top: `calc(${c.y * 100}% + 1px)`,
                        width: `calc(${c.w * 100}% - 2px)`,
                        height: `calc(${c.h * 100}% - 2px)` }}
-              draggable={!c.rest}
+              draggable={!c.rest && naming.id !== c.id}
               onDragStart={(e) => {
                 e.stopPropagation();
                 e.dataTransfer.setData(DRAGGED, c.id);
                 e.dataTransfer.effectAllowed = "move";
               }}
               title={c.rest ? `${c.label}, and ${c.rest} more` : c.label}>
-          {named(c) ? (
-            <span className="mnd-tag" style={{ fontSize: type_size(c) }}>
-              {c.rest ? `+${c.rest}` : c.label}
-            </span>
+          {named(c) ? (c.rest
+            ? <span className="mnd-tag" style={{ fontSize: type_size(c) }}>+{c.rest}</span>
+            : <Name id={c.id} className="mnd-tag" text={c.label}
+                    style={{ fontSize: type_size(c) }} />
           ) : null}
         </span>
       ))}
@@ -268,7 +270,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       <Brim />
       {named ? (
         <div className="mnd-head">
-          <span className="mnd-label">{data.label}</span>
+          <Name id={id} className="mnd-label" text={data.label} />
           {/* A subtype where somebody set one. **Absent rather than a default
               word** — every card that nobody has told apart would otherwise
               carry the same chip, which is noise on all of them. */}
@@ -306,7 +308,7 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} data-def={data.def}>
       <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
                    lineClassName="mnd-edge" handleClassName="mnd-grip" />
-      <span className="mnd-note-text">{data.label}</span>
+      <Name id={id} className="mnd-note-text" text={data.label} />
       {data.fields?.length ? (
         <dl className="mnd-fields">
           {data.fields.map((f) => (
@@ -326,10 +328,15 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
 function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
+  /** **A band with no name still has somewhere to type one.** Nothing is drawn
+   *  for a name nobody set, so asking to name one had nowhere to put the
+   *  field and did nothing at all. */
+  const naming = useNaming();
   return (
     <div className={["mnd-group", selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
-      {data.label ? <span className="mnd-group-name">{data.label}</span> : null}
+      {data.label || naming.id === id
+        ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -344,7 +351,7 @@ function ControlNode({ id, data, selected }: NodeProps<BoxNode>) {
             .filter(Boolean).join(" ")}
          title={data.label}>
       <span className="mnd-diamond" />
-      <span className="mnd-label">{data.label}</span>
+      <Name id={id} className="mnd-label" text={data.label} />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -390,7 +397,7 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
           <span className="after" />
         </span>
       ) : null}
-      <span className="mnd-frame-name">{data.label}</span>
+      <Name id={id} className="mnd-frame-name" text={data.label} />
     </div>
   );
 }
