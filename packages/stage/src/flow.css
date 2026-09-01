@@ -259,11 +259,13 @@
 .mnd-card.reference { border-style: dashed; color: var(--away); border-color: var(--away); }
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
 
-/* A note is text, and the one card whose size is yours to set. */
+/* A note is text, and the one card whose size is yours to set. **A step down
+   from what it is about**: a remark is not the work, and it and the tie that
+   carries it to a block take the same colour so the pair reads as one thing. */
 .mnd-card.note {
-  border-color: var(--note);
+  border-color: var(--note-dim);
   background: none;
-  color: var(--note);
+  color: var(--note-dim);
   font-style: italic;
   padding: 5px 8px;
 }
@@ -511,7 +513,14 @@
 .mnd-flow .react-flow__edge.line .react-flow__edge-path { stroke-width: 1; opacity: 0.6; }
 .mnd-flow .react-flow__edge.directed .react-flow__edge-path { stroke-width: 1.75; }
 .mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
-.mnd-flow .react-flow__edge.away .react-flow__edge-path { stroke: var(--route-away); }
+/* **A tie is a note's own line, and it reads as one.** It is not structure —
+   it says *this remark is about that* — so it is drawn in the note's hue a step
+   down and broken, the way the note it comes from is drawn a step down. A
+   shorter dash than a reference's, because the two are different claims. */
+.mnd-flow .react-flow__edge.tie .react-flow__edge-path {
+  stroke: var(--route-tie);
+  stroke-dasharray: 3 4;
+}
 
 /* Handles are for connecting, not for looking at: they appear while a
    connection is being made and are invisible the rest of the time. */

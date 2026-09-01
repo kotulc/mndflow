@@ -242,7 +242,10 @@
      values — a `var()` resolves there because the edge is drawn in the page. */
   --route: var(--s-primary-stroke);
   --route-head: var(--s-primary-dim);
-  --route-away: var(--s-away-dim);
+  /* A tie is a note's own line, so it is the note's hue a step down — the same
+     value the note card is drawn in, which is what makes a remark and the line
+     carrying it to a block read as one thing. */
+  --route-tie: var(--s-note-dim);
   /* Beyond the frame. Dimmer than the working area in every theme, but taken
      from the ladder rather than fixed — a near-black surround is right in a
      cyanotype and wrong on a whiteprint. */
