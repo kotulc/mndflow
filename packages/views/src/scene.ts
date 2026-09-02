@@ -12,7 +12,7 @@
  *  business now** and appear nowhere below. */
 
 import type { Edge, Node } from "@xyflow/react";
-import type { Dir, Id, RelationModule, Side } from "@mnd/core";
+import type { Dir, Id, RelationModule, Role, Side } from "@mnd/core";
 import type { Cell, Look } from "./look";
 import type { Perch } from "./seat";
 
@@ -31,6 +31,10 @@ export type BoxData = {
   link?: string;
   /** How it reads, derived: a container, a reference, a note, a boundary. */
   marks: readonly Mark[];
+  /** What it is, as the one word every surface draws a mark for. **The same
+   *  question the tree asks**, answered in `core` so a card and a row cannot
+   *  say different things about one block. */
+  role?: Role;
   /** How its definition says it draws. **Names from closed sets, never
    *  values** — a renderer looks each one up and a definition cannot invent
    *  one. Absent on a box that stands for nothing in the graph. */
@@ -119,6 +123,9 @@ export type Frame = {
   w: number;
   h: number;
   label: string;
+  /** What the open layer is, as the mark every surface draws for it. The same
+   *  question a card answers — you are inside the block, and it is still one. */
+  role?: Role;
   /** Which wall of its own parent this layer is set into, when the layer is
    *  itself an interface. **Absent on an ordinary block** — you are inside a
    *  thing that straddles a border, and this is the border. */

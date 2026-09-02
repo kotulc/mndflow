@@ -444,6 +444,27 @@ export function module_of(graph: Graph, id: Id): BlockModule {
   return typeof named === "string" ? named as BlockModule : "structure";
 }
 
+/** What a block is, as the one word every surface draws a mark for.
+ *
+ *  **The module, plus the one thing a module cannot say.** A structure block
+ *  that holds a layer of its own is a container, which is a fact about what it
+ *  holds rather than about what it is — and it is the difference a reader needs
+ *  most, because it says whether there is anywhere to go. Behavior, resource
+ *  and view have no mark of their own: what they are is said by the definition
+ *  they name, and a second word for it would be one too many.
+ *
+ *  Asked here so the tree, the canvas and every other surface answer alike. */
+export type Role = "block" | "container" | "folder" | "reference"
+                 | "interface" | "group" | "note";
+
+const MARKED: readonly string[] = ["folder", "reference", "interface", "group", "note"];
+
+export function role_of(graph: Graph, id: Id): Role {
+  const module = module_of(graph, id);
+  if (MARKED.includes(module)) return module as Role;
+  return is_container(graph, id) ? "container" : "block";
+}
+
 /** One step, applied. */
 export function step(id: Id, action: string, at: number, mutations: Mutation[]): Step {
   return { id, action, at, status: "applied", mutations };

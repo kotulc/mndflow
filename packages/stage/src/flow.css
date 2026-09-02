@@ -151,6 +151,36 @@
   cursor: text;
 }
 
+/* The mark in the corner: what this card is, said without being read.
+   **Quiet, and never in the way** — it is a label rather than a control, so it
+   takes no pointer and stands a step back from the name it sits beside. Placed
+   rather than flowed on the cards that have no head to put it in. */
+.mnd-role {
+  display: inline-flex;
+  flex: none;
+  color: var(--muted);
+  opacity: 0.75;
+  pointer-events: none;
+}
+.mnd-card.note > .mnd-role, .mnd-group > .mnd-role {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+}
+/* The layer's own mark sits in its border, at the end the name does not. */
+.mnd-frame > .mnd-role {
+  position: absolute;
+  top: -0.75em;
+  right: 12px;
+  padding: 0 5px;
+  background: var(--bg);
+}
+/* Each mark takes the colour of what it marks, so the corner agrees with the
+   card it sits on rather than being one more grey. */
+.mnd-role[data-role="note"] { color: var(--note-dim); }
+.mnd-role[data-role="reference"] { color: var(--away); }
+.mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
+
 /* The subtype, where somebody set one. It sits back a step: what the card is
    called is the thing being read, and this is the note beside it. */
 .mnd-kind {

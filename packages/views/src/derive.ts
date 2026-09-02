@@ -4,8 +4,8 @@
  *  a notation's to decide, so all three modules ask the same question here
  *  rather than each answering it slightly differently. */
 
-import { derived_name, is_container, is_interface, is_reference, module_of,
-         path, shown_name, stands_for, type Graph, type Id } from "@mnd/core";
+import { derived_name, is_container, is_interface, is_reference, module_of, path, role_of,
+         shown_name, stands_for, type Graph, type Id } from "@mnd/core";
 import { cells_of, look_of } from "./look";
 import type { BoxData, Mark, Scene } from "./scene";
 
@@ -47,6 +47,7 @@ export function carried(graph: Graph, id: Id): BoxData {
     .map((f) => ({ name: f.name, value: String(f.value ?? "") }));
   return {
     label: shown_name(graph, id),
+    role: role_of(graph, id),
     ...(b.type ? { def: b.type } : {}),
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),
     marks: marks_of(graph, id),

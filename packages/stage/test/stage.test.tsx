@@ -53,6 +53,34 @@ function typing(el: Element, text: string) {
   fireEvent.blur(el);
 }
 
+/** **A card says what it is without being read.** One mark per sort of block,
+ *  in the corner, and the same set the tree draws down its left edge. */
+describe("what a card wears", () => {
+  const worn = (view: { container: HTMLElement }) =>
+    Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
+               (el) => el.getAttribute("data-role"));
+
+  it("marks every card, and the layer it is drawn in", () => {
+    const view = mount();
+    expect(worn(view)).toContain("note");
+    expect(worn(view)).toContain("group");
+    expect(worn(view)).toContain("block");
+    /** The frame is the block you are inside, and it is still one. */
+    expect(view.container.querySelector(".mnd-frame .mnd-role")).toBeTruthy();
+  });
+
+  /** **Never the word the mark already says.** A folder wearing the folder mark
+   *  and the word *folder* says it twice. */
+  it("drops the subtype word where the mark says the same thing", () => {
+    const view = mount();
+    for (const el of Array.from(view.container.querySelectorAll(".mnd-head"))) {
+      const word = el.querySelector(".mnd-kind")?.textContent;
+      const role = el.querySelector(".mnd-role")?.getAttribute("data-role");
+      expect(word === undefined || word !== role).toBe(true);
+    }
+  });
+});
+
 describe("the left button works what is already there", () => {
   it("picks what was clicked", () => {
     const view = mount();

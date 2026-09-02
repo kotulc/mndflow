@@ -27,7 +27,30 @@ export const DRAGGED = "text/mnd-block";
 
 import { BAND, FRAME, PLAIN,
          type BoxData, type BoxNode, type Cell, type Look } from "@mnd/views";
-import { Name, useNaming } from "@mnd/theme";
+import type { Role } from "@mnd/core";
+import { Icon, Name, useNaming, type IconName } from "@mnd/theme";
+
+/** What a card wears in its corner: one mark per sort of block, the same set
+ *  the tree draws down its left edge. **A container is solid** — the fill is
+ *  what says it holds something, and an outline there would read as the plain
+ *  block beside it. */
+const ROLE: Record<Role, IconName> = {
+  block: "role_leaf", container: "role_container", folder: "role_folder",
+  reference: "role_reference", interface: "role_interface",
+  group: "role_group", note: "role_note",
+};
+
+/** The mark itself. **Top right, on everything that has a corner**: a card says
+ *  what it is without being read, which is the one thing a name cannot do —
+ *  and it takes no pointer, because it is a label and not a control. */
+function Wears({ role }: { role?: Role }) {
+  if (!role) return null;
+  return (
+    <span className="mnd-role" data-role={role}>
+      <Icon name={ROLE[role]} solid={role === "container"} size={11} />
+    </span>
+  );
+}
 
 /** What this node would draw, as a value.
  *
@@ -42,7 +65,7 @@ function seen(p: NodeProps<BoxNode>): string {
   const k = d.look;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.def, d.on, d.side, d.marks.join(","),
+    d.label, d.def, d.on, d.side, d.role, d.marks.join(","),
     k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
     d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
     d.fields?.map((f) => `${f.name}=${f.value}`).join(","),
@@ -273,8 +296,12 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
           <Name id={id} className="mnd-label" text={data.label} />
           {/* A subtype where somebody set one. **Absent rather than a default
               word** — every card that nobody has told apart would otherwise
-              carry the same chip, which is noise on all of them. */}
-          {look.kind ? <span className="mnd-kind">{look.kind}</span> : null}
+              carry the same chip, which is noise on all of them.
+              **And never the word the mark already says**: a folder wearing
+              the folder mark and the word *folder* says it twice. */}
+          {look.kind && look.kind !== data.role
+            ? <span className="mnd-kind">{look.kind}</span> : null}
+          <Wears role={data.role} />
         </div>
       ) : null}
       {data.cells?.length ? <Holds cells={data.cells} /> : null}
@@ -308,6 +335,9 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} data-def={data.def}>
       <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
                    lineClassName="mnd-edge" handleClassName="mnd-grip" />
+      {/* **No head to put it in.** A note is its text, so the mark hangs in
+          the card's own corner rather than in a row of its own. */}
+      <Wears role={data.role} />
       <Name id={id} className="mnd-note-text" text={data.label} />
       {data.fields?.length ? (
         <dl className="mnd-fields">
@@ -337,6 +367,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} title={data.label}>
       {data.label || naming.id === id
         ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
+      <Wears role={data.role} />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -398,6 +429,9 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
         </span>
       ) : null}
       <Name id={id} className="mnd-frame-name" text={data.label} />
+      {/* **You are inside a block, and it is still one.** The name sits in the
+          border at one end; what it is sits in the border at the other. */}
+      <Wears role={data.role} />
     </div>
   );
 }

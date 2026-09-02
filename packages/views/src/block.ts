@@ -3,7 +3,7 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { arrangement_of, children, edges_in, is_interface, module_of,
+import { arrangement_of, children, edges_in, is_interface, module_of, role_of,
          shown_name, READS,
          type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
 import { at_seat, boundary, laid, perch_id, perched, seated, GAP, GRID,
@@ -207,6 +207,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
                   hidden: boolean): Frame | null {
   if (layer === null || layer === graph.root) return null;
   const label = shown_name(graph, layer);
+  const role = role_of(graph, layer);
   const ports = wall_of(graph, layer, hidden);
   /** An interface opened from the inside straddles its parent's border, and the
    *  wall it is set into is the one thing about this layer that is a fact about
@@ -215,7 +216,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const set_in = side ? { side } : {};
   const least = { w: GRID * 14, h: GRID * 9 };
   if (drawn.length === 0) {
-    return { x: -least.w / 2, y: -least.h / 2, ...least, label, ports, ...set_in };
+    return { x: -least.w / 2, y: -least.h / 2, ...least, label, role, ports, ...set_in };
   }
   const pad = GAP.unit;
   const at = drawn.map(box_of);
@@ -223,7 +224,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { x, y, w, h, label, ports, ...set_in };
+  return { x, y, w, h, label, role, ports, ...set_in };
 }
 
 /** The layer's own interfaces, set into its walls and seen from inside.

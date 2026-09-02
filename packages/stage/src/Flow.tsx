@@ -237,6 +237,7 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
     width: frame.w,
     height: frame.h,
     data: { label: frame.label, marks: [],
+            ...(frame.role ? { role: frame.role } : {}),
             ...(frame.side ? { side: frame.side } : {}),
             ...(frame.seats ? { seats: frame.seats } : {}) },
     draggable: false,
@@ -360,7 +361,8 @@ const NAMES = ".mnd-label, .mnd-group-name, .mnd-tag, .mnd-wire-text";
 function signature(scene: Scene, frame: Frame | null): string {
   return [
     scene.layer,
-    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.side ?? ""}`,
+    frame && `${frame.x},${frame.y},${frame.w},${frame.h},${frame.label},${frame.role ?? ""}`
+      + `,${frame.side ?? ""}`,
     frame?.seats?.map((t) => `${t.id}${t.side}${t.at}`).join("|"),
     frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
     scene.nodes.map((n) => {
