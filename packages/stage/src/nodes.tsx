@@ -291,6 +291,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} data-def={data.def} title={data.label}>
       <Outline shape={look.shape} />
       <Brim />
+      <Wears role={data.role} />
       {named ? (
         <div className="mnd-head">
           <Name id={id} className="mnd-label" text={data.label} />
@@ -301,7 +302,6 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
               the folder mark and the word *folder* says it twice. */}
           {look.kind && look.kind !== data.role
             ? <span className="mnd-kind">{look.kind}</span> : null}
-          <Wears role={data.role} />
         </div>
       ) : null}
       {data.cells?.length ? <Holds cells={data.cells} /> : null}

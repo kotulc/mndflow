@@ -133,6 +133,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  /* The gutter the corner mark stands in, so a long name clips before it
+     rather than running under it. */
+  padding-right: 13px;
   min-height: 0;
   overflow: hidden;
 }
@@ -156,16 +159,17 @@
    takes no pointer and stands a step back from the name it sits beside. Placed
    rather than flowed on the cards that have no head to put it in. */
 .mnd-role {
-  display: inline-flex;
-  flex: none;
-  color: var(--muted);
-  opacity: 0.75;
-  pointer-events: none;
-}
-.mnd-card.note > .mnd-role, .mnd-group > .mnd-role {
+  /* **The corner, on every card that has one.** In the head it rode the row the
+     name sits in — which on a plain card is the whole height of it, so the mark
+     came out beside the name rather than above it, and on a container it was
+     squeezed between the name and the picture of what it holds. */
   position: absolute;
   top: 3px;
   right: 4px;
+  display: inline-flex;
+  color: var(--muted);
+  opacity: 0.75;
+  pointer-events: none;
 }
 /* The layer's own mark sits in its border, at the end the name does not. */
 .mnd-frame > .mnd-role {
