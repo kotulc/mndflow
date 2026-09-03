@@ -4,7 +4,7 @@
  *  a notation's to decide, so all three modules ask the same question here
  *  rather than each answering it slightly differently. */
 
-import { derived_name, is_container, is_interface, is_reference, module_of, path, role_of,
+import { is_container, is_interface, is_reference, module_of, path, role_of,
          shown_name, stands_for, type Graph, type Id } from "@mnd/core";
 import { cells_of, look_of } from "./look";
 import type { BoxData, Mark, Scene } from "./scene";
@@ -27,8 +27,6 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
   if (is_container(graph, id) && !is_reference(b)) out.push("container");
-  /** A guess must never read as a statement, so a name nobody typed says so. */
-  if (derived_name(graph, id)) out.push("derived");
   return out;
 }
 

@@ -6,8 +6,8 @@
  *  its look off what the projection resolved, and knows nothing about the graph.
  *
  *  One component covers every box that is a rectangle, because they differ only
- *  in the look they carry and the ramp keys off it. A frame, a seat and a
- *  control are the three that are not. **Which one draws a node is the
+ *  in the look they carry and the ramp keys off it. A frame and a seat are the
+ *  two that are not. **Which one draws a node is the
  *  projection's to say** — it sets `type`, so nothing here re-derives it from
  *  marks and a new mark cannot silently pick the wrong component.
  *
@@ -373,21 +373,6 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** A decision and a merge are the one pair of controls that is not a bar. The
- *  diamond is a rotated square, so the name inside it turns back. */
-function ControlNode({ id, data, selected }: NodeProps<BoxNode>) {
-  useSeats(id, data.seats);
-  return (
-    <div className={["mnd-control", ...data.marks, selected ? "picked" : ""]
-            .filter(Boolean).join(" ")}
-         title={data.label}>
-      <span className="mnd-diamond" />
-      <Name id={id} className="mnd-label" text={data.label} />
-      {data.seats?.length ? <Seats seats={data.seats} /> : null}
-    </div>
-  );
-}
-
 /** An interface, seated on its owner's wall. It carries no name — the mark is
  *  the whole of it, and a hover says the rest. */
 function SeatNode({ id, data, selected }: NodeProps<BoxNode>) {
@@ -444,14 +429,12 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 export const Card = memo(CardNode, same);
 export const Note = memo(NoteNode, same);
 export const Group = memo(GroupNode, same);
-export const Control = memo(ControlNode, same);
 export const Seat = memo(SeatNode, same);
 
 export const NODE_TYPES = {
   card: Card,
   note: Note,
   group: Group,
-  control: Control,
   seat: Seat,
   frame: Frame,
 } as const;

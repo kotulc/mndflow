@@ -86,22 +86,12 @@ svg.scene .card.group rect {
   stroke-dasharray: 6 4;
 }
 svg.scene .card.group text { fill: var(--faint); dominant-baseline: hanging; }
-svg.scene .card.derived text { fill: var(--dim); font-style: italic; }
 svg.scene .card.interface rect {
   fill: var(--bg, var(--ground)); stroke: var(--stroke); stroke-width: 1.5;
 }
 svg.scene .card.interface.in rect { fill: var(--lead); }
 svg.scene .card.interface.out rect { fill: none; }
 svg.scene .card.interface.in.out rect { fill: var(--lead-fill); }
-svg.scene .card.lane rect {
-  fill: var(--faint-fill); fill-opacity: 0.25; stroke: var(--faint-line);
-}
-svg.scene .card.lane text { fill: var(--faint); }
-svg.scene .card.lifeline rect { fill: var(--stroke); fill-opacity: 0.45; stroke: none; }
-svg.scene .card.control rect,
-svg.scene .card.control polygon { fill: var(--lead); stroke: var(--lead); }
-svg.scene .card.control.decision polygon,
-svg.scene .card.control.merge polygon { fill: var(--bg, var(--ground)); stroke-width: 1.5; }
 svg.scene .card.header rect { fill: var(--faint-fill); stroke: var(--faint-line); }
 svg.scene .card.header text { fill: var(--faint); font-size: 11px; }
 svg.scene .card.cell rect { fill: none; stroke: var(--faint-line); stroke-width: 0.5; }
@@ -161,10 +151,8 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
 function card(node: BoxNode, clip: string): string {
   const d = node.data;
   const at = box_of(node);
-  const shape = d.marks.includes("decision") || d.marks.includes("merge")
-    ? `<polygon points="${diamond(at)}" />`
-    : `<rect x="${round(at.x)}" y="${round(at.y)}"`
-      + ` width="${round(at.w)}" height="${round(at.h)}" rx="3" />`;
+  const shape = `<rect x="${round(at.x)}" y="${round(at.y)}"`
+    + ` width="${round(at.w)}" height="${round(at.h)}" rx="3" />`;
   const drawn = `<g class="${["card", ...d.marks].join(" ")}"`
     + (d.def ? ` data-def="${esc(d.def)}"` : "") + `>`
     + shape + `<title>${esc(d.label)}</title>`
@@ -180,8 +168,7 @@ function label(node: BoxNode, clip: string): string {
   const box = box_of(node);
   const turned = d.marks.includes("turned");
   const x = box.x + box.w / 2;
-  const y = turned ? box.y + box.h - 6
-          : d.marks.includes("lane") ? box.y + 14 : box.y + box.h / 2;
+  const y = turned ? box.y + box.h - 6 : box.y + box.h / 2;
   const spin = turned ? ` transform="rotate(-90 ${round(x)} ${round(y)})"` : ``;
   const cut = turned ? `` : ` clip-path="url(#${clip})"`;
   return `<clipPath id="${clip}"><rect x="${round(box.x)}" y="${round(box.y)}"`
@@ -255,15 +242,7 @@ function wall(b: At, side: Position): { x: number; y: number } {
   return { x: b.x + b.w / 2, y: b.y + b.h };
 }
 
-/** A decision and a merge are the one pair of controls that is not a bar. */
 type At = { x: number; y: number; w: number; h: number };
-
-function diamond(b: At): string {
-  const cx = b.x + b.w / 2;
-  const cy = b.y + b.h / 2;
-  return `${round(cx)},${round(b.y)} ${round(b.x + b.w)},${round(cy)} `
-       + `${round(cx)},${round(b.y + b.h)} ${round(b.x)},${round(cy)}`;
-}
 
 /** Placements are fractional, and a file that is diffed is read by a person, so
  *  a coordinate is written to the tenth rather than to the sixteenth. */

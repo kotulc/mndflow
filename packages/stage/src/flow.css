@@ -43,7 +43,7 @@
    Only steps every family carries are used: fill, line, ink, stroke, dim. A
    rule reaching for `raised` would work on four slots and fail on two. */
 
-.mnd-card, .mnd-group, .mnd-seat, .mnd-control {
+.mnd-card, .mnd-group, .mnd-seat {
   --card-fill: var(--s-neutral-fill);
   --card-line: var(--s-neutral-line);
   --card-ink: var(--s-neutral-ink);
@@ -366,17 +366,6 @@
   cursor: text;
 }
 
-/* A reading's own furniture: a lane names itself at the top, a lifeline is a
-   rule rather than a box, and neither is anything you may move. */
-.mnd-card.lane {
-  background: none;
-  border-color: var(--divider);
-  color: var(--muted);
-}
-.mnd-card.lane .mnd-head { align-items: flex-start; }
-.mnd-card.lifeline { border: none; border-left: 1px dashed var(--wall); border-radius: 0; }
-.mnd-card.derived { cursor: default; }
-
 /* A table's own cells, drawn on the canvas until a table has a surface of its
    own. A head reads as a head; a filled cell says a relationship runs here. */
 .mnd-card.header { background: var(--raised); color: var(--muted); font-weight: 600; }
@@ -391,34 +380,12 @@
 
 /* Selection is the app speaking about your model, so it takes the accent and
    no definition may claim it. */
-.mnd-card.picked, .mnd-control.picked .mnd-diamond, .mnd-seat.picked {
+.mnd-card.picked, .mnd-seat.picked {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
 .mnd-card.picked[data-shape="diamond"] .mnd-outline polygon,
 .mnd-card.picked[data-shape="hex"] .mnd-outline polygon { stroke: var(--accent); }
-
-/* A decision and a merge: a rotated square, with the name beside it. */
-.mnd-control {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.mnd-control .mnd-diamond {
-  position: absolute;
-  inset: 15%;
-  border: 1px solid var(--card-line);
-  background: var(--card-fill);
-  transform: rotate(45deg);
-}
-.mnd-control .mnd-label {
-  position: relative;
-  font-size: 10px;
-  color: var(--muted);
-}
 
 /* An interface, seated on a wall. The mark is the whole of it. */
 .mnd-seat {

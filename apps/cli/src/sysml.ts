@@ -22,7 +22,7 @@ import { children, edges_in, empty_graph, is_interface, is_reference, module_of,
 /** What each block module is called, absent a definition that says otherwise.
  *  **Not a closed set of things** — a fallback table, one entry per module. */
 const KEYWORD: Record<string, string> = {
-  folder: "package", structure: "part", behavior: "action", reference: "ref",
+  folder: "package", structure: "part", reference: "ref",
   interface: "port", resource: "item", group: "package", note: "comment", view: "view",
 };
 

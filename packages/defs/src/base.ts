@@ -32,8 +32,6 @@ export const BASE: Definition[] = [
       { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
   def("structure", "structure", undefined,
       { layout: "type", shape: "rect" }, { slot: "primary" }),
-  def("behavior", "behavior", "structure",
-      { layout: "type", shape: "round" }, { slot: "secondary" }),
   def("reference", "reference", undefined,
       { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),
   def("interface", "interface", undefined,
@@ -49,21 +47,8 @@ export const BASE: Definition[] = [
       { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
 ];
 
-/** The behavior vocabulary: `action` and `state` extend the base behavior
- *  definition and carry the verb its usages are named by. **Definitions, never
- *  modules** — doing against being is the vocabulary, not the shape. */
-export const BEHAVIOR: Definition[] = [
-  { id: "action", home: ROOT, group: "block", name: "action", extends: "behavior",
-    components: { card: { layout: "type", shape: "round", word: "do" },
-                  style: { slot: "secondary", voice: "normal" } } },
-  { id: "state", home: ROOT, group: "block", name: "state", extends: "behavior",
-    components: { card: { layout: "type", shape: "round", word: "in" },
-                  style: { slot: "secondary", emphasis: "quiet" } } },
-];
-
-/** The six views, as definitions. **A reading is a view definition, never a
- *  module**: `block` is any planar projection and the reading says how to look
- *  at it, which is why three of these name the same module. */
+/** The three views, as definitions. One per view module — a notation beyond
+ *  these is a definition somebody adds, never a module. */
 export const VIEWS: Definition[] = [
   { id: "view.block", home: ROOT, group: "view", name: "block",
     components: { view: { module: "block" } } },
@@ -71,12 +56,6 @@ export const VIEWS: Definition[] = [
     components: { view: { module: "table" } } },
   { id: "view.matrix", home: ROOT, group: "view", name: "matrix",
     components: { view: { module: "matrix" } } },
-  { id: "view.activity", home: ROOT, group: "view", name: "activity",
-    components: { view: { module: "block", reading: "activity" } } },
-  { id: "view.sequence", home: ROOT, group: "view", name: "sequence",
-    components: { view: { module: "block", reading: "sequence" } } },
-  { id: "view.state", home: ROOT, group: "view", name: "state",
-    components: { view: { module: "block", reading: "state" } } },
 ];
 
 /** The two relation definitions the base ships, so an untyped line still
@@ -86,7 +65,7 @@ export const RELATIONS: Definition[] = [
   { id: "directed", home: ROOT, group: "relation", name: "directed" },
 ];
 
-export const ALL: Definition[] = [...BASE, ...BEHAVIOR, ...VIEWS, ...RELATIONS];
+export const ALL: Definition[] = [...BASE, ...VIEWS, ...RELATIONS];
 
 export function by_id(id: string): Definition | null {
   return ALL.find((d) => d.id === id) ?? null;

@@ -229,12 +229,12 @@ export function is_container(graph: Graph, id: Id): boolean {
   return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
 }
 
-/** A block no other block contains: the root of a tier's tree.
+/** A block no other block contains.
  *
  *  Read from position and stored nowhere. There is no project type — a
  *  top-level block is informally a *project*, the way a block with children is
  *  informally a container. */
-export function is_tier_root(graph: Graph, id: Id): boolean {
+export function is_top_block(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   return !!b && b.parent === graph.root;
 }
@@ -280,34 +280,7 @@ function named(graph: Graph, b: Block): string {
   if (label) return label;
   const body = b.body?.trim();
   if (body && module_of(graph, b.id) === "note") return body;
-  return derived_name(graph, b.id) ?? fallback(graph, b);
-}
-
-/** A block that says nothing itself and **stands for exactly one thing** is
- *  named after what it stands for, with its definition's verb in front.
- *
- *  This is what gives an inferred action `do Pump` without storing anything: a
- *  structure block is a noun and an action wants a verb, and no reliable
- *  transformation turns one into the other — so nothing is transformed. Typing
- *  over it stores a real name, and that is the only way one gets one.
- *
- *  Null where the block names itself, or stands for more than one thing. */
-export function derived_name(graph: Graph, id: Id): string | null {
-  const b = graph.blocks[id];
-  if (!b || b.label?.trim()) return null;
-  const kids = children(graph, id);
-  const refs = kids.filter((k) => k.of !== undefined);
-  if (kids.length !== 1 || refs.length !== 1) return null;
-  const stood = shown_name(graph, refs[0]!.id);
-  const verb = word_of(graph, b.type);
-  return verb ? `${verb} ${stood}` : stood;
-}
-
-/** The verb a definition calls its usages by. Vocabulary, so a SysML reading
- *  and a plain one can differ without either being stored. */
-export function word_of(graph: Graph, type: Id | undefined): string {
-  const said = config_of(graph, type, "card")["word"];
-  return typeof said === "string" ? said : "";
+  return fallback(graph, b);
 }
 
 /** Everything a word matches: the name it is shown by, its body, and the name

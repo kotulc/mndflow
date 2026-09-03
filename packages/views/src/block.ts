@@ -3,14 +3,13 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { arrangement_of, children, edges_in, is_interface, module_of, role_of,
-         shown_name, READS,
-         type Graph, type Id, type Reading, type Relation, type Side } from "@mnd/core";
+import { children, edges_in, is_interface, module_of, role_of,
+         shown_name,
+         type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, boundary, laid, perch_id, perched, seated, GAP, GRID,
-         type Perch, type Placed } from "@mnd/views";
+         type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
-import { read, reading_of } from "./read";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type LineEdge, type Port, type Mark, type Scene, type Slot } from "./scene";
 
@@ -23,33 +22,19 @@ export type Config = {
    *  the same door, so there is **one seam rather than two**.
    *
    *  Read by the table, which is where a result belongs. A plane places by the
-   *  layer it is a plane of, the same way `reading` and `interfaces` are the
-   *  block module's and no other's. */
+   *  layer it is a plane of, the same way `interfaces` is the block module's
+   *  and no other's. */
   holds?: readonly Id[];
-  /** Which reading of a behavior layer, where one applies. */
-  reading?: Reading;
-  /** Beyond this many, inference cuts higher in the tree. */
-  n?: number;
   /** Whether interfaces draw. A display preference the shell hands down. */
   interfaces?: boolean;
 };
 
 const SLOTS: readonly Slot[] = ["arrange", "interfaces", "lines", "relations"];
 
-/** A reading places for itself, so it offers columns where a plane offers an
- *  arrangement — and neither offers the other. */
-const READ_SLOTS: readonly Slot[] = ["lines", "relations"];
-
 /** Project a layer through the block view. */
 export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
-  const how = arrangement_of(graph, layer);
   const here = children(graph, layer);
-  /** A behavior layer is placed by its reading rather than by the arrangement:
-   *  order runs along the reading and the lane decides the rest. */
-  const reading = reading_of(graph, layer, config.reading);
-  const seen = reading ? read(graph, layer, reading, READS[how] === "bottom"
-                                                  || READS[how] === "top") : null;
-  const spots = seen ? seen.spots : laid(graph, layer);
+  const spots = laid(graph, layer);
   /** Interfaces are seated on the cards they belong to rather than laid out
    *  with them, so they are placed once the cards are.
    *
@@ -96,21 +81,11 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
       : node(p.id, p, data, "seat");
   });
 
-  /** Lanes and lifelines are drawn behind, controls in front of neither — all
-   *  three are derived, so none of them answers a gesture. */
-  const derived: BoxNode[] = seen ? [
-    ...seen.bands.map((b) => plain(b.id, b, b.label, ["lane"])),
-    ...seen.lines.map((l) => plain(l.id, l, "", ["lifeline"])),
-  ] : [];
-  const controls: BoxNode[] = seen
-    ? seen.controls.map((c) => plain(c.id, c, "", ["control", c.kind])) : [];
-
-  const drawn = [...derived, ...groups, ...boxes, ...controls, ...seats];
+  const drawn = [...groups, ...boxes, ...seats];
   /** An end seated on an interface leaves by that interface's own side; only
    *  an end the relationship placed itself overrides it. An end on the layer
    *  itself meets the frame you are inside. */
-  const linked = seen ? seen.links
-    : edges_in(graph, layer).map((e) => landed(graph, e, layer));
+  const linked = edges_in(graph, layer).map((e) => landed(graph, e, layer));
 
   /** The room, before anything is seated on it. **A wall is a border like a
    *  card's**, so an end meeting one takes a seat the same way — which is what
@@ -191,9 +166,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     /** **A slot says what this projection can offer, never what it is doing.**
      *  Dropping the interfaces group when interfaces are hidden would take away
      *  the only control that could bring them back. */
-    slots: seen ? [...(reading === "sequence" ? ["columns" as Slot] : ["arrange" as Slot]),
-                   ...READ_SLOTS]
-                : SLOTS,
+    slots: SLOTS,
     trail: trail_of(graph, layer),
   };
 }
@@ -247,15 +220,6 @@ function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
       look: look_of(graph, b.id),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
-}
-
-/** A box that stands for nothing in the graph: it is placed, labelled and
- *  marked, and that is all there is to it. **Nothing anybody made is one**, so
- *  none of them takes a drag or a selection. */
-function plain(id: Id, at: Placed, label: string, marks: Mark[]): BoxNode {
-  const kind = marks.includes("decision") || marks.includes("merge") ? "control" : "card";
-  return { ...node(id, at, { label, marks }, kind),
-           draggable: false, selectable: false };
 }
 
 /** Where a relationship's ends land.

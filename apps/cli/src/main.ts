@@ -38,7 +38,6 @@ const USAGE = `mnd — the headless harness
            an exported file, or a raw log.
   A log is harness input only: a file is a graph, and that is what export writes.
   --how sets the arrangement: free grid right left down up
-  --read sets the reading of a behavior layer: activity sequence state
   --view picks the module: block table matrix
   --svg writes the drawing instead of the text projection
   --from sets the package catalogue search reads (default public/packages/index.json)
@@ -106,7 +105,7 @@ function flag(args: string[], name: string): string | undefined {
 /** The flags that take the argument after them. Without knowing which do, a
  *  flag's value reads as a positional and `--view matrix` asks for a layer
  *  called "matrix". */
-const VALUED = ["--how", "--read", "--view", "--layer", "--from", "--with"];
+const VALUED = ["--how", "--view", "--layer", "--from", "--with"];
 
 /** What is left once every flag, every flag's value and every pair is taken
  *  out: the positionals, and nothing else. */
@@ -192,7 +191,7 @@ async function main(argv: string[]): Promise<void> {
         console.error(`  no view module called "${flag(rest, "view")}"`);
         process.exit(1);
       }
-      const scene = module.project(graph, layer, { reading: flag(rest, "read") as never });
+      const scene = module.project(graph, layer);
       const wrong = faults(scene);
       if (wrong.length) {
         console.error("the scene is not well-formed:");

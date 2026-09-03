@@ -10,7 +10,7 @@
  *  only start a connection on that button. */
 
 import { useEffect, useState } from "react";
-import type { Act } from "@mnd/core";
+import type { Act, Side } from "@mnd/core";
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, BLOCK, type Scene } from "@mnd/views";
@@ -139,8 +139,8 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
      *  is saying these belong together, so what it offers is naming it and
      *  taking it away. */
     band: ["rename", "delete"],
-    route: ["straighten", "rename", "delete"],
-    anchor: ["promote", "rename", "delete"],
+    route: ["rename", "delete"],
+    anchor: ["rename", "delete"],
   };
 
   /** **What several things offer is not what one thing offers.** Rename, open
@@ -178,12 +178,27 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
          *  same gesture as every other name, on the one card that is nothing
          *  but a name. */
         else if (g.on && g.kind === "note") set_naming(g.on);
+        /** **Two clicks on a line straighten it.** Descending is what two
+         *  clicks mean everywhere else, and a relationship has no inside — so
+         *  the gesture was free, and it is the only one that could carry this:
+         *  the walls and fractions come from the drawing and are nowhere in
+         *  the graph. */
+        else if (g.on && g.kind === "route" && g.given) {
+          const bend = g.given as Record<string, unknown>;
+          if (bend["fromSide"] && bend["toSide"]) {
+            onAdjust?.({ kind: "straighten", on: g.on,
+                         fromSide: bend["fromSide"] as Side, fromAt: Number(bend["fromAt"]),
+                         toSide: bend["toSide"] as Side, toAt: Number(bend["toAt"]),
+                         ...(bend["align"] ? { align: String(bend["align"]),
+                                               x: Number(bend["x"]), y: Number(bend["y"]) } : {}) });
+          }
+        }
         /** **The room's edge is the band you leave by.** A rim is drawn as part
          *  of the frame, so two clicks on one reached a node and stopped there
          *  — aiming at the edge of the layer to come back out did nothing at
          *  all, which is the one place you would aim. */
-        else if (g.kind === "frame") onAct("up");
-        else if (!g.on) onAct("up");
+        else if (g.kind === "frame") onAct("open");
+        else if (!g.on) onAct("open");
       }
       /** A single left click is a selection, and the canvas reports that on its
        *  own — through `onPick`, which is the one place it lands. */
@@ -295,7 +310,7 @@ function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {
         </span>
       ))}
       {trail.length > 1 ? <button className="up" title="up one layer"
-                                  onClick={() => onAct("up")}><Icon name="up" /></button> : null}
+                                  onClick={() => onAct("open")}><Icon name="up" /></button> : null}
     </nav>
   );
 }

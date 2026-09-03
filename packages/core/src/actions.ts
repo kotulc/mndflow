@@ -10,7 +10,6 @@
 import { arrangement_of, children, edges_in, is_interface, is_reference, layer_id, module_of,
          next_num, path, reorder } from "./fold";
 import { name_taken } from "./door";
-import { infer as run_infer, ABSTRACTION } from "./infer";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, VALUE_FORMS, type Arrangement, type Dir, type FieldDef, type Flow,
          type Graph, type Id, type Mutation, type RelationModule, type Side,
@@ -55,7 +54,7 @@ export type Context = {
   picked: Id[];
   /** The layer this one was opened from, where anybody knows. **Only the way
    *  out needs it**, and only for the one thing that is drawn in two layers at
-   *  once — see `up`. */
+   *  once — see `open`. */
   from?: Id | null;
 };
 
@@ -115,7 +114,7 @@ export function run(name: string, ctx: Context, args: Args = {}): Result | { ref
 
 /** Whether an action writes anything. Navigation writes nothing. */
 export function writes(name: string): boolean {
-  return !["open", "up", "reveal"].includes(name);
+  return !["open", "reveal"].includes(name);
 }
 
 // ---------------------------------------------------------------- helpers
@@ -325,18 +324,14 @@ register(
 register(
   {
     name: "open",
-    about: "opens a block as the layer being drawn",
+    about: "opens a block as the layer being drawn, or leaves this one when told no block",
     on: ["block"],
-    args: [{ name: "id", form: "block", required: true }],
-    run: (_ctx, args) => ({ mutations: [], effect: { open: id_of(args, "id"), focus: null } }),
-  },
-  {
-    name: "up",
-    about: "leaves the open layer for the one containing it",
-    on: ["layer"],
-    args: [],
-    when: (ctx) => ctx.layer !== null,
-    /** **An interface is drawn in two layers at once**: seated on its owner's
+    args: [{ name: "id", form: "block" }],
+    /** **Absent `id` is the way out.** Opening and leaving differ only in where
+     *  the layer comes from — one is named and one is derived — so a second
+     *  action for the derived case was a second name for the same act.
+     *
+     *  **An interface is drawn in two layers at once**: seated on its owner's
      *  border, out in the layer that holds the owner, and set into the wall of
      *  that owner seen from the inside. Its parent is the owner, so leaving one
      *  always landed inside a card you may never have opened — going into a
@@ -345,7 +340,9 @@ register(
      *  So the way out of an interface is the way in, where the way in is one of
      *  the two layers that draw it. Everything else leaves for what holds it,
      *  which is the same answer by a shorter road. */
-    run: (ctx) => {
+    run: (ctx, args) => {
+      const want = id_of(args, "id");
+      if (want) return { mutations: [], effect: { open: want, focus: null } };
       const here = ctx.layer ? ctx.graph.blocks[ctx.layer] : undefined;
       const owner = here?.parent ? ctx.graph.blocks[here.parent] : undefined;
       const outside = owner?.parent ?? null;
@@ -445,79 +442,6 @@ register(
     },
   },
   {
-    name: "promote",
-    about: "turns where a relationship meets a border into an interface of its own",
-    on: ["edge"],
-    /** **`on` rather than `owner`.** A menu fills `owner` from whatever is
-     *  picked, which here is the relationship — so the border this end meets
-     *  has to be named by something that knows it, and only the gesture on the
-     *  end does. Offered nowhere else for the same reason. */
-    args: [{ name: "id", form: "block", required: true },
-           { name: "end", form: "choice", required: true, choices: ["from", "to"] },
-           { name: "on", form: "block", required: true },
-           { name: "side", form: "choice", choices: ["top", "right", "bottom", "left"] },
-           { name: "at", form: "number" }],
-    check: (ctx, args) => {
-      if (!ctx.graph.edges[id_of(args, "id")]) return "needs a relationship";
-      if (!ctx.graph.blocks[id_of(args, "on")]) return "needs a border to sit on";
-      return null;
-    },
-    /** The seat the end was already meeting becomes a block that owns it.
-     *  Nothing about the line moves, and the wall it was pinned to goes with
-     *  the promotion — it is the interface's own wall now. */
-    run: (ctx, args) => {
-      const edge = id_of(args, "id");
-      const end = args["end"] as "from" | "to";
-      const owner = id_of(args, "on");
-      const id = new_id("block");
-      return { mutations: [
-        { op: "add_block", block: {
-          id, parent: owner, side: (args["side"] as Side) ?? "right",
-          at: typeof args["at"] === "number" ? (args["at"] as number) : 0.5,
-          num: next_num(ctx.graph, owner),
-        } },
-        { op: "set_end", id: edge, end, port: id },
-        { op: "set_side", id: edge, end, side: null },
-      ], effect: { focus: id } };
-    },
-  },
-  {
-    name: "straighten",
-    about: "takes the bend out of a relationship so it runs straight between its ends",
-    on: ["edge"],
-    /** **The geometry is the canvas's, and only the canvas has it.** Where two
-     *  borders can meet without a jog is a fact about two rectangles, and a
-     *  relationship carries neither — so the walls and the fractions are handed
-     *  in, and the action is offered only where a straight run exists. */
-    args: [{ name: "id", form: "block", required: true },
-           { name: "fromSide", form: "choice", required: true, choices: SIDES },
-           { name: "fromAt", form: "number", required: true },
-           { name: "toSide", form: "choice", required: true, choices: SIDES },
-           { name: "toAt", form: "number", required: true },
-           /** The block that has to shift for a straight run to exist at all,
-            *  and where it goes. Absent where the two already line up. */
-           { name: "align", form: "block" },
-           { name: "x", form: "number" }, { name: "y", form: "number" }],
-    check: (ctx, args) => ctx.graph.edges[id_of(args, "id")]
-      ? null : "needs a relationship",
-    /** Both ends pinned, which is the only way to say *there* about a seat that
-     *  is otherwise worked out. Unpinning them is dragging either end again. */
-    run: (_ctx, args) => {
-      const id = id_of(args, "id");
-      const out: Mutation[] = [];
-      if (args["align"] && typeof args["x"] === "number" && typeof args["y"] === "number") {
-        out.push({ op: "place_block", id: id_of(args, "align"),
-                   x: args["x"] as number, y: args["y"] as number });
-      }
-      out.push(
-        { op: "set_side", id, end: "from", side: side_of(args, "fromSide") ?? "right",
-          at: Number(args["fromAt"]) },
-        { op: "set_side", id, end: "to", side: side_of(args, "toSide") ?? "left",
-          at: Number(args["toAt"]) });
-      return { mutations: out };
-    },
-  },
-  {
     name: "unlink",
     about: "removes a relationship and any interfaces it leaves spare",
     on: ["edge"],
@@ -534,21 +458,11 @@ register(
   },
   {
     name: "direct",
-    about: "sets which way a relationship's arrows point",
+    about: "sets which way a relationship's arrows point, or takes them off",
     on: ["edge"],
     args: [{ name: "id", form: "block", required: true },
            { name: "dir", form: "choice", required: true,
              choices: ["none", "forward", "back", "both"] }],
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_dir", id: id_of(args, "id"), dir: String(args["dir"]) as Dir },
-    ] }),
-  },
-  {
-    name: "reform",
-    about: "sets whether a relationship is a line or directed",
-    on: ["edge"],
-    args: [{ name: "id", form: "block", required: true },
-           { name: "module", form: "choice", required: true, choices: ["line", "directed"] }],
     /** **What the ends decide is not on offer.** A line to a note is a tie and
      *  a line to a reference is a reference — said in words rather than
      *  written and quietly undone by the next thing that touches an end. */
@@ -559,9 +473,17 @@ register(
       return fixed ? `a relationship to a ${fixed === "tie" ? "note" : "reference"} is a ${fixed}`
                    : null;
     },
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_form", id: id_of(args, "id"), module: String(args["module"]) as RelationModule },
-    ] }),
+    /** **A plain line is `none`.** Whether a relationship is a line or directed
+     *  and which way its arrows point were two settings saying one thing: a
+     *  line is a directed relationship pointing nowhere. */
+    run: (_ctx, args) => {
+      const id = id_of(args, "id");
+      const dir = String(args["dir"]) as Dir;
+      return { mutations: [
+        { op: "set_form", id, module: dir === "none" ? "line" : "directed" },
+        { op: "set_dir", id, dir },
+      ] };
+    },
   },
 );
 
@@ -604,21 +526,43 @@ function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
 register(
   {
     name: "interface",
-    about: "puts an interface on an edge of a block",
+    about: "puts an interface on an edge of a block, and takes a relationship to it",
     on: ["block"],
+    /** **Promotion is this action with two more arguments.** Naming the seat a
+     *  relationship already meets *is* making an interface there and telling
+     *  that end about it, so `edge` and `end` are the whole of the difference.
+     *  Only a gesture on the end knows both, which is why nothing else fills
+     *  them. */
     args: [{ name: "owner", form: "block", required: true },
            { name: "side", form: "choice", choices: SIDES },
-           { name: "at", form: "number" }],
+           { name: "at", form: "number" },
+           { name: "edge", form: "block" },
+           { name: "end", form: "choice", choices: ["from", "to"] }],
+    check: (ctx, args) => {
+      if (!ctx.graph.blocks[id_of(args, "owner")]) return "needs a border to sit on";
+      const edge = text(args, "edge");
+      if (edge && !ctx.graph.edges[edge]) return "needs a relationship";
+      return null;
+    },
+    /** The wall the end was pinned to goes with the promotion — it is the
+     *  interface's own wall now, and nothing about the line moves. */
     run: (ctx, args) => {
       const owner = id_of(args, "owner");
       const side = side_of(args, "side") ?? "right";
       const id = new_id("block");
-      return { mutations: [{ op: "add_block", block: {
+      const edge = text(args, "edge");
+      const end = args["end"] as "from" | "to" | undefined;
+      const out: Mutation[] = [{ op: "add_block", block: {
         id, parent: owner, side,
         at: typeof args["at"] === "number" ? (args["at"] as number)
                                            : mid_of(ctx.graph, owner, side),
         num: next_num(ctx.graph, owner),
-      } }] };
+      } }];
+      if (edge && end) {
+        out.push({ op: "set_end", id: edge, end, port: id },
+                 { op: "set_side", id: edge, end, side: null });
+      }
+      return { mutations: out, effect: { focus: id } };
     },
   },
   {
@@ -705,25 +649,55 @@ register(
 register(
   {
     name: "field",
-    about: "sets a named value on this, or renames one it already carries",
-    on: ["block", "edge"],
+    about: "sets a named value on this, or adds a field to a definition so every usage carries one",
+    on: ["layer", "block", "edge"],
+    /** **One act, and the holder says which.** Setting a value on a usage and
+     *  declaring a field on a definition are the same thing said about two
+     *  sorts of holder — `form`, `unit` and `choices` describe a field and are
+     *  read only when the holder is a definition. */
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true },
-           { name: "value", form: "text" }],
+           { name: "value", form: "text" },
+           { name: "form", form: "choice", choices: VALUE_FORMS },
+           { name: "unit", form: "text" },
+           { name: "choices", form: "text" }],
     check: (_ctx, args) => text(args, "name") ? null : "a field needs a name",
-    run: (_ctx, args) => ({ mutations: [{ op: "set_field", id: id_of(args, "holder"), field: {
-      name: text(args, "name"), form: "text", value: String(args["value"] ?? ""),
-    } }] }),
+    /** **Fields union with the subtype's winning by name**, so declaring one
+     *  that is already there rewrites it rather than doubling it. */
+    run: (ctx, args) => {
+      const holder = id_of(args, "holder");
+      const name = text(args, "name");
+      const d = ctx.graph.defs[holder];
+      if (!d) {
+        return { mutations: [{ op: "set_field", id: holder, field: {
+          name, form: "text", value: String(args["value"] ?? ""),
+        } }] };
+      }
+      const form = String(args["form"] ?? "text") as ValueForm;
+      const said: FieldDef = {
+        name, form: VALUE_FORMS.includes(form) ? form : "text",
+        unit: text(args, "unit") || undefined,
+        choices: list(args["choices"]).length ? list(args["choices"]) : undefined,
+      };
+      const rest = (d.fields ?? []).filter((f) => f.name !== name);
+      return { mutations: [{ op: "set_def", def: { ...d, fields: [...rest, said] } }] };
+    },
   },
   {
     name: "unfield",
-    about: "drops a named value from this",
-    on: ["block", "edge"],
+    about: "drops a named value from this, or a field from a definition",
+    on: ["layer", "block", "edge"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true }],
-    run: (_ctx, args) => ({ mutations: [
-      { op: "drop_field", id: id_of(args, "holder"), name: text(args, "name") },
-    ] }),
+    run: (ctx, args) => {
+      const holder = id_of(args, "holder");
+      const name = text(args, "name");
+      const d = ctx.graph.defs[holder];
+      if (!d) return { mutations: [{ op: "drop_field", id: holder, name }] };
+      return { mutations: [{ op: "set_def", def: {
+        ...d, fields: (d.fields ?? []).filter((f) => f.name !== name),
+      } }] };
+    },
   },
   {
     name: "define",
@@ -739,51 +713,6 @@ register(
         id: def_id(name), home: here(ctx),
         group: (args["group"] as "block" | "relation" | "view") ?? "block",
         name, extends: args["extends"] ? def_id(text(args, "extends")) : undefined,
-      } }] };
-    },
-  },
-  {
-    name: "declare",
-    about: "adds a named field to a definition, so every usage of it carries one",
-    on: ["layer", "block", "edge"],
-    args: [{ name: "def", form: "text", required: true },
-           { name: "name", form: "text", required: true },
-           { name: "form", form: "choice", choices: VALUE_FORMS },
-           { name: "unit", form: "text" },
-           { name: "choices", form: "text" }],
-    check: (ctx, args) => {
-      if (!ctx.graph.defs[id_of(args, "def")]) return "that definition is not there";
-      return text(args, "name") ? null : "a field needs a name";
-    },
-    /** **Fields union with the subtype's winning by name**, so declaring one
-     *  that is already there rewrites it rather than doubling it. */
-    run: (ctx, args) => {
-      const d = ctx.graph.defs[id_of(args, "def")];
-      const name = text(args, "name");
-      if (!d) return { mutations: [] };
-      const form = String(args["form"] ?? "text") as ValueForm;
-      const said: FieldDef = {
-        name, form: VALUE_FORMS.includes(form) ? form : "text",
-        unit: text(args, "unit") || undefined,
-        choices: list(args["choices"]).length ? list(args["choices"]) : undefined,
-      };
-      const rest = (d.fields ?? []).filter((f) => f.name !== name);
-      return { mutations: [{ op: "set_def", def: { ...d, fields: [...rest, said] } }] };
-    },
-  },
-  {
-    name: "undeclare",
-    about: "drops a named field from a definition, leaving what carries one alone",
-    on: ["layer", "block", "edge"],
-    args: [{ name: "def", form: "text", required: true },
-           { name: "name", form: "text", required: true }],
-    check: (ctx, args) =>
-      ctx.graph.defs[id_of(args, "def")] ? null : "that definition is not there",
-    run: (ctx, args) => {
-      const d = ctx.graph.defs[id_of(args, "def")];
-      if (!d) return { mutations: [] };
-      return { mutations: [{ op: "set_def", def: {
-        ...d, fields: (d.fields ?? []).filter((f) => f.name !== text(args, "name")),
       } }] };
     },
   },
@@ -845,49 +774,6 @@ register(
   },
 );
 
-// ---------------------------------------------------------------- behavior
-
-register(
-  {
-    name: "infer",
-    about: "turns a selection into one behavior block — activity, or state when the selection is actions",
-    on: ["selection"],
-    args: [{ name: "of", form: "block", required: true }, { name: "n", form: "number" }],
-    check: (ctx, args) => {
-      const of = ((args["of"] as Id[]) ?? ctx.picked).filter((id) => ctx.graph.blocks[id]);
-      return of.length ? null : "nothing is selected";
-    },
-    run: (ctx, args) => {
-      const of = ((args["of"] as Id[]) ?? ctx.picked).filter((id) => ctx.graph.blocks[id]);
-      const n = typeof args["n"] === "number" ? (args["n"] as number) : ABSTRACTION;
-      const got = run_infer(ctx.graph, of, n);
-      if (!got) return { mutations: [] };
-      const home = got.tier === 1 ? ", and wrote the interfaces it implies" : "";
-      return { mutations: got.mutations,
-               effect: { open: got.block, say: `read the order from tier ${got.tier}${home}` } };
-    },
-  },
-);
-
-// ---------------------------------------------------------------- the project
-
-register(
-  {
-    name: "vocabulary",
-    about: "sets which packages this project draws definitions from",
-    on: ["layer"],
-    args: [{ name: "packages", form: "text", required: true }],
-    check: (ctx, args) => {
-      const want = list(args["packages"]);
-      const missing = want.filter((name) => !ctx.graph.blocks[name] && !ctx.graph.defs[name]);
-      return missing.length ? `nothing here is called "${missing[0]}"` : null;
-    },
-    run: (ctx, args) => ({ mutations: [{ op: "set_field", id: here(ctx), field: {
-      name: "vocabulary", form: "text", value: list(args["packages"]).join(" "),
-    } }] }),
-  },
-);
-
 /** A list somebody typed, however they separated it. */
 function list(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
@@ -897,6 +783,18 @@ function list(raw: unknown): string[] {
 /** Adjustments: positional, unsayable, gesture-only. Never named or ranked, so
  *  they are not on the registry — but they write mutations and they undo. */
 export const adjustments = {
+  /** **The geometry is the canvas's, and only the canvas has it.** Where two
+   *  borders meet without a jog is a fact about two rectangles, which a
+   *  relationship carries neither of — so the walls, the fractions and the
+   *  block that has to shift are all handed in. Both ends end up pinned, which
+   *  is the only way to say *there* about a seat that is otherwise worked out;
+   *  unpinning them is dragging either end again. */
+  straighten: (id: Id, from: { side: Side; at: number }, to: { side: Side; at: number },
+               align?: { id: Id; x: number; y: number }): Mutation[] => [
+    ...(align ? [{ op: "place_block" as const, id: align.id, x: align.x, y: align.y }] : []),
+    { op: "set_side", id, end: "from", side: from.side, at: from.at },
+    { op: "set_side", id, end: "to", side: to.side, at: to.at },
+  ],
   place: (moved: { id: Id; x: number; y: number }[]): Mutation[] =>
     moved.map((m) => ({ op: "place_block", id: m.id, x: m.x, y: m.y })),
   size: (id: Id, w: number, h: number): Mutation[] => [{ op: "size_block", id, w, h }],

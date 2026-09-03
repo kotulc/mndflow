@@ -59,9 +59,8 @@ export type BoxData = {
 };
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
-                 | "interface" | "berth" | "derived" | "in" | "out"
-                 | "lane" | "lifeline" | "control" | "fork" | "join"
-                 | "decision" | "merge" | "header" | "cell" | "filled" | "turned";
+                 | "interface" | "berth" | "in" | "out"
+                 | "header" | "cell" | "filled" | "turned";
 
 /** What one line carries. Where it runs is not here: the renderer routes it,
  *  and the two ends plus the walls they leave by are the whole of what a

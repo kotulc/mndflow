@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from "vitest";
 import { fixture, flat, nested, related } from "@mnd/fixtures";
-import { arrangement_of, children, edges_in, fold, is_container, is_reference, is_tier_root,
+import { arrangement_of, children, edges_in, fold, is_container, is_reference, is_top_block,
          module_of, next_num, path, resolve_def, session, shown_name, stands_for, subtree,
          ROOT } from "../src/index";
 
@@ -55,8 +55,8 @@ describe("derived readings", () => {
 
   it("reads a tier root from position, and nothing stores one", () => {
     const graph = fold(nested());
-    expect(is_tier_root(graph, "block_shelf")).toBe(true);
-    expect(is_tier_root(graph, "block_ledger")).toBe(false);
+    expect(is_top_block(graph, "block_shelf")).toBe(true);
+    expect(is_top_block(graph, "block_ledger")).toBe(false);
   });
 
   it("walks a path from root to the block, itself last", () => {

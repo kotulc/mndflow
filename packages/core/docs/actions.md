@@ -3,12 +3,12 @@
 **Every action the engine offers, every gesture that reaches one, and what is deliberately not on the surface.** This is the goal state, written in definitions.md's vocabulary.
 
 - **Why it takes this shape** → design.md, *The action surface is the input seam*.
-- **What each part does** → spec.md. **Behaviour rules** → behaviors.md.
+- **What each part does** → spec.md. **The data contract** → schema.md.
 
 **Three properties hold over everything below.**
 
-- **The action set is closed**, and so are the mutation ops and the four adjustments. A new sort of thing is a definition, which is data, and it reaches the surface through the actions already here.
-- **Every action is sayable.** That is the test for being one at all: something somebody meant and could put in words. What cannot be said is an adjustment, and there are four.
+- **A new sort of thing is a definition**, which is data, and it reaches the surface through the actions already here. The set is small on purpose rather than closed by decree: an action earns its place by being something somebody would say, and two actions saying one thing are one action.
+- **Every action is sayable.** That is the test for being one at all: something somebody meant and could put in words. What cannot be said is an adjustment.
 - **An action returns mutations; it never applies them.** One seam serves the pointer, the keyboard and the terminal, so no input path can do something the others cannot.
 
 **Scope is the question a gesture already asks** — what is under the pointer, or what is selected. `layer` means the open layer is enough; `block` means one is selected; a word after it narrows to usages of that base definition.
@@ -18,25 +18,23 @@
 
 ## Actions
 
-Twenty-eight.
+Twenty-five.
 
 ### Blocks
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `create` | makes a new block in a layer, where you pointed if you did | layer | label, parent?, type?, spot? | `add_block` |
-| `delete` | removes a block and everything it owns | block | id | `delete_block` |
-| `rename` | changes what a block is called | block | id, label | `update_block{label}` |
+| `create` | makes a new block in a layer, where you pointed if you did | layer | label?, parent?, type?, spot? | `add_block` |
+| `delete` | removes blocks and everything they own, or relationships | block, edge, selection | ids | `delete_block` / `delete_edge` |
+| `rename` | changes what a block or a relationship is called | block, edge | id, label | `update_block{label}` |
 | `retype` | sets which definition a block or a relationship names | block, edge | id, type | `update_block{type}` / `update_edge` |
 | `describe` | writes the body text of a block | block | id, body | `set_body` |
-| `move` | puts a block under a different parent, and places it if told where | block | id, parent, spot? | `move_block` |
+| `move` | puts a block under a different parent, in the place you dropped it | block | id, parent, before?, spot? | `move_block` |
 | `refer` | places a reference of a block into this layer | layer | target, spot? | `add_block{of}` |
 
-**`move` absorbs nesting, promotion and filing** — they differ only in where the parent comes from: a sibling, the layer above, a folder, or the workspace. Moving a block to the top level makes it a project; moving one into a folder leaves it a root. Both are derived, so neither is a separate act.
+**`move` absorbs nesting, promotion, filing and ordering** — they differ only in where the parent comes from: a sibling, the layer above, a folder, or the workspace. Moving a block to the top level makes it a project; moving one into a folder leaves it a root. All derived, so none is a separate act.
 
-**`delete` never reaches through a reference.** A view holds references, so deleting one takes the boundary away and leaves its members exactly where they were — which is why *dissolve* is not a second action.
-
-**`refer`'s target is `{ project, block }`.** A reference of a project's root refers to that whole project, which is what the workspace's own children are.
+**`delete` never reaches through a reference.** A view holds references, so deleting one takes the boundary away and leaves its members exactly where they were — which is why *dissolve* is not a second action. **One or many is one question**: a gesture names one and a selection names several, and an action that removes things should not care which it was handed.
 
 ### Navigation
 
@@ -44,9 +42,12 @@ Twenty-eight.
 
 | | Does | Scope | Arguments | Effect |
 |---|---|---|---|---|
-| `open` | opens a block as the layer being drawn | block | id | `open` |
-| `up` | leaves the open layer for the one containing it | layer | — | `open` |
-| `reveal` | opens the layer a block lives in and selects it there | block, reference | id | `open` + `focus` |
+| `open` | opens a block as the layer being drawn, or leaves this one when told no block | block | id? | `open` |
+| `reveal` | opens the layer a block lives in and selects it there | block | id | `open` + `focus` |
+
+**`open` absorbs the way out.** Opening and leaving differ only in where the layer comes from — one is named and one is derived — so a second name for the same act was one too many. **Absent `id` is the way out**, which nothing but a gesture can say, so it is never in the offered list.
+
+**The way out of an interface is the way in.** An interface is drawn in two layers at once — seated on its owner's border, and set into that owner's wall seen from inside — so leaving one lands back in whichever of the two you came from. Everything else leaves for what holds it.
 
 **No other action returns `open` or `focus` when a text interface reached it.** Typing three names makes three siblings, because creating one selected nothing.
 
@@ -54,13 +55,17 @@ Twenty-eight.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `relate` | draws a relationship from one block to another | layer | from, to, type?, module?, ports?, sides? | `link_blocks` |
+| `relate` | draws a relationship from one block to another | layer | from, to, type?, module?, fromSide?, toSide? | `link_blocks` |
+| `relink` | takes one end of a relationship to another block | edge | id, end, to | `set_end` + `set_side` |
 | `unlink` | removes a relationship and any interfaces it leaves spare | edge | id | `delete_edge` |
 | `flip` | turns a relationship around | edge | id | `flip_edge` |
-| `direct` | sets which way a relationship's arrows point | edge | id, dir | `set_dir` |
-| `reform` | sets whether a relationship is a `line` or `directed` | edge | id, module | `set_form` |
+| `direct` | sets which way a relationship's arrows point, or takes them off | edge | id, dir | `set_form` + `set_dir` |
 
-**`relate` carries the type**, so one gesture does not cost `relate` then `retype` — two steps and two undos. A path or a known id is used as it stands; a bare name is matched against the definitions in scope, and only a name nothing declares is minted. **A named type carries its own relation module**, so `reform` applies to an untyped relationship alone.
+**`direct` absorbs `reform`.** Whether a relationship is a line or directed, and which way its arrows point, were two settings saying one thing — **a plain line is a directed relationship pointing nowhere**, so `dir: none` is the whole of it.
+
+**`relate` carries the type**, so one gesture does not cost `relate` then `retype` — two steps and two undos. A path or a known id is used as it stands; a bare name is matched against the definitions in scope, and only a name nothing declares is minted. **A named type carries its own relation module.**
+
+**What the ends decide is not on offer.** A line to a note is a `tie` and a line to a reference is a `reference` — assigned from what sits at the ends, so `direct` says so in words rather than writing a change the next touch would undo. **`relink` asks again**: an end dragged onto a note ties the line, and an end taken off one leaves an ordinary line.
 
 **`relate` absorbs tying a note.** A note is a block and a tie is a relationship, so there is nothing left for a separate action to do — drawing it dashed is presentation.
 
@@ -70,18 +75,20 @@ Twenty-eight.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `interface` | puts an interface on an edge, or pins a relationship's seat as one | block | owner, side?, at?, edge?, end? | `add_block` (+ `set_end`) |
+| `interface` | puts an interface on an edge of a block, and takes a relationship to it | block | owner, side?, at?, edge?, end? | `add_block` (+ `set_end`, `set_side`) |
 | `mark` | marks an interface in, out, both, or clears the mark | interface | id, flow | `mark_port` |
 
-**`interface` absorbs promotion**: naming a relationship's seat is making an interface and telling that end about it — the same action with two more arguments. **Which definitions take no interface is a `degree` rule**, which is data, and never a branch in the action.
+**`interface` absorbs promotion**: naming the seat a relationship already meets *is* making an interface there and telling that end about it, so `edge` and `end` are the whole of the difference. Only a gesture on the end knows both, which is why nothing else fills them. The wall the end was pinned to goes with the promotion — it is the interface's own wall now.
+
+**Which definitions take no interface is a `degree` rule**, which is data, and never a branch in the action.
 
 ### Boundaries and notes
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `group` | draw a boundary round these, or add them to a boundary already there | layer | members, into? | `add_block` + `join_group`… |
-| `leave` | take this out of a boundary it belongs to | block | id, group | `leave_group` |
-| `note` | put a note here saying what you typed | layer | text, spot?, size? | `add_block` + `set_body` |
+| `group` | draws a boundary round these, or adds them to a boundary already there | selection | members, into? | `add_block` + `join_group`… |
+| `leave` | takes this out of a boundary it belongs to | block | id, group | `leave_group` |
+| `note` | puts a note here saying what you typed | layer | text, spot?, w?, h? | `add_block` + `set_body` |
 
 **`group` absorbs joining**: with `into` it adds to that boundary, without it makes one. A group is a view at layer scope, so its members are references and the boundary owns nothing.
 
@@ -89,49 +96,33 @@ Twenty-eight.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `field` | set a named value on this, or rename one it already carries | block, edge | holder, name, patch? | `set_field` |
-| `unfield` | drop a named value from this | block, edge | holder, name | `drop_field` |
-| `define` | name a new definition, or rename one the project has | project | id?, name, patch | `set_def` |
-| `undefine` | drop a definition, leaving anything that used it alone | project | id | `drop_def` |
+| `field` | sets a named value on this, or adds a field to a definition so every usage carries one | layer, block, edge | holder, name, value?, form?, unit?, choices? | `set_field` / `set_def` |
+| `unfield` | drops a named value from this, or a field from a definition | layer, block, edge | holder, name | `drop_field` / `set_def` |
+| `define` | names a new definition, or renames one this layer already has | layer | name, group?, extends? | `set_def` |
+| `undefine` | drops a definition, leaving anything that used it alone | layer | id | `drop_def` |
+
+**One act, and the holder says which.** Setting a value on a usage and declaring a field on a definition are the same thing said about two sorts of holder, so `field` absorbed `declare` and `unfield` absorbed `undeclare`. `form`, `unit` and `choices` describe a field and are read only when the holder is a definition.
+
+**Fields union with the subtype's winning by name**, so declaring one that is already there rewrites it rather than doubling it.
+
+**Which packages a project draws from is an ordinary field.** It was an action of its own writing a field with a hardcoded name, which is a convention rather than an act.
 
 **A definition may name another project's**, which is how a package is used. A package's own definitions are never altered — refining one means subtyping it.
 
-### Views
+### The layer, and views
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `pin` | keeps the layer as it is being looked at, as a view you can come back to | layer | layer, name | `add_block` + `refer`… |
-
-**A pinned layer is an ordinary view block** — a block whose definition names a view module, holding one reference per thing shown. It is content rather than presentation, so it exports, undoes and is worked on like anything else. **A view holds views**, so a matrix's two axes cost nothing new.
-
-### Behavior
-
-**One**, and it is the engine's rather than any module's. Nothing else about behaviour needs an action: an activity is blocks and relationships, and the ordinary actions make those.
-
-| | Does | Scope | Arguments | Writes |
-|---|---|---|---|---|
-| `infer` | turns a selection into one behavior block — activity, or state when the selection is actions | selection | of[] | `add_block`… + `link_blocks`… |
-
-**Any cross-section**: blocks, whole branches, entire projects, across as much of the workspace as the selection reaches. **The result is always a new top-level block**, so an inference can never disturb a behavior somebody has already worked on. Filing it afterwards is ordinary reorganising.
-
-**One-way, one-time and deterministic.** Nothing re-syncs afterwards, and re-inferring makes a **new** block rather than touching an existing one, so hand-adjusted work is never clobbered. Determinism is over the selection, so nothing may depend on the order things were clicked.
-
-**It composes**: a selection of actions infers a `state` block the way structure infers an `activity`. **It states only what the structure stated**, and guesses the rest freely.
-
-**Named `infer`, not `project`** — *projection* already means a layer rendered through a view module.
-
-### The layer and the project
-
-| | Does | Scope | Arguments | Writes |
-|---|---|---|---|---|
-| `arrange` | how the layer lays out and which way it reads | layer | layer, shape | `set_arrangement` |
-| `vocabulary` | which packages this project draws definitions from | project | packages | `set_vocabulary` |
+| `arrange` | sets how the layer lays out and which way it reads | layer | arrangement | `set_arrangement` |
+| `pin` | keeps the layer as it is being looked at, as a view you can come back to | layer | name | `add_block` + `refer`… |
 
 **One setting, six values** — `free`, `grid`, `right`, `left`, `down`, `up` — of which four carry a reading direction and two do not. Axis, flow and arrangement were three fields answering overlapping questions.
 
-**Arrangement is how a graph reads, not how it is shown**, so it sits on the layer with the model rather than in display state — and it must, because **inference reads it** and an inference is permanent. If the reading direction were display state, the same model would infer differently depending on how somebody was looking at it.
+**Arrangement is model data, not a display preference.** How a layer reads is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
 
 **It is a setting, not a one-time act.** `free` is the value where hand placement is what draws; every other value computes, keeping what was placed so returning to `free` gives it back. There is no `relax` — *hand it back to automatic* has nothing left to mean once picking a computed arrangement already does it.
+
+**A pinned layer is an ordinary view block** — a block whose definition names a view module, holding one reference per thing shown. It is content rather than presentation, so it exports, undoes and is worked on like anything else. **A view holds views**, so a matrix's two axes cost nothing new.
 
 ### One log, so nothing routes
 
@@ -142,16 +133,19 @@ Twenty-eight.
 
 ## Adjustments
 
-Four. Positional, unsayable, gesture-only — never named, ranked or listed. **A view module declares which of these it accepts**, and may accept none.
+Five. Positional, unsayable, gesture-only — never named, ranked or listed. **A view module declares which of these it accepts**, and may accept none.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `place` | where something came to rest | block | moved[], membership? | `place_block`… |
+| `place` | where something came to rest | block | moved[] | `place_block`… |
 | `size` | how big a note was asked to be | note | id, w, h | `size_block` |
 | `seat` | where an interface sits on its edge | interface | id, side, at | `set_port` |
-| `wall` | which wall a relationship leaves by | edge | id, end, side | `set_side` |
+| `wall` | which wall a relationship leaves by | edge | id, end, side, at? | `set_side` |
+| `straighten` | takes the bend out of a relationship so it runs straight between its ends | edge | id, from, to, align? | `set_side` ×2 (+ `place_block`) |
 
 **A hand-laid thing is a hard constraint; a derived one is not.** What an adjustment writes is honoured until a computed arrangement replaces where things draw, and `free` gives it back.
+
+**`straighten` is an adjustment and not an action.** Where two borders can meet without a jog is a fact about two rectangles, which a relationship carries neither of — so the walls, the fractions and the block that has to shift are all handed in by the drawing. Both ends end up pinned, which is the only way to say *there* about a seat that is otherwise worked out; unpinning them is dragging either end again.
 
 
 ## Gestures
@@ -171,11 +165,17 @@ Below is the **block view's** map, which is the default and what every other mod
 | click | card, boundary, relationship | selection |
 | click | reference | selection — of what it stands for, not the stand-in |
 | click | frame, empty | clears; empty inside a boundary selects the boundary |
-| double-click | card | `open`, or `reveal` if it is a reference |
-| double-click | empty, outside the frame | `up` |
+| double-click | card, its border, a seat | `open` |
+| double-click | name | rename, in place |
+| double-click | note | edits its text — a note is its text, and has no inside |
+| double-click | relationship | `straighten` |
+| double-click | frame edge, or empty outside the frame | `open`, with nothing to open |
 | drag | card → another card | `move` |
 | drag | card → past the frame | `move`, to whatever contains the layer |
 | drag | card, boundary or selection | `place`, joining or leaving whatever it lands in |
+| drag | a relationship's end | `relink`, or `wall` where it stays put |
+| drag | seat | `seat` |
+| drag | note corner | `size` |
 | drag | empty | selection box |
 | drop | explorer row | `refer` |
 
@@ -184,7 +184,7 @@ Below is the **block view's** map, which is the default and what every other mod
 | Gesture | On | Reaches |
 |---|---|---|
 | click | empty | `create` — asks for the name first |
-| click | card, frame edge, relationship, selection | the offered list for that target |
+| click | card, frame edge, relationship, a relationship's end, selection | the offered list for that target |
 | drag | card → card | `relate` |
 | drag | card → empty | `create` + `relate` |
 | drag | empty → empty | `note`, the swept rectangle its least size |
@@ -231,10 +231,10 @@ Drawn in that order whatever order a module lists them. **`relations` is last on
 
 | | |
 |---|---|
-| actions | **28** — three of them navigation, writing nothing |
-| adjustments | **4** |
+| actions | **25** — two of them navigation, writing nothing |
+| adjustments | **5** |
 | shell actions, off the registry | **9** |
-| mutation ops, the action set, the adjustments | **closed** |
+
 
 ## The registry
 
@@ -254,3 +254,12 @@ Drawn in that order whatever order a module lists them. **`relations` is last on
 **Adjustments are positional, unsayable and gesture-only** — never named, ranked or listed. They write mutations and they undo like anything else. **A view module declares which it accepts, and may accept none.**
 
 **Every action, adjustment and gesture is enumerated above.**
+
+
+## Still open
+
+| Issue | Description |
+|---|---|
+| **Promotion has no gesture** | `interface` takes `edge` and `end`, and only a gesture on a relationship's end knows both — but a menu raised on an end offers edge-scoped actions, and `interface` is block-scoped, so nothing currently fills them. Either the anchor gesture calls `interface` directly with the border it meets, or `interface` widens its scope. Undecided |
+| **A named package is no longer checked** | The `vocabulary` action refused a package that was not there. As an ordinary field, a typo is stored silently. Either `field` learns one name, or the check moves to where a vocabulary is read |
+| **Behaviour** | Inference, the four order tiers, the write-home gate and the activity/sequence/state readings were cut. *The model defines itself as the user builds* — design.md's driving concept — now has no implementation. What replaces it is undesigned |

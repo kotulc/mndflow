@@ -151,7 +151,7 @@ describe("the left button works what is already there", () => {
   it("comes back out on a double click in the band", () => {
     const view = mount();
     fireEvent.doubleClick(ground(view), { clientX: 9000, clientY: 9000 });
-    expect(view.onAct).toHaveBeenCalledWith("up");
+    expect(view.onAct).toHaveBeenCalledWith("open");
   });
 
   it("stays put on a double click inside the frame", () => {
@@ -159,7 +159,7 @@ describe("the left button works what is already there", () => {
     const f = view.scene.frame!;
     fireEvent.doubleClick(ground(view),
       { clientX: f.x + f.w / 2, clientY: f.y + f.h / 2 });
-    expect(view.onAct).not.toHaveBeenCalledWith("up");
+    expect(view.onAct).not.toHaveBeenCalledWith("open");
   });
 });
 
@@ -242,7 +242,7 @@ describe("the surrounds", () => {
     fireEvent.click(view.getByText("workspace"));
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "ws" });
     fireEvent.click(view.getByTitle(/up one layer/));
-    expect(view.onAct).toHaveBeenCalledWith("up");
+    expect(view.onAct).toHaveBeenCalledWith("open");
   });
 
   it("says what the app is saying, in one place, and dismisses it", () => {

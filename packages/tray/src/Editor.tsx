@@ -59,7 +59,7 @@ export function Editor(props: EditorProps) {
 
   const declare = () => {
     if (!declaring.trim() || !def) return;
-    onAct("declare", { def: def.id, name: declaring.trim(), form });
+    onAct("field", { holder: def.id, name: declaring.trim(), form });
     set_declaring("");
   };
 
@@ -128,8 +128,8 @@ export function Editor(props: EditorProps) {
                     </td>
                     <td className="drop">
                       <button title={`drop ${f.name} from ${def.name}`}
-                              onClick={() => onAct("undeclare",
-                                                   { def: def.id, name: f.name })}><Icon name="remove" /></button>
+                              onClick={() => onAct("unfield",
+                                                   { holder: def.id, name: f.name })}><Icon name="remove" /></button>
                     </td>
                   </tr>
                 ))}

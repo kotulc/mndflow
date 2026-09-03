@@ -9,6 +9,5 @@ export * from "./fold";
 export * from "./door";
 export * from "./rules";
 export * from "./actions";
-export * from "./infer";
 export * from "./file";
 export * from "./session";

@@ -74,6 +74,12 @@ export type Adjust =
    *  what this writes is the wall and the fraction the end was pinned to — the
    *  seat goes back to being worked out the moment it is unpinned. */
   | { kind: "anchor"; on: string; end: "from" | "to"; side: Side; at: number }
+  /** A relationship asked to run straight. **Where two borders can meet
+   *  without a jog is a fact about two rectangles**, which a relationship
+   *  carries neither of — so the canvas is the only thing that can say it, and
+   *  saying it is what makes this an adjustment rather than something sayable. */
+  | { kind: "straighten"; on: string; fromSide: Side; fromAt: number;
+      toSide: Side; toAt: number; align?: string; x?: number; y?: number }
   /** A corner dragged. **The one card whose size is yours to set** — every
    *  other one is sized from what it holds, and a block has carried `w` and
    *  `h` all along with no gesture that wrote them. */

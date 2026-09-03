@@ -18,7 +18,11 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** An interface's decorative mark. Constrains nothing. */
 export type Flow = "in" | "out" | "both";
 
-/** One setting, six values. Four carry a reading direction. */
+/** One setting, six values. Four carry a reading direction.
+ *
+ *  **Model data, not a preference.** How a layer reads is part of what the
+ *  layer says, so a diagram reopens the way it was left and travels in a file
+ *  with the rest of it. */
 export type Arrangement = "free" | "grid" | "right" | "left" | "down" | "up";
 
 export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid", "right", "left", "down", "up"];
@@ -89,11 +93,11 @@ export type Relation = {
 
 /** Which block module the engine dispatches on. Open — one more is additive. */
 export type BlockModule =
-  | "folder" | "structure" | "behavior" | "reference"
+  | "folder" | "structure" | "reference"
   | "interface" | "resource" | "group" | "note" | "view";
 
 export const BLOCK_MODULES: readonly BlockModule[] = [
-  "folder", "structure", "behavior", "reference",
+  "folder", "structure", "reference",
   "interface", "resource", "group", "note", "view",
 ];
 
@@ -103,12 +107,6 @@ export const BLOCK_MODULES: readonly BlockModule[] = [
 export type ViewModule = "block" | "table" | "matrix";
 
 export const VIEW_MODULES: readonly ViewModule[] = ["block", "table", "matrix"];
-
-/** Which reading of a behavior layer. A reading is how you look, never
- *  something inferred — it configures the block module rather than being one. */
-export type Reading = "activity" | "sequence" | "state";
-
-export const READINGS: readonly Reading[] = ["activity", "sequence", "state"];
 
 export type Components = Record<string, Record<string, unknown>>;
 

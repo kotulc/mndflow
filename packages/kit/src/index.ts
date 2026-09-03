@@ -26,9 +26,9 @@
 export {
   type Arrangement, type Block, type BlockModule, type Components, type Definition,
   type Dir, type Field, type FieldDef, type File, type Flow, type Graph, type Id,
-  type Point, type Reading, type RelationModule, type Relation, type Side,
+  type Point, type RelationModule, type Relation, type Side,
   type ValueForm, type ViewModule,
-  ARRANGEMENTS, BLOCK_MODULES, READINGS, READS, ROOT, SCHEMA, VIEW_MODULES,
+  ARRANGEMENTS, BLOCK_MODULES, READS, ROOT, SCHEMA, VIEW_MODULES,
   def_id, empty_graph, new_id,
 } from "@mnd/core";
 
@@ -48,13 +48,13 @@ export { type Note, type NoteKind, type Range, type Rules, review, rules_of } fr
 
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
-  arrangement_of, children, defs_in_scope, derived_name, edges_in, isa, is_container,
-  is_interface, is_reference, is_tier_root, layer_id, module_of, owner_of, path,
-  resolve_def, shown_name, stands_for, subtree, word_of,
+  arrangement_of, children, defs_in_scope, edges_in, isa, is_container,
+  is_interface, is_reference, is_top_block, layer_id, module_of, owner_of, path,
+  resolve_def, shown_name, stands_for, subtree,
 } from "@mnd/core";
 
 /** The floor. `base_graph()` is a fresh workspace with the base package in it. */
-export { ALL, BASE, BEHAVIOR, RELATIONS, base_graph, by_id } from "@mnd/defs";
+export { ALL, BASE, RELATIONS, base_graph, by_id } from "@mnd/defs";
 
 /** A layer, projected — and the two artifacts a projection makes on its own. */
 export {

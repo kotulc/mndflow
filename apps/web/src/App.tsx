@@ -7,7 +7,7 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, matches, offer, session, type Id, type Reading } from "@mnd/core";
+import { adjustments, matches, offer, session, type Id } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, nearest_seat, snap, view, BLOCK, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
@@ -93,8 +93,7 @@ export function App() {
   const said = s.said();
   const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
 
-  /** The definition supplies which module draws and how it is read, so three
-   *  of the six offered here are the same module read differently. */
+  /** The definition supplies which module draws. */
   const offered = useMemo(
     () => Object.values(graph.defs).filter((d) => d.group === "view"), [graph]);
   const named = graph.defs[showing]?.components?.["view"];
@@ -102,7 +101,6 @@ export function App() {
    *  whenever a definition names no view, and nothing below may depend on
    *  something that is new every time. */
   const drawn_by = narrowed ? "table" : String(named?.["module"] ?? "block");
-  const reading = named?.["reading"] as Reading | undefined;
 
   /** **A result is a table, on the stage.** What matched is handed to the real
    *  table view as its contents — the same seam a view block hands it what it
@@ -131,9 +129,9 @@ export function App() {
    *  identity changing is exactly what "the model changed" means. */
   const scene = useMemo(
     () => module.project(graph, narrowed ? null : layer, {
-      holds, reading, interfaces: shown.interfaces,
+      holds, interfaces: shown.interfaces,
     }),
-    [module, graph, layer, narrowed, holds, reading, shown.interfaces]);
+    [module, graph, layer, narrowed, holds, shown.interfaces]);
 
   /** What the conversation is about: the block in focus, or the open layer when
    *  nothing is. It **reads context and never changes it**. */
@@ -193,6 +191,12 @@ export function App() {
     if (a.kind === "size") {
       s.adjust("size", adjustments.size(a.on, a.w, a.h));
       s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
+      return;
+    }
+    if (a.kind === "straighten") {
+      s.adjust("straighten", adjustments.straighten(a.on,
+        { side: a.fromSide, at: a.fromAt }, { side: a.toSide, at: a.toAt },
+        a.align ? { id: a.align, x: snap(a.x!), y: snap(a.y!) } : undefined));
       return;
     }
     if (a.kind === "wall-seat") {

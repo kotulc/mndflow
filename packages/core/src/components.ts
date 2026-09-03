@@ -13,7 +13,7 @@
  *  wrong — which is how an older build opens a newer package. What a component
  *  refuses is dropped, and only that key. */
 
-import { BLOCK_MODULES, READINGS, VIEW_MODULES, type Definition } from "./types";
+import { BLOCK_MODULES, VIEW_MODULES, type Definition } from "./types";
 
 /** What a definition holds under one component's key. Free-form: the component
  *  says what its own shape is, and nothing else may read it. */
@@ -130,9 +130,7 @@ const card: Component = {
     ?? one_of("card.shape", config["shape"], SHAPES)
     ?? one_of("card.label", config["label"], LABELS)
     ?? words("card.shows", config["shows"])
-    ?? (config["word"] !== undefined && typeof config["word"] !== "string"
-        ? "`card.word` has to be a word" : null)
-    ?? stray("card", config, ["layout", "shape", "label", "shows", "word"]),
+    ?? stray("card", config, ["layout", "shape", "label", "shows"]),
 };
 
 const style: Component = {
@@ -150,17 +148,12 @@ const style: Component = {
     ?? stray("style", config, ["set", "slot", "emphasis", "weight", "voice"]),
 };
 
-/** Which module presents a layer, how it is read, and where inference cuts. */
+/** Which module presents a layer. */
 const view: Component = {
   name: "view",
-  check: (config) => {
-    const n = config["N"];
-    return one_of("view.module", config["module"], VIEW_MODULES)
-      ?? one_of("view.reading", config["reading"], READINGS)
-      ?? (n !== undefined && (typeof n !== "number" || !Number.isInteger(n) || n < 1)
-          ? "`view.N` has to be a positive whole number" : null)
-      ?? stray("view", config, ["module", "reading", "N"]);
-  },
+  check: (config) =>
+    one_of("view.module", config["module"], VIEW_MODULES)
+    ?? stray("view", config, ["module"]),
 };
 
 /** The one constraint: which of a usage's fields must carry a value. */

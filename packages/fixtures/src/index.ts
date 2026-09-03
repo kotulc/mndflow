@@ -112,36 +112,7 @@ export function interfaced(): Log {
   ];
 }
 
-/** A behavior layer, as `infer` would have written one: one action per
- *  participant, each holding a reference, ordered by directed relationships —
- *  and one action branching in two, which is what draws a control. */
-export function behaved(): Log {
-  start();
-  const act = (id: string, of: string, n: number): Mutation[] => [
-    { op: "add_block", block: { id, parent: "block_flow", type: "action", num: n } },
-    { op: "add_block", block: { id: `${id}_ref`, parent: id, of, num: 1 } },
-  ];
-  return [
-    base(),
-    step("create", [block("block_loop", ROOT, "Coolant Loop", "structure")]),
-    step("create", [block("block_pump", "block_loop", "Pump", "structure")]),
-    step("create", [block("block_hx", "block_loop", "Heat Exchanger", "structure")]),
-    step("create", [block("block_tank", "block_loop", "Reservoir", "structure")]),
-    step("infer", [
-      { op: "add_block", block: { id: "block_flow", parent: ROOT, type: "behavior",
-                                  label: "Coolant Loop behavior", num: 2 } },
-      ...act("act_pump", "block_pump", 1),
-      ...act("act_hx", "block_hx", 2),
-      ...act("act_tank", "block_tank", 3),
-      link("order_a", "act_pump", "act_hx", "directed"),
-      link("order_b", "act_hx", "act_tank", "directed"),
-      link("order_c", "act_pump", "act_tank", "directed"),
-    ]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_flow", arrangement: "right" }]),
-  ];
-}
-
-export const FIXTURES = { blank, flat, nested, related, interfaced, behaved };
+export const FIXTURES = { blank, flat, nested, related, interfaced };
 
 export type FixtureName = keyof typeof FIXTURES;
 

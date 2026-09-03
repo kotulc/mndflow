@@ -154,8 +154,8 @@ describe("what an action absorbs", () => {
     const edge = Object.values(s.graph().edges)[0]!;
     expect(edge.module).toBe("tie");
 
-    /** Asked to be a line, it says what it is instead of writing a step. */
-    s.go("reform", { id: edge.id, module: "line" });
+    /** Asked to be a plain line, it says what it is instead of writing a step. */
+    s.go("direct", { id: edge.id, dir: "none" });
     expect(s.graph().edges[edge.id]!.module).toBe("tie");
 
     /** And an end taken off the note is an ordinary line again. */
@@ -202,7 +202,7 @@ describe("the way out of a layer", () => {
     const { s, loop, port } = seated();
     s.go("open", { id: port });
     expect(s.layer()).toBe(port);
-    s.go("up");
+    s.go("open");
     expect(s.layer()).toBe(loop);
   });
 
@@ -210,16 +210,16 @@ describe("the way out of a layer", () => {
     const { s, pump, port } = seated();
     s.look(pump);
     s.go("open", { id: port });
-    s.go("up");
+    s.go("open");
     expect(s.layer()).toBe(pump);
   });
 
   it("leaves an ordinary block for what holds it", () => {
     const { s, loop, pump } = seated();
     s.go("open", { id: pump });
-    s.go("up");
+    s.go("open");
     expect(s.layer()).toBe(loop);
-    s.go("up");
+    s.go("open");
     expect(s.layer()).toBe(ROOT);
   });
 });
@@ -265,7 +265,7 @@ describe("pin keeps a layer as a view", () => {
   });
 });
 
-describe("vocabulary", () => {
+describe("a field on a layer", () => {
   /** A fresh workspace has no floor until an app hands one in — core may not
    *  reach for the package that supplies it. */
   const seeded = () => session({ defs: ["structure", "note"].map((name) => ({
@@ -278,13 +278,22 @@ describe("vocabulary", () => {
     s.go("create", { label: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    expect(s.go("vocabulary", { packages: "structure note" })).toBeNull();
+    expect(s.go("field", { holder: loop, name: "vocabulary",
+                           value: "structure note" })).toBeNull();
     const field = s.graph().blocks[loop]!.fields!.find((f) => f.name === "vocabulary")!;
     expect(field.value).toBe("structure note");
   });
 
-  it("refuses a package that is not there, and says which", () => {
-    expect(seeded().go("vocabulary", { packages: "structure nowhere" })).toMatch(/nowhere/);
+  /** **A definition holder declares rather than sets.** The same act, told
+   *  about a definition instead of a usage. */
+  it("adds a field to a definition when the holder is one", () => {
+    const s = seeded();
+    expect(s.go("field", { holder: "structure", name: "mass", form: "number",
+                           unit: "kg" })).toBeNull();
+    expect(s.graph().defs["structure"]!.fields)
+      .toEqual([{ name: "mass", form: "number", unit: "kg", choices: undefined }]);
+    expect(s.go("unfield", { holder: "structure", name: "mass" })).toBeNull();
+    expect(s.graph().defs["structure"]!.fields).toEqual([]);
   });
 });
 
@@ -321,8 +330,12 @@ describe("offer", () => {
     expect(one).toContain("rename");
   });
 
-  it("does not offer up from the top", () => {
-    expect(offer(ctx([], null)).map((a) => a.name)).not.toContain("up");
-    expect(offer(ctx([], "block_loop")).map((a) => a.name)).toContain("up");
+  /** **Navigation is a gesture, not a menu entry.** Leaving a layer is `open`
+   *  with nothing to open, which nothing but a gesture can say — so it is never
+   *  in the offered list, and there is no scope where it would be wrong. */
+  it("offers no way out at layer scope", () => {
+    expect(offer(ctx([], null)).map((a) => a.name)).not.toContain("open");
+    expect(offer(ctx([], "block_loop")).map((a) => a.name)).not.toContain("open");
+    expect(offer(ctx(["block_pump"])).map((a) => a.name)).toContain("open");
   });
 });

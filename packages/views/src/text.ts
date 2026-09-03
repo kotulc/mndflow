@@ -49,15 +49,12 @@ export function draw(scene: Scene): string {
   }
 
   for (const b of at) {
-    /** A lifeline is two pixels wide and would draw as an empty card. What it
-     *  hangs is what there is to read. */
-    if (b.data.marks.includes("lifeline")) continue;
     const x = Math.round((b.x - left) / CELL);
     const y = Math.round((b.y - top) / CELL);
     const w = Math.max(3, Math.round(b.w / CELL));
-    const lane = b.data.marks.includes("group") || b.data.marks.includes("lane");
-    const open = lane ? "(" : b.data.marks.includes("reference") ? "<" : "[";
-    const close = lane ? ")" : b.data.marks.includes("reference") ? ">" : "]";
+    const band = b.data.marks.includes("group");
+    const open = band ? "(" : b.data.marks.includes("reference") ? "<" : "[";
+    const close = band ? ")" : b.data.marks.includes("reference") ? ">" : "]";
     const room = w - 2;
     const name = b.data.label;
     const label = name.length > room ? name.slice(0, Math.max(0, room - 1)) + "…" : name;
