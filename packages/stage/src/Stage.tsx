@@ -170,8 +170,15 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
          *  are names now — so the one part of a card that is always just card
          *  is its border, and two clicks on a border never meant anything
          *  else. */
+        /** **A reference is opened where it lives, not where it stands.** It
+         *  holds nothing, so descending into one arrived in an empty layer
+         *  named after the block it stands for — or called *missing*, once
+         *  that block was gone. Two clicks on a stand-in mean *show me the
+         *  real one*, which is `reveal`. */
         else if (g.on && (g.kind === "box" || g.kind === "seat" || g.kind === "brim")) {
-          onAct("open", { id: g.on });
+          const stands = scene.nodes.find((n) => n.id === g.on)
+            ?.data.marks.includes("reference");
+          onAct(stands ? "reveal" : "open", { id: g.on });
         }
         /** **A note is its text.** It has no inside to descend into, so the two
          *  clicks that go into a card edit what this one says instead — the

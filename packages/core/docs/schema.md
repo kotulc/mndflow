@@ -46,7 +46,7 @@ Session {
 
 **The test for whether something belongs here: is it in the log?** A block's name is, so it exports and it undoes. Whether interfaces are shown is not, so it does neither.
 
-**`arrangement` is not session state.** It is model data on the layer, because inference reads the reading direction and an inference is permanent — see *Block*.
+**`arrangement` is not session state.** It is model data on the layer, because how a layer reads is part of what the layer says — see *Block*.
 
 ### Files
 
@@ -110,16 +110,15 @@ Block {
 | | Holds | Is |
 |---|---|---|
 | `folder` | anything — independent roots, contained never owned | the organizational unit. **The workspace is the root folder; a project is a top-level block** |
-| `structure` | parts and references | the default. What there is, and how it is composed |
-| `behavior` | references to participants, and its own actions and states | what happens *over* a structure. Its own module because inference and ordering hook here |
+| `structure` | parts and references | the default, and the one every ordinary block is. What there is, how it is composed, and what it does |
 | `reference` | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
-| `interface` | anything | a block seated on an edge. The one anchor for every port-like thing — a proxy port, a full port, an activity pin, a constraint parameter |
+| `interface` | anything | a block seated on an edge. The one anchor for every port-like thing — a proxy port, a full port, a pin, a constraint parameter |
 | `resource` | a workspace-relative path or link | a file, a script, a data file, an image |
 | `group` | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary |
 | `note` | text | a resource drawn as a card of text |
 | `view` | **references only**, and the module regulates it entirely | a perspective kept: which blocks, through which module, configured how |
 
-**`Arrangement`** — `free` · `grid` · `right` · `left` · `down` · `up`. **One setting, six values**, of which four carry a reading direction. **Model data, not a preference**, because inference reads position along the reading direction and the same selection must infer the same way every time.
+**`Arrangement`** — `free` · `grid` · `right` · `left` · `down` · `up`. **One setting, six values**, of which four carry a reading direction. **Model data, not a preference**: how a layer reads is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
 
 ### Relation
 
@@ -223,7 +222,7 @@ FieldDef { name, form, unit?, default?, choices?, many?, tags? }
 - **A component owns its key and reads no other's.**
 - **Each validates its own key at the door.** One absent from the build validates nothing, so its configuration is *unvalidated* rather than wrong — which is how an older build opens a newer package. What a component refuses is dropped, and only that key.
 
-**View modules — three, and closed**: `block`, `table`, `matrix`. `block` is **any planar projection** — it carries lifelines, columns and segments, so activity, sequence and state are configurations of it rather than modules of their own.
+**View modules — three**: `block`, `table`, `matrix`. `block` is **any planar projection**. A notation is a view definition naming one of the three and configuring it, never a module of its own and never a name the engine knows.
 
 ---
 
@@ -336,9 +335,8 @@ rules {
 | **a group's members** | the blocks naming it in `groups` |
 | **`reference` and `tie` relation modules** | what sits at the ends |
 | **`derived` on a relation** | a flag, recomputed on fold, not in the log, not deletable |
-| **seats, routes, lanes** | the layer, every draw |
-| **control nodes, messages** | counting relations and their guards |
-| **participation** | asked of the behavior blocks in scope; never a back-reference |
+| **seats and routes** | the layer, every draw |
+| **what refers to a block** | asked of the graph in scope; never a back-reference |
 | **which of two definitions wins** | the nearer ancestor |
 | **the content hash** | the graph. A stored hash lies the moment anyone edits the file by hand |
 
@@ -359,33 +357,36 @@ rules {
 - **Membership is neither.** A block names its `groups`, and a group's members are derived from that, so the two can never disagree. A group is never a parent.
 - **Fields are never structural**: never in the explorer, never changing what contains what. **No identity** either — a field is addressed by name on its holder.
 
-## Tiers
+## What holds what
 
-**Three trees, and the layering is the engine's.** Views build on structure and behaviors; behaviors build on structure. This is the one place a choice is taken away from the user, and it is what keeps a subtree interpretable — a structure holding a view that looks at it is self-referential and means nothing.
+**A block is a block.** There is no structure/behaviour split and no tier walk. What a block *is* comes from its definition, and what it may hold is a rule a vocabulary states through `holds` — never one the engine imposes.
 
-> **A tree holds its own tier as parts. A lower tier appears only by reference.**
+**One rule is the engine's**, and it is the only place a choice is taken away from the user:
 
-- **A tier is derived, never stored** — the nearest ancestor whose module is `structure`, `behavior` or `view`. Nothing new in the schema, and the same walk that answers *what tier is this* answers *what happens to this drop*.
-- **Crossing a tier is a coercion, not a refusal.** Every gesture still succeeds — what arrives is an appearance rather than a part, and it draws the way every reference draws, so the difference is visible without being explained.
-- **What a drop arrives as** is the tier's elementary unit, so a drag and an inference produce the same thing:
+> **A view holds references, never parts.**
+
+A structure holding a view that looks at it is self-referential and means nothing, so the one thing the engine will not allow is a view that owns what it shows.
+
+- **Crossing it is a coercion, not a refusal.** Every gesture still succeeds — what arrives in a view is an appearance rather than a part, and it draws the way every reference draws, so the difference is visible without being explained.
+- **What a drop arrives as**, and there are only two answers:
 
   | Dropped into | Arrives as |
   |---|---|
-  | a **behavior** tree | an **action** holding a reference |
-  | a **view** tree | a **reference** |
-  | a **structure** tree, from elsewhere | a **reference** |
+  | a **view** | a **reference** |
+  | anywhere else, from elsewhere | a **reference** |
+  | anywhere else, from here | a **part** |
 
-- **References point down the tiers only.** Upward is a derived query — which behaviors a block takes part in is asked of the graph, never stored, because a stored back-reference would leave an exported structure pointing at behaviors that did not travel with it.
-- **Within a tier, nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
+- **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
+- **Nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
 
-**The nine base modules read in three groups:**
+**The eight base modules read in three groups:**
 
 | | Modules | Role |
 |---|---|---|
-| **tiers** | `structure`, `behavior`, `view` | own a tree; the layering is enforced |
-| **filing** | `folder` | holds tier roots. **Above them only** — a folder never sits inside a tier, which is what keeps the tier walk unambiguous |
-| **accessories** | `reference`, `interface`, `group`, `note`, `resource` | appear inside any tier and own no tree |
+| **the block** | `structure` | owns a tree. What a usage of it *means* is its definition's |
+| **filing** | `folder` | holds top-level blocks, and anything else |
+| **accessories** | `reference`, `interface`, `group`, `note`, `resource`, `view` | own no tree of parts |
 
-**Everything else about containment is the user's.** The tiers are the exception that makes the rest safe to leave open.
+**Everything else about containment is the user's**, and a vocabulary that wants more says so in `holds`.
 
 **One constraint and four rules** — `required`, and `ends`, `holds`, `degree`, `match` — asked by `review` and never by the door. See *What the rules ask*.

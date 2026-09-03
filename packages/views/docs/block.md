@@ -8,9 +8,8 @@ project(graph, layer, config) → Scene
 
 | Config | Is |
 |---|---|
-| `reading` | which reading of a behavior layer, where one applies |
+| `holds` | what to show, when it is not the layer's own contents |
 | `interfaces` | whether seated interfaces draw. A display preference the shell hands down |
-| `n` | the abstraction cap an inference reads |
 
 ## What it draws
 
@@ -36,9 +35,6 @@ project(graph, layer, config) → Scene
 | `group` | a boundary |
 | `note` | it is its own text |
 | `interface` | seated on an edge, with `in` and `out` for its flow mark |
-| `derived` | its name was guessed rather than typed, so **it draws dimmed** |
-
-**A guess that cannot be told from a statement is the mistake worth designing against.** That is the whole job of `derived`, and it is the same device the inferred order uses.
 
 ## Hits
 
@@ -47,24 +43,10 @@ project(graph, layer, config) → Scene
 - **The frame is the biggest hit and comes first**, so a smaller one always wins — the innermost thing under the pointer is what a click acts on.
 - **A seated interface answers as a `seat`**, not a box, which is what makes a drag on one a slide rather than a move.
 - **A route is picked by the box around it**, widened so a thin run is hittable.
-- **Nothing derived answers a gesture.** Lanes, lifelines and control nodes are drawn and never picked, because none of them is something anybody made.
+- **Nothing derived answers a gesture.** A boundary is its members' bounds and a berth draws nothing at all — neither is something anybody made, so neither is picked.
 
 ## Interfaces and ends
 
 - **An interface is seated, never laid out** — a side and a fraction along it, so the seat survives the card moving, growing or being arranged some other way.
 - **An end seated on an interface leaves by that interface's side**, unless the relationship was walled somewhere else by hand.
 - **Turning interfaces off hides the seats and never the lines.** An end lands on the card instead, so the relationship is still drawn.
-
-## Readings
-
-**One behavior layer, read three ways** — the detail is core's `behaviors.md`. What this module does with each:
-
-| Reading | Lane | Order runs | Controls |
-|---|---|---|---|
-| `activity` | a band across the flow | along the reading direction | drawn |
-| `sequence` | a **column**, with a lifeline down it | down, always | not drawn |
-| `state` | none — a machine is about one thing | along transitions | drawn |
-
-- **A behavior layer nobody has asked about reads as an activity.** A reading is how you look, so what is asked for wins.
-- **A reading places for itself**, so it offers `columns` where a plane offers `arrange`.
-- **No two actions in one lane share a step.** Two things nothing orders share a rank, and in one lane that would draw them on top of each other.

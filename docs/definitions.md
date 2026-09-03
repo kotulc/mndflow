@@ -22,7 +22,7 @@
 
 **Ownership, not distance, is what separates a part from a reference**: a part is in the tree, a reference names something the tree does not compose.
 
-**And one more thing a block can do with a child: contain it without owning it.** The workspace and a folder both do this — their children are **independent roots**, so deleting the container never deletes what it held. It is derived and nothing is stored: *contained* is *the child is a tier root*, and *owned* is everything else.
+**And one more thing a block can do with a child: contain it without owning it.** The workspace and a folder both do this — their children are **independent roots**, so deleting the container never deletes what it held. It is derived and nothing is stored: *contained* is *the child is a top-level block*, and *owned* is everything else.
 
 
 ## The block modules
@@ -33,9 +33,8 @@
 
 | Module | Holds | Is |
 |---|---|---|
-| **folder** | folders and tier roots — **contained, never owned** | the organizational unit. **The workspace is the root folder** |
+| **folder** | folders and top-level blocks — **contained, never owned** | the organizational unit. **The workspace is the root folder** |
 | **structure** | parts and references | the default. What there is, and how it is composed |
-| **behavior** | references to participants, and its own actions and states | what happens *over* a structure. Its own module because inference and ordering hook here |
 | **view** | **references only** | a perspective kept: which blocks, through which module, configured how |
 | **reference** | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | **interface** | anything | a block seated on an edge. Also **port** |
@@ -43,35 +42,34 @@
 | **group** | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary |
 | **note** | text | a resource drawn as a card of text |
 
-**Nine, in three roles:** `structure`, `behavior` and `view` are the **tiers** and own a tree; `folder` does the **filing** and holds tier roots; the other five are **accessories** that appear inside any tier and own no tree.
+**Eight, in three roles:** `structure` is **the block** and owns a tree; `folder` does the **filing**; the other six are **accessories** that own no tree of parts. **There is no doing/being split** — an action and a part are both `structure`, and what separates them is the definition each names.
 
 **The rule that keeps this from becoming forms again:** a module supplies **drawing, placement and a configuration surface**. It never answers *what may contain what* — that is a `holds` rule, which is data.
 
 | Term | Means |
 |---|---|
 | **container** | a block that holds child blocks. Derived from what it holds, so it is how a block *looks*, never what it is |
-| **interface** | a block seated on an **edge** — its parent's frame, or a lifeline, or any other edge set. Also **port**. **The one anchor for every port-like thing**: a proxy port, a full port, an activity pin and a constraint parameter are all interfaces. Declared, never derived: it carries `side`, `at` and `flow` instead of `x`/`y`, and `flow` is decorative and constrains nothing |
+| **interface** | a block seated on an **edge** — its parent's frame, or any other edge set. Also **port**. **The one anchor for every port-like thing**: a proxy port, a full port, a pin and a constraint parameter are all interfaces. Declared, never derived: it carries `side`, `at` and `flow` instead of `x`/`y`, and `flow` is decorative and constrains nothing |
 | **root** | the block that holds every other, under a reserved id. `parent: null` means *in the root layer*. No frame, because a frame is a block seen from inside and the root has no outside |
-| **behavior** | **ordinary description, never a classifier.** Actions and states are definitions extending the base behavior definition, participants are references, and order is a directed relationship or the arrangement |
+| **behaviour** | **ordinary description, never a kind of block.** An action or a state is a definition over the one block module, a participant is a reference, and order is a directed relationship or the arrangement |
 
 **The word `port` carries two meanings and they never meet.** In the model a port is an **interface**. In the host contract a **port** is one of the four capabilities an app binds — `storage`, `files`, `net`, `score`. Where either is ambiguous, say *interface* or *host port*.
 
 
-## Tiers
+## What holds what
 
-**Three trees, and the layering is the engine's.** Views build on structure and behaviors; behaviors build on structure. This is the one place a choice is taken away from the user, and it is what keeps a subtree interpretable — a structure holding a view that looks at it is self-referential and means nothing.
+**A block is a block.** There is no tier walk and no doing/being split. One rule is the engine's, and it is the only place a choice is taken away from the user:
 
-> **A tree holds its own tier as parts. A lower tier appears only by reference.**
+> **A view holds references, never parts.**
 
 | Term | Means |
 |---|---|
-| **tier** | which of `structure`, `behavior` or `view` a block sits in. **Derived, never stored** — the nearest ancestor naming one of those modules |
-| **tier root** | the block that holds a tier's tree. Its parent is the workspace or a folder, so it is contained rather than owned. Read from position, stored nowhere |
-| **coercion** | what crossing a tier does instead of refusing. Every gesture still succeeds; what arrives is an appearance rather than a part — a **reference** into a structure or view tree, an **action holding a reference** into a behavior tree |
+| **top-level block** | a block whose parent is the workspace or a folder, so it is contained rather than owned. Informally a *project*. Read from position, stored nowhere |
+| **coercion** | what dropping into a view does instead of refusing. The gesture still succeeds; what arrives is an appearance rather than a part — a **reference** |
 
-**References point down the tiers only.** Upward is a derived query — which behaviors a block takes part in is asked of the graph, never stored, because a stored back-reference would leave an exported structure pointing at behaviors that did not travel with it.
+**A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 
-**Within a tier, nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
+**Nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
 
 
 ## Layers and looking
@@ -80,9 +78,8 @@
 |---|---|
 | **layer** | a block and its direct children — a cross-section of the tree at one block, seen from within. The current **scope** |
 | **layer view** | that layer projected through the definitions in scope and rendered by one view module. The layer is what is looked at; the layer view is the looking |
-| **view module** | the engine code behind one way of presenting a layer. **Three, and closed**: `block`, `table`, `matrix`. `block` is **any planar projection** — it carries lifelines, columns and segments. Each publishes a distinct icon and a **word** for what it calls its elementary block |
-| **reading** | how a behavior layer is looked at — `activity`, `sequence` or `state`. **Three, and closed.** It configures the block module rather than being one, and it is how you look, never something inferred |
-| **view definition** | **a view subtype.** It names one required view module, optionally a reading, and that module's settings. Reusable — many block definitions may name the same one. The base package ships **six**: one per module, plus one per reading over the block module |
+| **view module** | the engine code behind one way of presenting a layer. **Three**: `block`, `table`, `matrix`. `block` is **any planar projection**. Each publishes a distinct icon and a **word** for what it calls its elementary block |
+| **view definition** | **a view subtype.** It names one required view module and that module's settings. Reusable — many block definitions may name the same one. The base package ships **three**, one per module; a notation is another definition, never another module |
 | **view block** | the looking **written down** — a `view` usage holding one reference per thing it shows. Made by **pinning** a layer view. Its configuration is its *content*, not its presentation |
 | **diagram** | what a layer looks like drawn on the canvas. Names no module |
 | **depth** | how far a view's reference reaches: `self`, `children` or `all` |
@@ -97,27 +94,26 @@
 
 | Term | Means |
 |---|---|
-| **arrangement** | **one setting, six values, and it carries the reading direction**: `free`, `grid`, `right`, `left`, `down`, `up`. **Model data, held on the layer and in the log**, because the four directional values are what **implied order** is read along and inference must not depend on how somebody happened to be looking |
+| **arrangement** | **one setting, six values, and it carries the reading direction**: `free`, `grid`, `right`, `left`, `down`, `up`. **Model data, held on the layer and in the log**, because how a layer reads is part of what the layer says |
 | **retained placement** | a block's placement is **kept** by every arrangement, and nothing discards it. A computed arrangement replaces where things *draw*, never what you placed, so returning to `free` returns your layout |
 | **rank** | one step along a directional arrangement |
 | **seat** | a place on a border a line may meet |
 | **anchor** | a seat a relationship actually arrives at, with no block behind it. **One per arriving line, never one per side.** Placed by the engine until somebody drags it, and then drawn **solid** to say the position is theirs |
 | **promotion** | turning an anchor into an **interface** where it sits — a separate act from moving one, because an interface is a real element with a name and a type |
 | **explicit order** | sequence stated by a directed relationship. Read first, and it wins |
-| **implied order** | sequence read from where blocks sit along a **directional arrangement**. The fallback. **`free` and `grid` carry no direction**, so a layer using either has no implied order and inference falls through to connectivity |
-| **lane** | a participant's column or band in a behavior view. **Derived from the reference** an action holds |
+| **implied order** | sequence read from where blocks sit along a **directional arrangement**. The fallback. **`free` and `grid` carry no direction**, so a layer using either has no implied order |
 
 
 ## The workspace
 
 | Term | Means |
 |---|---|
-| **workspace** | **the root folder, and there is exactly one.** It contains every tier root, package and folder without owning any of them, and it holds **the log**, the metadata and **all session state**. It is a block, with `parent: null` and a reserved id, and needed no new schema to be one |
+| **workspace** | **the root folder, and there is exactly one.** It contains every top-level block, package and folder without owning any of them, and it holds **the log**, the metadata and **all session state**. It is a block, with `parent: null` and a reserved id, and needed no new schema to be one |
 | **graph** | the current state — `root`, `blocks`, `edges` and `defs`. **One graph**, folded from one log, never edited in place |
-| **project** | **a word, not a type.** Informally, a tier root: a top-level block under the workspace root. Read from position, stored nowhere, and nothing in the schema answers to it |
+| **project** | **a word, not a type.** Informally, a top-level block under the workspace root. Read from position, stored nowhere, and nothing in the schema answers to it |
 | **the log** | **one log, at the workspace.** One document, one history, so **undo is workspace-wide** and nothing routes a write |
-| **session state** | how things were last shown — the open layer, the selection, the explorer fold, which view each layer was in, the theme, the toggles. **Held outside the log and never in a file**, so opening somebody's workspace does not rearrange your toggles. The test is *is it in the log?* — a block's name is, so it exports and it undoes; whether interfaces show is not, so it does neither. **`arrangement` is the exception that proves the rule**, and it is model data because inference reads it |
-| **package** | **a tier root you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's |
+| **session state** | how things were last shown — the open layer, the selection, the explorer fold, which view each layer was in, the theme, the toggles. **Held outside the log and never in a file**, so opening somebody's workspace does not rearrange your toggles. The test is *is it in the log?* — a block's name is, so it exports and it undoes; whether interfaces show is not, so it does neither. **`arrangement` is the exception that proves the rule**, and it is model data because how a layer reads is part of what it says |
+| **package** | **a top-level block you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's |
 | **resolution** | how a usage finds its definition: **climb the ancestors, nearest first, to the workspace**. **There is no import list** — position does the whole job, so there is no order to maintain. Two ancestors defining the same name are two definitions and both are offered; nothing shadows, because every usage names an id |
 | **`home`** | the block a definition is filed under. **The only stored part of its scope** — who owns it, who may use it, what an export carries and which of two wins all fall out of position |
 | **extends** | the definition another refines, by reference. **Subtyping, never overriding**; fields union, components merge per key, one parent so no diamonds, and a rule naming a definition reaches everything below it |
@@ -136,7 +132,7 @@
 | **checkpoint** | the whole graph as one mutation. Written when the log passes its cap and the oldest steps are dropped, and when a file is imported. Not something anybody did, so it cannot be undone |
 | **the door** | the one way in. Every log is checked before it is folded: what can be repaired is, what cannot is dropped rather than folded into a broken graph |
 | **fault** | what the door has to say — repaired, or dropped, and why. The user is told once, and a clean log says nothing |
-| **derived** | worked out rather than stored — the tier, containment, container-ness, a group's members, the `reference` and `tie` relation modules, seats, routes, lanes, and the content hash |
+| **derived** | worked out rather than stored — containment, container-ness, a group's members, the `reference` and `tie` relation modules, seats, routes, and the content hash |
 
 
 ## What a definition configures
@@ -172,11 +168,10 @@ The full enumeration is in actions.md.
 | Term | Means |
 |---|---|
 | **action** | something somebody meant and could say — create, relate, group, describe. Named, ranked, listed. Returns mutations rather than applying them |
-| **adjustment** | something positional and unsayable. Four, gesture-only, never ranked. A module declares which it accepts |
-| **navigation** | an action writing no mutations — `open`, `up`, `reveal`. No step, nothing to undo |
+| **adjustment** | something positional and unsayable. Five, gesture-only, never ranked. A module declares which it accepts |
+| **navigation** | an action writing no mutations — `open`, `reveal`. No step, nothing to undo |
 | **pin** | saving the current layer view as a **view block**, from the canvas |
-| **infer** | **the action that makes new blocks** — the block → activity → state chain, run once when somebody asks. Model, and permanent |
-| **composition** | **how a view groups, spaces and orders the references it holds** — recomputed every draw, making nothing. Presentation, and **not inference** |
+| **composition** | **how a view groups, spaces and orders the references it holds** — recomputed every draw, making nothing. Presentation, never model |
 | **proximity** | **how far apart two referenced blocks are in the tree**. The one metric composition runs on: it **groups** by nearest common ancestor, **orders** by tree path, and where there is room **spaces** by distance. Derived every draw, stored nowhere, and overridable |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |
 | **host port** | one of the four capabilities an app binds — `storage`, `files`, `net`, `score`. **The entire host contract**, declared in core and implemented nowhere else. An unbound port is a capability the app does without, never a feature reimplemented |
@@ -212,9 +207,8 @@ The full enumeration is in actions.md.
 | relation modules — `line`, `directed`, `reference`, `tie` | card layouts, style sets, routing strategies |
 | value forms — `text`, `number`, `flag`, `choice`, `link` | components, rule kinds |
 | view modules — `block`, `table`, `matrix` | definitions, which are data and cost nothing |
-| readings — `activity`, `sequence`, `state` | |
 | arrangements — six | |
-| mutation ops, the action set, the four adjustments | |
+| mutation ops | the action set and the adjustments, which are small by judgement rather than closed by decree |
 | host ports — `storage`, `files`, `net`, `score` | |
 
 **Two of the four relation modules are derived, not picked.** `line` and `directed` are chosen; `reference` and `tie` are assigned from what sits at the ends.

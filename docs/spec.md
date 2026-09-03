@@ -135,15 +135,16 @@ Scene {
 - **Everything the app says goes to one strip** — a refusal, a repair report, a storage warning, a rule note. One place to look, dismissable, and silent when there is nothing to say.
 
 
-## Tiers
+## What a view holds
 
-**Three trees, and the layering is the engine's.** Views build on structure and behaviors; behaviors build on structure. **This is the one place a choice is taken away from the user**, and it is what keeps a subtree interpretable.
+**A block is a block.** There is no structure/behaviour split and no tier walk — what a block *is* comes from its definition, and what it may hold is a rule a vocabulary states rather than one the engine imposes.
 
-> **A tree holds its own tier as parts. A lower tier appears only by reference.**
+**One rule is the engine's**, and it is the only place a choice is taken away from the user:
 
-- **A tier is derived, never stored** — the nearest ancestor whose module is `structure`, `behavior` or `view`.
-- **Crossing a tier is a coercion, not a refusal.** Every gesture still succeeds; what arrives is an appearance rather than a part, and it draws the way every reference draws.
-- **References point down the tiers only.** Upward is a derived query, never stored — a stored back-reference would leave an exported structure pointing at behaviors that did not travel with it.
+> **A view holds references, never parts.**
+
+- **Crossing it is a coercion, not a refusal.** Every gesture still succeeds; what arrives in a view is an appearance rather than a part, and it draws the way every reference draws.
+- **A reference points at what it stands for, and nothing points back.** Upward is a derived query, never stored — a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 
 **Every package obeys it and none of them enforces it**: the walk is core's, in `schema.md`, and the drop rules that fall out of it are in `actions.md`.
 
@@ -176,7 +177,7 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 | `project` · `draw` · `draw_svg` | a layer as a Scene, as text, as a standalone drawing |
 | `Viewer` | the same layer as an **interactive** artifact — walkable, and not editable |
 
-**What is sealed, and there are no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, the inference, and `layout`. A consumer places nothing, because projecting is what places and the Scene already carries the geometry.
+**What is sealed, and there are no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, and `layout`. A consumer places nothing, because projecting is what places and the Scene already carries the geometry.
 
 - **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **This is the price of a mutation union that stays free to grow**, and it is the right one — a new sort of change costs nothing outside because nothing outside can name one.
 - **The engine keeps its own reader.** `read` produces the log a session works in and is not offered; `open` is the same journey one step later.

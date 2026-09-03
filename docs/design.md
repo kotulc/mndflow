@@ -22,7 +22,7 @@ These key concepts carry most of the weight, and most of the rules below are one
 
 - **Keep assumptions to a minimum:** Do not apply organizational rules or constrain the user to a given standard. The tool must be general enough to support various modeling and drafting use cases.
 - **Keep representations simple, lightweight and honest:** Anything that can be derived from the layer elements is derived — routes, boundaries, roles, control nodes, messages, etc. User annotation, intervention and manual adjustments should be minimized.
-- **The model defines itself as the user builds:** Describing behaviour over a structure is how that structure learns what it needs: the states it can be in, the interfaces it has to offer, the actions it performs. Somebody draws what happens and the definitions fill in behind them, so the work of modelling is spent saying things once rather than restating them in a second notation.
+- **The model defines itself as the user builds:** Saying what happens over a structure is how that structure learns what it needs: the states it can be in, the interfaces it has to offer, the actions it performs. Somebody draws what happens and the definitions fill in behind them, so the work of modelling is spent saying things once rather than restating them in a second notation. **This is an intent, not yet a mechanism** — the inference that used to carry it was cut, and what replaces it is undesigned.
 
 
 ## The Unified Shape
@@ -49,9 +49,9 @@ This design defines structure with blocks. Layered compositions of blocks form t
 
 ### Primary structural constraints
 
-Where most design decisions are left up to the user, the one exception is that of subgraph containment. `Folder` blocks are a general organizational tool and may contain any type of block. `Structure` blocks MUST contain `structure` child blocks. These blocks may refer to blocks of other types but they do not own or contain them. Similarly, `behavior` and `view` block types maintain specific rules about what types they may contain. 
+Where most design decisions are left up to the user, the one exception is that a **view holds references and never parts**. A view looks at a set of blocks; owning them would make a structure subtree that contains a view of itself self-referential, and it would lose its meaning in the model.
 
-This contrivance keeps the workspace sub-trees organized and interpretable -- a structure subtree containing a view block may be self-referential and would lose its meaning and interpretability in the model.
+There is no structure/behaviour split. **A block is a block** — what it *is* comes from its definition, and what it may hold is a rule a vocabulary states, never one the engine imposes. Saying that a doing-block may not contain a being-block was a distinction the engine had no business making.
 
 
 ### A view is a perspective

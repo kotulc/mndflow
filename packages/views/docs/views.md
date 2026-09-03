@@ -4,7 +4,7 @@
 
 ## Three modules, and closed
 
-**`block` is any planar projection**, and `table` and `matrix` are the two that are not a plane. That is the whole reason there are three rather than six — a notation that lays things out on a surface is the block module with different configuration.
+**`block` is any planar projection**, and `table` and `matrix` are the two that are not a plane. A notation that lays things out on a surface is the block module with different configuration, never a module of its own.
 
 | Module | Word | Draws |
 |---|---|---|
@@ -14,15 +14,9 @@
 
 **Each publishes a distinct icon and a word for what it calls its elementary block**, so a chip fallback reads correctly without anything being stored.
 
-## Six offered views
+## Three offered views
 
-**A reading is how you look, never something inferred.** It configures the block module rather than being one, which is why three of the six offered views name the same module.
-
-```
-view def "activity"  { module: block, reading: activity }
-view def "sequence"  { module: block, reading: sequence }
-view def "state"     { module: block, reading: state }
-```
+**One view definition per module, and a notation is another definition.** What a package adds is a definition naming a module and configuring it — never a module, and never a name the engine has to learn.
 
 - **Which view is showing is session state**, kept outside the log. Switching changes what you see and nothing about the model.
 - **There is no derived kind of layer**, so any layer can be switched to any view it is offered.
@@ -63,12 +57,7 @@ project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
 
 ## Composition
 
-**Inference makes blocks; composition arranges references.** Two different things, and separating them is what makes view work tractable.
-
-| | Makes | Runs | Is |
-|---|---|---|---|
-| `infer` | **new blocks** | once, when somebody asks | model, and permanent |
-| composition | **nothing** — a grouping, spacing and ordering | every draw | presentation, recomputed |
+**Composition makes nothing.** It is a grouping, a spacing and an ordering, recomputed every draw — presentation, and never anything in the model.
 
 **One metric: proximity** — how far apart two referenced blocks sit in the tree, which is a path distance and deterministic. **Group** by nearest common ancestor, **order** by tree path, **space** by distance where the view has room. A table and a matrix have rows, so they take the grouping and the order and drop the spacing.
 

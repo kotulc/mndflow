@@ -4,8 +4,7 @@
 
 | | Ships |
 |---|---|
-| `base` | one definition per block module — the three tiers, `folder`, and the five accessories — plus one view definition per offered view. **Shipped and locked, and the engine knows it by id** |
-| `behavior` | `action` and `state`, extending the base behavior definition, plus the verb |
+| `base` | one definition per block module — `structure`, `folder`, and the accessories — plus one view definition per offered view. **Shipped and locked, and the engine knows it by id** |
 | `requirements` · `flow` · `parametrics` | the worked vocabularies |
 | `sysml` · `uml` · `uaf` | formal `names` and mappings over the definitions above |
 
@@ -17,7 +16,7 @@
 
 ## The rules a package lives by
 
-- **The engine may key off a base definition only for how a block draws, where it sits, and which tier it is** — never for anything a package could have said instead.
+- **The engine may key off a base definition only for how a block draws and where it sits** — never for what it is, and never for what may contain what. A notation's word for a block — *action*, *state*, *requirement* — is a definition the package supplies, never a module the engine knows.
 - **Core cannot reach the package that supplies its floor.** `defs` depends on core, so core may not depend back — an app hands the base definitions in, the same way it hands in a port.
 - **A package is data; a module is code.** A package ships definitions and costs nobody anything. **A package maps names and presentation, never structure** — a notation needing structural change is a module instead, and then it is one engine capability plus a package, shipping together.
 - **A package resists editing.** A write against one refuses with the reason and offers **unlock** or **fork**.

@@ -327,6 +327,14 @@ register(
     about: "opens a block as the layer being drawn, or leaves this one when told no block",
     on: ["block"],
     args: [{ name: "id", form: "block" }],
+    /** **A layer has to be there.** Nothing else checks what becomes the open
+     *  layer, so an id naming a block that is gone — a stale menu, a step
+     *  undone, a target that did not travel — made it the layer anyway, and
+     *  what drew was a frame called *missing* with nothing inside it. */
+    check: (ctx, args) => {
+      const want = id_of(args, "id");
+      return !want || ctx.graph.blocks[want] ? null : "that is not here any more";
+    },
     /** **Absent `id` is the way out.** Opening and leaving differ only in where
      *  the layer comes from — one is named and one is derived — so a second
      *  action for the derived case was a second name for the same act.

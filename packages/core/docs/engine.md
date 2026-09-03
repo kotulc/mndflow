@@ -11,7 +11,6 @@
 | workspace | the root, the one log, and definition resolution up the tree |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
 | rules | the one constraint and four rules, asked rather than enforced. Advice while modelling, a refusal at translation |
-| behaviors | the behavior module: inference, order, lanes, and the write-home gate |
 | ports | the entire host contract. Nothing else may assume where a project lives |
 
 **Placement and routing are not here** — they are layout, which depends on core and is equally headless. Splitting them keeps the fold free of geometry and lets either be tested without the other.
