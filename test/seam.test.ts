@@ -13,12 +13,12 @@
 import { describe, expect, it } from "vitest";
 import { open, review, validate, write } from "@mnd/core";
 import { TIER, translated } from "@mnd/fixtures";
-import { SHEET, block, draw_svg } from "@mnd/views";
+import { SHEET, draw_svg, project } from "@mnd/views";
 
 const graph = translated();
 /** One layer is a block and its direct children, so the pages are drawn from
  *  the folder holding them rather than from the tier root above it. */
-const scene = block.project(graph, "set_guides", {});
+const scene = project(graph, "set_guides", {});
 
 describe("a translator's graph", () => {
   it("passes the door", () => {
@@ -37,7 +37,7 @@ describe("a translator's graph", () => {
   });
 
   it("projects the layer it filed its vocabulary on", () => {
-    const tier = block.project(graph, TIER, {});
+    const tier = project(graph, TIER, {});
     expect(tier.nodes.map((n) => n.id)).toEqual(["set_guides"]);
   });
 });

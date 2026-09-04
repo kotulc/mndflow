@@ -63,7 +63,10 @@ function celled(graph: Graph, units: readonly Block[], spots: readonly Placed[])
     if (!grid) continue;
     const box = cell_box(graph.blocks[b.group!]!, b.cell!.r, b.cell!.c);
     const in_cell = centred_in(box, size_of(graph, b.id));
-    out.push({ id: b.id, x: snap(grid.x + in_cell.x), y: snap(grid.y + in_cell.y),
+    /** **Never re-snapped.** The address already places it exactly, and
+     *  rounding to the nearest grid step is what pushed a centred block into
+     *  the corner of its own cell. */
+    out.push({ id: b.id, x: grid.x + in_cell.x, y: grid.y + in_cell.y,
                w: in_cell.w, h: in_cell.h });
   }
   return out;

@@ -69,7 +69,6 @@ const PATHS = {
   // Arrangements — one-time verbs over the layer. Shapes of a layout: how the
   // ranks sit, and which way they read.
   arrange_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
-  arrange_grid: "M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z",
   // Ranked, and which way they read. **The chevron carries the direction and
   // takes half the grid** — a small arrowhead beside the bars is 2px at the
   // size a rail draws, which is four marks nobody can tell apart.
@@ -83,8 +82,6 @@ const PATHS = {
   // one from reading as an arrange arrow.
   relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
   relation_typed: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15M12 6.5v3",
-  // A declared kind, narrowed to. A tag, so it never reads as a relationship.
-  type_tag: "M12 4.5L19.5 12 12 19.5 4.5 12z",
 
   // How a relationship is drawn.
   angles: "M4 19V8h8V4",
@@ -100,25 +97,18 @@ const PATHS = {
   // The strip that types. A prompt inside a frame, so it cannot read as the
   // retro screen above it.
   terminal: "M3.5 5.5h17v13h-17zM7 10l3 2.5-3 2.5M13 15.5h4",
-  // Stopping a narrowing. Backspace — it is the text that goes, not the match.
+  // Clearing what is typed. Backspace — it is the text that goes.
   clear: "M9 5.5h10.5v13H9L3.5 12zM12 9.5l5 5M17 9.5l-5 5",
 
   // The app speaking about what you did, or holding its tongue.
   mirror_on: "M4.5 5.5h15v10h-9l-4 3.5V15.5h-2z",
   mirror_off: "M4.5 5.5h15v10h-9l-4 3.5V15.5h-2zM6.5 17.5L18 4.5",
 
-  // A field shown as a column of its own.
-  column: "M4 5h16v14H4zM10 5v14M14 5v14",
-
-  // The six views, each drawn as the picture it puts on the stage rather than
-  // as a word: boxes and a line, a list, a grid of cells, a flow with a
-  // decision, messages between two lifelines, and a state with its loop back.
-  view_block: "M3.5 6.5h7v5h-7zM13.5 12.5h7v5h-7zM7 11.5v3.5h6.5",
-  view_table: "M3.5 5.5h17v13h-17zM3.5 10h17M3.5 14h17M9 5.5v13",
-  view_matrix: "M3.5 5.5h17v13h-17zM3.5 9.8h17M3.5 14.2h17M8.5 5.5v13M14 5.5v13",
-  view_activity: "M11 3.5h2v3h-2zM12 6.5v3M12 9.5l3 3-3 3-3-3zM12 15.5v3M11 18.5h2v2h-2z",
-  view_sequence: "M6.5 4v16M17.5 4v16M6.5 9h11M17.5 9l-2-2M17.5 9l-2 2M17.5 15h-11M6.5 15l2-2M6.5 15l2 2",
-  view_state: "M3.5 9.5h7v5h-7zM13.5 9.5h7v5h-7zM10.5 12h3M13.5 12l-1.5-1.2M13.5 12l-1.5 1.2",
+  // Which line of a grid carries meaning rather than contents: the shaded
+  // strip is the header, down the left for a row header and across the top for
+  // a column one.
+  header_row: "M3.5 5.5h17v13h-17zM3.5 10h17M3.5 14h17M8.5 5.5v13M3.5 5.5h5v13h-5z",
+  header_col: "M3.5 5.5h17v13h-17zM3.5 10h17M3.5 14h17M8.5 5.5v13M3.5 5.5h17v4.5h-17z",
 } as const;
 
 export type IconName = keyof typeof PATHS;

@@ -7,7 +7,7 @@
  *  It asks for what it needs and then names an action. It never writes. */
 
 import { useEffect, useRef, useState } from "react";
-import { offer, type Action, type Context } from "@mnd/core";
+import { offer, type Action, type Args, type Context } from "@mnd/core";
 
 export type MenuProps = {
   ctx: Context;
@@ -26,11 +26,21 @@ export type MenuProps = {
    *  list rather than everything that happens to apply** — the registry says
    *  what an action *could* act on, which is a wider question than what belongs
    *  on a card's menu. Absent, the registry answers, which is what the tree
-   *  wants. */
-  only?: readonly string[];
+   *  wants.
+   *
+   *  **An entry may fill an argument and name itself for it.** One action asked
+   *  two ways is two entries — *insert row* and *insert column* — rather than
+   *  one entry and a second panel to get through. */
+  only?: readonly (string | Entry)[];
   onAct: (name: string, args?: Record<string, unknown>) => void;
   onShut: () => void;
 };
+
+/** One named entry: an action, optionally with an argument already filled and
+ *  a word of its own to read as. */
+export type Entry = { name: string; label?: string; args?: Args };
+
+const entry_of = (e: string | Entry): Entry => (typeof e === "string" ? { name: e } : e);
 
 /** What a menu can fill on its own. Without a place to point at, an action
  *  that needs one is not offered. */
@@ -90,34 +100,41 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
    *  naming** — the derived name is a fallback, not an answer, and typing one
    *  here is the difference between “pump” and “block 4”. */
   const held = ["id", "ids", "holder", "owner", "of", "members", "target", "about"];
-  const wanted = (a: Action) =>
+  const wanted = (a: Action, filled?: Args) =>
     a.args.filter((arg) => (arg.required || arg.asks)
-      && !held.includes(arg.name) && !(given && arg.name in given));
+      && !held.includes(arg.name) && !(given && arg.name in given)
+      && !(filled && arg.name in filled));
 
   /** **Offered when this menu could actually finish it.** It stops for one
    *  thing and no more, so an action still missing two of them would be run
    *  half-filled — which is how an entry that cannot work gets into a list
    *  whose whole rule is that what does not apply is not shown. */
-  const fillable = (a: Action) => wanted(a).filter((arg) => arg.required).length <= 1;
+  const fillable = (a: Action, filled?: Args) =>
+    wanted(a, filled).filter((arg) => arg.required).length <= 1;
 
-  const offered = offer(ctx).filter((a) => askable(a, spot !== undefined) && fillable(a));
+  const offered = offer(ctx).filter((a) => askable(a, spot !== undefined));
   /** Named order, not the registry's — a list somebody agreed reads in the
    *  order they agreed it. What is named and does not apply here is left out
    *  rather than shown dead. */
-  const entries = only
-    ? only.map((name) => offered.find((a) => a.name === name)).filter((a) => !!a)
-    : offered;
+  const entries: { action: Action; label: string; args?: Args }[] = (
+    only
+      ? only.map(entry_of)
+          .map((e) => ({ e, action: offered.find((a) => a.name === e.name) }))
+          .filter((x): x is { e: Entry; action: Action } => !!x.action)
+          .map(({ e, action }) => ({ action, label: e.label ?? action.name, args: e.args }))
+      : offered.map((action) => ({ action, label: action.name, args: undefined }))
+  ).filter((x) => fillable(x.action, x.args));
 
-  const take = (a: Action) => {
-    const need = wanted(a);
-    if (need.length === 0) { onAct(a.name, known()); onShut(); return; }
-    set_asking(a);
+  const take = (x: { action: Action; args?: Args }) => {
+    const need = wanted(x.action, x.args);
+    if (need.length === 0) { onAct(x.action.name, { ...known(), ...x.args }); onShut(); return; }
+    set_asking({ ...x.action, args: need });
     set_typed("");
   };
 
   const answer = () => {
     if (!asking) return;
-    const need = wanted(asking)[0]!;
+    const need = asking.args[0]!;
     /** **Left blank is left out**, not sent as an empty string. An optional
      *  name nobody typed is the action deriving one, which is what it does
      *  when nobody was asked at all. */
@@ -132,12 +149,12 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
     <div className="menu" ref={box} style={{ left: sits.x, top: sits.y }} role="menu">
       {asking ? (
         <div className="asking">
-          <label>{wanted(asking)[0]!.name}</label>
-          {wanted(asking)[0]!.choices ? (
+          <label>{asking.args[0]!.name}</label>
+          {asking.args[0]!.choices ? (
             <div className="choices">
-              {wanted(asking)[0]!.choices!.map((c) => (
+              {asking.args[0]!.choices!.map((c) => (
                 <button key={c} onClick={() => {
-                  onAct(asking.name, { ...known(), [wanted(asking)[0]!.name]: c });
+                  onAct(asking.name, { ...known(), [asking.args[0]!.name]: c });
                   onShut();
                 }}>{c}</button>
               ))}
@@ -153,9 +170,10 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
           <p className="about">{asking.about}</p>
         </div>
       ) : (
-        entries.map((a) => (
-          <button key={a.name} className="entry" title={a.about} onClick={() => take(a)}>
-            {a.name}
+        entries.map((x, n) => (
+          <button key={`${x.action.name}-${n}`} className="entry" title={x.action.about}
+                  onClick={() => take(x)}>
+            {x.label}
           </button>
         ))
       )}

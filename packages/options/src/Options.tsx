@@ -16,11 +16,12 @@ export type OptionsProps = {
   groups: readonly Group[];
 };
 
-/** Drawn in this order whatever order a module lists them. **`relations` is
- *  last on purpose**: it is the only group that grows with the vocabulary, so
- *  it is the one to push off the bottom of a column that scrolls. */
-const ORDER = ["project", "views", "arrange", "flow", "interfaces",
-               "lines", "columns", "types", "relations"];
+/** Drawn in this order whatever order a module lists them. **`relations` and
+ *  `grid` are last on purpose**: one grows with the vocabulary and the other
+ *  comes and goes with the selection, so those are the two to push off the
+ *  bottom of a column that scrolls. */
+const ORDER = ["project", "arrange", "flow", "interfaces",
+               "lines", "relations", "grid"];
 
 const at = (key: string) => {
   const n = ORDER.indexOf(key);

@@ -14,15 +14,24 @@ export const SEAT = GRID / 2;
 
 export type Size = { w: number; h: number };
 
-/** **Whole units, both ways.** A block is the size of one grid cell, which is
- *  what lets a cell hold exactly one and lets everything land on the backdrop
- *  dots. Two units tall also gives a side three seats rather than two. */
-export const BLOCK: Size = { w: GRID * 7, h: GRID * 2 };
+/** **The cell is the unit, and a block is what fits in one.**
+ *
+ *  A cell is fixed — never sized to what lands in it, never auto-fit — and a
+ *  block is a cell less a margin on every side, so a block seated in a cell
+ *  sits centred with air all round it. Both are whole numbers of grid steps,
+ *  which is what keeps everything on the backdrop dots. */
+export const CELL: Size = { w: GRID * 8, h: GRID * 3 };
 
-/** **Exactly two cells.** A container needs more room than a block and gets it
- *  by spanning rather than by shrinking to fit — so its edges keep their real
- *  length, and the seats along them stay proportional instead of crowding. */
-export const CONTAINER: Size = { w: GRID * 7, h: GRID * 4 };
+/** How much air a block leaves inside its cell, on every side. */
+export const MARGIN = GRID / 2;
+
+export const BLOCK: Size = { w: CELL.w - MARGIN * 2, h: CELL.h - MARGIN * 2 };
+
+/** **Two cells' worth of height, less the same margin.** A container needs more
+ *  room than a block and gets it by spanning rather than by shrinking to fit —
+ *  so its edges keep their real length, and the seats along them stay
+ *  proportional instead of crowding. */
+export const CONTAINER: Size = { w: BLOCK.w, h: CELL.h * 2 - MARGIN * 2 };
 
 /** The room a container's picture of itself gets: exactly how much taller a
  *  container is than a block, so the name above it keeps a block's worth. */
@@ -30,11 +39,6 @@ export const BAND: Size = { w: CONTAINER.w, h: CONTAINER.h - BLOCK.h };
 
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: 11, h: 11 };
-
-/** **One block plus its margin, and never anything else.** A cell is fixed: it
- *  is not sized to what lands in it and it does not auto-fit, which is what
- *  makes a grid a lattice rather than a table that reflows as you build. */
-export const CELL: Size = { w: BLOCK.w + GRID, h: BLOCK.h + GRID };
 
 export type Box = { x: number; y: number; w: number; h: number };
 

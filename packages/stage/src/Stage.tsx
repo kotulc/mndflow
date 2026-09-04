@@ -10,7 +10,12 @@
  *  only start a connection on that button. */
 
 import { useEffect, useState } from "react";
-import type { Act, Side, Spot } from "@mnd/core";
+import type { Act, Args, Side, Spot } from "@mnd/core";
+
+/** One named entry a menu draws: an action, optionally with an argument filled
+ *  and a word of its own. **Repeated here rather than imported** — the stage
+ *  does not know the explorer exists, and this is the shape they agree on. */
+export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, snap, BLOCK, CELL, type Scene } from "@mnd/views";
@@ -37,7 +42,7 @@ export type StageProps = {
    *  was opened — two answers because they are two questions, and an action
    *  that puts something somewhere needs the second. */
   menu?: (at: { x: number; y: number }, on: string | null, shut: () => void,
-          spot: { x: number; y: number }, only: readonly string[] | undefined,
+          spot: { x: number; y: number }, only: readonly (string | Entry)[] | undefined,
           /** What the gesture already knew, for actions that need more than an
            *  id. A right-click on a relationship's end knows which end and
            *  whose border — nothing downstream could work either out. */
@@ -65,7 +70,7 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
   useEffect(() => set_naming(null), [scene.layer]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
-      only?: readonly string[]; given?: Record<string, unknown> } | null>(null);
+      only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
   /** The shell owns the global keys; a view module owns the rest.
    *
    *  **Shorter than it was.** Selection, the sweep and the multi-select
@@ -131,7 +136,7 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
    *  the registry says what an action can act on, which is a wider question
    *  than what belongs on a card's menu. Empty ground has no list — right there
    *  makes a block, which is one gesture doing one thing. */
-  const OFFERS: Partial<Record<Gesture["kind"], readonly string[]>> = {
+  const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
     name: ["rename", "delete"],
     /** **A note is a remark, not a block.** There is nothing inside it to open
      *  and no wall to set an interface into; what is left is what it says and
@@ -144,8 +149,16 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
      *  and taking it away. */
     band: ["rename", "transpose", "chain", "delete"],
     /** **A cell is an address, not a thing**, so what it offers is what can be
-     *  done to the lattice at that address and nothing about a block. */
-    cell: ["merge", "insert", "remove"],
+     *  done to the lattice at that address and nothing about a block. Insert
+     *  and remove are two entries each rather than one entry and a second
+     *  panel: which way is the whole of what you meant. */
+    cell: [
+      "merge",
+      { name: "insert", label: "insert row", args: { way: "row" } },
+      { name: "insert", label: "insert column", args: { way: "col" } },
+      { name: "remove", label: "remove row", args: { way: "row" } },
+      { name: "remove", label: "remove column", args: { way: "col" } },
+    ],
     route: ["rename", "note", "delete"],
     anchor: ["rename", "delete"],
   };
@@ -154,17 +167,13 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
    *  and relate each name a single thing; asked of four they have no answer, so
    *  a card's list against a sweep came out empty. What is left is what a
    *  handful of blocks can be told to do together. */
-  const MANY: readonly string[] = ["group", "leave", "delete"];
+  const MANY: readonly (string | Entry)[] = ["group", "leave", "delete"];
 
   const gesture = (g: Gesture) => {
-    /** **A cell is picked beside the grid it is in**, never instead of it: the
-     *  canvas reports one click on the grid's node, and an action asked of a
-     *  cell is an action on that grid at an address. Picking anything else lets
-     *  the cells go. */
-    if (g.button === "left" && g.kind === "cell" && g.given) {
-      onPickCells?.(ranged(cells, g.given as Spot, g.shift));
-      return;
-    }
+    /** **The lattice picks its own cells** — a cell is not a node, so the
+     *  library has no gesture for one and the sweep is read where it is drawn.
+     *  What is left here is letting them go when something else is picked. */
+    if (g.button === "left" && g.kind === "cell") return;
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
     if (g.button === "left") {
       if (g.count === 2) {
@@ -260,7 +269,7 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
     if (g.kind === "cell" && g.given) {
       const at = g.given as Spot;
       const among = cells?.some((c) => c.group === at.group && c.r === at.r && c.c === at.c);
-      if (!among) onPickCells?.(ranged(cells, at, g.shift));
+      if (!among) onPickCells?.([at]);
     }
     if (menu) {
       const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
@@ -277,6 +286,7 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
         scene={scene}
         picked={picked}
         cells={cells}
+        onPickCells={onPickCells}
         curved={curved}
         naming={naming}
         onNamed={(label) => {
@@ -315,21 +325,6 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );
-}
-
-/** Which cells a click picks. **One, or the rectangle from the one already
- *  picked** — a range is named by pointing at its far corner with the modifier
- *  down, which is how every other list of things is swept. */
-function ranged(held: readonly Spot[] | undefined, at: Spot, extend?: boolean): Spot[] {
-  const from = held?.[0];
-  if (!extend || !from || from.group !== at.group) return [at];
-  const out: Spot[] = [];
-  for (let r = Math.min(from.r, at.r); r <= Math.max(from.r, at.r); r++) {
-    for (let c = Math.min(from.c, at.c); c <= Math.max(from.c, at.c); c++) {
-      out.push({ group: at.group, r, c });
-    }
-  }
-  return out;
 }
 
 /** A right drag across empty ground, as the grid it draws.

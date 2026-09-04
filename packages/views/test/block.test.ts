@@ -6,8 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
 import { children, fold, session, ROOT, type Graph, type Id } from "@mnd/core";
-import { block, box_of, draw, faults, matrix, outline, table, view, views, EMPTY,
-         type Scene } from "../src/index";
+import { box_of, draw, faults, outline, project, EMPTY, type Scene } from "../src/index";
 
 const NAMES = FIXTURES;
 
@@ -19,12 +18,12 @@ describe("every scene is well-formed", () => {
   it.each(NAMES)("over every layer of %s", (name) => {
     const graph = fold(fixture(name));
     for (const layer of layers(graph)) {
-      expect(faults(block.project(graph, layer)), `layer ${layer}`).toEqual([]);
+      expect(faults(project(graph, layer)), `layer ${layer}`).toEqual([]);
     }
   });
 
   it("over an empty workspace", () => {
-    expect(faults(block.project(fold([]), null))).toEqual([]);
+    expect(faults(project(fold([]), null))).toEqual([]);
   });
 
   it("and the empty scene is well-formed, having nothing to be wrong about", () => {
@@ -33,7 +32,7 @@ describe("every scene is well-formed", () => {
 });
 
 describe("the invariants catch what they are for", () => {
-  const good = block.project(fold(related()), "block_loop");
+  const good = project(fold(related()), "block_loop");
 
   it("an edge reaching a node that is not drawn", () => {
     const bad: Scene = { ...good,
@@ -60,24 +59,24 @@ describe("the invariants catch what they are for", () => {
 describe("what the projection shows", () => {
   it("draws one box per unit in the layer, and no more", () => {
     const graph = fold(nested());
-    const scene = block.project(graph, "block_ledger");
+    const scene = project(graph, "block_ledger");
     expect(scene.nodes.map((b) => b.id).sort())
       .toEqual(children(graph, "block_ledger").map((b) => b.id).sort());
   });
 
   it("draws nothing from another layer", () => {
     const graph = fold(nested());
-    const scene = block.project(graph, "block_ledger");
+    const scene = project(graph, "block_ledger");
     expect(scene.nodes.map((b) => b.id)).not.toContain("block_rate");
   });
 
   it("gives every node a type, so a renderer never guesses", () => {
-    const scene = block.project(fold(related()), "block_loop");
+    const scene = project(fold(related()), "block_loop");
     expect(scene.nodes.every((n) => !!n.type)).toBe(true);
   });
 
   it("marks how a block reads without anything declaring it", () => {
-    const scene = block.project(fold(related()), "block_loop");
+    const scene = project(fold(related()), "block_loop");
     const mark = (id: string) => scene.nodes.find((b) => b.id === id)!.data.marks;
     expect(mark("block_note")).toContain("note");
     expect(mark("block_hot")).toContain("group");
@@ -85,7 +84,7 @@ describe("what the projection shows", () => {
   });
 
   it("sizes a boundary to what it holds", () => {
-    const scene = block.project(fold(related()), "block_loop");
+    const scene = project(fold(related()), "block_loop");
     const band = box_of(scene.nodes.find((b) => b.data.marks.includes("group"))!);
     for (const id of ["block_hx", "block_tank"]) {
       const box = box_of(scene.nodes.find((b) => b.id === id)!);
@@ -102,7 +101,7 @@ describe("what the projection shows", () => {
     const auth = children(s.graph(), ledger)[0]!.id;
     s.go("refer", { target: auth });
 
-    const ref = () => block.project(s.graph(), null).nodes.find((b) =>
+    const ref = () => project(s.graph(), null).nodes.find((b) =>
       b.data.marks.includes("reference"))!;
     expect(ref().data.label).toBe("Auth");
 
@@ -112,7 +111,7 @@ describe("what the projection shows", () => {
 
   it("carries a trail from the root down to the layer", () => {
     const graph = fold(nested());
-    const trail = block.project(graph, "block_rate").trail.map((t) => t.id);
+    const trail = project(graph, "block_rate").trail.map((t) => t.id);
     expect(trail[0]).toBe(ROOT);
     expect(trail.at(-1)).toBe("block_rate");
   });
@@ -121,8 +120,8 @@ describe("what the projection shows", () => {
    *  so hiding interfaces must not take away the control that shows them. */
   it("offers the control groups it can answer, hiding one or not", () => {
     const graph = fold(related());
-    expect(block.project(graph, "block_loop").slots).toContain("interfaces");
-    expect(block.project(graph, "block_loop", { interfaces: false }).slots)
+    expect(project(graph, "block_loop").slots).toContain("interfaces");
+    expect(project(graph, "block_loop", { interfaces: false }).slots)
       .toContain("interfaces");
   });
 
@@ -131,7 +130,7 @@ describe("what the projection shows", () => {
    *  that draws nothing and answers no gesture. */
   it("leaves a berth where an interface is hidden", () => {
     const graph = fold(fixture("interfaced"));
-    const off = block.project(graph, "block_loop", { interfaces: false });
+    const off = project(graph, "block_loop", { interfaces: false });
     const ports = off.nodes.filter((b) => b.data.marks.includes("interface"));
     expect(ports.length).toBeGreaterThan(0);
     expect(ports.every((b) => b.data.marks.includes("berth"))).toBe(true);
@@ -141,30 +140,30 @@ describe("what the projection shows", () => {
   it("is a pure function of the graph — it writes nothing", () => {
     const graph = fold(related());
     const before = structuredClone(graph);
-    block.project(graph, "block_loop");
+    project(graph, "block_loop");
     expect(graph).toEqual(before);
   });
 
   it("is stable — projecting twice gives the same scene", () => {
     const graph = fold(related());
-    expect(block.project(graph, "block_loop")).toEqual(block.project(graph, "block_loop"));
+    expect(project(graph, "block_loop")).toEqual(project(graph, "block_loop"));
   });
 });
 
 describe("the text renderer", () => {
   it("draws a scene as shape rather than coordinates", () => {
-    const scene = block.project(fold(related()), "block_loop");
+    const scene = project(fold(related()), "block_loop");
     const picture = draw(scene);
     expect(picture).toContain("[Pump");
     expect(picture.split("\n").length).toBeGreaterThan(1);
   });
 
   it("says so rather than drawing nothing for an empty layer", () => {
-    expect(draw(block.project(fold(flat()), "block_edge"))).toBe("(empty)");
+    expect(draw(project(fold(flat()), "block_edge"))).toBe("(empty)");
   });
 
   it("outlines what a scene holds", () => {
-    const text = outline(block.project(fold(related()), "block_loop"));
+    const text = outline(project(fold(related()), "block_loop"));
     expect(text).toContain("Coolant Loop");
     expect(text).toContain("-->");
   });
@@ -173,14 +172,14 @@ describe("the text renderer", () => {
     for (const name of NAMES) {
       const graph = fold(fixture(name));
       for (const layer of layers(graph)) {
-        expect(() => draw(block.project(graph, layer))).not.toThrow();
+        expect(() => draw(project(graph, layer))).not.toThrow();
       }
     }
   });
 });
 
 describe("interfaces are seated, not placed", () => {
-  const scene = block.project(fold(fixture("interfaced")), "block_loop");
+  const scene = project(fold(fixture("interfaced")), "block_loop");
   const port = () => scene.nodes.find((b) => b.id === "port_out")!;
 
   it("draws one, on the card it belongs to", () => {
@@ -206,7 +205,7 @@ describe("interfaces are seated, not placed", () => {
    *  drawn.** Hiding the seats that moved a line's ends would make a display
    *  preference redraw the model. */
   it("hides the seats and moves neither the lines nor their ends", () => {
-    const off = block.project(fold(fixture("interfaced")), "block_loop", { interfaces: false });
+    const off = project(fold(fixture("interfaced")), "block_loop", { interfaces: false });
     expect(off.nodes.every((b) => !b.data.marks.includes("interface")
                                || b.data.marks.includes("berth"))).toBe(true);
     expect(off.edges.map((r) => `${r.id}:${r.source}>${r.target}`).sort())
@@ -215,93 +214,6 @@ describe("interfaces are seated, not placed", () => {
   });
 });
 
-
-describe("the two projections that are not a plane", () => {
-  const graph = fold(fixture("related"));
-  const LAYER = "block_loop";
-
-  it("is registered under the name core owns, with a word and a glyph of its own", () => {
-    expect(views().map((v) => v.name).sort()).toEqual(["block", "matrix", "table"]);
-    expect(new Set(views().map((v) => v.icon)).size).toBe(3);
-    expect(new Set(views().map((v) => v.word)).size).toBe(3);
-    expect(view("nothing")).toBeNull();
-  });
-
-  it.each(["block", "table", "matrix"])("emits a well-formed Scene from %s", (name) => {
-    for (const layer of layers(graph)) {
-      expect(faults(view(name)!.project(graph, layer)), `${name} on ${layer}`).toEqual([]);
-    }
-  });
-
-  describe("table", () => {
-    const scene = table.project(graph, LAYER);
-    const head = scene.nodes.filter((b) => b.data.marks.includes("header"));
-
-    it("draws no frame — a table is a list and has no inside", () => {
-      expect(scene.frame).toBeUndefined();
-    });
-
-    it("gives one row per thing the layer holds", () => {
-      const rows = scene.nodes.filter((b) => !b.data.marks.includes("header")
-                                          && !b.data.marks.includes("cell"));
-      expect(rows.map((b) => b.id).sort())
-        .toEqual(children(graph, LAYER).map((b) => b.id).sort());
-    });
-
-    it("names a column for every field the rows carry, and none they do not", () => {
-      const fielded: Graph = structuredClone(graph);
-      fielded.blocks["block_pump"]!.fields = [{ name: "duty", form: "text", value: "high" }];
-      const with_field = table.project(fielded, LAYER);
-      expect(with_field.nodes.filter((b) => b.data.marks.includes("header")).map((b) => b.data.label))
-        .toEqual(["name", "duty"]);
-      expect(head.map((b) => b.data.label)).toEqual(["name"]);
-    });
-
-    /** A cell is reachable on its own — a table is where a value is edited —
-     *  and it says which it is in its marks. */
-    it("draws a cell as a cell and a row as the block it names", () => {
-      const fielded: Graph = structuredClone(graph);
-      fielded.blocks["block_pump"]!.fields = [{ name: "duty", form: "text", value: "high" }];
-      const scene2 = table.project(fielded, LAYER);
-      const cell = scene2.nodes.find((n) => n.id === "block_pump:duty")!;
-      expect(cell.data.marks).toContain("cell");
-      expect(scene2.nodes.find((n) => n.id === "block_pump")!.data.marks)
-        .not.toContain("cell");
-    });
-
-    it("offers columns and types, and nothing a plane offers", () => {
-      expect([...scene.slots].sort()).toEqual(["columns", "types"]);
-    });
-  });
-
-  describe("matrix", () => {
-    const scene = matrix.project(graph, LAYER);
-    const cell = (row: string, col: string) => scene.nodes.find((b) => b.id === `${row}:${col}`)!;
-
-    it("names both axes from the same layer, once each way", () => {
-      const here = children(graph, LAYER).map((b) => b.id);
-      for (const id of here) {
-        expect(scene.nodes.some((b) => b.id === `row:${id}`)).toBe(true);
-        expect(scene.nodes.some((b) => b.id === `column:${id}`)).toBe(true);
-      }
-    });
-
-    it("fills the cell where a relationship already runs, both ways round", () => {
-      expect(cell("block_pump", "block_hx").data.marks).toContain("filled");
-      expect(cell("block_hx", "block_pump").data.marks).toContain("filled");
-    });
-
-    it("leaves a cell empty where nothing relates them", () => {
-      expect(cell("block_pump", "block_valve").data.marks).not.toContain("filled");
-    });
-
-    it("draws a cell for every pair, and no route — a matrix has no lines", () => {
-      const here = children(graph, LAYER).length;
-      expect(scene.nodes.filter((b) => b.data.marks.includes("cell"))).toHaveLength(here * here);
-      expect(scene.edges).toEqual([]);
-    });
-  });
-});
 
 /** **A projection is a pure function, and the drawing depends on it.**
  *
@@ -313,7 +225,7 @@ describe("the two projections that are not a plane", () => {
 describe("the same graph projects the same scene", () => {
   it("says the same thing twice", () => {
     const graph = fold(related());
-    expect(block.project(graph, "block_loop"))
-      .toEqual(block.project(graph, "block_loop"));
+    expect(project(graph, "block_loop"))
+      .toEqual(project(graph, "block_loop"));
   });
 });

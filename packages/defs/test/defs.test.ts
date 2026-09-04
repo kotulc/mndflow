@@ -6,7 +6,7 @@
  *  the door now answers, and what this asks it. */
 
 import { describe, expect, it } from "vitest";
-import { BLOCK_MODULES, VIEW_MODULES, config_of, unreadable, validate } from "@mnd/core";
+import { BLOCK_MODULES, config_of, unreadable, validate } from "@mnd/core";
 import { ALL, base_graph } from "../src/index";
 
 describe("the shipped definitions", () => {
@@ -23,14 +23,6 @@ describe("the shipped definitions", () => {
     const graph = base_graph();
     const named = ALL.map((d) => config_of(graph, d.id, "block")["module"]).filter(Boolean);
     expect(named.every((m) => BLOCK_MODULES.includes(m as never))).toBe(true);
-  });
-
-  it("names only view modules this build has", () => {
-    const graph = base_graph();
-    const named = ALL.filter((d) => d.group === "view")
-      .map((d) => config_of(graph, d.id, "view")["module"]);
-    expect(named.length).toBeGreaterThan(0);
-    expect(named.every((m) => VIEW_MODULES.includes(m as never))).toBe(true);
   });
 
   it("extends only definitions that travel with it", () => {

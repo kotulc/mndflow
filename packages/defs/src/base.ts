@@ -20,7 +20,7 @@ function def(name: string, module: string, extend?: string,
   };
 }
 
-/** Nine, and every package or project subtype extends one of them.
+/** Seven, and every package or project subtype extends one of them.
  *
  *  **Each picks a slot, and none names a colour.** A slot is a hue family the
  *  theme decides per theme, so `primary` is green in retro and blue in modern
@@ -43,19 +43,6 @@ export const BASE: Definition[] = [
       { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),
   def("note", "note", "resource",
       { layout: "fields", shape: "rect" }, { slot: "tertiary", emphasis: "quiet" }),
-  def("view", "view", undefined,
-      { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
-];
-
-/** The three views, as definitions. One per view module — a notation beyond
- *  these is a definition somebody adds, never a module. */
-export const VIEWS: Definition[] = [
-  { id: "view.block", home: ROOT, group: "view", name: "block",
-    components: { view: { module: "block" } } },
-  { id: "view.table", home: ROOT, group: "view", name: "table",
-    components: { view: { module: "table" } } },
-  { id: "view.matrix", home: ROOT, group: "view", name: "matrix",
-    components: { view: { module: "matrix" } } },
 ];
 
 /** The two relation definitions the base ships, so an untyped line still
@@ -65,7 +52,7 @@ export const RELATIONS: Definition[] = [
   { id: "directed", home: ROOT, group: "relation", name: "directed" },
 ];
 
-export const ALL: Definition[] = [...BASE, ...VIEWS, ...RELATIONS];
+export const ALL: Definition[] = [...BASE, ...RELATIONS];
 
 export function by_id(id: string): Definition | null {
   return ALL.find((d) => d.id === id) ?? null;

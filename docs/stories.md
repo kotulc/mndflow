@@ -51,6 +51,10 @@ right-clicking empty explorer space offered no choice of what to make.
 Pick a cross-section of several projects, **keep it, name it, come back to it**, and read it as a
 requirements table or an allocation matrix.
 
+**On hold, and the machinery is gone.** `pin`, the `view` block module and the table and matrix view
+modules came out when the grid absorbed them — see ST.11. *View* is reserved, not retired: it comes
+back naming a data perspective over the model, and this story comes back with it.
+
 ### ST.9 — Each surface has one job
 
 The tray inspects, the stage draws, the explorer files, the terminal says. **No two of them show
@@ -123,6 +127,7 @@ translator.md, and **probably its own project** rather than anything to build he
 
 ## Out of scope, recorded so nothing is built on it
 
+- **Search results as a thing you look at.** Narrowing the workspace to a word and putting what matched on the stage — as a table, as a listing, anywhere. **Driven, and it was not useful**: the results were a second way of looking at blocks you can already see, and everything that supported them — the `filter` command, `matches`, the narrowing chip, the table view they presented through — cost more than they paid. Recorded rather than deleted because *finding a block by name* is a real want; what is out of scope is answering it with a view of its own. It comes back, if it does, as something the explorer does.
 - **Embedded content in a resource block** — a script, an image or a video carried *inside* the
   project rather than pointed at. A resource block holds content; whether that content is inline or
   a path is the open half, and **inline means the log carries bytes**, which is a durability and

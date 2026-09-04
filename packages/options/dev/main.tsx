@@ -12,23 +12,22 @@ import "@mnd/theme/icons.css";
 import "../src/options.css";
 import "./dev.css";
 
-/** What each of the three modules offers, as it would arrive from a Scene. */
+/** What a projection offers, as it would arrive from a Scene. **The second is
+ *  the same layer with a grid picked**, which is what the context group at the
+ *  foot of the rail answers for. */
 const SLOTS: Record<string, string[]> = {
   block: ["arrange", "interfaces", "lines", "relations"],
-  "block · sequence": ["columns", "lines", "relations"],
-  table: ["columns", "types"],
-  matrix: ["types", "relations"],
+  "block, a grid picked": ["arrange", "interfaces", "lines", "relations"],
 };
 
 const TYPES = ["flow", "satisfies", "depends on"];
-const COLUMNS = ["name", "duty", "owner"];
 
 function Harness() {
   const [module, set_module] = useState("block");
   const [log, set_log] = useState<string[]>([]);
   const [chrome, set_chrome] = useState<Chrome>({
     slots: SLOTS["block"]!, arrangement: "right", interfaces: true, angles: true,
-    types: TYPES, columns: COLUMNS, picked: null, sorted: "name",
+    types: TYPES, picked: null,
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
@@ -36,9 +35,12 @@ function Harness() {
     if (name === "arrange") set_chrome((c) => ({ ...c, arrangement: args!["arrangement"] as never }));
     if (name === "interfaces") set_chrome((c) => ({ ...c, interfaces: args!["show"] as boolean }));
     if (name === "lines") set_chrome((c) => ({ ...c, angles: args!["angles"] as boolean }));
-    if (name === "sort") set_chrome((c) => ({ ...c, sorted: args!["column"] as string }));
-    if (name === "filter" || name === "relate_with") {
+    if (name === "relate_with") {
       set_chrome((c) => ({ ...c, picked: (args!["type"] as string) ?? null }));
+    }
+    if (name === "group") {
+      set_chrome((c) => (c.grid
+        ? { ...c, grid: { ...c.grid, headers: args!["headers"] as never } } : c));
     }
   };
 
@@ -50,7 +52,10 @@ function Harness() {
         <b>options</b>
         <select value={module} onChange={(e) => {
           set_module(e.target.value);
-          set_chrome((c) => ({ ...c, slots: SLOTS[e.target.value]! }));
+          set_chrome((c) => ({ ...c, slots: SLOTS[e.target.value]!,
+            ...(e.target.value.includes("grid")
+              ? { grid: { id: "block_lanes", headers: "row" as const } }
+              : { grid: undefined }) }));
         }}>
           {Object.keys(SLOTS).map((n) => <option key={n}>{n}</option>)}
         </select>

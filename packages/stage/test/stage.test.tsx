@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { fold } from "@mnd/core";
 import { related } from "@mnd/fixtures";
-import { block } from "@mnd/views";
+import { project } from "@mnd/views";
 import { Stage } from "../src/index";
 
 afterEach(cleanup);
@@ -20,7 +20,7 @@ beforeEach(() => { vi.spyOn(window, "prompt").mockReturnValue("Typed"); });
 
 function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
   const graph = fold(related());
-  const scene = block.project(graph, "block_loop");
+  const scene = project(graph, "block_loop");
   const onAct = vi.fn();
   const onPick = vi.fn();
   const view = render(

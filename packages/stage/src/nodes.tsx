@@ -15,7 +15,7 @@
  *  slot and an emphasis; those arrive as attributes and the stylesheet is what
  *  turns them into steps on the ramp. */
 
-import { createContext, memo, useContext, useEffect } from "react";
+import { createContext, memo, useContext, useEffect, useRef } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
@@ -353,12 +353,19 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** Which cells are picked, and which group they are in.
+/** One cell, named the only way a cell can be: the group and the address. */
+export type Spot = { group: string; r: number; c: number };
+
+/** Which cells are picked, and how to pick some.
  *
  *  **A context rather than node data.** A selection is the app's and a
  *  projection is a pure function of the graph — folding one into the other
- *  would send the whole layer round again on every click. */
-export const CellsContext = createContext<readonly { group: string; r: number; c: number }[]>([]);
+ *  would send the whole layer round again on every click. And a cell is not a
+ *  node, so the library has no gesture for one: the lattice reads its own
+ *  pointer and says what it picked. */
+export type Picking = { picked: readonly Spot[]; pick: (cells: readonly Spot[]) => void };
+
+export const CellsContext = createContext<Picking>({ picked: [], pick: () => {} });
 
 /** The lattice a grid draws.
  *
@@ -366,17 +373,52 @@ export const CellsContext = createContext<readonly { group: string; r: number; c
  *  plus a row and a column — so it says so in the DOM and the canvas reads the
  *  address back off it rather than inventing one. */
 function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
-  const picked = useContext(CellsContext);
+  const { picked, pick } = useContext(CellsContext);
   const held = (c: GridCell) =>
     picked.some((p) => p.group === id && p.r === c.r && p.c === c.c);
+
+  /** Where a sweep began. **A drag picks a range**, which is the gesture every
+   *  other list of things already uses — and the only way to name the two
+   *  corners of a merge. */
+  const from = useRef<{ r: number; c: number } | null>(null);
+  const sweep = (to: GridCell) => {
+    const a = from.current;
+    if (!a) return;
+    const out: Spot[] = [];
+    for (let r = Math.min(a.r, to.r); r <= Math.max(a.r, to.r); r++) {
+      for (let c = Math.min(a.c, to.c); c <= Math.max(a.c, to.c); c++) {
+        out.push({ group: id, r, c });
+      }
+    }
+    pick(out);
+  };
+  useEffect(() => {
+    const done = () => { from.current = null; };
+    window.addEventListener("pointerup", done);
+    return () => window.removeEventListener("pointerup", done);
+  }, []);
+
   return (
     <>
       {cells.map((c) => (
+        /** `nodrag` because the grid underneath would otherwise move instead —
+         *  a grid is moved by its name and resized by its corners — and `nopan`
+         *  because a sweep across cells is not a drag of the canvas. */
         <span key={`${c.r},${c.c}`}
-              className={["mnd-grid-cell", ...c.marks, held(c) ? "picked" : ""]
-                .filter(Boolean).join(" ")}
+              className={["mnd-grid-cell", "nodrag", "nopan", ...c.marks,
+                          held(c) ? "picked" : ""].filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
-              style={{ left: c.x, top: c.y, width: c.w, height: c.h }} />
+              style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return;
+                /** **Held here.** Let go, the canvas reads the same press as a
+                 *  sweep of its own and resolves it to nothing on release —
+                 *  which cleared the cells the moment they were picked. */
+                e.stopPropagation();
+                from.current = { r: c.r, c: c.c };
+                pick([{ group: id, r: c.r, c: c.c }]);
+              }}
+              onPointerEnter={(e) => { if (e.buttons === 1) sweep(c); }} />
       ))}
     </>
   );
@@ -394,12 +436,22 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
    *  for a name nobody set, so asking to name one had nowhere to put the
    *  field and did nothing at all. */
   const naming = useNaming();
+  const grid = !!data.grid?.length;
   return (
-    <div className={["mnd-group", data.grid?.length ? "gridded" : "",
+    <div className={["mnd-group", grid ? "gridded" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
-      {data.grid?.length ? <Lattice id={id} cells={data.grid} /> : null}
-      {data.label || naming.id === id
+      {grid ? <Lattice id={id} cells={data.grid!} /> : null}
+      {/* **A grid is resized by its corners**, and what a corner says is how
+          many rows and columns — the consumer rounds to whole cells. Drawn
+          after the lattice, because a cell covers the whole of the box it sits
+          in and would otherwise take the press meant for a corner. */}
+      {grid ? <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
+                           lineClassName="mnd-edge" handleClassName="mnd-grip" /> : null}
+      {/* **A grid always draws its name**, because its cells cover the whole of
+          it: the name is the one part left to take hold of, and it is where a
+          grid is moved from and renamed. */}
+      {grid || data.label || naming.id === id
         ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
       <Wears role={data.role} />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}

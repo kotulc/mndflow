@@ -1,9 +1,12 @@
-/** The view modules. Three, and closed: `block` is any planar projection,
- *  `table` and `matrix` are the two that are not a plane.
+/** The projection. **One way to draw**, since the grid absorbed the table and
+ *  the matrix — a layer is a plane, and what was a choice of view module is now
+ *  a question about how the blocks in it are placed.
  *
- *  **What a consumer needs, and not everything there is.** `read` is how the
- *  block module reads a behavior layer — its own working, reached by nothing
- *  outside this package, and a name `core` already uses for reading a file. */
+ *  *View* is reserved rather than retired: it will name a data perspective —
+ *  table, matrix, sequence — over the model, and it comes back defined.
+ *
+ *  **What a consumer needs, and not everything there is.** `look` is this
+ *  package's own working and is reached through the few names below. */
 
 export * from "./derive";
 export * from "./scene";
@@ -13,38 +16,8 @@ export * from "./seat";
 export * from "./svg";
 export * from "./text";
 
-import { project, type Config } from "./block";
-import { project as tabled } from "./table";
-import { project as matrixed } from "./matrix";
+export { project, type Config } from "./block";
 
-export type View = {
-  name: import("@mnd/core").ViewModule;
-  /** What it calls its elementary block — the chip fallback, derived. */
-  word: string;
-  /** One glyph that means this module and no other. */
-  icon: string;
-  project: (graph: import("@mnd/core").Graph, layer: import("@mnd/core").Id | null,
-            config?: Config) => import("./scene").Scene;
-};
-
-export const block: View = { name: "block", word: "block", icon: "▭", project };
-export const table: View = { name: "table", word: "row", icon: "▤", project: tabled };
-export const matrix: View = { name: "matrix", word: "cell", icon: "▦", project: matrixed };
-
-/** A registry of what this build supplies, keyed by the names **core** owns.
- *  Which modules exist is the model's business; which are built is this one's. */
-const built = new Map<string, View>(
-  [block, table, matrix].map((v) => [v.name, v]));
-
-export function view(name: string): View | null {
-  return built.get(name) ?? null;
-}
-
-export function views(): View[] {
-  return [...built.values()];
-}
-
-export type { Config };
 export { CELLS, PLAIN, cells_of, look_of, type Cell, type Emphasis, type Label,
          type Layout, type Look, type Shape, type Slot, type Voice,
          type Weight } from "./look";

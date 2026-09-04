@@ -3,9 +3,9 @@
  *
  *  It **reflects context and action as you use the app** — you act on the
  *  canvas, the terminal says what happened — so it is a **mirror** as much as
- *  an input. And it answers **four commands**: add blocks, filter the
- *  workspace, search packages, and help. Help is the fallback and carries the
- *  whole action surface, which is what lets the strip stay four wide.
+ *  an input. And it answers **three commands**: add blocks, search packages,
+ *  and help. Help is the fallback and carries the whole action surface, which
+ *  is what lets the strip stay short.
  *
  *  Two rules hold it in place. **It reads context and never changes it**,
  *  because it ranks *against* context and a surface that moved context would
@@ -191,7 +191,7 @@ export function Terminal(props: TerminalProps) {
             value={draft}
             placeholder={answering
               ? "answer, or press escape to leave it"
-              : "add a block · filter · search packages · ask for help"}
+              : "add a block · search packages · ask for help"}
             onChange={(e) => { set_draft(e.target.value); set_at(0); }}
             onKeyDown={on_key}
           />

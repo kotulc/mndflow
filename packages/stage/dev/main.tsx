@@ -7,7 +7,7 @@ import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { session, type Arrangement, type Id } from "@mnd/core";
 import { fixture, NAMES } from "@mnd/fixtures";
-import { block } from "@mnd/views";
+import { project } from "@mnd/views";
 import { Stage } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
@@ -36,7 +36,7 @@ function Harness() {
   s.watch(() => bump((n) => n + 1));
 
   const say = (line: string) => set_log((l) => [line, ...l].slice(0, 14));
-  const scene = block.project(s.graph(), layer);
+  const scene = project(s.graph(), layer);
   const how = (layer && s.graph().blocks[layer]?.arrangement) || "free";
 
   const act = (action: string, args?: Record<string, unknown>) => {

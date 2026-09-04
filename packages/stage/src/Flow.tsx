@@ -39,10 +39,6 @@ export type Gesture = {
    *  what the model records is a place on the drawing, and what a menu opens
    *  next to is a place on the page. */
   screen: Point;
-  /** Whether the modifier that extends a selection was down. **The one key the
-   *  canvas reports** — a range of cells is picked by pointing at its far
-   *  corner, and only the pointer knows the key was held. */
-  shift?: boolean;
   /** What this gesture knows beyond what it is on, as the arguments an action
    *  would need. **A seat is the case that needs it**: which wall of which
    *  border, and how far along, are answers only the pointer has — a perch is
@@ -119,6 +115,9 @@ export type FlowViewProps = {
   /** Which cells are picked. **Beside the ids, never among them** — a cell has
    *  no id, so it cannot ride in a node selection. */
   cells?: readonly Spot[];
+  /** What the lattice picked. A cell is not a node, so the library has no
+   *  gesture for one and the lattice reports its own. */
+  onPickCells?: (cells: readonly Spot[]) => void;
   /** What the app is saying, shown over the drawing rather than beside it. */
   said?: React.ReactNode;
   /** Something dropped onto the drawing from outside it, at the point it
@@ -886,7 +885,6 @@ function Canvas(props: FlowViewProps) {
     onGesture?.({
       on: kind === "title" || kind === "frame" ? scene.layer : chip ?? on,
       kind, button, count, at: at(e), screen: { x: e.clientX, y: e.clientY },
-      ...(e.shiftKey ? { shift: true } : {}),
       ...(given ? { given } : {}),
     });
   }, [onGesture, scene, at, frame]);
@@ -910,7 +908,7 @@ function Canvas(props: FlowViewProps) {
    *
    *  A press that never travels is a click, and a click is the offered list. */
   const drew = useRef<
-    { x: number; y: number; on: string | null; side?: Side } | null>(null);
+    { x: number; y: number; on: string | null; side?: Side; cell?: boolean } | null>(null);
   const [drawing, draw] = useState<
     { from: Point; to: Point; on: string | null } | null>(null);
   /** A drag just ended, so the `contextmenu` that follows it is not a click. */
@@ -939,7 +937,12 @@ function Canvas(props: FlowViewProps) {
   const pressed = useCallback((e: React.PointerEvent) => {
     swallow.current = false;
     if (e.button !== 2) return;
-    drew.current = { x: e.clientX, y: e.clientY, ...over(e.clientX, e.clientY) };
+    /** **A press that began on a cell is not a sweep.** A grid's cells cover the
+     *  whole of it, and a right drag across them would otherwise draw a second
+     *  grid over the first. */
+    const el = e.target instanceof Element ? e.target : null;
+    drew.current = { x: e.clientX, y: e.clientY, ...over(e.clientX, e.clientY),
+                     ...(el?.closest(".mnd-grid-cell") ? { cell: true } : {}) };
   }, [over]);
 
   const moved_to = useCallback((e: React.PointerEvent) => {
@@ -975,7 +978,7 @@ function Canvas(props: FlowViewProps) {
       });
       return;
     }
-    if (!from.on && !to.on) onSweep?.(spread(was.from, was.to));
+    if (!from.on && !to.on && !from.cell) onSweep?.(spread(was.from, was.to));
   }, [drawing, over, onRelate, onSweep, at, scene.layer]);
 
   /** What a card let go here would land on, and it is asked once.
@@ -1056,13 +1059,15 @@ function Canvas(props: FlowViewProps) {
     const b = box_of(drawn);
     const by = { x: node.position.x - b.x, y: node.position.y - b.y };
 
-    /** **A boundary has nowhere of its own to be put down.** It is drawn round
-     *  what it holds, so what moved is what it holds — and it is never filed
-     *  into anything: a band's middle is nearly always over one of its own
-     *  members, so a nudge used to file the boundary inside a card it was
-     *  drawn around, where nothing could draw it and the tree did not list it. */
+    /** **A grid owns its corner**, so what moved is the grid — its members are
+     *  placed by their addresses and follow it. A boundary has nowhere of its
+     *  own to be put down: it is drawn round what it holds, so what moved is
+     *  what it holds. Either way it is never filed into anything — a band's
+     *  middle is nearly always over one of its own members. */
     if (drawn.type === "group") {
-      onAdjust?.({ kind: "place", at: shifted(riders(drawn), by) });
+      onAdjust?.({ kind: "place", at: drawn.data.grid?.length
+        ? [{ id: node.id, to: node.position }]
+        : shifted(riders(drawn), by) });
       return;
     }
 
@@ -1501,10 +1506,16 @@ export function FlowView({ naming = null, onNamed, ...props }: FlowViewProps) {
     id: naming === props.scene.layer ? FRAME : naming,
     done: (label: string | null) => onNamed?.(label),
   }), [naming, props.scene.layer, onNamed]);
+  /** The same for the lattice: what is picked, and how to pick. */
+  const { cells, onPickCells } = props;
+  const picking = useMemo(() => ({
+    picked: cells ?? EMPTY_CELLS,
+    pick: (next: readonly Spot[]) => onPickCells?.(next),
+  }), [cells, onPickCells]);
   return (
     <ReactFlowProvider>
       <NamingContext.Provider value={typing}>
-        <CellsContext.Provider value={props.cells ?? EMPTY_CELLS}>
+        <CellsContext.Provider value={picking}>
           <Canvas {...props} />
         </CellsContext.Provider>
       </NamingContext.Provider>

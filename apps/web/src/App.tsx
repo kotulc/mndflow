@@ -7,9 +7,9 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, matches, offer, session, type Id } from "@mnd/core";
+import { adjustments, offer, session, type Id } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, nearest_seat, snap, view, BLOCK, PORT } from "@mnd/views";
+import { box_of, clear_of, nearest_seat, project, snap, BLOCK, CELL, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
@@ -59,9 +59,6 @@ export function App() {
     () => localStorage.getItem("mnd.theme") ?? "retro");
   const look = THEMES.find((t) => t.name === theme) ?? THEMES[0];
   const next_look = THEMES[(THEMES.indexOf(look) + 1) % THEMES.length]!;
-  /** Which view is showing is **display state**: it changes what you see and
-   *  nothing about the project, so it never enters the log. */
-  const [showing, set_showing] = useState("view.block");
   /** Chrome the shell holds and the log never sees. */
   const [tray, set_tray] = useState(false);
   /** Shown at all, and open rather than shut — two states, two controls: the
@@ -75,11 +72,7 @@ export function App() {
    *  optional; a fresh workspace has nothing to look at, so it starts on. */
   const [asking, set_asking] = useState(true);
   const [last, set_last] = useState<string | undefined>(undefined);
-  /** What the workspace is narrowed to. Display state: it changes what you are
-   *  looking at and nothing about the project, so it never enters the log. */
-  const [narrowed, set_narrowed] = useState("");
-  /** What help is pointing at. **The same lit-target look a narrowing uses** —
-   *  one mechanism, two callers, never a third. */
+  /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
@@ -93,45 +86,29 @@ export function App() {
   const said = s.said();
   const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
 
-  /** The definition supplies which module draws. */
-  const offered = useMemo(
-    () => Object.values(graph.defs).filter((d) => d.group === "view"), [graph]);
-  const named = graph.defs[showing]?.components?.["view"];
-  /** Read out as values rather than kept as a bag: the bag is a fresh object
-   *  whenever a definition names no view, and nothing below may depend on
-   *  something that is new every time. */
-  const drawn_by = narrowed ? "table" : String(named?.["module"] ?? "block");
-
-  /** **A result is a table, on the stage.** What matched is handed to the real
-   *  table view as its contents — the same seam a view block hands it what it
-   *  holds — so there is never a second listing anywhere. */
-  /** **What a narrowing found and what help is pointing at are two things.**
-   *  Only the first reaches a projection, so only the first is keyed on the
-   *  graph — pointing at a control while nothing is narrowed must not send the
-   *  whole layer round again. */
-  const found = useMemo(
-    () => (narrowed ? matches(graph, narrowed) : null), [graph, narrowed]);
-  const lit = found ?? pointed;
-  const holds = found ?? undefined;
-  const module = view(drawn_by)!;
-
   /** **Projected once per change, not once per render.**
    *
-   *  A projection is a pure function of the graph, the open layer and how it is
-   *  being read — and every one of those is a value the shell already holds. It
-   *  is not cheap: it lays out a layer, resolves a look for every card and
-   *  derives what each container holds. Run in the render body it ran again on
-   *  every keystroke in the terminal and every theme toggle, and handed the
-   *  canvas, the tree and the rail a whole new set of objects each time.
+   *  A projection is a pure function of the graph and the open layer, and both
+   *  are values the shell already holds. It is not cheap: it lays out a layer,
+   *  resolves a look for every card and derives what each container holds. Run
+   *  in the render body it ran again on every keystroke in the terminal and
+   *  every theme toggle, and handed the canvas, the tree and the rail a whole
+   *  new set of objects each time.
    *
    *  **`graph` is a sound key because a graph is never edited in place** — every
    *  change to the log refolds it from empty and hands back a new one, so its
    *  identity changing is exactly what "the model changed" means. */
   const scene = useMemo(
-    () => module.project(graph, narrowed ? null : layer, {
-      holds, interfaces: shown.interfaces,
-    }),
-    [module, graph, layer, narrowed, holds, shown.interfaces]);
+    () => project(graph, layer, { interfaces: shown.interfaces }),
+    [graph, layer, shown.interfaces]);
+
+  /** **The picked grid, where one is picked**, so the rail can offer what only
+   *  a grid can be told. Picking a cell picks the grid it is in, so pointing at
+   *  a cell is enough to reach these. */
+  const only = s.picked()[0] ?? s.cells()[0]?.group;
+  const on = only ? graph.blocks[only] : undefined;
+  const gridded = on && on.rows !== undefined && on.cols !== undefined
+    ? { id: on.id, headers: on.headers ?? "none" as const } : null;
 
   /** What the conversation is about: the block in focus, or the open layer when
    *  nothing is. It **reads context and never changes it**. */
@@ -189,6 +166,16 @@ export function App() {
      *  where it now sits: a resize from a left or top handle moves the card as
      *  well as sizes it. */
     if (a.kind === "size") {
+      /** **A grid is sized in cells, never in pixels.** Its extent is what it
+       *  is, so a corner dragged says how many rows and columns — and shrinking
+       *  frees whatever falls outside rather than hiding it. */
+      const on = graph.blocks[a.on];
+      if (on?.rows !== undefined && on.cols !== undefined) {
+        s.go("group", { into: a.on,
+                        rows: Math.round(a.h / CELL.h), cols: Math.round(a.w / CELL.w),
+                        spot: { x: snap(a.to.x), y: snap(a.to.y) } });
+        return;
+      }
       s.adjust("size", adjustments.size(a.on, a.w, a.h));
       s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
       return;
@@ -258,27 +245,21 @@ export function App() {
   };
 
   /** The rail's controls are display state or ordinary actions — it writes
-   *  nothing itself, so this is where each one lands. */
+   *  nothing itself, so this is where each one lands. **What is not display
+   *  state is an action**, and it goes the same way every other surface's does
+   *  rather than being listed here a second time. */
   const chrome = (name: string, args?: Record<string, unknown>) => {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
     if (name === "arrange") { act("arrange", { layer, ...args }); return; }
     if (name === "export") { void s.save(); return; }
-    if (name === "view") { set_showing(String(args!["id"])); return; }
+    act(name, args);
   };
 
   /** One of the terminal's four. **Help is the fallback**, so only the three
    *  that write anything are answered here. */
   const command = (match: Match) => {
     if (match.command === "add") { act("create", { label: match.rest }); return; }
-    if (match.command === "filter") {
-      set_narrowed(match.rest);
-      const found = match.rest ? matches(graph, match.rest).length : 0;
-      s.say(!match.rest ? "" : found
-        ? `${found} matched “${match.rest}”`
-        : `nothing matched “${match.rest}”`);
-      return;
-    }
     if (match.command === "search") { void s.search(match.rest); return; }
     s.say(`${match.command} is not built yet — “${match.rest}”`);
   };
@@ -323,14 +304,6 @@ export function App() {
           <button title="start a new workspace" onClick={() => {
             if (confirm("Start a new workspace? This session is replaced, and it cannot be undone. Export first to keep a copy.")) s.reset();
           }}><Icon name="remove" /></button>
-          {/* A narrowing you are standing in reads as a word — the term it is
-              holding is the whole point, and a mark would hide it. */}
-          {narrowed ? (
-            <button className="word" title={`stop narrowing to “${narrowed}”`}
-                    onClick={() => { set_narrowed(""); s.say(""); }}>
-              <Icon name="clear" /> {narrowed}
-            </button>
-          ) : null}
           <button title="the terminal" aria-pressed={terminal}
                   onClick={() => set_terminal((t) => !t)}><Icon name="terminal" /></button>
           <button title={`theme: ${theme} — click for ${next_look.name}`}
@@ -366,7 +339,7 @@ export function App() {
         open={layer}
         picked={s.picked()}
         folded={folded}
-        lit={lit}
+        lit={pointed}
         onAct={act}
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
@@ -444,8 +417,7 @@ export function App() {
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces, angles: shown.angles,
-                                   views: offered.map((d) => ({ id: d.id, name: d.name })),
-                                   showing },
+                                   ...(gridded ? { grid: gridded } : {}) },
                                  chrome)} />
     </div>
   );

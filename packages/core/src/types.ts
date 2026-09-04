@@ -124,22 +124,20 @@ export type Relation = {
   fields?: Field[];
 };
 
-/** Which block module the engine dispatches on. Open — one more is additive. */
+/** Which block module the engine dispatches on. Open — one more is additive.
+ *
+ *  **Seven, since the grid.** A `view` module had one way to draw and no
+ *  configuration left once the grid absorbed the table and the matrix. *View*
+ *  is reserved rather than retired: it will name a data perspective over the
+ *  model, and it comes back defined. */
 export type BlockModule =
   | "folder" | "structure" | "reference"
-  | "interface" | "resource" | "group" | "note" | "view";
+  | "interface" | "resource" | "group" | "note";
 
 export const BLOCK_MODULES: readonly BlockModule[] = [
   "folder", "structure", "reference",
-  "interface", "resource", "group", "note", "view",
+  "interface", "resource", "group", "note",
 ];
-
-/** How a layer may be presented. **Three, and closed**: `block` is any planar
- *  projection, and `table` and `matrix` are the two that are not a plane.
- *  Core names them; the code behind each lives in the views package. */
-export type ViewModule = "block" | "table" | "matrix";
-
-export const VIEW_MODULES: readonly ViewModule[] = ["block", "table", "matrix"];
 
 export type Components = Record<string, Record<string, unknown>>;
 
@@ -147,7 +145,7 @@ export type Definition = {
   id: Id;
   /** The block it is filed under. Ownership, lock and scope all derive from this. */
   home: Id;
-  group: "block" | "relation" | "view";
+  group: "block" | "relation";
   name: string;
   body?: string;
   extends?: Id;

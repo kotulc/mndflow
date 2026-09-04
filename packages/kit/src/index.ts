@@ -27,8 +27,8 @@ export {
   type Arrangement, type Block, type BlockModule, type Components, type Definition,
   type Dir, type Field, type FieldDef, type File, type Flow, type Graph, type Id,
   type Point, type RelationModule, type Relation, type Side,
-  type ValueForm, type ViewModule,
-  ARRANGEMENTS, BLOCK_MODULES, READS, ROOT, SCHEMA, VIEW_MODULES,
+  type Cell, type Headers, type Span, type ValueForm,
+  ARRANGEMENTS, BLOCK_MODULES, HEADERS, READS, ROOT, SCHEMA,
   def_id, empty_graph, new_id,
 } from "@mnd/core";
 
@@ -48,17 +48,22 @@ export { type Note, type NoteKind, type Range, type Rules, review, rules_of } fr
 
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
-  arrangement_of, children, defs_in_scope, edges_in, isa, is_container,
-  is_interface, is_reference, is_top_block, layer_id, module_of, owner_of, path,
-  resolve_def, shown_name, stands_for, subtree,
+  allocated_to, allocations_of, arrangement_of, at_cell, cell_of, children,
+  defs_in_scope, edges_in, grid_of, isa, is_container, is_grid, is_interface,
+  is_reference, is_top_block, layer_id, members_of, merge_at, module_of,
+  owner_of, path, resolve_def, shown_name, stands_for, subtree,
 } from "@mnd/core";
 
 /** The floor. `base_graph()` is a fresh workspace with the base package in it. */
 export { ALL, BASE, RELATIONS, base_graph, by_id } from "@mnd/defs";
 
-/** A layer, projected — and the two artifacts a projection makes on its own. */
+/** A layer, projected — and the two artifacts a projection makes on its own.
+ *
+ *  **One projection.** The table and the matrix were view modules; the grid
+ *  absorbed both, so what a layer looks like is a question about how the blocks
+ *  in it are placed rather than about which module drew it. */
 export {
-  type BoxData, type BoxNode, type Config, type Frame, type LineData,
-  type LineEdge, type Mark, type Paper, type Scene, type Slot, type View,
-  SHEET, block, box_of, draw, draw_svg, extent, matrix, outline, table, view, views,
+  type BoxData, type BoxNode, type Config, type Frame, type GridCell,
+  type LineData, type LineEdge, type Mark, type Paper, type Scene, type Slot,
+  SHEET, box_of, draw, draw_svg, extent, outline, project,
 } from "@mnd/views";

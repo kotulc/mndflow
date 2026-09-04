@@ -369,14 +369,6 @@
   cursor: text;
 }
 
-/* A table's own cells, drawn on the canvas until a table has a surface of its
-   own. A head reads as a head; a filled cell says a relationship runs here. */
-.mnd-card.header { background: var(--raised); color: var(--muted); font-weight: 600; }
-.mnd-card.cell { border-color: var(--divider); }
-.mnd-card.filled { background: var(--tint); border-color: var(--accent); }
-.mnd-card.turned .mnd-label { writing-mode: vertical-rl; transform: rotate(180deg); }
-.mnd-card.header .mnd-head, .mnd-card.cell .mnd-head { justify-content: center; }
-
 /* Which way a flow enters and leaves, on the interface that carries it. */
 .mnd-card.in, .mnd-seat.in { border-color: var(--accent); }
 .mnd-card.out, .mnd-seat.out { border-color: var(--away); }
@@ -822,4 +814,17 @@
 .mnd-grid-cell.picked {
   background: color-mix(in oklch, var(--accent) 16%, transparent);
   border-color: var(--accent);
+}
+
+/* **A grid's name is the one part of it that is not a cell**, so it is where a
+   grid is taken hold of and renamed. It keeps a target even with nothing typed
+   in it, because otherwise a grid nobody has named has nowhere to click. */
+.mnd-group.gridded > .mnd-group-name {
+  min-width: 3ch;
+  min-height: 1em;
+  cursor: grab;
+}
+.mnd-group.gridded > .mnd-group-name:empty::before {
+  content: "name";
+  opacity: 0.45;
 }

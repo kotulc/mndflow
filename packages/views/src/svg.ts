@@ -160,21 +160,18 @@ function card(node: BoxNode, clip: string): string {
   return d.link ? `<a href="${esc(d.link)}">${drawn}</a>` : drawn;
 }
 
-/** A name too long for its card is clipped, and a turned one reads up the box —
- *  the same two rules the React renderer draws by. */
+/** A name too long for its card is clipped — the same rule the React renderer
+ *  draws by. */
 function label(node: BoxNode, clip: string): string {
   const d = node.data;
   if (!d.label) return ``;
   const box = box_of(node);
-  const turned = d.marks.includes("turned");
   const x = box.x + box.w / 2;
-  const y = turned ? box.y + box.h - 6 : box.y + box.h / 2;
-  const spin = turned ? ` transform="rotate(-90 ${round(x)} ${round(y)})"` : ``;
-  const cut = turned ? `` : ` clip-path="url(#${clip})"`;
+  const y = box.y + box.h / 2;
   return `<clipPath id="${clip}"><rect x="${round(box.x)}" y="${round(box.y)}"`
     + ` width="${round(box.w)}" height="${round(box.h)}" /></clipPath>`
     + `<text x="${round(x)}" y="${round(y)}" dominant-baseline="central"`
-    + ` text-anchor="${turned ? "start" : "middle"}"${spin}${cut}>${esc(d.label)}</text>`;
+    + ` text-anchor="middle" clip-path="url(#${clip})">${esc(d.label)}</text>`;
 }
 
 /** One line. **The same path the canvas draws** — `getSmoothStepPath` is React

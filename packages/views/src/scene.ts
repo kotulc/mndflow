@@ -65,7 +65,7 @@ export type BoxData = {
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
                  | "interface" | "berth" | "in" | "out"
-                 | "header" | "cell" | "merged" | "filled" | "turned";
+                 | "cell" | "header" | "merged";
 
 /** One cell of a grid, placed inside the grid's own box. A merged region is one
  *  cell drawn once, at the span's corner and the span's size. */
@@ -106,7 +106,7 @@ export type LineEdge = Edge<LineData>;
 
 /** Which control group this projection offers. The shell knows how to build
  *  each; a module declaring none simply has none. */
-export type Slot = "arrange" | "interfaces" | "lines" | "columns" | "types" | "relations";
+export type Slot = "arrange" | "interfaces" | "lines" | "relations";
 
 /** The open layer seen from within: a border with the name set into it, and
  *  the band outside it. A layer with nothing in it still gets one, so

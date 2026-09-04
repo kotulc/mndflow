@@ -1,18 +1,18 @@
-/** The four commands the terminal answers to.
+/** The commands the terminal answers to.
  *
- *  **The strip stays four commands wide.** Everything else a person could want
- *  is an action, and **help carries the whole action surface** — so nothing
- *  becomes unreachable by text without the strip growing a fifth thing.
+ *  **Three, and the strip stays short.** Everything else a person could want is
+ *  an action, and **help carries the whole action surface** — so nothing becomes
+ *  unreachable by text without the strip growing a fourth thing.
  *
  *  **The verb lists are examples, not an enumeration.** Somebody will type a
  *  word nobody listed, and substring matching cannot answer that: meaning
  *  matching through the `score` port and a learned store of what this person
- *  actually reaches for are both meant to point at these same four. Until one
+ *  actually reaches for are both meant to point at these same three. Until one
  *  is bound, the lists below and the help fallback are what there is. */
 
 import type { Score } from "@mnd/core";
 
-export type Command = "add" | "filter" | "search" | "help";
+export type Command = "add" | "search" | "help";
 
 /** One thing that can be reached from here. **The sentence is what gets
  *  matched**, because a name is too short to match against. */
@@ -23,8 +23,7 @@ export type Offer = {
    *  derived from the action's own arguments, never written down twice. */
   asks?: string;
   /** What it would act on. **Help points at the control it is describing**, and
-   *  it points with the one lit-target look a narrowing already uses — one
-   *  mechanism, two callers, never a third. */
+   *  it points with the one lit-target look every surface uses. */
   on?: readonly string[];
 };
 
@@ -41,8 +40,6 @@ export type Wording = {
 export const COMMANDS: Record<Command, Wording> = {
   add: { command: "add", about: "make blocks here", asks: "name them",
          example: "Heat Exchanger" },
-  filter: { command: "filter", about: "narrow the workspace to what matches",
-            asks: "match what", example: "pump" },
   search: { command: "search", about: "find a definition package and bring it in",
             asks: "look for", example: "sysml" },
   help: { command: "help", about: "docs, a tutorial, and every action there is",
@@ -52,12 +49,11 @@ export const COMMANDS: Record<Command, Wording> = {
 /** Examples, never a closed list. A sigil may be glued to its argument. */
 const VERBS: Record<Command, string[]> = {
   add: ["+", "b", "block", "new", "add", "insert", "create"],
-  filter: [":", "f", "find", "filter", "scope", "view"],
   search: ["*", "s", "search", "import", "load", "package"],
   help: ["?", "h", "help", "doc", "docs", "guide", "how"],
 };
 
-const SIGILS: Record<string, Command> = { "+": "add", ":": "filter", "*": "search", "?": "help" };
+const SIGILS: Record<string, Command> = { "+": "add", "*": "search", "?": "help" };
 
 export type Match = {
   command: Command;
@@ -89,7 +85,7 @@ export function reads(draft: string, score?: Score): Match | null {
 
   /** **The verb lists are examples, not an enumeration**, and substring cannot
    *  answer a word nobody listed. This is the gap the port closes: what the
-   *  word *meant*, if it meant one of the four. Unbound, help is the fallback,
+   *  word *meant*, if it meant one of them. Unbound, help is the fallback,
    *  which is not a refusal. */
   const meant = score ? nearest(want, score) : null;
   if (meant) return { command: meant, verb: word, rest: rest.join(" ") };
@@ -117,7 +113,7 @@ function nearest(word: string, score: Score): Command | null {
   return at === null ? null : said[at]?.command ?? null;
 }
 
-/** What to ask the scorer about before anybody types: the four commands, and
+/** What to ask the scorer about before anybody types: the commands, and
  *  whatever a caller is about to offer. */
 export function warming(offered: readonly Offer[] = []): string[] {
   return [...phrases().map((p) => p.said), ...offered.map(sentence)];

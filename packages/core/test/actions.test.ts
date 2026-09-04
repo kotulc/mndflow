@@ -240,47 +240,6 @@ describe("the way out of a layer", () => {
   });
 });
 
-describe("pin keeps a layer as a view", () => {
-  const kept = () => {
-    const s = session();
-    s.go("create", { label: "Loop" });
-    const loop = children(s.graph(), ROOT)[0]!.id;
-    s.look(loop);
-    s.go("create", { label: "Pump" });
-    s.go("create", { label: "Valve" });
-    s.go("pin", { name: "Wet side" });
-    return { s, loop };
-  };
-
-  it("makes a view block holding one reference per thing shown", () => {
-    const { s } = kept();
-    const view = Object.values(s.graph().blocks).find((b) => b.type === "view")!;
-    const inside = children(s.graph(), view.id);
-    expect(inside).toHaveLength(2);
-    expect(inside.every((b) => b.of !== undefined)).toBe(true);
-  });
-
-  it("files it beside what it looks at, never inside it", () => {
-    const { s, loop } = kept();
-    const view = Object.values(s.graph().blocks).find((b) => b.type === "view")!;
-    expect(view.parent).toBe(ROOT);
-    expect(children(s.graph(), loop).some((b) => b.type === "view")).toBe(false);
-  });
-
-  it("refuses to keep a layer holding nothing, and one with no name", () => {
-    const s = session();
-    expect(s.go("pin", { name: "Nothing" })).toMatch(/nothing here/);
-    s.go("create", { label: "A" });
-    expect(s.go("pin", { name: "" })).toMatch(/needs a name/);
-  });
-
-  it("undoes like anything else", () => {
-    const { s } = kept();
-    s.undo();
-    expect(Object.values(s.graph().blocks).some((b) => b.type === "view")).toBe(false);
-  });
-});
-
 describe("a field on a layer", () => {
   /** A fresh workspace has no floor until an app hands one in — core may not
    *  reach for the package that supplies it. */

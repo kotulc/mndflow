@@ -7,11 +7,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { check, children, fold, matches, read, review, say, session, shown_name, write,
+import { check, children, fold, read, review, say, session, shown_name, write,
          type Fault, type Id, type Log, type Storage } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
-import { draw, draw_svg, faults, outline, view } from "@mnd/views";
+import { draw, draw_svg, faults, outline, project } from "@mnd/views";
 import { next, turn, type Question } from "@mnd/terminal/loop";
 import { wordings } from "./workflows";
 import { node_net } from "./ports";
@@ -27,7 +27,6 @@ const USAGE = `mnd — the headless harness
   mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
   mnd ask <source> [answer ...]        run the question loop, one answer a turn
-  mnd filter <source> <word>           narrow the workspace, as a table
   mnd search <source> <name>           fetch a definition package, through the door
   mnd translate <source> [--round]     write the graph as SysML, and check it comes back
                         [--with <pkg>] bring a vocabulary in first, so its names are used
@@ -38,7 +37,6 @@ const USAGE = `mnd — the headless harness
            an exported file, or a raw log.
   A log is harness input only: a file is a graph, and that is what export writes.
   --how sets the arrangement: free grid right left down up
-  --view picks the module: block table matrix
   --svg writes the drawing instead of the text projection
   --from sets the package catalogue search reads (default public/packages/index.json)
 
@@ -103,9 +101,9 @@ function flag(args: string[], name: string): string | undefined {
 }
 
 /** The flags that take the argument after them. Without knowing which do, a
- *  flag's value reads as a positional and `--view matrix` asks for a layer
- *  called "matrix". */
-const VALUED = ["--how", "--view", "--layer", "--from", "--with"];
+ *  flag's value reads as a positional and `--how down` asks for a layer called
+ *  "down". */
+const VALUED = ["--how", "--layer", "--from", "--with"];
 
 /** What is left once every flag, every flag's value and every pair is taken
  *  out: the positionals, and nothing else. */
@@ -186,12 +184,7 @@ async function main(argv: string[]): Promise<void> {
       let graph = fold(log);
       if (how && layer !== null) graph = { ...graph,
         blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!, arrangement: how as never } } };
-      const module = view(flag(rest, "view") ?? "block");
-      if (!module) {
-        console.error(`  no view module called "${flag(rest, "view")}"`);
-        process.exit(1);
-      }
-      const scene = module.project(graph, layer);
+      const scene = project(graph, layer);
       const wrong = faults(scene);
       if (wrong.length) {
         console.error("the scene is not well-formed:");
@@ -247,26 +240,23 @@ async function main(argv: string[]): Promise<void> {
       return;
     }
 
-    /** Narrowing, and **the seam a result presents through**: what matched is
-     *  handed to the real table view as its contents, the same way a view block
-     *  hands it what it holds. There is no second listing anywhere. */
-    case "filter": {
-      const graph = fold(log);
-      const want = plain.join(" ");
-      const lit = matches(graph, want);
-      console.log(lit.length ? `${lit.length} matched “${want}”`
-                            : `nothing matched “${want}”`);
-      if (!lit.length) return;
-      const scene = view("table")!.project(graph, null, { holds: lit });
-      const wrong = faults(scene);
-      if (wrong.length) {
-        console.error("the scene is not well-formed:");
-        for (const w of wrong) console.error(`  ${w}`);
-        process.exit(1);
+    /** A definition package from outside the workspace, **in through the
+     *  door**: what arrives is a file like any other, checked against the graph
+     *  it is joining rather than against itself, and what was repaired is said. */
+    case "search": {
+      const s = session({ storage: held(log), defs: seed(), net: node_net(),
+                          catalogue: flag(rest, "from") ?? CATALOGUE });
+      const before = new Set(Object.keys(s.graph().defs));
+      const found = await s.search(plain.join(" "));
+      console.log(s.said()?.text ?? "");
+      if (!found) process.exit(1);
+      for (const d of Object.values(s.graph().defs)) {
+        if (!before.has(d.id)) console.log(`  ${d.group} ${d.name}`);
       }
-      console.log(draw(scene));
+      for (const f of found.faults) console.log(`  ${f.kind}: ${f.what}`);
       return;
     }
+
 
     /** The question loop, headless. **A domain is a YAML file with no control
      *  flow in it**: what to ask is decided here from the graph, and an answer

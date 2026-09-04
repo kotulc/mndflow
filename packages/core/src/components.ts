@@ -13,7 +13,7 @@
  *  wrong — which is how an older build opens a newer package. What a component
  *  refuses is dropped, and only that key. */
 
-import { BLOCK_MODULES, VIEW_MODULES, type Definition } from "./types";
+import { BLOCK_MODULES, type Definition } from "./types";
 
 /** What a definition holds under one component's key. Free-form: the component
  *  says what its own shape is, and nothing else may read it. */
@@ -148,14 +148,6 @@ const style: Component = {
     ?? stray("style", config, ["set", "slot", "emphasis", "weight", "voice"]),
 };
 
-/** Which module presents a layer. */
-const view: Component = {
-  name: "view",
-  check: (config) =>
-    one_of("view.module", config["module"], VIEW_MODULES)
-    ?? stray("view", config, ["module"]),
-};
-
 /** The one constraint: which of a usage's fields must carry a value. */
 const constraints: Component = {
   name: "constraints",
@@ -192,4 +184,4 @@ const rules: Component = {
 /** What this build publishes. The engine ships its components the same way
  *  anybody else would, so there is no privileged path a later module would
  *  have to be measured against. */
-publish(block, card, style, view, constraints, rules);
+publish(block, card, style, constraints, rules);

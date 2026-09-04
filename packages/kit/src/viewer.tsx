@@ -12,8 +12,8 @@
  *  edit through this, rather than being trusted not to. */
 
 import { useState } from "react";
-import { children, type Graph, type Id, type ViewModule } from "@mnd/core";
-import { EMPTY, view, type Config } from "@mnd/views";
+import { children, type Graph, type Id } from "@mnd/core";
+import { project, type Config } from "@mnd/views";
 import { FlowView, type Gesture } from "@mnd/stage";
 
 /** Nothing picked. A constant, because a fresh `[]` every render would read as
@@ -29,8 +29,6 @@ export type ViewerProps = {
    *  the drawing can light what the tree selected — **without moving the
    *  layer**, which is the whole point of the two being separate. */
   picked?: readonly Id[];
-  /** Which module draws it. `block` is any planar projection. */
-  module?: ViewModule;
   config?: Config;
   /** Told where the viewer is looking, whenever that changes. */
   onLook?: (layer: Id | null) => void;
@@ -42,12 +40,12 @@ export type ViewerProps = {
   onFollow?: (link: string, id: Id) => void;
 };
 
-export function Viewer({ graph, layer = null, picked = NONE, module = "block",
+export function Viewer({ graph, layer = null, picked = NONE,
                         config, onLook, onPick, onFollow }: ViewerProps) {
   const [at, set_at] = driven<Id | null>(layer);
   const [lit, set_lit] = driven<readonly Id[]>(picked);
 
-  const scene = view(module)?.project(graph, at, config) ?? EMPTY;
+  const scene = project(graph, at, config);
 
   const pick = (ids: Id[]) => {
     set_lit(ids);

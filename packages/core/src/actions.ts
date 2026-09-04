@@ -677,8 +677,13 @@ register(
       return members.length || extent || args["into"] ? null : "nothing is selected";
     },
     run: (ctx, args) => {
-      const members = ((args["members"] as Id[]) ?? ctx.picked).filter((id) => ctx.graph.blocks[id]);
       const into = args["into"] ? id_of(args, "into") : null;
+      /** **Naming a group is not joining it.** With `into` given and nobody
+       *  named, this is a setting on the group itself — and taking the
+       *  selection as members put the group inside itself, because the group is
+       *  what was picked. */
+      const members = ((args["members"] as Id[]) ?? (into ? [] : ctx.picked))
+        .filter((id) => ctx.graph.blocks[id] && id !== into);
       const out: Mutation[] = [];
       let group = into;
       if (!group) {
@@ -687,15 +692,33 @@ register(
           id: group, parent: here(ctx), type: "group", num: next_num(ctx.graph, here(ctx)),
         } });
       }
-      const rows = num(args, "rows");
-      const cols = num(args, "cols");
+      const rows = num(args, "rows") === null ? null : Math.max(1, num(args, "rows")!);
+      const cols = num(args, "cols") === null ? null : Math.max(1, num(args, "cols")!);
       const headers = HEADERS.includes(args["headers"] as Headers)
         ? (args["headers"] as Headers) : undefined;
       if (rows !== null || cols !== null || headers) {
         out.push({ op: "set_grid", id: group,
-                   ...(rows === null ? {} : { rows: Math.max(1, rows) }),
-                   ...(cols === null ? {} : { cols: Math.max(1, cols) }),
+                   ...(rows === null ? {} : { rows }),
+                   ...(cols === null ? {} : { cols }),
                    ...(headers ? { headers } : {}) });
+      }
+      /** **A grid shrinking frees what falls outside it**, rather than leaving
+       *  addresses nobody can point at. A layout gesture must not destroy model
+       *  content, so the block stays on the layer and loses its cell. */
+      const was = ctx.graph.blocks[group];
+      if (was && (rows !== null || cols !== null)) {
+        const height = rows ?? was.rows ?? 1;
+        const width = cols ?? was.cols ?? 1;
+        for (const b of members_of(ctx.graph, group)) {
+          if (b.cell && (b.cell.r >= height || b.cell.c >= width)) {
+            out.push({ op: "seat_cell", id: b.id, cell: null });
+          }
+        }
+        for (const span of was.merges ?? []) {
+          if (span.r + span.rows > height || span.c + span.cols > width) {
+            out.push({ op: "split_cells", id: group, r: span.r, c: span.c });
+          }
+        }
       }
       /** **A grid owns its corner**, or an empty one would be nothing. */
       const at = spot(args);
@@ -1075,14 +1098,14 @@ register(
     about: "names a new definition, or renames one this layer already has",
     on: ["layer"],
     args: [{ name: "name", form: "text", required: true },
-           { name: "group", form: "choice", choices: ["block", "relation", "view"] },
+           { name: "group", form: "choice", choices: ["block", "relation"] },
            { name: "extends", form: "text" }],
     check: (_ctx, args) => text(args, "name") ? null : "a definition needs a name",
     run: (ctx, args) => {
       const name = text(args, "name");
       return { mutations: [{ op: "set_def", def: {
         id: def_id(name), home: here(ctx),
-        group: (args["group"] as "block" | "relation" | "view") ?? "block",
+        group: (args["group"] as "block" | "relation") ?? "block",
         name, extends: args["extends"] ? def_id(text(args, "extends")) : undefined,
       } }] };
     },
@@ -1110,38 +1133,6 @@ register(
     run: (ctx, args) => ({ mutations: [{ op: "set_arrangement",
       layer: (args["layer"] as Id) ?? here(ctx),
       arrangement: String(args["arrangement"]) as Arrangement }] }),
-  },
-);
-
-// ---------------------------------------------------------------- views
-
-register(
-  {
-    name: "pin",
-    about: "keeps the layer as it is being looked at, as a view you can come back to",
-    on: ["layer"],
-    args: [{ name: "name", form: "text", required: true }],
-    check: (ctx, args) => {
-      if (!text(args, "name")) return "a view needs a name";
-      return children(ctx.graph, here(ctx)).length ? null : "there is nothing here to keep";
-    },
-    run: (ctx, args) => {
-      /** A pinned layer is an **ordinary view block** — one reference per thing
-       *  shown, so it exports and undoes like anything else. It is filed beside
-       *  what it looks at rather than inside it: a view of a layer that lived in
-       *  that layer would show itself. */
-      const view = new_id("block");
-      const holder = ctx.graph.blocks[here(ctx)]?.parent ?? ctx.graph.root;
-      const out: Mutation[] = [{ op: "add_block", block: {
-        id: view, parent: holder, type: "view", label: text(args, "name"),
-        num: next_num(ctx.graph, holder),
-      } }];
-      for (const [i, b] of children(ctx.graph, here(ctx)).entries()) {
-        out.push({ op: "add_block", block: {
-          id: new_id("block"), parent: view, of: b.of ?? b.id, num: i + 1 } });
-      }
-      return { mutations: out, effect: { say: `kept as "${text(args, "name")}"` } };
-    },
   },
 );
 

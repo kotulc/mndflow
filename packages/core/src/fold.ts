@@ -321,25 +321,6 @@ function named(graph: Graph, b: Block): string {
   return fallback(graph, b);
 }
 
-/** Everything a word matches: the name it is shown by, its body, and the name
- *  of the definition it uses.
- *
- *  **Substring, and the whole workspace** — narrowing is about finding a thing
- *  wherever it lives, so it is not asked of a layer. Ranking what comes back by
- *  meaning is a host's, through the `score` port; this is what is there to rank.
- *  The root is never a match: everything is inside it. */
-export function matches(graph: Graph, want: string): Id[] {
-  const text = want.trim().toLowerCase();
-  if (!text) return [];
-  const holds = (said: string | undefined) => !!said?.toLowerCase().includes(text);
-  return Object.values(graph.blocks)
-    .filter((b) => b.id !== graph.root)
-    .filter((b) => holds(shown_name(graph, b.id)) || holds(b.body)
-                || holds(b.type ? graph.defs[b.type]?.name : undefined))
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
-    .map((b) => b.id);
-}
-
 /** The number a new sibling takes: one past the last.
  *
  *  **Appended, never inserted.** The lowest free number filled the gap a

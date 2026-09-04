@@ -4,7 +4,7 @@
  *  builder below turns the slots a projection declared into the standard
  *  groups, so the shell knows how to draw each and no module has to. */
 
-import { ARRANGEMENTS, type Act, type Arrangement } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement, type Headers } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
@@ -26,34 +26,20 @@ export type Group = {
   controls: Control[];
 };
 
-/** One view the shell can put on the stage. */
-export type View = { id: string; name: string };
-
 /** What the shell knows about the thing on the stage. */
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** The views in scope, and the one showing. **Not a slot** — which view is
-   *  on is a question about the shell rather than about the projection, so it
-   *  is offered wherever there is more than one to pick from. */
-  views?: readonly View[];
-  showing?: string;
+  /** The grid that is picked, where one is. **Not a slot** — a slot is what
+   *  the projection can offer about the whole layer, and this is about the one
+   *  thing you have hold of. */
+  grid?: { id: string; headers: Headers };
   arrangement?: Arrangement;
   interfaces?: boolean;
   angles?: boolean;
   /** Relation types in scope, and which one a right drag would make. */
   types?: readonly string[];
   picked?: string | null;
-  /** Column names a table offers, and which one it is sorted by. */
-  columns?: readonly string[];
-  sorted?: string | null;
-};
-
-/** The mark each view wears. A view a build does not know draws as a plain
- *  block, which is the module every unnamed reading falls back to anyway. */
-const VIEW: Record<string, IconName> = {
-  block: "view_block", table: "view_table", matrix: "view_matrix",
-  activity: "view_activity", sequence: "view_sequence", state: "view_state",
 };
 
 const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
@@ -71,21 +57,6 @@ const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
 export function groups_of(chrome: Chrome, act: Act): Group[] {
   const has = (slot: string) => chrome.slots.includes(slot);
   const out: Group[] = [];
-
-  /** **Which view is showing sits with everything else you can change about
-   *  what you are looking at**, not in the header beside undo and export. One
-   *  view on its own is not a choice, so it is not offered. */
-  if ((chrome.views ?? []).length > 1) {
-    out.push({
-      key: "views", label: "views",
-      controls: (chrome.views ?? []).map((v) => ({
-        key: v.id, icon: VIEW[v.name] ?? "view_block", word: v.name,
-        tip: `Read this layer as ${v.name}`,
-        on: chrome.showing === v.id,
-        run: () => act("view", { id: v.id }),
-      })),
-    });
-  }
 
   if (has("arrange")) {
     out.push({
@@ -122,28 +93,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  if (has("columns")) {
-    out.push({
-      key: "columns", label: "columns",
-      controls: (chrome.columns ?? []).map((name) => ({
-        key: name, icon: "column", word: name, tip: `Sort by ${name}`,
-        on: chrome.sorted === name,
-        run: () => act("sort", { column: name }),
-      })),
-    });
-  }
-
-  if (has("types")) {
-    out.push({
-      key: "types", label: "types",
-      controls: (chrome.types ?? []).map((name) => ({
-        key: name, icon: "type_tag", word: name, tip: `Show only “${name}”`,
-        on: chrome.picked === name,
-        run: () => act("filter", { type: chrome.picked === name ? null : name }),
-      })),
-    });
-  }
-
   if (has("relations")) {
     out.push({
       key: "relations", label: "relations",
@@ -158,6 +107,29 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           run: () => act("relate_with", { type: name }),
         })),
       ],
+    });
+  }
+
+  /** **What the picked thing can be told, rather than what the layer can.**
+   *  It sits at the foot of the rail because it comes and goes with the
+   *  selection, and everything above it is about what you are looking at. */
+  if (chrome.grid) {
+    const { id, headers } = chrome.grid;
+    const heads = (which: "row" | "col") => headers === which || headers === "both";
+    const toggled = (which: "row" | "col"): Headers => {
+      const other = which === "row" ? "col" : "row";
+      if (heads(which)) return heads(other) ? other : "none";
+      return heads(other) ? "both" : which;
+    };
+    out.push({
+      key: "grid", label: "grid",
+      controls: (["row", "col"] as const).map((which) => ({
+        key: which, icon: which === "row" ? "header_row" : "header_col",
+        word: `${which} header`,
+        tip: `Read ${which === "row" ? "column 0" : "row 0"} as headers`,
+        on: heads(which),
+        run: () => act("group", { into: id, headers: toggled(which) }),
+      })),
     });
   }
 
