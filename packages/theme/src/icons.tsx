@@ -59,6 +59,11 @@ const PATHS = {
   role_note: "M5 8h14M5 12h14M5 16h9",
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
 
+  // Whether a thing writes its name on itself. A tag on a card, and the same
+  // tag struck through.
+  label_on: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5",
+  label_off: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5M5.5 18.5l13-13",
+
   // Interfaces drawn on the canvas, or not.
   ports_on: "M6 6h12v12H6zM2.5 12H6M18 12h3.5",
   ports_off: "M15 6H6v12h9",

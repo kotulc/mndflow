@@ -103,6 +103,31 @@
 [data-voice="normal"] .mnd-label { font-weight: 500; }
 [data-voice="loud"]   .mnd-label { font-weight: 700; letter-spacing: 0.01em; }
 
+/* Nobody has named it, so what it reads is its type and the mark it was
+   handed. Both quiet, so a placeholder never reads as loudly as a name
+   somebody chose — and the mark quieter still, being the part you are meant to
+   stop noticing once the thing has a name. */
+.mnd-card.unnamed > .mnd-head > .mnd-label,
+.mnd-seat.unnamed .mnd-label { opacity: 0.55; font-style: italic; }
+
+/* The name and the mark beside it read as one thing, so they sit together at
+   the head's left end while the subtype chip keeps the right. */
+.mnd-named {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mnd-alias {
+  flex: none;
+  margin-left: 0.5ch;
+  opacity: 0.4;
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
 /* ── The card ───────────────────────────────────────────────────────────── */
 
 .mnd-card {

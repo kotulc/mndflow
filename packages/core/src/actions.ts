@@ -8,8 +8,7 @@
  *  a text interface never offers it. */
 
 import { arrangement_of, at_cell, children, covers, edges_in, is_grid, is_interface,
-         is_reference, layer_id, members_of, module_of, next_num, path, reorder } from "./fold";
-import { name_taken } from "./door";
+         is_reference, layer_id, members_of, module_of, next_num, next_alias, path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, HEADERS, READS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
          type FieldDef, type Flow, type Graph, type Headers, type Id, type Mutation,
@@ -216,7 +215,7 @@ function make_block(ctx: Context, label: string, parent: Id | null, type?: Id): 
   const id = new_id("block");
   return [{ op: "add_block", block: {
     id, parent, label: label || undefined, type,
-    num: next_num(ctx.graph, parent),
+    num: next_num(ctx.graph, parent), alias: next_alias(ctx.graph),
   } }];
 }
 
@@ -230,11 +229,6 @@ register(
     args: [{ name: "label", form: "text", asks: true },
            { name: "parent", form: "block" },
            { name: "type", form: "text" }, { name: "spot", form: "spot" }],
-    check: (ctx, args) => {
-      const parent = (args["parent"] as Id) ?? here(ctx);
-      const label = text(args, "label");
-      return name_taken(ctx.graph, parent, label) ? `"${label}" is taken` : null;
-    },
     run: (ctx, args) => {
       const parent = (args["parent"] as Id) ?? here(ctx);
       const type = args["type"] ? String(args["type"]) : undefined;
@@ -277,11 +271,8 @@ register(
     check: (ctx, args) => {
       const id = id_of(args, "id");
       if (ctx.graph.edges[id]) return text(args, "label") ? null : "a name is required";
-      const b = ctx.graph.blocks[id];
-      if (!b) return "that block is not there";
-      const label = text(args, "label");
-      if (!label) return "a name is required";
-      return name_taken(ctx.graph, b.parent, label, id) ? `"${label}" is taken` : null;
+      if (!ctx.graph.blocks[id]) return "that block is not there";
+      return text(args, "label") ? null : "a name is required";
     },
     /** **A relationship is named by what it is**, so naming one is filing a
      *  relation definition under that name and pointing the line at it. A type
@@ -347,8 +338,6 @@ register(
         if (parent && path(ctx.graph, parent).some((b) => b.id === id)) {
           return "a block cannot be moved inside itself";
         }
-        const label = ctx.graph.blocks[id]?.label;
-        if (label && name_taken(ctx.graph, parent, label, id)) return `"${label}" is taken there`;
       }
       return null;
     },
@@ -1207,6 +1196,32 @@ register(
     on: ["layer"],
     args: [{ name: "id", form: "text", required: true }],
     run: (_ctx, args) => ({ mutations: [{ op: "drop_def", id: id_of(args, "id") }] }),
+  },
+);
+
+/** What one element says about how it is drawn.
+ *
+ *  **Model data, not a display preference.** How the rest of the layer draws is
+ *  the shell's business, but what a particular card says about itself is part
+ *  of what the layer says — so it travels in the file, it undoes, and reopening
+ *  the workspace finds it the way it was left. */
+register(
+  {
+    name: "label",
+    about: "whether the drawing writes this block's name on it",
+    on: ["block", "selection"],
+    args: [{ name: "ids", form: "block", required: true },
+           { name: "shown", form: "choice", choices: ["yes", "no"] }],
+    check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
+    run: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      /** Absent flips what is there, so one control is the whole of it. */
+      const said = args["shown"] === undefined ? null : args["shown"] !== "no";
+      return { mutations: ids.map((id): Mutation => ({
+        op: "set_labelled", id,
+        labelled: said ?? ctx.graph.blocks[id]?.labelled === false,
+      })) };
+    },
   },
 );
 

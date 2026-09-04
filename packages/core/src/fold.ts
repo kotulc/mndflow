@@ -5,7 +5,7 @@
  *  needs an inverse. */
 
 import type { Settings } from "./components";
-import { empty_graph, type Arrangement, type Block, type BlockModule, type Cell,
+import { BLOCK_MODULES, empty_graph, type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type Id, type Log, type Mutation, type Relation,
          type Span, type Step } from "./types";
 
@@ -193,6 +193,13 @@ function apply(graph: Graph, m: Mutation): void {
     case "drop_def":
       delete graph.defs[m.id];
       return;
+    case "set_labelled": {
+      const b = graph.blocks[m.id];
+      /** **Only the answer that is not the default is kept.** Absent means
+       *  drawn, so turning it back on writes nothing to carry. */
+      if (b) { if (m.labelled) delete b.labelled; else b.labelled = false; }
+      return;
+    }
     case "set_arrangement": {
       const b = graph.blocks[m.layer];
       if (b) b.arrangement = m.arrangement;
@@ -303,11 +310,82 @@ export function stands_for(graph: Graph, id: Id): Block | null {
 
 function fallback(graph: Graph, b: Block): string {
   /** **A boundary needs no name.** It says *these belong together*, and the
-   *  band round them already says it — a number nobody chose is a caption on
+   *  band round them already says it — a word nobody chose is a caption on
    *  every group saying nothing. Named where somebody names one. */
-  if (module_of(graph, b.id) === "group") return "";
-  const role = is_interface(b) ? "interface" : is_container(graph, b.id) ? "container" : "block";
-  return `${role} ${b.num ?? 1}`;
+  return kind_word(graph, b);
+}
+
+/** What a block is called when nobody has called it anything: **its type**.
+ *
+ *  A subtype names itself, so a *Valve* nobody named reads `Valve`. The seven
+ *  base definitions are the module in other words, so they defer to it — a
+ *  plain block reads `Block` rather than `Structure`. A boundary reads nothing:
+ *  the band round its members already says what it is. */
+const WORD: Record<BlockModule, string> = {
+  structure: "Block", folder: "Folder", resource: "Resource",
+  interface: "Interface", reference: "Reference", group: "", note: "Note",
+};
+
+export function kind_word(graph: Graph, b: Block): string {
+  const def = b.type ? graph.defs[b.type] : undefined;
+  if (def && !BLOCK_MODULES.includes(def.name as BlockModule)) {
+    return def.name.charAt(0).toUpperCase() + def.name.slice(1);
+  }
+  return WORD[module_of(graph, b.id)];
+}
+
+/** The mark a block wears beside its type while nobody has named it, so two
+ *  things both reading `Block` can still be told apart. Empty once somebody has
+ *  named it, and empty for anything that carries no alias.
+ *
+ *  **Never the id.** A tail of the id would be stable and unique and would read
+ *  as the random string it is; the alias is handed out in order, so the marks
+ *  in a workspace run `A1`, `A2`, `A3`. */
+export function alias_of(graph: Graph, id: Id): string {
+  const b = graph.blocks[id];
+  if (!b || b.alias === undefined || is_named(graph, id)) return "";
+  if (module_of(graph, id) === "group") return "";
+  return alias_name(b.alias);
+}
+
+/** How many serials share a letter before it turns over. */
+const PER_LETTER = 9;
+
+/** A serial as a mark: `A1` to `A9`, `B1` to `Z9`, then `AA1`. Short enough to
+ *  read at a glance, and ordered by when the block was made. */
+export function alias_name(n: number): string {
+  const num = (n % PER_LETTER) + 1;
+  let rank = Math.floor(n / PER_LETTER);
+  let letters = "";
+  do {
+    letters = String.fromCharCode(65 + (rank % 26)) + letters;
+    rank = Math.floor(rank / 26) - 1;
+  } while (rank >= 0);
+  return `${letters}${num}`;
+}
+
+/** The serial the next block takes: one past the highest handed out.
+ *
+ *  **A high-water mark, not a count.** Counting hands out a serial a living
+ *  block already wears as soon as anything in the middle has been deleted. */
+export function next_alias(graph: Graph): number {
+  let most = -1;
+  for (const b of Object.values(graph.blocks)) {
+    if (typeof b.alias === "number" && b.alias > most) most = b.alias;
+  }
+  return most + 1;
+}
+
+/** Whether somebody named this block, as against the tag it wears until they
+ *  do. **Asked so a surface can draw the difference** — a placeholder that
+ *  reads as loudly as a name is a name nobody chose. */
+export function is_named(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  if (!b) return false;
+  const target = b.of ? stands_for(graph, id) : b;
+  if (!target) return false;
+  if (target.label?.trim()) return true;
+  return module_of(graph, target.id) === "note" && !!target.body?.trim();
 }
 
 /** The name to show.

@@ -11,8 +11,8 @@
  *  pair, and edits the name there too. */
 
 import { useMemo, useRef, useState } from "react";
-import { children, is_interface, is_reference, module_of, shown_name,
-         type Act, type Graph, type Id } from "@mnd/core";
+import { alias_of, children, is_interface, is_named, is_reference, module_of,
+         shown_name, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 
@@ -40,6 +40,12 @@ export type ExplorerProps = {
 };
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
+             /** Whether that label is a name somebody chose, or the type the
+              *  block reads as until they do. Drawn quietly when it is not. */
+             named: boolean;
+             /** The mark it wears beside its type while nobody has named it, so
+              *  two rows both reading `Block` are still told apart. */
+             alias: string;
              /** One flag per indent column, saying whether the line hanging
               *  down that column carries on past this row — which is the one
               *  thing a flat list cannot read off itself. Column *j* hangs from
@@ -75,6 +81,7 @@ function tree_of(graph: Graph, folded: readonly Id[]): Row[] {
       const kids = under(graph, b.id);
       const guides = depth ? [...held, n < kin.length - 1] : [];
       out.push({ id: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
+                 named: is_named(graph, b.id), alias: alias_of(graph, b.id),
                  mark: module_of(graph, b.id) === "folder" ? "folder"
                      : kids.length ? "container" : "leaf",
                  guides });
@@ -273,6 +280,7 @@ export function Explorer(props: ExplorerProps) {
             <li key={r.id}
                 className={[
                   r.depth ? "" : "top",
+                  r.named ? "" : "unnamed",
                   picked.includes(r.id) ? "picked" : "",
                   lit.includes(r.id) ? "lit" : "",
                   lit.length && !lit.includes(r.id) ? "dim" : "",
@@ -362,6 +370,7 @@ export function Explorer(props: ExplorerProps) {
                 <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={MARK_SIZE} />
               </span>
               <Name id={r.id} className="label" text={r.label} />
+              {r.alias ? <span className="alias">{r.alias}</span> : null}
             </li>
           ))}
           <li className="floor"

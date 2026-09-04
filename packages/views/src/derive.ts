@@ -4,9 +4,11 @@
  *  a notation's to decide, so all three modules ask the same question here
  *  rather than each answering it slightly differently. */
 
-import { is_container, is_interface, is_reference, module_of, path, role_of,
-         shown_name, stands_for, type Graph, type Id } from "@mnd/core";
+import { alias_of, is_container, is_interface, is_named, is_reference, kind_word,
+         module_of, path, role_of, shown_name, stands_for,
+         type Graph, type Id } from "@mnd/core";
 import { cells_of, look_of } from "./look";
+import { pictured } from "./size";
 import type { BoxData, Mark, Scene } from "./scene";
 
 /** How a block reads. Every one of these is derived from what it holds or from
@@ -27,6 +29,13 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
   if (is_container(graph, id) && !is_reference(b)) out.push("container");
+  /** Wearing its type rather than a name somebody chose. Drawn quietly, so a
+   *  placeholder does not read as loudly as a name. */
+  if (!is_named(graph, id)) out.push("unnamed");
+  /** Told to carry no label at all, which the drawing has to know as well as
+   *  the text does: a grid keeps a name to be taken hold of by, and it must not
+   *  offer to be named where it was told not to say anything. */
+  if (b.labelled === false) out.push("unlabelled");
   return out;
 }
 
@@ -38,13 +47,20 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
 export function carried(graph: Graph, id: Id): BoxData {
   const b = graph.blocks[id]!;
   const look = look_of(graph, id);
-  const cells = is_container(graph, id) && !is_reference(b)
+  const cells = pictured(graph, id)
     ? cells_of(graph, id, (kid) => shown_name(graph, kid)) : [];
   const fields = (b.fields ?? [])
     .filter((f) => (look.shows ? look.shows.includes(f.name) : false))
     .map((f) => ({ name: f.name, value: String(f.value ?? "") }));
+  /** **A block can be told to say less.** Told not to carry a label it still
+   *  says what it is — a card with nothing written on it is a shape nobody can
+   *  read — but the mark that tells it from its neighbour goes, which is the
+   *  whole of what is in the way while you are arranging things. */
+  const quiet = b.labelled === false;
+  const alias = quiet ? "" : alias_of(graph, id);
   return {
-    label: shown_name(graph, id),
+    label: quiet ? kind_word(graph, b) : shown_name(graph, id),
+    ...(alias ? { alias } : {}),
     role: role_of(graph, id),
     ...(b.type ? { def: b.type } : {}),
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),

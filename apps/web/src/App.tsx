@@ -90,13 +90,15 @@ export function App() {
     () => project(graph, layer, { interfaces: shown.interfaces }),
     [graph, layer, shown.interfaces]);
 
-  /** **The picked grid, where one is picked**, so the rail can offer what only
-   *  a grid can be told. Picking a cell picks the grid it is in, so pointing at
-   *  a cell is enough to reach these. */
-  const only = s.picked()[0] ?? s.cells()[0]?.group;
+  /** **The one picked thing, so the rail can offer what only it can be told.**
+   *  Picking a cell picks the grid it is in, so pointing at a cell is enough to
+   *  reach these. Several picked is nothing picked here: the rail says what one
+   *  element is, and the answer for four of them is four answers. */
+  const only = s.picked().length === 1 ? s.picked()[0] : s.cells()[0]?.group;
   const on = only ? graph.blocks[only] : undefined;
   const gridded = on && on.rows !== undefined && on.cols !== undefined
     ? { id: on.id, headers: on.headers ?? "none" as const } : null;
+  const element = on ? { id: on.id, labelled: on.labelled !== false } : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -356,6 +358,7 @@ export function App() {
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces, angles: shown.angles,
+                                   ...(element ? { element } : {}),
                                    ...(gridded ? { grid: gridded } : {}) },
                                  chrome)} />
     </div>

@@ -296,7 +296,14 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       <Wears role={data.role} />
       {named ? (
         <div className="mnd-head">
-          <Name id={id} className="mnd-label" text={data.label} />
+          {/* **One name, in two elements.** It reads as `Block A1`, and the
+              mark is its own element so that two clicks open the word alone and
+              what you type replaces it rather than the mark. Wrapped, because
+              the head sets its ends apart and the two of these are one end. */}
+          <span className="mnd-named">
+            <Name id={id} className="mnd-label" text={data.label} />
+            {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
+          </span>
           {/* A subtype where somebody set one. **Absent rather than a default
               word** — every card that nobody has told apart would otherwise
               carry the same chip, which is noise on all of them.
@@ -471,7 +478,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
       {/* **A grid always draws its name**, because its cells cover the whole of
           it: the name is the one part left to take hold of, and it is where a
           grid is moved from and renamed. */}
-      {grid || data.label || naming.id === id
+      {(grid || data.label || naming.id === id) && !data.marks.includes("unlabelled")
         ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
       <Wears role={data.role} />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}

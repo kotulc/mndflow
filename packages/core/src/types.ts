@@ -103,6 +103,21 @@ export type Block = {
   side?: Side;
   at?: number;
   num?: number;
+  /** **A serial, minted once and never rewritten.** `num` is a position among
+   *  siblings and is renumbered whenever anything moves, so a name read off it
+   *  changed while you rearranged. This is handed out at creation and is the
+   *  block's for good — which is what lets a block nobody has named be told
+   *  from the one beside it. Drawn as a short mark (`A1`, `B7`), never as the
+   *  number it is stored as.
+   *
+   *  **An alias, not a tag.** A tag is something you put on a block to say what
+   *  it is like, and there can be any number of them; this is one mark the app
+   *  hands out so that a thing with no name still has something to be called. */
+  alias?: number;
+  /** Whether the drawing writes this block's name on it. **Absent is yes.**
+   *  Model data rather than a display preference: what a card says about itself
+   *  is part of what the layer says, so it travels and it undoes. */
+  labelled?: boolean;
   flow?: Flow;
   fields?: Field[];
 };
@@ -197,7 +212,8 @@ export type Mutation =
   | { op: "drop_field"; id: Id; name: string }
   | { op: "set_def"; def: Definition }
   | { op: "drop_def"; id: Id }
-  | { op: "set_arrangement"; layer: Id; arrangement: Arrangement };
+  | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
+  | { op: "set_labelled"; id: Id; labelled: boolean };
 
 export type MutationOp = Mutation["op"];
 

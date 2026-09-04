@@ -117,6 +117,24 @@ with **four commands**, flexible verbs, and **the whole action surface behind `?
 
 ## Elsewhere
 
+### ST.13 — What one element can be told, and pinning as the way a definition is made
+
+The rail's foot is the **element group**: what the one thing you have hold of can be told, as against what the layer around it can. It reads off the selection and empties when nothing or several things are held.
+
+Built: **label** — whether the drawing writes the block's name on it, which for a group is its frame label. Stored on the element, so it travels in the file and it undoes.
+
+Wanted, all of them answers about one element rather than about the layer:
+
+| control | what it says |
+|---|---|
+| **lock** | this element's place on the canvas is fixed; a drag moves what is around it instead |
+| **orientation** | portrait or landscape — which way round the card reads |
+| **transpose** | a group's cells, turned about their diagonal — rows become columns |
+| **definition** | which definition this element names, changed where the element is rather than in the tray |
+| **pin** | **this is how pinning works.** Pinning an element files its definition in a locked workspace-level folder, and every pinned definition lands there. The folder is the workspace's own vocabulary — a stereotype library made by pointing at a thing that already reads the way you want, rather than by writing a definition first and applying it after. Locked because what is filed there is depended on by whatever names it. |
+
+**Pinning replaces the older reading of *pin a layer as a view***. There is no view block to make: what pinning produces is a definition in the workspace's folder, and what a pinned element leaves behind is an ordinary block naming it.
+
 ### ST.12 — The plan stops being prose that agents parse
 
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as

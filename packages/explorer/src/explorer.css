@@ -189,6 +189,19 @@
 .explorer .tree .mark.shut:hover, .explorer .tree .mark.on:hover { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
+/* Reading its type rather than a name somebody chose — quiet, so a
+   placeholder never reads as loudly as a name, and the mark beside it quieter
+   still. */
+.explorer .tree li.unnamed .label { opacity: 0.6; font-style: italic; }
+
+.explorer .tree .alias {
+  flex: none;
+  margin-left: 0.5ch;
+  opacity: 0.4;
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+}
+
 /* The clear space below takes a drop too: a block dropped there becomes a
    project, since a project is a block nothing contains. */
 .explorer .tree .floor { min-height: 48px; border-left-color: transparent; }

@@ -34,6 +34,7 @@ const OPS = new Set<string>([
   "set_grid", "merge_cells", "split_cells", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
+  "set_labelled",
 ]);
 
 /** Read a log in, repairing what it can. */
@@ -248,12 +249,9 @@ export function say(faults: Fault[]): string {
   return parts.join(", ");
 }
 
-/** Names are unique among siblings. Only stored labels compare — a fallback is
- *  a number nobody chose, and blank is not a name. */
-export function name_taken(graph: Graph, parent: Id | null, label: string, except?: Id): boolean {
-  const want = label.trim();
-  if (!want) return false;
-  return Object.values(graph.blocks).some(
-    (b) => b.parent === parent && b.id !== except && b.label?.trim() === want,
-  );
-}
+/** **Nothing here compares names.** A name was once unique among siblings, and
+ *  every gesture that set one could be refused for it — which is a rule about
+ *  typing rather than about the model. Identity is the id; two parts of an
+ *  assembly are called the same thing all the time; and an unnamed block never
+ *  collided in the first place. The only two lookups by name are conveniences
+ *  in the CLI, and both already answer an ambiguous one. */

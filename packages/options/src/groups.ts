@@ -34,6 +34,10 @@ export type Chrome = {
    *  the projection can offer about the whole layer, and this is about the one
    *  thing you have hold of. */
   grid?: { id: string; headers: Headers };
+  /** The one element that is picked, and what it says about how it is drawn.
+   *  **Not a slot either**, and for the same reason. Absent while nothing or
+   *  several things are held. */
+  element?: { id: string; labelled: boolean };
   arrangement?: Arrangement;
   interfaces?: boolean;
   angles?: boolean;
@@ -111,8 +115,27 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   }
 
   /** **What the picked thing can be told, rather than what the layer can.**
-   *  It sits at the foot of the rail because it comes and goes with the
-   *  selection, and everything above it is about what you are looking at. */
+   *  These sit at the foot of the rail because they come and go with the
+   *  selection, and everything above them is about what you are looking at.
+   *
+   *  The element group is where the rest of what one thing can be told belongs
+   *  as it arrives — locking where it sits, which way round it reads, and
+   *  pinning its definition are all answers about one element and not about the
+   *  layer around it. */
+  if (chrome.element) {
+    const { id, labelled } = chrome.element;
+    out.push({
+      key: "element", label: "element",
+      controls: [{
+        key: "label", word: "label",
+        tip: labelled ? "Stop writing the name on it" : "Write the name on it",
+        icon: labelled ? "label_on" : "label_off",
+        on: labelled,
+        run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }),
+      }],
+    });
+  }
+
   if (chrome.grid) {
     const { id, headers } = chrome.grid;
     const heads = (which: "row" | "col") => headers === which || headers === "both";

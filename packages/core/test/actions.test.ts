@@ -69,9 +69,15 @@ describe("check agrees with run", () => {
     expect(out).toHaveProperty("refused");
   });
 
-  it("refuses a name a sibling already has", () => {
-    expect(run("create", ctx(), { label: "Pump" })).toHaveProperty("refused");
-    expect(run("create", ctx(), { label: "Filter" })).not.toHaveProperty("refused");
+  /** **A name is not an identity, so nothing is refused for wearing one.** Two
+   *  parts of an assembly are called the same thing all the time, and the rule
+   *  that said otherwise was about typing rather than about the model. */
+  it("allows a name a sibling already has", () => {
+    expect(run("create", ctx(), { label: "Pump" })).not.toHaveProperty("refused");
+    expect(run("rename", ctx(), { id: "block_hx", label: "Pump" }))
+      .not.toHaveProperty("refused");
+    expect(run("move", ctx(), { ids: ["block_pump"], parent: "block_hx" }))
+      .not.toHaveProperty("refused");
   });
 
   it("refuses an action nobody registered", () => {

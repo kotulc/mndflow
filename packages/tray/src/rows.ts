@@ -5,7 +5,7 @@
  *  hunting for it on the drawing. Everything here is derived from the graph;
  *  the tray stores nothing and writes nothing. */
 
-import { children, edges_in, is_interface, module_of, shown_name,
+import { alias_of, children, edges_in, is_interface, module_of, shown_name,
          type Graph, type Id } from "@mnd/core";
 
 export type Row = {
@@ -24,6 +24,11 @@ export type Row = {
  *  never a definition's. */
 export function rows_of(graph: Graph, layer: Id | null): Row[] {
   const out: Row[] = [];
+  /** A listing has one column for a name, so the mark an unnamed thing wears
+   *  joins it there rather than sitting beside it — otherwise every untouched
+   *  block in a layer reads the same word. */
+  const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
+    .filter(Boolean).join(" ");
 
   for (const b of children(graph, layer)) {
     const kind = module_of(graph, b.id);
@@ -32,7 +37,7 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
     out.push({
       id: b.id,
       kind: is_interface(b) ? "interface" : kind,
-      name: shown_name(graph, b.id),
+      name: called(b.id),
       what: is_interface(b)
         ? `on the ${b.side} wall${b.flow ? `, ${b.flow}` : ""}`
         : [held ? `holds ${held}` : "", ports ? `${ports} interface${ports > 1 ? "s" : ""}` : ""]
@@ -43,8 +48,8 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
     for (const port of children(graph, b.id)) {
       if (!is_interface(port)) continue;
       out.push({
-        id: port.id, kind: "interface", name: shown_name(graph, port.id),
-        what: `on ${shown_name(graph, b.id)}, ${port.side} wall`,
+        id: port.id, kind: "interface", name: called(port.id),
+        what: `on ${called(b.id)}, ${port.side} wall`,
         type: port.type ? graph.defs[port.type]?.name ?? port.type : "",
       });
     }
@@ -57,7 +62,7 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
     out.push({
       id: e.id, kind: e.module,
       name: named || e.module,
-      what: `${shown_name(graph, e.from)} → ${shown_name(graph, e.to)}`,
+      what: `${called(e.from)} → ${called(e.to)}`,
       type: named,
     });
   }

@@ -18,6 +18,10 @@ import type { Perch } from "./seat";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
 export type BoxData = {
+  /** The mark a thing wears beside its name while nobody has named it. Drawn
+   *  quietly and separately, so what somebody types replaces the name and not
+   *  the mark. Absent once it is named, and on anything that carries none. */
+  alias?: string;
   label: string;
   /** The definition this usage names, if any. Never a colour or a shape. */
   def?: Id;
@@ -64,7 +68,8 @@ export type BoxData = {
 };
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
-                 | "interface" | "berth" | "in" | "out"
+                 | "unlabelled"
+                 | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "merged";
 
 /** One cell of a grid, placed inside the grid's own box. A merged region is one

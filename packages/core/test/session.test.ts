@@ -76,9 +76,11 @@ describe("one step per action", () => {
     const s = session();
     const before = s.log().length;
     expect(s.go("create", { label: "" })).toBeNull();
+    /** A sibling may wear the same name, so two of these are two steps. */
     s.go("create", { label: "A" });
-    expect(s.go("create", { label: "A" })).toMatch(/taken/);
-    expect(s.log().length).toBe(before + 2);
+    expect(s.go("create", { label: "A" })).toBeNull();
+    expect(s.go("refer", { target: "block_nowhere" })).toMatch(/not there/);
+    expect(s.log().length).toBe(before + 3);
   });
 
   it("writes no step for navigation", () => {

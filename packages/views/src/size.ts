@@ -3,7 +3,7 @@
  *  Cards are as small as their contents allow. Nothing is held back for text
  *  that might arrive; a name too long for its card is clipped. */
 
-import { covers, is_container, is_grid, is_interface,
+import { covers, is_container, is_grid, is_interface, is_reference, module_of,
          type Block, type Graph, type Id } from "@mnd/core";
 
 /** Everything with a place of its own lands on this. The backdrop dots are it. */
@@ -108,7 +108,20 @@ export function size_of(graph: Graph, id: Id): Size {
   if (is_grid(b)) return grid_size(b);
   if (b.w !== undefined && b.h !== undefined) return { w: b.w, h: b.h };
   if (gridded(graph, id)) return { ...BLOCK };
-  return is_container(graph, id) ? { ...CONTAINER } : { ...BLOCK };
+  return pictured(graph, id) ? { ...CONTAINER } : { ...BLOCK };
+}
+
+/** Whether a card draws a picture of what it holds.
+ *
+ *  **The picture is the container's, not every holder's.** A folder holds
+ *  things the way a drawer does — what is in it is filing, not composition —
+ *  so it is drawn the plain size every other block is, and opened to be seen
+ *  into. A reference shows its target's name and nothing of its insides, and a
+ *  card in a cell has nowhere to put a picture. */
+export function pictured(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  return !!b && is_container(graph, id) && !is_reference(b)
+    && module_of(graph, id) !== "folder" && !gridded(graph, id);
 }
 
 /** How many seats an edge of this length offers. A small card offering few
