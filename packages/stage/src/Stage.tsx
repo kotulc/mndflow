@@ -18,7 +18,7 @@ import type { Act, Args, Side, Spot } from "@mnd/core";
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, snap, BLOCK, CELL, type Scene } from "@mnd/views";
+import { box_of, clear_of, extent_of, snap, BLOCK, CELL, RIM, type Scene } from "@mnd/views";
 
 export type { Adjust };
 
@@ -337,20 +337,21 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
 function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }) {
   const x = snap(box.x);
   const y = snap(box.y);
-  const rows = Math.max(1, Math.round(box.h / CELL.h));
-  const cols = Math.max(1, Math.round(box.w / CELL.w));
+  const { rows, cols } = extent_of(box.w, box.h);
   const taken = new Set<string>();
   const seats: { id: string; r: number; c: number }[] = [];
 
+  /** The lattice's own corner, which is the grid's plus its rim. */
+  const from = { x: x + RIM, y: y + RIM };
   const caught = scene.nodes
     .filter((n) => n.type !== "group" && !n.data.on && n.selectable !== false)
     .map((n) => ({ id: n.id, b: box_of(n) }))
-    .filter(({ b }) => b.x + b.w > x && b.x < x + cols * CELL.w
-                    && b.y + b.h > y && b.y < y + rows * CELL.h);
+    .filter(({ b }) => b.x + b.w > from.x && b.x < from.x + cols * CELL.w
+                    && b.y + b.h > from.y && b.y < from.y + rows * CELL.h);
 
   for (const { id, b } of caught) {
-    const want = { r: Math.round((b.y + b.h / 2 - y) / CELL.h - 0.5),
-                   c: Math.round((b.x + b.w / 2 - x) / CELL.w - 0.5) };
+    const want = { r: Math.round((b.y + b.h / 2 - from.y) / CELL.h - 0.5),
+                   c: Math.round((b.x + b.w / 2 - from.x) / CELL.w - 0.5) };
     const at = free_cell(taken, rows, cols, want);
     if (!at) continue;
     taken.add(`${at.r},${at.c}`);

@@ -63,15 +63,25 @@ export function draw(scene: Scene): string {
 
   /** **A grid draws its lattice**, so a text drawing shows the shape the model
    *  is in and not only what is in it. A header reads `=` and every other cell
-   *  `-`; a merged cell is one wide rule like any other. Drawn last and only
-   *  into blank ground, because a rule must never sit on a name. */
+   *  `-`; a merged cell is one wide rule like any other.
+   *
+   *  Drawn last, into blank ground, and **never over a card** — a card's own
+   *  padding is blank and is still the card's, so a rule laid into it read as
+   *  part of the name. */
+  const boxed = (x: number, y: number) => at.some((b) => {
+    const bx = Math.round((b.x - left) / CELL);
+    const by = Math.round((b.y - top) / CELL);
+    return !b.data.grid?.length
+        && x >= bx && x < bx + Math.max(3, Math.round(b.w / CELL))
+        && y >= by && y <= by + Math.round(b.h / CELL);
+  });
   for (const b of at) {
     for (const c of b.data.grid ?? []) {
       const x = Math.round((b.x + c.x - left) / CELL);
       const y = Math.round((b.y + c.y - top) / CELL);
       const mark = c.marks.includes("header") ? "=" : "-";
       for (let i = 0; i < Math.max(2, Math.round(c.w / CELL)); i++) {
-        if (grid[y]?.[x + i] === " ") put(x + i, y, mark);
+        if (grid[y]?.[x + i] === " " && !boxed(x + i, y)) put(x + i, y, mark);
       }
     }
   }

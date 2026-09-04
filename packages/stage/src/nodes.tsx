@@ -378,20 +378,21 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
     picked.some((p) => p.group === id && p.r === c.r && p.c === c.c);
 
   /** Where a sweep began. **A drag picks a range**, which is the gesture every
-   *  other list of things already uses — and the only way to name the two
-   *  corners of a merge. */
+   *  other list of things already uses — and shift does the same thing without
+   *  the drag, from whatever is already picked. */
   const from = useRef<{ r: number; c: number } | null>(null);
-  const sweep = (to: GridCell) => {
-    const a = from.current;
-    if (!a) return;
+  const range = (a: { r: number; c: number }, to: { r: number; c: number }): Spot[] => {
     const out: Spot[] = [];
     for (let r = Math.min(a.r, to.r); r <= Math.max(a.r, to.r); r++) {
       for (let c = Math.min(a.c, to.c); c <= Math.max(a.c, to.c); c++) {
         out.push({ group: id, r, c });
       }
     }
-    pick(out);
+    return out;
   };
+  /** What is already picked here, so shift knows where a range starts and the
+   *  modifier knows what it is adding to. */
+  const mine = picked.filter((p) => p.group === id);
   useEffect(() => {
     const done = () => { from.current = null; };
     window.addEventListener("pointerup", done);
@@ -415,10 +416,29 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
                  *  sweep of its own and resolves it to nothing on release —
                  *  which cleared the cells the moment they were picked. */
                 e.stopPropagation();
+                const one = { group: id, r: c.r, c: c.c };
+                /** **Shift takes the rectangle, the modifier takes one more.**
+                 *  The same two keys every other list of things is swept with,
+                 *  so a merge can be named without a drag. */
+                if (e.shiftKey && mine[0]) { pick(range(mine[0], c)); return; }
+                if (e.ctrlKey || e.metaKey) {
+                  const held = mine.some((p) => p.r === c.r && p.c === c.c);
+                  pick(held ? mine.filter((p) => !(p.r === c.r && p.c === c.c))
+                            : [...mine, one]);
+                  return;
+                }
                 from.current = { r: c.r, c: c.c };
-                pick([{ group: id, r: c.r, c: c.c }]);
+                pick([one]);
               }}
-              onPointerEnter={(e) => { if (e.buttons === 1) sweep(c); }} />
+              /** **The library's own modifiers are not the lattice's.** Shift
+               *  starts its selection box and control toggles a node in and out
+               *  of the selection — both of which resolved to nothing and threw
+               *  away the cells that had just been picked. */
+              onMouseDown={(e) => { if (e.button === 0) e.stopPropagation(); }}
+              onClick={(e) => e.stopPropagation()}
+              onPointerEnter={(e) => {
+                if (e.buttons === 1 && from.current) pick(range(from.current, c));
+              }} />
       ))}
     </>
   );

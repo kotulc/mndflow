@@ -17,7 +17,8 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import { at_seat, box_of, extent, nearest_seat, perch_id, snap, FRAME, PORT,
+import { at_seat, box_of, extent, extent_of, nearest_seat, perch_id, snap,
+         CELL, FRAME, PORT, RIM,
          type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
@@ -444,10 +445,34 @@ function marked<T extends { id: string; selected?: boolean }>(
 type Grip = { key: string; edge: string; end: "from" | "to"; on: string;
               side: Side; at: number; x: number; y: number };
 
-/** The same rectangle, as the attributes an SVG rect wants. */
-function box_svg(d: { from: Point; to: Point }) {
-  const b = spread(d.from, d.to);
-  return { x: b.x, y: b.y, width: b.w, height: b.h };
+/** The grid a right drag is about to make, drawn as it is swept.
+ *
+ *  **The cells themselves, and how many.** A bare rectangle said how big the
+ *  region was and nothing about what it would become — and how many cells that
+ *  is is the only thing worth knowing while you are drawing one. */
+function Sweeping({ at }: { at: { x: number; y: number; w: number; h: number } }) {
+  const { rows, cols } = extent_of(at.w, at.h);
+  const box = { x: at.x, y: at.y, w: cols * CELL.w + RIM * 2, h: rows * CELL.h + RIM * 2 };
+  const lines: React.ReactNode[] = [];
+  for (let r = 0; r <= rows; r++) {
+    const y = box.y + RIM + r * CELL.h;
+    lines.push(<line key={`r${r}`} className="mnd-drawn-rule"
+                     x1={box.x + RIM} y1={y} x2={box.x + RIM + cols * CELL.w} y2={y} />);
+  }
+  for (let c = 0; c <= cols; c++) {
+    const x = box.x + RIM + c * CELL.w;
+    lines.push(<line key={`c${c}`} className="mnd-drawn-rule"
+                     x1={x} y1={box.y + RIM} x2={x} y2={box.y + RIM + rows * CELL.h} />);
+  }
+  return (
+    <>
+      <rect className="mnd-drawn mnd-drawn-area"
+            x={box.x} y={box.y} width={box.w} height={box.h} />
+      {lines}
+      <text className="mnd-drawn-count" x={box.x + box.w / 2} y={box.y + box.h + 16}
+            textAnchor="middle">{rows} × {cols}</text>
+    </>
+  );
 }
 
 /** The rectangle two points make, whichever way round they were drawn. */
@@ -1308,19 +1333,21 @@ function Canvas(props: FlowViewProps) {
       elevateEdgesOnSelect={false}
       /** The left button works what is already there and the right button
        *  draws: a left drag on a card moves it and on the ground sweeps out a
-       *  selection; a right drag from a card relates it and on the ground makes
-       *  a note. **Panning is the middle button and the wheel** — the right one
+       *  selection; a right drag from a card relates it and on the ground draws
+       *  a grid. **Panning is the middle button and the wheel** — the right one
        *  is spoken for. */
       panOnDrag={[1]}
       selectionOnDrag
-      selectionKeyCode="Shift"
+      /** **Shift is not the library's here.** A left drag on the ground already
+       *  sweeps out a selection, so the key added nothing but an overlay across
+       *  the whole canvas whenever it was held — which is what stopped a
+       *  shift-click from reaching a cell and extending a range. */
+      selectionKeyCode={null}
       selectionMode={SelectionMode.Full}
       multiSelectionKeyCode={["Meta", "Control"]}
       /** **Under this, a drag is a click.** A press that wanders by a pixel is
        *  still a press, which is what keeps a small target hittable. */
       nodeDragThreshold={5}
-      snapToGrid
-      snapGrid={[24, 24]}
       /** **The shell owns the keys.** The library binds its own to whatever
        *  node has focus — and its Escape unselects that node, so closing the
        *  offered list on a card quietly dropped that card out of the selection
@@ -1423,9 +1450,7 @@ function Canvas(props: FlowViewProps) {
             {drawing.on ? (
               <line className="mnd-drawn" x1={drawing.from.x} y1={drawing.from.y}
                     x2={drawing.to.x} y2={drawing.to.y} />
-            ) : (
-              <rect className="mnd-drawn mnd-drawn-area" {...box_svg(drawing)} />
-            )}
+            ) : <Sweeping at={spread(drawing.from, drawing.to)} />}
           </svg>
         </ViewportPortal>
       ) : null}

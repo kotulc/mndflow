@@ -9,7 +9,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, offer, session, type Id } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, nearest_seat, project, snap, BLOCK, CELL, PORT } from "@mnd/views";
+import { box_of, clear_of, extent_of, nearest_seat, project, snap,
+         BLOCK, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
@@ -17,8 +18,6 @@ import type { Adjust } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
-import { ENTRY, domain, domain_of, next, turn } from "@mnd/terminal/loop";
-import { wordings } from "./workflows";
 import { browser_files, browser_net, browser_storage } from "./ports";
 import { browser_score } from "./score";
 
@@ -34,16 +33,9 @@ const THEMES = [
  *  weights twice and answer worse for it. */
 const scoring = browser_score();
 
-/** The wording the question loop speaks. Data, gathered once. */
-const said_in = wordings();
-
 /** Where this host keeps its definition packages. A host fact — nothing above
  *  an app may assume where *outside the workspace* is. */
 const CATALOGUE = "/packages/index.json";
-
-/** The chip that starts the conversation. **Not a fifth command** — it is one
- *  more thing offered, and everything it reaches is reachable by gesture. */
-const GUIDE = { name: "guide me", about: "answer questions and it builds the model for you" };
 
 export function App() {
   /** Lazily, and once. `useRef(session(...))` evaluates its argument on every
@@ -68,10 +60,6 @@ export function App() {
   /** The mirror off. **Not the strip collapsed** — two questions, two controls. */
   const [quiet, set_quiet] = useState(false);
   const [shown, set_shown] = useState({ interfaces: true, angles: true });
-  /** The conversation. **Off is the whole app working**, which is what keeps it
-   *  optional; a fresh workspace has nothing to look at, so it starts on. */
-  const [asking, set_asking] = useState(true);
-  const [last, set_last] = useState<string | undefined>(undefined);
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
 
@@ -110,11 +98,6 @@ export function App() {
   const gridded = on && on.rows !== undefined && on.cols !== undefined
     ? { id: on.id, headers: on.headers ?? "none" as const } : null;
 
-  /** What the conversation is about: the block in focus, or the open layer when
-   *  nothing is. It **reads context and never changes it**. */
-  const about = s.picked()[0] ?? layer;
-  const question = asking ? next(said_in, graph, about, last) : null;
-
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
    *  is** rather than a second copy of it written down somewhere. */
@@ -128,7 +111,6 @@ export function App() {
   }));
 
   const act = (name: string, args?: Record<string, unknown>) => {
-    if (name === GUIDE.name) { set_asking(true); return; }
     /** **Not actions, and they arrive here anyway.** Undoing writes no
      *  mutation — it moves the log — so it is not on the registry; but every
      *  surface reaches the app through one channel, and a second one just for
@@ -136,25 +118,6 @@ export function App() {
     if (name === "undo") { s.undo(); return; }
     if (name === "redo") { s.redo(); return; }
     s.go(name, args ?? {});
-  };
-
-  /** One answer, as the actions it means — run here, appended here, undoable
-   *  like anything else. **The loop writes no mutation of its own.** */
-  const answer = (text: string | null) => {
-    if (text === null || !question) { set_asking(false); return; }
-    const doing = turn(question, text, { graph, layer: about, said: said_in, score: scoring });
-    for (const d of doing) s.go(d.action, d.args);
-    set_last(question.operation);
-    /** The mirror says what the answer did, in the words the domain uses —
-     *  which is the one place `terms` is load-bearing rather than decorative. */
-    const words = domain(said_in, domain_of(graph, about)).terms;
-    if (!doing.length) s.say(`nothing here is called “${text}” yet`);
-    else if (question.operation === "relate") {
-      s.say(`one ${words.relation.toLowerCase()} drawn`);
-    }
-    else if (question.operation !== ENTRY) {
-      s.say(`${doing.length} ${words.node.toLowerCase()}${doing.length > 1 ? "s" : ""}`);
-    }
   };
 
   /** An adjustment is positional and unsayable, and undoable like anything
@@ -171,8 +134,7 @@ export function App() {
        *  frees whatever falls outside rather than hiding it. */
       const on = graph.blocks[a.on];
       if (on?.rows !== undefined && on.cols !== undefined) {
-        s.go("group", { into: a.on,
-                        rows: Math.round(a.h / CELL.h), cols: Math.round(a.w / CELL.w),
+        s.go("group", { into: a.on, ...extent_of(a.w, a.h),
                         spot: { x: snap(a.to.x), y: snap(a.to.y) } });
         return;
       }
@@ -315,7 +277,7 @@ export function App() {
 
       {terminal ? (
         <Terminal
-          offered={[...(asking ? [] : [GUIDE]), ...offered_here]}
+          offered={offered_here}
           said={quiet && said?.kind === "mirror" ? null : said?.text ?? null}
           context={layer ? `in ${graph.blocks[layer]?.label ?? "a layer"}` : "the workspace"}
           expanded={wide}
@@ -323,8 +285,6 @@ export function App() {
           onAct={(name) => act(name)}
           onCommand={command}
           score={scoring}
-          question={question}
-          onAnswer={answer}
           quiet={quiet}
           onQuiet={set_quiet}
           onPoint={(o) => set_pointed((was) => {

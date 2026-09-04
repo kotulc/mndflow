@@ -12,8 +12,6 @@ import { check, children, fold, read, review, say, session, shown_name, write,
 import { seed } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
-import { next, turn, type Question } from "@mnd/terminal/loop";
-import { wordings } from "./workflows";
 import { node_net } from "./ports";
 import { as_file, from_sysml, shape_of, to_sysml } from "./sysml";
 
@@ -26,7 +24,6 @@ const USAGE = `mnd — the headless harness
   mnd check <source>                   run the door, print faults
   mnd review <source> [layer]          ask what the definitions wanted
   mnd run <source> <action> [k=v ...]  apply an action, print what it wrote
-  mnd ask <source> [answer ...]        run the question loop, one answer a turn
   mnd search <source> <name>           fetch a definition package, through the door
   mnd translate <source> [--round]     write the graph as SysML, and check it comes back
                         [--with <pkg>] bring a vocabulary in first, so its names are used
@@ -36,13 +33,10 @@ const USAGE = `mnd — the headless harness
            a file fixture (${GRAPH_NAMES.join(", ")}),
            an exported file, or a raw log.
   A log is harness input only: a file is a graph, and that is what export writes.
-  --how sets the arrangement: free grid right left down up
+  --how sets the arrangement: free right left down up
   --svg writes the drawing instead of the text projection
   --from sets the package catalogue search reads (default public/packages/index.json)
-
-  ask prints the question the graph asks for. Give answers and it takes each in
-  turn, running the actions they mean — which is the whole loop, with nothing
-  drawn and no React anywhere in the process.`;
+`;
 
 /** A fixture of either kind, an exported file, or a raw log.
  *
@@ -116,9 +110,6 @@ function loose(args: string[]): string[] {
   }
   return out;
 }
-
-const said_args = (args: Record<string, unknown>): string =>
-  Object.entries(args).map(([k, v]) => `${k}=${String(v)}`).join(" ");
 
 function pairs(args: string[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -257,38 +248,6 @@ async function main(argv: string[]): Promise<void> {
       return;
     }
 
-
-    /** The question loop, headless. **A domain is a YAML file with no control
-     *  flow in it**: what to ask is decided here from the graph, and an answer
-     *  comes back as actions the session runs like any other surface's. */
-    case "ask": {
-      const said = wordings();
-      const s = session({ storage: held(log), defs: seed() });
-      const layer = find_layer(s.log(), flag(rest, "layer"));
-      if (layer !== null) s.look(layer);
-      let last: string | undefined;
-
-      for (const answer of plain) {
-        const question: Question | null = next(said, s.graph(), s.layer(), last);
-        if (!question) break;
-        console.log(`? ${question.prompt}`);
-        console.log(`  ${answer}`);
-        const doing = turn(question, answer, { graph: s.graph(), layer: s.layer(), said });
-        for (const d of doing) {
-          const refused = s.go(d.action, d.args);
-          console.log(refused ? `  refused: ${refused}` : `  ${d.action} ${said_args(d.args)}`);
-        }
-        last = question.operation;
-      }
-
-      const asking = next(said, s.graph(), s.layer(), last);
-      console.log(asking ? `? ${asking.prompt}` : "(nothing left to ask)");
-      if (asking?.hint) console.log(`  ${asking.hint}`);
-      if (asking?.choices.length) console.log(`  ${asking.choices.join(" · ")}`);
-      console.log();
-      console.log(tree(s.log()));
-      return;
-    }
 
     /** **A standard is a translation layer, never a shape the model bends to.**
      *  One way out; the reader exists to prove it, so `--round` emits, reads

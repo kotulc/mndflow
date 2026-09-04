@@ -16,8 +16,17 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { Score } from "@mnd/core";
 import { Icon } from "@mnd/theme";
-import { COMMANDS, rank, reads, spaced, warming, type Match, type Offer } from "./commands";
-import type { Question } from "./loop/router";
+import { COMMANDS, rank, reads, spaced, warming,
+         type Command, type Match, type Offer } from "./commands";
+
+/** The rail's own chips: one per command, said the way the completion says it.
+ *  Module scope, because the three do not change with anything. */
+const COMMAND_CHIPS: readonly Offer[] = Object.values(COMMANDS)
+  .map((w) => ({ name: w.command, about: `${w.about} — ${w.asks}`, asks: w.asks }));
+
+/** What a command chip writes into the line. One character, so what it teaches
+ *  is the shorthand rather than a word you would then have to delete. */
+const SIGIL: Record<Command, string> = { add: "+", search: "*", help: "?" };
 
 export type { Offer };
 
@@ -36,11 +45,6 @@ export type TerminalProps = {
   /** Text similarity, bound by the app. **Unbound, ranking is substring** —
    *  the cold fallback, and everything still works. */
   score?: Score;
-  /** What the conversation is asking, when one is running. **The strip is
-   *  whole without it** — every action it reaches is reachable by gesture. */
-  question?: Question | null;
-  /** The answer typed, or null to leave the question unanswered. */
-  onAnswer?: (text: string | null) => void;
   /** **Quiet mode: the mirror muted, never the strip collapsed.** The two are
    *  different questions — whether it is here at all, and whether it echoes
    *  back what you just did — so they are two controls. What the app says for
@@ -48,13 +52,13 @@ export type TerminalProps = {
   quiet?: boolean;
   onQuiet?: (quiet: boolean) => void;
   /** What the highlight is resting on, so somebody else can light it. Null
-   *  where nothing is highlighted or the strip is answering a question. */
+   *  where nothing is highlighted. */
   onPoint?: (offer: Offer | null) => void;
 };
 
 export function Terminal(props: TerminalProps) {
   const { offered, said, context, expanded, onExpand, onAct, onCommand, score,
-          question, onAnswer, quiet = false, onQuiet, onPoint } = props;
+          quiet = false, onQuiet, onPoint } = props;
   const [draft, set_draft] = useState("");
   const [at, set_at] = useState(0);
   /** **How much the scorer knows.** Vectors land after the render that asked
@@ -64,9 +68,9 @@ export function Terminal(props: TerminalProps) {
    *  arrives and the memo hands back the cold answer it already had. */
   const [warmth, warmer] = useState(0);
 
-  /** **Warm what is about to be asked about.** The four commands are fixed and
-   *  the offered list moves with context, so the first word somebody types is
-   *  not also the first thing that waits. */
+  /** **Warm what is about to be asked about.** The commands are fixed and the
+   *  offered list moves with context, so the first word somebody types is not
+   *  also the first thing that waits. */
   useEffect(() => {
     if (!score) return;
     score.warm(warming(offered));
@@ -75,24 +79,25 @@ export function Terminal(props: TerminalProps) {
 
   const match = useMemo(() => reads(draft, score), [draft, score, warmth]);
 
-  /** **A sigil still reaches its command while a question is pending.** The
-   *  strip stays four wide whatever else is going on; anything else typed is
-   *  the answer, because that is what the prompt asked for. */
-  const answering = !!question && !(match && match.verb.length === 1
-                                          && "+:*?".includes(match.verb));
-
-  /** **Help carries the action surface**, so its argument filters every action
-   *  there is. The other three take an argument rather than picking from a
-   *  list, and offer the context's own actions until one is typed. */
-  const chips: Offer[] = useMemo(() => {
-    if (answering) return question!.choices.map((name) => ({ name, about: question!.hint }));
-    if (!match) return [...offered];
-    if (match.command === "help") return rank(offered, match.rest, score);
-    return match.rest ? [] : [...offered];
-  }, [offered, match, score, warmth, answering, question]);
+  /** **The rail is the commands, and only the commands.**
+   *
+   *  It offered every action this context happened to allow, which is a list
+   *  the tree and the canvas already draw where the thing itself is — so the
+   *  one surface that is meant to teach *how to say things* was teaching a
+   *  vocabulary of names instead, and the three words it is actually built on
+   *  were nowhere on it.
+   *
+   *  **Help carries the action surface**, so its argument still filters every
+   *  action there is. That is the one place a list of them belongs. */
+  const chips: readonly Offer[] = useMemo(() => {
+    if (match?.command === "help") return rank(offered, match.rest, score);
+    return COMMAND_CHIPS;
+  }, [offered, match, score, warmth]);
 
   const here = chips[Math.min(at, chips.length - 1)];
-  const says = match && !answering ? COMMANDS[match.command] : null;
+  const says = match ? COMMANDS[match.command] : null;
+  /** Whether the highlight is a command to fill in or a thing to run. */
+  const commanding = match?.command !== "help";
 
   /** **One mechanism, two callers.** Filtering lights what matched; help lights
    *  what the thing it is describing would act on. Both go out the same way.
@@ -103,7 +108,7 @@ export function Terminal(props: TerminalProps) {
   const pointing = useRef<string | null>(null);
   const point = useRef(onPoint);
   point.current = onPoint;
-  const at_name = answering ? null : here?.name ?? null;
+  const at_name = here?.name ?? null;
   useEffect(() => {
     if (pointing.current === at_name) return;
     pointing.current = at_name;
@@ -113,12 +118,15 @@ export function Terminal(props: TerminalProps) {
   }, [at_name]);
 
   const run = () => {
-    if (answering) {
-      const text = draft.trim() || here?.name;
-      if (!text) return;
-      onAnswer?.(text);
-    } else if (match && match.rest && match.command !== "help") {
+    /** **A command with something after it runs; a command alone is offered.**
+     *  Nothing typed and the highlight is a command, so pressing enter writes
+     *  it into the line rather than running an empty one. */
+    if (match && match.rest && match.command !== "help") {
       onCommand?.(match);
+    } else if (commanding && here) {
+      set_draft(`${SIGIL[here.name as Command] ?? ""} `);
+      set_at(0);
+      return;
     } else if (here) {
       onAct(here.name);
     } else if (match) {
@@ -144,9 +152,6 @@ export function Terminal(props: TerminalProps) {
       e.preventDefault();
       run();
     } else if (e.key === "Escape") {
-      /** **Escape abandons.** With nothing typed there is nothing left to
-       *  abandon but the question, so it leaves that too. */
-      if (answering && !draft.trim()) onAnswer?.(null);
       set_draft("");
       set_at(0);
     }
@@ -157,14 +162,7 @@ export function Terminal(props: TerminalProps) {
       <div className="terminal">
         <div className="now">
           {said ? <div className="said">{said}</div> : null}
-          {/* The question, when one is running: what was asked, and how to
-              answer it. Chips below are what it offers. */}
-          {answering ? (
-            <div className="asked">
-              <b>{question!.prompt}</b>
-              {question!.hint ? <span className="asks"> · {question!.hint}</span> : null}
-            </div>
-          ) : context ? <div className="hint">{context}</div> : null}
+          {context ? <div className="hint">{context}</div> : null}
           {/* A completion says what it matched and fills an example. */}
           {says ? (
             <div className="matched">
@@ -189,9 +187,7 @@ export function Terminal(props: TerminalProps) {
           <span className="caret">&gt;</span>
           <input
             value={draft}
-            placeholder={answering
-              ? "answer, or press escape to leave it"
-              : "add a block · search packages · ask for help"}
+            placeholder="add a block · search packages · ask for help"
             onChange={(e) => { set_draft(e.target.value); set_at(0); }}
             onKeyDown={on_key}
           />
@@ -206,20 +202,17 @@ export function Terminal(props: TerminalProps) {
                     title={offer.about}
                     onMouseEnter={() => set_at(n)}
                     onClick={() => {
-                      if (answering) onAnswer?.(offer.name);
-                      else onAct(offer.name);
-                      set_draft("");
+                      /** A command chip fills the line it stands for; an action
+                       *  chip, which only help offers, runs. */
+                      if (commanding) { set_draft(`${SIGIL[offer.name as Command] ?? ""} `); }
+                      else { onAct(offer.name); set_draft(""); }
                       set_at(0);
                     }}>
               {offer.name}
             </button>
           ))}
-          {/* A question that offers nothing to pick still wants an answer, so
-              what the rail says is what pressing enter would do. */}
-          {(match || answering) && chips.length === 0 ? (
-            <span className="hint">
-              {says ? `press enter to ${says.command}` : "press enter to answer"}
-            </span>
+          {match && chips.length === 0 && says ? (
+            <span className="hint">press enter to {says.command}</span>
           ) : null}
         </div>
         <button className="bound" type="button"

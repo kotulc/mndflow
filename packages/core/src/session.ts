@@ -206,8 +206,13 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener?.();
     },
 
+    /** **A cell is picked beside the grid it is in**, never instead of it: an
+     *  action asked of a cell is an action on that grid at an address, and the
+     *  rail and the resize handles are the grid's. */
     pick_cells(next) {
       cells = [...next];
+      const groups = [...new Set(cells.map((c) => c.group))];
+      if (groups.length) picked = groups;
       listener?.();
     },
 

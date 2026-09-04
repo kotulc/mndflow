@@ -677,13 +677,19 @@ register(
       return members.length || extent || args["into"] ? null : "nothing is selected";
     },
     run: (ctx, args) => {
-      const into = args["into"] ? id_of(args, "into") : null;
+      const said = args["into"] ? id_of(args, "into") : null;
       /** **Naming a group is not joining it.** With `into` given and nobody
        *  named, this is a setting on the group itself — and taking the
        *  selection as members put the group inside itself, because the group is
        *  what was picked. */
-      const members = ((args["members"] as Id[]) ?? (into ? [] : ctx.picked))
-        .filter((id) => ctx.graph.blocks[id] && id !== into);
+      const members = ((args["members"] as Id[]) ?? (said ? [] : ctx.picked))
+        .filter((id) => ctx.graph.blocks[id] && id !== said);
+      /** **A group already round these expands rather than being replaced.**
+       *  Making a second one took the members out of the first and left it
+       *  holding nothing — a group with no members has no bounds, so what was
+       *  left was a block nobody could see and nobody meant to make. */
+      const held = [...new Set(members.map((id) => ctx.graph.blocks[id]?.group))];
+      const into = said ?? (held.length === 1 && held[0] ? held[0] : null);
       const out: Mutation[] = [];
       let group = into;
       if (!group) {
@@ -808,13 +814,36 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
 
   out.push({ op: "set_grid", id: group, [size]: Math.max(1, g[size]! + by) } as Mutation);
 
+  /** Where everything ends up, worked out before anything is written — the line
+   *  that goes leaves blocks with nowhere to be, and where they go depends on
+   *  what the rest have taken. */
+  const held = new Set<string>();
+  const homeless: { id: Id; was: Cell }[] = [];
+  const kept: Mutation[] = [];
   for (const b of members_of(graph, group)) {
     if (!b.cell) continue;
     const n = b.cell[axis];
-    if (by < 0 && n === at) { out.push({ op: "seat_cell", id: b.id, cell: null }); continue; }
-    if (by > 0 ? n >= at : n > at) {
-      out.push({ op: "seat_cell", id: b.id, cell: { ...b.cell, [axis]: n + by } });
+    if (by < 0 && n === at) { homeless.push({ id: b.id, was: { ...b.cell } }); continue; }
+    const cell = by > 0 ? (n >= at ? { ...b.cell, [axis]: n + by } : { ...b.cell })
+                        : (n > at ? { ...b.cell, [axis]: n + by } : { ...b.cell });
+    held.add(`${cell.r},${cell.c}`);
+    if (cell.r !== b.cell.r || cell.c !== b.cell.c) {
+      kept.push({ op: "seat_cell", id: b.id, cell });
     }
+  }
+  out.push(...kept);
+
+  /** **A line taken away moves what it held, rather than dropping it.** Freed
+   *  outright a block landed at the foot of the layer with its relationships
+   *  still attached, which reads as a line coming adrift. It is only freed once
+   *  there is genuinely nowhere in the grid left for it. */
+  const shrunk = { ...g, [size]: Math.max(1, g[size]! + by) };
+  for (const { id, was } of homeless) {
+    const spare = free_cell(shrunk, held, { r: -1, c: -1, rows: 0, cols: 0 },
+                            { r: Math.min(was.r, (shrunk.rows ?? 1) - 1),
+                              c: Math.min(was.c, (shrunk.cols ?? 1) - 1) });
+    if (spare) held.add(`${spare.r},${spare.c}`);
+    out.push({ op: "seat_cell", id, cell: spare });
   }
 
   for (const span of g.merges ?? []) {
@@ -856,6 +885,23 @@ function reading(graph: Graph, group: Id, way: Side): Id[][] {
   return lines;
 }
 
+/** The free cell nearest the one asked for, outside a span and outside what is
+ *  already spoken for. Null where the grid has no room left. */
+function free_cell(g: Graph["blocks"][string], taken: ReadonlySet<string>,
+                   span: Span, want: Cell): Cell | null {
+  let best: Cell | null = null;
+  let gap = Infinity;
+  for (let r = 0; r < (g.rows ?? 0); r++) {
+    for (let c = 0; c < (g.cols ?? 0); c++) {
+      if (covers(span, r, c) || taken.has(`${r},${c}`)) continue;
+      if (g.merges?.some((m) => covers(m, r, c) && (m.r !== r || m.c !== c))) continue;
+      const off = Math.hypot(r - want.r, c - want.c);
+      if (off < gap) { gap = off; best = { r, c }; }
+    }
+  }
+  return best;
+}
+
 /** Which line the picked cell is in. **A row or a column goes where you
  *  pointed**, and where you pointed is a cell — which of its two numbers is
  *  meant is what `way` says. */
@@ -865,10 +911,19 @@ function pointed(ctx: Context, way: "row" | "col"): number | null {
 }
 
 /** Which grid an action is about: the one named, the one the picked cells are
- *  in, or the picked block where it is one. */
+ *  in, the picked block where it is one, or the grid that block sits in.
+ *
+ *  **Four answers because a grid is pointed at four ways** — by its rim, by one
+ *  of its cells, by a block seated in it, or by name from the text surface. A
+ *  refusal because the pointer landed on the block rather than the cell under
+ *  it is the app being pedantic about a distinction nobody made. */
 function grid_named(ctx: Context, args: Args): Id | null {
-  const said = args["group"] ? id_of(args, "group") : ctx.cells?.[0]?.group ?? ctx.picked[0];
-  return said && is_grid(ctx.graph.blocks[said]) ? said : null;
+  const held = ctx.picked[0] ? ctx.graph.blocks[ctx.picked[0]]?.group : undefined;
+  for (const said of [args["group"] ? id_of(args, "group") : undefined,
+                      ctx.cells?.[0]?.group, ctx.picked[0], held]) {
+    if (said && is_grid(ctx.graph.blocks[said])) return said;
+  }
+  return null;
 }
 
 register(
@@ -913,7 +968,7 @@ register(
     args: [{ name: "group", form: "block" },
            { name: "way", form: "choice", required: true, choices: ["row", "col"] },
            { name: "at", form: "number" }],
-    check: (ctx, args) => (grid_named(ctx, args) ? null : "that is not a grid"),
+    check: (ctx, args) => (grid_named(ctx, args) ? null : "point at a grid, or a cell of one"),
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const way = args["way"] === "col" ? "col" : "row";
@@ -932,7 +987,7 @@ register(
            { name: "at", form: "number" }],
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
-      if (!group) return "that is not a grid";
+      if (!group) return "point at a grid, or a cell of one";
       const g = ctx.graph.blocks[group]!;
       return (args["way"] === "col" ? g.cols! : g.rows!) > 1 ? null : "a grid keeps one line";
     },
@@ -962,18 +1017,37 @@ register(
     },
     /** **A merge sets a cell's extent**; a footprint says how many cells a
      *  block needs. Two mechanisms that do not collide — a merged region
-     *  larger than what it holds is that block centred in a tall cell — and
-     *  whatever else it covered is freed rather than lost. */
+     *  larger than what it holds is that block centred in a tall cell.
+     *
+     *  **What it covers moves, rather than being thrown out.** A merged region
+     *  is one cell, so it holds one block: the first it covers takes the
+     *  corner, and the rest go to the nearest free cell. Freed outright they
+     *  landed at the foot of the layer with their relationships still attached,
+     *  which read as a line coming adrift rather than as a block being moved. */
     run: (ctx, args) => {
       const { group, span } = region(ctx, args)!;
       if (span.rows === 1 && span.cols === 1) {
         return { mutations: [{ op: "split_cells", id: group, r: span.r, c: span.c }] };
       }
+      const g = ctx.graph.blocks[group]!;
+      const taken = new Set<string>();
+      const moved = new Set<Id>();
+      for (const b of members_of(ctx.graph, group)) {
+        if (b.cell && !covers(span, b.cell.r, b.cell.c)) taken.add(`${b.cell.r},${b.cell.c}`);
+      }
       const out: Mutation[] = [];
       for (const b of members_of(ctx.graph, group)) {
         if (!b.cell || !covers(span, b.cell.r, b.cell.c)) continue;
-        if (b.cell.r === span.r && b.cell.c === span.c) continue;
-        out.push({ op: "seat_cell", id: b.id, cell: null });
+        if (moved.size === 0) {
+          moved.add(b.id);
+          if (b.cell.r !== span.r || b.cell.c !== span.c) {
+            out.push({ op: "seat_cell", id: b.id, cell: { r: span.r, c: span.c } });
+          }
+          continue;
+        }
+        const spare = free_cell(g, taken, span, b.cell);
+        if (spare) taken.add(`${spare.r},${spare.c}`);
+        out.push({ op: "seat_cell", id: b.id, cell: spare });
       }
       return { mutations: [...out, { op: "merge_cells", id: group, span }] };
     },
@@ -983,7 +1057,7 @@ register(
     about: "turns a grid on its side — rows become columns",
     on: ["block", "cell"],
     args: [{ name: "group", form: "block" }],
-    check: (ctx, args) => (grid_named(ctx, args) ? null : "that is not a grid"),
+    check: (ctx, args) => (grid_named(ctx, args) ? null : "point at a grid, or a cell of one"),
     /** **Nothing in the model changes.** Relations are between blocks, so the
      *  lines re-route and what the grid says is said the other way up. */
     run: (ctx, args) => {
@@ -1012,9 +1086,14 @@ register(
     /** **`free` has no reading direction**, so there is no adjacency to follow.
      *  Refused in words rather than guessed at row-major. */
     check: (ctx, args) => {
-      if (!grid_named(ctx, args)) return "that is not a grid";
-      return READS[arrangement_of(ctx.graph, ctx.layer)]
-        ? null : "this layer reads no way in particular — arrange it first";
+      const group = grid_named(ctx, args);
+      if (!group) return "point at a grid, or a cell of one";
+      if (!READS[arrangement_of(ctx.graph, ctx.layer)]) {
+        return "this layer reads no way in particular — set an arrangement first";
+      }
+      const way = READS[arrangement_of(ctx.graph, ctx.layer)]!;
+      return reading(ctx.graph, group, way).some((line) => line.length > 1)
+        ? null : "no two filled cells sit next to each other along the way this layer reads";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
@@ -1033,7 +1112,7 @@ register(
         }
       }
       return { mutations: out,
-               ...(out.length ? {} : { effect: { say: "nothing adjacent to link" } }) };
+               ...(out.length ? {} : { effect: { say: "every neighbour is linked already" } }) };
     },
   },
 );

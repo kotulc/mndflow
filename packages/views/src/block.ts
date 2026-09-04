@@ -66,9 +66,12 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const members = members_of(graph, g.id).map((b) => b.id);
     const box = is_grid(g) ? spots.find((p) => p.id === g.id) ?? null
                            : boundary(spots, members);
-    if (!box) continue;
+    /** **A group is never a card.** A boundary with nothing left in it has no
+     *  bounds and draws nothing — taken out of the boxes either way, because
+     *  left in it came out as a blank card nobody made. */
     const at = boxes.findIndex((x) => x.id === g.id);
     if (at >= 0) boxes.splice(at, 1);
+    if (!box) continue;
     groups.push(node(g.id, box,
                      { ...carried(graph, g.id), marks: ["group"], cells: [], holds: members,
                        ...(is_grid(g) ? { grid: lattice(g) } : {}) },

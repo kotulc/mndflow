@@ -86,10 +86,12 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
 
   const one = ctx.picked.length === 1 ? ctx.picked[0]! : null;
 
-  /** What the context can fill without asking. Anything left over is the one
-   *  thing the menu asks for. */
+  /** **What the context can fill without asking**, and `group` is one of them:
+   *  every grid action asks which grid, and the answer is the one thing picked
+   *  or the one the picked cells are in. */
   const known = (): Record<string, unknown> => ({
     id: one, holder: one, owner: one, of: [...ctx.picked], about: one,
+    group: ctx.cells?.[0]?.group ?? one,
     members: [...ctx.picked], ids: [...ctx.picked], target: one, layer: ctx.layer,
     ...(spot ? { spot } : {}),
     ...given,
@@ -99,7 +101,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
    *  name of anything it makes. **Something being made is always worth
    *  naming** — the derived name is a fallback, not an answer, and typing one
    *  here is the difference between “pump” and “block 4”. */
-  const held = ["id", "ids", "holder", "owner", "of", "members", "target", "about"];
+  const held = ["id", "ids", "holder", "owner", "of", "members", "target", "about", "group"];
   const wanted = (a: Action, filled?: Args) =>
     a.args.filter((arg) => (arg.required || arg.asks)
       && !held.includes(arg.name) && !(given && arg.name in given)

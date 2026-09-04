@@ -828,3 +828,27 @@
   content: "name";
   opacity: 0.45;
 }
+
+/* **Only the corners resize.** The library draws a grab line down every edge
+   as well, which took the press meant for moving the grid — so a grid could be
+   stretched from anywhere and dragged from almost nowhere. */
+.mnd-group.gridded ~ .react-flow__resize-control.line,
+.mnd-group.gridded .react-flow__resize-control.line { pointer-events: none; }
+
+/* The bare ring outside the lattice: the one part of a grid that is not a cell,
+   and what a grid is taken hold of by. */
+.mnd-group.gridded { cursor: grab; }
+.mnd-group.gridded:active { cursor: grabbing; }
+
+/* The grid a right drag is about to make: its cells, and how many. */
+.mnd-drawn-rule {
+  stroke: color-mix(in oklch, var(--accent) 45%, transparent);
+  stroke-width: 1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.mnd-drawn-count {
+  fill: var(--accent);
+  font-size: 11px;
+  font-family: inherit;
+}
