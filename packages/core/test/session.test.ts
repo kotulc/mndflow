@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { flat, nested, related } from "@mnd/fixtures";
+import { seed } from "@mnd/defs";
 import { CAP, check, children, compact, fold, hash, read, say, session, write,
          write_subtree, ROOT, type Log, type Storage } from "../src/index";
 
@@ -199,5 +200,39 @@ describe("compaction", () => {
     log = compact(log);
     expect(log.length).toBeLessThanOrEqual(CAP + 1);
     expect(fold(log)).toEqual(before);
+  });
+});
+
+/** **Starting over is dropping the log, not editing it.** A fresh workspace is
+ *  the seed laid down again — which is also the only way a definition this
+ *  build no longer ships leaves a workspace that already carried one. */
+describe("a new workspace", () => {
+  it("puts back exactly what a first run opens with", () => {
+    const s = session({ defs: seed() });
+    const fresh = Object.keys(s.graph().defs).sort();
+    s.go("create", { label: "Loop" });
+    expect(Object.keys(s.graph().blocks)).toHaveLength(2);
+
+    s.reset();
+    expect(Object.keys(s.graph().blocks)).toEqual([ROOT]);
+    expect(Object.keys(s.graph().defs).sort()).toEqual(fresh);
+    expect(s.layer()).toBeNull();
+  });
+
+  it("drops a definition this build no longer ships", () => {
+    const s = session({ defs: seed() });
+    s.go("define", { name: "activity", group: "view" });
+    expect(Object.values(s.graph().defs).some((d) => d.name === "activity")).toBe(true);
+
+    s.reset();
+    expect(Object.values(s.graph().defs).some((d) => d.name === "activity")).toBe(false);
+  });
+
+  it("leaves nothing to undo into", () => {
+    const s = session({ defs: seed() });
+    s.go("create", { label: "Loop" });
+    s.reset();
+    s.undo();
+    expect(Object.keys(s.graph().blocks)).toEqual([ROOT]);
   });
 });

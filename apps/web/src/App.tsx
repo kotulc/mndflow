@@ -309,6 +309,12 @@ export function App() {
           <button title="import a workspace" onClick={() => void load()}>
             <Icon name="import_file" />
           </button>
+          {/* **Asked before it is done, and only here.** Everything else in the
+              header is undoable; this is the one control that is not, because
+              what it throws away is the history undo would have walked. */}
+          <button title="start a new workspace" onClick={() => {
+            if (confirm("Start a new workspace? This session is replaced, and it cannot be undone. Export first to keep a copy.")) s.reset();
+          }}><Icon name="remove" /></button>
           {/* A narrowing you are standing in reads as a word — the term it is
               holding is the whole point, and a mark would hide it. */}
           {narrowed ? (
@@ -377,9 +383,16 @@ export function App() {
                   onAct={act} onShut={shut} />
           )}
           /** A row from the tree, or a chip out of a container, lands where it
-           *  was dropped. **Landing here means being here** — a chip stands for
-           *  a block a layer down, and dragging one onto this ground is how it
-           *  comes back up. Something already in this layer is only placed. */
+           *  was dropped. **What arrives depends on where it came from**, and
+           *  the graph already says which — nothing about the drag has to.
+           *
+           *  - **Already here** — only placed.
+           *  - **A chip**, whose holder is drawn in this layer: dragging one
+           *    onto the ground is how it comes up a level, so it **moves**.
+           *  - **Anything else** came from elsewhere in the workspace, and a
+           *    block cannot be in two layers at once. It arrives as a
+           *    **reference** — which is what a drop from the tree always meant,
+           *    and what moving it silently took away from wherever it lived. */
           onDrop={(id, spot) => {
             /** **Where the pointer was, clear of what is already there.** A row
              *  is dropped by its middle, and a card is placed by its corner. */
@@ -387,11 +400,17 @@ export function App() {
               scene.nodes.filter((n) => n.id !== id && n.type !== "group" && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            if (graph.blocks[id]?.parent !== (layer ?? graph.root)) {
-              s.go("move", { id, parent: layer ?? graph.root, spot: at });
+            const home = layer ?? graph.root;
+            const held = graph.blocks[id]?.parent;
+            if (held === home) {
+              s.adjust("place", adjustments.place([{ id, ...at }]));
               return;
             }
-            s.adjust("place", adjustments.place([{ id, ...at }]));
+            if (held && graph.blocks[held]?.parent === home) {
+              s.go("move", { id, parent: home, spot: at });
+              return;
+            }
+            s.go("refer", { target: id, spot: at });
           }}
           picked={s.picked()}
           curved={shown.angles === false}

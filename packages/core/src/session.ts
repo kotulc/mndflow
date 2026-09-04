@@ -48,6 +48,15 @@ export type Session = {
 
   save: (name?: string) => Promise<void>;
   load: (text: string) => void;
+  /** **Back to a fresh workspace**, seeded exactly as the first run was.
+   *
+   *  The log is what the workspace *is*, so starting over is dropping it and
+   *  laying the seed down again — not a mutation, and not undoable, because
+   *  there is nothing left to undo into. **It is also the only way a definition
+   *  this build no longer ships leaves a workspace that already has it**: the
+   *  seed is written once, when storage is empty, so a base definition retired
+   *  in code lives on in every log written before it went. */
+  reset: () => void;
   /** **A file in, grafted rather than opened.** Its definitions are taken and
    *  its blocks are appended to a layer, as one ordinary step — so a package
    *  fetched from outside and a subtree imported from a file arrive the same
@@ -92,6 +101,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let listener: (() => void) | null = null;
   let opened_faults: import("./door").Fault[] = [];
 
+  /** A fresh log: the base package as one step, or nothing where an app binds
+   *  no definitions. **Written in one place** so opening a fresh workspace and
+   *  starting a new one cannot come out different. */
+  const seeded = (): Log => ports.defs?.length
+    ? [{ id: new_id("step"), action: "seed", at: 0, status: "applied",
+         mutations: ports.defs }]
+    : [];
+
   const opened = storage.read();
   if (opened) {
     const checked = check(opened);
@@ -102,9 +119,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
      *  already mended. */
     if (checked.faults.length) storage.write(log);
     opened_faults = checked.faults;
-  } else if (ports.defs?.length) {
-    log = [{ id: new_id("step"), action: "seed", at: 0, status: "applied",
-             mutations: ports.defs }];
+  } else {
+    log = seeded();
   }
   graph = fold(log);
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
@@ -260,6 +276,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
                                    : `brought in ${hit.name}`, at: Date.now(), kind: "note" };
       listener?.();
       return { name: hit.name, about: hit.about, faults };
+    },
+
+    reset() {
+      log = seeded();
+      layer = null;
+      picked = [];
+      said = { text: "a fresh workspace", at: Date.now(), kind: "note" };
+      settle();
     },
 
     load(text) {

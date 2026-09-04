@@ -50,7 +50,9 @@ const PATHS = {
   role_container: "M6 6h12v12H6z",
   role_folder: "M3.5 7.5h6l2 2h9v9h-17z",
   // Somewhere else, a description, and a set — none of them structure here.
-  role_reference: "M8 16L16 8M10 8h6v6",
+  // A reference is a solid corner pointing up and out of its own card: it
+  // stands for something that lives elsewhere, and the mark says which way.
+  role_reference: "M7 5h12v12z",
   role_note: "M5 8h14M5 12h14M5 16h9",
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
 

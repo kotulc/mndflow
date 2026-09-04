@@ -13,12 +13,15 @@ export const SEAT = GRID / 2;
 
 export type Size = { w: number; h: number };
 
-/** One grid row plus half a row of margin. */
-export const BLOCK: Size = { w: GRID * 7, h: GRID * 1.5 };
+/** **Whole units, both ways.** A block is the size of one grid cell, which is
+ *  what lets a cell hold exactly one and lets everything land on the backdrop
+ *  dots. Two units tall also gives a side three seats rather than two. */
+export const BLOCK: Size = { w: GRID * 7, h: GRID * 2 };
 
-/** Three rows plus the same, so a block's middle and a container's middle are
- *  one cell apart and grid steps can bring them level. */
-export const CONTAINER: Size = { w: GRID * 7, h: GRID * 3.5 };
+/** **Exactly two cells.** A container needs more room than a block and gets it
+ *  by spanning rather than by shrinking to fit — so its edges keep their real
+ *  length, and the seats along them stay proportional instead of crowding. */
+export const CONTAINER: Size = { w: GRID * 7, h: GRID * 4 };
 
 /** The room a container's picture of itself gets: exactly how much taller a
  *  container is than a block, so the name above it keeps a block's worth. */

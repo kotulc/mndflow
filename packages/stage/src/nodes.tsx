@@ -47,7 +47,8 @@ function Wears({ role }: { role?: Role }) {
   if (!role) return null;
   return (
     <span className="mnd-role" data-role={role}>
-      <Icon name={ROLE[role]} solid={role === "container"} size={11} />
+      <Icon name={ROLE[role]} solid={role === "container" || role === "reference"}
+            size={11} />
     </span>
   );
 }
