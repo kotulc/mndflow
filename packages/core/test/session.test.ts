@@ -65,7 +65,9 @@ describe("undo is a refold", () => {
 describe("one step per action", () => {
   it("writes one step however many mutations it took", () => {
     const s = session();
-    s.go("note", { text: "hello", spot: { x: 24, y: 24 } });
+    s.go("create", { label: "Pump" });
+    const pump = Object.values(s.graph().blocks).find((b) => b.label === "Pump")!.id;
+    s.go("note", { about: pump, text: "hello", spot: { x: 24, y: 24 } });
     expect(s.log().filter((x) => x.action === "note")).toHaveLength(1);
     expect(s.log().find((x) => x.action === "note")!.mutations.length).toBeGreaterThan(1);
   });

@@ -13,10 +13,10 @@
  *  teaches people to ignore the real ones. */
 
 import { unreadable } from "./components";
-import { fold, subtree } from "./fold";
+import { covers, fold, is_grid, overlaps, subtree } from "./fold";
 import { new_id } from "./ids";
-import { ROOT, type Definition, type Graph, type Id, type Log, type Mutation, type Step }
-  from "./types";
+import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
+         type Span, type Step } from "./types";
 
 export type Fault = {
   kind: "repaired" | "dropped";
@@ -30,7 +30,8 @@ export type Checked = {
 
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
-  "place_block", "order_block", "size_block", "set_body", "join_group", "leave_group", "link_blocks", "update_edge",
+  "place_block", "order_block", "size_block", "set_body", "set_group", "seat_cell",
+  "set_grid", "merge_cells", "split_cells", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
 ]);
@@ -115,6 +116,80 @@ export function inspect(graph: Graph): Inspection {
     }
   }
 
+  /** `groups: Id[]` → `group: Id`. **One group per block**, so a block that was
+   *  in several keeps the first. The record is replaced whole rather than
+   *  patched: a field this build no longer reads would otherwise ride along
+   *  into every file written from here. */
+  const held = new Map<Id, Id | undefined>();
+  for (const b of Object.values(graph.blocks)) {
+    const was = (b as Block & { groups?: Id[] }).groups;
+    held.set(b.id, b.group ?? was?.[0]);
+    if (!was) continue;
+    if (was.length) {
+      faults.push({ kind: "repaired", what: `"${name(b.id)}" belonged to ${was.length} groups` });
+    }
+    const { groups: _gone, ...rest } = b as Block & { groups?: Id[] };
+    repairs.push({ op: "add_block", block: { ...rest, group: held.get(b.id) } });
+  }
+
+  /** The grid: one group per block, no nesting, one block per cell, and no
+   *  merge across another. **Every repair frees the block rather than deleting
+   *  it** — a layout fault must not cost model content, and a block may be
+   *  referenced from other layers. */
+  const taken = new Map<string, Id>();
+  for (const b of Object.values(graph.blocks)) {
+    const group = held.get(b.id);
+    if (!group) {
+      if (b.cell) {
+        faults.push({ kind: "repaired", what: `"${name(b.id)}" had a cell and no group` });
+        repairs.push({ op: "seat_cell", id: b.id, cell: null });
+      }
+      continue;
+    }
+    const grid = graph.blocks[group];
+    if (!grid || group === b.id || held.get(group)) {
+      faults.push({ kind: "repaired", what: `"${name(b.id)}" was in a group that cannot hold it` });
+      repairs.push({ op: "set_group", id: b.id, group: null });
+      continue;
+    }
+    if (!b.cell) continue;
+    const { r, c } = b.cell;
+    const outside = !is_grid(grid) || r < 0 || c < 0 || r >= grid.rows! || c >= grid.cols!;
+    const at = merge_at_span(grid, r, c);
+    const key = `${group}|${at ? at.r : r}|${at ? at.c : c}`;
+    if (outside || taken.has(key)) {
+      faults.push({ kind: "repaired",
+                    what: `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} `
+                        + `"${name(group)}"` });
+      repairs.push({ op: "seat_cell", id: b.id, cell: null });
+      continue;
+    }
+    taken.set(key, b.id);
+  }
+
+  /** A merge is a cell's extent, so one reaching past the grid or across
+   *  another leaves *what is this cell* without an answer.
+   *
+   *  **The set is laid down again rather than patched.** `split_cells` takes
+   *  away whichever span covers an address, which is the right answer for a
+   *  gesture and the wrong one here — dropping the overlapping span by its
+   *  corner takes the sound one with it. */
+  for (const g of Object.values(graph.blocks)) {
+    const kept: Span[] = [];
+    let bad = 0;
+    for (const s of g.merges ?? []) {
+      const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0
+                && is_grid(g) && s.r + s.rows <= g.rows! && s.c + s.cols <= g.cols!;
+      if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
+      else bad++;
+    }
+    if (!bad) continue;
+    faults.push({ kind: "dropped",
+                  what: `${bad} merge${bad > 1 ? "s" : ""} "${name(g.id)}" could not hold` });
+    for (const s of g.merges ?? []) repairs.push({ op: "split_cells", id: g.id, r: s.r, c: s.c });
+    for (const s of kept) repairs.push({ op: "merge_cells", id: g.id, span: s });
+  }
+
   /** One definition, one repair. Filing, extension and every component key it
    *  claims are three separate faults and one mended record — two `set_def`s
    *  for the same definition would leave the later one undoing the earlier. */
@@ -140,6 +215,12 @@ export function inspect(graph: Graph): Inspection {
   }
 
   return { faults, repairs };
+}
+
+/** The span covering an address, read off a group in hand. The fold's reader
+ *  asks the graph; the door already has the block. */
+function merge_at_span(g: Block, r: number, c: number): Span | null {
+  return g.merges?.find((s) => covers(s, r, c)) ?? null;
 }
 
 /** A definition's components without one key, and no `components` at all once

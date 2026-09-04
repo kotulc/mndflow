@@ -9,6 +9,18 @@ import { ROOT, all, children, fold, offer, run, session, writes,
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
   ({ graph: fold(related()), layer, picked });
 
+/** The same layer with its boundary made into a grid, two cells filled and a
+ *  reading direction — what the grid actions are about. */
+const gridded = (): Context => {
+  const c = ctx(["block_pump"]);
+  const b = c.graph.blocks;
+  b["block_loop"] = { ...b["block_loop"]!, arrangement: "right" };
+  b["block_hot"] = { ...b["block_hot"]!, rows: 1, cols: 2 };
+  b["block_tank"] = { ...b["block_tank"]!, group: "block_hot", cell: { r: 0, c: 0 } };
+  b["block_valve"] = { ...b["block_valve"]!, group: "block_hot", cell: { r: 0, c: 1 } };
+  return { ...c, cells: [{ group: "block_hot", r: 0, c: 0 }] };
+};
+
 describe("the registry", () => {
   it("gives every action a sentence, a scope and a run", () => {
     for (const a of all()) {
@@ -24,13 +36,14 @@ describe("the registry", () => {
   });
 
   it("marks navigation as writing nothing, and everything else as writing", () => {
-    const c = ctx(["block_pump"]);
+    const c = gridded();
     for (const a of all()) {
       const out = a.run(c, { id: "block_pump", to: "block_hx", from: "block_pump",
                              label: "x", body: "x", text: "x", name: "f", owner: "block_pump",
                              target: "block_hx", parent: ROOT, holder: "block_pump",
                              members: ["block_pump"], group: "block_hot", dir: "forward",
-                             module: "line", arrangement: "grid", flow: "in",
+                             module: "line", arrangement: "down", flow: "in",
+                             way: "row", at: "0,0",
                              def: "structure", form: "number" });
       expect(out.mutations.length > 0, a.name).toBe(writes(a.name));
     }
@@ -129,11 +142,11 @@ describe("what an action absorbs", () => {
 
     s.go("group", { members: [a] });
     const group = children(s.graph(), loop).find((x) => x.type === "group")!;
-    expect(s.graph().blocks[a!]!.groups).toContain(group.id);
+    expect(s.graph().blocks[a!]!.group).toBe(group.id);
 
     s.go("group", { members: [b], into: group.id });
     expect(children(s.graph(), loop).filter((x) => x.type === "group")).toHaveLength(1);
-    expect(s.graph().blocks[b!]!.groups).toContain(group.id);
+    expect(s.graph().blocks[b!]!.group).toBe(group.id);
   });
 
   /** **What the ends decide is not on offer.** A relationship is a tie because
@@ -146,12 +159,14 @@ describe("what an action absorbs", () => {
     s.look(loop);
     s.go("create", { label: "Pump" });
     s.go("create", { label: "Tank" });
-    s.go("note", { text: "runs clockwise" });
     const at = (label: string) => children(s.graph(), loop).find((b) => b.label === label)!.id;
+    /** **A note is always about something**, so making one names what. */
+    s.go("note", { about: at("Tank"), text: "runs clockwise" });
     const note = children(s.graph(), loop).find((b) => b.type === "note")!.id;
 
+    const before = new Set(Object.keys(s.graph().edges));
     s.go("relate", { from: note, to: at("Pump"), module: "directed" });
-    const edge = Object.values(s.graph().edges)[0]!;
+    const edge = Object.values(s.graph().edges).find((e) => !before.has(e.id))!;
     expect(edge.module).toBe("tie");
 
     /** Asked to be a plain line, it says what it is instead of writing a step. */
@@ -173,12 +188,13 @@ describe("what an action absorbs", () => {
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
     s.go("create", { label: "Pump" });
-    s.go("note", { text: "runs clockwise" });
     const pump = children(s.graph(), loop).find((b) => b.label === "Pump")!;
+    s.go("note", { about: pump.id, text: "runs clockwise" });
     const note = children(s.graph(), loop).find((b) => b.type === "note")!;
 
+    const before = new Set(Object.keys(s.graph().edges));
     s.go("relate", { from: pump.id, to: note.id, module: "line" });
-    expect(Object.values(s.graph().edges)[0]!.module).toBe("tie");
+    expect(Object.values(s.graph().edges).find((e) => !before.has(e.id))!.module).toBe("tie");
   });
 });
 
@@ -312,8 +328,8 @@ describe("a null layer is the root layer", () => {
   it("arranges the root layer rather than nothing", () => {
     const s = session();
     s.look(null);
-    s.go("arrange", { arrangement: "grid" });
-    expect(s.graph().blocks[ROOT]!.arrangement).toBe("grid");
+    s.go("arrange", { arrangement: "down" });
+    expect(s.graph().blocks[ROOT]!.arrangement).toBe("down");
   });
 });
 

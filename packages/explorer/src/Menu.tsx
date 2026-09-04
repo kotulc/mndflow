@@ -79,7 +79,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
   /** What the context can fill without asking. Anything left over is the one
    *  thing the menu asks for. */
   const known = (): Record<string, unknown> => ({
-    id: one, holder: one, owner: one, of: [...ctx.picked],
+    id: one, holder: one, owner: one, of: [...ctx.picked], about: one,
     members: [...ctx.picked], ids: [...ctx.picked], target: one, layer: ctx.layer,
     ...(spot ? { spot } : {}),
     ...given,
@@ -89,7 +89,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
    *  name of anything it makes. **Something being made is always worth
    *  naming** — the derived name is a fallback, not an answer, and typing one
    *  here is the difference between “pump” and “block 4”. */
-  const held = ["id", "ids", "holder", "owner", "of", "members", "target"];
+  const held = ["id", "ids", "holder", "owner", "of", "members", "target", "about"];
   const wanted = (a: Action) =>
     a.args.filter((arg) => (arg.required || arg.asks)
       && !held.includes(arg.name) && !(given && arg.name in given));

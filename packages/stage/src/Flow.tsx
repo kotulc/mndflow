@@ -16,11 +16,11 @@ import {
   useNodesState, useReactFlow, useStore,
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
-import type { Id, Point, Side } from "@mnd/core";
+import type { Id, Point, Side, Spot } from "@mnd/core";
 import { at_seat, box_of, extent, nearest_seat, perch_id, snap, FRAME, PORT,
          type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
-import { DRAGGED, NODE_TYPES } from "./nodes";
+import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 
 export { DRAGGED };
 import { EDGE_TYPES } from "./Wire";
@@ -29,7 +29,7 @@ import { EDGE_TYPES } from "./Wire";
  *  it. `kind` is what was under the pointer, never what it looked like. */
 export type Gesture = {
   on: string | null;
-  kind: "box" | "band" | "brim" | "seat" | "route" | "anchor" | "frame" | "title"
+  kind: "box" | "band" | "cell" | "brim" | "seat" | "route" | "anchor" | "frame" | "title"
       | "name" | "note" | "empty";
   button: "left" | "right";
   count: 1 | 2;
@@ -39,6 +39,10 @@ export type Gesture = {
    *  what the model records is a place on the drawing, and what a menu opens
    *  next to is a place on the page. */
   screen: Point;
+  /** Whether the modifier that extends a selection was down. **The one key the
+   *  canvas reports** — a range of cells is picked by pointing at its far
+   *  corner, and only the pointer knows the key was held. */
+  shift?: boolean;
   /** What this gesture knows beyond what it is on, as the arguments an action
    *  would need. **A seat is the case that needs it**: which wall of which
    *  border, and how far along, are answers only the pointer has — a perch is
@@ -59,7 +63,11 @@ export type Adjust =
    *  drawn round blocks that already live here — and treating it as one filed
    *  cards under it, where the layer could not draw them and the tree did not
    *  list them. They looked deleted. */
-  | { kind: "move"; on: string; to: Point; over: string | null; into: string | null }
+  | { kind: "move"; on: string; to: Point; over: string | null; into: string | null;
+      /** Which cell of `into` it came to rest in, where that is a grid.
+       *  **Placement resolving to an address** — the same drop, read against a
+       *  lattice the canvas has and nothing downstream does. */
+      cell?: { r: number; c: number } }
   /** Several cards put down at once. **A sweep dragged, and a boundary
    *  dragged** — a band is its members' bounds, so it has no place of its own
    *  and moving it is moving them. Nothing lands *on* anything here: a drop
@@ -100,12 +108,17 @@ export type FlowViewProps = {
    *  works out and never where you pointed. */
   onRelate?: (from: string, to: string,
               walls?: { fromSide?: Side; toSide?: Side }) => void;
-  /** A right drag across empty ground: the region a note will fill. */
-  onNote?: (box: { x: number; y: number; w: number; h: number }) => void;
+  /** A right drag across empty ground: the region a group will fill. **A
+   *  region, not a grid** — how many rows and columns that is is a question
+   *  about cell sizes, and the consumer is where those live. */
+  onSweep?: (box: { x: number; y: number; w: number; h: number }) => void;
   onAdjust?: (adjust: Adjust) => void;
   /** What is selected now — a click, a shift-sweep and a modifier-click all
    *  arrive here and nowhere else. */
   onPick?: (ids: string[]) => void;
+  /** Which cells are picked. **Beside the ids, never among them** — a cell has
+   *  no id, so it cannot ride in a node selection. */
+  cells?: readonly Spot[];
   /** What the app is saying, shown over the drawing rather than beside it. */
   said?: React.ReactNode;
   /** Something dropped onto the drawing from outside it, at the point it
@@ -336,6 +349,10 @@ function kind_of(scene: Scene, id: string | null,
    *  tell the two apart. */
   if (el?.closest(".mnd-brim")) return "brim";
   if (scene.frame?.ports.some((p) => p.id === id)) return "seat";
+  /** **A cell is its own target.** It has no id, so it is not a node and could
+   *  never be reported as one — what is under the pointer is the grid, and
+   *  which cell is read back off the DOM. */
+  if (el?.closest(".mnd-grid-cell")) return "cell";
   const node = scene.nodes.find((n) => n.id === id);
   /** **A boundary is not a block you can go into.** It is a band drawn round
    *  blocks that already live here, so it has no layer of its own to open and
@@ -382,6 +399,10 @@ function signature(scene: Scene, frame: Frame | null): string {
         n.data.marks.join(""), n.data.side ?? "",
         k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
         n.data.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(""),
+        /** **The lattice is what a grid draws.** Merging, splitting or adding a
+         *  line moves nothing and renames nothing; what it changes is the
+         *  cells, and a signature blind to them left the old grid drawn. */
+        n.data.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(""),
         n.data.fields?.map((f) => `${f.name}=${f.value}`).join(""),
         /** **Where a line meets this card is part of what it draws.** Pinning
          *  an end to another wall moves nothing and renames nothing; what it
@@ -607,7 +628,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 }
 
 function Canvas(props: FlowViewProps) {
-  const { scene, picked = [], onGesture, onRelate, onNote, onAdjust, onPick, onDrop,
+  const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
           said, chrome = true, curved = false } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
@@ -848,9 +869,16 @@ function Canvas(props: FlowViewProps) {
      *  pointed at; for a relationship, where its two ends would have to meet to
      *  run straight — neither is anywhere in the graph. */
     const bend = kind === "route" && on ? straightened(scene, frame, on) : null;
-    const given = seat
+    /** **A cell is a group plus an address**, and nothing else could say which
+     *  — so the address the DOM was drawn with is handed on as it is. */
+    const el_at = e.target instanceof Element
+      ? e.target.closest(".mnd-grid-cell")?.getAttribute("data-at") : null;
+    const spot = kind === "cell" && el_at && on
+      ? { group: on, r: Number(el_at.split(",")[0]), c: Number(el_at.split(",")[1]) }
+      : null;
+    const given = spot ?? (seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
-      : bend;
+      : bend);
     /** A chip stands for a block one layer down, so the name on it is that
      *  block's and not the card's it is drawn inside. */
     const el = e.target instanceof Element ? e.target : null;
@@ -858,6 +886,7 @@ function Canvas(props: FlowViewProps) {
     onGesture?.({
       on: kind === "title" || kind === "frame" ? scene.layer : chip ?? on,
       kind, button, count, at: at(e), screen: { x: e.clientX, y: e.clientY },
+      ...(e.shiftKey ? { shift: true } : {}),
       ...(given ? { given } : {}),
     });
   }, [onGesture, scene, at, frame]);
@@ -946,8 +975,8 @@ function Canvas(props: FlowViewProps) {
       });
       return;
     }
-    if (!from.on && !to.on) onNote?.(spread(was.from, was.to));
-  }, [drawing, over, onRelate, onNote, at, scene.layer]);
+    if (!from.on && !to.on) onSweep?.(spread(was.from, was.to));
+  }, [drawing, over, onRelate, onSweep, at, scene.layer]);
 
   /** What a card let go here would land on, and it is asked once.
    *
@@ -980,8 +1009,17 @@ function Canvas(props: FlowViewProps) {
     };
     const lands = scene.nodes.filter((n) =>
       n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && holds(n));
-    return { over: lands.find((n) => n.type !== "group") ?? null,
-             into: lands.find((n) => n.type === "group") ?? null };
+    const into = lands.find((n) => n.type === "group") ?? null;
+    /** **Which cell, where the group is a grid.** The lattice is already on the
+     *  node, in the grid's own coordinates, so the address is a lookup rather
+     *  than arithmetic anybody could get differently. */
+    const box = into ? box_of(into) : null;
+    const cell = into && box
+      ? into.data.grid?.find((c) => at.x >= box.x + c.x && at.x <= box.x + c.x + c.w
+                                 && at.y >= box.y + c.y && at.y <= box.y + c.y + c.h)
+      : undefined;
+    return { over: lands.find((n) => n.type !== "group") ?? null, into,
+             ...(cell ? { cell: { r: cell.r, c: cell.c } } : {}) };
   }, [scene]);
 
   /** **Where it came to rest, not where the pointer was.** A card grabbed by
@@ -1048,7 +1086,8 @@ function Canvas(props: FlowViewProps) {
     const land = landing_on(node.id, { x: node.position.x + b.w / 2,
                                        y: node.position.y + b.h / 2 });
     onAdjust?.({ kind: "move", on: node.id, to: node.position,
-                 over: land.over?.id ?? null, into: land.into?.id ?? null });
+                 over: land.over?.id ?? null, into: land.into?.id ?? null,
+                 ...(land.cell ? { cell: land.cell } : {}) });
   }, [scene, frame, landing_on, riders, onAdjust]);
 
   /** Selection is the app's to hold, and **this is the only place it is
@@ -1465,8 +1504,14 @@ export function FlowView({ naming = null, onNamed, ...props }: FlowViewProps) {
   return (
     <ReactFlowProvider>
       <NamingContext.Provider value={typing}>
-        <Canvas {...props} />
+        <CellsContext.Provider value={props.cells ?? EMPTY_CELLS}>
+          <Canvas {...props} />
+        </CellsContext.Provider>
       </NamingContext.Provider>
     </ReactFlowProvider>
   );
 }
+
+/** One empty list, so a canvas with nothing picked does not hand the context a
+ *  fresh array on every render. */
+const EMPTY_CELLS: readonly Spot[] = [];

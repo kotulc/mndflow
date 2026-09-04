@@ -42,6 +42,11 @@ export type BoxData = {
   /** What a container holds, for the picture drawn inside its card. Empty or
    *  absent on everything else. */
   cells?: readonly Cell[];
+  /** The lattice a grid draws, as boxes inside its own. **Derived, and nothing
+   *  in the graph** — a cell has no id, so it is named by row and column and a
+   *  renderer addresses one that way too. Absent on a boundary, which has no
+   *  cells. */
+  grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. **A band is its members' bounds**, so it
    *  has no place of its own to move — dragging one is dragging them, and this
    *  is the only place a renderer could learn who *them* is. */
@@ -60,7 +65,19 @@ export type BoxData = {
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
                  | "interface" | "berth" | "in" | "out"
-                 | "header" | "cell" | "filled" | "turned";
+                 | "header" | "cell" | "merged" | "filled" | "turned";
+
+/** One cell of a grid, placed inside the grid's own box. A merged region is one
+ *  cell drawn once, at the span's corner and the span's size. */
+export type GridCell = {
+  r: number;
+  c: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  marks: readonly Mark[];
+};
 
 /** What one line carries. Where it runs is not here: the renderer routes it,
  *  and the two ends plus the walls they leave by are the whole of what a

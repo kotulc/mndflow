@@ -7,13 +7,13 @@
  *  An action writing no mutations is navigation: no step, nothing to undo, and
  *  a text interface never offers it. */
 
-import { arrangement_of, children, edges_in, is_interface, is_reference, layer_id, module_of,
-         next_num, path, reorder } from "./fold";
+import { arrangement_of, at_cell, children, covers, edges_in, is_grid, is_interface,
+         is_reference, layer_id, members_of, module_of, next_num, path, reorder } from "./fold";
 import { name_taken } from "./door";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, VALUE_FORMS, type Arrangement, type Dir, type FieldDef, type Flow,
-         type Graph, type Id, type Mutation, type RelationModule, type Side,
-         type ValueForm } from "./types";
+import { ARRANGEMENTS, HEADERS, READS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
+         type FieldDef, type Flow, type Graph, type Headers, type Id, type Mutation,
+         type RelationModule, type Side, type Span, type ValueForm } from "./types";
 
 /** What an input method can fill. A position can only come from a gesture. */
 export type ArgForm = "text" | "block" | "choice" | "number" | "spot";
@@ -31,8 +31,12 @@ export type Arg = {
   choices?: readonly string[];
 };
 
-/** What is under the pointer, or what is selected. */
-export type Scope = "layer" | "block" | "edge" | "interface" | "selection";
+/** What is under the pointer, or what is selected.
+ *
+ *  **A cell is a scope of its own.** It has no id — it is a group plus a row
+ *  and a column — so it cannot ride in `picked` without pretending to be a
+ *  block, which would leak into everything that looks one up. */
+export type Scope = "layer" | "block" | "edge" | "interface" | "selection" | "cell";
 
 export type Args = Record<string, unknown>;
 
@@ -46,12 +50,18 @@ export type Effect = { open?: Id | null; focus?: Id | null; say?: string };
 
 export type Result = { mutations: Mutation[]; effect?: Effect };
 
+/** One cell, named the only way a cell can be: the group it is in and where. */
+export type Spot = { group: Id; r: number; c: number };
+
 export type Context = {
   graph: Graph;
   /** The open layer. */
   layer: Id | null;
   /** What is picked within it. */
   picked: Id[];
+  /** Which cells are picked, where any are. **Beside `picked`, never inside
+   *  it** — a cell is an address rather than a thing. */
+  cells?: readonly Spot[];
   /** The layer this one was opened from, where anybody knows. **Only the way
    *  out needs it**, and only for the one thing that is drawn in two layers at
    *  once — see `open`. */
@@ -100,6 +110,7 @@ function in_scope(a: Action, ctx: Context): boolean {
     : s === "block" ? !!one
     : s === "edge" ? !!edge
     : s === "interface" ? !!one && is_interface(one)
+    : s === "cell" ? !!ctx.cells?.length
     : ctx.picked.length > 0);
 }
 
@@ -144,6 +155,61 @@ const spot = (args: Args): { x: number; y: number } | null => {
   const s = args["spot"] as { x?: number; y?: number } | undefined;
   return s && typeof s.x === "number" && typeof s.y === "number" ? { x: s.x, y: s.y } : null;
 };
+
+/** A number somebody said, or null. **Absent is not zero** — a grid asked for
+ *  no rows is a grid nobody said anything about. */
+const num = (args: Args, key: string): number | null => {
+  const said = args[key];
+  if (typeof said === "number") return Number.isFinite(said) ? Math.round(said) : null;
+  const read = Number(said);
+  return said !== undefined && said !== "" && Number.isFinite(read) ? Math.round(read) : null;
+};
+
+/** An address somebody said, however they said it: `{r, c}` or `"r,c"`. */
+const cell_of_arg = (args: Args, key: string): Cell | null => {
+  const said = args[key];
+  if (said && typeof said === "object") {
+    const { r, c } = said as Cell;
+    return typeof r === "number" && typeof c === "number" ? { r, c } : null;
+  }
+  const [r, c] = String(said ?? "").split(/[\s,]+/).map(Number);
+  return Number.isFinite(r!) && Number.isFinite(c!) ? { r: r!, c: c! } : null;
+};
+
+/** Where each member of a captured sweep lands. Malformed entries are ignored
+ *  rather than thrown on — a gesture may hand in what it worked out, and what
+ *  it could not work out is simply absent. */
+const seats = (args: Args): { id: Id; r: number; c: number }[] => {
+  const said = args["seats"];
+  if (!Array.isArray(said)) return [];
+  return said
+    .filter((s): s is { id: Id; r: number; c: number } =>
+      !!s && typeof s === "object" && typeof (s as { id?: unknown }).id === "string"
+      && typeof (s as { r?: unknown }).r === "number"
+      && typeof (s as { c?: unknown }).c === "number")
+    .map((s) => ({ id: s.id, r: s.r, c: s.c }));
+};
+
+/** The region an action was pointed at, as one rectangle.
+ *
+ *  **The picked cells, or the pair an argument names.** A drag picks a range
+ *  and a typed line says two corners; both are the same rectangle, so both
+ *  arrive here and nothing downstream knows which it was. */
+function region(ctx: Context, args: Args): { group: Id; span: Span } | null {
+  const picked = ctx.cells ?? [];
+  const group = args["group"] ? id_of(args, "group") : picked[0]?.group;
+  if (!group || !ctx.graph.blocks[group]) return null;
+  const from = cell_of_arg(args, "at") ?? cell_of_arg(args, "into");
+  const spots = args["at"] || args["into"]
+    ? [from, cell_of_arg(args, "into")].filter((c): c is Cell => !!c)
+    : picked.filter((p) => p.group === group).map((p) => ({ r: p.r, c: p.c }));
+  if (!spots.length) return null;
+  const r = Math.min(...spots.map((s) => s.r));
+  const c = Math.min(...spots.map((s) => s.c));
+  return { group, span: { r, c,
+    rows: Math.max(...spots.map((s) => s.r)) - r + 1,
+    cols: Math.max(...spots.map((s) => s.c)) - c + 1 } };
+}
 
 /** The one door making a block, so every caller places and numbers alike. */
 function make_block(ctx: Context, label: string, parent: Id | null, type?: Id): Mutation[] {
@@ -592,12 +658,23 @@ register(
 register(
   {
     name: "group",
-    about: "draws a boundary round these, or adds them to a boundary already there",
-    on: ["selection"],
-    args: [{ name: "members", form: "block", required: true }, { name: "into", form: "block" }],
+    about: "draws a grid here, or a boundary round what is selected",
+    on: ["layer", "selection"],
+    /** **One act with different arguments.** *Draw a grid here* and *draw a
+     *  boundary round these* make the same block; an extent is what tells them
+     *  apart, and a group with none is today's band. */
+    args: [{ name: "members", form: "block" }, { name: "into", form: "block" },
+           { name: "rows", form: "number" }, { name: "cols", form: "number" },
+           { name: "headers", form: "choice", choices: HEADERS },
+           /** Where each member lands, for a sweep that captured what it drew
+            *  over. **One act and one undo** — drawing a grid over four loose
+            *  cards is one thing you did. */
+           { name: "seats", form: "text" },
+           { name: "spot", form: "spot" }],
     check: (ctx, args) => {
       const members = (args["members"] as Id[]) ?? ctx.picked;
-      return members.length ? null : "nothing is selected";
+      const extent = num(args, "rows") !== null || num(args, "cols") !== null;
+      return members.length || extent || args["into"] ? null : "nothing is selected";
     },
     run: (ctx, args) => {
       const members = ((args["members"] as Id[]) ?? ctx.picked).filter((id) => ctx.graph.blocks[id]);
@@ -610,32 +687,59 @@ register(
           id: group, parent: here(ctx), type: "group", num: next_num(ctx.graph, here(ctx)),
         } });
       }
-      for (const id of members) out.push({ op: "join_group", id, group });
+      const rows = num(args, "rows");
+      const cols = num(args, "cols");
+      const headers = HEADERS.includes(args["headers"] as Headers)
+        ? (args["headers"] as Headers) : undefined;
+      if (rows !== null || cols !== null || headers) {
+        out.push({ op: "set_grid", id: group,
+                   ...(rows === null ? {} : { rows: Math.max(1, rows) }),
+                   ...(cols === null ? {} : { cols: Math.max(1, cols) }),
+                   ...(headers ? { headers } : {}) });
+      }
+      /** **A grid owns its corner**, or an empty one would be nothing. */
+      const at = spot(args);
+      if (at) out.push({ op: "place_block", id: group, x: at.x, y: at.y });
+      for (const id of members) out.push({ op: "set_group", id, group });
+      for (const seat of seats(args)) {
+        if (members.includes(seat.id)) {
+          out.push({ op: "seat_cell", id: seat.id, cell: { r: seat.r, c: seat.c } });
+        }
+      }
       return { mutations: out };
     },
   },
   {
     name: "leave",
-    about: "takes this out of a boundary it belongs to",
-    on: ["block"],
-    args: [{ name: "id", form: "block", required: true },
-           { name: "group", form: "block", required: true }],
-    run: (_ctx, args) => ({ mutations: [
-      { op: "leave_group", id: id_of(args, "id"), group: id_of(args, "group") },
-    ] }),
+    about: "takes a block out of the group it is in",
+    on: ["block", "selection"],
+    args: [{ name: "ids", form: "block", required: true }],
+    run: (ctx, args) => ({ mutations: ids_of(ctx, args)
+      .map((id): Mutation => ({ op: "set_group", id, group: null })) }),
   },
   {
     name: "note",
-    about: "puts a note here saying what you typed",
-    on: ["layer"],
-    args: [{ name: "text", form: "text", required: true }, { name: "spot", form: "spot" },
+    about: "writes a note about a block or a relationship, tied to it",
+    on: ["block", "edge"],
+    /** **A note is always about something.** The note and the tie are made in
+     *  one step, because a remark with nothing to point at is a caption on the
+     *  wallpaper — and right-drag on empty ground draws a group now, so there
+     *  is no gesture that could make a loose one. */
+    args: [{ name: "about", form: "block", required: true },
+           { name: "text", form: "text", required: true, asks: true },
+           { name: "spot", form: "spot" },
            { name: "w", form: "number" }, { name: "h", form: "number" }],
-    check: (_ctx, args) => text(args, "text") ? null : "a note is its text",
+    check: (ctx, args) => {
+      if (!text(args, "text")) return "a note is its text";
+      const about = id_of(args, "about") || ctx.picked[0] || "";
+      return ctx.graph.blocks[about] || ctx.graph.edges[about]
+        ? null : "a note is always about something";
+    },
     /** **A note is the one card whose size is yours to set**, so the gesture
-     *  that draws one may say how big — a region swept out and then filled,
-     *  rather than a default box you resize afterwards. */
+     *  that draws one may say how big. */
     run: (ctx, args) => {
       const id = new_id("block");
+      const about = id_of(args, "about") || ctx.picked[0]!;
       const out: Mutation[] = [
         { op: "add_block", block: {
           id, parent: here(ctx), type: "note", num: next_num(ctx.graph, here(ctx)) } },
@@ -647,7 +751,266 @@ register(
       if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
         out.push({ op: "size_block", id, w, h });
       }
+      /** **A tie, because one end is a note.** The module is assigned from what
+       *  sits at the ends and never picked, so this says who it is about and
+       *  the engine says what sort of line that is. */
+      const to = ctx.graph.edges[about] ? null : about;
+      if (to) {
+        out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to,
+                                              module: "tie" } });
+      }
+      return { mutations: out, effect: { focus: id } };
+    },
+  },
+);
+
+// ---------------------------------------------------------------- the grid
+
+/** A row or column added or taken away, and everything after it moved.
+ *
+ *  **Displacement is never destructive**: a block in a row that goes loses its
+ *  address and stays on the layer, because a layout gesture must not destroy
+ *  model content. **A merge the line passes through stretches or shrinks
+ *  rather than splitting** — the fiddliest arithmetic here, and the reason
+ *  every span is taken away before any is put back: a shifted one may land on
+ *  where another used to be. */
+function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
+                 by: 1 | -1): Mutation[] {
+  const g = graph.blocks[group];
+  if (!g || !is_grid(g)) return [];
+  const axis = way === "row" ? "r" : "c";
+  const size = way === "row" ? "rows" : "cols";
+  const out: Mutation[] = [];
+  const put: Mutation[] = [];
+
+  out.push({ op: "set_grid", id: group, [size]: Math.max(1, g[size]! + by) } as Mutation);
+
+  for (const b of members_of(graph, group)) {
+    if (!b.cell) continue;
+    const n = b.cell[axis];
+    if (by < 0 && n === at) { out.push({ op: "seat_cell", id: b.id, cell: null }); continue; }
+    if (by > 0 ? n >= at : n > at) {
+      out.push({ op: "seat_cell", id: b.id, cell: { ...b.cell, [axis]: n + by } });
+    }
+  }
+
+  for (const span of g.merges ?? []) {
+    const start = span[axis];
+    const len = span[size];
+    const through = start <= at && at < start + len;
+    const after = by > 0 ? start >= at : start > at;
+    if (!through && !after) continue;
+    out.push({ op: "split_cells", id: group, r: span.r, c: span.c });
+    const moved: Span = { ...span, [axis]: after ? start + by : start,
+                                   [size]: through && !after ? len + by : len };
+    if (moved[size] > 0) put.push({ op: "merge_cells", id: group, span: moved });
+  }
+  return [...out, ...put];
+}
+
+/** The filled cells of a group, line by line, in the order the layer reads.
+ *  A merged region answers at every address it covers, so the same block is
+ *  never handed back twice running. */
+function reading(graph: Graph, group: Id, way: Side): Id[][] {
+  const g = graph.blocks[group];
+  if (!g || !is_grid(g)) return [];
+  const down = way === "top" || way === "bottom";
+  const back = way === "left" || way === "top";
+  /** A header says what a line *is*, not where a flow goes through it. */
+  const from_r = g.headers === "col" || g.headers === "both" ? 1 : 0;
+  const from_c = g.headers === "row" || g.headers === "both" ? 1 : 0;
+  const lines: Id[][] = [];
+  const across = down ? g.cols! : g.rows!;
+  const along = down ? g.rows! : g.cols!;
+  for (let o = (down ? from_c : from_r); o < across; o++) {
+    const line: Id[] = [];
+    for (let i = (down ? from_r : from_c); i < along; i++) {
+      const held = at_cell(graph, group, down ? i : o, down ? o : i);
+      if (held && line[line.length - 1] !== held.id) line.push(held.id);
+    }
+    lines.push(back ? line.reverse() : line);
+  }
+  return lines;
+}
+
+/** Which line the picked cell is in. **A row or a column goes where you
+ *  pointed**, and where you pointed is a cell — which of its two numbers is
+ *  meant is what `way` says. */
+function pointed(ctx: Context, way: "row" | "col"): number | null {
+  const at = ctx.cells?.[0];
+  return at ? (way === "row" ? at.r : at.c) : null;
+}
+
+/** Which grid an action is about: the one named, the one the picked cells are
+ *  in, or the picked block where it is one. */
+function grid_named(ctx: Context, args: Args): Id | null {
+  const said = args["group"] ? id_of(args, "group") : ctx.cells?.[0]?.group ?? ctx.picked[0];
+  return said && is_grid(ctx.graph.blocks[said]) ? said : null;
+}
+
+register(
+  {
+    name: "seat",
+    about: "puts a block in a cell of a grid, or takes it out of one",
+    on: ["block"],
+    args: [{ name: "id", form: "block", required: true },
+           { name: "group", form: "block" },
+           { name: "at", form: "text" }],
+    check: (ctx, args) => {
+      const id = id_of(args, "id");
+      const group = args["group"] ? id_of(args, "group") : ctx.graph.blocks[id]?.group;
+      const cell = cell_of_arg(args, "at");
+      if (!cell) return null;
+      const g = group ? ctx.graph.blocks[group] : undefined;
+      if (!g || !is_grid(g)) return "that is not a grid";
+      if (cell.r < 0 || cell.c < 0 || cell.r >= g.rows! || cell.c >= g.cols!) {
+        return "that cell is outside the grid";
+      }
+      /** **A cell holds one block**, and that is what lets an allocation be
+       *  derived at all: two sharing one leaves *what is allocated to this
+       *  row* without an answer. */
+      const held = at_cell(ctx.graph, g.id, cell.r, cell.c);
+      return held && held.id !== id ? "that cell is taken" : null;
+    },
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      const group = args["group"] ? id_of(args, "group") : ctx.graph.blocks[id]?.group;
+      const out: Mutation[] = [];
+      if (group && ctx.graph.blocks[id]?.group !== group) {
+        out.push({ op: "set_group", id, group });
+      }
+      out.push({ op: "seat_cell", id, cell: cell_of_arg(args, "at") });
       return { mutations: out };
+    },
+  },
+  {
+    name: "insert",
+    about: "adds a row or a column to a grid at an index",
+    on: ["block", "cell"],
+    args: [{ name: "group", form: "block" },
+           { name: "way", form: "choice", required: true, choices: ["row", "col"] },
+           { name: "at", form: "number" }],
+    check: (ctx, args) => (grid_named(ctx, args) ? null : "that is not a grid"),
+    run: (ctx, args) => {
+      const group = grid_named(ctx, args)!;
+      const way = args["way"] === "col" ? "col" : "row";
+      const g = ctx.graph.blocks[group]!;
+      const last = way === "row" ? g.rows! : g.cols!;
+      const at = Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, way) ?? last));
+      return { mutations: shifted(ctx.graph, group, way, at, 1) };
+    },
+  },
+  {
+    name: "remove",
+    about: "takes a row or a column out of a grid, freeing whatever sat in it",
+    on: ["block", "cell"],
+    args: [{ name: "group", form: "block" },
+           { name: "way", form: "choice", required: true, choices: ["row", "col"] },
+           { name: "at", form: "number" }],
+    check: (ctx, args) => {
+      const group = grid_named(ctx, args);
+      if (!group) return "that is not a grid";
+      const g = ctx.graph.blocks[group]!;
+      return (args["way"] === "col" ? g.cols! : g.rows!) > 1 ? null : "a grid keeps one line";
+    },
+    run: (ctx, args) => {
+      const group = grid_named(ctx, args)!;
+      const way = args["way"] === "col" ? "col" : "row";
+      const g = ctx.graph.blocks[group]!;
+      const last = (way === "row" ? g.rows! : g.cols!) - 1;
+      const at = Math.min(last, Math.max(0, num(args, "at") ?? pointed(ctx, way) ?? last));
+      return { mutations: shifted(ctx.graph, group, way, at, -1) };
+    },
+  },
+  {
+    name: "merge",
+    about: "spans the cells you picked, or splits the merged one you point at",
+    on: ["cell"],
+    args: [{ name: "group", form: "block" }, { name: "at", form: "text" },
+           { name: "into", form: "text" }],
+    check: (ctx, args) => {
+      const said = region(ctx, args);
+      if (!said) return "no cell is pointed at";
+      const g = ctx.graph.blocks[said.group];
+      if (!g || !is_grid(g)) return "that is not a grid";
+      const { r, c, rows, cols } = said.span;
+      return r >= 0 && c >= 0 && r + rows <= g.rows! && c + cols <= g.cols!
+        ? null : "that reaches past the grid";
+    },
+    /** **A merge sets a cell's extent**; a footprint says how many cells a
+     *  block needs. Two mechanisms that do not collide — a merged region
+     *  larger than what it holds is that block centred in a tall cell — and
+     *  whatever else it covered is freed rather than lost. */
+    run: (ctx, args) => {
+      const { group, span } = region(ctx, args)!;
+      if (span.rows === 1 && span.cols === 1) {
+        return { mutations: [{ op: "split_cells", id: group, r: span.r, c: span.c }] };
+      }
+      const out: Mutation[] = [];
+      for (const b of members_of(ctx.graph, group)) {
+        if (!b.cell || !covers(span, b.cell.r, b.cell.c)) continue;
+        if (b.cell.r === span.r && b.cell.c === span.c) continue;
+        out.push({ op: "seat_cell", id: b.id, cell: null });
+      }
+      return { mutations: [...out, { op: "merge_cells", id: group, span }] };
+    },
+  },
+  {
+    name: "transpose",
+    about: "turns a grid on its side — rows become columns",
+    on: ["block", "cell"],
+    args: [{ name: "group", form: "block" }],
+    check: (ctx, args) => (grid_named(ctx, args) ? null : "that is not a grid"),
+    /** **Nothing in the model changes.** Relations are between blocks, so the
+     *  lines re-route and what the grid says is said the other way up. */
+    run: (ctx, args) => {
+      const group = grid_named(ctx, args)!;
+      const g = ctx.graph.blocks[group]!;
+      const headers: Headers = g.headers === "row" ? "col"
+                             : g.headers === "col" ? "row" : g.headers ?? "none";
+      const out: Mutation[] = [{ op: "set_grid", id: group,
+                                 rows: g.cols!, cols: g.rows!, headers }];
+      for (const b of members_of(ctx.graph, group)) {
+        if (b.cell) out.push({ op: "seat_cell", id: b.id, cell: { r: b.cell.c, c: b.cell.r } });
+      }
+      for (const s of g.merges ?? []) out.push({ op: "split_cells", id: group, r: s.r, c: s.c });
+      for (const s of g.merges ?? []) {
+        out.push({ op: "merge_cells", id: group,
+                   span: { r: s.c, c: s.r, rows: s.cols, cols: s.rows } });
+      }
+      return { mutations: out };
+    },
+  },
+  {
+    name: "chain",
+    about: "links the filled cells of a grid along the way the layer reads",
+    on: ["block", "cell"],
+    args: [{ name: "group", form: "block" }],
+    /** **`free` has no reading direction**, so there is no adjacency to follow.
+     *  Refused in words rather than guessed at row-major. */
+    check: (ctx, args) => {
+      if (!grid_named(ctx, args)) return "that is not a grid";
+      return READS[arrangement_of(ctx.graph, ctx.layer)]
+        ? null : "this layer reads no way in particular — arrange it first";
+    },
+    run: (ctx, args) => {
+      const group = grid_named(ctx, args)!;
+      const way = READS[arrangement_of(ctx.graph, ctx.layer)]!;
+      const drawn = new Set(edges_in(ctx.graph, ctx.layer).map((e) => `${e.from}|${e.to}`));
+      const out: Mutation[] = [];
+      for (const line of reading(ctx.graph, group, way)) {
+        for (let n = 1; n < line.length; n++) {
+          const from = line[n - 1]!;
+          const to = line[n]!;
+          if (drawn.has(`${from}|${to}`)) continue;
+          drawn.add(`${from}|${to}`);
+          out.push({ op: "link_blocks", edge: {
+            id: new_id("edge"), from, to,
+            module: derived_module(ctx.graph, from, to) ?? "directed" } });
+        }
+      }
+      return { mutations: out,
+               ...(out.length ? {} : { effect: { say: "nothing adjacent to link" } }) };
     },
   },
 );

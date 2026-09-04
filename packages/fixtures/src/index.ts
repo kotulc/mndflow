@@ -83,8 +83,8 @@ export function related(): Log {
     ]),
     step("group", [
       block("block_hot", "block_loop", "Hot side", "group"),
-      { op: "join_group", id: "block_hx", group: "block_hot" },
-      { op: "join_group", id: "block_tank", group: "block_hot" },
+      { op: "set_group", id: "block_hx", group: "block_hot" },
+      { op: "set_group", id: "block_tank", group: "block_hot" },
     ]),
     step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "right" }]),
   ];
@@ -112,7 +112,51 @@ export function interfaced(): Log {
   ];
 }
 
-export const FIXTURES = { blank, flat, nested, related, interfaced };
+/** A grid, with a block in each row header and a flow across each lane.
+ *
+ *  **Swimlanes, and they cost no code of their own.** A group with an extent,
+ *  a block in every cell of column 0, and the rest of each row read left to
+ *  right — every one of which is an ordinary block placed by an ordinary
+ *  address. What makes it a swimlane is where the blocks are. */
+export function gridded(): Log {
+  start();
+  const seat = (id: string, r: number, c: number): Mutation =>
+    ({ op: "seat_cell", id, cell: { r, c } });
+  const joins = (id: string): Mutation => ({ op: "set_group", id, group: "block_lanes" });
+  const named: [string, string][] = [
+    ["block_alice", "Alice"], ["block_bob", "Bob"],
+    ["block_draft", "Draft"], ["block_review", "Review"], ["block_ship", "Ship"],
+    ["block_plan", "Plan"], ["block_build", "Build"],
+  ];
+  return [
+    base(),
+    step("create", [block("block_board", ROOT, "Board", "structure")]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "right" }]),
+    step("group", [
+      block("block_lanes", "block_board", "Lanes", "group"),
+      { op: "set_grid", id: "block_lanes", rows: 3, cols: 4, headers: "row" },
+      { op: "place_block", id: "block_lanes", x: 0, y: 0 },
+    ]),
+    ...named.map(([id, label]) =>
+      step("create", [block(id, "block_board", label, "structure")])),
+    step("seat", [
+      joins("block_alice"), seat("block_alice", 1, 0),
+      joins("block_bob"), seat("block_bob", 2, 0),
+      joins("block_draft"), seat("block_draft", 1, 1),
+      joins("block_review"), seat("block_review", 1, 2),
+      joins("block_ship"), seat("block_ship", 1, 3),
+      joins("block_plan"), seat("block_plan", 2, 1),
+      joins("block_build"), seat("block_build", 2, 2),
+    ]),
+    step("chain", [
+      link("edge_1", "block_draft", "block_review", "directed"),
+      link("edge_2", "block_review", "block_ship", "directed"),
+      link("edge_3", "block_plan", "block_build", "directed"),
+    ]),
+  ];
+}
+
+export const FIXTURES = { blank, flat, nested, related, interfaced, gridded };
 
 export type FixtureName = keyof typeof FIXTURES;
 

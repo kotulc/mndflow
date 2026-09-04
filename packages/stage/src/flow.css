@@ -326,7 +326,10 @@
    slab with a solid border — and ours is called that too. It is the grey blob
    the boundary appeared to be: our dashed outline was drawn inside it all along.
    The band draws itself; its wrapper draws nothing. */
-.mnd-flow .react-flow__node-group { background: none; border: none; }
+/* **The library ships a node type called `group` too**, and its base style
+   pads one by 10px all round — which shrank our own box inside the size the
+   projection gave it, so a grid's lattice ran past its own border. */
+.mnd-flow .react-flow__node-group { background: none; border: none; padding: 0; }
 
 /* **A band, not a block.** A boundary says *these belong together* and nothing
    more, so it is the faintest thing on the canvas: a hairline dashed outline and
@@ -778,4 +781,45 @@
   border-color: var(--accent);
   background: color-mix(in oklch, var(--accent) 24%, var(--card-fill));
   color: var(--card-ink);
+}
+
+/* ---------------------------------------------------------------- the grid */
+
+/* A grid draws its own extent, so unlike a band it is a stated rectangle
+   rather than the bounds of what it holds — and a stated edge is a solid one. */
+.mnd-group.gridded {
+  border-style: solid;
+  background: color-mix(in oklch, var(--card-line) 4%, transparent);
+}
+
+/* One cell. Drawn behind whatever sits in it, and it answers a pointer of its
+   own — merging, splitting and inserting are asked of a cell, not of a block. */
+.mnd-grid-cell {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in oklch, var(--card-line) 24%, transparent);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* A header carries meaning the cells beside it do not, so it reads darker. */
+.mnd-grid-cell.header {
+  background: color-mix(in oklch, var(--card-line) 12%, transparent);
+  border-color: color-mix(in oklch, var(--card-line) 40%, transparent);
+}
+
+/* A merged cell is one cell, and its border says so. */
+.mnd-grid-cell.merged {
+  border-color: color-mix(in oklch, var(--card-line) 44%, transparent);
+}
+
+.mnd-grid-cell:hover {
+  background: color-mix(in oklch, var(--accent) 8%, transparent);
+}
+
+/* Selection is the app speaking about your model, so a picked cell takes the
+   accent like every other picked thing. */
+.mnd-grid-cell.picked {
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
+  border-color: var(--accent);
 }

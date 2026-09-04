@@ -141,7 +141,7 @@ export function App() {
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
    *  is** rather than a second copy of it written down somewhere. */
-  const offered_here = offer({ graph, layer, picked: s.picked() }).map((a) => ({
+  const offered_here = offer({ graph, layer, picked: s.picked(), cells: s.cells() }).map((a) => ({
     name: a.name,
     about: a.about,
     asks: a.args.filter((g) => g.required).map((g) => g.name).join(", "),
@@ -237,16 +237,24 @@ export function App() {
     }
     s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
 
-    /** **Where it came to rest says which boundary it is in.** A boundary is
-     *  its members' bounds, so being inside one and belonging to one were two
+    /** **Where it came to rest says which group it is in.** A boundary is its
+     *  members' bounds, so being inside one and belonging to one were two
      *  different facts that could disagree — a card dragged into a band stayed
      *  out of it, and one dragged clear of a band stayed in. Placed first,
-     *  because the band is worked out from where its members are. */
+     *  because the band is worked out from where its members are.
+     *
+     *  **A grid is the same drop resolving to an address.** The canvas read the
+     *  lattice; seating is what says so, and it joins the group on the way. */
     if (a.kind !== "move") return;
-    const held = graph.blocks[a.on]?.groups ?? [];
+    const held = graph.blocks[a.on]?.group ?? null;
     const here = a.into;
-    for (const g of held) if (g !== here) s.go("leave", { id: a.on, group: g });
-    if (here && !held.includes(here)) s.go("group", { members: [a.on], into: here });
+    if (a.cell && here) {
+      s.go("seat", { id: a.on, group: here, at: `${a.cell.r},${a.cell.c}` });
+      return;
+    }
+    if (held === here) return;
+    if (here) s.go("group", { members: [a.on], into: here });
+    else s.go("leave", { ids: [a.on] });
   };
 
   /** The rail's controls are display state or ordinary actions — it writes
@@ -376,7 +384,7 @@ export function App() {
            *  picked — otherwise grouping four cards acted on whichever of them
            *  the pointer happened to be over. */
           menu={(at, on, shut, spot, only, given) => (
-            <Menu ctx={{ graph, layer,
+            <Menu ctx={{ graph, layer, cells: s.cells(),
                          picked: !on ? [...s.picked()]
                                : s.picked().includes(on) ? [...s.picked()] : [on] }}
                   at={at} spot={spot} only={only} given={given}
@@ -413,6 +421,8 @@ export function App() {
             s.go("refer", { target: id, spot: at });
           }}
           picked={s.picked()}
+          cells={s.cells()}
+          onPickCells={(cells) => s.pick_cells(cells)}
           curved={shown.angles === false}
           said={said?.text ?? null}
           onSaid={() => s.say("")}

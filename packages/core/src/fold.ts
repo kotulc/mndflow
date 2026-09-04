@@ -5,8 +5,9 @@
  *  needs an inverse. */
 
 import type { Settings } from "./components";
-import { empty_graph, type Arrangement, type Block, type BlockModule, type Definition,
-         type Graph, type Id, type Log, type Mutation, type Relation, type Step } from "./types";
+import { empty_graph, type Arrangement, type Block, type BlockModule, type Cell,
+         type Definition, type Graph, type Id, type Log, type Mutation, type Relation,
+         type Span, type Step } from "./types";
 
 /** Replay one mutation onto a graph, in place. The graph is always a fresh one
  *  owned by `fold`, so mutating it here is safe and cheap. */
@@ -35,8 +36,10 @@ function apply(graph: Graph, m: Mutation): void {
           if (e.from === id || e.to === id) delete graph.edges[eid];
         }
       }
+      /** **A gone group frees what it held.** The address was the group's, so
+       *  it goes with it and the block stays where it is on the layer. */
       for (const b of Object.values(graph.blocks)) {
-        if (b.groups?.includes(m.id)) b.groups = b.groups.filter((g) => g !== m.id);
+        if (b.group === m.id) { delete b.group; delete b.cell; }
       }
       return;
     }
@@ -65,14 +68,42 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) b.body = m.body;
       return;
     }
-    case "join_group": {
+    case "set_group": {
       const b = graph.blocks[m.id];
-      if (b) b.groups = [...new Set([...(b.groups ?? []), m.group])];
+      if (!b) return;
+      /** **An address is the group's.** Leaving one drops it rather than
+       *  carrying it into the next, where it would mean somewhere else. */
+      if (m.group === null) { delete b.group; delete b.cell; return; }
+      if (b.group !== m.group) delete b.cell;
+      b.group = m.group;
       return;
     }
-    case "leave_group": {
+    case "seat_cell": {
       const b = graph.blocks[m.id];
-      if (b?.groups) b.groups = b.groups.filter((g) => g !== m.group);
+      if (!b) return;
+      if (m.cell === null) delete b.cell;
+      else b.cell = { ...m.cell };
+      return;
+    }
+    case "set_grid": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      if (m.rows !== undefined) b.rows = m.rows;
+      if (m.cols !== undefined) b.cols = m.cols;
+      if (m.headers !== undefined) b.headers = m.headers;
+      return;
+    }
+    case "merge_cells": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      /** A merge replaces whatever it covers: two spans over one cell leaves
+       *  *what is this cell's extent* without an answer. */
+      b.merges = [...(b.merges ?? []).filter((s) => !overlaps(s, m.span)), { ...m.span }];
+      return;
+    }
+    case "split_cells": {
+      const b = graph.blocks[m.id];
+      if (b?.merges) b.merges = b.merges.filter((s) => !covers(s, m.r, m.c));
       return;
     }
     case "link_blocks":
@@ -165,6 +196,13 @@ export function fold(log: Log): Graph {
     for (const m of step.mutations) apply(graph, m);
   }
   return graph;
+}
+
+
+/** Whether two spans cover any cell in common. */
+export function overlaps(a: Span, b: Span): boolean {
+  return a.r < b.r + b.rows && b.r < a.r + a.rows
+      && a.c < b.c + b.cols && b.c < a.c + a.cols;
 }
 
 
@@ -356,6 +394,94 @@ export function edges_in(graph: Graph, layer: Id | null): Relation[] {
 export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
   return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
 }
+
+/** Whether a group states an extent. **A group with neither is a boundary** —
+ *  today's band, which takes its bounds from what it holds. */
+export function is_grid(b: Block | undefined): boolean {
+  return !!b && b.rows !== undefined && b.cols !== undefined;
+}
+
+/** The group a block sits in, or null. */
+export function grid_of(graph: Graph, id: Id): Block | null {
+  const held = graph.blocks[id]?.group;
+  return (held ? graph.blocks[held] : undefined) ?? null;
+}
+
+/** Where in that group it sits. **An address with no group is nothing**, so
+ *  both have to be there for either to mean anything. */
+export function cell_of(graph: Graph, id: Id): Cell | null {
+  const b = graph.blocks[id];
+  return b?.group && b.cell ? { ...b.cell } : null;
+}
+
+/** Everything a group holds, in the layer's stable order. */
+export function members_of(graph: Graph, group: Id): Block[] {
+  return Object.values(graph.blocks)
+    .filter((b) => b.group === group)
+    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+}
+
+/** The span covering this address, or null. */
+export function merge_at(graph: Graph, group: Id, r: number, c: number): Span | null {
+  return graph.blocks[group]?.merges?.find((s) => covers(s, r, c)) ?? null;
+}
+
+/** What sits at this address. **A merged region is one cell**, so every address
+ *  under a span answers with the block seated at its corner. */
+export function at_cell(graph: Graph, group: Id, r: number, c: number): Block | null {
+  const span = merge_at(graph, group, r, c);
+  const want = span ? { r: span.r, c: span.c } : { r, c };
+  return members_of(graph, group)
+    .find((b) => b.cell?.r === want.r && b.cell?.c === want.c) ?? null;
+}
+
+/** Whether a span covers this address. Exported working, used by the readers
+ *  above and by whoever draws a grid. */
+export function covers(s: Span, r: number, c: number): boolean {
+  return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
+}
+
+/** Whether a group heads its rows, its columns, or both. */
+function heads(b: Block | undefined, which: "row" | "col"): boolean {
+  return b?.headers === which || b?.headers === "both";
+}
+
+/** The headers a block is **allocated to**: the block in its row's header cell,
+ *  the one in its column's, or both.
+ *
+ *  **Derived from position and stored nowhere.** A block leaving the grid loses
+ *  its allocation, which is correct — the allocation *was* the position.
+ *  Durable classification is a field somebody typed. */
+export function allocations_of(graph: Graph, id: Id): Block[] {
+  const grid = grid_of(graph, id);
+  const cell = cell_of(graph, id);
+  if (!grid || !cell) return [];
+  const out: Block[] = [];
+  if (heads(grid, "row") && cell.c > 0) {
+    const head = at_cell(graph, grid.id, cell.r, 0);
+    if (head && head.id !== id) out.push(head);
+  }
+  if (heads(grid, "col") && cell.r > 0) {
+    const head = at_cell(graph, grid.id, 0, cell.c);
+    if (head && head.id !== id) out.push(head);
+  }
+  return out;
+}
+
+/** Everything allocated to this header — the row it heads, the column it heads,
+ *  or both where it sits in the corner of a grid headed either way. */
+export function allocated_to(graph: Graph, id: Id): Block[] {
+  const grid = grid_of(graph, id);
+  const cell = cell_of(graph, id);
+  if (!grid || !cell) return [];
+  const out: Block[] = [];
+  for (const b of members_of(graph, grid.id)) {
+    if (b.id === id || !b.cell) continue;
+    if (allocations_of(graph, b.id).some((h) => h.id === id)) out.push(b);
+  }
+  return out;
+}
+
 
 /** Every definition this block may use: filed under any ancestor, nearest first. */
 export function defs_in_scope(graph: Graph, id: Id): Definition[] {

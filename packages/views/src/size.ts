@@ -3,7 +3,8 @@
  *  Cards are as small as their contents allow. Nothing is held back for text
  *  that might arrive; a name too long for its card is clipped. */
 
-import { is_container, is_interface, type Graph, type Id } from "@mnd/core";
+import { covers, is_container, is_grid, is_interface,
+         type Block, type Graph, type Id } from "@mnd/core";
 
 /** Everything with a place of its own lands on this. The backdrop dots are it. */
 export const GRID = 24;
@@ -30,16 +31,59 @@ export const BAND: Size = { w: CONTAINER.w, h: CONTAINER.h - BLOCK.h };
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: 11, h: 11 };
 
+/** **One block plus its margin, and never anything else.** A cell is fixed: it
+ *  is not sized to what lands in it and it does not auto-fit, which is what
+ *  makes a grid a lattice rather than a table that reflows as you build. */
+export const CELL: Size = { w: BLOCK.w + GRID, h: BLOCK.h + GRID };
+
+export type Box = { x: number; y: number; w: number; h: number };
+
+/** What a grid takes up: its extent, in cells. A boundary has no extent and
+ *  takes its bounds from its members instead. */
+export function grid_size(g: Block): Size {
+  return { w: (g.cols ?? 1) * CELL.w, h: (g.rows ?? 1) * CELL.h };
+}
+
+/** Where one cell sits inside its grid, relative to the grid's own corner.
+ *
+ *  **A merge is a cell's extent**, so every address a span covers answers with
+ *  the span's box — one cell, drawn once, wherever in it you point. */
+export function cell_box(g: Block, r: number, c: number): Box {
+  const span = g.merges?.find((s) => covers(s, r, c));
+  const at = span ?? { r, c, rows: 1, cols: 1 };
+  return { x: at.c * CELL.w, y: at.r * CELL.h,
+           w: at.cols * CELL.w, h: at.rows * CELL.h };
+}
+
+/** A block of this size, centred in the cell it was given. **Blocks never
+ *  resize**: one in a merged region larger than it sits in the middle of it. */
+export function centred_in(box: Box, s: Size): Box {
+  return { x: box.x + (box.w - s.w) / 2, y: box.y + (box.h - s.h) / 2, ...s };
+}
+
 export function snap(n: number): number {
   return Math.round(n / GRID) * GRID;
 }
 
-/** What this block needs. A note keeps whatever size it was asked for. */
+/** Whether a block is seated in a grid rather than placed beside one. */
+export function gridded(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  return !!b?.cell && !!b.group && is_grid(graph.blocks[b.group]);
+}
+
+/** What this block needs. A note keeps whatever size it was asked for, and a
+ *  grid is the extent it was drawn with.
+ *
+ *  **A gridded container minifies.** A cell is one block and a cell is fixed,
+ *  so a container in one is drawn a block's size with no picture of what it
+ *  holds — its icon is what still tells it apart. */
 export function size_of(graph: Graph, id: Id): Size {
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
+  if (is_grid(b)) return grid_size(b);
   if (b.w !== undefined && b.h !== undefined) return { w: b.w, h: b.h };
+  if (gridded(graph, id)) return { ...BLOCK };
   return is_container(graph, id) ? { ...CONTAINER } : { ...BLOCK };
 }
 

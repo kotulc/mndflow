@@ -18,14 +18,18 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** An interface's decorative mark. Constrains nothing. */
 export type Flow = "in" | "out" | "both";
 
-/** One setting, six values. Four carry a reading direction.
+/** One setting, five values. Four carry a reading direction.
  *
  *  **Model data, not a preference.** How a layer reads is part of what the
  *  layer says, so a diagram reopens the way it was left and travels in a file
- *  with the rest of it. */
-export type Arrangement = "free" | "grid" | "right" | "left" | "down" | "up";
+ *  with the rest of it.
+ *
+ *  **No `grid` here.** The grid is the lattice everything lands on and a group
+ *  is a region of it; a tiling arrangement of the same name was two things
+ *  called one word. */
+export type Arrangement = "free" | "right" | "left" | "down" | "up";
 
-export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid", "right", "left", "down", "up"];
+export const ARRANGEMENTS: readonly Arrangement[] = ["free", "right", "left", "down", "up"];
 
 /** The four directional values, and what each reads toward. */
 export const READS: Partial<Record<Arrangement, Side>> = {
@@ -51,6 +55,21 @@ export type Field = {
 
 export type FieldDef = Field & { unit?: string; choices?: string[]; many?: boolean };
 
+/** An address inside a group's grid. **It rides on the block**, exactly as
+ *  `side` and `at` do for an interface — so a cell is derived and never a
+ *  block, and an empty cell is an address nobody claimed. */
+export type Cell = { r: number; c: number };
+
+/** A merged region: a cell's extent, stated on the group and never on a cell.
+ *  Distinct from a footprint, which says how many cells a block needs. */
+export type Span = { r: number; c: number; rows: number; cols: number };
+
+/** Which row and column of a group carry meaning rather than contents. Row 0
+ *  and column 0, marked. */
+export type Headers = "none" | "row" | "col" | "both";
+
+export const HEADERS: readonly Headers[] = ["none", "row", "col", "both"];
+
 /** The one element. What it *is* comes from its definition. */
 export type Block = {
   id: Id;
@@ -60,7 +79,21 @@ export type Block = {
   body?: string;
   /** A reference: the block it stands for. */
   of?: Id;
-  groups?: Id[];
+  /** The group this block sits in. **One group per block, and no nesting** —
+   *  which is what lets an allocation be derived at all. */
+  group?: Id;
+  /** Where in that group. Replaces `x`/`y` for a gridded block, exactly as
+   *  `side` and `at` replace them for an interface. */
+  cell?: Cell;
+  /** Only meaningful on a group: its extent, which is what lets an empty grid
+   *  draw. A group with neither is a boundary — a band round its members. */
+  rows?: number;
+  cols?: number;
+  headers?: Headers;
+  /** Merged regions of this group's grid. */
+  merges?: Span[];
+  /** **A grid owns its corner.** A boundary still derives its bounds from its
+   *  members; a grid cannot, or an empty one would be nothing. */
   x?: number;
   y?: number;
   w?: number;
@@ -147,8 +180,11 @@ export type Mutation =
   | { op: "order_block"; id: Id; num: number }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
-  | { op: "join_group"; id: Id; group: Id }
-  | { op: "leave_group"; id: Id; group: Id }
+  | { op: "set_group"; id: Id; group: Id | null }
+  | { op: "seat_cell"; id: Id; cell: Cell | null }
+  | { op: "set_grid"; id: Id; rows?: number; cols?: number; headers?: Headers }
+  | { op: "merge_cells"; id: Id; span: Span }
+  | { op: "split_cells"; id: Id; r: number; c: number }
   | { op: "link_blocks"; edge: Relation }
   | { op: "update_edge"; id: Id; type: Id }
   | { op: "delete_edge"; id: Id }

@@ -10,10 +10,10 @@
  *  only start a connection on that button. */
 
 import { useEffect, useState } from "react";
-import type { Act, Side } from "@mnd/core";
+import type { Act, Side, Spot } from "@mnd/core";
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, BLOCK, type Scene } from "@mnd/views";
+import { box_of, clear_of, snap, BLOCK, CELL, type Scene } from "@mnd/views";
 
 export type { Adjust };
 
@@ -23,6 +23,10 @@ export type StageProps = {
   onAct: Act;
   onAdjust?: (adjust: Adjust) => void;
   onPick: (ids: string[]) => void;
+  /** Which cells are picked. **Beside the ids, never among them** — a cell has
+   *  no id, so it is named by the group it is in and where. */
+  cells?: readonly Spot[];
+  onPickCells?: (cells: readonly Spot[]) => void;
   /** A row dropped from the tree onto the drawing. */
   onDrop?: (id: string, at: { x: number; y: number }) => void;
   /** The offered-action list, where the host has one. **Given rather than
@@ -49,8 +53,8 @@ export type StageProps = {
  *  a remark; neither is somewhere to go. */
 const INERT = ["group", "note"];
 
-export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
-                       said, onSaid, curved }: StageProps) {
+export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
+                       menu, said, onSaid, curved }: StageProps) {
   /** The name being typed on the drawing, as the thing it names. **Held here
    *  because renaming is an action** — the canvas draws the field and says
    *  what was typed; what that means is settled in the one place every other
@@ -133,13 +137,16 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
      *  and no wall to set an interface into; what is left is what it says and
      *  whether it stays. */
     note: ["rename", "relate", "delete"],
-    box: ["rename", "open", "interface", "relate", "delete"],
-    seat: ["rename", "open", "interface", "relate", "delete"],
-    /** **A boundary is not a block you can go into or wire up.** What it is for
-     *  is saying these belong together, so what it offers is naming it and
-     *  taking it away. */
-    band: ["rename", "delete"],
-    route: ["rename", "delete"],
+    box: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
+    seat: ["rename", "open", "interface", "relate", "note", "delete"],
+    /** **A group is not a block you can go into or wire up.** What it is for is
+     *  saying these belong together, so what it offers is naming it, turning it
+     *  and taking it away. */
+    band: ["rename", "transpose", "chain", "delete"],
+    /** **A cell is an address, not a thing**, so what it offers is what can be
+     *  done to the lattice at that address and nothing about a block. */
+    cell: ["merge", "insert", "remove"],
+    route: ["rename", "note", "delete"],
     anchor: ["rename", "delete"],
   };
 
@@ -150,6 +157,15 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
   const MANY: readonly string[] = ["group", "leave", "delete"];
 
   const gesture = (g: Gesture) => {
+    /** **A cell is picked beside the grid it is in**, never instead of it: the
+     *  canvas reports one click on the grid's node, and an action asked of a
+     *  cell is an action on that grid at an address. Picking anything else lets
+     *  the cells go. */
+    if (g.button === "left" && g.kind === "cell" && g.given) {
+      onPickCells?.(ranged(cells, g.given as Spot, g.shift));
+      return;
+    }
+    if (g.button === "left" && g.count === 1) onPickCells?.([]);
     if (g.button === "left") {
       if (g.count === 2) {
         /** Two clicks navigate: into a card, or back out of the layer. The one
@@ -238,6 +254,14 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       if (label !== null) onAct("create", { label, spot: made_at(scene, g.at) });
       return;
     }
+    /** **A right-click inside the picked cells is about them.** It is about
+     *  the one cell only when that cell was not already picked — otherwise
+     *  merging a swept range acted on whichever cell the pointer was over. */
+    if (g.kind === "cell" && g.given) {
+      const at = g.given as Spot;
+      const among = cells?.some((c) => c.group === at.group && c.r === at.r && c.c === at.c);
+      if (!among) onPickCells?.(ranged(cells, at, g.shift));
+    }
     if (menu) {
       const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
       set_at({ ...g.screen, on: g.on, spot: made_at(scene, g.at),
@@ -252,6 +276,7 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       <FlowView
         scene={scene}
         picked={picked}
+        cells={cells}
         curved={curved}
         naming={naming}
         onNamed={(label) => {
@@ -263,13 +288,12 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
         onPick={onPick}
         onDrop={onDrop}
         onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls })}
-        /** A right drag across empty ground. **A note is the one thing whose
-         *  making asks for its text** — everything else is named after. */
-        onNote={(box) => {
-          const text = prompt("note");
-          if (text === null) return;
-          onAct("note", { text, spot: { x: box.x, y: box.y }, w: box.w, h: box.h });
-        }}
+        /** A right drag across empty ground draws a **group**, sized in cells.
+         *
+         *  **Sketch first, impose order after**: whatever loose cards the sweep
+         *  covered are seated into the cell each overlaps, which is the fastest
+         *  path there is from a sketch to a structure. */
+        onSweep={(box) => onAct("group", swept(scene, box))}
         onAdjust={(adjust) => {
           /** Dropping one card on another is a **move**, which is sayable;
            *  dropping it anywhere else is a **place**, which is not. Landing in
@@ -291,6 +315,71 @@ export function Stage({ scene, picked, onAct, onAdjust, onPick, onDrop, menu,
       {at && menu ? menu(at, at.on, () => set_at(null), at.spot, at.only, at.given) : null}
     </section>
   );
+}
+
+/** Which cells a click picks. **One, or the rectangle from the one already
+ *  picked** — a range is named by pointing at its far corner with the modifier
+ *  down, which is how every other list of things is swept. */
+function ranged(held: readonly Spot[] | undefined, at: Spot, extend?: boolean): Spot[] {
+  const from = held?.[0];
+  if (!extend || !from || from.group !== at.group) return [at];
+  const out: Spot[] = [];
+  for (let r = Math.min(from.r, at.r); r <= Math.max(from.r, at.r); r++) {
+    for (let c = Math.min(from.c, at.c); c <= Math.max(from.c, at.c); c++) {
+      out.push({ group: at.group, r, c });
+    }
+  }
+  return out;
+}
+
+/** A right drag across empty ground, as the grid it draws.
+ *
+ *  **Sized in cells** — the sweep says how big a region, and how many rows and
+ *  columns that is is a question about cell sizes. **And it captures**: every
+ *  loose card the region covers is seated into the cell it overlaps most, and
+ *  two landing in one resolve to the nearest free cell, so a sketch becomes a
+ *  structure in one gesture. */
+function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }) {
+  const x = snap(box.x);
+  const y = snap(box.y);
+  const rows = Math.max(1, Math.round(box.h / CELL.h));
+  const cols = Math.max(1, Math.round(box.w / CELL.w));
+  const taken = new Set<string>();
+  const seats: { id: string; r: number; c: number }[] = [];
+
+  const caught = scene.nodes
+    .filter((n) => n.type !== "group" && !n.data.on && n.selectable !== false)
+    .map((n) => ({ id: n.id, b: box_of(n) }))
+    .filter(({ b }) => b.x + b.w > x && b.x < x + cols * CELL.w
+                    && b.y + b.h > y && b.y < y + rows * CELL.h);
+
+  for (const { id, b } of caught) {
+    const want = { r: Math.round((b.y + b.h / 2 - y) / CELL.h - 0.5),
+                   c: Math.round((b.x + b.w / 2 - x) / CELL.w - 0.5) };
+    const at = free_cell(taken, rows, cols, want);
+    if (!at) continue;
+    taken.add(`${at.r},${at.c}`);
+    seats.push({ id, ...at });
+  }
+  return { rows, cols, spot: { x, y }, members: caught.map((n) => n.id), seats };
+}
+
+/** The cell nearest the one asked for that nobody has taken. **A cell holds one
+ *  block**, so two cards over the same one cannot both have it. */
+function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
+                   want: { r: number; c: number }) {
+  const held = (r: number, c: number) =>
+    r < 0 || c < 0 || r >= rows || c >= cols || taken.has(`${r},${c}`);
+  let best: { r: number; c: number } | null = null;
+  let gap = Infinity;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (held(r, c)) continue;
+      const off = Math.hypot(r - want.r, c - want.c);
+      if (off < gap) { gap = off; best = { r, c }; }
+    }
+  }
+  return best;
 }
 
 /** Where a card made here goes.

@@ -4,7 +4,7 @@
  *  status and refolds — no mutation needs an inverse, and the graph that comes
  *  back was built by the same fold that built the original. */
 
-import { run, type Args, type Context, type Effect, type Result } from "./actions";
+import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
 import { fold } from "./fold";
 import { compact, parse, read, write } from "./file";
@@ -32,6 +32,9 @@ export type Session = {
   graph: () => Graph;
   layer: () => Id | null;
   picked: () => Id[];
+  /** Which cells are picked. **Beside the ids, never among them** — a cell has
+   *  no id, so it could not ride in `picked` without pretending to be a block. */
+  cells: () => Spot[];
   said: () => Said | null;
 
   /** Run an action by name. Returns what it refused with, or null. */
@@ -41,6 +44,7 @@ export type Session = {
 
   look: (layer: Id | null) => void;
   pick: (ids: Id[]) => void;
+  pick_cells: (cells: readonly Spot[]) => void;
   say: (text: string, kind?: Said["kind"]) => void;
 
   undo: () => boolean;
@@ -97,6 +101,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
    *  layers that draw an interface you were looking at when you went into it. */
   let from: Id | null = null;
   let picked: Id[] = [];
+  let cells: Spot[] = [];
   let said: Said | null = null;
   let listener: (() => void) | null = null;
   let opened_faults: import("./door").Fault[] = [];
@@ -131,7 +136,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     listener?.();
   };
 
-  const ctx = (): Context => ({ graph, layer, picked, from });
+  const ctx = (): Context => ({ graph, layer, picked, cells, from });
 
   const refuse = (why: string): null => {
     said = { text: why, at: Date.now(), kind: "note" };
@@ -152,6 +157,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       if (e.open !== layer) from = layer;
       layer = e.open;
       picked = [];
+      cells = [];
     }
     if (e.focus !== undefined) picked = e.focus ? [e.focus] : [];
     if (e.say) said = { text: e.say, at: Date.now(), kind: "mirror" };
@@ -162,6 +168,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     graph: () => graph,
     layer: () => layer,
     picked: () => picked,
+    cells: () => cells,
     said: () => said,
 
     go(name, args = {}) {
@@ -185,11 +192,22 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       if (next !== layer) from = layer;
       layer = next;
       picked = [];
+      cells = [];
       listener?.();
     },
 
+    /** **Picking elsewhere lets go of the cells.** The grid a cell is in is not
+     *  elsewhere — clicking a cell picks the grid too, because the canvas
+     *  reports one gesture as both, and an action on a cell is an action on
+     *  that grid at an address. */
     pick(ids) {
       picked = ids;
+      if (!cells.every((c) => ids.includes(c.group))) cells = [];
+      listener?.();
+    },
+
+    pick_cells(next) {
+      cells = [...next];
       listener?.();
     },
 
@@ -282,6 +300,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       log = seeded();
       layer = null;
       picked = [];
+      cells = [];
       said = { text: "a fresh workspace", at: Date.now(), kind: "note" };
       settle();
     },
@@ -296,6 +315,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       log = got.log;
       layer = null;
       picked = [];
+      cells = [];
       settle();
     },
 

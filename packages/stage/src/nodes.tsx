@@ -15,7 +15,7 @@
  *  slot and an emphasis; those arrive as attributes and the stylesheet is what
  *  turns them into steps on the ramp. */
 
-import { memo, useEffect } from "react";
+import { createContext, memo, useContext, useEffect } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
@@ -26,7 +26,7 @@ import type { Side } from "@mnd/core";
 export const DRAGGED = "text/mnd-block";
 
 import { BAND, FRAME, PLAIN,
-         type BoxData, type BoxNode, type Cell, type Look } from "@mnd/views";
+         type BoxData, type BoxNode, type Cell, type GridCell, type Look } from "@mnd/views";
 import type { Role } from "@mnd/core";
 import { Icon, Name, useNaming, type IconName } from "@mnd/theme";
 
@@ -69,6 +69,7 @@ function seen(p: NodeProps<BoxNode>): string {
     d.label, d.def, d.on, d.side, d.role, d.marks.join(","),
     k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
     d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
+    d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
     d.fields?.map((f) => `${f.name}=${f.value}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
@@ -352,10 +353,40 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
   );
 }
 
-/** A boundary: a band behind its members, naming itself along the top.
+/** Which cells are picked, and which group they are in.
  *
- *  It is its members' bounds rather than a stored size, so there is nothing to
- *  resize and nothing to place — what it holds is what it is. */
+ *  **A context rather than node data.** A selection is the app's and a
+ *  projection is a pure function of the graph — folding one into the other
+ *  would send the whole layer round again on every click. */
+export const CellsContext = createContext<readonly { group: string; r: number; c: number }[]>([]);
+
+/** The lattice a grid draws.
+ *
+ *  **A cell answers a pointer of its own.** It has no id — it is this group
+ *  plus a row and a column — so it says so in the DOM and the canvas reads the
+ *  address back off it rather than inventing one. */
+function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
+  const picked = useContext(CellsContext);
+  const held = (c: GridCell) =>
+    picked.some((p) => p.group === id && p.r === c.r && p.c === c.c);
+  return (
+    <>
+      {cells.map((c) => (
+        <span key={`${c.r},${c.c}`}
+              className={["mnd-grid-cell", ...c.marks, held(c) ? "picked" : ""]
+                .filter(Boolean).join(" ")}
+              data-at={`${c.r},${c.c}`}
+              style={{ left: c.x, top: c.y, width: c.w, height: c.h }} />
+      ))}
+    </>
+  );
+}
+
+/** A group: a grid of cells, or a band behind its members.
+ *
+ *  A boundary is its members' bounds rather than a stored size, so there is
+ *  nothing to resize and nothing to place — what it holds is what it is. **A
+ *  grid owns its corner**, because an empty one would otherwise be nothing. */
 function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
@@ -364,8 +395,10 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
    *  field and did nothing at all. */
   const naming = useNaming();
   return (
-    <div className={["mnd-group", selected ? "picked" : ""].filter(Boolean).join(" ")}
+    <div className={["mnd-group", data.grid?.length ? "gridded" : "",
+                     selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
+      {data.grid?.length ? <Lattice id={id} cells={data.grid} /> : null}
       {data.label || naming.id === id
         ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
       <Wears role={data.role} />

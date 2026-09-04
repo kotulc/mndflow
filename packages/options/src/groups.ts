@@ -58,7 +58,6 @@ const VIEW: Record<string, IconName> = {
 
 const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
   free: { icon: "arrange_free", tip: "Hand placement is what draws" },
-  grid: { icon: "arrange_grid", tip: "Tile outward from the middle" },
   right: { icon: "arrange_right", tip: "Rank by relationships, reading right" },
   left: { icon: "arrange_left", tip: "Rank by relationships, reading left" },
   down: { icon: "arrange_down", tip: "Rank by relationships, reading down" },

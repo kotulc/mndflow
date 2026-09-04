@@ -3,15 +3,16 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { children, edges_in, is_interface, module_of, role_of,
+import { children, covers, edges_in, is_grid, is_interface, members_of, module_of, role_of,
          shown_name,
-         type Graph, type Id, type Relation, type Side } from "@mnd/core";
-import { at_seat, boundary, laid, perch_id, perched, seated, GAP, GRID,
+         type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
+import { at_seat, boundary, cell_box, gridded, laid, perch_id, perched, seated, GAP, GRID,
          type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
-         type LineEdge, type Port, type Mark, type Scene, type Slot } from "./scene";
+         type GridCell, type LineEdge, type Port, type Mark, type Scene,
+         type Slot } from "./scene";
 
 export type Config = {
   /** **What to show, when it is not the layer's own contents.**
@@ -48,23 +49,29 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   /** **Which component draws a box is said here and re-derived nowhere.** A
    *  note is text you resize and a boundary is a band behind its members;
    *  everything else is a rectangle, whatever it is a rectangle *of*. */
-  const boxes: BoxNode[] = spots.map((p) =>
-    node(p.id, p, carried(graph, p.id),
-         module_of(graph, p.id) === "note" ? "note" : "card"));
+  /** **A gridded container minifies**: a cell is one block, so a picture of
+   *  what it holds has nowhere to go, and its icon is what tells it apart. */
+  const boxes: BoxNode[] = spots.map((p) => {
+    const data = carried(graph, p.id);
+    return node(p.id, p, gridded(graph, p.id) ? { ...data, cells: [] } : data,
+                module_of(graph, p.id) === "note" ? "note" : "card");
+  });
 
-  /** A boundary is its members' bounds — a fact about what it holds, never a
-   *  stored size. It draws behind whatever it holds. */
+  /** **A grid owns its corner and draws its extent**; a boundary is its
+   *  members' bounds — a fact about what it holds, never a stored size. Either
+   *  way it draws behind whatever it holds. */
   const groups: BoxNode[] = [];
   for (const g of here) {
     if (module_of(graph, g.id) !== "group") continue;
-    const members = Object.values(graph.blocks)
-      .filter((b) => b.groups?.includes(g.id)).map((b) => b.id);
-    const box = boundary(spots, members);
+    const members = members_of(graph, g.id).map((b) => b.id);
+    const box = is_grid(g) ? spots.find((p) => p.id === g.id) ?? null
+                           : boundary(spots, members);
     if (!box) continue;
     const at = boxes.findIndex((x) => x.id === g.id);
     if (at >= 0) boxes.splice(at, 1);
     groups.push(node(g.id, box,
-                     { ...carried(graph, g.id), marks: ["group"], cells: [], holds: members },
+                     { ...carried(graph, g.id), marks: ["group"], cells: [], holds: members,
+                       ...(is_grid(g) ? { grid: lattice(g) } : {}) },
                      "group"));
   }
 
@@ -169,6 +176,29 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     slots: SLOTS,
     trail: trail_of(graph, layer),
   };
+}
+
+/** The cells a grid draws, placed inside its own box.
+ *
+ *  **A merged region is one cell**, drawn once at the span's corner and the
+ *  span's size — every other address it covers is not a cell of its own.
+ *  Headers are row 0 and column 0, marked because they carry meaning the cells
+ *  beside them do not. */
+function lattice(g: Block): GridCell[] {
+  const heads_row = g.headers === "col" || g.headers === "both";
+  const heads_col = g.headers === "row" || g.headers === "both";
+  const out: GridCell[] = [];
+  for (let r = 0; r < (g.rows ?? 0); r++) {
+    for (let c = 0; c < (g.cols ?? 0); c++) {
+      const span = g.merges?.find((s) => covers(s, r, c));
+      if (span && (span.r !== r || span.c !== c)) continue;
+      const marks: Mark[] = ["cell"];
+      if (span) marks.push("merged");
+      if ((heads_row && r === 0) || (heads_col && c === 0)) marks.push("header");
+      out.push({ r, c, ...cell_box(g, r, c), marks });
+    }
+  }
+  return out;
 }
 
 /** The border a layer is seen from inside.

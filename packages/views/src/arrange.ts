@@ -1,6 +1,6 @@
 /** Where everything in a layer sits.
  *
- *  One setting, six values. Four carry a reading direction and two do not.
+ *  One setting, five values. Four carry a reading direction and one does not.
  *  `free` is the value where hand placement is what draws; every other value
  *  computes, and **nothing is discarded by arranging** — a block's stored
  *  position is always kept, so returning to `free` returns the layout.
@@ -9,13 +9,13 @@
  *  ordering within a rank and packing the ranks are a solved problem with a
  *  maintained library behind it, and the hand-rolled version did the first
  *  three badly and the fourth not at all — nothing here ever minimised a
- *  crossing. `free` and `grid` stay local because dagre has no answer for
- *  them: one is hand placement and the other is tiling. */
+ *  crossing. `free` stays local because dagre has no answer for hand
+ *  placement, and a grid is a group's business rather than a layer's. */
 
 import dagre from "@dagrejs/dagre";
 import { arrangement_of, children, edges_in, is_interface, owner_of,
          type Arrangement, type Block, type Graph, type Id } from "@mnd/core";
-import { GRID, size_of, snap, type Size } from "./size";
+import { cell_box, centred_in, gridded, GRID, size_of, snap, type Size } from "./size";
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
 
@@ -32,16 +32,41 @@ export const GAP = { unit: GRID * 2, rank: GRID * 3, member: GRID };
 export function laid(graph: Graph, layer: Id | null): Placed[] {
   const units = children(graph, layer).filter((b) => !is_interface(b));
   if (units.length === 0) return [];
+  /** **A block with a cell is placed by its address**, so it takes no part in
+   *  the arrangement — the same way a seated interface takes none. What places
+   *  it is the grid it is in, once that grid has been placed. */
+  const loose = units.filter((b) => !gridded(graph, b.id));
   const how = arrangement_of(graph, layer);
-  const sized = units.map((b) => ({ b, s: size_of(graph, b.id) }));
+  const sized = loose.map((b) => ({ b, s: size_of(graph, b.id) }));
   /** **Hand placement is never re-centred.** Every other arrangement works out
    *  positions from nothing and has to be put somewhere, so it is centred on
    *  the origin. `free` was already told where each card goes — and shifting
    *  the whole layer to keep its bounds centred moved every card a little
    *  every time any one of them was dropped, so nothing ever landed where it
    *  was let go of and a card made where you pointed appeared somewhere else. */
-  if (how === "free") return ordered(free(sized));
-  return centred(how === "grid" ? grid(sized) : ranked(graph, layer, sized, how));
+  const spots = how === "free" ? ordered(free(sized))
+                              : centred(ranked(graph, layer, sized, how));
+  return ordered([...spots, ...celled(graph, units, spots)]);
+}
+
+/** Every gridded member, placed by its address inside the grid holding it.
+ *
+ *  **Once the grid is placed, and never before** — the address says where in
+ *  the grid, and where the grid sits is the layer's answer. A block centres in
+ *  the cell it was given, because blocks never resize. */
+function celled(graph: Graph, units: readonly Block[], spots: readonly Placed[]): Placed[] {
+  const at = new Map(spots.map((p) => [p.id, p]));
+  const out: Placed[] = [];
+  for (const b of units) {
+    if (!gridded(graph, b.id)) continue;
+    const grid = at.get(b.group!);
+    if (!grid) continue;
+    const box = cell_box(graph.blocks[b.group!]!, b.cell!.r, b.cell!.c);
+    const in_cell = centred_in(box, size_of(graph, b.id));
+    out.push({ id: b.id, x: snap(grid.x + in_cell.x), y: snap(grid.y + in_cell.y),
+               w: in_cell.w, h: in_cell.h });
+  }
+  return out;
 }
 
 /** The one order a layer is ever stated in, so the same graph draws the same
@@ -68,19 +93,6 @@ function free(all: Sized[]): Placed[] {
     x += it.s.w + GAP.unit;
   }
   return out;
-}
-
-/** Tiles outward from the middle, cells sized to their contents. */
-function grid(all: Sized[]): Placed[] {
-  const cols = Math.max(1, Math.ceil(Math.sqrt(all.length)));
-  const cell_w = Math.max(...all.map((it) => it.s.w)) + GAP.unit;
-  const cell_h = Math.max(...all.map((it) => it.s.h)) + GAP.unit;
-  return all.map((it, i) => ({
-    id: it.b.id,
-    x: snap((i % cols) * cell_w),
-    y: snap(Math.floor(i / cols) * cell_h),
-    ...it.s,
-  }));
 }
 
 type Link = { from: Id; to: Id };

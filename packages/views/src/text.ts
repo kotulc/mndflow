@@ -61,6 +61,21 @@ export function draw(scene: Scene): string {
     put(x, y, open + label.padEnd(room, " ") + close);
   }
 
+  /** **A grid draws its lattice**, so a text drawing shows the shape the model
+   *  is in and not only what is in it. A header reads `=` and every other cell
+   *  `-`; a merged cell is one wide rule like any other. Drawn last and only
+   *  into blank ground, because a rule must never sit on a name. */
+  for (const b of at) {
+    for (const c of b.data.grid ?? []) {
+      const x = Math.round((b.x + c.x - left) / CELL);
+      const y = Math.round((b.y + c.y - top) / CELL);
+      const mark = c.marks.includes("header") ? "=" : "-";
+      for (let i = 0; i < Math.max(2, Math.round(c.w / CELL)); i++) {
+        if (grid[y]?.[x + i] === " ") put(x + i, y, mark);
+      }
+    }
+  }
+
   return grid.map((row) => row.join("").replace(/\s+$/, "")).join("\n").replace(/\n+$/, "");
 }
 

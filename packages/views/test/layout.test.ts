@@ -11,7 +11,7 @@ import { children, fold, is_interface,
 import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, GRID, GAP,
          type Placed } from "../src/index";
 
-const ARRANGEMENTS: Arrangement[] = ["free", "grid", "right", "left", "down", "up"];
+const ARRANGEMENTS: Arrangement[] = ["free", "right", "left", "down", "up"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
   const graph = fold(fixture(name));
@@ -80,7 +80,7 @@ describe("placement", () => {
     placed.blocks["block_pump"]!.y = 120;
     placed.blocks[layer]!.arrangement = "free";
     const free = laid(placed, layer);
-    placed.blocks[layer]!.arrangement = "grid";
+    placed.blocks[layer]!.arrangement = "down";
     laid(placed, layer);
     placed.blocks[layer]!.arrangement = "free";
     expect(laid(placed, layer)).toEqual(free);
@@ -88,7 +88,7 @@ describe("placement", () => {
 
   it("stays centred on the layer as it grows", () => {
     const { graph, layer } = layer_of("related");
-    const spots = under(graph, layer, "grid");
+    const spots = under(graph, layer, "down");
     const left = Math.min(...spots.map((p) => p.x));
     const right = Math.max(...spots.map((p) => p.x + p.w));
     expect(Math.abs(left + right)).toBeLessThanOrEqual(GRID);
@@ -131,7 +131,7 @@ describe("boundaries", () => {
     const graph = fold(related());
     const spots = laid(graph, "block_loop");
     const members = Object.values(graph.blocks)
-      .filter((b) => b.groups?.includes("block_hot")).map((b) => b.id);
+      .filter((b) => b.group === "block_hot").map((b) => b.id);
     const box = boundary(spots, members)!;
     for (const p of spots.filter((s) => members.includes(s.id))) {
       expect(p.x).toBeGreaterThanOrEqual(box.x);
