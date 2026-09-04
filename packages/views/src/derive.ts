@@ -36,6 +36,9 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
    *  the text does: a grid keeps a name to be taken hold of by, and it must not
    *  offer to be named where it was told not to say anything. */
   if (b.labelled === false) out.push("unlabelled");
+  /** Its place is fixed. A fact about the block, so every surface reads it the
+   *  same way the canvas does. */
+  if (b.locked) out.push("locked");
   return out;
 }
 

@@ -34,7 +34,7 @@ const OPS = new Set<string>([
   "set_grid", "merge_cells", "split_cells", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
-  "set_labelled",
+  "set_labelled", "set_locked", "set_tags", "set_look",
 ]);
 
 /** Read a log in, repairing what it can. */
@@ -131,6 +131,22 @@ export function inspect(graph: Graph): Inspection {
     }
     const { groups: _gone, ...rest } = b as Block & { groups?: Id[] };
     repairs.push({ op: "add_block", block: { ...rest, group: held.get(b.id) } });
+  }
+
+  /** `structure` → `block`. **The base kind was renamed, not retired**, so a
+   *  file that names the old word still resolves — both on a usage and on a
+   *  subtype that roots there. Repaired rather than dropped: a block whose type
+   *  went missing would silently become a plain one and take its subtype's
+   *  fields with it. */
+  for (const b of Object.values(graph.blocks)) {
+    if (b.type !== "structure") continue;
+    faults.push({ kind: "repaired", what: `"${name(b.id)}" named the old base type` });
+    repairs.push({ op: "update_block", id: b.id, type: "block" });
+  }
+  for (const d of Object.values(graph.defs)) {
+    if (d.extends !== "structure") continue;
+    faults.push({ kind: "repaired", what: `"${d.name}" extended the old base type` });
+    repairs.push({ op: "set_def", def: { ...d, extends: "block" } });
   }
 
   /** The grid: one group per block, no nesting, one block per cell, and no

@@ -16,7 +16,7 @@ import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
 import type { Adjust } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
-import { Tray } from "@mnd/tray";
+import { Tray, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_net, browser_storage } from "./ports";
 import { browser_score } from "./score";
@@ -53,6 +53,9 @@ export function App() {
   const next_look = THEMES[(THEMES.indexOf(look) + 1) % THEMES.length]!;
   /** Chrome the shell holds and the log never sees. */
   const [tray, set_tray] = useState(false);
+  /** Which of the tray's two questions is open. The rail's cog asks for the
+   *  first; otherwise the tray keeps whichever was last read. */
+  const [tab, set_tab] = useState<Tab>("contents");
   /** Shown at all, and open rather than shut — two states, two controls: the
    *  header says whether it is there, its own toggle says how big. */
   const [terminal, set_terminal] = useState(false);
@@ -98,7 +101,8 @@ export function App() {
   const on = only ? graph.blocks[only] : undefined;
   const gridded = on && on.rows !== undefined && on.cols !== undefined
     ? { id: on.id, headers: on.headers ?? "none" as const } : null;
-  const element = on ? { id: on.id, labelled: on.labelled !== false } : null;
+  const element = on
+    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked } : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -216,6 +220,9 @@ export function App() {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
     if (name === "arrange") { act("arrange", { layer, ...args }); return; }
+    /** **Not an action** — it writes nothing and asks for nothing. Describing
+     *  a thing is opening the panel that already describes it. */
+    if (name === "define") { set_tab("this"); set_tray(true); return; }
     if (name === "export") { void s.save(); return; }
     act(name, args);
   };
@@ -350,6 +357,8 @@ export function App() {
           label={layer ? graph.blocks[layer]?.label ?? "layer" : "workspace"}
           open={tray}
           onOpen={set_tray}
+          tab={tab}
+          onTab={set_tab}
           picked={s.picked()}
           onPick={(ids) => s.pick(ids)}
           onAct={act}

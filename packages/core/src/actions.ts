@@ -8,7 +8,8 @@
  *  a text interface never offers it. */
 
 import { arrangement_of, at_cell, children, covers, edges_in, is_grid, is_interface,
-         is_reference, layer_id, members_of, module_of, next_num, next_alias, path, reorder } from "./fold";
+         is_reference, layer_id, may_retype, members_of, module_of, module_named,
+         next_num, next_alias, path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, HEADERS, READS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
          type FieldDef, type Flow, type Graph, type Headers, type Id, type Mutation,
@@ -296,6 +297,20 @@ register(
     on: ["block", "edge"],
     args: [{ name: "id", form: "block", required: true },
            { name: "type", form: "text", required: true }],
+    /** **A subtype refines what a thing is like, never what it is.** A block, a
+     *  folder and a resource are one family and swap freely; everything else
+     *  stays its own kind, because a group, an interface, a reference and a
+     *  note each carry something a change of type cannot invent. */
+    check: (ctx, args) => {
+      const id = id_of(args, "id");
+      if (ctx.graph.edges[id]) return null;
+      if (!ctx.graph.blocks[id]) return "that block is not there";
+      const type = text(args, "type") || undefined;
+      if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
+      return may_retype(ctx.graph, id, type)
+        ? null
+        : `a ${module_of(ctx.graph, id)} cannot become a ${module_named(ctx.graph, type)}`;
+    },
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const type = text(args, "type");
@@ -1220,6 +1235,71 @@ register(
       return { mutations: ids.map((id): Mutation => ({
         op: "set_labelled", id,
         labelled: said ?? ctx.graph.blocks[id]?.labelled === false,
+      })) };
+    },
+  },
+);
+
+/** Whether this block's place is fixed. One toggle, on the element rather than
+ *  on the layer, and undoable like everything else. */
+register(
+  {
+    name: "lock",
+    about: "fixes where this block sits, so nothing moves it by hand",
+    on: ["block", "selection"],
+    args: [{ name: "ids", form: "block", required: true },
+           { name: "fixed", form: "choice", choices: ["yes", "no"] }],
+    check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
+    run: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      const said = args["fixed"] === undefined ? null : args["fixed"] !== "no";
+      return { mutations: ids.map((id): Mutation => ({
+        op: "set_locked", id, locked: said ?? !ctx.graph.blocks[id]?.locked,
+      })) };
+    },
+  },
+  {
+    name: "tag",
+    about: "puts words on a block to say what it is like",
+    on: ["block", "selection"],
+    /** **The whole list, every time.** Adding and taking away are the same act
+     *  said two ways, and a list handed over whole is one step and one undo
+     *  whichever it was. */
+    args: [{ name: "ids", form: "block", required: true },
+           { name: "tags", form: "text", required: true }],
+    check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
+    run: (ctx, args) => ({ mutations: ids_of(ctx, args).map((id): Mutation => ({
+      op: "set_tags", id, tags: list(args["tags"]),
+    })) }),
+  },
+);
+
+/** How this one block draws, over whatever its definition said.
+ *
+ *  **Local, until it is pinned.** Customising a block changes that block and
+ *  nothing else; turning the result into something other blocks can name is a
+ *  separate act, which is what keeps a definition from drifting under the
+ *  usages that already name it. */
+register(
+  {
+    name: "look",
+    about: "sets how this block draws, over what its definition says",
+    on: ["block", "selection"],
+    args: [{ name: "ids", form: "block", required: true },
+           { name: "key", form: "choice", required: true, choices: ["card", "style"] },
+           { name: "name", form: "text", required: true },
+           /** Absent gives the property back to the chain. */
+           { name: "value", form: "text" }],
+    check: (ctx, args) => {
+      if (!ids_of(ctx, args).length) return "nothing is selected";
+      return ["card", "style"].includes(String(args["key"]))
+        ? null : `there is nothing called "${args["key"]}" to set`;
+    },
+    run: (ctx, args) => {
+      const said = args["value"];
+      const value = said === undefined || said === null || said === "" ? null : String(said);
+      return { mutations: ids_of(ctx, args).map((id): Mutation => ({
+        op: "set_look", id, key: String(args["key"]), name: text(args, "name"), value,
       })) };
     },
   },

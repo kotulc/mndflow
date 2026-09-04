@@ -34,15 +34,16 @@
 | Module | Holds | Is |
 |---|---|---|
 | **folder** | folders and top-level blocks — **contained, never owned** | the organizational unit. **The workspace is the root folder** |
-| **structure** | parts and references | the default. What there is, and how it is composed |
-| **view** | **references only** | a perspective kept: which blocks, through which module, configured how |
+| **block** | parts and references | the base kind. What there is, and how it is composed |
 | **reference** | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | **interface** | anything | a block seated on an edge. Also **port** |
 | **resource** | a workspace-relative path or link | a file, a script, a data file, an image |
 | **group** | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary |
 | **note** | text | a resource drawn as a card of text |
 
-**Eight, in three roles:** `structure` is **the block** and owns a tree; `folder` does the **filing**; the other six are **accessories** that own no tree of parts. **There is no doing/being split** — an action and a part are both `structure`, and what separates them is the definition each names.
+**Seven, in two families.** `block`, `folder` and `resource` are **open**: they differ in what they are for, and a block is retyped among them freely. `reference`, `interface`, `group` and `note` are **derived** — each carries something a change of type cannot invent, so one is arrived at by making one. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
+
+**There is no untyped block.** A block naming no definition is a `block`; the field being absent is how a file stays small. `view` is reserved rather than shipped — it comes back defined, not as a module.
 
 **The rule that keeps this from becoming forms again:** a module supplies **drawing, placement and a configuration surface**. It never answers *what may contain what* — that is a `holds` rule, which is data.
 
@@ -116,7 +117,7 @@
 | **package** | **a top-level block you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's |
 | **resolution** | how a usage finds its definition: **climb the ancestors, nearest first, to the workspace**. **There is no import list** — position does the whole job, so there is no order to maintain. Two ancestors defining the same name are two definitions and both are offered; nothing shadows, because every usage names an id |
 | **`home`** | the block a definition is filed under. **The only stored part of its scope** — who owns it, who may use it, what an export carries and which of two wins all fall out of position |
-| **extends** | the definition another refines, by reference. **Subtyping, never overriding**; fields union, components merge per key, one parent so no diamonds, and a rule naming a definition reaches everything below it |
+| **extends** | the definition another refines, by reference. **Subtyping, never overriding**; fields union, and components **cascade per property** — the chain laid down base first, the nearest link with the last word, and the element itself last of all. One parent, so the order is a list rather than a graph and there is no diamond to resolve. A rule naming a definition reaches everything below it |
 | **export** | a subtree written out as a file — the block, everything under it, every relationship with both ends inside, and every definition any of them names walked up the `extends` chain. **The workspace export is simply the root folder's** |
 | **import** | grafting a file into a layer. **A checkpoint**, so there is no second format and no second reader |
 

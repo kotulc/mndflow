@@ -25,10 +25,10 @@ import type { Side } from "@mnd/core";
  *  agree about the name. */
 export const DRAGGED = "text/mnd-block";
 
-import { BAND, FRAME, PLAIN,
+import { BAND, FRAME, PLAIN, look_key,
          type BoxData, type BoxNode, type Cell, type GridCell, type Look } from "@mnd/views";
 import type { Role } from "@mnd/core";
-import { Icon, Name, useNaming, type IconName } from "@mnd/theme";
+import { Icon, Name, known, useNaming, type IconName } from "@mnd/theme";
 
 /** What a card wears in its corner: one mark per sort of block, the same set
  *  the tree draws down its left edge. **A container is solid** — the fill is
@@ -43,11 +43,15 @@ const ROLE: Record<Role, IconName> = {
 /** The mark itself. **Top right, on everything that has a corner**: a card says
  *  what it is without being read, which is the one thing a name cannot do —
  *  and it takes no pointer, because it is a label and not a control. */
-function Wears({ role }: { role?: Role }) {
+function Wears({ role, icon }: { role?: Role; icon?: string }) {
   if (!role) return null;
+  /** **A mark it was given, or the one its role would draw.** A name this set
+   *  does not know falls back rather than drawing nothing, so a card from a
+   *  package this build has never seen still says what sort of thing it is. */
+  const mark = icon && known(icon) ? icon : ROLE[role];
   return (
     <span className="mnd-role" data-role={role}>
-      <Icon name={ROLE[role]} solid={role === "container" || role === "reference"}
+      <Icon name={mark} solid={!icon && (role === "container" || role === "reference")}
             size={11} />
     </span>
   );
@@ -63,11 +67,12 @@ function Wears({ role }: { role?: Role }) {
  *  and it is what keeps a click costing two renders instead of sixteen. */
 function seen(p: NodeProps<BoxNode>): string {
   const d = p.data;
-  const k = d.look;
   return [
     p.selected, p.dragging, p.width, p.height,
-    d.label, d.def, d.on, d.side, d.role, d.marks.join(","),
-    k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
+    d.label, d.alias ?? "", d.def, d.on, d.side, d.role, d.marks.join(","),
+    /** Read off the look rather than listed, so a property added to it cannot
+     *  be forgotten here and leave a card drawing what it used to. */
+    look_key(d.look),
     d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
     d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
     d.fields?.map((f) => `${f.name}=${f.value}`).join(","),
@@ -293,7 +298,13 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} data-def={data.def} title={data.label}>
       <Outline shape={look.shape} />
       <Brim />
-      <Wears role={data.role} />
+      <Wears role={data.role} icon={data.look?.icon} />
+      {/* **The other corner.** Its role is what it is and sits top right; this
+          is what has been done to it, and sits bottom right so the two never
+          argue over one place. */}
+      {data.marks.includes("locked")
+        ? <span className="mnd-locked" title="locked in place"><Icon name="locked" size={11} /></span>
+        : null}
       {named ? (
         <div className="mnd-head">
           {/* **One name, in two elements.** It reads as `Block A1`, and the

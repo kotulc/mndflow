@@ -44,7 +44,7 @@ describe("the registry", () => {
                              members: ["block_pump"], group: "block_hot", dir: "forward",
                              module: "line", arrangement: "down", flow: "in",
                              way: "row", at: "0,0",
-                             def: "structure", form: "number" });
+                             def: "block", form: "number" });
       expect(out.mutations.length > 0, a.name).toBe(writes(a.name));
     }
   });
@@ -281,7 +281,7 @@ describe("the way out of a layer", () => {
 describe("a field on a layer", () => {
   /** A fresh workspace has no floor until an app hands one in — core may not
    *  reach for the package that supplies it. */
-  const seeded = () => session({ defs: ["structure", "note"].map((name) => ({
+  const seeded = () => session({ defs: ["block", "note"].map((name) => ({
     op: "set_def" as const,
     def: { id: name, home: ROOT, group: "block" as const, name },
   })) });
@@ -301,12 +301,12 @@ describe("a field on a layer", () => {
    *  about a definition instead of a usage. */
   it("adds a field to a definition when the holder is one", () => {
     const s = seeded();
-    expect(s.go("field", { holder: "structure", name: "mass", form: "number",
+    expect(s.go("field", { holder: "block", name: "mass", form: "number",
                            unit: "kg" })).toBeNull();
-    expect(s.graph().defs["structure"]!.fields)
+    expect(s.graph().defs["block"]!.fields)
       .toEqual([{ name: "mass", form: "number", unit: "kg", choices: undefined }]);
-    expect(s.go("unfield", { holder: "structure", name: "mass" })).toBeNull();
-    expect(s.graph().defs["structure"]!.fields).toEqual([]);
+    expect(s.go("unfield", { holder: "block", name: "mass" })).toBeNull();
+    expect(s.graph().defs["block"]!.fields).toEqual([]);
   });
 });
 

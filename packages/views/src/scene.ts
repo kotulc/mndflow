@@ -68,7 +68,7 @@ export type BoxData = {
 };
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
-                 | "unlabelled"
+                 | "unlabelled" | "locked"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "merged";
 

@@ -30,7 +30,7 @@ function def(name: string, module: string, extend?: string,
 export const BASE: Definition[] = [
   def("folder", "folder", undefined,
       { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
-  def("structure", "structure", undefined,
+  def("block", "block", undefined,
       { layout: "type", shape: "rect" }, { slot: "primary" }),
   def("reference", "reference", undefined,
       { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),

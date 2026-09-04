@@ -37,7 +37,7 @@ export type Chrome = {
   /** The one element that is picked, and what it says about how it is drawn.
    *  **Not a slot either**, and for the same reason. Absent while nothing or
    *  several things are held. */
-  element?: { id: string; labelled: boolean };
+  element?: { id: string; labelled: boolean; locked: boolean };
   arrangement?: Arrangement;
   interfaces?: boolean;
   angles?: boolean;
@@ -123,16 +123,26 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  pinning its definition are all answers about one element and not about the
    *  layer around it. */
   if (chrome.element) {
-    const { id, labelled } = chrome.element;
+    const { id, labelled, locked } = chrome.element;
     out.push({
       key: "element", label: "element",
-      controls: [{
-        key: "label", word: "label",
-        tip: labelled ? "Stop writing the name on it" : "Write the name on it",
-        icon: labelled ? "label_on" : "label_off",
-        on: labelled,
-        run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }),
-      }],
+      controls: [
+        /** **First, because it is the way in to the rest.** The rail has room
+         *  for the two answers you change most; everything else a thing can be
+         *  told is behind this one, in the tray. */
+        { key: "define", icon: "define", word: "define",
+          tip: "What this is: its name, type, tags, look and values",
+          run: () => act("define", { id }) },
+        { key: "label", word: "label",
+          tip: labelled ? "Stop writing the name on it" : "Write the name on it",
+          icon: labelled ? "label_on" : "label_off",
+          on: labelled,
+          run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }) },
+        { key: "lock", word: "lock",
+          tip: locked ? "Let it be moved again" : "Fix where it sits",
+          icon: "locked", on: locked,
+          run: () => act("lock", { ids: [id], fixed: locked ? "no" : "yes" }) },
+      ],
     });
   }
 

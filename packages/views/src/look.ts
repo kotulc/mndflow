@@ -16,7 +16,7 @@
  *  what lets the CLI's text and SVG renderers say what a card would look like
  *  without resolving React. */
 
-import { config_of, EMPHASES, is_container, is_interface, LABELS, LAYOUTS,
+import { config_of, def_of, EMPHASES, is_container, is_interface, LABELS, LAYOUTS,
          SHAPES, SLOTS, VOICES, WEIGHTS, WEIGHTS as WEIGHT_NAMES,
          type Graph, type Id } from "@mnd/core";
 
@@ -43,6 +43,8 @@ export type Look = {
   kind?: string;
   /** Which of a usage's fields the card shows, in the order it shows them. */
   shows?: readonly string[];
+  /** The mark this draws in its corner instead of the one its role would. */
+  icon?: string;
 };
 
 /** What a card is when its definition says nothing. Neutral, ordinary weight,
@@ -69,8 +71,15 @@ export function look_of(graph: Graph, id: Id): Look {
   const b = graph.blocks[id];
   if (!b) return PLAIN;
 
-  const card = config_of(graph, b.type, "card");
-  const style = config_of(graph, b.type, "style");
+  /** **The chain, then the block.** A definition says what a kind of thing is
+   *  like and the element has the last word over it — the same cascade the
+   *  definitions themselves resolve by, with one more layer on the end. */
+  const names = def_of(graph, id);
+  const card = { ...config_of(graph, names, "card"), ...(b.looks?.["card"] ?? {}) };
+  const style = { ...config_of(graph, names, "style"), ...(b.looks?.["style"] ?? {}) };
+  /** **The subtype, which is not the same as the definition.** A card says what
+   *  it is only where somebody told it apart; the base kind is what the mark in
+   *  the corner already says, and repeating it on every card is noise. */
   const named = b.type ? graph.defs[b.type]?.name : undefined;
 
   return {
@@ -81,11 +90,33 @@ export function look_of(graph: Graph, id: Id): Look {
     shape: one(card["shape"], SHAPES, PLAIN.shape),
     label: one(card["label"], LABELS, PLAIN.label),
     layout: one(card["layout"], LAYOUTS, PLAIN.layout),
+    /** A mark of its own, where somebody picked one. **A name, never a
+     *  drawing** — what it draws is the theme's, and a name it does not know
+     *  falls back to the role mark rather than to nothing. */
+    ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
     ...(named ? { kind: named } : {}),
     ...(Array.isArray(card["shows"])
       ? { shows: (card["shows"] as unknown[]).filter((f) => typeof f === "string") }
       : {}),
   };
+}
+
+/** A look as one string, for anything asking *has this changed*.
+ *
+ *  **Read off the object rather than listed by hand.** Two places used to name
+ *  the properties one by one — the scene signature that decides whether the
+ *  canvas rebuilds, and the node comparator that decides whether a card
+ *  re-renders — and both were blind to any property added after they were
+ *  written, so a card kept its old drawing until something else changed. A key
+ *  derived from the value cannot fall behind the value. */
+export function look_key(look?: Look): string {
+  if (!look) return "";
+  return Object.keys(look).sort()
+    .map((k) => {
+      const v = (look as Record<string, unknown>)[k];
+      return `${k}=${Array.isArray(v) ? v.join("+") : String(v)}`;
+    })
+    .join(";");
 }
 
 /** How heavy a border is when the definition has not said.

@@ -35,7 +35,7 @@ Blocks are the fundamental unit of structure in this design, and structure and r
 
 A note, a group, a folder and a reference are placed, dragged, named and laid out alike, each one is a block. Blocks appear as cards in a diagram and are defined as nodes in the workspace graph. The graph defines possible block types and the structure and instances of those types for a given workspace. 
 
-The engine defines a set of base block types (e.g. `structure`, `view`, `resource`, `folder`, `group`, and `note`) that included definitions can readily subtype and customize. Block types (and their supporting engine modules) define how they can be configured, layed out, and how they interact.
+The engine defines a set of base block kinds (`block`, `folder`, `resource`, `reference`, `interface`, `group` and `note`) that included definitions can readily subtype and customize. Block kinds (and their supporting engine modules) define how they can be configured, laid out, and how they interact. **The first three are open** ~~ a block is retyped among them freely, because they differ in what they are for and in nothing a gesture would have to invent. The rest are derived: one is arrived at by making one, and subtyping such a kind means making one and customizing it rather than retyping something else into it.
 
 
 ### Block structure is the foundation

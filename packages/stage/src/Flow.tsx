@@ -17,7 +17,7 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import { at_seat, box_of, extent, extent_of, nearest_seat, perch_id, snap,
+import { at_seat, box_of, extent, extent_of, look_key, nearest_seat, perch_id, snap,
          CELL, FRAME, PORT, RIM,
          type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
@@ -390,14 +390,15 @@ function signature(scene: Scene, frame: Frame | null): string {
     frame?.ports.map((p) => `${p.id}${p.side}${p.at}${p.marks.join("")}`).join("|"),
     scene.nodes.map((n) => {
       const b = box_of(n);
-      const k = n.data.look;
       /** **Everything the card draws from, not only where it sits.** Retyping a
        *  block moves nothing and renames nothing; what it changes is the look,
-       *  and a signature blind to that leaves the old card on the canvas. */
+       *  and a signature blind to that leaves the old card on the canvas. The
+       *  look is read off itself rather than listed here, so a property added
+       *  to it cannot be forgotten by this. */
       return [
-        n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label,
+        n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label, n.data.alias ?? "",
         n.data.marks.join(""), n.data.side ?? "",
-        k && `${k.slot}${k.emphasis}${k.weight}${k.voice}${k.shape}${k.label}${k.kind ?? ""}`,
+        look_key(n.data.look),
         n.data.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(""),
         /** **The lattice is what a grid draws.** Merging, splitting or adding a
          *  line moves nothing and renames nothing; what it changes is the

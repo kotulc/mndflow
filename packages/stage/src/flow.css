@@ -119,6 +119,18 @@
   overflow: hidden;
 }
 
+/* The corner kept for what has been done to the block, as against what it is.
+   Quiet: it is a state you set once and then read past. */
+.mnd-locked {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  display: inline-flex;
+  color: var(--muted);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
 .mnd-alias {
   flex: none;
   margin-left: 0.5ch;

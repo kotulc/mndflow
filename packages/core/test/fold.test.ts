@@ -5,9 +5,9 @@
 
 import { describe, expect, it } from "vitest";
 import { fixture, flat, nested, related } from "@mnd/fixtures";
-import { arrangement_of, children, edges_in, fold, is_container, is_reference, is_top_block,
-         module_of, next_num, path, resolve_def, session, shown_name, stands_for, subtree,
-         ROOT } from "../src/index";
+import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
+         is_top_block, module_named, module_of, next_num, path, resolve_def, session,
+         shown_name, stands_for, subtree, ROOT, type Definition } from "../src/index";
 
 describe("fold", () => {
   it.each(["flat", "nested", "related"])("is deterministic over %s", (name) => {
@@ -124,7 +124,7 @@ describe("references", () => {
 describe("definitions resolve up the tree", () => {
   it("finds one filed on an ancestor, and misses one filed elsewhere", () => {
     const graph = fold(nested());
-    expect(resolve_def(graph, "block_rate", "structure")?.id).toBe("structure");
+    expect(resolve_def(graph, "block_rate", "block")?.id).toBe("block");
     expect(resolve_def(graph, "block_rate", "not a thing")).toBeNull();
   });
 
@@ -132,9 +132,75 @@ describe("definitions resolve up the tree", () => {
     const log = nested();
     log.push({ id: "s", action: "define", at: 99, status: "applied", mutations: [
       { op: "set_def", def: { id: "def_near", home: "block_ledger", group: "block",
-                             name: "structure" } },
+                             name: "block" } },
     ] });
     const graph = fold(log);
-    expect(resolve_def(graph, "block_rate", "structure")?.id).toBe("def_near");
+    expect(resolve_def(graph, "block_rate", "block")?.id).toBe("def_near");
   });
 });
+/** **The cascade, and the one rule it exists to make true.** A chain is laid
+ *  down base first, one property at a time, and the nearest link has the last
+ *  word ~~ so a refinement says only what it changes and inherits the rest. */
+/** The base kinds, as the seven definitions that name them. Stated here rather
+ *  than imported: core ships no vocabulary — an app hands one in — so a test
+ *  seeds what it needs. */
+const BASE: Definition[] = ["block", "folder", "resource", "reference",
+                            "interface", "group", "note"].map((name) => ({
+  id: name, home: ROOT, group: "block" as const, name,
+  ...(name === "note" ? { extends: "resource" } : {}),
+  components: { block: { module: name } },
+}));
+
+const kinds = (more: Definition[] = []) => session({
+  defs: [...BASE, ...more].map((def) => ({ op: "set_def" as const, def })),
+});
+
+describe("definitions cascade", () => {
+  const with_defs = (defs: Definition[]) => kinds(defs).graph();
+
+  it("keeps what a refinement did not restate", () => {
+    const graph = with_defs([
+      { id: "d_base", home: ROOT, group: "block", name: "base",
+        components: { style: { slot: "primary", emphasis: "quiet" } } },
+      { id: "d_sub", home: ROOT, group: "block", name: "sub", extends: "d_base",
+        components: { style: { slot: "tertiary" } } },
+    ]);
+    /** The nearest wins on what it says, and says nothing about the rest. */
+    expect(config_of(graph, "d_sub", "style"))
+      .toEqual({ slot: "tertiary", emphasis: "quiet" });
+  });
+
+  it("reads a kind from the nearest link that names one", () => {
+    const graph = with_defs([
+      { id: "d_bin", home: ROOT, group: "block", name: "bin", extends: "folder",
+        components: { style: { slot: "muted" } } },
+    ]);
+    expect(module_named(graph, "d_bin")).toBe("folder");
+    /** A note names its own kind while extending a resource for its look. */
+    expect(module_named(graph, "note")).toBe("note");
+  });
+});
+
+/** **A subtype refines what a thing is like, never what it is.** A block, a
+ *  folder and a resource are one family; every other kind is its own. */
+describe("what a block may become", () => {
+  it("swaps freely among block, folder and resource", () => {
+    const s = kinds();
+    s.go("create", { label: "A" });
+    const id = children(s.graph(), ROOT)[0]!.id;
+    for (const type of ["folder", "resource", "block"]) {
+      expect(s.go("retype", { id, type })).toBeNull();
+      expect(module_of(s.graph(), id)).toBe(type);
+    }
+  });
+
+  it.each(["group", "note", "interface", "reference"])(
+    "refuses to make a block a %s", (type) => {
+      const s = kinds();
+      s.go("create", { label: "A" });
+      const id = children(s.graph(), ROOT)[0]!.id;
+      expect(s.go("retype", { id, type })).toEqual(expect.any(String));
+      expect(module_of(s.graph(), id)).toBe("block");
+    });
+});
+

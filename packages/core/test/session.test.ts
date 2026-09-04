@@ -144,7 +144,7 @@ describe("files", () => {
     expect(out.graph.blocks["block_rate"]).toBeDefined();
     expect(out.graph.blocks["block_site"]).toBeUndefined();
     expect(out.graph.blocks["block_ledger"].parent).toBeNull();
-    expect(out.graph.defs["structure"]).toBeDefined();
+    expect(out.graph.defs["block"]).toBeDefined();
   });
 
   it("computes the hash rather than storing it", () => {

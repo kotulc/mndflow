@@ -145,3 +145,120 @@
 /* The tray is a fixed quarter, so the editor scrolls with the list rather than
    pushing it out of reach. */
 .tray.open .tray-body { overflow: auto; }
+
+/* ── Two tabs ──────────────────────────────────────────────────────────────
+   The bar names the two questions rather than the layer, because which of them
+   you are looking at is the thing that changes. */
+
+.tray-bar .tabs { display: flex; gap: 2px; }
+
+.tray-bar .tabs button {
+  padding: 1px 8px;
+  color: var(--muted);
+  border-radius: 2px;
+}
+
+.tray-bar .tabs button.on { color: var(--accent); background: var(--hover); }
+
+.tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
+
+/* ── One element, described ────────────────────────────────────────────────
+   Rows of one question each, and what it carries at the foot: a value is the
+   detail, and everything above it is what the thing is. */
+
+.element { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
+
+.element .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.element .row > label {
+  flex: none;
+  width: 4.5em;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.element .row.identity input { flex: 1 1 auto; min-width: 0; }
+.element .row .alias { flex: none; color: var(--faint); font-size: 11px; }
+.element .row .chain { color: var(--muted); font-size: 11px; overflow: hidden;
+                       text-overflow: ellipsis; white-space: nowrap; }
+
+.element .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+
+.element .chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.element .chips button:hover { color: var(--text); border-color: var(--accent); }
+.element .chips button.on { color: var(--accent); border-color: var(--accent);
+                            background: var(--tint); }
+.element .chips input { width: 9em; }
+
+.element .fields { border-top: 1px solid var(--divider); padding-top: 6px; margin-top: 2px; }
+
+/* ── The contents table's filters and columns ─────────────────────────────── */
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--divider);
+  flex-wrap: wrap;
+}
+
+.filters > button {
+  padding: 1px 7px;
+  color: var(--muted);
+  border-radius: 2px;
+  font-size: 11px;
+}
+
+.filters > button.on { color: var(--accent); background: var(--hover); }
+
+/* Columns asked for by name, so the one field you are comparing reads down the
+   layer instead of being opened row by row. */
+.filters .columns { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+
+.filters .columns .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.filters .columns select { font: inherit; font-size: 11px; color: var(--muted);
+                           background: var(--surface); border: 1px solid var(--border);
+                           border-radius: 2px; padding: 0 2px; }
+
+.contents-table td.value { color: var(--muted); }
+
+/* The cascade, read top to bottom in the order things win. The element is the
+   last row because it has the final say, and it is not a definition. */
+.contents-table.chain tr.picked td { color: var(--accent); }
+
+/* The look row: one picker per trait, each showing the trait's own name while
+   nothing has been said, so an unset one reads as a question rather than as an
+   answer somebody chose. */
+.element .row.look select {
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 0 2px;
+  max-width: 8em;
+}
+
+.element .row.look select:hover { color: var(--text); border-color: var(--accent); }

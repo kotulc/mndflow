@@ -9,8 +9,12 @@
 The groups arrive as `slots` on the Scene. The rail draws them in a fixed order whatever order it was handed:
 
 ```
-project · views · arrange · flow · interfaces · lines · columns · types · relations
+project · views · arrange · flow · interfaces · lines · columns · types · relations · element · grid
 ```
+
+**`element` and `grid` are not slots.** A slot is what the projection can offer about the whole layer; these two are about the one thing you have hold of, so they come and go with the selection and sit at the foot below everything that is about what you are looking at. **Several picked is nothing picked here** — the rail says what *one* element is, and the answer for four of them is four answers.
+
+**The element group leads with `define`**, which writes nothing: it opens the tray on the panel that already describes the thing. The rail keeps room for the two answers changed most — whether the name is written on it, and whether its place is fixed — and everything else it can be told is behind the cog.
 
 **`relations` is last on purpose**: it is the only group that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls.
 

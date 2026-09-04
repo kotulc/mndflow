@@ -40,10 +40,10 @@ export function flat(): Log {
   start();
   return [
     base(),
-    step("create", [block("block_ledger", ROOT, "Ledger", "structure")]),
-    step("create", [block("block_edge", "block_ledger", "Edge", "structure")]),
-    step("create", [block("block_auth", "block_ledger", "Auth", "structure")]),
-    step("create", [block("block_billing", "block_ledger", "Billing", "structure")]),
+    step("create", [block("block_ledger", ROOT, "Ledger", "block")]),
+    step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
+    step("create", [block("block_auth", "block_ledger", "Auth", "block")]),
+    step("create", [block("block_billing", "block_ledger", "Billing", "block")]),
   ];
 }
 
@@ -53,13 +53,13 @@ export function nested(): Log {
   return [
     base(),
     step("create", [block("block_shelf", ROOT, "Shelf", "folder")]),
-    step("create", [block("block_ledger", "block_shelf", "Ledger", "structure")]),
-    step("create", [block("block_edge", "block_ledger", "Edge", "structure")]),
-    step("create", [block("block_rate", "block_edge", "Rate Limit", "structure")]),
-    step("create", [block("block_auth", "block_edge", "Auth", "structure")]),
-    step("create", [block("block_billing", "block_ledger", "Billing", "structure")]),
-    step("create", [block("block_site", ROOT, "Site", "structure")]),
-    step("create", [block("block_pages", "block_site", "Pages", "structure")]),
+    step("create", [block("block_ledger", "block_shelf", "Ledger", "block")]),
+    step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
+    step("create", [block("block_rate", "block_edge", "Rate Limit", "block")]),
+    step("create", [block("block_auth", "block_edge", "Auth", "block")]),
+    step("create", [block("block_billing", "block_ledger", "Billing", "block")]),
+    step("create", [block("block_site", ROOT, "Site", "block")]),
+    step("create", [block("block_pages", "block_site", "Pages", "block")]),
   ];
 }
 
@@ -68,11 +68,11 @@ export function related(): Log {
   start();
   return [
     base(),
-    step("create", [block("block_loop", ROOT, "Coolant Loop", "structure")]),
-    step("create", [block("block_pump", "block_loop", "Pump", "structure")]),
-    step("create", [block("block_hx", "block_loop", "Heat Exchanger", "structure")]),
-    step("create", [block("block_tank", "block_loop", "Reservoir", "structure")]),
-    step("create", [block("block_valve", "block_loop", "Valve", "structure")]),
+    step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
+    step("create", [block("block_pump", "block_loop", "Pump", "block")]),
+    step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
+    step("create", [block("block_tank", "block_loop", "Reservoir", "block")]),
+    step("create", [block("block_valve", "block_loop", "Valve", "block")]),
     step("relate", [link("edge_a", "block_pump", "block_hx", "directed")]),
     step("relate", [link("edge_b", "block_hx", "block_tank", "directed")]),
     step("relate", [link("edge_c", "block_tank", "block_pump", "directed")]),
@@ -97,9 +97,9 @@ export function interfaced(): Log {
   start();
   return [
     base(),
-    step("create", [block("block_loop", ROOT, "Coolant Loop", "structure")]),
-    step("create", [block("block_pump", "block_loop", "Pump", "structure")]),
-    step("create", [block("block_hx", "block_loop", "Heat Exchanger", "structure")]),
+    step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
+    step("create", [block("block_pump", "block_loop", "Pump", "block")]),
+    step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("interface", [
       { op: "add_block", block: { id: "port_out", parent: "block_pump",
                                   side: "right", at: 0.5, flow: "out", num: 1 } },
@@ -130,7 +130,7 @@ export function gridded(): Log {
   ];
   return [
     base(),
-    step("create", [block("block_board", ROOT, "Board", "structure")]),
+    step("create", [block("block_board", ROOT, "Board", "block")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "right" }]),
     step("group", [
       block("block_lanes", "block_board", "Lanes", "group"),
@@ -138,7 +138,7 @@ export function gridded(): Log {
       { op: "place_block", id: "block_lanes", x: 0, y: 0 },
     ]),
     ...named.map(([id, label]) =>
-      step("create", [block(id, "block_board", label, "structure")])),
+      step("create", [block(id, "block_board", label, "block")])),
     step("seat", [
       joins("block_alice"), seat("block_alice", 1, 0),
       joins("block_bob"), seat("block_bob", 2, 0),

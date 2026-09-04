@@ -29,10 +29,20 @@ Twenty-five.
 | `rename` | changes what a block or a relationship is called | block, edge | id, label | `update_block{label}` |
 | `retype` | sets which definition a block or a relationship names | block, edge | id, type | `update_block{type}` / `update_edge` |
 | `describe` | writes the body text of a block | block | id, body | `set_body` |
-| `move` | puts a block under a different parent, in the place you dropped it | block | id, parent, before?, spot? | `move_block` |
+| `move` | puts blocks under a different parent, in the place you dropped them | block, selection | ids, parent, before?, spot? | `move_block` |
 | `refer` | places a reference of a block into this layer | layer | target, spot? | `add_block{of}` |
+| `label` | whether the drawing writes a block's name on it | block, selection | ids, shown? | `set_labelled` |
+| `lock` | fixes where a block sits, so nothing moves it by hand | block, selection | ids, fixed? | `set_locked` |
+| `tag` | puts words on a block to say what it is like | block, selection | ids, tags | `set_tags` |
+| `look` | sets how a block draws, over what its definition says | block, selection | ids, key, name, value? | `set_look` |
 
-**`move` absorbs nesting, promotion, filing and ordering** — they differ only in where the parent comes from: a sibling, the layer above, a folder, or the workspace. Moving a block to the top level makes it a project; moving one into a folder leaves it a root. All derived, so none is a separate act.
+**`move` absorbs nesting, promotion, filing and ordering** — they differ only in where the parent comes from: a sibling, the layer above, a folder, or the workspace. Moving a block to the top level makes it a project; moving one into a folder leaves it a root. All derived, so none is a separate act. **A selection moves in one step**, so four cards dragged somewhere is one entry in the log and one undo.
+
+**Leaving a layer leaves everything about where you were in it.** A place and a group's membership are both facts about the layer that held the block, so a move out of one drops them; a move that only reorders siblings keeps them, because it is not a move out of anywhere.
+
+**`retype` refuses across families.** A block, a folder and a resource are one kind between them and swap freely; a reference, an interface, a group and a note each carry something a change of type cannot invent, so nothing becomes one of those by being retyped. Within a kind, any subtype of it will do.
+
+**The four element actions are model data, not display preferences.** What a card says about itself is part of what the layer says, so `label`, `lock`, `tag` and `look` travel in the file and undo like anything else. `look` writes one property at a time and an absent value gives it back to the chain — **customising a block is local to that block** until pinning makes a definition of it.
 
 **`delete` never reaches through a reference.** A view holds references, so deleting one takes the boundary away and leaves its members exactly where they were — which is why *dissolve* is not a second action. **One or many is one question**: a gesture names one and a selection names several, and an action that removes things should not care which it was handed.
 

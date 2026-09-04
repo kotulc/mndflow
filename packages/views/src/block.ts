@@ -53,8 +53,12 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  what it holds has nowhere to go, and its icon is what tells it apart. */
   const boxes: BoxNode[] = spots.map((p) => {
     const data = carried(graph, p.id);
-    return node(p.id, p, gridded(graph, p.id) ? { ...data, cells: [] } : data,
-                module_of(graph, p.id) === "note" ? "note" : "card");
+    const drawn = node(p.id, p, gridded(graph, p.id) ? { ...data, cells: [] } : data,
+                       module_of(graph, p.id) === "note" ? "note" : "card");
+    /** **A locked block is arranged around, not moved.** Said here rather than
+     *  on the canvas, so every drawing of the scene answers the same — picking
+     *  it still works, because looking at a thing is not moving it. */
+    return graph.blocks[p.id]?.locked ? { ...drawn, draggable: false } : drawn;
   });
 
   /** **A grid owns its corner and draws its extent**; a boundary is its

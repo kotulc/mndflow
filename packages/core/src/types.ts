@@ -118,6 +118,24 @@ export type Block = {
    *  Model data rather than a display preference: what a card says about itself
    *  is part of what the layer says, so it travels and it undoes. */
   labelled?: boolean;
+  /** Whether this block's place is fixed. **Absent is no.** A locked block is
+   *  not dragged, resized or swept up with a band — it is arranged around
+   *  rather than moved, and it says so in its own corner. */
+  locked?: boolean;
+  /** What this one block says about how it draws, over whatever its definition
+   *  said. **The last word in the cascade**, keyed the way a definition's
+   *  components are (`card`, `style`) so the two layer without translating.
+   *
+   *  Local until it is pinned: customising a block changes that block, and
+   *  pinning is what turns the result into a definition anything else can name. */
+  looks?: Components;
+  /** Words put on this block to say what it is like. **The block's own, never
+   *  its definition's**: two things of the same type are tagged differently all
+   *  the time, and an untyped block can be tagged like anything else.
+   *
+   *  A tag carries nothing — no fields, no style, no inheritance. That is what
+   *  separates it from a definition, and what lets there be any number. */
+  tags?: string[];
   flow?: Flow;
   fields?: Field[];
 };
@@ -146,13 +164,25 @@ export type Relation = {
  *  is reserved rather than retired: it will name a data perspective over the
  *  model, and it comes back defined. */
 export type BlockModule =
-  | "folder" | "structure" | "reference"
-  | "interface" | "resource" | "group" | "note";
+  | "block" | "folder" | "resource"
+  | "reference" | "interface" | "group" | "note";
 
 export const BLOCK_MODULES: readonly BlockModule[] = [
-  "folder", "structure", "reference",
-  "interface", "resource", "group", "note",
+  "block", "folder", "resource",
+  "reference", "interface", "group", "note",
 ];
+
+/** **The kinds a block may be changed between.** A block, a folder and a
+ *  resource differ in what they are *for* and in nothing a gesture would have
+ *  to invent, so one becomes another by saying so.
+ *
+ *  Everything else is arrived at by making one: a reference is a second
+ *  appearance of something, an interface is seated on a wall, a group has
+ *  members and a note is its text — each of them carries something a plain
+ *  block has no answer for, so retyping into one would have to make it up.
+ *  **Subtyping them is not the same act**: make one, customise it, and pin
+ *  that, which never changes anybody's kind. */
+export const OPEN_MODULES: readonly BlockModule[] = ["block", "folder", "resource"];
 
 export type Components = Record<string, Record<string, unknown>>;
 
@@ -213,7 +243,12 @@ export type Mutation =
   | { op: "set_def"; def: Definition }
   | { op: "drop_def"; id: Id }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
-  | { op: "set_labelled"; id: Id; labelled: boolean };
+  | { op: "set_labelled"; id: Id; labelled: boolean }
+  | { op: "set_locked"; id: Id; locked: boolean }
+  | { op: "set_tags"; id: Id; tags: string[] }
+  /** One property of one component on one block. `null` gives it back to
+   *  whatever the chain said, which is not the same as setting a default. */
+  | { op: "set_look"; id: Id; key: string; name: string; value: unknown };
 
 export type MutationOp = Mutation["op"];
 

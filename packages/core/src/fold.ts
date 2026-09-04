@@ -5,7 +5,8 @@
  *  needs an inverse. */
 
 import type { Settings } from "./components";
-import { BLOCK_MODULES, empty_graph, type Arrangement, type Block, type BlockModule, type Cell,
+import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
+         type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type Id, type Log, type Mutation, type Relation,
          type Span, type Step } from "./types";
 
@@ -200,6 +201,31 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) { if (m.labelled) delete b.labelled; else b.labelled = false; }
       return;
     }
+    case "set_locked": {
+      const b = graph.blocks[m.id];
+      if (b) { if (m.locked) b.locked = true; else delete b.locked; }
+      return;
+    }
+    case "set_tags": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      /** **Trimmed, deduplicated and in the order they were given.** A tag is a
+       *  word, so two spellings of one whitespace apart are one tag. */
+      const kept = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
+      if (kept.length) b.tags = kept; else delete b.tags;
+      return;
+    }
+    case "set_look": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      const held = { ...(b.looks?.[m.key] ?? {}) };
+      if (m.value === null || m.value === undefined) delete held[m.name];
+      else held[m.name] = m.value;
+      const looks = { ...(b.looks ?? {}) };
+      if (Object.keys(held).length) looks[m.key] = held; else delete looks[m.key];
+      if (Object.keys(looks).length) b.looks = looks; else delete b.looks;
+      return;
+    }
     case "set_arrangement": {
       const b = graph.blocks[m.layer];
       if (b) b.arrangement = m.arrangement;
@@ -322,7 +348,7 @@ function fallback(graph: Graph, b: Block): string {
  *  plain block reads `Block` rather than `Structure`. A boundary reads nothing:
  *  the band round its members already says what it is. */
 const WORD: Record<BlockModule, string> = {
-  structure: "Block", folder: "Folder", resource: "Resource",
+  block: "Block", folder: "Folder", resource: "Resource",
   interface: "Interface", reference: "Reference", group: "", note: "Note",
 };
 
@@ -591,19 +617,23 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
   return out;
 }
 
-/** What one component reads for a usage of this definition: the **nearest
- *  declaration of its key** in the chain.
+/** What one component reads for a usage of this definition: **the chain, laid
+ *  down base first, one property at a time.**
  *
- *  Components merge per key and never inside one, so a subtype restating `card`
- *  replaces the whole of it and leaves every other key alone. What comes back
- *  is what the door let through — a key it could not validate is already gone,
- *  so nothing downstream guards for a shape this build cannot read. */
+ *  A cascade, and the same one everywhere: the root says what a whole kind of
+ *  thing is like, each refinement says only what it changes, and the nearest
+ *  has the last word. **Per property, not per key** — restating `card` to set
+ *  a shape used to throw away the layout the base had set, so a subtype could
+ *  not change one thing without restating everything it had inherited.
+ *
+ *  Order is stated and never inferred, which is why one parent is enough and
+ *  there is no diamond to resolve: what comes later wins, and the chain is a
+ *  list. What comes back is what the door let through, so nothing downstream
+ *  guards for a shape this build cannot read. */
 export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
-  for (const d of isa(graph, type)) {
-    const said = d.components?.[key];
-    if (said) return said;
-  }
-  return {};
+  const out: Settings = {};
+  for (const d of isa(graph, type).reverse()) Object.assign(out, d.components?.[key]);
+  return out;
 }
 
 /** Which block module interprets this block.
@@ -612,11 +642,64 @@ export function config_of(graph: Graph, type: Id | undefined, key: string): Sett
  *  names; otherwise the nearest definition in the chain that says. */
 export function module_of(graph: Graph, id: Id): BlockModule {
   const b = graph.blocks[id];
-  if (!b) return "structure";
+  if (!b) return "block";
   if (b.of) return "reference";
   if (b.side !== undefined) return "interface";
-  const named = config_of(graph, b.type, "block")["module"];
-  return typeof named === "string" ? named as BlockModule : "structure";
+  return module_named(graph, b.type);
+}
+
+/** The kind a definition belongs to: **the nearest link in its chain that says
+ *  what kind it is.**
+ *
+ *  A subtype that says nothing inherits its parent's kind, which is what makes
+ *  a chain of refinements safe — a *Valve* refining a block is still a block.
+ *  Declaring one is how the base kinds are stated at all, and `note` is the
+ *  proof it must stay possible: it extends `resource` for the way it draws and
+ *  says its own kind on top of that.
+ *
+ *  **What stops a block changing kind is the gesture, not the chain** — see
+ *  `may_retype`, which is where the rule anybody can feel is written. */
+export function module_named(graph: Graph, type: Id | undefined): BlockModule {
+  const named = config_of(graph, type, "block")["module"];
+  return typeof named === "string" && BLOCK_MODULES.includes(named as BlockModule)
+    ? named as BlockModule : "block";
+}
+
+/** The definition a thing resolves through.
+ *
+ *  **There is no such thing as an untyped block.** `block` is the base kind and
+ *  a block that names nothing *is* one — the field being absent is how a file
+ *  stays small, not a second sort of thing. Read as two, an ordinary block drew
+ *  on neutral with a name layout while a block that said `block` out loud drew
+ *  on primary with a type layout: the same thing, two ways, two looks.
+ *
+ *  So what is absent resolves to the definition its kind is named by, and every
+ *  reader asks this rather than the field. A relationship answers the same way
+ *  from its module. */
+export function def_of(graph: Graph, id: Id): Id | undefined {
+  const b = graph.blocks[id];
+  if (b) {
+    if (b.type) return b.type;
+    const base = module_of(graph, id);
+    return graph.defs[base] ? base : undefined;
+  }
+  const e = graph.edges[id];
+  if (!e) return undefined;
+  return e.type ?? (graph.defs[e.module] ? e.module : undefined);
+}
+
+/** Whether this block may be told to name that definition.
+ *
+ *  **A block, a folder and a resource are one family**: they differ in what
+ *  they are for, and a gesture changing one to another has nothing to invent.
+ *  Every other kind stays its own — a group has members, an interface a wall,
+ *  a reference a target and a note its text, and none of those can be conjured
+ *  by a change of type. Within a kind, any subtype of it will do. */
+export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
+  const now = module_of(graph, id);
+  const next = module_named(graph, type);
+  if (now === next) return true;
+  return OPEN_MODULES.includes(now) && OPEN_MODULES.includes(next);
 }
 
 /** What a block is, as the one word every surface draws a mark for.

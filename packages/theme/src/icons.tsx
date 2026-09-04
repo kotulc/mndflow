@@ -59,6 +59,13 @@ const PATHS = {
   role_note: "M5 8h14M5 12h14M5 16h9",
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
 
+  // What a thing is, opened out to be set. A cog: the one mark every app
+  // already spends on *the settings of this*.
+  define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
+
+  // A thing fixed where it sits. A shackle over a body, closed.
+  locked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0v2M5.5 10.5h13v9h-13z",
+
   // Whether a thing writes its name on itself. A tag on a card, and the same
   // tag struck through.
   label_on: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5",

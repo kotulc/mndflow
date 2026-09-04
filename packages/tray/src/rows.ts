@@ -8,8 +8,13 @@
 import { alias_of, children, edges_in, is_interface, module_of, shown_name,
          type Graph, type Id } from "@mnd/core";
 
+/** What a row is, which is also how it is filtered. Coarser than `kind`: a
+ *  folder and a container are both blocks to somebody narrowing a list. */
+export type Sort = "block" | "interface" | "relationship" | "group" | "note";
+
 export type Row = {
   id: Id;
+  sort: Sort;
   /** Which sort of thing, derived — never stored on the block. */
   kind: string;
   name: string;
@@ -17,6 +22,9 @@ export type Row = {
   what: string;
   /** The definition it names, if any. */
   type: string;
+  /** Every value it carries, by field name. **The table reads a column out of
+   *  this**, so adding one costs no second pass over the graph. */
+  fields: Record<string, string>;
 };
 
 /** The head is kind / name / what / type, because **every row answers it**.
@@ -36,7 +44,10 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
     const ports = children(graph, b.id).filter((k) => is_interface(k)).length;
     out.push({
       id: b.id,
+      sort: is_interface(b) ? "interface"
+          : kind === "group" || kind === "note" ? kind : "block",
       kind: is_interface(b) ? "interface" : kind,
+      fields: Object.fromEntries((b.fields ?? []).map((f) => [f.name, f.value ?? ""])),
       name: called(b.id),
       what: is_interface(b)
         ? `on the ${b.side} wall${b.flow ? `, ${b.flow}` : ""}`
@@ -48,7 +59,8 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
     for (const port of children(graph, b.id)) {
       if (!is_interface(port)) continue;
       out.push({
-        id: port.id, kind: "interface", name: called(port.id),
+        id: port.id, sort: "interface", kind: "interface", name: called(port.id),
+        fields: Object.fromEntries((port.fields ?? []).map((f) => [f.name, f.value ?? ""])),
         what: `on ${called(b.id)}, ${port.side} wall`,
         type: port.type ? graph.defs[port.type]?.name ?? port.type : "",
       });
@@ -60,7 +72,8 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
   for (const e of edges_in(graph, layer)) {
     const named = e.type ? graph.defs[e.type]?.name ?? e.type : "";
     out.push({
-      id: e.id, kind: e.module,
+      id: e.id, sort: "relationship", kind: e.module,
+      fields: Object.fromEntries((e.fields ?? []).map((f) => [f.name, f.value ?? ""])),
       name: named || e.module,
       what: `${called(e.from)} → ${called(e.to)}`,
       type: named,

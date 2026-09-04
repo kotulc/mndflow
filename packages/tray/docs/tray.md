@@ -1,6 +1,11 @@
 # Context Tray
 
-**A table of everything the open layer holds** — blocks, interfaces, relationships, boundaries and notes together. It is the only place a relationship or an interface is found without hunting for it on the drawing.
+**Two tabs, two questions.**
+
+- **this** — the one element you have hold of, described: what it is called, what it names and what it resolves through, its tags, what it has been told about itself, how it draws, and what it carries. Reached by the rail's cog as well as by the tab.
+- **contents** — everything the layer holds, as a table: blocks, interfaces, relationships, boundaries and notes together. The only place a relationship or an interface is found without hunting for it on the drawing.
+
+**The element panel reads top to bottom in the order somebody answers the questions**: name, type, tags, what it shows, how it looks, and what it carries last — because a value is the detail and everything above it is what the thing *is*.
 
 ## Two sizes, shut and open
 
@@ -12,7 +17,13 @@
 
 ## The head
 
-**kind / name / what / type**, because **every row answers all four**. Beyond that a column is a field in scope — the **table's** state, and never a definition's.
+**kind / name / what / type**, because **every row answers all four**. Beyond that a column is a field in scope — the **table's** state, and never a definition's. A column is asked for by name from what the layer actually carries, so one value reads down a layer instead of being opened row by row.
+
+## Narrowing
+
+**Filter chips narrow by what a row is**: all, blocks, interfaces, relations, groups, notes. A **container you have hold of narrows the table to its own contents**; anything else, and the open layer is what is listed. Nothing picked is the layer either way.
+
+**The types filter is not a catalogue.** It is what the thing you have hold of resolves through, base first and its own customisations last — the only reading of *the types here* that says why a card looks the way it does. Seeing every definition there is answers a different question and would bury this one.
 
 | Row | `what` says |
 |---|---|

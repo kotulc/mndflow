@@ -110,13 +110,16 @@ Block {
 | | Holds | Is |
 |---|---|---|
 | `folder` | anything — independent roots, contained never owned | the organizational unit. **The workspace is the root folder; a project is a top-level block** |
-| `structure` | parts and references | the default, and the one every ordinary block is. What there is, how it is composed, and what it does |
+| `block` | parts and references | the base kind, and the one every ordinary block is. What there is, how it is composed, and what it does |
 | `reference` | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | `interface` | anything | a block seated on an edge. The one anchor for every port-like thing — a proxy port, a full port, a pin, a constraint parameter |
 | `resource` | a workspace-relative path or link | a file, a script, a data file, an image |
 | `group` | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary |
 | `note` | text | a resource drawn as a card of text |
-| `view` | **references only**, and the module regulates it entirely | a perspective kept: which blocks, through which module, configured how |
+
+**Seven, in two families.** `block`, `folder` and `resource` are **open** — they differ in what they are for, so `retype` swaps a block among them and among any of their subtypes. `reference`, `interface`, `group` and `note` are **derived**: each carries something a change of type cannot invent, so one is made rather than retyped into, and subtyping such a kind means making one and customizing it.
+
+**There is no untyped block.** A block naming no definition *is* a `block` — the field being absent is how a file stays small, never a second sort of thing, and every reader resolves it to the kind's own definition. `view` is reserved rather than shipped.
 
 **`Arrangement`** — `free` · `grid` · `right` · `left` · `down` · `up`. **One setting, six values**, of which four carry a reading direction. **Model data, not a preference**: how a layer reads is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
 
@@ -183,7 +186,13 @@ Definition {
 
 **Ambiguity is presentation, never resolution.** Two ancestors defining the same *name* are two different definitions; both are offered, each shown with where it came from. Nothing shadows, because every usage names an id.
 
-**Extension is subtyping, never overriding.** Fields union with the subtype's winning by name; components merge per key. One parent, so no diamonds and no merge order to argue about. **A rule naming a definition means it or anything below it.**
+**Extension is subtyping, never overriding.** Fields union with the subtype's winning by name.
+
+**Components cascade per property.** The chain is laid down base first and merged one property at a time, so a refinement says only what it changes and inherits the rest — setting a shape no longer throws away the layout it was given. One parent, so the order is a list rather than a graph: what comes later wins and there is no diamond to resolve. **The element has the last word**: a block's own `looks` is the final layer over whatever its chain said.
+
+**A definition's kind is the nearest link that names one.** A subtype saying nothing is its parent's kind, which is what makes a chain of refinements safe. What stops a block changing kind is the gesture — `retype` refuses across families — never the chain.
+
+**A rule naming a definition means it or anything below it.**
 
 ### Field
 
@@ -314,7 +323,7 @@ rules {
 ```
 
 - **A rule naming a definition means it or anything below it.** Matching walks the `extends` chain, so a rule written once reaches every subtype.
-- **Rules merge along the chain, nearest first, per kind.** A subtype restating one kind leaves the others in force — the same *merge per key* every component follows.
+- **Rules merge along the chain, nearest first, per kind.** A subtype restating one kind leaves the others in force — the same cascade every component follows.
 - **`degree` counts every relationship meeting a usage**, wherever it is drawn. It is about the thing, never about the layer somebody is looking at.
 - **`holds` is the vocabulary's containment rule.** The engine owns exactly one of its own — a `view` holds references — and it is checked at the door because it is what makes a view readable. Everything else about what may contain what is data, and is asked here.
 - **A malformed rule is ignored, never thrown on**, the same way a component validates its own key and no other.
@@ -379,13 +388,13 @@ A structure holding a view that looks at it is self-referential and means nothin
 - **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 - **Nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
 
-**The eight base modules read in three groups:**
+**The seven base modules read in three groups:**
 
 | | Modules | Role |
 |---|---|---|
-| **the block** | `structure` | owns a tree. What a usage of it *means* is its definition's |
+| **the block** | `block` | owns a tree. What a usage of it *means* is its definition's |
 | **filing** | `folder` | holds top-level blocks, and anything else |
-| **accessories** | `reference`, `interface`, `group`, `note`, `resource`, `view` | own no tree of parts |
+| **accessories** | `reference`, `interface`, `group`, `note`, `resource` | own no tree of parts |
 
 **Everything else about containment is the user's**, and a vocabulary that wants more says so in `holds`.
 

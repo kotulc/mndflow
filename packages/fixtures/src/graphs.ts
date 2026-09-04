@@ -125,7 +125,7 @@ export function muddled(): string {
     defs: {
       def_valve: { id: "def_valve", home: "ws", group: "block", name: "Valve",
                    components: { card: { layout: "type", shape: "blob" },
-                                 block: { module: "structure" } } },
+                                 block: { module: "block" } } },
       def_pipe: { id: "def_pipe", home: "ws", group: "block", name: "Pipe",
                   components: { block: { module: "sprocket" },
                                 sketch: { hatching: "cross" } } },
