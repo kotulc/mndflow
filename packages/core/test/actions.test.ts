@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { related } from "@mnd/fixtures";
-import { ROOT, all, children, fold, offer, run, session, writes,
+import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
          type Context } from "../src/index";
 
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
@@ -117,6 +117,38 @@ describe("what an action absorbs", () => {
     expect(named()).toEqual(["D", "A", "C"]);
     s.go("move", { id: a!, parent: ROOT });
     expect(named()).toEqual(["D", "C", "A"]);
+  });
+
+  /** **A group is the layer's, the way an address is the group's.** A block
+   *  that kept its old grid on the way out was placed by an address in a grid
+   *  the new layer does not hold, so the drawing had nowhere to put it and drew
+   *  nothing while the tree went on listing it. */
+  it("drops the place and the group it had when it leaves a layer", () => {
+    const s = session();
+    for (const label of ["Alpha", "Beta"]) s.go("create", { label });
+    const at = (label: string) => children(s.graph(), ROOT).find((b) => b.label === label)!.id;
+    const alpha = at("Alpha"), beta = at("Beta");
+    s.go("group", { members: [alpha], rows: 2, cols: 2 });
+    const grid = Object.values(s.graph().blocks).find((b) => b.type === "group")!.id;
+    s.go("seat", { id: alpha, group: grid, at: "0,0" });
+    expect(s.graph().blocks[alpha]!.group).toBe(grid);
+
+    s.go("move", { id: alpha, parent: beta });
+    const moved = s.graph().blocks[alpha]!;
+    expect(moved.parent).toBe(beta);
+    expect(moved.group).toBeUndefined();
+    expect(moved.cell).toBeUndefined();
+  });
+
+  /** A reorder is not a move out of anywhere, so it shifts no card. */
+  it("keeps where a block sits when it stays under the same parent", () => {
+    const s = session();
+    for (const label of ["A", "B"]) s.go("create", { label });
+    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
+    s.adjust("place", adjustments.place([{ id: a!, x: 96, y: 48 }]));
+
+    s.go("move", { id: a!, parent: ROOT, before: b });
+    expect(s.graph().blocks[a!]).toMatchObject({ x: 96, y: 48 });
   });
 
   it("appends what arrives from somewhere else", () => {

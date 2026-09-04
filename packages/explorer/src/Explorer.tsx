@@ -39,7 +39,13 @@ export type ExplorerProps = {
   menu?: boolean;
 };
 
-type Row = { id: Id; depth: number; label: string; kids: number; holds: number; mark: Mark };
+type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
+             /** One flag per level above the row, saying whether that level has
+              *  more to come — which is what a guide line hanging down the
+              *  indent means, and the one thing a flat list cannot read off
+              *  itself. The last is the row's own: its line stops at its middle
+              *  when nothing follows it. */
+             guides: boolean[] };
 type Mark = "leaf" | "container" | "folder" | "interface" | "reference" | "note" | "group";
 
 /** What the tree draws under a block. A boundary, a note, a field and a
@@ -55,26 +61,25 @@ function under(graph: Graph, parent: Id | null) {
 }
 
 /** The tree is blocks. */
-function tree_of(graph: Graph, folded: readonly Id[], empties: boolean): Row[] {
+function tree_of(graph: Graph, folded: readonly Id[]): Row[] {
   const out: Row[] = [];
-  const walk = (parent: Id | null, depth: number) => {
-    for (const b of under(graph, parent)) {
+  const walk = (parent: Id | null, depth: number, lines: boolean[]) => {
+    const kin = under(graph, parent);
+    kin.forEach((b, n) => {
       const kids = under(graph, b.id);
-      if (!empties && !kids.length && parent !== graph.root) continue;
-      /** **The fold is about the list, not the block.** With what holds
-       *  nothing hidden, a container full of leaves lists none of them — so a
-       *  row that offered to unfold opened onto nothing at all. What can be
-       *  unfolded is what would actually be drawn. */
-      const holds = empties ? kids.length
-        : kids.filter((k) => under(graph, k.id).length).length;
-      out.push({ id: b.id, depth, label: shown_name(graph, b.id),
-                 kids: kids.length, holds,
+      const more = n < kin.length - 1;
+      /** The ancestors' flags, then the row's own in place of its holder's —
+       *  the line in the last column is the one this row hangs off. */
+      const guides = lines.slice(0, Math.max(depth - 1, 0));
+      if (depth) guides.push(more);
+      out.push({ id: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  mark: module_of(graph, b.id) === "folder" ? "folder"
-                     : kids.length ? "container" : "leaf" });
-      if (!folded.includes(b.id)) walk(b.id, depth + 1);
-    }
+                     : kids.length ? "container" : "leaf",
+                 guides });
+      if (!folded.includes(b.id)) walk(b.id, depth + 1, [...lines, more]);
+    });
   };
-  walk(graph.root, 0);
+  walk(graph.root, 0, []);
   return out;
 }
 
@@ -85,6 +90,14 @@ function seam(e: React.DragEvent): "in" | "above" | "below" {
   const box = e.currentTarget.getBoundingClientRect();
   const at = (e.clientY - box.top) / (box.height || 1);
   return at < 0.3 ? "above" : at > 0.7 ? "below" : "in";
+}
+
+/** The layer a drop would join: the row itself when it lands *in* it, its
+ *  holder when it lands beside it. **A place, not a line** — so the tree draws
+ *  the whole layer taking the block, the way a file explorer does. */
+function landing(graph: Graph, over: { id: Id; where: "in" | "above" | "below" } | null) {
+  if (!over) return null;
+  return over.where === "in" ? over.id : graph.blocks[over.id]?.parent ?? graph.root;
 }
 
 /** What a row reads as, as a mark. A container is solid because it holds
@@ -102,7 +115,6 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
           menu: offered = true } = props;
-  const [empties, set_empties] = useState(true);
   const [dragging, set_dragging] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace.
@@ -121,7 +133,7 @@ export function Explorer(props: ExplorerProps) {
   const shut = lit.length
     ? folded.filter((id) => !lit.some((m) => on_path(graph, m, id)))
     : folded;
-  const rows = tree_of(graph, shut, empties);
+  const rows = tree_of(graph, shut);
   const one = picked.length === 1 ? picked[0]! : null;
   /** **Where something new goes: what you picked, or where you are.** The
    *  workspace was neither — so a block added from the tree while you stood
@@ -132,7 +144,10 @@ export function Explorer(props: ExplorerProps) {
   const holder = one && graph.blocks[one]
     && !["group", "note"].includes(module_of(graph, one)) ? one : null;
   const target = holder ?? open ?? graph.root;
-  const any_open = rows.some((r) => r.holds > 0 && !folded.includes(r.id));
+  const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
+  /** The layer a drop would join, and every row already in it. Empty unless
+   *  something is being dragged over a row. */
+  const zone = landing(graph, over);
 
   /** Which name is open, and where what was typed lands. **The tree never
    *  writes**: it says `rename` like it says everything else. */
@@ -156,7 +171,7 @@ export function Explorer(props: ExplorerProps) {
      *  out of what holds it by dropping it clear of the tree, and that used to
      *  mean the strip under the last row — a band a few rows tall, in a panel
      *  that is mostly clear space. Now the clear space is the target. */
-    <nav className={`explorer${out ? " out" : ""}`} aria-label="workspace"
+    <nav className={`explorer${out || zone === graph.root ? " out" : ""}`} aria-label="workspace"
          onDragOver={(e) => { e.preventDefault(); set_over(null); set_out(true); }}
          onDragLeave={() => set_out(false)}
          onDrop={(e) => {
@@ -167,9 +182,11 @@ export function Explorer(props: ExplorerProps) {
            if (id) onAct("move", { id, parent: graph.root });
          }}>
       <div className="bar">
+        {/* **The workspace, by its own name.** The header above says how much
+            is in the session; what it is called belongs on the tree it names. */}
         <span className="chip" title="the workspace"
               onClick={() => { onAct("open", { id: graph.root }); onPick([]); }}>
-          <Icon name="role_folder" /> workspace
+          <Icon name="role_folder" /> {shown_name(graph, graph.root)}
         </span>
         <span className="tools">
           <button title={`add a block in ${shown_name(graph, target)}`}
@@ -178,14 +195,10 @@ export function Explorer(props: ExplorerProps) {
                   onClick={() => add("folder")}><Icon name="add_folder" /></button>
           <button title={any_open ? "fold everything" : "open everything"}
                   onClick={() => {
-                    for (const r of tree_of(graph, [], empties)) {
-                      if (r.holds > 0) onFold(r.id, any_open);
+                    for (const r of tree_of(graph, [])) {
+                      if (r.kids > 0) onFold(r.id, any_open);
                     }
                   }}><Icon name={any_open ? "fold_all" : "unfold_all"} /></button>
-          <button title={empties ? "hide what holds nothing" : "show everything"}
-                  onClick={() => set_empties(!empties)}>
-            <Icon name={empties ? "show_empty" : "hide_empty"} />
-          </button>
           <button title="delete what is picked" disabled={!one}
                   onClick={() => one && onAct("delete", { id: one })}><Icon name="remove" /></button>
         </span>
@@ -196,11 +209,17 @@ export function Explorer(props: ExplorerProps) {
           {rows.map((r) => (
             <li key={r.id}
                 className={[
+                  r.depth ? "" : "top",
                   picked.includes(r.id) ? "picked" : "",
                   lit.includes(r.id) ? "lit" : "",
                   lit.length && !lit.includes(r.id) ? "dim" : "",
                   open === r.id ? "open" : "",
-                  over?.id === r.id ? `to-${over.where}` : "",
+                  /** **The whole layer, and the seam within it.** The wash says
+                   *  where the block ends up; the line says where in the order,
+                   *  and only the row under the pointer draws that. */
+                  zone && on_path(graph, r.id, zone) ? "zone" : "",
+                  r.id === zone ? "holder" : "",
+                  over?.id === r.id && over.where !== "in" ? `to-${over.where}` : "",
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
                 style={{ paddingLeft: 8 + r.depth * 14 }}
@@ -256,12 +275,19 @@ export function Explorer(props: ExplorerProps) {
                   branch that is listing what it holds takes the accent; shut,
                   it stands down with the rest of the row — so one icon is both
                   what the row is and whether you are seeing all of it. */}
+              {/* One line per level above the row, hung under its holder's
+                  mark. The last carries the tick across to this row. */}
+              {r.guides.map((more, i) => (more || i === r.depth - 1 ? (
+                <i key={i} aria-hidden className={["guide", i === r.depth - 1 ? "tick" : "",
+                                                   more ? "" : "stop"].filter(Boolean).join(" ")}
+                   style={{ left: 14 + i * 14 }} />
+              ) : null))}
               <span className={["mark", r.mark,
-                                r.holds ? (shut.includes(r.id) ? "shut" : "on") : ""]
+                                r.kids ? (shut.includes(r.id) ? "shut" : "on") : ""]
                        .filter(Boolean).join(" ")}
-                    title={r.holds ? (shut.includes(r.id) ? "open" : "fold") : undefined}
+                    title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
                     onClick={(e) => { e.stopPropagation();
-                                      if (r.holds) onFold(r.id, !shut.includes(r.id)); }}>
+                                      if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
                 <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={13} />
               </span>
               <Name id={r.id} className="label" text={r.label} />

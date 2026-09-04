@@ -234,22 +234,16 @@ export function App() {
   return (
     <div className="app">
       <header>
-        {/* Identity yields under pressure; the tools never do. A long workspace
-            name truncates here rather than shoving export off the row. */}
+        {/* Identity, and the size of what is under it. **The session says how
+            much it holds, not what it is called** — the name sits on the
+            explorer's own header, where the tree it names begins. */}
         <span className="identity">
           <h1>mndflow</h1>
-          <span className="domain">
-            {graph.blocks[graph.root]?.label || "untitled"}
-          </span>
+          <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
+                  onClick={() => void s.save()}>
+            {Object.keys(graph.blocks).length - 1} blocks · {s.log().length} steps
+          </button>
         </span>
-
-        {/* Where the work lives, said all the time rather than only when it
-            breaks. One control: it names the working copy, and clicking it
-            takes a snapshot out. */}
-        <button className="where" title="This session is kept in the browser. Export a snapshot to keep a copy elsewhere."
-                onClick={() => void s.save()}>
-          working session · {Object.keys(graph.blocks).length - 1} blocks · {s.log().length} steps
-        </button>
 
         <span className="tools">
           <button title="undo" onClick={() => s.undo()}><Icon name="undo" /></button>

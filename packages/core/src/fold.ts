@@ -45,7 +45,20 @@ function apply(graph: Graph, m: Mutation): void {
     }
     case "move_block": {
       const b = graph.blocks[m.id];
-      if (b) { b.parent = m.parent; delete b.x; delete b.y; }
+      if (!b) return;
+      /** **A group is the layer's, the way an address is the group's.** Where a
+       *  block sits and which group holds it are both facts about the layer it
+       *  was in, so leaving one drops them — carried across, a block kept
+       *  membership of a grid that is not here, and a grid places its members
+       *  by address, so the drawing had nowhere to put it and drew nothing at
+       *  all while the tree went on listing it.
+       *
+       *  **Staying put keeps them**: a move that only reorders siblings is not
+       *  a move out of anywhere, and it has no business shifting a card. */
+      if (b.parent !== m.parent) {
+        delete b.x; delete b.y; delete b.group; delete b.cell;
+      }
+      b.parent = m.parent;
       return;
     }
     case "order_block": {

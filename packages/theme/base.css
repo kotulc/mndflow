@@ -69,8 +69,7 @@ input:focus { outline: none; border-color: var(--accent); }
   min-width: 0;
 }
 
-/* Identity yields under pressure; the tools never do. A long workspace name
-   truncates here rather than shoving export off the row. */
+/* Identity yields under pressure; the tools never do. */
 .app > header .identity {
   display: flex;
   align-items: baseline;
@@ -90,21 +89,9 @@ input:focus { outline: none; border-color: var(--accent); }
 
 .app > header h1::before { content: "▚ "; color: var(--accent); }
 
-.app > header .domain {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--muted);
-}
-
-.app > header .domain::before { content: "["; }
-.app > header .domain::after { content: "]"; }
-
-/* Where the work lives, said all the time rather than only when it breaks.
-   Quiet while it is true; the same control is the way out when it stops being.
-   It never truncates — a count cut off mid-digit says less than nothing, and
-   the identity beside it is what is meant to yield. */
+/* How much is under the session, said all the time rather than only when it
+   breaks. Quiet while it is true; the same control is the way out when it stops
+   being. It never truncates — a count cut off mid-digit says less than nothing. */
 .app > header .where {
   flex: none;
   white-space: nowrap;

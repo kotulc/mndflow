@@ -28,34 +28,27 @@ afterEach(cleanup);
 
 describe("it shows structure and only structure", () => {
   it("lists blocks nested to any depth", () => {
-    const rows = tree_of(fold(nested()), [], true);
+    const rows = tree_of(fold(nested()), []);
     expect(rows.map((r) => r.label)).toContain("Rate Limit");
     expect(rows.find((r) => r.label === "Rate Limit")!.depth).toBeGreaterThan(1);
   });
 
   it("never lists a boundary, a note or a reference", () => {
-    const rows = tree_of(fold(related()), [], true);
+    const rows = tree_of(fold(related()), []);
     expect(rows.map((r) => r.label)).not.toContain("Hot side");
     expect(rows.map((r) => r.label)).not.toContain("the loop runs clockwise");
   });
 
   it("stops at a folded branch", () => {
     const graph = fold(nested());
-    const all = tree_of(graph, [], true).length;
-    const shut = tree_of(graph, ["block_ledger"], true).length;
+    const all = tree_of(graph, []).length;
+    const shut = tree_of(graph, ["block_ledger"]).length;
     expect(shut).toBeLessThan(all);
-    expect(tree_of(graph, ["block_ledger"], true).map((r) => r.label)).not.toContain("Edge");
-  });
-
-  it("hides what holds nothing when told to, but never a top-level block", () => {
-    const graph = fold(nested());
-    const lean = tree_of(graph, [], false).map((r) => r.label);
-    expect(lean).not.toContain("Auth");
-    expect(lean).toContain("Site");
+    expect(tree_of(graph, ["block_ledger"]).map((r) => r.label)).not.toContain("Edge");
   });
 
   it("marks a container differently from a leaf, and a folder from both", () => {
-    const rows = tree_of(fold(nested()), [], true);
+    const rows = tree_of(fold(nested()), []);
     const mark = (label: string) => rows.find((r) => r.label === label)!.mark;
     expect(mark("Shelf")).toBe("folder");
     expect(mark("Edge")).toBe("container");
@@ -127,15 +120,9 @@ describe("it emits action names and mutates nothing", () => {
     expect(onFold).not.toHaveBeenCalled();
   });
 
-  /** **What cannot be listed cannot be unfolded.** With what holds nothing
-   *  hidden, a branch of leaves lists none of them — it still says it is a
-   *  container, because that is what it is, but there is no fold on offer. */
-  it("counts what would be listed, not what is there", () => {
-    const graph = fold(nested());
-    const edge = (rows: ReturnType<typeof tree_of>) => rows.find((r) => r.label === "Edge")!;
-    expect(edge(tree_of(graph, [], true)).holds).toBe(2);
-    expect(edge(tree_of(graph, [], false)).holds).toBe(0);
-    expect(edge(tree_of(graph, [], false)).kids).toBe(2);
+  it("counts what it holds", () => {
+    const rows = tree_of(fold(nested()), []);
+    expect(rows.find((r) => r.label === "Edge")!.kids).toBe(2);
   });
 
   it("creates under whatever is picked", () => {
@@ -274,7 +261,7 @@ describe("folding", () => {
   });
 
   it("reads anything open at all, so it can always open again", () => {
-    const shut = tree_of(fold(nested()), ["block_shelf", "block_site"], true);
+    const shut = tree_of(fold(nested()), ["block_shelf", "block_site"]);
     expect(shut.every((r) => r.depth === 0)).toBe(true);
   });
 });
@@ -287,7 +274,7 @@ describe("an empty workspace", () => {
   });
 
   it("lists a flat project's children under it", () => {
-    expect(tree_of(fold(flat()), [], true).map((r) => r.label))
+    expect(tree_of(fold(flat()), []).map((r) => r.label))
       .toEqual(["Ledger", "Edge", "Auth", "Billing"]);
   });
 });
