@@ -324,38 +324,50 @@ register(
   },
   {
     name: "move",
-    about: "puts a block under a different parent, in the place you dropped it",
-    on: ["block"],
-    args: [{ name: "id", form: "block", required: true },
+    about: "puts blocks under a different parent, in the place you dropped them",
+    on: ["block", "selection"],
+    /** **One or several, in one step.** A selection dragged somewhere is one
+     *  thing you did, so it is one entry in the log and one undo — moving them
+     *  a block at a time left as many, and any one of them refused left the
+     *  rest somewhere nobody asked for. `id` is still read, so a caller with
+     *  one block says so. */
+    args: [{ name: "ids", form: "block", required: true },
            { name: "parent", form: "block", required: true },
-           /** Which sibling it goes in front of. **Absent is last**, which is
+           /** Which sibling they go in front of. **Absent is last**, which is
             *  where anything arriving somewhere new belongs unless you said
             *  otherwise by dropping it between two things. */
            { name: "before", form: "block" }, { name: "spot", form: "spot" }],
     check: (ctx, args) => {
-      const id = id_of(args, "id");
+      const ids = ids_of(ctx, args);
       const parent = args["parent"] === null ? null : id_of(args, "parent");
-      if (id === ctx.graph.root) return "the workspace cannot be moved";
-      if (id === parent) return "a block cannot contain itself";
-      if (parent && path(ctx.graph, parent).some((b) => b.id === id)) {
-        return "a block cannot be moved inside itself";
+      if (!ids.length) return "nothing is selected";
+      for (const id of ids) {
+        if (id === ctx.graph.root) return "the workspace cannot be moved";
+        if (id === parent) return "a block cannot contain itself";
+        if (parent && path(ctx.graph, parent).some((b) => b.id === id)) {
+          return "a block cannot be moved inside itself";
+        }
+        const label = ctx.graph.blocks[id]?.label;
+        if (label && name_taken(ctx.graph, parent, label, id)) return `"${label}" is taken there`;
       }
-      const label = ctx.graph.blocks[id]?.label;
-      return label && name_taken(ctx.graph, parent, label, id) ? `"${label}" is taken there` : null;
+      return null;
     },
     run: (ctx, args) => {
-      const id = id_of(args, "id");
+      const ids = ids_of(ctx, args);
       const parent = args["parent"] === null ? null : id_of(args, "parent");
       const before = args["before"] ? id_of(args, "before") : null;
-      const out: Mutation[] = [{ op: "move_block", id, parent }];
-      /** **Where it sits, not just what holds it.** A block keeps the number it
-       *  was made with, which among its new siblings is somebody else's place
-       *  in the queue — so arriving anywhere renumbers the list it arrives in. */
-      for (const at of reorder(ctx.graph, parent, id, before)) {
+      const out: Mutation[] = ids.map((id): Mutation => ({ op: "move_block", id, parent }));
+      /** **Where they sit, not just what holds them.** A block keeps the number
+       *  it was made with, which among its new siblings is somebody else's
+       *  place in the queue — so arriving anywhere renumbers the list it
+       *  arrives in. */
+      for (const at of reorder(ctx.graph, parent, ids, before)) {
         out.push({ op: "order_block", id: at.id, num: at.num });
       }
-      const at = spot(args);
-      if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
+      /** A spot is where one thing was let go of. Several were let go of in one
+       *  place, and only the layer can say where each of them belongs. */
+      const at = ids.length === 1 ? spot(args) : null;
+      if (at) out.push({ op: "place_block", id: ids[0]!, x: at.x, y: at.y });
       return { mutations: out };
     },
   },

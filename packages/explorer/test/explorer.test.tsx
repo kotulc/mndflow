@@ -192,7 +192,7 @@ describe("re-filing", () => {
   it("moves a row dropped onto another row", () => {
     const { onAct } = mount(fold(nested()));
     drop_at(drag("Auth")("Billing"), 0.5);
-    expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: "block_billing" });
+    expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: "block_billing" });
   });
 
   /** **On a row is into it; between two rows is beside them.** */
@@ -200,13 +200,13 @@ describe("re-filing", () => {
     const { onAct } = mount(fold(nested()));
     drop_at(drag("Auth")("Billing"), 0.1);
     expect(onAct).toHaveBeenCalledWith("move",
-      { id: "block_auth", parent: "block_ledger", before: "block_billing" });
+      { ids: ["block_auth"], parent: "block_ledger", before: "block_billing" });
   });
 
   it("puts a row last when it was dropped below the last of them", () => {
     const { onAct } = mount(fold(nested()));
     drop_at(drag("Auth")("Billing"), 0.9);
-    expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: "block_ledger" });
+    expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: "block_ledger" });
   });
 
   /** **One place down, not to the end.** Below a row whose next sibling is the
@@ -215,7 +215,7 @@ describe("re-filing", () => {
     const { onAct } = mount(fold(related()));
     drop_at(drag("Heat Exchanger")("Pump"), 0.9);
     expect(onAct).toHaveBeenCalledWith("move",
-      { id: "block_hx", parent: "block_loop", before: "block_tank" });
+      { ids: ["block_hx"], parent: "block_loop", before: "block_tank" });
   });
 
   /** **Everything that is not a row is the workspace**, which is how a block
@@ -225,7 +225,7 @@ describe("re-filing", () => {
       const { onAct, container } = mount(fold(nested()));
       fireEvent.dragStart(screen.getByText("Auth").closest("li")!);
       fireEvent.drop(container.querySelector(where)!);
-      expect(onAct).toHaveBeenCalledWith("move", { id: "block_auth", parent: ROOT });
+      expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: ROOT });
     });
 
   it("does nothing when a row is dropped on itself", () => {

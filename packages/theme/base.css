@@ -64,8 +64,15 @@ input:focus { outline: none; border-color: var(--accent); }
   align-items: center;
   gap: 12px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--divider);
-  background: var(--surface);
+  /* **The page's one strong rule.** Everything below it is a column of the
+     work; this is where the app stops and the work starts, so the line that
+     says so is here and the panels under it part on softer ones. */
+  border-bottom: 1px solid var(--border);
+  /* The page's own ground. **The app's row is not a panel header** — the tree
+     and the tray each head their own column on the surface step, and the row
+     over all of them reads as the page itself rather than as a third one of
+     them. */
+  background: var(--bg);
   min-width: 0;
 }
 

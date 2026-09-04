@@ -23,7 +23,10 @@ const WEIGHT = 1.5;
 const PATHS = {
   // Making and taking away.
   add: "M12 5v14M5 12h14",
-  add_folder: "M3.5 7.5h6l2 2h9v9h-17zM12 12.5v4M10 14.5h4",
+  /** **On the same footprint as `add`**, not the row mark's: a folder drawn to
+   *  its own width sat short beside the marks it shares a bar with, and read as
+   *  a smaller control than the ones either side of it. */
+  add_folder: "M5 5.5h5l2 2h7v11H5zM12 10.5v5M9.5 13h5",
   remove: "M6 6l12 12M18 6L6 18",
 
   // Undoing and redoing. An arrow that turns back on itself, both ways.

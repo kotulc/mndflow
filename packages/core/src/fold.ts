@@ -350,11 +350,15 @@ export function next_num(graph: Graph, parent: Id | null): number {
  *
  *  The block being moved may be arriving from another layer, so it is taken
  *  out of the list before it is put back. */
-export function reorder(graph: Graph, parent: Id | null, moved: Id,
+export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id[],
                         before?: Id | null): { id: Id; num: number }[] {
-  const rest = children(graph, parent).filter((b) => b.id !== moved).map((b) => b.id);
+  /** **Several arrive as one run**, in the order they were handed over — put in
+   *  one at a time each would land in front of the last, and a selection
+   *  dropped somewhere would arrive backwards. */
+  const run = Array.isArray(moved) ? [...moved] : [moved as Id];
+  const rest = children(graph, parent).filter((b) => !run.includes(b.id)).map((b) => b.id);
   const at = before ? rest.indexOf(before) : -1;
-  const order = at < 0 ? [...rest, moved] : [...rest.slice(0, at), moved, ...rest.slice(at)];
+  const order = at < 0 ? [...rest, ...run] : [...rest.slice(0, at), ...run, ...rest.slice(at)];
   return order
     .map((id, i) => ({ id, num: i + 1 }))
     .filter(({ id, num }) => (graph.blocks[id]?.num ?? 0) !== num);

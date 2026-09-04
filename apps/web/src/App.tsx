@@ -317,17 +317,12 @@ export function App() {
                   at={at} spot={spot} only={only} given={given}
                   onAct={act} onShut={shut} />
           )}
-          /** A row from the tree, or a chip out of a container, lands where it
-           *  was dropped. **What arrives depends on where it came from**, and
-           *  the graph already says which — nothing about the drag has to.
-           *
-           *  - **Already here** — only placed.
-           *  - **A chip**, whose holder is drawn in this layer: dragging one
-           *    onto the ground is how it comes up a level, so it **moves**.
-           *  - **Anything else** came from elsewhere in the workspace, and a
-           *    block cannot be in two layers at once. It arrives as a
-           *    **reference** — which is what a drop from the tree always meant,
-           *    and what moving it silently took away from wherever it lived. */
+          /** **A block dropped onto the drawing arrives as a reference.** One
+           *  rule, with no exception the shell has to know: where the block
+           *  came from, what holds it and how deep it sits change nothing. A
+           *  block already in this layer is the one thing a drop cannot say, and
+           *  `refer` is what says so — it is the action's to refuse, not the
+           *  app's to guess at. */
           onDrop={(id, spot) => {
             /** **Where the pointer was, clear of what is already there.** A row
              *  is dropped by its middle, and a card is placed by its corner. */
@@ -335,16 +330,6 @@ export function App() {
               scene.nodes.filter((n) => n.id !== id && n.type !== "group" && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            const home = layer ?? graph.root;
-            const held = graph.blocks[id]?.parent;
-            if (held === home) {
-              s.adjust("place", adjustments.place([{ id, ...at }]));
-              return;
-            }
-            if (held && graph.blocks[held]?.parent === home) {
-              s.go("move", { id, parent: home, spot: at });
-              return;
-            }
             s.go("refer", { target: id, spot: at });
           }}
           picked={s.picked()}

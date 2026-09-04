@@ -1,9 +1,15 @@
 /* The explorer bounds itself; the stage keeps its room. */
 
 .explorer {
+  position: relative;
   display: flex;
   flex-direction: column;
-  width: min(280px, 36vw);
+  /* Width is dragged, and the panel writes it inline. Never grows or shrinks
+     to fit the row: what it was dragged to is what it is, up to a third of the
+     window — said here as well as at the grip, so a window resized narrower
+     gives the drawing its two thirds back without anybody dragging anything. */
+  flex: none;
+  max-width: 33.333vw;
   border-right: 1px solid var(--divider);
   /* The options rail's ground, so the two edges of the page are one surface
      and the stage is what sits between them. */
@@ -11,16 +17,31 @@
   overflow: hidden;
 }
 
+/* The edge, as the control that sets the width. It sits over the panel's own
+   border rather than beside it, so nothing moves when the pointer arrives. */
+.explorer .grip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 3;
+  touch-action: none;
+}
+
+.explorer .grip:hover, .explorer .grip:active { background: var(--accent); }
+
 /* The tree's own header, and a step off both its neighbours: the app header
-   above it is the page's surface and the tree below it is the ground, so this
-   sits raised between the two rather than joining either. */
+   above it is the raised one and the tree below it is the ground, so this sits
+   between the two rather than joining either. */
 .explorer .bar {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 5px 8px;
-  border-bottom: 1px solid var(--border);
-  background: var(--raised);
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
   min-width: 0;
 }
 
@@ -28,11 +49,21 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
   cursor: pointer;
   color: var(--text);
   letter-spacing: 0.06em;
-  white-space: nowrap;
+}
+
+.explorer .bar .chip .icon-svg { flex: none; }
+
+/* The name is its own element, so it is the one that has to trail off — an
+   ellipsis on the chip around it never had the text to put one on, and a long
+   name was cut off mid-letter at the panel's edge. */
+.explorer .bar .chip .label {
+  min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
@@ -79,21 +110,31 @@
   pointer-events: none;
 }
 
+/* Nothing follows in this column, so the line stops where the row it belongs
+   to sits rather than running on past it. */
 .explorer .tree .guide.stop { bottom: auto; height: 50%; }
 
+/* A branch's own segment, joining its mark to the line under it. **It starts
+   below the mark, not at its middle** — this column is the row's own, so a
+   line from the centre ran straight down through the icon. */
+.explorer .tree .guide.down { top: calc(50% + 8px); }
+
+/* The tick across to the row, ending where its mark begins. */
 .explorer .tree .guide.tick::after {
   content: "";
   position: absolute;
   left: 0;
   top: 50%;
-  width: 8px;
+  width: 7px;
   height: 1px;
   background: var(--divider);
 }
 
-/* Two states, two looks. Open is where the stage is pointed; picked is what an
-   action would act on, and it reads first. */
-.explorer .tree li.open { background: var(--hover); }
+/* Two states, two looks, and never the same wash. Open is where the stage is
+   pointed — a tint, because it is the app saying where you are; picked is what
+   an action would act on, and it reads first on the neutral step with the rail
+   beside it. Both on `--hover`, the one told the other nothing. */
+.explorer .tree li.open { background: var(--tint); }
 .explorer .tree li.picked {
   border-left-color: var(--accent);
   color: var(--accent);
@@ -121,7 +162,7 @@
    taking the block washes whole — its holder and everything already in it —
    and the holder is outlined, so what is about to change is a container and not
    an edge. A seam adds the line that says where in the order. */
-.explorer .tree li.zone { background: var(--tint); }
+.explorer .tree li.zone { background: var(--hover); }
 .explorer .tree li.holder { outline: 1px dashed var(--accent); outline-offset: -1px; }
 .explorer .tree li.to-above { box-shadow: inset 0 1px 0 0 var(--accent); }
 .explorer .tree li.to-below { box-shadow: inset 0 -1px 0 0 var(--accent); }

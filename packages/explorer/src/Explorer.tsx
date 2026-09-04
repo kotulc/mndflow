@@ -10,7 +10,7 @@
  *  is clicking a child. A double click renames — the Stage reads the same
  *  pair, and edits the name there too. */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { children, is_interface, is_reference, module_of, shown_name,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
@@ -40,11 +40,12 @@ export type ExplorerProps = {
 };
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
-             /** One flag per level above the row, saying whether that level has
-              *  more to come — which is what a guide line hanging down the
-              *  indent means, and the one thing a flat list cannot read off
-              *  itself. The last is the row's own: its line stops at its middle
-              *  when nothing follows it. */
+             /** One flag per indent column, saying whether the line hanging
+              *  down that column carries on past this row — which is the one
+              *  thing a flat list cannot read off itself. Column *j* hangs from
+              *  the ancestor at depth *j*, so what continues it is whether the
+              *  ancestor at depth *j+1* has a sibling still to come; the last
+              *  column is the row's own. */
              guides: boolean[] };
 type Mark = "leaf" | "container" | "folder" | "interface" | "reference" | "note" | "group";
 
@@ -63,25 +64,38 @@ function under(graph: Graph, parent: Id | null) {
 /** The tree is blocks. */
 function tree_of(graph: Graph, folded: readonly Id[]): Row[] {
   const out: Row[] = [];
-  const walk = (parent: Id | null, depth: number, lines: boolean[]) => {
+  /** **A row's columns are its holder's, plus one for itself.** Every column
+   *  but the last says what the holder's own row already said, so it is handed
+   *  down rather than worked out again — read off the ancestors instead, a
+   *  column asked whether *that ancestor* had a sibling coming, which is a
+   *  different question one level up and drew lines under the wrong branches. */
+  const walk = (parent: Id | null, depth: number, held: boolean[]) => {
     const kin = under(graph, parent);
     kin.forEach((b, n) => {
       const kids = under(graph, b.id);
-      const more = n < kin.length - 1;
-      /** The ancestors' flags, then the row's own in place of its holder's —
-       *  the line in the last column is the one this row hangs off. */
-      const guides = lines.slice(0, Math.max(depth - 1, 0));
-      if (depth) guides.push(more);
+      const guides = depth ? [...held, n < kin.length - 1] : [];
       out.push({ id: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  mark: module_of(graph, b.id) === "folder" ? "folder"
                      : kids.length ? "container" : "leaf",
                  guides });
-      if (!folded.includes(b.id)) walk(b.id, depth + 1, [...lines, more]);
+      if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });
   };
   walk(graph.root, 0, []);
   return out;
 }
+
+/** The indent, and where the line down each column of it sits: under the
+ *  middle of the mark that column hangs from. Read by the rows' padding and by
+ *  the guides both, so they are stated once and cannot drift apart. */
+const STEP = 14;
+const MARK_SIZE = 14;
+const GUIDE = 8 + MARK_SIZE / 2;
+
+/** How wide the panel may be dragged. Narrow enough to be a margin, and never
+ *  past a third of the window — the drawing is what the app is for, so it keeps
+ *  two thirds of it whatever the panel is dragged to. */
+const WIDTH = { least: 168, most: (seen: number) => seen / 3, first: 280 };
 
 /** Where a drop on a row would land. **The edges of a row are the gaps between
  *  rows**: aiming *between* two things puts the pointer at the top or the
@@ -115,7 +129,12 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
           menu: offered = true } = props;
-  const [dragging, set_dragging] = useState<Id | null>(null);
+  /** What is in hand. **A selection, not a row** — dragging one of several
+   *  picked rows moved that one and quietly left the rest where they were. */
+  const [dragging, set_dragging] = useState<readonly Id[]>([]);
+  /** Where a range runs from. The last row a plain or toggling click landed on,
+   *  the way every list with a shift-click behaves. */
+  const [anchor, set_anchor] = useState<Id | null>(null);
   const [over, set_over] = useState<{ id: Id; where: "in" | "above" | "below" } | null>(null);
   /** Whether the drop would land on the panel itself, which is the workspace.
    *  **The whole panel, not the strip under the last row** — dragging a block
@@ -123,6 +142,11 @@ export function Explorer(props: ExplorerProps) {
    *  around the tree meant nothing at all. */
   const [out, set_out] = useState(false);
   const [menu, set_menu] = useState<{ x: number; y: number } | null>(null);
+  /** How wide the panel is, and where a drag of its edge started. **The panel
+   *  bounds itself**, so the shell is not asked to hold a number that only
+   *  means something here. */
+  const [width, set_width] = useState(WIDTH.first);
+  const grip = useRef<{ x: number; w: number } | null>(null);
   /** The row being renamed. **A name is edited where it is read** — the row
    *  itself takes the typing, the same way a card's name does on the drawing,
    *  so the two surfaces are one gesture and not two. */
@@ -160,6 +184,41 @@ export function Explorer(props: ExplorerProps) {
     },
   }), [naming, onAct]);
 
+  /** **What a click on a row means.** Plain is *this one, and go there*; with
+   *  the toggle key it adds or drops one, and with shift it takes the run
+   *  between the anchor and here. **Only a plain click reveals** — building a
+   *  selection is not asking to be taken somewhere else. */
+  const clicked = (e: React.MouseEvent, id: Id) => {
+    if (e.shiftKey && anchor) {
+      const from = rows.findIndex((x) => x.id === anchor);
+      const to = rows.findIndex((x) => x.id === id);
+      if (from >= 0 && to >= 0) {
+        const [a, b] = from < to ? [from, to] : [to, from];
+        onPick(rows.slice(a, b + 1).map((x) => x.id));
+        return;
+      }
+    }
+    set_anchor(id);
+    if (e.ctrlKey || e.metaKey) {
+      onPick(picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]);
+      return;
+    }
+    onAct("reveal", { id });
+    onPick([id]);
+  };
+
+  /** What a drag off this row carries. **A picked row brings the selection**;
+   *  an unpicked one is only itself, so dragging something you had not chosen
+   *  never sweeps up what you had. */
+  const load = (id: Id): Id[] =>
+    picked.includes(id) ? rows.filter((r) => picked.includes(r.id)).map((r) => r.id) : [id];
+
+  /** What is in hand at a drop, whichever surface started it. */
+  const dropped = (e: React.DragEvent): Id[] => {
+    const said = e.dataTransfer?.getData("text/mnd-block");
+    return dragging.length ? [...dragging] : said ? [said] : [];
+  };
+
   const add = (type?: string) => {
     const label = prompt(type === "folder" ? "name the folder" : "name the block");
     if (label === null) return;
@@ -171,22 +230,27 @@ export function Explorer(props: ExplorerProps) {
      *  out of what holds it by dropping it clear of the tree, and that used to
      *  mean the strip under the last row — a band a few rows tall, in a panel
      *  that is mostly clear space. Now the clear space is the target. */
+    <NamingContext.Provider value={typing}>
     <nav className={`explorer${out || zone === graph.root ? " out" : ""}`} aria-label="workspace"
+         style={{ width }}
          onDragOver={(e) => { e.preventDefault(); set_over(null); set_out(true); }}
          onDragLeave={() => set_out(false)}
          onDrop={(e) => {
            e.preventDefault();
-           const id = e.dataTransfer?.getData("text/mnd-block") || dragging;
+           const ids = dropped(e);
            set_out(false);
-           set_dragging(null);
-           if (id) onAct("move", { id, parent: graph.root });
+           set_dragging([]);
+           if (ids.length) onAct("move", { ids, parent: graph.root });
          }}>
       <div className="bar">
         {/* **The workspace, by its own name.** The header above says how much
-            is in the session; what it is called belongs on the tree it names. */}
-        <span className="chip" title="the workspace"
-              onClick={() => { onAct("open", { id: graph.root }); onPick([]); }}>
-          <Icon name="role_folder" /> {shown_name(graph, graph.root)}
+            is in the session; what it is called belongs on the tree it names —
+            and it renames on two clicks, like every other name in the app. */}
+        <span className="chip" title="the workspace — double click to rename"
+              onClick={() => { if (naming !== graph.root) {
+                                 onAct("open", { id: graph.root }); onPick([]); } }}
+              onDoubleClick={() => set_naming(graph.root)}>
+          <Name id={graph.root} className="label" text={shown_name(graph, graph.root)} />
         </span>
         <span className="tools">
           <button title={`add a block in ${shown_name(graph, target)}`}
@@ -204,7 +268,6 @@ export function Explorer(props: ExplorerProps) {
         </span>
       </div>
 
-      <NamingContext.Provider value={typing}>
         <ul className="tree">
           {rows.map((r) => (
             <li key={r.id}
@@ -217,54 +280,55 @@ export function Explorer(props: ExplorerProps) {
                   /** **The whole layer, and the seam within it.** The wash says
                    *  where the block ends up; the line says where in the order,
                    *  and only the row under the pointer draws that. */
-                  zone && on_path(graph, r.id, zone) ? "zone" : "",
+                  zone && zone !== graph.root && on_path(graph, r.id, zone) ? "zone" : "",
                   r.id === zone ? "holder" : "",
                   over?.id === r.id && over.where !== "in" ? `to-${over.where}` : "",
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
-                style={{ paddingLeft: 8 + r.depth * 14 }}
+                style={{ paddingLeft: 8 + r.depth * STEP }}
                 draggable={naming !== r.id}
                 onDragStart={(e) => {
-                  set_dragging(r.id);
+                  set_dragging(load(r.id));
                   /** **The same drag, one target further.** A row dropped on
                    *  another row re-parents; dropped on the drawing it is placed
-                   *  there, and the canvas reads this to know which it got. */
+                   *  there, and the canvas reads this to know which it got —
+                   *  one block, because a drop on the drawing is one place. */
                   e.dataTransfer?.setData("text/mnd-block", r.id);
                   if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
                 }}
-                onDragEnd={() => { set_dragging(null); set_over(null); set_out(false); }}
+                onDragEnd={() => { set_dragging([]); set_over(null); set_out(false); }}
                 onDragOver={(e) => {
                   e.preventDefault();
                   /** The row answers for itself, so the panel behind it does
                    *  not also answer *the workspace*. */
                   e.stopPropagation();
                   set_out(false);
-                  if (dragging !== r.id) set_over({ id: r.id, where: seam(e) });
+                  if (!dragging.includes(r.id)) set_over({ id: r.id, where: seam(e) });
                 }}
                 onDragLeave={() => set_over((o) => (o?.id === r.id ? null : o))}
                 onDrop={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   const where = seam(e);
-                  const id = e.dataTransfer?.getData("text/mnd-block") || dragging;
+                  const ids = dropped(e).filter((id) => id !== r.id);
                   set_over(null);
-                  set_dragging(null);
-                  if (!id || id === r.id) return;
+                  set_dragging([]);
+                  if (!ids.length) return;
                   /** **On a row is into it; between two rows is beside them.**
                    *  One gesture files something away and the other says where
                    *  it sits, and which you meant is where you let go. */
-                  if (where === "in") { onAct("move", { id, parent: r.id }); return; }
+                  if (where === "in") { onAct("move", { ids, parent: r.id }); return; }
                   const parent = graph.blocks[r.id]?.parent ?? graph.root;
-                  /** **Without the one being moved.** Below a row whose next
-                   *  sibling *is* the block in hand, the block would be asked
+                  /** **Without the ones being moved.** Below a row whose next
+                   *  sibling *is* something in hand, that block would be asked
                    *  to go in front of itself — which is nowhere, so it went to
                    *  the end of the list instead of one place down. */
-                  const kin = children(graph, parent).filter((b) => b.id !== id);
+                  const kin = children(graph, parent).filter((b) => !ids.includes(b.id));
                   const next = kin[kin.findIndex((b) => b.id === r.id) + 1];
                   const before = where === "above" ? r.id : next?.id;
-                  onAct("move", { id, parent, ...(before ? { before } : {}) });
+                  onAct("move", { ids, parent, ...(before ? { before } : {}) });
                 }}
-                onClick={() => { onAct("reveal", { id: r.id }); onPick([r.id]); }}
+                onClick={(e) => clicked(e, r.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   if (!picked.includes(r.id)) { onAct("reveal", { id: r.id }); onPick([r.id]); }
@@ -275,20 +339,27 @@ export function Explorer(props: ExplorerProps) {
                   branch that is listing what it holds takes the accent; shut,
                   it stands down with the rest of the row — so one icon is both
                   what the row is and whether you are seeing all of it. */}
-              {/* One line per level above the row, hung under its holder's
-                  mark. The last carries the tick across to this row. */}
+              {/* One line per indent column, hung under the mark of the row it
+                  belongs to. The last carries the tick across to this one. */}
               {r.guides.map((more, i) => (more || i === r.depth - 1 ? (
                 <i key={i} aria-hidden className={["guide", i === r.depth - 1 ? "tick" : "",
                                                    more ? "" : "stop"].filter(Boolean).join(" ")}
-                   style={{ left: 14 + i * 14 }} />
+                   style={{ left: GUIDE + i * STEP }} />
               ) : null))}
+              {/* **A branch joins its own line.** Every other segment runs from
+                  the top of a row, so the line under an open branch began at
+                  the first child and left the mark it hangs from floating clear
+                  of it. This is the half-row that closes that gap. */}
+              {r.kids && !shut.includes(r.id) ? (
+                <i aria-hidden className="guide down" style={{ left: GUIDE + r.depth * STEP }} />
+              ) : null}
               <span className={["mark", r.mark,
                                 r.kids ? (shut.includes(r.id) ? "shut" : "on") : ""]
                        .filter(Boolean).join(" ")}
                     title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
                     onClick={(e) => { e.stopPropagation();
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-                <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={13} />
+                <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={MARK_SIZE} />
               </span>
               <Name id={r.id} className="label" text={r.label} />
             </li>
@@ -298,13 +369,29 @@ export function Explorer(props: ExplorerProps) {
               onContextMenu={(e) => { e.preventDefault(); onPick([]);
                                       set_menu({ x: e.clientX, y: e.clientY }); }} />
         </ul>
-      </NamingContext.Provider>
+
+      {/* **The edge is the control.** A panel whose width is a taste is
+          dragged to it rather than argued with, and the pointer is captured so
+          the drag survives crossing onto the drawing. */}
+      <div className="grip" role="separator" aria-orientation="vertical"
+           aria-label="how wide the explorer is"
+           onPointerDown={(e) => { grip.current = { x: e.clientX, w: width };
+                                   e.currentTarget.setPointerCapture(e.pointerId); }}
+           onPointerMove={(e) => {
+             if (!grip.current) return;
+             const want = grip.current.w + e.clientX - grip.current.x;
+             const most = Math.max(WIDTH.least, WIDTH.most(window.innerWidth));
+             set_width(Math.min(most, Math.max(WIDTH.least, want)));
+           }}
+           onPointerUp={() => { grip.current = null; }}
+           onPointerCancel={() => { grip.current = null; }} />
 
       {menu && offered ? (
         <Menu ctx={{ graph, layer: open, picked: [...picked] }} at={menu}
               onAct={onAct} onShut={() => set_menu(null)} />
       ) : null}
     </nav>
+    </NamingContext.Provider>
   );
 }
 
