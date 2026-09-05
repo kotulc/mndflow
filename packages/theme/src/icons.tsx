@@ -57,7 +57,11 @@ const PATHS = {
   // stands for something that lives elsewhere, and the mark says which way.
   role_reference: "M7 5h12v12z",
   role_note: "M5 8h14M5 12h14M5 16h9",
+  // A boundary drawn round what it holds — rules that run off the edge, the
+  // same hash the guides wear, because both are an unbounded frame.
   role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
+  // A group with an extent — cells you seat things in, bounded like a table.
+  role_table: "M4.5 6h15v12H4.5zM4.5 10.5h15M11 6v12",
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.

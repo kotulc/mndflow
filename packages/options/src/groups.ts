@@ -114,16 +114,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "display", label: "display",
       controls: [
-        /** **Four answers about the picture, and every one of them a state.**
-         *  The guides belong here rather than under `project`: ruling the
-         *  canvas is something you are looking at, exactly like whether a port
-         *  is drawn or a run bends square. */
-        { key: "guides", word: "guides",
-          tip: chrome.lattice ? "Stop ruling the canvas into cells"
-                              : "Rule the canvas into cells, faintly, behind everything",
-          icon: chrome.lattice ? "guides_on" : "guides_off",
-          on: !!chrome.lattice,
-          run: () => act("lattice", { show: !chrome.lattice }) },
         /** **`ports`, not `interfaces`.** One word, and the column is 68px
          *  wide — the long one wrapped to three lines and set the height of
          *  every row beside it. */
@@ -212,12 +202,17 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** **What is done to the project itself.** Two verbs and no state — what the
-   *  canvas is ruled with moved to `display`, where the rest of what you are
-   *  looking at lives. */
+  /** **What is done to the project itself.** Guides are a state the whole
+   *  drawing shares; the two verbs below are one-shots. */
   out.push({
     key: "project", label: "project",
     controls: [
+      { key: "guides", word: "guides",
+        tip: chrome.lattice ? "Stop ruling the canvas into cells"
+                            : "Rule the canvas into cells, faintly, behind everything",
+        icon: chrome.lattice ? "guides_on" : "guides_off",
+        on: !!chrome.lattice,
+        run: () => act("lattice", { show: !chrome.lattice }) },
       /** **The way in to everything the project can be told**, the way `define`
        *  is for one element. Nothing behind it yet. */
       { key: "settings", icon: "settings", word: "settings", verb: true,

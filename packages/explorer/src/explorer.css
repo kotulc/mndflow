@@ -11,8 +11,6 @@
   flex: none;
   max-width: 33.333vw;
   border-right: 1px solid var(--divider);
-  /* The options rail's ground, so the two edges of the page are one surface
-     and the stage is what sits between them. */
   background: var(--bg);
   overflow: hidden;
 }
@@ -32,9 +30,8 @@
 
 .explorer .grip:hover, .explorer .grip:active { background: var(--accent); }
 
-/* The tree's own header, and a step off both its neighbours: the app header
-   above it is the raised one and the tree below it is the ground, so this sits
-   between the two rather than joining either. */
+/* The tree's own header — one step above the tree, closer to the body than
+   the navbar's fill. */
 .explorer .bar {
   display: flex;
   align-items: center;

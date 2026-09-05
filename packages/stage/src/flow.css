@@ -292,14 +292,14 @@
 
 /* Four shades from the child's own name, so neighbours read apart. The steps
    are of one colour: this says "different", never "better" or "warmer". */
-.mnd-cell.tint-0 { --cell-fill: color-mix(in oklch, var(--card-line) 14%, transparent); }
-.mnd-cell.tint-1 { --cell-fill: color-mix(in oklch, var(--card-line) 26%, transparent); }
-.mnd-cell.tint-2 { --cell-fill: color-mix(in oklch, var(--card-line) 38%, transparent); }
-.mnd-cell.tint-3 { --cell-fill: color-mix(in oklch, var(--card-line) 50%, transparent); }
+.mnd-cell.tint-0 { --cell-fill: color-mix(in oklch, var(--card-line) 10%, transparent); }
+.mnd-cell.tint-1 { --cell-fill: color-mix(in oklch, var(--card-line) 18%, transparent); }
+.mnd-cell.tint-2 { --cell-fill: color-mix(in oklch, var(--card-line) 26%, transparent); }
+.mnd-cell.tint-3 { --cell-fill: color-mix(in oklch, var(--card-line) 34%, transparent); }
 
 /* And what the child is, which the shade does not say. A container holds
    another layer down; a reference lives somewhere else. */
-.mnd-cell.container { border-color: color-mix(in oklch, var(--card-line) 70%, transparent); }
+.mnd-cell.container { border-color: color-mix(in oklch, var(--card-line) 45%, transparent); }
 .mnd-cell.reference { color: var(--away); font-style: italic; }
 .mnd-cell.note { color: var(--note); font-style: italic; }
 
@@ -374,20 +374,20 @@
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  border: 1px dashed color-mix(in oklch, var(--muted) 45%, transparent);
+  border: 1px dashed color-mix(in oklch, var(--muted) 48%, transparent);
   border-radius: 4px;
-  background: color-mix(in oklch, var(--muted) 4%, transparent);
+  background: color-mix(in oklch, var(--muted) 1.5%, transparent);
   background-clip: padding-box;
   color: var(--muted);
 }
 .mnd-group:hover {
-  border-color: color-mix(in oklch, var(--accent) 70%, transparent);
-  background: color-mix(in oklch, var(--accent) 6%, transparent);
+  border-color: color-mix(in oklch, var(--accent) 42%, transparent);
+  background: color-mix(in oklch, var(--accent) 2.5%, transparent);
   background-clip: padding-box;
 }
 .mnd-group.picked {
-  border-color: color-mix(in oklch, var(--accent) 60%, transparent);
-  background: color-mix(in oklch, var(--accent) 5%, transparent);
+  border-color: color-mix(in oklch, var(--accent) 38%, transparent);
+  background: color-mix(in oklch, var(--accent) 2%, transparent);
   background-clip: padding-box;
   box-shadow: none;
 }
@@ -514,7 +514,11 @@
 
 /* ── Routes ────────────────────────────────────────────────────────────── */
 
-.mnd-flow .react-flow__edge-path { stroke: var(--route); }
+.mnd-flow .react-flow__edge-path {
+  stroke: var(--route);
+  stroke-width: 1.5;
+  opacity: 1;
+}
 .mnd-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); }
 .mnd-flow .react-flow__arrowhead * { fill: var(--route-head); stroke: none; }
 .mnd-flow .react-flow__edge.selected .react-flow__arrowhead * { fill: var(--accent); }
@@ -536,17 +540,17 @@
 .mnd-wire-name:hover { color: var(--text); }
 .react-flow__edge.selected .mnd-wire-name { color: var(--accent); }
 
-/* An association is quieter than a flow — the two are told apart by weight
-   rather than by colour, so a definition's slot still means what it says. */
-.mnd-flow .react-flow__edge.line .react-flow__edge-path { stroke-width: 1; opacity: 0.6; }
-.mnd-flow .react-flow__edge.directed .react-flow__edge-path { stroke-width: 1.75; }
-.mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
-/* **A tie is a note's own line, and it reads as one.** It is not structure —
-   it says *this remark is about that* — so it is drawn in the note's hue a step
-   down and broken, the way the note it comes from is drawn a step down. A
-   shorter dash than a reference's, because the two are different claims. */
+/* Straight, directed and tie share one weight and one stroke — the module
+   still reads from dash and arrowhead, not from how loud the line is. */
+.mnd-flow .react-flow__edge.line .react-flow__edge-path,
+.mnd-flow .react-flow__edge.directed .react-flow__edge-path,
 .mnd-flow .react-flow__edge.tie .react-flow__edge-path {
-  stroke: var(--route-tie);
+  stroke-width: 1.5;
+  opacity: 1;
+}
+.mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
+.mnd-flow .react-flow__edge.tie .react-flow__edge-path {
+  stroke: var(--route);
   stroke-dasharray: 3 4;
 }
 
@@ -837,8 +841,8 @@
   position: absolute;
   inset: 0;
   box-sizing: border-box;
-  border: 1px solid color-mix(in oklch, var(--card-line) 70%, transparent);
-  background: color-mix(in oklch, var(--card-line) 4%, transparent);
+  border: 1px solid color-mix(in oklch, var(--card-line) 36%, transparent);
+  background: color-mix(in oklch, var(--card-line) 1.5%, transparent);
   /* Only the four strips inside answer a pointer; the middle is cells. */
   pointer-events: none;
 }
@@ -865,20 +869,20 @@
 .mnd-grid-cell {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid color-mix(in oklch, var(--card-line) 24%, transparent);
+  border: 1px solid color-mix(in oklch, var(--card-line) 16%, transparent);
   pointer-events: auto;
   cursor: pointer;
 }
 
 /* A header carries meaning the cells beside it do not, so it reads darker. */
 .mnd-grid-cell.header {
-  background: color-mix(in oklch, var(--card-line) 12%, transparent);
-  border-color: color-mix(in oklch, var(--card-line) 40%, transparent);
+  background: color-mix(in oklch, var(--card-line) 8%, transparent);
+  border-color: color-mix(in oklch, var(--card-line) 28%, transparent);
 }
 
 /* A merged cell is one cell, and its border says so. */
 .mnd-grid-cell.merged {
-  border-color: color-mix(in oklch, var(--card-line) 44%, transparent);
+  border-color: color-mix(in oklch, var(--card-line) 30%, transparent);
 }
 
 .mnd-grid-cell:hover {

@@ -53,7 +53,7 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
               *  ancestor at depth *j+1* has a sibling still to come; the last
               *  column is the row's own. */
              guides: boolean[] };
-type Mark = "leaf" | "container" | "folder" | "interface" | "reference" | "note" | "group";
+type Mark = "leaf" | "container" | "folder" | "interface" | "reference" | "note" | "group" | "grid";
 
 /** What the tree draws under a block. A boundary, a note, a field and a
  *  reference are never listed — a reference is a second appearance of
@@ -102,7 +102,7 @@ const GUIDE = 8 + MARK_SIZE / 2;
 /** How wide the panel may be dragged. Narrow enough to be a margin, and never
  *  past a third of the window — the drawing is what the app is for, so it keeps
  *  two thirds of it whatever the panel is dragged to. */
-const WIDTH = { least: 168, most: (seen: number) => seen / 3, first: 280 };
+const WIDTH = { least: 168, most: (seen: number) => seen / 3, first: 168 };
 
 /** Where a drop on a row would land. **The edges of a row are the gaps between
  *  rows**: aiming *between* two things puts the pointer at the top or the
@@ -131,6 +131,7 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
   reference: { icon: "role_reference" },
   note: { icon: "role_note" },
   group: { icon: "role_group" },
+  grid: { icon: "role_table" },
 };
 
 export function Explorer(props: ExplorerProps) {
@@ -250,14 +251,11 @@ export function Explorer(props: ExplorerProps) {
            if (ids.length) onAct("move", { ids, parent: graph.root });
          }}>
       <div className="bar">
-        {/* **The workspace, by its own name.** The header above says how much
-            is in the session; what it is called belongs on the tree it names —
-            and it renames on two clicks, like every other name in the app. */}
-        <span className="chip" title="the workspace — double click to rename"
-              onClick={() => { if (naming !== graph.root) {
-                                 onAct("open", { id: graph.root }); onPick([]); } }}
-              onDoubleClick={() => set_naming(graph.root)}>
-          <Name id={graph.root} className="label" text={shown_name(graph, graph.root)} />
+        {/* **The workspace, as [WS].** One fixed mark for the root the tree
+            names — a click opens the top level, like every other chip. */}
+        <span className="chip" title="the workspace"
+              onClick={() => { onAct("open", { id: graph.root }); onPick([]); }}>
+          <span className="label">[WS]</span>
         </span>
         <span className="tools">
           <button title={`add a block in ${shown_name(graph, target)}`}

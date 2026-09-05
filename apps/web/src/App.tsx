@@ -63,7 +63,7 @@ export function App() {
   const [wide, set_wide] = useState(false);
   /** The mirror off. **Not the strip collapsed** — two questions, two controls. */
   const [quiet, set_quiet] = useState(false);
-  const [shown, set_shown] = useState({ interfaces: true, angles: true, lattice: false });
+  const [shown, set_shown] = useState({ interfaces: true, angles: true, lattice: true });
   /** Which way a right drag draws a line. Display state until it is drawn, and
    *  then it is what the relationship was made as. */
   const [module, set_module] = useState<RelationModule>("line");

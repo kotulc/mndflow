@@ -32,19 +32,19 @@ export type Placed = { id: Id; x: number; y: number; w: number; h: number };
 export function laid(graph: Graph, layer: Id | null): Placed[] {
   const units = children(graph, layer).filter((b) => !is_interface(b));
   if (units.length === 0) return [];
-  /** **Two sorts of thing take no part in the arrangement.** A block with a
-   *  cell is placed by its address, the same way a seated interface is — what
-   *  places it is the grid it is in, once that grid has been placed. And a band
-   *  has no place of its own at all: it is drawn round its members, so it
-   *  claims no cell and is worked out once they are down. */
-  const loose = units.filter((b) => !gridded(graph, b.id) && !is_band(graph, b));
+  /** **Two sorts of thing take no part in the loose arrangement.** A block with
+   *  a cell is placed by its address, the same way a seated interface is —
+   *  what places it is the grid it is in, once that grid has been placed. And
+   *  a block in a band is placed inside the band, once the band has been
+   *  placed — the same contract a grid's members have. */
+  const loose = units.filter((b) => !gridded(graph, b.id) && !in_band(graph, b.id));
   const how = arrangement_of(graph, layer);
   /** **The order the layer states them in.** `num` is a block's place among its
    *  siblings, so re-ordering in the tree re-orders the grid — and the same
    *  graph always tiles the same way. */
   const sized = [...loose]
     .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
-    .map((b) => ({ b, s: size_of(graph, b.id) }));
+    .map((b) => ({ b, s: is_band(graph, b) ? band_size(graph, b) : size_of(graph, b.id) }));
   /** **Hand placement is never re-centred.** `grid` works out positions from
    *  nothing and grows outward from the origin. `free` was already told where
    *  each card goes — and shifting the whole layer to keep its bounds centred
@@ -52,8 +52,19 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
    *  nothing ever landed where it was let go of and a card made where you
    *  pointed appeared somewhere else. */
   const spots = ordered(how === "grid" ? settled(sized) : free(sized));
-  const inside = [...spots, ...celled(graph, units, spots)];
+  const bands = new Set(units.filter((b) => is_band(graph, b)).map((b) => b.id));
+  const loose_spots = spots.filter((p) => !bands.has(p.id));
+  const inside = [...loose_spots, ...celled(graph, units, spots),
+                  ...band_members(graph, units, spots)];
   return ordered([...inside, ...banded(graph, units, inside)]);
+}
+
+/** Whether a block sits in a dashed band rather than a grid. */
+function in_band(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  if (!b?.group) return false;
+  const g = graph.blocks[b.group];
+  return !!g && module_of(graph, b.group) === "group" && !is_grid(g);
 }
 
 /** Whether a group is a band rather than a grid: members and no extent. */
@@ -61,12 +72,65 @@ function is_band(graph: Graph, b: Block): boolean {
   return module_of(graph, b.id) === "group" && !is_grid(b);
 }
 
+/** What a band takes up for spacing: its members packed tight, plus a margin.
+ *
+ *  **The same footprint a grid gets from its extent.** A band has no stored
+ *  rows and columns, so the size is worked out from what it holds — but once
+ *  worked out it is spaced from its neighbours exactly as a grid is. */
+function band_size(graph: Graph, band: Block): Size {
+  const mem = band_sized(graph, band.id);
+  if (!mem.length) return { w: GAP * 2, h: GAP * 2 };
+  const { w, h } = packed(mem);
+  return { w: w + GAP * 2, h: h + GAP * 2 };
+}
+
+/** Every member of a band, placed inside it once the band has a spot. */
+function band_members(graph: Graph, units: readonly Block[], spots: readonly Placed[]): Placed[] {
+  const at = new Map(spots.map((p) => [p.id, p]));
+  const out: Placed[] = [];
+  for (const b of units) {
+    if (!is_band(graph, b)) continue;
+    const band = at.get(b.id);
+    if (!band) continue;
+    const { layout } = packed(band_sized(graph, b.id));
+    for (const p of layout) {
+      out.push({ ...p, x: band.x + GAP + p.x, y: band.y + GAP + p.y });
+    }
+  }
+  return out;
+}
+
+function band_sized(graph: Graph, band: Id): Sized[] {
+  return members_of(graph, band)
+    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
+    .map((b) => ({ b, s: size_of(graph, b.id) }));
+}
+
+/** Members shelved inside a band, from the band's own corner. */
+function packed(all: Sized[]): { layout: Placed[]; w: number; h: number } {
+  if (!all.length) return { layout: [], w: 0, h: 0 };
+  const area = all.reduce((n, it) => n + (it.s.w + GAP) * (it.s.h + GAP), 0);
+  const want = Math.max(...all.map((it) => it.s.w), Math.sqrt(area));
+  const layout: Placed[] = [];
+  let x = 0;
+  let y = 0;
+  let tall = 0;
+  for (const it of all) {
+    if (x > 0 && x + it.s.w > want) { x = 0; y += tall + GAP; tall = 0; }
+    layout.push({ id: it.b.id, x, y, ...it.s });
+    x += it.s.w + GAP;
+    tall = Math.max(tall, it.s.h);
+  }
+  const right = Math.max(...layout.map((p) => p.x + p.w));
+  const bottom = Math.max(...layout.map((p) => p.y + p.h));
+  return { layout, w: right, h: bottom };
+}
+
 /** Every band, as the bounds of what it holds.
  *
- *  **Worked out here rather than left to whoever draws it.** A band's size is a
- *  fact about its members, so it cannot be arranged and it cannot be stored —
- *  and given a cell of its own in a tiling it took one, leaving a hole in the
- *  square with the band drawn somewhere else entirely. */
+ *  **Worked out here rather than left to whoever draws it.** A band's rim is
+ *  still a fact about its members — the spot it took in the lattice is only
+ *  for spacing, and the drawn frame hugs what is inside. */
 function banded(graph: Graph, units: readonly Block[], spots: readonly Placed[]): Placed[] {
   const out: Placed[] = [];
   for (const b of units) {
@@ -192,10 +256,10 @@ function clear_at(taken: readonly Rect[], at: Point, s: Size): Rect {
  *  afterwards be moved by hand. */
 export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: number }[] {
   const units = children(graph, layer)
-    .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !is_band(graph, b));
+    .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !in_band(graph, b.id));
   const sized = [...units]
     .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
-    .map((b) => ({ b, s: size_of(graph, b.id) }));
+    .map((b) => ({ b, s: is_band(graph, b) ? band_size(graph, b) : size_of(graph, b.id) }));
   return shelved(sized).map((p) => ({ id: p.id, x: p.x, y: p.y }));
 }
 

@@ -517,7 +517,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
           grid is moved from and renamed. */}
       {(grid || data.label || naming.id === id) && !data.marks.includes("unlabelled")
         ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
-      <Wears role={data.role} />
+      <Wears role={data.role} icon={grid ? "role_table" : "role_group"} />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );

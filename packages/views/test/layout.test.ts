@@ -236,6 +236,21 @@ describe("a grid's cells sit on the unit lattice", () => {
  *  clear of its neighbours — never touching, never sharing a line. */
 describe("the layout leaves room between things", () => {
 
+  it("keeps a unit between a band and its neighbours, the way a grid is kept", () => {
+    const graph = fold(related());
+    const spots = under(graph, "block_loop", "grid")
+      .filter((p) => module_of(graph, p.id) !== "group")
+      .map((p) => ({ ...p }));
+    const band = laid(graph, "block_loop").find((p) => p.id === "block_hot")!;
+    const others = spots.filter((p) => !graph.blocks[p.id]?.group);
+    expect(others.length).toBeGreaterThan(0);
+    for (const other of others) {
+      const gap = Math.max(other.x - (band.x + band.w), band.x - (other.x + other.w),
+                           other.y - (band.y + band.h), band.y - (other.y + other.h));
+      expect(gap, `${other.id} and block_hot`).toBeGreaterThanOrEqual(UNIT);
+    }
+  });
+
   it("keeps at least a unit between any two things it places", () => {
     const { graph: from, layer } = layer_of("gridded");
     /** A grid and some loose cards on one layer, which is the case this is
