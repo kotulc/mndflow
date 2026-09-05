@@ -33,8 +33,8 @@
      themes** — violet always means elsewhere, amber always a note — while
      their lightness follows the ladder, which is what the old flat hexes could
      not do and why they were invisible in `light`. */
-  --away-h: 285; --away-c: 0.16;
-  --note-h: 78; --note-c: 0.14;
+  --away-h: 286; --away-c: 0.12;
+  --note-h: 78; --note-c: 0.09;
   --error-h: 25; --error-c: 0.18;
   --warn-h: 50; --warn-c: 0.14;
 }
@@ -177,19 +177,19 @@
   --s-muted-dim: oklch(var(--l-dim) calc(var(--muted-c) * 0.70) var(--muted-h));
   --s-muted-ink: oklch(var(--l-ink) var(--muted-c) var(--muted-h));
 
-  --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.22) var(--away-h));
-  --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.55) var(--away-h));
-  --s-away-stroke: oklch(var(--l-stroke) calc(var(--away-c) * 0.60) var(--away-h));
-  --s-away-edge: oklch(var(--l-edge) var(--away-c) var(--away-h));
-  --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.45) var(--away-h));
-  --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.40) var(--away-h));
+  --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.20) var(--away-h));
+  --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.44) var(--away-h));
+  --s-away-stroke: oklch(var(--l-stroke) calc(var(--away-c) * 0.50) var(--away-h));
+  --s-away-edge: oklch(var(--l-edge) calc(var(--away-c) * 0.70) var(--away-h));
+  --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.38) var(--away-h));
+  --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.34) var(--away-h));
 
-  --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.22) var(--note-h));
-  --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.55) var(--note-h));
-  --s-note-stroke: oklch(var(--l-stroke) calc(var(--note-c) * 0.60) var(--note-h));
-  --s-note-edge: oklch(var(--l-edge) var(--note-c) var(--note-h));
-  --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.45) var(--note-h));
-  --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.40) var(--note-h));
+  --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.18) var(--note-h));
+  --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.40) var(--note-h));
+  --s-note-stroke: oklch(var(--l-stroke) calc(var(--note-c) * 0.44) var(--note-h));
+  --s-note-edge: oklch(var(--l-edge) calc(var(--note-c) * 0.72) var(--note-h));
+  --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.32) var(--note-h));
+  --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.30) var(--note-h));
 
   --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
   --s-error-ink: oklch(var(--l-ink) calc(var(--error-c) * 0.45) var(--error-h));
@@ -212,10 +212,10 @@
   --faint: var(--s-muted-dim);
   --accent: var(--s-primary-edge);
   --tint: var(--s-primary-fill);
-  --away: var(--s-away-edge);
-  --away-dim: var(--s-away-dim);
-  --note: var(--s-note-edge);
-  --note-dim: var(--s-note-dim);
+  --away: var(--s-away-stroke);
+  --away-dim: var(--s-away-line);
+  --note: var(--s-note-dim);
+  --note-dim: var(--s-note-stroke);
   --error: var(--s-error-edge);
   --warn: var(--s-warn-edge);
   /* Translucent panels ride over whatever is behind them, so this one keeps an
@@ -242,7 +242,7 @@
      values — a `var()` resolves there because the edge is drawn in the page. */
   --route: var(--s-primary-stroke);
   --route-head: var(--s-primary-dim);
-  --route-away: var(--s-away-dim);
+  --route-away: var(--s-away-stroke);
   /* Beyond the frame. Dimmer than the working area in every theme, but taken
      from the ladder rather than fixed — a near-black surround is right in a
      cyanotype and wrong on a whiteprint. */
@@ -1270,25 +1270,24 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* A card standing in for a node that lives in another layer.
  *
- * It has to read as *not from here* at a glance, and a dashed border cannot
- * say that — containers are already dashed. So it steps out of the palette
- * instead: grey rather than green, hatched rather than filled, and marked in
- * the corner with the arrow that means "elsewhere". */
+ * Violet throughout — wash, hatch, solid border, corner mark — so it reads as
+ * *not from here* without sharing the dashed line containers use. */
 
 .card.reference {
-  border-style: dashed;
-  border-color: var(--s-away-line);
-  color: var(--muted);
+  border-style: solid;
+  border-color: var(--away);
+  color: var(--away);
   background:
     repeating-linear-gradient(
       135deg,
-      color-mix(in oklch, var(--muted) 6%, transparent) 0 5px,
+      color-mix(in oklch, var(--away) 10%, transparent) 0 5px,
       transparent 5px 10px
     ),
-    var(--card-fill);
+    color-mix(in oklch, var(--s-away-fill) 55%, transparent);
+  background-clip: padding-box;
 }
 
-.card.reference .card-head .label { color: var(--s-away-dim); font-style: italic; }
+.card.reference .card-head .label { color: var(--away); font-style: italic; }
 .card.reference .card-head .kind { color: var(--s-muted-dim); }
 
 /* The mark for what it is: away, not here. On `::before`, because `::after`
@@ -1298,14 +1297,14 @@ button:disabled { opacity: 0.4; cursor: default; }
   position: absolute;
   top: 2px;
   right: 5px;
-  color: var(--s-muted-dim);
+  color: var(--away);
   font-size: 11px;
   line-height: 1;
   pointer-events: none;
 }
 
-.card.reference.grazed { border-color: var(--s-away-edge); }
-.card.reference.grazed::before { color: var(--s-away-dim); }
+.card.reference.grazed { border-color: var(--away); }
+.card.reference.grazed::before { color: var(--away); }
 
 .card.reference.picked {
   border-color: var(--accent);
@@ -2087,12 +2086,12 @@ header .tools button.word {
    but it is a fact about where the far end lives and not about the relation
    itself, so the violet sits under the green lines in weight and lets the kind
    and the label read first. Hover and selection bring it back up to full. */
-.react-flow__edge.reaching .react-flow__edge-path { opacity: 0.55; }
+.react-flow__edge.reaching .react-flow__edge-path { opacity: 0.9; }
 .react-flow__edge.reaching:hover .react-flow__edge-path,
 .react-flow__edge.reaching.selected .react-flow__edge-path,
 .react-flow__edge.reaching.selected .react-flow__edge-path { opacity: 1; }
 .react-flow__edge.reaching .react-flow__edge-text {
-  fill: var(--s-away-dim); font-style: italic; opacity: 0.75;
+  fill: var(--away-dim); font-style: italic; opacity: 0.92;
 }
 .react-flow__edge.reaching:hover .react-flow__edge-path { stroke: var(--away); }
 .react-flow__edge.reaching.selected .react-flow__edge-path { stroke: var(--away); }
@@ -2328,7 +2327,7 @@ header .tools button.word {
   border: 1px solid var(--note-dim);
   border-left: 3px solid var(--note-dim);
   border-radius: 2px;
-  background: color-mix(in oklch, var(--note) 5%, transparent);
+  background: color-mix(in oklch, var(--note) 3%, transparent);
   background-clip: padding-box;
   color: var(--muted);
   font-size: 12px;
@@ -2350,7 +2349,7 @@ header .tools button.word {
 .note.picked {
   border-color: var(--note);
   color: var(--text);
-  background: color-mix(in oklch, var(--note) 9%, transparent);
+  background: color-mix(in oklch, var(--note) 6%, transparent);
   background-clip: padding-box;
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--note) 30%, transparent);
 }

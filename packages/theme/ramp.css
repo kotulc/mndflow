@@ -33,8 +33,8 @@
      themes** — violet always means elsewhere, amber always a note — while
      their lightness follows the ladder, which is what the old flat hexes could
      not do and why they were invisible in `light`. */
-  --away-h: 285; --away-c: 0.16;
-  --note-h: 78; --note-c: 0.14;
+  --away-h: 286; --away-c: 0.12;
+  --note-h: 78; --note-c: 0.09;
   --error-h: 25; --error-c: 0.18;
   --warn-h: 50; --warn-c: 0.14;
 }
@@ -182,19 +182,19 @@
   --s-muted-dim: oklch(var(--l-dim) calc(var(--muted-c) * 0.70) var(--muted-h));
   --s-muted-ink: oklch(var(--l-ink) var(--muted-c) var(--muted-h));
 
-  --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.22) var(--away-h));
-  --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.55) var(--away-h));
-  --s-away-stroke: oklch(var(--l-stroke) calc(var(--away-c) * 0.60) var(--away-h));
-  --s-away-edge: oklch(var(--l-edge) var(--away-c) var(--away-h));
-  --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.45) var(--away-h));
-  --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.40) var(--away-h));
+  --s-away-fill: oklch(var(--l-fill) calc(var(--away-c) * 0.20) var(--away-h));
+  --s-away-line: oklch(var(--l-line) calc(var(--away-c) * 0.44) var(--away-h));
+  --s-away-stroke: oklch(var(--l-stroke) calc(var(--away-c) * 0.50) var(--away-h));
+  --s-away-edge: oklch(var(--l-edge) calc(var(--away-c) * 0.70) var(--away-h));
+  --s-away-dim: oklch(var(--l-dim) calc(var(--away-c) * 0.38) var(--away-h));
+  --s-away-ink: oklch(var(--l-ink) calc(var(--away-c) * 0.34) var(--away-h));
 
-  --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.22) var(--note-h));
-  --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.55) var(--note-h));
-  --s-note-stroke: oklch(var(--l-stroke) calc(var(--note-c) * 0.60) var(--note-h));
-  --s-note-edge: oklch(var(--l-edge) var(--note-c) var(--note-h));
-  --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.45) var(--note-h));
-  --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.40) var(--note-h));
+  --s-note-fill: oklch(var(--l-fill) calc(var(--note-c) * 0.18) var(--note-h));
+  --s-note-line: oklch(var(--l-line) calc(var(--note-c) * 0.40) var(--note-h));
+  --s-note-stroke: oklch(var(--l-stroke) calc(var(--note-c) * 0.44) var(--note-h));
+  --s-note-edge: oklch(var(--l-edge) calc(var(--note-c) * 0.72) var(--note-h));
+  --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.32) var(--note-h));
+  --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.30) var(--note-h));
 
   --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
   --s-error-ink: oklch(var(--l-ink) calc(var(--error-c) * 0.45) var(--error-h));
@@ -217,10 +217,10 @@
   --faint: var(--s-muted-dim);
   --accent: var(--s-primary-edge);
   --tint: var(--s-primary-fill);
-  --away: var(--s-away-edge);
-  --away-dim: var(--s-away-dim);
-  --note: var(--s-note-edge);
-  --note-dim: var(--s-note-dim);
+  --away: var(--s-away-stroke);
+  --away-dim: var(--s-away-line);
+  --note: var(--s-note-dim);
+  --note-dim: var(--s-note-stroke);
   --error: var(--s-error-edge);
   --warn: var(--s-warn-edge);
   /* Translucent panels ride over whatever is behind them, so this one keeps an
@@ -250,7 +250,7 @@
   /* A tie is a note's own line, so it is the note's hue a step down — the same
      value the note card is drawn in, which is what makes a remark and the line
      carrying it to a block read as one thing. */
-  --route-tie: var(--s-note-dim);
+  --route-tie: var(--s-note-stroke);
   /* Beyond the frame. Dimmer than the working area in every theme, but taken
      from the ladder rather than fixed — a near-black surround is right in a
      cyanotype and wrong on a whiteprint. */

@@ -56,11 +56,11 @@ svg.scene {
   --faint-fill: var(--s-muted-fill, oklch(0.985 0.005 232));
   --faint-line: var(--s-muted-line, oklch(0.800 0.008 232));
   --faint: var(--s-muted-dim, oklch(0.495 0.010 232));
-  --away: var(--s-away-edge, oklch(0.500 0.160 285));
-  --away-dim: var(--s-away-dim, oklch(0.495 0.072 285));
+  --away: var(--s-away-stroke, oklch(0.420 0.060 286));
+  --away-dim: var(--s-away-line, oklch(0.335 0.053 286));
   --wrong: var(--s-error-edge, oklch(0.500 0.180 25));
-  --note: var(--s-note-edge, oklch(0.500 0.140 78));
-  --note-dim: var(--s-note-dim, oklch(0.495 0.063 78));
+  --note: var(--s-note-dim, oklch(0.495 0.029 78));
+  --note-dim: var(--s-note-stroke, oklch(0.620 0.040 78));
   --face: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: var(--bg, var(--ground));
 }
@@ -76,9 +76,9 @@ svg.scene .card rect { fill: var(--fill); stroke: var(--line); stroke-width: 1; 
 svg.scene .card text { fill: var(--ink); font: 12px var(--face); }
 svg.scene .card.container rect { fill: var(--lead-fill); stroke: var(--lead); }
 svg.scene .card.reference rect {
-  fill: var(--away); fill-opacity: 0.10; stroke: var(--away-dim);
+  fill: var(--away); fill-opacity: 0.06; stroke: var(--away);
 }
-svg.scene .card.reference text { fill: var(--away-dim); }
+svg.scene .card.reference text { fill: var(--away); }
 svg.scene .card.missing rect { stroke: var(--wrong); }
 svg.scene .card.missing text { fill: var(--wrong); }
 svg.scene .card.note rect {
@@ -107,7 +107,7 @@ svg.scene .route .head { fill: var(--stroke); }
 svg.scene .route text { fill: var(--dim); font: 10px var(--face); }
 svg.scene .route.directed path { stroke: var(--lead); }
 svg.scene .route.directed .head { fill: var(--lead); }
-svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.55; }
+svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.9; }
 svg.scene .route.tie path {
   stroke: var(--note-dim); stroke-dasharray: 0 4; stroke-linecap: round;
   stroke-width: 1.5; opacity: 0.75;

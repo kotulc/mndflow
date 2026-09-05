@@ -233,7 +233,7 @@
 /* Each mark takes the colour of what it marks, so the corner agrees with the
    card it sits on rather than being one more grey. */
 .mnd-role[data-role="note"] { color: var(--note-dim); }
-.mnd-role[data-role="reference"] { color: var(--away-dim); }
+.mnd-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
 .mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
 
 /* The subtype, where somebody set one. It sits back a step: what the card is
@@ -325,16 +325,24 @@
 
 /* Somewhere else, and a description rather than structure. */
 .mnd-card.reference {
-  border-color: var(--away-dim);
-  background: color-mix(in oklch, var(--away) 10%, transparent);
-  color: var(--away-dim);
+  border-style: solid;
+  border-color: var(--away);
+  color: var(--away);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--away) 10%, transparent) 0 5px,
+      transparent 5px 10px
+    ),
+    color-mix(in oklch, var(--s-away-fill) 55%, transparent);
+  background-clip: padding-box;
 }
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
 
 /* A note and its tie read as one thing — the same quiet note colour on both. */
 .mnd-card.note {
   border-color: var(--note-dim);
-  background: color-mix(in oklch, var(--note) 10%, transparent);
+  background: color-mix(in oklch, var(--note) 6%, transparent);
   color: var(--note-dim);
   font-style: italic;
   padding: 5px 8px;
@@ -626,11 +634,11 @@
 }
 .mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
 .mnd-flow .react-flow__edge.reference .react-flow__edge-path {
-  stroke: var(--away-dim);
+  stroke: var(--away);
   stroke-dasharray: 5 4;
-  opacity: 0.55;
+  opacity: 0.9;
 }
-.mnd-flow .react-flow__edge.reference .react-flow__arrowhead * { fill: var(--away-dim); }
+.mnd-flow .react-flow__edge.reference .react-flow__arrowhead * { fill: var(--away); opacity: 0.9; }
 .mnd-flow .react-flow__edge.tie .react-flow__edge-path {
   stroke: var(--note-dim);
   stroke-width: 1.5;
