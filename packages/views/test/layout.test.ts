@@ -146,7 +146,7 @@ describe("the grid arrangement", () => {
     const spots = under(graph, layer, "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     for (const b of Object.values(graph.blocks)) {
-      if (!b.cell || !b.group) continue;
+      if (!b.cell || !b.group || b.header) continue;
       const grid = at.get(b.group);
       const p = at.get(b.id);
       if (!grid || !p) continue;

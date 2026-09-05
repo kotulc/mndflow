@@ -20,9 +20,10 @@
  *  through dagre, which drew a picture of the graph rather than of the model —
  *  and the reading directions they carried were a setting nobody set. */
 
-import { arrangement_of, children, edges_in, is_grid, is_interface, is_reference, layer_id,
-         members_of, module_of, type Block, type Graph, type Id, type Point } from "@mnd/core";
-import { cell_box, centred_in, gridded, on_unit, size_of, snap,
+import { arrangement_of, children, edges_in, is_grid, is_header, is_interface, is_reference,
+         layer_id, members_of, module_of, type Block, type Graph, type Id,
+         type Point } from "@mnd/core";
+import { cell_box, centred_in, fills_cell, gridded, on_unit, size_of, snap,
          GAP, UNIT, type Size } from "./size";
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
@@ -184,7 +185,8 @@ function celled(graph: Graph, units: readonly Block[], spots: readonly Placed[])
     const grid = at.get(b.group!);
     if (!grid) continue;
     const box = cell_box(graph.blocks[b.group!]!, b.cell!.r, b.cell!.c);
-    const in_cell = centred_in(box, size_of(graph, b.id));
+    const in_cell = is_header(b)
+      ? fills_cell(box) : centred_in(box, size_of(graph, b.id));
     /** **Never re-snapped.** The address already places it exactly, and
      *  rounding to the nearest grid step is what pushed a centred block into
      *  the corner of its own cell. */
@@ -525,7 +527,8 @@ function placed_of(graph: Graph, id: Id, placed: readonly Placed[]): Placed | nu
     const grid = placed.find((p) => p.id === b.group);
     if (!grid) return null;
     const box = cell_box(graph.blocks[b.group]!, b.cell.r, b.cell.c);
-    const in_cell = centred_in(box, size_of(graph, id));
+    const in_cell = is_header(b)
+      ? fills_cell(box) : centred_in(box, size_of(graph, id));
     return { id, x: grid.x + in_cell.x, y: grid.y + in_cell.y, w: in_cell.w, h: in_cell.h };
   }
   if (in_band(graph, id) && b.group) {

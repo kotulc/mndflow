@@ -57,10 +57,10 @@ svg.scene {
   --faint-line: var(--s-muted-line, oklch(0.800 0.008 232));
   --faint: var(--s-muted-dim, oklch(0.495 0.010 232));
   --away: var(--s-away-edge, oklch(0.500 0.160 285));
+  --away-dim: var(--s-away-dim, oklch(0.495 0.072 285));
   --wrong: var(--s-error-edge, oklch(0.500 0.180 25));
-  --note-fill: var(--s-note-fill, oklch(0.985 0.031 78));
-  --note-line: var(--s-note-line, oklch(0.800 0.077 78));
-  --note-ink: var(--s-note-ink, oklch(0.265 0.056 78));
+  --note: var(--s-note-edge, oklch(0.500 0.140 78));
+  --note-dim: var(--s-note-dim, oklch(0.495 0.063 78));
   --face: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   background: var(--bg, var(--ground));
 }
@@ -75,12 +75,16 @@ svg.scene .frame text {
 svg.scene .card rect { fill: var(--fill); stroke: var(--line); stroke-width: 1; }
 svg.scene .card text { fill: var(--ink); font: 12px var(--face); }
 svg.scene .card.container rect { fill: var(--lead-fill); stroke: var(--lead); }
-svg.scene .card.reference rect { fill: none; stroke: var(--away); stroke-dasharray: 4 3; }
-svg.scene .card.reference text { fill: var(--away); }
+svg.scene .card.reference rect {
+  fill: var(--away); fill-opacity: 0.10; stroke: var(--away-dim);
+}
+svg.scene .card.reference text { fill: var(--away-dim); }
 svg.scene .card.missing rect { stroke: var(--wrong); }
 svg.scene .card.missing text { fill: var(--wrong); }
-svg.scene .card.note rect { fill: var(--note-fill); stroke: var(--note-line); }
-svg.scene .card.note text { fill: var(--note-ink); }
+svg.scene .card.note rect {
+  fill: var(--note); fill-opacity: 0.10; stroke: var(--note-dim);
+}
+svg.scene .card.note text { fill: var(--note-dim); }
 svg.scene .card.group rect {
   fill: var(--faint-fill); fill-opacity: 0.4; stroke: var(--faint-line);
   stroke-dasharray: 6 4;
@@ -103,10 +107,12 @@ svg.scene .route .head { fill: var(--stroke); }
 svg.scene .route text { fill: var(--dim); font: 10px var(--face); }
 svg.scene .route.directed path { stroke: var(--lead); }
 svg.scene .route.directed .head { fill: var(--lead); }
-svg.scene .route.reference path { stroke: var(--away); stroke-dasharray: 5 3; opacity: 0.6; }
+svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.55; }
 svg.scene .route.tie path {
-  stroke: var(--note-line); stroke-dasharray: 2 4; stroke-width: 1; opacity: 0.55;
+  stroke: var(--note-dim); stroke-dasharray: 0 4; stroke-linecap: round;
+  stroke-width: 1.5; opacity: 0.75;
 }
+svg.scene .route.tie .head { fill: var(--note-dim); }
 `.trim();
 
 /** The whole scene, as one SVG document. */

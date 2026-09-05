@@ -134,14 +134,16 @@ export function gridded(): Log {
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
     step("group", [
       block("block_lanes", "block_board", "Lanes", "group"),
-      { op: "set_grid", id: "block_lanes", rows: 3, cols: 4, headers: "row" },
+      { op: "set_grid", id: "block_lanes", rows: 3, cols: 4 },
       { op: "place_block", id: "block_lanes", x: 0, y: 0 },
     ]),
     ...named.map(([id, label]) =>
       step("create", [block(id, "block_board", label, "block")])),
     step("seat", [
       joins("block_alice"), seat("block_alice", 1, 0),
+      { op: "set_header", id: "block_alice", header: "row" },
       joins("block_bob"), seat("block_bob", 2, 0),
+      { op: "set_header", id: "block_bob", header: "row" },
       joins("block_draft"), seat("block_draft", 1, 1),
       joins("block_review"), seat("block_review", 1, 2),
       joins("block_ship"), seat("block_ship", 1, 3),

@@ -70,7 +70,7 @@ export type BoxData = {
 export type Mark = "container" | "reference" | "missing" | "note" | "group"
                  | "unlabelled" | "locked"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
-                 | "cell" | "header" | "merged";
+                 | "cell" | "header" | "header_row" | "header_col" | "merged" | "promoted";
 
 /** One cell of a grid, placed inside the grid's own box. A merged region is one
  *  cell drawn once, at the span's corner and the span's size. */

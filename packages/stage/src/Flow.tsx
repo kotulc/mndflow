@@ -286,7 +286,7 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
  *  — a definition's slot is what colour means on this canvas, and a line
  *  borrowing one would be saying something the vocabulary already says. */
 const READS: Record<string, string> = {
-  line: "line", directed: "directed", reference: "line dashed", tie: "line tie",
+  line: "line", directed: "directed", reference: "reference", tie: "tie",
 };
 
 /** **Which seat each end meets is the projection's**, and arrives on the edge

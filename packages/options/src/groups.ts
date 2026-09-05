@@ -1,5 +1,4 @@
-import { ARRANGEMENTS, type Act, type Arrangement, type Headers,
-         type RelationModule } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement, type RelationModule } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
@@ -34,7 +33,6 @@ export type Chrome = {
     locked: boolean;
     framed: boolean;
     grid?: boolean;
-    headers?: Headers;
   };
   arrangement?: Arrangement;
   /** Whether the backdrop draws the lattice everything lands on. */
@@ -131,26 +129,13 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  pinning its definition are all answers about one element and not about the
    *  layer around it. */
   if (chrome.element) {
-    const { id, labelled, locked, framed, grid, headers } = chrome.element;
-    const heads = (which: "row" | "col") => headers === which || headers === "both";
-    const toggled = (which: "row" | "col"): Headers => {
-      const other = which === "row" ? "col" : "row";
-      if (heads(which)) return heads(other) ? other : "none";
-      return heads(other) ? "both" : which;
-    };
+    const { id, labelled, locked, framed } = chrome.element;
     out.push({
       key: "element", label: "element",
       controls: [
         { key: "define", icon: "define", word: "define",
           tip: "What this is: its name, type, tags, look and values",
           run: () => act("define", { id }) },
-        ...(framed && grid ? (["row", "col"] as const).map((which) => ({
-          key: which, icon: which === "row" ? "header_row" : "header_col",
-          word: `${which} header`,
-          tip: `Read ${which === "row" ? "column 0" : "row 0"} as headers`,
-          on: heads(which),
-          run: () => act("group", { into: id, headers: toggled(which) }),
-        })) : []),
         ...(framed ? [{
           key: "label", word: "label",
           tip: labelled ? "Stop writing the name on the frame"

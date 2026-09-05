@@ -70,6 +70,9 @@ export type Headers = "none" | "row" | "col" | "both";
 
 export const HEADERS: readonly Headers[] = ["none", "row", "col", "both"];
 
+/** Whether a seated block heads its row, its column, or both. */
+export type HeaderRole = "row" | "col" | "both";
+
 /** The one element. What it *is* comes from its definition. */
 export type Block = {
   id: Id;
@@ -85,6 +88,9 @@ export type Block = {
   /** Where in that group. Replaces `x`/`y` for a gridded block, exactly as
    *  `side` and `at` replace them for an interface. */
   cell?: Cell;
+  /** **A promoted block expands to fill its grid cell.** Stored on the block,
+   *  not the grid. */
+  header?: HeaderRole;
   /** Only meaningful on a group: its extent, which is what lets an empty grid
    *  draw. A group with neither is a boundary — a band round its members. */
   rows?: number;
@@ -225,6 +231,7 @@ export type Mutation =
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
+  | { op: "set_header"; id: Id; header: HeaderRole | null }
   | { op: "set_grid"; id: Id; rows?: number | null; cols?: number | null;
       headers?: Headers | null }
   | { op: "merge_cells"; id: Id; span: Span }

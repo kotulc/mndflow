@@ -452,6 +452,8 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
               className={["mnd-grid-cell", "nopan", ...c.marks,
                           held(c) ? "picked" : ""].filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
+              data-r={c.r}
+              data-c={c.c}
               style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
@@ -490,19 +492,22 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   const look = data.look ?? PLAIN;
   const has_cells = !!data.grid?.length;
   const show_name = !data.marks.includes("unlabelled");
+  const shell = ["mnd-group-shell", has_cells ? "gridded" : ""].filter(Boolean).join(" ");
+  const group = ["mnd-group", has_cells ? "gridded" : "",
+                 selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
-    <div className={["mnd-group", has_cells ? "gridded" : "",
-                     selected ? "picked" : ""].filter(Boolean).join(" ")}
-         {...dressed(look)} title={data.label}>
-      {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}
-      {has_cells ? <Edge /> : null}
-      {has_cells ? (
-        <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
-                     lineClassName="mnd-edge" handleClassName="mnd-grip" />
-      ) : null}
+    <div className={shell}>
       {show_name ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
-      <Wears role={data.role} icon={has_cells ? "role_table" : "role_group"} />
-      {data.seats?.length ? <Seats seats={data.seats} /> : null}
+      <div className={group} {...dressed(look)} title={data.label}>
+        {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}
+        {has_cells ? <Edge /> : null}
+        {has_cells ? (
+          <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
+                       lineClassName="mnd-edge" handleClassName="mnd-grip" />
+        ) : null}
+        <Wears role={data.role} icon={has_cells ? "role_table" : "role_group"} />
+        {data.seats?.length ? <Seats seats={data.seats} /> : null}
+      </div>
     </div>
   );
 }

@@ -144,6 +144,15 @@ export function centred_in(box: Box, s: Size): Box {
   return { x: box.x + (box.w - s.w) / 2, y: box.y + (box.h - s.h) / 2, ...s };
 }
 
+/** A promoted block fills its cell with a gutter so the cell frame and the
+ *  block frame read as two borders. */
+export const PROMOTED_INSET = 5;
+
+export function fills_cell(box: Box): Box {
+  const i = PROMOTED_INSET;
+  return { x: box.x + i, y: box.y + i, w: box.w - i * 2, h: box.h - i * 2 };
+}
+
 /** Onto the lattice. **One measure**: a hand drop lands where the layout would
  *  have put it, on a line the guides draw. */
 export function snap(n: number): number {

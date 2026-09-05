@@ -38,12 +38,12 @@ describe("the registry", () => {
   it("marks navigation as writing nothing, and everything else as writing", () => {
     const c = gridded();
     for (const a of all()) {
-      const out = a.run(c, { id: "block_pump", to: "block_hx", from: "block_pump",
-                             label: "x", body: "x", text: "x", name: "f", owner: "block_pump",
-                             target: "block_hx", parent: ROOT, holder: "block_pump",
-                             members: ["block_pump"], group: "block_hot", dir: "forward",
+      const out = a.run(c, { id: "block_tank", to: "block_hx", from: "block_tank",
+                             label: "x", body: "x", text: "x", name: "f", owner: "block_tank",
+                             target: "block_hx", parent: ROOT, holder: "block_tank",
+                             members: ["block_tank"], group: "block_hot", dir: "forward",
                              module: "line", arrangement: "down", flow: "in",
-                             way: "row", at: "0,0",
+                             way: "row", at: "0,0", as: "row",
                              def: "block", form: "number" });
       expect(out.mutations.length > 0, a.name).toBe(writes(a.name));
     }

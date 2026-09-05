@@ -24,7 +24,7 @@ function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
   const onAct = vi.fn();
   const onPick = vi.fn();
   const view = render(
-    <Stage scene={scene} picked={[]} onAct={onAct} onPick={onPick} {...over} />,
+    <Stage scene={scene} graph={graph} picked={[]} onAct={onAct} onPick={onPick} {...over} />,
   );
   return { ...view, scene, graph, onAct, onPick };
 }

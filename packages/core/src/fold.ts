@@ -87,16 +87,23 @@ function apply(graph: Graph, m: Mutation): void {
       if (!b) return;
       /** **An address is the group's.** Leaving one drops it rather than
        *  carrying it into the next, where it would mean somewhere else. */
-      if (m.group === null) { delete b.group; delete b.cell; return; }
-      if (b.group !== m.group) delete b.cell;
+      if (m.group === null) { delete b.group; delete b.cell; delete b.header; return; }
+      if (b.group !== m.group) { delete b.cell; delete b.header; }
       b.group = m.group;
       return;
     }
     case "seat_cell": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.cell === null) delete b.cell;
-      else b.cell = { ...m.cell };
+      if (m.cell === null) { delete b.cell; delete b.header; }
+      else { b.cell = { ...m.cell }; }
+      return;
+    }
+    case "set_header": {
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      if (m.header) b.header = m.header;
+      else delete b.header;
       return;
     }
     case "set_grid": {
@@ -547,9 +554,29 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Whether a group heads its rows, its columns, or both. */
-function heads(b: Block | undefined, which: "row" | "col"): boolean {
-  return b?.headers === which || b?.headers === "both";
+/** Whether a block is promoted to fill its cell. */
+export function is_header(b: Block): boolean {
+  return !!b.header;
+}
+
+/** @deprecated use is_header */
+export function is_row_header(b: Block): boolean {
+  return is_header(b);
+}
+
+/** @deprecated use is_header */
+export function is_col_header(b: Block): boolean {
+  return is_header(b);
+}
+
+/** Whether a grid reads row 0 as a header strip (legacy group setting). */
+export function heads_row_strip(_graph: Graph, _group: Id, g: Block): boolean {
+  return g.headers === "col" || g.headers === "both";
+}
+
+/** Whether a grid reads column 0 as a header strip (legacy group setting). */
+export function heads_col_strip(_graph: Graph, _group: Id, g: Block): boolean {
+  return g.headers === "row" || g.headers === "both";
 }
 
 /** The headers a block is **allocated to**: the block in its row's header cell,
@@ -562,12 +589,14 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
   const grid = grid_of(graph, id);
   const cell = cell_of(graph, id);
   if (!grid || !cell) return [];
+  const g = graph.blocks[grid.id];
+  if (!g) return [];
   const out: Block[] = [];
-  if (heads(grid, "row") && cell.c > 0) {
+  if (cell.c > 0 && (g.headers === "row" || g.headers === "both")) {
     const head = at_cell(graph, grid.id, cell.r, 0);
     if (head && head.id !== id) out.push(head);
   }
-  if (heads(grid, "col") && cell.r > 0) {
+  if (cell.r > 0 && (g.headers === "col" || g.headers === "both")) {
     const head = at_cell(graph, grid.id, 0, cell.c);
     if (head && head.id !== id) out.push(head);
   }

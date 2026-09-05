@@ -31,7 +31,7 @@ export type Checked = {
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "size_block", "set_body", "set_group", "seat_cell",
-  "set_grid", "merge_cells", "split_cells", "link_blocks", "update_edge",
+  "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
   "set_labelled", "set_locked", "set_tags", "set_look",

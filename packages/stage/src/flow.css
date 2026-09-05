@@ -233,7 +233,7 @@
 /* Each mark takes the colour of what it marks, so the corner agrees with the
    card it sits on rather than being one more grey. */
 .mnd-role[data-role="note"] { color: var(--note-dim); }
-.mnd-role[data-role="reference"] { color: var(--away); }
+.mnd-role[data-role="reference"] { color: var(--away-dim); }
 .mnd-picked > .mnd-role, .picked > .mnd-role { color: var(--accent); opacity: 1; }
 
 /* The subtype, where somebody set one. It sits back a step: what the card is
@@ -324,15 +324,17 @@
 }
 
 /* Somewhere else, and a description rather than structure. */
-.mnd-card.reference { border-style: dashed; color: var(--away); border-color: var(--away); }
+.mnd-card.reference {
+  border-color: var(--away-dim);
+  background: color-mix(in oklch, var(--away) 10%, transparent);
+  color: var(--away-dim);
+}
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
 
-/* A note is text, and the one card whose size is yours to set. **A step down
-   from what it is about**: a remark is not the work, and it and the tie that
-   carries it to a block take the same colour so the pair reads as one thing. */
+/* A note and its tie read as one thing — the same quiet note colour on both. */
 .mnd-card.note {
   border-color: var(--note-dim);
-  background: none;
+  background: color-mix(in oklch, var(--note) 10%, transparent);
   color: var(--note-dim);
   font-style: italic;
   padding: 5px 8px;
@@ -363,7 +365,12 @@
 /* **The library ships a node type called `group` too**, and its base style
    pads one by 10px all round — which shrank our own box inside the size the
    projection gave it, so a grid's lattice ran past its own border. */
-.mnd-flow .react-flow__node-group { background: none; border: none; padding: 0; }
+.mnd-flow .react-flow__node-group {
+  background: none;
+  border: none;
+  padding: 0;
+  overflow: visible;
+}
 
 /* **A band, not a block.** A boundary says *these belong together* and nothing
    more, so it is the faintest thing on the canvas: a hairline dashed outline and
@@ -374,6 +381,7 @@
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+  overflow: visible;
   border: 1px dashed color-mix(in oklch, var(--muted) 48%, transparent);
   border-radius: 4px;
   background: color-mix(in oklch, var(--muted) 1.5%, transparent);
@@ -391,21 +399,57 @@
   background-clip: padding-box;
   box-shadow: none;
 }
-/* Set into the outline like a frame's name — a break in the dashed line rather
-   than a caption sitting inside the band. */
+/* The group name floats above the frame — bands and grids alike — so it is
+   never clipped by cells or buried under header rows. */
+.mnd-group-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
 .mnd-group-name {
   position: absolute;
-  top: -0.7em;
+  bottom: 100%;
   left: 12px;
+  margin-bottom: 4px;
   padding: 0 6px;
   background: var(--bg);
   font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: text;
+  z-index: 2;
+  pointer-events: auto;
 }
-.mnd-group:not(.gridded) > .mnd-group-name:empty::before {
+.mnd-group-shell:not(.gridded) .mnd-group-name:empty::before {
   content: "Group";
   opacity: 0.45;
 }
+
+/* A promoted block fills its cell and reads its name as a label. The cell
+   keeps the usual faint edge; this is the inner frame that reads as the block. */
+.mnd-card.header {
+  box-sizing: border-box;
+  border-color: var(--card-line);
+  background: var(--card-fill);
+}
+.mnd-card.header > .mnd-head {
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  padding-right: 0;
+}
+.mnd-card.header > .mnd-head > .mnd-named {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+.mnd-card.header .mnd-label {
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+}
+.mnd-card.header .mnd-kind { display: none; }
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
 .mnd-card.in, .mnd-seat.in { border-color: var(--accent); }
@@ -547,16 +591,25 @@
 /* Straight, directed and tie share one weight and one stroke — the module
    still reads from dash and arrowhead, not from how loud the line is. */
 .mnd-flow .react-flow__edge.line .react-flow__edge-path,
-.mnd-flow .react-flow__edge.directed .react-flow__edge-path,
-.mnd-flow .react-flow__edge.tie .react-flow__edge-path {
+.mnd-flow .react-flow__edge.directed .react-flow__edge-path {
   stroke-width: 1.5;
   opacity: 1;
 }
 .mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
-.mnd-flow .react-flow__edge.tie .react-flow__edge-path {
-  stroke: var(--route);
-  stroke-dasharray: 3 4;
+.mnd-flow .react-flow__edge.reference .react-flow__edge-path {
+  stroke: var(--away-dim);
+  stroke-dasharray: 5 4;
+  opacity: 0.55;
 }
+.mnd-flow .react-flow__edge.reference .react-flow__arrowhead * { fill: var(--away-dim); }
+.mnd-flow .react-flow__edge.tie .react-flow__edge-path {
+  stroke: var(--note-dim);
+  stroke-width: 1.5;
+  stroke-dasharray: 0 4;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+.mnd-flow .react-flow__edge.tie .react-flow__arrowhead * { fill: var(--note-dim); }
 
 /* Handles are for connecting, not for looking at: they appear while a
    connection is being made and are invisible the rest of the time. */
@@ -878,10 +931,13 @@
   cursor: pointer;
 }
 
-/* A header carries meaning the cells beside it do not, so it reads darker. */
-.mnd-grid-cell.header {
-  background: color-mix(in oklch, var(--card-line) 8%, transparent);
-  border-color: color-mix(in oklch, var(--card-line) 28%, transparent);
+/* A promoted cell keeps the same faint edge as every other cell. The gutter
+   between it and the inset block is what separates the two frames. */
+.mnd-grid-cell.promoted {
+  background: color-mix(in oklch, var(--card-line) 5%, var(--surface));
+}
+.mnd-grid-cell.promoted:hover {
+  background: color-mix(in oklch, var(--accent) 7%, var(--surface));
 }
 
 /* A merged cell is one cell, and its border says so. */
@@ -903,12 +959,12 @@
 /* **A grid's name is the one part of it that is not a cell**, so it is where a
    grid is taken hold of and renamed. It keeps a target even with nothing typed
    in it, because otherwise a grid nobody has named has nowhere to click. */
-.mnd-group.gridded > .mnd-group-name {
+.mnd-group-shell.gridded .mnd-group-name {
   min-width: 3ch;
   min-height: 1em;
   cursor: grab;
 }
-.mnd-group.gridded > .mnd-group-name:empty::before {
+.mnd-group-shell.gridded .mnd-group-name:empty::before {
   content: "Grid";
   opacity: 0.45;
 }

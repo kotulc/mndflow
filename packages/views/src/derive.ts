@@ -4,8 +4,8 @@
  *  a notation's to decide, so all three modules ask the same question here
  *  rather than each answering it slightly differently. */
 
-import { alias_of, is_container, is_interface, is_named, is_reference, kind_word,
-         module_of, path, role_of, shown_name, stands_for,
+import { alias_of, is_container, is_header, is_interface, is_named, is_reference,
+         kind_word, module_of, path, role_of, shown_name, stands_for,
          type Graph, type Id } from "@mnd/core";
 import { cells_of, look_of } from "./look";
 import { pictured } from "./size";
@@ -36,6 +36,7 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
    *  the text does: a grid keeps a name to be taken hold of by, and it must not
    *  offer to be named where it was told not to say anything. */
   if (b.labelled === false) out.push("unlabelled");
+  if (is_header(b)) out.push("header");
   /** Its place is fixed. A fact about the block, so every surface reads it the
    *  same way the canvas does. */
   if (b.locked) out.push("locked");

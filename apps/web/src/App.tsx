@@ -108,8 +108,7 @@ export function App() {
    *  card *is* its name. */
   const element = on && module_of(graph, on.id) === "group"
     ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: true,
-        grid: on.rows !== undefined && on.cols !== undefined,
-        headers: on.headers ?? "none" as const }
+        grid: on.rows !== undefined && on.cols !== undefined }
     : on
       ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: false }
       : null;
@@ -332,6 +331,7 @@ export function App() {
       <main>
         <Stage
           scene={scene}
+          graph={graph}
           /** **The same offered list the tree hangs off a row.** One menu, two
            *  callers — the app mounts it, so neither package has to know the
            *  other exists. */

@@ -10,7 +10,8 @@
  *  only start a connection on that button. */
 
 import { useEffect, useState } from "react";
-import type { Act, Args, Spot } from "@mnd/core";
+import type { Act, Args, Graph, Spot } from "@mnd/core";
+import { is_grid, is_header } from "@mnd/core";
 
 /** One named entry a menu draws: an action, optionally with an argument filled
  *  and a word of its own. **Repeated here rather than imported** — the stage
@@ -24,6 +25,7 @@ export type { Adjust };
 
 export type StageProps = {
   scene: Scene;
+  graph: Graph;
   picked: readonly string[];
   onAct: Act;
   onAdjust?: (adjust: Adjust) => void;
@@ -64,7 +66,24 @@ export type StageProps = {
  *  a remark; neither is somewhere to go. */
 const INERT = ["group", "note"];
 
-export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
+/** What a seated block offers for header promotion. */
+function header_offers(id: string, graph: Graph): Entry[] {
+  const b = graph.blocks[id];
+  const g = b?.group ? graph.blocks[b.group] : undefined;
+  if (!b?.cell || !g || !is_grid(g)) return [];
+  if (is_header(b)) {
+    return [{ name: "header", label: "demote", args: { clear: "yes" } }];
+  }
+  return [{ name: "header", label: "promote", args: {} }];
+}
+
+/** What a card's menu lists besides the shared box actions. */
+function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
+  const base: (string | Entry)[] = ["rename", "open", "interface", "relate", "note"];
+  return [...base, ...header_offers(id, graph), "leave", "delete"];
+}
+
+export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
                        menu, said, onSaid, curved, lattice, module }: StageProps) {
   /** The name being typed on the drawing, as the thing it names. **Held here
    *  because renaming is an action** — the canvas draws the field and says
@@ -264,8 +283,10 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
     }
     if (menu) {
       const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
+      const only = among ? MANY
+        : g.kind === "box" && g.on ? box_offers(g.on, graph) : OFFERS[g.kind];
       set_at({ ...g.screen, on: g.on, spot: made_at(scene, g.at),
-               only: among ? MANY : OFFERS[g.kind],
+               only,
                ...(g.given ? { given: g.given } : {}) });
     }
   };

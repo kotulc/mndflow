@@ -7,13 +7,14 @@
  *  An action writing no mutations is navigation: no step, nothing to undo, and
  *  a text interface never offers it. */
 
-import { arrangement_of, at_cell, children, covers, edges_in, is_grid, is_interface,
-         is_reference, layer_id, may_retype, members_of, module_of, module_named,
+import { arrangement_of, at_cell, children, covers, edges_in, heads_col_strip,
+         heads_row_strip, is_grid, is_header, is_interface, is_reference,
+         layer_id, may_retype, members_of, module_of, module_named,
          next_num, next_alias, path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, HEADERS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
-         type FieldDef, type Flow, type Graph, type Headers, type Id, type Mutation,
-         type RelationModule, type Side, type Span, type ValueForm } from "./types";
+         type FieldDef, type Flow, type Graph, type Headers, type Id,
+         type Mutation, type RelationModule, type Side, type Span, type ValueForm } from "./types";
 
 /** What an input method can fill. A position can only come from a gesture. */
 export type ArgForm = "text" | "block" | "choice" | "number" | "spot";
@@ -892,8 +893,8 @@ function reading(graph: Graph, group: Id, way: Side): Id[][] {
   const down = way === "top" || way === "bottom";
   const back = way === "left" || way === "top";
   /** A header says what a line *is*, not where a flow goes through it. */
-  const from_r = g.headers === "col" || g.headers === "both" ? 1 : 0;
-  const from_c = g.headers === "row" || g.headers === "both" ? 1 : 0;
+  const from_r = heads_row_strip(graph, group, g) ? 1 : 0;
+  const from_c = heads_col_strip(graph, group, g) ? 1 : 0;
   const lines: Id[][] = [];
   const across = down ? g.cols! : g.rows!;
   const along = down ? g.rows! : g.cols!;
@@ -982,6 +983,31 @@ register(
       }
       out.push({ op: "seat_cell", id, cell: cell_of_arg(args, "at") });
       return { mutations: out };
+    },
+  },
+  {
+    name: "header",
+    about: "expands a seated block to fill its cell",
+    on: ["block"],
+    args: [{ name: "id", form: "block" },
+           { name: "clear", form: "choice", choices: ["yes"] }],
+    check: (ctx, args) => {
+      const id = id_of(args, "id") || ctx.picked[0];
+      const b = id ? ctx.graph.blocks[id] : undefined;
+      if (!b?.cell || !b.group) return "only a block in a grid can be promoted";
+      const g = ctx.graph.blocks[b.group];
+      if (!g || !is_grid(g)) return "only a block in a grid can be promoted";
+      if (args["clear"] === "yes") return is_header(b) ? null : "not promoted";
+      return is_header(b) ? "already promoted" : null;
+    },
+    run: (ctx, args) => {
+      const id = id_of(args, "id") || ctx.picked[0];
+      const b = id ? ctx.graph.blocks[id] : undefined;
+      if (!b?.cell || !b.group) return { mutations: [] };
+      if (args["clear"] === "yes") {
+        return { mutations: [{ op: "set_header", id, header: null }] };
+      }
+      return { mutations: [{ op: "set_header", id, header: "row" }] };
     },
   },
   {

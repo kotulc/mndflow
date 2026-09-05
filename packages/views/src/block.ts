@@ -3,8 +3,8 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { children, covers, edges_in, is_grid, is_interface, members_of, module_of, role_of,
-         shown_name,
+import { children, covers, edges_in, is_grid, is_header, is_interface,
+         members_of, module_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -94,7 +94,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
       ? ["group", "unlabelled"] : ["group"];
     groups.push(node(g.id, box,
                      { ...said, marks, cells: [], holds: members,
-                       ...(is_grid(g) ? { grid: lattice(g) } : {}) },
+                       ...(is_grid(g) ? { grid: lattice(graph, g) } : {}) },
                      "group"));
   }
 
@@ -195,12 +195,12 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
 /** The cells a grid draws, placed inside its own box.
  *
  *  **A merged region is one cell**, drawn once at the span's corner and the
- *  span's size — every other address it covers is not a cell of its own.
- *  Headers are row 0 and column 0, marked because they carry meaning the cells
- *  beside them do not. */
-function lattice(g: Block): GridCell[] {
-  const heads_row = g.headers === "col" || g.headers === "both";
-  const heads_col = g.headers === "row" || g.headers === "both";
+ *  span's size. */
+function lattice(graph: Graph, g: Block): GridCell[] {
+  const promoted = new Set<string>();
+  for (const b of members_of(graph, g.id)) {
+    if (b.cell && is_header(b)) promoted.add(`${b.cell.r},${b.cell.c}`);
+  }
   const out: GridCell[] = [];
   for (let r = 0; r < (g.rows ?? 0); r++) {
     for (let c = 0; c < (g.cols ?? 0); c++) {
@@ -208,7 +208,7 @@ function lattice(g: Block): GridCell[] {
       if (span && (span.r !== r || span.c !== c)) continue;
       const marks: Mark[] = ["cell"];
       if (span) marks.push("merged");
-      if ((heads_row && r === 0) || (heads_col && c === 0)) marks.push("header");
+      if (promoted.has(`${r},${c}`)) marks.push("promoted");
       out.push({ r, c, ...cell_box(g, r, c), marks });
     }
   }

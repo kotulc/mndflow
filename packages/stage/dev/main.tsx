@@ -72,6 +72,7 @@ function Harness() {
       <div className="split">
         <Stage
           scene={scene}
+          graph={s.graph()}
           picked={picked}
           said={said}
           onSaid={() => set_said(null)}
