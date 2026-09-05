@@ -195,3 +195,25 @@ export function seats(length: number): number {
 export function seat_at(n: number, count: number): number {
   return (n + 1) / (count + 1);
 }
+
+/** Absolute positions along an edge, every half unit inset from the corners.
+ *
+ *  **Counted on the canvas lattice**, not as offsets from the card's corner —
+ *  so a line and an interface on the same wall land on the same lines the
+ *  guides draw. An edge only one row tall still has a single seat at its centre. */
+export function seat_marks(origin: number, extent: number): number[] {
+  const last = Math.max(1, Math.floor(extent / SEAT) - 1);
+  if (last <= 2) return [origin + extent / 2];
+
+  const lo = origin + SEAT;
+  const hi = origin + extent - SEAT;
+  const marks: number[] = [];
+  let at = Math.ceil(lo / SEAT) * SEAT;
+  for (; at <= hi + 1e-6; at += SEAT) marks.push(at);
+  return marks;
+}
+
+/** A mark on an edge, as the fraction stored on a block. */
+export function seat_frac(mark: number, origin: number, extent: number): number {
+  return (mark - origin) / extent;
+}

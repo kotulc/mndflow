@@ -9,8 +9,8 @@ import { fixture, related } from "@mnd/fixtures";
 import { children, fold, is_grid, is_interface, module_of,
          type Arrangement, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
-import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, GAP, CELL, UNIT,
-         type Placed } from "../src/index";
+import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, tidy, GAP, CELL, UNIT,
+         SEAT, assign_seats, type Perch, type Placed } from "../src/index";
 
 const ARRANGEMENTS: Arrangement[] = ["free", "grid"];
 
@@ -305,6 +305,180 @@ describe("boundaries", () => {
 
 describe("seats", () => {
   const card: Placed = { id: "block_pump", x: 0, y: 0, w: 168, h: 36 };
+
+  it("puts a lone line on the centre of its wall", () => {
+    const graph = fold(related());
+    const spots = laid(graph, "block_loop");
+    const boxes = new Map(spots.map((p) => [p.id, p]));
+    const links = Object.values(graph.edges);
+    const { perches } = assign_seats(graph, links, spots, boxes);
+    const by_wall = new Map<string, Perch[]>();
+    for (const p of perches) {
+      const key = `${p.on}|${p.side}`;
+      by_wall.set(key, [...(by_wall.get(key) ?? []), p]);
+    }
+    for (const group of by_wall.values()) {
+      if (group.length !== 1) continue;
+      expect(Math.abs(group[0]!.at - 0.5)).toBeLessThan(0.01);
+    }
+  });
+
+  it("fans several ends out from the centre of one wall", () => {
+    const graph = fold(related());
+    const spots = laid(graph, "block_loop");
+    const boxes = new Map(spots.map((p) => [p.id, p]));
+    const links = Object.values(graph.edges);
+    const { perches } = assign_seats(graph, links, spots, boxes);
+    const by_wall = new Map<string, number[]>();
+    for (const p of perches) {
+      const key = `${p.on}|${p.side}`;
+      by_wall.set(key, [...(by_wall.get(key) ?? []), p.at]);
+    }
+    const crowded = [...by_wall.entries()].find(([, ats]) => ats.length > 1);
+    expect(crowded).toBeDefined();
+    const [key, ats] = crowded!;
+    const [on, side] = key.split("|") as [string, string];
+    const box = boxes.get(on)!;
+    const extent = side === "left" || side === "right" ? box.h : box.w;
+    const sorted = [...ats].sort((a, b) => a - b);
+    for (let i = 1; i < sorted.length; i++) {
+      expect((sorted[i]! - sorted[i - 1]!) * extent).toBeGreaterThanOrEqual(SEAT - 1e-6);
+    }
+  });
+
+  it("never gives two ends the same seat on one wall", () => {
+    const graph = fold(related());
+    const spots = laid(graph, "block_loop");
+    const boxes = new Map(spots.map((p) => [p.id, p]));
+    const links = Object.values(graph.edges);
+    const { perches } = assign_seats(graph, links, spots, boxes);
+    const seen = new Set<string>();
+    for (const p of perches) {
+      const key = `${p.on}|${p.side}|${p.at}`;
+      expect(seen.has(key), key).toBe(false);
+      seen.add(key);
+    }
+  });
+
+  it("keeps related loose cards beside each other under grid", () => {
+    const graph = fold(related());
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const pump = at.get("block_pump")!;
+    const hot = at.get("block_hot")!;
+    /** Pump feeds the hot-side band — they should be neighbours, not across the layer. */
+    expect(gap(pump, hot)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(pump, hot)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("places a tied note beside what it is about", () => {
+    const graph = fold(related());
+    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const note = at.get("block_note")!;
+    const pump = at.get("block_pump")!;
+    expect(gap(note, pump)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(note, pump)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("pulls a tied note beside its subject even when it was dropped far away", () => {
+    const graph = fold(related());
+    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
+    graph.blocks["block_note"]!.x = 2000;
+    graph.blocks["block_note"]!.y = 2000;
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const note = at.get("block_note")!;
+    const pump = at.get("block_pump")!;
+    expect(gap(note, pump)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(note, pump)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("tidies a tied note beside what it is about", () => {
+    const graph = fold(related());
+    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
+    graph.blocks["block_note"]!.x = 2000;
+    graph.blocks["block_note"]!.y = 2000;
+    const spots = laid(graph, "block_loop");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const tidy_at = tidy(graph, "block_loop");
+    const gap = (a: { x: number; y: number; w: number; h: number },
+                 b: { x: number; y: number; w: number; h: number }) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const note = tidy_at.find((p) => p.id === "block_note")!;
+    const pump = tidy_at.find((p) => p.id === "block_pump")!;
+    const note_s = at.get("block_note")!;
+    const pump_s = at.get("block_pump")!;
+    expect(gap({ ...note, w: note_s.w, h: note_s.h }, { ...pump, w: pump_s.w, h: pump_s.h }))
+      .toBeGreaterThanOrEqual(GAP);
+    expect(gap({ ...note, w: note_s.w, h: note_s.h }, { ...pump, w: pump_s.w, h: pump_s.h }))
+      .toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("places a tied note below a grid, aligned with the block it is about", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_note"] = { id: "block_note", parent: "block_board", type: "note", num: 99 };
+    graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_draft", module: "tie" };
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const note = at.get("block_note")!;
+    const draft = at.get("block_draft")!;
+    const lanes = at.get("block_lanes")!;
+    expect(note.x).toBe(draft.x);
+    expect(gap(note, lanes)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(note, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("places a reference below a grid, aligned with the block it stands for", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_draft", num: 99 };
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const ref = at.get("block_ref")!;
+    const draft = at.get("block_draft")!;
+    const lanes = at.get("block_lanes")!;
+    expect(ref.x).toBe(draft.x);
+    expect(gap(ref, lanes)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("places a reference beside what it stands for", () => {
+    const graph = fold(related());
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_pump", num: 99 };
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const ref = at.get("block_ref")!;
+    const pump = at.get("block_pump")!;
+    expect(gap(ref, pump)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(ref, pump)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("pulls a reference beside its target even when it was dropped far away", () => {
+    const graph = fold(related());
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_pump", num: 99,
+                                  x: 2000, y: 2000 };
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const ref = at.get("block_ref")!;
+    const pump = at.get("block_pump")!;
+    expect(gap(ref, pump)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(ref, pump)).toBeLessThanOrEqual(GAP + UNIT);
+  });
 
   it("seats every interface on the card it belongs to, and nowhere else", () => {
     const graph = fold(fixture("interfaced"));

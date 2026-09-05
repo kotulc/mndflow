@@ -120,14 +120,8 @@ export type Block = {
   labelled?: boolean;
   /** Whether this block is fixed where it was put. **Absent is no.**
    *
-   *  **A lock is not a hand brake.** You may always drag a locked block; what
-   *  it fixes is what the app would otherwise work out for itself — an
-   *  interface stays on the wall it was put on rather than being re-seated, and
-   *  a relationship end stays where it was pinned rather than being derived
-   *  from where the two cards ended up.
-   *
-   *  On an ordinary block it is a mark and nothing more for now: the `grid`
-   *  arrangement has full authority to re-order everything it lays out. */
+   *  **A lock is not a hand brake.** You may always drag a locked block; on an
+   *  interface it is a mark for now. Seat assignment is routing's to work out. */
   locked?: boolean;
   /** What this one block says about how it draws, over whatever its definition
    *  said. **The last word in the cascade**, keyed the way a definition's
@@ -154,11 +148,11 @@ export type Relation = {
   module: RelationModule;
   type?: Id;
   dir?: Dir;
+  /** Which wall a relationship end leaves by. Cleared on align so routing may
+   *  choose again. */
   fromSide?: Side;
   toSide?: Side;
-  /** Where along that wall the end was pinned. **Only ever set by hand** — an
-   *  end nobody has dragged has no fraction, and the seat it meets is worked
-   *  out from where the two blocks ended up. */
+  /** Legacy; cleared on align and not read by layout. */
   fromAt?: number;
   toAt?: number;
   fields?: Field[];

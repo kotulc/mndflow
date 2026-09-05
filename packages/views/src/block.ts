@@ -6,8 +6,8 @@
 import { children, covers, edges_in, is_grid, is_interface, members_of, module_of, role_of,
          shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
-import { at_seat, cell_box, gridded, laid, perch_id, perched, roomed, seated,
-         GAP, UNIT, type Perch } from "@mnd/views";
+import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
+         assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
@@ -44,7 +44,10 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  so a hidden one still holds its seat — it becomes a *berth*, which draws
    *  nothing and keeps every line meeting the border where it always did. */
   const hidden = config.interfaces === false;
-  const ports = seated(graph, spots);
+  const linked = edges_in(graph, layer).map((e) => landed(graph, e, layer));
+  const boxes_at = new Map(spots.map((p) => [p.id, p]));
+  const { perches, port_at } = assign_seats(graph, linked, spots, boxes_at);
+  const ports = seated(graph, spots, port_at);
 
   /** **Which component draws a box is said here and re-derived nowhere.** A
    *  note is text you resize and a boundary is a band behind its members;
@@ -114,41 +117,26 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   });
 
   const drawn = [...groups, ...boxes, ...seats];
-  /** An end seated on an interface leaves by that interface's own side; only
-   *  an end the relationship placed itself overrides it. An end on the layer
-   *  itself meets the frame you are inside. */
-  const linked = edges_in(graph, layer).map((e) => landed(graph, e, layer));
 
   /** The room, before anything is seated on it. **A wall is a border like a
    *  card's**, so an end meeting one takes a seat the same way — which is what
    *  lets one grip mean the same thing wherever a line ends. */
   const room = frame_of(graph, layer, drawn, hidden);
-
-  /** Where every other end meets the border it lands on. **Worked out here
-   *  rather than left to the library**: left to itself it takes whichever
-   *  handle comes first, which sends a line between two neighbours out of the
-   *  top, around and back. Two placed rectangles already say which wall faces
-   *  which, and a seat keeps two lines to the same card apart. */
-  const at = new Map(drawn.map((n) => [n.id, box_of(n)]));
+  const boxes_full = new Map(drawn.map((n) => [n.id, box_of(n)]));
   if (room) {
-    at.set(FRAME, room);
-    /** **The layer's own interfaces are boxes too.** They are set into the room
-     *  rather than laid out with what it holds, so they are nowhere among the
-     *  drawn nodes — and an end that could not be found at all left the *other*
-     *  end with no wall worked out either, which is a line leaving a card by
-     *  whichever handle the library happened to have and arriving on the far
-     *  side of it. */
-    for (const p of room.ports) at.set(p.id, at_seat(room, p));
+    boxes_full.set(FRAME, room);
+    for (const p of room.ports) boxes_full.set(p.id, at_seat(room, p));
   }
-  const perches = perched(graph, linked, at,
-                          room && layer ? { id: FRAME, of: layer } : undefined);
+  const assigned = room && layer
+    ? assign_seats(graph, linked, spots, boxes_full, { id: FRAME, of: layer })
+    : { perches, port_at };
+  const met = new Map(assigned.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
-  for (const p of perches) {
+  for (const p of assigned.perches) {
     const held = offered.get(p.on) ?? [];
     held.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
     offered.set(p.on, held);
   }
-  const met = new Map(perches.map((p) => [`${p.edge}|${p.end}`, p]));
 
   /** The seats each box offers, put onto the box that offers them. */
   const placed = drawn.map((n) => {
@@ -188,14 +176,14 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
 
   /** The walls' own seats, put on the frame that offers them. */
   const walled = offered.get(FRAME);
-  const frame = room && walled ? { ...room, seats: walled } : room;
+  const framed = room && walled ? { ...room, seats: walled } : room;
 
   return {
     layer,
-    ...(frame ? { frame } : {}),
+    ...(framed ? { frame: framed } : {}),
     nodes: placed,
     edges,
-    perches,
+    perches: assigned.perches,
     /** **A slot says what this projection can offer, never what it is doing.**
      *  Dropping the interfaces group when interfaces are hidden would take away
      *  the only control that could bring them back. */

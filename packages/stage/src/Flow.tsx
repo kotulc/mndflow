@@ -75,19 +75,11 @@ export type Adjust =
    *  canvas answers this one itself**: which wall and how far along are read
    *  off the room, and the room is a size only the canvas knows. */
   | { kind: "wall-seat"; on: string; side: Side; at: number }
-  /** A line's end slid along the border it meets. **A perch is derived**, so
-   *  what this writes is the wall and the fraction the end was pinned to — the
-   *  seat goes back to being worked out the moment it is unpinned. */
+  /** A line's end slid along the border it meets — or taken to another card. */
   | { kind: "anchor"; on: string; end: "from" | "to"; side: Side; at: number }
-  /** Relationships asked to find their own way again. **Aligning is letting
-   *  go**: where a line meets a border is worked out from where its two ends
-   *  sit, and that working out already takes the wall facing the other end and
-   *  the seat nearest where the run crosses it. An end dragged by hand
-   *  overrides it; this gives it back.
-   *
-   *  **A list, because aligning the layer is one thing you did.** Two clicks on
-   *  a line send one and the rail's verb sends every line there is; either way
-   *  it is one step and one undo. */
+  /** Relationships asked to find their own way again. **Aligning re-runs seat
+   *  assignment** from where everything sits now — walls, fractions and lanes
+   *  are all worked out fresh. */
   | { kind: "free-ends"; edges: readonly string[] }
   /** A corner dragged. **The one card whose size is yours to set** — every
    *  other one is sized from what it holds, and a block has carried `w` and
@@ -232,36 +224,18 @@ function panelled(frame: Frame, seen: { w: number; h: number }): Frame {
 
 /** Where a line meets the room's own wall.
  *
- *  **Worked out here because the room is.** The projection puts the frame round
- *  what the layer holds; this grows it to the panel, so a fraction along a wall
- *  decided back there lands somewhere else entirely once the wall has been
- *  stretched — which is a line to the layer leaving a card straight and then
- *  jogging to meet a point that moved. A run between a card and the layer it is
- *  in should go straight out, so the point on the wall is the card's own perch
- *  carried across.
- *
- *  **The other end only.** Where that end is an interface it has a seat of its
- *  own and nothing here can improve on it. */
+ *  **The seat assignment already happened in the projection.** The room may
+ *  have grown to the panel since then, but a fraction along a wall survives
+ *  that stretch — remapping to the other end's centre was what sent lines back
+ *  toward the corners of a tall frame. */
 function met_on(room: Frame, scene: Scene): Frame {
   if (!room.seats?.length) return room;
-  const box = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
-  const opposite = new Map<string, Point>();
-  for (const p of scene.perches) {
-    /** **A seat somebody dragged is not one to work out again.** */
-    if (p.on !== FRAME || p.pinned) continue;
-    const mate = scene.perches.find((q) => q.edge === p.edge && q.end !== p.end);
-    const on = mate && box.get(mate.on);
-    if (!mate || !on) continue;
-    opposite.set(perch_id(p.edge, p.end), middle(on, mate));
-  }
-  if (!opposite.size) return room;
+  const at = new Map(scene.perches
+    .filter((p) => p.on === FRAME)
+    .map((p) => [perch_id(p.edge, p.end), p.at]));
   return { ...room, seats: room.seats.map((t) => {
-    const to = opposite.get(t.id);
-    if (!to) return t;
-    const along = t.side === "left" || t.side === "right"
-      ? (to.y - room.y) / (room.h || 1)
-      : (to.x - room.x) / (room.w || 1);
-    return { ...t, at: Math.min(0.98, Math.max(0.02, along)) };
+    const spot = at.get(t.id);
+    return spot === undefined ? t : { ...t, at: spot };
   }) };
 }
 
@@ -1088,11 +1062,10 @@ function Canvas(props: FlowViewProps) {
     return out;
   }, [scene, picked, frame]);
 
-  /** **Every line on the layer let go of, in one step.**
+  /** **Every line on the layer re-seated, in one step.**
    *
-   *  The rail asks by counting up. Nothing here is geometry any more: a seat is
-   *  worked out from where its two ends sit, so aligning is simply taking away
-   *  whatever was said by hand and letting the working out stand. */
+   *  The rail asks by counting up. Seat assignment is derived from the layout,
+   *  so aligning clears any stored overrides and lets the projection run again. */
   useEffect(() => {
     if (!straighten) return;
     const edges = scene.edges.map((e) => e.id);
@@ -1154,8 +1127,6 @@ function Canvas(props: FlowViewProps) {
    *  library's own reconnect anchors were: they sit exactly here, and a drag
    *  fired both a reconnect and a fresh connection. */
   const anchored = useCallback((g: Grip, e: { clientX: number; clientY: number }) => {
-    const host = g.on === FRAME ? frame : scene.nodes.find((n) => n.id === g.on);
-    if (!host) return;
     const to = at(e);
     /** The innermost thing under the point: a seat drawn over a card is the
      *  one you meant, and it is drawn last. */
@@ -1165,9 +1136,6 @@ function Canvas(props: FlowViewProps) {
       return to.x >= b.x && to.x <= b.x + b.w && to.y >= b.y && to.y <= b.y + b.h;
     });
     if (landed) { onAdjust?.({ kind: "wall", on: g.edge, end: g.end, to: landed.id }); return; }
-    const seat = nearest_seat("w" in host ? host : box_of(host as BoxNode), to);
-    if (seat.side === g.side && seat.at === g.at) return;
-    onAdjust?.({ kind: "anchor", on: g.edge, end: g.end, side: seat.side, at: seat.at });
   }, [scene, at, onAdjust]);
 
   /** **A card may be put down anywhere; the room grows to hold it.** Bounding

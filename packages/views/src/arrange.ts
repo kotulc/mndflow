@@ -20,8 +20,8 @@
  *  through dagre, which drew a picture of the graph rather than of the model —
  *  and the reading directions they carried were a setting nobody set. */
 
-import { arrangement_of, children, is_grid, is_interface, members_of, module_of,
-         type Block, type Graph, type Id, type Point } from "@mnd/core";
+import { arrangement_of, children, edges_in, is_grid, is_interface, is_reference, layer_id,
+         members_of, module_of, type Block, type Graph, type Id, type Point } from "@mnd/core";
 import { cell_box, centred_in, gridded, on_unit, size_of, snap,
          GAP, UNIT, type Size } from "./size";
 
@@ -37,13 +37,22 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
    *  what places it is the grid it is in, once that grid has been placed. And
    *  a block in a band is placed inside the band, once the band has been
    *  placed — the same contract a grid's members have. */
-  const loose = units.filter((b) => !gridded(graph, b.id) && !in_band(graph, b.id));
+  const loose = loose_units(graph, layer);
   const how = arrangement_of(graph, layer);
-  /** **The order the layer states them in.** `num` is a block's place among its
-   *  siblings, so re-ordering in the tree re-orders the grid — and the same
-   *  graph always tiles the same way. */
-  const sized = [...loose]
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
+  const unit = (id: Id) => loose_unit(graph, id);
+  /** **Cards first, captions after.** A tied note and a reference are seated
+   *  beside what they stand for once the layer they share has landed — they are
+   *  not ranked into the same pass as the cards, or a collision search scatters
+   *  them across the layer while the tie still says they belong together. */
+  const structural = loose.filter((b) => !is_satellite(graph, layer, b));
+  const satellites = loose.filter((b) => is_satellite(graph, layer, b))
+    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+  /** **Related cards first, and near what they are related to.** Tree order
+   *  alone scatters a chain across the layer; neighbours in the graph are
+   *  neighbours in the placement order, and each one starts its search beside
+   *  whatever of its mates is already down. */
+  const order = placement_order(graph, layer, structural, unit);
+  const sized = order
     .map((b) => ({ b, s: is_band(graph, b) ? band_size(graph, b) : size_of(graph, b.id) }));
   /** **Hand placement is never re-centred.** `grid` works out positions from
    *  nothing and grows outward from the origin. `free` was already told where
@@ -51,12 +60,30 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
    *  moved every card a little every time any one of them was dropped, so
    *  nothing ever landed where it was let go of and a card made where you
    *  pointed appeared somewhere else. */
-  const spots = ordered(how === "grid" ? settled(sized) : free(sized));
+  const near = (id: Id, taken: Placed[], size: Size) =>
+    anchor_near(graph, layer, id, taken, unit, size);
+  const structural_spots: Placed[] = how === "grid" ? settled(sized, near) : free(sized);
   const bands = new Set(units.filter((b) => is_band(graph, b)).map((b) => b.id));
-  const loose_spots = spots.filter((p) => !bands.has(p.id));
-  const inside = [...loose_spots, ...celled(graph, units, spots),
-                  ...band_members(graph, units, spots)];
-  return ordered([...inside, ...banded(graph, units, inside)]);
+  const loose_spots = structural_spots.filter((p) => !bands.has(p.id));
+  const member_spots = [...celled(graph, units, structural_spots),
+                          ...band_members(graph, units, structural_spots)];
+  const laid_so_far = [...loose_spots, ...member_spots];
+  const satellite_spots: Placed[] = [];
+  for (const b of satellites) {
+    const s = size_of(graph, b.id);
+    if (how === "free" && b.x !== undefined && b.y !== undefined) {
+      satellite_spots.push({ id: b.id, ...put({ x: b.x, y: b.y }), ...s });
+      continue;
+    }
+    const anchor = satellite_anchor(graph, layer, b, structural_spots);
+    const taken = [...laid_so_far, ...satellite_spots];
+    satellite_spots.push(anchor
+      ? seat_satellite(b.id, anchor, s, taken, graph, structural_spots)
+      : { id: b.id, ...clear_at(taken, { x: 0, y: 0 }, s) });
+  }
+  const inside = [...laid_so_far, ...satellite_spots];
+  const packed = how === "grid" ? centred(inside) : inside;
+  return ordered([...packed, ...banded(graph, units, packed)]);
 }
 
 /** Whether a block sits in a dashed band rather than a grid. */
@@ -209,11 +236,16 @@ function free(all: Sized[]): Placed[] {
  *
  *  A block nobody has placed starts at the origin and is pushed out from
  *  there, which for a card made on empty ground is where it was made. */
-function settled(all: Sized[]): Placed[] {
+function settled(all: Sized[],
+                 near?: (id: Id, taken: Placed[], size: Size) => Point | null): Placed[] {
   const out: Placed[] = [];
   for (const it of all) {
-    const at = on_unit(it.b.x !== undefined && it.b.y !== undefined
-      ? { x: it.b.x, y: it.b.y } : { x: 0, y: 0 });
+    const hint = near?.(it.b.id, out, it.s);
+    const at = hint
+      ? on_unit(hint)
+      : it.b.x !== undefined && it.b.y !== undefined
+        ? on_unit({ x: it.b.x, y: it.b.y })
+        : on_unit({ x: 0, y: 0 });
     out.push({ id: it.b.id, ...clear_at(out, at, it.s) });
   }
   return out;
@@ -255,12 +287,21 @@ function clear_at(taken: readonly Rect[], at: Point, s: Size): Rect {
  *  written to the graph as ordinary placements — which is what lets everything
  *  afterwards be moved by hand. */
 export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: number }[] {
-  const units = children(graph, layer)
-    .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !in_band(graph, b.id));
-  const sized = [...units]
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
-    .map((b) => ({ b, s: is_band(graph, b) ? band_size(graph, b) : size_of(graph, b.id) }));
-  return shelved(sized).map((p) => ({ id: p.id, x: p.x, y: p.y }));
+  /** **The same placement `laid` draws, written fresh.** Shelving in tree order
+   *  ignored ties — a note beside its subject and a reference beside its
+   *  target need the relationship-aware search, not another row to the right. */
+  const g: Graph = structuredClone(graph);
+  const lid = layer_id(g, layer);
+  if (g.blocks[lid]) g.blocks[lid]!.arrangement = "grid";
+  const loose = loose_units(g, layer);
+  const loose_ids = new Set(loose.map((b) => b.id));
+  for (const b of loose) {
+    delete g.blocks[b.id]!.x;
+    delete g.blocks[b.id]!.y;
+  }
+  return laid(g, layer)
+    .filter((p) => loose_ids.has(p.id))
+    .map(({ id, x, y }) => ({ id, x, y }));
 }
 
 function shelved(all: Sized[]): Placed[] {
@@ -356,4 +397,233 @@ export function boundary(spots: readonly Placed[], members: readonly Id[]): Plac
   const w = Math.max(...inside.map((p) => p.x + p.w)) + GAP - x;
   const h = Math.max(...inside.map((p) => p.y + p.h)) + GAP - y;
   return { id: "", x, y, w, h };
+}
+
+/** Whether a block is a note. */
+function is_note(graph: Graph, b: Block): boolean {
+  return b.type === "note" || module_of(graph, b.id) === "note";
+}
+
+/** What a note's ties reach on this layer. */
+function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
+  const out: Id[] = [];
+  for (const e of edges_in(graph, layer)) {
+    if (e.module !== "tie") continue;
+    if (e.from === id) out.push(e.to);
+    else if (e.to === id) out.push(e.from);
+  }
+  return out;
+}
+
+/** A note tied to something, or a reference of something — seated after the
+ *  layer lands, not ranked into it. */
+function is_satellite(graph: Graph, layer: Id | null, b: Block): boolean {
+  if (is_reference(b) && b.of) return true;
+  return is_note(graph, b) && tie_targets(graph, layer, b.id).length > 0;
+}
+
+/** Where a block actually draws — including members seated in a grid or band. */
+function placed_of(graph: Graph, id: Id, structural: readonly Placed[]): Placed | null {
+  const hit = structural.find((p) => p.id === id);
+  if (hit) return hit;
+  const b = graph.blocks[id];
+  if (!b) return null;
+  if (gridded(graph, id) && b.group && b.cell) {
+    const grid = structural.find((p) => p.id === b.group);
+    if (!grid) return null;
+    const box = cell_box(graph.blocks[b.group]!, b.cell.r, b.cell.c);
+    const in_cell = centred_in(box, size_of(graph, id));
+    return { id, x: grid.x + in_cell.x, y: grid.y + in_cell.y, w: in_cell.w, h: in_cell.h };
+  }
+  if (in_band(graph, id) && b.group) {
+    const band = structural.find((p) => p.id === b.group);
+    if (!band) return null;
+    const { layout } = packed(band_sized(graph, b.group));
+    const p = layout.find((m) => m.id === id);
+    if (!p) return null;
+    return { id, x: band.x + GAP + p.x, y: band.y + GAP + p.y, w: p.w, h: p.h };
+  }
+  return null;
+}
+
+/** The card a satellite should sit beside — the block itself, not the grid that
+ *  holds it. */
+function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
+                          structural: readonly Placed[]): Placed | null {
+  if (is_reference(b) && b.of) return placed_of(graph, b.of, structural);
+  if (is_note(graph, b)) {
+    for (const t of tie_targets(graph, layer, b.id)) {
+      const anchor = placed_of(graph, t, structural);
+      if (anchor) return anchor;
+    }
+  }
+  return null;
+}
+
+/** Seat a note or reference one gap from its anchor — below first, then beside,
+ *  then row by row under the anchor if every side is taken.
+ *
+ *  **A block inside a grid or band sits below the rim**, aligned with the
+ *  block — not on the far side of the container hunting for a free cell. */
+function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Placed[],
+                        graph: Graph, structural: readonly Placed[]): Placed {
+  const free = (box: Rect) => !taken.some((t) => gaps_overlap(box, t));
+  const rim_below = (holder: Placed) => snap(Math.max(anchor.y + anchor.h + GAP, holder.y + holder.h + GAP));
+  const b = graph.blocks[anchor.id];
+  if (b?.group) {
+    const holder = structural.find((p) => p.id === b.group);
+    const g = holder ? graph.blocks[b.group] : undefined;
+    if (holder && g && (is_grid(g) || (module_of(graph, b.group) === "group" && !is_grid(g)))) {
+      const y0 = rim_below(holder);
+      const x0 = snap(anchor.x);
+      for (let drop = 0; drop < 40; drop++) {
+        const box = { x: x0, y: y0 + drop * UNIT, ...size };
+        if (free(box)) return { id, ...box };
+      }
+      for (let ring = 1; ring <= 8; ring++) {
+        for (const dx of [-ring * UNIT, ring * UNIT]) {
+          const box = { x: snap(x0 + dx), y: y0, ...size };
+          if (free(box)) return { id, ...box };
+        }
+      }
+    }
+  }
+  const candidates = [
+    { x: anchor.x, y: anchor.y + anchor.h + GAP },
+    { x: anchor.x + anchor.w + GAP, y: anchor.y },
+    { x: anchor.x - size.w - GAP, y: anchor.y },
+    { x: anchor.x, y: anchor.y - size.h - GAP },
+  ];
+  for (const c of candidates) {
+    const box = { x: snap(c.x), y: snap(c.y), ...size };
+    if (free(box)) return { id, ...box };
+  }
+  let x = snap(anchor.x);
+  let y = snap(anchor.y + anchor.h + GAP);
+  for (let drop = 0; drop < 40; drop++) {
+    const box = { x, y, ...size };
+    if (free(box)) return { id, ...box };
+    y += UNIT;
+  }
+  return { id, ...clear_at(taken, { x, y }, size) };
+}
+
+function gaps_overlap(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.w + GAP && b.x < a.x + a.w + GAP
+    && a.y < b.y + b.h + GAP && b.y < a.y + a.h + GAP;
+}
+
+/** Loose blocks the layer places as units — not interfaces, grid seats, or band
+ *  members. */
+function loose_units(graph: Graph, layer: Id | null): Block[] {
+  return children(graph, layer)
+    .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !in_band(graph, b.id));
+}
+
+/** Which loose unit a block belongs to for placement — a band is one thing. */
+function loose_unit(graph: Graph, id: Id): Id {
+  const b = graph.blocks[id];
+  if (!b) return id;
+  if (is_interface(b) && b.parent) return loose_unit(graph, b.parent);
+  if (b.group) {
+    const g = graph.blocks[b.group];
+    if (g && module_of(graph, b.group) === "group" && !is_grid(g)) return b.group;
+  }
+  return id;
+}
+
+/** Every link that should pull two units near each other — any relationship on
+ *  the layer, and a reference's `of`. */
+function placement_links(graph: Graph, layer: Id | null, ids: Set<Id>,
+                         unit: (id: Id) => Id): [Id, Id][] {
+  const links: [Id, Id][] = [];
+  const seen = new Set<string>();
+  const add = (a: Id, b: Id) => {
+    if (!ids.has(a) || !ids.has(b) || a === b) return;
+    const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    links.push([a, b]);
+  };
+  for (const e of edges_in(graph, layer)) add(unit(e.from), unit(e.to));
+  for (const id of ids) {
+    const of = graph.blocks[id]?.of;
+    if (of) add(id, unit(of));
+  }
+  return links;
+}
+
+/** Loose units in an order that keeps related ones together. */
+function placement_order(graph: Graph, layer: Id | null, units: Block[],
+                         unit: (id: Id) => Id): Block[] {
+  const by_id = new Map(units.map((b) => [b.id, b]));
+  const ids = new Set(units.map((b) => b.id));
+  const adj = new Map<Id, Id[]>();
+  for (const [a, b] of placement_links(graph, layer, ids, unit)) {
+    adj.set(a, [...new Set([...(adj.get(a) ?? []), b])]);
+    adj.set(b, [...new Set([...(adj.get(b) ?? []), a])]);
+  }
+  const sorted = [...units].sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+  const start = [...sorted].sort((a, b) =>
+    (adj.get(b.id)?.length ?? 0) - (adj.get(a.id)?.length ?? 0)
+    || (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))[0]!.id;
+  const seen = new Set<Id>();
+  const out: Block[] = [];
+  const queue: Id[] = [start];
+  while (queue.length) {
+    const id = queue.shift()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const b = by_id.get(id);
+    if (b) out.push(b);
+    const next = [...(adj.get(id) ?? [])].sort((a, b) =>
+      (by_id.get(a)?.num ?? 0) - (by_id.get(b)?.num ?? 0) || a.localeCompare(b));
+    for (const n of next) if (!seen.has(n)) queue.push(n);
+  }
+  for (const b of sorted) if (!seen.has(b.id)) out.push(b);
+  return out;
+}
+
+/** Related units already placed, if any. */
+function placement_mates(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
+                         unit: (id: Id) => Id): Placed[] {
+  const uid = unit(id);
+  const ids = new Set(taken.map((p) => p.id));
+  const mates = new Set<Id>();
+  for (const [a, b] of placement_links(graph, layer, new Set([uid, ...ids]), unit)) {
+    if (a === uid && ids.has(b)) mates.add(b);
+    if (b === uid && ids.has(a)) mates.add(a);
+  }
+  return [...mates].map((mid) => taken.find((p) => p.id === mid)).filter(Boolean) as Placed[];
+}
+
+/** Where to start looking for a spot: beside related units already placed. */
+function anchor_near(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
+                     unit: (id: Id) => Id, size: Size): Point | null {
+  const placed = placement_mates(graph, layer, id, taken, unit);
+  if (!placed.length) return null;
+  const free_at = (x: number, y: number) => !taken.some((t) =>
+    x < t.x + t.w + GAP && t.x < x + size.w + GAP
+    && y < t.y + t.h + GAP && t.y < y + size.h + GAP);
+  const candidates: Point[] = [];
+  for (const p of placed) {
+    candidates.push(
+      { x: p.x + p.w + GAP, y: p.y },
+      { x: p.x - size.w - GAP, y: p.y },
+      { x: p.x, y: p.y + p.h + GAP },
+      { x: p.x, y: p.y - size.h - GAP },
+    );
+  }
+  let cx = 0;
+  let cy = 0;
+  for (const p of placed) { cx += p.x + p.w / 2; cy += p.y + p.h / 2; }
+  cx /= placed.length;
+  cy /= placed.length;
+  candidates.push({ x: cx - size.w / 2, y: cy - size.h / 2 });
+  for (const c of candidates) {
+    const x = snap(c.x);
+    const y = snap(c.y);
+    if (free_at(x, y)) return { x, y };
+  }
+  return { x: snap(cx - size.w / 2), y: snap(cy - size.h / 2) };
 }

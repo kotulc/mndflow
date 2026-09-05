@@ -1355,17 +1355,9 @@ function list(raw: unknown): string[] {
 /** Adjustments: positional, unsayable, gesture-only. Never named or ranked, so
  *  they are not on the registry — but they write mutations and they undo. */
 export const adjustments = {
-  /** **Aligning is letting go, not holding on.**
-   *
-   *  Where a line meets a border is worked out from where the two things ended
-   *  up, and it takes the wall that faces the other end and the seat nearest
-   *  where the run crosses it — which is the direct path. An end dragged by
-   *  hand overrides that working out; aligning gives it back, so every run
-   *  goes back to the shortest one its two ends allow.
-   *
-   *  It used to do the opposite — compute a straight run and pin both ends to
-   *  it — so aligning a layer fixed every end on it in place, which is the
-   *  reverse of what it is for. */
+  /** **Aligning clears stored overrides** so seat assignment runs fresh from
+   *  the layout. Walls and fractions are derived each projection; this drops
+   *  anything a previous gesture may have written. */
   free_ends: (ids: readonly Id[]): Mutation[] => ids.flatMap((id): Mutation[] => [
     { op: "set_side", id, end: "from", side: null },
     { op: "set_side", id, end: "to", side: null },

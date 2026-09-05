@@ -184,13 +184,9 @@ export function App() {
       if (end) s.go("relink", { id: a.on, end: a.end, to: end });
       return;
     }
-    /** A line's end slid round the border it meets. **Pinning is what this
-     *  writes** — a perch is worked out from where the two cards ended up, so
-     *  the only way to say *there* is to say it. */
-    if (a.kind === "anchor") {
-      s.adjust("anchor", adjustments.wall(a.on, a.end, a.side, a.at));
-      return;
-    }
+    /** A line's end dropped on another card is a relink. Seat along a wall is
+     *  routing's to work out — nothing here writes a fraction. */
+    if (a.kind === "anchor") return;
     /** **Several cards put down at once.** A sweep dragged, and a boundary
      *  dragged — the band is its members' bounds, so what moved is them. One
      *  step, so one undo puts the lot back. */
