@@ -1,28 +1,31 @@
-/** What the rail is handed.
- *
- *  A control is a mark, one word and something to run — never a mutation. The
- *  builder below turns the slots a projection declared into the standard
- *  groups, so the shell knows how to draw each and no module has to. */
-
-import { ARRANGEMENTS, type Act, type Arrangement, type Headers } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement, type Headers,
+         type RelationModule } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
- *  no arrangement a layer is currently *in*. */
+ *  no state a verb puts anything in.
+ *
+ *  **`verb` is the control's, not the group's.** A group is about one subject
+ *  and some subjects have both — the layer is laid out one of two ways *and*
+ *  can be asked to tidy its lines — so splitting a group in two to keep the
+ *  verbs apart put one subject under two labels. What keeps them apart instead
+ *  is a rule drawn above the first of them, and the fact that a verb never
+ *  lights. */
 export type Control = {
   key: string;
   icon: IconName;
   word: string;
   tip: string;
   on?: boolean;
+  /** One-shot: it does something and is done. Ruled off from the settings
+   *  above it, and it draws no `on` at all. */
+  verb?: boolean;
   run: () => void;
 };
 
 export type Group = {
   key: string;
   label: string;
-  /** Verbs are one-shot and ruled off from the settings. */
-  verbs?: boolean;
   controls: Control[];
 };
 
@@ -38,21 +41,37 @@ export type Chrome = {
    *  **Not a slot either**, and for the same reason. Absent while nothing or
    *  several things are held. */
   element?: { id: string; labelled: boolean; locked: boolean };
+  /** The one relationship that is picked, and whether each of its ends is
+   *  pinned. **A pinned end is a locked end** — an end nobody has placed is
+   *  worked out from where the two cards ended up, so pinning it is the only
+   *  way to say *there*. */
+  anchors?: { id: string; from: boolean; to: boolean };
   arrangement?: Arrangement;
+  /** Whether the backdrop draws the lattice everything lands on. */
+  lattice?: boolean;
   interfaces?: boolean;
   angles?: boolean;
-  /** Relation types in scope, and which one a right drag would make. */
-  types?: readonly string[];
-  picked?: string | null;
+  /** Which way a right drag draws a line. */
+  module?: RelationModule;
 };
 
-const ARRANGE: Record<Arrangement, { icon: IconName; tip: string }> = {
-  free: { icon: "arrange_free", tip: "Hand placement is what draws" },
-  right: { icon: "arrange_right", tip: "Rank by relationships, reading right" },
-  left: { icon: "arrange_left", tip: "Rank by relationships, reading left" },
-  down: { icon: "arrange_down", tip: "Rank by relationships, reading down" },
-  up: { icon: "arrange_up", tip: "Rank by relationships, reading up" },
+/** How a layer places what it holds. */
+const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
+  free: { icon: "layout_free", tip: "Hand placement is what draws" },
+  grid: { icon: "layout_grid", tip: "Slot every block into the layer's lattice" },
 };
+
+/** The ways a line is drawn, as the ones a right drag may pick. **Three of the
+ *  four** — a reference line is assigned from what sits at its ends and is
+ *  nobody's to choose. */
+const LINES: { module: RelationModule; icon: IconName; word: string; tip: string }[] = [
+  { module: "line", icon: "relation_plain", word: "straight",
+    tip: "A right drag makes a plain line" },
+  { module: "directed", icon: "relation_directed", word: "directed",
+    tip: "A right drag makes a line that points" },
+  { module: "tie", icon: "relation_tie", word: "tie",
+    tip: "A right drag makes an association" },
+];
 
 /** The standard groups, from the slots a projection declared.
  *
@@ -62,55 +81,70 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   const has = (slot: string) => chrome.slots.includes(slot);
   const out: Group[] = [];
 
-  if (has("arrange")) {
+  /** **How the layer places what it holds**, and the one thing you can ask it
+   *  to tidy. `free` and `grid` are a setting the layer is always in one of;
+   *  `align` is a verb, so it draws no `on` at all — which is the signal, since
+   *  there is no state it puts the layer in. */
+  if (has("layer")) {
     out.push({
-      key: "arrange", label: "arrange",
-      controls: ARRANGEMENTS.map((how) => ({
-        key: how, icon: ARRANGE[how].icon, word: how, tip: ARRANGE[how].tip,
-        on: chrome.arrangement === how,
-        run: () => act("arrange", { arrangement: how }),
-      })),
-    });
-  }
-
-  if (has("interfaces")) {
-    out.push({
-      key: "interfaces", label: "interfaces",
-      controls: [{
-        key: "show", word: "show", tip: "Draw interfaces on their walls",
-        icon: chrome.interfaces === false ? "ports_off" : "ports_on",
-        on: chrome.interfaces !== false,
-        run: () => act("interfaces", { show: chrome.interfaces === false }),
-      }],
-    });
-  }
-
-  if (has("lines")) {
-    out.push({
-      key: "lines", label: "lines",
+      key: "layer", label: "layer",
       controls: [
-        { key: "angles", icon: "angles", word: "angles", tip: "Right angles",
+        ...ARRANGEMENTS.map((how): Control => ({
+          key: how, icon: LAYOUT[how].icon, word: how, tip: LAYOUT[how].tip,
+          on: (chrome.arrangement ?? "free") === how,
+          run: () => act("arrange", { arrangement: how }),
+        })),
+        { key: "align", icon: "align", word: "align", verb: true,
+          tip: "Pull the bends out of every line on this layer",
+          run: () => act("straighten") },
+      ],
+    });
+  }
+
+  /** **What the drawing shows, rather than what it holds.** Nothing here writes
+   *  to the log — interfaces shown or hidden and runs squared or curved change
+   *  the picture in front of you and nothing about the model — which is exactly
+   *  what separates it from `relations` below. */
+  if (has("display")) {
+    out.push({
+      key: "display", label: "display",
+      controls: [
+        /** **Four answers about the picture, and every one of them a state.**
+         *  The guides belong here rather than under `project`: ruling the
+         *  canvas is something you are looking at, exactly like whether a port
+         *  is drawn or a run bends square. */
+        { key: "guides", word: "guides",
+          tip: chrome.lattice ? "Stop ruling the canvas into cells"
+                              : "Rule the canvas into cells, faintly, behind everything",
+          icon: chrome.lattice ? "guides_on" : "guides_off",
+          on: !!chrome.lattice,
+          run: () => act("lattice", { show: !chrome.lattice }) },
+        /** **`ports`, not `interfaces`.** One word, and the column is 68px
+         *  wide — the long one wrapped to three lines and set the height of
+         *  every row beside it. */
+        { key: "ports", word: "ports", tip: "Draw interfaces on their walls",
+          icon: chrome.interfaces === false ? "ports_off" : "ports_on",
+          on: chrome.interfaces !== false,
+          run: () => act("interfaces", { show: chrome.interfaces === false }) },
+        { key: "angles", icon: "angles", word: "angles", tip: "Run lines at right angles",
           on: chrome.angles !== false, run: () => act("lines", { angles: true }) },
-        { key: "curves", icon: "smooth", word: "curves", tip: "Curves",
+        { key: "curves", icon: "smooth", word: "curves", tip: "Run lines as curves",
           on: chrome.angles === false, run: () => act("lines", { angles: false }) },
       ],
     });
   }
 
+  /** **What a right drag makes.** One question, and the answer is the model's:
+   *  what a relationship *is* travels in the file, unlike everything in
+   *  `display` above. */
   if (has("relations")) {
     out.push({
       key: "relations", label: "relations",
-      controls: [
-        { key: "line", icon: "relation_plain", word: "plain",
-          tip: "A right drag makes a plain line",
-          on: !chrome.picked, run: () => act("relate_with", { type: null }) },
-        ...(chrome.types ?? []).map((name): Control => ({
-          key: `rel:${name}`, icon: "relation_typed", word: name,
-          tip: `A right drag makes a “${name}”`,
-          on: chrome.picked === name,
-          run: () => act("relate_with", { type: name }),
-        })),
-      ],
+      controls: LINES.map((l): Control => ({
+        key: `line:${l.module}`, icon: l.icon, word: l.word, tip: l.tip,
+        on: (chrome.module ?? "line") === l.module,
+        run: () => act("relate_with", { module: l.module }),
+      })),
     });
   }
 
@@ -138,11 +172,35 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           icon: labelled ? "label_on" : "label_off",
           on: labelled,
           run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }) },
+        /** **The mark says which way it is, and the light says it again.** A
+         *  shackle closed and a shackle sprung are two drawings rather than one
+         *  drawing lit twice, so a locked thing is legible at a glance and not
+         *  only against the control beside it. */
         { key: "lock", word: "lock",
-          tip: locked ? "Let it be moved again" : "Fix where it sits",
-          icon: "locked", on: locked,
+          tip: locked ? "Let the app work its place out again" : "Fix it where it is",
+          icon: locked ? "locked" : "unlocked", on: locked,
           run: () => act("lock", { ids: [id], fixed: locked ? "no" : "yes" }) },
       ],
+    });
+  }
+
+  /** **The two ends of the one relationship you have hold of.**
+   *
+   *  An end nobody has placed is worked out from where the two cards ended up,
+   *  which is what makes a line follow its cards about. Pinning it is the only
+   *  way to say *there* — so a pinned end is a locked end, and there is no
+   *  second field to store saying so. */
+  if (chrome.anchors) {
+    const { id, from, to } = chrome.anchors;
+    out.push({
+      key: "anchors", label: "ends",
+      controls: ([["from", from], ["to", to]] as const).map(([end, fixed]): Control => ({
+        key: `end:${end}`, word: end,
+        tip: fixed ? `Let the ${end} end find its own seat again`
+                   : `Keep the ${end} end where it sits now`,
+        icon: fixed ? "locked" : "unlocked", on: fixed,
+        run: () => act("anchor", { id, end, fixed: fixed ? "no" : "yes" }),
+      })),
     });
   }
 
@@ -166,13 +224,21 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** A verb never lights — there is no state it puts the layer in, which in use
-   *  is the plainer signal of the two. */
+  /** **What is done to the project itself.** Two verbs and no state — what the
+   *  canvas is ruled with moved to `display`, where the rest of what you are
+   *  looking at lives. */
   out.push({
-    key: "project", label: "project", verbs: true,
-    controls: [{ key: "export", icon: "export_project", word: "export",
-                 tip: "Export this subtree with what it depends on",
-                 run: () => act("export") }],
+    key: "project", label: "project",
+    controls: [
+      /** **The way in to everything the project can be told**, the way `define`
+       *  is for one element. Nothing behind it yet. */
+      { key: "settings", icon: "settings", word: "settings", verb: true,
+        tip: "How this project is set up",
+        run: () => act("settings") },
+      { key: "export", icon: "export_project", word: "export", verb: true,
+        tip: "Export this subtree with what it depends on",
+        run: () => act("export") },
+    ],
   });
 
   return out;

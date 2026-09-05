@@ -110,8 +110,15 @@ export type BoxNode = Node<BoxData>;
 export type LineEdge = Edge<LineData>;
 
 /** Which control group this projection offers. The shell knows how to build
- *  each; a module declaring none simply has none. */
-export type Slot = "arrange" | "interfaces" | "lines" | "relations";
+ *  each; a module declaring none simply has none.
+ *
+ *  **`display` and `relations` are two questions.** What a relationship *is* —
+ *  a plain line, a direction, an association — is the model's and travels in
+ *  the file; whether interfaces are drawn, whether a run bends square or
+ *  curves, and pulling the bends out are all about the picture in front of you.
+ *  Splitting them is what keeps a control that writes to the log out of the
+ *  same box as three that do not. */
+export type Slot = "layer" | "display" | "relations";
 
 /** The open layer seen from within: a border with the name set into it, and
  *  the band outside it. A layer with nothing in it still gets one, so

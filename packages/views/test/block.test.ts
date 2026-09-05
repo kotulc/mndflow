@@ -117,12 +117,13 @@ describe("what the projection shows", () => {
   });
 
   /** A slot says what the projection **can** offer, never what it is doing —
-   *  so hiding interfaces must not take away the control that shows them. */
+   *  so hiding interfaces must not take away the group that shows them, which
+   *  is `relations`. */
   it("offers the control groups it can answer, hiding one or not", () => {
     const graph = fold(related());
-    expect(project(graph, "block_loop").slots).toContain("interfaces");
+    expect(project(graph, "block_loop").slots).toContain("relations");
     expect(project(graph, "block_loop", { interfaces: false }).slots)
-      .toContain("interfaces");
+      .toContain("relations");
   });
 
   /** Hiding interfaces is a display preference and says nothing about the
@@ -154,7 +155,13 @@ describe("the text renderer", () => {
   it("draws a scene as shape rather than coordinates", () => {
     const scene = project(fold(related()), "block_loop");
     const picture = draw(scene);
-    expect(picture).toContain("[Pump");
+    /** A card for every block, a band round the group, and more than one row of
+     *  them. **Never what fits inside a card** — how many characters a name
+     *  gets is the block's width in disguise, and this draws shape. */
+    const cards = scene.nodes.filter((n) => !n.data.marks.includes("group")
+                                         && !n.data.marks.includes("reference"));
+    expect((picture.match(/\[/g) ?? []).length).toBe(cards.length);
+    expect(picture).toContain("(");
     expect(picture.split("\n").length).toBeGreaterThan(1);
   });
 

@@ -63,8 +63,10 @@ const PATHS = {
   // already spends on *the settings of this*.
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
-  // A thing fixed where it sits. A shackle over a body, closed.
+  // A thing fixed where it was put. A shackle over a body, closed — and the
+  // same body with the shackle sprung, which is the *not that* of it.
   locked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0v2M5.5 10.5h13v9h-13z",
+  unlocked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0M5.5 10.5h13v9h-13z",
 
   // Whether a thing writes its name on itself. A tag on a card, and the same
   // tag struck through.
@@ -81,22 +83,34 @@ const PATHS = {
   export_project: "M6.5 3.5h7l4 4v13h-11zM12 10v6M9 13.5L12 16.5l3-3",
   import_file: "M12 13.5v-9M8.5 8L12 4.5 15.5 8M4 16.5v4h16v-4",
 
-  // Arrangements — one-time verbs over the layer. Shapes of a layout: how the
-  // ranks sit, and which way they read.
-  arrange_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
-  // Ranked, and which way they read. **The chevron carries the direction and
-  // takes half the grid** — a small arrowhead beside the bars is 2px at the
-  // size a rail draws, which is four marks nobody can tell apart.
-  arrange_right: "M4 7h3v10H4zM9.5 7h3v10h-3M15 6.5l6 5.5-6 5.5",
-  arrange_left: "M20 7h-3v10h3zM14.5 7h-3v10h3M9 6.5l-6 5.5 6 5.5",
-  arrange_down: "M7 4h10v3H7zM7 9.5h10v3H7M6.5 15l5.5 6 5.5-6",
-  arrange_up: "M17 20H7v-3h10zM17 14.5H7v-3h10M17.5 9L12 3 6.5 9",
+  // How a layer places what it holds. Two, and they are the same three boxes
+  // twice: scattered where the hand put them, and slotted into a lattice.
+  layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
+  layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
 
-  // What a right drag makes. End bars say *this joins two things*, which is
-  // what keeps a plain relationship from reading as a bare rule and a directed
-  // one from reading as an arrange arrow.
+  // The guides the drawing is measured against, ruled or not. **A hash: rules
+  // that run off the edge**, which is what a guide is and what keeps it off
+  // `layout_grid`, where the lines are bounded because they are the thing.
+  guides_on: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17",
+  guides_off: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17M4.5 19.5l15-15",
+
+  // The project opened out to be set. **Sliders, not a cog** — `define` is the
+  // cog and it answers *what is this thing*; this answers *how does the app
+  // behave*, and two purposes may not share one drawing.
+  settings: "M4 8h9M17 8h3M4 16h3M11 16h9M15 5.5v5M7 13.5v5",
+
+  // What a right drag makes, one per way a line is drawn. End bars say *this
+  // joins two things*, which is what keeps a plain relationship from reading as
+  // a bare rule and a directed one from reading as an arrange arrow.
   relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
+  relation_directed: "M4.5 8.5v7M4.5 12h14M14 7.5l5 4.5-5 4.5",
+  // A tie is an association rather than a flow: the same span, drawn open.
+  relation_tie: "M4.5 8.5v7M19.5 8.5v7M4.5 12h4M10 12h4M15.5 12h4",
   relation_typed: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15M12 6.5v3",
+
+  // Pulling the bends out of every line. A run that jogs, over the one straight
+  // segment it becomes — the mark is the before and the after together.
+  align: "M3.5 8h7V16h10M3.5 20h17",
 
   // How a relationship is drawn.
   angles: "M4 19V8h8V4",

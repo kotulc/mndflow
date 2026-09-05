@@ -11,7 +11,7 @@ import { arrangement_of, at_cell, children, covers, edges_in, is_grid, is_interf
          is_reference, layer_id, may_retype, members_of, module_of, module_named,
          next_num, next_alias, path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, HEADERS, READS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
+import { ARRANGEMENTS, HEADERS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
          type FieldDef, type Flow, type Graph, type Headers, type Id, type Mutation,
          type RelationModule, type Side, type Span, type ValueForm } from "./types";
 
@@ -466,7 +466,9 @@ register(
     args: [{ name: "from", form: "block", required: true },
            { name: "to", form: "block", required: true },
            { name: "type", form: "text" },
-           { name: "module", form: "choice", choices: ["line", "directed"] },
+           /** **Three of the four.** A reference line is assigned from what
+            *  sits at its ends, so it is nobody's to pick. */
+           { name: "module", form: "choice", choices: ["line", "directed", "tie"] },
            { name: "fromSide", form: "choice", choices: SIDES },
            { name: "toSide", form: "choice", choices: SIDES }],
     check: (ctx, args) => {
@@ -879,6 +881,9 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
 /** The filled cells of a group, line by line, in the order the layer reads.
  *  A merged region answers at every address it covers, so the same block is
  *  never handed back twice running. */
+/** The way a grid is read: left to right, row by row, like a page. */
+const READ: Side = "right";
+
 function reading(graph: Graph, group: Id, way: Side): Id[][] {
   const g = graph.blocks[group];
   if (!g || !is_grid(g)) return [];
@@ -1099,21 +1104,19 @@ register(
     about: "links the filled cells of a grid along the way the layer reads",
     on: ["block", "cell"],
     args: [{ name: "group", form: "block" }],
-    /** **`free` has no reading direction**, so there is no adjacency to follow.
-     *  Refused in words rather than guessed at row-major. */
+    /** **A grid reads the way a page does**, left to right and row by row. It
+     *  used to read whichever way the layer was arranged, which made a chain
+     *  depend on a setting nobody had made when they drew the grid — and left
+     *  the one arrangement anybody used with no answer at all. */
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
-      if (!READS[arrangement_of(ctx.graph, ctx.layer)]) {
-        return "this layer reads no way in particular — set an arrangement first";
-      }
-      const way = READS[arrangement_of(ctx.graph, ctx.layer)]!;
-      return reading(ctx.graph, group, way).some((line) => line.length > 1)
-        ? null : "no two filled cells sit next to each other along the way this layer reads";
+      return reading(ctx.graph, group, READ).some((line) => line.length > 1)
+        ? null : "no two filled cells sit next to each other in a row";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const way = READS[arrangement_of(ctx.graph, ctx.layer)]!;
+      const way = READ;
       const drawn = new Set(edges_in(ctx.graph, ctx.layer).map((e) => `${e.from}|${e.to}`));
       const out: Mutation[] = [];
       for (const line of reading(ctx.graph, group, way)) {
@@ -1240,13 +1243,18 @@ register(
   },
 );
 
-/** Whether this block's place is fixed. One toggle, on the element rather than
- *  on the layer, and undoable like everything else. */
+/** Whether this element is fixed where it was put. One toggle, on the element
+ *  rather than on the layer, and undoable like everything else.
+ *
+ *  **An interface is a block, so it locks like one** — and it is the case the
+ *  lock is really for: a port stays on the wall it was put on instead of being
+ *  slid by hand. A relationship end is locked by pinning it, which is
+ *  `adjustments.wall` and not this. */
 register(
   {
     name: "lock",
-    about: "fixes where this block sits, so nothing moves it by hand",
-    on: ["block", "selection"],
+    about: "fixes this where it was put, so nothing works its place out again",
+    on: ["block", "interface", "selection"],
     args: [{ name: "ids", form: "block", required: true },
            { name: "fixed", form: "choice", choices: ["yes", "no"] }],
     check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
@@ -1310,15 +1318,31 @@ register(
 register(
   {
     name: "arrange",
-    about: "sets how the layer lays out and which way it reads",
+    about: "sets how the layer lays out, and tidies it into that shape",
     on: ["layer"],
-    args: [{ name: "arrangement", form: "choice", required: true, choices: ARRANGEMENTS }],
+    /** **The tidy comes in; it is not worked out here.** Where a block goes is
+     *  layout, which depends on sizes and on a lattice, and neither is the
+     *  engine's — so the caller hands over where everything went and this
+     *  writes it. One step: setting the arrangement and moving everything into
+     *  it is one thing you did, and one undo puts it all back. */
+    args: [{ name: "arrangement", form: "choice", required: true, choices: ARRANGEMENTS },
+           { name: "at", form: "text" }],
     check: (_ctx, args) =>
       ARRANGEMENTS.includes(String(args["arrangement"]) as Arrangement)
         ? null : `there is no arrangement called "${args["arrangement"]}"`,
-    run: (ctx, args) => ({ mutations: [{ op: "set_arrangement",
-      layer: (args["layer"] as Id) ?? here(ctx),
-      arrangement: String(args["arrangement"]) as Arrangement }] }),
+    run: (ctx, args) => {
+      /** **A list of places, or nothing.** It arrives from a caller with the
+       *  geometry rather than from anything typed, so anything else is nobody
+       *  saying where and the arrangement is set on its own. */
+      const said = args["at"];
+      const at = (Array.isArray(said) ? said : []) as { id: Id; x: number; y: number }[];
+      return { mutations: [
+        { op: "set_arrangement", layer: (args["layer"] as Id) ?? here(ctx),
+          arrangement: String(args["arrangement"]) as Arrangement },
+        ...at.filter((p) => ctx.graph.blocks[p.id])
+             .map((p): Mutation => ({ op: "place_block", id: p.id, x: p.x, y: p.y })),
+      ] };
+    },
   },
 );
 

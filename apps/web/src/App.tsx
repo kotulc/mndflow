@@ -7,9 +7,9 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, offer, session, type Id } from "@mnd/core";
+import { adjustments, offer, session, type Id, type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, extent_of, nearest_seat, project, snap,
+import { box_of, clear_of, extent_of, grid_snap, nearest_seat, project, snap, tidy,
          BLOCK, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
@@ -62,7 +62,14 @@ export function App() {
   const [wide, set_wide] = useState(false);
   /** The mirror off. **Not the strip collapsed** — two questions, two controls. */
   const [quiet, set_quiet] = useState(false);
-  const [shown, set_shown] = useState({ interfaces: true, angles: true });
+  const [shown, set_shown] = useState({ interfaces: true, angles: true, lattice: false });
+  /** Which way a right drag draws a line. Display state until it is drawn, and
+   *  then it is what the relationship was made as. */
+  const [module, set_module] = useState<RelationModule>("line");
+  /** **The rail asking for every line to be pulled straight.** It counts up
+   *  rather than calling: the geometry is the canvas's, so the app says *again*
+   *  and the canvas answers with the runs. */
+  const [straighten, set_straighten] = useState(0);
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
 
@@ -103,6 +110,13 @@ export function App() {
     ? { id: on.id, headers: on.headers ?? "none" as const } : null;
   const element = on
     ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked } : null;
+  /** **The one relationship picked, and which of its ends are pinned.** A
+   *  pinned end is a locked end — every other one is worked out from where the
+   *  two cards ended up — so this is read straight off the edge and needs no
+   *  field of its own. */
+  const edge = only ? graph.edges[only] : undefined;
+  const anchors = edge
+    ? { id: edge.id, from: edge.fromAt !== undefined, to: edge.toAt !== undefined } : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -126,6 +140,20 @@ export function App() {
     s.go(name, args ?? {});
   };
 
+  /** Where a thing put down by hand comes to rest.
+   *
+   *  **What is written is where you let go of it**; what rounds it to a cell on
+   *  a layer set to `grid` is the layout, which is the only thing that knows
+   *  which cells are already taken. So this writes the honest answer and the
+   *  drawing shows the constrained one. A grid block is the exception: its
+   *  cells *are* the lattice, so its own corner lands on it whatever the layer
+   *  is arranged as. */
+  const put = (id: Id, to: { x: number; y: number }) => {
+    const b = graph.blocks[id];
+    if (b?.rows !== undefined && b.cols !== undefined) return grid_snap(to);
+    return { x: snap(to.x), y: snap(to.y) };
+  };
+
   /** An adjustment is positional and unsayable, and undoable like anything
    *  else. **The canvas already worked out where it landed** — it snaps to the
    *  grid and constrains a seated interface to its own card — so the app only
@@ -140,18 +168,23 @@ export function App() {
        *  frees whatever falls outside rather than hiding it. */
       const on = graph.blocks[a.on];
       if (on?.rows !== undefined && on.cols !== undefined) {
-        s.go("group", { into: a.on, ...extent_of(a.w, a.h),
-                        spot: { x: snap(a.to.x), y: snap(a.to.y) } });
+        /** **A grid's corner lands on the layer's lattice**, not on the
+         *  backdrop dots — its cells are that lattice, so a corner rounded to
+         *  the nearest dot put every cell in it a few pixels off every line the
+         *  canvas draws. */
+        s.go("group", { into: a.on, ...extent_of(a.w, a.h), spot: grid_snap(a.to) });
         return;
       }
       s.adjust("size", adjustments.size(a.on, a.w, a.h));
       s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
       return;
     }
+    /** **One step, however many lines it straightened.** One gesture is one
+     *  step, and the rail's verb is one gesture over the whole layer. */
     if (a.kind === "straighten") {
-      s.adjust("straighten", adjustments.straighten(a.on,
-        { side: a.fromSide, at: a.fromAt }, { side: a.toSide, at: a.toAt },
-        a.align ? { id: a.align, x: snap(a.x!), y: snap(a.y!) } : undefined));
+      s.adjust("straighten", a.runs.flatMap((r) => adjustments.straighten(r.on,
+        { side: r.fromSide, at: r.fromAt }, { side: r.toSide, at: r.toAt },
+        r.align ? { id: r.align, x: snap(r.x!), y: snap(r.y!) } : undefined)));
       return;
     }
     if (a.kind === "wall-seat") {
@@ -175,7 +208,7 @@ export function App() {
      *  step, so one undo puts the lot back. */
     if (a.kind === "place") {
       s.adjust("place", adjustments.place(
-        a.at.map((p) => ({ id: p.id, x: snap(p.to.x), y: snap(p.to.y) }))));
+        a.at.map((p) => ({ id: p.id, ...put(p.id, p.to) }))));
       return;
     }
     /** A seated interface slides along the card it sits on: what changed is
@@ -190,7 +223,7 @@ export function App() {
       s.adjust("seat", adjustments.seat(a.on, seat.side, seat.at));
       return;
     }
-    s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
+    s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
 
     /** **Where it came to rest says which group it is in.** A boundary is its
      *  members' bounds, so being inside one and belonging to one were two
@@ -219,7 +252,36 @@ export function App() {
   const chrome = (name: string, args?: Record<string, unknown>) => {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
-    if (name === "arrange") { act("arrange", { layer, ...args }); return; }
+    if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
+    if (name === "relate_with") { set_module(args!["module"] as RelationModule); return; }
+    /** **The canvas has the geometry, so the canvas answers.** The rail says
+     *  the verb was asked for and nothing about any line. */
+    if (name === "straighten") { set_straighten((n) => n + 1); return; }
+    /** **Nothing behind it yet.** It says so rather than doing nothing, which
+     *  is the one failure that looks exactly like the app having missed the
+     *  press. */
+    if (name === "settings") { s.say("project settings are not built yet"); return; }
+    /** **Asking for `grid` tidies the layer**, and the tidy is geometry — so it
+     *  is worked out here, where the projection is, and handed to the action
+     *  as ordinary placements. From then on the arrangement only says what a
+     *  drop rounds to. */
+    if (name === "arrange") {
+      const how = args!["arrangement"];
+      act("arrange", { layer, ...args,
+                       ...(how === "grid" ? { at: tidy(graph, layer) } : {}) });
+      return;
+    }
+    /** **A pinned end is a locked end.** Unlocking gives the seat back to the
+     *  geometry; locking says *here*, which is where it already is — and only
+     *  the canvas knows where that is, so it arrives as an adjustment. */
+    if (name === "anchor") {
+      const id = String(args!["id"]);
+      const end = args!["end"] as "from" | "to";
+      if (args!["fixed"] === "no") { s.adjust("anchor", adjustments.wall(id, end, null)); return; }
+      const seat = scene.perches.find((p) => p.edge === id && p.end === end);
+      if (seat) s.adjust("anchor", adjustments.wall(id, end, seat.side, seat.at));
+      return;
+    }
     /** **Not an action** — it writes nothing and asks for nothing. Describing
      *  a thing is opening the panel that already describes it. */
     if (name === "define") { set_tab("this"); set_tray(true); return; }
@@ -345,6 +407,9 @@ export function App() {
           cells={s.cells()}
           onPickCells={(cells) => s.pick_cells(cells)}
           curved={shown.angles === false}
+          lattice={shown.lattice}
+          straighten={straighten}
+          module={module}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
           onPick={(ids) => s.pick(ids)}
@@ -367,7 +432,9 @@ export function App() {
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces, angles: shown.angles,
+                                   lattice: shown.lattice, module,
                                    ...(element ? { element } : {}),
+                                   ...(anchors ? { anchors } : {}),
                                    ...(gridded ? { grid: gridded } : {}) },
                                  chrome)} />
     </div>

@@ -18,7 +18,8 @@ import type { Act, Args, Side, Spot } from "@mnd/core";
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, extent_of, snap, BLOCK, CELL, RIM, type Scene } from "@mnd/views";
+import { box_of, clear_of, lattice_box, swept_cells, BLOCK, CELL,
+         type Scene } from "@mnd/views";
 
 export type { Adjust };
 
@@ -52,6 +53,16 @@ export type StageProps = {
   onSaid?: () => void;
   /** Whether relationships are read with curves rather than right angles. */
   curved?: boolean;
+  /** Whether the backdrop rules the canvas into cells. */
+  lattice?: boolean;
+  /** Which way a right drag draws a line. **The rail picked it and the stage
+   *  passes it on** — what a new relationship is is the model's, so it goes
+   *  through the action like everything else. */
+  module?: string;
+  /** A count that goes up when every line on this layer is asked to run
+   *  straight. **The rail names the verb and the canvas has the geometry**, so
+   *  what crosses is the app saying *again* and nothing about any line. */
+  straighten?: number;
 };
 
 /** What has no inside to open. A boundary is its members' bounds and a note is
@@ -59,7 +70,7 @@ export type StageProps = {
 const INERT = ["group", "note"];
 
 export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, curved }: StageProps) {
+                       menu, said, onSaid, curved, lattice, straighten, module }: StageProps) {
   /** The name being typed on the drawing, as the thing it names. **Held here
    *  because renaming is an action** — the canvas draws the field and says
    *  what was typed; what that means is settled in the one place every other
@@ -218,11 +229,12 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
         else if (g.on && g.kind === "route" && g.given) {
           const bend = g.given as Record<string, unknown>;
           if (bend["fromSide"] && bend["toSide"]) {
-            onAdjust?.({ kind: "straighten", on: g.on,
-                         fromSide: bend["fromSide"] as Side, fromAt: Number(bend["fromAt"]),
-                         toSide: bend["toSide"] as Side, toAt: Number(bend["toAt"]),
-                         ...(bend["align"] ? { align: String(bend["align"]),
-                                               x: Number(bend["x"]), y: Number(bend["y"]) } : {}) });
+            onAdjust?.({ kind: "straighten", runs: [{
+              on: g.on,
+              fromSide: bend["fromSide"] as Side, fromAt: Number(bend["fromAt"]),
+              toSide: bend["toSide"] as Side, toAt: Number(bend["toAt"]),
+              ...(bend["align"] ? { align: String(bend["align"]),
+                                    x: Number(bend["x"]), y: Number(bend["y"]) } : {}) }] });
           }
         }
         /** **The room's edge is the band you leave by.** A rim is drawn as part
@@ -288,6 +300,8 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
         cells={cells}
         onPickCells={onPickCells}
         curved={curved}
+        lattice={lattice}
+        straighten={straighten}
         naming={naming}
         onNamed={(label) => {
           const id = naming;
@@ -297,7 +311,8 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
-        onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls })}
+        onRelate={(from, to, walls) =>
+          onAct("relate", { from, to, ...walls, ...(module ? { module } : {}) })}
         /** A right drag across empty ground draws a **group**, sized in cells.
          *
          *  **Sketch first, impose order after**: whatever loose cards the sweep
@@ -335,14 +350,18 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
  *  two landing in one resolve to the nearest free cell, so a sketch becomes a
  *  structure in one gesture. */
 function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }) {
-  const x = snap(box.x);
-  const y = snap(box.y);
-  const { rows, cols } = extent_of(box.w, box.h);
+  /** **The cells it covered, not the rectangle it drew.** The lattice is
+   *  already on the canvas and a group is a region of it, so a sweep activates
+   *  whole cells and the group lands exactly on the lines you swept over. */
+  const on = swept_cells(box);
+  const { rows, cols } = on;
+  /** **A grid is exactly its cells**, so its corner is its first cell's. */
+  const from = lattice_box(on.r, on.c);
+  const x = from.x;
+  const y = from.y;
   const taken = new Set<string>();
   const seats: { id: string; r: number; c: number }[] = [];
 
-  /** The lattice's own corner, which is the grid's plus its rim. */
-  const from = { x: x + RIM, y: y + RIM };
   const caught = scene.nodes
     .filter((n) => n.type !== "group" && !n.data.on && n.selectable !== false)
     .map((n) => ({ id: n.id, b: box_of(n) }))

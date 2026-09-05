@@ -6,12 +6,12 @@
 
 import { describe, expect, it } from "vitest";
 import { fixture, related } from "@mnd/fixtures";
-import { children, fold, is_interface,
+import { children, fold, is_grid, is_interface, module_of,
          type Arrangement, type Graph, type Id } from "@mnd/core";
-import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, GRID, GAP,
+import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, CELL, GAP, STEP,
          type Placed } from "../src/index";
 
-const ARRANGEMENTS: Arrangement[] = ["free", "right", "left", "down", "up"];
+const ARRANGEMENTS: Arrangement[] = ["free", "grid"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
   const graph = fold(fixture(name));
@@ -29,6 +29,13 @@ function overlaps(a: Placed, b: Placed): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
+/** A group is drawn **round** what it holds, so it overlaps its members by
+ *  definition and sits on the lattice by its rim rather than by its middle.
+ *  Every property below is about the things a layer places. */
+function placed(graph: Graph, spots: Placed[]): Placed[] {
+  return spots.filter((p) => module_of(graph, p.id) !== "group");
+}
+
 describe("size", () => {
   it("gives a container more room than a leaf", () => {
     const { graph } = layer_of("nested");
@@ -36,7 +43,7 @@ describe("size", () => {
   });
 
   it("snaps to the grid", () => {
-    for (const n of [0, 1, 13, 25, -37]) expect(snap(n) % GRID === 0).toBe(true);
+    for (const n of [0, 1, 13, 25, -37]) expect(snap(n) % STEP === 0).toBe(true);
   });
 });
 
@@ -50,7 +57,7 @@ describe("placement", () => {
 
   it.each(ARRANGEMENTS)("never overlaps two cards under %s", (how) => {
     const { graph, layer } = layer_of("related");
-    const spots = under(graph, layer, how);
+    const spots = placed(graph, under(graph, layer, how));
     for (let i = 0; i < spots.length; i++) {
       for (let j = i + 1; j < spots.length; j++) {
         expect(overlaps(spots[i]!, spots[j]!), `${spots[i]!.id} over ${spots[j]!.id}`).toBe(false);
@@ -58,11 +65,14 @@ describe("placement", () => {
     }
   });
 
-  it.each(ARRANGEMENTS)("lands on the grid under %s", (how) => {
+  /** **Only under `free`.** A block slotted into the lattice is centred in its
+   *  cell, which leaves it half a step off the backdrop dots — the cell is what
+   *  places it, and re-snapping is what pushed a centred block into a corner. */
+  it("lands on the grid under free", () => {
     const { graph, layer } = layer_of("related");
-    for (const p of under(graph, layer, how)) {
-      expect(p.x % GRID === 0, `${p.id} x`).toBe(true);
-      expect(p.y % GRID === 0, `${p.id} y`).toBe(true);
+    for (const p of under(graph, layer, "free")) {
+      expect(p.x % STEP === 0, `${p.id} x`).toBe(true);
+      expect(p.y % STEP === 0, `${p.id} y`).toBe(true);
     }
   });
 
@@ -80,7 +90,7 @@ describe("placement", () => {
     placed.blocks["block_pump"]!.y = 120;
     placed.blocks[layer]!.arrangement = "free";
     const free = laid(placed, layer);
-    placed.blocks[layer]!.arrangement = "down";
+    placed.blocks[layer]!.arrangement = "grid";
     laid(placed, layer);
     placed.blocks[layer]!.arrangement = "free";
     expect(laid(placed, layer)).toEqual(free);
@@ -88,10 +98,10 @@ describe("placement", () => {
 
   it("stays centred on the layer as it grows", () => {
     const { graph, layer } = layer_of("related");
-    const spots = under(graph, layer, "down");
+    const spots = placed(graph, under(graph, layer, "grid"));
     const left = Math.min(...spots.map((p) => p.x));
     const right = Math.max(...spots.map((p) => p.x + p.w));
-    expect(Math.abs(left + right)).toBeLessThanOrEqual(GRID);
+    expect(Math.abs(left + right)).toBeLessThanOrEqual(CELL.w);
   });
 
   it("gives an empty layer room to put something new", () => {
@@ -99,29 +109,57 @@ describe("placement", () => {
   });
 });
 
-describe("a directional arrangement reads one way", () => {
-  it("puts what nothing points at first, and ranks along the direction", () => {
+describe("the grid arrangement", () => {
+  it("centres every block in whole cells of the layer's own lattice", () => {
     const graph = fold(related());
-    const spots = under(graph, "block_loop", "right");
-    const at = (id: string) => spots.find((p) => p.id === id)!;
-    expect(at("block_pump").x).toBeLessThan(at("block_hx").x);
-    expect(at("block_hx").x).toBeLessThan(at("block_tank").x);
+    for (const p of placed(graph, under(graph, "block_loop", "grid"))) {
+      /** The cells it claims, and so the corner it was centred in. */
+      const span = { w: Math.max(1, Math.ceil(p.w / CELL.w)) * CELL.w,
+                     h: Math.max(1, Math.ceil(p.h / CELL.h)) * CELL.h };
+      expect(Math.abs((p.x - (span.w - p.w) / 2) % CELL.w), `${p.id} x`).toBe(0);
+      expect(Math.abs((p.y - (span.h - p.h) / 2) % CELL.h), `${p.id} y`).toBe(0);
+    }
   });
 
-  it("reverses under the opposite direction", () => {
+  it("reads left to right, then down a row", () => {
     const graph = fold(related());
-    const at = (spots: Placed[], id: string) => spots.find((p) => p.id === id)!;
-    const right = under(graph, "block_loop", "right");
-    const left = under(graph, "block_loop", "left");
-    expect(at(right, "block_pump").x < at(right, "block_hx").x)
-      .toBe(at(left, "block_pump").x > at(left, "block_hx").x);
+    const spots = under(graph, "block_loop", "grid");
+    const rows = new Map<number, number[]>();
+    for (const p of spots) rows.set(p.y, [...(rows.get(p.y) ?? []), p.x]);
+    /** Every row is a run of distinct columns, and the rows step down. */
+    for (const xs of rows.values()) expect(new Set(xs).size).toBe(xs.length);
+    expect([...rows.keys()].length).toBeGreaterThan(0);
   });
 
-  it("ranks down the page rather than across when told to", () => {
+  it("puts a grid's own cells on the same lattice — it is exactly its cells", () => {
+    const { graph, layer } = layer_of("gridded");
+    for (const p of under(graph, layer, "grid")) {
+      const g = graph.blocks[p.id]!;
+      if (!is_grid(g)) continue;
+      expect(Math.abs(p.x % CELL.w), `${p.id} x`).toBe(0);
+      expect(Math.abs(p.y % CELL.h), `${p.id} y`).toBe(0);
+      expect(p.w).toBe((g.cols ?? 1) * CELL.w);
+      expect(p.h).toBe((g.rows ?? 1) * CELL.h);
+    }
+  });
+
+  it("gives a band no cell of its own — it is its members' bounds", () => {
     const graph = fold(related());
-    const spots = under(graph, "block_loop", "down");
-    const at = (id: string) => spots.find((p) => p.id === id)!;
-    expect(at("block_pump").y).toBeLessThan(at("block_hx").y);
+    const spots = under(graph, "block_loop", "grid");
+    const band = spots.find((p) => p.id === "block_hot")!;
+    const members = Object.values(graph.blocks)
+      .filter((b) => b.group === "block_hot").map((b) => b.id);
+    for (const m of spots.filter((p) => members.includes(p.id))) {
+      expect(m.x).toBeGreaterThanOrEqual(band.x);
+      expect(m.x + m.w).toBeLessThanOrEqual(band.x + band.w);
+    }
+  });
+
+  it("grows a square rather than a line", () => {
+    const graph = fold(related());
+    const spots = placed(graph, under(graph, "block_loop", "grid"));
+    if (spots.length < 4) return;
+    expect(new Set(spots.map((p) => p.y)).size).toBeGreaterThan(1);
   });
 });
 

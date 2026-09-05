@@ -18,23 +18,23 @@ export type Side = "top" | "right" | "bottom" | "left";
 /** An interface's decorative mark. Constrains nothing. */
 export type Flow = "in" | "out" | "both";
 
-/** One setting, five values. Four carry a reading direction.
+/** How a layer places what it holds. One setting, two values.
  *
- *  **Model data, not a preference.** How a layer reads is part of what the
+ *  **Model data, not a preference.** How a layer lays out is part of what the
  *  layer says, so a diagram reopens the way it was left and travels in a file
  *  with the rest of it.
  *
- *  **No `grid` here.** The grid is the lattice everything lands on and a group
- *  is a region of it; a tiling arrangement of the same name was two things
- *  called one word. */
-export type Arrangement = "free" | "right" | "left" | "down" | "up";
+ *  `free` is hand placement; `grid` slots everything into the layer's own
+ *  lattice, left to right and a new row when the square is full. **The four
+ *  directional values are gone** — they ranked by relationships, which read as
+ *  a picture of the graph rather than of the model.
+ *
+ *  **`grid` names the lattice, and so does a group.** They are the same
+ *  lattice: a group is a named region of it, which is what lets a block seated
+ *  in one line up with a block the layer placed. */
+export type Arrangement = "free" | "grid";
 
-export const ARRANGEMENTS: readonly Arrangement[] = ["free", "right", "left", "down", "up"];
-
-/** The four directional values, and what each reads toward. */
-export const READS: Partial<Record<Arrangement, Side>> = {
-  right: "right", left: "left", down: "bottom", up: "top",
-};
+export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 
 /** Closed: two are picked, two are assigned from what sits at the ends. */
 export type RelationModule = "line" | "directed" | "reference" | "tie";
@@ -118,9 +118,16 @@ export type Block = {
    *  Model data rather than a display preference: what a card says about itself
    *  is part of what the layer says, so it travels and it undoes. */
   labelled?: boolean;
-  /** Whether this block's place is fixed. **Absent is no.** A locked block is
-   *  not dragged, resized or swept up with a band — it is arranged around
-   *  rather than moved, and it says so in its own corner. */
+  /** Whether this block is fixed where it was put. **Absent is no.**
+   *
+   *  **A lock is not a hand brake.** You may always drag a locked block; what
+   *  it fixes is what the app would otherwise work out for itself — an
+   *  interface stays on the wall it was put on rather than being re-seated, and
+   *  a relationship end stays where it was pinned rather than being derived
+   *  from where the two cards ended up.
+   *
+   *  On an ordinary block it is a mark and nothing more for now: the `grid`
+   *  arrangement has full authority to re-order everything it lays out. */
   locked?: boolean;
   /** What this one block says about how it draws, over whatever its definition
    *  said. **The last word in the cascade**, keyed the way a definition's

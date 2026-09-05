@@ -16,12 +16,12 @@ export type OptionsProps = {
   groups: readonly Group[];
 };
 
-/** Drawn in this order whatever order a module lists them. **`relations` and
- *  `grid` are last on purpose**: one grows with the vocabulary and the other
- *  comes and goes with the selection, so those are the two to push off the
- *  bottom of a column that scrolls. */
-const ORDER = ["project", "arrange", "flow", "interfaces",
-               "lines", "relations", "grid"];
+/** Drawn in this order whatever order a module lists them. **The three that
+ *  come and go with the selection are last on purpose**: they are the ones to
+ *  push off the bottom of a column that scrolls, and everything above them is
+ *  about what you are looking at rather than what you have hold of. */
+const ORDER = ["project", "layer", "views", "flow", "display", "relations",
+               "element", "anchors", "grid"];
 
 const at = (key: string) => {
   const n = ORDER.indexOf(key);
@@ -34,22 +34,31 @@ export function Options({ groups }: OptionsProps) {
 
   return (
     <aside className="opts" aria-label="Options">
-      {shown.map((group) => (
-        <div key={group.key} className={["opts-group", group.verbs ? "verbs" : ""]
-               .filter(Boolean).join(" ")} role="group" aria-label={group.label}>
-          <span className="opts-label">{group.label}</span>
-          {group.controls.map((control) => (
-            <button key={control.key} type="button"
-                    className={control.on ? "on" : ""}
-                    {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
-                    title={control.tip}
-                    onClick={control.run}>
-              <Icon name={control.icon} />
-              <span className="word">{control.word}</span>
-            </button>
-          ))}
-        </div>
-      ))}
+      {shown.map((group) => {
+        /** **Where the verbs begin.** A group is about one subject and some
+         *  subjects have both a setting and something you do to them, so the
+         *  two are ruled apart inside the group rather than split across two
+         *  labels. No rule where the group is verbs all the way down — there is
+         *  nothing above to divide it from. */
+        const first = group.controls.findIndex((c) => c.verb);
+        return (
+          <div key={group.key} className="opts-group" role="group" aria-label={group.label}>
+            <span className="opts-label">{group.label}</span>
+            {group.controls.map((control, n) => (
+              <button key={control.key} type="button"
+                      className={[control.on ? "on" : "",
+                                  control.verb ? "verb" : "",
+                                  n === first && n > 0 ? "ruled" : ""].filter(Boolean).join(" ")}
+                      {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
+                      title={control.tip}
+                      onClick={control.run}>
+                <Icon name={control.icon} />
+                <span className="word">{control.word}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })}
     </aside>
   );
 }

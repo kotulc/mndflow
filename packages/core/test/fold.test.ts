@@ -84,7 +84,7 @@ describe("derived readings", () => {
   it("gives a layer that says nothing the free arrangement", () => {
     const graph = fold(flat());
     expect(arrangement_of(graph, "block_ledger")).toBe("free");
-    expect(arrangement_of(fold(related()), "block_loop")).toBe("right");
+    expect(arrangement_of(fold(related()), "block_loop")).toBe("grid");
   });
 
   it("reads a null layer as the root layer, and never as the root itself", () => {

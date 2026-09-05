@@ -6,8 +6,8 @@
 import { children, covers, edges_in, is_grid, is_interface, members_of, module_of, role_of,
          shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
-import { at_seat, boundary, cell_box, gridded, laid, perch_id, perched, seated, GAP, GRID,
-         type Perch } from "@mnd/views";
+import { at_seat, cell_box, gridded, laid, perch_id, perched, roomed, seated,
+         GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
 import { look_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
@@ -30,7 +30,7 @@ export type Config = {
   interfaces?: boolean;
 };
 
-const SLOTS: readonly Slot[] = ["arrange", "interfaces", "lines", "relations"];
+const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
 /** Project a layer through the block view. */
 export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
@@ -55,10 +55,11 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const data = carried(graph, p.id);
     const drawn = node(p.id, p, gridded(graph, p.id) ? { ...data, cells: [] } : data,
                        module_of(graph, p.id) === "note" ? "note" : "card");
-    /** **A locked block is arranged around, not moved.** Said here rather than
-     *  on the canvas, so every drawing of the scene answers the same — picking
-     *  it still works, because looking at a thing is not moving it. */
-    return graph.blocks[p.id]?.locked ? { ...drawn, draggable: false } : drawn;
+    /** **A lock is not a hand brake.** It fixes what the app would otherwise
+     *  work out for itself; where you put a block by hand is already said, so a
+     *  locked card drags like any other and the mark in its corner is the whole
+     *  of what it means here. */
+    return drawn;
   });
 
   /** **A grid owns its corner and draws its extent**; a boundary is its
@@ -68,8 +69,11 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   for (const g of here) {
     if (module_of(graph, g.id) !== "group") continue;
     const members = members_of(graph, g.id).map((b) => b.id);
-    const box = is_grid(g) ? spots.find((p) => p.id === g.id) ?? null
-                           : boundary(spots, members);
+    /** **Placed like anything else.** A grid owns its corner and a band is its
+     *  members' bounds, and both answers come back from the layout — asking a
+     *  second time here was the same sum done twice, and two places to keep in
+     *  step. */
+    const box = spots.find((p) => p.id === g.id) ?? null;
     /** **A group is never a card.** A boundary with nothing left in it has no
      *  bounds and draws nothing — taken out of the boxes either way, because
      *  left in it came out as a blank card nobody made. */
@@ -89,10 +93,15 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const b = graph.blocks[p.id]!;
     const data: BoxData = { ...carried(graph, p.id), side: b.side!,
                             ...(b.parent ? { on: b.parent } : {}) };
-    return hidden
-      ? { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
-          selectable: false, draggable: false }
-      : node(p.id, p, data, "seat");
+    if (hidden) {
+      return { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
+               selectable: false, draggable: false };
+    }
+    /** **This is the lock that bites.** An interface has no place of its own —
+     *  it is re-seated on whichever wall it was last slid to — so *locked* is
+     *  the one way to say it belongs on this wall and stays there. */
+    const seat = node(p.id, p, data, "seat");
+    return b.locked ? { ...seat, draggable: false } : seat;
   });
 
   const drawn = [...groups, ...boxes, ...seats];
@@ -224,9 +233,13 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
    *  the layer above it. */
   const side = graph.blocks[layer]?.side;
   const set_in = side ? { side } : {};
-  const least = { w: GRID * 14, h: GRID * 9 };
+  const least = { w: UNIT * 14, h: UNIT * 9 };
+  /** **A room is a whole number of cells**, so its walls fall on lines the
+   *  lattice already draws. Said here as well as where the room is grown to
+   *  the panel, because either can be the answer that is drawn. */
   if (drawn.length === 0) {
-    return { x: -least.w / 2, y: -least.h / 2, ...least, label, role, ports, ...set_in };
+    return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
+             label, role, ports, ...set_in };
   }
   const pad = GAP.unit;
   const at = drawn.map(box_of);
@@ -234,7 +247,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   const y = Math.min(...at.map((b) => b.y)) - pad;
   const w = Math.max(least.w, Math.max(...at.map((b) => b.x + b.w)) + pad - x);
   const h = Math.max(least.h, Math.max(...at.map((b) => b.y + b.h)) + pad - y);
-  return { x, y, w, h, label, role, ports, ...set_in };
+  return { ...roomed({ x, y, w, h }), label, role, ports, ...set_in };
 }
 
 /** The layer's own interfaces, set into its walls and seen from inside.

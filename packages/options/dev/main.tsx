@@ -16,18 +16,18 @@ import "./dev.css";
  *  the same layer with a grid picked**, which is what the context group at the
  *  foot of the rail answers for. */
 const SLOTS: Record<string, string[]> = {
-  block: ["arrange", "interfaces", "lines", "relations"],
-  "block, a grid picked": ["arrange", "interfaces", "lines", "relations"],
+  block: ["layer", "display", "relations"],
+  "block, a grid picked": ["layer", "display", "relations"],
 };
-
-const TYPES = ["flow", "satisfies", "depends on"];
 
 function Harness() {
   const [module, set_module] = useState("block");
   const [log, set_log] = useState<string[]>([]);
   const [chrome, set_chrome] = useState<Chrome>({
-    slots: SLOTS["block"]!, arrangement: "right", interfaces: true, angles: true,
-    types: TYPES, picked: null,
+    slots: SLOTS["block"]!, arrangement: "free", interfaces: true, angles: true,
+    lattice: true, module: "line",
+    element: { id: "block_pump", labelled: true, locked: false },
+    anchors: { id: "edge_flow", from: false, to: true },
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
@@ -36,7 +36,17 @@ function Harness() {
     if (name === "interfaces") set_chrome((c) => ({ ...c, interfaces: args!["show"] as boolean }));
     if (name === "lines") set_chrome((c) => ({ ...c, angles: args!["angles"] as boolean }));
     if (name === "relate_with") {
-      set_chrome((c) => ({ ...c, picked: (args!["type"] as string) ?? null }));
+      set_chrome((c) => ({ ...c, module: args!["module"] as never }));
+    }
+    if (name === "lattice") set_chrome((c) => ({ ...c, lattice: args!["show"] as boolean }));
+    if (name === "lock") {
+      set_chrome((c) => (c.element
+        ? { ...c, element: { ...c.element, locked: args!["fixed"] === "yes" } } : c));
+    }
+    if (name === "anchor") {
+      set_chrome((c) => (c.anchors
+        ? { ...c, anchors: { ...c.anchors,
+                             [args!["end"] as string]: args!["fixed"] === "yes" } } : c));
     }
     if (name === "group") {
       set_chrome((c) => (c.grid

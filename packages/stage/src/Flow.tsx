@@ -17,8 +17,8 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import { at_seat, box_of, extent, extent_of, look_key, nearest_seat, perch_id, snap,
-         CELL, FRAME, PORT, RIM,
+import { at_seat, box_of, extent, lattice_box, look_key, nearest_seat, perch_id, roomed,
+         swept_cells, CELL, FRAME, PORT, STEP, UNIT,
          type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
@@ -79,16 +79,24 @@ export type Adjust =
    *  what this writes is the wall and the fraction the end was pinned to — the
    *  seat goes back to being worked out the moment it is unpinned. */
   | { kind: "anchor"; on: string; end: "from" | "to"; side: Side; at: number }
-  /** A relationship asked to run straight. **Where two borders can meet
-   *  without a jog is a fact about two rectangles**, which a relationship
-   *  carries neither of — so the canvas is the only thing that can say it, and
-   *  saying it is what makes this an adjustment rather than something sayable. */
-  | { kind: "straighten"; on: string; fromSide: Side; fromAt: number;
-      toSide: Side; toAt: number; align?: string; x?: number; y?: number }
+  /** Relationships asked to run straight. **Where two borders can meet without
+   *  a jog is a fact about two rectangles**, which a relationship carries
+   *  neither of — so the canvas is the only thing that can say it, and saying
+   *  it is what makes this an adjustment rather than something sayable.
+   *
+   *  **A list, because straightening the layer is one thing you did.** Two
+   *  clicks on a line send one run and the rail's verb sends every run there
+   *  is; either way it is one step and one undo. */
+  | { kind: "straighten"; runs: readonly Run[] }
   /** A corner dragged. **The one card whose size is yours to set** — every
    *  other one is sized from what it holds, and a block has carried `w` and
    *  `h` all along with no gesture that wrote them. */
   | { kind: "size"; on: string; w: number; h: number; to: Point };
+
+/** One relationship pulled straight: the two ends pinned, and the block that
+ *  has to shift for it where one does. */
+export type Run = { on: string; fromSide: Side; fromAt: number;
+                    toSide: Side; toAt: number; align?: string; x?: number; y?: number };
 
 export type FlowViewProps = {
   scene: Scene;
@@ -134,6 +142,16 @@ export type FlowViewProps = {
   onNamed?: (label: string | null) => void;
   /** Chrome the host may turn off — a thumbnail wants none of it. */
   chrome?: boolean;
+  /** Whether the backdrop rules the canvas into cells. **The lattice
+   *  everything lands on, drawn** — a group is a region of it and a `grid`
+   *  layer slots straight onto it, so the lines are what both are measured
+   *  against rather than decoration behind them. */
+  lattice?: boolean;
+  /** A count that goes up when every line on this layer is asked to run
+   *  straight. **A number rather than a callback**: the rail writes nothing and
+   *  the canvas holds nothing, so what crosses the seam is the app saying
+   *  *again* and the canvas answering with the geometry only it has. */
+  straighten?: number;
   /** Whether relationships are read with curves rather than right angles.
    *  Display state: it changes what you are looking at and nothing about the
    *  project, so it arrives as a prop and never enters the log. */
@@ -204,11 +222,16 @@ function panelled(frame: Frame, seen: { w: number; h: number }): Frame {
   let { w, h } = frame;
   w / h > shape ? (h = w / shape) : (w = h * shape);
   const floor = Math.max(1, room.w / w, room.h / h);
-  w = snap(w * floor);
-  h = snap(h * floor);
-  return { ...frame,
-           x: snap(frame.x + frame.w / 2 - w / 2),
-           y: snap(frame.y + frame.h / 2 - h / 2), w, h };
+  /** **Whole cells, and never fewer than the shape asked for.** A room is
+   *  measured in the same cells everything in it is, so a wall runs down a line
+   *  the lattice already draws instead of through the middle of a cell — and
+   *  rounding up is what keeps growing it to the panel from quietly shrinking
+   *  it. */
+  return { ...frame, ...roomed({
+    x: frame.x + frame.w / 2 - (w * floor) / 2,
+    y: frame.y + frame.h / 2 - (h * floor) / 2,
+    w: w * floor, h: h * floor,
+  }) };
 }
 
 /** Where a line meets the room's own wall.
@@ -444,26 +467,37 @@ function marked<T extends { id: string; selected?: boolean }>(
  *  memoised to stop. They are drawn into the viewport instead, so they pan and
  *  zoom with the drawing and cost nothing when nothing is picked. */
 type Grip = { key: string; edge: string; end: "from" | "to"; on: string;
-              side: Side; at: number; x: number; y: number };
+              side: Side; at: number; x: number; y: number;
+              /** Whether this end was pinned by hand. **A pinned end is a
+               *  locked end** — every other one is worked out from where the
+               *  two cards ended up, so this is the only end that stays put. */
+              pinned: boolean };
 
 /** The grid a right drag is about to make, drawn as it is swept.
  *
  *  **The cells themselves, and how many.** A bare rectangle said how big the
  *  region was and nothing about what it would become — and how many cells that
- *  is is the only thing worth knowing while you are drawing one. */
+ *  is is the only thing worth knowing while you are drawing one.
+ *
+ *  **It is the layer's own cells that light up**, not a region measured from
+ *  wherever the press landed: a sweep activates lattice cells that are already
+ *  drawn, so the region snaps to them as it is drawn and lands where it looked. */
 function Sweeping({ at }: { at: { x: number; y: number; w: number; h: number } }) {
-  const { rows, cols } = extent_of(at.w, at.h);
-  const box = { x: at.x, y: at.y, w: cols * CELL.w + RIM * 2, h: rows * CELL.h + RIM * 2 };
+  const { r, c, rows, cols } = swept_cells(at);
+  /** **The cells themselves, and nothing round them.** A grid is exactly the
+   *  region it covers, so what is drawn while it is being swept is the region. */
+  const box = lattice_box(r, c, rows, cols);
+  const on = box;
   const lines: React.ReactNode[] = [];
-  for (let r = 0; r <= rows; r++) {
-    const y = box.y + RIM + r * CELL.h;
-    lines.push(<line key={`r${r}`} className="mnd-drawn-rule"
-                     x1={box.x + RIM} y1={y} x2={box.x + RIM + cols * CELL.w} y2={y} />);
+  for (let n = 0; n <= rows; n++) {
+    const y = on.y + n * CELL.h;
+    lines.push(<line key={`r${n}`} className="mnd-drawn-rule"
+                     x1={on.x} y1={y} x2={on.x + on.w} y2={y} />);
   }
-  for (let c = 0; c <= cols; c++) {
-    const x = box.x + RIM + c * CELL.w;
-    lines.push(<line key={`c${c}`} className="mnd-drawn-rule"
-                     x1={x} y1={box.y + RIM} x2={x} y2={box.y + RIM + rows * CELL.h} />);
+  for (let n = 0; n <= cols; n++) {
+    const x = on.x + n * CELL.w;
+    lines.push(<line key={`c${n}`} className="mnd-drawn-rule"
+                     x1={x} y1={on.y} x2={x} y2={on.y + on.h} />);
   }
   return (
     <>
@@ -654,7 +688,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
-          said, chrome = true, curved = false } = props;
+          said, chrome = true, curved = false, lattice = false, straighten = 0 } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
   const latest = useRef({ picked, onPick, key: "" });
@@ -1211,10 +1245,30 @@ function Canvas(props: FlowViewProps) {
       if (!box) continue;
       const seat = p.on === FRAME ? met.get(perch_id(p.edge, p.end)) ?? p : p;
       out.push({ key: `${p.edge}-${p.end}`, edge: p.edge, end: p.end, on: p.on,
-                 side: seat.side, at: seat.at, ...middle(box, seat) });
+                 side: seat.side, at: seat.at, pinned: !!p.pinned, ...middle(box, seat) });
     }
     return out;
   }, [scene, picked, frame]);
+
+  /** **Every line on the layer pulled straight, in one step.**
+   *
+   *  The rail asks by counting up; the geometry is the canvas's, so this is
+   *  where the answer is worked out. A line that has nothing to line up with —
+   *  two boxes that overlap nowhere and neither end free to move — is left
+   *  alone rather than nudged somewhere arbitrary. */
+  useEffect(() => {
+    if (!straighten) return;
+    const runs = scene.edges
+      .map((e) => {
+        const bend = straightened(scene, frame, e.id);
+        return bend ? { on: e.id, ...bend } : null;
+      })
+      .filter((r): r is Run => r !== null);
+    if (runs.length) onAdjust?.({ kind: "straighten", runs });
+    /** **The count is the whole trigger.** Re-running when the scene changed
+     *  would straighten again on every move the straightening itself made. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [straighten]);
 
   /** A hidden interface, saying where it is. **Only while the line tied to it
    *  or the card it sits on is picked** — enough to find a line's end without
@@ -1365,7 +1419,17 @@ function Canvas(props: FlowViewProps) {
        *  handles it wanted were the row of marks every card used to sprout. */
       nodesConnectable={false}
       onNodeDrag={(_, node) => dragging(node)}
-      onNodeDragStop={(_, node, dragged) => { land(null); dropped(node, dragged); }}
+      /** **The arrays go back to what the projection says, every time.** Where
+       *  a drop changes nothing the scene comes back identical, nothing
+       *  re-installs them, and the library goes on drawing the node where it
+       *  was let go of — adrift from the model that never moved it. A layer on
+       *  `grid` is the whole of that case: it places what it holds itself, so
+       *  every drop on it changes nothing about where anything sits. */
+      onNodeDragStop={(_, node, dragged) => {
+        land(null);
+        dropped(node, dragged);
+        again((n) => n + 1);
+      }}
       onNodeClick={(e, n) => say(n.id, e, "left", 1)}
       onNodeDoubleClick={(e, n) => say(n.id, e, "left", 2)}
       onNodeContextMenu={(e, n) => { e.preventDefault(); say(n.id, e, "right", 1); }}
@@ -1468,9 +1532,12 @@ function Canvas(props: FlowViewProps) {
             return (
               <span key={g.key}
                     className={["mnd-anchor", "nodrag", "nopan",
+                                g.pinned ? "locked" : "",
                                 grabbed?.key === g.key ? "held" : ""].filter(Boolean).join(" ")}
                     style={{ transform: `translate(-50%, -50%) translate(${to.x}px, ${to.y}px)` }}
-                    title="drag to move this end along the border · double click to make it an interface"
+                    title={g.pinned
+                      ? "this end is locked where it sits · drag to move it along the border"
+                      : "drag to move this end along the border · double click to make it an interface"}
                     /** The grip sits inside the pane, and a click that reaches
                      *  the pane clears the selection — which is the selection
                      *  that put the grip there. */
@@ -1512,7 +1579,22 @@ function Canvas(props: FlowViewProps) {
           })}
         </ViewportPortal>
       ) : null}
-      {chrome ? <Background variant={BackgroundVariant.Dots} gap={24} size={1} /> : null}
+      {chrome ? <Background variant={BackgroundVariant.Dots} gap={STEP} size={1} /> : null}
+      {/* **The unit, ruled over the whole canvas as squares.**
+          One square is the unit everything on the drawing is measured in: a
+          block is five by two of them, a cell is six by three, and the layout
+          leaves exactly one between anything and its neighbour — all of which
+          you can count off the ruling. Anchored on the layer's origin, which is
+          where every cell address and the room's own walls are measured from
+          too. It runs past the frame the way the dots do, so what carries on
+          outside is the same ruling and reads as one surface. **Offset by half
+          a square** because the library draws its rule down the middle of each
+          tile; without it every line falls half a square off the lattice. */}
+      {chrome && lattice ? (
+        <Background id="cells" variant={BackgroundVariant.Lines}
+                    gap={UNIT} offset={UNIT / 2}
+                    lineWidth={1} className="mnd-lattice" />
+      ) : null}
       {chrome ? <Controls showInteractive={false} fitViewOptions={fit} /> : null}
     </ReactFlow>
   );

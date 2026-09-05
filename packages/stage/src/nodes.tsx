@@ -467,6 +467,19 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
  *  A boundary is its members' bounds rather than a stored size, so there is
  *  nothing to resize and nothing to place — what it holds is what it is. **A
  *  grid owns its corner**, because an empty one would otherwise be nothing. */
+/** A grid's border, as the four strips you can take hold of it by. Four rather
+ *  than one box with a hole in it, because only the edge may answer a pointer —
+ *  a box over the middle would swallow every press meant for a cell. */
+function Rails() {
+  return (
+    <span className="mnd-group-rails" aria-hidden>
+      {(["top", "right", "bottom", "left"] as const).map((side) => (
+        <span key={side} className="mnd-group-rail" data-side={side} />
+      ))}
+    </span>
+  );
+}
+
 function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
@@ -480,6 +493,14 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
       {grid ? <Lattice id={id} cells={data.grid!} /> : null}
+      {/* **The one part of a grid that is not a cell.** Its cells cover the
+          whole of it and each answers a pointer of its own, so without this the
+          only place to take hold of one is its name. It used to be a bare rim
+          outside the lattice — which made two grids in neighbouring cells
+          overlap by a rim each, and a grid is a region of the layer's lattice
+          and cannot reach past its own cells. So the handle moved inside: the
+          border is the grip, and the border belongs to nobody else. */}
+      {grid ? <Rails /> : null}
       {/* **A grid is resized by its corners**, and what a corner says is how
           many rows and columns — the consumer rounds to whole cells. Drawn
           after the lattice, because a cell covers the whole of the box it sits

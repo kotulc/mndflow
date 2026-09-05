@@ -28,7 +28,7 @@ export {
   type Dir, type Field, type FieldDef, type File, type Flow, type Graph, type Id,
   type Point, type RelationModule, type Relation, type Side,
   type Cell, type Headers, type Span, type ValueForm,
-  ARRANGEMENTS, BLOCK_MODULES, HEADERS, READS, ROOT, SCHEMA,
+  ARRANGEMENTS, BLOCK_MODULES, HEADERS, ROOT, SCHEMA,
   def_id, empty_graph, new_id,
 } from "@mnd/core";
 

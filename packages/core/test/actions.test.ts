@@ -9,12 +9,12 @@ import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
   ({ graph: fold(related()), layer, picked });
 
-/** The same layer with its boundary made into a grid, two cells filled and a
+/** The same layer with its boundary made into a grid, two cells filled and the
  *  reading direction — what the grid actions are about. */
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
-  b["block_loop"] = { ...b["block_loop"]!, arrangement: "right" };
+  b["block_loop"] = { ...b["block_loop"]!, arrangement: "grid" };
   b["block_hot"] = { ...b["block_hot"]!, rows: 1, cols: 2 };
   b["block_tank"] = { ...b["block_tank"]!, group: "block_hot", cell: { r: 0, c: 0 } };
   b["block_valve"] = { ...b["block_valve"]!, group: "block_hot", cell: { r: 0, c: 1 } };
@@ -325,8 +325,8 @@ describe("a null layer is the root layer", () => {
   it("arranges the root layer rather than nothing", () => {
     const s = session();
     s.look(null);
-    s.go("arrange", { arrangement: "down" });
-    expect(s.graph().blocks[ROOT]!.arrangement).toBe("down");
+    s.go("arrange", { arrangement: "grid" });
+    expect(s.graph().blocks[ROOT]!.arrangement).toBe("grid");
   });
 });
 

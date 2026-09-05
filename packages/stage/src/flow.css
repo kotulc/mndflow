@@ -121,13 +121,21 @@
 
 /* The corner kept for what has been done to the block, as against what it is.
    Quiet: it is a state you set once and then read past. */
+/* A block fixed where it was put. **It takes the accent and a ground of its
+   own**: drawn muted and half faded it read as one more piece of card furniture
+   and nobody found it, and a lock is a thing you set on purpose and need to see
+   at a glance from across the layer. */
 .mnd-locked {
   position: absolute;
-  bottom: 3px;
-  right: 4px;
+  bottom: 2px;
+  right: 3px;
   display: inline-flex;
-  color: var(--muted);
-  opacity: 0.75;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  border-radius: 2px;
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
   pointer-events: none;
 }
 
@@ -663,6 +671,15 @@
 .mnd-anchor:hover::after { transform: scale(1.25); }
 .mnd-anchor.held { cursor: grabbing; }
 
+/* An end pinned by hand, which is an end locked where it sits — every other one
+   is worked out from where the two cards ended up. **Filled rather than
+   outlined**: the two states sit on the same line at the same size, so the
+   difference has to be the mark itself and not a shade of it. */
+.mnd-anchor.locked::after {
+  background: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent);
+}
+
 /* Where a line already meets a border. **Geometry, and nothing to look at or
    point at** — it exists so the library has somewhere to end the line, the
    anchor above is what shows it, and leaving it hittable put a connection
@@ -815,11 +832,33 @@
 /* ---------------------------------------------------------------- the grid */
 
 /* A grid draws its own extent, so unlike a band it is a stated rectangle
-   rather than the bounds of what it holds — and a stated edge is a solid one. */
+   rather than the bounds of what it holds — and a stated edge is a solid one.
+   **Stronger than a band's, because it is also the handle**: the grid is
+   exactly its cells now, so its border is the one part of it that is not one. */
 .mnd-group.gridded {
   border-style: solid;
+  border-radius: 0;
+  border-color: color-mix(in oklch, var(--card-line) 70%, transparent);
   background: color-mix(in oklch, var(--card-line) 4%, transparent);
 }
+
+/* Where a grid is taken hold of. **Inside its own edge**, so two grids in
+   neighbouring cells share a line and neither reaches into the other. Drawn
+   only under the pointer: a grip that is always visible is a second border
+   competing with the one it sits on. */
+.mnd-group-rails { position: absolute; inset: 0; pointer-events: none; }
+
+.mnd-group-rail {
+  position: absolute;
+  pointer-events: auto;
+  cursor: grab;
+}
+.mnd-group-rail[data-side="top"] { top: 0; left: 0; right: 0; height: 5px; }
+.mnd-group-rail[data-side="bottom"] { bottom: 0; left: 0; right: 0; height: 5px; }
+.mnd-group-rail[data-side="left"] { left: 0; top: 0; bottom: 0; width: 5px; }
+.mnd-group-rail[data-side="right"] { right: 0; top: 0; bottom: 0; width: 5px; }
+.mnd-group-rail:hover { background: color-mix(in oklch, var(--accent) 45%, transparent); }
+.mnd-group.gridded:active .mnd-group-rail { cursor: grabbing; }
 
 /* One cell. Drawn behind whatever sits in it, and it answers a pointer of its
    own — merging, splitting and inserting are asked of a cell, not of a block. */
@@ -888,4 +927,12 @@
   fill: var(--accent);
   font-size: 11px;
   font-family: inherit;
+}
+
+/* The lattice everything lands on, ruled across the whole canvas.
+   **Faint enough to draw over.** It is a measure and not a picture: a group's
+   band, a card and a run all sit on top of it, so it has to be legible where
+   nothing covers it and invisible the moment something does. */
+.mnd-flow .react-flow__background.mnd-lattice .react-flow__background-pattern {
+  stroke: color-mix(in oklch, var(--card-line) 30%, transparent);
 }

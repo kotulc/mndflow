@@ -86,7 +86,7 @@ export function related(): Log {
       { op: "set_group", id: "block_hx", group: "block_hot" },
       { op: "set_group", id: "block_tank", group: "block_hot" },
     ]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "right" }]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "grid" }]),
   ];
 }
 
@@ -108,7 +108,7 @@ export function interfaced(): Log {
     ]),
     step("relate", [link("edge_flow", "port_out", "port_in", "directed")]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "right" }]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "grid" }]),
   ];
 }
 
@@ -131,7 +131,7 @@ export function gridded(): Log {
   return [
     base(),
     step("create", [block("block_board", ROOT, "Board", "block")]),
-    step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "right" }]),
+    step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
     step("group", [
       block("block_lanes", "block_board", "Lanes", "group"),
       { op: "set_grid", id: "block_lanes", rows: 3, cols: 4, headers: "row" },

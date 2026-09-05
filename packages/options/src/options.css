@@ -69,6 +69,16 @@
 
 .opts button:hover { color: var(--text); border-color: var(--accent); }
 
+/* Where the verbs begin inside a group. **A rule, not a second label** — the
+   subject is the same on both sides of it; what changes is that below it a
+   control does something once and is done, and so never lights. Lighter than
+   the rule between two groups, which divides two subjects. */
+.opts button.ruled {
+  margin-top: 7px;
+  border-top-color: var(--border);
+  box-shadow: 0 -4px 0 -3px var(--divider);
+}
+
 /* Selection is the app speaking about your model, so it takes the accent. */
 .opts button.on {
   color: var(--accent);
