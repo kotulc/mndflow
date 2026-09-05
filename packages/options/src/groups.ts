@@ -100,7 +100,9 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           run: () => act("arrange", { arrangement: how }),
         })),
         { key: "align", icon: "align", word: "align", verb: true,
-          tip: "Pull the bends out of every line on this layer",
+          tip: chrome.arrangement === "grid"
+            ? "Lay the layer out again with related cards on one line"
+            : "Pull the bends out of every line on this layer",
           run: () => act("straighten") },
       ],
     });

@@ -241,7 +241,17 @@ export function App() {
     /** **The canvas knows which lines are on this layer, so the canvas
      *  answers.** The rail says the verb was asked for and nothing about any
      *  line. */
-    if (name === "straighten") { set_straighten((n) => n + 1); return; }
+    if (name === "straighten") {
+      /** **On a grid layer, align is laydown.** Straight runs come from cards
+       *  sharing an axis, so re-tidying is what pulls the bends out — not a
+       *  second pass over the edges alone. */
+      if (arranged === "grid") {
+        act("arrange", { layer, arrangement: "grid", at: tidy(graph, layer) });
+        return;
+      }
+      set_straighten((n) => n + 1);
+      return;
+    }
     /** **Nothing behind it yet.** It says so rather than doing nothing, which
      *  is the one failure that looks exactly like the app having missed the
      *  press. */

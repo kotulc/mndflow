@@ -371,6 +371,19 @@ describe("seats", () => {
     /** Pump feeds the hot-side band — they should be neighbours, not across the layer. */
     expect(gap(pump, hot)).toBeGreaterThanOrEqual(GAP);
     expect(gap(pump, hot)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(pump.y).toBe(hot.y);
+  });
+
+  it("lines up directed neighbours on one row so a run can be straight", () => {
+    const graph = fold(related());
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const pump = at.get("block_pump")!;
+    const hot = at.get("block_hot")!;
+    const valve = at.get("block_valve")!;
+    /** Directed edges leave pump and meet the hot band on the same row. */
+    expect(pump.y).toBe(hot.y);
+    expect(pump.y).toBe(valve.y);
   });
 
   it("places a tied note beside what it is about", () => {
@@ -449,6 +462,23 @@ describe("seats", () => {
     const draft = at.get("block_draft")!;
     const lanes = at.get("block_lanes")!;
     expect(ref.x).toBe(draft.x);
+    expect(gap(ref, lanes)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("anchors a reference on its in-layer link when its target is not on the board", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", num: 1 };
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", num: 99 };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_build", module: "reference" };
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const ref = at.get("block_ref")!;
+    const build = at.get("block_build")!;
+    const lanes = at.get("block_lanes")!;
+    expect(ref.x).toBe(build.x);
     expect(gap(ref, lanes)).toBeGreaterThanOrEqual(GAP);
     expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
   });

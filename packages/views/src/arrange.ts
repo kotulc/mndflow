@@ -62,7 +62,10 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
    *  pointed appeared somewhere else. */
   const near = (id: Id, taken: Placed[], size: Size) =>
     anchor_near(graph, layer, id, taken, unit, size);
-  const structural_spots: Placed[] = how === "grid" ? settled(sized, near) : free(sized);
+  const placed = how === "grid" ? settled(sized, near) : free(sized);
+  const structural_spots: Placed[] = how === "grid"
+    ? straighten_related(graph, layer, structural, unit, placed)
+    : placed;
   const bands = new Set(units.filter((b) => is_band(graph, b)).map((b) => b.id));
   const loose_spots = structural_spots.filter((p) => !bands.has(p.id));
   const member_spots = [...celled(graph, units, structural_spots),
@@ -75,7 +78,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
       satellite_spots.push({ id: b.id, ...put({ x: b.x, y: b.y }), ...s });
       continue;
     }
-    const anchor = satellite_anchor(graph, layer, b, structural_spots);
+    const anchor = satellite_anchor(graph, layer, b, laid_so_far);
     const taken = [...laid_so_far, ...satellite_spots];
     satellite_spots.push(anchor
       ? seat_satellite(b.id, anchor, s, taken, graph, structural_spots)
@@ -251,6 +254,96 @@ function settled(all: Sized[],
   return out;
 }
 
+/** Neighbours that share a relationship are pulled onto one axis so a line
+ *  between them can run straight. Only whole-unit nudges, only when already
+ *  beside each other, and only when the move stays clear of everything else. */
+function straighten_related(graph: Graph, layer: Id | null, units: Block[],
+                            unit: (id: Id) => Id, spots: Placed[]): Placed[] {
+  const ids = new Set(units.map((b) => b.id));
+  const out = spots.map((p) => ({ ...p }));
+  const links = placement_links(graph, layer, ids, unit)
+    .sort(([a, b]) => {
+      const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+      const other = a < b ? `${b}|${a}` : `${a}|${b}`;
+      return key.localeCompare(other);
+    });
+  for (const [a_id, b_id] of links) {
+    const map = new Map(out.map((p) => [p.id, p]));
+    const a = map.get(a_id);
+    const b = map.get(b_id);
+    if (!a || !b) continue;
+    const flow = flow_between(graph, layer, a_id, b_id, unit);
+    const anchor = flow?.from ?? a_id;
+    const move = flow?.to ?? b_id;
+    const fixed = map.get(anchor)!;
+    const loose = map.get(move)!;
+    const hg = gap_h(fixed, loose);
+    const vg = gap_v(fixed, loose);
+    if (hg >= GAP && hg <= GAP + UNIT && bands_overlap_y(fixed, loose)) {
+      nudge_y(out, move, snap(fixed.y), anchor);
+    } else if (vg >= GAP && vg <= GAP + UNIT && bands_overlap_x(fixed, loose)) {
+      nudge_x(out, move, snap(fixed.x), anchor);
+    }
+  }
+  return out;
+}
+
+function flow_between(graph: Graph, layer: Id | null, a: Id, b: Id,
+                      unit: (id: Id) => Id): { from: Id; to: Id } | null {
+  for (const e of edges_in(graph, layer)) {
+    if (e.module !== "directed") continue;
+    const from = unit(e.from);
+    const to = unit(e.to);
+    if (from === a && to === b) return { from, to };
+    if (from === b && to === a) return { from: b, to: a };
+  }
+  return null;
+}
+
+function gap_h(a: Placed, b: Placed): number {
+  return Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
+}
+
+function gap_v(a: Placed, b: Placed): number {
+  return Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
+}
+
+function bands_overlap_y(a: Placed, b: Placed): boolean {
+  return a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+function bands_overlap_x(a: Placed, b: Placed): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w;
+}
+
+function nudge_y(out: Placed[], id: Id, y: number, keep: Id): void {
+  const p = out.find((q) => q.id === id);
+  if (!p || p.y === y) return;
+  const trial = { ...p, y };
+  const others = out.filter((q) => q.id !== id);
+  if (!others.some((t) => gaps_overlap(trial, t))) p.y = y;
+  else {
+    const anchor = out.find((q) => q.id === keep);
+    if (!anchor) return;
+    const alt = { ...anchor, y };
+    if (!others.filter((t) => t.id !== keep).some((t) => gaps_overlap(alt, t))) anchor.y = y;
+  }
+}
+
+function nudge_x(out: Placed[], id: Id, x: number, keep: Id): void {
+  const p = out.find((q) => q.id === id);
+  if (!p || p.x === x) return;
+  const trial = { ...p, x };
+  const others = out.filter((q) => q.id !== id);
+  if (!others.some((t) => gaps_overlap(trial, t))) p.x = x;
+  else {
+    const anchor = out.find((q) => q.id === keep);
+    if (!anchor) return;
+    const alt = { ...anchor, x };
+    if (!others.filter((t) => t.id !== keep).some((t) => gaps_overlap(alt, t))) anchor.x = x;
+  }
+}
+
 /** The nearest place to `at` where a box of this size stands a gap clear of
  *  everything already placed. Steps outward a unit at a time, so the answer is
  *  the closest there is. */
@@ -423,20 +516,20 @@ function is_satellite(graph: Graph, layer: Id | null, b: Block): boolean {
 }
 
 /** Where a block actually draws — including members seated in a grid or band. */
-function placed_of(graph: Graph, id: Id, structural: readonly Placed[]): Placed | null {
-  const hit = structural.find((p) => p.id === id);
+function placed_of(graph: Graph, id: Id, placed: readonly Placed[]): Placed | null {
+  const hit = placed.find((p) => p.id === id);
   if (hit) return hit;
   const b = graph.blocks[id];
   if (!b) return null;
   if (gridded(graph, id) && b.group && b.cell) {
-    const grid = structural.find((p) => p.id === b.group);
+    const grid = placed.find((p) => p.id === b.group);
     if (!grid) return null;
     const box = cell_box(graph.blocks[b.group]!, b.cell.r, b.cell.c);
     const in_cell = centred_in(box, size_of(graph, id));
     return { id, x: grid.x + in_cell.x, y: grid.y + in_cell.y, w: in_cell.w, h: in_cell.h };
   }
   if (in_band(graph, id) && b.group) {
-    const band = structural.find((p) => p.id === b.group);
+    const band = placed.find((p) => p.id === b.group);
     if (!band) return null;
     const { layout } = packed(band_sized(graph, b.group));
     const p = layout.find((m) => m.id === id);
@@ -446,14 +539,34 @@ function placed_of(graph: Graph, id: Id, structural: readonly Placed[]): Placed 
   return null;
 }
 
+/** Blocks on this layer linked to a satellite by any edge. */
+function layer_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
+  const out: Id[] = [];
+  for (const e of edges_in(graph, layer)) {
+    if (e.from === id) out.push(e.to);
+    else if (e.to === id) out.push(e.from);
+  }
+  return out;
+}
+
 /** The card a satellite should sit beside — the block itself, not the grid that
  *  holds it. */
 function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
-                          structural: readonly Placed[]): Placed | null {
-  if (is_reference(b) && b.of) return placed_of(graph, b.of, structural);
+                          placed: readonly Placed[]): Placed | null {
+  if (is_reference(b)) {
+    if (b.of) {
+      const anchor = placed_of(graph, b.of, placed);
+      if (anchor) return anchor;
+    }
+    for (const t of layer_targets(graph, layer, b.id)) {
+      const anchor = placed_of(graph, t, placed);
+      if (anchor) return anchor;
+    }
+    return null;
+  }
   if (is_note(graph, b)) {
     for (const t of tie_targets(graph, layer, b.id)) {
-      const anchor = placed_of(graph, t, structural);
+      const anchor = placed_of(graph, t, placed);
       if (anchor) return anchor;
     }
   }
@@ -475,14 +588,14 @@ function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Plac
     const g = holder ? graph.blocks[b.group] : undefined;
     if (holder && g && (is_grid(g) || (module_of(graph, b.group) === "group" && !is_grid(g)))) {
       const y0 = rim_below(holder);
-      const x0 = snap(anchor.x);
+      const x0 = anchor.x;
       for (let drop = 0; drop < 40; drop++) {
         const box = { x: x0, y: y0 + drop * UNIT, ...size };
         if (free(box)) return { id, ...box };
       }
       for (let ring = 1; ring <= 8; ring++) {
         for (const dx of [-ring * UNIT, ring * UNIT]) {
-          const box = { x: snap(x0 + dx), y: y0, ...size };
+          const box = { x: x0 + dx, y: y0, ...size };
           if (free(box)) return { id, ...box };
         }
       }
