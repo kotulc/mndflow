@@ -554,10 +554,6 @@ function layer_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
 function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
                           placed: readonly Placed[]): Placed | null {
   if (is_reference(b)) {
-    if (b.of) {
-      const anchor = placed_of(graph, b.of, placed);
-      if (anchor) return anchor;
-    }
     for (const t of layer_targets(graph, layer, b.id)) {
       const anchor = placed_of(graph, t, placed);
       if (anchor) return anchor;
@@ -645,8 +641,8 @@ function loose_unit(graph: Graph, id: Id): Id {
   return id;
 }
 
-/** Every link that should pull two units near each other — any relationship on
- *  the layer, and a reference's `of`. */
+/** Every link that should pull two units near each other — relationships on the
+ *  layer. */
 function placement_links(graph: Graph, layer: Id | null, ids: Set<Id>,
                          unit: (id: Id) => Id): [Id, Id][] {
   const links: [Id, Id][] = [];
@@ -659,10 +655,6 @@ function placement_links(graph: Graph, layer: Id | null, ids: Set<Id>,
     links.push([a, b]);
   };
   for (const e of edges_in(graph, layer)) add(unit(e.from), unit(e.to));
-  for (const id of ids) {
-    const of = graph.blocks[id]?.of;
-    if (of) add(id, unit(of));
-  }
   return links;
 }
 

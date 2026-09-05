@@ -3,14 +3,7 @@ import { ARRANGEMENTS, type Act, type Arrangement, type Headers,
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
- *  no state a verb puts anything in.
- *
- *  **`verb` is the control's, not the group's.** A group is about one subject
- *  and some subjects have both — the layer is laid out one of two ways *and*
- *  can be asked to tidy its lines — so splitting a group in two to keep the
- *  verbs apart put one subject under two labels. What keeps them apart instead
- *  is a rule drawn above the first of them, and the fact that a verb never
- *  lights. */
+ *  no state a verb puts anything in. */
 export type Control = {
   key: string;
   icon: IconName;
@@ -33,29 +26,20 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** The grid that is picked, where one is. **Not a slot** — a slot is what
-   *  the projection can offer about the whole layer, and this is about the one
-   *  thing you have hold of. */
-  grid?: { id: string; headers: Headers };
-  /** The one element that is picked, and what it says about how it is drawn.
-   *  **Not a slot either**, and for the same reason. Absent while nothing or
-   *  several things are held. */
+  /** **Only a group is framed.** Its name sits on a band drawn round other
+   *  things. With rows and cols it is a grid; without extent it is a band. */
   element?: {
     id: string;
     labelled: boolean;
     locked: boolean;
-    /** Whether this element draws a frame with its name set into it. **Only a
-     *  frame can be told to say nothing** — a card *is* its name, so hiding it
-     *  leaves a rectangle nobody can read, and a note is nothing but its text.
-     *  A group's name sits on a band round other things, which is the one case
-     *  where taking it away leaves something that still reads. */
     framed: boolean;
+    grid?: boolean;
+    headers?: Headers;
   };
   arrangement?: Arrangement;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
   interfaces?: boolean;
-  angles?: boolean;
   /** Which way a right drag draws a line. */
   module?: RelationModule;
 };
@@ -86,36 +70,33 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   const has = (slot: string) => chrome.slots.includes(slot);
   const out: Group[] = [];
 
-  /** **How the layer places what it holds**, and the one thing you can ask it
-   *  to tidy. `free` and `grid` are a setting the layer is always in one of;
-   *  `align` is a verb, so it draws no `on` at all — which is the signal, since
-   *  there is no state it puts the layer in. */
+  /** **How the layer places what it holds.** `free` and `grid` are a setting
+   *  the layer is always in one of. */
   if (has("layer")) {
     out.push({
       key: "layer", label: "layer",
-      controls: [
-        ...ARRANGEMENTS.map((how): Control => ({
-          key: how, icon: LAYOUT[how].icon, word: how, tip: LAYOUT[how].tip,
-          on: (chrome.arrangement ?? "free") === how,
-          run: () => act("arrange", { arrangement: how }),
-        })),
-        { key: "align", icon: "align", word: "align", verb: true,
-          tip: chrome.arrangement === "grid"
-            ? "Lay the layer out again with related cards on one line"
-            : "Pull the bends out of every line on this layer",
-          run: () => act("straighten") },
-      ],
+      controls: ARRANGEMENTS.map((how): Control => ({
+        key: how, icon: LAYOUT[how].icon, word: how, tip: LAYOUT[how].tip,
+        on: (chrome.arrangement ?? "free") === how,
+        run: () => act("arrange", { arrangement: how }),
+      })),
     });
   }
 
   /** **What the drawing shows, rather than what it holds.** Nothing here writes
-   *  to the log — interfaces shown or hidden and runs squared or curved change
-   *  the picture in front of you and nothing about the model — which is exactly
-   *  what separates it from `relations` below. */
+   *  to the log — guides, ports shown or hidden change the picture in front of
+   *  you and nothing about the model — which is exactly what separates it from
+   *  `relations` below. */
   if (has("display")) {
     out.push({
       key: "display", label: "display",
       controls: [
+        { key: "guides", word: "guides",
+          tip: chrome.lattice ? "Stop ruling the canvas into cells"
+                              : "Rule the canvas into cells, faintly, behind everything",
+          icon: chrome.lattice ? "guides_on" : "guides_off",
+          on: !!chrome.lattice,
+          run: () => act("lattice", { show: !chrome.lattice }) },
         /** **`ports`, not `interfaces`.** One word, and the column is 68px
          *  wide — the long one wrapped to three lines and set the height of
          *  every row beside it. */
@@ -123,10 +104,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           icon: chrome.interfaces === false ? "ports_off" : "ports_on",
           on: chrome.interfaces !== false,
           run: () => act("interfaces", { show: chrome.interfaces === false }) },
-        { key: "angles", icon: "angles", word: "angles", tip: "Run lines at right angles",
-          on: chrome.angles !== false, run: () => act("lines", { angles: true }) },
-        { key: "curves", icon: "smooth", word: "curves", tip: "Run lines as curves",
-          on: chrome.angles === false, run: () => act("lines", { angles: false }) },
       ],
     });
   }
@@ -154,16 +131,26 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  pinning its definition are all answers about one element and not about the
    *  layer around it. */
   if (chrome.element) {
-    const { id, labelled, locked, framed } = chrome.element;
+    const { id, labelled, locked, framed, grid, headers } = chrome.element;
+    const heads = (which: "row" | "col") => headers === which || headers === "both";
+    const toggled = (which: "row" | "col"): Headers => {
+      const other = which === "row" ? "col" : "row";
+      if (heads(which)) return heads(other) ? other : "none";
+      return heads(other) ? "both" : which;
+    };
     out.push({
       key: "element", label: "element",
       controls: [
-        /** **First, because it is the way in to the rest.** The rail has room
-         *  for the two answers you change most; everything else a thing can be
-         *  told is behind this one, in the tray. */
         { key: "define", icon: "define", word: "define",
           tip: "What this is: its name, type, tags, look and values",
           run: () => act("define", { id }) },
+        ...(framed && grid ? (["row", "col"] as const).map((which) => ({
+          key: which, icon: which === "row" ? "header_row" : "header_col",
+          word: `${which} header`,
+          tip: `Read ${which === "row" ? "column 0" : "row 0"} as headers`,
+          on: heads(which),
+          run: () => act("group", { into: id, headers: toggled(which) }),
+        })) : []),
         ...(framed ? [{
           key: "label", word: "label",
           tip: labelled ? "Stop writing the name on the frame"
@@ -172,10 +159,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           on: labelled,
           run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }),
         }] : []),
-        /** **The mark says which way it is, and the light says it again.** A
-         *  shackle closed and a shackle sprung are two drawings rather than one
-         *  drawing lit twice, so a locked thing is legible at a glance and not
-         *  only against the control beside it. */
         { key: "lock", word: "lock",
           tip: locked ? "Let the app work its place out again" : "Fix it where it is",
           icon: locked ? "locked" : "unlocked", on: locked,
@@ -184,37 +167,10 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  if (chrome.grid) {
-    const { id, headers } = chrome.grid;
-    const heads = (which: "row" | "col") => headers === which || headers === "both";
-    const toggled = (which: "row" | "col"): Headers => {
-      const other = which === "row" ? "col" : "row";
-      if (heads(which)) return heads(other) ? other : "none";
-      return heads(other) ? "both" : which;
-    };
-    out.push({
-      key: "grid", label: "grid",
-      controls: (["row", "col"] as const).map((which) => ({
-        key: which, icon: which === "row" ? "header_row" : "header_col",
-        word: `${which} header`,
-        tip: `Read ${which === "row" ? "column 0" : "row 0"} as headers`,
-        on: heads(which),
-        run: () => act("group", { into: id, headers: toggled(which) }),
-      })),
-    });
-  }
-
-  /** **What is done to the project itself.** Guides are a state the whole
-   *  drawing shares; the two verbs below are one-shots. */
+  /** **What is done to the project itself.** The verbs below are one-shots. */
   out.push({
     key: "project", label: "project",
     controls: [
-      { key: "guides", word: "guides",
-        tip: chrome.lattice ? "Stop ruling the canvas into cells"
-                            : "Rule the canvas into cells, faintly, behind everything",
-        icon: chrome.lattice ? "guides_on" : "guides_off",
-        on: !!chrome.lattice,
-        run: () => act("lattice", { show: !chrome.lattice }) },
       /** **The way in to everything the project can be told**, the way `define`
        *  is for one element. Nothing behind it yet. */
       { key: "settings", icon: "settings", word: "settings", verb: true,

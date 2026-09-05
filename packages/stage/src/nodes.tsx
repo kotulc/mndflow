@@ -488,36 +488,20 @@ function Edge() {
 function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
-  /** **A band with no name still has somewhere to type one.** Nothing is drawn
-   *  for a name nobody set, so asking to name one had nowhere to put the
-   *  field and did nothing at all. */
-  const naming = useNaming();
-  const grid = !!data.grid?.length;
+  const has_cells = !!data.grid?.length;
+  const show_name = !data.marks.includes("unlabelled");
   return (
-    <div className={["mnd-group", grid ? "gridded" : "",
+    <div className={["mnd-group", has_cells ? "gridded" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
-      {/* **Clipped to the band, not to the box.** A grid's cells run the whole
-          width of what it claims, because that is what puts them on the
-          lattice — so without this the outer ring of them is drawn in the space
-          that is meant to separate this grid from the next one. */}
-      {grid ? <Lattice id={id} cells={data.grid!} /> : null}
-      {/* **The band, and the one part of a grid that is not a cell.** Its cells
-          cover the whole of it and each answers a pointer of its own, so
-          without this the only place to take hold of one is its name. */}
-      {grid ? <Edge /> : null}
-      {/* **A grid is resized by its corners**, and what a corner says is how
-          many rows and columns — the consumer rounds to whole cells. Drawn
-          after the lattice, because a cell covers the whole of the box it sits
-          in and would otherwise take the press meant for a corner. */}
-      {grid ? <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
-                           lineClassName="mnd-edge" handleClassName="mnd-grip" /> : null}
-      {/* **A grid always draws its name**, because its cells cover the whole of
-          it: the name is the one part left to take hold of, and it is where a
-          grid is moved from and renamed. */}
-      {(grid || data.label || naming.id === id) && !data.marks.includes("unlabelled")
-        ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
-      <Wears role={data.role} icon={grid ? "role_table" : "role_group"} />
+      {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}
+      {has_cells ? <Edge /> : null}
+      {has_cells ? (
+        <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
+                     lineClassName="mnd-edge" handleClassName="mnd-grip" />
+      ) : null}
+      {show_name ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
+      <Wears role={data.role} icon={has_cells ? "role_table" : "role_group"} />
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );

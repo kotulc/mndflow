@@ -7,7 +7,7 @@
  *  **Routing works out every seat.** Where a line meets a border and where an
  *  interface sits along its wall are both derived from the layout each time
  *  the layer is projected — nothing is pinned and nothing is held back from
- *  reassignment when the layer is aligned. */
+ *  reassignment when the layer is projected. */
 
 import { children, is_interface, type Graph, type Id, type Relation,
          type Side } from "@mnd/core";

@@ -77,10 +77,6 @@ export type Adjust =
   | { kind: "wall-seat"; on: string; side: Side; at: number }
   /** A line's end slid along the border it meets — or taken to another card. */
   | { kind: "anchor"; on: string; end: "from" | "to"; side: Side; at: number }
-  /** Relationships asked to find their own way again. **Aligning re-runs seat
-   *  assignment** from where everything sits now — walls, fractions and lanes
-   *  are all worked out fresh. */
-  | { kind: "free-ends"; edges: readonly string[] }
   /** A corner dragged. **The one card whose size is yours to set** — every
    *  other one is sized from what it holds, and a block has carried `w` and
    *  `h` all along with no gesture that wrote them. */
@@ -135,11 +131,6 @@ export type FlowViewProps = {
    *  layer slots straight onto it, so the lines are what both are measured
    *  against rather than decoration behind them. */
   lattice?: boolean;
-  /** A count that goes up when every line on this layer is asked to run
-   *  straight. **A number rather than a callback**: the rail writes nothing and
-   *  the canvas holds nothing, so what crosses the seam is the app saying
-   *  *again* and the canvas answering with the geometry only it has. */
-  straighten?: number;
   /** Whether relationships are read with curves rather than right angles.
    *  Display state: it changes what you are looking at and nothing about the
    *  project, so it arrives as a prop and never enters the log. */
@@ -482,15 +473,6 @@ function spread(a: Point, b: Point): { x: number; y: number; w: number; h: numbe
            w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
 }
 
-/** The same boxes, moved by the same amount. **Only what is placed** — a seat
- *  is worked out from the card it sits on and re-seats itself. */
-function shifted(nodes: readonly BoxNode[], by: Point) {
-  return nodes.filter((n) => n.type !== "seat").map((n) => {
-    const b = box_of(n);
-    return { id: n.id, to: { x: b.x + by.x, y: b.y + by.y } };
-  });
-}
-
 /** The middle of a seat, in scene coordinates. */
 function middle(box: { x: number; y: number; w: number; h: number },
                 seat: { side: Side; at: number }): Point {
@@ -500,7 +482,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
-          said, chrome = true, curved = false, lattice = false, straighten = 0 } = props;
+          said, chrome = true, curved = false, lattice = false } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
   const latest = useRef({ picked, onPick, key: "" });
@@ -928,21 +910,15 @@ function Canvas(props: FlowViewProps) {
       again((n) => n + 1);
       return;
     }
-    const b = box_of(drawn);
-    const by = { x: node.position.x - b.x, y: node.position.y - b.y };
 
-    /** **A grid owns its corner**, so what moved is the grid — its members are
-     *  placed by their addresses and follow it. A boundary has nowhere of its
-     *  own to be put down: it is drawn round what it holds, so what moved is
-     *  what it holds. Either way it is never filed into anything — a band's
-     *  middle is nearly always over one of its own members. */
+    /** **A group owns its corner**, whether it is a grid or a band — members
+     *  are placed inside it and follow. It is never filed into anything else. */
     if (drawn.type === "group") {
-      onAdjust?.({ kind: "place", at: drawn.data.grid?.length
-        ? [{ id: node.id, to: node.position }]
-        : shifted(riders(drawn), by) });
+      onAdjust?.({ kind: "place", at: [{ id: node.id, to: node.position }] });
       return;
     }
 
+    const b = box_of(drawn);
     /** **A sweep dragged is every card of it put down.** The library reports
      *  one gesture and moves them all, so recording only the one under the
      *  hand left the rest to spring back on the next projection. */
@@ -1027,7 +1003,7 @@ function Canvas(props: FlowViewProps) {
     for (const c of cs) {
       if (c.type !== "dimensions" || c.resizing !== false || !c.dimensions) continue;
       const n = scene.nodes.find((x) => x.id === c.id);
-      if (!n) continue;
+      if (!n || (n.type === "group" && !n.data.grid?.length)) continue;
       onAdjust?.({ kind: "size", on: c.id, to: n.position,
                    w: Math.round(c.dimensions.width),
                    h: Math.round(c.dimensions.height) });
@@ -1061,19 +1037,6 @@ function Canvas(props: FlowViewProps) {
     }
     return out;
   }, [scene, picked, frame]);
-
-  /** **Every line on the layer re-seated, in one step.**
-   *
-   *  The rail asks by counting up. Seat assignment is derived from the layout,
-   *  so aligning clears any stored overrides and lets the projection run again. */
-  useEffect(() => {
-    if (!straighten) return;
-    const edges = scene.edges.map((e) => e.id);
-    if (edges.length) onAdjust?.({ kind: "free-ends", edges });
-    /** **The count is the whole trigger.** Re-running when the scene changed
-     *  would fire again on every change the aligning itself made. */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [straighten]);
 
   /** A hidden interface, saying where it is. **Only while the line tied to it
    *  or the card it sits on is picked** — enough to find a line's end without

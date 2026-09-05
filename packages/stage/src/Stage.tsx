@@ -58,10 +58,6 @@ export type StageProps = {
    *  passes it on** — what a new relationship is is the model's, so it goes
    *  through the action like everything else. */
   module?: string;
-  /** A count that goes up when every line on this layer is asked to run
-   *  straight. **The rail names the verb and the canvas has the geometry**, so
-   *  what crosses is the app saying *again* and nothing about any line. */
-  straighten?: number;
 };
 
 /** What has no inside to open. A boundary is its members' bounds and a note is
@@ -69,7 +65,7 @@ export type StageProps = {
 const INERT = ["group", "note"];
 
 export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, curved, lattice, straighten, module }: StageProps) {
+                       menu, said, onSaid, curved, lattice, module }: StageProps) {
   /** The name being typed on the drawing, as the thing it names. **Held here
    *  because renaming is an action** — the canvas draws the field and says
    *  what was typed; what that means is settled in the one place every other
@@ -157,7 +153,7 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
     /** **A group is not a block you can go into or wire up.** What it is for is
      *  saying these belong together, so what it offers is naming it, turning it
      *  and taking it away. */
-    band: ["rename", "transpose", "chain", "delete"],
+    band: ["rename", "chain", "delete"],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
      *  and remove are two entries each rather than one entry and a second
@@ -220,13 +216,6 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
          *  same gesture as every other name, on the one card that is nothing
          *  but a name. */
         else if (g.on && g.kind === "note") set_naming(g.on);
-        /** **Two clicks on a line align it**, which is the same letting-go the
-         *  rail does to a whole layer. Descending is what two clicks mean
-         *  everywhere else and a relationship has no inside, so the gesture was
-         *  free — and this is the one thing there is to do to a single line. */
-        else if (g.on && g.kind === "route") {
-          onAdjust?.({ kind: "free-ends", edges: [g.on] });
-        }
         /** **The room's edge is the band you leave by.** A rim is drawn as part
          *  of the frame, so two clicks on one reached a node and stopped there
          *  — aiming at the edge of the layer to come back out did nothing at
@@ -291,7 +280,6 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
         onPickCells={onPickCells}
         curved={curved}
         lattice={lattice}
-        straighten={straighten}
         naming={naming}
         onNamed={(label) => {
           const id = naming;

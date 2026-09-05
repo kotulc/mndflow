@@ -67,10 +67,6 @@ export function App() {
   /** Which way a right drag draws a line. Display state until it is drawn, and
    *  then it is what the relationship was made as. */
   const [module, set_module] = useState<RelationModule>("line");
-  /** **The rail asking for every line to be pulled straight.** It counts up
-   *  rather than calling: the geometry is the canvas's, so the app says *again*
-   *  and the canvas answers with the runs. */
-  const [straighten, set_straighten] = useState(0);
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
 
@@ -107,14 +103,16 @@ export function App() {
    *  element is, and the answer for four of them is four answers. */
   const only = s.picked().length === 1 ? s.picked()[0] : s.cells()[0]?.group;
   const on = only ? graph.blocks[only] : undefined;
-  const gridded = on && on.rows !== undefined && on.cols !== undefined
-    ? { id: on.id, headers: on.headers ?? "none" as const } : null;
   /** **Only a group is framed.** Its name sits on a band drawn round other
    *  things, so taking it away leaves something that still reads; every other
    *  card *is* its name. */
-  const element = on
-    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked,
-        framed: module_of(graph, on.id) === "group" } : null;
+  const element = on && module_of(graph, on.id) === "group"
+    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: true,
+        grid: on.rows !== undefined && on.cols !== undefined,
+        headers: on.headers ?? "none" as const }
+    : on
+      ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: false }
+      : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -158,21 +156,11 @@ export function App() {
        *  frees whatever falls outside rather than hiding it. */
       const on = graph.blocks[a.on];
       if (on?.rows !== undefined && on.cols !== undefined) {
-        /** **A grid's corner lands on the layer's lattice**, not on the
-         *  backdrop dots — its cells are that lattice, so a corner rounded to
-         *  the nearest dot put every cell in it a few pixels off every line the
-         *  canvas draws. */
         s.go("group", { into: a.on, ...extent_of(a.w, a.h), spot: put(a.on, a.to) });
         return;
       }
       s.adjust("size", adjustments.size(a.on, a.w, a.h));
       s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
-      return;
-    }
-    /** **One step, however many lines it let go of.** One gesture is one step,
-     *  and the rail's verb is one gesture over the whole layer. */
-    if (a.kind === "free-ends") {
-      s.adjust("align", adjustments.free_ends(a.edges));
       return;
     }
     if (a.kind === "wall-seat") {
@@ -187,9 +175,9 @@ export function App() {
     /** A line's end dropped on another card is a relink. Seat along a wall is
      *  routing's to work out — nothing here writes a fraction. */
     if (a.kind === "anchor") return;
-    /** **Several cards put down at once.** A sweep dragged, and a boundary
-     *  dragged — the band is its members' bounds, so what moved is them. One
-     *  step, so one undo puts the lot back. */
+    /** **Several cards put down at once.** A sweep dragged, or a group whose
+     *  corner moved — members follow from layout, not from their own stored
+     *  places. One step, so one undo puts the lot back. */
     if (a.kind === "place") {
       s.adjust("place", adjustments.place(
         a.at.map((p) => ({ id: p.id, ...put(p.id, p.to) }))));
@@ -238,20 +226,6 @@ export function App() {
     if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
     if (name === "relate_with") { set_module(args!["module"] as RelationModule); return; }
-    /** **The canvas knows which lines are on this layer, so the canvas
-     *  answers.** The rail says the verb was asked for and nothing about any
-     *  line. */
-    if (name === "straighten") {
-      /** **On a grid layer, align is laydown.** Straight runs come from cards
-       *  sharing an axis, so re-tidying is what pulls the bends out — not a
-       *  second pass over the edges alone. */
-      if (arranged === "grid") {
-        act("arrange", { layer, arrangement: "grid", at: tidy(graph, layer) });
-        return;
-      }
-      set_straighten((n) => n + 1);
-      return;
-    }
     /** **Nothing behind it yet.** It says so rather than doing nothing, which
      *  is the one failure that looks exactly like the app having missed the
      *  press. */
@@ -392,7 +366,6 @@ export function App() {
           onPickCells={(cells) => s.pick_cells(cells)}
           curved={shown.angles === false}
           lattice={shown.lattice}
-          straighten={straighten}
           module={module}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
@@ -415,10 +388,9 @@ export function App() {
       </main>
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
-                                   interfaces: shown.interfaces, angles: shown.angles,
+                                   interfaces: shown.interfaces,
                                    lattice: shown.lattice, module,
-                                   ...(element ? { element } : {}),
-                                   ...(gridded ? { grid: gridded } : {}) },
+                                   ...(element ? { element } : {}) },
                                  chrome)} />
     </div>
   );

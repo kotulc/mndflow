@@ -168,6 +168,23 @@ describe("the grid arrangement", () => {
     }
   });
 
+  it("moves a band's members when its corner moves in free mode", () => {
+    const graph = fold(related());
+    graph.blocks["block_loop"]!.arrangement = "free";
+    graph.blocks["block_hot"]!.x = 0;
+    graph.blocks["block_hot"]!.y = 0;
+    const before = laid(graph, "block_loop");
+    const band_before = before.find((p) => p.id === "block_hot")!;
+    const hx = before.find((p) => p.id === "block_hx")!;
+    graph.blocks["block_hot"]!.x = 200;
+    graph.blocks["block_hot"]!.y = 100;
+    const after = laid(graph, "block_loop");
+    const band_after = after.find((p) => p.id === "block_hot")!;
+    const hx2 = after.find((p) => p.id === "block_hx")!;
+    expect(hx2.x - hx.x).toBe(band_after.x - band_before.x);
+    expect(hx2.y - hx.y).toBe(band_after.y - band_before.y);
+  });
+
   it("grows a square rather than a line", () => {
     const graph = fold(related());
     const spots = placed(graph, under(graph, "block_loop", "grid"));
@@ -451,9 +468,11 @@ describe("seats", () => {
     expect(gap(note, lanes)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
-  it("places a reference below a grid, aligned with the block it stands for", () => {
+  it("places a reference below a grid, aligned with the block it is linked to", () => {
     const graph = fold(fixture("gridded"));
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_draft", num: 99 };
+    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", num: 1 };
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", num: 99 };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_draft", module: "reference" };
     const spots = under(graph, "block_board", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -483,9 +502,11 @@ describe("seats", () => {
     expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
-  it("places a reference beside what it stands for", () => {
+  it("places a reference beside the block it is linked to on the layer", () => {
     const graph = fold(related());
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_pump", num: 99 };
+    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", num: 1 };
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", num: 99 };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "reference" };
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -496,10 +517,12 @@ describe("seats", () => {
     expect(gap(ref, pump)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
-  it("pulls a reference beside its target even when it was dropped far away", () => {
+  it("pulls a reference beside its linked block even when it was dropped far away", () => {
     const graph = fold(related());
-    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_pump", num: 99,
+    graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", num: 1 };
+    graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", num: 99,
                                   x: 2000, y: 2000 };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "reference" };
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(

@@ -24,7 +24,7 @@ function Harness() {
   const [module, set_module] = useState("block");
   const [log, set_log] = useState<string[]>([]);
   const [chrome, set_chrome] = useState<Chrome>({
-    slots: SLOTS["block"]!, arrangement: "free", interfaces: true, angles: true,
+    slots: SLOTS["block"]!, arrangement: "free", interfaces: true,
     lattice: true, module: "line",
     element: { id: "block_pump", labelled: true, locked: false, framed: true },
   });
@@ -33,7 +33,6 @@ function Harness() {
     set_log((l) => [`${name} ${JSON.stringify(args ?? {})}`, ...l].slice(0, 14));
     if (name === "arrange") set_chrome((c) => ({ ...c, arrangement: args!["arrangement"] as never }));
     if (name === "interfaces") set_chrome((c) => ({ ...c, interfaces: args!["show"] as boolean }));
-    if (name === "lines") set_chrome((c) => ({ ...c, angles: args!["angles"] as boolean }));
     if (name === "relate_with") {
       set_chrome((c) => ({ ...c, module: args!["module"] as never }));
     }

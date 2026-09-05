@@ -102,9 +102,13 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_grid": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.rows !== undefined) b.rows = m.rows;
-      if (m.cols !== undefined) b.cols = m.cols;
-      if (m.headers !== undefined) b.headers = m.headers;
+      if (m.rows === null) delete b.rows;
+      else if (m.rows !== undefined) b.rows = m.rows;
+      if (m.cols === null) delete b.cols;
+      else if (m.cols !== undefined) b.cols = m.cols;
+      if (m.headers === null) delete b.headers;
+      else if (m.headers !== undefined) b.headers = m.headers;
+      if (m.rows === null && m.cols === null) delete b.merges;
       return;
     }
     case "merge_cells": {

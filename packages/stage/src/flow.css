@@ -402,6 +402,10 @@
   font-size: 11px;
   cursor: text;
 }
+.mnd-group:not(.gridded) > .mnd-group-name:empty::before {
+  content: "Group";
+  opacity: 0.45;
+}
 
 /* Which way a flow enters and leaves, on the interface that carries it. */
 .mnd-card.in, .mnd-seat.in { border-color: var(--accent); }
@@ -905,7 +909,7 @@
   cursor: grab;
 }
 .mnd-group.gridded > .mnd-group-name:empty::before {
-  content: "name";
+  content: "Grid";
   opacity: 0.45;
 }
 

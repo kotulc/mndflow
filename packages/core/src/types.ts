@@ -148,11 +148,10 @@ export type Relation = {
   module: RelationModule;
   type?: Id;
   dir?: Dir;
-  /** Which wall a relationship end leaves by. Cleared on align so routing may
-   *  choose again. */
+  /** Which wall a relationship end leaves by. */
   fromSide?: Side;
   toSide?: Side;
-  /** Legacy; cleared on align and not read by layout. */
+  /** Legacy; not read by layout. */
   fromAt?: number;
   toAt?: number;
   fields?: Field[];
@@ -226,7 +225,8 @@ export type Mutation =
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
-  | { op: "set_grid"; id: Id; rows?: number; cols?: number; headers?: Headers }
+  | { op: "set_grid"; id: Id; rows?: number | null; cols?: number | null;
+      headers?: Headers | null }
   | { op: "merge_cells"; id: Id; span: Span }
   | { op: "split_cells"; id: Id; r: number; c: number }
   | { op: "link_blocks"; edge: Relation }

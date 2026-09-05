@@ -708,16 +708,18 @@ register(
        *  left was a block nobody could see and nobody meant to make. */
       const held = [...new Set(members.map((id) => ctx.graph.blocks[id]?.group))];
       const into = said ?? (held.length === 1 && held[0] ? held[0] : null);
+      const rows = num(args, "rows") === null ? null : Math.max(1, num(args, "rows")!);
+      const cols = num(args, "cols") === null ? null : Math.max(1, num(args, "cols")!);
       const out: Mutation[] = [];
       let group = into;
       if (!group) {
+        const extent = rows !== null || cols !== null;
         group = new_id("block");
         out.push({ op: "add_block", block: {
           id: group, parent: here(ctx), type: "group", num: next_num(ctx.graph, here(ctx)),
+          ...(!extent ? { labelled: false } : {}),
         } });
       }
-      const rows = num(args, "rows") === null ? null : Math.max(1, num(args, "rows")!);
-      const cols = num(args, "cols") === null ? null : Math.max(1, num(args, "cols")!);
       const headers = HEADERS.includes(args["headers"] as Headers)
         ? (args["headers"] as Headers) : undefined;
       if (rows !== null || cols !== null || headers) {
@@ -1355,13 +1357,6 @@ function list(raw: unknown): string[] {
 /** Adjustments: positional, unsayable, gesture-only. Never named or ranked, so
  *  they are not on the registry — but they write mutations and they undo. */
 export const adjustments = {
-  /** **Aligning clears stored overrides** so seat assignment runs fresh from
-   *  the layout. Walls and fractions are derived each projection; this drops
-   *  anything a previous gesture may have written. */
-  free_ends: (ids: readonly Id[]): Mutation[] => ids.flatMap((id): Mutation[] => [
-    { op: "set_side", id, end: "from", side: null },
-    { op: "set_side", id, end: "to", side: null },
-  ]),
   place: (moved: { id: Id; x: number; y: number }[]): Mutation[] =>
     moved.map((m) => ({ op: "place_block", id: m.id, x: m.x, y: m.y })),
   size: (id: Id, w: number, h: number): Mutation[] => [{ op: "size_block", id, w, h }],
