@@ -1,18 +1,23 @@
 /** Where a line runs between two borders.
  *
- *  **The library's step router knows the two ends and nothing else.** It draws
- *  a good corner between them and has no idea a card is in the way — so a run
- *  reaching an interface on the top of a card from below went straight up
- *  through the card, out of the top and back down into the port. A port is on a
- *  border, and a line meeting one comes at it from outside the thing it is a
- *  border of.
+ *  **A search over the lanes a layer leaves, not a handful of guesses.**
  *
- *  **What is kept clear is the two ends' own boxes, and no more.** The card a
- *  port sits on, and the card a perch is on — those are the boxes a run must
- *  never be inside, because a line that ends on a border has just left, or is
- *  about to enter, that border. Every other card on the layer is left alone:
- *  keeping out of all of them is a different problem, and one whose answers are
- *  long detours rather than short lines. */
+ *  The library's step router knows the two ends and nothing else, and the six
+ *  shapes this used to try knew only the two end boxes — so a run between two
+ *  cards went straight through whatever stood between them. On a busy layer
+ *  that was most of them.
+ *
+ *  What replaces it is the standard answer to this problem. **Only a handful of
+ *  lines matter**: a run that has to get round a box turns just clear of one of
+ *  its edges, so the candidate turning points are the obstacle edges plus a
+ *  margin, in both axes, and nowhere else. That grid is a few hundred points
+ *  for a layer of thirty cards, and the cheapest path across it — counting a
+ *  corner as worth a good stretch of line — is the run somebody would have
+ *  drawn: few bends, no detours, and never through a card.
+ *
+ *  **Fewest corners first, then shortest.** A corner costs `TURN` pixels of
+ *  run, so a route trades a corner for anything shorter than that and takes the
+ *  straight lane otherwise. */
 
 import { Position } from "@xyflow/react";
 
@@ -39,8 +44,7 @@ export function route(from: Point, out: Position, to: Point, into: Position,
                       clear: readonly Rect[]): Point[] {
   const a = step(from, out);
   const b = step(to, into);
-  const best = shortest(a, b, clear);
-  return tidy([from, ...best, to]);
+  return tidy([from, ...shortest(a, b, out, into, clear), to]);
 }
 
 function step(at: Point, face: Position): Point {
@@ -48,63 +52,138 @@ function step(at: Point, face: Position): Point {
   return { x: at.x + d.x * STUB, y: at.y + d.y * STUB };
 }
 
-/** The plainest run between the two stubs that stays out of everything.
- *
- *  **A handful of shapes, tried in order** rather than a search: two elbows,
- *  and a dog-leg through every lane the boxes offer. Fewest corners wins, and
- *  the shorter of two equals — which is the run somebody would have drawn. */
-function shortest(a: Point, b: Point, clear: readonly Rect[]): Point[] {
-  const tried: Point[][] = [
-    [a, { x: b.x, y: a.y }, b],
-    [a, { x: a.x, y: b.y }, b],
-  ];
-  const lanes = { x: [(a.x + b.x) / 2], y: [(a.y + b.y) / 2] };
-  for (const r of clear) {
-    lanes.x.push(r.x - MARGIN, r.x + r.w + MARGIN);
-    lanes.y.push(r.y - MARGIN, r.y + r.h + MARGIN);
-  }
-  for (const x of lanes.x) tried.push([a, { x, y: a.y }, { x, y: b.y }, b]);
-  for (const y of lanes.y) tried.push([a, { x: a.x, y }, { x: b.x, y }, b]);
+/** What a corner costs, as a length of run it is worth going out of the way to
+ *  avoid. **Two cells' worth**: a route takes a detour over a bend up to about
+ *  that far, which is what keeps a run from stepping round every card it passes
+ *  and from jogging when a lane a little further off would be straight. */
+const TURN = 60;
 
-  let best: Point[] | null = null;
-  let mark = [Infinity, Infinity];
-  for (const run of tried) {
-    if (crosses(run, clear)) continue;
-    const score = [corners(run), length(run)];
-    if (score[0]! < mark[0]! || (score[0] === mark[0] && score[1]! < mark[1]!)) {
-      best = run;
-      mark = score;
-    }
-  }
-  return best ?? tried[0]!;
+type Way = 0 | 1 | 2 | 3;
+const WAYS: Point[] = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+
+/** Which way a face sends a run: out of the border, square to it. */
+function way_of(face: Position): Way {
+  const d = AWAY[face] ?? AWAY[Position.Right]!;
+  return WAYS.findIndex((w) => w.x === d.x && w.y === d.y) as Way;
 }
 
-/** Whether any leg of this run passes through a box. The box is shrunk by a
- *  hair, so a run laid along a border is beside it rather than in it. */
-function crosses(run: readonly Point[], clear: readonly Rect[]): boolean {
-  for (let i = 1; i < run.length; i++) {
-    const p = run[i - 1]!;
-    const q = run[i]!;
-    for (const r of clear) {
-      const lo = { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y) };
-      const hi = { x: Math.max(p.x, q.x), y: Math.max(p.y, q.y) };
-      if (lo.x < r.x + r.w - 0.5 && hi.x > r.x + 0.5
-       && lo.y < r.y + r.h - 0.5 && hi.y > r.y + 0.5) return true;
+/** The same way, back again. The pairs are laid out so this is one bit. */
+function back(w: Way): Way {
+  return (w ^ 1) as Way;
+}
+
+/** The lines a turn may happen on.
+ *
+ *  **Just clear of every box, in both axes, plus the two ends' own lines.** A
+ *  run turning anywhere else could turn on one of these instead and be no
+ *  longer for it, so this is the whole of the search and it is small. */
+function lanes(a: Point, b: Point, clear: readonly Rect[]) {
+  const xs = new Set<number>([a.x, b.x]);
+  const ys = new Set<number>([a.y, b.y]);
+  for (const r of clear) {
+    xs.add(r.x - MARGIN);
+    xs.add(r.x + r.w + MARGIN);
+    ys.add(r.y - MARGIN);
+    ys.add(r.y + r.h + MARGIN);
+  }
+  /** **A lane outside everything, on all four sides.**
+   *
+   *  A stub can be the outermost line there is — an interface in the top wall
+   *  of the topmost card is one — and a run has to reach it from beyond it, or
+   *  there is no way to come at that border square. Without somewhere out
+   *  there to turn, the search could not satisfy the way in at all: it found
+   *  nothing, fell back to an elbow, and an elbow is the one answer that goes
+   *  through whatever is in the way. Which is exactly what it did. */
+  const out = (set: Set<number>) => {
+    const all = [...set];
+    set.add(Math.min(...all) - STUB * 2);
+    set.add(Math.max(...all) + STUB * 2);
+  };
+  out(xs);
+  out(ys);
+  return { xs: [...xs].sort((p, q) => p - q), ys: [...ys].sort((p, q) => p - q) };
+}
+
+/** The cheapest run between the two stubs that stays out of every box.
+ *
+ *  Dijkstra over the lane crossings, with the way the run is travelling as part
+ *  of where it is — which is what lets a corner be paid for. It leaves by the
+ *  face it was given and arrives facing the border it lands on, so neither end
+ *  turns on the spot. */
+function shortest(a: Point, b: Point, out: Position, into: Position,
+                  clear: readonly Rect[]): Point[] {
+  const { xs, ys } = lanes(a, b, clear);
+  const ax = xs.indexOf(a.x);
+  const ay = ys.indexOf(a.y);
+  const bx = xs.indexOf(b.x);
+  const by = ys.indexOf(b.y);
+  if (ax < 0 || ay < 0 || bx < 0 || by < 0) return [a, { x: b.x, y: a.y }, b];
+
+  const at = (ix: number, iy: number): Point => ({ x: xs[ix]!, y: ys[iy]! });
+  const key = (ix: number, iy: number, w: Way) => (iy * xs.length + ix) * 4 + w;
+  const best = new Map<number, number>();
+  const came = new Map<number, number>();
+  /** **The way *in*, which is the far face's own way turned round.** A face
+   *  sends a run *out* of the border it belongs to; the last leg travels the
+   *  other way, into it. Asked for the face's own way, the search had to reach
+   *  the far stub travelling away from the card it was about to enter — so it
+   *  came at it sideways and the run met the border at a corner instead of
+   *  square to it. */
+  const arrive = back(way_of(into));
+  const start = key(ax, ay, way_of(out));
+  const queue: { k: number; ix: number; iy: number; w: Way; cost: number }[] =
+    [{ k: start, ix: ax, iy: ay, w: way_of(out), cost: 0 }];
+  best.set(start, 0);
+  let done: number | null = null;
+
+  while (queue.length) {
+    /** A layer's lanes are a few hundred points, so scanning for the cheapest
+     *  beats keeping a heap in step with it. */
+    let n = 0;
+    for (let i = 1; i < queue.length; i++) if (queue[i]!.cost < queue[n]!.cost) n = i;
+    const here = queue.splice(n, 1)[0]!;
+    if (best.get(here.k)! < here.cost) continue;
+    if (here.ix === bx && here.iy === by && here.w === arrive) { done = here.k; break; }
+
+    for (let w = 0 as Way; w < 4; w = (w + 1) as Way) {
+      const step = WAYS[w]!;
+      const ix = here.ix + step.x;
+      const iy = here.iy + step.y;
+      if (ix < 0 || iy < 0 || ix >= xs.length || iy >= ys.length) continue;
+      const from = at(here.ix, here.iy);
+      const to = at(ix, iy);
+      if (blocked(from, to, clear)) continue;
+      const cost = here.cost + Math.abs(to.x - from.x) + Math.abs(to.y - from.y)
+                 + (w === here.w ? 0 : TURN);
+      const k = key(ix, iy, w);
+      if (cost >= (best.get(k) ?? Infinity)) continue;
+      best.set(k, cost);
+      came.set(k, here.k);
+      queue.push({ k, ix, iy, w, cost });
     }
+  }
+
+  /** Nothing got through — every lane out of one end is walled. An elbow is
+   *  wrong, but it is drawn and it says where the two ends are. */
+  if (done === null) return [a, { x: b.x, y: a.y }, b];
+
+  const run: Point[] = [];
+  for (let k: number | undefined = done; k !== undefined; k = came.get(k)) {
+    const cell = (k - (k % 4)) / 4;
+    run.push(at(cell % xs.length, Math.floor(cell / xs.length)));
+  }
+  return run.reverse();
+}
+
+/** Whether one leg passes through a box. */
+function blocked(p: Point, q: Point, clear: readonly Rect[]): boolean {
+  const lo = { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y) };
+  const hi = { x: Math.max(p.x, q.x), y: Math.max(p.y, q.y) };
+  for (const r of clear) {
+    if (lo.x < r.x + r.w - 0.5 && hi.x > r.x + 0.5
+     && lo.y < r.y + r.h - 0.5 && hi.y > r.y + 0.5) return true;
   }
   return false;
-}
-
-function corners(run: readonly Point[]): number {
-  return tidy(run as Point[]).length - 2;
-}
-
-function length(run: readonly Point[]): number {
-  let out = 0;
-  for (let i = 1; i < run.length; i++) {
-    out += Math.abs(run[i]!.x - run[i - 1]!.x) + Math.abs(run[i]!.y - run[i - 1]!.y);
-  }
-  return out;
 }
 
 /** The same run without the points that turn nothing. */

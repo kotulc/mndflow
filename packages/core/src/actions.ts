@@ -1355,18 +1355,21 @@ function list(raw: unknown): string[] {
 /** Adjustments: positional, unsayable, gesture-only. Never named or ranked, so
  *  they are not on the registry — but they write mutations and they undo. */
 export const adjustments = {
-  /** **The geometry is the canvas's, and only the canvas has it.** Where two
-   *  borders meet without a jog is a fact about two rectangles, which a
-   *  relationship carries neither of — so the walls, the fractions and the
-   *  block that has to shift are all handed in. Both ends end up pinned, which
-   *  is the only way to say *there* about a seat that is otherwise worked out;
-   *  unpinning them is dragging either end again. */
-  straighten: (id: Id, from: { side: Side; at: number }, to: { side: Side; at: number },
-               align?: { id: Id; x: number; y: number }): Mutation[] => [
-    ...(align ? [{ op: "place_block" as const, id: align.id, x: align.x, y: align.y }] : []),
-    { op: "set_side", id, end: "from", side: from.side, at: from.at },
-    { op: "set_side", id, end: "to", side: to.side, at: to.at },
-  ],
+  /** **Aligning is letting go, not holding on.**
+   *
+   *  Where a line meets a border is worked out from where the two things ended
+   *  up, and it takes the wall that faces the other end and the seat nearest
+   *  where the run crosses it — which is the direct path. An end dragged by
+   *  hand overrides that working out; aligning gives it back, so every run
+   *  goes back to the shortest one its two ends allow.
+   *
+   *  It used to do the opposite — compute a straight run and pin both ends to
+   *  it — so aligning a layer fixed every end on it in place, which is the
+   *  reverse of what it is for. */
+  free_ends: (ids: readonly Id[]): Mutation[] => ids.flatMap((id): Mutation[] => [
+    { op: "set_side", id, end: "from", side: null },
+    { op: "set_side", id, end: "to", side: null },
+  ]),
   place: (moved: { id: Id; x: number; y: number }[]): Mutation[] =>
     moved.map((m) => ({ op: "place_block", id: m.id, x: m.x, y: m.y })),
   size: (id: Id, w: number, h: number): Mutation[] => [{ op: "size_block", id, w, h }],

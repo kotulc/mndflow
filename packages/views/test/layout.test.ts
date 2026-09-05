@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import { fixture, related } from "@mnd/fixtures";
 import { children, fold, is_grid, is_interface, module_of,
          type Arrangement, type Graph, type Id } from "@mnd/core";
+import { cell_box, UNIT } from "../src/size";
 import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, CELL, GAP, STEP,
          type Placed } from "../src/index";
 
@@ -163,6 +164,60 @@ describe("the grid arrangement", () => {
   });
 });
 
+
+/** **The one invariant a grid has to keep.** Its cells are the layer's own
+ *  lattice, drawn — so every line in one falls on a line the backdrop already
+ *  draws, whatever placed the grid and whichever way the layer is arranged. A
+ *  grid half a unit off its own guides is the failure this pins down. */
+describe("a grid's cells sit on the unit lattice", () => {
+  const grids = (graph: Graph, spots: Placed[]) =>
+    spots.filter((p) => is_grid(graph.blocks[p.id]!));
+
+  it.each(ARRANGEMENTS)("puts every cell corner on a whole unit under %s", (how) => {
+    const { graph, layer } = layer_of("gridded");
+    const spots = under(graph, layer, how);
+    const found = grids(graph, spots);
+    expect(found.length).toBeGreaterThan(0);
+    for (const p of found) {
+      const g = graph.blocks[p.id]!;
+      for (let r = 0; r < (g.rows ?? 0); r++) {
+        for (let c = 0; c < (g.cols ?? 0); c++) {
+          const box = cell_box(g, r, c);
+          expect((p.x + box.x) % UNIT, `${p.id} cell ${r},${c} x`).toBe(0);
+          expect((p.y + box.y) % UNIT, `${p.id} cell ${r},${c} y`).toBe(0);
+          expect(box.w % UNIT, `${p.id} cell ${r},${c} w`).toBe(0);
+          expect(box.h % UNIT, `${p.id} cell ${r},${c} h`).toBe(0);
+        }
+      }
+    }
+  });
+
+  it.each(ARRANGEMENTS)("puts the grid's own corner on a whole unit under %s", (how) => {
+    const { graph, layer } = layer_of("gridded");
+    for (const p of grids(graph, under(graph, layer, how))) {
+      expect(p.x % UNIT, `${p.id} x`).toBe(0);
+      expect(p.y % UNIT, `${p.id} y`).toBe(0);
+    }
+  });
+
+  it.each(ARRANGEMENTS)("centres every seated block in its own cell under %s", (how) => {
+    const { graph, layer } = layer_of("gridded");
+    const spots = under(graph, layer, how);
+    const at = new Map(spots.map((p) => [p.id, p]));
+    let seated_count = 0;
+    for (const b of Object.values(graph.blocks)) {
+      if (!b.cell || !b.group) continue;
+      const grid = at.get(b.group);
+      const p = at.get(b.id);
+      if (!grid || !p) continue;
+      seated_count++;
+      const box = cell_box(graph.blocks[b.group]!, b.cell.r, b.cell.c);
+      expect(p.x + p.w / 2, `${b.id} x`).toBe(grid.x + box.x + box.w / 2);
+      expect(p.y + p.h / 2, `${b.id} y`).toBe(grid.y + box.y + box.h / 2);
+    }
+    expect(seated_count).toBeGreaterThan(0);
+  });
+});
 
 describe("boundaries", () => {
   it("is its members' bounds plus a margin, and holds them", () => {

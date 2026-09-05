@@ -86,7 +86,6 @@ const stray = (name: string, config: Settings, known: readonly string[]): string
  *  sits. **Closed sets that grow by a code change** — additively, and never
  *  from data. That is the line between an engine and a plugin host. */
 export const LAYOUTS = ["name", "type", "fields", "compartments", "icon", "shape"] as const;
-export const SHAPES = ["rect", "round", "diamond", "ellipse", "hex"] as const;
 export const LABELS = ["inside", "below", "none"] as const;
 
 /** The hue families a definition may pick from, how loudly it takes one, how
@@ -95,7 +94,12 @@ export const LABELS = ["inside", "below", "none"] as const;
 export const SLOTS = ["primary", "secondary", "tertiary", "quaternary",
                      "neutral", "muted"] as const;
 export const EMPHASES = ["quiet", "normal", "strong"] as const;
-export const WEIGHTS = ["hairline", "thin", "thick"] as const;
+/** How heavy a border is. **Three steps, and the first is the ordinary one.**
+ *  It used to run hairline / thin / thick at half a pixel, one and two — but a
+ *  border cannot be half a device pixel, so the first two rendered identically
+ *  and the set offered a choice it could not keep. Renamed as well as respaced:
+ *  a step called *hairline* cannot be what a card is normally drawn with. */
+export const WEIGHTS = ["thin", "medium", "thick"] as const;
 export const VOICES = ["quiet", "normal", "loud"] as const;
 
 /** Style sets this build ships. Open: a set is an asset, and a build names the
@@ -127,10 +131,9 @@ const card: Component = {
   name: "card",
   check: (config) =>
     one_of("card.layout", config["layout"], LAYOUTS)
-    ?? one_of("card.shape", config["shape"], SHAPES)
     ?? one_of("card.label", config["label"], LABELS)
     ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["layout", "shape", "label", "shows"]),
+    ?? stray("card", config, ["layout", "label", "shows"]),
 };
 
 const style: Component = {

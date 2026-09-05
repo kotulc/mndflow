@@ -86,8 +86,13 @@
   --outside-a: 0.62;
   color-scheme: dark;
 
-  --primary-h: 205; --primary-c: 0.13;
-  --secondary-h: 240; --secondary-c: 0.11;
+  /* **Blue, not blue-green.** At 205 the primary family came out a teal that
+     read as green beside the retro theme's actual green, which made the one
+     family every base block wears the hardest one to name. Secondary moves out
+     of its way rather than sitting fifteen degrees off it, where the two were
+     one colour. */
+  --primary-h: 230; --primary-c: 0.13;
+  --secondary-h: 195; --secondary-c: 0.11;
   --tertiary-h: 300; --tertiary-c: 0.10;
   --quaternary-h: 40; --quaternary-c: 0.11;
   --neutral-h: 245; --neutral-c: 0.075;
@@ -255,9 +260,14 @@
   /* What a definition's `style.weight` names comes to (Y.9). Theme-wide and
      not per-theme, since a stroke weight is not a colour — but here rather
      than in the component, so the numbers stay the stylesheet's. */
-  --weight-hairline: 0.5px;
+  /* **Doubling, because a border cannot be half a device pixel.** Half a pixel
+     against one against two came out as three borders nobody could tell apart:
+     the browser rounded the first two to the same line. One, two, four are three
+     lines anybody can tell apart at any zoom, and `thin` is what a card is
+     drawn with unless something says otherwise. */
   --weight-thin: 1px;
-  --weight-thick: 2px;
+  --weight-medium: 2px;
+  --weight-thick: 4px;
 
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 13px;

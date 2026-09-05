@@ -17,14 +17,13 @@
  *  without resolving React. */
 
 import { config_of, def_of, EMPHASES, is_container, is_interface, LABELS, LAYOUTS,
-         SHAPES, SLOTS, VOICES, WEIGHTS, WEIGHTS as WEIGHT_NAMES,
+         SLOTS, VOICES, WEIGHTS, WEIGHTS as WEIGHT_NAMES,
          type Graph, type Id } from "@mnd/core";
 
 export type Slot = (typeof SLOTS)[number];
 export type Emphasis = (typeof EMPHASES)[number];
 export type Weight = (typeof WEIGHT_NAMES)[number];
 export type Voice = (typeof VOICES)[number];
-export type Shape = (typeof SHAPES)[number];
 export type Label = (typeof LABELS)[number];
 export type Layout = (typeof LAYOUTS)[number];
 
@@ -35,7 +34,6 @@ export type Look = {
   emphasis: Emphasis;
   weight: Weight;
   voice: Voice;
-  shape: Shape;
   label: Label;
   layout: Layout;
   /** The subtype this usage names, as a word. **Absent is not "block"** — a
@@ -51,7 +49,7 @@ export type Look = {
  *  ordinary voice: the look every unclassified block already had. */
 export const PLAIN: Look = {
   slot: "neutral", emphasis: "normal", weight: "thin", voice: "normal",
-  shape: "rect", label: "inside", layout: "name",
+  label: "inside", layout: "name",
 };
 
 /** One value if it is in the set, or the fallback. **The door already refused
@@ -87,7 +85,6 @@ export function look_of(graph: Graph, id: Id): Look {
     emphasis: one(style["emphasis"], EMPHASES, PLAIN.emphasis),
     weight: one(style["weight"], WEIGHTS, weight_of(graph, id)),
     voice: one(style["voice"], VOICES, PLAIN.voice),
-    shape: one(card["shape"], SHAPES, PLAIN.shape),
     label: one(card["label"], LABELS, PLAIN.label),
     layout: one(card["layout"], LAYOUTS, PLAIN.layout),
     /** A mark of its own, where somebody picked one. **A name, never a
@@ -126,8 +123,8 @@ export function look_key(look?: Look): string {
  *  `style.weight` overrides it like anything else. */
 function weight_of(graph: Graph, id: Id): Weight {
   const b = graph.blocks[id]!;
-  if (is_interface(b)) return "hairline";
-  return is_container(graph, id) ? "thick" : "thin";
+  if (is_interface(b)) return "thin";
+  return is_container(graph, id) ? "medium" : "thin";
 }
 
 /** What a container is holding, for the picture drawn inside its card.

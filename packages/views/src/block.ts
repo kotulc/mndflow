@@ -150,20 +150,21 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   /** **The two ends, and which seat each meets.** Where the run goes between
    *  them is still the renderer's; which point it leaves from is geometry, and
    *  geometry is this module's. */
-  /** The card each end is a border of. **An interface is a border of the card
-   *  it sits on**, and a perch is a border of the card it is on — so the box a
-   *  run must keep out of is that card, at either end. The room is not one of
-   *  them: it is what the run is inside. */
-  const owns = new Map(drawn.map((n) => [n.id, box_of(n)]));
-  const outside_of = (id: Id): { x: number; y: number; w: number; h: number } | null => {
-    const n = drawn.find((x) => x.id === id);
-    const of = n?.data.on ?? (n && n.type !== "group" ? id : null);
-    return of && of !== FRAME ? owns.get(of) ?? null : null;
-  };
+  /** **Everything a run has to get round**, which is every card on the layer.
+   *
+   *  A band is not one: it is drawn round things that live inside it, so a run
+   *  reaching one of them has to get in. Nor is the room, which is what the
+   *  whole layer is inside. What is left is the cards and the notes — and an
+   *  interface is part of the card it is seated on rather than a box of its
+   *  own, so it is already covered by that card.
+   *
+   *  Worked out once for the layer rather than per line: it is the same list
+   *  every time, and a projection runs once per change. */
+  const solid = drawn
+    .filter((n) => n.type !== "group" && !n.data.on)
+    .map(box_of);
 
   const edges: LineEdge[] = linked.map((e): LineEdge => {
-    const clear = [outside_of(e.from), outside_of(e.to)]
-      .filter((b): b is NonNullable<typeof b> => b !== null);
     return {
       id: e.id,
       source: e.from,
@@ -172,7 +173,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
       targetHandle: handle(met, e.id, "to", "t"),
       label: e.type ? graph.defs[e.type]?.name : undefined,
       data: { module: e.module, dir: e.dir ?? "none",
-              ...(clear.length ? { clear } : {}) },
+              ...(solid.length ? { clear: solid } : {}) },
     };
   });
 

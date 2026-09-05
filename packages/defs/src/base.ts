@@ -29,20 +29,20 @@ function def(name: string, module: string, extend?: string,
  *  that a folder and a boundary are the furniture around them. */
 export const BASE: Definition[] = [
   def("folder", "folder", undefined,
-      { layout: "name", shape: "rect" }, { slot: "neutral", emphasis: "quiet" }),
+      { layout: "name" }, { slot: "neutral", emphasis: "quiet" }),
   def("block", "block", undefined,
-      { layout: "type", shape: "rect" }, { slot: "primary" }),
+      { layout: "type" }, { slot: "primary" }),
   def("reference", "reference", undefined,
-      { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),
+      { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
   def("interface", "interface", undefined,
-      { layout: "name", label: "none", shape: "rect" },
-      { slot: "quaternary", weight: "hairline" }),
+      { layout: "name", label: "none" },
+      { slot: "quaternary", weight: "thin" }),
   def("resource", "resource", undefined,
-      { layout: "name", shape: "rect" }, { slot: "tertiary" }),
+      { layout: "name" }, { slot: "tertiary" }),
   def("group", "group", undefined,
-      { layout: "name", shape: "rect" }, { slot: "muted", emphasis: "quiet" }),
+      { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
   def("note", "note", "resource",
-      { layout: "fields", shape: "rect" }, { slot: "tertiary", emphasis: "quiet" }),
+      { layout: "fields" }, { slot: "tertiary", emphasis: "quiet" }),
 ];
 
 /** The two relation definitions the base ships, so an untyped line still

@@ -95,11 +95,19 @@ export type LineData = {
    *  draws one edge at a time and this is the one thing about a run that is not
    *  derivable from its two ends. */
   curved?: boolean;
-  /** The boxes this run must stay outside of: the card each end is a border
-   *  of. **Its own ends, and nothing else** — a line that meets a border has
-   *  just left, or is about to enter, the thing that border belongs to, and a
-   *  run through it reads as going in the wrong way round. The renderer draws
-   *  one edge at a time and cannot know them; the projection placed them. */
+  /** The boxes this run must stay outside of: **every card on the layer**.
+   *
+   *  It used to be the two ends' own boxes and nothing else, on the reasoning
+   *  that going round all of them was a different problem whose answers were
+   *  long detours. That was true of a router that guessed at a handful of
+   *  shapes; it is not true of one that searches the lanes the layer leaves,
+   *  where going round is one extra corner. Measured on nine cards, five runs
+   *  in nine passed through a card they had nothing to do with.
+   *
+   *  **Cards and notes, never bands or the room.** A group is drawn round
+   *  things that live in it, so a run reaching one of them has to get inside;
+   *  the frame is what the whole layer is inside. The renderer draws one edge
+   *  at a time and cannot know any of this; the projection placed them. */
   clear?: readonly { x: number; y: number; w: number; h: number }[];
 };
 

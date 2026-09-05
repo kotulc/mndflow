@@ -19,5 +19,5 @@ export * from "./text";
 export { project, type Config } from "./block";
 
 export { CELLS, PLAIN, cells_of, look_key, look_of, type Cell, type Emphasis, type Label,
-         type Layout, type Look, type Shape, type Slot, type Voice,
+         type Layout, type Look, type Slot, type Voice,
          type Weight } from "./look";

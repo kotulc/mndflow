@@ -135,6 +135,25 @@ Wanted, all of them answers about one element rather than about the layer:
 
 **Pinning replaces the older reading of *pin a layer as a view***. There is no view block to make: what pinning produces is a definition in the workspace's folder, and what a pinned element leaves behind is an ordinary block naming it.
 
+### ST.14 — A block wears a symbol, and every block is still a rectangle
+
+A definition can give what names it a **symbol** — a small drawing set into the card, centre right, beside the name. A valve reads as a valve, a pump as a pump, a queue as a queue, and a vocabulary of them is what turns a diagram into a notation somebody already knows how to read.
+
+**The card stays a rectangle.** The symbol is drawn *inside* it and changes nothing about its border. That is the whole point: every seat, every relationship end and every route is worked out against a rectangle, so a notation can grow as large as it likes without a single anchor moving.
+
+**Retired to get here: `card.shape`.** It offered `rect`, `round`, `diamond`, `ellipse` and `hex`, and it was the wrong lever twice over — a diamond said *decision* only to somebody already taught it, while a non-rectangular border is a second geometry for everything that meets a card to agree with. Nothing shipped depended on it, so it is gone rather than deprecated.
+
+Open, and worth answering before any of it is built:
+
+| question | why it matters |
+|---|---|
+| **where a symbol comes from** | a named set the build ships, the way icons are; or a drawing a project supplies. The first is closed and safe, the second is what a real notation needs |
+| **what it may be** | a path on a fixed grid, taking `currentColor` like every other mark — or arbitrary SVG, which is a hole through the whole style system |
+| **how it sits with the mark** | a card already wears a role mark in its corner. Two drawings on one card is one too many unless each has a job somebody can name |
+| **whether an element may set one** | or only a definition, which is what would keep a symbol meaning the same thing everywhere it appears |
+
+---
+
 ### ST.12 — The plan stops being prose that agents parse
 
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as

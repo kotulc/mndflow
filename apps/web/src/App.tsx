@@ -7,7 +7,8 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, offer, session, type Id, type RelationModule } from "@mnd/core";
+import { adjustments, module_of, offer, session,
+         type Id, type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, extent_of, grid_snap, nearest_seat, project, snap, tidy,
          BLOCK, PORT } from "@mnd/views";
@@ -108,15 +109,12 @@ export function App() {
   const on = only ? graph.blocks[only] : undefined;
   const gridded = on && on.rows !== undefined && on.cols !== undefined
     ? { id: on.id, headers: on.headers ?? "none" as const } : null;
+  /** **Only a group is framed.** Its name sits on a band drawn round other
+   *  things, so taking it away leaves something that still reads; every other
+   *  card *is* its name. */
   const element = on
-    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked } : null;
-  /** **The one relationship picked, and which of its ends are pinned.** A
-   *  pinned end is a locked end — every other one is worked out from where the
-   *  two cards ended up — so this is read straight off the edge and needs no
-   *  field of its own. */
-  const edge = only ? graph.edges[only] : undefined;
-  const anchors = edge
-    ? { id: edge.id, from: edge.fromAt !== undefined, to: edge.toAt !== undefined } : null;
+    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked,
+        framed: module_of(graph, on.id) === "group" } : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -179,12 +177,10 @@ export function App() {
       s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
       return;
     }
-    /** **One step, however many lines it straightened.** One gesture is one
-     *  step, and the rail's verb is one gesture over the whole layer. */
-    if (a.kind === "straighten") {
-      s.adjust("straighten", a.runs.flatMap((r) => adjustments.straighten(r.on,
-        { side: r.fromSide, at: r.fromAt }, { side: r.toSide, at: r.toAt },
-        r.align ? { id: r.align, x: snap(r.x!), y: snap(r.y!) } : undefined)));
+    /** **One step, however many lines it let go of.** One gesture is one step,
+     *  and the rail's verb is one gesture over the whole layer. */
+    if (a.kind === "free-ends") {
+      s.adjust("align", adjustments.free_ends(a.edges));
       return;
     }
     if (a.kind === "wall-seat") {
@@ -254,8 +250,9 @@ export function App() {
     if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
     if (name === "relate_with") { set_module(args!["module"] as RelationModule); return; }
-    /** **The canvas has the geometry, so the canvas answers.** The rail says
-     *  the verb was asked for and nothing about any line. */
+    /** **The canvas knows which lines are on this layer, so the canvas
+     *  answers.** The rail says the verb was asked for and nothing about any
+     *  line. */
     if (name === "straighten") { set_straighten((n) => n + 1); return; }
     /** **Nothing behind it yet.** It says so rather than doing nothing, which
      *  is the one failure that looks exactly like the app having missed the
@@ -269,17 +266,6 @@ export function App() {
       const how = args!["arrangement"];
       act("arrange", { layer, ...args,
                        ...(how === "grid" ? { at: tidy(graph, layer) } : {}) });
-      return;
-    }
-    /** **A pinned end is a locked end.** Unlocking gives the seat back to the
-     *  geometry; locking says *here*, which is where it already is — and only
-     *  the canvas knows where that is, so it arrives as an adjustment. */
-    if (name === "anchor") {
-      const id = String(args!["id"]);
-      const end = args!["end"] as "from" | "to";
-      if (args!["fixed"] === "no") { s.adjust("anchor", adjustments.wall(id, end, null)); return; }
-      const seat = scene.perches.find((p) => p.edge === id && p.end === end);
-      if (seat) s.adjust("anchor", adjustments.wall(id, end, seat.side, seat.at));
       return;
     }
     /** **Not an action** — it writes nothing and asks for nothing. Describing
@@ -434,7 +420,6 @@ export function App() {
                                    interfaces: shown.interfaces, angles: shown.angles,
                                    lattice: shown.lattice, module,
                                    ...(element ? { element } : {}),
-                                   ...(anchors ? { anchors } : {}),
                                    ...(gridded ? { grid: gridded } : {}) },
                                  chrome)} />
     </div>

@@ -247,9 +247,26 @@
    last row because it has the final say, and it is not a definition. */
 .contents-table.chain tr.picked td { color: var(--accent); }
 
-/* The look row: one picker per trait, each showing the trait's own name while
-   nothing has been said, so an unset one reads as a question rather than as an
-   answer somebody chose. */
+/* The look row: one picker per trait, each under the word for what it sets.
+
+   **The word is not optional.** Unlabelled, the pickers showed the trait's own
+   name while nothing was chosen -- five boxes reading `slot`, `emphasis`,
+   `weight`, `voice`, `shape`, which name the questions where the answers should
+   be. An unset one now shows what it inherits, which is what it is drawing as,
+   and the word above says which question that answers. */
+.element .row.look { align-items: flex-start; }
+.element .row.look .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.element .trait { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.element .trait-word {
+  color: var(--faint);
+  font-size: 8.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding-left: 1px;
+}
+
 .element .row.look select {
   font: inherit;
   font-size: 11px;

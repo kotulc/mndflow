@@ -9,8 +9,8 @@
  *  draft and nothing else, and every change leaves as an action name. */
 
 import { useState } from "react";
-import { EMPHASES, SHAPES, SLOTS, VALUE_FORMS, VOICES, WEIGHTS, alias_of, defs_in_scope,
-         def_of, isa, kind_word, may_retype, module_of,
+import { EMPHASES, SLOTS, VALUE_FORMS, VOICES, WEIGHTS, alias_of, config_of,
+         defs_in_scope, def_of, isa, kind_word, may_retype, module_of,
          type Act, type Field, type Graph, type Id } from "@mnd/core";
 import { Icon, names, type IconName } from "@mnd/theme";
 
@@ -18,12 +18,19 @@ import { Icon, names, type IconName } from "@mnd/theme";
  *  lives. **`card` is what it is made of and `style` is what it looks like** —
  *  the same two keys a definition speaks in, so the element's answers layer
  *  over the chain's without translating. */
-const TRAITS: { key: "card" | "style"; name: string; of: readonly string[] }[] = [
-  { key: "style", name: "slot", of: SLOTS },
-  { key: "style", name: "emphasis", of: EMPHASES },
-  { key: "style", name: "weight", of: WEIGHTS },
-  { key: "style", name: "voice", of: VOICES },
-  { key: "card", name: "shape", of: SHAPES },
+const TRAITS: { key: "card" | "style"; name: string; word: string; tip: string;
+                of: readonly string[] }[] = [
+  { key: "style", name: "slot", word: "colour", of: SLOTS,
+    tip: "Which of six hue families the theme colours this with. What each one "
+       + "looks like is the theme's to decide, so a definition never names a "
+       + "colour — retro paints primary green, modern paints it teal." },
+  { key: "style", name: "emphasis", word: "emphasis", of: EMPHASES,
+    tip: "How loudly that family is taken: quiet steps the line and the ink "
+       + "back, strong takes the family one step further out." },
+  { key: "style", name: "weight", word: "border", of: WEIGHTS,
+    tip: "How heavy the border is." },
+  { key: "style", name: "voice", word: "name", of: VOICES,
+    tip: "How the name itself is set — light, ordinary or bold." },
 ];
 
 export type ElementProps = {
@@ -59,6 +66,14 @@ export function Element({ graph, id, onAct }: ElementProps) {
     .filter((d) => !b || may_retype(graph, id, d.id));
   /** What it has been told about itself, as against what its chain says. */
   const said = (key: string, name: string) => b?.looks?.[key]?.[name];
+  /** What its chain says, for the answers it has not overridden. **Shown in the
+   *  picker rather than left blank**: an empty one used to read as the trait's
+   *  own name, so a card drawing itself green offered a box saying *slot* —
+   *  which names the question and hides the answer. */
+  const chain = (key: string, name: string) => {
+    const from = config_of(graph, def_of(graph, id), key)[name];
+    return from === undefined || from === null ? "" : String(from);
+  };
 
   const tags = b?.tags ?? [];
   const retag = (next: string[]) => onAct("tag", { ids: [id], tags: next });
@@ -152,22 +167,41 @@ export function Element({ graph, id, onAct }: ElementProps) {
         <div className="row look">
           <label>look</label>
           <span className="chips">
-            <select value={String(said("card", "icon") ?? "")} aria-label="mark"
-                    title={`mark — ${module_of(graph, id)} by default`}
-                    onChange={(e) => onAct("look", { ids: [id], key: "card",
-                                                     name: "icon", value: e.target.value })}>
-              <option value="">mark</option>
-              {names().filter((n: IconName) => n.startsWith("role_"))
-                .map((n: IconName) => <option key={n} value={n}>{n.slice(5)}</option>)}
-            </select>
-            {TRAITS.map((t) => (
-              <select key={t.name} value={String(said(t.key, t.name) ?? "")}
-                      aria-label={t.name} title={t.name}
-                      onChange={(e) => onAct("look", { ids: [id], key: t.key,
-                                                       name: t.name, value: e.target.value })}>
-                <option value="">{t.name}</option>
-                {t.of.map((v) => <option key={v} value={v}>{v}</option>)}
+            {/* **Every picker says what it is.** Unlabelled, five boxes reading
+                `slot`, `emphasis`, `weight`, `voice`, `shape` are five words
+                nobody can act on: they name the questions where the answers
+                should be, and the one that decides a card's colour is the one
+                whose name says least. So the word sits over the box, and the
+                box says what is inherited while nothing has been chosen. */}
+            <label className="trait" title={`mark — ${module_of(graph, id)} unless said otherwise`}>
+              <span className="trait-word">mark</span>
+              <select value={String(said("card", "icon") ?? "")} aria-label="mark"
+                      onChange={(e) => onAct("look", { ids: [id], key: "card",
+                                                       name: "icon", value: e.target.value })}>
+                <option value="">inherit</option>
+                {names().filter((n: IconName) => n.startsWith("role_"))
+                  .map((n: IconName) => <option key={n} value={n}>{n.slice(5)}</option>)}
               </select>
+            </label>
+            {TRAITS.map((t) => (
+              <label key={t.name} className="trait"
+                     title={`${t.word} — ${t.tip}`
+                          + `
+
+inherited: ${chain(t.key, t.name) || "the app’s own default"}`}>
+                <span className="trait-word">{t.word}</span>
+                <select value={String(said(t.key, t.name) ?? "")} aria-label={t.word}
+                        onChange={(e) => onAct("look", { ids: [id], key: t.key,
+                                                         name: t.name, value: e.target.value })}>
+                  {/* **Empty is *inherit*, and that is the whole of it.** One
+                      word, the same word in every picker: what it resolves to
+                      belongs in the tip, not in the option, and spelling it out
+                      per picker made each one read as a different sort of
+                      control. */}
+                  <option value="">inherit</option>
+                  {t.of.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
             ))}
           </span>
         </div>

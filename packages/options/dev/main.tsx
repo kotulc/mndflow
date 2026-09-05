@@ -26,8 +26,7 @@ function Harness() {
   const [chrome, set_chrome] = useState<Chrome>({
     slots: SLOTS["block"]!, arrangement: "free", interfaces: true, angles: true,
     lattice: true, module: "line",
-    element: { id: "block_pump", labelled: true, locked: false },
-    anchors: { id: "edge_flow", from: false, to: true },
+    element: { id: "block_pump", labelled: true, locked: false, framed: true },
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
@@ -42,11 +41,6 @@ function Harness() {
     if (name === "lock") {
       set_chrome((c) => (c.element
         ? { ...c, element: { ...c.element, locked: args!["fixed"] === "yes" } } : c));
-    }
-    if (name === "anchor") {
-      set_chrome((c) => (c.anchors
-        ? { ...c, anchors: { ...c.anchors,
-                             [args!["end"] as string]: args!["fixed"] === "yes" } } : c));
     }
     if (name === "group") {
       set_chrome((c) => (c.grid

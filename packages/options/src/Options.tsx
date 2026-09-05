@@ -21,7 +21,7 @@ export type OptionsProps = {
  *  push off the bottom of a column that scrolls, and everything above them is
  *  about what you are looking at rather than what you have hold of. */
 const ORDER = ["project", "layer", "views", "flow", "display", "relations",
-               "element", "anchors", "grid"];
+               "element", "grid"];
 
 const at = (key: string) => {
   const n = ORDER.indexOf(key);

@@ -196,35 +196,8 @@ function dressed(look: Look) {
     "data-emphasis": look.emphasis,
     "data-weight": look.weight,
     "data-voice": look.voice,
-    "data-shape": look.shape,
     "data-layout": look.layout,
   };
-}
-
-/** A shape that is not a rectangle, stroked inside the box the engine placed.
- *
- *  **The engine always places a rectangle**, and every seat, route and
- *  interface reads it — so this changes what is *drawn* and never where
- *  anything attaches. A rounded or elliptical card is a border radius and needs
- *  none of this; a diamond and a hexagon are corners, and corners need a path.
- *
- *  Drawn with `preserveAspectRatio="none"` so one set of coordinates fits every
- *  card, and `non-scaling-stroke` so the line stays the weight the ramp asked
- *  for rather than being stretched with the box. */
-const CORNERS: Record<string, string> = {
-  diamond: "50,1 99,50 50,99 1,50",
-  hex: "25,1 75,1 99,50 75,99 25,99 1,50",
-};
-
-function Outline({ shape }: { shape: string }) {
-  const points = CORNERS[shape];
-  if (!points) return null;
-  return (
-    <svg className="mnd-outline" viewBox="0 0 100 100" preserveAspectRatio="none"
-         aria-hidden focusable="false">
-      <polygon points={points} vectorEffect="non-scaling-stroke" />
-    </svg>
-  );
 }
 
 /** What a container holds, as a picture inside its own card.
@@ -296,7 +269,6 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
     <div className={["mnd-card", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          {...dressed(look)} data-def={data.def} title={data.label}>
-      <Outline shape={look.shape} />
       <Brim />
       <Wears role={data.role} icon={data.look?.icon} />
       {/* **The other corner.** Its role is what it is and sits top right; this
@@ -417,62 +389,95 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
     return () => window.removeEventListener("pointerup", done);
   }, []);
 
+  /** **A plain press is the grid's; a held one is a cell's.**
+   *
+   *  Cells cover the whole of a grid, so a plain press has to reach it or a
+   *  grid cannot be selected or dragged by the obvious gesture. Picking cells
+   *  is what you do to merge or chain them — the rarer act, and the one that
+   *  already wants a modifier to name more than one — so it takes the modifier
+   *  and everything else falls through.
+   *
+   *  **Listened for natively, on the way up from the cell.** The library drives
+   *  its own selection from a listener on the node, and a React handler cannot
+   *  stop that: React delivers at the root, by which time the node has already
+   *  seen it. So a held press is stopped here, on an element between the cell
+   *  and the node — without which the library's own modifier-click toggled the
+   *  grid out of the selection and took the cells with it. */
+  const box = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const at_of = (e: Event) => {
+      const cell = (e.target as HTMLElement | null)?.closest?.(".mnd-grid-cell");
+      const said = cell?.getAttribute("data-at")?.split(",").map(Number);
+      return said && said.length === 2 && said.every((n) => !Number.isNaN(n))
+        ? { group: id, r: said[0]!, c: said[1]! } : null;
+    };
+    const modified = (e: MouseEvent) => e.shiftKey || e.ctrlKey || e.metaKey;
+
+    const down = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const one = at_of(e);
+      if (!one) return;
+      /** Nothing held: the press is the grid's, to select and to drag by, and
+       *  whatever cells were picked are let go of. */
+      if (!modified(e)) { if (mine.length) pick([]); return; }
+      e.stopPropagation();
+      from.current = { r: one.r, c: one.c };
+      /** Shift takes the rectangle, the modifier takes one more. */
+      if (e.shiftKey && mine[0]) { pick(range(mine[0], one)); return; }
+      const had = mine.some((p) => p.r === one.r && p.c === one.c);
+      pick(had ? mine.filter((p) => !(p.r === one.r && p.c === one.c)) : [...mine, one]);
+    };
+    /** The same press, twice more. **The library reads all three**, and one of
+     *  them getting through is the whole of the bug. */
+    const swallow = (e: MouseEvent) => { if (modified(e) && at_of(e)) e.stopPropagation(); };
+
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("mousedown", swallow);
+    el.addEventListener("click", swallow);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      el.removeEventListener("mousedown", swallow);
+      el.removeEventListener("click", swallow);
+    };
+  });
+
   return (
-    <>
+    <span className="mnd-grid-cells" ref={box}>
       {cells.map((c) => (
-        /** `nodrag` because the grid underneath would otherwise move instead —
-         *  a grid is moved by its name and resized by its corners — and `nopan`
-         *  because a sweep across cells is not a drag of the canvas. */
+        /** `nopan` because a sweep across cells is not a drag of the canvas.
+         *  **Not `nodrag`**: that is exactly what has to reach the grid. */
         <span key={`${c.r},${c.c}`}
-              className={["mnd-grid-cell", "nodrag", "nopan", ...c.marks,
+              className={["mnd-grid-cell", "nopan", ...c.marks,
                           held(c) ? "picked" : ""].filter(Boolean).join(" ")}
               data-at={`${c.r},${c.c}`}
               style={{ left: c.x, top: c.y, width: c.w, height: c.h }}
-              onPointerDown={(e) => {
-                if (e.button !== 0) return;
-                /** **Held here.** Let go, the canvas reads the same press as a
-                 *  sweep of its own and resolves it to nothing on release —
-                 *  which cleared the cells the moment they were picked. */
-                e.stopPropagation();
-                const one = { group: id, r: c.r, c: c.c };
-                /** **Shift takes the rectangle, the modifier takes one more.**
-                 *  The same two keys every other list of things is swept with,
-                 *  so a merge can be named without a drag. */
-                if (e.shiftKey && mine[0]) { pick(range(mine[0], c)); return; }
-                if (e.ctrlKey || e.metaKey) {
-                  const held = mine.some((p) => p.r === c.r && p.c === c.c);
-                  pick(held ? mine.filter((p) => !(p.r === c.r && p.c === c.c))
-                            : [...mine, one]);
-                  return;
-                }
-                from.current = { r: c.r, c: c.c };
-                pick([one]);
-              }}
-              /** **The library's own modifiers are not the lattice's.** Shift
-               *  starts its selection box and control toggles a node in and out
-               *  of the selection — both of which resolved to nothing and threw
-               *  away the cells that had just been picked. */
-              onMouseDown={(e) => { if (e.button === 0) e.stopPropagation(); }}
-              onClick={(e) => e.stopPropagation()}
               onPointerEnter={(e) => {
                 if (e.buttons === 1 && from.current) pick(range(from.current, c));
               }} />
       ))}
-    </>
+    </span>
   );
 }
-
 /** A group: a grid of cells, or a band behind its members.
  *
  *  A boundary is its members' bounds rather than a stored size, so there is
  *  nothing to resize and nothing to place — what it holds is what it is. **A
  *  grid owns its corner**, because an empty one would otherwise be nothing. */
-/** A grid's border, as the four strips you can take hold of it by. Four rather
- *  than one box with a hole in it, because only the edge may answer a pointer —
- *  a box over the middle would swallow every press meant for a cell. */
-function Rails() {
+/** A grid's own border, drawn and taken hold of.
+ *
+ *  **On the box, which is on the lattice.** It was set half a unit in for a
+ *  while so two grids side by side would not touch; that put the outer cells
+ *  half a unit off the guides they are meant to *be*. Room between two grids is
+ *  the layout's to leave, never the drawing's to fake.
+ *
+ *  The four strips are the handle. Four rather than one box with a hole in it,
+ *  because only the edge may answer a pointer — a box over the middle would
+ *  swallow every press meant for a cell. */
+function Edge() {
   return (
-    <span className="mnd-group-rails" aria-hidden>
+    <span className="mnd-group-edge" aria-hidden>
       {(["top", "right", "bottom", "left"] as const).map((side) => (
         <span key={side} className="mnd-group-rail" data-side={side} />
       ))}
@@ -492,15 +497,15 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
     <div className={["mnd-group", grid ? "gridded" : "",
                      selected ? "picked" : ""].filter(Boolean).join(" ")}
          {...dressed(look)} title={data.label}>
+      {/* **Clipped to the band, not to the box.** A grid's cells run the whole
+          width of what it claims, because that is what puts them on the
+          lattice — so without this the outer ring of them is drawn in the space
+          that is meant to separate this grid from the next one. */}
       {grid ? <Lattice id={id} cells={data.grid!} /> : null}
-      {/* **The one part of a grid that is not a cell.** Its cells cover the
-          whole of it and each answers a pointer of its own, so without this the
-          only place to take hold of one is its name. It used to be a bare rim
-          outside the lattice — which made two grids in neighbouring cells
-          overlap by a rim each, and a grid is a region of the layer's lattice
-          and cannot reach past its own cells. So the handle moved inside: the
-          border is the grip, and the border belongs to nobody else. */}
-      {grid ? <Rails /> : null}
+      {/* **The band, and the one part of a grid that is not a cell.** Its cells
+          cover the whole of it and each answers a pointer of its own, so
+          without this the only place to take hold of one is its name. */}
+      {grid ? <Edge /> : null}
       {/* **A grid is resized by its corners**, and what a corner says is how
           many rows and columns — the consumer rounds to whole cells. Drawn
           after the lattice, because a cell covers the whole of the box it sits

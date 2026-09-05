@@ -10,7 +10,7 @@
  *  only start a connection on that button. */
 
 import { useEffect, useState } from "react";
-import type { Act, Args, Side, Spot } from "@mnd/core";
+import type { Act, Args, Spot } from "@mnd/core";
 
 /** One named entry a menu draws: an action, optionally with an argument filled
  *  and a word of its own. **Repeated here rather than imported** — the stage
@@ -18,8 +18,7 @@ import type { Act, Args, Side, Spot } from "@mnd/core";
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, lattice_box, swept_cells, BLOCK, CELL,
-         type Scene } from "@mnd/views";
+import { box_of, clear_of, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 
 export type { Adjust };
 
@@ -221,21 +220,12 @@ export function Stage({ scene, picked, cells, onAct, onAdjust, onPick, onPickCel
          *  same gesture as every other name, on the one card that is nothing
          *  but a name. */
         else if (g.on && g.kind === "note") set_naming(g.on);
-        /** **Two clicks on a line straighten it.** Descending is what two
-         *  clicks mean everywhere else, and a relationship has no inside — so
-         *  the gesture was free, and it is the only one that could carry this:
-         *  the walls and fractions come from the drawing and are nowhere in
-         *  the graph. */
-        else if (g.on && g.kind === "route" && g.given) {
-          const bend = g.given as Record<string, unknown>;
-          if (bend["fromSide"] && bend["toSide"]) {
-            onAdjust?.({ kind: "straighten", runs: [{
-              on: g.on,
-              fromSide: bend["fromSide"] as Side, fromAt: Number(bend["fromAt"]),
-              toSide: bend["toSide"] as Side, toAt: Number(bend["toAt"]),
-              ...(bend["align"] ? { align: String(bend["align"]),
-                                    x: Number(bend["x"]), y: Number(bend["y"]) } : {}) }] });
-          }
+        /** **Two clicks on a line align it**, which is the same letting-go the
+         *  rail does to a whole layer. Descending is what two clicks mean
+         *  everywhere else and a relationship has no inside, so the gesture was
+         *  free — and this is the one thing there is to do to a single line. */
+        else if (g.on && g.kind === "route") {
+          onAdjust?.({ kind: "free-ends", edges: [g.on] });
         }
         /** **The room's edge is the band you leave by.** A rim is drawn as part
          *  of the frame, so two clicks on one reached a node and stopped there
@@ -353,12 +343,10 @@ function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }
   /** **The cells it covered, not the rectangle it drew.** The lattice is
    *  already on the canvas and a group is a region of it, so a sweep activates
    *  whole cells and the group lands exactly on the lines you swept over. */
-  const on = swept_cells(box);
-  const { rows, cols } = on;
-  /** **A grid is exactly its cells**, so its corner is its first cell's. */
-  const from = lattice_box(on.r, on.c);
-  const x = from.x;
-  const y = from.y;
+  /** **A corner where you drew it, and a whole number of cells to cover it.**
+   *  A grid is exactly its cells, so its corner is its first cell's. */
+  const { x, y, rows, cols } = swept_cells(box);
+  const from = { x, y };
   const taken = new Set<string>();
   const seats: { id: string; r: number; c: number }[] = [];
 

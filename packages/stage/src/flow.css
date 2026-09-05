@@ -82,10 +82,16 @@
   --card-dim: var(--s-muted-dim);
 }
 
-/* How loudly the family is taken. Quiet keeps the ground and steps the ink
-   back; strong takes the stroke, the same hue one step further out. */
+/* How loudly the family is taken. Quiet steps the line and the ink back; strong
+   takes the stroke, the same hue one step further out.
+
+   **Quiet keeps its ground.** It used to drop the fill to `transparent`, which
+   is not one step quieter than a card — it is not a card. Four of the seven
+   base kinds are quiet, so a folder, a reference, a note and a boundary all
+   came out as nothing but a border with the backdrop showing through, and a
+   note in particular reads as a scrap of paper or it reads as nothing. Being
+   quiet is a shade of ink and line, the way it is everywhere else in the ramp. */
 [data-emphasis="quiet"] {
-  --card-fill: transparent;
   --card-line: var(--card-dim);
   --card-ink: var(--card-dim);
 }
@@ -93,9 +99,9 @@
 
 /* How heavy the border is. Three steps, named on the ramp, so a definition
    cannot ask for a fourth. */
-[data-weight="hairline"] { --card-weight: var(--weight-hairline); }
-[data-weight="thin"]     { --card-weight: var(--weight-thin); }
-[data-weight="thick"]    { --card-weight: var(--weight-thick); }
+[data-weight="thin"]   { --card-weight: var(--weight-thin); }
+[data-weight="medium"] { --card-weight: var(--weight-medium); }
+[data-weight="thick"]  { --card-weight: var(--weight-thick); }
 
 /* How loudly the name is set. `voice` rather than `label`, because where the
    label sits is `card.label` and already means something else. */
@@ -240,23 +246,6 @@
   pointer-events: none;
 }
 
-/* A shape that is not a rectangle, stroked inside the box the engine placed.
-   The card's own border stands down: two outlines on one card is one too
-   many. A stadium and an ellipse are a radius and need no second drawing. */
-.mnd-outline { position: absolute; inset: 0; width: 100%; height: 100%; }
-.mnd-outline polygon {
-  fill: var(--card-fill);
-  stroke: var(--card-line);
-  stroke-width: var(--card-weight, var(--weight-thin));
-}
-.mnd-card[data-shape="diamond"], .mnd-card[data-shape="hex"] {
-  border-color: transparent;
-  background: none;
-}
-.mnd-card[data-shape="diamond"] .mnd-head,
-.mnd-card[data-shape="hex"] .mnd-head { position: relative; }
-.mnd-card[data-shape="round"] { border-radius: 999px; }
-.mnd-card[data-shape="ellipse"] { border-radius: 50%; }
 
 /* ── What a container holds ────────────────────────────────────────────────
    The picture that says "this holds several distinct things" without being
@@ -424,8 +413,6 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
-.mnd-card.picked[data-shape="diamond"] .mnd-outline polygon,
-.mnd-card.picked[data-shape="hex"] .mnd-outline polygon { stroke: var(--accent); }
 
 /* An interface, seated on a wall. The mark is the whole of it. */
 .mnd-seat {
@@ -671,15 +658,6 @@
 .mnd-anchor:hover::after { transform: scale(1.25); }
 .mnd-anchor.held { cursor: grabbing; }
 
-/* An end pinned by hand, which is an end locked where it sits — every other one
-   is worked out from where the two cards ended up. **Filled rather than
-   outlined**: the two states sit on the same line at the same size, so the
-   difference has to be the mark itself and not a shade of it. */
-.mnd-anchor.locked::after {
-  background: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 30%, transparent);
-}
-
 /* Where a line already meets a border. **Geometry, and nothing to look at or
    point at** — it exists so the library has somewhere to end the line, the
    anchor above is what shows it, and leaving it hittable put a connection
@@ -749,10 +727,6 @@
    drawing's own — a grip is in the viewport above every node, a seat is drawn
    over the card it is seated on, and a wall is part of the frame behind both. */
 .mnd-group:hover { border-color: var(--accent); }
-.mnd-card:has(.mnd-brim:hover)[data-shape="diamond"] .mnd-outline polygon,
-.mnd-card:has(.mnd-brim:hover)[data-shape="hex"] .mnd-outline polygon {
-  stroke: var(--accent);
-}
 .mnd-seat:hover { border-color: var(--accent); background: var(--tint); }
 
 
@@ -831,23 +805,51 @@
 
 /* ---------------------------------------------------------------- the grid */
 
-/* A grid draws its own extent, so unlike a band it is a stated rectangle
-   rather than the bounds of what it holds — and a stated edge is a solid one.
-   **Stronger than a band's, because it is also the handle**: the grid is
-   exactly its cells now, so its border is the one part of it that is not one. */
+/* A grid's box is exactly its cells, because they have to fall on the lattice —
+   so it draws no border of its own and the band is set inside it instead. */
 .mnd-group.gridded {
-  border-style: solid;
-  border-radius: 0;
-  border-color: color-mix(in oklch, var(--card-line) 70%, transparent);
-  background: color-mix(in oklch, var(--card-line) 4%, transparent);
+  border: none;
+  background: none;
 }
 
-/* Where a grid is taken hold of. **Inside its own edge**, so two grids in
-   neighbouring cells share a line and neither reaches into the other. Drawn
-   only under the pointer: a grip that is always visible is a second border
-   competing with the one it sits on. */
-.mnd-group-rails { position: absolute; inset: 0; pointer-events: none; }
+/* The lattice, drawn whole.
 
+   **Not clipped, and not inset.** It used to be held half a unit in so two
+   grids side by side would not touch — but a grid's cells *are* the layer's
+   guides, and half a unit off them is the one place they must not be. Clipping
+   cost the same twice over: the outer cells came up short, so a block centred
+   in its own cell was drawn off-centre in what you could see of it. */
+.mnd-grid-cells {
+  position: absolute;
+  inset: 0;
+}
+
+/* A grid's band, and the one part of it that is not a cell.
+
+   **On the box, which is on the lattice.** It sat half a unit in for a while so
+   two grids side by side would not touch. That is the wrong place to buy it:
+   the band is the outer edge of the outer cells, and a cell off the guides is
+   the one thing a grid may not be. Two grids in neighbouring cells share a line
+   again — room between them is the layout's to leave, not the drawing's to
+   fake.
+
+   A stated rectangle, so unlike a boundary its edge is solid — and stronger
+   than one, because it is also the handle. */
+.mnd-group-edge {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in oklch, var(--card-line) 70%, transparent);
+  background: color-mix(in oklch, var(--card-line) 4%, transparent);
+  /* Only the four strips inside answer a pointer; the middle is cells. */
+  pointer-events: none;
+}
+.mnd-group.gridded:hover > .mnd-group-edge,
+.mnd-group.gridded.picked > .mnd-group-edge { border-color: var(--accent); }
+
+/* Where a grid is taken hold of: the band itself, inside its own edge. Lights
+   under the pointer rather than always, which would be a second border
+   competing with the one it sits on. */
 .mnd-group-rail {
   position: absolute;
   pointer-events: auto;

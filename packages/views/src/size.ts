@@ -27,7 +27,7 @@ export const UNITS = {
    *  most of them. */
   block: { w: 5, h: 2 },
   /** How much room the grid layout leaves between two of anything. */
-  gap: 1,
+  gap: 2,
 };
 
 /** One square of the guides. Everything is a whole number of these. */
@@ -96,30 +96,33 @@ export function lattice_box(r: number, c: number, rows = 1, cols = 1): Box {
   return { x: c * CELL.w, y: r * CELL.h, w: cols * CELL.w, h: rows * CELL.h };
 }
 
-/** Which cell of the layer's lattice a point falls in. */
-export function cell_at(at: Point): { r: number; c: number } {
-  return { r: Math.floor(at.y / CELL.h), c: Math.floor(at.x / CELL.w) };
-}
-
-/** Where a group's corner goes so its cells land on the layer's lattice. A
- *  grid's corner *is* its first cell's corner, so this is the lattice itself. */
-export function grid_snap(at: Point): Point {
-  return { x: Math.round(at.x / CELL.w) * CELL.w,
-           y: Math.round(at.y / CELL.h) * CELL.h };
-}
-
-/** The whole cells of the layer's lattice a swept rectangle covers.
+/** Where a group's corner goes: **the nearest unit, not the nearest cell.**
  *
- *  **You are activating cells that are already drawn**, so a region begins and
- *  ends on lines you can see rather than wherever the pointer was let go. Every
- *  cell the sweep touched at all is in, which is what makes a flick across two
- *  of them two cells and not one. */
-export function swept_cells(box: Box): { r: number; c: number; rows: number; cols: number } {
-  const from = cell_at(box);
-  const to = { r: Math.ceil((box.y + box.h) / CELL.h) - 1,
-               c: Math.ceil((box.x + box.w) / CELL.w) - 1 };
-  return { r: from.r, c: from.c,
-           rows: Math.max(1, to.r - from.r + 1), cols: Math.max(1, to.c - from.c + 1) };
+ *  It used to round to a whole cell, back when the guides were ruled at cell
+ *  spacing and that was the only offset at which a grid's own cells fell on
+ *  drawn lines. The guides are unit squares now, and a grid's cells are a whole
+ *  number of units across — so its lines land on drawn lines at *every* unit
+ *  offset, and rounding to a cell only meant a grid could not be nudged.
+ *
+ *  **Coarser than a card, and on purpose.** A card lands on the fine grid,
+ *  which is half a unit; a grid is measured in units, so half of one would put
+ *  every cell in it off the ruling. */
+export function grid_snap(at: Point): Point {
+  return { x: Math.round(at.x / UNIT) * UNIT, y: Math.round(at.y / UNIT) * UNIT };
+}
+
+/** The grid a swept rectangle asks for: **a corner where you started, and a
+ *  whole number of cells to cover what you drew over.**
+ *
+ *  The corner rounds to a unit like any other grid's, so a sweep puts one where
+ *  you drew it rather than at the nearest cell of a lattice nobody can see —
+ *  the guides are unit squares, and cell boundaries are not drawn. The extent
+ *  is still whole cells, because a cell is the thing a grid is made of. */
+export function swept_cells(box: Box): { x: number; y: number; rows: number; cols: number } {
+  const at = grid_snap(box);
+  return { ...at,
+           rows: Math.max(1, Math.round(box.h / CELL.h)),
+           cols: Math.max(1, Math.round(box.w / CELL.w)) };
 }
 
 /** A box grown out to whole cells of the layer's lattice.

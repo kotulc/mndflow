@@ -17,9 +17,9 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import { at_seat, box_of, extent, lattice_box, look_key, nearest_seat, perch_id, roomed,
+import { at_seat, box_of, extent, look_key, nearest_seat, perch_id, roomed,
          swept_cells, CELL, FRAME, PORT, STEP, UNIT,
-         type BoxNode, type Frame, type LineEdge, type Rect, type Scene } from "@mnd/views";
+         type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 
@@ -79,24 +79,20 @@ export type Adjust =
    *  what this writes is the wall and the fraction the end was pinned to — the
    *  seat goes back to being worked out the moment it is unpinned. */
   | { kind: "anchor"; on: string; end: "from" | "to"; side: Side; at: number }
-  /** Relationships asked to run straight. **Where two borders can meet without
-   *  a jog is a fact about two rectangles**, which a relationship carries
-   *  neither of — so the canvas is the only thing that can say it, and saying
-   *  it is what makes this an adjustment rather than something sayable.
+  /** Relationships asked to find their own way again. **Aligning is letting
+   *  go**: where a line meets a border is worked out from where its two ends
+   *  sit, and that working out already takes the wall facing the other end and
+   *  the seat nearest where the run crosses it. An end dragged by hand
+   *  overrides it; this gives it back.
    *
-   *  **A list, because straightening the layer is one thing you did.** Two
-   *  clicks on a line send one run and the rail's verb sends every run there
-   *  is; either way it is one step and one undo. */
-  | { kind: "straighten"; runs: readonly Run[] }
+   *  **A list, because aligning the layer is one thing you did.** Two clicks on
+   *  a line send one and the rail's verb sends every line there is; either way
+   *  it is one step and one undo. */
+  | { kind: "free-ends"; edges: readonly string[] }
   /** A corner dragged. **The one card whose size is yours to set** — every
    *  other one is sized from what it holds, and a block has carried `w` and
    *  `h` all along with no gesture that wrote them. */
   | { kind: "size"; on: string; w: number; h: number; to: Point };
-
-/** One relationship pulled straight: the two ends pinned, and the block that
- *  has to shift for it where one does. */
-export type Run = { on: string; fromSide: Side; fromAt: number;
-                    toSide: Side; toAt: number; align?: string; x?: number; y?: number };
 
 export type FlowViewProps = {
   scene: Scene;
@@ -467,11 +463,7 @@ function marked<T extends { id: string; selected?: boolean }>(
  *  memoised to stop. They are drawn into the viewport instead, so they pan and
  *  zoom with the drawing and cost nothing when nothing is picked. */
 type Grip = { key: string; edge: string; end: "from" | "to"; on: string;
-              side: Side; at: number; x: number; y: number;
-              /** Whether this end was pinned by hand. **A pinned end is a
-               *  locked end** — every other one is worked out from where the
-               *  two cards ended up, so this is the only end that stays put. */
-              pinned: boolean };
+              side: Side; at: number; x: number; y: number };
 
 /** The grid a right drag is about to make, drawn as it is swept.
  *
@@ -483,10 +475,10 @@ type Grip = { key: string; edge: string; end: "from" | "to"; on: string;
  *  wherever the press landed: a sweep activates lattice cells that are already
  *  drawn, so the region snaps to them as it is drawn and lands where it looked. */
 function Sweeping({ at }: { at: { x: number; y: number; w: number; h: number } }) {
-  const { r, c, rows, cols } = swept_cells(at);
+  const { x, y, rows, cols } = swept_cells(at);
   /** **The cells themselves, and nothing round them.** A grid is exactly the
    *  region it covers, so what is drawn while it is being swept is the region. */
-  const box = lattice_box(r, c, rows, cols);
+  const box = { x, y, w: cols * CELL.w, h: rows * CELL.h };
   const on = box;
   const lines: React.ReactNode[] = [];
   for (let n = 0; n <= rows; n++) {
@@ -514,160 +506,6 @@ function Sweeping({ at }: { at: { x: number; y: number; w: number; h: number } }
 function spread(a: Point, b: Point): { x: number; y: number; w: number; h: number } {
   return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y),
            w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
-}
-
-/** How a relationship would run between these two without a bend.
- *
- *  **A straight run is one both borders can reach.** Where the two boxes
- *  overlap across the run there is a band a line crosses without a jog, and the
- *  middle of that band is where both ends go — said as a fraction of each
- *  border, because that is what a pinned end stores.
- *
- *  **Where they overlap nowhere, nothing about the line can straighten it**, so
- *  the far block is lined up with the near one. That is the thing you would
- *  otherwise do by hand, and it is a move like any other — snapped to the grid
- *  first, so the ends are pinned to where the card will actually be. */
-function straight(a: Rect, b: Rect, movable: boolean, along?: "x" | "y") {
-  /** Along whichever axis the two stand further apart: that is the way the run
-   *  already goes, and turning it round would move the line rather than
-   *  straighten it. **Unless an end says.** A line meeting an interface leaves
-   *  by that interface's own wall, so the way the run goes was decided when the
-   *  port was put there — free to pick for itself, this lined a card up under a
-   *  port set into a side wall and left the run to curl round to reach it. */
-  const apart = { x: Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w)),
-                  y: Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h)) };
-  const across = along ? along === "x" : apart.x >= apart.y;
-  const lo = across ? Math.max(a.y, b.y) : Math.max(a.x, b.x);
-  const hi = across ? Math.min(a.y + a.h, b.y + b.h) : Math.min(a.x + a.w, b.x + b.w);
-
-  let box = b;
-  let by: { dx: number; dy: number } | undefined;
-  if (hi <= lo) {
-    if (!movable) return null;
-    /** **Middle to middle, and not rounded.** The far end may be a port eleven
-     *  pixels across while a cell is twenty-four, so rounding the answer to the
-     *  grid could push the two ends further apart than either is wide and leave
-     *  nothing to line up — which is why straightening did nothing at all on
-     *  every line between two interfaces. The block that actually moves is on
-     *  the grid, and it moves by the gap between the two ends, so it lands back
-     *  on the grid wherever the two ends sit alike on their own cards. */
-    const want = across ? { x: b.x, y: a.y + a.h / 2 - b.h / 2 }
-                        : { x: a.x + a.w / 2 - b.w / 2, y: b.y };
-    by = { dx: want.x - b.x, dy: want.y - b.y };
-    box = { ...b, ...want };
-  }
-  const band = across
-    ? [Math.max(a.y, box.y), Math.min(a.y + a.h, box.y + box.h)]
-    : [Math.max(a.x, box.x), Math.min(a.x + a.w, box.x + box.w)];
-  if (band[1]! <= band[0]!) return null;
-  const meet = (band[0]! + band[1]!) / 2;
-
-  const ahead = across ? box.x + box.w / 2 >= a.x + a.w / 2
-                       : box.y + box.h / 2 >= a.y + a.h / 2;
-  const walls: [Side, Side] = across ? (ahead ? ["right", "left"] : ["left", "right"])
-                                     : (ahead ? ["bottom", "top"] : ["top", "bottom"]);
-  return {
-    fromSide: walls[0], toSide: walls[1],
-    fromAt: across ? (meet - a.y) / a.h : (meet - a.x) / a.w,
-    toAt: across ? (meet - box.y) / box.h : (meet - box.x) / box.w,
-    ...(by ? { by } : {}),
-  };
-}
-
-/** How a relationship would have to be pinned to run straight, and the block
- *  that has to shift for it where one does.
- *
- *  **Either end may be the one that moves.** A line to an interface or to the
- *  layer itself has one end that cannot go anywhere — a port belongs to its
- *  card and the room is grown to the panel — so the other end is aligned to it
- *  instead. Only where neither end can move is there nothing to offer. */
-function straightened(scene: Scene, frame: Frame | null, edge: string) {
-  const e = scene.edges.find((x) => x.id === edge);
-  if (!e) return null;
-  const box = (id: string) => {
-    if (id === FRAME) return frame;
-    const n = scene.nodes.find((x) => x.id === id);
-    return n ? box_of(n) : null;
-  };
-  /** Which block would move for this end to line up.
-   *
-   *  **A port moves by moving the card it is on.** An interface has no place of
-   *  its own — it is seated on a border — so lining one up is sliding the whole
-   *  card, which is what you would do by hand. A boundary has no place either
-   *  and the room is not a block at all, so neither can be the one that moves. */
-  const mover = (id: string): string | null => {
-    const n = scene.nodes.find((x) => x.id === id);
-    if (!n || id === FRAME || n.type === "group" || n.selectable === false) return null;
-    const host = n.data.on ? scene.nodes.find((x) => x.id === n.data.on) : n;
-    return host && host.id !== FRAME && host.type !== "group" ? host.id : null;
-  };
-  const from = box(e.source);
-  const to = box(e.target);
-  if (!from || !to) return null;
-  /** **A line to the layer runs out of one wall of the card and into the same
-   *  wall of the room.** Which wall the room end meets is whichever rim the
-   *  line was drawn to, and the card end works its own out — so the two can
-   *  disagree, and a run that could have been one straight segment goes out of
-   *  the left of a card to meet the ceiling. Straightening it is agreeing:
-   *  both take the wall the card is nearest, and nothing has to move. */
-  if (e.source === FRAME || e.target === FRAME) {
-    if (!frame) return null;
-    const card = e.source === FRAME ? to : from;
-    const wall = inner(frame, card);
-    const down = wall === "left" || wall === "right";
-    const meet = down ? card.y + card.h / 2 : card.x + card.w / 2;
-    const along = down ? (meet - frame.y) / (frame.h || 1)
-                       : (meet - frame.x) / (frame.w || 1);
-    const room = Math.min(0.98, Math.max(0.02, along));
-    return e.source === FRAME
-      ? { fromSide: wall, fromAt: room, toSide: wall, toAt: 0.5 }
-      : { fromSide: wall, fromAt: 0.5, toSide: wall, toAt: room };
-  }
-
-  /** Which way the run has to go, where an end has already said. */
-  const wall = (id: string) => {
-    const n = scene.nodes.find((x) => x.id === id);
-    return n?.data.on ? n.data.side : undefined;
-  };
-  const set = wall(e.source) ?? wall(e.target);
-  const along = set ? (set === "left" || set === "right" ? "x" : "y") : undefined;
-
-  /** Where a move is called for, it is the mover's own box that shifts — the
-   *  end may be a port, and a port travels with its card. */
-  const shifted = (end: string, by: { dx: number; dy: number }) => {
-    const id = mover(end);
-    const n = id ? scene.nodes.find((x) => x.id === id) : null;
-    if (!id || !n) return {};
-    const b = box_of(n);
-    return { align: id, x: b.x + by.dx, y: b.y + by.dy };
-  };
-
-  const ahead = straight(from, to, !!mover(e.target), along);
-  if (ahead) {
-    return { fromSide: ahead.fromSide, fromAt: ahead.fromAt,
-             toSide: ahead.toSide, toAt: ahead.toAt,
-             ...(ahead.by ? shifted(e.target, ahead.by) : {}) };
-  }
-  /** Nothing at the far end could move, so line the near end up instead. The
-   *  two answers come back the other way round and are put back in order. */
-  const back = straight(to, from, !!mover(e.source), along);
-  if (!back) return null;
-  return { fromSide: back.toSide, fromAt: back.toAt,
-           toSide: back.fromSide, toAt: back.fromAt,
-           ...(back.by ? shifted(e.source, back.by) : {}) };
-}
-
-/** Which wall of the room a box standing in it is nearest — and so the wall
- *  it should leave by, since the other end meets the same one. */
-function inner(room: Rect, box: Rect): Side {
-  const gap: Record<Side, number> = {
-    left: box.x - room.x,
-    right: (room.x + room.w) - (box.x + box.w),
-    top: box.y - room.y,
-    bottom: (room.y + room.h) - (box.y + box.h),
-  };
-  return (["left", "right", "top", "bottom"] as const)
-    .reduce((a, b) => (gap[b] < gap[a] ? b : a));
 }
 
 /** The same boxes, moved by the same amount. **Only what is placed** — a seat
@@ -924,10 +762,10 @@ function Canvas(props: FlowViewProps) {
     const box = kind === "frame" ? frame
       : kind === "box" || kind === "brim" ? scene.nodes.find((n) => n.id === on) : null;
     const seat = box ? nearest_seat("w" in box ? box : box_of(box as BoxNode), at(e)) : null;
-    /** **What only the drawing knows.** A wall and a fraction for a border you
-     *  pointed at; for a relationship, where its two ends would have to meet to
-     *  run straight — neither is anywhere in the graph. */
-    const bend = kind === "route" && on ? straightened(scene, frame, on) : null;
+    /** **What only the drawing knows**: a wall and a fraction for a border you
+     *  pointed at. A relationship needs nothing of the sort any more — its ends
+     *  are worked out from where they sit, so two clicks on one only have to
+     *  name it. */
     /** **A cell is a group plus an address**, and nothing else could say which
      *  — so the address the DOM was drawn with is handed on as it is. */
     const el_at = e.target instanceof Element
@@ -937,7 +775,7 @@ function Canvas(props: FlowViewProps) {
       : null;
     const given = spot ?? (seat
       ? { side: seat.side, at: seat.at, ...(kind === "brim" ? { owner: on } : {}) }
-      : bend);
+      : null);
     /** A chip stands for a block one layer down, so the name on it is that
      *  block's and not the card's it is drawn inside. */
     const el = e.target instanceof Element ? e.target : null;
@@ -1245,28 +1083,22 @@ function Canvas(props: FlowViewProps) {
       if (!box) continue;
       const seat = p.on === FRAME ? met.get(perch_id(p.edge, p.end)) ?? p : p;
       out.push({ key: `${p.edge}-${p.end}`, edge: p.edge, end: p.end, on: p.on,
-                 side: seat.side, at: seat.at, pinned: !!p.pinned, ...middle(box, seat) });
+                 side: seat.side, at: seat.at, ...middle(box, seat) });
     }
     return out;
   }, [scene, picked, frame]);
 
-  /** **Every line on the layer pulled straight, in one step.**
+  /** **Every line on the layer let go of, in one step.**
    *
-   *  The rail asks by counting up; the geometry is the canvas's, so this is
-   *  where the answer is worked out. A line that has nothing to line up with —
-   *  two boxes that overlap nowhere and neither end free to move — is left
-   *  alone rather than nudged somewhere arbitrary. */
+   *  The rail asks by counting up. Nothing here is geometry any more: a seat is
+   *  worked out from where its two ends sit, so aligning is simply taking away
+   *  whatever was said by hand and letting the working out stand. */
   useEffect(() => {
     if (!straighten) return;
-    const runs = scene.edges
-      .map((e) => {
-        const bend = straightened(scene, frame, e.id);
-        return bend ? { on: e.id, ...bend } : null;
-      })
-      .filter((r): r is Run => r !== null);
-    if (runs.length) onAdjust?.({ kind: "straighten", runs });
+    const edges = scene.edges.map((e) => e.id);
+    if (edges.length) onAdjust?.({ kind: "free-ends", edges });
     /** **The count is the whole trigger.** Re-running when the scene changed
-     *  would straighten again on every move the straightening itself made. */
+     *  would fire again on every change the aligning itself made. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [straighten]);
 
@@ -1532,12 +1364,9 @@ function Canvas(props: FlowViewProps) {
             return (
               <span key={g.key}
                     className={["mnd-anchor", "nodrag", "nopan",
-                                g.pinned ? "locked" : "",
                                 grabbed?.key === g.key ? "held" : ""].filter(Boolean).join(" ")}
                     style={{ transform: `translate(-50%, -50%) translate(${to.x}px, ${to.y}px)` }}
-                    title={g.pinned
-                      ? "this end is locked where it sits · drag to move it along the border"
-                      : "drag to move this end along the border · double click to make it an interface"}
+                    title="drag to move this end along the border · double click to make it an interface"
                     /** The grip sits inside the pane, and a click that reaches
                      *  the pane clears the selection — which is the selection
                      *  that put the grip there. */

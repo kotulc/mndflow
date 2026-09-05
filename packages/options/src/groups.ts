@@ -40,12 +40,17 @@ export type Chrome = {
   /** The one element that is picked, and what it says about how it is drawn.
    *  **Not a slot either**, and for the same reason. Absent while nothing or
    *  several things are held. */
-  element?: { id: string; labelled: boolean; locked: boolean };
-  /** The one relationship that is picked, and whether each of its ends is
-   *  pinned. **A pinned end is a locked end** — an end nobody has placed is
-   *  worked out from where the two cards ended up, so pinning it is the only
-   *  way to say *there*. */
-  anchors?: { id: string; from: boolean; to: boolean };
+  element?: {
+    id: string;
+    labelled: boolean;
+    locked: boolean;
+    /** Whether this element draws a frame with its name set into it. **Only a
+     *  frame can be told to say nothing** — a card *is* its name, so hiding it
+     *  leaves a rectangle nobody can read, and a note is nothing but its text.
+     *  A group's name sits on a band round other things, which is the one case
+     *  where taking it away leaves something that still reads. */
+    framed: boolean;
+  };
   arrangement?: Arrangement;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
@@ -157,7 +162,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  pinning its definition are all answers about one element and not about the
    *  layer around it. */
   if (chrome.element) {
-    const { id, labelled, locked } = chrome.element;
+    const { id, labelled, locked, framed } = chrome.element;
     out.push({
       key: "element", label: "element",
       controls: [
@@ -167,11 +172,14 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
         { key: "define", icon: "define", word: "define",
           tip: "What this is: its name, type, tags, look and values",
           run: () => act("define", { id }) },
-        { key: "label", word: "label",
-          tip: labelled ? "Stop writing the name on it" : "Write the name on it",
-          icon: labelled ? "label_on" : "label_off",
+        ...(framed ? [{
+          key: "label", word: "label",
+          tip: labelled ? "Stop writing the name on the frame"
+                        : "Write the name on the frame",
+          icon: (labelled ? "label_on" : "label_off") as IconName,
           on: labelled,
-          run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }) },
+          run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }),
+        }] : []),
         /** **The mark says which way it is, and the light says it again.** A
          *  shackle closed and a shackle sprung are two drawings rather than one
          *  drawing lit twice, so a locked thing is legible at a glance and not
@@ -181,26 +189,6 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           icon: locked ? "locked" : "unlocked", on: locked,
           run: () => act("lock", { ids: [id], fixed: locked ? "no" : "yes" }) },
       ],
-    });
-  }
-
-  /** **The two ends of the one relationship you have hold of.**
-   *
-   *  An end nobody has placed is worked out from where the two cards ended up,
-   *  which is what makes a line follow its cards about. Pinning it is the only
-   *  way to say *there* — so a pinned end is a locked end, and there is no
-   *  second field to store saying so. */
-  if (chrome.anchors) {
-    const { id, from, to } = chrome.anchors;
-    out.push({
-      key: "anchors", label: "ends",
-      controls: ([["from", from], ["to", to]] as const).map(([end, fixed]): Control => ({
-        key: `end:${end}`, word: end,
-        tip: fixed ? `Let the ${end} end find its own seat again`
-                   : `Keep the ${end} end where it sits now`,
-        icon: fixed ? "locked" : "unlocked", on: fixed,
-        run: () => act("anchor", { id, end, fixed: fixed ? "no" : "yes" }),
-      })),
     });
   }
 
