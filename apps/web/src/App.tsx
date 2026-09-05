@@ -7,7 +7,7 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, module_of, offer, session,
+import { adjustments, can_hold, module_of, offer, session,
          type Id, type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, extent_of, nearest_seat, project, snap, tidy,
@@ -103,15 +103,17 @@ export function App() {
    *  element is, and the answer for four of them is four answers. */
   const only = s.picked().length === 1 ? s.picked()[0] : s.cells()[0]?.group;
   const on = only ? graph.blocks[only] : undefined;
-  /** **Only a group is framed.** Its name sits on a band drawn round other
-   *  things, so taking it away leaves something that still reads; every other
-   *  card *is* its name. */
-  const element = on && module_of(graph, on.id) === "group"
-    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: true,
-        grid: on.rows !== undefined && on.cols !== undefined }
-    : on
-      ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: false }
-      : null;
+  const mod = on ? module_of(graph, on.id) : null;
+  /** **Only a group is framed.** Grids own a corner and solid edges; groups are
+   *  dashed rims round whatever they hold. */
+  const element = on && mod === "group"
+    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: true }
+    : on && mod === "grid"
+      ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked,
+          framed: false, grid: true }
+      : on
+        ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: false }
+        : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -141,6 +143,31 @@ export function App() {
    *  layout's, and it works in the same units. */
   const put = (_id: Id, to: { x: number; y: number }) => ({ x: snap(to.x), y: snap(to.y) });
 
+  /** Which group a drop joins, read from where the block came to rest — not
+   *  from the band's bounds at the start of the drag, which follow their
+   *  members and would otherwise make leaving a nested group impossible. */
+  const land_group = (to: { x: number; y: number },
+                      size: { w: number; h: number },
+                      held: Id | null): Id | null => {
+    const cx = to.x + size.w / 2;
+    const cy = to.y + size.h / 2;
+    if (held) {
+      const band = scene.nodes.find((n) => n.id === held);
+      if (band) {
+        const b = box_of(band);
+        if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) return held;
+      }
+    }
+    const groups = scene.nodes
+      .filter((n) => n.type === "group" && n.id !== held)
+      .filter((n) => {
+        const b = box_of(n);
+        return cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h;
+      })
+      .sort((a, b) => (b.data.nest ?? 0) - (a.data.nest ?? 0));
+    return groups[0]?.id ?? null;
+  };
+
   /** An adjustment is positional and unsayable, and undoable like anything
    *  else. **The canvas already worked out where it landed** — it snaps to the
    *  grid and constrains a seated interface to its own card — so the app only
@@ -154,7 +181,7 @@ export function App() {
        *  is, so a corner dragged says how many rows and columns — and shrinking
        *  frees whatever falls outside rather than hiding it. */
       const on = graph.blocks[a.on];
-      if (on?.rows !== undefined && on.cols !== undefined) {
+      if (on && module_of(graph, a.on) === "grid") {
         s.go("group", { into: a.on, ...extent_of(a.w, a.h), spot: put(a.on, a.to) });
         return;
       }
@@ -194,7 +221,36 @@ export function App() {
       s.adjust("seat", adjustments.seat(a.on, seat.side, seat.at));
       return;
     }
-    s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
+    if (a.kind !== "move") {
+      s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
+      return;
+    }
+
+    const block = graph.blocks[a.on];
+    const landed = drawn ? box_of(drawn) : BLOCK;
+    const held = block?.group ?? null;
+    const here = a.cell ? a.into : land_group(a.to, landed, held);
+    const mod = block ? module_of(graph, a.on) : null;
+
+    /** **A group is placed by its members**, not by a layer address. */
+    if (mod === "group") {
+      if (a.cell && here) {
+        s.go("seat", { id: a.on, group: here, at: `${a.cell.r},${a.cell.c}` });
+        return;
+      }
+      if (here && here !== a.on && can_hold(graph, here, a.on)) {
+        if (held !== here) s.go("group", { members: [a.on], into: here });
+        return;
+      }
+      if (held && held === here) return;
+      if (held && !here) {
+        s.go("leave", { ids: [a.on] });
+        s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
+        return;
+      }
+      s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
+      return;
+    }
 
     /** **Where it came to rest says which group it is in.** A boundary is its
      *  members' bounds, so being inside one and belonging to one were two
@@ -204,9 +260,7 @@ export function App() {
      *
      *  **A grid is the same drop resolving to an address.** The canvas read the
      *  lattice; seating is what says so, and it joins the group on the way. */
-    if (a.kind !== "move") return;
-    const held = graph.blocks[a.on]?.group ?? null;
-    const here = a.into;
+    s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
     if (a.cell && here) {
       s.go("seat", { id: a.on, group: here, at: `${a.cell.r},${a.cell.c}` });
       return;

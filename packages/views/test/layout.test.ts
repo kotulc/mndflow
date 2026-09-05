@@ -34,7 +34,10 @@ function overlaps(a: Placed, b: Placed): boolean {
  *  definition and sits on the lattice by its rim rather than by its middle.
  *  Every property below is about the things a layer places. */
 function placed(graph: Graph, spots: Placed[]): Placed[] {
-  return spots.filter((p) => module_of(graph, p.id) !== "group");
+  return spots.filter((p) => {
+    const m = module_of(graph, p.id);
+    return m !== "group" && m !== "grid";
+  });
 }
 
 describe("size", () => {
@@ -256,7 +259,10 @@ describe("the layout leaves room between things", () => {
   it("keeps a unit between a band and its neighbours, the way a grid is kept", () => {
     const graph = fold(related());
     const spots = under(graph, "block_loop", "grid")
-      .filter((p) => module_of(graph, p.id) !== "group")
+      .filter((p) => {
+        const m = module_of(graph, p.id);
+        return m !== "group" && m !== "grid";
+      })
       .map((p) => ({ ...p }));
     const band = laid(graph, "block_loop").find((p) => p.id === "block_hot")!;
     const others = spots.filter((p) => !graph.blocks[p.id]?.group);
@@ -283,7 +289,8 @@ describe("the layout leaves room between things", () => {
      *  of its own either. */
     const spots = under(graph, layer, "grid")
       .filter((p) => is_grid(graph.blocks[p.id]!)
-                  || (!graph.blocks[p.id]!.cell && module_of(graph, p.id) !== "group"))
+                  || (!graph.blocks[p.id]!.cell && module_of(graph, p.id) !== "group"
+                      && module_of(graph, p.id) !== "grid"))
       .map((p) => ({ ...p }));
     expect(spots.length).toBeGreaterThan(1);
     for (let i = 0; i < spots.length; i++) {
@@ -403,6 +410,57 @@ describe("seats", () => {
     expect(pump.y).toBe(valve.y);
   });
 
+  it("keeps upstream blocks beside a band on the near side, not across it", () => {
+    const graph = fold(related());
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const pump = at.get("block_pump")!;
+    const hx = at.get("block_hx")!;
+    expect(gap(pump, hx)).toBeLessThanOrEqual(GAP + UNIT * 2);
+  });
+
+  it("clusters related cards under grid even with stale hand placement", () => {
+    const graph = fold(related());
+    graph.blocks["block_pump"]!.x = 0;
+    graph.blocks["block_pump"]!.y = 0;
+    graph.blocks["block_valve"]!.x = 3000;
+    graph.blocks["block_valve"]!.y = 0;
+    graph.blocks["block_hot"]!.x = 1500;
+    graph.blocks["block_hot"]!.y = 0;
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    expect(gap(at.get("block_pump")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(gap(at.get("block_pump")!, at.get("block_valve")!)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("lines up related band members on one row under grid", () => {
+    const graph = fold(related());
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const hx = at.get("block_hx")!;
+    const tank = at.get("block_tank")!;
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    expect(hx.y).toBe(tank.y);
+    expect(gap(hx, tank)).toBeGreaterThanOrEqual(GAP);
+    expect(gap(hx, tank)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("ignores stale hand placement when arranging band members under grid", () => {
+    const graph = fold(related());
+    graph.blocks["block_hx"]!.x = 0;
+    graph.blocks["block_hx"]!.y = 400;
+    graph.blocks["block_tank"]!.x = 800;
+    graph.blocks["block_tank"]!.y = 0;
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    expect(at.get("block_hx")!.y).toBe(at.get("block_tank")!.y);
+  });
+
   it("places a tied note beside what it is about", () => {
     const graph = fold(related());
     graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
@@ -500,6 +558,63 @@ describe("seats", () => {
     expect(ref.x).toBe(build.x);
     expect(gap(ref, lanes)).toBeGreaterThanOrEqual(GAP);
     expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("places a block beside a grid near its cell, not past an intervening group", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_in"] = { id: "block_in", parent: "block_board", type: "block", num: 50 };
+    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51, labelled: false };
+    graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", num: 52 };
+    graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", module: "directed" };
+    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
+    graph.blocks["block_pad"]!.group = "block_mid";
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const lanes = at.get("block_lanes")!;
+    const inn = at.get("block_in")!;
+    const draft = at.get("block_draft")!;
+    expect(lanes.x - (inn.x + inn.w)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(inn.y).toBe(draft.y);
+  });
+
+  it("places a downstream block on the near side of a grid, not past an intervening group", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_out"] = { id: "block_out", parent: "block_board", type: "block", num: 53 };
+    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51, labelled: false };
+    graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", num: 52 };
+    graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", module: "directed" };
+    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
+    graph.blocks["block_pad"]!.group = "block_mid";
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const lanes = at.get("block_lanes")!;
+    const out = at.get("block_out")!;
+    expect(out.x - (lanes.x + lanes.w)).toBeLessThanOrEqual(GAP + UNIT);
+  });
+
+  it("keeps two references below a grid, aligned with their linked cells", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_remote_a"] = { id: "block_remote_a", parent: graph.root, type: "block", num: 1 };
+    graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: graph.root, type: "block", num: 2 };
+    graph.blocks["block_ref_a"] = { id: "block_ref_a", parent: "block_board", of: "block_remote_a", num: 98 };
+    graph.blocks["block_ref_b"] = { id: "block_ref_b", parent: "block_board", of: "block_remote_b", num: 99 };
+    graph.edges["edge_ref_a"] = { id: "edge_ref_a", from: "block_ref_a", to: "block_draft", module: "reference" };
+    graph.edges["edge_ref_b"] = { id: "edge_ref_b", from: "block_ref_b", to: "block_ship", module: "reference" };
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    const lanes = at.get("block_lanes")!;
+    const ref_a = at.get("block_ref_a")!;
+    const ref_b = at.get("block_ref_b")!;
+    const draft = at.get("block_draft")!;
+    const ship = at.get("block_ship")!;
+    expect(ref_a.x).toBe(draft.x);
+    expect(ref_b.x).toBe(ship.x);
+    expect(ref_a.y).toBe(ref_b.y);
+    expect(gap(ref_a, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(gap(ref_b, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(ref_a.x).toBeLessThan(ref_b.x);
   });
 
   it("places a reference beside the block it is linked to on the layer", () => {

@@ -467,21 +467,21 @@ function Lattice({ id, cells }: { id: string; cells: readonly GridCell[] }) {
  *  A boundary is its members' bounds rather than a stored size, so there is
  *  nothing to resize and nothing to place — what it holds is what it is. **A
  *  grid owns its corner**, because an empty one would otherwise be nothing. */
-/** A grid's own border, drawn and taken hold of.
+/** A grid's own border, drawn on the box.
  *
- *  **On the box, which is on the lattice.** It was set half a unit in for a
- *  while so two grids side by side would not touch; that put the outer cells
- *  half a unit off the guides they are meant to *be*. Room between two grids is
- *  the layout's to leave, never the drawing's to fake.
- *
- *  The four strips are the handle. Four rather than one box with a hole in it,
- *  because only the edge may answer a pointer — a box over the middle would
- *  swallow every press meant for a cell. */
+ *  **Visual only.** Cells cover the whole lattice and a plain press on any of
+ *  them is already the grid's — to select it and to drag by — so separate edge
+ *  strips would only read like the room frame's walls without offering anything
+ *  a cell does not. */
 function Edge() {
+  return <span className="mnd-group-edge" aria-hidden />;
+}
+
+function BandRim() {
   return (
-    <span className="mnd-group-edge" aria-hidden>
+    <span className="mnd-brim" aria-hidden>
       {(["top", "right", "bottom", "left"] as const).map((side) => (
-        <span key={side} className="mnd-group-rail" data-side={side} />
+        <span key={side} className={`mnd-brim-${side}`} />
       ))}
     </span>
   );
@@ -499,6 +499,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
     <div className={shell}>
       {show_name ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
       <div className={group} {...dressed(look)} title={data.label}>
+        {has_cells ? null : <BandRim />}
         {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}
         {has_cells ? <Edge /> : null}
         {has_cells ? (
@@ -568,12 +569,14 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
 export const Card = memo(CardNode, same);
 export const Note = memo(NoteNode, same);
 export const Group = memo(GroupNode, same);
+export const Grid = memo(GroupNode, same);
 export const Seat = memo(SeatNode, same);
 
 export const NODE_TYPES = {
   card: Card,
   note: Note,
   group: Group,
+  grid: Grid,
   seat: Seat,
   frame: Frame,
 } as const;

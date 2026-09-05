@@ -25,13 +25,13 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** **Only a group is framed.** Its name sits on a band drawn round other
-   *  things. With rows and cols it is a grid; without extent it is a band. */
+  /** **A group and a grid write their name on the frame** when told to; cards
+   *  are their name. */
   element?: {
     id: string;
     labelled: boolean;
     locked: boolean;
-    framed: boolean;
+    framed?: boolean;
     grid?: boolean;
   };
   arrangement?: Arrangement;
@@ -129,14 +129,15 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  pinning its definition are all answers about one element and not about the
    *  layer around it. */
   if (chrome.element) {
-    const { id, labelled, locked, framed } = chrome.element;
+    const { id, labelled, locked, framed, grid } = chrome.element;
+    const named = framed || grid;
     out.push({
       key: "element", label: "element",
       controls: [
         { key: "define", icon: "define", word: "define",
           tip: "What this is: its name, type, tags, look and values",
           run: () => act("define", { id }) },
-        ...(framed ? [{
+        ...(named ? [{
           key: "label", word: "label",
           tip: labelled ? "Stop writing the name on the frame"
                         : "Write the name on the frame",

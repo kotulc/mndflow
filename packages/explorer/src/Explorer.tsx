@@ -63,7 +63,7 @@ function under(graph: Graph, parent: Id | null) {
   return children(graph, parent).filter((b) => {
     if (is_interface(b) || is_reference(b)) return false;
     const module = module_of(graph, b.id);
-    return module !== "group" && module !== "note";
+    return module !== "group" && module !== "grid" && module !== "note";
   });
 }
 
@@ -174,7 +174,7 @@ export function Explorer(props: ExplorerProps) {
    *  about *here*. A relationship, a boundary and a note can all be picked and
    *  none of them is somewhere a block can live, so none of them answers. */
   const holder = one && graph.blocks[one]
-    && !["group", "note"].includes(module_of(graph, one)) ? one : null;
+    && !["group", "grid", "note"].includes(module_of(graph, one)) ? one : null;
   const target = holder ?? open ?? graph.root;
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
   /** The layer a drop would join, and every row already in it. Empty unless

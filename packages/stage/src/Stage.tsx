@@ -64,7 +64,7 @@ export type StageProps = {
 
 /** What has no inside to open. A boundary is its members' bounds and a note is
  *  a remark; neither is somewhere to go. */
-const INERT = ["group", "note"];
+const INERT = ["group", "grid", "note"];
 
 /** What a seated block offers for header promotion. */
 function header_offers(id: string, graph: Graph): Entry[] {
@@ -81,6 +81,20 @@ function header_offers(id: string, graph: Graph): Entry[] {
 function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
   const base: (string | Entry)[] = ["rename", "open", "interface", "relate", "note"];
   return [...base, ...header_offers(id, graph), "leave", "delete"];
+}
+
+/** What the right button offers for this gesture — not everything the registry
+ *  could act on. A card's border is still the card; a group's rim is the band. */
+function list_for(g: Gesture, scene: Scene, graph: Graph,
+                  offers: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>>)
+    : readonly (string | Entry)[] | undefined {
+  if (g.kind === "brim" && g.on) {
+    const n = scene.nodes.find((x) => x.id === g.on);
+    if (n?.type === "group" || n?.type === "grid") return offers.band;
+    return box_offers(g.on, graph);
+  }
+  if (g.kind === "box" && g.on) return box_offers(g.on, graph);
+  return offers[g.kind];
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
@@ -169,10 +183,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     note: ["rename", "relate", "delete"],
     box: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
     seat: ["rename", "open", "interface", "relate", "note", "delete"],
-    /** **A group is not a block you can go into or wire up.** What it is for is
-     *  saying these belong together, so what it offers is naming it, turning it
-     *  and taking it away. */
-    band: ["rename", "chain", "delete"],
+    /** **A group and a grid write their name on the frame** when told to. */
+    band: ["rename", "label", "chain", "delete"],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
      *  and remove are two entries each rather than one entry and a second
@@ -186,6 +198,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     ],
     route: ["rename", "note", "delete"],
     anchor: ["rename", "delete"],
+    /** **The room's wall is a border like a card's**, but an interface is chosen
+     *  from the menu — a right click here is the offered list, not a shortcut. */
+    frame: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
   };
 
   /** **What several things offer is not what one thing offers.** Rename, open
@@ -252,22 +267,6 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** **Empty ground makes a block.** There is nothing there to offer actions
      *  about, and a menu whose only useful entry is *create* is a click in the
      *  way of the thing you came to do. */
-    /** **A border is where an interface goes**, and there is nothing else it
-     *  could mean — so the right button puts one there rather than offering a
-     *  list of one. A card's border and the room's wall are the same border
-     *  seen from the two sides of it, so they answer the same way. */
-    if ((g.kind === "brim" || g.kind === "frame") && g.given && g.on) {
-      /** **Only which wall.** Where along it is the action's to decide — an
-       *  interface sits in the middle of the border it is set into, and one
-       *  dropped wherever the pointer happened to be read as ragged. */
-      /** **A card's wall is one short border and its middle is the only place
-       *  on it that reads; the room's wall runs the height of the panel, so
-       *  where along it is a real choice.** So a card's interface is centred
-       *  and the layer's own goes where you pointed. */
-      onAct("interface", { owner: g.on, side: g.given["side"],
-                           ...(g.kind === "frame" ? { at: g.given["at"] } : {}) });
-      return;
-    }
     if (!g.on || g.kind === "empty") {
       const label = prompt("name it");
       if (label !== null) onAct("create", { label, spot: made_at(scene, g.at) });
@@ -283,8 +282,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     }
     if (menu) {
       const among = picked.length > 1 && g.on !== null && picked.includes(g.on);
-      const only = among ? MANY
-        : g.kind === "box" && g.on ? box_offers(g.on, graph) : OFFERS[g.kind];
+      const only = among ? MANY : list_for(g, scene, graph, OFFERS);
       set_at({ ...g.screen, on: g.on, spot: made_at(scene, g.at),
                only,
                ...(g.given ? { given: g.given } : {}) });
@@ -360,7 +358,7 @@ function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }
   const seats: { id: string; r: number; c: number }[] = [];
 
   const caught = scene.nodes
-    .filter((n) => n.type !== "group" && !n.data.on && n.selectable !== false)
+    .filter((n) => n.type !== "group" && n.type !== "grid" && !n.data.on && n.selectable !== false)
     .map((n) => ({ id: n.id, b: box_of(n) }))
     .filter(({ b }) => b.x + b.w > from.x && b.x < from.x + cols * CELL.w
                     && b.y + b.h > from.y && b.y < from.y + rows * CELL.h);
@@ -401,7 +399,7 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
  *  top of it, and two made in the same place stacked exactly. A boundary is not
  *  something to avoid — a new card inside one is a card inside one. */
 function made_at(scene: Scene, at: { x: number; y: number }) {
-  const taken = scene.nodes.filter((n) => n.type !== "group" && !n.data.on).map(box_of);
+  const taken = scene.nodes.filter((n) => n.type !== "group" && n.type !== "grid" && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
 }
 

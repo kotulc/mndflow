@@ -13,7 +13,7 @@
  *  teaches people to ignore the real ones. */
 
 import { unreadable } from "./components";
-import { covers, fold, is_grid, overlaps, subtree } from "./fold";
+import { covers, fold, can_hold, is_grid, overlaps, subtree } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Span, type Step } from "./types";
@@ -149,10 +149,18 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "set_def", def: { ...d, extends: "block" } });
   }
 
-  /** The grid: one group per block, no nesting, one block per cell, and no
-   *  merge across another. **Every repair frees the block rather than deleting
-   *  it** — a layout fault must not cost model content, and a block may be
-   *  referenced from other layers. */
+  /** **Grids used to share the group module.** A block with an extent but
+   *  `type: "group"` is repaired to the grid module. */
+  for (const b of Object.values(graph.blocks)) {
+    if (b.type !== "group" || b.rows === undefined || b.cols === undefined) continue;
+    faults.push({ kind: "repaired", what: `"${name(b.id)}" was a grid named group` });
+    repairs.push({ op: "update_block", id: b.id, type: "grid" });
+  }
+
+  /** The grid: one block per cell, no merge across another, and groups may
+   *  nest so long as membership does not cycle. **Every repair frees the block
+   *  rather than deleting it** — a layout fault must not cost model content,
+   *  and a block may be referenced from other layers. */
   const taken = new Map<string, Id>();
   for (const b of Object.values(graph.blocks)) {
     const group = held.get(b.id);
@@ -164,7 +172,7 @@ export function inspect(graph: Graph): Inspection {
       continue;
     }
     const grid = graph.blocks[group];
-    if (!grid || group === b.id || held.get(group)) {
+    if (!grid || !can_hold(graph, group, b.id, held)) {
       faults.push({ kind: "repaired", what: `"${name(b.id)}" was in a group that cannot hold it` });
       repairs.push({ op: "set_group", id: b.id, group: null });
       continue;

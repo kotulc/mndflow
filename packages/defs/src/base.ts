@@ -20,7 +20,7 @@ function def(name: string, module: string, extend?: string,
   };
 }
 
-/** Seven, and every package or project subtype extends one of them.
+/** Eight, and every package or project subtype extends one of them.
  *
  *  **Each picks a slot, and none names a colour.** A slot is a hue family the
  *  theme decides per theme, so `primary` is green in retro and blue in modern
@@ -40,6 +40,8 @@ export const BASE: Definition[] = [
   def("resource", "resource", undefined,
       { layout: "name" }, { slot: "tertiary" }),
   def("group", "group", undefined,
+      { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
+  def("grid", "grid", undefined,
       { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
   def("note", "note", "resource",
       { layout: "fields" }, { slot: "tertiary", emphasis: "quiet" }),

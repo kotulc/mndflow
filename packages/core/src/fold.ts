@@ -10,6 +10,18 @@ import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
          type Definition, type Graph, type Id, type Log, type Mutation, type Relation,
          type Span, type Step } from "./types";
 
+/** A group with nobody in it is not a boundary any more — dissolve it, and if
+ *  that empties the group it sat in, dissolve that too. Grids are kept: an empty
+ *  grid is still a region someone drew. */
+function dissolve_group_if_empty(graph: Graph, id: Id): void {
+  const g = graph.blocks[id];
+  if (!g || !is_group_block(graph, id) || is_grid_block(graph, id)) return;
+  if (members_of(graph, id).length > 0) return;
+  const holder = g.group;
+  delete graph.blocks[id];
+  if (holder) dissolve_group_if_empty(graph, holder);
+}
+
 /** Replay one mutation onto a graph, in place. The graph is always a fresh one
  *  owned by `fold`, so mutating it here is safe and cheap. */
 function apply(graph: Graph, m: Mutation): void {
@@ -31,6 +43,8 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "delete_block": {
+      const deleted = graph.blocks[m.id];
+      const holder = deleted?.group;
       for (const id of subtree(graph, m.id)) {
         delete graph.blocks[id];
         for (const [eid, e] of Object.entries(graph.edges)) {
@@ -42,6 +56,7 @@ function apply(graph: Graph, m: Mutation): void {
       for (const b of Object.values(graph.blocks)) {
         if (b.group === m.id) { delete b.group; delete b.cell; }
       }
+      if (holder) dissolve_group_if_empty(graph, holder);
       return;
     }
     case "move_block": {
@@ -85,11 +100,18 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_group": {
       const b = graph.blocks[m.id];
       if (!b) return;
+      const was = b.group;
       /** **An address is the group's.** Leaving one drops it rather than
        *  carrying it into the next, where it would mean somewhere else. */
-      if (m.group === null) { delete b.group; delete b.cell; delete b.header; return; }
-      if (b.group !== m.group) { delete b.cell; delete b.header; }
-      b.group = m.group;
+      if (m.group === null) { delete b.group; delete b.cell; delete b.header; }
+      else {
+        if (b.group !== m.group) { delete b.cell; delete b.header; }
+        b.group = m.group;
+      }
+      if (was && was !== m.group) dissolve_group_if_empty(graph, was);
+      /** **An empty shell is not a boundary**, whether it just lost its last
+       *  member or was taken out of the group it sat in. */
+      if (m.group === null) dissolve_group_if_empty(graph, m.id);
       return;
     }
     case "seat_cell": {
@@ -360,7 +382,7 @@ function fallback(graph: Graph, b: Block): string {
  *  the band round its members already says what it is. */
 const WORD: Record<BlockModule, string> = {
   block: "Block", folder: "Folder", resource: "Resource",
-  interface: "Interface", reference: "Reference", group: "", note: "Note",
+  interface: "Interface", reference: "Reference", group: "", grid: "", note: "Note",
 };
 
 export function kind_word(graph: Graph, b: Block): string {
@@ -381,7 +403,7 @@ export function kind_word(graph: Graph, b: Block): string {
 export function alias_of(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (!b || b.alias === undefined || is_named(graph, id)) return "";
-  if (module_of(graph, id) === "group") return "";
+  if (module_of(graph, id) === "group" || module_of(graph, id) === "grid") return "";
   return alias_name(b.alias);
 }
 
@@ -508,10 +530,24 @@ export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
   return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
 }
 
-/** Whether a group states an extent. **A group with neither is a boundary** —
- *  today's band, which takes its bounds from what it holds. */
+/** Whether a block is a grid — a table with rows, columns and cells. */
 export function is_grid(b: Block | undefined): boolean {
-  return !!b && b.rows !== undefined && b.cols !== undefined;
+  return !!b && (b.type === "grid"
+    || (b.rows !== undefined && b.cols !== undefined && b.type !== "group"));
+}
+
+/** Whether a block is a group — a dashed rim round its members. */
+export function is_group_block(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  if (!b || is_grid(b)) return false;
+  return module_of(graph, id) === "group" || b.type === "group";
+}
+
+/** Whether a block is a grid container. */
+export function is_grid_block(graph: Graph, id: Id): boolean {
+  const b = graph.blocks[id];
+  if (!b) return false;
+  return module_of(graph, id) === "grid" || is_grid(b);
 }
 
 /** The group a block sits in, or null. */
@@ -532,6 +568,27 @@ export function members_of(graph: Graph, group: Id): Block[] {
   return Object.values(graph.blocks)
     .filter((b) => b.group === group)
     .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+}
+
+/** Whether `holder` may contain `id` — not itself and not a cycle. Groups hold
+ *  anything; grids hold anything that may be seated in a cell. */
+export function can_hold(graph: Graph, holder: Id, id: Id,
+                        held?: ReadonlyMap<Id, Id | undefined>): boolean {
+  const g = graph.blocks[holder];
+  if (!g || (!is_group_block(graph, holder) && !is_grid_block(graph, holder))) {
+    return false;
+  }
+  if (holder === id) return false;
+  const map = held ?? new Map(Object.values(graph.blocks).map((b) => [b.id, b.group]));
+  let at: Id | undefined = holder;
+  const seen = new Set<Id>();
+  while (at) {
+    if (at === id) return false;
+    if (seen.has(at)) break;
+    seen.add(at);
+    at = map.get(at);
+  }
+  return true;
 }
 
 /** The span covering this address, or null. */
@@ -694,8 +751,13 @@ export function module_of(graph: Graph, id: Id): BlockModule {
  *  `may_retype`, which is where the rule anybody can feel is written. */
 export function module_named(graph: Graph, type: Id | undefined): BlockModule {
   const named = config_of(graph, type, "block")["module"];
-  return typeof named === "string" && BLOCK_MODULES.includes(named as BlockModule)
-    ? named as BlockModule : "block";
+  if (typeof named === "string" && BLOCK_MODULES.includes(named as BlockModule)) {
+    return named as BlockModule;
+  }
+  /** **The type field can name the module directly.** `group` and `grid` are
+   *  stamped on creation before a definition is consulted. */
+  if (type && BLOCK_MODULES.includes(type as BlockModule)) return type as BlockModule;
+  return "block";
 }
 
 /** The definition a thing resolves through.
@@ -746,9 +808,9 @@ export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean 
  *
  *  Asked here so the tree, the canvas and every other surface answer alike. */
 export type Role = "block" | "container" | "folder" | "reference"
-                 | "interface" | "group" | "note";
+                 | "interface" | "group" | "grid" | "note";
 
-const MARKED: readonly string[] = ["folder", "reference", "interface", "group", "note"];
+const MARKED: readonly string[] = ["folder", "reference", "interface", "group", "grid", "note"];
 
 export function role_of(graph: Graph, id: Id): Role {
   const module = module_of(graph, id);

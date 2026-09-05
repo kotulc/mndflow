@@ -20,9 +20,9 @@
  *  through dagre, which drew a picture of the graph rather than of the model —
  *  and the reading directions they carried were a setting nobody set. */
 
-import { arrangement_of, children, edges_in, is_grid, is_header, is_interface, is_reference,
-         layer_id, members_of, module_of, type Block, type Graph, type Id,
-         type Point } from "@mnd/core";
+import { arrangement_of, children, edges_in, is_grid, is_grid_block, is_group_block,
+         is_header, is_interface, is_reference, layer_id, members_of, module_of,
+         type Arrangement, type Block, type Graph, type Id, type Point } from "@mnd/core";
 import { cell_box, centred_in, fills_cell, gridded, on_unit, size_of, snap,
          GAP, UNIT, type Size } from "./size";
 
@@ -54,7 +54,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
    *  whatever of its mates is already down. */
   const order = placement_order(graph, layer, structural, unit);
   const sized = order
-    .map((b) => ({ b, s: is_band(graph, b) ? band_size(graph, b) : size_of(graph, b.id) }));
+    .map((b) => ({ b, s: is_band(graph, b) ? band_size(graph, layer, b, how) : size_of(graph, b.id) }));
   /** **Hand placement is never re-centred.** `grid` works out positions from
    *  nothing and grows outward from the origin. `free` was already told where
    *  each card goes — and shifting the whole layer to keep its bounds centred
@@ -65,13 +65,15 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
     anchor_near(graph, layer, id, taken, unit, size);
   const placed = how === "grid" ? settled(sized, near) : free(sized);
   const structural_spots: Placed[] = how === "grid"
-    ? straighten_related(graph, layer, structural, unit, placed)
+    ? straighten_related(graph, layer, structural, unit, placed, how)
     : placed;
   const bands = new Set(units.filter((b) => is_band(graph, b)).map((b) => b.id));
   const loose_spots = structural_spots.filter((p) => !bands.has(p.id));
   const member_spots = [...celled(graph, units, structural_spots),
-                          ...band_members(graph, units, structural_spots)];
+                          ...band_members(graph, layer, how, units, structural_spots)];
   const laid_so_far = [...loose_spots, ...member_spots];
+  const aligned = how === "grid"
+    ? align_to_cells(graph, layer, laid_so_far, how) : laid_so_far;
   const satellite_spots: Placed[] = [];
   for (const b of satellites) {
     const s = size_of(graph, b.id);
@@ -79,13 +81,13 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
       satellite_spots.push({ id: b.id, ...put({ x: b.x, y: b.y }), ...s });
       continue;
     }
-    const anchor = satellite_anchor(graph, layer, b, laid_so_far);
-    const taken = [...laid_so_far, ...satellite_spots];
+    const anchor = satellite_anchor(graph, layer, b, aligned);
+    const taken = [...aligned, ...satellite_spots];
     satellite_spots.push(anchor
       ? seat_satellite(b.id, anchor, s, taken, graph, structural_spots)
       : { id: b.id, ...clear_at(taken, { x: 0, y: 0 }, s) });
   }
-  const inside = [...laid_so_far, ...satellite_spots];
+  const inside = [...aligned, ...satellite_spots];
   const packed = how === "grid" ? centred(inside) : inside;
   return ordered([...packed, ...banded(graph, units, packed)]);
 }
@@ -94,13 +96,12 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
 function in_band(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   if (!b?.group) return false;
-  const g = graph.blocks[b.group];
-  return !!g && module_of(graph, b.group) === "group" && !is_grid(g);
+  return is_group_block(graph, b.group);
 }
 
-/** Whether a group is a band rather than a grid: members and no extent. */
+/** Whether a block is a group boundary rather than a grid. */
 function is_band(graph: Graph, b: Block): boolean {
-  return module_of(graph, b.id) === "group" && !is_grid(b);
+  return is_group_block(graph, b.id);
 }
 
 /** What a band takes up for spacing: its members packed tight, plus a margin.
@@ -108,33 +109,95 @@ function is_band(graph: Graph, b: Block): boolean {
  *  **The same footprint a grid gets from its extent.** A band has no stored
  *  rows and columns, so the size is worked out from what it holds — but once
  *  worked out it is spaced from its neighbours exactly as a grid is. */
-function band_size(graph: Graph, band: Block): Size {
-  const mem = band_sized(graph, band.id);
+function band_size(graph: Graph, layer: Id | null, band: Block, how: Arrangement): Size {
+  if (how === "grid") {
+    const layout = band_layout(graph, layer, band.id, how);
+    if (!layout.length) return { w: GAP * 2, h: GAP * 2 };
+    const right = Math.max(...layout.map((p) => p.x + p.w));
+    const bottom = Math.max(...layout.map((p) => p.y + p.h));
+    return { w: right + GAP * 2, h: bottom + GAP * 2 };
+  }
+  const mem = band_sized(graph, layer, band.id, how);
   if (!mem.length) return { w: GAP * 2, h: GAP * 2 };
   const { w, h } = packed(mem);
   return { w: w + GAP * 2, h: h + GAP * 2 };
 }
 
+function band_sized(graph: Graph, layer: Id | null, band_id: Id, how: Arrangement): Sized[] {
+  return members_of(graph, band_id)
+    .filter((b) => !is_interface(b) && !gridded(graph, b.id))
+    .filter((b) => !is_satellite(graph, layer, b))
+    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
+    .map((b) => ({
+      b,
+      s: is_band(graph, b) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
+    }));
+}
+
+/** Edges whose endpoints both belong to a band — internal layout only. */
+function band_edges(graph: Graph, layer: Id | null, band_id: Id) {
+  const in_band = new Set(members_of(graph, band_id).map((b) => b.id));
+  return edges_in(graph, layer).filter((e) => in_band.has(e.from) && in_band.has(e.to));
+}
+
+/** Which unit a block is for placement inside a band — members stay themselves,
+ *  not collapsed to the band the way they are on the layer. */
+function band_unit(graph: Graph, band_id: Id, id: Id): Id {
+  const b = graph.blocks[id];
+  if (!b) return id;
+  if (b.group === band_id && is_band(graph, b)) return id;
+  return id;
+}
+
+/** Lay out a band's members relative to its corner — same pipeline as the layer
+ *  under `grid`, shelf packing under `free`. */
+function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Arrangement): Placed[] {
+  const members = members_of(graph, band_id)
+    .filter((b) => !is_interface(b) && !gridded(graph, b.id));
+  if (!members.length) return [];
+
+  const unit = (id: Id) => band_unit(graph, band_id, id);
+  const edges = band_edges(graph, layer, band_id);
+  const structural = members.filter((b) => !is_satellite(graph, layer, b));
+    const order = placement_order(graph, layer, structural, unit, edges);
+  const sized = order.map((b) => ({
+    b,
+    s: is_band(graph, b) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
+  }));
+
+  if (how === "grid") {
+    const cleared = sized.map(({ b, s }) => ({ b: { ...b, x: undefined, y: undefined }, s }));
+    const near = (id: Id, taken: Placed[], size: Size) =>
+      anchor_near(graph, layer, id, taken, unit, size, edges);
+    const placed = settled(cleared, near);
+    return straighten_related(graph, layer, structural, unit, placed, how, edges);
+  }
+  return packed(sized).layout;
+}
+
+/** Lay out one band's members, recursing into nested bands. */
+function lay_band(graph: Graph, layer: Id | null, band_id: Id, origin: Placed,
+                  how: Arrangement, out: Placed[]): void {
+  for (const p of band_layout(graph, layer, band_id, how)) {
+    const spot = { id: p.id, x: origin.x + GAP + p.x, y: origin.y + GAP + p.y, w: p.w, h: p.h };
+    out.push(spot);
+    const b = graph.blocks[p.id];
+    if (b && is_band(graph, b)) lay_band(graph, layer, p.id, spot, how, out);
+  }
+}
+
 /** Every member of a band, placed inside it once the band has a spot. */
-function band_members(graph: Graph, units: readonly Block[], spots: readonly Placed[]): Placed[] {
+function band_members(graph: Graph, layer: Id | null, how: Arrangement,
+                      units: readonly Block[], spots: readonly Placed[]): Placed[] {
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
   for (const b of units) {
     if (!is_band(graph, b)) continue;
     const band = at.get(b.id);
     if (!band) continue;
-    const { layout } = packed(band_sized(graph, b.id));
-    for (const p of layout) {
-      out.push({ ...p, x: band.x + GAP + p.x, y: band.y + GAP + p.y });
-    }
+    lay_band(graph, layer, b.id, band, how, out);
   }
   return out;
-}
-
-function band_sized(graph: Graph, band: Id): Sized[] {
-  return members_of(graph, band)
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
-    .map((b) => ({ b, s: size_of(graph, b.id) }));
 }
 
 /** Members shelved inside a band, from the band's own corner. */
@@ -251,7 +314,9 @@ function settled(all: Sized[],
       : it.b.x !== undefined && it.b.y !== undefined
         ? on_unit({ x: it.b.x, y: it.b.y })
         : on_unit({ x: 0, y: 0 });
-    out.push({ id: it.b.id, ...clear_at(out, at, it.s) });
+    const box = { x: at.x, y: at.y, ...it.s };
+    out.push({ id: it.b.id,
+      ...(out.some((t) => gaps_overlap(box, t)) ? clear_at(out, at, it.s) : box) });
   }
   return out;
 }
@@ -260,10 +325,11 @@ function settled(all: Sized[],
  *  between them can run straight. Only whole-unit nudges, only when already
  *  beside each other, and only when the move stays clear of everything else. */
 function straighten_related(graph: Graph, layer: Id | null, units: Block[],
-                            unit: (id: Id) => Id, spots: Placed[]): Placed[] {
+                            unit: (id: Id) => Id, spots: Placed[], how: Arrangement,
+                            edges = edges_in(graph, layer)): Placed[] {
   const ids = new Set(units.map((b) => b.id));
   const out = spots.map((p) => ({ ...p }));
-  const links = placement_links(graph, layer, ids, unit)
+  const links = placement_links(graph, layer, ids, unit, edges)
     .sort(([a, b]) => {
       const key = a < b ? `${a}|${b}` : `${b}|${a}`;
       const other = a < b ? `${b}|${a}` : `${a}|${b}`;
@@ -282,12 +348,26 @@ function straighten_related(graph: Graph, layer: Id | null, units: Block[],
     const hg = gap_h(fixed, loose);
     const vg = gap_v(fixed, loose);
     if (hg >= GAP && hg <= GAP + UNIT && bands_overlap_y(fixed, loose)) {
-      nudge_y(out, move, snap(fixed.y), anchor);
+      const y = mate_row_y(graph, layer, move, fixed.id, out, how);
+      nudge_y(out, move, y, anchor);
     } else if (vg >= GAP && vg <= GAP + UNIT && bands_overlap_x(fixed, loose)) {
-      nudge_x(out, move, snap(fixed.x), anchor);
+      const x = mate_col_x(graph, layer, move, fixed.id, out, how);
+      nudge_x(out, move, x, anchor);
     }
   }
   return out;
+}
+
+/** Directed or related flow between two units, if the graph names one. */
+function link_flow_between(graph: Graph, layer: Id | null, a: Id, b: Id,
+                           unit: (id: Id) => Id): { from: Id; to: Id } | null {
+  for (const e of edges_in(graph, layer)) {
+    const from = unit(e.from);
+    const to = unit(e.to);
+    if (from === a && to === b) return { from, to };
+    if (from === b && to === a) return { from: b, to: a };
+  }
+  return null;
 }
 
 function flow_between(graph: Graph, layer: Id | null, a: Id, b: Id,
@@ -534,10 +614,12 @@ function placed_of(graph: Graph, id: Id, placed: readonly Placed[]): Placed | nu
   if (in_band(graph, id) && b.group) {
     const band = placed.find((p) => p.id === b.group);
     if (!band) return null;
-    const { layout } = packed(band_sized(graph, b.group));
-    const p = layout.find((m) => m.id === id);
-    if (!p) return null;
-    return { id, x: band.x + GAP + p.x, y: band.y + GAP + p.y, w: p.w, h: p.h };
+    const found = placed.find((p) => p.id === id);
+    if (found) return found;
+    const scratch: Placed[] = [];
+    const layer = graph.blocks[b.group]?.parent ?? null;
+    lay_band(graph, layer, b.group, band, arrangement_of(graph, layer), scratch);
+    return scratch.find((p) => p.id === id) ?? null;
   }
   return null;
 }
@@ -585,19 +667,19 @@ function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Plac
   if (b?.group) {
     const holder = structural.find((p) => p.id === b.group);
     const g = holder ? graph.blocks[b.group] : undefined;
-    if (holder && g && (is_grid(g) || (module_of(graph, b.group) === "group" && !is_grid(g)))) {
+    if (holder && g && (is_grid(g) || is_group_block(graph, b.group))) {
       const y0 = rim_below(holder);
       const x0 = anchor.x;
       for (let drop = 0; drop < 40; drop++) {
         const box = { x: x0, y: y0 + drop * UNIT, ...size };
         if (free(box)) return { id, ...box };
       }
-      for (let ring = 1; ring <= 8; ring++) {
-        for (const dx of [-ring * UNIT, ring * UNIT]) {
-          const box = { x: x0 + dx, y: y0, ...size };
-          if (free(box)) return { id, ...box };
-        }
-      }
+      const out = exterior_side(holder, anchor);
+      const beside = out === "left"
+        ? { x: anchor.x - size.w - GAP, y: anchor.y }
+        : { x: anchor.x + anchor.w + GAP, y: anchor.y };
+      const box = { x: snap(beside.x), y: snap(beside.y), ...size };
+      if (free(box)) return { id, ...box };
     }
   }
   const candidates = [
@@ -632,14 +714,16 @@ function loose_units(graph: Graph, layer: Id | null): Block[] {
     .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !in_band(graph, b.id));
 }
 
-/** Which loose unit a block belongs to for placement — a band is one thing. */
+/** Which loose unit a block belongs to for placement — a band or grid is one thing. */
 function loose_unit(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
   if (!b) return id;
   if (is_interface(b) && b.parent) return loose_unit(graph, b.parent);
   if (b.group) {
     const g = graph.blocks[b.group];
-    if (g && module_of(graph, b.group) === "group" && !is_grid(g)) return b.group;
+    if (g && (is_group_block(graph, b.group) || is_grid_block(graph, b.group))) {
+      return b.group;
+    }
   }
   return id;
 }
@@ -647,7 +731,8 @@ function loose_unit(graph: Graph, id: Id): Id {
 /** Every link that should pull two units near each other — relationships on the
  *  layer. */
 function placement_links(graph: Graph, layer: Id | null, ids: Set<Id>,
-                         unit: (id: Id) => Id): [Id, Id][] {
+                         unit: (id: Id) => Id,
+                         edges = edges_in(graph, layer)): [Id, Id][] {
   const links: [Id, Id][] = [];
   const seen = new Set<string>();
   const add = (a: Id, b: Id) => {
@@ -657,17 +742,18 @@ function placement_links(graph: Graph, layer: Id | null, ids: Set<Id>,
     seen.add(key);
     links.push([a, b]);
   };
-  for (const e of edges_in(graph, layer)) add(unit(e.from), unit(e.to));
+  for (const e of edges) add(unit(e.from), unit(e.to));
   return links;
 }
 
 /** Loose units in an order that keeps related ones together. */
 function placement_order(graph: Graph, layer: Id | null, units: Block[],
-                         unit: (id: Id) => Id): Block[] {
+                         unit: (id: Id) => Id,
+                         edges = edges_in(graph, layer)): Block[] {
   const by_id = new Map(units.map((b) => [b.id, b]));
   const ids = new Set(units.map((b) => b.id));
   const adj = new Map<Id, Id[]>();
-  for (const [a, b] of placement_links(graph, layer, ids, unit)) {
+  for (const [a, b] of placement_links(graph, layer, ids, unit, edges)) {
     adj.set(a, [...new Set([...(adj.get(a) ?? []), b])]);
     adj.set(b, [...new Set([...(adj.get(b) ?? []), a])]);
   }
@@ -694,33 +780,185 @@ function placement_order(graph: Graph, layer: Id | null, units: Block[],
 
 /** Related units already placed, if any. */
 function placement_mates(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
-                         unit: (id: Id) => Id): Placed[] {
+                         unit: (id: Id) => Id,
+                         edges = edges_in(graph, layer)): Placed[] {
   const uid = unit(id);
   const ids = new Set(taken.map((p) => p.id));
   const mates = new Set<Id>();
-  for (const [a, b] of placement_links(graph, layer, new Set([uid, ...ids]), unit)) {
+  for (const [a, b] of placement_links(graph, layer, new Set([uid, ...ids]), unit, edges)) {
     if (a === uid && ids.has(b)) mates.add(b);
     if (b === uid && ids.has(a)) mates.add(a);
   }
   return [...mates].map((mid) => taken.find((p) => p.id === mid)).filter(Boolean) as Placed[];
 }
 
+type Side = "left" | "right" | "above" | "below";
+
+function beside(p: Placed, side: Side, size: Size): Point {
+  switch (side) {
+    case "right": return { x: p.x + p.w + GAP, y: p.y };
+    case "left": return { x: p.x - size.w - GAP, y: p.y };
+    case "below": return { x: p.x, y: p.y + p.h + GAP };
+    case "above": return { x: p.x, y: p.y - size.h - GAP };
+  }
+}
+
+/** Which sides to try first when anchoring beside a mate — upstream goes left,
+ *  downstream goes right, so a run through a band meets on the near edge. */
+function anchor_sides(graph: Graph, layer: Id | null, id: Id, mates: readonly Id[],
+                      unit: (id: Id) => Id): Side[] {
+  const uid = unit(id);
+  let upstream = false;
+  let downstream = false;
+  for (const mate of mates) {
+    const flow = link_flow_between(graph, layer, uid, mate, unit);
+    if (!flow) continue;
+    if (flow.from === uid) upstream = true;
+    if (flow.to === uid) downstream = true;
+  }
+  if (upstream && !downstream) return ["left", "above", "below", "right"];
+  if (downstream && !upstream) return ["right", "below", "above", "left"];
+  return ["right", "left", "below", "above"];
+}
+
+/** After cells land, pull loose blocks onto the row of the member they relate to. */
+function align_to_cells(graph: Graph, layer: Id | null, spots: Placed[],
+                        how: Arrangement): Placed[] {
+  const out = spots.map((p) => ({ ...p }));
+  for (const p of out) {
+    if (gridded(graph, p.id) || in_band(graph, p.id)) continue;
+    const b = graph.blocks[p.id];
+    if (!b || is_satellite(graph, layer, b)) continue;
+    for (const e of edges_in(graph, layer)) {
+      if (e.from !== p.id && e.to !== p.id) continue;
+      const other = e.from === p.id ? e.to : e.from;
+      const holder_id = loose_unit(graph, other);
+      if (holder_id === other || !is_grid_block(graph, holder_id)) continue;
+      const spot = member_spot(graph, layer, p.id, holder_id, out, how);
+      if (!spot) continue;
+      p.y = snap(spot.y);
+      break;
+    }
+  }
+  return out;
+}
+
+/** Where a seated member would draw inside a container already on the layer. */
+function member_in_holder(graph: Graph, layer: Id | null, holder_id: Id, member_id: Id,
+                          holder: Placed, how: Arrangement): Placed | null {
+  const b = graph.blocks[member_id];
+  if (!b) return null;
+  if (is_grid_block(graph, holder_id) && b.cell) {
+    const g = graph.blocks[holder_id]!;
+    const box = cell_box(g, b.cell.r, b.cell.c);
+    const in_cell = is_header(b)
+      ? fills_cell(box) : centred_in(box, size_of(graph, member_id));
+    return { id: member_id, x: holder.x + in_cell.x, y: holder.y + in_cell.y,
+             w: in_cell.w, h: in_cell.h };
+  }
+  if (is_group_block(graph, holder_id)) {
+    for (const p of band_layout(graph, layer, holder_id, how)) {
+      if (p.id === member_id) {
+        return { id: member_id, x: holder.x + GAP + p.x, y: holder.y + GAP + p.y,
+                 w: p.w, h: p.h };
+      }
+    }
+  }
+  return null;
+}
+
+/** The block inside a container that `id` links to on this layer, if any. */
+function linked_member(graph: Graph, layer: Id | null, id: Id, holder_id: Id): Id | null {
+  for (const e of edges_in(graph, layer)) {
+    if (e.from !== id && e.to !== id) continue;
+    const other = e.from === id ? e.to : e.from;
+    if (loose_unit(graph, other) === holder_id) return other;
+  }
+  return null;
+}
+
+function member_spot(graph: Graph, layer: Id | null, id: Id, holder_id: Id,
+                     taken: readonly Placed[], how: Arrangement): Placed | null {
+  const member = linked_member(graph, layer, id, holder_id);
+  if (!member) return null;
+  const at = placed_of(graph, member, taken);
+  if (at) return at;
+  const holder = taken.find((p) => p.id === holder_id);
+  if (!holder) return null;
+  return member_in_holder(graph, layer, holder_id, member, holder, how);
+}
+
+function mate_row_y(graph: Graph, layer: Id | null, id: Id, holder_id: Id,
+                      taken: readonly Placed[], how: Arrangement): number {
+  const spot = member_spot(graph, layer, id, holder_id, taken, how);
+  if (spot) return snap(spot.y);
+  const holder = taken.find((p) => p.id === holder_id);
+  return snap(holder?.y ?? 0);
+}
+
+function mate_col_x(graph: Graph, layer: Id | null, id: Id, holder_id: Id,
+                      taken: readonly Placed[], how: Arrangement): number {
+  const spot = member_spot(graph, layer, id, holder_id, taken, how);
+  if (spot) return snap(spot.x);
+  const holder = taken.find((p) => p.id === holder_id);
+  return snap(holder?.x ?? 0);
+}
+
+/** Row of the cell inside a container that `id` actually links to — not the rim. */
+function mate_cell_y(graph: Graph, layer: Id | null, id: Id, mate_id: Id,
+                       taken: readonly Placed[], how: Arrangement): number | null {
+  const spot = member_spot(graph, layer, id, mate_id, taken, how);
+  return spot ? spot.y : null;
+}
+
+/** Which side of a container a seated block sits on — for seating outside it. */
+function exterior_side(holder: Placed, anchor: Placed): "left" | "right" {
+  const ax = anchor.x + anchor.w / 2;
+  const hx = holder.x + holder.w / 2;
+  return ax <= hx ? "left" : "right";
+}
+
 /** Where to start looking for a spot: beside related units already placed. */
 function anchor_near(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
-                     unit: (id: Id) => Id, size: Size): Point | null {
-  const placed = placement_mates(graph, layer, id, taken, unit);
+                     unit: (id: Id) => Id, size: Size,
+                     edges = edges_in(graph, layer)): Point | null {
+  const how = arrangement_of(graph, layer);
+  const placed = placement_mates(graph, layer, id, taken, unit, edges);
   if (!placed.length) return null;
   const free_at = (x: number, y: number) => !taken.some((t) =>
     x < t.x + t.w + GAP && t.x < x + size.w + GAP
     && y < t.y + t.h + GAP && t.y < y + size.h + GAP);
+  const sides = anchor_sides(graph, layer, id, placed.map((p) => p.id), unit);
   const candidates: Point[] = [];
   for (const p of placed) {
-    candidates.push(
-      { x: p.x + p.w + GAP, y: p.y },
-      { x: p.x - size.w - GAP, y: p.y },
-      { x: p.x, y: p.y + p.h + GAP },
-      { x: p.x, y: p.y - size.h - GAP },
-    );
+    const cell = is_grid_block(graph, p.id)
+      ? member_spot(graph, layer, id, p.id, taken, how) : null;
+    const y = cell?.y ?? mate_cell_y(graph, layer, id, p.id, taken, how) ?? p.y;
+    if (cell) {
+      for (const side of sides) {
+        if (side === "left" || side === "right") {
+          for (let n = 0; n < 8; n++) {
+            candidates.push(side === "left"
+              ? { x: p.x - size.w - GAP - n * (size.w + GAP), y }
+              : { x: p.x + p.w + GAP + n * (size.w + GAP), y });
+          }
+        } else {
+          candidates.push(beside(cell, side, size));
+        }
+      }
+      continue;
+    }
+    for (const side of sides) {
+      if (side === "left" || side === "right") {
+        for (let n = 1; n <= 8; n++) {
+          candidates.push(side === "left"
+            ? { x: p.x - n * (size.w + GAP), y }
+            : { x: p.x + p.w + GAP + (n - 1) * (size.w + GAP), y });
+        }
+      } else {
+        candidates.push(beside(p, side, size));
+      }
+    }
   }
   let cx = 0;
   let cy = 0;

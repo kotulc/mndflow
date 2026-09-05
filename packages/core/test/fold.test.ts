@@ -145,7 +145,7 @@ describe("definitions resolve up the tree", () => {
  *  than imported: core ships no vocabulary — an app hands one in — so a test
  *  seeds what it needs. */
 const BASE: Definition[] = ["block", "folder", "resource", "reference",
-                            "interface", "group", "note"].map((name) => ({
+                            "interface", "group", "grid", "note"].map((name) => ({
   id: name, home: ROOT, group: "block" as const, name,
   ...(name === "note" ? { extends: "resource" } : {}),
   components: { block: { module: name } },
@@ -194,7 +194,7 @@ describe("what a block may become", () => {
     }
   });
 
-  it.each(["group", "note", "interface", "reference"])(
+  it.each(["group", "grid", "note", "interface", "reference"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { label: "A" });

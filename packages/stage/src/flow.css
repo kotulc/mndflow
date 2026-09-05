@@ -371,6 +371,15 @@
   padding: 0;
   overflow: visible;
 }
+/* **The node is only a frame.** A band's inside is for what it holds; clicks
+   pass through to inner groups and cards unless they land on the rim or name. */
+.mnd-flow .react-flow__node.mnd-band-node {
+  pointer-events: none;
+}
+.mnd-flow .react-flow__node.mnd-band-node .mnd-brim > span,
+.mnd-flow .react-flow__node.mnd-band-node .mnd-group-name {
+  pointer-events: auto;
+}
 
 /* **A band, not a block.** A boundary says *these belong together* and nothing
    more, so it is the faintest thing on the canvas: a hairline dashed outline and
@@ -388,16 +397,36 @@
   background-clip: padding-box;
   color: var(--muted);
 }
-.mnd-group:hover {
-  border-color: color-mix(in oklch, var(--accent) 42%, transparent);
-  background: color-mix(in oklch, var(--accent) 2.5%, transparent);
-  background-clip: padding-box;
+/* **The inside is for what the band holds.** Only the rim and the name answer
+   the pointer — otherwise the outer boundary swallowed every press meant for a
+   card or an inner group sitting in it. */
+.mnd-group:not(.gridded) {
+  pointer-events: none;
 }
-.mnd-group.picked {
-  border-color: color-mix(in oklch, var(--accent) 38%, transparent);
-  background: color-mix(in oklch, var(--accent) 2%, transparent);
+.mnd-group:not(.gridded) .mnd-brim > span {
+  pointer-events: auto;
+  cursor: grab;
+}
+.mnd-group:not(.gridded):active .mnd-brim > span { cursor: grabbing; }
+.mnd-group:not(.gridded):has(.mnd-brim > span:hover) {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
   background-clip: padding-box;
-  box-shadow: none;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 55%, transparent);
+}
+/* **A picked band must read at a glance.** Grids have a solid edge and resize
+   grips; a group only has a dashed rim, so selection takes the same accent the
+   cards use — solid border, a ring, and a wash you can see through the middle. */
+.mnd-group:not(.gridded).picked {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 7%, transparent);
+  background-clip: padding-box;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.mnd-group-shell:not(.gridded):has(.mnd-group.picked) .mnd-group-name {
+  color: var(--accent);
+  font-weight: 600;
 }
 /* The group name floats above the frame — bands and grids alike — so it is
    never clipped by cells or buried under header rows. */
@@ -787,7 +816,6 @@
    the browser answers which one the pointer is on and the order is the
    drawing's own — a grip is in the viewport above every node, a seat is drawn
    over the card it is seated on, and a wall is part of the frame behind both. */
-.mnd-group:hover { border-color: var(--accent); }
 .mnd-seat:hover { border-color: var(--accent); background: var(--tint); }
 
 
@@ -885,48 +913,38 @@
   inset: 0;
 }
 
-/* A grid's band, and the one part of it that is not a cell.
-
-   **On the box, which is the outer edge of the outer cells.** The band is the
-   grid's own rectangle and nothing else — held in from the box it read as a
-   frame floating in a margin. Room between one element and the next is the
-   layout's to leave when it places them, never the drawing's to fake.
-
-   A stated rectangle, so unlike a boundary its edge is solid — and stronger
-   than one, because it is also the handle. */
+/* A grid's band — the outer edge of the outer cells.
+   **Drawn only.** Cells answer the pointer for pick and drag; unlike the room
+   frame's walls, this edge does not light one side at a time. */
 .mnd-group-edge {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
-  border: 1px solid color-mix(in oklch, var(--card-line) 36%, transparent);
+  border: 1px solid color-mix(in oklch, var(--card-line) 44%, transparent);
   background: color-mix(in oklch, var(--card-line) 1.5%, transparent);
-  /* Only the four strips inside answer a pointer; the middle is cells. */
   pointer-events: none;
 }
 .mnd-group.gridded:hover > .mnd-group-edge,
 .mnd-group.gridded.picked > .mnd-group-edge { border-color: var(--accent); }
 
-/* Where a grid is taken hold of: the band itself, inside its own edge. Lights
-   under the pointer rather than always, which would be a second border
-   competing with the one it sits on. */
-.mnd-group-rail {
-  position: absolute;
-  pointer-events: auto;
-  cursor: grab;
+/* A grid inside another group is still a boundary, not a top-level frame. */
+.mnd-group.member.gridded > .mnd-group-edge {
+  border-style: dashed;
+  border-color: color-mix(in oklch, var(--muted) 48%, transparent);
+  background: color-mix(in oklch, var(--muted) 1.5%, transparent);
 }
-.mnd-group-rail[data-side="top"] { top: 0; left: 0; right: 0; height: 5px; }
-.mnd-group-rail[data-side="bottom"] { bottom: 0; left: 0; right: 0; height: 5px; }
-.mnd-group-rail[data-side="left"] { left: 0; top: 0; bottom: 0; width: 5px; }
-.mnd-group-rail[data-side="right"] { right: 0; top: 0; bottom: 0; width: 5px; }
-.mnd-group-rail:hover { background: color-mix(in oklch, var(--accent) 45%, transparent); }
-.mnd-group.gridded:active .mnd-group-rail { cursor: grabbing; }
+.mnd-group.member.gridded:hover > .mnd-group-edge,
+.mnd-group.member.gridded.picked > .mnd-group-edge {
+  border-color: color-mix(in oklch, var(--accent) 42%, transparent);
+  background: color-mix(in oklch, var(--accent) 2.5%, transparent);
+}
 
 /* One cell. Drawn behind whatever sits in it, and it answers a pointer of its
    own — merging, splitting and inserting are asked of a cell, not of a block. */
 .mnd-grid-cell {
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid color-mix(in oklch, var(--card-line) 16%, transparent);
+  border: 1px solid color-mix(in oklch, var(--card-line) 28%, transparent);
   pointer-events: auto;
   cursor: pointer;
 }
@@ -942,7 +960,7 @@
 
 /* A merged cell is one cell, and its border says so. */
 .mnd-grid-cell.merged {
-  border-color: color-mix(in oklch, var(--card-line) 30%, transparent);
+  border-color: color-mix(in oklch, var(--card-line) 42%, transparent);
 }
 
 .mnd-grid-cell:hover {
@@ -975,8 +993,8 @@
 .mnd-group.gridded ~ .react-flow__resize-control.line,
 .mnd-group.gridded .react-flow__resize-control.line { pointer-events: none; }
 
-/* The bare ring outside the lattice: the one part of a grid that is not a cell,
-   and what a grid is taken hold of by. */
+/* The bare ring outside the lattice: drawn only; cells are what you pick and
+   drag by. */
 .mnd-group.gridded { cursor: grab; }
 .mnd-group.gridded:active { cursor: grabbing; }
 

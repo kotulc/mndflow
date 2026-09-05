@@ -3,8 +3,8 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { children, covers, edges_in, is_grid, is_header, is_interface,
-         members_of, module_of, role_of, shown_name,
+import { children, covers, edges_in, is_grid_block, is_group_block, is_header,
+         is_interface, members_of, module_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -32,6 +32,30 @@ export type Config = {
 
 const SLOTS: readonly Slot[] = ["layer", "display", "relations"];
 
+/** Every block a group carries when it moves, including nested groups. */
+function group_carries(graph: Graph, group: Id): Id[] {
+  const out: Id[] = [];
+  const walk = (gid: Id) => {
+    for (const m of members_of(graph, gid)) {
+      out.push(m.id);
+      if (is_group_block(graph, m.id)) walk(m.id);
+    }
+  };
+  walk(group);
+  return out;
+}
+
+/** How many group boundaries enclose a block — zero on the layer itself. */
+function nest_depth(graph: Graph, id: Id): number {
+  let depth = 0;
+  let at = graph.blocks[id]?.group;
+  while (at) {
+    depth++;
+    at = graph.blocks[at]?.group;
+  }
+  return depth;
+}
+
 /** Project a layer through the block view. */
 export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
   const here = children(graph, layer);
@@ -53,10 +77,18 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  note is text you resize and a boundary is a band behind its members;
    *  everything else is a rectangle, whatever it is a rectangle *of*. */
   /** **A gridded container minifies**: a cell is one block, so a picture of
-   *  what it holds has nowhere to go, and its icon is what tells it apart. */
-  const boxes: BoxNode[] = spots.map((p) => {
+   *  what it holds has nowhere to go, and its icon is what tells it apart.
+   *
+   *  **A group is never a card.** It is drawn as a band or grid in the groups
+   *  pass; making one here first and splicing it out later left nested groups
+   *  on the canvas as solid container cards. */
+  const boxes: BoxNode[] = spots
+    .filter((p) => !is_group_block(graph, p.id) && !is_grid_block(graph, p.id))
+    .map((p) => {
     const data = carried(graph, p.id);
-    const drawn = node(p.id, p, gridded(graph, p.id) ? { ...data, cells: [] } : data,
+    const nest = nest_depth(graph, p.id);
+    const drawn = node(p.id, p,
+                       gridded(graph, p.id) ? { ...data, cells: [], nest } : { ...data, nest },
                        module_of(graph, p.id) === "note" ? "note" : "card");
     /** **A lock is not a hand brake.** It fixes what the app would otherwise
      *  work out for itself; where you put a block by hand is already said, so a
@@ -69,33 +101,34 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  members' bounds — a fact about what it holds, never a stored size. Either
    *  way it draws behind whatever it holds. */
   const groups: BoxNode[] = [];
+  const grids: BoxNode[] = [];
   for (const g of here) {
-    if (module_of(graph, g.id) !== "group") continue;
+    if (is_group_block(graph, g.id)) {
+      const members = members_of(graph, g.id).map((b) => b.id);
+      const box = spots.find((p) => p.id === g.id) ?? null;
+      if (!box) continue;
+      const said = carried(graph, g.id);
+      const marks: Mark[] = said.marks.includes("unlabelled")
+        ? ["group", "unlabelled"] : ["group"];
+      const nest = nest_depth(graph, g.id);
+      groups.push(node(g.id, box,
+                       { ...said, marks, cells: [], holds: members,
+                         carries: group_carries(graph, g.id), nest },
+                       "group"));
+      continue;
+    }
+    if (!is_grid_block(graph, g.id)) continue;
     const members = members_of(graph, g.id).map((b) => b.id);
-    /** **Placed like anything else.** A grid owns its corner and a band is its
-     *  members' bounds, and both answers come back from the layout — asking a
-     *  second time here was the same sum done twice, and two places to keep in
-     *  step. */
     const box = spots.find((p) => p.id === g.id) ?? null;
-    /** **A group is never a card.** A boundary with nothing left in it has no
-     *  bounds and draws nothing — taken out of the boxes either way, because
-     *  left in it came out as a blank card nobody made. */
-    const at = boxes.findIndex((x) => x.id === g.id);
-    if (at >= 0) boxes.splice(at, 1);
     if (!box) continue;
-    /** **A group's own marks, not a card's.** It is drawn as a band and never
-     *  as a card, so the marks that say how a *card* reads are dropped — but
-     *  `unlabelled` is not one of those. It says whether this thing writes its
-     *  name on itself, which is the one thing a band can be told; thrown away
-     *  with the rest, the control that says so could not take a name off a
-     *  group and the toggle did nothing anybody could see. */
     const said = carried(graph, g.id);
     const marks: Mark[] = said.marks.includes("unlabelled")
-      ? ["group", "unlabelled"] : ["group"];
-    groups.push(node(g.id, box,
-                     { ...said, marks, cells: [], holds: members,
-                       ...(is_grid(g) ? { grid: lattice(graph, g) } : {}) },
-                     "group"));
+      ? ["grid", "unlabelled"] : ["grid"];
+    const nest = nest_depth(graph, g.id);
+    grids.push(node(g.id, box,
+                    { ...said, marks, cells: [], holds: members, nest,
+                      grid: lattice(graph, g) },
+                    "grid"));
   }
 
   /** A seated interface draws over the card it sits on, so it comes last. A
@@ -103,7 +136,8 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  see is not a gesture anybody meant. */
   const seats: BoxNode[] = ports.map((p) => {
     const b = graph.blocks[p.id]!;
-    const data: BoxData = { ...carried(graph, p.id), side: b.side!,
+    const nest = b.parent ? nest_depth(graph, b.parent) : 0;
+    const data: BoxData = { ...carried(graph, p.id), side: b.side!, nest,
                             ...(b.parent ? { on: b.parent } : {}) };
     if (hidden) {
       return { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
@@ -116,7 +150,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     return b.locked ? { ...seat, draggable: false } : seat;
   });
 
-  const drawn = [...groups, ...boxes, ...seats];
+  const drawn = [...groups, ...grids, ...boxes, ...seats];
 
   /** The room, before anything is seated on it. **A wall is a border like a
    *  card's**, so an end meeting one takes a seat the same way — which is what

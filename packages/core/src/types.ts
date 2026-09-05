@@ -82,8 +82,8 @@ export type Block = {
   body?: string;
   /** A reference: the block it stands for. */
   of?: Id;
-  /** The group this block sits in. **One group per block, and no nesting** —
-   *  which is what lets an allocation be derived at all. */
+  /** The group or grid this block sits in. Membership is flat — a group may
+   *  hold other groups, grids, and cards with no special nesting rules. */
   group?: Id;
   /** Where in that group. Replaces `x`/`y` for a gridded block, exactly as
    *  `side` and `at` replace them for an interface. */
@@ -165,17 +165,17 @@ export type Relation = {
 
 /** Which block module the engine dispatches on. Open — one more is additive.
  *
- *  **Seven, since the grid.** A `view` module had one way to draw and no
- *  configuration left once the grid absorbed the table and the matrix. *View*
- *  is reserved rather than retired: it will name a data perspective over the
+ *  **Eight: group and grid are separate.** A group is a dashed rim round
+ *  whatever it holds; a grid is a table with cells on the layer. *View* is
+ *  reserved rather than retired: it will name a data perspective over the
  *  model, and it comes back defined. */
 export type BlockModule =
   | "block" | "folder" | "resource"
-  | "reference" | "interface" | "group" | "note";
+  | "reference" | "interface" | "group" | "grid" | "note";
 
 export const BLOCK_MODULES: readonly BlockModule[] = [
   "block", "folder", "resource",
-  "reference", "interface", "group", "note",
+  "reference", "interface", "group", "grid", "note",
 ];
 
 /** **The kinds a block may be changed between.** A block, a folder and a

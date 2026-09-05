@@ -180,7 +180,7 @@ const SIDES: readonly Side[] = ["top", "right", "bottom", "left"];
  *  front of every other card on the layer — so that is turned off and this
  *  table is the whole of the answer. */
 const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, card: 3, control: 3, seat: 4,
+  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4,
 };
 
 /** The layer's working area, shaped like the panel it is shown in.
@@ -269,10 +269,14 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
   }
 
   for (const n of scene.nodes) {
+    const nest = (n.data.nest ?? 0) * 2;
+    const base = DEPTH[n.type ?? "card"] ?? 1;
+    const band = n.type === "group";
     out.push({
       ...n,
       selected: picked.includes(n.id),
-      zIndex: DEPTH[n.type ?? "card"] ?? 1,
+      zIndex: base + nest,
+      ...(band ? { className: "mnd-band-node" } : {}),
       /** **Told, not measured.** The projection already decided how big this
        *  is, so saying so up front lets an edge route on the first frame
        *  rather than after a resize observation. */
@@ -342,7 +346,7 @@ function kind_of(scene: Scene, id: string | null,
    *  blocks that already live here, so it has no layer of its own to open and
    *  no border for a line to end on — and saying so here is what keeps every
    *  surface from having to work it out again from a mark. */
-  if (node?.type === "group") return "band";
+  if (node?.type === "group" || node?.type === "grid") return "band";
   /** **A note is not a block you can go into.** It is a remark left on this
    *  layer — there is nothing inside it and nothing to put there, so two
    *  clicks on one mean what they mean on every other name: edit the text,
@@ -784,7 +788,9 @@ function Canvas(props: FlowViewProps) {
     /** **A relationship never ends on a boundary.** A band says *these belong
      *  together* and holds no border of its own — so a drag that lets go on one
      *  has let go on the ground it is drawn over. */
-    if (id && scene.nodes.some((n) => n.id === id && n.type === "group")) return { on: null };
+    if (id && scene.nodes.some((n) => n.id === id && (n.type === "group" || n.type === "grid"))) {
+      return { on: null };
+    }
     return { on: id === FRAME ? null : id };
   }, [scene]);
 
@@ -852,7 +858,8 @@ function Canvas(props: FlowViewProps) {
    *  because a band is its members' bounds — it has no place of its own, so
    *  dragging it and moving nothing was the only thing it could do. */
   const riders = useCallback((host: BoxNode): BoxNode[] => {
-    const held = new Set<string>(host.data.holds ?? []);
+    const held = new Set<string>(host.type === "group"
+      ? (host.data.carries ?? host.data.holds ?? []) : []);
     if (held.size) {
       for (const n of scene.nodes) if (n.data.on && held.has(n.data.on)) held.add(n.id);
     }
@@ -860,22 +867,44 @@ function Canvas(props: FlowViewProps) {
   }, [scene]);
 
   const landing_on = useCallback((id: string, at: Point) => {
+    const dragged = scene.nodes.find((n) => n.id === id);
+    const parent = new Map<string, string>();
+    for (const n of scene.nodes) {
+      if (n.type === "group" && n.data.holds) {
+        for (const h of n.data.holds) parent.set(h, n.id);
+      }
+    }
+    /** **A group cannot be filed into itself or its descendants.** Membership
+     *  is what the scene knows; walking up from the target is enough to spot a
+     *  cycle without the graph. */
+    const nest_ok = (into: string) => {
+      if (id === into) return false;
+      if (dragged?.type !== "group") return true;
+      let at: string | undefined = into;
+      const seen = new Set<string>();
+      while (at) {
+        if (at === id) return false;
+        if (seen.has(at)) break;
+        seen.add(at);
+        at = parent.get(at);
+      }
+      return true;
+    };
     const holds = (n: BoxNode) => {
       const o = box_of(n);
       return at.x >= o.x && at.x <= o.x + o.w && at.y >= o.y && at.y <= o.y + o.h;
     };
     const lands = scene.nodes.filter((n) =>
       n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && holds(n));
-    const into = lands.find((n) => n.type === "group") ?? null;
-    /** **Which cell, where the group is a grid.** The lattice is already on the
-     *  node, in the grid's own coordinates, so the address is a lookup rather
-     *  than arithmetic anybody could get differently. */
-    const box = into ? box_of(into) : null;
-    const cell = into && box
-      ? into.data.grid?.find((c) => at.x >= box.x + c.x && at.x <= box.x + c.x + c.w
-                                 && at.y >= box.y + c.y && at.y <= box.y + c.y + c.h)
+    const gridLand = lands.find((n) => n.type === "grid") ?? null;
+    const groupLand = lands.find((n) => n.type === "group" && nest_ok(n.id)) ?? null;
+    const gridBox = gridLand ? box_of(gridLand) : null;
+    const cell = gridLand && gridBox
+      ? gridLand.data.grid?.find((c) => at.x >= gridBox.x + c.x && at.x <= gridBox.x + c.x + c.w
+                                 && at.y >= gridBox.y + c.y && at.y <= gridBox.y + c.y + c.h)
       : undefined;
-    return { over: lands.find((n) => n.type !== "group") ?? null, into,
+    const into = cell ? gridLand : groupLand;
+    return { over: lands.find((n) => n.type !== "group" && n.type !== "grid") ?? null, into,
              ...(cell ? { cell: { r: cell.r, c: cell.c } } : {}) };
   }, [scene]);
 
@@ -911,14 +940,19 @@ function Canvas(props: FlowViewProps) {
       return;
     }
 
-    /** **A group owns its corner**, whether it is a grid or a band — members
-     *  are placed inside it and follow. It is never filed into anything else. */
-    if (drawn.type === "group") {
-      onAdjust?.({ kind: "place", at: [{ id: node.id, to: node.position }] });
+    const b = box_of(drawn);
+
+    /** **A group is its members' bounds; a grid owns its corner.** Either may
+     *  be filed into another group on drop. */
+    if (drawn.type === "group" || drawn.type === "grid") {
+      const land = landing_on(node.id, { x: node.position.x + b.w / 2,
+                                         y: node.position.y + b.h / 2 });
+      onAdjust?.({ kind: "move", on: node.id, to: node.position,
+                   over: null, into: land.into?.id ?? null,
+                   ...(land.cell ? { cell: land.cell } : {}) });
       return;
     }
 
-    const b = box_of(drawn);
     /** **A sweep dragged is every card of it put down.** The library reports
      *  one gesture and moves them all, so recording only the one under the
      *  hand left the rest to spring back on the next projection. */
@@ -1003,7 +1037,7 @@ function Canvas(props: FlowViewProps) {
     for (const c of cs) {
       if (c.type !== "dimensions" || c.resizing !== false || !c.dimensions) continue;
       const n = scene.nodes.find((x) => x.id === c.id);
-      if (!n || (n.type === "group" && !n.data.grid?.length)) continue;
+      if (!n || n.type === "group") continue;
       onAdjust?.({ kind: "size", on: c.id, to: n.position,
                    w: Math.round(c.dimensions.width),
                    h: Math.round(c.dimensions.height) });
@@ -1070,9 +1104,16 @@ function Canvas(props: FlowViewProps) {
     /** **The same question the drop asks**, so what is lit is what will happen.
      *  Asked separately, the preview took the first box under the point and lit
      *  the boundary while the drop filed the card into the block inside it. */
-    if (drawn.type === "group") { land(null); return; }
     const land_on = landing_on(node.id, { x: node.position.x + b.w / 2,
                                           y: node.position.y + b.h / 2 });
+    /** **A group is never filed into a card.** Its middle sits over its own
+     *  members while it moves, and lighting one of them looked like a second
+     *  boundary being drawn behind the band. Only another group it could nest
+     *  into is worth previewing. */
+    if (drawn.type === "group") {
+      land(land_on.into && land_on.into.type === "group" ? box_of(land_on.into) : null);
+      return;
+    }
     const on = land_on.over ?? land_on.into;
     land(on ? box_of(on) : null);
   }, [scene, landing_on]);
@@ -1094,7 +1135,8 @@ function Canvas(props: FlowViewProps) {
     /** The innermost thing under the point: a seat drawn over a card is the
      *  one you meant, and it is drawn last. */
     const landed = [...scene.nodes].reverse().find((n) => {
-      if (n.id === g.on || n.selectable === false || n.type === "group") return false;
+      if (n.id === g.on || n.selectable === false
+          || n.type === "group" || n.type === "grid") return false;
       const b = box_of(n);
       return to.x >= b.x && to.x <= b.x + b.w && to.y >= b.y && to.y <= b.y + b.h;
     });
@@ -1112,11 +1154,10 @@ function Canvas(props: FlowViewProps) {
   const only = useMemo(() => {
     if (picked.length !== 1) return null;
     const n = scene.nodes.find((x) => x.id === picked[0]);
-    /** **A boundary has no inside to open, and neither has a note.** One is
-     *  its members' bounds and the other is a remark; the control offering to
-     *  go into either offered something that could not happen. */
+    /** **A boundary and a grid have no inside to open.** One is a rim round
+     *  what it holds; the other is a table of cells on the layer. */
     return n && !n.data.on && n.selectable !== false
-      && n.type !== "group" && n.type !== "note" ? n.id : null;
+      && n.type !== "group" && n.type !== "grid" && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
   return (

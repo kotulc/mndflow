@@ -49,7 +49,8 @@ export { type Note, type NoteKind, type Range, type Rules, review, rules_of } fr
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
   allocated_to, allocations_of, arrangement_of, at_cell, cell_of, children,
-  defs_in_scope, edges_in, grid_of, isa, is_container, is_grid, is_interface,
+  defs_in_scope, edges_in, grid_of, isa, is_container, is_grid, is_grid_block,
+  is_group_block, is_interface,
   is_reference, is_top_block, layer_id, members_of, merge_at, module_of,
   owner_of, path, resolve_def, shown_name, stands_for, subtree,
 } from "@mnd/core";

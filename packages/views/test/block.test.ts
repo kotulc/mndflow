@@ -75,6 +75,14 @@ describe("what the projection shows", () => {
     expect(scene.nodes.every((n) => !!n.type)).toBe(true);
   });
 
+  it("projects a grid as a lattice, not a card", () => {
+    const scene = project(fold(fixture("gridded")), "block_board");
+    const lanes = scene.nodes.find((n) => n.id === "block_lanes")!;
+    expect(lanes.type).toBe("grid");
+    expect(lanes.data.grid?.length).toBeGreaterThan(0);
+    expect(scene.nodes.some((n) => n.id === "block_lanes" && n.type === "card")).toBe(false);
+  });
+
   it("marks how a block reads without anything declaring it", () => {
     const scene = project(fold(related()), "block_loop");
     const mark = (id: string) => scene.nodes.find((b) => b.id === id)!.data.marks;
@@ -159,6 +167,7 @@ describe("the text renderer", () => {
      *  them. **Never what fits inside a card** — how many characters a name
      *  gets is the block's width in disguise, and this draws shape. */
     const cards = scene.nodes.filter((n) => !n.data.marks.includes("group")
+                                         && !n.data.marks.includes("grid")
                                          && !n.data.marks.includes("reference"));
     expect((picture.match(/\[/g) ?? []).length).toBe(cards.length);
     expect(picture).toContain("(");

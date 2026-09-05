@@ -53,8 +53,19 @@ export type BoxData = {
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. **A band is its members' bounds**, so it
    *  has no place of its own to move — dragging one is dragging them, and this
-   *  is the only place a renderer could learn who *them* is. */
+   *  is the only place a renderer could learn who *them* is. Direct members
+   *  only; see `carries` for the full tree. */
   holds?: readonly Id[];
+  /** Every block nested inside a group, at any depth. **Dragging a boundary
+   *  is dragging one thing**, and a nested band is still part of it — the
+   *  canvas uses this so nothing is left behind mid-gesture. */
+  carries?: readonly Id[];
+  /** A group seated inside another, not on the layer by itself. **Grids borrow
+   *  the dashed band look**; bands already do. */
+  member?: boolean;
+  /** How many group boundaries enclose this block. **Deeper draws in front**,
+   *  so an inner band is taken hold of before the one round it. */
+  nest?: number;
   /** The fields this usage shows, already resolved to what they say. */
   fields?: readonly { name: string; value: string }[];
   /** Which wall this is set into, on a box that is seated rather than placed.
@@ -67,7 +78,7 @@ export type BoxData = {
   seats?: readonly { id: string; side: Side; at: number }[];
 };
 
-export type Mark = "container" | "reference" | "missing" | "note" | "group"
+export type Mark = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "unlabelled" | "locked"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "header_row" | "header_col" | "merged" | "promoted";

@@ -15,7 +15,7 @@ const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
   b["block_loop"] = { ...b["block_loop"]!, arrangement: "grid" };
-  b["block_hot"] = { ...b["block_hot"]!, rows: 1, cols: 2 };
+  b["block_hot"] = { ...b["block_hot"]!, type: "grid", rows: 1, cols: 2 };
   b["block_tank"] = { ...b["block_tank"]!, group: "block_hot", cell: { r: 0, c: 0 } };
   b["block_valve"] = { ...b["block_valve"]!, group: "block_hot", cell: { r: 0, c: 1 } };
   return { ...c, cells: [{ group: "block_hot", r: 0, c: 0 }] };
@@ -135,7 +135,7 @@ describe("what an action absorbs", () => {
     const at = (label: string) => children(s.graph(), ROOT).find((b) => b.label === label)!.id;
     const alpha = at("Alpha"), beta = at("Beta");
     s.go("group", { members: [alpha], rows: 2, cols: 2 });
-    const grid = Object.values(s.graph().blocks).find((b) => b.type === "group")!.id;
+    const grid = Object.values(s.graph().blocks).find((b) => b.type === "grid")!.id;
     s.go("seat", { id: alpha, group: grid, at: "0,0" });
     expect(s.graph().blocks[alpha]!.group).toBe(grid);
 
@@ -182,9 +182,176 @@ describe("what an action absorbs", () => {
     const group = children(s.graph(), loop).find((x) => x.type === "group")!;
     expect(s.graph().blocks[a!]!.group).toBe(group.id);
 
-    s.go("group", { members: [b], into: group.id });
+    expect(s.go("group", { members: [b], into: group.id })).toBeNull();
     expect(children(s.graph(), loop).filter((x) => x.type === "group")).toHaveLength(1);
     expect(s.graph().blocks[b!]!.group).toBe(group.id);
+  });
+
+  it("dissolves a group when the last member leaves", () => {
+    const s = session();
+    s.go("create", { label: "A" });
+    const a = children(s.graph(), ROOT)[0]!.id;
+    s.go("group", { members: [a] });
+    const group = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+
+    expect(s.go("leave", { ids: [a] })).toBeNull();
+    expect(s.graph().blocks[group]).toBeUndefined();
+    expect(s.graph().blocks[a]!.group).toBeUndefined();
+  });
+
+  it("dissolves an empty group shell when it leaves its parent", () => {
+    const s = session();
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
+    s.go("group", { members: [a] });
+    const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+    s.go("group", { members: [b] });
+    const outer = children(s.graph(), ROOT).find((x) => x.type === "group" && x.id !== inner)!.id;
+    s.go("group", { members: [inner], into: outer });
+    s.go("leave", { ids: [a] });
+
+    expect(s.go("leave", { ids: [inner] })).toBeNull();
+    expect(s.graph().blocks[inner]).toBeUndefined();
+    expect(s.graph().blocks[outer]).toBeTruthy();
+    expect(s.graph().blocks[b]!.group).toBe(outer);
+  });
+
+  it("dissolves inner when the last block moves to the outer group", () => {
+    const s = session();
+    s.go("create", { label: "A" });
+    s.go("create", { label: "Temp" });
+    const [a, temp] = children(s.graph(), ROOT).map((x) => x.id);
+    s.go("group", { members: [a] });
+    const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+    s.go("group", { members: [temp] });
+    const outer = children(s.graph(), ROOT).find((x) => x.type === "group" && x.id !== inner)!.id;
+    s.go("group", { members: [inner], into: outer });
+    s.go("leave", { ids: [temp] });
+
+    expect(s.go("group", { members: [a], into: outer })).toBeNull();
+    expect(s.graph().blocks[inner]).toBeUndefined();
+    expect(s.graph().blocks[a]!.group).toBe(outer);
+  });
+
+  it("dissolves empty groups up to the layer", () => {
+    const s = session();
+    s.go("create", { label: "A" });
+    s.go("create", { label: "Temp" });
+    const [a, temp] = children(s.graph(), ROOT).map((x) => x.id);
+    s.go("group", { members: [a] });
+    const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+    s.go("group", { members: [temp] });
+    const outer = children(s.graph(), ROOT).find((x) => x.type === "group" && x.id !== inner)!.id;
+    s.go("group", { members: [inner], into: outer });
+    s.go("leave", { ids: [temp] });
+
+    expect(s.go("leave", { ids: [a] })).toBeNull();
+    expect(s.graph().blocks[inner]).toBeUndefined();
+    expect(s.graph().blocks[outer]).toBeUndefined();
+    expect(s.graph().blocks[a]!.group).toBeUndefined();
+  });
+
+  it("dissolves a nested group when its last member leaves", () => {
+    const s = session();
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
+    s.go("group", { members: [a] });
+    const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+    s.go("group", { members: [b] });
+    const outer = children(s.graph(), ROOT).find((x) => x.type === "group" && x.id !== inner)!.id;
+    s.go("group", { members: [inner], into: outer });
+
+    expect(s.go("leave", { ids: [a] })).toBeNull();
+    expect(s.graph().blocks[inner]).toBeUndefined();
+    expect(s.graph().blocks[outer]).toBeTruthy();
+    expect(s.graph().blocks[b]!.group).toBe(outer);
+  });
+
+  it("draws a second boundary on the layer instead of nesting inside the first", () => {
+    const s = session();
+    s.go("create", { label: "Loop" });
+    const loop = children(s.graph(), ROOT)[0]!.id;
+    s.look(loop);
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    s.go("create", { label: "C" });
+    const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
+    s.go("group", { members: [a, b, c] });
+    const outer = children(s.graph(), loop).find((x) => x.type === "group")!.id;
+
+    s.go("group", { members: [a!, b!] });
+    const groups = children(s.graph(), loop).filter((x) => x.type === "group");
+    expect(groups).toHaveLength(2);
+    const inner = groups.find((g) => g.id !== outer)!;
+    expect(s.graph().blocks[a!]!.group).toBe(inner.id);
+    expect(s.graph().blocks[b!]!.group).toBe(inner.id);
+    expect(s.graph().blocks[c!]!.group).toBe(outer);
+    expect(s.graph().blocks[inner.id]!.group).toBeUndefined();
+  });
+
+  it("merges two group boundaries into one", () => {
+    const s = session();
+    s.go("create", { label: "Loop" });
+    const loop = children(s.graph(), ROOT)[0]!.id;
+    s.look(loop);
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    s.go("create", { label: "C" });
+    s.go("create", { label: "D" });
+    const [a, b, c, d] = children(s.graph(), loop).map((x) => x.id);
+    s.go("group", { members: [a, b] });
+    const g1 = children(s.graph(), loop).find((x) => x.type === "group")!.id;
+    s.go("group", { members: [c, d] });
+    const g2 = children(s.graph(), loop).find((x) => x.type === "group" && x.id !== g1)!.id;
+
+    expect(s.go("group", { members: [g1, g2] })).toBeNull();
+    const groups = children(s.graph(), loop).filter((x) => x.type === "group");
+    expect(groups).toHaveLength(1);
+    const merged = groups[0]!.id;
+    expect(s.graph().blocks[a!]!.group).toBe(merged);
+    expect(s.graph().blocks[b!]!.group).toBe(merged);
+    expect(s.graph().blocks[c!]!.group).toBe(merged);
+    expect(s.graph().blocks[d!]!.group).toBe(merged);
+    expect(s.graph().blocks[g1]).toBeUndefined();
+    expect(s.graph().blocks[g2]).toBeUndefined();
+  });
+
+  it("nests a group inside another when dragged in", () => {
+    const s = session();
+    s.go("create", { label: "Loop" });
+    const loop = children(s.graph(), ROOT)[0]!.id;
+    s.look(loop);
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    s.go("create", { label: "C" });
+    const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
+    s.go("group", { members: [a, b] });
+    const outer = children(s.graph(), loop).find((x) => x.type === "group")!.id;
+    s.go("group", { members: [c] });
+    const inner = children(s.graph(), loop).find((x) => x.type === "group" && x.id !== outer)!.id;
+
+    expect(s.go("group", { members: [inner], into: outer })).toBeNull();
+    expect(s.graph().blocks[inner]!.group).toBe(outer);
+    expect(s.graph().blocks[c!]!.group).toBe(inner);
+    expect(children(s.graph(), loop).filter((x) => x.type === "group")).toHaveLength(2);
+  });
+
+  it("puts a grid inside a group", () => {
+    const s = session();
+    s.go("create", { label: "Loop" });
+    const loop = children(s.graph(), ROOT)[0]!.id;
+    s.look(loop);
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    const [a, b] = children(s.graph(), loop).map((x) => x.id);
+    s.go("group", { members: [a], rows: 2, cols: 2 });
+    const grid = children(s.graph(), loop).find((x) => x.type === "grid")!.id;
+    s.go("group", { members: [b] });
+    const band = children(s.graph(), loop).find((x) => x.type === "group")!.id;
+    expect(s.go("group", { members: [grid], into: band })).toBeNull();
+    expect(s.graph().blocks[grid]!.group).toBe(band);
   });
 
   /** **What the ends decide is not on offer.** A relationship is a tie because
@@ -275,6 +442,19 @@ describe("the way out of a layer", () => {
     expect(s.layer()).toBe(loop);
     s.go("open");
     expect(s.layer()).toBe(ROOT);
+  });
+});
+
+describe("interfaces sit on blocks, not boundaries", () => {
+  it("refuses a group for an owner", () => {
+    const s = session();
+    s.go("create", { label: "A" });
+    s.go("create", { label: "B" });
+    const ids = children(s.graph(), ROOT).map((b) => b.id);
+    s.go("group", { members: ids });
+    const group = Object.values(s.graph().blocks).find((b) => b.type === "group")!;
+    expect(s.go("interface", { owner: group.id, side: "right" }))
+      .toMatch(/boundary cannot have an interface/);
   });
 });
 

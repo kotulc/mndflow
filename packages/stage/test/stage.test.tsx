@@ -11,7 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { fold } from "@mnd/core";
-import { related } from "@mnd/fixtures";
+import { gridded, related } from "@mnd/fixtures";
 import { project } from "@mnd/views";
 import { Stage } from "../src/index";
 
@@ -193,6 +193,18 @@ describe("the keyboard", () => {
     const view = mount({ picked: ["block_pump"] });
     press("Enter");
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
+  });
+
+  it("does not descend into a grid on a double click", () => {
+    const graph = fold(gridded());
+    const scene = project(graph, "block_board");
+    const onAct = vi.fn();
+    const view = render(
+      <Stage scene={scene} graph={graph} picked={[]} onAct={onAct} onPick={vi.fn()} />,
+    );
+    fireEvent.doubleClick(card(view, "block_lanes"));
+    expect(onAct).not.toHaveBeenCalledWith("open", expect.anything());
+    cleanup();
   });
 
   it("opens the picked block's name for typing on F2", () => {

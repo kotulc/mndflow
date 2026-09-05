@@ -23,6 +23,7 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
   }
   if (module === "note") out.push("note");
   if (module === "group") out.push("group");
+  if (module === "grid") out.push("grid");
   if (is_interface(b)) {
     out.push("interface");
     if (b.flow === "in" || b.flow === "both") out.push("in");

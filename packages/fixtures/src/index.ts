@@ -133,7 +133,7 @@ export function gridded(): Log {
     step("create", [block("block_board", ROOT, "Board", "block")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
     step("group", [
-      block("block_lanes", "block_board", "Lanes", "group"),
+      block("block_lanes", "block_board", "Lanes", "grid"),
       { op: "set_grid", id: "block_lanes", rows: 3, cols: 4 },
       { op: "place_block", id: "block_lanes", x: 0, y: 0 },
     ]),

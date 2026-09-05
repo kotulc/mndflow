@@ -7,10 +7,10 @@
  *  An action writing no mutations is navigation: no step, nothing to undo, and
  *  a text interface never offers it. */
 
-import { arrangement_of, at_cell, children, covers, edges_in, heads_col_strip,
-         heads_row_strip, is_grid, is_header, is_interface, is_reference,
-         layer_id, may_retype, members_of, module_of, module_named,
-         next_num, next_alias, path, reorder } from "./fold";
+import { arrangement_of, at_cell, can_hold, children, covers, edges_in,
+         heads_col_strip, heads_row_strip, is_grid, is_grid_block, is_group_block,
+         is_header, is_interface, is_reference, layer_id, may_retype, members_of,
+         module_of, module_named, next_num, next_alias, path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, HEADERS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
          type FieldDef, type Flow, type Graph, type Headers, type Id,
@@ -621,6 +621,12 @@ register(
     name: "interface",
     about: "puts an interface on an edge of a block, and takes a relationship to it",
     on: ["block"],
+    when: (ctx) => {
+      const one = ctx.picked.length === 1 ? ctx.picked[0] : undefined;
+      if (!one) return true;
+      return !is_group_block(ctx.graph, one) && !is_grid_block(ctx.graph, one)
+             && module_of(ctx.graph, one) !== "note";
+    },
     /** **Promotion is this action with two more arguments.** Naming the seat a
      *  relationship already meets *is* making an interface there and telling
      *  that end about it, so `edge` and `end` are the whole of the difference.
@@ -632,7 +638,13 @@ register(
            { name: "edge", form: "block" },
            { name: "end", form: "choice", choices: ["from", "to"] }],
     check: (ctx, args) => {
-      if (!ctx.graph.blocks[id_of(args, "owner")]) return "needs a border to sit on";
+      const owner = id_of(args, "owner");
+      const block = ctx.graph.blocks[owner];
+      if (!block) return "needs a border to sit on";
+      if (is_group_block(ctx.graph, owner) || is_grid_block(ctx.graph, owner)) {
+        return "a boundary cannot have an interface";
+      }
+      if (module_of(ctx.graph, owner) === "note") return "a note has no wall to set one into";
       const edge = text(args, "edge");
       if (edge && !ctx.graph.edges[edge]) return "needs a relationship";
       return null;
@@ -674,14 +686,32 @@ register(
 
 // ---------------------------------------------------------------- boundaries and notes
 
+/** **Merging boundaries is not nesting them.** Wrapping a selection draws one rim
+ *  round everything in it — so a group in the selection yields its members, not
+ *  another group inside a group. Dragging into `into` is the only way to nest. */
+function merged_members(graph: Graph, members: Id[], into: Id | null)
+    : { members: Id[]; dissolve: Id[] } {
+  if (into) return { members, dissolve: [] };
+  const out: Id[] = [];
+  const dissolve: Id[] = [];
+  for (const id of members) {
+    if (is_group_block(graph, id) && !is_grid_block(graph, id)) {
+      for (const m of members_of(graph, id)) out.push(m.id);
+      dissolve.push(id);
+    } else {
+      out.push(id);
+    }
+  }
+  return { members: out, dissolve };
+}
+
 register(
   {
     name: "group",
-    about: "draws a grid here, or a boundary round what is selected",
+    about: "draws a boundary round what is selected, or a grid over a region",
     on: ["layer", "selection"],
     /** **One act with different arguments.** *Draw a grid here* and *draw a
-     *  boundary round these* make the same block; an extent is what tells them
-     *  apart, and a group with none is today's band. */
+     *  boundary round these* are different modules now — extent makes a grid. */
     args: [{ name: "members", form: "block" }, { name: "into", form: "block" },
            { name: "rows", form: "number" }, { name: "cols", form: "number" },
            { name: "headers", form: "choice", choices: HEADERS },
@@ -691,9 +721,18 @@ register(
            { name: "seats", form: "text" },
            { name: "spot", form: "spot" }],
     check: (ctx, args) => {
-      const members = (args["members"] as Id[]) ?? ctx.picked;
+      const said = args["into"] ? id_of(args, "into") : null;
+      const picked = ((args["members"] as Id[]) ?? (said ? [] : ctx.picked))
+        .filter((id) => ctx.graph.blocks[id] && id !== said);
+      const { members } = merged_members(ctx.graph, picked, said);
       const extent = num(args, "rows") !== null || num(args, "cols") !== null;
-      return members.length || extent || args["into"] ? null : "nothing is selected";
+      if (!members.length && !extent && !said) return "nothing is selected";
+      if (said) {
+        for (const id of picked) {
+          if (!can_hold(ctx.graph, said, id)) return "that cannot go in there";
+        }
+      }
+      return null;
     },
     run: (ctx, args) => {
       const said = args["into"] ? id_of(args, "into") : null;
@@ -701,14 +740,10 @@ register(
        *  named, this is a setting on the group itself — and taking the
        *  selection as members put the group inside itself, because the group is
        *  what was picked. */
-      const members = ((args["members"] as Id[]) ?? (said ? [] : ctx.picked))
+      const picked = ((args["members"] as Id[]) ?? (said ? [] : ctx.picked))
         .filter((id) => ctx.graph.blocks[id] && id !== said);
-      /** **A group already round these expands rather than being replaced.**
-       *  Making a second one took the members out of the first and left it
-       *  holding nothing — a group with no members has no bounds, so what was
-       *  left was a block nobody could see and nobody meant to make. */
-      const held = [...new Set(members.map((id) => ctx.graph.blocks[id]?.group))];
-      const into = said ?? (held.length === 1 && held[0] ? held[0] : null);
+      const { members, dissolve } = merged_members(ctx.graph, picked, said);
+      const into = said;
       const rows = num(args, "rows") === null ? null : Math.max(1, num(args, "rows")!);
       const cols = num(args, "cols") === null ? null : Math.max(1, num(args, "cols")!);
       const out: Mutation[] = [];
@@ -717,7 +752,8 @@ register(
         const extent = rows !== null || cols !== null;
         group = new_id("block");
         out.push({ op: "add_block", block: {
-          id: group, parent: here(ctx), type: "group", num: next_num(ctx.graph, here(ctx)),
+          id: group, parent: here(ctx), type: extent ? "grid" : "group",
+          num: next_num(ctx.graph, here(ctx)),
           ...(!extent ? { labelled: false } : {}),
         } });
       }
@@ -747,7 +783,8 @@ register(
           }
         }
       }
-      /** **A grid owns its corner**, or an empty one would be nothing. */
+      /** **A grid owns its corner**, or an empty one would be nothing. A band
+       *  is its members' bounds and also lives on the layer. */
       const at = spot(args);
       if (at) out.push({ op: "place_block", id: group, x: at.x, y: at.y });
       for (const id of members) out.push({ op: "set_group", id, group });
@@ -756,6 +793,7 @@ register(
           out.push({ op: "seat_cell", id: seat.id, cell: { r: seat.r, c: seat.c } });
         }
       }
+      for (const id of dissolve) out.push({ op: "delete_block", id });
       return { mutations: out };
     },
   },
