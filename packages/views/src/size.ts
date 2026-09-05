@@ -6,17 +6,19 @@
 import { covers, is_container, is_grid, is_interface, is_reference, module_of,
          type Block, type Graph, type Id, type Point } from "@mnd/core";
 
-/** **The one place the drawing's proportions are set.**
+/** **The one place the drawing's proportions are set, and the unit is the only
+ *  measure there is.**
  *
  *  Everything on the canvas is a whole number of *units* across, and the unit
- *  is what a square of the guides is. Change the unit and the whole drawing
- *  rescales; change an extent and one thing reshapes. Nothing below states a
- *  pixel of its own.
+ *  is one square of the guides. Change the unit and the whole drawing rescales;
+ *  change an extent and one thing reshapes. Nothing below states a pixel.
  *
- *  **A cell is a block plus the gap**, so it is derived rather than stated —
- *  two numbers that have to agree are two numbers that can disagree. That one
- *  fact is what makes a block the layout placed and a block seated in a grid
- *  the same distance from its neighbour.
+ *  **There is no second measure.** There used to be a *cell* — a block plus a
+ *  gap — and placement was quantised to it, so a group could only move a whole
+ *  cell at a time and a gap could only be a whole cell wide. Every argument
+ *  about spacing and alignment came from that one mistake: two rulers on one
+ *  drawing, and the coarser one winning. A grid still has *cells* in the sense
+ *  of addresses to seat things at, but nothing is measured in them.
  *
  *  Settings, when there are settings, drive this object and nothing else. */
 export const UNITS = {
@@ -26,45 +28,47 @@ export const UNITS = {
    *  units wide leaves about eight characters before a name clips, which is
    *  most of them. */
   block: { w: 5, h: 2 },
-  /** How much room the grid layout leaves between two of anything. */
-  gap: 2,
+  /** How far apart the layout sets any two things, in units. **One rule for
+   *  everything it places** — card to card, card to grid, grid to grid. */
+  gap: 1,
 };
 
-/** One square of the guides. Everything is a whole number of these. */
+/** One square of the guides. **Everything lands on this**: what the layout
+ *  places, what a hand drops, what a grid seats. One lattice, one measure. */
 export const UNIT = UNITS.unit;
 
-/** The fine grid: what hand placement lands on, and what the backdrop dots
- *  mark. **Half a unit**, so a block centred in its cell has exactly one of
- *  these on each side of it and the two backdrops never disagree. */
-export const STEP = UNIT / 2;
+/** How far apart the layout sets any two things. */
+export const GAP = UNITS.gap * UNIT;
 
-/** Seats fall every fine step, never on a corner. **A block is four steps
+/** Seats fall every half unit, never on a corner. **A block is four of these
  *  tall, which is three seats down its side** — the middle one included, so a
- *  port can be dragged to the centre of an edge and not only near its ends. */
-export const SEAT = STEP;
+ *  port can be dragged to the centre of an edge and not only near its ends.
+ *
+ *  A seat is not a place a *block* may land; it is where a line meets a
+ *  border, which is a fraction of an edge rather than a spot on the lattice. */
+export const SEAT = UNIT / 2;
 
 export type Size = { w: number; h: number };
 
 export const BLOCK: Size = { w: UNITS.block.w * UNIT, h: UNITS.block.h * UNIT };
 
-/** **The cell is the unit of arrangement, and a block is what sits in one.**
+/** **A group's cell**, and the one thing a cell is: a block with a gap of air
+ *  on every side of it.
  *
- *  A cell is a block plus the gap — fixed, never sized to what lands in it —
- *  so a block seated in a cell sits centred with half a gap all round it, and
- *  two blocks in neighbouring cells stand a full gap apart. This is the same
- *  lattice the guides draw and the same one a grid's cells are cut from. */
-export const CELL: Size = { w: (UNITS.block.w + UNITS.gap) * UNIT,
-                            h: (UNITS.block.h + UNITS.gap) * UNIT };
-
-/** How much air a block leaves inside its cell, on every side. */
-export const MARGIN = (UNITS.gap * UNIT) / 2;
+ *  Cells are fundamental to a group — they are what it seats things at and what
+ *  it draws. What a cell is *not* is a measure: nothing outside a group is
+ *  quantised to one, no gap is counted in them, and no arrangement steps by
+ *  one. That was the mistake, and it is the only part that was wrong.
+ *
+ *  **A gap on each side rather than one shared between two.** Every element on
+ *  this drawing keeps a gap of clear space around itself, so a block seated in
+ *  a cell keeps its own — which also makes the surplus two whole units, and a
+ *  block centred in it lands on the lattice like everything else. Half a unit
+ *  of surplus would put it between two lines. */
+export const CELL: Size = { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
 
 /** **Exactly two blocks tall**, which is the ratio you can read off the
- *  drawing — a container is a block with a block's worth of picture under it.
- *
- *  It is not two *cells* tall: two cells carry the gap between them as well,
- *  which made a container two and a half blocks and read as neither. It still
- *  claims two cells in a grid, and centres in them. */
+ *  drawing — a container is a block with a block's worth of picture under it. */
 export const CONTAINER: Size = { w: BLOCK.w, h: BLOCK.h * 2 };
 
 /** The room a container's picture of itself gets: exactly how much taller a
@@ -76,75 +80,34 @@ export const PORT: Size = { w: SEAT - 1, h: SEAT - 1 };
 
 export type Box = { x: number; y: number; w: number; h: number };
 
-/** **A grid is exactly its cells, and there is no rim.**
+/** Onto the lattice: the nearest whole unit, in both axes.
  *
- *  It used to keep a bare ring outside the lattice to be taken hold of by. Two
- *  grids in cells next to each other then overlapped by a ring each — a grid is
- *  a region of the layer's lattice, and a region that reaches past its own
- *  cells cannot sit beside another one. What takes its place as somewhere to
- *  grab is the grid's own border, which is inside its cells and so belongs to
- *  nobody else.
- *
- *  Where one cell of the **layer's** lattice sits.
- *
- *  **The lattice is the layer's, anchored at its origin**, and a group is a
- *  named region of it rather than a lattice of its own. Everything measured
- *  from one origin at one size is what lets a card the layer placed and a card
- *  seated in a group line up — and what lets the backdrop draw the lines once
- *  for both. Addresses are signed: the layer grows in every direction. */
-export function lattice_box(r: number, c: number, rows = 1, cols = 1): Box {
-  return { x: c * CELL.w, y: r * CELL.h, w: cols * CELL.w, h: rows * CELL.h };
-}
-
-/** Where a group's corner goes: **the nearest unit, not the nearest cell.**
- *
- *  It used to round to a whole cell, back when the guides were ruled at cell
- *  spacing and that was the only offset at which a grid's own cells fell on
- *  drawn lines. The guides are unit squares now, and a grid's cells are a whole
- *  number of units across — so its lines land on drawn lines at *every* unit
- *  offset, and rounding to a cell only meant a grid could not be nudged.
- *
- *  **Coarser than a card, and on purpose.** A card lands on the fine grid,
- *  which is half a unit; a grid is measured in units, so half of one would put
- *  every cell in it off the ruling. */
-export function grid_snap(at: Point): Point {
+ *  **The one rounding there is.** A card, a grid, a note and a hand-placed
+ *  anything all land on the same lines, because there is only one set of lines. */
+export function on_unit(at: Point): Point {
   return { x: Math.round(at.x / UNIT) * UNIT, y: Math.round(at.y / UNIT) * UNIT };
 }
 
-/** The grid a swept rectangle asks for: **a corner where you started, and a
- *  whole number of cells to cover what you drew over.**
- *
- *  The corner rounds to a unit like any other grid's, so a sweep puts one where
- *  you drew it rather than at the nearest cell of a lattice nobody can see —
- *  the guides are unit squares, and cell boundaries are not drawn. The extent
- *  is still whole cells, because a cell is the thing a grid is made of. */
+/** The grid a swept rectangle asks for: a corner where you drew it, and as
+ *  many seats across and down as fit what you drew over. */
 export function swept_cells(box: Box): { x: number; y: number; rows: number; cols: number } {
-  const at = grid_snap(box);
+  const at = on_unit(box);
   return { ...at,
            rows: Math.max(1, Math.round(box.h / CELL.h)),
            cols: Math.max(1, Math.round(box.w / CELL.w)) };
 }
 
-/** A box grown out to whole cells of the layer's lattice.
+/** A box grown out to whole units.
  *
- *  **A room is a whole number of cells.** Its walls fall on lines the lattice
- *  already draws rather than through the middle of a cell, so the ruling reads
- *  as the room's own measure and a wall never cuts a cell in half. Grown
- *  outward on every side — a room is never made smaller to make it fit. */
+ *  **A room is a whole number of units**, so its walls fall on lines the guides
+ *  already draw. Grown outward on every side — a room is never made smaller to
+ *  make it fit. */
 export function roomed(box: Box): Box {
-  const x = Math.floor(box.x / CELL.w) * CELL.w;
-  const y = Math.floor(box.y / CELL.h) * CELL.h;
+  const x = Math.floor(box.x / UNIT) * UNIT;
+  const y = Math.floor(box.y / UNIT) * UNIT;
   return { x, y,
-           w: Math.ceil((box.x + box.w - x) / CELL.w) * CELL.w,
-           h: Math.ceil((box.y + box.h - y) / CELL.h) * CELL.h };
-}
-
-/** How many cells a thing of this size needs. **A block is one**, and anything
- *  drawn bigger — a container, a note somebody resized, a grid — claims as
- *  many as it covers rather than being squeezed into one. */
-export function span_of(s: Size): { rows: number; cols: number } {
-  return { rows: Math.max(1, Math.ceil(s.h / CELL.h)),
-           cols: Math.max(1, Math.ceil(s.w / CELL.w)) };
+           w: Math.ceil((box.x + box.w - x) / UNIT) * UNIT,
+           h: Math.ceil((box.y + box.h - y) / UNIT) * UNIT };
 }
 
 /** What a grid takes up: its extent in cells, and nothing besides. A boundary
@@ -173,15 +136,18 @@ export function extent_of(w: number, h: number): { rows: number; cols: number } 
 }
 
 /** A block of this size, centred in the cell it was given. **Blocks never
- *  resize**: one in a merged region larger than it sits in the middle of it. */
+ *  resize**: one in a merged region larger than it sits in the middle of it.
+ *
+ *  A cell carries a gap on each side, so the surplus is two whole units and the
+ *  middle of it is a line the guides draw. */
 export function centred_in(box: Box, s: Size): Box {
   return { x: box.x + (box.w - s.w) / 2, y: box.y + (box.h - s.h) / 2, ...s };
 }
 
-/** Onto the fine grid — half a unit, which is what the backdrop dots mark and
- *  what a hand placement lands on. */
+/** Onto the lattice. **One measure**: a hand drop lands where the layout would
+ *  have put it, on a line the guides draw. */
 export function snap(n: number): number {
-  return Math.round(n / STEP) * STEP;
+  return Math.round(n / UNIT) * UNIT;
 }
 
 /** Whether a block is seated in a grid rather than placed beside one. */

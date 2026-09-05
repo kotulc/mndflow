@@ -826,12 +826,10 @@
 
 /* A grid's band, and the one part of it that is not a cell.
 
-   **On the box, which is on the lattice.** It sat half a unit in for a while so
-   two grids side by side would not touch. That is the wrong place to buy it:
-   the band is the outer edge of the outer cells, and a cell off the guides is
-   the one thing a grid may not be. Two grids in neighbouring cells share a line
-   again — room between them is the layout's to leave, not the drawing's to
-   fake.
+   **On the box, which is the outer edge of the outer cells.** The band is the
+   grid's own rectangle and nothing else — held in from the box it read as a
+   frame floating in a margin. Room between one element and the next is the
+   layout's to leave when it places them, never the drawing's to fake.
 
    A stated rectangle, so unlike a boundary its edge is solid — and stronger
    than one, because it is also the handle. */

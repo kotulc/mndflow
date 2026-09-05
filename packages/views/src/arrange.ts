@@ -21,19 +21,11 @@
  *  and the reading directions they carried were a setting nobody set. */
 
 import { arrangement_of, children, is_grid, is_interface, members_of, module_of,
-         type Block, type Graph, type Id } from "@mnd/core";
-import { cell_box, centred_in, gridded, grid_snap, lattice_box, size_of, snap, span_of,
-         CELL, UNIT, UNITS, type Size } from "./size";
+         type Block, type Graph, type Id, type Point } from "@mnd/core";
+import { cell_box, centred_in, gridded, on_unit, size_of, snap,
+         GAP, UNIT, type Size } from "./size";
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
-
-/** Tight inside a unit, open between them — what matters is the contrast.
- *
- *  `member` is how far a boundary reaches past what it holds. **A full cell,
- *  not half of one**: hugged tighter than the gap a card leaves for its own
- *  border, the band read as a box drawn *on* its members rather than round
- *  them, and there was nowhere on it to point at that was not a card. */
-export const GAP = { unit: UNITS.gap * 2 * UNIT, member: UNITS.gap * UNIT };
 
 /** Every block drawn in this layer, placed. Interfaces are seated on their
  *  owner rather than laid out, so they are not here. */
@@ -59,7 +51,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
    *  moved every card a little every time any one of them was dropped, so
    *  nothing ever landed where it was let go of and a card made where you
    *  pointed appeared somewhere else. */
-  const spots = ordered(how === "grid" ? celled_at(sized) : free(sized));
+  const spots = ordered(how === "grid" ? settled(sized) : free(sized));
   const inside = [...spots, ...celled(graph, units, spots)];
   return ordered([...inside, ...banded(graph, units, inside)]);
 }
@@ -118,13 +110,11 @@ type Sized = { b: Block; s: Size };
 
 /** Hand placement is what draws; anything unplaced fills the room around it.
  *
- *  **What a thing is rounded to is what it is measured in.** A card lands on the
- *  backdrop dots, which is what a drag has always snapped to. **A grid lands on
- *  the layer's lattice**, because its cells *are* that lattice — rounded to the
- *  nearest dot instead, every grid came to rest half a dot off every line the
- *  canvas draws, and every cell in it with it. */
-function put(b: Block, at: { x: number; y: number }) {
-  return is_grid(b) ? grid_snap(at) : { x: snap(at.x), y: snap(at.y) };
+ *  **One measure, so one rounding.** A card, a note and a grid all land on the
+ *  same lattice — there is no coarser lattice for a grid to be quantised to,
+ *  which is what used to stop one being nudged. */
+function put(at: { x: number; y: number }) {
+  return { x: snap(at.x), y: snap(at.y) };
 }
 
 function free(all: Sized[]): Placed[] {
@@ -132,26 +122,70 @@ function free(all: Sized[]): Placed[] {
   const loose: Sized[] = [];
   for (const it of all) {
     if (it.b.x !== undefined && it.b.y !== undefined) {
-      out.push({ id: it.b.id, ...put(it.b, { x: it.b.x, y: it.b.y }), ...it.s });
+      out.push({ id: it.b.id, ...put({ x: it.b.x, y: it.b.y }), ...it.s });
     } else loose.push(it);
   }
-  const below = out.length ? Math.max(...out.map((p) => p.y + p.h)) + GAP.unit : 0;
+  const below = out.length ? Math.max(...out.map((p) => p.y + p.h)) + GAP : 0;
   let x = 0;
   for (const it of loose) {
-    out.push({ id: it.b.id, ...put(it.b, { x, y: below }), ...it.s });
-    x += it.s.w + GAP.unit;
+    out.push({ id: it.b.id, ...put({ x, y: below }), ...it.s });
+    x += it.s.w + GAP;
   }
   return out;
 }
 
-/** **The tidy**: everything packed into a tight square of cells, in the order
- *  the layer states its blocks.
+/** Everything where its own position says, rounded onto the lattice and pushed
+ *  clear of whatever is already there.
  *
- *  Left to right, then a new row — the plainest reading there is, and the one a
- *  page already teaches. The square grows with the count rather than running
- *  off one edge, so a layer of twenty cards is five by four and not a line
- *  twenty long. A card bigger than one cell claims as many as it needs and the
- *  next one steps over it.
+ *  **A gap between any two things, and the gap is a unit.** Nothing is
+ *  quantised to anything bigger: a card, a note and a grid all round to the
+ *  same lines and all keep the same distance from their neighbours. Taken in
+ *  the order the layer states them, so the same graph always resolves the same
+ *  way.
+ *
+ *  A block nobody has placed starts at the origin and is pushed out from
+ *  there, which for a card made on empty ground is where it was made. */
+function settled(all: Sized[]): Placed[] {
+  const out: Placed[] = [];
+  for (const it of all) {
+    const at = on_unit(it.b.x !== undefined && it.b.y !== undefined
+      ? { x: it.b.x, y: it.b.y } : { x: 0, y: 0 });
+    out.push({ id: it.b.id, ...clear_at(out, at, it.s) });
+  }
+  return out;
+}
+
+/** The nearest place to `at` where a box of this size stands a gap clear of
+ *  everything already placed. Steps outward a unit at a time, so the answer is
+ *  the closest there is. */
+function clear_at(taken: readonly Rect[], at: Point, s: Size): Rect {
+  const free_at = (x: number, y: number) => !taken.some((t) =>
+    x < t.x + t.w + GAP && t.x < x + s.w + GAP
+    && y < t.y + t.h + GAP && t.y < y + s.h + GAP);
+  for (let ring = 0; ring <= RINGS; ring++) {
+    for (let dx = -ring; dx <= ring; dx++) {
+      for (let dy = -ring; dy <= ring; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+        const x = at.x + dx * UNIT;
+        const y = at.y + dy * UNIT;
+        if (free_at(x, y)) return { x, y, ...s };
+      }
+    }
+  }
+  return { ...at, ...s };
+}
+
+/** **The tidy**: everything laid out in rows, left to right, a gap between
+ *  each and between the rows.
+ *
+ *  In the order the layer states its blocks — the plainest reading there is,
+ *  and the one a page already teaches. The rows are kept about as wide as the
+ *  whole is tall, so a layer of twenty cards is a block of them rather than a
+ *  line twenty long.
+ *
+ *  **Everything is a whole number of units from everything else**, including
+ *  the row it starts. Nothing here knows what a cell is: a grid is simply a
+ *  wide, tall thing, and it is spaced from its neighbour exactly as a card is.
  *
  *  **This is what the button does, and nothing else calls it.** Its answer is
  *  written to the graph as ordinary placements — which is what lets everything
@@ -162,101 +196,30 @@ export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: nu
   const sized = [...units]
     .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))
     .map((b) => ({ b, s: size_of(graph, b.id) }));
-  return packed(sized).map((p) => ({ id: p.id, x: p.x, y: p.y }));
+  return shelved(sized).map((p) => ({ id: p.id, x: p.x, y: p.y }));
 }
 
-/** Everything where its own position says, rounded to a cell.
- *
- *  **The nearest free one.** A cell holds one thing — that is the whole of what
- *  a grid arrangement buys — so where two land on the same address the second
- *  steps outward to the nearest address that fits it. Taken in the order the
- *  layer states them, so the same graph always resolves the same way.
- *
- *  A block nobody has placed goes wherever the search first finds room, which
- *  for a card made on empty ground is the cell it was made in. */
-function celled_at(all: Sized[]): Placed[] {
-  const taken = new Set<string>();
+function shelved(all: Sized[]): Placed[] {
+  if (!all.length) return [];
+  /** About as wide as it is tall, and never narrower than the widest thing. */
+  const area = all.reduce((n, it) => n + (it.s.w + GAP) * (it.s.h + GAP), 0);
+  const want = Math.max(...all.map((it) => it.s.w), Math.sqrt(area));
   const out: Placed[] = [];
+  let x = 0;
+  let y = 0;
+  let tall = 0;
   for (const it of all) {
-    const at = it.b.x !== undefined && it.b.y !== undefined
-      ? { x: it.b.x, y: it.b.y } : { x: 0, y: 0 };
-    const span = span_of(it.s);
-    /** The address whose span this thing, centred, sits nearest to. */
-    const want = {
-      c: Math.round((at.x + it.s.w / 2 - (span.cols * CELL.w) / 2) / CELL.w),
-      r: Math.round((at.y + it.s.h / 2 - (span.rows * CELL.h) / 2) / CELL.h),
-    };
-    const seat = nearest_free(taken, want, span);
-    claim(taken, seat, span);
-    out.push({ id: it.b.id,
-               ...centred_in(lattice_box(seat.r, seat.c, span.rows, span.cols), it.s) });
+    if (x > 0 && x + it.s.w > want) { x = 0; y += tall + GAP; tall = 0; }
+    out.push({ id: it.b.id, x, y, ...it.s });
+    x += it.s.w + GAP;
+    tall = Math.max(tall, it.s.h);
   }
-  return out;
-}
-
-/** The address nearest the one asked for with room for a span of this size.
- *  Steps outward a ring at a time, so the answer is the closest there is. */
-function nearest_free(taken: ReadonlySet<string>, want: { r: number; c: number },
-                      span: { rows: number; cols: number }): { r: number; c: number } {
-  const fits = (r: number, c: number) => {
-    for (let dr = 0; dr < span.rows; dr++) {
-      for (let dc = 0; dc < span.cols; dc++) if (taken.has(`${r + dr},${c + dc}`)) return false;
-    }
-    return true;
-  };
-  for (let ring = 0; ring <= RINGS; ring++) {
-    for (let dr = -ring; dr <= ring; dr++) {
-      for (let dc = -ring; dc <= ring; dc++) {
-        if (Math.max(Math.abs(dr), Math.abs(dc)) !== ring) continue;
-        if (fits(want.r + dr, want.c + dc)) return { r: want.r + dr, c: want.c + dc };
-      }
-    }
-  }
-  return want;
-}
-
-function claim(taken: Set<string>, at: { r: number; c: number },
-               span: { rows: number; cols: number }) {
-  for (let dr = 0; dr < span.rows; dr++) {
-    for (let dc = 0; dc < span.cols; dc++) taken.add(`${at.r + dr},${at.c + dc}`);
-  }
-}
-
-/** The tight square itself: first fit, row by row, centred on the origin by
- *  whole cells. **Half a cell would put the whole layer off the lattice** it
- *  was just packed into, which is the one thing this is for. */
-function packed(all: Sized[]): Placed[] {
-  const spans = all.map((it) => ({ ...it, at: span_of(it.s) }));
-  const cols = Math.max(1, Math.ceil(Math.sqrt(
-    spans.reduce((n, it) => n + it.at.rows * it.at.cols, 0))));
-  const taken = new Set<string>();
-  const wide = Math.max(cols, ...spans.map((it) => it.at.cols), 1);
-  const seats: { id: Id; s: Size; r: number; c: number; rows: number; cols: number }[] = [];
-  let rows = 0;
-  for (const it of spans) {
-    let r = 0;
-    let c = 0;
-    while (c + it.at.cols > wide || !free_span(taken, r, c, it.at)) {
-      c += 1;
-      if (c + it.at.cols > wide) { c = 0; r += 1; }
-    }
-    claim(taken, { r, c }, it.at);
-    rows = Math.max(rows, r + it.at.rows);
-    seats.push({ id: it.b.id, s: it.s, r, c, ...it.at });
-  }
-  const off = { r: -Math.floor(rows / 2), c: -Math.floor(wide / 2) };
-  return seats.map((t) => ({
-    id: t.id,
-    ...centred_in(lattice_box(t.r + off.r, t.c + off.c, t.rows, t.cols), t.s),
-  }));
-}
-
-function free_span(taken: ReadonlySet<string>, r: number, c: number,
-                   span: { rows: number; cols: number }): boolean {
-  for (let dr = 0; dr < span.rows; dr++) {
-    for (let dc = 0; dc < span.cols; dc++) if (taken.has(`${r + dr},${c + dc}`)) return false;
-  }
-  return true;
+  /** Centred on the origin **by whole units**, so what was just laid out on the
+   *  lattice stays on it. */
+  const right = Math.max(...out.map((p) => p.x + p.w));
+  const bottom = Math.max(...out.map((p) => p.y + p.h));
+  const off = { x: -Math.round(right / 2 / UNIT) * UNIT, y: -Math.round(bottom / 2 / UNIT) * UNIT };
+  return out.map((p) => ({ ...p, x: p.x + off.x, y: p.y + off.y }));
 }
 
 /** Positions are relative to the layer's centre, so a layer stays centred as it
@@ -316,7 +279,7 @@ export function bounds(spots: readonly Placed[]): { w: number; h: number } {
   const reach = (a: number, b: number) => Math.max(Math.abs(a), Math.abs(b));
   const w = Math.max(...spots.map((p) => reach(p.x, p.x + p.w))) * 2;
   const h = Math.max(...spots.map((p) => reach(p.y, p.y + p.h))) * 2;
-  return { w: w + GAP.unit * 2, h: h + GAP.unit * 2 };
+  return { w: w + GAP * 2, h: h + GAP * 2 };
 }
 
 /** A boundary is its members' bounds plus a cell of air — its size is a fact
@@ -324,9 +287,9 @@ export function bounds(spots: readonly Placed[]): { w: number; h: number } {
 export function boundary(spots: readonly Placed[], members: readonly Id[]): Placed | null {
   const inside = spots.filter((p) => members.includes(p.id));
   if (inside.length === 0) return null;
-  const x = Math.min(...inside.map((p) => p.x)) - GAP.member;
-  const y = Math.min(...inside.map((p) => p.y)) - GAP.member;
-  const w = Math.max(...inside.map((p) => p.x + p.w)) + GAP.member - x;
-  const h = Math.max(...inside.map((p) => p.y + p.h)) + GAP.member - y;
+  const x = Math.min(...inside.map((p) => p.x)) - GAP;
+  const y = Math.min(...inside.map((p) => p.y)) - GAP;
+  const w = Math.max(...inside.map((p) => p.x + p.w)) + GAP - x;
+  const h = Math.max(...inside.map((p) => p.y + p.h)) + GAP - y;
   return { id: "", x, y, w, h };
 }

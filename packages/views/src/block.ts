@@ -80,8 +80,17 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const at = boxes.findIndex((x) => x.id === g.id);
     if (at >= 0) boxes.splice(at, 1);
     if (!box) continue;
+    /** **A group's own marks, not a card's.** It is drawn as a band and never
+     *  as a card, so the marks that say how a *card* reads are dropped — but
+     *  `unlabelled` is not one of those. It says whether this thing writes its
+     *  name on itself, which is the one thing a band can be told; thrown away
+     *  with the rest, the control that says so could not take a name off a
+     *  group and the toggle did nothing anybody could see. */
+    const said = carried(graph, g.id);
+    const marks: Mark[] = said.marks.includes("unlabelled")
+      ? ["group", "unlabelled"] : ["group"];
     groups.push(node(g.id, box,
-                     { ...carried(graph, g.id), marks: ["group"], cells: [], holds: members,
+                     { ...said, marks, cells: [], holds: members,
                        ...(is_grid(g) ? { grid: lattice(g) } : {}) },
                      "group"));
   }
@@ -242,7 +251,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
              label, role, ports, ...set_in };
   }
-  const pad = GAP.unit;
+  const pad = GAP;
   const at = drawn.map(box_of);
   const x = Math.min(...at.map((b) => b.x)) - pad;
   const y = Math.min(...at.map((b) => b.y)) - pad;

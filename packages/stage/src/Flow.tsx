@@ -18,7 +18,7 @@ import {
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
 import { at_seat, box_of, extent, look_key, nearest_seat, perch_id, roomed,
-         swept_cells, CELL, FRAME, PORT, STEP, UNIT,
+         swept_cells, FRAME, PORT, CELL, UNIT,
          type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
@@ -1408,7 +1408,7 @@ function Canvas(props: FlowViewProps) {
           })}
         </ViewportPortal>
       ) : null}
-      {chrome ? <Background variant={BackgroundVariant.Dots} gap={STEP} size={1} /> : null}
+      {chrome ? <Background variant={BackgroundVariant.Dots} gap={UNIT} size={1} /> : null}
       {/* **The unit, ruled over the whole canvas as squares.**
           One square is the unit everything on the drawing is measured in: a
           block is five by two of them, a cell is six by three, and the layout

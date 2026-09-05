@@ -20,6 +20,7 @@
  *  straight lane otherwise. */
 
 import { Position } from "@xyflow/react";
+import { GAP } from "@mnd/views";
 
 export type Rect = { x: number; y: number; w: number; h: number };
 type Point = { x: number; y: number };
@@ -28,8 +29,9 @@ type Point = { x: number; y: number };
  *  the border band, so the first turn is always clear of the card. */
 export const STUB = 16;
 
-/** Clear space kept between a run and a box it goes round. */
-const MARGIN = 12;
+/** Clear space kept between a run and a box it goes round. **The gap the
+ *  layout leaves**, so a lane between two things is a lane a line can take. */
+const MARGIN = GAP;
 
 /** Which way a run sets off from each face. */
 const AWAY: Record<string, Point> = {

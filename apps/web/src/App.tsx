@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, module_of, offer, session,
          type Id, type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, extent_of, grid_snap, nearest_seat, project, snap, tidy,
+import { box_of, clear_of, extent_of, nearest_seat, project, snap, tidy,
          BLOCK, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
@@ -138,19 +138,11 @@ export function App() {
     s.go(name, args ?? {});
   };
 
-  /** Where a thing put down by hand comes to rest.
-   *
-   *  **What is written is where you let go of it**; what rounds it to a cell on
-   *  a layer set to `grid` is the layout, which is the only thing that knows
-   *  which cells are already taken. So this writes the honest answer and the
-   *  drawing shows the constrained one. A grid block is the exception: its
-   *  cells *are* the lattice, so its own corner lands on it whatever the layer
-   *  is arranged as. */
-  const put = (id: Id, to: { x: number; y: number }) => {
-    const b = graph.blocks[id];
-    if (b?.rows !== undefined && b.cols !== undefined) return grid_snap(to);
-    return { x: snap(to.x), y: snap(to.y) };
-  };
+  /** Where a thing put down by hand comes to rest: **on the lattice**, which
+   *  is the only measure there is. What the layout does with it afterwards —
+   *  pushing it a gap clear of its neighbours on a layer set to `grid` — is the
+   *  layout's, and it works in the same units. */
+  const put = (_id: Id, to: { x: number; y: number }) => ({ x: snap(to.x), y: snap(to.y) });
 
   /** An adjustment is positional and unsayable, and undoable like anything
    *  else. **The canvas already worked out where it landed** — it snaps to the
@@ -170,7 +162,7 @@ export function App() {
          *  backdrop dots — its cells are that lattice, so a corner rounded to
          *  the nearest dot put every cell in it a few pixels off every line the
          *  canvas draws. */
-        s.go("group", { into: a.on, ...extent_of(a.w, a.h), spot: grid_snap(a.to) });
+        s.go("group", { into: a.on, ...extent_of(a.w, a.h), spot: put(a.on, a.to) });
         return;
       }
       s.adjust("size", adjustments.size(a.on, a.w, a.h));
