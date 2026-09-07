@@ -111,9 +111,27 @@
 | **extent** | a grid's `rows` and `cols`. What lets an empty grid draw at all, and what a dragged corner sets |
 | **merge** | a **cell's** extent, stated on the grid as a `Span` and never on a cell. A merged region is one cell: every address it covers answers with the span's box, and a block in one larger than itself **centres**, because blocks never resize |
 | **footprint** | how many cells a block needs, derived from its size. **Distinct from a merge**, which is how big a cell is — the two do not collide |
-| **header** | a seated block that **heads its row, its column, or both**. It fills its cell and is drawn on a darker ground. One field on the block, `header`, and the role is the whole of it |
+| **header** | a **promoted** block: it heads the line it sits in, fills its cell, and is drawn on a darker ground. One flag, `header`, and **which line is read from where it sits** |
 | **allocation** | **the SysML word.** Every block along the lines a header covers is *allocated to* it — swimlane, lane owner and tag are one construct under one standard name |
 | **row × column** | a pair of allocations. What makes an allocation matrix fall out later: rows one domain, columns another, a filled cell allocated to both |
+
+**Which line a header heads is its position, and the rule is one sentence.**
+
+| Sits at | Heads |
+|---|---|
+| `{0,0}` | **both** — the first row and the first column |
+| `{0,c}` | **its column** |
+| anywhere else | **its row** |
+
+**So promotion is one gesture with nothing to choose** — promote and demote, and the grid says which line it meant. Nothing is stored but *whether*, which is what keeps allocation honest: the allocation **is** the position, and there is no second field to fall out of step with it the moment a block is dragged.
+
+**`transpose` costs no header code at all.** A lane owner in column 0 lands in row 0 and becomes a column head, because that is what row 0 means. The grid says the same thing turned on its side.
+
+**A header labels a line, never a region** — extended by a merge, so a header spanning rows 1–3 heads all three. That is what keeps allocation composable: a cell sits in exactly one row and one column, so it has **at most two headers, one per axis**, which is the whole reason a matrix falls out of a pair of them. A scope reaching down and right instead would compose into an unordered pile, and *what is allocated to this* would need a nesting rule the model does not have.
+
+**The corner is the grid's subject.** A block at `{0,0}` heads both its lines, which are the other headers — so what it names is what the whole grid is about.
+
+**What this gives up, on purpose:** a header cannot label a column from anywhere but row 0, so a second tier of column headings is not sayable. The four things the grid is for — swimlane, lifeline, table, matrix — each want one header row and one header column, which is exactly what this is.
 
 **Allocation is derived from position and stored nowhere.** A block leaving the grid loses it, which is correct — the allocation *was* the position. Durable classification is a field somebody typed, a different thing with a different gesture.
 

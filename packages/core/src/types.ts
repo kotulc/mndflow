@@ -65,15 +65,10 @@ export type Cell = { r: number; c: number };
  *  Distinct from a footprint, which says how many cells a block needs. */
 export type Span = { r: number; c: number; rows: number; cols: number };
 
-/** Whether a seated block heads its row, its column, or both.
- *
- *  **One mechanism, on the block.** A grid used to carry a `headers` strip
- *  setting as well, saying row 0 and column 0 were headers; the two never
- *  agreed, and allocation read the setting nobody wrote. A header is a block
- *  that says it heads its line, wherever in the grid it sits. */
+/** Which line a header heads. **Derived from where it sits, never stored** —
+ *  see `would_head`. A block in row 0 heads its column, the corner heads both,
+ *  and anything else heads its row. */
 export type HeaderRole = "row" | "col" | "both";
-
-export const HEADER_ROLES: readonly HeaderRole[] = ["row", "col", "both"];
 
 /** The one element. What it *is* comes from its definition. */
 export type Block = {
@@ -90,10 +85,14 @@ export type Block = {
   /** Where in that group. Replaces `x`/`y` for a gridded block, exactly as
    *  `side` and `at` replace them for an interface. */
   cell?: Cell;
-  /** **What this block heads.** A header fills its cell and every other block
-   *  along the lines it covers is *allocated to* it. Stored on the block, so
-   *  the allocation is still the position and nothing states it twice. */
-  header?: HeaderRole;
+  /** **Whether this block heads the line it sits in.** A header fills its cell
+   *  and every other block along that line is *allocated to* it.
+   *
+   *  **A flag, because position says which line** — row 0 heads a column, the
+   *  corner heads both, anything else heads its row. Storing the role as well
+   *  would state the same fact twice and let the two disagree the moment
+   *  somebody dragged the block. */
+  header?: boolean;
   /** Only meaningful on a group: its extent, which is what lets an empty grid
    *  draw. A group with neither is a boundary — a band round its members. */
   rows?: number;
@@ -233,7 +232,7 @@ export type Mutation =
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
-  | { op: "set_header"; id: Id; header: HeaderRole | null }
+  | { op: "set_header"; id: Id; header: boolean }
   | { op: "set_grid"; id: Id; rows?: number | null; cols?: number | null }
   | { op: "merge_cells"; id: Id; span: Span }
   | { op: "split_cells"; id: Id; r: number; c: number }

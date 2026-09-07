@@ -108,8 +108,9 @@ const PATHS = {
   // a bare rule and a directed one from reading as an arrange arrow.
   relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
   relation_directed: "M4.5 8.5v7M4.5 12h14M14 7.5l5 4.5-5 4.5",
-  // A tie is an association rather than a flow: the same span, drawn open.
-  relation_tie: "M4.5 8.5v7M19.5 8.5v7M4.5 12h4M10 12h4M15.5 12h4",
+  // A tie is an association rather than a flow: the same span, dotted like the
+  // leader it draws on the canvas.
+  relation_tie: "M4.5 8.5v7M19.5 8.5v7M5.5 12h0M7.5 12h0M9.5 12h0M11.5 12h0M13.5 12h0M15.5 12h0M17.5 12h0",
   relation_typed: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15M12 6.5v3",
 
   // Pulling the bends out of every line. A run that jogs, over the one straight

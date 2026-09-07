@@ -86,6 +86,9 @@ const PATHS = {
   // groups, so a shared mark would be the one mistake this set exists to stop.
   relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
   relation_directed: "M4.5 8.5v7M4.5 12h13.5M14 8.5l3.5 3.5-3.5 3.5",
+  // A tie is an association rather than a flow: the same span, dotted like the
+  // leader it draws on the canvas.
+  relation_tie: "M4.5 8.5v7M19.5 8.5v7M5.5 12h0M7.5 12h0M9.5 12h0M11.5 12h0M13.5 12h0M15.5 12h0M17.5 12h0",
   // A declared kind: the same joined ends, tagged.
   relation_typed: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15M12 6.5v3",
 

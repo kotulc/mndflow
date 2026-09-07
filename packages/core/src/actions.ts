@@ -7,13 +7,13 @@
  *  An action writing no mutations is navigation: no step, nothing to undo, and
  *  a text interface never offers it. */
 
-import { arrangement_of, at_cell, can_hold, children, covers, edges_in, is_grid,
-         is_group, is_header, is_holder, is_interface, is_reference, layer_id,
+import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
+         is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          may_retype, members_of, module_of, module_named, next_num, next_alias,
          path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, HEADER_ROLES, VALUE_FORMS, type Arrangement, type Block,
-         type Cell, type Dir, type FieldDef, type Flow, type Graph, type HeaderRole, type Id,
+import { ARRANGEMENTS, VALUE_FORMS, type Arrangement, type Block,
+         type Cell, type Dir, type FieldDef, type Flow, type Graph, type Id,
          type Mutation, type RelationModule, type Side, type Span, type ValueForm } from "./types";
 
 /** What an input method can fill. A position can only come from a gesture. */
@@ -991,14 +991,6 @@ function headed(ctx: Context, args: Args): Block | null {
   return b;
 }
 
-/** Which line a header heads, or null to head none. **Absent means `row`**, so
- *  the plain gesture stays one word. */
-function header_way(args: Args): HeaderRole | null {
-  const said = text(args, "way");
-  if (said === "none") return null;
-  return HEADER_ROLES.includes(said as HeaderRole) ? (said as HeaderRole) : "row";
-}
-
 register(
   {
     name: "seat",
@@ -1040,23 +1032,23 @@ register(
   },
   {
     name: "header",
-    about: "makes a seated block head its row or its column",
+    about: "promotes a seated block to head the line it sits in",
     on: ["block"],
-    /** **One argument, and `none` is how a header stops being one.** Promote
-     *  and demote were a verb and a flag that only ever said `row`, which left
-     *  two of the three roles with no way to be asked for. */
+    /** **One flag, because position says which line.** Row 0 heads its column,
+     *  the corner heads both, anything else heads its row — so promoting is a
+     *  verb with nothing to choose, and demoting is the same verb cleared. */
     args: [{ name: "id", form: "block" },
-           { name: "way", form: "choice", choices: [...HEADER_ROLES, "none"] }],
+           { name: "clear", form: "choice", choices: ["yes"] }],
     check: (ctx, args) => {
       const b = headed(ctx, args);
       if (!b) return "only a block in a grid can head a line";
-      const way = header_way(args);
-      if (!way) return is_header(b) ? null : "it heads nothing already";
-      return b.header === way ? `it heads its ${way} already` : null;
+      if (args["clear"] === "yes") return is_header(b) ? null : "it heads nothing already";
+      return is_header(b) ? `it heads its ${head_of(ctx.graph, b.id)} already` : null;
     },
     run: (ctx, args) => {
       const b = headed(ctx, args);
-      return b ? { mutations: [{ op: "set_header", id: b.id, header: header_way(args) }] }
+      return b ? { mutations: [{ op: "set_header", id: b.id,
+                                 header: args["clear"] !== "yes" }] }
                : { mutations: [] };
     },
   },
@@ -1163,13 +1155,12 @@ register(
       const group = grid_named(ctx, args)!;
       const g = ctx.graph.blocks[group]!;
       const out: Mutation[] = [{ op: "set_grid", id: group, rows: g.cols!, cols: g.rows! }];
-      /** **A header turns over with its cell.** What headed a row heads the
-       *  column that row became, so the grid says the same thing the other way
-       *  up and nothing in the model changes. */
+      /** **A header turns over with its cell and costs nothing to do it.** What
+       *  headed a row sat outside row 0 and now sits in it, so it heads the
+       *  column that row became — which is what a header meaning its position
+       *  buys, and it is why nothing here mentions one. */
       for (const b of members_of(ctx.graph, group)) {
         if (b.cell) out.push({ op: "seat_cell", id: b.id, cell: { r: b.cell.c, c: b.cell.r } });
-        if (b.header === "row") out.push({ op: "set_header", id: b.id, header: "col" });
-        else if (b.header === "col") out.push({ op: "set_header", id: b.id, header: "row" });
       }
       for (const s of g.merges ?? []) out.push({ op: "split_cells", id: group, r: s.r, c: s.c });
       for (const s of g.merges ?? []) {

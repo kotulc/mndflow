@@ -7,8 +7,8 @@
 import type { Settings } from "./components";
 import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
-         type Definition, type Graph, type Id, type Log, type Mutation, type Relation,
-         type Span, type Step } from "./types";
+         type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
+         type Relation, type Span, type Step } from "./types";
 
 /** A group with nobody in it is not a boundary any more — dissolve it, and if
  *  that empties the group it sat in, dissolve that too. Grids are kept: an empty
@@ -124,7 +124,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_header": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.header) b.header = m.header;
+      if (m.header) b.header = true;
       else delete b.header;
       return;
     }
@@ -639,9 +639,35 @@ export function is_header(b: Block): boolean {
   return !!b.header;
 }
 
-/** Whether a block heads rows, or columns. `both` is both. */
-export function heads(b: Block, way: "row" | "col"): boolean {
-  return b.header === way || b.header === "both";
+/** Which line a seated block's position puts it in charge of, whether or not it
+ *  is a header.
+ *
+ *  **Position is the whole rule, and it is one sentence**: row 0 heads its
+ *  column, the corner heads both, anything else heads its row. So promoting is
+ *  one gesture with nothing to choose, and a grid means the same thing turned
+ *  on its side — `transpose` moves a lane owner from column 0 into row 0 and it
+ *  becomes a column head with no code to do it.
+ *
+ *  **A line, never a region.** A cell sits in one row and one column, so it has
+ *  at most two headers, one per axis — which is what lets a matrix fall out of
+ *  a pair of them. A scope reaching down and right instead would compose into
+ *  an unordered pile and leave *what is allocated to this* without an answer. */
+export function would_head(graph: Graph, id: Id): HeaderRole | null {
+  const at = region_of(graph, id);
+  if (!at) return null;
+  if (at.r === 0) return at.c === 0 ? "both" : "col";
+  return "row";
+}
+
+/** Which line this block heads, or null where it heads none. */
+export function head_of(graph: Graph, id: Id): HeaderRole | null {
+  return graph.blocks[id]?.header ? would_head(graph, id) : null;
+}
+
+/** Whether this block heads rows, or columns. The corner heads both. */
+export function heads(graph: Graph, id: Id, way: "row" | "col"): boolean {
+  const role = head_of(graph, id);
+  return role === way || role === "both";
 }
 
 /** The region a seated block occupies: the merge covering its address, or the
@@ -673,8 +699,8 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
     if (h.id === id || !h.header) continue;
     const at = region_of(graph, h.id);
     if (!at) continue;
-    if ((heads(h, "row") && along(me.r, me.rows, at.r, at.rows))
-      || (heads(h, "col") && along(me.c, me.cols, at.c, at.cols))) out.push(h);
+    if ((heads(graph, h.id, "row") && along(me.r, me.rows, at.r, at.rows))
+      || (heads(graph, h.id, "col") && along(me.c, me.cols, at.c, at.cols))) out.push(h);
   }
   return out;
 }

@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_grid, is_header, type HeaderRole } from "@mnd/core";
+import { is_grid, is_header } from "@mnd/core";
 
 /** One named entry a menu draws: an action, optionally with an argument filled
  *  and a word of its own. **Repeated here rather than imported** — the stage
@@ -64,24 +64,17 @@ export type StageProps = {
  *  a remark; neither is somewhere to go. */
 const INERT = ["group", "grid", "note"];
 
-const WAYS: readonly [HeaderRole, string][] =
-  [["row", "head row"], ["col", "head column"], ["both", "head both"]];
-
 /** What a seated block offers for heading a line.
  *
- *  **One entry per role it is not already in**, so a column header can be asked
- *  for at all — promote and demote were a pair that only ever said `row`, which
- *  left two of the three roles unreachable. `both` appears once it heads one
- *  way, since that is where wanting it comes from. */
+ *  **Promote and demote, because position says which line.** A block in row 0
+ *  heads its column, the corner heads both, anything else heads its row — so
+ *  there is nothing here to pick between. */
 function header_offers(id: string, graph: Graph): Entry[] {
   const b = graph.blocks[id];
   if (!b?.cell || !b.group || !is_grid(graph, b.group)) return [];
-  const out = WAYS
-    .filter(([way]) => b.header !== way && (way !== "both" || is_header(b)))
-    .map(([way, label]): Entry => ({ name: "header", label, args: { way } }));
   return is_header(b)
-    ? [...out, { name: "header", label: "head nothing", args: { way: "none" } }]
-    : out;
+    ? [{ name: "header", label: "demote", args: { clear: "yes" } }]
+    : [{ name: "header", label: "promote", args: {} }];
 }
 
 /** What a card's menu lists besides the shared box actions. */

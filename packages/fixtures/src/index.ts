@@ -141,9 +141,9 @@ export function gridded(): Log {
       step("create", [block(id, "block_board", label, "block")])),
     step("seat", [
       joins("block_alice"), seat("block_alice", 1, 0),
-      { op: "set_header", id: "block_alice", header: "row" },
+      { op: "set_header", id: "block_alice", header: true },
       joins("block_bob"), seat("block_bob", 2, 0),
-      { op: "set_header", id: "block_bob", header: "row" },
+      { op: "set_header", id: "block_bob", header: true },
       joins("block_draft"), seat("block_draft", 1, 1),
       joins("block_review"), seat("block_review", 1, 2),
       joins("block_ship"), seat("block_ship", 1, 3),
