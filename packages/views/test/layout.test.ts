@@ -304,6 +304,51 @@ describe("the layout leaves room between things", () => {
       }
     }
   });
+
+  it("places each id once, even when a group sits inside another", () => {
+    const graph = fold(related());
+    graph.blocks["block_inner"] = {
+      id: "block_inner", parent: "block_loop", type: "group", num: 20, labelled: false,
+    };
+    graph.blocks["block_pad"] = { id: "block_pad", parent: "block_loop", type: "block", num: 21 };
+    graph.blocks["block_pad"]!.group = "block_inner";
+    graph.blocks["block_inner"]!.group = "block_hot";
+    const spots = under(graph, "block_loop", "grid");
+    const ids = spots.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toContain("block_inner");
+    expect(ids).toContain("block_pad");
+  });
+
+  it("keeps a unit between a band and a sibling card, never overlapping the rim", () => {
+    const graph = fold(related());
+    graph.blocks["block_hello"] = { id: "block_hello", parent: "block_loop", type: "block", num: 30 };
+    graph.edges["edge_hello"] = {
+      id: "edge_hello", from: "block_hello", to: "block_hx", module: "line",
+    };
+    const spots = under(graph, "block_loop", "grid");
+    const hello = spots.find((p) => p.id === "block_hello")!;
+    const hot = spots.find((p) => p.id === "block_hot")!;
+    const overlap = hello.x < hot.x + hot.w && hot.x < hello.x + hello.w
+                 && hello.y < hot.y + hot.h && hot.y < hello.y + hello.h;
+    expect(overlap).toBe(false);
+    const gap = Math.max(hello.x - (hot.x + hot.w), hot.x - (hello.x + hello.w),
+                         hello.y - (hot.y + hot.h), hot.y - (hello.y + hello.h));
+    expect(gap).toBeGreaterThanOrEqual(UNIT);
+  });
+
+  it("shelves unlinked cards without breaking the related cluster", () => {
+    const graph = fold(related());
+    graph.blocks["block_spare"] = { id: "block_spare", parent: "block_loop", type: "block", num: 50 };
+    graph.blocks["block_spare2"] = { id: "block_spare2", parent: "block_loop", type: "block", num: 51 };
+    const spots = under(graph, "block_loop", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    expect(at.get("block_pump")!.y).toBe(at.get("block_hx")!.y);
+    expect(gap(at.get("block_pump")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(gap(at.get("block_spare")!, at.get("block_spare2")!)).toBeLessThanOrEqual(GAP + UNIT);
+  });
 });
 
 describe("boundaries", () => {
@@ -392,10 +437,12 @@ describe("seats", () => {
       b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
     const pump = at.get("block_pump")!;
     const hot = at.get("block_hot")!;
-    /** Pump feeds the hot-side band — they should be neighbours, not across the layer. */
+    const hx = at.get("block_hx")!;
+    /** Pump feeds a member of the hot-side band — neighbours, aligned with
+     *  that member so a line can run straight into its face. */
     expect(gap(pump, hot)).toBeGreaterThanOrEqual(GAP);
     expect(gap(pump, hot)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(pump.y).toBe(hot.y);
+    expect(pump.y).toBe(hx.y);
   });
 
   it("lines up directed neighbours on one row so a run can be straight", () => {
@@ -403,11 +450,50 @@ describe("seats", () => {
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const pump = at.get("block_pump")!;
-    const hot = at.get("block_hot")!;
+    const hx = at.get("block_hx")!;
     const valve = at.get("block_valve")!;
-    /** Directed edges leave pump and meet the hot band on the same row. */
-    expect(pump.y).toBe(hot.y);
+    /** Directed edges leave pump and meet the member they name, not the rim. */
+    expect(pump.y).toBe(hx.y);
     expect(pump.y).toBe(valve.y);
+  });
+
+  it("sits a hub's neighbours in surrounding cells, not a single row", () => {
+    const { graph, layer } = layer_of("flat");
+    graph.blocks["block_hub"] = { id: "block_hub", parent: layer, type: "block", num: 10 };
+    for (let i = 0; i < 4; i++) {
+      const id = `block_n${i}`;
+      graph.blocks[id] = { id, parent: layer, type: "block", num: 11 + i };
+      graph.edges[`edge_n${i}`] = { id: `edge_n${i}`, from: "block_hub", to: id, module: "line" };
+    }
+    const spots = under(graph, layer, "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const hub = at.get("block_hub")!;
+    const leaves = [0, 1, 2, 3].map((i) => at.get(`block_n${i}`)!);
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    for (const leaf of leaves) expect(gap(leaf, hub)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(new Set(leaves.map((p) => p.y)).size).toBeGreaterThan(1);
+    expect(new Set(leaves.map((p) => p.x)).size).toBeGreaterThan(1);
+  });
+
+  it("keeps a directed chain on one row, left to right", () => {
+    const { graph, layer } = layer_of("flat");
+    const ids = ["block_a", "block_b", "block_c", "block_d"];
+    ids.forEach((id, i) => {
+      graph.blocks[id] = { id, parent: layer, type: "block", num: 20 + i };
+    });
+    graph.edges["edge_ab"] = { id: "edge_ab", from: "block_a", to: "block_b", module: "directed" };
+    graph.edges["edge_bc"] = { id: "edge_bc", from: "block_b", to: "block_c", module: "directed" };
+    graph.edges["edge_cd"] = { id: "edge_cd", from: "block_c", to: "block_d", module: "directed" };
+    const spots = under(graph, layer, "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const [a, b, c, d] = ids.map((id) => at.get(id)!);
+    expect(a!.y).toBe(b!.y);
+    expect(b!.y).toBe(c!.y);
+    expect(c!.y).toBe(d!.y);
+    expect(a!.x).toBeLessThan(b!.x);
+    expect(b!.x).toBeLessThan(c!.x);
+    expect(c!.x).toBeLessThan(d!.x);
   });
 
   it("keeps upstream blocks beside a band on the near side, not across it", () => {
@@ -433,8 +519,10 @@ describe("seats", () => {
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
       b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    /** Both hang off the band they actually relate to — not off each other
+     *  in a line stretching past it. */
     expect(gap(at.get("block_pump")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(gap(at.get("block_pump")!, at.get("block_valve")!)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(gap(at.get("block_valve")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
   it("lines up related band members on one row under grid", () => {

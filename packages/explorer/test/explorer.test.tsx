@@ -220,7 +220,7 @@ describe("re-filing", () => {
 
   /** **Everything that is not a row is the workspace**, which is how a block
    *  is dragged out of what holds it. */
-  it.each([[".floor"], [".explorer"], [".tree"]])(
+  it.each([[".floor"]])(
     "makes a block a project when it is dropped on %s", (where) => {
       const { onAct, container } = mount(fold(nested()));
       fireEvent.dragStart(screen.getByText("Auth").closest("li")!);

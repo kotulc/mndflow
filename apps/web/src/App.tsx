@@ -283,10 +283,10 @@ export function App() {
      *  is the one failure that looks exactly like the app having missed the
      *  press. */
     if (name === "settings") { s.say("project settings are not built yet"); return; }
-    /** **Asking for `grid` tidies the layer**, and the tidy is geometry — so it
-     *  is worked out here, where the projection is, and handed to the action
-     *  as ordinary placements. From then on the arrangement only says what a
-     *  drop rounds to. */
+    /** **Asking for `grid` auto-lays the layer**, and the picture is written
+     *  as ordinary placements so returning to `free` keeps it. `grid` as a
+     *  mode keeps laying out from the model — stored positions are the
+     *  `free` arrangement's. */
     if (name === "arrange") {
       const how = args!["arrangement"];
       act("arrange", { layer, ...args,

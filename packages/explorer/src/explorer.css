@@ -139,8 +139,7 @@
 }
 
 /* What a narrowing found, and what it did not. **Lit, never hidden** — the
-   tree is the only place a match can be seen where it lives. One lit-target
-   look, reused rather than a third: the same wash and rule a drop target takes. */
+   tree is the only place a match can be seen where it lives. */
 .explorer .tree li.lit {
   background: var(--hover);
   border-left-color: var(--accent);
@@ -149,18 +148,22 @@
 .explorer .tree li.dim { color: var(--faint); }
 .explorer .tree li.dim .mark { color: var(--faint); }
 
-/* The clear space around the tree is the workspace, and says so while
-   something is over it. */
-.explorer.out { outline: 1px dashed var(--accent); outline-offset: -3px; }
+/* Where a drop would land. The clear space below the tree is the workspace;
+   a row under the pointer names a branch. The floor takes a quiet wash; rows
+   take the same wash for the branch, with a stronger step on the holder and a
+   seam line when the drop is above or below. */
+.explorer .tree li.floor.out {
+  background: color-mix(in oklch, var(--accent) 6%, var(--bg));
+}
 
 .explorer .tree li:hover { background: var(--hover); }
 
-/* Where a drop would land, drawn as a place rather than a line: the layer
-   taking the block washes whole — its holder and everything already in it —
-   and the holder is outlined, so what is about to change is a container and not
-   an edge. A seam adds the line that says where in the order. */
-.explorer .tree li.zone { background: var(--hover); }
-.explorer .tree li.holder { outline: 1px dashed var(--accent); outline-offset: -1px; }
+.explorer .tree li.zone {
+  background: color-mix(in oklch, var(--accent) 6%, var(--bg));
+}
+.explorer .tree li.holder {
+  background: color-mix(in oklch, var(--accent) 10%, var(--bg));
+}
 .explorer .tree li.to-above { box-shadow: inset 0 1px 0 0 var(--accent); }
 .explorer .tree li.to-below { box-shadow: inset 0 -1px 0 0 var(--accent); }
 /* The mark sits on the row's own centre line, whatever the label's height —

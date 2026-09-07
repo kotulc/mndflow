@@ -239,17 +239,8 @@ export function Explorer(props: ExplorerProps) {
      *  mean the strip under the last row — a band a few rows tall, in a panel
      *  that is mostly clear space. Now the clear space is the target. */
     <NamingContext.Provider value={typing}>
-    <nav className={`explorer${out || zone === graph.root ? " out" : ""}`} aria-label="workspace"
-         style={{ width }}
-         onDragOver={(e) => { e.preventDefault(); set_over(null); set_out(true); }}
-         onDragLeave={() => set_out(false)}
-         onDrop={(e) => {
-           e.preventDefault();
-           const ids = dropped(e);
-           set_out(false);
-           set_dragging([]);
-           if (ids.length) onAct("move", { ids, parent: graph.root });
-         }}>
+    <nav className="explorer" aria-label="workspace"
+         style={{ width }}>
       <div className="bar">
         {/* **The workspace, as [WS].** One fixed mark for the root the tree
             names — a click opens the top level, like every other chip. */}
@@ -311,7 +302,6 @@ export function Explorer(props: ExplorerProps) {
                   set_out(false);
                   if (!dragging.includes(r.id)) set_over({ id: r.id, where: seam(e) });
                 }}
-                onDragLeave={() => set_over((o) => (o?.id === r.id ? null : o))}
                 onDrop={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -371,10 +361,25 @@ export function Explorer(props: ExplorerProps) {
               {r.alias ? <span className="alias">{r.alias}</span> : null}
             </li>
           ))}
-          <li className="floor"
+          <li className={`floor${out ? " out" : ""}`}
               onClick={() => onPick([])}
               onContextMenu={(e) => { e.preventDefault(); onPick([]);
-                                      set_menu({ x: e.clientX, y: e.clientY }); }} />
+                                      set_menu({ x: e.clientX, y: e.clientY }); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                set_over(null);
+                set_out(true);
+              }}
+              onDragLeave={() => set_out(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const ids = dropped(e);
+                set_out(false);
+                set_dragging([]);
+                if (ids.length) onAct("move", { ids, parent: graph.root });
+              }} />
         </ul>
 
       {/* **The edge is the control.** A panel whose width is a taste is

@@ -45,7 +45,7 @@ export type Chrome = {
 /** How a layer places what it holds. */
 const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
   free: { icon: "layout_free", tip: "Hand placement is what draws" },
-  grid: { icon: "layout_grid", tip: "Slot every block into the layer's lattice" },
+  grid: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
 };
 
 /** The ways a line is drawn, as the ones a right drag may pick. **Three of the

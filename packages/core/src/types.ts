@@ -24,10 +24,11 @@ export type Flow = "in" | "out" | "both";
  *  layer says, so a diagram reopens the way it was left and travels in a file
  *  with the rest of it.
  *
- *  `free` is hand placement; `grid` slots everything into the layer's own
- *  lattice, left to right and a new row when the square is full. **The four
- *  directional values are gone** — they ranked by relationships, which read as
- *  a picture of the graph rather than of the model.
+ *  `free` is hand placement; `grid` is auto-layout, ignoring stored positions
+ *  and assigning every loose unit a box on the layer's lattice from its
+ *  relationships and sizes. **The four directional values are gone** — they
+ *  ranked by relationships through dagre, which read as a picture of the graph
+ *  rather than of the model.
  *
  *  **`grid` names the lattice, and so does a group.** They are the same
  *  lattice: a group is a named region of it, which is what lets a block seated
