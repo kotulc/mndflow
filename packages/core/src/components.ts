@@ -85,7 +85,10 @@ const stray = (name: string, config: Settings, known: readonly string[]): string
 /** How a card is composed, what is drawn inside the box, and where the name
  *  sits. **Closed sets that grow by a code change** — additively, and never
  *  from data. That is the line between an engine and a plugin host. */
-export const LAYOUTS = ["name", "type", "fields", "compartments", "icon", "shape"] as const;
+/** **No `shape`.** A definition picking a diamond or a hex drew as one on the
+ *  canvas and as a rectangle everywhere else, which is a promise only one
+ *  renderer kept. It comes back when every renderer can keep it. */
+export const LAYOUTS = ["name", "type", "fields", "compartments", "icon"] as const;
 export const LABELS = ["inside", "below", "none"] as const;
 
 /** The hue families a definition may pick from, how loudly it takes one, how
@@ -124,16 +127,21 @@ const block: Component = {
   },
 };
 
-/** What a card is *made of* — a name, a shape, a few of its fields, and the
+/** What a card is *made of* — a name, a mark, a few of its fields, and the
  *  verb its usages are named by — rather than what it is coloured, which is
- *  `style`, or where it sits, which is the engine's. */
+ *  `style`, or where it sits, which is the engine's.
+ *
+ *  **`icon` is a name from the theme's set, not a drawing.** A definition says
+ *  which mark its usages wear; a name this build does not know falls back to
+ *  the one the role would draw, so a card from a package this build has never
+ *  seen still says what sort of thing it is. */
 const card: Component = {
   name: "card",
   check: (config) =>
     one_of("card.layout", config["layout"], LAYOUTS)
     ?? one_of("card.label", config["label"], LABELS)
     ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["layout", "label", "shows"]),
+    ?? stray("card", config, ["layout", "label", "shows", "icon"]),
 };
 
 const style: Component = {

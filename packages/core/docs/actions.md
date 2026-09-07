@@ -44,7 +44,7 @@ Twenty-five.
 
 **The four element actions are model data, not display preferences.** What a card says about itself is part of what the layer says, so `label`, `lock`, `tag` and `look` travel in the file and undo like anything else. `look` writes one property at a time and an absent value gives it back to the chain — **customising a block is local to that block** until pinning makes a definition of it.
 
-**`delete` never reaches through a reference.** A view holds references, so deleting one takes the boundary away and leaves its members exactly where they were — which is why *dissolve* is not a second action. **One or many is one question**: a gesture names one and a selection names several, and an action that removes things should not care which it was handed.
+**`delete` never reaches through a reference.** A holder holds without owning, so deleting one takes the boundary away and leaves its members exactly where they were — which is why *dissolve* is not a second action. **One or many is one question**: a gesture names one and a selection names several, and an action that removes things should not care which it was handed.
 
 ### Navigation
 
@@ -92,15 +92,28 @@ Twenty-five.
 
 **Which definitions take no interface is a `degree` rule**, which is data, and never a branch in the action.
 
-### Boundaries and notes
+### Holders, cells and notes
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `group` | draws a boundary round these, or adds them to a boundary already there | selection | members, into? | `add_block` + `join_group`… |
-| `leave` | takes this out of a boundary it belongs to | block | id, group | `leave_group` |
-| `note` | puts a note here saying what you typed | layer | text, spot?, w?, h? | `add_block` + `set_body` |
+| `group` | draws a boundary round these, or a grid over a region | layer, selection | members?, into?, rows?, cols?, seats?, spot? | `add_block` + `set_grid` + `set_group`… |
+| `leave` | takes this out of the holder it sits in | block, selection | ids | `set_group` |
+| `seat` | puts a block in a cell of a grid, or takes it out of one | block | id, group?, at | `set_group` + `seat_cell` |
+| `header` | promotes a seated block to head the line it sits in | block | id?, clear? | `set_header` |
+| `fill` | puts a new block in every empty cell of a grid | block, cell | group? | `add_block` + `set_group` + `seat_cell`… |
+| `insert` · `remove` | adds or takes away a row or a column at an index | block, cell | group?, way, at? | `set_grid` + `seat_cell`… |
+| `merge` | spans cells into one, or splits one back | block, cell | group?, into? | `merge_cells` / `split_cells` |
+| `transpose` | turns a grid on its side — rows become columns | block, cell | group? | `set_grid` + `seat_cell`… |
+| `chain` | links every filled cell of a grid, in the order it reads | block, cell | group?, module? | `link_blocks`… |
+| `note` | writes a note about a block or a relationship, tied to it | block, edge | about, text, spot?, w?, h? | `add_block` + `set_body` + `link_blocks` |
 
-**`group` absorbs joining**: with `into` it adds to that boundary, without it makes one. A group is a view at layer scope, so its members are references and the boundary owns nothing.
+**`group` is one act with different arguments.** With `into` it adds to a holder already there; without it, an extent makes a **grid** and no extent makes a **boundary**. A holder holds without owning — `group` is not `parent`, and deleting one frees what it held.
+
+**A note is always about something.** The note and the tie are made in one step, because a remark with nothing to point at is a caption on the wallpaper — and right-drag on empty ground draws a grid now, so there is no gesture that could make a loose one.
+
+**A cell is an address, not a thing**, so the actions above take a `cell` scope: `Context` carries `cells` beside `picked`, rather than encoding a row and a column in an `Id` that nothing could look up.
+
+**Nothing a layout gesture does destroys model content.** Removing a line moves what it held into the nearest spare cell and drops the address only once the grid is full; shrinking an extent and merging over an occupied cell drop the address. **The block always survives** — it may be referenced from other layers.
 
 ### Fields and definitions
 
@@ -119,31 +132,30 @@ Twenty-five.
 
 **A definition may name another project's**, which is how a package is used. A package's own definitions are never altered — refining one means subtyping it.
 
-### The layer, and views
+### The layer
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
-| `arrange` | sets how the layer lays out and which way it reads | layer | arrangement | `set_arrangement` |
-| `pin` | keeps the layer as it is being looked at, as a view you can come back to | layer | name | `add_block` + `refer`… |
+| `arrange` | sets how the layer lays out, and tidies it into that shape | layer | arrangement, at? | `set_arrangement` + `place_block`… |
 
-**One setting, six values** — `free`, `grid`, `right`, `left`, `down`, `up` — of which four carry a reading direction and two do not. Axis, flow and arrangement were three fields answering overlapping questions.
+**One setting, two values** — `free` and `grid`. Hand placement, or auto-layout onto the lattice. **The four directional values are gone**: they ranked by relationships and drew a picture of the graph rather than of the model, and *which way a layer reads* is now said by a cell address rather than guessed from a position.
 
-**Arrangement is model data, not a display preference.** How a layer reads is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
+**Arrangement is model data, not a display preference.** How a layer lays out is part of what the layer says, so a diagram reopens the way it was left and travels in a file with the rest of it.
 
-**It is a setting, not a one-time act.** `free` is the value where hand placement is what draws; every other value computes, keeping what was placed so returning to `free` gives it back. There is no `relax` — *hand it back to automatic* has nothing left to mean once picking a computed arrangement already does it.
+**It is a setting, not a one-time act.** `free` is the value where hand placement is what draws; `grid` computes, keeping what was placed so returning to `free` gives it back. **The tidy comes in rather than being worked out here** — where a block goes depends on sizes and a lattice, and neither is the engine's. It is written on the way *out* of `grid`, so switching in costs one mutation rather than one per block.
 
-**A pinned layer is an ordinary view block** — a block whose definition names a view module, holding one reference per thing shown. It is content rather than presentation, so it exports, undoes and is worked on like anything else. **A view holds views**, so a matrix's two axes cost nothing new.
+***Pinning* is not here yet.** The `view` block it used to make is gone; what pinning will mean is filing an element's definition in the workspace's own vocabulary folder. Undesigned — see the root `docs/todo.md`.
 
 ### One log, so nothing routes
 
 **The workspace is one document with one history.** An action naming something in another project writes to the same log as everything else, so no action can pick the wrong one and no step is ever half-written across two places. Undo is workspace-wide, and that is the intent rather than a cost.
 
-**The workspace has no actions of its own.** Filing something is `create` and `move`; putting a project into a view is `refer` at its root.
+**The workspace has no actions of its own.** Filing something is `create` and `move`; bringing a project into a layer is `refer` at its root.
 
 
 ## Adjustments
 
-Five. Positional, unsayable, gesture-only — never named, ranked or listed. **A view module declares which of these it accepts**, and may accept none.
+**Four.** Positional, unsayable, gesture-only — never named, ranked or listed.
 
 | | Does | Scope | Arguments | Writes |
 |---|---|---|---|---|
@@ -151,22 +163,23 @@ Five. Positional, unsayable, gesture-only — never named, ranked or listed. **A
 | `size` | how big a note was asked to be | note | id, w, h | `size_block` |
 | `seat` | where an interface sits on its edge | interface | id, side, at | `set_port` |
 | `wall` | which wall a relationship leaves by | edge | id, end, side, at? | `set_side` |
-| `straighten` | takes the bend out of a relationship so it runs straight between its ends | edge | id, from, to, align? | `set_side` ×2 (+ `place_block`) |
 
 **A hand-laid thing is a hard constraint; a derived one is not.** What an adjustment writes is honoured until a computed arrangement replaces where things draw, and `free` gives it back.
 
-**`straighten` is an adjustment and not an action.** Where two borders can meet without a jog is a fact about two rectangles, which a relationship carries neither of — so the walls, the fractions and the block that has to shift are all handed in by the drawing. Both ends end up pinned, which is the only way to say *there* about a seat that is otherwise worked out; unpinning them is dragging either end again.
+**A drop resolves rather than adding an adjustment of its own.** Dropping a card into a cell is `place` landing on an address, through the same seam that turns a drop onto a card into `move` — so seating costs no new positional verb.
+
+***`straighten` is gone.*** Pulling the bends out of a run was an adjustment when a route could jog; a run is now routed round what it passes, every draw, so there is no bend left to take out by hand.
 
 
 ## Gestures
 
-**A gesture lands on a hit, and a hit comes from the Scene.** A view module's projection emits `hits` — a region, and what that region answers to — and the renderer binds a pointer or a key to it. So what a gesture *means* belongs to the view module that drew the thing, and the renderer knows only how to dispatch. A notation that reads differently declares a different map and changes nothing below it.
+**A gesture lands on a hit, and a hit comes from the Scene.** The projection emits what is drawn and what each region answers to, and the renderer binds a pointer or a key to it. So what a gesture *means* is settled by what was drawn there, and the renderer knows only how to dispatch.
 
 **The left button works what is already there; the right button makes something new.**
 
 **The offered list** is `offer(ctx)`: membership for the current context — scope, plus each action's own `when` — and no ordering of its own. The same set everywhere, and only presentation differs: menus draw it in a fixed order, and the terminal ranks it. It lives with the actions, below the terminal, so it survives the terminal being absent.
 
-Below is the **block view's** map, which is the default and what every other module varies from.
+**There is one way to draw**, so this is the map — not one of several.
 
 ### Left button
 
@@ -178,7 +191,7 @@ Below is the **block view's** map, which is the default and what every other mod
 | double-click | card, its border, a seat | `open` |
 | double-click | name | rename, in place |
 | double-click | note | edits its text — a note is its text, and has no inside |
-| double-click | relationship | `straighten` |
+| click | a grid's cell | picks the cell — an address, held beside the selection rather than in it |
 | double-click | frame edge, or empty outside the frame | `open`, with nothing to open |
 | drag | card → another card | `move` |
 | drag | card → past the frame | `move`, to whatever contains the layer |
@@ -186,6 +199,8 @@ Below is the **block view's** map, which is the default and what every other mod
 | drag | a relationship's end | `relink`, or `wall` where it stays put |
 | drag | seat | `seat` |
 | drag | note corner | `size` |
+| drag | a grid's corner | `group`, its extent read off in whole cells |
+| drag | card → a grid's cell | `seat`, the drop resolving to an address |
 | drag | empty | selection box |
 | drop | explorer row | `refer` |
 
@@ -197,7 +212,7 @@ Below is the **block view's** map, which is the default and what every other mod
 | click | card, frame edge, relationship, a relationship's end, selection | the offered list for that target |
 | drag | card → card | `relate` |
 | drag | card → empty | `create` + `relate` |
-| drag | empty → empty | `note`, the swept rectangle its least size |
+| drag | empty → empty | `group`, sized in cells, capturing whatever loose cards it swept over |
 
 ### Keyboard
 
@@ -210,16 +225,20 @@ Below is the **block view's** map, which is the default and what every other mod
 | `Ctrl`/`Cmd` + `A` | selects every card on the layer |
 | `F` | fits the selection, or the layer |
 
-**The shell owns the global keys and the view module owns the rest**, declared beside its gesture map — so a notation may bind a key the canvas has no use for, without the shell knowing.
+**The shell owns the global keys and the canvas owns the rest.**
 
 
 ## Chrome
 
-**A view module declares which control groups it offers; the shell knows how to build each.** That is what keeps one set of controls rather than one per module — a matrix offering no `interfaces` group has no interfaces toggle, rather than a toggle greyed out.
+**The projection declares which control groups it offers, as `slots`; the shell knows how to build each.** That is what keeps one set of controls rather than one per surface — a group absent is a control that is not there, rather than one greyed out.
 
-`project` · `views` · `arrange` · `flow` · `interfaces` · `lines` · `columns` · `types` · `relations`
+`layer` · `display` · `relations`
 
-Drawn in that order whatever order a module lists them. **`relations` is last on purpose**: it is the only group that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls. **`types` is the module's to fill** — a table filters by definition names and a matrix by relationship types, and only the module knows which.
+Drawn in that order. **`relations` is last on purpose**: it is the only group that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls.
+
+- **`layer`** is how the layer places what it holds — `free` or `grid`. A setting, and it writes to the log.
+- **`display`** is what the drawing shows rather than what it holds: the guides, whether interfaces draw. Nothing here writes a mutation.
+- **`relations`** is which way a right drag draws a line, and it is the module a `chain` will use.
 
 
 ## Not on the surface
@@ -232,7 +251,7 @@ Drawn in that order whatever order a module lists them. **`relations` is last on
 
 **Finding** — filtering the explorer writes nothing and goes nowhere, so it is neither an action nor navigation. It is a mode the explorer owns and the terminal can drive.
 
-**Display preferences** — held in the workspace's display state, outside the log. Toggling one changes what you see and nothing about the project: whether interfaces show, curves against right angles, which relationship types are drawn, which types a table or matrix filters to, the explorer fold, and the theme.
+**Display preferences** — held in the workspace's display state, outside the log. Toggling one changes what you see and nothing about the project: whether interfaces show, whether the guides are ruled, the explorer fold, and the theme. **`arrangement` is the exception**, and it is model data because how a layer lays out is part of what it says.
 
 **The look of a block** — a colour, a pixel count, a font. Those belong to its definition, which is data, and to the theme, which owns the palette. Nothing carries presentation per usage.
 
@@ -261,7 +280,7 @@ Drawn in that order whatever order a module lists them. **`relations` is last on
 - **What does not apply is not shown.** Greying out is for a fixed row whose positions are worth learning.
 - **A module adds no action for anything it draws.** A module is a vocabulary, renderers, a layout law and a gesture map.
 
-**Adjustments are positional, unsayable and gesture-only** — never named, ranked or listed. They write mutations and they undo like anything else. **A view module declares which it accepts, and may accept none.**
+**Adjustments are positional, unsayable and gesture-only** — never named, ranked or listed. They write mutations and they undo like anything else.
 
 **Every action, adjustment and gesture is enumerated above.**
 

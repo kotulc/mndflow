@@ -222,14 +222,6 @@
   opacity: 0.75;
   pointer-events: none;
 }
-/* The layer's own mark sits in its border, at the end the name does not. */
-.mnd-frame > .mnd-role {
-  position: absolute;
-  top: -0.75em;
-  right: 12px;
-  padding: 0 5px;
-  background: var(--bg);
-}
 /* Each mark takes the colour of what it marks, so the corner agrees with the
    card it sits on rather than being one more grey. */
 .mnd-role[data-role="note"] { color: var(--note-dim); }

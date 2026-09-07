@@ -20,7 +20,7 @@
 
 - **The verb lists are examples, not an enumeration.** Somebody will type a word nobody listed, and **substring matching cannot answer that** — so meaning-matching and a learned store of what this person actually reaches for are both kept, and pointed at the four commands.
 - **Completions say what they matched and fill an example.** The matched command with its description, and arguments filled with an example rather than left blank — a prompt that shows its own shape needs no syntax to learn. **A name typed with separators reads as spaced words**: `heat_exchanger` → `Heat Exchanger`.
-- **Results are a table, on the stage.** Package search, workspace filtering and workspace status present through the real table view — **not a second listing inside the terminal**. This is the first caller handing a table something that is not a layer's contents, and it needs the same seam a **view block** needs: do not invent a second.
+- **Results are not the terminal's to draw.** Narrowing lights matching rows in the explorer, which is where finding a block by name belongs. **Never a second listing inside the terminal.**
 - **Help is the fallback, and it carries the action surface.** Anything unmatched lands in interactive docs, tutorial and prompts. **Every registered action is reachable and runnable there**, so nothing becomes unreachable by text and the strip stays four commands wide. *This is what makes help load-bearing rather than a courtesy.*
 - **It mirrors what you do.** A create, a relate and a descend each show; quiet mode silences all three. **This is what makes it worth keeping open.**
 - **It can focus and highlight.** Filtering lights what matched; help points at the control it is describing. **One mechanism, two callers**, and it reuses the one lit-target look — never a third.
@@ -68,8 +68,8 @@
 ## Still not built
 
 - **Meaning matching and the learned store.** Ranking is **substring**, which is the cold fallback: the `score` port is unbound, so a word nobody listed reaches help rather than the command it meant. **The verb lists are examples, not an enumeration**, and substring cannot answer that — this is the gap the port exists to close.
-- **`filter` and `search` name themselves and do nothing.** Both need a caller that can put a table on the stage.
-- **Results are a table, on the stage** — package search, workspace filtering and workspace status present through the real table view, **never a second listing inside the terminal**. This is the first caller handing a table something that is not a layer's contents, and it needs the same seam a **view block** needs: do not invent a second.
+- **`filter` and `search` name themselves and do little.** Narrowing lights matching rows in the explorer; package search and workspace status still have nowhere to present.
+- **Results are never a second listing inside the terminal.** Where they belong is the explorer, and — once it can grow — the tray.
 - **Focus and highlight.** Filtering should light what matched and help should point at the control it is describing — **one mechanism, two callers**, reusing the one lit-target look rather than a third.
 - **Interactive help and the tutorial.** A tutorial teaches whatever the app currently is, which is why it waits for this and not the other way round.
 - **Quiet mode silences the mirror.** The toggle collapses the strip today; it does not yet mute what it reflects.

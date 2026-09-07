@@ -42,5 +42,5 @@
 
 - **Definitions are editable here** — fields, defaults and presentation, each form with its own shape. Not built.
 - **Filters and a sort**, which is what the `columns` group on the rail is for.
-- **The full size.** Putting a table on the stage is a different thing, and the toggle is the door — undecided whether the tray grows to full height or the stage switches view.
+- **The full size.** Whether the tray grows to fill the stage, and becomes context-sensitive with it, is the next thing this surface is for — see the root `docs/todo.md`. **The stage no longer switches view**, so growing the tray is the only door left.
 - **Adding a field from the bar**, which the legacy app had and this does not.

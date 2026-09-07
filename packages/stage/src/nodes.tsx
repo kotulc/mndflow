@@ -555,7 +555,8 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
       ) : null}
       <Name id={id} className="mnd-frame-name" text={data.label} />
       {/* **You are inside a block, and it is still one.** The name sits in the
-          border at one end; what it is sits in the border at the other. */}
+          border at one end; what it is sits in the corner at the other, as on
+          every card. */}
       <Wears role={data.role} />
     </div>
   );

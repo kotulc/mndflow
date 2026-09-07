@@ -184,17 +184,25 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     box: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
     seat: ["rename", "open", "interface", "relate", "note", "delete"],
     /** **A group and a grid write their name on the frame** when told to. */
-    band: ["rename", "label", "chain", "delete"],
+    band: ["rename", "label", "fill",
+           { name: "chain", args: module ? { module } : {} }, "delete"],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
      *  and remove are two entries each rather than one entry and a second
-     *  panel: which way is the whole of what you meant. */
+     *  panel: which way is the whole of what you meant.
+     *
+     *  **The whole grid is offered here too**, named so, because a grid's
+     *  inside *is* its cells — the rim is a few pixels of border, so a list
+     *  reachable only from there is a list nobody finds. */
     cell: [
       "merge",
       { name: "insert", label: "insert row", args: { way: "row" } },
       { name: "insert", label: "insert column", args: { way: "col" } },
       { name: "remove", label: "remove row", args: { way: "row" } },
       { name: "remove", label: "remove column", args: { way: "col" } },
+      { name: "fill", label: "fill grid" },
+      { name: "chain", label: "chain grid", args: module ? { module } : {} },
+      { name: "transpose", label: "transpose grid" },
     ],
     route: ["rename", "note", "delete"],
     anchor: ["rename", "delete"],

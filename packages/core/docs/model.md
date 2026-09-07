@@ -1,5 +1,5 @@
 # Model
-Core object graph model definitions and types. **Two element kinds and no third**: `Blocks` (nodes) and `Relations` (edges). **Definitions group three ways** by what they describe — `blocks`, `relations` and `views` — which is how a file reads and how import dispatches, not three id spaces. Each group publishes a distinct icon.
+Core object graph model definitions and types. **Two element kinds and no third**: `Blocks` (nodes) and `Relations` (edges). **Definitions group two ways** by what they describe — `block` and `relation` — which is how a file reads and how import dispatches, not a second id space. Each group publishes a distinct icon.
 
 
 ## Block
@@ -9,7 +9,7 @@ A block is the fundamental unit of the workspace graph. Every object is a type o
 The engine code that interprets each base block type.
 
 ### Block Kinds
-**Seven, in two families.** The family a kind belongs to is the whole of what a gesture may change: a block may be retyped to any definition of its own kind, and among the open three to any of theirs.
+**Eight, in two families.** The family a kind belongs to is the whole of what a gesture may change: a block may be retyped to any definition of its own kind, and among the open three to any of theirs.
 
 **Open** — they differ in what they are *for*, and one becomes another by saying so:
 
@@ -21,7 +21,8 @@ The engine code that interprets each base block type.
 
 - **Reference** - a second appearance of a block that lives elsewhere. `of` is the whole of it
 - **Interface** - a block seated on a wall. `side` and `at` replace its place
-- **Group** - a boundary or a grid round a set of blocks in one layer
+- **Group** - a dashed rim round a set of blocks in one layer, sized from what it holds
+- **Grid** - a region of the lattice with an extent: rows, columns, merges, and cells things are seated in. It owns its corner
 - **Note** - a card of text. Its body is its name
 
 **Subtyping a derived kind is not the same act.** Make one, customise it, pin that — which produces a definition of that kind and changes nobody's.
@@ -43,15 +44,14 @@ Model data on the block, so each travels in the file and undoes like anything el
 ### Relation Module
 ### Relation Types
 - line - The default base relation type, an untyped association
-- directed - A flow or transition between two blocks. `dir` is `none`/`forward`/`back`/`both`; which way a *layer* reads is its arrangement
+- directed - A flow or transition between two blocks. `dir` is `none`/`forward`/`back`/`both`. **A layer has no reading direction of its own** — order is stated by a directed relation, or by a cell address along the way a grid reads
 - reference - A reference to a block external to the current layer.
 - tie - A loose association generally reserved for notes or metadata.
 
 
-## View
-### View Modules
-**Three**: `block`, `table`, `matrix`. `block` is **any planar projection**.
+## The diagram
+**One way to draw.** A layer is a block and its direct children, projected onto one lattice. `table` and `matrix` were view modules and the grid absorbed them; `view` went with them, and ***View* is reserved rather than retired** — it will name a data perspective over the model, and it comes back defined.
 
-**A notation is a definition, never a module.** A view definition names one of the three and configures it, so what a package adds costs data rather than code. There is no notation the engine knows by name — activity, sequence and state were configurations the engine carried, and carrying them was the engine doing a package's job.
+**A notation is a set of definitions, never a module.** Definitions name block and relation modules and configure them, so what a package adds costs data rather than code. There is no notation the engine knows by name — activity, sequence and state were configurations the engine carried, and carrying them was the engine doing a package's job.
 
-**Which view is showing is session state**, kept outside the log. Switching changes what you see and nothing about the model.
+**How a layer lays out is model data.** `arrangement` is `free` or `grid`, held on the layer and in the log, because how a layer lays out is part of what it says.

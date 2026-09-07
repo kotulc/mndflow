@@ -25,14 +25,17 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** **A group and a grid write their name on the frame** when told to; cards
-   *  are their name. */
+  /** The one element that is picked, and what it says about how it is drawn.
+   *
+   *  **`framed` is the whole of it.** A group and a grid write their name on a
+   *  frame and can be told not to; a card *is* its name, so hiding it leaves a
+   *  rectangle nobody can read. This used to be two booleans — one per holder
+   *  module — which were only ever read as their union. */
   element?: {
     id: string;
     labelled: boolean;
     locked: boolean;
     framed?: boolean;
-    grid?: boolean;
   };
   arrangement?: Arrangement;
   /** Whether the backdrop draws the lattice everything lands on. */
@@ -129,8 +132,8 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  pinning its definition are all answers about one element and not about the
    *  layer around it. */
   if (chrome.element) {
-    const { id, labelled, locked, framed, grid } = chrome.element;
-    const named = framed || grid;
+    const { id, labelled, locked, framed } = chrome.element;
+    const named = framed;
     out.push({
       key: "element", label: "element",
       controls: [

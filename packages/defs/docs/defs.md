@@ -4,7 +4,7 @@
 
 | | Ships |
 |---|---|
-| `base` | one definition per block module — `structure`, `folder`, and the accessories — plus one view definition per offered view. **Shipped and locked, and the engine knows it by id** |
+| `base` | one definition per block module — `block`, `folder`, `resource` and the derived kinds — and one per relation module. **Shipped and locked, and the engine knows it by id** |
 | `requirements` · `flow` · `parametrics` | the worked vocabularies |
 | `sysml` · `uml` · `uaf` | formal `names` and mappings over the definitions above |
 

@@ -127,6 +127,8 @@
 
 **`transpose` costs no header code at all.** A lane owner in column 0 lands in row 0 and becomes a column head, because that is what row 0 means. The grid says the same thing turned on its side.
 
+**A header claims its line from where it sits onward**, in the reading direction. A second header further along a row is a **subheader**: what follows it is allocated to both, and what came before it only to the first. The subheader is itself allocated to the header above it, which is what makes the nesting readable. **Only rows nest this way** while row 0 is the one line that heads columns.
+
 **A header labels a line, never a region** — extended by a merge, so a header spanning rows 1–3 heads all three. That is what keeps allocation composable: a cell sits in exactly one row and one column, so it has **at most two headers, one per axis**, which is the whole reason a matrix falls out of a pair of them. A scope reaching down and right instead would compose into an unordered pile, and *what is allocated to this* would need a nesting rule the model does not have.
 
 **The corner is the grid's subject.** A block at `{0,0}` heads both its lines, which are the other headers — so what it names is what the whole grid is about.
@@ -139,7 +141,9 @@
 
 **Overlap is hard inside a grid and assistive outside.** A cell holds one block, which is what lets allocation be derived at all — two blocks sharing a cell and *what is allocated to this row* stops having an answer. Outside, a drop snaps and nudges clear, so `free` stays free.
 
-**Displacement is never destructive.** Removing a row, shrinking an extent, or merging over an occupied cell drops the block's address and leaves it free on the layer. A layout gesture must not destroy model content — a block may be referenced from other layers.
+**Displacement is never destructive.** A layout gesture must not destroy model content — a block may be referenced from other layers, so nothing it holds is ever deleted.
+
+**Removing a line moves what it held rather than dropping it**, into the nearest spare cell, and drops the address only once the grid is genuinely full. Freed outright, a block landed at the foot of the layer with its relationships still attached, which reads as a line coming adrift. **Shrinking an extent and merging over an occupied cell do drop the address** — there the block is on its way out of the grid, not being shuffled within it.
 
 **A grid never grows by accident.** Its extent is what you drew; a block dropped past the last row lands free on the layer beside it.
 
@@ -183,10 +187,10 @@
 | **component** | a capability an open module offers, switched on and shaped by a definition. **Per definition, never per usage** |
 | **`components`** | the field on a definition holding one entry per component, keyed by name. **The one place the schema grows** — a new capability adds a key, never a field beside one. A component owns its key, reads no other's, and **validates its own key at the door**, so one absent from the build leaves its configuration *unvalidated* rather than wrong |
 | **`block`** | which block module, and that module's own keys |
-| **`card`** | which card `layout`, its `shape`, where the label sits, and which fields it `shows` |
+| **`card`** | which card `layout`, where the label sits, and which fields it `shows` |
 | **`style`** | which **slot** (one of six hue families) and which **emphasis**, weight and label step. **Never a colour, a pixel count or a font** — the theme owns the palette and a definition picks within it |
 | **`constraints`** / **`rules`** | what a usage needs in itself, and how usages interact |
-| **card layout** | one of the standard ways a card is composed — `name`, `type`, `fields`, `none`. **Open** |
+| **card layout** | one of the standard ways a card is composed — `name`, `type`, `fields`, `compartments`, `icon`. **Open.** **No `shape`**: a definition picking a diamond drew as one on the canvas and as a rectangle in every export, which is a promise one renderer kept and the others could not |
 | **`validate` hook** | a module's own check in code, for what the rule kinds cannot say. The escape hatch, and deliberately not a language |
 
 | Kind | Says |
@@ -244,10 +248,11 @@ The full enumeration is in actions.md.
 | relation modules — `line`, `directed`, `reference`, `tie` | card layouts, style sets, routing strategies |
 | value forms — `text`, `number`, `flag`, `choice`, `link` | components, rule kinds |
 | arrangements — `free`, `grid` | definitions, which are data and cost nothing |
-| header roles — `row`, `col`, `both` | |
 | mutation ops | the action set and the adjustments, which are small by judgement rather than closed by decree |
 | host ports — `storage`, `files`, `net`, `score` | |
 
 **Two of the four relation modules are derived, not picked.** `line` and `directed` are chosen; `reference` and `tie` are assigned from what sits at the ends.
+
+**A header role is derived, not picked, so it is in neither column.** `row`, `col` and `both` are the three answers a position can give; nobody chooses one and nothing stores one.
 
 **There is no closed set of element sorts.** That is the point of the rework: a new sort of thing is a definition, and a definition is data.

@@ -687,6 +687,12 @@ function along(a: number, an: number, b: number, bn: number): boolean {
 /** The headers a block is **allocated to**: the block heading its row, the one
  *  heading its column, or both.
  *
+ *  **A header claims its line from where it sits onward**, in the reading
+ *  direction. So a second header further along a row is a **subheader**: what
+ *  follows it is allocated to both, and what came before it only to the first.
+ *  The subheader is itself allocated to the header above it, which is what
+ *  makes the nesting readable.
+ *
  *  **Derived from position and stored nowhere.** A block leaving the grid loses
  *  its allocation, which is correct — the allocation *was* the position.
  *  Durable classification is a field somebody typed. */
@@ -699,8 +705,13 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
     if (h.id === id || !h.header) continue;
     const at = region_of(graph, h.id);
     if (!at) continue;
-    if ((heads(graph, h.id, "row") && along(me.r, me.rows, at.r, at.rows))
-      || (heads(graph, h.id, "col") && along(me.c, me.cols, at.c, at.cols))) out.push(h);
+    const row = heads(graph, h.id, "row")
+             && along(me.r, me.rows, at.r, at.rows) && me.c >= at.c;
+    /** Symmetric, and a no-op while only row 0 heads a column — a column header
+     *  always sits at `r: 0`, so there is nothing upstream of one to exclude. */
+    const col = heads(graph, h.id, "col")
+             && along(me.c, me.cols, at.c, at.cols) && me.r >= at.r;
+    if (row || col) out.push(h);
   }
   return out;
 }

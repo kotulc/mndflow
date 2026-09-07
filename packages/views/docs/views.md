@@ -1,77 +1,71 @@
 # Views
 
-**A view is a perspective.** Blocks define structure and containment, relations describe usage and reference, and a view says how a set of them is looked at. A view module is the code behind one way of looking; a **view definition** names a module and configures it; a **view block** is an instance, holding one reference per thing it shows.
+**One way to draw.** A layer is what is looked at; this package is the looking. It reads the graph and hands back a **Scene** — plain data, importing nothing drawable.
 
-## Three modules, and closed
+**There is no longer a choice of view module.** `table` and `matrix` were absorbed by the grid, and `view` went with them: what was *which way is this layer shown* is now *how are the blocks in it placed*. ***View* is reserved, not retired** — it will name a data perspective over the model, and it comes back defined.
 
-**`block` is any planar projection**, and `table` and `matrix` are the two that are not a plane. A notation that lays things out on a surface is the block module with different configuration, never a module of its own.
+```
+project(graph, layer, config) → Scene
+```
 
-| Module | Word | Draws |
-|---|---|---|
-| `block` | block | a frame, cards, boundaries, seated interfaces, routed lines |
-| `table` | row | rows and no frame; a column per field the rows carry |
-| `matrix` | cell | two axes, cells filled where a relationship runs |
+## What is in here
 
-**Each publishes a distinct icon and a word for what it calls its elementary block**, so a chip fallback reads correctly without anything being stored.
-
-## Three offered views
-
-**One view definition per module, and a notation is another definition.** What a package adds is a definition naming a module and configuring it — never a module, and never a name the engine has to learn.
-
-- **Which view is showing is session state**, kept outside the log. Switching changes what you see and nothing about the model.
-- **There is no derived kind of layer**, so any layer can be switched to any view it is offered.
-- **The registry is what this build supplies**, keyed by the names core owns. Which modules exist is the model's business; which are built is this package's, so a half-built one is simply absent rather than broken.
-
-## What a module owns
+**Sizes, placement, routing and the projection, together.** They are one answer: where a block goes depends on how big it is, what it is seated in, and what the lattice is. Splitting them would put a seam through the middle of one calculation.
 
 | | Is |
 |---|---|
-| **the surround** | a frame and its walls, or nothing |
-| **the viewport** | a camera, or a scrollbar. What *fit* means here |
-| **the chrome** | which control groups it offers, as `slots` |
-| **asking** | where a gesture puts a question, since one asks for a name before anything is made |
-| **adjustments** | which of the four it accepts, and it may accept none |
+| `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
+| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `grid`, cells by address, bands by their members |
+| `seat.ts` | where a line meets a border, and which seat each end takes |
+| `block.ts` | the projection: graph and layer in, Scene out |
+| `look.ts` · `derive.ts` | what a card wears, and the marks it reads by — both derived every draw |
+| `svg.ts` · `text.ts` | a Scene drawn without a browser |
 
-- **A view module names actions; it never writes a mutation.**
-- **An unregistered `type` falls back to the engine's card.** A module declares what it draws *differently*, so nothing has to be complete to be usable.
-- **A layout law may decline to place**, and then the layer arranges as usual.
+## The lattice, and the one measure
+
+**`UNIT` is the only ruler.** Everything with a place of its own lands on it — a card, a note, a hand drop, a grid's corner — so a block the layer placed and a block seated in a grid line up.
+
+**A `CELL` is not a second measure.** It is what a grid seats things at: one block plus a gap of air on every side. Nothing outside a grid is quantised to one, no gap is counted in them, and no arrangement steps by one. That was the old mistake — two rulers on one drawing, the coarser winning — and it is the only part that was wrong.
+
+## Two arrangements
+
+| | Is |
+|---|---|
+| `free` | hand placement, rounded to the lattice. What a layer says nothing about |
+| `grid` | auto-layout: stored positions are ignored and every loose block gets a box worked out from the relationships and the sizes |
+
+**Related blocks share a row or a column and sit one gap apart**; unrelated ones fill the next slots of a square-ish shelf. A holder is one rectangle among its neighbours, sized from what it holds, and spaced like any other box. **The gap is a hard one-unit halo, never a post-pass hope.**
+
+**The picture is written down on the way out of `grid`**, as ordinary placements, so `free` carries on from where `grid` left off.
+
+## Holders
+
+**A boundary and a grid are both holders**, and most callers mean both — what a run may pass through, what a sweep picks, what a drop must stay clear of. `holds(node)` asks that once; asking it as two literal comparisons is how a grid ended up walling in every line between its own cells.
+
+| | Sized from | Members placed by |
+|---|---|---|
+| **group** | its members' bounds, plus a gap | the same packer the layer uses |
+| **grid** | its own extent, in cells | their address |
+
+**Nesting is ordinary and ordered by depth.** `group_depth` decides both what is placed first and what draws on top, so a grid inside a band is placed after the band has a corner of its own.
 
 ## The Scene is the seam
 
-```
-project(graph, layer, config) → Scene { boxes, routes, slots, hits, bounds }
-```
-
-**Plain data, importing nothing drawable.** `render` turns a Scene into DOM and the CLI turns one into text, so a notation is a pure function and most of the product is provably correct before anything is drawn.
-
-**`faults` is the contract.** Every module proves what it emits passes; every consumer proves it handles anything that does. **Neither imports the other**, so when they meet in an app there is nothing left to discover.
+**Plain data, importing nothing drawable**, which is what makes the projection a pure function and most of the product provably correct before anything is drawn. `stage` turns a Scene into DOM; the CLI turns one into text; `kit` hands it outside.
 
 | Invariant | |
 |---|---|
 | no two boxes share an id | a hit could not name one of them |
 | every route's ends name a drawn box | a line to nowhere is a bug in the producer |
 | every bend is a right angle | the one thing a route may never do |
-| every hit names something drawn, and has area | a gesture that resolves to nothing |
 | a seated box is seated on something drawn | an interface without its card |
 | every box is inside the frame | a card outside the layer it belongs to |
+| every cell of a grid lands on the lattice | a grid half a unit off its own guides |
 
-## Composition
+**A producer proves what it emits satisfies these; a consumer proves it draws anything that does. Neither imports the other.**
 
-**Composition makes nothing.** It is a grouping, a spacing and an ordering, recomputed every draw — presentation, and never anything in the model.
+## What is not here
 
-**One metric: proximity** — how far apart two referenced blocks sit in the tree, which is a path distance and deterministic. **Group** by nearest common ancestor, **order** by tree path, **space** by distance where the view has room. A table and a matrix have rows, so they take the grouping and the order and drop the spacing.
-
-- **A proximity group is a derived group**, so nothing needs storing for one to appear.
-- **Proximity is the default and must be overridable.** A view whose point is a cross-cut wants grouping by type, and proximity would give it exactly the grouping it was built to escape.
-
-## Views as blocks
-
-- **A saved view is a block** whose definition names a view module, holding one reference per thing shown. It costs no concept.
-- **Everything a view shows is a reference** — a card, a table row, a matrix axis label alike.
-- **A view holds views.** A matrix's two axes are child views, so a filter or a third dimension costs nothing new.
-- **A view is filed beside what it looks at**, never inside it — a view of a layer that lived in that layer would show itself.
-- **A reference resolves anywhere in the workspace.** A gone target reads **missing**, and is kept rather than tidied away, so undoing a deletion elsewhere brings it back.
-- **What is done through a reference reaches home.** Renaming one renames the block.
-- **A relationship into another tree is a reference plus an ordinary edge**, both filed with the end making the claim.
-- **Depth** says how far a reference reaches — `self`, `children` or `all`.
-- **Nothing about how a view looks enters the tree it reads.**
+- **No mutation.** Projecting reads; a gesture leaves as an action name somebody else runs.
+- **No DOM.** The only thing that needs a browser is what draws a Scene.
+- **No placement stored by a consumer.** Projecting is what places, and the Scene already carries the geometry.

@@ -9,13 +9,14 @@ import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
   ({ graph: fold(related()), layer, picked });
 
-/** The same layer with its boundary made into a grid, two cells filled and the
- *  reading direction — what the grid actions are about. */
+/** The same layer with its boundary made into a grid: three cells, two filled,
+ *  and a cell picked — what the grid actions are about. **One cell is left
+ *  empty on purpose**, so an action that fills them has something to do. */
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
   b["block_loop"] = { ...b["block_loop"]!, arrangement: "grid" };
-  b["block_hot"] = { ...b["block_hot"]!, type: "grid", rows: 1, cols: 2 };
+  b["block_hot"] = { ...b["block_hot"]!, type: "grid", rows: 1, cols: 3 };
   b["block_tank"] = { ...b["block_tank"]!, group: "block_hot", cell: { r: 0, c: 0 } };
   b["block_valve"] = { ...b["block_valve"]!, group: "block_hot", cell: { r: 0, c: 1 } };
   return { ...c, cells: [{ group: "block_hot", r: 0, c: 0 }] };

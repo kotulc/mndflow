@@ -4,21 +4,26 @@
 
 ## One surface whose contents vary
 
-**A view module declares which groups it offers; the shell knows how to build each.** That is what keeps one set of controls rather than one per module — **a matrix has no interfaces toggle because it declares none**, never because one was greyed out.
+**The projection declares which groups it offers; the shell knows how to build each.** A group absent is a control that is not there, rather than one greyed out.
 
 The groups arrive as `slots` on the Scene. The rail draws them in a fixed order whatever order it was handed:
 
 ```
-project · views · arrange · flow · interfaces · lines · columns · types · relations · element · grid
+layer · display · relations · element
 ```
 
-**`element` and `grid` are not slots.** A slot is what the projection can offer about the whole layer; these two are about the one thing you have hold of, so they come and go with the selection and sit at the foot below everything that is about what you are looking at. **Several picked is nothing picked here** — the rail says what *one* element is, and the answer for four of them is four answers.
+| | Is |
+|---|---|
+| **`layer`** | how the layer places what it holds — `free` or `grid`. A setting, and the one group here that writes to the log |
+| **`display`** | what the drawing shows rather than what it holds: the guides, whether interfaces draw. Nothing here enters the log |
+| **`relations`** | which way a right drag draws a line, and the module a `chain` will use |
+| **`element`** | what the one thing you have hold of can be told |
+
+**`element` is not a slot.** A slot is what the projection can offer about the whole layer; this is about the one thing you have hold of, so it comes and goes with the selection and sits at the foot, below everything that is about what you are looking at. **Several picked is nothing picked here** — the rail says what *one* element is, and the answer for four of them is four answers.
 
 **The element group leads with `define`**, which writes nothing: it opens the tray on the panel that already describes the thing. The rail keeps room for the two answers changed most — whether the name is written on it, and whether its place is fixed — and everything else it can be told is behind the cog.
 
-**`relations` is last on purpose**: it is the only group that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls.
-
-**`types` is the module's to fill.** A table filters by definition name and a matrix by relationship type, and only the module knows which — so a module declaring the slot also supplies the names.
+**`relations` is last of the layer groups on purpose**: it is the only one that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls.
 
 ## What a control is
 
@@ -27,7 +32,7 @@ project · views · arrange · flow · interfaces · lines · columns · types �
 | **glyph** | one mark, over the word rather than beside it — the word only costs width when it sits alongside |
 | **word** | one word, always. A long one wraps rather than setting the column's width |
 | **tip** | the sentence, so nothing is hidden behind a picture |
-| **`on`** | lights it. **A verb leaves it undefined** — there is no arrangement a layer is currently *in* |
+| **`on`** | lights it. **A verb leaves it undefined**, since there is no state a verb puts anything in |
 
 **A verb never lights**, and that is the plainer signal of the two: the rule that toolbars divide states from verbs is carried by the group's own label and by the fact that nothing in a verb group is ever on.
 
@@ -40,13 +45,13 @@ project · views · arrange · flow · interfaces · lines · columns · types �
 
 ## Still open
 
-- **`views` and `flow`** are in the draw order and nothing builds them yet.
 - **Whether the rail should scroll per group or as a column.** It scrolls as a column today.
+- **Nothing exposes a grid's own settings.** Its extent is a dragged corner and its headers are a card menu; whether the rail should say anything about the grid you have hold of is undecided.
 
 ## The rules it lives by
 
 **Every control the thing on the stage has is in one column, fixed to the right.** A real column, not an overlay: the stage ends where it begins, so chrome never sits on the drawing.
 
-- **A view module declares which groups it offers** and the column draws them in a fixed order. A matrix has no interfaces toggle because it declares none, never because one was greyed out.
-- **`types` is the one group the page cannot build alone**, so a module declaring it also answers it. **Nothing picked is everything.**
-- **A verb never lights** — `arrange` has no state to be in, which is the plainer signal.
+- **The projection declares which groups it offers** and the column draws them in a fixed order. A group absent is a control that is not drawn, never one greyed out.
+- **Nothing picked is everything.**
+- **A verb never lights**, which is the plainer signal.

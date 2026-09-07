@@ -137,18 +137,17 @@ Scene {
 - **Everything the app says goes to one strip** — a refusal, a repair report, a storage warning, a rule note. One place to look, dismissable, and silent when there is nothing to say.
 
 
-## What a view holds
+## What holds what
 
 **A block is a block.** There is no structure/behaviour split and no tier walk — what a block *is* comes from its definition, and what it may hold is a rule a vocabulary states rather than one the engine imposes.
 
-**One rule is the engine's**, and it is the only place a choice is taken away from the user:
+**The engine states no containment rule.** The last one — *a view holds references, never parts* — had only the `view` module to attach to and went out with it. What is left is `holds`, which is data, and the few refusals that stop a graph being incoherent.
 
-> **A view holds references, never parts.**
-
-- **Crossing it is a coercion, not a refusal.** Every gesture still succeeds; what arrives in a view is an appearance rather than a part, and it draws the way every reference draws.
+- **What is still refused**: a block cannot contain itself, a holder cannot hold something that holds it, and **a cell holds one block**. The last is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
 - **A reference points at what it stands for, and nothing points back.** Upward is a derived query, never stored — a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
+- **Membership is not parenthood.** `parent` says which layer a block is in; `group` says which holder on that layer it sits in. Only the first is the tree.
 
-**Every package obeys it and none of them enforces it**: the walk is core's, in `schema.md`, and the drop rules that fall out of it are in `actions.md`.
+**A vocabulary's rules advise while modelling and refuse only at translation**: the walk is core's, in `schema.md`, and the drop rules are in `actions.md`.
 
 
 ## What travels

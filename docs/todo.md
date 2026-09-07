@@ -5,6 +5,53 @@
 Not a backlog of everything — an item earns a line here by being a decision somebody has to act on.
 
 
+## Next up
+
+**In order.** Each is a phase's worth on its own; the grid below is what they build on.
+
+### 1 — Pinning
+
+**Point at a block that already reads the way you want, and make that a definition.** A stereotype library built by pointing rather than by writing a definition first and applying it after. Explored here, built next.
+
+**What the gesture is.** `pin` on an element takes the block's own `looks` — its card, its style, whatever it was customised with — and files a definition carrying them in the workspace's own folder. The element then *names* that definition instead of carrying the overrides, and anything else may name it too. Locked, because what is filed there is depended on by whatever names it.
+
+**What has to be decided.**
+
+| | |
+|---|---|
+| **where it is filed** | a reserved workspace-level folder, so `home` resolution finds it from anywhere. One folder, or one per source package? |
+| **what it takes** | only `looks`, or fields and `holds` as well? Taking fields means pinning reads a usage's values as a *schema*, which is a guess |
+| **what happens to the element** | it names the new definition and drops its `looks`. Reversible, or a one-way act? |
+| **naming** | a definition needs a name and a pinned block may have none. Ask, or mint from the alias? |
+| **re-pinning** | pinning a second block that reads the same way — a new definition, or a match against what is filed? Matching is where this becomes a vocabulary rather than a pile |
+
+**What it also has to answer, from what has already gone wrong.**
+
+- **A definition retired in code lives on in every log already written.** The seed is laid down once, when storage is empty, so dropping `behavior`, `action`, `state` and the three reading views from `base` left them in every existing workspace. Starting a new workspace is currently the only cure.
+- **`base` is described as shipped, locked, and known to the engine by id** — which would justify reconciling it on load, but nothing does. **The door is where this belongs**, beside the migrations it already runs.
+- Which definitions a project draws on is an ordinary field with a hardcoded name, and **nothing checks that a named package exists**.
+
+**Watch for:** pinning is the first thing that writes a definition from a gesture rather than from `define`, so whatever it decides about naming and matching is what every later vocabulary tool inherits.
+
+### 2 — Interfaces, and how one is defined
+
+**Undesigned, and it will move actions.** What an interface *is* has drifted: it is a block seated on a wall, it is the anchor for every port-like thing, and it is the one element whose place is a side and a fraction rather than a point. What it is not yet is something a definition says much about.
+
+Known now:
+
+- **Promotion has no gesture.** `interface` is `on: ["block"]` and takes `edge` and `end` arguments only a gesture on a relationship's end could fill. Either the anchor gesture calls it directly, or `interface` widens its scope — and the second moves the action registry's shape.
+- **`flow` is decorative and constrains nothing.** If a definition is to say what may meet an interface, that is `ends` on a relation definition, an interface component, or a rule kind — three different places, and none is chosen.
+- **A seat is a snap target, never an address**, and `at` stays a fraction so resizing never invalidates a port. That much is settled and should survive whatever this becomes.
+
+### 3 — The tray
+
+**Context-sensitive, and it expands to fill the stage.** Today it is two fixed tabs, `this` and `contents`. The half of the search move that landed was the explorer's; this is the other half.
+
+### 4 — The explorer
+
+**After the tray.** Search results live here already — lit, never hidden. What it becomes once the tray can expand is the question.
+
+
 ## The grid
 
 **A visual spreadsheet for blocks.** One canvas view, in which a grid carries rows, columns, merged cells and headers. Blocks are plugged into cells and pulled back out. **This is the central rapid-prototyping feature**, and swimlanes, lifelines, tables and matrices are all meant to fall out of it rather than each costing code.
@@ -57,17 +104,6 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **repairs are mutations, not edits** | the door returns repairs for somebody else to apply, so a check written after a migration still reads the graph as it came in. That is how the group→grid migration freed every address it had just rescued |
 
 
-## Pinning
-
-**An explicit definition-management strategy.** Undesigned — to be expanded.
-
-What it has to answer, from what has already gone wrong:
-
-- **A definition retired in code lives on in every log already written.** The seed is laid down once, when storage is empty, so dropping `behavior`, `action`, `state` and the three reading views from `base` left them in every existing workspace. Starting a new workspace is currently the only cure.
-- **`base` is described as shipped, locked, and known to the engine by id** — which would justify reconciling it on load, but nothing does.
-- Which definitions a project draws on is currently an ordinary field with a hardcoded name, and **nothing checks that a named package exists**.
-
-
 ## Vocabulary
 
 **Stop inventing words where a convention exists.** With one way to draw, several terms have nothing left to distinguish.
@@ -78,7 +114,7 @@ What it has to answer, from what has already gone wrong:
 | **view definition** | nothing left to configure |
 | **layer view** | it is *the diagram* |
 | **reading** | cut |
-| **promoted** | a block that heads a line is a **header**, and so is the cell it fills. Two words for one fact |
+| **promote** as a *noun* | the gesture is **promote** and **demote**; what it makes is a **header**, and so is the cell it fills. One word each, not two for the thing |
 | **implied order** | nothing infers order from position on a layer any more. A cell address states it |
 
 | Stays | Is |
@@ -103,6 +139,5 @@ What it has to answer, from what has already gone wrong:
 | | |
 |---|---|
 | **Behaviour has no mechanism** | *The model defines itself as the user builds* is design.md's driving concept. **The grid is now half the answer** — a cell address states order and a header states allocation, both derived from position and stored nowhere. What is still missing is anything that *reads* them: no definition gains a field, no state is inferred, no interface is offered |
-| **Promotion has no gesture** | `interface` takes `edge` and `end`; only a gesture on a relationship's end knows both, and a menu raised there offers edge-scoped actions. Either the anchor gesture calls `interface` directly, or `interface` widens its scope |
-| **A named package is unchecked** | see *Pinning* |
-| **SVG honours no definition shape** | the headless drawing draws every card as a rectangle. A definition picking `diamond` or `hex` renders correctly on the canvas and not in an export |
+| **Definition shape is cut** | `card.layout` no longer offers `shape`. A definition picking a diamond drew as one on the canvas and as a rectangle in every export — a promise one renderer kept and the others could not. It comes back when they all can |
+| **A named package is unchecked** | which definitions a project draws on is an ordinary field with a hardcoded name, and nothing checks that a named package exists. Belongs with *Pinning* |

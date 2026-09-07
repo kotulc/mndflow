@@ -605,6 +605,10 @@ const SHARED: readonly number[] =
 const noted = (graph: Graph, id: Id): boolean =>
   graph.blocks[id]?.type === "note" || module_of(graph, id) === "note";
 
+/** What a chain may draw. **Three of the four** — a reference line is assigned
+ *  from what sits at its ends, so it is nobody's to pick. */
+const CHAINED: readonly RelationModule[] = ["line", "directed", "tie"];
+
 function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
   const a = graph.blocks[from];
   const b = graph.blocks[to];
@@ -912,32 +916,42 @@ function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
   return [...out, ...put];
 }
 
-/** The filled cells of a group, line by line, in the order the layer reads.
- *  A merged region answers at every address it covers, so the same block is
- *  never handed back twice running. */
-/** The way a grid is read: left to right, row by row, like a page. */
-const READ: Side = "right";
-
-function reading(graph: Graph, group: Id, way: Side): Id[][] {
+/** Every filled cell of a grid, in the order a page reads: left to right, row
+ *  by row, and **on across the row below**.
+ *
+ *  **One run, not one per row.** A chain is a sequence over everything the grid
+ *  holds, so where a row ends is where the next carries on. A merged region
+ *  answers at every address it covers, so the same block is never handed back
+ *  twice running. */
+function reading(graph: Graph, group: Id): Id[] {
   const g = graph.blocks[group];
   if (!g || !is_grid(graph, group)) return [];
-  const down = way === "top" || way === "bottom";
-  const back = way === "left" || way === "top";
-  const lines: Id[][] = [];
-  const across = down ? g.cols! : g.rows!;
-  const along = down ? g.rows! : g.cols!;
-  for (let o = 0; o < across; o++) {
-    const line: Id[] = [];
-    for (let i = 0; i < along; i++) {
-      const held = at_cell(graph, group, down ? i : o, down ? o : i);
-      /** **A header says what a line *is***, not a step along it — so it is
-       *  passed over wherever it sits, rather than by counting a strip off
-       *  the top and the left. */
-      if (held && !is_header(held) && line[line.length - 1] !== held.id) line.push(held.id);
+  const run: Id[] = [];
+  for (let r = 0; r < (g.rows ?? 0); r++) {
+    for (let c = 0; c < (g.cols ?? 0); c++) {
+      const held = at_cell(graph, group, r, c);
+      /** **A header says what a line *is***, not a step along it, so it is
+       *  passed over wherever it sits. */
+      if (held && !is_header(held) && run[run.length - 1] !== held.id) run.push(held.id);
     }
-    lines.push(back ? line.reverse() : line);
   }
-  return lines;
+  return run;
+}
+
+/** Every address in a grid nobody has claimed. **A merged region is one cell**,
+ *  so it answers once, at its corner. */
+function empty_cells(graph: Graph, group: Id): Cell[] {
+  const g = graph.blocks[group];
+  if (!g || !is_grid(graph, group)) return [];
+  const out: Cell[] = [];
+  for (let r = 0; r < (g.rows ?? 0); r++) {
+    for (let c = 0; c < (g.cols ?? 0); c++) {
+      const span = g.merges?.find((s) => covers(s, r, c));
+      if (span && (span.r !== r || span.c !== c)) continue;
+      if (!at_cell(graph, group, r, c)) out.push({ r, c });
+    }
+  }
+  return out;
 }
 
 /** The free cell nearest the one asked for, outside a span and outside what is
@@ -1172,37 +1186,68 @@ register(
   },
   {
     name: "chain",
-    about: "links the filled cells of a grid along the way the layer reads",
+    about: "links every filled cell of a grid, in the order it reads",
     on: ["block", "cell"],
-    args: [{ name: "group", form: "block" }],
-    /** **A grid reads the way a page does**, left to right and row by row. It
-     *  used to read whichever way the layer was arranged, which made a chain
-     *  depend on a setting nobody had made when they drew the grid — and left
-     *  the one arrangement anybody used with no answer at all. */
+    /** **The module the rail has picked**, so a chain draws the same sort of
+     *  line a right drag would. A tie to a note and a reference line are still
+     *  assigned from what sits at the ends. */
+    args: [{ name: "group", form: "block" },
+           { name: "module", form: "choice", choices: ["line", "directed", "tie"] }],
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
-      return reading(ctx.graph, group, READ).some((line) => line.length > 1)
-        ? null : "no two filled cells sit next to each other in a row";
+      return reading(ctx.graph, group).length > 1
+        ? null : "a chain needs two filled cells";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
-      const way = READ;
+      const said = text(args, "module");
+      const picked = CHAINED.find((m) => m === said) ?? "directed";
       const drawn = new Set(edges_in(ctx.graph, ctx.layer).map((e) => `${e.from}|${e.to}`));
+      const run = reading(ctx.graph, group);
       const out: Mutation[] = [];
-      for (const line of reading(ctx.graph, group, way)) {
-        for (let n = 1; n < line.length; n++) {
-          const from = line[n - 1]!;
-          const to = line[n]!;
-          if (drawn.has(`${from}|${to}`)) continue;
-          drawn.add(`${from}|${to}`);
-          out.push({ op: "link_blocks", edge: {
-            id: new_id("edge"), from, to,
-            module: derived_module(ctx.graph, from, to) ?? "directed" } });
-        }
+      for (let n = 1; n < run.length; n++) {
+        const from = run[n - 1]!;
+        const to = run[n]!;
+        if (drawn.has(`${from}|${to}`)) continue;
+        drawn.add(`${from}|${to}`);
+        out.push({ op: "link_blocks", edge: {
+          id: new_id("edge"), from, to,
+          module: derived_module(ctx.graph, from, to) ?? picked } });
       }
       return { mutations: out,
                ...(out.length ? {} : { effect: { say: "every neighbour is linked already" } }) };
+    },
+  },
+  {
+    name: "fill",
+    about: "puts a new block in every empty cell of a grid",
+    on: ["block", "cell"],
+    /** **A batch of blocks nobody has named yet.** Each gets the alias it would
+     *  have got one at a time, so a grid of eight is `A1`…`A8` and naming them
+     *  is the only thing left to do. */
+    args: [{ name: "group", form: "block" }],
+    check: (ctx, args) => {
+      const group = grid_named(ctx, args);
+      if (!group) return "point at a grid, or a cell of one";
+      return empty_cells(ctx.graph, group).length ? null : "every cell is taken";
+    },
+    run: (ctx, args) => {
+      const group = grid_named(ctx, args)!;
+      const parent = ctx.graph.blocks[group]?.parent ?? null;
+      /** **Counted forward here.** Both readers answer from the graph as it
+       *  stands, and nothing is applied until the step lands — so asking twice
+       *  would hand out one number twice. */
+      let num = next_num(ctx.graph, parent);
+      let alias = next_alias(ctx.graph);
+      const out: Mutation[] = [];
+      for (const cell of empty_cells(ctx.graph, group)) {
+        const id = new_id("block");
+        out.push({ op: "add_block", block: { id, parent, num: num++, alias: alias++ } });
+        out.push({ op: "set_group", id, group });
+        out.push({ op: "seat_cell", id, cell });
+      }
+      return { mutations: out };
     },
   },
 );

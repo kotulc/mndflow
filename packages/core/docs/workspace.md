@@ -27,11 +27,11 @@
 
 ## Session state
 
-**Held outside the log and never in a file** — the open layer, the selection, the explorer fold, which view each layer was last shown in, the theme, and every toggle. Opening somebody else's workspace must not rearrange your toggles.
+**Held outside the log and never in a file** — the open layer, the selection, the explorer fold, the theme, and every toggle. Opening somebody else's workspace must not rearrange your toggles.
 
 **The test: is it in the log?** A block's name is, so it exports and it undoes. Whether interfaces are shown is not, so it does neither.
 
-**`arrangement` is the exception that proves the rule** — it looks like a display preference and is model data, because inference reads the reading direction and an inference is permanent.
+**`arrangement` is the exception that proves the rule** — it looks like a display preference and is model data, because how a layer lays out is part of what the layer says. The test is *is it in the log?*: `arrangement` is, so it exports and it undoes.
 
 ## In and out
 

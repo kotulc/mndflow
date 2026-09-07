@@ -106,14 +106,13 @@ export function App() {
   const mod = on ? module_of(graph, on.id) : null;
   /** **Only a group is framed.** Grids own a corner and solid edges; groups are
    *  dashed rims round whatever they hold. */
-  const element = on && mod === "group"
-    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: true }
-    : on && mod === "grid"
-      ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked,
-          framed: false, grid: true }
-      : on
-        ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked, framed: false }
-        : null;
+  /** **A holder writes its name on its frame; a card is its name.** Only the
+   *  first can be told to say nothing and still read, which is the whole of
+   *  what `framed` decides. */
+  const element = on
+    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked,
+        framed: mod === "group" || mod === "grid" }
+    : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -277,14 +276,17 @@ export function App() {
      *  is the one failure that looks exactly like the app having missed the
      *  press. */
     if (name === "settings") { s.say("project settings are not built yet"); return; }
-    /** **Asking for `grid` auto-lays the layer**, and the picture is written
-     *  as ordinary placements so returning to `free` keeps it. `grid` as a
-     *  mode keeps laying out from the model — stored positions are the
-     *  `free` arrangement's. */
+    /** **The picture is written on the way out, not the way in.** `grid` lays
+     *  out from the model and ignores stored places, so the layout only has to
+     *  be written down when the layer stops doing that — which is what lets
+     *  `free` carry on from where `grid` left off. Writing it on the way *in*
+     *  spent a placement per block on every switch, for a picture the mode was
+     *  about to ignore. */
     if (name === "arrange") {
       const how = args!["arrangement"];
+      const leaving = arranged === "grid" && how === "free";
       act("arrange", { layer, ...args,
-                       ...(how === "grid" ? { at: tidy(graph, layer) } : {}) });
+                       ...(leaving ? { at: tidy(graph, layer) } : {}) });
       return;
     }
     /** **Not an action** — it writes nothing and asks for nothing. Describing
