@@ -1,266 +1,130 @@
 # mndflow
 
-A nested graph editor that asks you questions, running entirely in your
-browser.
+**A client-only editor for rapidly composing descriptive blocks into systems models.** No server, no language model, nothing fetched at run time. One log lives in the session, the graph is folded from it, and everything runs in the browser.
 
-mndflow composes grouped React Flow graphs from a conversation. You answer
-prompts; it builds a graph of objects from your answers, and shows you the
-graph as you go. Everything it builds stays editable by hand — the workflow
-suggests, it never constrains.
+**Everything is a block.** A note, a folder, an interface, a group and a grid are placed, dragged, named and laid out alike. What a block *is* comes from a **definition** in a shipped package rather than from a form the engine hardcodes — so the same graph reads as plain blocks and flows to one person and as SysML to another, because what changed is the names and the drawing, never the structure.
 
-There is **no backend and no language model**. Sentence embeddings run in your
-browser over ONNX to route what you type to the right template and the right
-suggestions — everything is local, and a turn is instant.
+**Nobody should have to learn a notation to use one.** Somebody says what the parts are, what they are made of, what flows between them and what has to be true, and that is already the whole base model. A standard is a translation layer on top, not a toll on the way in.
 
 ```
-┌─────────────────────────────────────────────┬──────────────┐
-│ What are the main parts of this system?     │ [ Module:  ] │  terminal, and the
-│ > rate limit_                               │ [ Layer:   ] │  suggestion rail
-├──────────────┬──────────────────────────────┴──────────────┤
-│ Ledger/      │  project / Edge          ↑                  │
-│ ▾ Edge/      │      ┌╌╌╌╌╌╌╌╌┐                             │  canvas: one layer,
-│   ├─ Auth    │      ┆ Edge   ┆ ──▶ ( Billing )             │  groups are dotted
-│   └─ Rate…   │      ┆ ▪ ▪    ┆                             │
-│ · Billing    ├─────────────────────────────────────────────┤
-│              │  # Auth            [Module]  [object]       │  properties
-│  explorer    │  Issues and rotates tokens.                 │
-├──────────────┴──────────────────────────┬──────────────────┤
-│ Actions                        [ Undo ] │ Matching         │  history, and live
-└─────────────────────────────────────────┴──────────────────┘  match scoring
+┌──────────────────────────────────────────────────────────────┐
+│ mndflow  12 blocks · 34 steps      undo redo  ex im  ▤  ◐    │  header: identity, and
+├──────────────────────────────────────────────────────────────┤  controls that reach a port
+│ + Heat Exchanger_                            add blocks      │  terminal: four commands
+├──────────────┬─────────────────────────────┬─────────────────┤
+│ Ledger/      │   ┌╌╌╌╌╌╌╌╌┐                │ Arrangement     │
+│ ▾ Edge/      │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● grid│  stage: one layer, and a
+│   ├─ Auth    │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
+│   └─ Rate…   │   └╌╌╌╌╌╌╌╌┘                │ Shows           │
+│ · Billing    ├─────────────────────────────┤   ☑ label       │  options: the slots the
+│              │ contents · this             │   ☐ fields      │  projection asked for
+│  explorer    │  Auth   Module              │                 │
+└──────────────┴─────────────────────────────┴─────────────────┘
+                       tray: what the open layer holds
 ```
 
-The tracked documents live in `docs/`, kept in step with the code:
-
-- spec.md — what each part does, component by component. Short, scannable.
-- design.md — why it is that way, and what each rule was chosen over.
-- tasks.md — what is missing, and what is still undecided.
-- plan.md — the queue: one row, one chunk of work.
-- actions.md — every action, adjustment and gesture.
-- definitions.md — the vocabulary each of them is written in.
-- definitions-legacy.md — the pre-rework glossary, archived for
-  comparison. **Nothing may be built from it.**
-
-The vocabulary was reworked on 2026-08-18: **everything is a block**, there are no element forms,
-and a new sort of thing is a definition in a shipped `base` package. design.md, *The simplified
-block model*, is the reasoning; `src/` has not caught up yet.
+Ranking is a **similarity** problem, not a generation one: MiniLM runs locally over ONNX, so `Invoices` scores close to `Billing` despite sharing no letters. That is the whole of what substring cannot answer, and it is why nothing here calls a model.
 
 ---
 
 ## Getting started
 
-**Prerequisites:** Node 18+, and [Git LFS](https://git-lfs.com) — which ships
-with Git for Windows and most Git installs.
+**Prerequisites:** Node 18+, and [Git LFS](https://git-lfs.com), which ships with Git for Windows and most Git installs.
 
 ```sh
-npm install && npm run dev
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-The embedding model and the ONNX runtime live under
-[`public/`](public), stored in Git LFS: about 60MB of `.onnx` and
-`.wasm` that a normal clone fetches for you. Nothing is downloaded at run time,
-so the app works offline and on first load.
-
-If the header reads **model not fetched**, the clone came down without LFS —
-`git lfs install && git lfs pull` fixes it.
-
-Then open <http://localhost:5173>.
+The embedding weights and the ONNX runtime are vendored under `public/` and stored in LFS — about 60MB of `.onnx` and `.wasm` that a normal clone fetches for you. Nothing is downloaded at run time, so the app works offline and on first load. A clone that came down without LFS still runs: ranking falls back to substring and the console says so, and `git lfs install && git lfs pull` fixes it.
 
 ### Using it
 
-Answer the opening question — click a domain, or describe your project in your
-own words and it is scored against every template. From there mndflow asks
-about whichever object is **selected**, and selecting is how you steer.
-
-Nothing is interpreted by a model, so answers are taken at face value: what you
-type is the name of the thing, or its text, or the far end of a relation,
-depending on what was asked. A name that matches nothing existing stops and
-asks rather than guessing.
-
 | Where | What you can do |
 |---|---|
-| Terminal | Answer; or type and pick an operation from the rail beside it |
-| Explorer | New object or group, rename, delete; drag to re-parent; click a group to open it |
-| Canvas | **The left button works what is there; the right button makes something new.** Left: drag to position, drop one card on another to put it inside, double-click a card to go into it and the space outside the frame to come back out. Right: click empty space for a block, click a card for an interface, click a relation to name it, drag card to card for a relationship, drag on empty space for a note. `Delete` removes |
-| Properties | Edit the selected object's text and type, or turn it into a group |
-| Actions | One **Undo**, unwinding in the order things were applied |
-| Matching | Every template's score against what you are typing, live |
+| **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
+| **Explorer** | the tree, and the menu that hangs off it. **A click navigates** |
+| **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
+| **Options** | the control groups the current projection asks for — arrangement, and what a card shows |
+| **Tray** | what the open layer holds, as rows |
+| **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
 
-Work is saved to `localStorage` as you go, and **export** writes the whole
-history to a file that **import** reads back.
+Work is kept in `localStorage` as you go; **export** writes the whole graph to a file that **import** reads back.
 
 ---
 
-## Workflows
+## The repo
 
-A workflow is not a script. Three kinds of file in [`workflows/`](workflows/)
-describe the conversation, and none contains control flow.
+**One repo, npm workspaces, one version, never published.** Boundaries exist to enforce direction and to let each package be proven on its own — they are not an API surface anyone has to keep.
 
-**[`entry.yaml`](workflows/entry.yaml)** — the opening question and the domains
-a first answer routes into. Each carries `tags`: the words someone would
-actually use for a project of that kind, which is what free text is scored
-against.
-
-**[`operations.yaml`](workflows/operations.yaml)** — the three things the
-conversation can ask for, globally. No domain may invent a fourth.
-
-| Operation | Asked when |
-|---|---|
-| `describe` | the selected object has no text |
-| `add` | always — the default the loop returns to |
-| `relate` | two or more objects are in view to connect |
-
-**One file per domain** — [`software`](workflows/software.yaml),
-[`website`](workflows/website.yaml), [`writing`](workflows/writing.yaml),
-[`research`](workflows/research.yaml), [`product`](workflows/product.yaml),
-[`freeform`](workflows/freeform.yaml). Each supplies wording and vocabulary:
-
-```yaml
-name: software
-
-terms:                                 # what this domain calls things
-  group: Layer
-  node: Module
-  relation: Dependency
-
-prompts:
-  add_root:                            # asked with the project selected
-    prompt: What are the main parts of this system?
-    hint: Name them one at a time.
-  add:                                 # asked with an object selected
-    prompt: What is "{label}" made of?
-  describe:
-    prompt: What is "{label}" responsible for?
-  relate_root:
-    prompt: How do these parts depend on one another?
-  relate:
-    prompt: What does "{label}" depend on?
+```
+packages/
+  core/       @mnd/core       graph, log, door, actions, ports
+  views/      @mnd/views      sizes, placement, routing, projection -> Scene
+  defs/       @mnd/defs       the definition packages. data, no code
+  theme/      @mnd/theme      the ramp and the icons. css only
+  fixtures/   @mnd/fixtures   sample logs, and sample files for the seam
+  explorer/   @mnd/explorer   the tree
+  stage/      @mnd/stage      the working area
+  options/    @mnd/options    the control rail
+  tray/       @mnd/tray       what the open layer holds
+  terminal/   @mnd/terminal   the strip
+  kit/        @mnd/kit        the seam, built and packed
+apps/
+  web/        @mnd/web        the product
+  cli/        @mnd/cli        the harness
 ```
 
-`{label}` is the selected object. `_root` variants are used when the project
-itself is selected and there is no object to name. `prompt` may be a list, one
-of which is chosen per asking. Any prompt may add `choices:` for chips.
+**One surface, one package, and never a `ui` package.** Five panels split five ways is what keeps one of them from quietly doing another's work. Each carries its own dev server, so a surface is runnable before the app hosting it exists.
 
-`terms` is what the suggestion rail uses — typing `rate limit` inside a
-software project offers **Module: rate limit** and **Layer: rate limit**, and
-inside a novel offers **Character** and **Act**.
+The monorepo README under `packages/` owns the dependency map, and every package carries its own README and `docs/`.
 
-A domain may declare `lead:` to name the operation it prefers to open with.
-`research` leads with `relate`, because evidence points at a claim rather than
-sitting inside one.
+### The one law
+
+**Dependencies run one way, and only `core` may name a closed set.** Anything else enumerating sorts of things is doing the engine's job in the wrong place. Both halves are a test — `test/law.test.ts` — so an arrow pointed the wrong way fails with the file and the arrow named.
 
 ### The loop
 
-[`terminal/router.ts`](src/terminal/router.ts) picks the next question from the
-graph itself: what the selected object is missing, in the domain's preferred
-order. An operation steps aside only once it has filled the last **two** turns,
-so the conversation builds for a while and then steps back to connect what it
-built — rather than repeating itself or alternating every turn.
+```
+bind ports  ->  hold the log  ->  fold  ->  project  ->  render
+                     ^                                      |
+                     +-------------- action ----------------+
+```
+
+**Every gesture returns an action name, which the app runs, which returns mutations, which it appends.** That loop is the whole app, and `apps/web` adds nothing to it: it binds the ports, holds the log, and passes derived data down. **If that app turns out to be interesting, a seam is in the wrong place.**
+
+**The log is the source of truth.** A graph is only ever derived by folding applied mutations in order, so undo needs no inverse operations — it flips a status and the graph is rebuilt by the same code that built it.
 
 ---
 
 ## Development
 
 ```sh
-npm run dev            # http://localhost:5173
-npm run build          # tsc, then a production bundle
-npm test               # the suite, in under a second
-npx tsc --noEmit       # typecheck alone
+npm run dev                          # the web app
+npm test                             # every suite in the workspace
+npm run typecheck                    # the whole tree, one pass
+npm run build -w @mnd/web            # a production bundle
+npm run release:kit                  # build, pack and stamp @mnd/kit
+npm run dev -w @mnd/stage            # one surface alone — also explorer, options, tray, terminal
+npm run start -w @mnd/cli -- fold related
 ```
 
-Workflow YAML is compiled in at build time by `@rollup/plugin-yaml`, so nothing
-parses it at runtime and a malformed file fails the build.
+**A passing suite proves the code agrees with itself; the CLI proves the packages compose** — that a log folds, an action writes, a layer projects, and a Scene is complete enough to draw from. It runs headless with no React in the process, which is what lets core and views be built and driven before any UI exists. A notation regression is a diff rather than a screenshot.
 
-**The step log is the source of truth.** A graph is only ever derived by
-folding applied mutations in order, so undo needs no inverse operations — it
-flips a status and the graph is rebuilt by the same code that built it. An
-object *is* a document: its text lives on the node, and the explorer tree is
-the node hierarchy.
-
-`src` is organised by what a thing is *for*, in the words the design documents
-already use. **Dependencies run one way**, and a folder that reaches upward is a
-design problem you can see rather than one you have to trace. The allowed edges
-live in [`tests/structure.test.ts`](tests/structure.test.ts) — one list, not a
-second copy here — and the suite names the file and the arrow the first time
-somebody points it the wrong way.
-
-| Folder | Is |
-|---|---|
-| [`graph/`](src/graph) | the project: log, fold, schema, files |
-| [`embed/`](src/embed) | MiniLM over ONNX, and scoring text against it |
-| [`geometry/`](src/geometry) | sizing, placement and routing, derived from the graph |
-| [`actions/`](src/actions) | the action registry: every action, its scope and its check |
-| [`workspace/`](src/workspace) | the workspace as a project: held roots, folders, packages |
-| [`modules/`](src/modules) | what open modules publish — the components a definition configures, and the view modules that project a layer |
-| [`canvas/`](src/canvas) | the drawing half the diagram module composes |
-| [`page/`](src/page) | the shell a module sits in |
-| [`terminal/`](src/terminal) | the optional way to give input |
-| [`project.ts`](src/project.ts) | the seam: state and dispatch |
-
-| Module | Purpose |
-|---|---|
-| [`graph/types.ts`](src/graph/types.ts) | Every shared shape: graph, mutations, steps, definitions |
-| [`graph/fold.ts`](src/graph/fold.ts) | Mutation replay, hierarchy walking, derived accessors |
-| [`graph/check.ts`](src/graph/check.ts) | The one door a log comes in through |
-| [`graph/file.ts`](src/graph/file.ts) | The envelope, the canonical layout, the state hash |
-| [`graph/store.ts`](src/graph/store.ts) | localStorage, and handing a file to the user |
-| [`geometry/layout.ts`](src/geometry/layout.ts) | Card sizing, treemap tiling, layer placement |
-| [`geometry/route.ts`](src/geometry/route.ts) | Where a line goes, and the lanes it shares |
-| [`canvas/card.tsx`](src/canvas/card.tsx) | The pieces every drawn thing is built from |
-| [`actions/index.ts`](src/actions/index.ts) | The action registry: scope, `check`, `sayable`, `writes` — every action is registered here |
-| [`workspace/index.ts`](src/workspace/index.ts) | The workspace as a project: held roots, folders, and the packages that ship |
-| [`modules/index.ts`](src/modules/index.ts) | The component contract: what a module publishes, and the key each owns |
-| [`modules/card/`](src/modules/card) | The card component: how a usage is composed — layout, shape, label, `shows` |
-| [`modules/view/diagram/`](src/modules/view/diagram) | The `block` view module: the projection surface, composition and gesture map |
-| [`canvas/gestures.ts`](src/canvas/gestures.ts) | What the pointer and the keyboard mean, and which action that reaches |
-| [`canvas/Canvas.tsx`](src/canvas/Canvas.tsx) | The layer composed: where things sit, what draws them, the controls |
-| [`terminal/router.ts`](src/terminal/router.ts) | Picks the question from the graph and the selection |
-| [`terminal/turn.ts`](src/terminal/turn.ts) | What one answer does — pure, no state |
-| [`terminal/workflows.ts`](src/terminal/workflows.ts) | Loads the catalogue, operations and vocabularies |
-
-`turn.ts` is deliberately pure: given a graph and an answer it returns the
-mutations and whatever is still unresolved, touching no state of its own.
-
-**The rail mounts optionally.** `project.ts` no longer imports the terminal — the question loop
-registers via `looping()` (S6.1). `page/App.tsx` and `page/Readout.tsx` still import it; S6.3 is
-the acceptance test.
+**`@mnd/kit` is the one thing that ships.** The headless stack as a single built package, plus `kit/react` and `kit/react.css` — packed, never published. `release/` carries the tarball and a manifest naming its version, commit and integrity, so a consumer can check what it is holding.
 
 ---
 
-## Extensions
+## The documents
 
-**Add a domain.** Write `workflows/<name>.yaml` with `terms` and wording for
-each operation, and add a chip and `tags` for it to `entry.yaml`. That is the
-whole job — control flow lives in `router.ts`, so a domain declares what to say
-and never how to sequence it. An unknown domain falls back to `freeform`.
+Under `docs/`, and they describe the **goal state** rather than what is built:
 
-**Add an operation.** Add it to `operations.yaml` with a `when` condition,
-teach `router.eligible()` the condition, handle it in `turn.answer()`, and give
-every domain wording for it. Deliberately more work than adding a domain — the
-operation set is meant to stay small.
+| | |
+|---|---|
+| `design.md` | why mndflow is the way it is — the vision, the goals, and what each rule was chosen over. **Authoritative** |
+| `spec.md` | what crosses packages, and the rules every package obeys. Short, scannable |
+| `definitions.md` | the vocabulary the other two are written in |
+| `stories.md` | what somebody is actually trying to do |
+| `todo.md` | what is decided but not built, and what is still undesigned |
 
-**Add a kind of change.** Add a variant to the `Mutation` union in `types.ts`
-and handle it in `fold.apply()`. It becomes undoable for free, because undo is
-a refold rather than an inverse.
-
-**Tune the matching.** Free text is scored against each of a template's `tags`
-separately, best one winning. A tag should be a **short phrase naming something
-somebody might be making** — two to six words. Single keywords are too
-ambiguous (`shop` pulled "a bike shop" to *website*), and long descriptions
-average into vagueness: scoring one joined sentence per template measured 3/9
-against 5/9 for separate phrases. The Matching column exists to make this
-visible while you tune it.
-
-### Not yet built
-
-- Real embeddings; today's scoring is character trigrams. This matters most for
-  the group treemap, whose chip shading is meant to show how well each child
-  fits its parent — trigrams score `Invoices` against `Billing` at zero, so that
-  shading is close to meaningless until it is swapped. This matters most
-  for the group treemap, whose chip shading is meant to show how well each
-  child fits its parent — trigrams score `Invoices` against `Billing` at zero,
-  so the shading is close to meaningless until this is swapped
-- Switching template by hand once a project is under way
-- Relations crossing a layer boundary, shown on the containing group
-- Renaming from the canvas
-- Multiple projects in one browser; export/import covers moving between them
-- Diagram types beyond the object graph: flow, class, swimlane, activity
+**What one package alone decides lives in that package's `docs/`**, never here.

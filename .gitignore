@@ -7,3 +7,4 @@ dist/
 .cursor/
 .vscode/
 CLAUDE.md
+*.tsbuildinfo
