@@ -452,9 +452,11 @@ describe("seats", () => {
     const pump = at.get("block_pump")!;
     const hx = at.get("block_hx")!;
     const valve = at.get("block_valve")!;
-    /** Directed edges leave pump and meet the member they name, not the rim. */
+    /** Directed edges leave pump on the member's row. An undirected sibling
+     *  sits above that member rather than past the far end of the band. */
     expect(pump.y).toBe(hx.y);
-    expect(pump.y).toBe(valve.y);
+    expect(valve.x).toBe(hx.x);
+    expect(valve.y + valve.h + GAP).toBe(at.get("block_hot")!.y);
   });
 
   it("sits a hub's neighbours in surrounding cells, not a single row", () => {
@@ -474,6 +476,47 @@ describe("seats", () => {
     for (const leaf of leaves) expect(gap(leaf, hub)).toBeLessThanOrEqual(GAP + UNIT);
     expect(new Set(leaves.map((p) => p.y)).size).toBeGreaterThan(1);
     expect(new Set(leaves.map((p) => p.x)).size).toBeGreaterThan(1);
+  });
+
+  it("sits a leftover neighbour above its member, not at a tall group's far corner", () => {
+    const { graph, layer } = layer_of("flat");
+    graph.blocks["block_band"] = { id: "block_band", parent: layer, type: "group", num: 30, labelled: false };
+    for (const [id, num] of [["block_top", 31], ["block_mid", 32], ["block_bot", 33]] as const) {
+      graph.blocks[id] = { id, parent: layer, type: "block", num, group: "block_band" };
+    }
+    graph.blocks["block_world"] = { id: "block_world", parent: layer, type: "block", num: 40 };
+    graph.blocks["block_hello"] = { id: "block_hello", parent: layer, type: "block", num: 41 };
+    graph.blocks["block_folder"] = { id: "block_folder", parent: layer, type: "block", num: 42 };
+    graph.edges["edge_world"] = { id: "edge_world", from: "block_world", to: "block_top", module: "line" };
+    graph.edges["edge_hello"] = { id: "edge_hello", from: "block_hello", to: "block_top", module: "line" };
+    graph.edges["edge_folder"] = { id: "edge_folder", from: "block_folder", to: "block_top", module: "line" };
+    const spots = under(graph, layer, "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const band = at.get("block_band")!;
+    const top = at.get("block_top")!;
+    const folder = at.get("block_folder")!;
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    expect(folder.x).toBe(top.x);
+    expect(folder.y + folder.h + GAP).toBe(band.y);
+    expect(gap(folder, band)).toBe(GAP);
+    expect(folder.y).toBeLessThan(top.y);
+  });
+
+  it("sits a neighbour of a grid cell above that cell, not past the far edge", () => {
+    const graph = fold(fixture("gridded"));
+    graph.blocks["block_n"] = { id: "block_n", parent: "block_board", type: "block", num: 80 };
+    graph.edges["edge_n"] = { id: "edge_n", from: "block_n", to: "block_draft", module: "line" };
+    const spots = under(graph, "block_board", "grid");
+    const at = new Map(spots.map((p) => [p.id, p]));
+    const n = at.get("block_n")!;
+    const draft = at.get("block_draft")!;
+    const lanes = at.get("block_lanes")!;
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    expect(n.x).toBe(draft.x);
+    expect(n.y + n.h + GAP === lanes.y || n.y === lanes.y + lanes.h + GAP).toBe(true);
+    expect(gap(n, lanes)).toBe(GAP);
   });
 
   it("keeps a directed chain on one row, left to right", () => {
@@ -598,7 +641,7 @@ describe("seats", () => {
       .toBeLessThanOrEqual(GAP + UNIT);
   });
 
-  it("places a tied note below a grid, aligned with the block it is about", () => {
+  it("places a tied note on the near rim of a grid, aligned with the block it is about", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_note"] = { id: "block_note", parent: "block_board", type: "note", num: 99 };
     graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_draft", module: "tie" };
@@ -610,11 +653,11 @@ describe("seats", () => {
     const draft = at.get("block_draft")!;
     const lanes = at.get("block_lanes")!;
     expect(note.x).toBe(draft.x);
-    expect(gap(note, lanes)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(note, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(note.y + note.h + GAP).toBe(lanes.y);
+    expect(gap(note, lanes)).toBe(GAP);
   });
 
-  it("places a reference below a grid, aligned with the block it is linked to", () => {
+  it("places a reference on the near rim of a grid, aligned with the block it is linked to", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", num: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", num: 99 };
@@ -627,8 +670,8 @@ describe("seats", () => {
     const draft = at.get("block_draft")!;
     const lanes = at.get("block_lanes")!;
     expect(ref.x).toBe(draft.x);
-    expect(gap(ref, lanes)).toBeGreaterThanOrEqual(GAP);
-    expect(gap(ref, lanes)).toBeLessThanOrEqual(GAP + UNIT);
+    expect(ref.y + ref.h + GAP).toBe(lanes.y);
+    expect(gap(ref, lanes)).toBe(GAP);
   });
 
   it("anchors a reference on its in-layer link when its target is not on the board", () => {
@@ -661,8 +704,12 @@ describe("seats", () => {
     const lanes = at.get("block_lanes")!;
     const inn = at.get("block_in")!;
     const draft = at.get("block_draft")!;
-    expect(lanes.x - (inn.x + inn.w)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(inn.y).toBe(draft.y);
+    const gap = (a: Placed, b: Placed) => Math.max(
+      b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
+    /** Near the named cell — above it on a wide grid, not left of the
+     *  whole lattice and not past an intervening group. */
+    expect(inn.x === draft.x || inn.y === draft.y).toBe(true);
+    expect(gap(inn, lanes)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
   it("places a downstream block on the near side of a grid, not past an intervening group", () => {
@@ -680,7 +727,7 @@ describe("seats", () => {
     expect(out.x - (lanes.x + lanes.w)).toBeLessThanOrEqual(GAP + UNIT);
   });
 
-  it("keeps two references below a grid, aligned with their linked cells", () => {
+  it("keeps two references on the near rim of a grid, aligned with their linked cells", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_remote_a"] = { id: "block_remote_a", parent: graph.root, type: "block", num: 1 };
     graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: graph.root, type: "block", num: 2 };
@@ -697,12 +744,10 @@ describe("seats", () => {
     const ref_b = at.get("block_ref_b")!;
     const draft = at.get("block_draft")!;
     const ship = at.get("block_ship")!;
-    expect(ref_a.x).toBe(draft.x);
-    expect(ref_b.x).toBe(ship.x);
-    expect(ref_a.y).toBe(ref_b.y);
-    expect(gap(ref_a, lanes)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(gap(ref_b, lanes)).toBeLessThanOrEqual(GAP + UNIT);
-    expect(ref_a.x).toBeLessThan(ref_b.x);
+    expect(ref_a.x === draft.x || ref_a.y === draft.y).toBe(true);
+    expect(ref_b.x === ship.x || ref_b.y === ship.y).toBe(true);
+    expect(gap(ref_a, lanes)).toBe(GAP);
+    expect(gap(ref_b, lanes)).toBe(GAP);
   });
 
   it("places a reference beside the block it is linked to on the layer", () => {

@@ -62,7 +62,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
     const anchor = satellite_anchor(graph, layer, b, laid_so_far);
     const taken = [...laid_so_far, ...satellite_spots];
     satellite_spots.push(anchor
-      ? seat_satellite(b.id, anchor, s, taken, graph, structural_spots)
+      ? seat_satellite(b.id, anchor, s, taken, graph, layer)
       : { id: b.id, ...fit(taken, { x: 0, y: 0 }, s), ...s });
   }
   return unique([...laid_so_far, ...satellite_spots]);
@@ -343,63 +343,83 @@ function inner_of(graph: Graph, layer: Id | null, id: Id, holder: Placed,
   return member_spot(graph, layer, id, holder.id, taken, "grid");
 }
 
-/** One cell away from a mate on `side`. `n` is how many card-slots out. */
+/** One cell away from a mate on `side`. `n` is how many card-slots out.
+ *
+ *  **Above and below clear the container**, aligned with the member the
+ *  edge names. Sitting above the member itself lands inside a tall group
+ *  or grid, so the search skipped that cell and jumped to a far corner. */
 function beside_at(p: Placed, side: Side, size: Size, inner: Placed | null, n: number): Point {
   const y = inner?.y ?? p.y;
   const x_align = inner?.x ?? p.x;
-  const body = inner ?? p;
   const step_x = size.w + GAP;
   const step_y = size.h + GAP;
   const k = Math.max(1, n) - 1;
   switch (side) {
     case "right": return { x: p.x + p.w + GAP + k * step_x, y };
     case "left": return { x: p.x - size.w - GAP - k * step_x, y };
-    case "below": return { x: x_align, y: body.y + body.h + GAP + k * step_y };
-    case "above": return { x: x_align, y: body.y - size.h - GAP - k * step_y };
+    case "below": return { x: x_align, y: p.y + p.h + GAP + k * step_y };
+    case "above": return { x: x_align, y: p.y - size.h - GAP - k * step_y };
   }
 }
 
-/** The four diagonal cells around a mate — the rest of its 3×3 neighbourhood. */
-function corners_at(p: Placed, size: Size): Point[] {
+/** Diagonal cells around a mate — near the related member first, then the
+ *  container's own corners. */
+function corners_at(p: Placed, size: Size, toward: Placed): Point[] {
   const dx = size.w + GAP;
   const dy = size.h + GAP;
+  const x = toward.x;
   return [
-    { x: p.x + p.w + GAP, y: p.y + p.h + GAP },
-    { x: p.x - dx, y: p.y + p.h + GAP },
+    { x: x + toward.w + GAP, y: p.y - dy },
+    { x: x - dx, y: p.y - dy },
     { x: p.x + p.w + GAP, y: p.y - dy },
     { x: p.x - dx, y: p.y - dy },
+    { x: x + toward.w + GAP, y: p.y + p.h + GAP },
+    { x: x - dx, y: p.y + p.h + GAP },
+    { x: p.x + p.w + GAP, y: p.y + p.h + GAP },
+    { x: p.x - dx, y: p.y + p.h + GAP },
   ];
 }
 
-/** Preferred cell: the nearest free neighbour of a mate.
+/** How far a candidate box is from the block the relationship actually names. */
+function separation(at: Point, size: Size, toward: Placed): number {
+  const dx = Math.max(0, at.x - (toward.x + toward.w), toward.x - (at.x + size.w));
+  const dy = Math.max(0, at.y - (toward.y + toward.h), toward.y - (at.y + size.h));
+  return dx + dy;
+}
+
+/** Preferred cell: the free neighbour nearest the related member.
  *
- *  **Around the mate, not along its row.** Siblings of a hub take the four
- *  sides then the corners, so a star becomes a grid instead of a line of
- *  otherwise-unrelated cards stretching to a far end. A chain still walks
- *  one step along its own mate, so A→B→C stays a run. */
+ *  **Around the member, not the far corner of its container.** Siblings of
+ *  a hub take the four sides then the corners, so a star becomes a grid.
+ *  When those sides of a tall group are taken, the leftover sits above (or
+ *  below) the member it names — not at the opposite corner, which is what
+ *  made a path walk around the whole box. A chain still walks one step
+ *  along its own mate, so A→B→C stays a run. */
 function desired_at(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
                     unit: (id: Id) => Id, size: Size,
                     edges = edges_in(graph, layer)): Point | null {
   const mates = placement_mates(graph, layer, id, taken, unit, edges);
   if (!mates.length) return null;
   const sides = anchor_sides(graph, layer, id, mates.map((p) => p.id), unit);
-  const candidates: Point[] = [];
+  const cands: { at: Point; dist: number; rank: number }[] = [];
   for (const p of mates) {
     const inner = inner_of(graph, layer, id, p, taken);
-    for (const side of sides) candidates.push(beside_at(p, side, size, inner, 1));
-  }
-  for (const p of mates) candidates.push(...corners_at(p, size));
-  for (const n of [2, 3]) {
-    for (const p of mates) {
-      const inner = inner_of(graph, layer, id, p, taken);
-      for (const side of sides) candidates.push(beside_at(p, side, size, inner, n));
+    const toward = inner ?? p;
+    let rank = 0;
+    const add = (pt: Point, r: number) => {
+      const at = on_unit(pt);
+      cands.push({ at, dist: separation(at, size, toward), rank: r });
+    };
+    for (const side of sides) add(beside_at(p, side, size, inner, 1), rank++);
+    for (const c of corners_at(p, size, toward)) add(c, 8);
+    for (const n of [2, 3]) {
+      for (const side of sides) add(beside_at(p, side, size, inner, n), 12);
     }
   }
-  for (const c of candidates) {
-    const at = on_unit(c);
-    if (open_at(taken, at.x, at.y, size)) return at;
-  }
-  return on_unit(candidates[0]!);
+  const open = cands.filter((c) => open_at(taken, c.at.x, c.at.y, size));
+  const pool = open.length ? open : cands;
+  pool.sort((a, b) => a.dist - b.dist || a.rank - b.rank || a.at.y - b.at.y || a.at.x - b.at.x);
+  return pool[0]!.at;
 }
 
 /** Nearest lattice point to `at` where a box of this size keeps a unit of air
@@ -598,57 +618,16 @@ function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
   return null;
 }
 
-/** Seat a note or reference one gap from its anchor — below first, then beside,
- *  then row by row under the anchor if every side is taken.
+/** Seat a note or reference in the same nearest cell the packer would pick.
  *
- *  **A block inside a grid or band sits below the rim**, aligned with the
- *  block — not on the far side of the container hunting for a free cell. */
+ *  **Not a second policy.** These used to always drop below a grid or band,
+ *  so a reference of a top cell sat under the whole lattice. They now ask
+ *  `desired_at` for the free neighbour nearest the named block. */
 function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Placed[],
-                        graph: Graph, structural: readonly Placed[]): Placed {
-  const free = (box: Rect) => !taken.some((t) => gaps_overlap(box, t));
-  const rim_below = (holder: Placed) => snap(Math.max(anchor.y + anchor.h + GAP, holder.y + holder.h + GAP));
-  const b = graph.blocks[anchor.id];
-  if (b?.group) {
-    const holder = structural.find((p) => p.id === b.group);
-    const g = holder ? graph.blocks[b.group] : undefined;
-    if (holder && g && (is_grid(g) || is_group_block(graph, b.group))) {
-      const y0 = rim_below(holder);
-      const x0 = anchor.x;
-      for (let drop = 0; drop < 40; drop++) {
-        const box = { x: x0, y: y0 + drop * UNIT, ...size };
-        if (free(box)) return { id, ...box };
-      }
-      const out = exterior_side(holder, anchor);
-      const beside = out === "left"
-        ? { x: anchor.x - size.w - GAP, y: anchor.y }
-        : { x: anchor.x + anchor.w + GAP, y: anchor.y };
-      const box = { x: snap(beside.x), y: snap(beside.y), ...size };
-      if (free(box)) return { id, ...box };
-    }
-  }
-  const candidates = [
-    { x: anchor.x, y: anchor.y + anchor.h + GAP },
-    { x: anchor.x + anchor.w + GAP, y: anchor.y },
-    { x: anchor.x - size.w - GAP, y: anchor.y },
-    { x: anchor.x, y: anchor.y - size.h - GAP },
-  ];
-  for (const c of candidates) {
-    const box = { x: snap(c.x), y: snap(c.y), ...size };
-    if (free(box)) return { id, ...box };
-  }
-  let x = snap(anchor.x);
-  let y = snap(anchor.y + anchor.h + GAP);
-  for (let drop = 0; drop < 40; drop++) {
-    const box = { x, y, ...size };
-    if (free(box)) return { id, ...box };
-    y += UNIT;
-  }
-  return { id, ...fit(taken, { x, y }, size), ...size };
-}
-
-function gaps_overlap(a: Rect, b: Rect): boolean {
-  return a.x < b.x + b.w + GAP && b.x < a.x + a.w + GAP
-    && a.y < b.y + b.h + GAP && b.y < a.y + a.h + GAP;
+                        graph: Graph, layer: Id | null): Placed {
+  const hint = desired_at(graph, layer, id, [...taken], (x) => loose_unit(graph, x), size)
+    ?? { x: anchor.x, y: anchor.y - size.h - GAP };
+  return { id, ...fit(taken, hint, size), ...size };
 }
 
 function loose_units(graph: Graph, layer: Id | null): Block[] {
@@ -756,8 +735,8 @@ function anchor_sides(graph: Graph, layer: Id | null, id: Id, mates: readonly Id
     if (flow.to === uid) downstream = true;
   }
   if (upstream && !downstream) return ["left", "above", "below", "right"];
-  if (downstream && !upstream) return ["right", "below", "above", "left"];
-  return ["right", "left", "below", "above"];
+  if (downstream && !upstream) return ["right", "above", "below", "left"];
+  return ["right", "left", "above", "below"];
 }
 
 /** Where a seated member would draw inside a container already on the layer. */
@@ -802,10 +781,4 @@ function member_spot(graph: Graph, layer: Id | null, id: Id, holder_id: Id,
   const holder = taken.find((p) => p.id === holder_id);
   if (!holder) return null;
   return member_in_holder(graph, layer, holder_id, member, holder, how);
-}
-
-function exterior_side(holder: Placed, anchor: Placed): "left" | "right" {
-  const ax = anchor.x + anchor.w / 2;
-  const hx = holder.x + holder.w / 2;
-  return ax <= hx ? "left" : "right";
 }
