@@ -1,0 +1,189 @@
+/** The app's icon vocabulary — one set, one grid, one weight.
+ *
+ *  Vendored inline SVG rather than a font or a package. A Unicode mark renders
+ *  from whatever system font happens to carry it: unhinted at small sizes,
+ *  with metrics that differ per platform and a baseline it sits off, which is
+ *  why chrome built from glyphs reads blurry and indistinct. These draw at an
+ *  exact size with one stroke weight.
+ *
+ *  **No mark means two things.** A name here is a purpose, never a shape —
+ *  `fold_all`, not `minus_box` — so two purposes cannot quietly share one
+ *  drawing. One purpose may have many callers, which is why `remove` serves
+ *  every *take this away* in the app rather than each surface drawing its own.
+ *
+ *  The design language, in one place so a new icon inherits it rather than
+ *  inventing its own: a 24-unit grid, 1.5 stroke, round caps and joins,
+ *  `currentColor`, no fill unless the mark is solid by nature, and a stroke
+ *  across a mark reads as *not that* — never as a second mark. */
+
+const GRID = 24;
+const WEIGHT = 1.5;
+
+/** Every icon, keyed by what it means. Paths only — the frame is shared. */
+const PATHS = {
+  // Making and taking away.
+  add: "M12 5v14M5 12h14",
+  /** **On the same footprint as `add`**, not the row mark's: a folder drawn to
+   *  its own width sat short beside the marks it shares a bar with, and read as
+   *  a smaller control than the ones either side of it. */
+  add_folder: "M5 5.5h5l2 2h7v11H5zM12 10.5v5M9.5 13h5",
+  remove: "M6 6l12 12M18 6L6 18",
+
+  // Undoing and redoing. An arrow that turns back on itself, both ways.
+  undo: "M4 9h11a5 5 0 0 1 0 10H9M4 9l4-4M4 9l4 4",
+  redo: "M20 9H9a5 5 0 0 0 0 10h6M20 9l-4-4M20 9l-4 4",
+
+  // The tree: folding a branch, and what it chooses to list.
+  fold_all: "M5 5h14v14H5zM8.5 12h7",
+  unfold_all: "M5 5h14v14H5zM12 8.5v7M8.5 12h7",
+  show_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5",
+  hide_empty: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 19.5l15-15",
+
+  // A tray or a panel opening and shutting. Chevrons, so nothing confuses
+  // them with sort.
+  more: "M6.5 9.5l5.5 5 5.5-5",
+  less: "M6.5 14.5l5.5-5 5.5 5",
+  up: "M12 19.5V6M6 12l6-6 6 6",
+
+  // What a row is, in the tree. One meaning each.
+  role_leaf: "M7 7h10v10H7z",
+  role_interface: "M7.5 7.5h9v9h-9z",
+  // A container holds things, so it is solid. An outline would read as the
+  // empty leaf beside it.
+  role_container: "M6 6h12v12H6z",
+  role_folder: "M3.5 7.5h6l2 2h9v9h-17z",
+  // Somewhere else, a description, and a set — none of them structure here.
+  // A reference is a solid corner pointing up and out of its own card: it
+  // stands for something that lives elsewhere, and the mark says which way.
+  role_reference: "M7 5h12v12z",
+  role_note: "M5 8h14M5 12h14M5 16h9",
+  // A boundary drawn round what it holds — rules that run off the edge, the
+  // same hash the guides wear, because both are an unbounded frame.
+  role_group: "M9 4v16M15 4v16M4 9h16M4 15h16",
+  // A group with an extent — cells you seat things in, bounded like a table.
+  role_table: "M4.5 6h15v12H4.5zM4.5 10.5h15M11 6v12",
+
+  // What a thing is, opened out to be set. A cog: the one mark every app
+  // already spends on *the settings of this*.
+  define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
+
+  // A thing fixed where it was put. A shackle over a body, closed — and the
+  // same body with the shackle sprung, which is the *not that* of it.
+  locked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0v2M5.5 10.5h13v9h-13z",
+  unlocked: "M7.5 10.5v-2a4.5 4.5 0 0 1 9 0M5.5 10.5h13v9h-13z",
+
+  // Whether a thing writes its name on itself. A tag on a card, and the same
+  // tag struck through.
+  label_on: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5",
+  label_off: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5M5.5 18.5l13-13",
+
+  // Interfaces drawn on the canvas, or not.
+  ports_on: "M6 6h12v12H6zM2.5 12H6M18 12h3.5",
+  ports_off: "M15 6H6v12h9",
+
+  // Sending a file out, and taking one in. A workspace lands on a shelf; a
+  // project is one page, so the two can never read as each other.
+  export_workspace: "M12 3.5v9M8.5 9.5L12 13l3.5-3.5M4 16.5v4h16v-4",
+  export_project: "M6.5 3.5h7l4 4v13h-11zM12 10v6M9 13.5L12 16.5l3-3",
+  import_file: "M12 13.5v-9M8.5 8L12 4.5 15.5 8M4 16.5v4h16v-4",
+
+  // How a layer places what it holds. Two, and they are the same three boxes
+  // twice: scattered where the hand put them, and slotted into a lattice.
+  layout_free: "M5 5h4.5v4.5H5zM14.5 8h4.5v4.5h-4.5zM8 14.5h5.5V19H8z",
+  layout_grid: "M4.5 4.5h15v15h-15zM9.5 4.5v15M14.5 4.5v15M4.5 9.5h15M4.5 14.5h15",
+
+  // The guides the drawing is measured against, ruled or not. **A hash: rules
+  // that run off the edge**, which is what a guide is and what keeps it off
+  // `layout_grid`, where the lines are bounded because they are the thing.
+  guides_on: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17",
+  guides_off: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17M4.5 19.5l15-15",
+
+  // The project opened out to be set. **Sliders, not a cog** — `define` is the
+  // cog and it answers *what is this thing*; this answers *how does the app
+  // behave*, and two purposes may not share one drawing.
+  settings: "M4 8h9M17 8h3M4 16h3M11 16h9M15 5.5v5M7 13.5v5",
+
+  // The options rail — a panel of controls for what is on the stage. Three
+  // lines, the mark every list-of-choices already spends on *open the menu*.
+  menu: "M5 7h14M5 12h14M5 17h14",
+
+  // What a right drag makes, one per way a line is drawn. End bars say *this
+  // joins two things*, which is what keeps a plain relationship from reading as
+  // a bare rule and a directed one from reading as an arrange arrow.
+  relation_plain: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15",
+  relation_directed: "M4.5 8.5v7M4.5 12h14M14 7.5l5 4.5-5 4.5",
+  // A tie is an association rather than a flow: the same span, dotted like the
+  // leader it draws on the canvas.
+  relation_tie: "M4.5 8.5v7M19.5 8.5v7M5.5 12h0M7.5 12h0M9.5 12h0M11.5 12h0M13.5 12h0M15.5 12h0M17.5 12h0",
+  relation_typed: "M4.5 8.5v7M19.5 8.5v7M4.5 12h15M12 6.5v3",
+
+  // Pulling the bends out of every line. A run that jogs, over the one straight
+  // segment it becomes — the mark is the before and the after together.
+  align: "M3.5 8h7V16h10M3.5 20h17",
+
+  // How a relationship is drawn.
+  angles: "M4 19V8h8V4",
+  smooth: "M4 19c5 0 3-14 8-14s3 14 8 14",
+
+  // The three looks. Light, dark, and the slot a "system" toggle would take —
+  // ours are three named looks rather than two modes and a follow, so `retro`
+  // sits there without pretending to read the operating system.
+  theme_light: "M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9M12 2v2.5M12 19.5V22M4.5 12H2M22 12h-2.5M6 6L4.5 4.5M19.5 19.5L18 18M18 6l1.5-1.5M4.5 19.5L6 18",
+  theme_modern: "M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5",
+  theme_retro: "M5 5h14v10H5zM9 19h6M12 15v4",
+
+  // The strip that types. A prompt inside a frame, so it cannot read as the
+  // retro screen above it.
+  terminal: "M3.5 5.5h17v13h-17zM7 10l3 2.5-3 2.5M13 15.5h4",
+  // Clearing what is typed. Backspace — it is the text that goes.
+  clear: "M9 5.5h10.5v13H9L3.5 12zM12 9.5l5 5M17 9.5l-5 5",
+
+  // The app speaking about what you did, or holding its tongue.
+  mirror_on: "M4.5 5.5h15v10h-9l-4 3.5V15.5h-2z",
+  mirror_off: "M4.5 5.5h15v10h-9l-4 3.5V15.5h-2zM6.5 17.5L18 4.5",
+
+  // Which line of a grid carries meaning rather than contents: the shaded
+  // strip is the header, down the left for a row header and across the top for
+  // a column one.
+  header_row: "M3.5 5.5h17v13h-17zM3.5 10h17M3.5 14h17M8.5 5.5v13M3.5 5.5h5v13h-5z",
+  header_col: "M3.5 5.5h17v13h-17zM3.5 10h17M3.5 14h17M8.5 5.5v13M3.5 5.5h17v4.5h-17z",
+} as const;
+
+export type IconName = keyof typeof PATHS;
+
+/** Whether a name is one this set draws — the guard a stored name goes
+ *  through, so a mark that was never drawn fails where it is read. */
+export function known(name: string): name is IconName {
+  return name in PATHS;
+}
+
+/** What one name draws. Exposed so the set can be held to its own rule — two
+ *  purposes sharing a path is the mistake it exists to prevent. */
+export function paths(name: IconName): string {
+  return PATHS[name];
+}
+
+/** Every name in the set, for a caller that wants to check its own table. */
+export function names(): IconName[] {
+  return Object.keys(PATHS) as IconName[];
+}
+
+/** One icon. `solid` fills it instead of stroking — for the marks that are
+ *  solid by nature, like a container row, where the fill is what says it holds
+ *  something and an outline would read as the empty leaf beside it. */
+export function Icon({ name, size = 16, solid = false, className }: {
+  name: IconName;
+  size?: number;
+  solid?: boolean;
+  className?: string;
+}) {
+  return (
+    <svg className={className ? `icon-svg ${className}` : "icon-svg"}
+         width={size} height={size} viewBox={`0 0 ${GRID} ${GRID}`}
+         fill={solid ? "currentColor" : "none"} stroke="currentColor"
+         strokeWidth={solid ? 0 : WEIGHT} strokeLinecap="round" strokeLinejoin="round"
+         aria-hidden="true" focusable="false">
+      <path d={PATHS[name]} />
+    </svg>
+  );
+}

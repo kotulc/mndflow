@@ -77,16 +77,16 @@ export const ROOT = "root";
  *  Closed and permanent, the way a retired op is: a form is written into logs,
  *  so every value here has to outlive every future build. `date` was left out
  *  because a `text` field carries one and nothing reasons about it, and a
- *  general list because `many` on a `ref` covers what it was wanted for. Both
+ *  general list because `many` on a `link` covers what it was wanted for. Both
  *  can widen later without reinterpreting a value already written, which is
  *  the test a deferral had to pass. */
-export type ValueForm = "text" | "number" | "flag" | "choice" | "ref";
+export type ValueForm = "text" | "number" | "flag" | "choice" | "link";
 
 /** A named, typed value carried by an element or a relationship.
  *
  *  No identity of its own — a field is a name and a value on the thing that
  *  carries it, addressed by that name. Never structural: a field never appears
- *  in the explorer and never changes what contains what. A `ref` points at an
+ *  in the explorer and never changes what contains what. A `link` points at an
  *  element or a definition **without drawing a line**, which is how a part
  *  property or a satisfied requirement is stated. */
 export type Field = {
@@ -99,7 +99,7 @@ export type Field = {
   /** `choice` only. Normally the definition's to declare; held here where a
    *  field was made without one. */
   choices?: string[];
-  /** `ref` only — whether it points at more than one thing. */
+  /** `link` only — whether it points at more than one thing. */
   many?: boolean;
 };
 
@@ -197,6 +197,11 @@ export type Edge = {
    *  derived. `arrange` clears these along with hand placement. */
   fromSide?: Side;
   toSide?: Side;
+  /** Where on that wall the from end sits, when somebody dragged it there.
+   *  Absent means the layer still chooses along the wall. */
+  fromAt?: number;
+  /** Same for the to end. */
+  toAt?: number;
   /** Descriptive values, addressed by name — a transition's trigger and guard,
    *  a flow's item. Absent rather than empty, so an edge that says nothing
    *  extra writes nothing extra. */
@@ -339,8 +344,9 @@ export type Mutation =
   | { op: "update_edge"; id: string; type: string }
   | { op: "set_dir"; id: string; dir: Dir }
   | { op: "set_form"; id: string; form: EdgeForm }
-  /** Pin one end of a relationship to a wall, or hand it back to the layer. */
-  | { op: "set_side"; id: string; end: "from" | "to"; side: Side | null }
+  /** Pin one end of a relationship to a wall, or hand it back to the layer.
+   *  An optional `at` pins the seat along it without making an interface. */
+  | { op: "set_side"; id: string; end: "from" | "to"; side: Side | null; at?: number | null }
   /** Turn a relation around; what it says stays the same. */
   | { op: "flip_edge"; id: string }
   | { op: "delete_edge"; id: string }
@@ -426,7 +432,7 @@ export function newId(prefix: string): string {
  *  Written as a path — `proj_a9f/def_pump` — and a bare id means "here", so
  *  every reference written before projects could see one another still reads.
  *  One convention for all three places a reference is held: a reference's `of`, an
- *  element's `type`, and a `ref` field's value. Ids never contain a slash, so
+ *  element's `type`, and a `link` field's value. Ids never contain a slash, so
  *  there is nothing to escape and nothing ambiguous. */
 export function refTo(id: string, project?: string | null): string {
   return project ? `${project}/${id}` : id;

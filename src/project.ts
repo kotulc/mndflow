@@ -530,6 +530,8 @@ export function useProject(projectId: string, locked = false, onAdmit?: (id: str
     size: (id: string, w: number, h: number) => go("size", { id, w, h }),
     seat: (id: string, side: Side, at: number) => go("seat", { id, side, at }),
     setPort: (id: string, side: Side, at: number) => go("seat", { id, side, at }),
+    slideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) =>
+      go("seat", { edge, end, side, at }),
     wall: (id: string, end: "from" | "to", side: Side | null) =>
       go("wall", { id, end, side }),
     setSide: (id: string, end: "from" | "to", side: Side | null) =>

@@ -6,7 +6,8 @@
  *  records. */
 
 import {
-  actual, descendsFrom, isReference, isTie, membersOf, nameFree, nameOf, nextNum, referenceIn,
+  actual, cascades, descendsFrom, isReference, isTie, membersOf, nameFree, nameOf, nextNum,
+  referenceIn,
 } from "../graph/fold";
 import { ROOT, element as makeElement, refAt, type Mutation, type Spot } from "../graph/types";
 import { register, type Action, type Args, type Context, type Effect } from "./index";
@@ -140,8 +141,14 @@ const drop: Action = {
   run: (ctx, args) => {
     const id = as_id(args, "id", ctx)!;
     // Its contents go with it, so an annotation drawn round any of them loses
-    // those members in the same step — and goes itself if that empties it.
-    const gone = Object.keys(ctx.graph.elements).filter((n) => descendsFrom(ctx.graph, n, id));
+    // those members in the same step — and goes itself if that empties it. A
+    // contained descendant is spared by the fold (it un-files rather than
+    // deletes), so it must be spared here too, or a survivor would wrongly lose
+    // the group membership and ties this list is about to strip.
+    const gone = Object.keys(ctx.graph.elements).filter((n) =>
+      n === id
+        ? true
+        : cascades(ctx.graph.elements[n]) && descendsFrom(ctx.graph, n, id));
     const effect: Effect = {
       mutations: [{ op: "delete_element", id }, ...partings(ctx, gone)],
       say: `delete: ${label_of(ctx, id)}`,

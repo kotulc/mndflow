@@ -63,15 +63,20 @@ const files = import.meta.glob("../../workflows/*.yaml", {
   import: "default",
 }) as Record<string, any>;
 
-/** Words keyed by domain name — stem matches `name` in the domain file. */
-const termFiles = import.meta.glob("../../packages/terms/*.yaml", {
-  eager: true,
-  import: "default",
-}) as Record<string, any>;
-
-function stem(path: string): string {
-  return path.match(/([^/\\]+)\.yaml$/)?.[1] ?? "";
-}
+/** Words keyed by domain name.
+ *
+ *  These were `packages/terms/*.yaml`, which came out with the rest of the old
+ *  YAML packages. They are inlined rather than dropped because they are the
+ *  only thing that surface read from there, and losing them would have left
+ *  every chip reading `Object` — a silent regression rather than a removal. */
+const TERM_WORDS: Record<string, Terms> = {
+  freeform: { group: "Group", node: "Object", relation: "Relation" },
+  product: { group: "Area", node: "Feature", relation: "Dependency" },
+  research: { group: "Theme", node: "Question", relation: "Bearing" },
+  software: { group: "Layer", node: "Module", relation: "Dependency" },
+  website: { group: "Section", node: "Page", relation: "Link" },
+  writing: { group: "Act", node: "Character", relation: "Connection" },
+};
 
 function lines(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(String);
@@ -87,16 +92,7 @@ function wording(raw: any): Wording {
   };
 }
 
-const TERMS: Record<string, Terms> = Object.fromEntries(
-  Object.entries(termFiles).map(([path, raw]) => [
-    stem(path),
-    {
-      group: String(raw?.group ?? GENERIC.group),
-      node: String(raw?.node ?? GENERIC.node),
-      relation: String(raw?.relation ?? GENERIC.relation),
-    },
-  ]),
-);
+const TERMS: Record<string, Terms> = TERM_WORDS;
 
 function domain(raw: any): Domain {
   const name = String(raw?.name ?? "freeform");

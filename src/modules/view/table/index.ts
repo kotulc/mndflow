@@ -1,4 +1,4 @@
-/** The table view module — structure drawn as rows.
+/** The table view module — a layer drawn as rows.
  *
  *  No component of its own (W.1): choosing `table` on the view toggle fills
  *  the tray with `Contents` at full stage size — same listing, same filters
@@ -26,7 +26,7 @@ import { rowsOf } from "./rows";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE,
+  name: "table", word: "row", icon: "view_table", creates: "", surface: TABLE,
   // Rows, so nothing to draw and nothing to arrange — only what to list,
   // and which fields it lists in columns of their own (P.8).
   chrome: ["types", "columns"],

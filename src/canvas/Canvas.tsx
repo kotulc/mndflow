@@ -35,15 +35,21 @@ import {
   axisOf, blocksOf, groupsIn, notesIn, tiesOf,
 } from "../graph/fold";
 import { around, CELL, cell, HUG, arranged, sizeOf, type Box } from "../geometry/layout";
-import { type Axis, type EdgeForm, type End, type Graph, type Layout, type Side, type Spot } from "../graph/types";
 import {
-  Ask, Crumbs, EDGES, NOTE, NODES, OfferMenu, SelectionStrip, edgesOf, extentOf,
+  type Axis, type EdgeForm, type Element, type End, type Graph, type Layout, type Side, type Spot,
+} from "../graph/types";
+import {
+  Ask, Crumbs, EDGES, NOTE, NODES as DIAGRAM_NODES, OfferMenu, SelectionStrip, edgesOf, extentOf,
   fill_args, floorOf, laidOf, nodesOf, offered_for, placementKey, restOf, stageOf,
   type OfferTarget, type Prompt,
 } from "../modules/view/diagram";
+import { shownName } from "../modules/named";
 import { useGestures } from "./gestures";
 import { type Grazed } from "./card";
+import { useOpen } from "./open";
 import { restated } from "./sync";
+
+const NODES = DIAGRAM_NODES;
 
 
 /** A handler that keeps one identity for the life of the canvas, calling
@@ -132,6 +138,7 @@ type Props = {
   onPromotePort: (edge: string, end: "from" | "to", owner: string,
                   side: Side, at: number) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onSlideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) => void;
   onRelation: (id: string, relation: string) => void;
   /** Where a drag came to rest, and any group each thing joined or left by
    *  landing there — one gesture, so one action. */
@@ -166,11 +173,14 @@ function Flow(props: Props) {
   const { onArrangeLayer, onRelax, onAxis, onPick, onOpen, onUp } = props;
   const { onCreateAt, onSprout, onNameTaken } = props;
   const { form, onForm } = props;
+  const open = useOpen();
+  const name = useCallback((node: Element) => shownName(graph, open, node), [graph, open]);
   const axis = axisOf(graph, view);
   // Everything the cards, the frame and the lines are handed has to keep one
   // identity, or their data is rebuilt on every render — see `useSteady`.
   const onRename = useSteady(props.onRename);
   const onSlidePort = useSteady(props.onSlidePort);
+  const onSlideAnchor = useSteady(props.onSlideAnchor);
   const onNameAttr = useSteady(props.onNameAttr);
   const onSize = useSteady(props.onSize);
   const onPromotePort = useSteady(props.onPromotePort);
@@ -406,6 +416,9 @@ function Flow(props: Props) {
     onNodesChange: changeNodes,
     setPrompt,
     restViewport,
+    seen,
+    floorZoom,
+    runs: laid.runs,
   });
   const { dropping, joining, wire, sweep, moving, enclosing } = gestures;
   /** What is lit: whatever the pointer is over, or failing that whatever the
@@ -494,13 +507,13 @@ function Flow(props: Props) {
 
   const built = useMemo(
     () => nodesOf(graph, view, stage, laid, {
-      unit, axis, showPorts, picked, grazed, dropping, joining,
-      litSeats, litEdges, onPick, onOpen, onSlidePort, onRename, onNameAttr,
+      unit, shownName: name, axis, showPorts, picked, grazed, dropping, joining,
+      litSeats, litEdges, onPick, onOpen, onSlidePort, onSlideAnchor, onRename, onNameAttr,
       onSize, onNameTaken, onSay, onPromotePort,
     }),
     [graph, view, stage, laid, unit, axis, showPorts, picked, grazed, dropping,
-      joining, litSeats, litEdges, onPick, onOpen, onSlidePort, onRename,
-      onNameAttr, onSize, onNameTaken, onSay, onPromotePort],
+      joining, litSeats, litEdges, onPick, onOpen, onSlidePort, onSlideAnchor, onRename,
+      onNameAttr, onSize, onNameTaken, onSay, onPromotePort, name],
   );
 
 

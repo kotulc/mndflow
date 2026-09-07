@@ -238,31 +238,49 @@ const size: Action = {
   },
 };
 
-/** Slide an interface along its parent's frame edge. It never comes off. */
+/** Slide an interface along its parent's frame edge, or an anchor along the
+ *  seats a relationship may use — promotion is a separate act. */
 const seat: Action = {
   name: "seat",
   label: "Seat",
-  about: "where an interface sits on its edge",
+  about: "where an interface or anchor sits on its edge",
   scope: { on: "element", form: "interface" },
   args: [
-    { kind: "element", name: "id" },
+    { kind: "element", name: "id", optional: true },
     { kind: "choice", name: "side", options: [...SIDES] },
     { kind: "number", name: "at" },
+    { kind: "text", name: "edge", optional: true },
+    { kind: "choice", name: "end", options: ["from", "to"], optional: true },
   ],
   when: () => false,
   check: (ctx, args) => {
-    const id = String(args.id ?? ctx.picked?.id ?? "");
-    if (!id || ctx.graph.elements[id]?.side == null) return "Needs an interface.";
     if (!(SIDES as readonly string[]).includes(String(args.side ?? ""))) {
       return "Needs a place on the border.";
     }
     if (typeof args.at !== "number") return "Needs a place on the border.";
+
+    const edgeId = typeof args.edge === "string" ? args.edge : "";
+    if (edgeId && (args.end === "from" || args.end === "to")) {
+      return ctx.graph.edges[edgeId] ? null : "Needs a relationship.";
+    }
+
+    const id = String(args.id ?? ctx.picked?.id ?? "");
+    if (!id || ctx.graph.elements[id]?.side == null) return "Needs an interface.";
     return null;
   },
   run: (ctx, args): Effect => {
-    const id = String(args.id ?? ctx.picked?.id ?? "");
     const side = args.side as Side;
     const at = Number(args.at);
+    const edgeId = typeof args.edge === "string" ? args.edge : "";
+
+    if (edgeId && (args.end === "from" || args.end === "to")) {
+      return {
+        mutations: [{ op: "set_side", id: edgeId, end: args.end, side, at }],
+        say: "anchor",
+      };
+    }
+
+    const id = String(args.id ?? ctx.picked?.id ?? "");
 
     return {
       mutations: [{ op: "set_port", id, side, at }],

@@ -1,4 +1,4 @@
-/** The activity view module — a behavior layer's default projection.
+/** The activity view module.
  *
  *  Projection surface (frame, camera), a gesture map that accepts `place`,
  *  and composition that counts control nodes, lanes from refs, groups as
@@ -23,7 +23,7 @@ import { ACTIVITY } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "activity", kind: "behavior", word: "activity", icon: "view_activity", creates: "action",
+  name: "activity", word: "activity", icon: "view_activity", creates: "action",
   surface: ACTIVITY,
   // A behavior layer reads in a direction and can be laid out; it has no
   // frame seats, so no interfaces.

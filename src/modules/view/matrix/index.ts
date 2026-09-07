@@ -1,4 +1,4 @@
-/** The matrix view module — structure drawn as a grid.
+/** The matrix view module — a layer drawn as a grid.
  *
  *  Projection surface (no frame, scroll), a gesture map that accepts none of
  *  the four adjustments, and composition that turns a layer's blocks and
@@ -26,7 +26,7 @@ import { gridOf } from "./grid";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null,
+  name: "matrix", word: "block", icon: "view_matrix", creates: null,
   surface: MATRIX,
   chrome: ["types"],
   // A cell's mark is a relationship kind, so the mark is a line's.

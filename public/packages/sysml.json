@@ -1,0 +1,109 @@
+{
+  "schema": "2.0",
+  "id": "sysml",
+  "graph": {
+    "root": "ws",
+    "defs": {
+      "sysml.part": {
+        "id": "sysml.part",
+        "home": "ws",
+        "group": "block",
+        "name": "part",
+        "body": "A part property: a block owned by another block.",
+        "extends": "structure",
+        "names": { "sysml": "«part»" },
+        "components": { "card": { "layout": "type", "shape": "rect" } }
+      },
+      "sysml.block": {
+        "id": "sysml.block",
+        "home": "ws",
+        "group": "block",
+        "name": "block",
+        "body": "A SysML block: the unit of structure.",
+        "extends": "structure",
+        "names": { "sysml": "«block»" },
+        "components": { "card": { "layout": "type", "shape": "rect" } }
+      },
+      "sysml.port": {
+        "id": "sysml.port",
+        "home": "ws",
+        "group": "block",
+        "name": "port",
+        "body": "A proxy or full port, seated on the edge of a block.",
+        "extends": "interface",
+        "names": { "sysml": "«port»" },
+        "components": { "card": { "layout": "name", "label": "none", "shape": "rect" } }
+      },
+      "sysml.activity": {
+        "id": "sysml.activity",
+        "home": "ws",
+        "group": "block",
+        "name": "activity",
+        "body": "An activity: what happens over a structure.",
+        "extends": "behavior",
+        "names": { "sysml": "«activity»" },
+        "components": { "card": { "layout": "type", "shape": "round", "word": "do" } }
+      },
+      "sysml.requirement": {
+        "id": "sysml.requirement",
+        "home": "ws",
+        "group": "block",
+        "name": "requirement",
+        "body": "A requirement: an id and a shall statement.",
+        "extends": "structure",
+        "names": { "sysml": "«requirement»" },
+        "fields": [
+          { "name": "id", "form": "text" },
+          { "name": "text", "form": "text" }
+        ],
+        "components": {
+          "card": { "layout": "compartments", "shape": "rect", "shows": ["id", "text"] },
+          "constraints": { "required": ["id", "text"] }
+        }
+      },
+      "sysml.satisfy": {
+        "id": "sysml.satisfy",
+        "home": "ws",
+        "group": "relation",
+        "name": "satisfy",
+        "body": "A part satisfies a requirement.",
+        "extends": "directed",
+        "names": { "sysml": "«satisfy»" },
+        "components": {
+          "rules": { "ends": { "to": ["sysml.requirement"] } }
+        }
+      },
+      "sysml.itemflow": {
+        "id": "sysml.itemflow",
+        "home": "ws",
+        "group": "relation",
+        "name": "item flow",
+        "body": "What travels along a connector.",
+        "extends": "directed",
+        "names": { "sysml": "«itemFlow»" },
+        "components": {
+          "rules": { "ends": { "fromFlow": "out", "toFlow": "in" } }
+        }
+      },
+      "sysml.ibd": {
+        "id": "sysml.ibd",
+        "home": "ws",
+        "group": "view",
+        "name": "internal block",
+        "body": "An internal block diagram: parts, ports and connectors.",
+        "components": { "view": { "module": "block" } }
+      },
+      "sysml.act": {
+        "id": "sysml.act",
+        "home": "ws",
+        "group": "view",
+        "name": "activity diagram",
+        "components": { "view": { "module": "block", "reading": "activity" } }
+      }
+    },
+    "blocks": {
+      "ws": { "id": "ws", "parent": null, "label": "workspace", "type": "folder" }
+    },
+    "edges": {}
+  }
+}

@@ -33,7 +33,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  actual, blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isContainer, isReference, membersOf,
+  blocksOf, childrenOf, edgesIn, fieldsOf, groupsIn, isContainer, isReference, membersOf,
   nameOf, notesIn, resolved, typeName, portsOf, tiesOf,
 } from "../graph/fold";
 import type {
@@ -48,6 +48,8 @@ import { Crumbs, takesRef } from "../modules/view/diagram";
 import { trailOf } from "../modules/view/table";
 import { NameField } from "../NameField";
 import { type Grazed } from "../canvas/card";
+import { shownName, stoodFor } from "../canvas/named";
+import { useOpen } from "../canvas/open";
 import { defOf, gather, packs, scoped } from "../workspace";
 import { Icon } from "../modules/icons";
 
@@ -73,7 +75,7 @@ const DIRS: Dir[] = ["none", "forward", "back", "both"];
 const FLOWS: (Flow | null)[] = [null, "in", "out", "both"];
 const ARROW: Record<Dir, string> = { none: "—", forward: "→", back: "←", both: "↔" };
 
-const VALUE_FORMS: ValueForm[] = ["text", "number", "flag", "choice", "ref"];
+const VALUE_FORMS: ValueForm[] = ["text", "number", "flag", "choice", "link"];
 const DEF_FORMS: (ElemForm | EdgeForm)[] = [
   "block", "note", "group", "proxy", "line", "directed",
 ];
@@ -230,10 +232,16 @@ type Props = {
 };
 
 /** What a block's row says about it: what it holds, and what it is wired to. */
-function blockDetail(graph: Graph, id: string, unit: string): string {
+function blockDetail(
+  graph: Graph, id: string, unit: string, open: Record<string, Graph>,
+): string {
   const node = graph.elements[id];
   if (!node) return "";
-  if (isReference(node)) return `stands for ${nameOf(graph, actual(graph, id)) || "something gone"}`;
+  if (isReference(node)) {
+    const label = shownName(graph, open, node);
+
+    return `stands for ${label === "missing" ? "something gone" : label}`;
+  }
 
   const kids = blocksOf(graph, id).length;
   const ports = portsOf(graph, id).length;
@@ -369,8 +377,8 @@ function edgeNotes(graph: Graph, edge: Edge): Note[] {
 
 /** Notes for one element: required fields, what it may hold, and how many
  *  relationships may meet it. */
-function elementNotes(graph: Graph, node: Element): Note[] {
-  const label = nameOf(graph, node) || node.form;
+function elementNotes(graph: Graph, node: Element, open: Record<string, Graph>): Note[] {
+  const label = shownName(graph, open, node) || node.form;
   const notes = lacking(graph, node.id, node.type, label);
   const raw = graph.defs[node.type]?.components?.rules;
   if (!raw) return notes;
@@ -383,7 +391,7 @@ function elementNotes(graph: Graph, node: Element): Note[] {
       if (rules.holds.length === 0 || !among(graph, child.type, rules.holds)) {
         notes.push({
           short: `won't hold ${typeName(graph, child.type) || child.type}`,
-          full: `"${label}" cannot hold ${nameOf(graph, child) || typeName(graph, child.type)}.`,
+          full: `"${label}" cannot hold ${shownName(graph, open, child) || typeName(graph, child.type)}.`,
         });
       }
     }
@@ -497,11 +505,11 @@ function shaped(graph: Graph, holder: string, held: Field,
 }
 
 /** Element and definition targets a `ref` field may point at. */
-function refTargets(graph: Graph): { path: string; label: string }[] {
+function refTargets(graph: Graph, open: Record<string, Graph>): { path: string; label: string }[] {
   const out: { path: string; label: string }[] = [];
 
   for (const node of Object.values(graph.elements)) {
-    const label = nameOf(graph, node) || node.id;
+    const label = shownName(graph, open, node) || node.id;
     out.push({ path: node.id, label });
   }
   for (const def of Object.values(graph.defs)) {
@@ -634,7 +642,7 @@ function ValueControl({ shape, listId, targets, onCommit }: {
     );
   }
 
-  if (shape.form === "ref") {
+  if (shape.form === "link") {
     const shown = (path: string) =>
       targets.find((t) => t.path === path)?.label ?? path;
     const display = shape.many
@@ -652,7 +660,7 @@ function ValueControl({ shape, listId, targets, onCommit }: {
           onBlur={(event) => {
             const typed = event.target.value.trim();
             if (!typed) {
-              if (shape.value) onCommit({ value: "", form: "ref" });
+              if (shape.value) onCommit({ value: "", form: "link" });
               return;
             }
             // Many: keep a comma list; resolve each token to a path when known.
@@ -664,7 +672,7 @@ function ValueControl({ shape, listId, targets, onCommit }: {
               });
               onCommit({
                 value: paths.join(", "),
-                form: "ref",
+                form: "link",
                 many: true,
               });
               return;
@@ -672,7 +680,7 @@ function ValueControl({ shape, listId, targets, onCommit }: {
             const hit = targets.find((t) => t.path === typed || t.label === typed);
             onCommit({
               value: hit?.path ?? typed,
-              form: "ref",
+              form: "link",
             });
           }}
           onKeyDown={(event) => {
@@ -727,6 +735,7 @@ function ValueControl({ shape, listId, targets, onCommit }: {
 }
 
 export function Contents(props: Props) {
+  const open = useOpen();
   const { graph, view, picked, unit, onPick, onHint, onRename, onRetype } = props;
   const { onRelation, onNameTaken, onSay, onDelete, onUnlink, onSave, onSetDir, onFlip } = props;
   const { onMarkPort, onAddField, onUpdateField, onDropField, onLeaveGroup, onReveal } = props;
@@ -763,18 +772,18 @@ export function Contents(props: Props) {
 
     for (const node of blocksOf(graph, scope)) {
       out.push({
-        id: node.id, sort: "block", name: nameOf(graph, node),
-        detail: blockDetail(graph, node.id, unit),
+        id: node.id, sort: "block", name: shownName(graph, open, node),
+        detail: blockDetail(graph, node.id, unit, open),
         type: isReference(node) ? null : node.type,
         edge: false, renameable: !isReference(node), body: said(node.id),
-        notes: elementNotes(graph, node),
+        notes: elementNotes(graph, node, open),
       });
       for (const port of portsOf(graph, node.id)) {
         out.push({
-          id: port.id, sort: "interface", name: nameOf(graph, port),
-          detail: `${nameOf(graph, node)} · ${port.side}${port.flow ? ` · ${port.flow}` : ""}`,
+          id: port.id, sort: "interface", name: shownName(graph, open, port),
+          detail: `${shownName(graph, open, node)} · ${port.side}${port.flow ? ` · ${port.flow}` : ""}`,
           type: null, edge: false, renameable: true, body: said(port.id),
-          notes: elementNotes(graph, port),
+          notes: elementNotes(graph, port, open),
         });
       }
     }
@@ -782,45 +791,45 @@ export function Contents(props: Props) {
     // The frame's own interfaces belong to the layer, not to a card in it.
     for (const port of portsOf(graph, scope)) {
       out.push({
-        id: port.id, sort: "interface", name: nameOf(graph, port),
+        id: port.id, sort: "interface", name: shownName(graph, open, port),
         detail: `frame · ${port.side}${port.flow ? ` · ${port.flow}` : ""}`,
         type: null, edge: false, renameable: true, body: said(port.id),
-        notes: elementNotes(graph, port),
+        notes: elementNotes(graph, port, open),
       });
     }
 
     for (const { attr } of groupsIn(graph, scope)) {
       const held = membersOf(graph, attr.id).length;
       out.push({
-        id: attr.id, sort: "group", name: nameOf(graph, attr),
+        id: attr.id, sort: "group", name: shownName(graph, open, attr),
         detail: `${held} member${held === 1 ? "" : "s"}`,
         type: attr.type || null, edge: false, renameable: true, body: said(attr.id),
-        notes: elementNotes(graph, attr),
+        notes: elementNotes(graph, attr, open),
       });
     }
 
     for (const note of notesIn(graph, scope)) {
       const tied = tiesOf(graph, note.id).length;
       out.push({
-        id: note.id, sort: "note", name: nameOf(graph, note),
+        id: note.id, sort: "note", name: shownName(graph, open, note),
         detail: tied ? `tied to ${tied}` : "tied to nothing",
         type: null, edge: false, renameable: false, body: said(note.id),
-        notes: elementNotes(graph, note),
+        notes: elementNotes(graph, note, open),
       });
     }
 
     for (const edge of edgesIn(graph, scope)) {
       out.push({
         id: edge.id, sort: "relationship", name: typeName(graph, edge.type ?? ""),
-        detail: `${nameOf(graph, graph.elements[edge.source])} ${ARROW[edge.dir]} ` +
-                `${nameOf(graph, graph.elements[edge.target])}`,
+        detail: `${shownName(graph, open, graph.elements[edge.source])} ${ARROW[edge.dir]} ` +
+                `${shownName(graph, open, graph.elements[edge.target])}`,
         type: edge.form ?? "line", edge: true, renameable: true, body: "",
         notes: edgeNotes(graph, edge),
       });
     }
 
     return out;
-  }, [graph, scope, unit]);
+  }, [graph, scope, unit, open]);
 
   /** This project's definitions only — packages resist editing. */
   const types = useMemo<Row[]>(() => {
@@ -899,7 +908,7 @@ export function Contents(props: Props) {
     if (!picked) return;
     const edge = graph.edges[picked.id];
     const node = graph.elements[picked.id];
-    advise(edge ? edgeNotes(graph, edge) : node ? elementNotes(graph, node) : [], onSay);
+    advise(edge ? edgeNotes(graph, edge) : node ? elementNotes(graph, node, open) : [], onSay);
   }, [picked?.id]); // eslint-disable-line react-hooks/exhaustive-deps — id only
 
   /** What one chosen column says about a row (P.8): the field's value, or
@@ -911,7 +920,7 @@ export function Contents(props: Props) {
     // referenced row.
     const held = row.sort === "definition"
       ? (graph.defs[row.id]?.fields ?? [])
-      : fieldsOf(graph, actual(graph, row.id)?.id ?? row.id);
+      : fieldsOf(graph, stoodFor(graph, open, row.id)?.id ?? row.id);
 
     return held.find((f) => f.name === name)?.value ?? "";
   };
@@ -1011,7 +1020,7 @@ export function Contents(props: Props) {
         )}
         {isReference(node) && (
           <button title="Go to where it lives"
-                  onClick={stop(() => onReveal(actual(graph, row.id)?.id ?? row.id))}>↗</button>
+                  onClick={stop(() => onReveal(stoodFor(graph, open, row.id)?.id ?? row.id))}>↗</button>
         )}
         <button
           className={opened === row.id ? "on" : ""}
@@ -1066,7 +1075,7 @@ export function Contents(props: Props) {
                     const next: Field = { ...held, form };
                     if (form !== "choice") delete next.choices;
                     if (form !== "number") delete next.unit;
-                    if (form !== "ref") delete next.many;
+                    if (form !== "link") delete next.many;
                     setDeclared(def, held.name, next);
                   }}
                 >
@@ -1096,7 +1105,7 @@ export function Contents(props: Props) {
                     })}
                   />
                 )}
-                {held.form === "ref" && (
+                {held.form === "link" && (
                   <label title="Many targets">
                     <input
                       type="checkbox"
@@ -1299,9 +1308,9 @@ export function Contents(props: Props) {
   function detail(row: Row) {
     if (row.sort === "definition") return defining(row);
 
-    const held = fieldsOf(graph, row.id);
+    const held = fieldsOf(graph, stoodFor(graph, open, row.id)?.id ?? row.id);
     const joined = graph.elements[row.id]?.groups ?? [];
-    const targets = refTargets(graph);
+    const targets = refTargets(graph, open);
 
     return (
       <tr className="opened" key={`${row.id}-open`}>
@@ -1315,7 +1324,7 @@ export function Contents(props: Props) {
           <div className="carries">
             {joined.map((id) => (
               <span className="held" key={id}>
-                {nameOf(graph, graph.elements[id])}
+                {shownName(graph, open, graph.elements[id])}
                 <button title="Out of the group"
                         onClick={() => onLeaveGroup(row.id, id)}><Icon name="remove" /></button>
               </span>

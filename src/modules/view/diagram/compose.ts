@@ -21,7 +21,7 @@ import {
 import { lookOf } from "../../style";
 import { framed } from "./surround";
 import { paint } from "./paint";
-import type { Grazed, Seated } from "./pieces";
+import { anchorOf, FACING, SIDES, type Grazed, type Seated } from "./pieces";
 
 /** A note's drawn size, used only to decide which of its sides a leader leaves
  *  by. Its real height is its text's; being a few pixels out picks the same
@@ -70,6 +70,8 @@ type Used = Record<string, Seat[]>;
 /** Handlers the node list closes over — steadied by the host. */
 export type NodeReach = {
   unit: string;
+  /** Naming crosses projects in the host; the renderer only calls this. */
+  shownName?: (node: Element) => string;
   axis: Axis;
   showPorts: boolean;
   picked: Picked;
@@ -81,6 +83,7 @@ export type NodeReach = {
   onPick: (next: Picked) => void;
   onOpen: (id: string | null) => void;
   onSlidePort: (id: string, side: Side, at: number) => void;
+  onSlideAnchor: (edge: string, end: "from" | "to", side: Side, at: number) => void;
   onRename: (id: string, label: string) => void;
   onNameAttr: (id: string, label: string) => void;
   onSize: (id: string, w: number, h: number) => void;
@@ -112,6 +115,18 @@ function flowSides(axis: Axis): { from: Side; to: Side } | null {
   return null;
 }
 
+/** The seat somebody dragged an anchor to, when this end has no interface. */
+function pinnedSeat(
+  edge: { fromSide?: Side; toSide?: Side; fromAt?: number; toAt?: number },
+  end: "from" | "to",
+): Seat | undefined {
+  const side = end === "from" ? edge.fromSide : edge.toSide;
+  const at = end === "from" ? edge.fromAt : edge.toAt;
+  if (side == null || at == null) return undefined;
+
+  return { side, at };
+}
+
 /** Card boxes that a route must clear, excluding the two ends it attaches to. */
 function obstaclesOf(boxes: Record<string, Box>, fromId: string, toId: string): Box[] {
   const skip = new Set([fromId, toId]);
@@ -131,6 +146,25 @@ function pinnedAt(graph: Graph, port: string | undefined, owner: string): Seat |
   if (!node || node.parent !== owner) return undefined;
 
   return node.side != null && node.at != null ? { side: node.side, at: node.at } : undefined;
+}
+
+/** The handle an end draws through.
+ *
+ *  **These two readers have to agree or the line vanishes.** `laidOf` skips
+ *  seating an end that already has an interface — the interface is drawn, so
+ *  no anchor is minted for it — and `Port` / `Berth` name that handle after
+ *  the interface. An end without one gets the anchor minted with the
+ *  relationship. Naming the anchor unconditionally is what stopped every
+ *  relationship touching an interface from drawing at all. */
+function handleOf(
+  graph: Graph,
+  edge: { id: string; source: string; target: string; from?: string; to?: string },
+  end: "from" | "to",
+): string {
+  const port = end === "from" ? edge.from : edge.to;
+  const owner = end === "from" ? edge.source : edge.target;
+
+  return pinnedAt(graph, port, owner) ? `port-${port}` : anchorOf(edge.id);
 }
 
 /** Seats a card starts the pass with: every interface on it that somebody
@@ -177,8 +211,8 @@ function planEdge(
     toBox,
     [...obstaclesOf(boxes, edge.source, edge.target), ...solid],
     {
-      pinFrom: pinnedAt(graph, edge.from, edge.source),
-      pinTo: pinnedAt(graph, edge.to, edge.target),
+      pinFrom: pinnedAt(graph, edge.from, edge.source) ?? pinnedSeat(edge, "from"),
+      pinTo: pinnedAt(graph, edge.to, edge.target) ?? pinnedSeat(edge, "to"),
       sideFrom,
       sideTo,
       fromTaken: used[edge.source] ?? [],
@@ -273,7 +307,7 @@ export function laidOf(
   showPorts: boolean,
   shows: (edge: { type: string }) => boolean,
 ): { runs: Record<string, Laid>; seats: Record<string, Seated[]> } {
-  const { members, boxes, frameBox, noteBoxes } = stage;
+  const { members, notes, boxes, frameBox, noteBoxes, noteRest } = stage;
   const used: Used = {};
   const runs: Record<string, Laid> = {};
   const seats: Record<string, Seated[]> = {};
@@ -326,18 +360,45 @@ export function laidOf(
       toSide: planned.to.side,
     };
 
-    for (const [owner, port, seat] of [
-      [source, edge.from, planned.from],
-      [target, edge.to, planned.to],
+    for (const [owner, port, seat, end] of [
+      [source, edge.from, planned.from, "from"],
+      [target, edge.to, planned.to, "to"],
     ] as const) {
       // A hand-made interface is already on the card and already counted;
       // only a derived seat has to be claimed and drawn.
       if (pinnedAt(graph, port, owner)) continue;
       claim(owner, seat);
+      const placed = end === "from" ? edge.fromAt != null : edge.toAt != null;
       (seats[owner] ??= []).push({
-        edge: edge.id, side: seat.side, at: seat.at, port: drawsPort,
+        edge: edge.id, end, side: seat.side, at: seat.at, port: drawsPort, placed,
       });
     }
+  }
+
+  // Ties meet a note on one side and a block on the other — no routed run,
+  // but each end still needs the handle React Flow draws the leader through.
+  for (const edge of Object.values(graph.edges)) {
+    if (!isTie(graph, edge) || !shows(edge)) continue;
+
+    const targetBox = boxes[edge.target];
+    const note = graph.elements[edge.source];
+    if (!note || note.form !== "note" || !targetBox) continue;
+
+    const loose = notes.filter((n) => n.x == null || n.y == null).indexOf(note);
+    const corner = noteCorner(note, noteRest, note.x == null || note.y == null ? loose : 0);
+    const mine = {
+      x: corner.x, y: corner.y,
+      w: Math.max(NOTE.w, cell(note.w ?? 0)),
+      h: Math.max(NOTE.h, cell(note.h ?? 0)),
+    };
+
+    (seats[note.id] ??= []).push({
+      edge: edge.id, end: "from", side: facing(mine, targetBox), at: 0.5, port: false,
+    });
+    (seats[edge.target] ??= []).push({
+      edge: edge.id, end: "to", side: facing(targetBox, mine), at: 0.5, port: false,
+      show: false,
+    });
   }
 
   // Runs sharing a line are spread apart last, once every one of them is
@@ -359,6 +420,45 @@ function noteCorner(attr: { id: string; x: number | null; y: number | null },
   return { x: cell(noteRest.x + loose * (NOTE.w + CELL)), y: cell(noteRest.y) };
 }
 
+/** Handle geometry React Flow can use before it has measured the DOM.
+ *
+ *  A perch is minted with its edge, and `restated` keeps `measured`, so the
+ *  library never records the new handle and drops the line. Stating the
+ *  seats here — they are already on the node's data — is what lets a
+ *  relationship draw the moment it is made. */
+/** The handles a block's own interfaces render, in the shape `handlesOf` takes.
+ *  Seats come and go with relationships; these are always there. */
+function portHandles(graph: Graph, owner: string) {
+  return portsOf(graph, owner)
+    .filter((p) => p.side != null)
+    .map((p) => ({ name: `port-${p.id}`, side: p.side!, at: p.at ?? 0.5 }));
+}
+
+function handlesOf(
+  seats: Seated[], box: { w: number; h: number }, inward = false,
+  ports: { name: string; side: Side; at: number }[] = [],
+) {
+  // **Stating handles replaces measurement, so this list has to be complete.**
+  // An interface renders its own handle (`port-<id>`), and a card carrying one
+  // anchor seat used to state that seat and nothing else — which took every
+  // interface's handle out of React Flow's view and silently dropped every
+  // relationship meeting one.
+  const held = [...seats.map((s) => ({ name: anchorOf(s.edge), side: s.side, at: s.at })),
+                ...ports];
+
+  return held.flatMap((s) => {
+    const position = SIDES[inward ? FACING[s.side] : s.side];
+    const x = s.side === "left" ? 0 : s.side === "right" ? box.w : s.at * box.w;
+    const y = s.side === "top" ? 0 : s.side === "bottom" ? box.h : s.at * box.h;
+    const name = s.name;
+
+    return [
+      { id: `${name}-s`, type: "source" as const, position, x, y },
+      { id: `${name}-t`, type: "target" as const, position, x, y },
+    ];
+  });
+}
+
 /** React Flow nodes for one layer: frame, groups, cards, notes. */
 export function nodesOf(
   graph: Graph,
@@ -369,8 +469,8 @@ export function nodesOf(
 ): FlowNode[] {
   const { members, notes, boxes, bands, frameBox, noteRest } = stage;
   const {
-    unit, axis, showPorts, picked, grazed, dropping, joining,
-    litSeats, litEdges, onPick, onOpen, onSlidePort, onRename, onNameAttr,
+    unit, shownName, axis, showPorts, picked, grazed, dropping, joining,
+    litSeats, litEdges, onPick, onOpen, onSlidePort, onSlideAnchor, onRename, onNameAttr,
     onSize, onNameTaken, onSay, onPromotePort,
   } = reach;
   const pickedNode = picked?.kind === "node" ? picked.id : null;
@@ -384,41 +484,56 @@ export function nodesOf(
       onPromotePort(edgeId, end, owner, side, at);
     };
 
-  const cards = members.map((node) => ({
-    id: node.id,
-    type: "card",
-    position: { x: boxes[node.id].x, y: boxes[node.id].y },
-    zIndex: DEPTH.card,
-    // Stated, not measured. `sizeOf` is what every other piece of geometry
-    // reads — the group boundaries, which side a relation leaves by, where a
-    // port sits in canvas units — and a card left to size itself from its
-    // text agreed with none of it. A port is placed as a percentage of the
-    // card it is drawn in, so a card 150 wide while the arithmetic said 170
-    // put every one of its interfaces somewhere the lines did not expect.
-    width: boxes[node.id].w,
-    height: boxes[node.id].h,
-    style: { width: boxes[node.id].w, height: boxes[node.id].h },
-    data: {
-      node,
-      graph,
-      dropping: dropping === node.id,
-      picked: node.id === pickedNode,
-      grazed,
-      unit,
-      onNameTaken,
-      onSay,
-      showPorts,
-      litSeats,
-      pickedPort: pickedNode,
-      seats: laid.seats[node.id] ?? [],
-      litEdges,
-      onPick: (id: string) => onPick({ kind: "node", id }),
-      onOpen,
-      onSlidePort,
-      onRename,
-      onPromote: promoteSeat(node.id),
-    },
-  })) as FlowNode[];
+  const cards = members.map((node) => {
+    const box = boxes[node.id];
+    const seats = laid.seats[node.id] ?? [];
+
+    return {
+      id: node.id,
+      type: "card",
+      position: { x: box.x, y: box.y },
+      zIndex: DEPTH.card,
+      // Stated, not measured. `sizeOf` is what every other piece of geometry
+      // reads — the group boundaries, which side a relation leaves by, where a
+      // port sits in canvas units — and a card left to size itself from its
+      // text agreed with none of it. A port is placed as a percentage of the
+      // card it is drawn in, so a card 150 wide while the arithmetic said 170
+      // put every one of its interfaces somewhere the lines did not expect.
+      width: box.w,
+      height: box.h,
+      style: { width: box.w, height: box.h },
+      // Ports are stated alongside the seats: a card whose only relationship
+      // meets an interface has no seat at all and must still name its handle,
+      // and stating seats alone would hide the interfaces it does have.
+      // Nothing to state stays unstated, so React Flow measures as before.
+      ...(() => {
+        const held = handlesOf(seats, box, false, portHandles(graph, node.id));
+        return held.length ? { handles: held } : {};
+      })(),
+      data: {
+        node,
+        graph,
+        shownName,
+        dropping: dropping === node.id,
+        picked: node.id === pickedNode,
+        grazed,
+        unit,
+        onNameTaken,
+        onSay,
+        showPorts,
+        litSeats,
+        pickedPort: pickedNode,
+        seats,
+        litEdges,
+        onPick: (id: string) => onPick({ kind: "node", id }),
+        onOpen,
+        onSlidePort,
+        onSlideAnchor,
+        onRename,
+        onPromote: promoteSeat(node.id),
+      },
+    };
+  }) as FlowNode[];
 
   const groups = bands.map(({ attr, box }) => {
     const chosen = picked?.kind === "node" && picked.id === attr.id;
@@ -461,6 +576,9 @@ export function nodesOf(
   let loose = 0;
   const written = notes.map((attr) => {
     const at = noteCorner(attr, noteRest, attr.x == null || attr.y == null ? loose++ : 0);
+    const size = { w: Math.max(NOTE.w, cell(attr.w ?? 0)),
+                   h: Math.max(NOTE.h, cell(attr.h ?? 0)) };
+    const seats = laid.seats[attr.id] ?? [];
 
     return {
       id: attr.id,
@@ -469,17 +587,20 @@ export function nodesOf(
       position: at,
       zIndex: DEPTH.note,
       selectable: false,
+      ...(seats.length ? { handles: handlesOf(seats, size) } : {}),
       data: {
         text: nameOf(graph, attr),
         picked: picked?.kind === "node" && picked.id === attr.id,
         // A note *is* its text, so it lights as a name does — there is nothing
         // else on it to be over.
         grazed: grazed?.kind === "title" && grazed.id === attr.id,
-        least: { w: Math.max(NOTE.w, cell(attr.w ?? 0)),
-                 h: Math.max(NOTE.h, cell(attr.h ?? 0)) },
+        least: size,
         onPick: () => onPick({ kind: "node", id: attr.id }),
         onLabel: (text: string) => onNameAttr(attr.id, text),
         onSize: (w: number, h: number) => onSize(attr.id, cell(w), cell(h)),
+        seats,
+        litEdges,
+        onSlideAnchor,
       },
     };
   }) as FlowNode[];
@@ -497,6 +618,10 @@ export function nodesOf(
         // relation attached to this frame's interfaces silently vanished.
         width: frameBox.w,
         height: frameBox.h,
+        ...(laid.seats[view]?.length
+          ? { handles: handlesOf(laid.seats[view] ?? [], frameBox, true,
+                                 portHandles(graph, view)) }
+          : {}),
         // Transparent to the pointer, or it would cover the whole layer and
         // no drag on empty canvas could ever reach the pane to draw a
         // selection box. Its ports opt back in; its edge is found by
@@ -520,6 +645,7 @@ export function nodesOf(
           onPick: (id: string) => onPick({ kind: "node", id }),
           onOpen,
           onSlidePort,
+          onSlideAnchor,
           onRename,
           onPromote: promoteSeat(view),
           grazed,
@@ -572,8 +698,8 @@ export function edgesOf(
       selected: picked?.kind === "edge" && picked.id === edge.id,
       type: "straight",
       zIndex: DEPTH.group,
-      sourceHandle: `auto-${facing(mine, boxes[edge.target])}-s`,
-      targetHandle: `auto-${facing(boxes[edge.target], mine)}-t`,
+      sourceHandle: `${anchorOf(edge.id)}-s`,
+      targetHandle: `${anchorOf(edge.id)}-t`,
       selectable: true,
       focusable: true,
       deletable: true,
@@ -629,8 +755,8 @@ export function edgesOf(
         // Bookkeeping only — the drawn endpoints come from `run`. Naming the
         // side the plan chose keeps the library's idea of the edge and ours
         // pointing the same way.
-        sourceHandle: `auto-${run.fromSide}-s`,
-        targetHandle: `auto-${run.toSide}-t`,
+        sourceHandle: `${handleOf(graph, edge, "from")}-s`,
+        targetHandle: `${handleOf(graph, edge, "to")}-t`,
         // Stated on the edge rather than left to the container's defaults,
         // so a relation is always clickable and always deletable.
         selectable: true,

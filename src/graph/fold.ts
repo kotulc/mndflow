@@ -25,9 +25,37 @@ export function isPort(node: Element | undefined): boolean {
   return Boolean(node && node.side != null);
 }
 
-/** Whether an element stands in for a block living somewhere else. */
+/** Whether an element stands in for a block living somewhere else.
+ *
+ * `form: "proxy"` is still the schema token while B.17 keeps old logs
+ * readable. The link is what makes the appearance a reference: without `of`,
+ * it stands for nothing. */
 export function isReference(node: Element | undefined): boolean {
-  return node?.form === "proxy";
+  return Boolean(node?.of);
+}
+
+/** Whether this is an independent graph root filed under another block.
+ *
+ * Containment needs no third link: a reference to a root names a graph of its
+ * own, while every other child is a part of the graph it sits in. */
+export function isContained(node: Element | undefined): boolean {
+  return Boolean(node?.of && asTarget(node.of).element === ROOT);
+}
+
+/** Whether this block belongs to the graph around it rather than standing for
+ * one elsewhere. `parent` is the stored part link; the root layer is simply
+ * its implicit parent. */
+export function isPart(node: Element | undefined): boolean {
+  return Boolean(node && !isReference(node));
+}
+
+/** Whether a node cascades away when an ancestor is deleted. Every node does
+ *  except a contained root: an independent graph root filed here is un-filed
+ *  by its container going away, never deleted along with it. One predicate,
+ *  shared by the fold's own cascade and the `delete` action's own accounting
+ *  of what it is about to sweep, so the two can never drift apart. */
+export function cascades(node: Element | undefined): boolean {
+  return !isContained(node);
 }
 
 /** What a reference stands in for — the held path, bare or `project/element`. */
@@ -578,8 +606,14 @@ function applyElement(graph: Graph, mutation: ElementOp): void {
 
     case "delete_element": {
       if (mutation.id === ROOT) return;
+      // A contained descendant is an independent graph root filed here, not owned by the
+      // subtree beneath it — its container going away un-files it (it surfaces at the root
+      // layer, the same way any element with an undone parent already does) rather than
+      // deleting the root it stands for.
       const gone = Object.keys(graph.elements).filter((id) =>
-        descendsFrom(graph, id, mutation.id),
+        id === mutation.id
+          ? true
+          : cascades(graph.elements[id]) && descendsFrom(graph, id, mutation.id),
       );
       for (const id of gone) delete graph.elements[id];
       for (const [id, edge] of Object.entries(graph.edges)) {
@@ -708,9 +742,15 @@ function applyEdge(graph: Graph, mutation: EdgeOp): void {
     case "set_side": {
       const edge = graph.edges[mutation.id];
       if (!edge) return;
-      const field = mutation.end === "from" ? "fromSide" : "toSide";
-      if (mutation.side) edge[field] = mutation.side;
-      else delete edge[field];
+      const sideField = mutation.end === "from" ? "fromSide" : "toSide";
+      const atField = mutation.end === "from" ? "fromAt" : "toAt";
+      if (mutation.side) edge[sideField] = mutation.side;
+      else {
+        delete edge[sideField];
+        delete edge[atField];
+      }
+      if (mutation.at != null) edge[atField] = mutation.at;
+      else if ("at" in mutation && mutation.at === null) delete edge[atField];
       break;
     }
 
@@ -719,6 +759,8 @@ function applyEdge(graph: Graph, mutation: EdgeOp): void {
       if (edge) {
         [edge.source, edge.target] = [edge.target, edge.source];
         [edge.from, edge.to] = [edge.to, edge.from];
+        [edge.fromSide, edge.toSide] = [edge.toSide, edge.fromSide];
+        [edge.fromAt, edge.toAt] = [edge.toAt, edge.fromAt];
       }
       break;
     }
@@ -827,8 +869,10 @@ function apply(graph: Graph, mutation: Mutation): void {
  *  member out. This is the floor: a boundary round nothing at all. */
 function tidy(graph: Graph): void {
   // A reference must name something; a named target that is merely missing stays.
+  // `proxy` remains the on-disk spelling until B.17, so this also discards an
+  // old-shaped reference before its link can make it one.
   for (const [id, node] of Object.entries(graph.elements)) {
-    if (isReference(node) && !node.of) delete graph.elements[id];
+    if (node.form === "proxy" && !node.of) delete graph.elements[id];
   }
 
   for (const node of Object.values(graph.elements)) {

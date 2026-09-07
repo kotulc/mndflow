@@ -2,10 +2,9 @@
  *
  *  A diagram is a block whose definition points at one of the six modules.
  *  `diagram` itself names no module — it is what a layer looks like drawn.
- *  Kind is visible from the module, never stored: three for a structure, three
- *  for a behavior. `block`, `table` and `matrix` carry projection surfaces;
- *  the behavior modules' bodies are later rows. This one owns the key under
- *  `components`.
+ *  A definition chooses its module; nothing classifies the layer or project.
+ *  `block`, `table` and `matrix` carry projection surfaces; the behavior
+ *  modules' bodies are later rows. This one owns the key under `components`.
  *
  *  Each module also names its word (the chip fallback), a distinct icon glyph
  *  (the explorer and view toggle's scanning mark), and what right-click
@@ -32,11 +31,6 @@ export const MODULES = [
 
 export type ViewName = (typeof MODULES)[number];
 
-/** Which family a module belongs to. A layer's own kind is a different,
- *  derived question (`page/kind.ts`, settled stream P) — this only says which
- *  family a registered module draws, never what a project or a layer is. */
-export type ViewKind = "structure" | "behavior";
-
 /** A control group the options rail can draw (Y.1).
  *
  *  **A module says which it offers; the page knows how to build each.** That is
@@ -55,12 +49,11 @@ export const CHROME_ORDER = [
   "project", "views", "arrange", "flow", "interfaces", "lines", "columns", "types", "relations",
 ] as const;
 
-/** One registered view module. A name, its kind, its word, its icon, and what
+/** One registered view module. A name, its word, its icon, and what
  *  a create gesture makes; the projection surface lands with the module itself
  *  — `block` carries today's, the rest fill in as their rows land. */
 export type ViewModule = {
   name: ViewName;
-  kind: ViewKind;
   /** What it calls its elementary block — the chip fallback. Derived, never
    *  stored on an element. */
   word: string;
@@ -115,37 +108,22 @@ export function named(name: string): ViewModule | null {
   return held.get(name as ViewName) ?? null;
 }
 
-/** Which kind a module belongs to — read from the registry, never a second list. */
-export function kindOf(name: ViewName): ViewKind {
-  return held.get(name)!.kind;
-}
-
-/** The word a fresh block of this kind gets when nothing more specific is
- *  asked — the first registered module's own `creates`, since a kind may
- *  register more than one (P's two create buttons read this rather than
- *  naming a type of their own). Empty is what `creates` already means for a
- *  module that makes a plain untyped block. */
-export function createsFor(kind: ViewKind): string {
-  return views().find((m) => m.kind === kind)?.creates ?? "";
-}
-
-// The set. Structure modules carry surfaces; behavior ones are stubs until
-// their rows land (A.7–A.9). Word, icon and creates are the module's answers
+// The set. Word, icon and creates are the module's answers
 // for a chip, a scanning mark and a create gesture — table is a row, matrix
 // makes nothing. Icons are pairwise distinct on purpose.
 register(
   {
-    name: "block", kind: "structure", word: "block", icon: "view_block", creates: "",
+    name: "block", word: "block", icon: "view_block", creates: "",
     surface: DIAGRAM,
     // The diagram is the only view with a frame and seats, so it is the only
     // one that offers interfaces.
     chrome: ["interfaces", "lines", "relations", "flow", "arrange"],
   },
-  { name: "table", kind: "structure", word: "row", icon: "view_table", creates: "", surface: TABLE },
-  { name: "matrix", kind: "structure", word: "block", icon: "view_matrix", creates: null, surface: MATRIX },
-  { name: "activity", kind: "behavior", word: "activity", icon: "view_activity", creates: "action" },
-  { name: "sequence", kind: "behavior", word: "action", icon: "view_sequence", creates: "action" },
-  { name: "state", kind: "behavior", word: "state", icon: "view_state", creates: "state" },
+  { name: "table", word: "row", icon: "view_table", creates: "", surface: TABLE },
+  { name: "matrix", word: "block", icon: "view_matrix", creates: null, surface: MATRIX },
+  { name: "activity", word: "activity", icon: "view_activity", creates: "action" },
+  { name: "sequence", word: "action", icon: "view_sequence", creates: "action" },
+  { name: "state", word: "state", icon: "view_state", creates: "state" },
 );
 
 /** Why this configuration would not work, in words, or null.

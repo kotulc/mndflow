@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.types/
 .vite/
 *.code-workspace
 .claude/

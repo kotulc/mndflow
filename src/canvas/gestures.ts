@@ -28,8 +28,8 @@ import type { Box } from "../geometry/route";
 import { refAt } from "../graph/types";
 import type { EdgeForm, Element, End, Graph, Side } from "../graph/types";
 import {
-  type GestureMap, type OfferTarget, type Prompt, MAP, reaches, takes,
-  standInOf,
+  type GestureMap, type OfferTarget, type Prompt, MAP, boxOf, fitOf, reaches,
+  takes, standInOf, type Laid,
 } from "../modules/view/diagram";
 import { type Grazed, LIFTED, REFERRED } from "./card";
 
@@ -120,6 +120,10 @@ export type Stage = {
   onNodesChange: (changes: NodeChange<FlowNode>[]) => void;
   setPrompt: (prompt: Prompt | null) => void;
   restViewport: () => Viewport | null;
+  /** The stage as the canvas measured it — what fit and go-to-this read. */
+  seen: { w: number; h: number };
+  floorZoom: number;
+  runs: Record<string, Laid>;
 };
 
 /** Nearest edge of an element to a screen point, and the seat on it. The
@@ -149,7 +153,8 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
   const { onPick, onOpen, onUp, onReveal, onNest, onPromote, onLift, onRefer } = reach;
   const { onWire, onTie, onGroup, onDelete, onUnlink, onDropAttr } = reach;
   const { onPlaceMany, onPlaceNote, onOffer } = reach;
-  const { members, boxes, frameBox, bands, setPrompt, restViewport } = stage;
+  const { members, boxes, frameBox, bands, setPrompt, restViewport, seen, floorZoom,
+            runs } = stage;
   const nodes = stage.nodes;
   const changeNodes = stage.onNodesChange;
   const flow = useReactFlow();
@@ -511,13 +516,22 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
 
       // Show me this. Which *this* is already answered by what is selected, so
       // one key covers both fitting the layer and going to one thing in it.
-      if (event.key.toLowerCase() === "f" && !event.ctrlKey && !event.metaKey) {
+      if (event.key.toLowerCase() === "f" && !event.ctrlKey && !event.metaKey
+          && reaches("key", "F", "any", map) === "fit") {
         event.preventDefault();
-        const seen = pickedNode ? [pickedNode] : chosen;
+        const nodeIds = pickedNode ? [pickedNode] : chosen;
 
-        if (seen.length) {
-          return flow.fitView({ nodes: seen.map((id) => ({ id })), duration: 320,
+        if (nodeIds.length) {
+          return flow.fitView({ nodes: nodeIds.map((id) => ({ id })), duration: 320,
                                 padding: 0.6, maxZoom: 1.6 });
+        }
+
+        const target = boxOf(picked, boxes, bands, runs);
+        if (target && seen.w > 0 && seen.h > 0) {
+          return flow.setViewport(
+            fitOf(target, seen, { padding: 0.6, maxZoom: 1.6, minZoom: floorZoom }),
+            { duration: 320 },
+          );
         }
 
         const rest = restViewport();
@@ -543,8 +557,8 @@ export function useGestures(reach: Reach, stage: Stage, map: GestureMap = MAP) {
     window.addEventListener("keydown", press);
 
     return () => window.removeEventListener("keydown", press);
-  }, [nodes, changeNodes, pickedNode, picked, flow, restViewport, onGroup, onPick,
-      onDropAttr, onUnlink, onDelete, setPrompt]);
+  }, [nodes, changeNodes, pickedNode, picked, boxes, bands, runs, seen, floorZoom,
+      flow, restViewport, onGroup, onPick, onDropAttr, onUnlink, onDelete, setPrompt, map]);
 
   /** The wall a right drag named, where it named one.
    *

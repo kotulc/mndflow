@@ -24,7 +24,7 @@ import { useEmbeddings } from "../../../embed/useEmbeddings";
 import { cardOf, outline, type Outline } from "../../card";
 import { lookOf, ramp } from "../../style";
 import {
-  fitTag, Anchor, Berth, LIFTED, Name, Perch, Port, SIDES,
+  fitTag, Berth, LIFTED, Name, Perch, Port,
   type CardData, type Grazed,
 } from "./pieces";
 
@@ -48,6 +48,7 @@ type ContentsProps = {
   graph: Graph;
   id: string;
   grazed: Grazed;
+  shownName: (node: Element) => string;
   onPick: (id: string) => void;
   onOpen: (id: string) => void;
 };
@@ -64,7 +65,7 @@ type ContentsProps = {
  *  line and ellipsizes rather than vanishing.
  *
  *  Interfaces are never in here; they live on the frame. */
-function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
+function Contents({ graph, id, grazed, shownName, onPick, onOpen }: ContentsProps) {
   const kids = blocksOf(graph, id);
   if (!kids.length) return <span className="hollow">empty</span>;
 
@@ -97,7 +98,7 @@ function Contents({ graph, id, grazed, onPick, onOpen }: ContentsProps) {
     <div className="treemap" style={{ height: band.h }}>
       {shown.map((kid, at) => {
         const seat = tiles[at];
-        const label = nameOf(graph, kid);
+        const label = shownName(kid);
         const fit = fitTag(seat.w - 2, seat.h - 2, label);
 
         return (
@@ -194,8 +195,9 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   const { node, graph, dropping, picked, grazed, showPorts, litSeats, pickedPort, unit } =
     data as unknown as CardData;
   const { onNameTaken, onSay } = data as unknown as CardData;
-  const { onPick, onOpen, onSlidePort, onRename } = data as unknown as CardData;
+  const { onPick, onOpen, onSlidePort, onSlideAnchor, onRename } = data as unknown as CardData;
   const { seats, litEdges, onPromote } = data as unknown as CardData;
+  const name = (data as unknown as CardData).shownName ?? ((held) => nameOf(graph, held));
   // Shading follows affinity, which is only known once vectors exist.
   useEmbeddings();
 
@@ -243,7 +245,7 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
     <div className={`card-head voice-${look.typed ? look.voice : "normal"}${
       grazed?.kind === "title" && grazed.id === node.id ? " grazed" : ""}`}>
       <Name
-        text={nameOf(graph, node)}
+        text={name(node)}
         onRename={(label) => onRename(node.id, label)}
         taken={(name) => onNameTaken(node.parent ?? null, name, node.id)}
         onSay={onSay}
@@ -266,13 +268,6 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
   return (
     <div className={classes} style={boxStyle}>
       <Stroke drawn={drawn} color={ink} />
-
-      {/* One anchor per side for relations with no interface of their own —
-          derived from the relation itself, so nothing is stored and nothing is
-          left behind when it goes. */}
-      {(Object.keys(SIDES) as Side[]).map((side) => (
-        <Anchor key={side} name={`auto-${side}`} side={side} />
-      ))}
 
       {/* Hidden, an interface still leaves its seat behind, so the relations
           attached to it meet the border where it sits rather than sliding to
@@ -304,12 +299,19 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
           interface of their own — most of them. */}
       {seats.map((s) => (
         <Perch
-          key={s.edge}
+          key={`${s.edge}-${s.end}`}
           seated={s.edge}
+          end={s.end}
           side={s.side}
           at={s.at}
           port={s.port}
+          placed={s.placed}
+          show={s.show}
           lit={litEdges.has(s.edge) || selected || picked}
+          graph={graph}
+          owner={node.id}
+          host={host}
+          onSlide={onSlideAnchor}
           onPromote={onPromote}
         />
       ))}
@@ -339,7 +341,8 @@ export const NodeCard = memo(({ data, selected, positionAbsoluteX = 0,
       )}
 
       {holds && held.layout !== "shape" && (
-        <Contents graph={graph} id={node.id} grazed={grazed} onPick={onPick} onOpen={onOpen} />
+        <Contents graph={graph} id={node.id} grazed={grazed} shownName={name}
+                  onPick={onPick} onOpen={onOpen} />
       )}
 
       {held.label === "below" && title}

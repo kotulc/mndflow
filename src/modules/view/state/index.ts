@@ -1,4 +1,4 @@
-/** The state view module — a behavior layer drawn as states and transitions.
+/** The state view module — a layer drawn as states and transitions.
  *
  *  Projection surface (frame, camera), a gesture map that accepts `place`,
  *  and composition that reads Reading A or B, dims derived labels / inferred
@@ -23,7 +23,7 @@ import { STATE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "state", kind: "behavior", word: "state", icon: "view_state", creates: "state",
+  name: "state", word: "state", icon: "view_state", creates: "state",
   surface: STATE,
   chrome: ["flow", "arrange"],
 });

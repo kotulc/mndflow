@@ -298,6 +298,52 @@ export function freeSeat(graph: Graph, port: Element, side: Side, at: number,
   return (ordered[0] - origin) / extent;
 }
 
+/** Mark keys already taken on one side — ports and anchors somebody dragged. */
+export function takenOn(
+  graph: Graph, owner: string, side: Side, extent: number, origin: number,
+  except?: { edge: string; end: "from" | "to" },
+): Set<number> {
+  const key = (mark: number) => Math.round(mark / SEAT);
+  const taken = new Set<number>();
+
+  for (const port of portsOf(graph, owner)) {
+    if (port.side !== side || port.at == null) continue;
+    taken.add(key(origin + seatAt(port.at, extent, origin) * extent));
+  }
+
+  for (const link of Object.values(graph.edges)) {
+    for (const [end, node] of [["from", link.source], ["to", link.target]] as const) {
+      if (node !== owner) continue;
+      if (except?.edge === link.id && except.end === end) continue;
+      const wall = end === "from" ? link.fromSide : link.toSide;
+      const seat = end === "from" ? link.fromAt : link.toAt;
+      if (wall !== side || seat == null) continue;
+      taken.add(key(origin + seatAt(seat, extent, origin) * extent));
+    }
+  }
+
+  return taken;
+}
+
+/** Nearest free lattice seat to a point, given what is already taken. */
+export function freeAlong(
+  at: number, extent: number, origin: number, taken: Set<number>,
+): number {
+  const marks = seatMarks(origin, extent);
+  if (!marks.length) return 0.5;
+  if (marks.length === 1) return (marks[0] - origin) / extent;
+
+  const abs = origin + at * extent;
+  const key = (mark: number) => Math.round(mark / SEAT);
+  const ordered = [...marks].sort((a, b) => Math.abs(a - abs) - Math.abs(b - abs));
+
+  for (const mark of ordered) {
+    if (!taken.has(key(mark))) return (mark - origin) / extent;
+  }
+
+  return (ordered[0] - origin) / extent;
+}
+
 export type Box = { x: number; y: number; w: number; h: number };
 
 /** Whether two boxes touch, counting the gap that has to stay between them. */

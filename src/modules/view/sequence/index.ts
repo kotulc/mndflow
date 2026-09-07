@@ -1,4 +1,4 @@
-/** The sequence view module — a behavior layer as lifelines and messages.
+/** The sequence view module — a layer as lifelines and messages.
  *
  *  Projection surface (frame, camera), a gesture map that accepts `seat`,
  *  and composition that builds a column per participant, orders occurrences
@@ -22,7 +22,7 @@ import { SEQUENCE } from "./surface";
 
 // Replace the stub: same name, now carrying a surface.
 register({
-  name: "sequence", kind: "behavior", word: "action", icon: "view_sequence", creates: "action",
+  name: "sequence", word: "action", icon: "view_sequence", creates: "action",
   surface: SEQUENCE,
   // Columns are the layout, so an arrangement would fight it.
   chrome: ["flow"],

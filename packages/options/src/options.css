@@ -1,0 +1,101 @@
+/* One column, fixed to the right, holding every control the thing on the stage
+   has. **It scrolls**: twenty-odd controls against the height of a window makes
+   overflow ordinary rather than an edge case, and collapsing a group would be
+   hidden state. */
+
+.opts {
+  display: flex;
+  flex-direction: column;
+  /* Narrow, and long words wrap rather than setting the width. Sizing the
+     column to its longest label spends the space on one word and leaves every
+     short one swimming; each control carries a tooltip, so a name over two
+     lines costs nothing. */
+  width: 68px;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* The rail's own header — centred title mark; shell rules for `.bar` live in
+   `base.css`. */
+.opts .bar {
+  justify-content: center;
+  color: var(--text);
+}
+
+.opts .body {
+  display: flex;
+  flex-direction: column;
+  /* Far enough apart to read as separate groups. Adjacent icon columns
+     otherwise run together into one long column. */
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 8px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.opts-group { display: flex; flex-direction: column; gap: 4px; }
+
+/* Every group is ruled off from the one above it — never the first, where the
+   rule would divide the column from nothing. */
+.opts-group + .opts-group {
+  border-top: 1px solid var(--divider);
+  padding-top: 12px;
+}
+
+.opts-label {
+  padding: 0 1px 5px;
+  color: var(--faint);
+  font-size: 7.5px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* A mark over one word. The word only costs width when it sits beside the
+   mark; under it the column stays slim. */
+.opts button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.opts button .icon-svg { vertical-align: baseline; }
+
+.opts button .word {
+  font-size: 9px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.opts button:hover { color: var(--text); border-color: var(--accent); }
+
+/* Where the verbs begin inside a group. **A rule, not a second label** — the
+   subject is the same on both sides of it; what changes is that below it a
+   control does something once and is done, and so never lights. Lighter than
+   the rule between two groups, which divides two subjects. */
+.opts button.ruled {
+  margin-top: 7px;
+  border-top-color: var(--border);
+  box-shadow: 0 -4px 0 -3px var(--divider);
+}
+
+/* Selection is the app speaking about your model, so it takes the accent. */
+.opts button.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--hover);
+}

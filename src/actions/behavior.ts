@@ -12,7 +12,7 @@ import {
   axisOf, blocksOf, childrenOf, isContainer, isPort, isa, nameOf, nextNum, portsOf,
 } from "../graph/fold";
 import {
-  ROOT, defIdFor, edge as makeEdge, element as makeElement, newId, refAt, refTo,
+  ROOT, edge as makeEdge, element as makeElement, newId, refAt, refTo,
   type Axis, type Definition, type Edge, type Element, type Graph, type Mutation,
   type Side,
 } from "../graph/types";
@@ -539,18 +539,6 @@ function home_batches(links: OrderLink[]): HomeBatch[] {
     }));
 }
 
-/** The root's own kind (P.6's door) — activity or state, matching the tree
- *  just built. Only for a freshly minted project: an `into` the caller named
- *  may already be a project of some other kind, and re-inferring into it is
- *  not a licence to reclassify it. */
-function kind_mutations(module: "activity" | "state"): Mutation[] {
-  const def_id = defIdFor(module);
-  return [
-    { op: "set_def", id: def_id, name: module, components: { view: { module } } },
-    { op: "update_element", id: ROOT, type: def_id },
-  ];
-}
-
 /** `of` (selection refs) and `open` (cross-project graphs) stay off Arg —
  *  the page injects them; Arg has no list/record kind, and selection is not a
  *  prompt. `into` and `N` are what a tray or sentence can fill. */
@@ -604,11 +592,8 @@ const infer: Action = {
       : build_action_tree(parts, links, null, ACTION_TYPE);
 
     const home = home_batches(links);
-    // Fresh mint only — see kind_mutations.
-    const kind = into_arg ? [] : kind_mutations(compose ? "state" : "activity");
-
     return {
-      mutations: [...built.mutations, ...kind],
+      mutations: built.mutations,
       into,
       // A named destination is already open; a fresh mint needs the workspace
       // door too, or it writes a project nothing shows (P.3).

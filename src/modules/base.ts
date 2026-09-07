@@ -2,8 +2,10 @@
  *
  *  The engine publishes components the same way anybody else would, through the
  *  one contract — so there is no privileged path a later module would have to
- *  be measured against. */
+ *  be measured against. Also registers the block-module registry and ships the
+ *  locked `base` package definitions; nothing reads them yet (B.2). */
 
+import { block } from "./block";
 import { card } from "./card";
 import { constraints } from "./constraints";
 import { rules } from "./rules";
@@ -18,5 +20,5 @@ import "./view/sequence";
 
 export const base: Module = {
   name: "base",
-  components: [card, constraints, rules, view, style],
+  components: [block, card, constraints, rules, view, style],
 };

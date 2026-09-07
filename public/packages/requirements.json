@@ -1,0 +1,72 @@
+{
+  "schema": "2.0",
+  "id": "requirements",
+  "graph": {
+    "root": "ws",
+    "defs": {
+      "req.requirement": {
+        "id": "req.requirement",
+        "home": "ws",
+        "group": "block",
+        "name": "requirement",
+        "body": "Something the system shall do, and how that is shown.",
+        "extends": "structure",
+        "fields": [
+          { "name": "id", "form": "text" },
+          { "name": "shall", "form": "text" },
+          { "name": "method", "form": "choice",
+            "choices": ["inspection", "analysis", "demonstration", "test"] }
+        ],
+        "components": {
+          "card": { "layout": "compartments", "shape": "rect", "shows": ["id", "shall"] },
+          "constraints": { "required": ["id", "shall"] },
+          "style": { "slot": "tertiary", "emphasis": "quiet" },
+          "sketch": { "hatching": "cross" }
+        }
+      },
+      "req.group": {
+        "id": "req.group",
+        "home": "ws",
+        "group": "block",
+        "name": "requirement group",
+        "extends": "folder",
+        "components": {
+          "card": { "layout": "name", "shape": "rect" },
+          "rules": { "holds": ["req.requirement", "req.group"] }
+        }
+      },
+      "req.satisfy": {
+        "id": "req.satisfy",
+        "home": "ws",
+        "group": "relation",
+        "name": "satisfies",
+        "extends": "directed",
+        "components": {
+          "rules": { "ends": { "to": ["req.requirement"] }, "degree": { "out": { "min": 1 } } }
+        }
+      },
+      "req.verify": {
+        "id": "req.verify",
+        "home": "ws",
+        "group": "relation",
+        "name": "verifies",
+        "extends": "directed",
+        "components": {
+          "rules": { "ends": { "to": ["req.requirement"] } },
+          "card": { "shape": "lozenge" }
+        }
+      },
+      "req.table": {
+        "id": "req.table",
+        "home": "ws",
+        "group": "view",
+        "name": "requirements",
+        "components": { "view": { "module": "table" } }
+      }
+    },
+    "blocks": {
+      "ws": { "id": "ws", "parent": null, "label": "workspace", "type": "folder" }
+    },
+    "edges": {}
+  }
+}

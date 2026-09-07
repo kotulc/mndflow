@@ -1,0 +1,21 @@
+{
+  "name": "@mnd/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mnd": "src/main.ts"
+  },
+  "scripts": {
+    "start": "vite-node src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mnd/core": "*",
+    "@mnd/fixtures": "*",
+    "@mnd/views": "*",
+        "@mnd/defs": "*",
+    "@mnd/terminal": "*",
+    "js-yaml": "^4.1.0"
+  }
+}
