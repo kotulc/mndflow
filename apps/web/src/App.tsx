@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, can_hold, module_of, offer, session,
          type Id, type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, extent_of, nearest_seat, project, snap, tidy,
+import { box_of, clear_of, extent_of, holds, nearest_seat, project, snap, tidy,
          BLOCK, PORT } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
@@ -63,7 +63,7 @@ export function App() {
   const [wide, set_wide] = useState(false);
   /** The mirror off. **Not the strip collapsed** — two questions, two controls. */
   const [quiet, set_quiet] = useState(false);
-  const [shown, set_shown] = useState({ interfaces: true, angles: true, lattice: true });
+  const [shown, set_shown] = useState({ interfaces: true, lattice: true });
   /** Which way a right drag draws a line. Display state until it is drawn, and
    *  then it is what the relationship was made as. */
   const [module, set_module] = useState<RelationModule>("line");
@@ -221,11 +221,6 @@ export function App() {
       s.adjust("seat", adjustments.seat(a.on, seat.side, seat.at));
       return;
     }
-    if (a.kind !== "move") {
-      s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
-      return;
-    }
-
     const block = graph.blocks[a.on];
     const landed = drawn ? box_of(drawn) : BLOCK;
     const held = block?.group ?? null;
@@ -276,7 +271,6 @@ export function App() {
    *  rather than being listed here a second time. */
   const chrome = (name: string, args?: Record<string, unknown>) => {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
-    if (name === "lines") { set_shown((c) => ({ ...c, angles: !!args!["angles"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
     if (name === "relate_with") { set_module(args!["module"] as RelationModule); return; }
     /** **Nothing behind it yet.** It says so rather than doing nothing, which
@@ -410,7 +404,7 @@ export function App() {
             /** **Where the pointer was, clear of what is already there.** A row
              *  is dropped by its middle, and a card is placed by its corner. */
             const at = clear_of(
-              scene.nodes.filter((n) => n.id !== id && n.type !== "group" && !n.data.on)
+              scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
             s.go("refer", { target: id, spot: at });
@@ -418,7 +412,6 @@ export function App() {
           picked={s.picked()}
           cells={s.cells()}
           onPickCells={(cells) => s.pick_cells(cells)}
-          curved={shown.angles === false}
           lattice={shown.lattice}
           module={module}
           said={said?.text ?? null}

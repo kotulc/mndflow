@@ -1,15 +1,15 @@
 /** What a relationship looks like.
  *
- *  **The run between two cards is the library's**; what is ours is the two
- *  things it cannot know — whether this layer is being read with right angles
- *  or with curves, and how a relationship's name is set.
+ *  **The run is ours**; what the library gives is the frame to draw it in. A
+ *  run bends square and gets round what it passes, and a relationship's name is
+ *  set beside it.
  *
  *  A name is HTML rather than SVG text, so it takes the ramp's type like
  *  everything else on the page: one font stack, one set of steps, and a name
  *  that can be hovered and right-clicked like the line it belongs to. SVG text
  *  could do none of those without a second copy of the type scale. */
 
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps } from "@xyflow/react";
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
 import type { LineEdge } from "@mnd/views";
 import { Name, useNaming } from "@mnd/theme";
 import { drawn, middle_of, route } from "./route";
@@ -28,21 +28,11 @@ export function Wire(props: EdgeProps<LineEdge>) {
    *  for a relationship nobody has named, so asking to name one had nowhere to
    *  put the field. */
   const naming = useNaming();
-  const ends = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition };
-  /** **Right angles are ours; curves are the library's.** A curve is read as a
-   *  sketch and nobody asks it to go round anything; a right-angled run is read
-   *  as a route, and a route through the card it ends on is wrong. */
-  let path: string;
-  let x: number;
-  let y: number;
-  if (data?.curved) {
-    [path, x, y] = getBezierPath(ends);
-  } else {
-    const run = route({ x: sourceX, y: sourceY }, sourcePosition,
-                      { x: targetX, y: targetY }, targetPosition, data?.clear ?? []);
-    path = drawn(run, BEND);
-    ({ x, y } = middle_of(run));
-  }
+  /** **A run is a route**, and a route through the card it ends on is wrong. */
+  const run = route({ x: sourceX, y: sourceY }, sourcePosition,
+                    { x: targetX, y: targetY }, targetPosition, data?.clear ?? []);
+  const path = drawn(run, BEND);
+  const { x, y } = middle_of(run);
 
   return (
     <>

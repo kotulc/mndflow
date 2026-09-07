@@ -22,7 +22,7 @@ These key concepts carry most of the weight, and most of the rules below are one
 
 - **Keep assumptions to a minimum:** Do not apply organizational rules or constrain the user to a given standard. The tool must be general enough to support various modeling and drafting use cases.
 - **Keep representations simple, lightweight and honest:** Anything that can be derived from the layer elements is derived — routes, boundaries, roles, control nodes, messages, etc. User annotation, intervention and manual adjustments should be minimized.
-- **The model defines itself as the user builds:** Saying what happens over a structure is how that structure learns what it needs: the states it can be in, the interfaces it has to offer, the actions it performs. Somebody draws what happens and the definitions fill in behind them, so the work of modelling is spent saying things once rather than restating them in a second notation. **This is an intent, not yet a mechanism** — the inference that used to carry it was cut, and what replaces it is undesigned.
+- **The model defines itself as the user builds:** Saying what happens over a structure is how that structure learns what it needs: the states it can be in, the interfaces it has to offer, the actions it performs. Somebody draws what happens and the definitions fill in behind them, so the work of modelling is spent saying things once rather than restating them in a second notation. **The grid is the first mechanism this has had.** The inference that used to carry it read order from position along a directional arrangement — a guess, which is why it needed four tiers and a write-home gate to be safe. A cell address along the reading direction *is* the order, and a header *is* the allocation: both stated rather than guessed. What the model does with them beyond drawing them is still undesigned.
 
 
 ## The Unified Shape
@@ -35,7 +35,7 @@ Blocks are the fundamental unit of structure in this design, and structure and r
 
 A note, a group, a folder and a reference are placed, dragged, named and laid out alike, each one is a block. Blocks appear as cards in a diagram and are defined as nodes in the workspace graph. The graph defines possible block types and the structure and instances of those types for a given workspace. 
 
-The engine defines a set of base block kinds (`block`, `folder`, `resource`, `reference`, `interface`, `group` and `note`) that included definitions can readily subtype and customize. Block kinds (and their supporting engine modules) define how they can be configured, laid out, and how they interact. **The first three are open** ~~ a block is retyped among them freely, because they differ in what they are for and in nothing a gesture would have to invent. The rest are derived: one is arrived at by making one, and subtyping such a kind means making one and customizing it rather than retyping something else into it.
+The engine defines a set of base block kinds (`block`, `folder`, `resource`, `reference`, `interface`, `group`, `grid` and `note`) that included definitions can readily subtype and customize. Block kinds (and their supporting engine modules) define how they can be configured, laid out, and how they interact. **The first three are open** ~~ a block is retyped among them freely, because they differ in what they are for and in nothing a gesture would have to invent. The rest are derived: one is arrived at by making one, and subtyping such a kind means making one and customizing it rather than retyping something else into it.
 
 
 ### Block structure is the foundation
@@ -49,11 +49,15 @@ This design defines structure with blocks. Layered compositions of blocks form t
 
 ### Primary structural constraints
 
-Where most design decisions are left up to the user, the one exception is that a **view holds references and never parts**. A view looks at a set of blocks; owning them would make a structure subtree that contains a view of itself self-referential, and it would lose its meaning in the model.
+**There are none left, and that is the point.** The last engine rule — *a view holds references and never parts* — had only the `view` module to attach to, and went out with it. Containment is entirely the user's, plus whatever a vocabulary states in `holds`.
 
 There is no structure/behaviour split. **A block is a block** — what it *is* comes from its definition, and what it may hold is a rule a vocabulary states, never one the engine imposes. Saying that a doing-block may not contain a being-block was a distinction the engine had no business making.
 
+The one thing the engine still refuses is incoherence: a block cannot contain itself, a group cannot hold something that holds it, and a cell holds one block. The last of those is not taste — two blocks sharing a cell leaves *what is allocated to this row* without an answer.
 
-### A view is a perspective
 
-`Blocks` define structure and containment, `relations` describe usage and reference, and `views` define **perspectives** on sets of blocks and relations. `Views` include the scope and methods of translation of elment data in their scope to visual formats. Views enable yet another layer of abstraction over **many** structural objects and support building on and enhancing these underlying objects.
+### A layer is a perspective
+
+`Blocks` define structure and containment, and `relations` describe usage and reference. The **perspective** is the layer you are inside: a block and its direct children, drawn one way, with the grid deciding how much of what you see is stated rather than merely placed.
+
+***View* is reserved rather than retired.** It will name a data perspective — a table, a matrix, a sequence — over model data, designed when those are built. It was cut because it had come to mean *the diagram*, and two words for one thing is the collision the vocabulary rework was about.

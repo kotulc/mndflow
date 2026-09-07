@@ -41,10 +41,6 @@ function Harness() {
       set_chrome((c) => (c.element
         ? { ...c, element: { ...c.element, locked: args!["fixed"] === "yes" } } : c));
     }
-    if (name === "group") {
-      set_chrome((c) => (c.grid
-        ? { ...c, grid: { ...c.grid, headers: args!["headers"] as never } } : c));
-    }
   };
 
   const groups = groups_of(chrome, act);
@@ -55,10 +51,7 @@ function Harness() {
         <b>options</b>
         <select value={module} onChange={(e) => {
           set_module(e.target.value);
-          set_chrome((c) => ({ ...c, slots: SLOTS[e.target.value]!,
-            ...(e.target.value.includes("grid")
-              ? { grid: { id: "block_lanes", headers: "row" as const } }
-              : { grid: undefined }) }));
+          set_chrome((c) => ({ ...c, slots: SLOTS[e.target.value]! }));
         }}>
           {Object.keys(SLOTS).map((n) => <option key={n}>{n}</option>)}
         </select>

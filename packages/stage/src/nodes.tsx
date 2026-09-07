@@ -37,7 +37,7 @@ import { Icon, Name, known, useNaming, type IconName } from "@mnd/theme";
 const ROLE: Record<Role, IconName> = {
   block: "role_leaf", container: "role_container", folder: "role_folder",
   reference: "role_reference", interface: "role_interface",
-  group: "role_group", note: "role_note",
+  group: "role_group", grid: "role_table", note: "role_note",
 };
 
 /** The mark itself. **Top right, on everything that has a corner**: a card says
@@ -506,7 +506,7 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
           <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
                        lineClassName="mnd-edge" handleClassName="mnd-grip" />
         ) : null}
-        <Wears role={data.role} icon={has_cells ? "role_table" : "role_group"} />
+        <Wears role={data.role} />
         {data.seats?.length ? <Seats seats={data.seats} /> : null}
       </div>
     </div>

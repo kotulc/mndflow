@@ -463,7 +463,7 @@
   opacity: 0.45;
 }
 
-/* A promoted block fills its cell and reads its name as a label. The cell
+/* A header block fills its cell and reads its name as a label. The cell
    keeps the usual faint edge; this is the inner frame that reads as the block. */
 .mnd-card.header {
   box-sizing: border-box;
@@ -957,12 +957,12 @@
   cursor: pointer;
 }
 
-/* A promoted cell keeps the same faint edge as every other cell. The gutter
+/* A header cell keeps the same faint edge as every other cell. The gutter
    between it and the inset block is what separates the two frames. */
-.mnd-grid-cell.promoted {
+.mnd-grid-cell.header {
   background: color-mix(in oklch, var(--card-line) 5%, var(--surface));
 }
-.mnd-grid-cell.promoted:hover {
+.mnd-grid-cell.header:hover {
   background: color-mix(in oklch, var(--accent) 7%, var(--surface));
 }
 

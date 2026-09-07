@@ -15,7 +15,7 @@ import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
  *  grid is still a region someone drew. */
 function dissolve_group_if_empty(graph: Graph, id: Id): void {
   const g = graph.blocks[id];
-  if (!g || !is_group_block(graph, id) || is_grid_block(graph, id)) return;
+  if (!g || !is_group(graph, id)) return;
   if (members_of(graph, id).length > 0) return;
   const holder = g.group;
   delete graph.blocks[id];
@@ -135,8 +135,6 @@ function apply(graph: Graph, m: Mutation): void {
       else if (m.rows !== undefined) b.rows = m.rows;
       if (m.cols === null) delete b.cols;
       else if (m.cols !== undefined) b.cols = m.cols;
-      if (m.headers === null) delete b.headers;
-      else if (m.headers !== undefined) b.headers = m.headers;
       if (m.rows === null && m.cols === null) delete b.merges;
       return;
     }
@@ -530,24 +528,29 @@ export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
   return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
 }
 
-/** Whether a block is a grid — a table with rows, columns and cells. */
-export function is_grid(b: Block | undefined): boolean {
-  return !!b && (b.type === "grid"
-    || (b.rows !== undefined && b.cols !== undefined && b.type !== "group"));
+/** Whether a block is a grid — a region with an extent and cells to seat in.
+ *
+ *  **The module is the whole answer.** These used to sniff `rows`/`cols` and
+ *  compare `type` against two literal words, so a definition subtyping either
+ *  module disagreed with them — and `size_of` followed the sniff, which drew
+ *  such a grid at card size. `module_of` already resolves a definition chain
+ *  and already lets `type` name a module directly, so there is one answer and
+ *  everything reads it. */
+export function is_grid(graph: Graph, id: Id): boolean {
+  return module_of(graph, id) === "grid";
 }
 
-/** Whether a block is a group — a dashed rim round its members. */
-export function is_group_block(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
-  if (!b || is_grid(b)) return false;
-  return module_of(graph, id) === "group" || b.type === "group";
+/** Whether a block is a boundary — a dashed rim round its members. */
+export function is_group(graph: Graph, id: Id): boolean {
+  return module_of(graph, id) === "group";
 }
 
-/** Whether a block is a grid container. */
-export function is_grid_block(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
-  if (!b) return false;
-  return module_of(graph, id) === "grid" || is_grid(b);
+/** Whether a block holds others, either way. **The question most callers
+ *  actually have**: a grid and a boundary differ in how they draw and in
+ *  nothing about whether something may sit inside them. */
+export function is_holder(graph: Graph, id: Id): boolean {
+  const m = module_of(graph, id);
+  return m === "grid" || m === "group";
 }
 
 /** The group a block sits in, or null. */
@@ -563,6 +566,22 @@ export function cell_of(graph: Graph, id: Id): Cell | null {
   return b?.group && b.cell ? { ...b.cell } : null;
 }
 
+/** How many groups enclose a block — zero for one sitting on the layer.
+ *
+ *  **The one answer for nesting**, so what draws on top of what and what is
+ *  placed before what cannot disagree. */
+export function group_depth(graph: Graph, id: Id): number {
+  let depth = 0;
+  let at = graph.blocks[id]?.group;
+  const seen = new Set<Id>();
+  while (at && !seen.has(at)) {
+    seen.add(at);
+    depth++;
+    at = graph.blocks[at]?.group;
+  }
+  return depth;
+}
+
 /** Everything a group holds, in the layer's stable order. */
 export function members_of(graph: Graph, group: Id): Block[] {
   return Object.values(graph.blocks)
@@ -570,15 +589,19 @@ export function members_of(graph: Graph, group: Id): Block[] {
     .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
 }
 
-/** Whether `holder` may contain `id` — not itself and not a cycle. Groups hold
- *  anything; grids hold anything that may be seated in a cell. */
+/** Whether `holder` may contain `id` — not itself and not a cycle.
+ *
+ *  **A cell holds a block, never another holder.** A boundary is containment
+ *  and nothing else, so bands nest freely; a grid is an address space, and a
+ *  grid or band seated in one of its cells is sized by what *it* holds — so
+ *  the cell it was given no longer says how big it is, and the lattice a cell
+ *  address means is no longer the layer's one. */
 export function can_hold(graph: Graph, holder: Id, id: Id,
                         held?: ReadonlyMap<Id, Id | undefined>): boolean {
   const g = graph.blocks[holder];
-  if (!g || (!is_group_block(graph, holder) && !is_grid_block(graph, holder))) {
-    return false;
-  }
+  if (!g || !is_holder(graph, holder)) return false;
   if (holder === id) return false;
+  if (is_grid(graph, holder) && is_holder(graph, id)) return false;
   const map = held ?? new Map(Object.values(graph.blocks).map((b) => [b.id, b.group]));
   let at: Id | undefined = holder;
   const seen = new Set<Id>();
@@ -611,67 +634,58 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Whether a block is promoted to fill its cell. */
+/** Whether a block heads the line it sits in, and so fills its cell. */
 export function is_header(b: Block): boolean {
   return !!b.header;
 }
 
-/** @deprecated use is_header */
-export function is_row_header(b: Block): boolean {
-  return is_header(b);
+/** Whether a block heads rows, or columns. `both` is both. */
+export function heads(b: Block, way: "row" | "col"): boolean {
+  return b.header === way || b.header === "both";
 }
 
-/** @deprecated use is_header */
-export function is_col_header(b: Block): boolean {
-  return is_header(b);
+/** The region a seated block occupies: the merge covering its address, or the
+ *  one cell it sits in. **A merge is a cell's extent**, so a header merged
+ *  down three rows heads all three. */
+export function region_of(graph: Graph, id: Id): Span | null {
+  const b = graph.blocks[id];
+  if (!b?.group || !b.cell) return null;
+  return merge_at(graph, b.group, b.cell.r, b.cell.c) ?? { ...b.cell, rows: 1, cols: 1 };
 }
 
-/** Whether a grid reads row 0 as a header strip (legacy group setting). */
-export function heads_row_strip(_graph: Graph, _group: Id, g: Block): boolean {
-  return g.headers === "col" || g.headers === "both";
+/** Whether two runs along one axis share any line. */
+function along(a: number, an: number, b: number, bn: number): boolean {
+  return a < b + bn && b < a + an;
 }
 
-/** Whether a grid reads column 0 as a header strip (legacy group setting). */
-export function heads_col_strip(_graph: Graph, _group: Id, g: Block): boolean {
-  return g.headers === "row" || g.headers === "both";
-}
-
-/** The headers a block is **allocated to**: the block in its row's header cell,
- *  the one in its column's, or both.
+/** The headers a block is **allocated to**: the block heading its row, the one
+ *  heading its column, or both.
  *
  *  **Derived from position and stored nowhere.** A block leaving the grid loses
  *  its allocation, which is correct — the allocation *was* the position.
  *  Durable classification is a field somebody typed. */
 export function allocations_of(graph: Graph, id: Id): Block[] {
-  const grid = grid_of(graph, id);
-  const cell = cell_of(graph, id);
-  if (!grid || !cell) return [];
-  const g = graph.blocks[grid.id];
-  if (!g) return [];
+  const me = region_of(graph, id);
+  const group = graph.blocks[id]?.group;
+  if (!me || !group) return [];
   const out: Block[] = [];
-  if (cell.c > 0 && (g.headers === "row" || g.headers === "both")) {
-    const head = at_cell(graph, grid.id, cell.r, 0);
-    if (head && head.id !== id) out.push(head);
-  }
-  if (cell.r > 0 && (g.headers === "col" || g.headers === "both")) {
-    const head = at_cell(graph, grid.id, 0, cell.c);
-    if (head && head.id !== id) out.push(head);
+  for (const h of members_of(graph, group)) {
+    if (h.id === id || !h.header) continue;
+    const at = region_of(graph, h.id);
+    if (!at) continue;
+    if ((heads(h, "row") && along(me.r, me.rows, at.r, at.rows))
+      || (heads(h, "col") && along(me.c, me.cols, at.c, at.cols))) out.push(h);
   }
   return out;
 }
 
-/** Everything allocated to this header — the row it heads, the column it heads,
- *  or both where it sits in the corner of a grid headed either way. */
+/** Everything allocated to this header — the rows it heads, the columns it
+ *  heads, or both where it heads its grid either way. */
 export function allocated_to(graph: Graph, id: Id): Block[] {
-  const grid = grid_of(graph, id);
-  const cell = cell_of(graph, id);
-  if (!grid || !cell) return [];
-  const out: Block[] = [];
-  for (const b of members_of(graph, grid.id)) {
-    if (b.id === id || !b.cell) continue;
-    if (allocations_of(graph, b.id).some((h) => h.id === id)) out.push(b);
-  }
-  return out;
+  const group = graph.blocks[id]?.group;
+  if (!group || !graph.blocks[id]?.header) return [];
+  return members_of(graph, group)
+    .filter((b) => b.id !== id && allocations_of(graph, b.id).some((h) => h.id === id));
 }
 
 

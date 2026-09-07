@@ -14,7 +14,7 @@
 | **reference** | a child that **stands for a block living elsewhere** — another layer, another tree. It appears, it is not owned, and it shows the real block's name. A gone target reads **missing** and is kept rather than tidied away. `of` holds the target |
 | **relationship** | a join between **exactly two** blocks. Not a block: placed by its ends, drawn as a line, joins rather than sits. Names a **relation module**. Held in `graph.edges` |
 | **field** | a named, typed value on a block or a relationship. Never structural, and it has no identity — a field is addressed by name on its holder |
-| **definition** | a reusable subtype: a name, the fields its usages carry, how they draw, and what they may hold. Held in `graph.defs`, **one id space with blocks and relationships**, filed under a block by `home`, and grouped by what it describes — **block**, **relation**, **view** |
+| **definition** | a reusable subtype: a name, the fields its usages carry, how they draw, and what they may hold. Held in `graph.defs`, **one id space with blocks and relationships**, filed under a block by `home`, and grouped by what it describes — **block**, **relation** |
 | **type** | the definition a block or relationship names. Open, and the user's |
 | **usage** | anything naming a definition in its `type`. The definition declares; the usage holds the values it gives |
 
@@ -38,10 +38,13 @@
 | **reference** | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | **interface** | anything | a block seated on an edge. Also **port** |
 | **resource** | a workspace-relative path or link | a file, a script, a data file, an image |
-| **group** | references, local to one layer | a boundary round a set — a swimlane, a region, a package boundary |
+| **group** | any block on its layer | a boundary round a set — a swimlane, a region, a package boundary. A dashed rim, sized from what it holds |
+| **grid** | any block, one to a cell | a region of the lattice with an extent — rows, columns, merges. It owns its corner, because an empty one would otherwise be nothing |
 | **note** | text | a resource drawn as a card of text |
 
-**Seven, in two families.** `block`, `folder` and `resource` are **open**: they differ in what they are for, and a block is retyped among them freely. `reference`, `interface`, `group` and `note` are **derived** — each carries something a change of type cannot invent, so one is arrived at by making one. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
+**Eight, in two families.** `block`, `folder` and `resource` are **open**: they differ in what they are for, and a block is retyped among them freely. `reference`, `interface`, `group`, `grid` and `note` are **derived** — each carries something a change of type cannot invent, so one is arrived at by making one. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
+
+**A group and a grid are two modules, not one with a setting.** They differ in what a member's place *is* — a boundary reads its bounds off wherever its members ended up, a grid says where each member goes — which is a difference in code and not in configuration. What they share is that both **hold**: a block sits in one by `group`, membership is flat, and either may hold the other.
 
 **There is no untyped block.** A block naming no definition is a `block`; the field being absent is how a file stays small. `view` is reserved rather than shipped — it comes back defined, not as a module.
 
@@ -59,18 +62,15 @@
 
 ## What holds what
 
-**A block is a block.** There is no tier walk and no doing/being split. One rule is the engine's, and it is the only place a choice is taken away from the user:
-
-> **A view holds references, never parts.**
+**A block is a block.** There is no tier walk and no doing/being split, and **the engine states no containment rule at all** — the last one, *a view holds references and never parts*, had only the `view` module to attach to and went out with it. What may contain what is the user's, plus whatever a vocabulary says in `holds`.
 
 | Term | Means |
 |---|---|
 | **top-level block** | a block whose parent is the workspace or a folder, so it is contained rather than owned. Informally a *project*. Read from position, stored nowhere |
-| **coercion** | what dropping into a view does instead of refusing. The gesture still succeeds; what arrives is an appearance rather than a part — a **reference** |
 
 **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 
-**Nesting is ordinary.** A view holds views, so a matrix's two axes cost nothing new.
+**Membership is not parenthood.** A block's `parent` says which layer it is in; its `group` says which holder on that layer it sits in. The two are independent and only the first is the tree — which is why a group is dissolved when its last member leaves rather than deleting what it held.
 
 
 ## Layers and looking
@@ -78,31 +78,52 @@
 | Term | Means |
 |---|---|
 | **layer** | a block and its direct children — a cross-section of the tree at one block, seen from within. The current **scope** |
-| **layer view** | that layer projected through the definitions in scope and rendered by one view module. The layer is what is looked at; the layer view is the looking |
-| **view module** | the engine code behind one way of presenting a layer. **Three**: `block`, `table`, `matrix`. `block` is **any planar projection**. Each publishes a distinct icon and a **word** for what it calls its elementary block |
-| **view definition** | **a view subtype.** It names one required view module and that module's settings. Reusable — many block definitions may name the same one. The base package ships **three**, one per module; a notation is another definition, never another module |
-| **view block** | the looking **written down** — a `view` usage holding one reference per thing it shows. Made by **pinning** a layer view. Its configuration is its *content*, not its presentation |
-| **diagram** | what a layer looks like drawn on the canvas. Names no module |
-| **depth** | how far a view's reference reaches: `self`, `children` or `all` |
-| **selection** | what is picked within the layer. Set by clicking |
+| **diagram** | what a layer looks like drawn on the canvas. **There is one way to draw**, so this names no module and nothing chooses between ways |
+| **projection** | reading a layer into a Scene. Internal — a code word, not a user word |
+| **selection** | what is picked within the layer. Set by clicking. **Cells are picked beside blocks, never among them** — a cell is an address rather than a thing, so it has no id to stand in a selection with |
 | **frame** / **wall** / **band** | the open layer's border seen from within, one of its four sides, and the dimmed margin outside it |
 | **card** | a block as drawn on the canvas |
-| **mark** | how a box reads, derived every draw from what a block holds or where it sits — `reference`, `missing`, `note`, `group`, `interface`, `container`, `derived`. Never a sort of thing |
+| **holder** | a boundary or a grid, asked as one question. **The pair is named once** — what a run may pass through, what a sweep picks, and what a drop must stay clear of are the same question about both |
+| **mark** | how a box reads, derived every draw from what a block holds or where it sits — `reference`, `missing`, `note`, `group`, `grid`, `interface`, `container`, `derived`, and on a grid's own cells `cell`, `header`, `merged`. Never a sort of thing |
 
-**A view holds views.** A matrix's two axes are child views, each holding references. Recursion rather than an axis concept, so a filter, a nesting or a third dimension costs nothing new.
-
-**Which views a definition offers comes from its `view` component**, and the first is the default. **There is no derived kind of layer**, so any layer can be switched to any view it is offered — which is what keeps a model from being trapped in the sort of thing it started as.
+***View* is reserved, not retired.** It will name a data perspective — a table, a matrix, a sequence — over model data, and it comes back defined. It means nothing today, so it says nothing today.
 
 | Term | Means |
 |---|---|
-| **arrangement** | **one setting, six values, and it carries the reading direction**: `free`, `grid`, `right`, `left`, `down`, `up`. **Model data, held on the layer and in the log**, because how a layer reads is part of what the layer says |
+| **arrangement** | **one setting, two values.** `free` is hand placement, rounded to the lattice; `grid` is auto-layout, which ignores stored positions and works out a box for every loose block from the relationships and the sizes. **Model data, held on the layer and in the log**, because how a layer lays out is part of what the layer says. **The four directional values are gone** — they ranked by relationships and read as a picture of the graph rather than of the model |
 | **retained placement** | a block's placement is **kept** by every arrangement, and nothing discards it. A computed arrangement replaces where things *draw*, never what you placed, so returning to `free` returns your layout |
-| **rank** | one step along a directional arrangement |
 | **seat** | a place on a border a line may meet |
 | **anchor** | a seat a relationship actually arrives at, with no block behind it. **One per arriving line, never one per side.** Placed by the engine until somebody drags it, and then drawn **solid** to say the position is theirs |
 | **promotion** | turning an anchor into an **interface** where it sits — a separate act from moving one, because an interface is a real element with a name and a type |
 | **explicit order** | sequence stated by a directed relationship. Read first, and it wins |
-| **implied order** | sequence read from where blocks sit along a **directional arrangement**. The fallback. **`free` and `grid` carry no direction**, so a layer using either has no implied order |
+| **implied order** | **cut with the directional arrangements.** Neither value carries a reading direction, so nothing infers sequence from position on a layer. **A cell address is the replacement**: inside a grid, where a block sits along the reading direction *is* the order, stated rather than guessed |
+
+
+## The grid
+
+**A visual spreadsheet for blocks**, and the one place a position carries stated meaning rather than a guess.
+
+| Term | Means |
+|---|---|
+| **the lattice** | **one set of lines, and it is the backdrop dots.** `UNIT` is one square of the guides. Everything with a place of its own lands on it — a card, a note, a hand drop, a grid's corner — so a block the layer placed and a block seated in a grid line up |
+| **cell** | one block plus a gap of air on every side. **Derived, never a block**, and an empty cell is an address nobody claimed. Fixed: never variable, never auto-fit |
+| **address** | `cell: {r, c}`, **which rides on the block** — it replaces `x`/`y` for a seated block exactly as `side` and `at` replace them for an interface. An address with no `group` is nothing |
+| **extent** | a grid's `rows` and `cols`. What lets an empty grid draw at all, and what a dragged corner sets |
+| **merge** | a **cell's** extent, stated on the grid as a `Span` and never on a cell. A merged region is one cell: every address it covers answers with the span's box, and a block in one larger than itself **centres**, because blocks never resize |
+| **footprint** | how many cells a block needs, derived from its size. **Distinct from a merge**, which is how big a cell is — the two do not collide |
+| **header** | a seated block that **heads its row, its column, or both**. It fills its cell and is drawn on a darker ground. One field on the block, `header`, and the role is the whole of it |
+| **allocation** | **the SysML word.** Every block along the lines a header covers is *allocated to* it — swimlane, lane owner and tag are one construct under one standard name |
+| **row × column** | a pair of allocations. What makes an allocation matrix fall out later: rows one domain, columns another, a filled cell allocated to both |
+
+**Allocation is derived from position and stored nowhere.** A block leaving the grid loses it, which is correct — the allocation *was* the position. Durable classification is a field somebody typed, a different thing with a different gesture.
+
+**Allocation has identity.** It is to the header's **block**, not to its label, so two grids headed by the same block mean the same thing and renaming it renames everywhere.
+
+**Overlap is hard inside a grid and assistive outside.** A cell holds one block, which is what lets allocation be derived at all — two blocks sharing a cell and *what is allocated to this row* stops having an answer. Outside, a drop snaps and nudges clear, so `free` stays free.
+
+**Displacement is never destructive.** Removing a row, shrinking an extent, or merging over an occupied cell drops the block's address and leaves it free on the layer. A layout gesture must not destroy model content — a block may be referenced from other layers.
+
+**A grid never grows by accident.** Its extent is what you drew; a block dropped past the last row lands free on the layer beside it.
 
 
 ## The workspace
@@ -113,7 +134,7 @@
 | **graph** | the current state — `root`, `blocks`, `edges` and `defs`. **One graph**, folded from one log, never edited in place |
 | **project** | **a word, not a type.** Informally, a top-level block under the workspace root. Read from position, stored nowhere, and nothing in the schema answers to it |
 | **the log** | **one log, at the workspace.** One document, one history, so **undo is workspace-wide** and nothing routes a write |
-| **session state** | how things were last shown — the open layer, the selection, the explorer fold, which view each layer was in, the theme, the toggles. **Held outside the log and never in a file**, so opening somebody's workspace does not rearrange your toggles. The test is *is it in the log?* — a block's name is, so it exports and it undoes; whether interfaces show is not, so it does neither. **`arrangement` is the exception that proves the rule**, and it is model data because how a layer reads is part of what it says |
+| **session state** | how things were last shown — the open layer, the selection, the explorer fold, the theme, the toggles. **Held outside the log and never in a file**, so opening somebody's workspace does not rearrange your toggles. The test is *is it in the log?* — a block's name is, so it exports and it undoes; whether interfaces show is not, so it does neither. **`arrangement` is the exception that proves the rule**, and it is model data because how a layer reads is part of what it says |
 | **package** | **a top-level block you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's |
 | **resolution** | how a usage finds its definition: **climb the ancestors, nearest first, to the workspace**. **There is no import list** — position does the whole job, so there is no order to maintain. Two ancestors defining the same name are two definitions and both are offered; nothing shadows, because every usage names an id |
 | **`home`** | the block a definition is filed under. **The only stored part of its scope** — who owns it, who may use it, what an export carries and which of two wins all fall out of position |
@@ -133,7 +154,7 @@
 | **checkpoint** | the whole graph as one mutation. Written when the log passes its cap and the oldest steps are dropped, and when a file is imported. Not something anybody did, so it cannot be undone |
 | **the door** | the one way in. Every log is checked before it is folded: what can be repaired is, what cannot is dropped rather than folded into a broken graph |
 | **fault** | what the door has to say — repaired, or dropped, and why. The user is told once, and a clean log says nothing |
-| **derived** | worked out rather than stored — containment, container-ness, a group's members, the `reference` and `tie` relation modules, seats, routes, and the content hash |
+| **derived** | worked out rather than stored — containment, container-ness, a group's members, **a grid's cells and every allocation in it**, the `reference` and `tie` relation modules, seats, routes, and the content hash |
 
 
 ## What a definition configures
@@ -146,7 +167,6 @@
 | **`block`** | which block module, and that module's own keys |
 | **`card`** | which card `layout`, its `shape`, where the label sits, and which fields it `shows` |
 | **`style`** | which **slot** (one of six hue families) and which **emphasis**, weight and label step. **Never a colour, a pixel count or a font** — the theme owns the palette and a definition picks within it |
-| **`view`** | which view definitions this offers, the first being the default, and the abstraction cap |
 | **`constraints`** / **`rules`** | what a usage needs in itself, and how usages interact |
 | **card layout** | one of the standard ways a card is composed — `name`, `type`, `fields`, `none`. **Open** |
 | **`validate` hook** | a module's own check in code, for what the rule kinds cannot say. The escape hatch, and deliberately not a language |
@@ -155,7 +175,7 @@
 |---|---|
 | **`required`** | which of a usage's fields must carry a value. The one **constraint** |
 | **`ends`** | which definitions may sit at each end of a relationship definition, and optionally which port direction |
-| **`holds`** | which definitions this one may contain — including **`view` holding references only** |
+| **`holds`** | which definitions this one may contain. **The only containment rule there is**, and it is data — the engine states none of its own |
 | **`degree`** | how many relationships may meet a usage, counted `in` and `out` |
 | **`match`** | field names that must agree across a relationship's two ends |
 
@@ -171,9 +191,7 @@ The full enumeration is in actions.md.
 | **action** | something somebody meant and could say — create, relate, group, describe. Named, ranked, listed. Returns mutations rather than applying them |
 | **adjustment** | something positional and unsayable. Five, gesture-only, never ranked. A module declares which it accepts |
 | **navigation** | an action writing no mutations — `open`, `reveal`. No step, nothing to undo |
-| **pin** | saving the current layer view as a **view block**, from the canvas |
-| **composition** | **how a view groups, spaces and orders the references it holds** — recomputed every draw, making nothing. Presentation, never model |
-| **proximity** | **how far apart two referenced blocks are in the tree**. The one metric composition runs on: it **groups** by nearest common ancestor, **orders** by tree path, and where there is room **spaces** by distance. Derived every draw, stored nowhere, and overridable |
+| **pin** | filing an element's definition in the workspace's own locked vocabulary folder. **Not a way to save a layer** — the `view` block it used to make is gone. See stories.md |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |
 | **host port** | one of the four capabilities an app binds — `storage`, `files`, `net`, `score`. **The entire host contract**, declared in core and implemented nowhere else. An unbound port is a capability the app does without, never a feature reimplemented |
 
@@ -207,8 +225,8 @@ The full enumeration is in actions.md.
 | the two element kinds: block, relationship | block modules, and the base definitions over them |
 | relation modules — `line`, `directed`, `reference`, `tie` | card layouts, style sets, routing strategies |
 | value forms — `text`, `number`, `flag`, `choice`, `link` | components, rule kinds |
-| view modules — `block`, `table`, `matrix` | definitions, which are data and cost nothing |
-| arrangements — six | |
+| arrangements — `free`, `grid` | definitions, which are data and cost nothing |
+| header roles — `row`, `col`, `both` | |
 | mutation ops | the action set and the adjustments, which are small by judgement rather than closed by decree |
 | host ports — `storage`, `files`, `net`, `score` | |
 

@@ -149,18 +149,26 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "set_def", def: { ...d, extends: "block" } });
   }
 
-  /** **Grids used to share the group module.** A block with an extent but
-   *  `type: "group"` is repaired to the grid module. */
+  /** **Grids used to share the group module.** Anything carrying an extent is
+   *  a grid, whatever module it names, and is repaired to say so.
+   *
+   *  **The set is kept, because the repairs below have to see it.** A repair is
+   *  a mutation somebody applies afterwards, so the checks that follow still
+   *  read the graph as it came in — which freed every seated block of a legacy
+   *  grid on the same pass that migrated it. */
+  const grids = new Set(Object.keys(graph.blocks).filter((id) => is_grid(graph, id)));
   for (const b of Object.values(graph.blocks)) {
-    if (b.type !== "group" || b.rows === undefined || b.cols === undefined) continue;
-    faults.push({ kind: "repaired", what: `"${name(b.id)}" was a grid named group` });
+    if (grids.has(b.id) || b.rows === undefined || b.cols === undefined) continue;
+    faults.push({ kind: "repaired", what: `"${name(b.id)}" was a grid named ${b.type ?? "block"}` });
     repairs.push({ op: "update_block", id: b.id, type: "grid" });
+    grids.add(b.id);
   }
 
-  /** The grid: one block per cell, no merge across another, and groups may
-   *  nest so long as membership does not cycle. **Every repair frees the block
-   *  rather than deleting it** — a layout fault must not cost model content,
-   *  and a block may be referenced from other layers. */
+  /** The grid: one block per cell, no merge across another, no holder seated
+   *  in a cell, and bands nesting so long as membership does not cycle.
+   *  **Every repair frees the block rather than deleting it** — a layout fault
+   *  must not cost model content, and a block may be referenced from other
+   *  layers. */
   const taken = new Map<string, Id>();
   for (const b of Object.values(graph.blocks)) {
     const group = held.get(b.id);
@@ -179,7 +187,8 @@ export function inspect(graph: Graph): Inspection {
     }
     if (!b.cell) continue;
     const { r, c } = b.cell;
-    const outside = !is_grid(grid) || r < 0 || c < 0 || r >= grid.rows! || c >= grid.cols!;
+    const outside = !grids.has(group) || r < 0 || c < 0
+                 || r >= grid.rows! || c >= grid.cols!;
     const at = merge_at_span(grid, r, c);
     const key = `${group}|${at ? at.r : r}|${at ? at.c : c}`;
     if (outside || taken.has(key)) {
@@ -204,7 +213,7 @@ export function inspect(graph: Graph): Inspection {
     let bad = 0;
     for (const s of g.merges ?? []) {
       const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0
-                && is_grid(g) && s.r + s.rows <= g.rows! && s.c + s.cols <= g.cols!;
+                && grids.has(g.id) && s.r + s.rows <= g.rows! && s.c + s.cols <= g.cols!;
       if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
       else bad++;
     }

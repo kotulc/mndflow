@@ -17,7 +17,7 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import { at_seat, box_of, extent, look_key, nearest_seat, perch_id, roomed,
+import { at_seat, box_of, extent, holds, look_key, nearest_seat, perch_id, roomed,
          swept_cells, FRAME, PORT, CELL, UNIT,
          type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
@@ -131,10 +131,6 @@ export type FlowViewProps = {
    *  layer slots straight onto it, so the lines are what both are measured
    *  against rather than decoration behind them. */
   lattice?: boolean;
-  /** Whether relationships are read with curves rather than right angles.
-   *  Display state: it changes what you are looking at and nothing about the
-   *  project, so it arrives as a prop and never enters the log. */
-  curved?: boolean;
 };
 
 /** **Fitting frames what is there; it never magnifies.** One small card on a
@@ -295,7 +291,7 @@ const READS: Record<string, string> = {
 
 /** **Which seat each end meets is the projection's**, and arrives on the edge
  *  already — so nothing here chooses a point on a border. */
-function edges_of(scene: Scene, picked: readonly Id[], curved: boolean): LineEdge[] {
+function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
   return scene.edges.map((e) => {
     const d = e.data;
     const forward = d?.dir === "forward" || d?.dir === "both" || d?.module === "directed";
@@ -303,7 +299,7 @@ function edges_of(scene: Scene, picked: readonly Id[], curved: boolean): LineEdg
     return {
       ...e,
       type: "wire",
-      data: { ...(d ?? { module: "line" as const, dir: "none" as const }), curved },
+      data: d ?? { module: "line" as const, dir: "none" as const },
       selected: picked.includes(e.id),
       className: READS[d?.module ?? "line"] ?? "line",
       /** **The end is taken hold of by its own grip**, which appears when the
@@ -346,7 +342,7 @@ function kind_of(scene: Scene, id: string | null,
    *  blocks that already live here, so it has no layer of its own to open and
    *  no border for a line to end on — and saying so here is what keeps every
    *  surface from having to work it out again from a mark. */
-  if (node?.type === "group" || node?.type === "grid") return "band";
+  if (holds(node)) return "band";
   /** **A note is not a block you can go into.** It is a remark left on this
    *  layer — there is nothing inside it and nothing to put there, so two
    *  clicks on one mean what they mean on every other name: edit the text,
@@ -486,7 +482,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
-          said, chrome = true, curved = false, lattice = false } = props;
+          said, chrome = true, lattice = false } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
   const latest = useRef({ picked, onPick, key: "" });
@@ -548,8 +544,8 @@ function Canvas(props: FlowViewProps) {
    *  a change and applies nothing itself; dropping the handler left every edge
    *  change — a click on a line above all — dispatched into nothing, so a
    *  relationship could not be picked at all. */
-  const [edges, set_edges, rewired] = useEdgesState<LineEdge>(edges_of(scene, picked, curved));
-  const key = `${signature(scene, frame)}~${curved ? "curve" : "angle"}~${resync}`;
+  const [edges, set_edges, rewired] = useEdgesState<LineEdge>(edges_of(scene, picked));
+  const key = `${signature(scene, frame)}~${resync}`;
   latest.current = { picked, onPick, key };
 
   /** **Which drawing the arrays on the canvas are of.** Until the effect below
@@ -612,7 +608,7 @@ function Canvas(props: FlowViewProps) {
     const before = drawn.current;
     drawn.current = scene.nodes;
     set_nodes(nodes_of(scene, picked, frame));
-    set_edges(edges_of(scene, picked, curved));
+    set_edges(edges_of(scene, picked));
     installed.current = key;
     reported.current = chosen(picked);
 
@@ -788,7 +784,7 @@ function Canvas(props: FlowViewProps) {
     /** **A relationship never ends on a boundary.** A band says *these belong
      *  together* and holds no border of its own — so a drag that lets go on one
      *  has let go on the ground it is drawn over. */
-    if (id && scene.nodes.some((n) => n.id === id && (n.type === "group" || n.type === "grid"))) {
+    if (id && scene.nodes.some((n) => n.id === id && (holds(n)))) {
       return { on: null };
     }
     return { on: id === FRAME ? null : id };
@@ -890,13 +886,17 @@ function Canvas(props: FlowViewProps) {
       }
       return true;
     };
-    const holds = (n: BoxNode) => {
+    const under = (n: BoxNode) => {
       const o = box_of(n);
       return at.x >= o.x && at.x <= o.x + o.w && at.y >= o.y && at.y <= o.y + o.h;
     };
     const lands = scene.nodes.filter((n) =>
-      n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && holds(n));
-    const gridLand = lands.find((n) => n.type === "grid") ?? null;
+      n.id !== id && !n.data.on && n.selectable !== false && n.type !== "note" && under(n));
+    /** **A cell is offered to a block only.** A grid or a band dragged over a
+     *  lattice lands in it the way it lands in any boundary — highlighting a
+     *  cell it may not be seated in promised a drop the model refuses. */
+    const gridLand = dragged && holds(dragged) ? null
+      : lands.find((n) => n.type === "grid") ?? null;
     const groupLand = lands.find((n) => n.type === "group" && nest_ok(n.id)) ?? null;
     const gridBox = gridLand ? box_of(gridLand) : null;
     const cell = gridLand && gridBox
@@ -904,7 +904,7 @@ function Canvas(props: FlowViewProps) {
                                  && at.y >= gridBox.y + c.y && at.y <= gridBox.y + c.y + c.h)
       : undefined;
     const into = cell ? gridLand : groupLand;
-    return { over: lands.find((n) => n.type !== "group" && n.type !== "grid") ?? null, into,
+    return { over: lands.find((n) => !holds(n)) ?? null, into,
              ...(cell ? { cell: { r: cell.r, c: cell.c } } : {}) };
   }, [scene]);
 
@@ -944,7 +944,7 @@ function Canvas(props: FlowViewProps) {
 
     /** **A group is its members' bounds; a grid owns its corner.** Either may
      *  be filed into another group on drop. */
-    if (drawn.type === "group" || drawn.type === "grid") {
+    if (holds(drawn)) {
       const land = landing_on(node.id, { x: node.position.x + b.w / 2,
                                          y: node.position.y + b.h / 2 });
       onAdjust?.({ kind: "move", on: node.id, to: node.position,
@@ -1136,7 +1136,7 @@ function Canvas(props: FlowViewProps) {
      *  one you meant, and it is drawn last. */
     const landed = [...scene.nodes].reverse().find((n) => {
       if (n.id === g.on || n.selectable === false
-          || n.type === "group" || n.type === "grid") return false;
+          || holds(n)) return false;
       const b = box_of(n);
       return to.x >= b.x && to.x <= b.x + b.w && to.y >= b.y && to.y <= b.y + b.h;
     });
@@ -1157,7 +1157,7 @@ function Canvas(props: FlowViewProps) {
     /** **A boundary and a grid have no inside to open.** One is a rim round
      *  what it holds; the other is a table of cells on the layer. */
     return n && !n.data.on && n.selectable !== false
-      && n.type !== "group" && n.type !== "grid" && n.type !== "note" ? n.id : null;
+      && !holds(n) && n.type !== "note" ? n.id : null;
   }, [picked, scene]);
 
   return (

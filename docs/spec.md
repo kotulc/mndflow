@@ -14,12 +14,10 @@ mndflow is a client-only app for rapidly composing descriptive blocks into syste
 ```
 packages/
   core/        @mnd/core       graph, log, door, actions, ports
-  layout/      @mnd/layout     placement, routing
-  views/       @mnd/views      block · table · matrix, each -> Scene
+  views/       @mnd/views      sizes, placement, routing, projection -> Scene
   defs/        @mnd/defs       the definition packages. data, no code
   theme/       @mnd/theme      the ramp, css only
   fixtures/    @mnd/fixtures   sample logs, and sample files for the seam
-  render/      @mnd/render     Scene -> React
   explorer/    @mnd/explorer   the tree
   stage/       @mnd/stage      the working area
   options/     @mnd/options    the control rail
@@ -33,8 +31,12 @@ apps/
 
 **One surface, one package, and never a `ui` package.** Five panels split five ways is what keeps
 one of them from quietly doing another's work, and each carries its own dev server — which is what
-makes a surface runnable before the app that hosts it exists. **`views` stays one package**: the
-three modules share the projection machinery and none of them is separately runnable.
+makes a surface runnable before the app that hosts it exists.
+
+**`views` is one package and there is one way to draw.** The grid absorbed the table and the matrix,
+so what was a choice of view module is now a question about how the blocks in a layer are placed.
+Sizes, placement and routing live here with the projection because they are one answer, and none of
+them is separately runnable.
 
 **This tree is the shape, not the arrows.** The monorepo README owns the dependency map, and the law
 test keeps the workspace graph in step with it.
@@ -74,14 +76,14 @@ Scene {
   frame:  { x, y, w, h, label }      <- absent at the root, which has no outside
   boxes:  [{ id, x, y, w, h, label, def, on, link, marks }]
   routes: [{ id, from, to, points, module, dir, label }]
-  slots:  ["arrange" | "interfaces" | "lines" | "columns" | "types" | "relations"]
+  slots:  ["layer" | "display" | "relations"]
   hits:   [{ on, region, kind }]
   bounds: { w, h }
   trail:  [{ id, label }]
 }
 ```
 
-**A view module returns data, never elements.** Plain data, importing nothing drawable. This is the single change the architecture is built on: a notation becomes a pure function, a translator reuses the projection instead of reimplementing it, and most of the product is provably correct before anything is drawn. **Only what draws needs a browser.**
+**A projection returns data, never elements.** Plain data, importing nothing drawable. This is the single change the architecture is built on: a notation becomes a pure function, a translator reuses the projection instead of reimplementing it, and most of the product is provably correct before anything is drawn. **Only what draws needs a browser.**
 
 **It held.** Every rule below assumes it keeps holding, and anything that needs to break it is something to redesign rather than to allow.
 
@@ -93,7 +95,7 @@ Scene {
 | Seam | Between | Is |
 |---|---|---|
 | **the graph** | every headless package | blocks, relations, definitions, fields. Named by `core`, which alone may close a set |
-| **the Scene** | `views` → `render`, `cli`, `kit` | plain data, importing nothing drawable. **A producer proves its output is well-formed; a consumer proves it draws anything that is, and neither imports the other** |
+| **the Scene** | `views` → `stage`, `cli`, `kit` | plain data, importing nothing drawable. **A producer proves its output is well-formed; a consumer proves it draws anything that is, and neither imports the other** |
 | **the ports** | `core` → the apps | the entire host contract, declared in one place and bound in an app |
 
 **An action name is the fourth thing, and it travels one way.** Every surface emits one and none runs one — the app does. **A gesture returns a name, the app runs it, it returns mutations, the app appends them.** That loop is the whole product, and if it turns out to be interesting a seam is in the wrong place.
@@ -221,12 +223,10 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 | Package | Proven by | Needs a browser |
 |---|---|---|
 | `core` | fold determinism, door repairs, undo-by-refold, file round-trip, byte-identical re-export | no |
-| `layout` | no overlap, on the grid, stable under reorder, every elbow square, no two ends share a seat | no |
-| `views` | Scene invariants per module, over text projections of **shape, not coordinates** | no |
+| `views` | no overlap, on the lattice, stable under reorder, every elbow square, no two ends share a seat; and Scene invariants over text projections of **shape, not coordinates** | no |
 | `defs` | every shipped definition passes the door; every module it names exists | no |
 | `fixtures` | every log folds clean, and **every file the seam opens leaves nothing for `validate` to find** | no |
 | `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |
-| `render` | one conformance test: every Scene element draws, every hit binds, over **hand-written** Scenes | yes |
 | `explorer` · `stage` · `options` · `tray` · `terminal` | driven, not asserted | yes |
 
 - **The dependency law is a test**: the workspace graph matches the map the monorepo README owns, no package outside `core` declares a closed set, and nothing imports a deep path.

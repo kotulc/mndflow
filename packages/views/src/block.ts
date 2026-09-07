@@ -3,8 +3,8 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { children, covers, edges_in, is_grid_block, is_group_block, is_header,
-         is_interface, members_of, module_of, role_of, shown_name,
+import { children, covers, edges_in, group_depth, is_grid, is_group, is_header,
+         is_holder, is_interface, members_of, module_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -38,22 +38,11 @@ function group_carries(graph: Graph, group: Id): Id[] {
   const walk = (gid: Id) => {
     for (const m of members_of(graph, gid)) {
       out.push(m.id);
-      if (is_group_block(graph, m.id)) walk(m.id);
+      if (is_group(graph, m.id)) walk(m.id);
     }
   };
   walk(group);
   return out;
-}
-
-/** How many group boundaries enclose a block — zero on the layer itself. */
-function nest_depth(graph: Graph, id: Id): number {
-  let depth = 0;
-  let at = graph.blocks[id]?.group;
-  while (at) {
-    depth++;
-    at = graph.blocks[at]?.group;
-  }
-  return depth;
 }
 
 /** Project a layer through the block view. */
@@ -83,10 +72,10 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  pass; making one here first and splicing it out later left nested groups
    *  on the canvas as solid container cards. */
   const boxes: BoxNode[] = spots
-    .filter((p) => !is_group_block(graph, p.id) && !is_grid_block(graph, p.id))
+    .filter((p) => !is_holder(graph, p.id))
     .map((p) => {
     const data = carried(graph, p.id);
-    const nest = nest_depth(graph, p.id);
+    const nest = group_depth(graph, p.id);
     const drawn = node(p.id, p,
                        gridded(graph, p.id) ? { ...data, cells: [], nest } : { ...data, nest },
                        module_of(graph, p.id) === "note" ? "note" : "card");
@@ -100,43 +89,32 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   /** **A grid owns its corner and draws its extent**; a boundary is its
    *  members' bounds — a fact about what it holds, never a stored size. Either
    *  way it draws behind whatever it holds. */
-  const groups: BoxNode[] = [];
-  const grids: BoxNode[] = [];
+  const holders: BoxNode[] = [];
   for (const g of here) {
-    if (is_group_block(graph, g.id)) {
-      const members = members_of(graph, g.id).map((b) => b.id);
-      const box = spots.find((p) => p.id === g.id) ?? null;
-      if (!box) continue;
-      const said = carried(graph, g.id);
-      const marks: Mark[] = said.marks.includes("unlabelled")
-        ? ["group", "unlabelled"] : ["group"];
-      const nest = nest_depth(graph, g.id);
-      groups.push(node(g.id, box,
-                       { ...said, marks, cells: [], holds: members,
-                         carries: group_carries(graph, g.id), nest },
-                       "group"));
-      continue;
-    }
-    if (!is_grid_block(graph, g.id)) continue;
-    const members = members_of(graph, g.id).map((b) => b.id);
-    const box = spots.find((p) => p.id === g.id) ?? null;
+    if (!is_holder(graph, g.id)) continue;
+    const box = spots.find((p) => p.id === g.id);
     if (!box) continue;
     const said = carried(graph, g.id);
-    const marks: Mark[] = said.marks.includes("unlabelled")
-      ? ["grid", "unlabelled"] : ["grid"];
-    const nest = nest_depth(graph, g.id);
-    grids.push(node(g.id, box,
-                    { ...said, marks, cells: [], holds: members, nest,
-                      grid: lattice(graph, g) },
-                    "grid"));
+    const grid = is_grid(graph, g.id);
+    const mark: Mark = grid ? "grid" : "group";
+    const marks: Mark[] = said.marks.includes("unlabelled") ? [mark, "unlabelled"] : [mark];
+    holders.push(node(g.id, box,
+                      { ...said, marks, cells: [], nest: group_depth(graph, g.id),
+                        holds: members_of(graph, g.id).map((b) => b.id),
+                        ...(grid ? { grid: lattice(graph, g) }
+                                 : { carries: group_carries(graph, g.id) }) },
+                      mark));
   }
+  /** **Shallowest first**, so a holder inside another draws over it. Drawing
+   *  every boundary and then every grid only kept them apart by accident. */
+  holders.sort((a, b) => (a.data.nest ?? 0) - (b.data.nest ?? 0));
 
   /** A seated interface draws over the card it sits on, so it comes last. A
    *  berth answers no gesture — it is not drawn, and picking what you cannot
    *  see is not a gesture anybody meant. */
   const seats: BoxNode[] = ports.map((p) => {
     const b = graph.blocks[p.id]!;
-    const nest = b.parent ? nest_depth(graph, b.parent) : 0;
+    const nest = b.parent ? group_depth(graph, b.parent) : 0;
     const data: BoxData = { ...carried(graph, p.id), side: b.side!, nest,
                             ...(b.parent ? { on: b.parent } : {}) };
     if (hidden) {
@@ -150,7 +128,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     return b.locked ? { ...seat, draggable: false } : seat;
   });
 
-  const drawn = [...groups, ...grids, ...boxes, ...seats];
+  const drawn = [...holders, ...boxes, ...seats];
 
   /** The room, before anything is seated on it. **A wall is a border like a
    *  card's**, so an end meeting one takes a seat the same way — which is what
@@ -183,16 +161,20 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
    *  geometry is this module's. */
   /** **Everything a run has to get round**, which is every card on the layer.
    *
-   *  A band is not one: it is drawn round things that live inside it, so a run
-   *  reaching one of them has to get in. Nor is the room, which is what the
-   *  whole layer is inside. What is left is the cards and the notes — and an
-   *  interface is part of the card it is seated on rather than a box of its
-   *  own, so it is already covered by that card.
+   *  **A holder is not one, either sort.** A band and a grid are both drawn
+   *  round things that live inside them, so a run reaching one of those has to
+   *  get in — and a grid walled in every run between two of its own cells,
+   *  which left the search with no way through and an elbow drawn across
+   *  whatever it passed. Nor is the room, which is what the whole layer is
+   *  inside. What is left is the cards and the notes — and an interface is part
+   *  of the card it is seated on rather than a box of its own, so it is already
+   *  covered by that card.
    *
    *  Worked out once for the layer rather than per line: it is the same list
    *  every time, and a projection runs once per change. */
+  const held = new Set(holders.map((n) => n.id));
   const solid = drawn
-    .filter((n) => n.type !== "group" && !n.data.on)
+    .filter((n) => !held.has(n.id) && !n.data.on)
     .map(box_of);
 
   const edges: LineEdge[] = linked.map((e): LineEdge => {
@@ -231,9 +213,9 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
  *  **A merged region is one cell**, drawn once at the span's corner and the
  *  span's size. */
 function lattice(graph: Graph, g: Block): GridCell[] {
-  const promoted = new Set<string>();
+  const headed = new Set<string>();
   for (const b of members_of(graph, g.id)) {
-    if (b.cell && is_header(b)) promoted.add(`${b.cell.r},${b.cell.c}`);
+    if (b.cell && is_header(b)) headed.add(`${b.cell.r},${b.cell.c}`);
   }
   const out: GridCell[] = [];
   for (let r = 0; r < (g.rows ?? 0); r++) {
@@ -242,7 +224,7 @@ function lattice(graph: Graph, g: Block): GridCell[] {
       if (span && (span.r !== r || span.c !== c)) continue;
       const marks: Mark[] = ["cell"];
       if (span) marks.push("merged");
-      if (promoted.has(`${r},${c}`)) marks.push("promoted");
+      if (headed.has(`${r},${c}`)) marks.push("header");
       out.push({ r, c, ...cell_box(g, r, c), marks });
     }
   }

@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_grid, is_header } from "@mnd/core";
+import { is_grid, is_header, type HeaderRole } from "@mnd/core";
 
 /** One named entry a menu draws: an action, optionally with an argument filled
  *  and a word of its own. **Repeated here rather than imported** — the stage
@@ -19,7 +19,7 @@ import { is_grid, is_header } from "@mnd/core";
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture } from "./Flow";
 import { Icon } from "@mnd/theme";
-import { box_of, clear_of, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
+import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 
 export type { Adjust };
 
@@ -52,8 +52,6 @@ export type StageProps = {
   /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
-  /** Whether relationships are read with curves rather than right angles. */
-  curved?: boolean;
   /** Whether the backdrop rules the canvas into cells. */
   lattice?: boolean;
   /** Which way a right drag draws a line. **The rail picked it and the stage
@@ -66,15 +64,24 @@ export type StageProps = {
  *  a remark; neither is somewhere to go. */
 const INERT = ["group", "grid", "note"];
 
-/** What a seated block offers for header promotion. */
+const WAYS: readonly [HeaderRole, string][] =
+  [["row", "head row"], ["col", "head column"], ["both", "head both"]];
+
+/** What a seated block offers for heading a line.
+ *
+ *  **One entry per role it is not already in**, so a column header can be asked
+ *  for at all — promote and demote were a pair that only ever said `row`, which
+ *  left two of the three roles unreachable. `both` appears once it heads one
+ *  way, since that is where wanting it comes from. */
 function header_offers(id: string, graph: Graph): Entry[] {
   const b = graph.blocks[id];
-  const g = b?.group ? graph.blocks[b.group] : undefined;
-  if (!b?.cell || !g || !is_grid(g)) return [];
-  if (is_header(b)) {
-    return [{ name: "header", label: "demote", args: { clear: "yes" } }];
-  }
-  return [{ name: "header", label: "promote", args: {} }];
+  if (!b?.cell || !b.group || !is_grid(graph, b.group)) return [];
+  const out = WAYS
+    .filter(([way]) => b.header !== way && (way !== "both" || is_header(b)))
+    .map(([way, label]): Entry => ({ name: "header", label, args: { way } }));
+  return is_header(b)
+    ? [...out, { name: "header", label: "head nothing", args: { way: "none" } }]
+    : out;
 }
 
 /** What a card's menu lists besides the shared box actions. */
@@ -90,7 +97,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
     : readonly (string | Entry)[] | undefined {
   if (g.kind === "brim" && g.on) {
     const n = scene.nodes.find((x) => x.id === g.on);
-    if (n?.type === "group" || n?.type === "grid") return offers.band;
+    if (holds(n)) return offers.band;
     return box_offers(g.on, graph);
   }
   if (g.kind === "box" && g.on) return box_offers(g.on, graph);
@@ -98,7 +105,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, curved, lattice, module }: StageProps) {
+                       menu, said, onSaid, lattice, module }: StageProps) {
   /** The name being typed on the drawing, as the thing it names. **Held here
    *  because renaming is an action** — the canvas draws the field and says
    *  what was typed; what that means is settled in the one place every other
@@ -297,7 +304,6 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         picked={picked}
         cells={cells}
         onPickCells={onPickCells}
-        curved={curved}
         lattice={lattice}
         naming={naming}
         onNamed={(label) => {
@@ -358,7 +364,7 @@ function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }
   const seats: { id: string; r: number; c: number }[] = [];
 
   const caught = scene.nodes
-    .filter((n) => n.type !== "group" && n.type !== "grid" && !n.data.on && n.selectable !== false)
+    .filter((n) => !holds(n) && !n.data.on && n.selectable !== false)
     .map((n) => ({ id: n.id, b: box_of(n) }))
     .filter(({ b }) => b.x + b.w > from.x && b.x < from.x + cols * CELL.w
                     && b.y + b.h > from.y && b.y < from.y + rows * CELL.h);
@@ -399,7 +405,7 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
  *  top of it, and two made in the same place stacked exactly. A boundary is not
  *  something to avoid — a new card inside one is a card inside one. */
 function made_at(scene: Scene, at: { x: number; y: number }) {
-  const taken = scene.nodes.filter((n) => n.type !== "group" && n.type !== "grid" && !n.data.on).map(box_of);
+  const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
 }
 

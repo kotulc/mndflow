@@ -81,7 +81,7 @@ export type BoxData = {
 export type Mark = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "unlabelled" | "locked"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
-                 | "cell" | "header" | "header_row" | "header_col" | "merged" | "promoted";
+                 | "cell" | "header" | "merged";
 
 /** One cell of a grid, placed inside the grid's own box. A merged region is one
  *  cell drawn once, at the span's corner and the span's size. */
@@ -101,11 +101,6 @@ export type GridCell = {
 export type LineData = {
   module: RelationModule;
   dir: Dir;
-  /** Whether this layer is being read with curves rather than right angles.
-   *  **Display state, put on the line rather than beside it** — the renderer
-   *  draws one edge at a time and this is the one thing about a run that is not
-   *  derivable from its two ends. */
-  curved?: boolean;
   /** The boxes this run must stay outside of: **every card on the layer**.
    *
    *  It used to be the two ends' own boxes and nothing else, on the reasoning
@@ -124,6 +119,17 @@ export type LineData = {
 
 /** One drawn thing. React Flow's node, with our data on it. */
 export type BoxNode = Node<BoxData>;
+
+/** Whether a drawn node **holds** others rather than being one of them — a
+ *  boundary or a grid.
+ *
+ *  **Named once.** A caller almost never means only one of the two: what may be
+ *  routed through, what a sweep picks, what a drop must stay clear of and what
+ *  a menu treats as a rim are all the same question, and asking it as two
+ *  literal comparisons is how a grid ended up on the wrong side of one. */
+export function holds(n: { type?: string } | null | undefined): boolean {
+  return n?.type === "group" || n?.type === "grid";
+}
 
 /** One line. React Flow's edge, with our data on it. */
 export type LineEdge = Edge<LineData>;

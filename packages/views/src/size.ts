@@ -88,13 +88,10 @@ export function on_unit(at: Point): Point {
   return { x: Math.round(at.x / UNIT) * UNIT, y: Math.round(at.y / UNIT) * UNIT };
 }
 
-/** The grid a swept rectangle asks for: a corner where you drew it, and as
- *  many seats across and down as fit what you drew over. */
+/** The grid a swept rectangle asks for: a corner where you drew it, and the
+ *  extent that fits what you drew over. */
 export function swept_cells(box: Box): { x: number; y: number; rows: number; cols: number } {
-  const at = on_unit(box);
-  return { ...at,
-           rows: Math.max(1, Math.round(box.h / CELL.h)),
-           cols: Math.max(1, Math.round(box.w / CELL.w)) };
+  return { ...on_unit(box), ...extent_of(box.w, box.h) };
 }
 
 /** A box grown out to whole units.
@@ -144,12 +141,12 @@ export function centred_in(box: Box, s: Size): Box {
   return { x: box.x + (box.w - s.w) / 2, y: box.y + (box.h - s.h) / 2, ...s };
 }
 
-/** A promoted block fills its cell with a gutter so the cell frame and the
- *  block frame read as two borders. */
-export const PROMOTED_INSET = 5;
+/** A header fills its cell with a gutter, so the cell frame and the block
+ *  frame read as two borders rather than one thick one. */
+export const HEADER_INSET = 5;
 
 export function fills_cell(box: Box): Box {
-  const i = PROMOTED_INSET;
+  const i = HEADER_INSET;
   return { x: box.x + i, y: box.y + i, w: box.w - i * 2, h: box.h - i * 2 };
 }
 
@@ -162,7 +159,7 @@ export function snap(n: number): number {
 /** Whether a block is seated in a grid rather than placed beside one. */
 export function gridded(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
-  return !!b?.cell && !!b.group && is_grid(graph.blocks[b.group]);
+  return !!b?.cell && !!b.group && is_grid(graph, b.group);
 }
 
 /** What this block needs. A note keeps whatever size it was asked for, and a
@@ -175,7 +172,7 @@ export function size_of(graph: Graph, id: Id): Size {
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
-  if (is_grid(b)) return grid_size(b);
+  if (is_grid(graph, id)) return grid_size(b);
   if (b.w !== undefined && b.h !== undefined) return { w: b.w, h: b.h };
   if (gridded(graph, id)) return { ...BLOCK };
   return pictured(graph, id) ? { ...CONTAINER } : { ...BLOCK };

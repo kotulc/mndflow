@@ -7,13 +7,13 @@
  *  An action writing no mutations is navigation: no step, nothing to undo, and
  *  a text interface never offers it. */
 
-import { arrangement_of, at_cell, can_hold, children, covers, edges_in,
-         heads_col_strip, heads_row_strip, is_grid, is_grid_block, is_group_block,
-         is_header, is_interface, is_reference, layer_id, may_retype, members_of,
-         module_of, module_named, next_num, next_alias, path, reorder } from "./fold";
+import { arrangement_of, at_cell, can_hold, children, covers, edges_in, is_grid,
+         is_group, is_header, is_holder, is_interface, is_reference, layer_id,
+         may_retype, members_of, module_of, module_named, next_num, next_alias,
+         path, reorder } from "./fold";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, HEADERS, VALUE_FORMS, type Arrangement, type Cell, type Dir,
-         type FieldDef, type Flow, type Graph, type Headers, type Id,
+import { ARRANGEMENTS, HEADER_ROLES, VALUE_FORMS, type Arrangement, type Block,
+         type Cell, type Dir, type FieldDef, type Flow, type Graph, type HeaderRole, type Id,
          type Mutation, type RelationModule, type Side, type Span, type ValueForm } from "./types";
 
 /** What an input method can fill. A position can only come from a gesture. */
@@ -624,8 +624,7 @@ register(
     when: (ctx) => {
       const one = ctx.picked.length === 1 ? ctx.picked[0] : undefined;
       if (!one) return true;
-      return !is_group_block(ctx.graph, one) && !is_grid_block(ctx.graph, one)
-             && module_of(ctx.graph, one) !== "note";
+      return !is_holder(ctx.graph, one) && module_of(ctx.graph, one) !== "note";
     },
     /** **Promotion is this action with two more arguments.** Naming the seat a
      *  relationship already meets *is* making an interface there and telling
@@ -641,9 +640,7 @@ register(
       const owner = id_of(args, "owner");
       const block = ctx.graph.blocks[owner];
       if (!block) return "needs a border to sit on";
-      if (is_group_block(ctx.graph, owner) || is_grid_block(ctx.graph, owner)) {
-        return "a boundary cannot have an interface";
-      }
+      if (is_holder(ctx.graph, owner)) return "a boundary cannot have an interface";
       if (module_of(ctx.graph, owner) === "note") return "a note has no wall to set one into";
       const edge = text(args, "edge");
       if (edge && !ctx.graph.edges[edge]) return "needs a relationship";
@@ -695,7 +692,7 @@ function merged_members(graph: Graph, members: Id[], into: Id | null)
   const out: Id[] = [];
   const dissolve: Id[] = [];
   for (const id of members) {
-    if (is_group_block(graph, id) && !is_grid_block(graph, id)) {
+    if (is_group(graph, id)) {
       for (const m of members_of(graph, id)) out.push(m.id);
       dissolve.push(id);
     } else {
@@ -714,7 +711,6 @@ register(
      *  boundary round these* are different modules now — extent makes a grid. */
     args: [{ name: "members", form: "block" }, { name: "into", form: "block" },
            { name: "rows", form: "number" }, { name: "cols", form: "number" },
-           { name: "headers", form: "choice", choices: HEADERS },
            /** Where each member lands, for a sweep that captured what it drew
             *  over. **One act and one undo** — drawing a grid over four loose
             *  cards is one thing you did. */
@@ -757,13 +753,10 @@ register(
           ...(!extent ? { labelled: false } : {}),
         } });
       }
-      const headers = HEADERS.includes(args["headers"] as Headers)
-        ? (args["headers"] as Headers) : undefined;
-      if (rows !== null || cols !== null || headers) {
+      if (rows !== null || cols !== null) {
         out.push({ op: "set_grid", id: group,
                    ...(rows === null ? {} : { rows }),
-                   ...(cols === null ? {} : { cols }),
-                   ...(headers ? { headers } : {}) });
+                   ...(cols === null ? {} : { cols }) });
       }
       /** **A grid shrinking frees what falls outside it**, rather than leaving
        *  addresses nobody can point at. A layout gesture must not destroy model
@@ -865,7 +858,7 @@ register(
 function shifted(graph: Graph, group: Id, way: "row" | "col", at: number,
                  by: 1 | -1): Mutation[] {
   const g = graph.blocks[group];
-  if (!g || !is_grid(g)) return [];
+  if (!g || !is_grid(graph, group)) return [];
   const axis = way === "row" ? "r" : "c";
   const size = way === "row" ? "rows" : "cols";
   const out: Mutation[] = [];
@@ -927,20 +920,20 @@ const READ: Side = "right";
 
 function reading(graph: Graph, group: Id, way: Side): Id[][] {
   const g = graph.blocks[group];
-  if (!g || !is_grid(g)) return [];
+  if (!g || !is_grid(graph, group)) return [];
   const down = way === "top" || way === "bottom";
   const back = way === "left" || way === "top";
-  /** A header says what a line *is*, not where a flow goes through it. */
-  const from_r = heads_row_strip(graph, group, g) ? 1 : 0;
-  const from_c = heads_col_strip(graph, group, g) ? 1 : 0;
   const lines: Id[][] = [];
   const across = down ? g.cols! : g.rows!;
   const along = down ? g.rows! : g.cols!;
-  for (let o = (down ? from_c : from_r); o < across; o++) {
+  for (let o = 0; o < across; o++) {
     const line: Id[] = [];
-    for (let i = (down ? from_r : from_c); i < along; i++) {
+    for (let i = 0; i < along; i++) {
       const held = at_cell(graph, group, down ? i : o, down ? o : i);
-      if (held && line[line.length - 1] !== held.id) line.push(held.id);
+      /** **A header says what a line *is***, not a step along it — so it is
+       *  passed over wherever it sits, rather than by counting a strip off
+       *  the top and the left. */
+      if (held && !is_header(held) && line[line.length - 1] !== held.id) line.push(held.id);
     }
     lines.push(back ? line.reverse() : line);
   }
@@ -983,9 +976,27 @@ function grid_named(ctx: Context, args: Args): Id | null {
   const held = ctx.picked[0] ? ctx.graph.blocks[ctx.picked[0]]?.group : undefined;
   for (const said of [args["group"] ? id_of(args, "group") : undefined,
                       ctx.cells?.[0]?.group, ctx.picked[0], held]) {
-    if (said && is_grid(ctx.graph.blocks[said])) return said;
+    if (said && is_grid(ctx.graph, said)) return said;
   }
   return null;
+}
+
+/** The seated block a header question is about, or null where the thing
+ *  pointed at is not one. **Asked once**, so the check and the run cannot
+ *  disagree about which block they mean. */
+function headed(ctx: Context, args: Args): Block | null {
+  const id = id_of(args, "id") || ctx.picked[0];
+  const b = id ? ctx.graph.blocks[id] : undefined;
+  if (!b?.cell || !b.group || !is_grid(ctx.graph, b.group)) return null;
+  return b;
+}
+
+/** Which line a header heads, or null to head none. **Absent means `row`**, so
+ *  the plain gesture stays one word. */
+function header_way(args: Args): HeaderRole | null {
+  const said = text(args, "way");
+  if (said === "none") return null;
+  return HEADER_ROLES.includes(said as HeaderRole) ? (said as HeaderRole) : "row";
 }
 
 register(
@@ -1002,7 +1013,11 @@ register(
       const cell = cell_of_arg(args, "at");
       if (!cell) return null;
       const g = group ? ctx.graph.blocks[group] : undefined;
-      if (!g || !is_grid(g)) return "that is not a grid";
+      if (!g || !is_grid(ctx.graph, g.id)) return "that is not a grid";
+      /** **A cell holds a block, never another holder.** A grid or a band
+       *  seated in one is sized by what it holds, so the cell it was given
+       *  stops saying how big it is. */
+      if (!can_hold(ctx.graph, g.id, id)) return "a cell cannot hold that";
       if (cell.r < 0 || cell.c < 0 || cell.r >= g.rows! || cell.c >= g.cols!) {
         return "that cell is outside the grid";
       }
@@ -1025,27 +1040,24 @@ register(
   },
   {
     name: "header",
-    about: "expands a seated block to fill its cell",
+    about: "makes a seated block head its row or its column",
     on: ["block"],
+    /** **One argument, and `none` is how a header stops being one.** Promote
+     *  and demote were a verb and a flag that only ever said `row`, which left
+     *  two of the three roles with no way to be asked for. */
     args: [{ name: "id", form: "block" },
-           { name: "clear", form: "choice", choices: ["yes"] }],
+           { name: "way", form: "choice", choices: [...HEADER_ROLES, "none"] }],
     check: (ctx, args) => {
-      const id = id_of(args, "id") || ctx.picked[0];
-      const b = id ? ctx.graph.blocks[id] : undefined;
-      if (!b?.cell || !b.group) return "only a block in a grid can be promoted";
-      const g = ctx.graph.blocks[b.group];
-      if (!g || !is_grid(g)) return "only a block in a grid can be promoted";
-      if (args["clear"] === "yes") return is_header(b) ? null : "not promoted";
-      return is_header(b) ? "already promoted" : null;
+      const b = headed(ctx, args);
+      if (!b) return "only a block in a grid can head a line";
+      const way = header_way(args);
+      if (!way) return is_header(b) ? null : "it heads nothing already";
+      return b.header === way ? `it heads its ${way} already` : null;
     },
     run: (ctx, args) => {
-      const id = id_of(args, "id") || ctx.picked[0];
-      const b = id ? ctx.graph.blocks[id] : undefined;
-      if (!b?.cell || !b.group) return { mutations: [] };
-      if (args["clear"] === "yes") {
-        return { mutations: [{ op: "set_header", id, header: null }] };
-      }
-      return { mutations: [{ op: "set_header", id, header: "row" }] };
+      const b = headed(ctx, args);
+      return b ? { mutations: [{ op: "set_header", id: b.id, header: header_way(args) }] }
+               : { mutations: [] };
     },
   },
   {
@@ -1097,7 +1109,7 @@ register(
       const said = region(ctx, args);
       if (!said) return "no cell is pointed at";
       const g = ctx.graph.blocks[said.group];
-      if (!g || !is_grid(g)) return "that is not a grid";
+      if (!g || !is_grid(ctx.graph, said.group)) return "that is not a grid";
       const { r, c, rows, cols } = said.span;
       return r >= 0 && c >= 0 && r + rows <= g.rows! && c + cols <= g.cols!
         ? null : "that reaches past the grid";
@@ -1150,12 +1162,14 @@ register(
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const g = ctx.graph.blocks[group]!;
-      const headers: Headers = g.headers === "row" ? "col"
-                             : g.headers === "col" ? "row" : g.headers ?? "none";
-      const out: Mutation[] = [{ op: "set_grid", id: group,
-                                 rows: g.cols!, cols: g.rows!, headers }];
+      const out: Mutation[] = [{ op: "set_grid", id: group, rows: g.cols!, cols: g.rows! }];
+      /** **A header turns over with its cell.** What headed a row heads the
+       *  column that row became, so the grid says the same thing the other way
+       *  up and nothing in the model changes. */
       for (const b of members_of(ctx.graph, group)) {
         if (b.cell) out.push({ op: "seat_cell", id: b.id, cell: { r: b.cell.c, c: b.cell.r } });
+        if (b.header === "row") out.push({ op: "set_header", id: b.id, header: "col" });
+        else if (b.header === "col") out.push({ op: "set_header", id: b.id, header: "row" });
       }
       for (const s of g.merges ?? []) out.push({ op: "split_cells", id: group, r: s.r, c: s.c });
       for (const s of g.merges ?? []) {

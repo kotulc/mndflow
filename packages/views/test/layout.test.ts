@@ -136,7 +136,7 @@ describe("the grid arrangement", () => {
     const { graph, layer } = layer_of("gridded");
     for (const p of under(graph, layer, "grid")) {
       const g = graph.blocks[p.id]!;
-      if (!is_grid(g)) continue;
+      if (!is_grid(graph, p.id)) continue;
       expect(p.w).toBe((g.cols ?? 1) * CELL.w);
       expect(p.h).toBe((g.rows ?? 1) * CELL.h);
       expect(CELL.w % UNIT).toBe(0);
@@ -203,7 +203,7 @@ describe("the grid arrangement", () => {
  *  grid half a unit off its own guides is the failure this pins down. */
 describe("a grid's cells sit on the unit lattice", () => {
   const grids = (graph: Graph, spots: Placed[]) =>
-    spots.filter((p) => is_grid(graph.blocks[p.id]!));
+    spots.filter((p) => is_grid(graph, p.id));
 
   it.each(ARRANGEMENTS)("puts every cell corner on a whole unit under %s", (how) => {
     const { graph, layer } = layer_of("gridded");
@@ -288,7 +288,7 @@ describe("the layout leaves room between things", () => {
      *  over the band on purpose. A band is its members' bounds and has no place
      *  of its own either. */
     const spots = under(graph, layer, "grid")
-      .filter((p) => is_grid(graph.blocks[p.id]!)
+      .filter((p) => is_grid(graph, p.id)
                   || (!graph.blocks[p.id]!.cell && module_of(graph, p.id) !== "group"
                       && module_of(graph, p.id) !== "grid"))
       .map((p) => ({ ...p }));
@@ -697,7 +697,7 @@ describe("seats", () => {
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51, labelled: false };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", num: 52 };
     graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", module: "directed" };
-    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
+    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes", module: "line" };
     graph.blocks["block_pad"]!.group = "block_mid";
     const spots = under(graph, "block_board", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
@@ -718,7 +718,7 @@ describe("seats", () => {
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51, labelled: false };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", num: 52 };
     graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", module: "directed" };
-    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes" };
+    graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes", module: "line" };
     graph.blocks["block_pad"]!.group = "block_mid";
     const spots = under(graph, "block_board", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));

@@ -214,7 +214,7 @@ describe("what an action absorbs", () => {
     expect(s.go("leave", { ids: [inner] })).toBeNull();
     expect(s.graph().blocks[inner]).toBeUndefined();
     expect(s.graph().blocks[outer]).toBeTruthy();
-    expect(s.graph().blocks[b]!.group).toBe(outer);
+    expect(s.graph().blocks[b!]!.group).toBe(outer);
   });
 
   it("dissolves inner when the last block moves to the outer group", () => {
@@ -231,7 +231,7 @@ describe("what an action absorbs", () => {
 
     expect(s.go("group", { members: [a], into: outer })).toBeNull();
     expect(s.graph().blocks[inner]).toBeUndefined();
-    expect(s.graph().blocks[a]!.group).toBe(outer);
+    expect(s.graph().blocks[a!]!.group).toBe(outer);
   });
 
   it("dissolves empty groups up to the layer", () => {
@@ -249,7 +249,7 @@ describe("what an action absorbs", () => {
     expect(s.go("leave", { ids: [a] })).toBeNull();
     expect(s.graph().blocks[inner]).toBeUndefined();
     expect(s.graph().blocks[outer]).toBeUndefined();
-    expect(s.graph().blocks[a]!.group).toBeUndefined();
+    expect(s.graph().blocks[a!]!.group).toBeUndefined();
   });
 
   it("dissolves a nested group when its last member leaves", () => {
@@ -266,7 +266,7 @@ describe("what an action absorbs", () => {
     expect(s.go("leave", { ids: [a] })).toBeNull();
     expect(s.graph().blocks[inner]).toBeUndefined();
     expect(s.graph().blocks[outer]).toBeTruthy();
-    expect(s.graph().blocks[b]!.group).toBe(outer);
+    expect(s.graph().blocks[b!]!.group).toBe(outer);
   });
 
   it("draws a second boundary on the layer instead of nesting inside the first", () => {
