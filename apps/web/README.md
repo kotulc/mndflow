@@ -12,10 +12,8 @@
 ```
 web   ◀
 └─ explorer · stage · options · tray · terminal
-   └─ render
-      └─ views
-         └─ layout
-            └─ core · defs · theme
+   └─ views
+      └─ core · defs · theme
 ```
 
 ## Running it

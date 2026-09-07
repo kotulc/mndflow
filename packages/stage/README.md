@@ -13,7 +13,7 @@
 ```
 web
 └─ stage   ◀
-   └─ render · views · core · theme
+   └─ views · core · theme
 ```
 
 ## Running it

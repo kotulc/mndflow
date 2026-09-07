@@ -6,13 +6,13 @@
 |---|---|
 | **Entry** | `ramp.css` and `base.css` |
 | **Depends on** | nothing |
-| **Proven by** | nothing to prove — it declares values. What reads them is proven in `render` |
+| **Proven by** | nothing to prove — it declares values. What reads them is proven in `stage` |
 
 ## Where it sits
 
 ```
 web · kit
-└─ render · explorer · stage · options · tray · terminal
+└─ explorer · stage · options · tray · terminal
    └─ theme   ◀ stylesheets, and nothing below
 ```
 

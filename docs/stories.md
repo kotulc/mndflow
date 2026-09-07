@@ -154,6 +154,22 @@ Open, and worth answering before any of it is built:
 
 ---
 
+### ST.15 — A relationship is customised the way a block is
+
+A relationship carries a definition exactly as a block does — `group: "relation"`, the same `components`, the same `extends` chain — and today there is nowhere to say so. What a block can be told about how it draws, a relationship should be told in the same place and in the same words.
+
+**The tray is where it happens, not the vocabulary section.** The section lists **block** definitions only, because it is a palette you drag from and there is nothing to drag a relation onto — a relationship is made by drawing between two ends, never by dropping. So a relation type is customised where the relationship is already described: the tray's element panel, which already reads a relationship's fields without asking which of the two it is looking at.
+
+**What has to be answered.**
+
+| | |
+|---|---|
+| **which traits apply** | `slot`, `emphasis` and `weight` read on a line; `layout` and `voice` are a card's and mean nothing here. The trait list is currently one table shared by both |
+| **whether pinning applies** | a customised relationship could file a relation definition the same way a block files a block one. If it does, the section holds something undraggable; if it does not, relation vocabulary has no home |
+| **what a relation definition may say** | the four relation modules are a closed set, so a subtype refines presentation and names — never which module it is |
+
+**Waits on** the block half being settled, since it inherits whatever that decides about naming, filing and unpinning.
+
 ### ST.12 — The plan stops being prose that agents parse
 
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as

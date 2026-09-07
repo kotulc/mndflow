@@ -12,10 +12,9 @@
 
 ```
 web · cli
-└─ render                            (the cli reaches views directly)
+└─ stage                             (the cli reaches views directly)
    └─ views   ◀
-      └─ layout
-         └─ core
+      └─ core
 ```
 
 ## Running it

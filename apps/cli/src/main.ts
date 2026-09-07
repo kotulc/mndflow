@@ -33,7 +33,7 @@ const USAGE = `mnd — the headless harness
            a file fixture (${GRAPH_NAMES.join(", ")}),
            an exported file, or a raw log.
   A log is harness input only: a file is a graph, and that is what export writes.
-  --how sets the arrangement: free right left down up
+  --how sets the arrangement: free grid
   --svg writes the drawing instead of the text projection
   --from sets the package catalogue search reads (default public/packages/index.json)
 `;

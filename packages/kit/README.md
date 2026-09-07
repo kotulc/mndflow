@@ -13,7 +13,7 @@
 ```
 anything outside this repo
 └─ kit   ◀ bundles them in
-   └─ core · defs · explorer · layout · views · render · theme
+   └─ core · defs · explorer · views · stage · theme
 ```
 
 ## Building it
@@ -82,7 +82,7 @@ import "@mnd/kit/react.css";
 
 **Interactive, self-contained, and not editable.** `draw_svg` makes a picture; this makes one you can walk. It holds the graph, projects the layer being looked at, and goes in and out of layers on a double-click. **Nothing in it writes.**
 
-The renderer underneath also offers drag callbacks meaning move, seat, wall and relate. They are not passed and not re-exported, so **an edit is unreachable rather than merely unadvised** — a host that needs them lives in this repo and imports `@mnd/render` directly.
+The renderer underneath also offers drag callbacks meaning move, seat, wall and relate. They are not passed and not re-exported, so **an edit is unreachable rather than merely unadvised** — a host that needs them lives in this repo and imports `@mnd/stage` directly.
 
 **A double-click opens what is under it, and a box that holds nothing opens where it points.** Where it points is a `source` field of form `link`, which is also what `draw_svg` turns into an anchor — one field name, and the drawing is navigation in both renderers. Unset, `onFollow` sends the browser there; passed, a host routes it itself and the page never reloads.
 
