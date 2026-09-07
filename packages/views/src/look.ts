@@ -16,16 +16,20 @@
  *  what lets the CLI's text and SVG renderers say what a card would look like
  *  without resolving React. */
 
-import { config_of, def_of, EMPHASES, is_container, is_interface, LABELS, LAYOUTS,
-         SLOTS, VOICES, WEIGHTS, WEIGHTS as WEIGHT_NAMES,
-         type Graph, type Id } from "@mnd/core";
+import { ALIGNS, config_of, DECORS, def_of, EMPHASES, FILLS, is_container,
+         is_interface, kind_word, PLACES, SHEERS, SLOTS, STEPS, VOICES, WEIGHTS,
+         WEIGHTS as WEIGHT_NAMES, type Graph, type Id } from "@mnd/core";
 
 export type Slot = (typeof SLOTS)[number];
 export type Emphasis = (typeof EMPHASES)[number];
 export type Weight = (typeof WEIGHT_NAMES)[number];
 export type Voice = (typeof VOICES)[number];
-export type Label = (typeof LABELS)[number];
-export type Layout = (typeof LAYOUTS)[number];
+export type Place = (typeof PLACES)[number];
+export type Align = (typeof ALIGNS)[number];
+export type Decor = (typeof DECORS)[number];
+export type Fill = (typeof FILLS)[number];
+export type Sheer = (typeof SHEERS)[number];
+export type Step = (typeof STEPS)[number];
 
 /** What one usage looks like. Every field is a name from a closed set, so a
  *  renderer is a lookup table and a definition cannot invent a value. */
@@ -34,22 +38,43 @@ export type Look = {
   emphasis: Emphasis;
   weight: Weight;
   voice: Voice;
-  label: Label;
-  layout: Layout;
-  /** The subtype this usage names, as a word. **Absent is not "block"** — a
-   *  card that nobody has told apart says so by having nothing to say. */
-  kind?: string;
+  decor: Decor;
+  fill: Fill;
+  sheer: Sheer;
+  /** Which rung the border takes. **Absent is whatever `emphasis` said** — the
+   *  shorthand still works, and this overrules it where it is given. */
+  line?: Step;
+  /** Which rung the writing takes. Absent is whatever `emphasis` said. */
+  ink?: Step;
+  /** Where the block's own name sits. */
+  name: Place;
+  /** Where the **type** sits — the named subtype where there is one, and the
+   *  base kind otherwise. A second writing, not a replacement for the first. */
+  label: Place;
+  align: Align;
+  /** What sort of thing this is, as a word: the subtype where somebody named
+   *  one, the base kind otherwise. **Always a word** — the card decides whether
+   *  to write it from `label`, so there is nothing for absence to mean. */
+  kind: string;
   /** Which of a usage's fields the card shows, in the order it shows them. */
   shows?: readonly string[];
   /** The mark this draws in its corner instead of the one its role would. */
   icon?: string;
+  /** The hue angle this paints itself with, where somebody gave one instead of
+   *  naming a family. **`slot` still says which family it is otherwise** — a
+   *  hue is the finer answer to the same question, not a second question. */
+  hue?: number;
+  /** How much of the theme's chroma ceiling that hue is taken at. Only read
+   *  where `hue` is given; a family carries its own. */
+  intensity?: number;
 };
 
 /** What a card is when its definition says nothing. Neutral, ordinary weight,
  *  ordinary voice: the look every unclassified block already had. */
 export const PLAIN: Look = {
   slot: "neutral", emphasis: "normal", weight: "thin", voice: "normal",
-  label: "inside", layout: "name",
+  decor: "none", fill: "solid", sheer: "opaque",
+  name: "inside", label: "none", align: "left", kind: "block",
 };
 
 /** One value if it is in the set, or the fallback. **The door already refused
@@ -85,13 +110,33 @@ export function look_of(graph: Graph, id: Id): Look {
     emphasis: one(style["emphasis"], EMPHASES, PLAIN.emphasis),
     weight: one(style["weight"], WEIGHTS, weight_of(graph, id)),
     voice: one(style["voice"], VOICES, PLAIN.voice),
-    label: one(card["label"], LABELS, PLAIN.label),
-    layout: one(card["layout"], LAYOUTS, PLAIN.layout),
+    decor: one(style["decor"], DECORS, PLAIN.decor),
+    name: one(card["name"], PLACES, PLAIN.name),
+    label: one(card["label"], PLACES, PLAIN.label),
+    align: one(card["align"], ALIGNS, PLAIN.align),
+    fill: one(style["fill"], FILLS, PLAIN.fill),
+    sheer: one(style["sheer"], SHEERS, PLAIN.sheer),
+    ...(typeof style["line"] === "string"
+        && (STEPS as readonly string[]).includes(style["line"])
+      ? { line: style["line"] as Step } : {}),
+    ...(typeof style["ink"] === "string"
+        && (STEPS as readonly string[]).includes(style["ink"])
+      ? { ink: style["ink"] as Step } : {}),
+    /** **The subtype where there is one, the base kind otherwise.** A card that
+     *  nobody told apart still has a sort, and saying it is what `label` is
+     *  for — so this is a word rather than sometimes a word. */
+    kind: named ?? kind_word(graph, b).toLowerCase(),
     /** A mark of its own, where somebody picked one. **A name, never a
      *  drawing** — what it draws is the theme's, and a name it does not know
      *  falls back to the role mark rather than to nothing. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
-    ...(named ? { kind: named } : {}),
+    /** **A number the door already bounded.** Anything else is absent rather
+     *  than clamped: a look this build cannot read falls back to its family,
+     *  which is what every other unreadable answer here does. */
+    ...(typeof style["hue"] === "number" && Number.isFinite(style["hue"])
+      ? { hue: style["hue"] } : {}),
+    ...(typeof style["intensity"] === "number" && Number.isFinite(style["intensity"])
+      ? { intensity: style["intensity"] } : {}),
     ...(Array.isArray(card["shows"])
       ? { shows: (card["shows"] as unknown[]).filter((f) => typeof f === "string") }
       : {}),

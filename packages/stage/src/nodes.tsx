@@ -15,7 +15,8 @@
  *  slot and an emphasis; those arrive as attributes and the stylesheet is what
  *  turns them into steps on the ramp. */
 
-import { createContext, memo, useContext, useEffect, useRef } from "react";
+import { type CSSProperties, createContext, memo, useContext, useEffect,
+         useRef } from "react";
 import { Handle, NodeResizer, Position, useUpdateNodeInternals,
          type NodeProps } from "@xyflow/react";
 import type { Side } from "@mnd/core";
@@ -189,14 +190,34 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
 }
 
 /** What a definition said, as attributes the stylesheet reads. Spread onto the
- *  element, so a look is one object here and a table of selectors there. */
+ *  element, so a look is one object here and a table of selectors there.
+ *
+ *  **A hue arrives as `tint` plus two numbers.** The stylesheet computes the
+ *  same six steps a named family gets, against the theme's own ladder — so the
+ *  one selector serves every hue there is and nothing here knows a colour. */
 function dressed(look: Look) {
+  const tinted = look.hue !== undefined;
   return {
-    "data-slot": look.slot,
+    "data-slot": tinted ? "tint" : look.slot,
     "data-emphasis": look.emphasis,
     "data-weight": look.weight,
     "data-voice": look.voice,
-    "data-layout": look.layout,
+    "data-decor": look.decor,
+    "data-name": look.name,
+    "data-label": look.label,
+    "data-align": look.align,
+    "data-fill": look.fill,
+    "data-sheer": look.sheer,
+    ...(look.line ? { "data-line": look.line } : {}),
+    ...(look.ink ? { "data-ink": look.ink } : {}),
+    ...(tinted
+      /** **The ceiling stays in the ramp.** `intensity` is handed over as a
+       *  fraction of it and multiplied in CSS, so the number lives in exactly
+       *  one file and a theme could raise it without touching this one. */
+      ? { style: { "--card-h": String(look.hue),
+                   "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
+                 } as CSSProperties }
+      : {}),
   };
 }
 
@@ -264,7 +285,11 @@ function Holds({ cells }: { cells: readonly Cell[] }) {
 function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
-  const named = look.label !== "none";
+  /** **Two writings, and neither is the other's absence.** The name is what
+   *  somebody called it; the label is what sort of thing it is. Both may sit
+   *  inside, both may sit under the card, and either may be left off. */
+  const named = look.name !== "none";
+  const labelled = look.label !== "none";
   return (
     <div className={["mnd-card", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
@@ -277,25 +302,36 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       {data.marks.includes("locked")
         ? <span className="mnd-locked" title="locked in place"><Icon name="locked" size={11} /></span>
         : null}
-      {named ? (
+      {named || (labelled && look.label === "inside") ? (
         <div className="mnd-head">
           {/* **One name, in two elements.** It reads as `Block A1`, and the
               mark is its own element so that two clicks open the word alone and
               what you type replaces it rather than the mark. Wrapped, because
               the head sets its ends apart and the two of these are one end. */}
-          <span className="mnd-named">
-            <Name id={id} className="mnd-label" text={data.label} />
-            {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
-          </span>
+          {named ? (
+            <span className="mnd-named">
+              <Name id={id} className="mnd-label" text={data.label} />
+              {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
+            </span>
+          ) : <span className="mnd-named" />}
           {/* A subtype where somebody set one. **Absent rather than a default
               word** — every card that nobody has told apart would otherwise
               carry the same chip, which is noise on all of them.
               **And never the word the mark already says**: a folder wearing
               the folder mark and the word *folder* says it twice. */}
-          {look.kind && look.kind !== data.role
+          {/* **What sort of thing it is, where it was asked for.** It used to
+              appear only for a named subtype and only ever inside, which is why
+              putting a type on a card took the name off it. */}
+          {labelled && look.label === "inside"
             ? <span className="mnd-kind">{look.kind}</span> : null}
         </div>
       ) : null}
+      {/* Under the card rather than in it. It hangs into the gutter the layout
+          already leaves between cards, so no box has to grow for it. */}
+      {labelled && look.label === "below"
+        ? <span className="mnd-under mnd-kind">{look.kind}</span> : null}
+      {named && look.name === "below"
+        ? <span className="mnd-under mnd-label">{data.label}</span> : null}
       {data.cells?.length ? <Holds cells={data.cells} /> : null}
       {data.fields?.length ? (
         <dl className="mnd-fields">
@@ -542,7 +578,7 @@ export function Frame({ id, data }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const upright = data.side === "left" || data.side === "right";
   return (
-    <div className="mnd-frame" data-axis={data.look?.layout ?? "name"}>
+    <div className="mnd-frame">
       {data.seats?.length ? <Seats seats={data.seats} inward /> : null}
       {(["top", "right", "bottom", "left"] as const).map((side) => (
         <span key={side} className={`mnd-rim mnd-rim-${side}`} aria-hidden />

@@ -237,11 +237,41 @@ export function inspect(graph: Graph): Inspection {
       faults.push({ kind: "repaired", what: `"${d.name}" extended something that is not there` });
       mended = { ...mended, extends: undefined };
     }
+    /** `tertiary` and `quaternary` were retired, not renamed — they carried
+     *  `secondary`'s chroma and differed only by hue, at a chroma the fill step
+     *  scales into invisibility. **Repaired before the check below reads it**,
+     *  because that one drops the *whole* `style` component over one bad word,
+     *  which would take emphasis, weight and voice down with it. */
+    /** `card.layout` was retired — five values no renderer ever read — and
+     *  `card.label` changed meaning: it said where the *name* sat and now says
+     *  where the *type* does. **Both repaired before the check below reads it**,
+     *  because that one drops the whole `card` component over one stale key and
+     *  would take `shows`, `icon` and `align` down with it. */
+    const card = mended.components?.["card"];
+    if (card && ("layout" in card || "label" in card)) {
+      const { layout: _gone, label, ...rest } = card as Record<string, unknown>;
+      faults.push({ kind: "repaired",
+                    what: `"${d.name}" spoke the older card vocabulary` });
+      mended = { ...mended, components: { ...mended.components,
+        card: label === undefined ? rest : { ...rest, name: label } } };
+    }
+    const gone = RETIRED[String(mended.components?.["style"]?.["slot"] ?? "")];
+    if (gone) {
+      faults.push({ kind: "repaired", what: `"${d.name}" named the retired ${
+        mended.components!["style"]!["slot"]} family` });
+      mended = { ...mended, components: { ...mended.components,
+        style: { ...mended.components!["style"], slot: gone } } };
+    }
     /** **A component validates its own key and no other's**, so what it
      *  refuses is dropped and only that key. An unknown component is left
      *  alone — unvalidated rather than wrong, which is how this build opens a
-     *  package a later one wrote. */
-    for (const { key, why } of unreadable(d)) {
+     *  package a later one wrote.
+     *
+     *  **Read off the mended record, not the one that came in.** Checking the
+     *  original undid every repair above it: a retired family was rewritten and
+     *  then the stale word was found again, so the whole `style` component went
+     *  out and took emphasis, weight and voice with it. */
+    for (const { key, why } of unreadable(mended)) {
       faults.push({ kind: "dropped", what: `"${d.name}" said ${why}` });
       mended = { ...mended, components: without(mended.components, key) };
     }
@@ -250,6 +280,11 @@ export function inspect(graph: Graph): Inspection {
 
   return { faults, repairs };
 }
+
+/** What a retired family becomes. **The nearer of the two survivors** —
+ *  `tertiary` sat between the accents and the greys and reads as a grey; the
+ *  hue `quaternary` was reached for is now sayable directly. */
+const RETIRED: Record<string, string> = { tertiary: "neutral", quaternary: "secondary" };
 
 /** The span covering an address, read off a group in hand. The fold's reader
  *  asks the graph; the door already has the block. */

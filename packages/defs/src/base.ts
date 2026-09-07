@@ -22,29 +22,43 @@ function def(name: string, module: string, extend?: string,
 
 /** Eight, and every package or project subtype extends one of them.
  *
- *  **Each picks a slot, and none names a colour.** A slot is a hue family the
- *  theme decides per theme, so `primary` is green in retro and blue in modern
- *  and a definition never learns which. What is being said here is only that
- *  being, doing, having and connecting are four different kinds of thing — and
- *  that a folder and a boundary are the furniture around them. */
+ *  **Each picks a slot, and none names a colour.** A slot is a family the theme
+ *  decides per theme, so `primary` is green in retro and blue in modern and a
+ *  definition never learns which. What is being said here is only that being,
+ *  doing, having and connecting are different kinds of thing — and that a
+ *  folder and a boundary are the furniture around them.
+ *
+ *  **The base names families rather than hues on purpose.** A hue means the
+ *  same angle in every theme, which is right for a workspace's own vocabulary
+ *  and wrong for what ships: a shipped package should look like the theme it
+ *  is opened in. */
 export const BASE: Definition[] = [
   def("folder", "folder", undefined,
-      { layout: "name" }, { slot: "neutral", emphasis: "quiet" }),
+      {}, { slot: "neutral", emphasis: "quiet" }),
   def("block", "block", undefined,
-      { layout: "type" }, { slot: "primary" }),
+      {}, { slot: "primary" }),
+  /** **Elsewhere, and it says so on its face.** The hatch and the violet were a
+   *  hardcoded rule for eight months, which is why nothing could subtype a
+   *  reference: whatever a subtype said about colour, the stylesheet said it
+   *  louder. Said here, it is ordinary — and `away` is a family whose hue is
+   *  fixed across every theme on purpose. */
   def("reference", "reference", undefined,
-      { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
+      {}, { slot: "away", line: "edge", ink: "edge",
+            fill: "hatch", sheer: "veiled" }),
+  /** An interface is a seat on a wall; a name on one is in the way. */
   def("interface", "interface", undefined,
-      { layout: "name", label: "none" },
-      { slot: "quaternary", weight: "thin" }),
+      { name: "none" }, { slot: "secondary", weight: "thin" }),
   def("resource", "resource", undefined,
-      { layout: "name" }, { slot: "tertiary" }),
+      {}, { slot: "secondary", emphasis: "quiet" }),
   def("group", "group", undefined,
-      { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
+      {}, { slot: "muted", emphasis: "quiet" }),
   def("grid", "grid", undefined,
-      { layout: "name" }, { slot: "muted", emphasis: "quiet" }),
+      {}, { slot: "muted", emphasis: "quiet" }),
+  /** A remark, in the amber every theme keeps for one. Was a hardcoded rule
+   *  for the same reason the reference was. */
   def("note", "note", "resource",
-      { layout: "fields" }, { slot: "tertiary", emphasis: "quiet" }),
+      {}, { slot: "note", line: "edge", ink: "dim",
+            fill: "wash", sheer: "ghost" }),
 ];
 
 /** The two relation definitions the base ships, so an untyped line still

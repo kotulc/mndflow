@@ -1,9 +1,10 @@
 /** The context tray: **two tabs, two questions.**
  *
- *  *This* is the one thing you have hold of, described — what it is called,
- *  what it names, what it is like and what it carries. *Contents* is everything
- *  the layer holds, as a table: the only place a relationship or an interface
- *  is found without hunting for it on the drawing.
+ *  *Definition* is the one thing you have hold of, described — the kind it
+ *  rests on, the definition it names, how it draws, what it is held to and what
+ *  it carries. *Contents* is everything the layer holds, as a table: the only
+ *  place a relationship or an interface is found without hunting for it on the
+ *  drawing.
  *
  *  **Two sizes, shut and open.** Shut it is a bar and nothing more; open, the
  *  stage shrinks and re-centres rather than being covered. **Nothing closes it
@@ -34,13 +35,13 @@ export type TrayProps = {
    *  as an action name like every other gesture in the app. Absent, the tray
    *  lists and edits nothing. */
   onAct?: Act;
-  /** Which tab to show. The rail's cog asks for `this`; left alone the tray
+  /** Which tab to show. The rail's cog asks for `definition`; left alone the tray
    *  keeps whichever tab was last open. */
   tab?: Tab;
   onTab?: (tab: Tab) => void;
 };
 
-export type Tab = "this" | "contents";
+export type Tab = "definition" | "contents";
 
 const HEAD: { key: "kind" | "name" | "what" | "type"; label: string; width: string }[] = [
   { key: "kind", label: "kind", width: "16%" },
@@ -97,9 +98,8 @@ export function Tray(props: TrayProps) {
                 onClick={() => onOpen(!open)}><Icon name={open ? "less" : "more"} /></button>
         {open ? (
           <span className="tabs">
-            <button className={tab === "this" ? "on" : ""} onClick={() => set_tab("this")}>
-              this
-            </button>
+            <button className={tab === "definition" ? "on" : ""}
+                    onClick={() => set_tab("definition")}>definition</button>
             <button className={tab === "contents" ? "on" : ""}
                     onClick={() => set_tab("contents")}>contents</button>
           </span>
@@ -110,7 +110,7 @@ export function Tray(props: TrayProps) {
         </span>
       </div>
 
-      {open && tab === "this" ? (
+      {open && tab === "definition" ? (
         <div className="tray-body">
           {one && onAct
             ? <Element graph={graph} id={one} onAct={onAct} />

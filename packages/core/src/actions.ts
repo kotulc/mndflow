@@ -11,6 +11,7 @@ import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          may_retype, members_of, module_of, module_named, next_num, next_alias,
          path, reorder } from "./fold";
+import { NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, VALUE_FORMS, type Arrangement, type Block,
          type Cell, type Dir, type FieldDef, type Flow, type Graph, type Id,
@@ -1421,9 +1422,16 @@ register(
     },
     run: (ctx, args) => {
       const said = args["value"];
-      const value = said === undefined || said === null || said === "" ? null : String(said);
+      const name = text(args, "name");
+      /** **A range keeps its type.** Everything a look says is a word from a
+       *  closed set except `hue` and `intensity`, and stringifying those left a
+       *  card carrying `"200"` — which reads as neither a number nor a name, so
+       *  the drawing quietly ignored it and the slider did nothing. */
+      const value = said === undefined || said === null || said === "" ? null
+        : NUMBERS.includes(name) && Number.isFinite(Number(said)) ? Number(said)
+        : String(said);
       return { mutations: ids_of(ctx, args).map((id): Mutation => ({
-        op: "set_look", id, key: String(args["key"]), name: text(args, "name"), value,
+        op: "set_look", id, key: String(args["key"]), name, value,
       })) };
     },
   },

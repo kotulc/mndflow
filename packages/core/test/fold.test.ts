@@ -163,11 +163,11 @@ describe("definitions cascade", () => {
       { id: "d_base", home: ROOT, group: "block", name: "base",
         components: { style: { slot: "primary", emphasis: "quiet" } } },
       { id: "d_sub", home: ROOT, group: "block", name: "sub", extends: "d_base",
-        components: { style: { slot: "tertiary" } } },
+        components: { style: { slot: "secondary" } } },
     ]);
     /** The nearest wins on what it says, and says nothing about the rest. */
     expect(config_of(graph, "d_sub", "style"))
-      .toEqual({ slot: "tertiary", emphasis: "quiet" });
+      .toEqual({ slot: "secondary", emphasis: "quiet" });
   });
 
   it("reads a kind from the nearest link that names one", () => {

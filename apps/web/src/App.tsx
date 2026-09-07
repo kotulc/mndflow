@@ -291,7 +291,7 @@ export function App() {
     }
     /** **Not an action** — it writes nothing and asks for nothing. Describing
      *  a thing is opening the panel that already describes it. */
-    if (name === "define") { set_tab("this"); set_tray(true); return; }
+    if (name === "define") { set_tab("definition"); set_tray(true); return; }
     if (name === "export") { void s.save(); return; }
     act(name, args);
   };

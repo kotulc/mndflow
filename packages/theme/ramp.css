@@ -20,11 +20,11 @@
    keeps the `muted` *slot* clear of `--muted`, the chrome's dim text. */
 
 :root {
-  /* Four accent families, spread to stay apart, and two greys. Per theme. */
+  /* Two accent families and two greys, per theme. **A family is a preset over
+     the same two numbers a usage may give directly** — a hue and a chroma —
+     so naming more of them was never what was missing. */
   --primary-h: 150; --primary-c: 0.19;
   --secondary-h: 200; --secondary-c: 0.12;
-  --tertiary-h: 250; --tertiary-c: 0.12;
-  --quaternary-h: 330; --quaternary-c: 0.12;
   --neutral-h: 160; --neutral-c: 0.05;
   --muted-h: 160; --muted-c: 0.025;
 
@@ -62,8 +62,6 @@
 
   --primary-h: 150; --primary-c: 0.19;
   --secondary-h: 200; --secondary-c: 0.12;
-  --tertiary-h: 250; --tertiary-c: 0.12;
-  --quaternary-h: 330; --quaternary-c: 0.12;
   --neutral-h: 160; --neutral-c: 0.05;
   --muted-h: 160; --muted-c: 0.025;
 }
@@ -93,14 +91,12 @@
      one colour. */
   --primary-h: 230; --primary-c: 0.13;
   --secondary-h: 195; --secondary-c: 0.11;
-  --tertiary-h: 300; --tertiary-c: 0.10;
-  --quaternary-h: 40; --quaternary-c: 0.11;
   --neutral-h: 245; --neutral-c: 0.075;
   --muted-h: 245; --muted-c: 0.045;
 }
 
 /* `light` — the whiteprint the cyanotype became: blue ink on pale paper. The
-   ladder inverts, and `quaternary` is the red pencil an annotation is made in. */
+   ladder inverts. */
 :root[data-theme="light"] {
   --l-ground: 0.958;
   --l-fill: 0.985;
@@ -117,8 +113,6 @@
 
   --primary-h: 235; --primary-c: 0.14;
   --secondary-h: 200; --secondary-c: 0.11;
-  --tertiary-h: 265; --tertiary-c: 0.11;
-  --quaternary-h: 25; --quaternary-c: 0.12;
   --neutral-h: 232; --neutral-c: 0.026;
   --muted-h: 232; --muted-c: 0.014;
 }
@@ -149,21 +143,7 @@
   --s-secondary-dim: oklch(var(--l-dim) calc(var(--secondary-c) * 0.30) var(--secondary-h));
   --s-secondary-ink: oklch(var(--l-ink) calc(var(--secondary-c) * 0.32) var(--secondary-h));
 
-  --s-tertiary-fill: oklch(var(--l-fill) calc(var(--tertiary-c) * 0.18) var(--tertiary-h));
-  --s-tertiary-raised: oklch(var(--l-raised) calc(var(--tertiary-c) * 0.26) var(--tertiary-h));
-  --s-tertiary-line: oklch(var(--l-line) calc(var(--tertiary-c) * 0.40) var(--tertiary-h));
-  --s-tertiary-stroke: oklch(var(--l-stroke) calc(var(--tertiary-c) * 0.45) var(--tertiary-h));
-  --s-tertiary-edge: oklch(var(--l-edge) var(--tertiary-c) var(--tertiary-h));
-  --s-tertiary-dim: oklch(var(--l-dim) calc(var(--tertiary-c) * 0.30) var(--tertiary-h));
-  --s-tertiary-ink: oklch(var(--l-ink) calc(var(--tertiary-c) * 0.32) var(--tertiary-h));
 
-  --s-quaternary-fill: oklch(var(--l-fill) calc(var(--quaternary-c) * 0.18) var(--quaternary-h));
-  --s-quaternary-raised: oklch(var(--l-raised) calc(var(--quaternary-c) * 0.26) var(--quaternary-h));
-  --s-quaternary-line: oklch(var(--l-line) calc(var(--quaternary-c) * 0.40) var(--quaternary-h));
-  --s-quaternary-stroke: oklch(var(--l-stroke) calc(var(--quaternary-c) * 0.45) var(--quaternary-h));
-  --s-quaternary-edge: oklch(var(--l-edge) var(--quaternary-c) var(--quaternary-h));
-  --s-quaternary-dim: oklch(var(--l-dim) calc(var(--quaternary-c) * 0.30) var(--quaternary-h));
-  --s-quaternary-ink: oklch(var(--l-ink) calc(var(--quaternary-c) * 0.32) var(--quaternary-h));
 
   /* The greys carry the shell, so these two are the only slots with a ground
      and a divider — the steps a card has no use for. */
@@ -195,6 +175,12 @@
   --s-note-edge: oklch(var(--l-edge) calc(var(--note-c) * 0.72) var(--note-h));
   --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.32) var(--note-h));
   --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.30) var(--note-h));
+
+  /* **What a usage's own two numbers are measured against.** `intensity` is a
+     fraction of this ceiling rather than a raw chroma, so a definition still
+     cannot out-shout the theme it is opened in — and the ladder above still
+     owns every lightness, which is where *ink reads on fill* comes from. */
+  --tint-ceiling: 0.19;
 
   --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
   --s-error-ink: oklch(var(--l-ink) calc(var(--error-c) * 0.45) var(--error-h));

@@ -12,16 +12,45 @@
         "body": "Something the system shall do, and how that is shown.",
         "extends": "structure",
         "fields": [
-          { "name": "id", "form": "text" },
-          { "name": "shall", "form": "text" },
-          { "name": "method", "form": "choice",
-            "choices": ["inspection", "analysis", "demonstration", "test"] }
+          {
+            "name": "id",
+            "form": "text"
+          },
+          {
+            "name": "shall",
+            "form": "text"
+          },
+          {
+            "name": "method",
+            "form": "choice",
+            "choices": [
+              "inspection",
+              "analysis",
+              "demonstration",
+              "test"
+            ]
+          }
         ],
         "components": {
-          "card": { "layout": "compartments", "shape": "rect", "shows": ["id", "shall"] },
-          "constraints": { "required": ["id", "shall"] },
-          "style": { "slot": "tertiary", "emphasis": "quiet" },
-          "sketch": { "hatching": "cross" }
+          "card": {
+            "shows": [
+              "id",
+              "shall"
+            ]
+          },
+          "constraints": {
+            "required": [
+              "id",
+              "shall"
+            ]
+          },
+          "style": {
+            "slot": "neutral",
+            "emphasis": "quiet"
+          },
+          "sketch": {
+            "hatching": "cross"
+          }
         }
       },
       "req.group": {
@@ -31,8 +60,13 @@
         "name": "requirement group",
         "extends": "folder",
         "components": {
-          "card": { "layout": "name", "shape": "rect" },
-          "rules": { "holds": ["req.requirement", "req.group"] }
+          "card": {},
+          "rules": {
+            "holds": [
+              "req.requirement",
+              "req.group"
+            ]
+          }
         }
       },
       "req.satisfy": {
@@ -42,7 +76,18 @@
         "name": "satisfies",
         "extends": "directed",
         "components": {
-          "rules": { "ends": { "to": ["req.requirement"] }, "degree": { "out": { "min": 1 } } }
+          "rules": {
+            "ends": {
+              "to": [
+                "req.requirement"
+              ]
+            },
+            "degree": {
+              "out": {
+                "min": 1
+              }
+            }
+          }
         }
       },
       "req.verify": {
@@ -52,8 +97,14 @@
         "name": "verifies",
         "extends": "directed",
         "components": {
-          "rules": { "ends": { "to": ["req.requirement"] } },
-          "card": { "shape": "lozenge" }
+          "rules": {
+            "ends": {
+              "to": [
+                "req.requirement"
+              ]
+            }
+          },
+          "card": {}
         }
       },
       "req.table": {
@@ -61,11 +112,20 @@
         "home": "ws",
         "group": "view",
         "name": "requirements",
-        "components": { "view": { "module": "table" } }
+        "components": {
+          "view": {
+            "module": "table"
+          }
+        }
       }
     },
     "blocks": {
-      "ws": { "id": "ws", "parent": null, "label": "workspace", "type": "folder" }
+      "ws": {
+        "id": "ws",
+        "parent": null,
+        "label": "workspace",
+        "type": "folder"
+      }
     },
     "edges": {}
   }

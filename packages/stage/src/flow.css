@@ -55,31 +55,60 @@
   --card-fill: var(--s-primary-fill);    --card-line: var(--s-primary-line);
   --card-ink: var(--s-primary-ink);      --card-edge: var(--s-primary-stroke);
   --card-dim: var(--s-primary-dim);
+  --step-line: var(--s-primary-line); --step-ink: var(--s-primary-ink);
 }
 [data-slot="secondary"] {
   --card-fill: var(--s-secondary-fill);  --card-line: var(--s-secondary-line);
   --card-ink: var(--s-secondary-ink);    --card-edge: var(--s-secondary-stroke);
   --card-dim: var(--s-secondary-dim);
+  --step-line: var(--s-secondary-line); --step-ink: var(--s-secondary-ink);
 }
-[data-slot="tertiary"] {
-  --card-fill: var(--s-tertiary-fill);   --card-line: var(--s-tertiary-line);
-  --card-ink: var(--s-tertiary-ink);     --card-edge: var(--s-tertiary-stroke);
-  --card-dim: var(--s-tertiary-dim);
+/* **A usage painting itself from its own two numbers.** `--card-h` and
+   `--card-c` arrive inline from the element; the steps are computed the way
+   every named family's are, against the theme's own ladder. So a hue somebody
+   picked keeps *ink reads on fill* in all three themes for the same reason a
+   slot does — the lightness was never the definition's to give.
+
+   Stated in both card surfaces rather than in the theme, because `--card-*` is
+   the drawing's vocabulary and the theme may not know it. The factors match
+   `ramp.css`; they are the same six steps. */
+[data-slot="tint"] {
+  --card-fill: oklch(var(--l-fill) calc(var(--card-c) * 0.18) var(--card-h));
+  --card-line: oklch(var(--l-line) calc(var(--card-c) * 0.40) var(--card-h));
+  --card-edge: oklch(var(--l-edge) var(--card-c) var(--card-h));
+  --card-dim: oklch(var(--l-dim) calc(var(--card-c) * 0.30) var(--card-h));
+  --card-ink: oklch(var(--l-ink) calc(var(--card-c) * 0.32) var(--card-h));
+  --step-line: oklch(var(--l-line) calc(var(--card-c) * 0.40) var(--card-h));
+  --step-ink: oklch(var(--l-ink) calc(var(--card-c) * 0.32) var(--card-h));
 }
-[data-slot="quaternary"] {
-  --card-fill: var(--s-quaternary-fill); --card-line: var(--s-quaternary-line);
-  --card-ink: var(--s-quaternary-ink);   --card-edge: var(--s-quaternary-stroke);
-  --card-dim: var(--s-quaternary-dim);
-}
+
 [data-slot="neutral"] {
   --card-fill: var(--s-neutral-fill);    --card-line: var(--s-neutral-line);
   --card-ink: var(--s-neutral-ink);      --card-edge: var(--s-neutral-stroke);
   --card-dim: var(--s-neutral-dim);
+  --step-line: var(--s-neutral-line); --step-ink: var(--s-neutral-ink);
+}
+/* **Elsewhere and a remark.** Reserved once, because the app speaks in them —
+   but a reference and a note *are* the model speaking, and while these were
+   unpickable both were drawn by a hardcoded rule no definition could reach.
+   Their hue is fixed across every theme, which is the whole point of them. */
+[data-slot="away"] {
+  --card-fill: var(--s-away-fill);       --card-line: var(--s-away-line);
+  --card-ink: var(--s-away-ink);         --card-edge: var(--s-away-stroke);
+  --card-dim: var(--s-away-dim);
+  --step-line: var(--s-away-line); --step-ink: var(--s-away-ink);
+}
+[data-slot="note"] {
+  --card-fill: var(--s-note-fill);       --card-line: var(--s-note-line);
+  --card-ink: var(--s-note-ink);         --card-edge: var(--s-note-stroke);
+  --card-dim: var(--s-note-dim);
+  --step-line: var(--s-note-line); --step-ink: var(--s-note-ink);
 }
 [data-slot="muted"] {
   --card-fill: var(--s-muted-fill);      --card-line: var(--s-muted-line);
   --card-ink: var(--s-muted-ink);        --card-edge: var(--s-muted-stroke);
   --card-dim: var(--s-muted-dim);
+  --step-line: var(--s-muted-line); --step-ink: var(--s-muted-ink);
 }
 
 /* How loudly the family is taken. Quiet steps the line and the ink back; strong
@@ -96,6 +125,59 @@
   --card-ink: var(--card-dim);
 }
 [data-emphasis="strong"] { --card-line: var(--card-edge); }
+
+/* **How far the fill lets the ground through — the fill alone.** Never the ink
+   and never the line, and never all the way to nothing: a card with no ground
+   is not a quieter card, it is not a card. That was tried once on `emphasis`
+   and reverted for exactly this reason.
+
+   **The percentages are literal, and that is not a style choice.** They were a
+   `var()` in `color-mix`'s percentage slot, which is the one position a custom
+   property is not reliably substituted into — where it is not, the whole
+   `background` declaration is invalid at computed-value time and the card
+   renders with no ground at all. Which is exactly what happened. */
+.mnd-card { --card-ground-src: var(--card-fill); }
+.mnd-card[data-fill="wash"] { --card-ground-src: var(--card-dim); }
+
+.mnd-card[data-sheer="opaque"] { --card-ground: var(--card-ground-src); }
+.mnd-card[data-sheer="veiled"] {
+  --card-ground: color-mix(in oklch, var(--card-ground-src) 55%, transparent);
+}
+.mnd-card[data-sheer="ghost"] {
+  --card-ground: color-mix(in oklch, var(--card-ground-src) 6%, transparent);
+}
+
+/* What fills it behind the writing. **Pattern, never colour** — every one of
+   these is drawn from the card's own steps, so a hatch follows whatever family
+   or hue it was given rather than naming one of its own. */
+.mnd-card[data-fill] {
+  background: var(--card-ground, var(--card-fill));
+  background-clip: padding-box;
+}
+
+.mnd-card[data-fill="hatch"] {
+  background:
+    repeating-linear-gradient(135deg,
+      color-mix(in oklch, var(--card-edge) 10%, transparent) 0 5px,
+      transparent 5px 10px),
+    var(--card-ground, var(--card-fill));
+  background-clip: padding-box;
+}
+
+.mnd-card[data-fill="none"] { background: none; }
+
+/* **Which rung the border and the writing take.** `emphasis` is a shorthand
+   over these two; where one is said outright it overrules the shorthand, which
+   is what lets a reference sit at `edge` on both — the pairing `emphasis` has
+   no word for, and the reason it used to be drawn by a hardcoded rule. */
+.mnd-card[data-line="dim"]  { --card-line: var(--card-dim); }
+.mnd-card[data-line="line"] { --card-line: var(--step-line); }
+.mnd-card[data-line="edge"] { --card-line: var(--card-edge); }
+.mnd-card[data-line="ink"]  { --card-line: var(--step-ink); }
+.mnd-card[data-ink="dim"]  { --card-ink: var(--card-dim); }
+.mnd-card[data-ink="line"] { --card-ink: var(--step-line); }
+.mnd-card[data-ink="edge"] { --card-ink: var(--card-edge); }
+.mnd-card[data-ink="ink"]  { --card-ink: var(--step-ink); }
 
 /* How heavy the border is. Three steps, named on the ramp, so a definition
    cannot ask for a fourth. */
@@ -121,9 +203,58 @@
 .mnd-named {
   display: inline-flex;
   align-items: baseline;
+  /* **It takes the room so it can be aligned in it.** The head still sets its
+     ends apart, so a subtype chip keeps the right edge either way; what changes
+     is where the name sits in what is left. */
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
 }
+
+/* How the name is marked, as against how heavily it is set. */
+[data-decor="italic"] .mnd-label, [data-decor="italic"] .mnd-note-text { font-style: italic; }
+[data-decor="underline"] .mnd-label,
+[data-decor="underline"] .mnd-note-text { text-decoration: underline; }
+[data-decor="strike"] .mnd-label,
+[data-decor="strike"] .mnd-note-text { text-decoration: line-through; }
+
+/* Under the card rather than in it: it hangs into the gutter the layout already
+   leaves between cards, so no box has to grow to carry one. */
+.mnd-under {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--card-dim);
+  text-align: left;
+  pointer-events: none;
+}
+
+[data-align="center"] > .mnd-under { text-align: center; }
+[data-align="right"] > .mnd-under { text-align: right; }
+/* Two of them, and the type sits under the name. */
+.mnd-under.mnd-kind ~ .mnd-under.mnd-label { top: calc(100% + 12px); }
+
+/* **Two lines, where there is room for two.** A name clipped mid-word says less
+   than a name that wrapped, and the card has the height for it whenever the
+   type is not sharing the head. */
+[data-label="below"] > .mnd-head > .mnd-named > .mnd-label,
+[data-label="none"] > .mnd-head > .mnd-named > .mnd-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+}
+
+/* Which end the name reads from. Composition, not colour. */
+[data-align="center"] > .mnd-head > .mnd-named { justify-content: center; }
+[data-align="right"] > .mnd-head > .mnd-named { justify-content: flex-end; }
+[data-align="center"] > .mnd-note-text { text-align: center; }
+[data-align="right"] > .mnd-note-text { text-align: right; }
 
 /* The corner kept for what has been done to the block, as against what it is.
    Quiet: it is a state you set once and then read past. */
@@ -316,29 +447,16 @@
 }
 
 /* Somewhere else, and a description rather than structure. */
-.mnd-card.reference {
-  border-style: solid;
-  border-color: var(--away);
-  color: var(--away);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in oklch, var(--away) 10%, transparent) 0 5px,
-      transparent 5px 10px
-    ),
-    color-mix(in oklch, var(--s-away-fill) 55%, transparent);
-  background-clip: padding-box;
-}
+/* **A reference and a note are ordinary cards now.** Both were drawn here by a
+   rule keyed off their module, which is why neither could be subtyped: whatever
+   a subtype said about colour, this said it louder. What they look like is in
+   the `base` package, said the way any definition says it. */
+/* **The app speaking, not the model.** A reference whose target is gone is a
+   fault, so this stays hardcoded beside `error` — nothing a definition says
+   should be able to hide it. */
 .mnd-card.missing { border-color: var(--error); color: var(--error); }
 
-/* A note and its tie read as one thing — the same quiet note colour on both. */
-.mnd-card.note {
-  border-color: var(--note-dim);
-  background: color-mix(in oklch, var(--note) 6%, transparent);
-  color: var(--note-dim);
-  font-style: italic;
-  padding: 5px 8px;
-}
+/* A note is its text, so the text is the whole body of the card. */
 .mnd-note-text {
   flex: 1;
   min-height: 0;

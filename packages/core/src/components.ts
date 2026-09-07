@@ -70,6 +70,15 @@ const one_of = (key: string, value: unknown, set: readonly string[]): string | n
   value === undefined || (typeof value === "string" && set.includes(value))
     ? null : `\`${key}\` has to be one of ${set.join(", ")}`;
 
+/** A number inside a range. **Finite, because `NaN` and infinity both survive
+ *  `typeof` and neither is a hue.** */
+const within = (key: string, value: unknown,
+                range: { min: number; max: number }): string | null =>
+  value === undefined
+  || (typeof value === "number" && Number.isFinite(value)
+      && value >= range.min && value <= range.max)
+    ? null : `\`${key}\` has to be a number from ${range.min} to ${range.max}`;
+
 const words = (key: string, value: unknown): string | null =>
   value === undefined || (Array.isArray(value) && value.every((v) => typeof v === "string"))
     ? null : `\`${key}\` has to be a list of names`;
@@ -87,15 +96,57 @@ const stray = (name: string, config: Settings, known: readonly string[]): string
  *  from data. That is the line between an engine and a plugin host. */
 /** **No `shape`.** A definition picking a diamond or a hex drew as one on the
  *  canvas and as a rectangle everywhere else, which is a promise only one
- *  renderer kept. It comes back when every renderer can keep it. */
-export const LAYOUTS = ["name", "type", "fields", "compartments", "icon"] as const;
-export const LABELS = ["inside", "below", "none"] as const;
+ *  renderer kept. It comes back when every renderer can keep it.
+ *
+ *  **No `layout` either.** It offered five ways a card could be composed and
+ *  no renderer read any of them — five validated values carried through three
+ *  packages and drawn by nothing. What actually puts values on a card is
+ *  `shows`, which names them. */
 
-/** The hue families a definition may pick from, how loudly it takes one, how
- *  heavy its border is, and how loudly its name is set. **A definition picks
- *  within the theme's palette; it never names a colour, a pixel or a font.** */
-export const SLOTS = ["primary", "secondary", "tertiary", "quaternary",
-                     "neutral", "muted"] as const;
+/** Where one of a card's two writings sits. **The same three for both**, since
+ *  the question is the same one asked of the name and of the type. */
+export const PLACES = ["inside", "below", "none"] as const;
+
+/** Which end of the card its writing reads from. **Three, and the first is
+ *  what every card did before there was a choice** — so a definition saying
+ *  nothing draws exactly as it always has. Composition rather than colour,
+ *  which is why it is `card` and not `style`. */
+export const ALIGNS = ["left", "center", "right"] as const;
+
+/** The named families a definition may pick from. **Four, and each is a preset
+ *  over `hue` and `intensity`** — the two numbers below are the mechanism, and
+ *  a slot is a name for a pair of them that the *theme* chooses.
+ *
+ *  **Six were four too many and two too alike.** `tertiary` and `quaternary`
+ *  carried the same chroma as `secondary` and differed only by hue, at a
+ *  chroma the fill step scales to 0.02 — so three of the six were the same
+ *  near-black on a card. Naming more families was never what was missing;
+ *  saying which hue was.
+ *
+ *  **A slot is theme-relative and a hue is not.** `primary` is green in retro
+ *  and teal in modern, which is what keeps a shipped package looking like the
+ *  theme it is opened in. A hue names an angle and means it everywhere, which
+ *  is what a workspace wants for a vocabulary of its own. Both are offered
+ *  because they answer different questions. */
+export const SLOTS = ["primary", "secondary", "neutral", "muted",
+                      "away", "note"] as const;
+
+/** The hue angle a usage paints itself with, in degrees, when a named family is
+ *  not what was wanted. **The theme still owns lightness**, which is where
+ *  *ink reads on fill* actually comes from — so an angle is safe to say and a
+ *  lightness is not. */
+export const HUE = { min: 0, max: 360 } as const;
+
+/** How much chroma that hue is taken at, as a fraction of the theme's own
+ *  ceiling. **Not a lightness and not an opacity**: those are the ladder's, and
+ *  a definition reaching for either is how a card stops reading in one of the
+ *  three themes. */
+export const INTENSITY = { min: 0, max: 1 } as const;
+
+/** The style answers that are **ranges rather than sets**. Named here beside
+ *  the ranges themselves, so the one action that writes a look can tell a
+ *  number from a word without keeping a second list of its own. */
+export const NUMBERS: readonly string[] = ["hue", "intensity"];
 export const EMPHASES = ["quiet", "normal", "strong"] as const;
 /** How heavy a border is. **Three steps, and the first is the ordinary one.**
  *  It used to run hairline / thin / thick at half a pixel, one and two — but a
@@ -104,6 +155,35 @@ export const EMPHASES = ["quiet", "normal", "strong"] as const;
  *  a step called *hairline* cannot be what a card is normally drawn with. */
 export const WEIGHTS = ["thin", "medium", "thick"] as const;
 export const VOICES = ["quiet", "normal", "loud"] as const;
+
+/** How the name is marked, as against how heavily it is set. **One value, not
+ *  three flags** — italic *and* struck through is a combination nobody has
+ *  asked for, and a closed set stays one lookup while three booleans become
+ *  eight states to draw and to reason about. Revisit if a real case wants
+ *  two at once. */
+export const DECORS = ["none", "italic", "underline", "strike"] as const;
+
+/** What fills a card behind its writing. **Pattern, never colour** — every one
+ *  of these is drawn from the card's own steps, so a hatch follows whatever
+ *  family or hue it was given. This is what a reference was getting from a
+ *  hardcoded rule that no definition could reach. */
+export const FILLS = ["solid", "hatch", "wash", "none"] as const;
+
+/** How far the fill lets the ground through. **The fill alone** — never the
+ *  ink and never the line, and never all the way to nothing: a card with no
+ *  ground is not a quieter card, it is not a card. That was tried once on
+ *  `emphasis` and reverted for exactly this reason. */
+export const SHEERS = ["opaque", "veiled", "ghost"] as const;
+
+/** Which rung of the ramp the border and the writing take.
+ *
+ *  **`emphasis` is a shorthand over these two, not the only way to say them.**
+ *  It offers three pairings — quiet levels both to `dim`, strong takes the
+ *  border out to `edge` — and a reference wanted a fourth: border *and* ink
+ *  both at `edge`, which is what made it read as somewhere else. That was
+ *  unsayable, so it lived in a hardcoded rule instead and nothing could subtype
+ *  it. Said outright, the shorthand keeps working and the gap closes. */
+export const STEPS = ["dim", "line", "edge", "ink"] as const;
 
 /** Style sets this build ships. Open: a set is an asset, and a build names the
  *  ones it carries. A definition may not name one nobody ships. */
@@ -138,10 +218,14 @@ const block: Component = {
 const card: Component = {
   name: "card",
   check: (config) =>
-    one_of("card.layout", config["layout"], LAYOUTS)
-    ?? one_of("card.label", config["label"], LABELS)
+    /** **Two writings, two questions.** `name` is what somebody called it;
+     *  `label` is what sort of thing it is. They used to be one key, so putting
+     *  the type on a card took the name off it. */
+    one_of("card.name", config["name"], PLACES)
+    ?? one_of("card.label", config["label"], PLACES)
+    ?? one_of("card.align", config["align"], ALIGNS)
     ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["layout", "label", "shows", "icon"]),
+    ?? stray("card", config, ["name", "label", "align", "shows", "icon"]),
 };
 
 const style: Component = {
@@ -151,12 +235,23 @@ const style: Component = {
     ?? one_of("style.emphasis", config["emphasis"], EMPHASES)
     ?? one_of("style.weight", config["weight"], WEIGHTS)
     ?? one_of("style.voice", config["voice"], VOICES)
+    ?? one_of("style.decor", config["decor"], DECORS)
+    ?? one_of("style.line", config["line"], STEPS)
+    ?? one_of("style.ink", config["ink"], STEPS)
+    ?? one_of("style.fill", config["fill"], FILLS)
+    ?? one_of("style.sheer", config["sheer"], SHEERS)
+    /** **`hue` wins over `slot` where both are said**, so a preset can be
+     *  nudged without first being cleared. Neither is required. */
+    ?? within("style.hue", config["hue"], HUE)
+    ?? within("style.intensity", config["intensity"], INTENSITY)
     ?? (config["set"] !== undefined && !SETS.includes(String(config["set"]))
         ? SETS.length
           ? `\`style.set\` has to be one of ${SETS.join(", ")}`
           : "`style.set` names a style set, and this build ships none"
         : null)
-    ?? stray("style", config, ["set", "slot", "emphasis", "weight", "voice"]),
+    ?? stray("style", config, ["set", "slot", "emphasis", "weight", "voice",
+                               "decor", "fill", "sheer", "line", "ink",
+                               "hue", "intensity"]),
 };
 
 /** The one constraint: which of a usage's fields must carry a value. */
