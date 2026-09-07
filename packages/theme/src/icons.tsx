@@ -103,6 +103,10 @@ const PATHS = {
   // behave*, and two purposes may not share one drawing.
   settings: "M4 8h9M17 8h3M4 16h3M11 16h9M15 5.5v5M7 13.5v5",
 
+  // The options rail — a panel of controls for what is on the stage. Three
+  // lines, the mark every list-of-choices already spends on *open the menu*.
+  menu: "M5 7h14M5 12h14M5 17h14",
+
   // What a right drag makes, one per way a line is drawn. End bars say *this
   // joins two things*, which is what keeps a plain relationship from reading as
   // a bare rule and a directed one from reading as an arrange arrow.

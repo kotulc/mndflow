@@ -163,7 +163,39 @@ input:focus { outline: none; border-color: var(--accent); }
 /* The body row is named rather than filled in by auto-placement: with the
    terminal off there is no row 2, and everything would slide up into it and
    leave the 1fr row standing empty at the foot of the page. */
-.app > .explorer, .app > main, .app > .opts { grid-row: 3; }
+.app > .explorer, .app > main, .app > .opts {
+  grid-row: 3;
+  /* **The work begins here.** Same strong rule the legacy shell drew across the
+     body row — a soft divider on the terminal alone was not enough once the
+     explorer's bar shares its surface. */
+  border-top: 1px solid var(--border);
+}
+
+/* Side panels on the body row share one bar height — the explorer and the
+   options rail. */
+.explorer .bar,
+.opts .bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+  min-width: 0;
+  flex: none;
+}
+
+/* Every mark in a panel bar sits in the same cell — 16px glyph, 2px vertical
+   padding, whether it is a button or a title. */
+.explorer .bar .tools button,
+.opts .bar .mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  line-height: 1;
+  flex: none;
+}
 
 /* The stage never yields, so it takes the free space and the tray takes what
    it asks for beneath it. */

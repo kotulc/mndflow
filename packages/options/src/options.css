@@ -6,17 +6,33 @@
 .opts {
   display: flex;
   flex-direction: column;
-  /* Far enough apart to read as separate groups. Adjacent icon columns
-     otherwise run together into one long column. */
-  gap: 20px;
   /* Narrow, and long words wrap rather than setting the width. Sizing the
      column to its longest label spends the space on one word and leaves every
      short one swimming; each control carries a tooltip, so a name over two
      lines costs nothing. */
   width: 68px;
-  padding: 12px 8px 16px;
+  min-height: 0;
   border-left: 1px solid var(--border);
   background: var(--bg);
+  overflow: hidden;
+}
+
+/* The rail's own header — centred title mark; shell rules for `.bar` live in
+   `base.css`. */
+.opts .bar {
+  justify-content: center;
+  color: var(--text);
+}
+
+.opts .body {
+  display: flex;
+  flex-direction: column;
+  /* Far enough apart to read as separate groups. Adjacent icon columns
+     otherwise run together into one long column. */
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 8px 16px;
   overflow-y: auto;
   overflow-x: hidden;
 }

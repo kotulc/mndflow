@@ -34,31 +34,36 @@ export function Options({ groups }: OptionsProps) {
 
   return (
     <aside className="opts" aria-label="Options">
-      {shown.map((group) => {
-        /** **Where the verbs begin.** A group is about one subject and some
-         *  subjects have both a setting and something you do to them, so the
-         *  two are ruled apart inside the group rather than split across two
-         *  labels. No rule where the group is verbs all the way down — there is
-         *  nothing above to divide it from. */
-        const first = group.controls.findIndex((c) => c.verb);
-        return (
-          <div key={group.key} className="opts-group" role="group" aria-label={group.label}>
-            <span className="opts-label">{group.label}</span>
-            {group.controls.map((control, n) => (
-              <button key={control.key} type="button"
-                      className={[control.on ? "on" : "",
-                                  control.verb ? "verb" : "",
-                                  n === first && n > 0 ? "ruled" : ""].filter(Boolean).join(" ")}
-                      {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
-                      title={control.tip}
-                      onClick={control.run}>
-                <Icon name={control.icon} />
-                <span className="word">{control.word}</span>
-              </button>
-            ))}
-          </div>
-        );
-      })}
+      <div className="bar" title="Options">
+        <span className="mark" aria-hidden="true"><Icon name="menu" /></span>
+      </div>
+      <div className="body">
+        {shown.map((group) => {
+          /** **Where the verbs begin.** A group is about one subject and some
+           *  subjects have both a setting and something you do to them, so the
+           *  two are ruled apart inside the group rather than split across two
+           *  labels. No rule where the group is verbs all the way down — there is
+           *  nothing above to divide it from. */
+          const first = group.controls.findIndex((c) => c.verb);
+          return (
+            <div key={group.key} className="opts-group" role="group" aria-label={group.label}>
+              <span className="opts-label">{group.label}</span>
+              {group.controls.map((control, n) => (
+                <button key={control.key} type="button"
+                        className={[control.on ? "on" : "",
+                                    control.verb ? "verb" : "",
+                                    n === first && n > 0 ? "ruled" : ""].filter(Boolean).join(" ")}
+                        {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
+                        title={control.tip}
+                        onClick={control.run}>
+                  <Icon name={control.icon} />
+                  <span className="word">{control.word}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </aside>
   );
 }

@@ -1,11 +1,12 @@
-/* One collapsible strip. Its own ground, a step off the page's, so it reads as
-   a surface rather than as text floating above the explorer. */
+/* One collapsible strip on the **raised** step — not the page ground the navbar
+   shares, not the fill the panel bars share. The body row's strong top rule lives
+   in `base.css`; this is the terminal's own edge. */
 
 .chat {
   min-width: 0;
   overflow: hidden;
-  background: var(--surface);
-  border-bottom: 1px solid var(--divider);
+  background: var(--raised);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Shut: text entry and chips share one row, so the stage keeps the height. */
@@ -37,8 +38,36 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.chat.collapsed .rail { flex: 1 1 64%; display: flex; align-items: center; gap: 8px; }
-.chat.collapsed .choices { flex-wrap: nowrap; overflow: hidden; }
+.chat.collapsed .rail {
+  flex: 1 1 64%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.chat.collapsed .choices { display: flex; flex-wrap: nowrap; overflow: hidden; justify-content: flex-end; }
+
+.chat.collapsed .chip {
+  flex: none;
+  min-height: 0;
+  padding: 3px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chat.collapsed .rail > .bound {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.chat.collapsed .rail > .bound:hover { color: var(--accent); background: var(--bg); }
 
 /* Open: the history and the offered list stand side by side. */
 .chat.expanded {
@@ -117,11 +146,15 @@
   border: 1px solid var(--border);
   border-radius: 2px;
   background: var(--bg);
-  color: var(--muted);
+  color: var(--accent);
   font: inherit;
   font-size: 11px;
+  text-align: left;
+  line-height: 1.35;
   white-space: nowrap;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat .chip:hover { color: var(--text); border-color: var(--accent); }
@@ -129,7 +162,8 @@
 .chat .chip.on {
   color: var(--accent);
   border-color: var(--accent);
-  background: var(--hover);
+  background: var(--tint);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 /* The toggle to a static cursor — quiet mode — sits at the far right. */
@@ -147,4 +181,4 @@
   cursor: pointer;
 }
 
-.chat .bound:hover { color: var(--accent); background: var(--hover); }
+.chat .bound:hover { color: var(--accent); background: var(--bg); }
