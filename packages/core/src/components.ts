@@ -146,15 +146,17 @@ export const INTENSITY = { min: 0, max: 1 } as const;
 /** The style answers that are **ranges rather than sets**. Named here beside
  *  the ranges themselves, so the one action that writes a look can tell a
  *  number from a word without keeping a second list of its own. */
-export const NUMBERS: readonly string[] = ["hue", "intensity"];
-export const EMPHASES = ["quiet", "normal", "strong"] as const;
+export const NUMBERS: readonly string[] = ["hue", "intensity", "opacity"];
 /** How heavy a border is. **Three steps, and the first is the ordinary one.**
  *  It used to run hairline / thin / thick at half a pixel, one and two — but a
  *  border cannot be half a device pixel, so the first two rendered identically
  *  and the set offered a choice it could not keep. Renamed as well as respaced:
  *  a step called *hairline* cannot be what a card is normally drawn with. */
 export const WEIGHTS = ["thin", "medium", "thick"] as const;
-export const VOICES = ["quiet", "normal", "loud"] as const;
+/** How heavily the name is set. **The words everybody already uses for it** —
+ *  it was `quiet · normal · loud`, which is a third scale of loudness beside
+ *  contrast and opacity and means none of the same things. */
+export const VOICES = ["light", "normal", "bold"] as const;
 
 /** How the name is marked, as against how heavily it is set. **One value, not
  *  three flags** — italic *and* struck through is a combination nobody has
@@ -169,21 +171,27 @@ export const DECORS = ["none", "italic", "underline", "strike"] as const;
  *  hardcoded rule that no definition could reach. */
 export const FILLS = ["solid", "hatch", "wash", "none"] as const;
 
-/** How far the fill lets the ground through. **The fill alone** — never the
- *  ink and never the line, and never all the way to nothing: a card with no
- *  ground is not a quieter card, it is not a card. That was tried once on
- *  `emphasis` and reverted for exactly this reason. */
-export const SHEERS = ["opaque", "veiled", "ghost"] as const;
+/** How opaque the fill is, from nothing to solid. **A number, because it is
+ *  one** — three named steps were three invented words for a quantity everybody
+ *  already has a word for, and the one that mattered most was a 6% wash no name
+ *  would have suggested. **The fill alone**: never the ink and never the line,
+ *  so a card that has gone transparent is still a card with writing on it. */
+export const OPACITY = { min: 0, max: 1 } as const;
 
-/** Which rung of the ramp the border and the writing take.
+/** How far the border and the writing stand out from the card behind them.
  *
- *  **`emphasis` is a shorthand over these two, not the only way to say them.**
- *  It offers three pairings — quiet levels both to `dim`, strong takes the
- *  border out to `edge` — and a reference wanted a fourth: border *and* ink
- *  both at `edge`, which is what made it read as somewhere else. That was
- *  unsayable, so it lived in a hardcoded rule instead and nothing could subtype
- *  it. Said outright, the shorthand keeps working and the gap closes. */
-export const STEPS = ["dim", "line", "edge", "ink"] as const;
+ *  **Four rungs of the theme's ladder, in order.** Not a number, because the
+ *  ladder is tuned per theme and the four are not evenly spaced on it — a
+ *  fraction would land somewhere nobody chose, and land differently in each of
+ *  the three. The names say what they look like rather than what the ramp
+ *  calls them.
+ *
+ *  **This replaced `emphasis`.** That was three fixed pairings of these two —
+ *  quiet levelled both to `faint`, strong took the border to `strong` — which
+ *  is why a reference could not be said at all: it wanted both at `strong`, a
+ *  fourth pairing the shorthand had no word for. Two plain answers say every
+ *  pairing there is, so the shorthand was one vocabulary too many. */
+export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 
 /** Style sets this build ships. Open: a set is an asset, and a build names the
  *  ones it carries. A definition may not name one nobody ships. */
@@ -232,25 +240,24 @@ const style: Component = {
   name: "style",
   check: (config) =>
     one_of("style.slot", config["slot"], SLOTS)
-    ?? one_of("style.emphasis", config["emphasis"], EMPHASES)
     ?? one_of("style.weight", config["weight"], WEIGHTS)
     ?? one_of("style.voice", config["voice"], VOICES)
     ?? one_of("style.decor", config["decor"], DECORS)
-    ?? one_of("style.line", config["line"], STEPS)
-    ?? one_of("style.ink", config["ink"], STEPS)
+    ?? one_of("style.line", config["line"], CONTRASTS)
+    ?? one_of("style.ink", config["ink"], CONTRASTS)
     ?? one_of("style.fill", config["fill"], FILLS)
-    ?? one_of("style.sheer", config["sheer"], SHEERS)
     /** **`hue` wins over `slot` where both are said**, so a preset can be
      *  nudged without first being cleared. Neither is required. */
     ?? within("style.hue", config["hue"], HUE)
+    ?? within("style.opacity", config["opacity"], OPACITY)
     ?? within("style.intensity", config["intensity"], INTENSITY)
     ?? (config["set"] !== undefined && !SETS.includes(String(config["set"]))
         ? SETS.length
           ? `\`style.set\` has to be one of ${SETS.join(", ")}`
           : "`style.set` names a style set, and this build ships none"
         : null)
-    ?? stray("style", config, ["set", "slot", "emphasis", "weight", "voice",
-                               "decor", "fill", "sheer", "line", "ink",
+    ?? stray("style", config, ["set", "slot", "weight", "voice", "decor",
+                               "fill", "opacity", "line", "ink",
                                "hue", "intensity"]),
 };
 

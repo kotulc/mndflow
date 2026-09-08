@@ -320,13 +320,13 @@
    the drawing's vocabulary and the theme may not know it. The factors match
    `ramp.css`; they are the same six steps. */
 .element [data-slot="tint"] {
-  --card-fill: oklch(var(--l-fill) calc(var(--card-c) * 0.18) var(--card-h));
-  --card-line: oklch(var(--l-line) calc(var(--card-c) * 0.40) var(--card-h));
-  --card-edge: oklch(var(--l-edge) var(--card-c) var(--card-h));
-  --card-dim: oklch(var(--l-dim) calc(var(--card-c) * 0.30) var(--card-h));
-  --card-ink: oklch(var(--l-ink) calc(var(--card-c) * 0.32) var(--card-h));
-  --step-line: oklch(var(--l-line) calc(var(--card-c) * 0.40) var(--card-h));
-  --step-ink: oklch(var(--l-ink) calc(var(--card-c) * 0.32) var(--card-h));
+  --card-fill: oklch(var(--l-fill) calc(var(--card-c, 0.12) * 0.18) var(--card-h, 200));
+  --card-line: oklch(var(--l-line) calc(var(--card-c, 0.12) * 0.40) var(--card-h, 200));
+  --card-edge: oklch(var(--l-edge) var(--card-c, 0.12) var(--card-h, 200));
+  --card-dim: oklch(var(--l-dim) calc(var(--card-c, 0.12) * 0.30) var(--card-h, 200));
+  --card-ink: oklch(var(--l-ink) calc(var(--card-c, 0.12) * 0.32) var(--card-h, 200));
+  --step-line: oklch(var(--l-line) calc(var(--card-c, 0.12) * 0.40) var(--card-h, 200));
+  --step-ink: oklch(var(--l-ink) calc(var(--card-c, 0.12) * 0.32) var(--card-h, 200));
 }
 
 .element [data-slot="neutral"] {
@@ -354,38 +354,32 @@
   --step-line: var(--s-muted-line); --step-ink: var(--s-muted-ink);
 }
 
-/* Quiet keeps its ground and steps the line and the ink back; strong takes the
-   stroke, the same hue one step further out. */
-.element [data-emphasis="quiet"] { --card-line: var(--card-dim); --card-ink: var(--card-dim); }
-.element [data-emphasis="strong"] { --card-line: var(--card-edge); }
-
-/* **How far the fill lets the ground through — the fill alone.** Never the ink
-   and never the line, and never all the way to nothing: a card with no ground
-   is not a quieter card, it is not a card. That was tried once on `emphasis`
-   and reverted for exactly this reason.
-
-   **The percentages are literal, and that is not a style choice.** They were a
-   `var()` in `color-mix`'s percentage slot, which is the one position a custom
-   property is not reliably substituted into — where it is not, the whole
-   `background` declaration is invalid at computed-value time and the card
-   renders with no ground at all. Which is exactly what happened. */
+.element .element 
+/* **What the ground is drawn from.** Defined before it is read — an undefined
+   `var()` makes `background` invalid at computed-value time, which renders as
+   no background at all rather than as a default. Every read below carries the
+   fill as a fallback for the same reason. */
 .preview-card { --card-ground-src: var(--card-fill); }
 .preview-card[data-fill="wash"] { --card-ground-src: var(--card-dim); }
 
-.preview-card[data-sheer="opaque"] { --card-ground: var(--card-ground-src); }
-.preview-card[data-sheer="veiled"] {
-  --card-ground: color-mix(in oklch, var(--card-ground-src) 55%, transparent);
-}
-.preview-card[data-sheer="ghost"] {
-  --card-ground: color-mix(in oklch, var(--card-ground-src) 6%, transparent);
+/* **How opaque the fill is** — the fill alone, so the writing stays readable
+   however far the ground shows through.
+
+   **The number rides in the alpha slot of a relative colour**, where a custom
+   property is an ordinary number. It cannot ride in `color-mix`'s percentage
+   slot, which is the one position substitution is not dependable in. A browser
+   without relative colour keeps the solid ground below rather than losing the
+   card's background altogether. */
+.preview-card[data-fill] {
+  background: var(--card-ground-src, var(--card-fill));
+  background-clip: padding-box;
 }
 
-/* What fills it behind the writing. **Pattern, never colour** — every one of
-   these is drawn from the card's own steps, so a hatch follows whatever family
-   or hue it was given rather than naming one of its own. */
-.preview-card[data-fill] {
-  background: var(--card-ground, var(--card-fill));
-  background-clip: padding-box;
+@supports (color: oklch(from red l c h)) {
+  .preview-card[data-fill][data-sheer] {
+    background: oklch(from var(--card-ground-src, var(--card-fill)) l c h / var(--card-opacity, 1));
+    background-clip: padding-box;
+  }
 }
 
 .preview-card[data-fill="hatch"] {
@@ -393,32 +387,43 @@
     repeating-linear-gradient(135deg,
       color-mix(in oklch, var(--card-edge) 10%, transparent) 0 5px,
       transparent 5px 10px),
-    var(--card-ground, var(--card-fill));
+    var(--card-ground-src, var(--card-fill));
   background-clip: padding-box;
+}
+
+@supports (color: oklch(from red l c h)) {
+  .preview-card[data-fill="hatch"][data-sheer] {
+    background:
+      repeating-linear-gradient(135deg,
+        color-mix(in oklch, var(--card-edge) 10%, transparent) 0 5px,
+        transparent 5px 10px),
+      oklch(from var(--card-ground-src, var(--card-fill)) l c h / var(--card-opacity, 1));
+    background-clip: padding-box;
+  }
 }
 
 .preview-card[data-fill="none"] { background: none; }
 
-/* **Which rung the border and the writing take.** `emphasis` is a shorthand
-   over these two; where one is said outright it overrules the shorthand, which
-   is what lets a reference sit at `edge` on both — the pairing `emphasis` has
-   no word for, and the reason it used to be drawn by a hardcoded rule. */
-.preview-card[data-line="dim"]  { --card-line: var(--card-dim); }
-.preview-card[data-line="line"] { --card-line: var(--step-line); }
-.preview-card[data-line="edge"] { --card-line: var(--card-edge); }
-.preview-card[data-line="ink"]  { --card-line: var(--step-ink); }
-.preview-card[data-ink="dim"]  { --card-ink: var(--card-dim); }
-.preview-card[data-ink="line"] { --card-ink: var(--step-line); }
-.preview-card[data-ink="edge"] { --card-ink: var(--card-edge); }
-.preview-card[data-ink="ink"]  { --card-ink: var(--step-ink); }
+/* **How far the border and the writing stand out.** Four rungs of the ladder,
+   in order — this is what `emphasis` used to offer as three fixed pairings, and
+   why a reference could not be said at all: it wanted both at `strong`, which
+   no pairing named. */
+.preview-card[data-line="faint"]  { --card-line: var(--card-dim); }
+.preview-card[data-line="soft"]   { --card-line: var(--step-line); }
+.preview-card[data-line="strong"] { --card-line: var(--card-edge); }
+.preview-card[data-line="full"]   { --card-line: var(--step-ink); }
+.preview-card[data-ink="faint"]  { --card-ink: var(--card-dim); }
+.preview-card[data-ink="soft"]   { --card-ink: var(--step-line); }
+.preview-card[data-ink="strong"] { --card-ink: var(--card-edge); }
+.preview-card[data-ink="full"]   { --card-ink: var(--step-ink); }
 
 .element [data-weight="thin"]   { --card-weight: var(--weight-thin); }
 .element [data-weight="medium"] { --card-weight: var(--weight-medium); }
 .element [data-weight="thick"]  { --card-weight: var(--weight-thick); }
 
-.preview-card[data-voice="quiet"]  .preview-label { opacity: 0.72; font-weight: 400; }
+.preview-card[data-voice="light"]  .preview-label { opacity: 0.72; font-weight: 400; }
 .preview-card[data-voice="normal"] .preview-label { font-weight: 500; }
-.preview-card[data-voice="loud"]   .preview-label { font-weight: 700; letter-spacing: 0.01em; }
+.preview-card[data-voice="bold"]   .preview-label { font-weight: 700; letter-spacing: 0.01em; }
 
 /* Its role, top right; what has been done to it, bottom right. The two never
    argue over one place. */
@@ -553,17 +558,25 @@
 
 .looks .choices { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
-.looks .question { display: flex; flex-direction: column; gap: 2px; }
+/* **The same gutter the left column keeps.** A word of fixed width, then what
+   it sets — so the options in every tab start on the line the name and the tags
+   start on, and the two columns read as one panel rather than two. */
+.looks .question { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 
-.looks .question-word {
+.looks .q-word {
+  flex: none;
+  width: 4.2em;
   color: var(--faint);
-  font-size: 8.5px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: help;
 }
 
-.looks .options { display: flex; flex-wrap: wrap; gap: 3px; }
+.looks .question[aria-disabled] .q-word { opacity: 0.4; }
+
+
+.looks .options { display: flex; flex-wrap: wrap; gap: 3px; flex: 1 1 auto; min-width: 0; }
 
 .looks .opt {
   padding: 0 5px;
@@ -581,7 +594,7 @@
    at the theme's own card lightness, so what runs under the thumb is the range
    of cards actually available rather than a saturated rainbow nothing here can
    produce. */
-.looks .sliders { display: flex; align-items: center; gap: 6px; width: 100%; }
+.looks .sliders { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
 
 .looks .sliders input[type="range"] {
   flex: 1 1 auto;
@@ -632,7 +645,7 @@
 }
 .looks .opt.on { color: var(--accent); border-color: var(--accent); background: var(--tint); }
 .looks .opt:disabled { opacity: 0.3; }
-.looks .options[aria-disabled] { cursor: not-allowed; }
+.looks .question[aria-disabled] { cursor: not-allowed; }
 
 /* ── What it is held to, and what it carries ───────────────────────────────
    Each under its own head and above its own rule, so neither reads as more of

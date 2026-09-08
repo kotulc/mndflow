@@ -34,7 +34,7 @@ function def(name: string, module: string, extend?: string,
  *  is opened in. */
 export const BASE: Definition[] = [
   def("folder", "folder", undefined,
-      {}, { slot: "neutral", emphasis: "quiet" }),
+      {}, { slot: "neutral", line: "faint", ink: "faint" }),
   def("block", "block", undefined,
       {}, { slot: "primary" }),
   /** **Elsewhere, and it says so on its face.** The hatch and the violet were a
@@ -43,22 +43,22 @@ export const BASE: Definition[] = [
    *  louder. Said here, it is ordinary — and `away` is a family whose hue is
    *  fixed across every theme on purpose. */
   def("reference", "reference", undefined,
-      {}, { slot: "away", line: "edge", ink: "edge",
-            fill: "hatch", sheer: "veiled" }),
+      {}, { slot: "away", line: "strong", ink: "strong",
+            fill: "hatch", opacity: 0.55 }),
   /** An interface is a seat on a wall; a name on one is in the way. */
   def("interface", "interface", undefined,
       { name: "none" }, { slot: "secondary", weight: "thin" }),
   def("resource", "resource", undefined,
-      {}, { slot: "secondary", emphasis: "quiet" }),
+      {}, { slot: "secondary", line: "faint", ink: "faint" }),
   def("group", "group", undefined,
-      {}, { slot: "muted", emphasis: "quiet" }),
+      {}, { slot: "muted", line: "faint", ink: "faint" }),
   def("grid", "grid", undefined,
-      {}, { slot: "muted", emphasis: "quiet" }),
+      {}, { slot: "muted", line: "faint", ink: "faint" }),
   /** A remark, in the amber every theme keeps for one. Was a hardcoded rule
    *  for the same reason the reference was. */
   def("note", "note", "resource",
-      {}, { slot: "note", line: "edge", ink: "dim",
-            fill: "wash", sheer: "ghost" }),
+      {}, { slot: "note", line: "strong", ink: "faint",
+            fill: "wash", opacity: 0.06 }),
 ];
 
 /** The two relation definitions the base ships, so an untyped line still

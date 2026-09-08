@@ -255,6 +255,27 @@ export function inspect(graph: Graph): Inspection {
       mended = { ...mended, components: { ...mended.components,
         card: label === undefined ? rest : { ...rest, name: label } } };
     }
+    /** `emphasis` was three fixed pairings of `line` and `ink`; `sheer` was
+     *  three names for a number; `voice` and the rungs were ramp jargon.
+     *  **All four translate exactly**, so nothing has to be dropped. */
+    const style = mended.components?.["style"] as Record<string, unknown> | undefined;
+    if (style && stale(style)) {
+      const { emphasis, sheer, ...rest } = style;
+      const said = { ...rest } as Record<string, unknown>;
+      if (emphasis === "quiet") { said["line"] ??= "faint"; said["ink"] ??= "faint"; }
+      if (emphasis === "strong") said["line"] ??= "strong";
+      if (sheer === "veiled") said["opacity"] ??= 0.55;
+      if (sheer === "ghost") said["opacity"] ??= 0.06;
+      for (const key of ["line", "ink"] as const) {
+        const was = RUNGS[String(said[key] ?? "")];
+        if (was) said[key] = was;
+      }
+      const voice = VOICE[String(said["voice"] ?? "")];
+      if (voice) said["voice"] = voice;
+      faults.push({ kind: "repaired",
+                    what: `"${d.name}" spoke the older style vocabulary` });
+      mended = { ...mended, components: { ...mended.components, style: said } };
+    }
     const gone = RETIRED[String(mended.components?.["style"]?.["slot"] ?? "")];
     if (gone) {
       faults.push({ kind: "repaired", what: `"${d.name}" named the retired ${
@@ -285,6 +306,24 @@ export function inspect(graph: Graph): Inspection {
  *  `tertiary` sat between the accents and the greys and reads as a grey; the
  *  hue `quaternary` was reached for is now sayable directly. */
 const RETIRED: Record<string, string> = { tertiary: "neutral", quaternary: "secondary" };
+
+/** Whether a style is said in the older words at all. **The presence of `line`
+ *  or `voice` is not the test** — both are current keys, and what changed was
+ *  the words their values are said in. Checking the keys alone repaired every
+ *  definition on every load, which reads as damage that is never mended. */
+const stale = (style: Record<string, unknown>): boolean =>
+  "emphasis" in style || "sheer" in style
+  || RUNGS[String(style["line"] ?? "")] !== undefined
+  || RUNGS[String(style["ink"] ?? "")] !== undefined
+  || VOICE[String(style["voice"] ?? "")] !== undefined;
+
+/** The ramp's own names for its rungs, as the words a reader can rank. */
+const RUNGS: Record<string, string> =
+  { dim: "faint", line: "soft", edge: "strong", ink: "full" };
+
+/** Loudness was a third scale beside contrast and opacity, meaning none of the
+ *  same things. These are the words everybody already uses for it. */
+const VOICE: Record<string, string> = { quiet: "light", loud: "bold" };
 
 /** The span covering an address, read off a group in hand. The fold's reader
  *  asks the graph; the door already has the block. */

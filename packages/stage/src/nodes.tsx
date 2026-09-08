@@ -197,9 +197,14 @@ function Middle({ side, inward }: { side?: Side; inward?: boolean }) {
  *  one selector serves every hue there is and nothing here knows a colour. */
 function dressed(look: Look) {
   const tinted = look.hue !== undefined;
+  /** **Opacity rides as a number, not a percentage.** A custom property in
+   *  `color-mix`'s percentage slot is the one place substitution is not
+   *  dependable; in the alpha slot of a relative colour it is an ordinary
+   *  number, and a browser without relative colour draws the card solid rather
+   *  than drawing no card at all. */
+  const sheer = look.opacity !== undefined && look.opacity < 1;
   return {
     "data-slot": tinted ? "tint" : look.slot,
-    "data-emphasis": look.emphasis,
     "data-weight": look.weight,
     "data-voice": look.voice,
     "data-decor": look.decor,
@@ -207,17 +212,20 @@ function dressed(look: Look) {
     "data-label": look.label,
     "data-align": look.align,
     "data-fill": look.fill,
-    "data-sheer": look.sheer,
     ...(look.line ? { "data-line": look.line } : {}),
     ...(look.ink ? { "data-ink": look.ink } : {}),
+    ...(sheer ? { "data-sheer": "" } : {}),
     ...(tinted
       /** **The ceiling stays in the ramp.** `intensity` is handed over as a
        *  fraction of it and multiplied in CSS, so the number lives in exactly
        *  one file and a theme could raise it without touching this one. */
       ? { style: { "--card-h": String(look.hue),
                    "--card-c": `calc(var(--tint-ceiling) * ${look.intensity ?? 0.65})`,
+                   ...(sheer ? { "--card-opacity": String(look.opacity) } : {}),
                  } as CSSProperties }
-      : {}),
+      : sheer
+        ? { style: { "--card-opacity": String(look.opacity) } as CSSProperties }
+        : {}),
   };
 }
 

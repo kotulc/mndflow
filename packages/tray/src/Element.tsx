@@ -225,16 +225,22 @@ export function Element({ graph, id, onAct }: ElementProps) {
               <div className="preview-card"
                    data-slot={said("style", "hue") === undefined
                      ? now("style", "slot", "neutral") : "tint"}
-                   style={said("style", "hue") === undefined ? undefined : {
-                     "--card-h": now("style", "hue", "200"),
-                     "--card-c": `calc(var(--tint-ceiling) * ${now("style", "intensity", "0.65")})`,
+                   style={{
+                     ...(said("style", "hue") === undefined ? {} : {
+                       "--card-h": now("style", "hue", "200"),
+                       "--card-c":
+                         `calc(var(--tint-ceiling) * ${now("style", "intensity", "0.65")})`,
+                     }),
+                     ...(Number(now("style", "opacity", "1")) < 1
+                       ? { "--card-opacity": now("style", "opacity", "1") } : {}),
                    } as CSSProperties}
-                   data-emphasis={now("style", "emphasis", "normal")}
                    data-weight={now("style", "weight", "thin")}
                    data-voice={now("style", "voice", "normal")}
                    data-decor={now("style", "decor", "none")}
                    data-fill={now("style", "fill", "solid")}
-                   data-sheer={now("style", "sheer", "opaque")}
+                   data-line={now("style", "line", "") || undefined}
+                   data-ink={now("style", "ink", "") || undefined}
+                   data-sheer={Number(now("style", "opacity", "1")) < 1 ? "" : undefined}
                    data-name={now("card", "name", "inside")}
                    data-label={now("card", "label", "none")}
                    data-align={now("card", "align", "left")}>

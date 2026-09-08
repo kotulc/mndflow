@@ -16,36 +16,33 @@
  *  what lets the CLI's text and SVG renderers say what a card would look like
  *  without resolving React. */
 
-import { ALIGNS, config_of, DECORS, def_of, EMPHASES, FILLS, is_container,
-         is_interface, kind_word, PLACES, SHEERS, SLOTS, STEPS, VOICES, WEIGHTS,
+import { ALIGNS, config_of, CONTRASTS, DECORS, def_of, FILLS, is_container,
+         is_interface, kind_word, PLACES, SLOTS, VOICES, WEIGHTS,
          WEIGHTS as WEIGHT_NAMES, type Graph, type Id } from "@mnd/core";
 
 export type Slot = (typeof SLOTS)[number];
-export type Emphasis = (typeof EMPHASES)[number];
 export type Weight = (typeof WEIGHT_NAMES)[number];
 export type Voice = (typeof VOICES)[number];
 export type Place = (typeof PLACES)[number];
 export type Align = (typeof ALIGNS)[number];
 export type Decor = (typeof DECORS)[number];
 export type Fill = (typeof FILLS)[number];
-export type Sheer = (typeof SHEERS)[number];
-export type Step = (typeof STEPS)[number];
+export type Contrast = (typeof CONTRASTS)[number];
 
 /** What one usage looks like. Every field is a name from a closed set, so a
  *  renderer is a lookup table and a definition cannot invent a value. */
 export type Look = {
   slot: Slot;
-  emphasis: Emphasis;
   weight: Weight;
   voice: Voice;
   decor: Decor;
   fill: Fill;
-  sheer: Sheer;
-  /** Which rung the border takes. **Absent is whatever `emphasis` said** — the
-   *  shorthand still works, and this overrules it where it is given. */
-  line?: Step;
-  /** Which rung the writing takes. Absent is whatever `emphasis` said. */
-  ink?: Step;
+  /** How far the border stands out from the card. Absent is the ordinary one. */
+  line?: Contrast;
+  /** How far the writing stands out. Absent is the ordinary one. */
+  ink?: Contrast;
+  /** How opaque the fill is, 0 to 1. Absent is solid. */
+  opacity?: number;
   /** Where the block's own name sits. */
   name: Place;
   /** Where the **type** sits — the named subtype where there is one, and the
@@ -72,8 +69,8 @@ export type Look = {
 /** What a card is when its definition says nothing. Neutral, ordinary weight,
  *  ordinary voice: the look every unclassified block already had. */
 export const PLAIN: Look = {
-  slot: "neutral", emphasis: "normal", weight: "thin", voice: "normal",
-  decor: "none", fill: "solid", sheer: "opaque",
+  slot: "neutral", weight: "thin", voice: "normal",
+  decor: "none", fill: "solid",
   name: "inside", label: "none", align: "left", kind: "block",
 };
 
@@ -107,7 +104,6 @@ export function look_of(graph: Graph, id: Id): Look {
 
   return {
     slot: one(style["slot"], SLOTS, PLAIN.slot),
-    emphasis: one(style["emphasis"], EMPHASES, PLAIN.emphasis),
     weight: one(style["weight"], WEIGHTS, weight_of(graph, id)),
     voice: one(style["voice"], VOICES, PLAIN.voice),
     decor: one(style["decor"], DECORS, PLAIN.decor),
@@ -115,13 +111,14 @@ export function look_of(graph: Graph, id: Id): Look {
     label: one(card["label"], PLACES, PLAIN.label),
     align: one(card["align"], ALIGNS, PLAIN.align),
     fill: one(style["fill"], FILLS, PLAIN.fill),
-    sheer: one(style["sheer"], SHEERS, PLAIN.sheer),
     ...(typeof style["line"] === "string"
-        && (STEPS as readonly string[]).includes(style["line"])
-      ? { line: style["line"] as Step } : {}),
+        && (CONTRASTS as readonly string[]).includes(style["line"])
+      ? { line: style["line"] as Contrast } : {}),
     ...(typeof style["ink"] === "string"
-        && (STEPS as readonly string[]).includes(style["ink"])
-      ? { ink: style["ink"] as Step } : {}),
+        && (CONTRASTS as readonly string[]).includes(style["ink"])
+      ? { ink: style["ink"] as Contrast } : {}),
+    ...(typeof style["opacity"] === "number" && Number.isFinite(style["opacity"])
+      ? { opacity: style["opacity"] } : {}),
     /** **The subtype where there is one, the base kind otherwise.** A card that
      *  nobody told apart still has a sort, and saying it is what `label` is
      *  for — so this is a word rather than sometimes a word. */
