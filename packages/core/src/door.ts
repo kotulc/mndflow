@@ -37,18 +37,40 @@ const OPS = new Set<string>([
   "set_labelled", "set_locked", "set_tags", "set_look",
 ]);
 
-/** Read a log in, repairing what it can. */
-export function check(input: unknown): Checked {
+/** Read a log in, repairing what it can.
+ *
+ *  **Nothing the floor ships may be written by a log.** A stored `set_def` for
+ *  a shipped id is dropped on the way in — that is how a private copy of `base`
+ *  got into every workspace and stayed there, outliving every change the build
+ *  made to it. Stripped here rather than reconciled on open, so the bad state
+ *  has nowhere to exist rather than being repaired once it does.
+ *
+ *  A workspace wanting its own `block` says so with a subtype that extends the
+ *  shipped one. That is a different id, and it passes untouched. */
+export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
   const faults: Fault[] = [];
   if (!Array.isArray(input)) return { log: [], faults: [{ kind: "dropped", what: "not a log" }] };
 
   const log: Log = [];
+  let taken = 0;
   for (const raw of input) {
     const step = read_step(raw, faults);
-    if (step) log.push(step);
+    if (!step) continue;
+    const kept = step.mutations.filter((m) => {
+      const shipped = (m.op === "set_def" && floor[m.def.id])
+                   || (m.op === "drop_def" && floor[m.id]);
+      if (shipped) taken++;
+      return !shipped;
+    });
+    if (kept.length !== step.mutations.length) log.push({ ...step, mutations: kept });
+    else log.push(step);
+  }
+  if (taken) {
+    faults.push({ kind: "repaired",
+                  what: `${taken} write${taken > 1 ? "s" : ""} to a shipped definition` });
   }
 
-  const mend = inspect(fold(log));
+  const mend = inspect(fold(log, floor));
   faults.push(...mend.faults);
   if (mend.repairs.length) log.push(repair_step(log.length, mend.repairs));
   return { log, faults };
@@ -242,47 +264,6 @@ export function inspect(graph: Graph): Inspection {
      *  scales into invisibility. **Repaired before the check below reads it**,
      *  because that one drops the *whole* `style` component over one bad word,
      *  which would take emphasis, weight and voice down with it. */
-    /** `card.layout` was retired — five values no renderer ever read — and
-     *  `card.label` changed meaning: it said where the *name* sat and now says
-     *  where the *type* does. **Both repaired before the check below reads it**,
-     *  because that one drops the whole `card` component over one stale key and
-     *  would take `shows`, `icon` and `align` down with it. */
-    const card = mended.components?.["card"];
-    if (card && ("layout" in card || "label" in card)) {
-      const { layout: _gone, label, ...rest } = card as Record<string, unknown>;
-      faults.push({ kind: "repaired",
-                    what: `"${d.name}" spoke the older card vocabulary` });
-      mended = { ...mended, components: { ...mended.components,
-        card: label === undefined ? rest : { ...rest, name: label } } };
-    }
-    /** `emphasis` was three fixed pairings of `line` and `ink`; `sheer` was
-     *  three names for a number; `voice` and the rungs were ramp jargon.
-     *  **All four translate exactly**, so nothing has to be dropped. */
-    const style = mended.components?.["style"] as Record<string, unknown> | undefined;
-    if (style && stale(style)) {
-      const { emphasis, sheer, ...rest } = style;
-      const said = { ...rest } as Record<string, unknown>;
-      if (emphasis === "quiet") { said["line"] ??= "faint"; said["ink"] ??= "faint"; }
-      if (emphasis === "strong") said["line"] ??= "strong";
-      if (sheer === "veiled") said["opacity"] ??= 0.55;
-      if (sheer === "ghost") said["opacity"] ??= 0.06;
-      for (const key of ["line", "ink"] as const) {
-        const was = RUNGS[String(said[key] ?? "")];
-        if (was) said[key] = was;
-      }
-      const voice = VOICE[String(said["voice"] ?? "")];
-      if (voice) said["voice"] = voice;
-      faults.push({ kind: "repaired",
-                    what: `"${d.name}" spoke the older style vocabulary` });
-      mended = { ...mended, components: { ...mended.components, style: said } };
-    }
-    const gone = RETIRED[String(mended.components?.["style"]?.["slot"] ?? "")];
-    if (gone) {
-      faults.push({ kind: "repaired", what: `"${d.name}" named the retired ${
-        mended.components!["style"]!["slot"]} family` });
-      mended = { ...mended, components: { ...mended.components,
-        style: { ...mended.components!["style"], slot: gone } } };
-    }
     /** **A component validates its own key and no other's**, so what it
      *  refuses is dropped and only that key. An unknown component is left
      *  alone — unvalidated rather than wrong, which is how this build opens a
@@ -302,28 +283,9 @@ export function inspect(graph: Graph): Inspection {
   return { faults, repairs };
 }
 
-/** What a retired family becomes. **The nearer of the two survivors** —
- *  `tertiary` sat between the accents and the greys and reads as a grey; the
- *  hue `quaternary` was reached for is now sayable directly. */
-const RETIRED: Record<string, string> = { tertiary: "neutral", quaternary: "secondary" };
 
-/** Whether a style is said in the older words at all. **The presence of `line`
- *  or `voice` is not the test** — both are current keys, and what changed was
- *  the words their values are said in. Checking the keys alone repaired every
- *  definition on every load, which reads as damage that is never mended. */
-const stale = (style: Record<string, unknown>): boolean =>
-  "emphasis" in style || "sheer" in style
-  || RUNGS[String(style["line"] ?? "")] !== undefined
-  || RUNGS[String(style["ink"] ?? "")] !== undefined
-  || VOICE[String(style["voice"] ?? "")] !== undefined;
 
-/** The ramp's own names for its rungs, as the words a reader can rank. */
-const RUNGS: Record<string, string> =
-  { dim: "faint", line: "soft", edge: "strong", ink: "full" };
 
-/** Loudness was a third scale beside contrast and opacity, meaning none of the
- *  same things. These are the words everybody already uses for it. */
-const VOICE: Record<string, string> = { quiet: "light", loud: "bold" };
 
 /** The span covering an address, read off a group in hand. The fold's reader
  *  asks the graph; the door already has the block. */

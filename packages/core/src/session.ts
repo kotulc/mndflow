@@ -14,12 +14,6 @@ import { ROOT } from "./types";
 import type { Fault } from "./door";
 import type { Graph, Id, Log, Mutation, Step } from "./types";
 
-/** Two definitions, compared by what they say rather than by identity — the
- *  shipped one is a fresh object every load, so `===` would rewrite the whole
- *  package every time. Key order is the author's and stable per build, which is
- *  all this has to survive. */
-const alike = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-
 /** **Everything the app says goes to one strip, and not all of it is a
  *  mirror.** A create echoed back is; a refusal, a repair report or a rule note
  *  is the app answering for itself. Quiet mode silences the one and never the
@@ -112,48 +106,38 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let listener: (() => void) | null = null;
   let opened_faults: import("./door").Fault[] = [];
 
-  /** A fresh log: the base package as one step, or nothing where an app binds
-   *  no definitions. **Written in one place** so opening a fresh workspace and
-   *  starting a new one cannot come out different. */
-  const seeded = (): Log => ports.defs?.length
-    ? [{ id: new_id("step"), action: "seed", at: 0, status: "applied",
-         mutations: ports.defs }]
-    : [];
+  /** **The shipped package, as the floor every fold starts from.** It is not a
+   *  step and never enters the log: a log is a history of intent, and what the
+   *  app ships is not the user's. Supplied fresh on every load, so a definition
+   *  the build changes is current in every workspace the moment it opens —
+   *  there is nothing to reconcile because there is no second copy.
+   *
+   *  Empty where an app binds no definitions, which is what the CLI's raw-log
+   *  paths and every headless test do. */
+  const floor: Graph["defs"] = {};
+  for (const m of ports.defs ?? []) if (m.op === "set_def") floor[m.def.id] = m.def;
+
+  /** A fresh log is empty. The floor is already under it. */
+  const seeded = (): Log => [];
 
   const opened = storage.read();
   if (opened) {
-    const checked = check(opened);
+    const checked = check(opened, floor);
     log = checked.log;
-    /** **The shipped package is reconciled on the way in.** The seed is laid
-     *  down once, when storage is empty, so every definition the build has
-     *  changed since a workspace was made lives on in it — a note stayed the
-     *  colour it was seeded with however many times `base` was rewritten, and
-     *  starting a new workspace was the only cure. It is shipped and locked and
-     *  known by id, which is exactly what makes replacing it safe.
-     *
-     *  **Only what differs**, so an unchanged build adds no step and the log
-     *  does not grow on every load. */
-    const held = fold(log).defs;
-    const fresh = (ports.defs ?? []).filter(
-      (m) => m.op === "set_def" && !alike(held[m.def.id], m.def));
-    if (fresh.length) {
-      log = [...log, { id: new_id("step"), action: "seed", at: log.length,
-                       status: "applied" as const, mutations: fresh }];
-    }
     /** A repair is a step, so it has to be kept. Left in memory it would be
      *  made again on every load, and the log would be re-read as damaged each
      *  time — the door would be telling the truth about something it had
      *  already mended. */
-    if (checked.faults.length || fresh.length) storage.write(log);
+    if (checked.faults.length) storage.write(log);
     opened_faults = checked.faults;
   } else {
     log = seeded();
   }
-  graph = fold(log);
+  graph = fold(log, floor);
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
-    graph = fold(log);
+    graph = fold(log, floor);
     storage.write(log);
     listener?.();
   };

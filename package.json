@@ -6,6 +6,7 @@
     "dev": "npm run dev -w @mnd/web",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint:css": "node scripts/lint-css.mjs",
     "release:kit": "node scripts/release-kit.mjs"
   },
   "dependencies": {

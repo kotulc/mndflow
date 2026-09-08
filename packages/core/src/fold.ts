@@ -265,14 +265,42 @@ function apply(graph: Graph, m: Mutation): void {
   }
 }
 
-/** Rebuild the graph from empty by replaying every applied step in order. */
-export function fold(log: Log): Graph {
+/** Rebuild the graph by replaying every applied step over the floor.
+ *
+ *  **The floor is the shipped package, and it is not in the log.** It used to
+ *  be step 0, which meant every workspace carried a private copy of `base` made
+ *  the day it was created — so a definition the build changed afterwards was
+ *  invisible in every workspace already written, and starting a new one was the
+ *  only cure. A log is a history of *intent*, and what the app ships is not the
+ *  user's intent.
+ *
+ *  Handed in rather than imported: `defs` depends on `core`, so core may not
+ *  depend back. An app passes the floor the same way it passes a port.
+ *
+ *  **Nothing else changes.** The floor lands in `graph.defs` exactly where the
+ *  seed step used to put it, so every reader sees what it always saw. */
+export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
   const graph = empty_graph();
+  lay(graph, floor);
   for (const step of log) {
     if (step.status !== "applied") continue;
-    for (const m of step.mutations) apply(graph, m);
+    for (const m of step.mutations) {
+      apply(graph, m);
+      /** **A checkpoint replaces the whole graph, floor and all.** An imported
+       *  file carries every definition it could reach, the shipped ones
+       *  included — so without this, opening a file would hand a workspace the
+       *  *exporter's* copy of `base` and the drift would be back, arriving by
+       *  post. The floor is re-laid over it, so a file is self-contained to
+       *  read and the receiving build always draws in its own vocabulary. */
+      if (m.op === "checkpoint") lay(graph, floor);
+    }
   }
   return graph;
+}
+
+/** The shipped package, over whatever is there. */
+function lay(graph: Graph, floor: Graph["defs"]): void {
+  for (const [id, def] of Object.entries(floor)) graph.defs[id] = def;
 }
 
 

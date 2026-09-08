@@ -1,0 +1,412 @@
+{
+  "schema": "2.0",
+  "id": "sample",
+  "graph": {
+    "root": "ws",
+    "defs": {
+      "block": {
+        "id": "block",
+        "home": "ws",
+        "group": "block",
+        "name": "block",
+        "components": {
+          "block": {
+            "module": "block"
+          },
+          "card": {},
+          "style": {
+            "slot": "primary"
+          }
+        }
+      },
+      "def_ghost": {
+        "id": "def_ghost",
+        "home": "ws",
+        "group": "block",
+        "name": "Draft",
+        "extends": "block",
+        "components": {
+          "style": {
+            "slot": "muted",
+            "fill": "hatch",
+            "opacity": 0.25,
+            "decor": "italic"
+          },
+          "card": {
+            "label": "below",
+            "align": "center"
+          }
+        }
+      },
+      "def_heading": {
+        "id": "def_heading",
+        "home": "ws",
+        "group": "block",
+        "name": "Heading",
+        "extends": "block",
+        "components": {
+          "style": {
+            "slot": "primary",
+            "voice": "bold",
+            "decor": "underline",
+            "line": "full"
+          },
+          "card": {
+            "align": "center",
+            "label": "none"
+          }
+        }
+      },
+      "def_pump": {
+        "id": "def_pump",
+        "home": "ws",
+        "group": "block",
+        "name": "Pump",
+        "extends": "block",
+        "components": {
+          "style": {
+            "hue": 285,
+            "intensity": 0.8,
+            "line": "strong",
+            "ink": "full"
+          },
+          "card": {
+            "label": "inside",
+            "shows": [
+              "rated flow"
+            ]
+          }
+        }
+      },
+      "def_vessel": {
+        "id": "def_vessel",
+        "home": "ws",
+        "group": "block",
+        "name": "Vessel",
+        "extends": "block",
+        "components": {
+          "style": {
+            "slot": "secondary",
+            "fill": "wash",
+            "opacity": 0.5
+          },
+          "card": {}
+        }
+      },
+      "directed": {
+        "id": "directed",
+        "home": "ws",
+        "group": "relation",
+        "name": "directed"
+      },
+      "folder": {
+        "id": "folder",
+        "home": "ws",
+        "group": "block",
+        "name": "folder",
+        "components": {
+          "block": {
+            "module": "folder"
+          },
+          "card": {},
+          "style": {
+            "slot": "neutral",
+            "line": "faint",
+            "ink": "faint"
+          }
+        }
+      },
+      "grid": {
+        "id": "grid",
+        "home": "ws",
+        "group": "block",
+        "name": "grid",
+        "components": {
+          "block": {
+            "module": "grid"
+          },
+          "card": {},
+          "style": {
+            "slot": "muted",
+            "line": "faint",
+            "ink": "faint"
+          }
+        }
+      },
+      "group": {
+        "id": "group",
+        "home": "ws",
+        "group": "block",
+        "name": "group",
+        "components": {
+          "block": {
+            "module": "group"
+          },
+          "card": {},
+          "style": {
+            "slot": "muted",
+            "line": "faint",
+            "ink": "faint"
+          }
+        }
+      },
+      "interface": {
+        "id": "interface",
+        "home": "ws",
+        "group": "block",
+        "name": "interface",
+        "components": {
+          "block": {
+            "module": "interface"
+          },
+          "card": {
+            "name": "none"
+          },
+          "style": {
+            "slot": "secondary",
+            "weight": "thin"
+          }
+        }
+      },
+      "line": {
+        "id": "line",
+        "home": "ws",
+        "group": "relation",
+        "name": "line"
+      },
+      "note": {
+        "id": "note",
+        "home": "ws",
+        "group": "block",
+        "name": "note",
+        "extends": "resource",
+        "components": {
+          "block": {
+            "module": "note"
+          },
+          "card": {},
+          "style": {
+            "slot": "note",
+            "line": "strong",
+            "ink": "faint",
+            "fill": "wash",
+            "opacity": 0.06
+          }
+        }
+      },
+      "reference": {
+        "id": "reference",
+        "home": "ws",
+        "group": "block",
+        "name": "reference",
+        "components": {
+          "block": {
+            "module": "reference"
+          },
+          "card": {},
+          "style": {
+            "slot": "away",
+            "line": "strong",
+            "ink": "strong",
+            "fill": "hatch",
+            "opacity": 0.55
+          }
+        }
+      },
+      "resource": {
+        "id": "resource",
+        "home": "ws",
+        "group": "block",
+        "name": "resource",
+        "components": {
+          "block": {
+            "module": "resource"
+          },
+          "card": {},
+          "style": {
+            "slot": "secondary",
+            "line": "faint",
+            "ink": "faint"
+          }
+        }
+      }
+    },
+    "blocks": {
+      "b_hx": {
+        "id": "b_hx",
+        "parent": "b_loop",
+        "label": "Heat Exchanger",
+        "type": "def_vessel",
+        "num": 2,
+        "x": 168,
+        "y": 0,
+        "group": "g_wet"
+      },
+      "b_loop": {
+        "id": "b_loop",
+        "parent": "f_plant",
+        "label": "Primary Loop",
+        "num": 1,
+        "x": 0,
+        "y": 0
+      },
+      "b_note": {
+        "id": "b_note",
+        "parent": "b_loop",
+        "label": "",
+        "num": 6,
+        "x": 336,
+        "y": 96,
+        "type": "note",
+        "body": "Hatch and wash are said by the definition now, not by the stylesheet."
+      },
+      "b_pump": {
+        "id": "b_pump",
+        "parent": "b_loop",
+        "label": "Feed Pump",
+        "type": "def_pump",
+        "num": 1,
+        "x": 0,
+        "y": 0,
+        "fields": [
+          {
+            "name": "rated flow",
+            "form": "number",
+            "value": "50"
+          }
+        ],
+        "group": "g_wet"
+      },
+      "b_ref": {
+        "id": "b_ref",
+        "parent": "b_loop",
+        "label": "",
+        "num": 7,
+        "x": 0,
+        "y": 192,
+        "of": "b_hx"
+      },
+      "b_res": {
+        "id": "b_res",
+        "parent": "b_loop",
+        "label": "Coolant",
+        "num": 8,
+        "x": 168,
+        "y": 192,
+        "type": "resource"
+      },
+      "b_spare": {
+        "id": "b_spare",
+        "parent": "b_loop",
+        "label": "Spare Pump",
+        "type": "def_ghost",
+        "num": 4,
+        "x": 0,
+        "y": 96
+      },
+      "b_tank": {
+        "id": "b_tank",
+        "parent": "b_loop",
+        "label": "Surge Tank",
+        "type": "def_vessel",
+        "num": 3,
+        "x": 336,
+        "y": 0
+      },
+      "b_title": {
+        "id": "b_title",
+        "parent": "b_loop",
+        "label": "Primary Loop",
+        "type": "def_heading",
+        "num": 5,
+        "x": 168,
+        "y": 96
+      },
+      "c_a": {
+        "id": "c_a",
+        "parent": "f_plant",
+        "label": "Duty",
+        "num": 3,
+        "group": "gr_matrix",
+        "cell": {
+          "r": 0,
+          "c": 0
+        },
+        "header": true
+      },
+      "c_b": {
+        "id": "c_b",
+        "parent": "f_plant",
+        "label": "Standby",
+        "num": 4,
+        "group": "gr_matrix",
+        "cell": {
+          "r": 1,
+          "c": 0
+        }
+      },
+      "f_plant": {
+        "id": "f_plant",
+        "parent": "ws",
+        "label": "Coolant Plant",
+        "type": "folder",
+        "num": 1
+      },
+      "g_wet": {
+        "id": "g_wet",
+        "parent": "b_loop",
+        "label": "Wet side",
+        "num": 9,
+        "type": "group"
+      },
+      "gr_matrix": {
+        "id": "gr_matrix",
+        "parent": "f_plant",
+        "label": "Duty",
+        "num": 2,
+        "type": "grid",
+        "rows": 2,
+        "cols": 2,
+        "x": 0,
+        "y": 320
+      },
+      "i_in": {
+        "id": "i_in",
+        "parent": "b_pump",
+        "label": "",
+        "num": 1,
+        "side": "left",
+        "at": 0.5,
+        "flow": "in"
+      },
+      "ws": {
+        "id": "ws",
+        "parent": null,
+        "label": "workspace",
+        "type": "folder"
+      }
+    },
+    "edges": {
+      "e_flow": {
+        "id": "e_flow",
+        "from": "b_pump",
+        "to": "b_hx",
+        "module": "directed",
+        "dir": "one"
+      },
+      "e_out": {
+        "id": "e_out",
+        "from": "b_hx",
+        "to": "b_tank",
+        "module": "directed",
+        "dir": "one"
+      },
+      "e_tie": {
+        "id": "e_tie",
+        "from": "b_note",
+        "to": "b_hx",
+        "module": "tie"
+      }
+    }
+  }
+}
