@@ -9,7 +9,7 @@
  *  byte-identical — which is what the canonical layout is for. */
 
 import { inspect, type Fault } from "./door";
-import { fold, subtree } from "./fold";
+import { def_of, fold, subtree } from "./fold";
 import { new_id } from "./ids";
 import { empty_graph, SCHEMA, type File, type Graph, type Id, type Log, type Step }
   from "./types";
@@ -45,7 +45,14 @@ export function write(graph: Graph, id = "workspace"): string {
   return JSON.stringify(file, null, 2) + "\n";
 }
 
-/** A subtree plus every definition it reaches, and everything those extend. */
+/** A subtree plus every definition it reaches, and everything those extend.
+ *
+ *  **Collected through `def_of`, never off the field.** A block naming nothing
+ *  still resolves to a definition — its base kind, or the workspace's override
+ *  of it — so reading `b.type` contributed `undefined` and dropped `ws.block`
+ *  out of the export, which is exactly the definition making every plain block
+ *  in the project look the way it does. A whole-workspace export writes all of
+ *  `graph.defs` and was never affected. */
 export function write_subtree(graph: Graph, root: Id): string {
   const ids = new Set(subtree(graph, root));
   const blocks: Record<Id, Graph["blocks"][string]> = {};
@@ -58,8 +65,8 @@ export function write_subtree(graph: Graph, root: Id): string {
     if (ids.has(e.from) && ids.has(e.to)) edges[eid] = e;
   }
   const defs: Record<Id, Graph["defs"][string]> = {};
-  const want = [...Object.values(blocks).map((b) => b.type),
-                ...Object.values(edges).map((e) => e.type)].filter(Boolean) as Id[];
+  const want = [...Object.keys(blocks).map((id) => def_of(graph, id)),
+                ...Object.keys(edges).map((id) => def_of(graph, id))].filter(Boolean) as Id[];
   for (let i = 0; i < want.length; i++) {
     const d = graph.defs[want[i]!];
     if (!d || defs[d.id]) continue;
@@ -101,14 +108,17 @@ export type Read = { log: Log; faults: Fault[] };
  *  **A log is not a file.** What a file holds is state, and nothing may hand
  *  the engine a history it did not write itself. `open` is the same journey
  *  stopping one step later, and is the one offered outward. */
-export function read(text: string): Read {
+export function read(text: string, floor: Graph["defs"] = {}): Read {
   const got = parse(text);
   if (!got.graph) return { log: [], faults: got.faults };
 
   const graph = got.graph;
-  const mend = inspect(graph);
+  /** **Inspected over the floor, not over the file.** A file need not carry the
+   *  shipped package to be whole — the floor is laid under every fold — so
+   *  checking the bare graph reported every base kind as missing. */
   const log: Log = [{ id: new_id("step"), action: "import", at: 0, status: "applied",
                       mutations: [{ op: "checkpoint", graph }] }];
+  const mend = inspect(fold(log, floor));
   if (mend.repairs.length) {
     log.push({ id: new_id("step"), action: "repair", at: 1, status: "applied",
                mutations: mend.repairs });
@@ -124,9 +134,9 @@ export type Opened = { graph: Graph; faults: Fault[] };
  *  comes back — no log, no steps, and nothing that has to agree with this
  *  engine's history to be understood. An unreadable file is the empty graph
  *  and a fault saying why. */
-export function open(text: string): Opened {
-  const got = read(text);
-  return { graph: fold(got.log), faults: got.faults };
+export function open(text: string, floor: Graph["defs"] = {}): Opened {
+  const got = read(text, floor);
+  return { graph: fold(got.log, floor), faults: got.faults };
 }
 
 function major(v: string): string {

@@ -18,6 +18,7 @@ import { useState } from "react";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Element } from "./Element";
+import { Definition } from "./Definition";
 import { Chain } from "./Chain";
 import { children, is_container, module_of, type Act, type Graph, type Id } from "@mnd/core";
 
@@ -39,6 +40,10 @@ export type TrayProps = {
    *  keeps whichever tab was last open. */
   tab?: Tab;
   onTab?: (tab: Tab) => void;
+  /** Which definition the vocabulary section has hold of. **It wins the
+   *  definition tab while it is set**: picking a row there is asking about the
+   *  definition, not about whatever block was picked before it. */
+  pickedDef?: Id | null;
 };
 
 export type Tab = "definition" | "contents";
@@ -63,7 +68,8 @@ const FILTERS: { sort: Sort | "all" | "types"; label: string }[] = [
 ];
 
 export function Tray(props: TrayProps) {
-  const { graph, layer, label, open, onOpen, picked, onPick, onHover, onAct } = props;
+  const { graph, layer, label, open, onOpen, picked, onPick, onHover, onAct,
+          pickedDef = null } = props;
   const [held_tab, set_held_tab] = useState<Tab>("contents");
   const tab = props.tab ?? held_tab;
   const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
@@ -73,6 +79,7 @@ export function Tray(props: TrayProps) {
   const [adding, set_adding] = useState("");
 
   const one = picked.length === 1 ? picked[0]! : null;
+  const held_def = pickedDef && graph.defs[pickedDef] ? pickedDef : null;
 
   /** **What the table is about.** A container you have hold of narrows it to
    *  that container's own contents; anything else, and the open layer is what
@@ -106,15 +113,21 @@ export function Tray(props: TrayProps) {
         ) : <span className="name">{label}</span>}
         <span className="holds">
           {tab === "contents" ? `${shown.length} held`
-            : one ? "one element" : "nothing picked"}
+            : held_def ? "one definition" : one ? "one element" : "nothing picked"}
         </span>
       </div>
 
+      {/* **Three branches, one question.** A block, a relationship, or a
+          definition out of the vocabulary — what is being described is
+          whichever was picked last, and a definition wins because picking one
+          is what asking about it looks like. */}
       {open && tab === "definition" ? (
         <div className="tray-body">
-          {one && onAct
-            ? <Element graph={graph} id={one} onAct={onAct} />
-            : <p className="empty">pick one thing to describe it</p>}
+          {held_def && onAct
+            ? <Definition graph={graph} id={held_def} onAct={onAct} />
+            : one && onAct
+              ? <Element graph={graph} id={one} onAct={onAct} />
+              : <p className="empty">pick one thing to describe it</p>}
         </div>
       ) : null}
 

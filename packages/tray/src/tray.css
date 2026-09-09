@@ -729,3 +729,54 @@
 /* The cascade, read top to bottom in the order things win. The element is the
    last row because it has the final say, and it is not a definition. */
 .contents-table.chain tr.picked td { color: var(--accent); }
+
+/* What must be true, stated where it is read. One row per rule that is a list
+   of names — the same chips the tags row uses, so adding a rule and adding a
+   tag read as the same gesture. */
+.tray .rules-author .rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.tray .rules-author .rule > label {
+  flex: none;
+  width: 76px;
+  padding-top: 3px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.tray .rules-author .rule .chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tray .rules-author .rule .chips input { width: 96px; }
+.tray .rules-author .rule .chips select { max-width: 132px; }
+
+/* A chip that states a fact rather than offering a control: what the chain
+   already says, and where a definition came from. Dashed, because the nearer
+   statement is the whole answer and there is nothing here to drop. */
+.tray .chip.from {
+  border: 1px dashed var(--divider);
+  border-radius: 2px;
+  padding: 0 5px;
+  color: var(--muted);
+  cursor: default;
+}
+
+.tray .rules-author .rule.read-only .says {
+  padding-top: 3px;
+  color: var(--muted);
+}
+
+.tray .rules-author .rule.read-only .says em {
+  display: block;
+  opacity: 0.7;
+  font-style: italic;
+}

@@ -13,8 +13,8 @@
  *  the whole of the matching. A malformed rule is ignored rather than thrown
  *  on, the same way a component validates its own key and no other. */
 
-import { children, isa, subtree } from "./fold";
-import type { Definition, Flow, Graph, Id } from "./types";
+import { children, def_of, isa, subtree } from "./fold";
+import type { Components, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "degree" | "match";
 
@@ -54,13 +54,19 @@ const range = (v: unknown): Range | undefined => {
   return ok(min) && ok(max) ? { min, max } : undefined;
 };
 
-/** The rules in force on a usage: the chain, nearest first, and the nearest
- *  declaration of each kind wins. Components merge per key, so a subtype
- *  restating one kind leaves the others alone. */
-export function rules_of(graph: Graph, type: Id | undefined): Rules {
+/** The rules in force, nearest first, and the nearest declaration of each kind
+ *  wins. **A list replaces rather than unions** — `holds` and `required` are
+ *  lists and the nearer statement is the whole answer, which is strictly more
+ *  expressive: a usage stating the list can narrow it *or* widen it.
+ *
+ *  **It takes an id, and the id says which question.** A definition asks what
+ *  its own chain declares; anything else is a usage, and a usage's own
+ *  `looks.rules` is the last layer over that chain — the same shape `look_of`
+ *  gives `card` and `style`, so everything a definition may say now has a usage
+ *  counterpart. */
+export function rules_of(graph: Graph, id: Id | undefined): Rules {
   const out: Rules = {};
-  for (const d of isa(graph, type)) {
-    const from = read_rules(d);
+  for (const from of layers_of(graph, id)) {
     for (const key of Object.keys(from) as (keyof Rules)[]) {
       if (out[key] === undefined) (out as Record<string, unknown>)[key] = from[key];
     }
@@ -68,12 +74,20 @@ export function rules_of(graph: Graph, type: Id | undefined): Rules {
   return out;
 }
 
-function read_rules(d: Definition): Rules {
-  const c = d.components?.["constraints"] ?? {};
-  const r = d.components?.["rules"] ?? {};
+/** What states rules over this, nearest first. */
+function layers_of(graph: Graph, id: Id | undefined): Rules[] {
+  if (!id) return [];
+  if (graph.defs[id]) return isa(graph, id).map((d) => read_rules(d.components));
+  const chain = isa(graph, def_of(graph, id)).map((d) => read_rules(d.components));
+  const own = graph.blocks[id]?.looks;
+  return own?.["rules"] ? [read_rules(own), ...chain] : chain;
+}
+
+function read_rules(components: Components | undefined): Rules {
+  const r = components?.["rules"] ?? {};
   const out: Rules = {};
 
-  const required = strings(c["required"]);
+  const required = strings(r["required"]);
   if (required) out.required = required;
 
   const ends = r["ends"];
@@ -124,7 +138,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
 
   for (const b of Object.values(graph.blocks)) {
     if (!holds_block(b.id)) continue;
-    const rules = rules_of(graph, b.type);
+    const rules = rules_of(graph, b.id);
 
     for (const name of rules.required ?? []) {
       if (!value_of(graph, b.id, name)) {
@@ -157,7 +171,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
 
   for (const e of Object.values(graph.edges)) {
     if (!holds_block(e.from) && !holds_block(e.to)) continue;
-    const rules = rules_of(graph, e.type);
+    const rules = rules_of(graph, e.id);
 
     for (const name of rules.required ?? []) {
       if (!value_of(graph, e.id, name)) {

@@ -26,6 +26,12 @@ import type { Side } from "@mnd/core";
  *  agree about the name. */
 export const DRAGGED = "text/mnd-block";
 
+/** What a **definition** being dragged onto the drawing carries. One target,
+ *  two gestures: a block dropped here is a second appearance of something that
+ *  already exists, and a definition dropped here makes a new block naming it.
+ *  The payload is what tells them apart. */
+export const DRAGGED_DEF = "text/mnd-def";
+
 import { BAND, FRAME, PLAIN, look_key,
          type BoxData, type BoxNode, type Cell, type GridCell, type Look } from "@mnd/views";
 import type { Role } from "@mnd/core";
@@ -37,7 +43,7 @@ import { Icon, Name, known, useNaming, type IconName } from "@mnd/theme";
  *  block beside it. */
 const ROLE: Record<Role, IconName> = {
   block: "role_leaf", container: "role_container", folder: "role_folder",
-  reference: "role_reference", interface: "role_interface",
+  resource: "role_resource", reference: "role_reference", interface: "role_interface",
   group: "role_group", grid: "role_table", note: "role_note",
 };
 

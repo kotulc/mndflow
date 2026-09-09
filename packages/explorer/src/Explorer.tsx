@@ -15,6 +15,7 @@ import { alias_of, children, is_interface, is_named, is_reference, module_of,
          shown_name, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
+import { Vocabulary } from "./Vocabulary";
 
 export type ExplorerProps = {
   graph: Graph;
@@ -37,6 +38,12 @@ export type ExplorerProps = {
    *  vocabulary of its own turns it off and keeps the tree: `onAct` is a name
    *  and arguments, so what the rows mean was never the explorer's to decide. */
   menu?: boolean;
+  /** Which definition the vocabulary section has hold of. **Beside the block
+   *  selection, never among it**: a definition is not a block, so it could not
+   *  ride in `picked` without every reader of that list having to guard for it.
+   *  Absent, the section is not drawn. */
+  pickedDef?: Id | null;
+  onPickDef?: (id: Id | null) => void;
 };
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
@@ -53,7 +60,7 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
               *  ancestor at depth *j+1* has a sibling still to come; the last
               *  column is the row's own. */
              guides: boolean[] };
-type Mark = "leaf" | "container" | "folder" | "interface" | "reference" | "note" | "group" | "grid";
+type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid";
 
 /** What the tree draws under a block. A boundary, a note, a field and a
  *  reference are never listed — a reference is a second appearance of
@@ -83,6 +90,7 @@ function tree_of(graph: Graph, folded: readonly Id[]): Row[] {
       out.push({ id: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id),
                  mark: module_of(graph, b.id) === "folder" ? "folder"
+                     : module_of(graph, b.id) === "resource" ? "resource"
                      : kids.length ? "container" : "leaf",
                  guides });
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
@@ -127,6 +135,7 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
   leaf: { icon: "role_leaf" },
   container: { icon: "role_container", solid: true },
   folder: { icon: "role_folder" },
+  resource: { icon: "role_resource" },
   interface: { icon: "role_interface" },
   reference: { icon: "role_reference" },
   note: { icon: "role_note" },
@@ -136,7 +145,7 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
 
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
-          menu: offered = true } = props;
+          menu: offered = true, pickedDef = null, onPickDef } = props;
   /** What is in hand. **A selection, not a row** — dragging one of several
    *  picked rows moved that one and quietly left the rest where they were. */
   const [dragging, set_dragging] = useState<readonly Id[]>([]);
@@ -381,6 +390,13 @@ export function Explorer(props: ExplorerProps) {
                 if (ids.length) onAct("move", { ids, parent: graph.root });
               }} />
         </ul>
+
+      {/* **The vocabulary, under the structure it types.** The tree is what the
+          workspace *is*; this is what it can say — so it sits below rather than
+          beside, and a definition is dragged up out of it onto the drawing. */}
+      {onPickDef ? (
+        <Vocabulary graph={graph} picked={pickedDef} onPick={onPickDef} onAct={onAct} />
+      ) : null}
 
       {/* **The edge is the control.** A panel whose width is a taste is
           dragged to it rather than argued with, and the pointer is captured so

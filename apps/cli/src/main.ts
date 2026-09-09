@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { check, children, fold, read, review, say, session, shown_name, write,
-         type Fault, type Id, type Log, type Storage } from "@mnd/core";
+         type Fault, type Graph, type Id, type Log, type Storage } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
 import { draw, draw_svg, faults, outline, project } from "@mnd/views";
@@ -38,6 +38,13 @@ const USAGE = `mnd — the headless harness
   --from sets the package catalogue search reads (default public/packages/index.json)
 `;
 
+/** **The shipped package, as the floor every fold here starts from.** The app
+ *  binds it the way it binds a port; the harness is an app, so it does too.
+ *  Without it a file that does not carry the base kinds reads as broken, and
+ *  every command below drew from an empty vocabulary. */
+const FLOOR: Graph["defs"] = {};
+for (const m of seed()) FLOOR[m.def.id] = m.def;
+
 /** A fixture of either kind, an exported file, or a raw log.
  *
  *  **A log is not a file** — `read` takes envelopes only. This is the harness,
@@ -52,7 +59,7 @@ function load(source: string): { log: Log; faults: Fault[] } {
   const text = GRAPH_NAMES.includes(source as never)
     ? graph_file(source)
     : readFileSync(source, "utf8");
-  return text.trimStart().startsWith("[") ? check(JSON.parse(text)) : read(text);
+  return text.trimStart().startsWith("[") ? check(JSON.parse(text), FLOOR) : read(text, FLOOR);
 }
 
 /** A storage bound to what we already hold, so `run` can use the real session. */
@@ -62,7 +69,7 @@ function held(log: Log): Storage {
 }
 
 function tree(log: Log): string {
-  const graph = fold(log);
+  const graph = fold(log, FLOOR);
   const lines: string[] = [];
   const walk = (id: Id | null, depth: number) => {
     for (const b of children(graph, id)) {
@@ -79,7 +86,7 @@ function tree(log: Log): string {
 /** A layer by name or by id, so nothing has to be copied out of a fixture. */
 function find_layer(log: Log, want: string | undefined): Id | null {
   if (!want) return null;
-  const graph = fold(log);
+  const graph = fold(log, FLOOR);
   if (graph.blocks[want]) return want;
   const hit = Object.values(graph.blocks).find((b) => b.label === want);
   if (!hit) {
@@ -152,7 +159,7 @@ async function main(argv: string[]): Promise<void> {
      *  are the ones the door found on the way in. A log arrives unread, so
      *  running the door over it is what finds anything at all. */
     case "check": {
-      const found = reading.length ? reading : check(log).faults;
+      const found = reading.length ? reading : check(log, FLOOR).faults;
       console.log(found.length ? say(found) : "clean");
       for (const f of found) console.log(`  ${f.kind}: ${f.what}`);
       return;
@@ -162,7 +169,7 @@ async function main(argv: string[]): Promise<void> {
      *  definitions in scope wanted and did not get, which is advice until a
      *  translator turns it into a refusal. */
     case "review": {
-      const graph = fold(log);
+      const graph = fold(log, FLOOR);
       const notes = review(graph, find_layer(log, plain[0]) ?? undefined);
       console.log(notes.length ? `${notes.length} to answer for` : "clean");
       for (const n of notes) console.log(`  ${n.kind}: ${n.what}`);
@@ -172,7 +179,7 @@ async function main(argv: string[]): Promise<void> {
     case "project":
     case "outline": {
       const layer = find_layer(log, plain[0]);
-      let graph = fold(log);
+      let graph = fold(log, FLOOR);
       if (how && layer !== null) graph = { ...graph,
         blocks: { ...graph.blocks, [layer]: { ...graph.blocks[layer]!, arrangement: how as never } } };
       const scene = project(graph, layer);
@@ -231,23 +238,6 @@ async function main(argv: string[]): Promise<void> {
       return;
     }
 
-    /** A definition package from outside the workspace, **in through the
-     *  door**: what arrives is a file like any other, checked against the graph
-     *  it is joining rather than against itself, and what was repaired is said. */
-    case "search": {
-      const s = session({ storage: held(log), defs: seed(), net: node_net(),
-                          catalogue: flag(rest, "from") ?? CATALOGUE });
-      const before = new Set(Object.keys(s.graph().defs));
-      const found = await s.search(plain.join(" "));
-      console.log(s.said()?.text ?? "");
-      if (!found) process.exit(1);
-      for (const d of Object.values(s.graph().defs)) {
-        if (!before.has(d.id)) console.log(`  ${d.group} ${d.name}`);
-      }
-      for (const f of found.faults) console.log(`  ${f.kind}: ${f.what}`);
-      return;
-    }
-
 
     /** **A standard is a translation layer, never a shape the model bends to.**
      *  One way out; the reader exists to prove it, so `--round` emits, reads
@@ -269,15 +259,15 @@ async function main(argv: string[]): Promise<void> {
         }
         held_log = s.log();
       }
-      const graph = fold(held_log);
+      const graph = fold(held_log, FLOOR);
       const text = to_sysml(graph);
       if (!rest.includes("--round")) {
         process.stdout.write(text);
         return;
       }
-      const back = read(as_file(from_sysml(text, graph.defs)));
+      const back = read(as_file(from_sysml(text, graph.defs)), FLOOR);
       for (const f of back.faults) console.log(`  ${f.kind}: ${f.what}`);
-      const again = fold(back.log);
+      const again = fold(back.log, FLOOR);
       const was = shape_of(graph);
       const now = shape_of(again);
       const lost = was.filter((line) => !now.includes(line));
@@ -292,7 +282,7 @@ async function main(argv: string[]): Promise<void> {
     }
 
     case "export": {
-      const text = write(fold(log));
+      const text = write(fold(log, FLOOR));
       const out = plain[0];
       if (out) writeFileSync(out, text);
       else process.stdout.write(text);

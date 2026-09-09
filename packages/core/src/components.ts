@@ -261,16 +261,15 @@ const style: Component = {
                                "hue", "intensity"]),
 };
 
-/** The one constraint: which of a usage's fields must carry a value. */
-const constraints: Component = {
-  name: "constraints",
-  check: (config) =>
-    words("constraints.required", config["required"])
-    ?? stray("constraints", config, ["required"]),
-};
-
-/** The four rules. Each is a lookup, a count or one fixed comparison — the
- *  shapes are checked here, and what survives is what `review` reads. */
+/** One constraint and four rules. Each is a lookup, a count or one fixed
+ *  comparison — the shapes are checked here, and what survives is what `review`
+ *  reads.
+ *
+ *  **`required` used to live under its own `constraints` key.** It was the only
+ *  thing there, and two component keys for one concept is drift: what a
+ *  vocabulary asks of a usage is one question, whether it is answered by a
+ *  field the usage must carry or by what may sit at its ends. The door moves
+ *  an old one across. */
 const rules: Component = {
   name: "rules",
   check: (config) => {
@@ -288,13 +287,14 @@ const rules: Component = {
       const wrong = stray("rules.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return words("rules.holds", config["holds"])
+    return words("rules.required", config["required"])
+      ?? words("rules.holds", config["holds"])
       ?? words("rules.match", config["match"])
-      ?? stray("rules", config, ["ends", "holds", "degree", "match"]);
+      ?? stray("rules", config, ["required", "ends", "holds", "degree", "match"]);
   },
 };
 
 /** What this build publishes. The engine ships its components the same way
  *  anybody else would, so there is no privileged path a later module would
  *  have to be measured against. */
-publish(block, card, style, constraints, rules);
+publish(block, card, style, rules);

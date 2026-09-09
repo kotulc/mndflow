@@ -69,6 +69,11 @@ export function App() {
   const [module, set_module] = useState<RelationModule>("line");
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
+  /** Which definition the vocabulary section has hold of. **Shell state, beside
+   *  the session's selection and never among it** — a definition is not a block
+   *  or a relationship, so putting one in `picked` would make every reader of
+   *  that list guard for something that is neither. */
+  const [picked_def, set_picked_def] = useState<Id | null>(null);
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
   useEffect(() => {
@@ -375,7 +380,15 @@ export function App() {
         onAct={act}
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
-        onPick={(ids) => s.pick(ids)}
+        onPick={(ids) => { s.pick(ids); set_picked_def(null); }}
+        pickedDef={picked_def}
+        /** **Picking a definition describes it**, which is the definition tab
+         *  and nothing else — so the tray opens on it the way the rail's cog
+         *  opens on an element. */
+        onPickDef={(id) => {
+          set_picked_def(id);
+          if (id) { s.pick([]); set_tab("definition"); set_tray(true); }
+        }}
       />
 
       <main>
@@ -402,18 +415,26 @@ export function App() {
            *  block already in this layer is the one thing a drop cannot say, and
            *  `refer` is what says so — it is the action's to refuse, not the
            *  app's to guess at. */
-          onDrop={(id, spot) => {
+          onDrop={(id, spot, what) => {
             /** **Where the pointer was, clear of what is already there.** A row
              *  is dropped by its middle, and a card is placed by its corner. */
             const at = clear_of(
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
+            /** **A definition dragged out makes a block naming it.** No new
+             *  action: `create` already takes a type, and what the vocabulary
+             *  section drags is a row of `graph.defs` rather than anything that
+             *  exists on a layer. */
+            if (what === "definition") {
+              s.go("create", { label: "", type: id, parent: layer ?? graph.root, spot: at });
+              return;
+            }
             s.go("refer", { target: id, spot: at });
           }}
           picked={s.picked()}
           cells={s.cells()}
-          onPickCells={(cells) => s.pick_cells(cells)}
+          onPickCells={(cells) => { s.pick_cells(cells); set_picked_def(null); }}
           lattice={shown.lattice}
           module={module}
           said={said?.text ?? null}
@@ -431,7 +452,8 @@ export function App() {
           tab={tab}
           onTab={set_tab}
           picked={s.picked()}
-          onPick={(ids) => s.pick(ids)}
+          onPick={(ids) => { s.pick(ids); set_picked_def(null); }}
+          pickedDef={picked_def}
           onAct={act}
         />
       </main>

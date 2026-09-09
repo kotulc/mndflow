@@ -155,22 +155,16 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "add_block", block: { ...rest, group: held.get(b.id) } });
   }
 
-  /** `structure` → `block`. **The base kind was renamed, not retired**, so a
-   *  file that names the old word still resolves — both on a usage and on a
-   *  subtype that roots there. Repaired rather than dropped: a block whose type
-   *  went missing would silently become a plain one and take its subtype's
-   *  fields with it. */
+  /** `structure` → `block` on a usage. **The base kind was renamed, not
+   *  retired**, so a file naming the old word still resolves. Repaired rather
+   *  than dropped: a block whose type went missing would silently become a
+   *  plain one and take its subtype's fields with it. A subtype rooted there is
+   *  mended with the rest of its record, further down. */
   for (const b of Object.values(graph.blocks)) {
     if (b.type !== "structure") continue;
     faults.push({ kind: "repaired", what: `"${name(b.id)}" named the old base type` });
     repairs.push({ op: "update_block", id: b.id, type: "block" });
   }
-  for (const d of Object.values(graph.defs)) {
-    if (d.extends !== "structure") continue;
-    faults.push({ kind: "repaired", what: `"${d.name}" extended the old base type` });
-    repairs.push({ op: "set_def", def: { ...d, extends: "block" } });
-  }
-
   /** **Grids used to share the group module.** Anything carrying an extent is
    *  a grid, whatever module it names, and is repaired to say so.
    *
@@ -251,13 +245,35 @@ export function inspect(graph: Graph): Inspection {
    *  for the same definition would leave the later one undoing the earlier. */
   for (const d of Object.values(graph.defs)) {
     let mended = d;
-    if (!graph.blocks[d.home]) {
+    /** `structure` → `block`. **The base kind was renamed, not retired**, so a
+     *  subtype that roots there still resolves. **Mended here rather than in a
+     *  repair of its own**: a second `set_def` for one definition leaves the
+     *  later one undoing the earlier, and the missing-extends check below would
+     *  have blanked what this had just repaired. */
+    if (mended.extends === "structure") {
+      faults.push({ kind: "repaired", what: `"${d.name}" extended the old base type` });
+      mended = { ...mended, extends: "block" };
+    }
+    if (!graph.blocks[mended.home]) {
       faults.push({ kind: "repaired", what: `"${d.name}" was filed under nothing` });
       mended = { ...mended, home: ROOT };
     }
-    if (d.extends && !graph.defs[d.extends]) {
+    if (mended.extends && !graph.defs[mended.extends]) {
       faults.push({ kind: "repaired", what: `"${d.name}" extended something that is not there` });
       mended = { ...mended, extends: undefined };
+    }
+    /** **`constraints` folded into `rules`.** `required` was the only thing
+     *  under it, and one concept with two component keys is drift. Moved
+     *  rather than dropped, and moved **before** the check below reads the
+     *  record: `constraints` is no longer a published component, so what it
+     *  carried would otherwise ride along unvalidated into every file written
+     *  from here. A `rules` already there keeps whatever it says. */
+    const old_c = mended.components?.["constraints"];
+    if (old_c && typeof old_c === "object") {
+      faults.push({ kind: "repaired", what: `"${d.name}" stated a constraint the old way` });
+      const rules = { ...(old_c as Record<string, unknown>),
+                      ...(mended.components?.["rules"] ?? {}) };
+      mended = { ...mended, components: { ...without(mended.components, "constraints"), rules } };
     }
     /** `tertiary` and `quaternary` were retired, not renamed — they carried
      *  `secondary`'s chroma and differed only by hue, at a chroma the fill step

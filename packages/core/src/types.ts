@@ -197,6 +197,14 @@ export type Definition = {
   id: Id;
   /** The block it is filed under. Ownership, lock and scope all derive from this. */
   home: Id;
+  /** The package this came from. **Absent means this workspace made it**, which
+   *  is the whole of the ownership question: a definition with a `from` is
+   *  somebody else's vocabulary, so no action may write it and the section
+   *  lists it under its package rather than among the workspace's own.
+   *
+   *  **Declared in the file, never inferred.** Stamping it on the way in would
+   *  mark a project export's own definitions as though they were a package's. */
+  from?: string;
   group: "block" | "relation";
   name: string;
   body?: string;
@@ -223,7 +231,10 @@ export function empty_graph(): Graph {
 export type Mutation =
   | { op: "checkpoint"; graph: Graph }
   | { op: "add_block"; block: Block }
-  | { op: "update_block"; id: Id; label?: string; type?: Id }
+  /** `type: null` clears it, which is not the same as leaving it alone.
+   *  **A block naming nothing is its base kind**, so absence is an answer
+   *  somebody can mean — and `unpin` has to be able to give it back. */
+  | { op: "update_block"; id: Id; label?: string; type?: Id | null }
   | { op: "delete_block"; id: Id }
   | { op: "move_block"; id: Id; parent: Id | null }
   | { op: "place_block"; id: Id; x: number; y: number }

@@ -15,10 +15,11 @@
 
 import { type CSSProperties, useState } from "react";
 import { BLOCK_MODULES, VALUE_FORMS, alias_of, config_of, defs_in_scope, def_of,
-         kind_word, may_retype, module_of, role_of, rules_of, shown_name,
+         is_own_id, kind_word, may_retype, module_of, role_of, shown_name,
          type Act, type Field, type Graph, type Id, type Role } from "@mnd/core";
 import { Icon, type IconName } from "@mnd/theme";
 import { Looks } from "./Looks";
+import { Rules } from "./Rules";
 
 /** Every id the base packages ship, block kinds and relations alike. A
  *  definition carrying one of these **is** a base kind rather than something
@@ -26,11 +27,11 @@ import { Looks } from "./Looks";
 const BASE_IDS: readonly string[] = [...BLOCK_MODULES, "line", "directed"];
 
 /** The mark a role wears while nobody has picked one. **The tray's own copy**:
- *  the same eight the stage draws, restated here because a surface may not
+ *  the same nine the stage draws, restated here because a surface may not
  *  reach another surface for them. */
 const ROLE: Record<Role, IconName> = {
   block: "role_leaf", container: "role_container", folder: "role_folder",
-  reference: "role_reference", interface: "role_interface",
+  resource: "role_resource", reference: "role_reference", interface: "role_interface",
   group: "role_group", grid: "role_table", note: "role_note",
 };
 
@@ -71,7 +72,10 @@ export function Element({ graph, id, onAct }: ElementProps) {
    *  offering it there would ask the same question twice — which is what made
    *  *base* and *type* read as two rows saying `block`. */
   const base_id = b ? module_of(graph, id) : edge?.module ?? "line";
-  const subtypes = scope.filter((d) => !BASE_IDS.includes(d.id));
+  /** **Nor a `ws.<kind>` override.** It stands in for a base kind rather than
+   *  refining one, so offering it there would put a second row saying `block`
+   *  in a list of what this could become. */
+  const subtypes = scope.filter((d) => !BASE_IDS.includes(d.id) && !is_own_id(d.id));
   const named = b?.type ?? edge?.type;
   const subtype = named && subtypes.some((d) => d.id === named) ? named : "";
   /** What it has been told about itself, as against what its chain says. */
@@ -101,10 +105,6 @@ export function Element({ graph, id, onAct }: ElementProps) {
     set_adding("");
   };
 
-  /** The rules in force, from the chain. **Derived and read-only here**: a rule
-   *  is a definition's to state, and nothing writes one yet. */
-  const rules = rules_of(graph, def_of(graph, id));
-  const stated = rule_rows(graph, rules);
 
   const mark = (now("card", "icon", "") || ROLE[b ? role_of(graph, id) : "block"]) as IconName;
   /** **What somebody named it, not what it resolves to.** Every card resolves
@@ -282,23 +282,14 @@ export function Element({ graph, id, onAct }: ElementProps) {
         </div>
       </div>
 
-      {/* **What must be true**, before what it happens to carry. Derived from
-          the chain and read-only: a rule is a definition's to state, and
-          nothing writes one from here yet. */}
+      {/* **What must be true**, before what it happens to carry. **Stated here
+          as well as read**: a block carries rules the way it carries a look, so
+          what its definitions ask of it and what it asks of itself are one
+          panel with the nearer statement winning. */}
       <section className="part rules">
-        <h4>rules<span className="from">{stated.length ? "in force, from the chain" : ""}</span></h4>
-        {stated.length ? (
-          <table className="stated">
-            <tbody>
-              {stated.map((r) => (
-                <tr key={r.kind}>
-                  <td className="key">{r.kind}</td>
-                  <td>{r.says}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : <p className="empty">its definitions ask nothing of it</p>}
+        <h4>rules<span className="from">{b ? "what it is held to" : "from the chain"}</span></h4>
+        {b ? <Rules graph={graph} holder={id} onAct={onAct} />
+           : <p className="empty">a relationship states its rules on its definition — ST.15</p>}
       </section>
 
       {/* **What it carries.** Last, because a value is the detail and
@@ -343,34 +334,4 @@ export function Element({ graph, id, onAct }: ElementProps) {
       </section>
     </div>
   );
-}
-
-/** The rules in force, as one line each. **Names, not ids** — a rule naming a
- *  definition means it or anything below it, and the id is no use to a reader. */
-function rule_rows(graph: Graph, rules: ReturnType<typeof rules_of>) {
-  const named = (ids: readonly Id[]) =>
-    ids.map((d) => graph.defs[d]?.name ?? d).join(", ");
-  const span = (r?: { min?: number; max?: number }) =>
-    !r ? "" : r.min !== undefined && r.max !== undefined ? `${r.min}–${r.max}`
-      : r.min !== undefined ? `${r.min} or more` : `up to ${r.max}`;
-
-  const out: { kind: string; says: string }[] = [];
-  if (rules.required?.length) {
-    out.push({ kind: "required", says: `must carry ${rules.required.join(", ")}` });
-  }
-  if (rules.holds?.length) out.push({ kind: "holds", says: `may hold ${named(rules.holds)}` });
-  if (rules.ends) {
-    const from = rules.ends.from?.length ? named(rules.ends.from) : "anything";
-    const to = rules.ends.to?.length ? named(rules.ends.to) : "anything";
-    out.push({ kind: "ends", says: `${from} → ${to}` });
-  }
-  if (rules.degree) {
-    const bits = [rules.degree.in ? `in ${span(rules.degree.in)}` : "",
-                  rules.degree.out ? `out ${span(rules.degree.out)}` : ""].filter(Boolean);
-    if (bits.length) out.push({ kind: "degree", says: bits.join(", ") });
-  }
-  if (rules.match?.length) {
-    out.push({ kind: "match", says: `${rules.match.join(", ")} must agree across it` });
-  }
-  return out;
 }

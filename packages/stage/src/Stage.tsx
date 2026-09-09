@@ -35,7 +35,8 @@ export type StageProps = {
   cells?: readonly Spot[];
   onPickCells?: (cells: readonly Spot[]) => void;
   /** A row dropped from the tree onto the drawing. */
-  onDrop?: (id: string, at: { x: number; y: number }) => void;
+  onDrop?: (id: string, at: { x: number; y: number },
+            what: "block" | "definition") => void;
   /** The offered-action list, where the host has one. **Given rather than
    *  built**: the canvas and the tree offer the same actions, so the same menu
    *  serves both and neither package owns it.
@@ -79,7 +80,7 @@ function header_offers(id: string, graph: Graph): Entry[] {
 
 /** What a card's menu lists besides the shared box actions. */
 function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
-  const base: (string | Entry)[] = ["rename", "open", "interface", "relate", "note"];
+  const base: (string | Entry)[] = ["rename", "open", "interface", "relate", "note", "pin"];
   return [...base, ...header_offers(id, graph), "leave", "delete"];
 }
 
@@ -173,19 +174,23 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
 
   /** **What the right button offers, per thing.** Agreed rather than derived:
    *  the registry says what an action can act on, which is a wider question
-   *  than what belongs on a card's menu. Empty ground has no list — right there
-   *  makes a block, which is one gesture doing one thing. */
+   *  than what belongs on a card's menu. **`pin` is on every one that names a
+   *  block**, because pointing at a thing that already reads the way you want
+   *  is the whole of how a definition gets made.
+   *
+   *  Empty ground has no list — right there makes a block, which is one
+   *  gesture doing one thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
     name: ["rename", "delete"],
     /** **A note is a remark, not a block.** There is nothing inside it to open
      *  and no wall to set an interface into; what is left is what it says and
      *  whether it stays. */
-    note: ["rename", "relate", "delete"],
-    box: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
-    seat: ["rename", "open", "interface", "relate", "note", "delete"],
+    note: ["rename", "relate", "pin", "delete"],
+    box: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
+    seat: ["rename", "open", "interface", "relate", "note", "pin", "delete"],
     /** **A group and a grid write their name on the frame** when told to. */
     band: ["rename", "label", "fill",
-           { name: "chain", args: module ? { module } : {} }, "delete"],
+           { name: "chain", args: module ? { module } : {} }, "pin", "delete"],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
      *  and remove are two entries each rather than one entry and a second
@@ -208,7 +213,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     anchor: ["rename", "delete"],
     /** **The room's wall is a border like a card's**, but an interface is chosen
      *  from the menu — a right click here is the offered list, not a shortcut. */
-    frame: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
+    frame: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
   };
 
   /** **What several things offer is not what one thing offers.** Rename, open

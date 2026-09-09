@@ -7,10 +7,11 @@
       "req.requirement": {
         "id": "req.requirement",
         "home": "ws",
+        "from": "requirements",
         "group": "block",
         "name": "requirement",
         "body": "Something the system shall do, and how that is shown.",
-        "extends": "structure",
+        "extends": "block",
         "fields": [
           {
             "name": "id",
@@ -38,24 +39,26 @@
               "shall"
             ]
           },
-          "constraints": {
+          "style": {
+            "slot": "neutral",
+            "line": "faint",
+            "ink": "faint"
+          },
+          "sketch": {
+            "hatching": "cross"
+          },
+          "rules": {
             "required": [
               "id",
               "shall"
             ]
-          },
-          "style": {
-            "slot": "neutral",
-            "emphasis": "quiet"
-          },
-          "sketch": {
-            "hatching": "cross"
           }
         }
       },
       "req.group": {
         "id": "req.group",
         "home": "ws",
+        "from": "requirements",
         "group": "block",
         "name": "requirement group",
         "extends": "folder",
@@ -72,6 +75,7 @@
       "req.satisfy": {
         "id": "req.satisfy",
         "home": "ws",
+        "from": "requirements",
         "group": "relation",
         "name": "satisfies",
         "extends": "directed",
@@ -93,6 +97,7 @@
       "req.verify": {
         "id": "req.verify",
         "home": "ws",
+        "from": "requirements",
         "group": "relation",
         "name": "verifies",
         "extends": "directed",
@@ -110,6 +115,7 @@
       "req.table": {
         "id": "req.table",
         "home": "ws",
+        "from": "requirements",
         "group": "view",
         "name": "requirements",
         "components": {

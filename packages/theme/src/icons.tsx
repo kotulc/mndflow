@@ -19,6 +19,10 @@
 const GRID = 24;
 const WEIGHT = 1.5;
 
+/** Interfaces on a wall — the block with stubs. **One drawing** for the tree
+ *  mark and the display toggle's *ports on* state. */
+const PORTS = "M6 6h12v12H6zM2.5 12H6M18 12h3.5";
+
 /** Every icon, keyed by what it means. Paths only — the frame is shared. */
 const PATHS = {
   // Making and taking away.
@@ -47,11 +51,14 @@ const PATHS = {
 
   // What a row is, in the tree. One meaning each.
   role_leaf: "M7 7h10v10H7z",
-  role_interface: "M7.5 7.5h9v9h-9z",
+  role_interface: PORTS,
   // A container holds things, so it is solid. An outline would read as the
   // empty leaf beside it.
   role_container: "M6 6h12v12H6z",
   role_folder: "M3.5 7.5h6l2 2h9v9h-17z",
+  // An external artifact — a page with an outward corner, distinct from
+  // `role_reference` (another block in the model) and `role_note` (text here).
+  role_resource: "M6.5 6h9v12h-9zM15 6h3.5v3.5M15 6l3.5 3.5",
   // Somewhere else, a description, and a set — none of them structure here.
   // A reference is a solid corner pointing up and out of its own card: it
   // stands for something that lives elsewhere, and the mark says which way.
@@ -65,6 +72,8 @@ const PATHS = {
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
+  /** The vocabulary's mark: a definition somebody pinned by pointing. */
+  pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -78,7 +87,7 @@ const PATHS = {
   label_off: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5M5.5 18.5l13-13",
 
   // Interfaces drawn on the canvas, or not.
-  ports_on: "M6 6h12v12H6zM2.5 12H6M18 12h3.5",
+  ports_on: PORTS,
   ports_off: "M15 6H6v12h9",
 
   // Sending a file out, and taking one in. A workspace lands on a shelf; a

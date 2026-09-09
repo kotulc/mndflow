@@ -5,7 +5,7 @@
  *  needs an inverse. */
 
 import type { Settings } from "./components";
-import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
+import { BLOCK_MODULES, OPEN_MODULES, ROOT, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -39,7 +39,8 @@ function apply(graph: Graph, m: Mutation): void {
       const b = graph.blocks[m.id];
       if (!b) return;
       if (m.label !== undefined) b.label = m.label;
-      if (m.type !== undefined) b.type = m.type;
+      if (m.type === null) delete b.type;
+      else if (m.type !== undefined) b.type = m.type;
       return;
     }
     case "delete_block": {
@@ -852,14 +853,90 @@ export function module_named(graph: Graph, type: Id | undefined): BlockModule {
  *  from its module. */
 export function def_of(graph: Graph, id: Id): Id | undefined {
   const b = graph.blocks[id];
-  if (b) {
-    if (b.type) return b.type;
-    const base = module_of(graph, id);
-    return graph.defs[base] ? base : undefined;
-  }
+  if (b) return own_of(graph, b.type ?? module_of(graph, id));
   const e = graph.edges[id];
   if (!e) return undefined;
   return e.type ?? (graph.defs[e.module] ? e.module : undefined);
+}
+
+/** The id a workspace files its own word for a base kind under.
+ *
+ *  **`ws.` rather than `base.`**, because the shipped package already ships
+ *  `block` at a bare id and one word should not mean both what ships and the
+ *  workspace's override of it. **Minted here and never through `def_id`**,
+ *  which strips the dot. */
+export function own_id(kind: string): Id {
+  return `${ROOT}.${kind}`;
+}
+
+/** What a named kind actually resolves to: **the workspace's own word for a
+ *  base kind where it has one, and the shipped definition otherwise.**
+ *
+ *  ```
+ *  graph.defs["ws.block"]  ??  graph.defs["block"]
+ *       the workspace's override    the engine default
+ *  ```
+ *
+ *  **Two lookups, both by id and never by name.** A package must not take over
+ *  a project by being imported, and `sysml.json` already ships a definition
+ *  *named* `block`, so a name route was never safe. There is no precedence rule
+ *  and nothing to reason about.
+ *
+ *  **Only a bare base kind is overridable.** A subtype somebody named resolves
+ *  to itself, which is what makes an override *replace* the base row rather
+ *  than sit beside it. */
+function own_of(graph: Graph, named: Id | undefined): Id | undefined {
+  if (!named) return undefined;
+  if (!BLOCK_MODULES.includes(named as BlockModule)) return named;
+  const own = own_id(named);
+  return graph.defs[own] ? own : graph.defs[named] ? named : undefined;
+}
+
+/** Whether an id is a workspace's own word for a base kind. */
+export function is_own_id(id: Id): boolean {
+  return BLOCK_MODULES.some((kind) => id === own_id(kind));
+}
+
+/** One package's block definitions, as the vocabulary section lists them. */
+export type Vocabulary = {
+  /** The package these came from. **Null is the workspace's own.** */
+  from: string | null;
+  defs: Definition[];
+};
+
+/** Every block definition this workspace can reach, grouped by where it came
+ *  from — its own, each imported package's, and the base.
+ *
+ *  **A rendering, not blocks.** Nothing here is realised until it is dragged
+ *  out, which is why it needs no reserved folder, no seed change, no door
+ *  migration and no defences against rename, delete and drop — and why it works
+ *  in every workspace already written.
+ *
+ *  **One row per base kind.** A `ws.<kind>` override stands in the base row's
+ *  place rather than beside it: two rows both saying `block` is the one thing a
+ *  vocabulary must not do. The base definition is never deleted — the override
+ *  extends it — so unpinning the override brings the base row back.
+ *
+ *  **The only thing this gives up** is typing a single block to the pristine
+ *  base while everything else uses the override. Still reachable by giving that
+ *  block its own `looks`. */
+export function vocabulary(graph: Graph): Vocabulary[] {
+  const stands_in = new Map<Id, Definition>();
+  for (const kind of BLOCK_MODULES) {
+    const own = graph.defs[own_id(kind)];
+    if (own?.group === "block") stands_in.set(kind, own);
+  }
+  const groups = new Map<string | null, Definition[]>();
+  for (const d of Object.values(graph.defs)) {
+    if (d.group !== "block" || is_own_id(d.id)) continue;
+    const held = groups.get(d.from ?? null) ?? [];
+    held.push(stands_in.get(d.id) ?? d);
+    groups.set(d.from ?? null, held);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b)))
+    .map(([from, defs]) => ({ from,
+                              defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
 }
 
 /** Whether this block may be told to name that definition.
@@ -881,15 +958,15 @@ export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean 
  *  **The module, plus the one thing a module cannot say.** A structure block
  *  that holds a layer of its own is a container, which is a fact about what it
  *  holds rather than about what it is — and it is the difference a reader needs
- *  most, because it says whether there is anywhere to go. Behavior, resource
- *  and view have no mark of their own: what they are is said by the definition
- *  they name, and a second word for it would be one too many.
+ *  most, because it says whether there is anywhere to go. Behavior and view
+ *  have no mark of their own: what they are is said by the definition they
+ *  name, and a second word for it would be one too many.
  *
  *  Asked here so the tree, the canvas and every other surface answer alike. */
-export type Role = "block" | "container" | "folder" | "reference"
+export type Role = "block" | "container" | "folder" | "resource" | "reference"
                  | "interface" | "group" | "grid" | "note";
 
-const MARKED: readonly string[] = ["folder", "reference", "interface", "group", "grid", "note"];
+const MARKED: readonly string[] = ["folder", "resource", "reference", "interface", "group", "grid", "note"];
 
 export function role_of(graph: Graph, id: Id): Role {
   const module = module_of(graph, id);

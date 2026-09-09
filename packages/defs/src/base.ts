@@ -10,11 +10,16 @@
 
 import { empty_graph, ROOT, type Definition, type Graph } from "@mnd/core";
 
+/** What every definition here says it came from. **A package resists editing**,
+ *  and this is the whole of how that is asked — no hardcoded id list, and the
+ *  same answer for a package fetched from outside. */
+export const PACKAGE = "base";
+
 function def(name: string, module: string, extend?: string,
              card: Record<string, unknown> = {},
              style: Record<string, unknown> = {}): Definition {
   return {
-    id: name, home: ROOT, group: "block", name,
+    id: name, home: ROOT, from: PACKAGE, group: "block", name,
     extends: extend,
     components: { block: { module }, card, style },
   };
@@ -64,8 +69,8 @@ export const BASE: Definition[] = [
 /** The two relation definitions the base ships, so an untyped line still
  *  resolves to something with a name. */
 export const RELATIONS: Definition[] = [
-  { id: "line", home: ROOT, group: "relation", name: "line" },
-  { id: "directed", home: ROOT, group: "relation", name: "directed" },
+  { id: "line", home: ROOT, from: PACKAGE, group: "relation", name: "line" },
+  { id: "directed", home: ROOT, from: PACKAGE, group: "relation", name: "directed" },
 ];
 
 export const ALL: Definition[] = [...BASE, ...RELATIONS];
