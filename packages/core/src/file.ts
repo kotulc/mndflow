@@ -20,13 +20,26 @@ import { empty_graph, SCHEMA, type File, type Graph, type Id, type Log, type Ste
  *  somebody chose rather than a default nobody set. */
 function trim<T extends object>(o: T): T {
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(o)) {
+  for (const [k, v] of Object.entries(o).sort(by_key)) {
     if (v === undefined) continue;
     if (Array.isArray(v) && v.length === 0) continue;
     out[k] = v;
   }
   return out as T;
 }
+
+/** **What a record says about itself, before what it holds.** Key order was
+ *  whatever order the graph happened to be built in, so one graph reached two
+ *  ways — pinned and unpinned, say — wrote the same model as different bytes.
+ *  Alphabetical alone would open every block with its fields, which is the one
+ *  thing a reader scanning a file does not want first. */
+const FIRST = ["id", "parent", "label", "name", "home", "from", "group", "module",
+               "type", "extends", "default", "of", "side", "dir"];
+
+const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
+  const x = FIRST.indexOf(a), y = FIRST.indexOf(b);
+  return (x < 0 ? FIRST.length : x) - (y < 0 ? FIRST.length : y) || a.localeCompare(b);
+};
 
 function ordered<T extends { id: Id }>(all: Record<Id, T>): Record<Id, T> {
   const out: Record<Id, T> = {};

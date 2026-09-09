@@ -28,7 +28,7 @@ const HOME = "docs";
 
 function def(name: string, extend: string, card: Record<string, unknown>,
              fields: Definition["fields"] = []): Definition {
-  return { id: `doc.${name}`, home: HOME, group: "block", name: `doc.${name}`,
+  return { id: `doc.${name}`, group: "block", name: `doc.${name}`,
            extends: extend, fields, components: { card } };
 }
 
@@ -53,7 +53,7 @@ const VOCAB: Definition[] = [
        { name: "checked", form: "flag" }]),
   def("term", "note", {  },
       [{ name: "source", form: "link" }]),
-  { id: "doc.link", home: HOME, group: "relation", name: "doc.link",
+  { id: "doc.link", group: "relation", name: "doc.link",
     extends: "directed", fields: [{ name: "kind", form: "text" },
                                   { name: "text", form: "text" }] },
 ];

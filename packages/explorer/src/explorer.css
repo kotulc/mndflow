@@ -231,79 +231,26 @@
 .menu .asking .choices button:hover { color: var(--accent); }
 .menu .asking .about { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 
-/* The vocabulary: what the workspace can say, under the tree of what it is.
-   Its own scroll, so a long list of definitions never pushes the structure off
-   the panel — and a fixed share of the height rather than a fought-over one. */
-.explorer .vocabulary {
-  flex: none;
-  max-height: 40%;
-  overflow: auto;
-  border-top: 1px solid var(--divider);
-  padding-bottom: 4px;
-}
+/* The vocabulary: what the workspace can say, above the tree of what it is.
+   **Ordinary rows** — the marks, guides, indent and fold are the tree's own, so
+   what is left here is the little that differs: the seam under the folder, a
+   quieter pack row, and a definition drawn as a word rather than a name being
+   edited in place. */
+.explorer .tree li.pack .label { color: var(--muted); }
+.explorer .tree li.pack .mark { color: var(--accent); }
 
-.explorer .vocabulary .head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px 3px;
-  color: var(--muted);
+.explorer .tree li.def .label { color: var(--text); }
+.explorer .tree li.def .alias {
+  color: var(--accent);
+  font-size: 9px;
   letter-spacing: 0.06em;
-  position: sticky;
-  top: 0;
-  background: var(--bg);
-  z-index: 1;
+  text-transform: uppercase;
 }
 
-/* One package, one branch. The heading is the fold, the way a row's mark is. */
-.explorer .vocabulary .pack-head {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px 2px 6px;
-  cursor: default;
-  color: var(--muted);
-  white-space: nowrap;
+/* **One line between what the workspace can say and what it is.** Two lists,
+   one panel — the seam is what keeps them from reading as one run. */
+.explorer .tree li.sep {
+  border-top: 1px solid var(--divider);
+  margin-top: 3px;
+  padding-top: 3px;
 }
-
-.explorer .vocabulary .pack-head:hover { color: var(--text); }
-.explorer .vocabulary .pack-head .from { overflow: hidden; text-overflow: ellipsis; }
-.explorer .vocabulary .pack-head .count { margin-left: auto; opacity: 0.6; }
-
-.explorer .vocabulary ul { list-style: none; margin: 0; padding: 0; }
-
-.explorer .vocabulary li {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 1px 8px 1px 20px;
-  cursor: default;
-  white-space: nowrap;
-  border-left: 2px solid transparent;
-}
-
-.explorer .vocabulary li .label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.explorer .vocabulary li .mark { display: inline-flex; color: var(--muted); flex: none; }
-.explorer .vocabulary li:hover { background: var(--hover); }
-.explorer .vocabulary li.picked { border-left-color: var(--accent); color: var(--accent); }
-
-/* An override says so: it stands where the base row was, and reads as the
-   workspace's word for that kind rather than as the shipped one. */
-.explorer .vocabulary li.overridden .label { font-style: italic; }
-
-/* The one control a row carries. Quiet until the row is under the pointer, so
-   a listing of thirty definitions is a listing and not a wall of buttons. */
-.explorer .vocabulary li .act {
-  margin-left: auto;
-  flex: none;
-  opacity: 0;
-  color: var(--muted);
-}
-
-.explorer .vocabulary li:hover .act, .explorer .vocabulary li.picked .act { opacity: 1; }
-.explorer .vocabulary li .act:hover { color: var(--accent); }

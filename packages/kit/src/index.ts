@@ -49,10 +49,10 @@ export { type Note, type NoteKind, type Range, type Rules, review, rules_of } fr
 /** Reading a graph. Every derived answer the engine gives about one. */
 export {
   allocated_to, allocations_of, arrangement_of, at_cell, cell_of, children,
-  defs_in_scope, edges_in, grid_of, head_of, heads, isa, is_container, is_grid, is_group,
+  edges_in, grid_of, head_of, heads, isa, is_container, is_grid, is_group,
   is_header, is_holder, is_interface,
   is_reference, is_top_block, layer_id, members_of, merge_at, module_of,
-  owner_of, path, region_of, resolve_def, shown_name, stands_for, subtree, would_head,
+  owner_of, path, region_of, shown_name, stands_for, subtree, would_head,
 } from "@mnd/core";
 
 /** The floor. `base_graph()` is a fresh workspace with the base package in it. */

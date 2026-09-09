@@ -15,6 +15,10 @@
 }
 
 .tray.open { height: 25%; }
+/* **Full height, when the body has more to say than a quarter of the window.**
+   Nine style rows and a list of fields do not fit a bar; the stage is what the
+   app is for, so this is asked for rather than assumed. */
+.tray.open.big { height: 100%; }
 
 .tray-bar {
   display: flex;
@@ -33,21 +37,56 @@
   letter-spacing: 0.06em;
   flex: none;
   margin-left: auto;
+  padding-right: 4px;
 }
 
-.tray-bar .chevron {
-  flex: none;
+/* **Tabs left, controls far right.** What the tray shows is a question about
+   the model; how big it is, is a question about the window. `margin-left: auto`
+   here rather than on `.holds`, so the controls stay pinned to the edge whether
+   or not anything is being counted. */
+.tray-tools { display: flex; align-items: center; gap: 2px; flex: none;
+              margin-left: auto; }
+
+/* **The handle floats over the drawing, clear of the tray.** Not a tab welded
+   to the edge — welded, it read as one more piece of the bar, and the bar is
+   about what the tray is showing rather than whether it is showing at all.
+   Detached and centred, it is a control for the tray and plainly not in it. */
+.tray-handle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -26px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px color-mix(in oklch, var(--s-neutral-ground) 55%, transparent);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tray-handle:hover { color: var(--accent); border-color: var(--accent); }
+
+.tray-tools button {
   width: 22px;
+  height: 20px;
   padding: 0;
   border: none;
   background: none;
   color: var(--muted);
   font: inherit;
-  line-height: 1;
   cursor: pointer;
 }
 
-.tray-bar .chevron:hover { color: var(--accent); }
+.tray-tools button:hover { color: var(--accent); }
+.tray-tools button.on { color: var(--accent); }
 
 /* The table scrolls **down** inside the tray, never sideways: columns are given
    widths and long text is cut instead. */
@@ -135,19 +174,15 @@
 
 .element { display: flex; flex-direction: column; padding: 8px 10px 10px; }
 
+/* **Two columns: what it is, and how it draws.** The drawing is not a third —
+   it belongs beside the chip that selected the answers it is being read
+   against, which is inside the second. */
 .element-cols {
   display: grid;
-  /* **The drawing does not compete for room.** It is one card wide and no
-     wider, so the two columns of answers share what is left rather than
-     reflowing every time a tab with more options is opened. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   gap: 14px;
   padding-bottom: 8px;
 }
-
-/* Top right, and it stays there: the card is read against every tab, so it must
-   not move when the options beside it change height. */
-.element .col.shown { align-items: flex-end; flex: none; }
 
 .element .col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 
@@ -157,6 +192,170 @@
    before: the chips did not fill, and the tag input carried a width of its own
    while the name grew, which is why nothing lined up. */
 .element .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* ── The body pattern ─────────────────────────────────────────────────────────
+   A label on the left, its content on the right, banded down the page. Every
+   tray body is this, which is what replaced a tab strip inside a tab. */
+.rows { display: flex; flex-direction: column; min-width: 0; }
+
+.rows + .rows { border-top: 1px solid var(--divider); padding-top: 5px; margin-top: 4px; }
+
+.rows > h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 3px;
+  color: var(--faint);
+  font-size: 9px;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rows > h4 .from { color: var(--faint); text-transform: none; letter-spacing: 0; }
+
+.rows > .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+/* **Banded, so a long run stays readable across.** A wash rather than a step —
+   the stripe carries the eye from a label to its content and should not be the
+   first thing seen. */
+.rows > .row:nth-of-type(even) { background: var(--band); }
+
+.rows > .row > label {
+  flex: none;
+  width: 4.4em;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The content half: whatever answers the label, wrapping where it must. */
+.rows > .row > .line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rows > .row[aria-disabled] > label { opacity: 0.4; }
+.rows > .row[aria-disabled] { cursor: not-allowed; }
+
+.rows > .row.options > .line { gap: 3px; }
+.rows > .row.sliders > .line { gap: 6px; flex-wrap: nowrap; }
+.rows > .row.value > .line > input { flex: 1 1 auto; min-width: 0; }
+.rows > .row.value > .line > .form { color: var(--faint); font-size: 10px; }
+.rows > .row.add > .line > input { flex: 1 1 auto; min-width: 0; }
+.rows > .row > .line > .drop { flex: none; }
+.rows > .row > .line > .says { color: var(--muted); font-size: 11px; }
+.rows > .empty { color: var(--faint); font-size: 11px; font-style: italic; margin: 2px 4px; }
+
+/* The same inline controls the element rows already used, now on any line. */
+.rows > .row > .line > select,
+.rows > .row > .line > input {
+  color: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-bottom-color: var(--divider);
+  border-radius: 0;
+  padding: 1px 2px;
+  font: inherit;
+}
+
+.rows > .row > .line > select:hover,
+.rows > .row > .line > input:hover { border-bottom-color: var(--border); }
+.rows > .row > .line > select:focus,
+.rows > .row > .line > input:focus { outline: none; border-bottom-color: var(--accent); }
+.rows > .row > .line > select:disabled,
+.rows > .row > .line > input:disabled { opacity: 0.5; }
+
+.rows > .row > .line > .into { flex: none; color: var(--faint); font-size: 11px; }
+.rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }
+
+/* **A box, because it is a yes and a no.** The toggles beside it are things the
+   element has been told about itself; this one is a claim on every other block
+   of its kind, so it reads as the one control on the panel that is not about
+   the thing in front of you. */
+.rows > .row > .line > .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.rows > .row > .line > .check:hover { color: var(--text); }
+.rows > .row > .line > .check input { margin: 0; accent-color: var(--accent); }
+
+/* Undoing a pin is a small destruction, so it is said in words and wears the
+   border a button gets when it means it. */
+.rows > .row > .line > .undo-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.rows > .row > .line > .undo-pin:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── How it draws: a rail, the card, the answers ──────────────────────────── */
+
+.looks { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+/* **One band of chrome: the questions, and what they are asked of.** The rail
+   takes what is left and the drawing keeps the corner, so the card is where it
+   was — top right, and never moving when the answers below change height. */
+.looks-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* **The rail narrows what is listed; it does not navigate.** The contents tab's
+   own chips, asking the same sort of question — so it wears no border of its
+   own and sits flush at the top of the column. */
+.looks-rail { padding: 0; flex: 1 1 auto; min-width: 0; align-content: flex-start; }
+
+/* A question this element has answered for itself, so what has been customised
+   is visible without opening each one. A dot, because the word is the label and
+   a second colour on it would compete with the lit chip. */
+.looks-rail > button.said::after {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* **The corner is the card's.** Beside the rail rather than under it, so the
+   panel opens with the drawing already in view. */
+.looks-top > .preview {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
 
 .element .row > label {
   flex: none;
@@ -261,14 +460,6 @@
    **The tray keeps its own copy of the slot table.** A surface may not reach
    another surface's stylesheet, and what both read from is the theme's ramp —
    which is shared, so the two cannot drift apart in what a slot means. */
-
-.element .preview {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
 
 .preview-card {
   position: relative;
@@ -542,43 +733,20 @@
    of the card at a time, and one picture on the panel — which is the element
    itself, not a swatch of one trait on a shape that is not the thing. */
 
-.looks { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 
-.looks .parts { display: flex; flex-wrap: wrap; gap: 2px; }
 
-.looks .parts button {
-  padding: 1px 6px;
-  border-radius: 2px;
-  color: var(--muted);
-  font-size: 10px;
-}
 
-.looks .parts button:hover { color: var(--text); }
-.looks .parts button.on { color: var(--accent); background: var(--hover); }
 
-.looks .choices { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
 /* **The same gutter the left column keeps.** A word of fixed width, then what
    it sets — so the options in every tab start on the line the name and the tags
    start on, and the two columns read as one panel rather than two. */
-.looks .question { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-
-.looks .q-word {
-  flex: none;
-  width: 4.2em;
-  color: var(--faint);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: help;
-}
-
-.looks .question[aria-disabled] .q-word { opacity: 0.4; }
 
 
-.looks .options { display: flex; flex-wrap: wrap; gap: 3px; flex: 1 1 auto; min-width: 0; }
 
-.looks .opt {
+
+
+.rows .opt {
   padding: 0 5px;
   border: 1px solid var(--border);
   border-radius: 2px;
@@ -587,16 +755,16 @@
   line-height: 1.7;
 }
 
-.looks .opt:hover { color: var(--text); border-color: var(--accent); background: var(--hover); }
+.rows .opt:hover { color: var(--text); border-color: var(--accent); background: var(--hover); }
 
 /* **The hue strip is its own legend.** A slider labelled *hue* says nothing;
    one painted along the hues it sets needs no label at all. The band is drawn
    at the theme's own card lightness, so what runs under the thumb is the range
    of cards actually available rather than a saturated rainbow nothing here can
    produce. */
-.looks .sliders { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.rows > .row.sliders > .line { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
 
-.looks .sliders input[type="range"] {
+.rows > .row.sliders > .line input[type="range"] {
   flex: 1 1 auto;
   min-width: 0;
   height: 12px;
@@ -609,7 +777,7 @@
   cursor: pointer;
 }
 
-.looks .sliders .hue {
+.rows > .row.sliders > .line .hue {
   background: linear-gradient(to right,
     oklch(var(--l-edge) 0.13 0), oklch(var(--l-edge) 0.13 60),
     oklch(var(--l-edge) 0.13 120), oklch(var(--l-edge) 0.13 180),
@@ -619,14 +787,14 @@
 
 /* Intensity runs from the theme's grey to its ceiling, at whatever hue is set,
    so the two strips read as one control. */
-.looks .sliders .intensity {
+.rows > .row.sliders > .line .intensity {
   flex: 0 1 5em;
   background: linear-gradient(to right,
     oklch(var(--l-edge) 0 var(--card-h, 200)),
     oklch(var(--l-edge) var(--tint-ceiling) var(--card-h, 200)));
 }
 
-.looks .sliders input[type="range"]::-webkit-slider-thumb {
+.rows > .row.sliders > .line input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   width: 3px;
   height: 14px;
@@ -635,7 +803,7 @@
   box-shadow: 0 0 0 1px var(--bg);
 }
 
-.looks .sliders input[type="range"]::-moz-range-thumb {
+.rows > .row.sliders > .line input[type="range"]::-moz-range-thumb {
   width: 3px;
   height: 14px;
   border: none;
@@ -643,47 +811,18 @@
   background: var(--text);
   box-shadow: 0 0 0 1px var(--bg);
 }
-.looks .opt.on { color: var(--accent); border-color: var(--accent); background: var(--tint); }
-.looks .opt:disabled { opacity: 0.3; }
-.looks .question[aria-disabled] { cursor: not-allowed; }
+.rows .opt.on { color: var(--accent); border-color: var(--accent); background: var(--tint); }
+.rows .opt:disabled { opacity: 0.3; }
 
 /* ── What it is held to, and what it carries ───────────────────────────────
    Each under its own head and above its own rule, so neither reads as more of
    the panel above it. */
 
-.element .part { border-top: 1px solid var(--divider); padding-top: 5px; margin-top: 4px; }
 
-.element .part h4 {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0 0 3px;
-  color: var(--faint);
-  font-size: 9px;
-  font-weight: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
 
-.element .part h4 .from { color: var(--faint); text-transform: none; letter-spacing: 0; }
-.element .part > .empty { color: var(--faint); font-size: 11px; font-style: italic; margin: 0; }
 
-.element .stated { width: 100%; border-collapse: collapse; font-size: 11px; }
-.element .stated td { padding: 2px 4px; border-bottom: 1px solid var(--divider);
-                      color: var(--muted); }
-.element .stated td.key { color: var(--accent); white-space: nowrap; width: 6em; }
 
-.element .values { width: 100%; border-collapse: collapse; font-size: 12px; }
-.element .values td { padding: 2px 4px; border-bottom: 1px solid var(--divider); }
-.element .values td.key { color: var(--muted); white-space: nowrap; width: 30%; }
-.element .values td.form { color: var(--faint); white-space: nowrap; width: 4em;
-                           font-size: 10px; }
-.element .values td.drop { width: 1%; }
-.element .values tr.empty td { color: var(--faint); font-style: italic; }
-.element .values input { width: 100%; }
 
-.element .add { display: flex; gap: 4px; padding-top: 6px; }
-.element .add input { flex: 1 1 auto; min-width: 0; }
 
 /* ── The contents table's filters and columns ─────────────────────────────── */
 

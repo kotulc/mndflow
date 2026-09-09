@@ -34,9 +34,9 @@ export type StageProps = {
    *  no id, so it is named by the group it is in and where. */
   cells?: readonly Spot[];
   onPickCells?: (cells: readonly Spot[]) => void;
-  /** A row dropped from the tree onto the drawing. */
-  onDrop?: (id: string, at: { x: number; y: number },
-            what: "block" | "definition") => void;
+  /** A row dropped from the tree onto the drawing — a block, or a definition
+   *  out of the vocabulary. The id says which. */
+  onDrop?: (id: string, at: { x: number; y: number }) => void;
   /** The offered-action list, where the host has one. **Given rather than
    *  built**: the canvas and the tree offer the same actions, so the same menu
    *  serves both and neither package owns it.

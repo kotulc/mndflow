@@ -415,7 +415,7 @@ export function App() {
            *  block already in this layer is the one thing a drop cannot say, and
            *  `refer` is what says so — it is the action's to refuse, not the
            *  app's to guess at. */
-          onDrop={(id, spot, what) => {
+          onDrop={(id, spot) => {
             /** **Where the pointer was, clear of what is already there.** A row
              *  is dropped by its middle, and a card is placed by its corner. */
             const at = clear_of(
@@ -423,10 +423,11 @@ export function App() {
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
             /** **A definition dragged out makes a block naming it.** No new
-             *  action: `create` already takes a type, and what the vocabulary
-             *  section drags is a row of `graph.defs` rather than anything that
-             *  exists on a layer. */
-            if (what === "definition") {
+             *  action and no second payload: `create` already takes a type, and
+             *  what the vocabulary drags is a row of `graph.defs` rather than
+             *  anything that exists on a layer — so the graph is asked which it
+             *  was. A block wins the tie, being the thing you can point at. */
+            if (!graph.blocks[id] && graph.defs[id]) {
               s.go("create", { label: "", type: id, parent: layer ?? graph.root, spot: at });
               return;
             }

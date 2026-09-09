@@ -21,9 +21,9 @@ import { at_seat, box_of, extent, holds, look_key, nearest_seat, perch_id, roome
          swept_cells, FRAME, PORT, CELL, UNIT,
          type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
-import { CellsContext, DRAGGED, DRAGGED_DEF, NODE_TYPES } from "./nodes";
+import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 
-export { DRAGGED, DRAGGED_DEF };
+export { DRAGGED };
 import { EDGE_TYPES } from "./Wire";
 
 /** What a gesture on the canvas meant. The consumer decides what to do with
@@ -114,10 +114,10 @@ export type FlowViewProps = {
   /** What the app is saying, shown over the drawing rather than beside it. */
   said?: React.ReactNode;
   /** Something dropped onto the drawing from outside it, at the point it
-   *  landed, and **which of the two it was**. The explorer drags both — a row
-   *  of the tree is a block, a row of the vocabulary is a definition —
-   *  and anything else setting the same payload works the same. */
-  onDrop?: (id: string, at: Point, what: "block" | "definition") => void;
+   *  landed. The explorer drags rows of both sorts — a block and a definition —
+   *  and **the id says which**, because whoever catches one has the graph.
+   *  Anything else setting the same payload works the same. */
+  onDrop?: (id: string, at: Point) => void;
   /** Which name is being typed in place, and what was typed. **A name is
    *  edited where it is read**, so the field is drawn on the thing it names
    *  rather than in a dialog over it — and like every other gesture the canvas
@@ -1180,11 +1180,10 @@ function Canvas(props: FlowViewProps) {
       onPointerUp={released}
       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
       onDrop={(e) => {
-        const def = e.dataTransfer.getData(DRAGGED_DEF);
-        const id = def || e.dataTransfer.getData(DRAGGED);
+        const id = e.dataTransfer.getData(DRAGGED);
         if (!id) return;
         e.preventDefault();
-        onDrop?.(id, at(e), def ? "definition" : "block");
+        onDrop?.(id, at(e));
       }}
       proOptions={{ hideAttribution: true }}
       /** **Depth is the notation's, not the selection's.** Lifting a picked

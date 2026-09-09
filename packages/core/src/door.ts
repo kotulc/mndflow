@@ -13,7 +13,7 @@
  *  teaches people to ignore the real ones. */
 
 import { unreadable } from "./components";
-import { covers, fold, can_hold, is_grid, overlaps, subtree } from "./fold";
+import { covers, fold, can_hold, is_grid, module_named, overlaps, subtree } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Span, type Step } from "./types";
@@ -254,13 +254,19 @@ export function inspect(graph: Graph): Inspection {
       faults.push({ kind: "repaired", what: `"${d.name}" extended the old base type` });
       mended = { ...mended, extends: "block" };
     }
-    if (!graph.blocks[mended.home]) {
-      faults.push({ kind: "repaired", what: `"${d.name}" was filed under nothing` });
-      mended = { ...mended, home: ROOT };
-    }
     if (mended.extends && !graph.defs[mended.extends]) {
       faults.push({ kind: "repaired", what: `"${d.name}" extended something that is not there` });
       mended = { ...mended, extends: undefined };
+    }
+    /** **`home` was retired, and a file already written still carries it.**
+     *  Dropped rather than left to ride along into every file written from
+     *  here. **Silently**: it governed nothing, so saying so would be a fault
+     *  report that carried no information — and a false alarm is what teaches
+     *  people to ignore the real ones. */
+    const stale = mended as Definition & { home?: unknown };
+    if (stale.home !== undefined) {
+      const { home: _gone, ...rest } = stale;
+      mended = rest as Definition;
     }
     /** **`constraints` folded into `rules`.** `required` was the only thing
      *  under it, and one concept with two component keys is drift. Moved
@@ -293,7 +299,35 @@ export function inspect(graph: Graph): Inspection {
       faults.push({ kind: "dropped", what: `"${d.name}" said ${why}` });
       mended = { ...mended, components: without(mended.components, key) };
     }
+    /** **A default stands in for its own kind, and only for its own.** Read on
+     *  every plain block of that kind, so a folder definition wearing
+     *  `default: "block"` would draw every untyped block as a folder. A
+     *  package's is refused outright: importing one must never take a project
+     *  over. Checked here so the read stays a single lookup. */
+    if (mended.default !== undefined) {
+      const why = mended.from ? `a package's definition cannot be a default`
+        : mended.group !== "block" ? `only a block definition may be a default`
+        : module_named(graph, mended.id) !== mended.default
+          ? `it is not a ${mended.default}` : null;
+      if (why) {
+        faults.push({ kind: "dropped", what: `"${d.name}" claimed a default — ${why}` });
+        mended = { ...mended, default: undefined };
+      }
+    }
     if (mended !== d) repairs.push({ op: "set_def", def: mended });
+  }
+
+  /** **One default per kind.** Two definitions claiming the same one leaves
+   *  which one wins to whatever order the record happens to be in, so the
+   *  later-named gives it up. */
+  const claimed = new Map<string, string>();
+  for (const d of Object.values(graph.defs).sort((a, b) => a.id.localeCompare(b.id))) {
+    if (d.default === undefined || d.from || d.group !== "block") continue;
+    const held = claimed.get(d.default);
+    if (held === undefined) { claimed.set(d.default, d.id); continue; }
+    faults.push({ kind: "repaired",
+                  what: `"${d.name}" and "${graph.defs[held]!.name}" both claimed the ${d.default} default` });
+    repairs.push({ op: "set_def", def: { ...d, default: undefined } });
   }
 
   return { faults, repairs };

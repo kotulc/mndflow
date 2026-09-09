@@ -464,7 +464,7 @@ describe("a field on a layer", () => {
    *  reach for the package that supplies it. */
   const seeded = () => session({ defs: ["block", "note"].map((name) => ({
     op: "set_def" as const,
-    def: { id: name, home: ROOT, group: "block" as const, name },
+    def: { id: name, group: "block" as const, name },
   })) });
 
   it("records what a layer draws definitions from", () => {

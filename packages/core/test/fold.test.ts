@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { fixture, flat, nested, related } from "@mnd/fixtures";
 import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
-         is_top_block, module_named, module_of, next_num, path, resolve_def, session,
+         is_top_block, module_named, module_of, next_num, path, session,
          shown_name, stands_for, subtree, ROOT, type Definition } from "../src/index";
 
 describe("fold", () => {
@@ -121,32 +121,15 @@ describe("references", () => {
   });
 });
 
-describe("definitions resolve up the tree", () => {
-  it("finds one filed on an ancestor, and misses one filed elsewhere", () => {
-    const graph = fold(nested());
-    expect(resolve_def(graph, "block_rate", "block")?.id).toBe("block");
-    expect(resolve_def(graph, "block_rate", "not a thing")).toBeNull();
-  });
-
-  it("prefers the nearer ancestor when two share a name", () => {
-    const log = nested();
-    log.push({ id: "s", action: "define", at: 99, status: "applied", mutations: [
-      { op: "set_def", def: { id: "def_near", home: "block_ledger", group: "block",
-                             name: "block" } },
-    ] });
-    const graph = fold(log);
-    expect(resolve_def(graph, "block_rate", "block")?.id).toBe("def_near");
-  });
-});
 /** **The cascade, and the one rule it exists to make true.** A chain is laid
  *  down base first, one property at a time, and the nearest link has the last
  *  word ~~ so a refinement says only what it changes and inherits the rest. */
-/** The base kinds, as the seven definitions that name them. Stated here rather
+/** The base kinds, as the eight definitions that name them. Stated here rather
  *  than imported: core ships no vocabulary — an app hands one in — so a test
  *  seeds what it needs. */
 const BASE: Definition[] = ["block", "folder", "resource", "reference",
                             "interface", "group", "grid", "note"].map((name) => ({
-  id: name, home: ROOT, group: "block" as const, name,
+  id: name, group: "block" as const, name,
   ...(name === "note" ? { extends: "resource" } : {}),
   components: { block: { module: name } },
 }));
@@ -160,9 +143,9 @@ describe("definitions cascade", () => {
 
   it("keeps what a refinement did not restate", () => {
     const graph = with_defs([
-      { id: "d_base", home: ROOT, group: "block", name: "base",
+      { id: "d_base", group: "block", name: "base",
         components: { style: { slot: "primary", emphasis: "quiet" } } },
-      { id: "d_sub", home: ROOT, group: "block", name: "sub", extends: "d_base",
+      { id: "d_sub", group: "block", name: "sub", extends: "d_base",
         components: { style: { slot: "secondary" } } },
     ]);
     /** The nearest wins on what it says, and says nothing about the rest. */
@@ -172,7 +155,7 @@ describe("definitions cascade", () => {
 
   it("reads a kind from the nearest link that names one", () => {
     const graph = with_defs([
-      { id: "d_bin", home: ROOT, group: "block", name: "bin", extends: "folder",
+      { id: "d_bin", group: "block", name: "bin", extends: "folder",
         components: { style: { slot: "muted" } } },
     ]);
     expect(module_named(graph, "d_bin")).toBe("folder");

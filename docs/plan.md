@@ -1,190 +1,158 @@
 # Plan
 
-**Pinned definitions: a vocabulary built by pointing.** What is settled, what each part costs, and the order to build it. The goal state is design.md and spec.md; this closes ST.13, and ST.15 — the relation half — is deliberately later.
+**A vocabulary folder at the top of the explorer, one gesture that fills it, and one tray pattern everything is drawn in.** Customise a block, save that as a named type, optionally make it the default for its kind, and find it later beside the base kinds and the imported packages.
 
-**Status: the ground under it is built; the gesture is not.** Step 7 was taken first and grew — the tray's definition panel needed a style vocabulary a definition could actually say, and half of what a card looks like turned out to be hardcoded in a stylesheet where no subtype could reach it. That is now data, and the shipped package is a floor rather than a step, so changing it takes effect everywhere on the next load. Steps 1–6, which are pinning itself, are untouched.
-
-**Start here.** Read *The shipped package is a floor* before changing anything about definitions — it is the rule that makes schema churn cheap, and it is easy to undo by accident. Then *Order of work*: step 3 is the one the rest lean on, and steps 1–5 are drivable from the CLI with no UI at all. `samples/workspace.mndflow.json` is the check: import it, or `npm run start -w @mnd/cli -- check samples/workspace.mndflow.json`.
+**Status: over-built, and this plan is mostly subtraction.** The engine work landed and is sound. The surfaces forked: a second row renderer beside the tree, a second describe panel beside the element panel, a second drag payload, a second way to drop a definition, and a reserved id namespace where a checkbox would have done. All of it comes out. What is left is smaller than what was there before the feature started.
 
 
-## What it is
+## The one rule
 
-**Point at a block that already reads the way you want, and make that a definition.** A stereotype library built by pointing rather than by writing a definition first and applying it after. The workspace grows a **vocabulary section** listing every block definition it can reach — its own, each imported package's, and the base — and a definition is dragged out of it to make a block naming it.
+**A definition and a block say the same thing, one layer apart.** `Block.looks` and `Definition.components` are the same type — the same keys, the same property names, the same closed sets. `look_of` reads the chain and then the block's own bag on top; `look` writes into whichever bag it is handed.
 
-**Two needs, and only the second is new.**
+**Every division below exists because that rule was forgotten somewhere.** Where two things ask the same question, there is one surface, and the id says which holder it is about.
 
-| | Mechanism | Status |
-|---|---|---|
-| "make these look alike, now" | `look` over a selection — one step, one undo, no definition | built |
-| "make this a thing I can reach for later" | `pin` | this plan |
+| Forked today | Unified to |
+|---|---|
+| `Vocabulary.tsx` beside the tree | rows in the tree, from `tree_of` |
+| `Definition.tsx` beside `Element.tsx` | one panel, taking one id |
+| `DRAGGED_DEF` beside `DRAGGED` | one payload — the receiver looks the id up |
+| `undefine` beside `unpin` | one remover |
+| `defs_in_scope` beside `vocabulary()` | one list |
+| nine tabs inside a tab | nine rows in one table |
 
-**The pin is the moment somebody says *these are the same kind of thing*.** That is not derivable from the graph, which is why it is stored and why customising a block does not file a definition on its own.
+
+## The folder
+
+**System-managed, virtual, first in the tree.** The vocabulary root wears a pin mark, holds one sub-folder per source, and sits above the workspace's own blocks with a separator under it.
+
+| | |
+|---|---|
+| **what it holds** | `this workspace` first, then `base`, then each imported package — grouped by `Definition.from`, which is absent for the workspace's own |
+| **what a row is** | an ordinary explorer row. Same renderer, same fold state, same guides, same marks, same drag |
+| **why virtual** | nothing is in `graph.blocks`, so there is no seed change, no door migration, and nothing to rename, delete or drop into. A row that is not a block is simply offered no block actions |
+| **dragging one out** | `create` with `type`. No new action, no new payload — the drop handler asks `graph.defs[id]` and knows |
+| **selecting one** | describes it in the tray, in the same panel a block gets |
+
+**`Row` gains one field**: `of: "block" | "def" | "pack"`. That is the whole cost in the explorer.
 
 
 ## The gesture
 
 | | |
 |---|---|
-| **what it takes** | the block's `looks`, always. `fields`, `values` and `rules` are arguments, each **false** unless said, and offered only when the block has them |
-| **what it makes** | a definition homed on the workspace root, `from` absent, `extends` the block's current definition |
+| **`pin`** | takes the block's `looks` and its field *schema*. **No arguments but the name** — one act, one undo, nothing to decide in a dialog |
+| **what it makes** | a definition homed on the root, `from` absent, `extends` the block's current definition |
 | **what happens to the block** | it names the new definition and drops its `looks`. Nothing about how it draws changes |
-| **naming** | required. `def_id` slugs the name into the id, so a second *Pump* collides — **refuse**, with the name that is taken |
-| **re-pinning** | duplicates are allowed when the names differ. Two things that read alike today may diverge tomorrow, so nothing is matched or merged |
-| **unpin** | **one act.** Dissolves the definition into every block naming it — `components` into each block's `looks`, field schema into each block's `fields` with no values — then drops it. Lossless, because a block can carry rules too |
+| **`unpin`** | dissolves the definition into every block naming it, re-points subtypes rooted there, then drops it. Lossless, and the only remover |
 
-**`values` pins the block's current field values as the definition's `default`.** That is the difference between pinning a schema and pinning a template, and it is opt-in for that reason.
+**Values are never pinned.** A field's schema travels; what one block happens to hold does not. That removes three arguments and a dialog.
 
 
-## The section
+## The default for a kind
 
-**A rendering, not blocks.** Every row is `graph.defs` read through a filter — `group === "block"` — grouped by `from`. Nothing has an id of its own and nothing is realised until it is dragged out or set as an override.
+**A checkbox on a definition, not a system.** Customise a block, pin it, tick *default for block* — and every plain block follows it. This is the want the `ws.<kind>` override was built for, at roughly a twentieth of the machinery.
 
 | | |
 |---|---|
-| **why not a folder** | a reserved folder needs an id, a seed change, a door migration, and defences against rename, delete and drop. A rendering needs none of it and **works in every workspace already written** |
-| **what a row looks like** | a block in the explorer, with a pin mark |
-| **grouping** | the workspace's own at the top, each imported package a sub-branch, the base kinds included |
-| **one row per base kind** | an override **replaces** the base row rather than sitting beside it. The base definition is never deleted — the override extends it — it is simply not listed twice. Unpinning brings the base row back |
-| **selecting one** | describes it in the tray, a third branch beside blocks and relations. This is where fields and rules are authored |
-| **dragging one out** | `create` with `type?`. No new action |
+| **what carries it** | `Definition.default?: BlockModule`. One optional field beside `from`. `set_def` already writes it and an export already carries it, so there is no mutation, no door work and no migration |
+| **how it resolves** | `def_of` for a block naming nothing: `b.type ?? default_for(graph, module) ?? module`. One lookup, no namespace |
+| **what may be one** | a definition whose own module *is* that kind, and whose `from` is absent. **A package cannot take over a project by being imported**, which was the only real safety question |
+| **one at a time** | ticking a second clears the first, in the same act |
+| **untick, or unpin** | the flag lives on the record, so dropping the definition takes the default with it and plain blocks fall back to base |
+| **where the box is** | its own row in the definition panel, under *from*. Beside the `from` chip it was a toggle nobody found |
 
-**The only thing given up by one-row-per-kind** is typing a single block to the pristine base while everything else uses the override. Still reachable by giving that block its own `looks`.
+**The escape hatch falls out for free.** Typing one block to the pristine base while everything else follows the default is just naming the base definition — an ordinary row in the folder. Under `ws.<kind>` that case was unreachable.
 
-
-## Overriding a base kind
-
-**Always explicit, and resolved by id.** A package must never take over a project by being imported — and `sysml.json` already ships a definition **named `block`**, so a name route was never safe.
-
-```
-def_of, when a block names no type:
-
-  graph.defs["ws.block"]   ??   graph.defs["block"]
-       the workspace's override      the engine default
-```
-
-| | |
-|---|---|
-| **the id** | `ws.<kind>`, reserved. Minted by the override action directly, **never through `def_id`**, which strips dots |
-| **what it extends** | the base definition, or an imported package's — `ws.block extends sysml.block` is how a notation is adopted |
-| **what it carries** | whatever the override says. An adoption carries nothing and only points |
-| **why it is safe** | the fallback asks for an id and never for a name, so nothing imported can capture it. No precedence rule, nothing to reason about |
-| **scope** | `block`, `folder`, `resource`, `reference`. Relations later — ST.15 |
-
-**`ws.` rather than `base.`**, because the base package already ships `block` at a bare id and one word should not mean both the shipped package and the workspace's override of it.
+**None of the old machinery comes back**: no reserved dotted ids, no `own_id`/`is_own_id`, no `adopt` action, no one-row-per-kind replacement in the folder, no picker special case. The default definition is an ordinary row that wears a mark.
 
 
-## What changes in the engine
+## The tray
 
-| Change | Where | Why |
-|---|---|---|
-| **`Definition.from?: string`** | `types.ts` | the package it came from; absent means this workspace made it. Groups the section, makes *a package resists editing* checkable without a hardcoded id list, and tells an export what travels as a reference. **Reconciling a shipped package on load was its fourth job and is already done** — the session re-applies what the app hands in, comparing rather than rewriting |
-| **a block may carry rules** | `actions.ts` | `set_look`'s check allows `card` and `style` only. `looks` is already `Components` and `fold`'s `set_look` case is already generic, so widening the allowlist is the whole change |
-| **`rules_of` takes an id** | `rules.ts` | so a block's own `looks.rules` is the last layer over the chain, the way `look.ts` already does for `card` and `style`. **Everything in a definition then has a usage counterpart** |
-| **list-valued rules replace** | `rules.ts` | `holds` and `required` are lists, not values. The nearer statement wins, consistent with the rest of the cascade — and replace is strictly more expressive than union, since a block stating the whole list can narrow *or* widen |
-| **`constraints` merges into `rules`** | `components.ts`, `rules.ts`, `door.ts` | `required` is the only thing in `constraints`, and two component keys for one concept is drift. Costs one component retired, two shipped package files edited, and one door repair — the same shape as the existing `structure` → `block` rename |
-| **`def_of` fallback** | `fold.ts` | two id lookups, as above |
-| **`write_subtree` collects through `def_of`** | `file.ts` | it collects from `b.type`, so a block naming nothing contributes `undefined` and the workspace's override is dropped from a project export. `def_of` is already *the definition a thing resolves through*. A whole-workspace export writes all of `graph.defs` and was never affected |
-| **`pin` · `unpin` · the override action** | `actions.ts` | the three new entries on the surface |
+**One shell, one body pattern, every tab.** The contents tab already has it; it stops being the one place it exists and becomes the standard.
 
-**Nothing else moves.** No reserved block, no new block field, no schema version, no migration of existing blocks.
+**The shell.** A tab-style navbar, with an optional control strip on the right for minimise and maximise. Below it, the body.
 
-
-## The shipped package is a floor
-
-**`base` is never in a log.** `fold(log, floor)` lays the shipped definitions down first and replays the log over them, so what the build ships is what every workspace draws in, the moment it opens. There is no copy to go stale and nothing to reconcile.
+**The body, in order.** An optional filter chip rail · column labels · rows. **Every row is a label on the left and its content or controls on the right**, in a fixed gutter, with a subtle alternating background so a long list stays readable across.
 
 | | |
 |---|---|
-| **where it comes from** | `ports.defs`, which an app already passes. `core` may not import `defs`, so the floor is handed in the way a port is |
-| **what the door does** | strips any `set_def` or `drop_def` for a shipped id out of a log on the way in. The bad state has nowhere to live rather than being repaired once it does |
-| **checkpoints** | an imported file carries every definition it reached, the shipped ones included — so the floor is **re-laid after every checkpoint**. A file stays self-contained to read, and the receiving build always draws in its own vocabulary |
-| **what a workspace does instead** | says its own `block` with a subtype extending the shipped one. A different id, and it passes untouched |
+| **what this replaces** | `Looks`' nine tabs — **which become the chip rail**, not nothing. Nine questions at once is too many to read, which is what the tabs were really solving; the fix is the filter rail the contents tab already has, because a chip narrows what is listed and does not take you somewhere else |
+| **what it does to the merge** | the describe panel becomes a list of `{ label, content }` rows, so folding the definition panel into the element panel is choosing which rows apply rather than reconciling two layouts |
+| **where it lives** | one small primitive in `tray` — `Body` and `Line` — used by contents, by the describe panel, and by anything later |
 
-**This is what makes changing definitions cheap.** Edit `packages/defs/src/base.ts`, reload, done — no migration, no reconciliation step, no version. It is also why the door no longer carries vocabulary translations: they existed to repair drift that can no longer happen, and this is not a shipped product.
+**Two columns, and the drawing is not a third.** What it *is* on the left. How it *draws* on the right: the rail, then the card, then the answers to whichever chip is lit — because the card is what every answer is read against, and it belongs beside the chip that chose them.
 
-**Two ways to undo it by accident.** Putting the seed back into `seeded()`, or letting an action write a definition whose id the floor ships — see step 0 below, which is still open.
+**The band is a wash, not a rung.** Banding with a step off the ramp is 5 points of lightness, which reads as a grid before it reads as rows. 3% of ink over whatever is behind it is ~2 points in all three themes, and always moves toward the writing.
+
+
+## What is cut
+
+| | Why |
+|---|---|
+| **`adopt`, `ws.<kind>`, `own_id`, `is_own_id`, `def_of`'s fallback** | a reserved id namespace and a resolution rule for what `Definition.default` says in one field |
+| **`Vocabulary.tsx`** | 125 lines re-implementing rows the tree already draws |
+| **`Definition.tsx`** | 243 lines asking the same questions as `Element.tsx`, in the same three columns |
+| **`DRAGGED_DEF`** | duplicated across two packages that may not import each other, and mismatched with the canvas `dropEffect`, so the drop it exists for is refused by the browser |
+| **`undefine`** | dropping a definition without dissolving it silently changes how every usage draws. One remover, and it is the lossless one |
+| **`Looks`' tab strip** | navigation around rows that already exist |
+| **rules *authoring*** | it can write three of five rule kinds, writes malformed values for the other two, and splits field names on spaces. **Read-only row until the whole set can be authored** |
+
+
+## What stays
+
+**The engine work is sound and none of it is the mess.**
+
+| | |
+|---|---|
+| **the floor** | `fold(log, floor)` lays the shipped package down first. Base definitions cannot be overwritten because they are not in a log |
+| **`Definition.from`** | groups the folder, refuses edits to somebody else's vocabulary, and gates what may be a default |
+| **a block may carry rules** | `looks` was already a components bag; the widening is the change |
+| **`rules_of` takes an id** | so a block's own word is the last layer, the way `look_of` already worked |
+| **`constraints` folded into `rules`** | one concept, one key |
+| **`write_subtree` through `def_of`** | a project export carries the definitions its blocks actually resolve through |
+| **list rules replace** | the nearer statement is the whole answer |
 
 
 ## Order of work
 
 | | | Proves | |
 |---|---|---|---|
-| **0** | **lock the floor**: `field`, `unfield` and `define` refuse a definition whose id the floor ships, and say to subtype it instead | `mnd run <src> field holder=block name=x` is refused | **not started** |
-| **1** | `from` on `Definition` | `mnd check` over a workspace that grafted sysml | **not started** |
-| **2** | rules on a block: widen `set_look`, `rules_of` by id, `constraints` folded into `rules` | `mnd review` reads a rule stated on one block | **not started** |
-| **3** | `def_of` fallback and the `ws.<kind>` override action | `mnd project` draws a workspace whose `ws.block` restyles every plain block | **not started** |
-| **4** | `write_subtree` collects through `def_of` | export a project, re-open it, plain blocks keep their look | **not started** |
-| **5** | `pin` and `unpin` | `mnd run <src> pin name=Pump`, then `unpin`, and the graph comes back the same | **not started** |
-| **6** | the vocabulary section in the explorer | driven: pin, see the row, drag it out, override a base kind, watch the row replace | **not started** |
-| **7** | the definition panel in the tray | driven | **built, less rules and fields authoring** |
+| **1** | cut `adopt` and the `ws.<kind>` machinery | the sample checks clean, and `def_of` is three lines again | **done** |
+| **2** | one payload: the drop handler asks the graph which it was | a definition dragged onto the canvas is no longer refused by the browser | **done** |
+| **3** | vocabulary rows in `tree_of`; delete `Vocabulary.tsx` | the folder is first, folds, drags out, and wears a pin | **done** |
+| **4** | the tray shell and the `Body`/`Line` primitive | tabs left, icon controls right, expand, banded rows | **done** |
+| **5** | `Looks`' tabs become the filter chip rail, over the card, over the rows | one rail, one drawing, the answers to one question | **done** |
+| **6** | one panel: `Definition.tsx` folded into `Element.tsx`; the tray takes one id | picking a block and picking a definition open the same panel | **done** |
+| **7** | `Definition.default` and the checkbox | pin a styled block, tick it, and every plain block follows | **done** |
+| **8** | `pin` loses its three arguments; `undefine` is retired | `pin name=Pump` then `unpin`, byte-identical over nine kinds | **done** |
+| **9** | rules read-only; the subtype picker reads the folder's list | no path writes a malformed rule, and one answer to *which definitions can I use* | **done** |
+| **10** | `home` retired, with `defs_in_scope` and `resolve_def`; the door strips it from files already written | a definition is placed by `from` alone | **done** |
+| **11** | the default box and unpin get their own rows in the panel | both reachable without a menu | **done** |
 
-**Steps 1–5 are drivable from the CLI with no UI at all**, which is the point of having one.
+**One thing was found on the way.** `write` sorted records by id but left the keys *inside* one in whatever order the graph was built in, so a graph reached two ways — pinned and unpinned — wrote the same model as different bytes. Keys now go out in a stated order, identity first, which is what makes step 8 checkable rather than merely plausible.
 
-**Step 0 is new and small, and everything else assumes it.** The floor cannot be written by a log, but three actions will still happily `set_def` a shipped id if one is named — `field`, `unfield` and `define` all do `ctx.graph.defs[holder]` with no guard. No path in the tray reaches it today, since every one of them passes a *block* id, but a terminal or CLI call does. Refusing it is what keeps the floor a floor.
+## Settled
 
-**Step 1 lost one of its four jobs.** `from` was to be what let the door reconcile a shipped package on load; the floor does that structurally, so `from` now earns its place on grouping the section, checking *a package resists editing*, and telling an export what travels as a reference. Still worth having, no longer the blocker.
-
-**Step 3 is the keystone.** `pin` files a definition, the section renders it, and the override names it — all three want `def_of`'s fallback to exist first.
-
-
-## What was built on the way
-
-**Step 7 first, and it went deeper than a panel.** None of this was in the plan; all of it is what the panel turned out to need.
-
-### The definition panel
-
-| | |
-|---|---|
-| **three columns** | what it *is*, how it *draws*, and the card itself — one drawing, read against every tab, in its own column so it does not move |
-| **the type row** | base kind and subtype on one line, `▪ block › Pump`. `base` and `chain` came out: both said `block` beside a row already saying it |
-| **nine tabs, one question each** | color · fill · border · text · marked · icon · name · label · aligned. Each carries the left column's gutter, so both columns read as one panel |
-| **rules and fields** | derived and read-only, each under its own head. Authoring them is what step 7 still owes |
-
-### What a definition may now say
-
-| | |
-|---|---|
-| **`style.hue` · `style.intensity`** | numbers, not a closed set. A slot was always a *(hue, chroma)* pair — the ramp computes every step from those two against the theme's lightness ladder, and freezing them into named families bought nothing the ladder was not already providing |
-| **`style.opacity`** | a number. Three named sheers were three invented words for a quantity everybody names, and the value that mattered was a 6% wash no name would have suggested |
-| **`style.line` · `style.ink`** | how far the border and the writing stand out: `faint · soft · strong · full`. **Four rungs, not a number** — the ladder is tuned per theme and the rungs are not evenly spaced on it, so a fraction would land somewhere nobody chose and land differently in each of the three |
-| **`style.fill`** | `solid · hatch · wash · none`, drawn from the card's own steps |
-| **`style.decor`** | `none · italic · underline · strike` |
-| **`card.name` · `card.label`** | where the name sits, and where the **type** sits. One key did both, which is why putting a type on a card took the name off it |
-| **`card.align`** | which end the writing reads from |
-
-### What came out
-
-| | |
-|---|---|
-| **`card.layout`** | five values, three packages, read by nothing. `card.shows` is what actually composes a card |
-| **`style.emphasis`** | three fixed pairings of `line` and `ink`. Redundant once both are sayable — and the reason a reference could not be said at all, since it wants both at `strong`, a fourth pairing the shorthand had no word for |
-| **`tertiary` · `quaternary`** | the same chroma as `secondary`, differing only in hue, at a chroma the fill step scales to 0.02 |
-| **`away` · `note` as reserved** | now nameable families. While they were not, a reference and a note were drawn by a hardcoded rule and **neither could be subtyped** |
-| **`.mnd-card.reference` · `.mnd-card.note`** | gone from the stylesheet. Both kinds are ordinary definitions now. `.mnd-card.missing` stays: that is the app speaking about a fault, not the model speaking |
-| **`voice: quiet · normal · loud`** | now `light · normal · bold` — a third scale of loudness beside contrast and opacity, meaning none of the same things |
-
-**Reproduced exactly**, checked against all three themes: the reference's border, ink, fill and hatch, and the note's border and fill. Its ink is the one difference — amber at the same lightness, where it had been blue-violet only by inheriting the slot it happened to name.
+- **The card keeps its own column.** Three columns: what it is, how it draws, and the drawing. The first two are label-and-content tables; **the third is the rendered card and never a table** — it is the one thing on the panel that is a picture rather than an answer.
+- **Column labels are optional, and neither describe column has them.** The left gutter is the label. Contents keeps its headers because it has real columns.
+- **Tabs left, icon controls right.** Shut and maximise are two controls, not one with three states: the chevron opens and shuts, and **expand** takes the tray to full height.
 
 
 ## Known issues
 
-**Closed on the way.**
+- **`define`'s floor guard is unreachable, and name uniqueness is unchecked.** `def_id` always prefixes `def_`, and every shipped or imported id is bare or dotted, so `define name=block` files a *second* definition named `block`. `pin` refuses a taken name; `define` does not. The door is where the check belongs.
+- **A definition row offers no menu.** Unpinning is a row in the panel; the tree's right-click is still block-only.
+- **Nothing checks that a named package exists.** The door is where that belongs, beside the repairs it already runs.
+- **An undefined `var()` takes its whole declaration with it.** `scripts/lint-css.mjs` catches a name defined nowhere in its package; it does not catch one defined under too narrow a selector. Not wired into `npm test`, deliberately.
+- **`below` is drawn but never measured.** A name or type set below a card hangs into the gutter, and cards placed closer than one unit by hand will overlap it.
+- **The sample workspace is the quick check.** `npm run start -w @mnd/cli -- check ../../samples/workspace.mndflow.json` says `clean`. Regenerate it whenever the schema moves.
 
-- ~~**A definition retired in code lives on in every log already written.**~~ **Fixed structurally** — see *The shipped package is a floor*. It was first patched by reconciling on open, comparing the stored package against the shipped one and appending what differed; the floor replaced that outright, and the patch and its key-order fragility are gone.
-- ~~**`sysml.json` is stale.**~~ **Partly.** Both shipped packages carried `"shape": "rect"`, which was never a card key — so the door had been silently dropping their **entire card component**, `shows` and `icon` with it, since they were written. Removed. Their definitions still extend `structure` and `behavior`, which the door repairs on the way in, and `sysml.ibd` still carries `group: "view"`.
-
-**Still open.**
-
-- **Nothing checks that a named package exists**, and nothing checks definition name uniqueness within a package. The door is where both belong, beside the repairs it already runs.
-- **An undefined `var()` takes its whole declaration with it**, rendering as no background rather than a default. It shipped twice in one afternoon. `scripts/lint-css.mjs` now catches a name read but defined nowhere in its package; it does not catch one defined under too narrow a selector, which needs selector parsing. **Not wired into `npm test`** — that is a decision, not an oversight.
-- **The sample workspace is the quick check.** `samples/workspace.mndflow.json` carries one of every base kind, four subtypes covering hue, fill, opacity, contrast, decor and alignment, a reference, a note, a grid with a header and three relations. `npm run start -w @mnd/cli -- check samples/workspace.mndflow.json` says `clean`, and importing it in the app is the fastest way to see whether a style change drew what it meant to. **Regenerate it whenever the schema moves** — it is committed data, so a stale one is the very drift this phase was about.
-- **`below` is drawn but never measured.** A name or a type set below a card hangs into the gutter the layout leaves between cards. Cards placed closer than one unit by hand will overlap it.
 
 ## Deliberately not in this
 
 | | |
 |---|---|
+| **rules authoring** | back when all five kinds can be written, and field names survive a space |
 | **matching on re-pin** | two blocks that read alike are not thereby the same kind of thing |
-| **pinning values by default** | reading one usage's values as a schema is a guess |
-| **relation definitions in the section** | a relationship is drawn between two ends and never dropped, so there is nothing to drag a row onto. ST.15 |
-| **a second style mechanism** | a palette or a format painter would be a second vocabulary system beside definitions. `look` over a selection already covers the no-ceremony case |
+| **relation definitions in the folder** | the same grouping admits them with no new mechanism. ST.15 |
+| **a second style mechanism** | `look` over a selection already covers *make these look alike, now* |

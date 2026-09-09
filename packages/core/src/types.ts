@@ -195,9 +195,14 @@ export type Components = Record<string, Record<string, unknown>>;
 
 export type Definition = {
   id: Id;
-  /** The block it is filed under. Ownership, lock and scope all derive from this. */
-  home: Id;
-  /** The package this came from. **Absent means this workspace made it**, which
+  /** **There was a `home` here, and it governed nothing.** A definition was
+   *  filed under a block, and scope was meant to follow — but `def_of` and
+   *  `isa` resolve by id, globally, and always did. All it ever decided was
+   *  which definitions one picker offered, which is a narrower answer than the
+   *  truth and disagreed with the vocabulary folder beside it. `from` says who
+   *  owns a definition; nothing needs to say where it sits.
+   *
+   *  The package this came from. **Absent means this workspace made it**, which
    *  is the whole of the ownership question: a definition with a `from` is
    *  somebody else's vocabulary, so no action may write it and the section
    *  lists it under its package rather than among the workspace's own.
@@ -205,6 +210,12 @@ export type Definition = {
    *  **Declared in the file, never inferred.** Stamping it on the way in would
    *  mark a project export's own definitions as though they were a package's. */
   from?: string;
+  /** **The base kind this stands in for wherever a block names nothing.** One
+   *  field, and the whole of *make every plain block read like this* — no
+   *  reserved id, no second vocabulary, no action but the checkbox that sets
+   *  it. Only a definition of that same kind, and only one this workspace made,
+   *  may wear it: a package must not take over a project by being imported. */
+  default?: BlockModule;
   group: "block" | "relation";
   name: string;
   body?: string;

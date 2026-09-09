@@ -1,15 +1,14 @@
 {
   "schema": "2.0",
-  "id": "sample",
+  "id": "workspace",
   "graph": {
     "root": "ws",
     "defs": {
       "block": {
         "id": "block",
-        "home": "ws",
+        "name": "block",
         "from": "base",
         "group": "block",
-        "name": "block",
         "components": {
           "block": {
             "module": "block"
@@ -22,9 +21,8 @@
       },
       "def_ghost": {
         "id": "def_ghost",
-        "home": "ws",
-        "group": "block",
         "name": "Draft",
+        "group": "block",
         "extends": "block",
         "components": {
           "style": {
@@ -41,9 +39,8 @@
       },
       "def_heading": {
         "id": "def_heading",
-        "home": "ws",
-        "group": "block",
         "name": "Heading",
+        "group": "block",
         "extends": "block",
         "components": {
           "style": {
@@ -60,9 +57,8 @@
       },
       "def_pump": {
         "id": "def_pump",
-        "home": "ws",
-        "group": "block",
         "name": "Pump",
+        "group": "block",
         "extends": "block",
         "components": {
           "style": {
@@ -81,9 +77,8 @@
       },
       "def_vessel": {
         "id": "def_vessel",
-        "home": "ws",
-        "group": "block",
         "name": "Vessel",
+        "group": "block",
         "extends": "block",
         "components": {
           "style": {
@@ -96,17 +91,15 @@
       },
       "directed": {
         "id": "directed",
-        "home": "ws",
+        "name": "directed",
         "from": "base",
-        "group": "relation",
-        "name": "directed"
+        "group": "relation"
       },
       "folder": {
         "id": "folder",
-        "home": "ws",
+        "name": "folder",
         "from": "base",
         "group": "block",
-        "name": "folder",
         "components": {
           "block": {
             "module": "folder"
@@ -121,10 +114,9 @@
       },
       "grid": {
         "id": "grid",
-        "home": "ws",
+        "name": "grid",
         "from": "base",
         "group": "block",
-        "name": "grid",
         "components": {
           "block": {
             "module": "grid"
@@ -139,10 +131,9 @@
       },
       "group": {
         "id": "group",
-        "home": "ws",
+        "name": "group",
         "from": "base",
         "group": "block",
-        "name": "group",
         "components": {
           "block": {
             "module": "group"
@@ -157,10 +148,9 @@
       },
       "interface": {
         "id": "interface",
-        "home": "ws",
+        "name": "interface",
         "from": "base",
         "group": "block",
-        "name": "interface",
         "components": {
           "block": {
             "module": "interface"
@@ -176,17 +166,15 @@
       },
       "line": {
         "id": "line",
-        "home": "ws",
+        "name": "line",
         "from": "base",
-        "group": "relation",
-        "name": "line"
+        "group": "relation"
       },
       "note": {
         "id": "note",
-        "home": "ws",
+        "name": "note",
         "from": "base",
         "group": "block",
-        "name": "note",
         "extends": "resource",
         "components": {
           "block": {
@@ -204,10 +192,9 @@
       },
       "reference": {
         "id": "reference",
-        "home": "ws",
+        "name": "reference",
         "from": "base",
         "group": "block",
-        "name": "reference",
         "components": {
           "block": {
             "module": "reference"
@@ -224,10 +211,9 @@
       },
       "resource": {
         "id": "resource",
-        "home": "ws",
+        "name": "resource",
         "from": "base",
         "group": "block",
-        "name": "resource",
         "components": {
           "block": {
             "module": "resource"
@@ -246,11 +232,11 @@
         "id": "b_hx",
         "parent": "b_loop",
         "label": "Heat Exchanger",
+        "group": "g_wet",
         "type": "def_vessel",
         "num": 2,
         "x": 168,
-        "y": 0,
-        "group": "g_wet"
+        "y": 0
       },
       "b_loop": {
         "id": "b_loop",
@@ -264,20 +250,18 @@
         "id": "b_note",
         "parent": "b_loop",
         "label": "",
+        "type": "note",
+        "body": "Hatch and wash are said by the definition now, not by the stylesheet.",
         "num": 6,
         "x": 336,
-        "y": 96,
-        "type": "note",
-        "body": "Hatch and wash are said by the definition now, not by the stylesheet."
+        "y": 96
       },
       "b_pump": {
         "id": "b_pump",
         "parent": "b_loop",
         "label": "Feed Pump",
+        "group": "g_wet",
         "type": "def_pump",
-        "num": 1,
-        "x": 0,
-        "y": 0,
         "fields": [
           {
             "name": "rated flow",
@@ -285,25 +269,27 @@
             "value": "50"
           }
         ],
-        "group": "g_wet"
+        "num": 1,
+        "x": 0,
+        "y": 0
       },
       "b_ref": {
         "id": "b_ref",
         "parent": "b_loop",
         "label": "",
+        "of": "b_hx",
         "num": 7,
         "x": 0,
-        "y": 192,
-        "of": "b_hx"
+        "y": 192
       },
       "b_res": {
         "id": "b_res",
         "parent": "b_loop",
         "label": "Coolant",
+        "type": "resource",
         "num": 8,
         "x": 168,
-        "y": 192,
-        "type": "resource"
+        "y": 192
       },
       "b_spare": {
         "id": "b_spare",
@@ -336,24 +322,24 @@
         "id": "c_a",
         "parent": "f_plant",
         "label": "Duty",
-        "num": 3,
         "group": "gr_matrix",
         "cell": {
           "r": 0,
           "c": 0
         },
-        "header": true
+        "header": true,
+        "num": 3
       },
       "c_b": {
         "id": "c_b",
         "parent": "f_plant",
         "label": "Standby",
-        "num": 4,
         "group": "gr_matrix",
         "cell": {
           "r": 1,
           "c": 0
-        }
+        },
+        "num": 4
       },
       "f_plant": {
         "id": "f_plant",
@@ -366,17 +352,17 @@
         "id": "g_wet",
         "parent": "b_loop",
         "label": "Wet side",
-        "num": 9,
-        "type": "group"
+        "type": "group",
+        "num": 9
       },
       "gr_matrix": {
         "id": "gr_matrix",
         "parent": "f_plant",
         "label": "Duty",
-        "num": 2,
         "type": "grid",
-        "rows": 2,
         "cols": 2,
+        "num": 2,
+        "rows": 2,
         "x": 0,
         "y": 320
       },
@@ -384,10 +370,10 @@
         "id": "i_in",
         "parent": "b_pump",
         "label": "",
-        "num": 1,
         "side": "left",
         "at": 0.5,
-        "flow": "in"
+        "flow": "in",
+        "num": 1
       },
       "ws": {
         "id": "ws",
@@ -400,22 +386,22 @@
       "e_flow": {
         "id": "e_flow",
         "from": "b_pump",
-        "to": "b_hx",
         "module": "directed",
-        "dir": "one"
+        "dir": "one",
+        "to": "b_hx"
       },
       "e_out": {
         "id": "e_out",
         "from": "b_hx",
-        "to": "b_tank",
         "module": "directed",
-        "dir": "one"
+        "dir": "one",
+        "to": "b_tank"
       },
       "e_tie": {
         "id": "e_tie",
         "from": "b_note",
-        "to": "b_hx",
-        "module": "tie"
+        "module": "tie",
+        "to": "b_hx"
       }
     }
   }

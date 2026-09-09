@@ -194,6 +194,13 @@
   --bg: var(--s-neutral-ground);
   --surface: var(--s-neutral-fill);
   --hover: var(--s-neutral-raised);
+  /* What a banded row sits on. **A wash, not a step.** Banding with `ground`
+     under a `fill` surface is a whole rung of the ladder — 5 points of L in
+     both dark themes — so the eye read the stripes before it read the rows.
+     3% of ink is ~2 points in all three, and it is ink rather than a step so
+     the band always moves *toward* the writing: lighter on a dark theme, darker
+     on a light one, without either being said twice. */
+  --band: color-mix(in oklch, var(--s-neutral-ink) 3%, transparent);
   --divider: var(--s-neutral-divide);
   --border: var(--s-neutral-line);
   --line: var(--s-neutral-line);

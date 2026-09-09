@@ -48,6 +48,10 @@ const PATHS = {
   more: "M6.5 9.5l5.5 5 5.5-5",
   less: "M6.5 14.5l5.5-5 5.5 5",
   up: "M12 19.5V6M6 12l6-6 6 6",
+  // How much room the panel takes, which is a different question from whether
+  // it is open. Arrows to the edges and back, so neither reads as a chevron.
+  expand: "M4 10V4h6M20 14v6h-6M4 4l6 6M20 20l-6-6",
+  collapse: "M10 4v6H4M14 20v-6h6M4 10l6-6M20 14l-6 6",
 
   // What a row is, in the tree. One meaning each.
   role_leaf: "M7 7h10v10H7z",

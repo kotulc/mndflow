@@ -43,7 +43,7 @@ export function Chain({ graph, id }: ChainProps) {
           <tr key={d.id}>
             <td className="kind">{n + 1}</td>
             <td className="name">{d.name}</td>
-            <td className="type">{d.home === graph.root ? "definition" : "pinned"}</td>
+            <td className="type">{d.from ?? "pinned"}</td>
             <td className="what" title={SAYS.map((k) =>
               `${k}: ${JSON.stringify(d.components?.[k] ?? {})}`).join("  ")}>
               {SAYS.filter((k) => d.components?.[k]).join(" · ") || "nothing"}

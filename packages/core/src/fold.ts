@@ -5,7 +5,7 @@
  *  needs an inverse. */
 
 import type { Settings } from "./components";
-import { BLOCK_MODULES, OPEN_MODULES, ROOT, empty_graph,
+import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -755,22 +755,13 @@ export function allocated_to(graph: Graph, id: Id): Block[] {
 }
 
 
-/** Every definition this block may use: filed under any ancestor, nearest first. */
-export function defs_in_scope(graph: Graph, id: Id): Definition[] {
-  const homes = path(graph, id).map((b) => b.id).reverse();
-  const out: Definition[] = [];
-  for (const home of homes) {
-    for (const d of Object.values(graph.defs)) {
-      if (d.home === home) out.push(d);
-    }
-  }
-  return out;
-}
-
-/** Resolve a definition by name from a block's ancestors — nearest wins. */
-export function resolve_def(graph: Graph, from: Id, name: string): Definition | null {
-  return defs_in_scope(graph, from).find((d) => d.name === name) ?? null;
-}
+/** **`defs_in_scope` and `resolve_def` were here, and both read `home`.** One
+ *  listed what a block's ancestors had filed; the other found one by name. Every
+ *  resolution in the engine goes by id and is global, so the first was a
+ *  narrower answer than the truth — it disagreed with the vocabulary folder
+ *  beside it — and the second had no caller but its own test. Looking a
+ *  definition up by name is what `def_id` collisions are for.
+ */
 
 /** A definition and the chain it extends, nearest first. */
 export function isa(graph: Graph, type: Id | undefined): Definition[] {
@@ -853,48 +844,32 @@ export function module_named(graph: Graph, type: Id | undefined): BlockModule {
  *  from its module. */
 export function def_of(graph: Graph, id: Id): Id | undefined {
   const b = graph.blocks[id];
-  if (b) return own_of(graph, b.type ?? module_of(graph, id));
+  if (b) {
+    if (b.type) return b.type;
+    const kind = module_of(graph, id);
+    return default_for(graph, kind) ?? (graph.defs[kind] ? kind : undefined);
+  }
   const e = graph.edges[id];
   if (!e) return undefined;
   return e.type ?? (graph.defs[e.module] ? e.module : undefined);
 }
 
-/** The id a workspace files its own word for a base kind under.
+/** **The workspace's own default for a base kind**, where somebody has said
+ *  one. A definition wearing `default` stands in for the shipped one wherever a
+ *  block names nothing — which is how *make every plain block read like this*
+ *  is said, without a reserved id or a second vocabulary.
  *
- *  **`ws.` rather than `base.`**, because the shipped package already ships
- *  `block` at a bare id and one word should not mean both what ships and the
- *  workspace's override of it. **Minted here and never through `def_id`**,
- *  which strips the dot. */
-export function own_id(kind: string): Id {
-  return `${ROOT}.${kind}`;
-}
-
-/** What a named kind actually resolves to: **the workspace's own word for a
- *  base kind where it has one, and the shipped definition otherwise.**
+ *  **Only the workspace's own, never a package's.** A package must not take
+ *  over a project by being imported, and `from` is the whole of that check.
  *
- *  ```
- *  graph.defs["ws.block"]  ??  graph.defs["block"]
- *       the workspace's override    the engine default
- *  ```
- *
- *  **Two lookups, both by id and never by name.** A package must not take over
- *  a project by being imported, and `sysml.json` already ships a definition
- *  *named* `block`, so a name route was never safe. There is no precedence rule
- *  and nothing to reason about.
- *
- *  **Only a bare base kind is overridable.** A subtype somebody named resolves
- *  to itself, which is what makes an override *replace* the base row rather
- *  than sit beside it. */
-function own_of(graph: Graph, named: Id | undefined): Id | undefined {
-  if (!named) return undefined;
-  if (!BLOCK_MODULES.includes(named as BlockModule)) return named;
-  const own = own_id(named);
-  return graph.defs[own] ? own : graph.defs[named] ? named : undefined;
-}
-
-/** Whether an id is a workspace's own word for a base kind. */
-export function is_own_id(id: Id): boolean {
-  return BLOCK_MODULES.some((kind) => id === own_id(kind));
+ *  **Naming the base outright still reaches it.** A block typed to `block` has
+ *  a `type`, so it never asks this — which is how one block stays pristine
+ *  while everything else follows the default. */
+export function default_for(graph: Graph, kind: BlockModule): Id | undefined {
+  for (const d of Object.values(graph.defs)) {
+    if (d.default === kind && !d.from && d.group === "block") return d.id;
+  }
+  return undefined;
 }
 
 /** One package's block definitions, as the vocabulary section lists them. */
@@ -905,32 +880,23 @@ export type Vocabulary = {
 };
 
 /** Every block definition this workspace can reach, grouped by where it came
- *  from — its own, each imported package's, and the base.
+ *  from — its own first, then the base, then each imported package.
  *
- *  **A rendering, not blocks.** Nothing here is realised until it is dragged
- *  out, which is why it needs no reserved folder, no seed change, no door
- *  migration and no defences against rename, delete and drop — and why it works
- *  in every workspace already written.
+ *  **A rendering, not blocks.** The folder the explorer draws from this has no
+ *  ids of its own and nothing in it is realised until a row is dragged out,
+ *  which is why it needs no reserved block, no seed change, no door migration
+ *  and no defences against rename, delete and drop — and why it works in every
+ *  workspace already written.
  *
- *  **One row per base kind.** A `ws.<kind>` override stands in the base row's
- *  place rather than beside it: two rows both saying `block` is the one thing a
- *  vocabulary must not do. The base definition is never deleted — the override
- *  extends it — so unpinning the override brings the base row back.
- *
- *  **The only thing this gives up** is typing a single block to the pristine
- *  base while everything else uses the override. Still reachable by giving that
- *  block its own `looks`. */
+ *  **Every definition gets a row, including the base kinds.** A workspace
+ *  default is an ordinary definition wearing a mark, not a row standing in for
+ *  another one, so there is nothing to replace and nothing to put back. */
 export function vocabulary(graph: Graph): Vocabulary[] {
-  const stands_in = new Map<Id, Definition>();
-  for (const kind of BLOCK_MODULES) {
-    const own = graph.defs[own_id(kind)];
-    if (own?.group === "block") stands_in.set(kind, own);
-  }
   const groups = new Map<string | null, Definition[]>();
   for (const d of Object.values(graph.defs)) {
-    if (d.group !== "block" || is_own_id(d.id)) continue;
+    if (d.group !== "block") continue;
     const held = groups.get(d.from ?? null) ?? [];
-    held.push(stands_in.get(d.id) ?? d);
+    held.push(d);
     groups.set(d.from ?? null, held);
   }
   return [...groups.entries()]

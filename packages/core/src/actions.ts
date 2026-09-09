@@ -10,11 +10,11 @@
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, may_retype, members_of, module_of, module_named, next_num, next_alias,
-         own_id, path, reorder } from "./fold";
+         path, reorder } from "./fold";
 import { NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, BLOCK_MODULES, ROOT, VALUE_FORMS,
-         type Arrangement, type Block, type BlockModule,
+import { ARRANGEMENTS, VALUE_FORMS,
+         type Arrangement, type Block,
          type Cell, type Components, type Definition, type Dir, type FieldDef,
          type Flow, type Graph, type Id,
          type Mutation, type RelationModule, type Side, type Span, type ValueForm } from "./types";
@@ -291,7 +291,7 @@ register(
       }
       const def = def_id(label);
       const out: Mutation[] = ctx.graph.defs[def] ? []
-        : [{ op: "set_def", def: { id: def, home: here(ctx), group: "relation", name: label } }];
+        : [{ op: "set_def", def: { id: def, group: "relation", name: label } }];
       return { mutations: [...out, { op: "update_edge", id, type: def }] };
     },
   },
@@ -1273,6 +1273,14 @@ function rooted(ctx: Context, said: string): Id | undefined {
   return by_name?.id ?? def_id(said);
 }
 
+/** The definition an id means. **A definition names itself; a block names the
+ *  one it resolves through**, so *make this the default* can be said by pointing
+ *  at a customised block rather than by finding its type in a list first —
+ *  which is how somebody arrives at wanting it. */
+function named_def(ctx: Context, id: Id): Id | undefined {
+  return ctx.graph.defs[id] ? id : def_of(ctx.graph, id);
+}
+
 function borrowed(graph: Graph, id: Id): string | null {
   const d = graph.defs[id];
   if (!d?.from) return null;
@@ -1354,7 +1362,7 @@ register(
       const held = ctx.graph.defs[id];
       return { mutations: [{ op: "set_def", def: {
         ...held,
-        id, home: held?.home ?? here(ctx), name,
+        id, name,
         group: (args["group"] as "block" | "relation") ?? held?.group ?? "block",
         extends: args["extends"] === undefined ? held?.extends
                                                : rooted(ctx, text(args, "extends")),
@@ -1362,47 +1370,56 @@ register(
     },
   },
   {
-    name: "adopt",
-    about: "makes a base kind the workspace's own, so every plain one follows it",
-    on: ["layer"],
-    /** **Always explicit, and resolved by id.** A package must never take over a
-     *  project by being imported, so nothing here is inferred: somebody says
-     *  which kind, and `def_of` then asks for `ws.<kind>` by id before it asks
-     *  for the shipped one.
+    name: "default",
+    about: "makes this definition the one every plain block of its kind follows",
+    on: ["layer", "block"],
+    /** **A checkbox, not a system.** The want is *make every plain block read
+     *  like this one*, and a definition already says how a thing reads — so it
+     *  wears the base kind it stands in for and `def_of` asks one more
+     *  question. There is no reserved id, no second vocabulary and nothing to
+     *  put back when it is taken off.
      *
-     *  **The id is minted here, never through `def_id`**, which strips the dot.
-     *  Extending an imported definition is how a notation is adopted —
-     *  `ws.block extends sysml.block` — and an adoption that says nothing else
-     *  carries nothing and only points. */
-    args: [{ name: "kind", form: "choice", required: true, choices: BLOCK_MODULES },
-           { name: "extends", form: "text" }],
+     *  **One at a time, and only its own kind.** A folder definition cannot be
+     *  the default for blocks, and a package's cannot be a default at all —
+     *  which is the whole of *a package must not take over a project*. */
+    args: [{ name: "id", form: "text", required: true },
+           { name: "on", form: "choice", choices: ["yes", "no"] }],
     check: (ctx, args) => {
-      const kind = text(args, "kind");
-      if (!BLOCK_MODULES.includes(kind as BlockModule)) {
-        return `there is no base kind called "${kind}"`;
+      const id = named_def(ctx, id_of(args, "id"));
+      const d = id ? ctx.graph.defs[id] : undefined;
+      if (!d) return `there is nothing called "${id_of(args, "id")}" to make a default`;
+      if (d.from) return `"${d.name}" comes from ${d.from} — only your own may be a default`;
+      if (d.group !== "block") return "only a block definition may be a default";
+      return null;
+    },
+    /** **Defensive about a definition that is not there.** `check` refuses one,
+     *  but a run is reachable directly and there is nothing to say without it. */
+    run: (ctx, args) => {
+      const id = named_def(ctx, id_of(args, "id"));
+      const d = id ? ctx.graph.defs[id] : undefined;
+      if (!d || !id) return { mutations: [] };
+      const off = args["on"] === "no" || args["on"] === false;
+      const kind = module_named(ctx.graph, id);
+      const out: Mutation[] = [];
+      /** **Whatever held the kind gives it up first**, so the two never
+       *  disagree and the swap is one step and one undo. */
+      for (const held of Object.values(ctx.graph.defs)) {
+        if (held.id !== id && held.default === kind) {
+          out.push({ op: "set_def", def: { ...held, default: undefined } });
+        }
       }
-      const on = text(args, "extends") || kind;
-      return ctx.graph.defs[on] ? null : `there is nothing called "${on}" to extend`;
+      out.push({ op: "set_def", def: { ...d, default: off ? undefined : kind } });
+      return { mutations: out,
+               effect: { say: off ? `${d.name} is no longer the default`
+                                  : `plain ${kind}s follow ${d.name}` } };
     },
-    run: (_ctx, args) => {
-      const kind = text(args, "kind");
-      /** **The base kind's own name.** The row replaces the base row rather
-       *  than sitting beside it, so it has to read as the same thing. */
-      return { mutations: [{ op: "set_def", def: {
-        id: own_id(kind), home: ROOT, group: "block", name: kind,
-        extends: text(args, "extends") || kind,
-      } }] };
-    },
-  },
-  {
-    name: "undefine",
-    about: "drops a definition, leaving anything that used it alone",
-    on: ["layer"],
-    args: [{ name: "id", form: "text", required: true }],
-    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "id")),
-    run: (_ctx, args) => ({ mutations: [{ op: "drop_def", id: id_of(args, "id") }] }),
   },
 );
+
+/** **`undefine` was retired, and `unpin` is the one remover.** Dropping a
+ *  definition without dissolving it left every block that named it drawing
+ *  differently for no reason anybody asked for — two verbs for one act, where
+ *  only one of them was lossless. */
 
 /** **A vocabulary built by pointing.** Point at a block that already reads the
  *  way you want and make that a definition, rather than writing one first and
@@ -1417,16 +1434,13 @@ register(
     name: "pin",
     about: "makes this block's look a definition anything else can name",
     on: ["block"],
-    /** **The `looks` always; the rest are arguments, each false unless said.**
-     *  Reading one usage's values as a schema is a guess, so `fields` says to
-     *  take the schema and `values` says to take what it happens to hold —
-     *  which is the difference between pinning a schema and pinning a
-     *  template. */
+    /** **Everything the block says, and a name. No other arguments.** Three
+     *  toggles asked somebody to decide, at the moment of pointing at a thing,
+     *  questions they had no way to answer yet — and every one of them had an
+     *  obvious answer. What a block says about how it draws and what it asks is
+     *  what makes it that kind of thing, so all of it travels. */
     args: [{ name: "id", form: "block", required: true },
-           { name: "name", form: "text", required: true, asks: true },
-           { name: "fields", form: "choice", choices: ["yes", "no"] },
-           { name: "values", form: "choice", choices: ["yes", "no"] },
-           { name: "rules", form: "choice", choices: ["yes", "no"] }],
+           { name: "name", form: "text", required: true, asks: true }],
     /** **Duplicates are allowed when the names differ**, so nothing is matched
      *  or merged: two things reading alike today may diverge tomorrow. What is
      *  refused is a second definition wanting a name that is taken, said with
@@ -1443,24 +1457,18 @@ register(
       const id = id_of(args, "id");
       const b = ctx.graph.blocks[id]!;
       const name = text(args, "name");
-      const said = (key: string) => args[key] !== undefined && args[key] !== "no"
-                                 && args[key] !== false;
-
       const taken: Components = {};
-      for (const [key, config] of Object.entries(b.looks ?? {})) {
-        if (key === "rules" && !said("rules")) continue;
-        taken[key] = { ...config };
-      }
-      const fields = said("fields")
-        ? (b.fields ?? []).map((f): FieldDef =>
-            said("values") ? { name: f.name, form: f.form, value: f.value }
-                           : { name: f.name, form: f.form })
-        : [];
+      for (const [key, config] of Object.entries(b.looks ?? {})) taken[key] = { ...config };
+      /** **The schema, never the values.** What a block happens to hold is that
+       *  block's answer; reading it as the default for every future one is a
+       *  guess, and the values stay where they were either way. */
+      const fields = (b.fields ?? []).map((f): FieldDef => ({ name: f.name, form: f.form }));
 
-      /** **Homed on the workspace root**, so every layer can reach it, and
-       *  `from` absent, because this workspace made it. */
+      /** **`from` absent, because this workspace made it** — which is the whole
+       *  of where a definition belongs. Every layer can reach it either way:
+       *  resolution is by id and never by where a record sits. */
       const def: Definition = {
-        id: def_id(name), home: ROOT, group: "block", name,
+        id: def_id(name), group: "block", name,
         extends: def_of(ctx.graph, id),
         fields: fields.length ? fields : undefined,
         components: Object.keys(taken).length ? taken : undefined,
@@ -1620,9 +1628,20 @@ const LOOKS: readonly string[] = ["card", "style", "rules"];
 
 /** The rule kinds whose value is several names rather than one word. Parsed as
  *  a list rather than stringified, which stored `"pump"` where a `["pump"]` was
- *  wanted and left the rule matching nothing. **`ends` and `degree` are not
- *  here**: both are nested records, and a look says one property. */
+ *  wanted and left the rule matching nothing.
+ *
+ *  **Split on commas and never on spaces.** A field is called *rated flow* as
+ *  readily as *flow*, and splitting on whitespace turned one name into two that
+ *  nothing could ever satisfy — so a rule stating the one field the sample
+ *  ships reported two violations against a field that was answered. */
 const LISTED: readonly string[] = ["required", "holds", "match"];
+
+/** The rule kinds a look may not state. **Both are nested records** — `ends`
+ *  has a `from` and a `to`, `degree` an `in` and an `out` — and a look says one
+ *  property, so what it wrote was a scalar where a record was wanted: ignored
+ *  by `rules_of`, then dropped by the door on the next save. Refused out loud
+ *  rather than written and quietly lost. */
+const NESTED: readonly string[] = ["ends", "degree"];
 
 register(
   {
@@ -1643,6 +1662,9 @@ register(
       if (!ids.length) return "nothing is selected";
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
+      }
+      if (String(args["key"]) === "rules" && NESTED.includes(text(args, "name"))) {
+        return `\`${text(args, "name")}\` is stated on a definition, not set here`;
       }
       for (const id of ids) {
         const why = borrowed(ctx.graph, id);
@@ -1722,9 +1744,12 @@ register(
 );
 
 /** A list somebody typed, however they separated it. */
+/** Several names from one answer. **Commas separate, spaces do not** — a name
+ *  with a space in it is one name, and the panel hands a list over whole so it
+ *  never reaches the parsing at all. */
 function list(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
-  return String(raw ?? "").split(/[\s,]+/).filter(Boolean);
+  if (Array.isArray(raw)) return raw.map(String).map((v) => v.trim()).filter(Boolean);
+  return String(raw ?? "").split(",").map((v) => v.trim()).filter(Boolean);
 }
 
 /** Adjustments: positional, unsayable, gesture-only. Never named or ranked, so

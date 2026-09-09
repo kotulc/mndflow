@@ -1,130 +1,70 @@
-/** What must be true, stated where it is read.
+/** What must be true, read where it is asked.
+ *
+ *  **Read, not written — for now.** Authoring got as far as three of the five
+ *  rule kinds: `ends` and `degree` are nested records and a look says one
+ *  property, so the panel could only show them, and the three it could write it
+ *  wrote by splitting on whitespace, which turned a field called *rated flow*
+ *  into two names nothing could ever satisfy. A surface that can state half a
+ *  vocabulary is worse than one that states none, because what it cannot say is
+ *  invisible. It comes back when all five can be written.
  *
  *  **One panel, two holders.** A definition says what a whole kind of thing is
- *  asked for; one block says it for itself — and both are written the same way,
- *  because `looks` and `components` are the same bag and `look` takes whichever
- *  holder it is given. So this does not ask which it is looking at.
+ *  asked for; one block says it for itself — and `rules_of` takes either id,
+ *  with the nearer statement winning. So this does not ask which it is looking
+ *  at.
  *
- *  **The three that are lists of names.** `ends` and `degree` are nested
- *  records and a look says one property, so neither is authored here yet — what
- *  the chain says about them is still read, under the rest.
- *
- *  Pure like every other surface here: it holds what is being typed, and every
- *  change leaves as an action name. */
+ *  Pure, and now stateless: it reads the graph and says what it found. */
 
-import { useState } from "react";
-import { rules_of, type Act, type Graph, type Id, type Rules as InForce } from "@mnd/core";
-import { Icon } from "@mnd/theme";
+import { rules_of, type Graph, type Id, type Rules as InForce } from "@mnd/core";
+import { Line } from "./Body";
 
-/** Each rule that is a list of names, and what it is asking. */
+/** Each rule, and what it is asking. */
 const STATED = [
-  { name: "required", word: "must carry", of: "field" as const,
+  { name: "required", word: "must carry",
     tip: "Field names a usage has to carry a value for. The one constraint — "
        + "asked while modelling, refused only at translation." },
-  { name: "holds", word: "may hold", of: "definition" as const,
+  { name: "holds", word: "may hold",
     tip: "Which definitions this may contain. A rule naming one means it or "
        + "anything below it, so written once it reaches every subtype." },
-  { name: "match", word: "must agree", of: "field" as const,
+  { name: "match", word: "must agree",
     tip: "Field names that have to agree across a relationship's two ends." },
 ] as const;
 
 export type RulesProps = {
   graph: Graph;
-  /** The block or definition the rules are stated on. */
+  /** The block or definition the rules are read for. */
   holder: Id;
-  onAct: Act;
 };
 
-/** What this holder states for itself, as against what it inherits. */
-function own_of(graph: Graph, holder: Id, name: string): string[] {
-  const bag = graph.defs[holder]?.components?.["rules"]
-           ?? graph.blocks[holder]?.looks?.["rules"];
-  const said = bag?.[name];
-  return Array.isArray(said) ? said.map(String) : [];
-}
-
-export function Rules({ graph, holder, onAct }: RulesProps) {
-  const [adding, set_adding] = useState<Record<string, string>>({});
+export function Rules({ graph, holder }: RulesProps) {
   const force = rules_of(graph, holder);
-  /** Every block definition, for the one rule whose answers are definitions.
-   *  **`graph.defs`, not the section** — the section replaces a base row with
-   *  the workspace's override of it, and a rule may name either. */
-  const named = Object.values(graph.defs).filter((d) => d.group === "block")
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const word = (v: string) => graph.defs[v]?.name ?? v;
+  const said = STATED.filter((r) => (force[r.name as keyof InForce] as string[] | undefined)?.length);
 
-  /** **The whole list, every time.** Adding and taking away are the same act
-   *  said two ways, and a list handed over whole is one step and one undo
-   *  whichever it was. Handed as a list rather than as text, so a field called
-   *  *rated flow* stays one name. */
-  const set = (name: string, next: string[]) =>
-    onAct("look", { ids: [holder], key: "rules", name, value: next.length ? next : "" });
+  if (!said.length && !force.ends && !force.degree) {
+    return <p className="empty">nothing is asked of it</p>;
+  }
 
   return (
-    <div className="rules-author">
-      {STATED.map((r) => {
-        const own = own_of(graph, holder, r.name);
-        const inherited = (force[r.name as keyof InForce] as string[] | undefined) ?? [];
-        /** **The nearer statement is the whole answer**, so what is inherited
-         *  is only shown while this holder says nothing — anything else would
-         *  read as a union, which is not what the cascade does. */
-        const from_chain = own.length ? [] : inherited;
-        const word = (v: string) => graph.defs[v]?.name ?? v;
-        const left = r.of === "definition"
-          ? named.filter((d) => !own.includes(d.id)) : [];
-        return (
-          <div key={r.name} className="rule" title={r.tip}>
-            <label>{r.word}</label>
-            <span className="chips">
-              {own.map((v) => (
-                <button key={v} className="chip" title={`stop asking for ${word(v)}`}
-                        onClick={() => set(r.name, own.filter((x) => x !== v))}>
-                  {word(v)}<Icon name="remove" size={10} />
-                </button>
-              ))}
-              {from_chain.map((v) => (
-                <span key={v} className="chip from" title="from the chain — restate it here to change it">
-                  {word(v)}
-                </span>
-              ))}
-              {r.of === "definition" ? (
-                <select value="" aria-label={`add to ${r.name}`} disabled={!left.length}
-                        onChange={(e) => {
-                          if (!e.target.value) return;
-                          set(r.name, [...own, e.target.value]);
-                        }}>
-                  <option value="">+ {r.of}</option>
-                  {left.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                </select>
-              ) : (
-                <input value={adding[r.name] ?? ""} placeholder={`+ ${r.of}`}
-                       aria-label={`add to ${r.name}`}
-                       onChange={(e) => set_adding((was) => ({ ...was, [r.name]: e.target.value }))}
-                       onKeyDown={(e) => {
-                         const said = (adding[r.name] ?? "").trim();
-                         if (e.key !== "Enter" || !said || own.includes(said)) return;
-                         set(r.name, [...own, said]);
-                         set_adding((was) => ({ ...was, [r.name]: "" }));
-                       }} />
-              )}
-            </span>
-          </div>
-        );
-      })}
-
-      {/* **Read, not written.** Both are nested records and a look says one
-          property, so what a package states about them still shows. */}
-      {force.ends || force.degree ? (
-        <div className="rule read-only">
-          <label>also</label>
-          <span className="says">
-            {force.ends ? `ends ${ends_word(graph, force.ends)}` : ""}
-            {force.ends && force.degree ? " · " : ""}
-            {force.degree ? `degree ${degree_word(force.degree)}` : ""}
-            <em>from the chain, and not editable here</em>
-          </span>
-        </div>
+    <>
+      {said.map((r) => (
+        <Line key={r.name} label={r.word} tip={r.tip}>
+          {((force[r.name as keyof InForce] as string[]) ?? []).map((v) => (
+            <span key={v} className="chip from">{word(v)}</span>
+          ))}
+        </Line>
+      ))}
+      {force.ends ? (
+        <Line label="joins" tip="What may sit at each end of this relationship.">
+          <span className="says">{ends_word(graph, force.ends)}</span>
+        </Line>
       ) : null}
-    </div>
+      {force.degree ? (
+        <Line label="degree" tip="How many relationships may arrive at and leave one usage.">
+          <span className="says">{degree_word(force.degree)}</span>
+        </Line>
+      ) : null}
+    </>
   );
 }
 

@@ -11,11 +11,11 @@
  *  pair, and edits the name there too. */
 
 import { useMemo, useRef, useState } from "react";
-import { alias_of, children, is_interface, is_named, is_reference, module_of,
-         shown_name, type Act, type Graph, type Id } from "@mnd/core";
+import { alias_of, children, is_interface, is_named, is_reference, module_named,
+         module_of, shown_name, vocabulary,
+         type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
-import { Vocabulary } from "./Vocabulary";
 
 export type ExplorerProps = {
   graph: Graph;
@@ -47,6 +47,12 @@ export type ExplorerProps = {
 };
 
 type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
+             /** **What this row is a row of.** A block is the tree proper; a
+              *  definition is a word the workspace can say; a pack is one of the
+              *  vocabulary's own folders. Every row is drawn by the same code —
+              *  this is what the handlers ask before offering a block gesture on
+              *  something that is not one. */
+             of: "block" | "def" | "pack";
              /** Whether that label is a name somebody chose, or the type the
               *  block reads as until they do. Drawn quietly when it is not. */
              named: boolean;
@@ -60,7 +66,7 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
               *  ancestor at depth *j+1* has a sibling still to come; the last
               *  column is the row's own. */
              guides: boolean[] };
-type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid";
+type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin";
 
 /** What the tree draws under a block. A boundary, a note, a field and a
  *  reference are never listed — a reference is a second appearance of
@@ -74,9 +80,53 @@ function under(graph: Graph, parent: Id | null) {
   });
 }
 
-/** The tree is blocks. */
-function tree_of(graph: Graph, folded: readonly Id[]): Row[] {
-  const out: Row[] = [];
+/** **The vocabulary's own ids, which are not anything's.** Prefixed so they
+ *  cannot collide with a block or a definition, because nothing here is in the
+ *  graph: the folder is a rendering, and its rows are realised only when one is
+ *  dragged out. That is what spares it a seed change, a door migration and
+ *  every defence against rename, delete and drop. */
+const VOCAB = "@vocab";
+const pack_id = (from: string | null) => `${VOCAB}:${from ?? ""}`;
+
+/** Which mark a definition's base kind wears. **The tree's own reading**, so
+ *  a definition row and a block of that kind are told apart by nothing. */
+const KIND_MARK: Record<string, Mark> = {
+  block: "leaf", folder: "folder", resource: "resource", reference: "reference",
+  interface: "interface", group: "group", grid: "grid", note: "note",
+};
+
+/** The vocabulary, as rows: a pinned root, one folder per source, and a row per
+ *  definition. **Ordinary rows** — same renderer, same guides, same marks, same
+ *  fold state, so the tree gained a branch rather than the panel gaining a
+ *  second list. */
+function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
+  const groups = vocabulary(graph);
+  if (!groups.length) return [];
+  const out: Row[] = [{ id: VOCAB, depth: 0, label: "vocabulary", kids: groups.length,
+                        mark: "pin", named: true, alias: "", of: "pack", guides: [] }];
+  if (folded.includes(VOCAB)) return out;
+  groups.forEach((g, n) => {
+    const id = pack_id(g.from);
+    const more = n < groups.length - 1;
+    out.push({ id, depth: 1, label: g.from ?? "this workspace", kids: g.defs.length,
+               mark: "folder", named: true, alias: "", of: "pack", guides: [more] });
+    if (folded.includes(id)) return;
+    g.defs.forEach((d, i) => {
+      out.push({ id: d.id, depth: 2, label: d.name, kids: 0,
+                 mark: KIND_MARK[module_named(graph, d.id)] ?? "leaf",
+                 /** **The default wears the word.** The same slot a block uses
+                  *  to tell two rows apart says which definition every plain one
+                  *  of its kind follows. */
+                 named: true, alias: d.default ? "default" : "", of: "def",
+                 guides: [more, i < g.defs.length - 1] });
+    });
+  });
+  return out;
+}
+
+/** The tree is blocks, under the vocabulary that types them. */
+function tree_of(graph: Graph, folded: readonly Id[], vocab = false): Row[] {
+  const out: Row[] = vocab ? vocab_of(graph, folded) : [];
   /** **A row's columns are its holder's, plus one for itself.** Every column
    *  but the last says what the holder's own row already said, so it is handed
    *  down rather than worked out again — read off the ancestors instead, a
@@ -88,7 +138,7 @@ function tree_of(graph: Graph, folded: readonly Id[]): Row[] {
       const kids = under(graph, b.id);
       const guides = depth ? [...held, n < kin.length - 1] : [];
       out.push({ id: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
-                 named: is_named(graph, b.id), alias: alias_of(graph, b.id),
+                 named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
                  mark: module_of(graph, b.id) === "folder" ? "folder"
                      : module_of(graph, b.id) === "resource" ? "resource"
                      : kids.length ? "container" : "leaf",
@@ -141,6 +191,7 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
   note: { icon: "role_note" },
   group: { icon: "role_group" },
   grid: { icon: "role_table" },
+  pin: { icon: "pin" },
 };
 
 export function Explorer(props: ExplorerProps) {
@@ -174,7 +225,10 @@ export function Explorer(props: ExplorerProps) {
   const shut = lit.length
     ? folded.filter((id) => !lit.some((m) => on_path(graph, m, id)))
     : folded;
-  const rows = tree_of(graph, shut);
+  const rows = tree_of(graph, shut, !!onPickDef);
+  /** **Only blocks answer a block question.** Range-select, drag payloads
+   *   and the fold-all sweep all read this rather than the whole list. */
+  const blocks = rows.filter((r) => r.of === "block");
   const one = picked.length === 1 ? picked[0]! : null;
   /** **Where something new goes: what you picked, or where you are.** The
    *  workspace was neither — so a block added from the tree while you stood
@@ -207,11 +261,11 @@ export function Explorer(props: ExplorerProps) {
    *  selection is not asking to be taken somewhere else. */
   const clicked = (e: React.MouseEvent, id: Id) => {
     if (e.shiftKey && anchor) {
-      const from = rows.findIndex((x) => x.id === anchor);
-      const to = rows.findIndex((x) => x.id === id);
+      const from = blocks.findIndex((x) => x.id === anchor);
+      const to = blocks.findIndex((x) => x.id === id);
       if (from >= 0 && to >= 0) {
         const [a, b] = from < to ? [from, to] : [to, from];
-        onPick(rows.slice(a, b + 1).map((x) => x.id));
+        onPick(blocks.slice(a, b + 1).map((x) => x.id));
         return;
       }
     }
@@ -228,7 +282,7 @@ export function Explorer(props: ExplorerProps) {
    *  an unpicked one is only itself, so dragging something you had not chosen
    *  never sweeps up what you had. */
   const load = (id: Id): Id[] =>
-    picked.includes(id) ? rows.filter((r) => picked.includes(r.id)).map((r) => r.id) : [id];
+    picked.includes(id) ? blocks.filter((r) => picked.includes(r.id)).map((r) => r.id) : [id];
 
   /** What is in hand at a drop, whichever surface started it. */
   const dropped = (e: React.DragEvent): Id[] => {
@@ -264,7 +318,7 @@ export function Explorer(props: ExplorerProps) {
                   onClick={() => add("folder")}><Icon name="add_folder" /></button>
           <button title={any_open ? "fold everything" : "open everything"}
                   onClick={() => {
-                    for (const r of tree_of(graph, [])) {
+                    for (const r of tree_of(graph, [], !!onPickDef)) {
                       if (r.kids > 0) onFold(r.id, any_open);
                     }
                   }}><Icon name={any_open ? "fold_all" : "unfold_all"} /></button>
@@ -274,12 +328,18 @@ export function Explorer(props: ExplorerProps) {
       </div>
 
         <ul className="tree">
-          {rows.map((r) => (
+          {rows.map((r, n) => (
             <li key={r.id}
                 className={[
                   r.depth ? "" : "top",
                   r.named ? "" : "unnamed",
-                  picked.includes(r.id) ? "picked" : "",
+                  r.of === "block" ? "" : r.of,
+                  /** **The seam between what the workspace can say and what it
+                   *  is.** One line under the last vocabulary row, so the two
+                   *  read as two lists without being two panels. */
+                  r.of === "block" && rows[n - 1] && rows[n - 1]!.of !== "block" ? "sep" : "",
+                  r.of === "def" && pickedDef === r.id ? "picked" : "",
+                  r.of === "block" && picked.includes(r.id) ? "picked" : "",
                   lit.includes(r.id) ? "lit" : "",
                   lit.length && !lit.includes(r.id) ? "dim" : "",
                   open === r.id ? "open" : "",
@@ -292,8 +352,19 @@ export function Explorer(props: ExplorerProps) {
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
                 style={{ paddingLeft: 8 + r.depth * STEP }}
-                draggable={naming !== r.id}
+                draggable={r.of === "def" || (r.of === "block" && naming !== r.id)}
                 onDragStart={(e) => {
+                  /** **One payload, and the receiver asks which it got.** A
+                   *  definition id and a block id are both ids, and whoever
+                   *  catches one has the graph — so a second mime type was a
+                   *  second thing to keep in step across two packages that may
+                   *  not import each other, and it was mismatched with the
+                   *  canvas's own drop effect, which refused the drop outright. */
+                  if (r.of === "def") {
+                    e.dataTransfer?.setData("text/mnd-block", r.id);
+                    if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+                    return;
+                  }
                   set_dragging(load(r.id));
                   /** **The same drag, one target further.** A row dropped on
                    *  another row re-parents; dropped on the drawing it is placed
@@ -304,6 +375,7 @@ export function Explorer(props: ExplorerProps) {
                 }}
                 onDragEnd={() => { set_dragging([]); set_over(null); set_out(false); }}
                 onDragOver={(e) => {
+                  if (r.of !== "block") return;
                   e.preventDefault();
                   /** The row answers for itself, so the panel behind it does
                    *  not also answer *the workspace*. */
@@ -312,6 +384,7 @@ export function Explorer(props: ExplorerProps) {
                   if (!dragging.includes(r.id)) set_over({ id: r.id, where: seam(e) });
                 }}
                 onDrop={(e) => {
+                  if (r.of !== "block") return;
                   e.preventDefault();
                   e.stopPropagation();
                   const where = seam(e);
@@ -333,13 +406,20 @@ export function Explorer(props: ExplorerProps) {
                   const before = where === "above" ? r.id : next?.id;
                   onAct("move", { ids, parent, ...(before ? { before } : {}) });
                 }}
-                onClick={(e) => clicked(e, r.id)}
+                /** **A pack folds, a definition is described, a block is
+                 *  picked.** Three rows, one list, and the row says which. */
+                onClick={(e) => {
+                  if (r.of === "pack") { onFold(r.id, !shut.includes(r.id)); return; }
+                  if (r.of === "def") { onPickDef?.(pickedDef === r.id ? null : r.id); return; }
+                  clicked(e, r.id);
+                }}
                 onContextMenu={(e) => {
+                  if (r.of !== "block") return;
                   e.preventDefault();
                   if (!picked.includes(r.id)) { onAct("reveal", { id: r.id }); onPick([r.id]); }
                   set_menu({ x: e.clientX, y: e.clientY });
                 }}
-                onDoubleClick={() => set_naming(r.id)}>
+                onDoubleClick={() => { if (r.of === "block") set_naming(r.id); }}>
               {/* **The mark is the fold, and it says which way it is set.** A
                   branch that is listing what it holds takes the accent; shut,
                   it stands down with the rest of the row — so one icon is both
@@ -366,7 +446,9 @@ export function Explorer(props: ExplorerProps) {
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
                 <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={MARK_SIZE} />
               </span>
-              <Name id={r.id} className="label" text={r.label} />
+              {r.of === "block"
+                ? <Name id={r.id} className="label" text={r.label} />
+                : <span className="label">{r.label}</span>}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
             </li>
           ))}
@@ -390,13 +472,6 @@ export function Explorer(props: ExplorerProps) {
                 if (ids.length) onAct("move", { ids, parent: graph.root });
               }} />
         </ul>
-
-      {/* **The vocabulary, under the structure it types.** The tree is what the
-          workspace *is*; this is what it can say — so it sits below rather than
-          beside, and a definition is dragged up out of it onto the drawing. */}
-      {onPickDef ? (
-        <Vocabulary graph={graph} picked={pickedDef} onPick={onPickDef} onAct={onAct} />
-      ) : null}
 
       {/* **The edge is the control.** A panel whose width is a taste is
           dragged to it rather than argued with, and the pointer is captured so

@@ -82,8 +82,8 @@ export function unmoored(): string {
   return file({
     root: "ws",
     defs: {
-      def_valve: { id: "def_valve", home: "block_gone", name: "Valve" },
-      def_ball: { id: "def_ball", home: "ws", name: "Ball Valve", extends: "def_missing" },
+      def_valve: { id: "def_valve", name: "Valve" },
+      def_ball: { id: "def_ball", name: "Ball Valve", extends: "def_missing" },
     },
     blocks: { ws: ROOT_BLOCK },
     edges: {},
@@ -123,13 +123,13 @@ export function muddled(): string {
   return file({
     root: "ws",
     defs: {
-      def_valve: { id: "def_valve", home: "ws", group: "block", name: "Valve",
+      def_valve: { id: "def_valve", group: "block", name: "Valve",
                    components: { card: { layout: "type", shape: "blob" },
                                  block: { module: "block" } } },
-      def_pipe: { id: "def_pipe", home: "ws", group: "block", name: "Pipe",
+      def_pipe: { id: "def_pipe", group: "block", name: "Pipe",
                   components: { block: { module: "sprocket" },
                                 sketch: { hatching: "cross" } } },
-      def_feeds: { id: "def_feeds", home: "ws", group: "relation", name: "feeds",
+      def_feeds: { id: "def_feeds", group: "relation", name: "feeds",
                    components: { rules: { ends: { from: "def_valve" } } } },
     },
     blocks: {
