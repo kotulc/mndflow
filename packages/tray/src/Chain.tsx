@@ -57,7 +57,7 @@ export function Chain({ graph, id }: ChainProps) {
           <td className="name">{shown_name(graph, id)}</td>
           <td className="type">this element</td>
           <td className="what">
-            {[b?.labelled === false ? "no label" : "", b?.locked ? "locked" : "",
+            {[
               b?.tags?.length ? `tags: ${b.tags.join(", ")}` : "",
               b?.fields?.length ? `${b.fields.length} value${b.fields.length > 1 ? "s" : ""}` : ""]
               .filter(Boolean).join(" · ") || "nothing of its own"}

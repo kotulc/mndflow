@@ -204,16 +204,19 @@ function dressed(look: Look) {
    *  than drawing no card at all. */
   const sheer = look.opacity !== undefined && look.opacity < 1;
   return {
-    "data-slot": tinted ? "tint" : look.slot,
-    "data-weight": look.weight,
-    "data-voice": look.voice,
-    "data-decor": look.decor,
-    "data-name": look.name,
+    "data-family": tinted ? "tint" : look.family,
+    "data-fill": look.fill,
+    "data-border-width": look.border_width,
+    "data-border-style": look.border_style,
+    "data-name-font": look.name_font,
+    "data-name-weight": look.name_weight,
+    "data-label-font": look.label_font,
+    "data-label-weight": look.label_weight,
     "data-label": look.label,
     "data-align": look.align,
-    "data-fill": look.fill,
-    ...(look.line ? { "data-line": look.line } : {}),
-    ...(look.ink ? { "data-ink": look.ink } : {}),
+    ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
+    ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
+    ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),
     ...(sheer ? { "data-sheer": "" } : {}),
     ...(tinted
       /** **The ceiling stays in the ramp.** `intensity` is handed over as a
@@ -293,53 +296,42 @@ function Holds({ cells }: { cells: readonly Cell[] }) {
 function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
-  /** **Two writings, and neither is the other's absence.** The name is what
-   *  somebody called it; the label is what sort of thing it is. Both may sit
-   *  inside, both may sit under the card, and either may be left off. */
-  const named = look.name !== "none";
-  const labelled = look.label !== "none";
+  /** **Two writings, and only one of them is optional.** The name is what
+   *  somebody called it and is always drawn; the label is what sort of thing it
+   *  is, and it may sit over the card, in it, under it, or nowhere. */
+  const label = look.label;
   return (
-    <div className={["mnd-card", ...data.marks, selected ? "picked" : ""]
+    <div className={["mnd-card", "card-face", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          {...dressed(look)} data-def={data.def} title={data.label}>
       <Brim />
       <Wears role={data.role} icon={data.look?.icon} />
-      {/* **The other corner.** Its role is what it is and sits top right; this
-          is what has been done to it, and sits bottom right so the two never
-          argue over one place. */}
-      {data.marks.includes("locked")
-        ? <span className="mnd-locked" title="locked in place"><Icon name="locked" size={11} /></span>
+      {/* **The other corner.** What sort of thing it is sits top right; what
+          its vocabulary flags about it sits bottom right, quietly, so the two
+          never argue over one place. */}
+      {look.mark && known(look.mark)
+        ? <span className="mnd-mark"><Icon name={look.mark} size={11} /></span>
         : null}
-      {named || (labelled && look.label === "inside") ? (
-        <div className="mnd-head">
-          {/* **One name, in two elements.** It reads as `Block A1`, and the
-              mark is its own element so that two clicks open the word alone and
-              what you type replaces it rather than the mark. Wrapped, because
-              the head sets its ends apart and the two of these are one end. */}
-          {named ? (
-            <span className="mnd-named">
-              <Name id={id} className="mnd-label" text={data.label} />
-              {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
-            </span>
-          ) : <span className="mnd-named" />}
-          {/* A subtype where somebody set one. **Absent rather than a default
-              word** — every card that nobody has told apart would otherwise
-              carry the same chip, which is noise on all of them.
-              **And never the word the mark already says**: a folder wearing
-              the folder mark and the word *folder* says it twice. */}
-          {/* **What sort of thing it is, where it was asked for.** It used to
-              appear only for a named subtype and only ever inside, which is why
-              putting a type on a card took the name off it. */}
-          {labelled && look.label === "inside"
-            ? <span className="mnd-kind">{look.kind}</span> : null}
-        </div>
-      ) : null}
+      {label === "above"
+        ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
+      <div className="mnd-head">
+        {/* **One name, in two elements.** It reads as `Block A1`, and the mark
+            is its own element so that two clicks open the word alone and what
+            you type replaces it rather than the mark. Wrapped, because the head
+            sets its ends apart and the two of these are one end. */}
+        <span className="mnd-named">
+          <Name id={id} className="mnd-label card-name" text={data.label} />
+          {data.alias ? <span className="mnd-alias">{data.alias}</span> : null}
+        </span>
+        {/* **What sort of thing it is, where it was asked for.** The subtype
+            where somebody named one, the base kind otherwise. */}
+        {label === "inside"
+          ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+      </div>
       {/* Under the card rather than in it. It hangs into the gutter the layout
           already leaves between cards, so no box has to grow for it. */}
-      {labelled && look.label === "below"
-        ? <span className="mnd-under mnd-kind">{look.kind}</span> : null}
-      {named && look.name === "below"
-        ? <span className="mnd-under mnd-label">{data.label}</span> : null}
+      {label === "below"
+        ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
       {data.cells?.length ? <Holds cells={data.cells} /> : null}
       {data.fields?.length ? (
         <dl className="mnd-fields">
@@ -366,7 +358,7 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
   return (
-    <div className={["mnd-card", "note", ...data.marks, selected ? "picked" : ""]
+    <div className={["mnd-card", "card-face", "note", ...data.marks, selected ? "picked" : ""]
             .filter(Boolean).join(" ")}
          {...dressed(look)} data-def={data.def}>
       <NodeResizer isVisible={selected} minWidth={96} minHeight={48}
@@ -535,13 +527,12 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
   const has_cells = !!data.grid?.length;
-  const show_name = !data.marks.includes("unlabelled");
   const shell = ["mnd-group-shell", has_cells ? "gridded" : ""].filter(Boolean).join(" ");
   const group = ["mnd-group", has_cells ? "gridded" : "",
                  selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
     <div className={shell}>
-      {show_name ? <Name id={id} className="mnd-group-name" text={data.label} /> : null}
+      <Name id={id} className="mnd-group-name" text={data.label} />
       <div className={group} {...dressed(look)} title={data.label}>
         {has_cells ? null : <BandRim />}
         {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}

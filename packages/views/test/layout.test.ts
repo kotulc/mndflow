@@ -308,7 +308,7 @@ describe("the layout leaves room between things", () => {
   it("places each id once, even when a group sits inside another", () => {
     const graph = fold(related());
     graph.blocks["block_inner"] = {
-      id: "block_inner", parent: "block_loop", type: "group", num: 20, labelled: false,
+      id: "block_inner", parent: "block_loop", type: "group", num: 20,
     };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_loop", type: "block", num: 21 };
     graph.blocks["block_pad"]!.group = "block_inner";
@@ -480,7 +480,7 @@ describe("seats", () => {
 
   it("sits a leftover neighbour above its member, not at a tall group's far corner", () => {
     const { graph, layer } = layer_of("flat");
-    graph.blocks["block_band"] = { id: "block_band", parent: layer, type: "group", num: 30, labelled: false };
+    graph.blocks["block_band"] = { id: "block_band", parent: layer, type: "group", num: 30 };
     for (const [id, num] of [["block_top", 31], ["block_mid", 32], ["block_bot", 33]] as const) {
       graph.blocks[id] = { id, parent: layer, type: "block", num, group: "block_band" };
     }
@@ -694,7 +694,7 @@ describe("seats", () => {
   it("places a block beside a grid near its cell, not past an intervening group", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_in"] = { id: "block_in", parent: "block_board", type: "block", num: 50 };
-    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51, labelled: false };
+    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", num: 52 };
     graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", module: "directed" };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes", module: "line" };
@@ -715,7 +715,7 @@ describe("seats", () => {
   it("places a downstream block on the near side of a grid, not past an intervening group", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_out"] = { id: "block_out", parent: "block_board", type: "block", num: 53 };
-    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51, labelled: false };
+    graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", num: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", num: 52 };
     graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", module: "directed" };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes", module: "line" };

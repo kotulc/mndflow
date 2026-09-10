@@ -757,7 +757,6 @@ register(
         out.push({ op: "add_block", block: {
           id: group, parent: here(ctx), type: extent ? "grid" : "group",
           num: next_num(ctx.graph, here(ctx)),
-          ...(!extent ? { labelled: false } : {}),
         } });
       }
       if (rows !== null || cols !== null) {
@@ -1549,55 +1548,7 @@ register(
   },
 );
 
-/** What one element says about how it is drawn.
- *
- *  **Model data, not a display preference.** How the rest of the layer draws is
- *  the shell's business, but what a particular card says about itself is part
- *  of what the layer says — so it travels in the file, it undoes, and reopening
- *  the workspace finds it the way it was left. */
 register(
-  {
-    name: "label",
-    about: "whether the drawing writes this block's name on it",
-    on: ["block", "selection"],
-    args: [{ name: "ids", form: "block", required: true },
-           { name: "shown", form: "choice", choices: ["yes", "no"] }],
-    check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
-    run: (ctx, args) => {
-      const ids = ids_of(ctx, args);
-      /** Absent flips what is there, so one control is the whole of it. */
-      const said = args["shown"] === undefined ? null : args["shown"] !== "no";
-      return { mutations: ids.map((id): Mutation => ({
-        op: "set_labelled", id,
-        labelled: said ?? ctx.graph.blocks[id]?.labelled === false,
-      })) };
-    },
-  },
-);
-
-/** Whether this element is fixed where it was put. One toggle, on the element
- *  rather than on the layer, and undoable like everything else.
- *
- *  **An interface is a block, so it locks like one** — and it is the case the
- *  lock is really for: a port stays on the wall it was put on instead of being
- *  slid by hand. A relationship end is locked by pinning it, which is
- *  `adjustments.wall` and not this. */
-register(
-  {
-    name: "lock",
-    about: "fixes this where it was put, so nothing works its place out again",
-    on: ["block", "interface", "selection"],
-    args: [{ name: "ids", form: "block", required: true },
-           { name: "fixed", form: "choice", choices: ["yes", "no"] }],
-    check: (ctx, args) => (ids_of(ctx, args).length ? null : "nothing is selected"),
-    run: (ctx, args) => {
-      const ids = ids_of(ctx, args);
-      const said = args["fixed"] === undefined ? null : args["fixed"] !== "no";
-      return { mutations: ids.map((id): Mutation => ({
-        op: "set_locked", id, locked: said ?? !ctx.graph.blocks[id]?.locked,
-      })) };
-    },
-  },
   {
     name: "tag",
     about: "puts words on a block to say what it is like",

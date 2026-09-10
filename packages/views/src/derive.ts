@@ -5,7 +5,7 @@
  *  rather than each answering it slightly differently. */
 
 import { alias_of, is_container, is_header, is_interface, is_named, is_reference,
-         kind_word, module_of, path, role_of, shown_name, stands_for,
+         module_of, path, role_of, shown_name, stands_for,
          type Graph, type Id } from "@mnd/core";
 import { cells_of, look_of } from "./look";
 import { pictured } from "./size";
@@ -33,14 +33,7 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
   /** Wearing its type rather than a name somebody chose. Drawn quietly, so a
    *  placeholder does not read as loudly as a name. */
   if (!is_named(graph, id)) out.push("unnamed");
-  /** Told to carry no label at all, which the drawing has to know as well as
-   *  the text does: a grid keeps a name to be taken hold of by, and it must not
-   *  offer to be named where it was told not to say anything. */
-  if (b.labelled === false) out.push("unlabelled");
   if (is_header(b)) out.push("header");
-  /** Its place is fixed. A fact about the block, so every surface reads it the
-   *  same way the canvas does. */
-  if (b.locked) out.push("locked");
   return out;
 }
 
@@ -57,14 +50,12 @@ export function carried(graph: Graph, id: Id): BoxData {
   const fields = (b.fields ?? [])
     .filter((f) => (look.shows ? look.shows.includes(f.name) : false))
     .map((f) => ({ name: f.name, value: String(f.value ?? "") }));
-  /** **A block can be told to say less.** Told not to carry a label it still
-   *  says what it is — a card with nothing written on it is a shape nobody can
-   *  read — but the mark that tells it from its neighbour goes, which is the
-   *  whole of what is in the way while you are arranging things. */
-  const quiet = b.labelled === false;
-  const alias = quiet ? "" : alias_of(graph, id);
+  /** **A card always carries its name.** Where nobody has named it, the name
+   *  *is* its kind and its alias — which is what the mark and the number were
+   *  already saying, and is why hiding it said nothing a reader could use. */
+  const alias = alias_of(graph, id);
   return {
-    label: quiet ? kind_word(graph, b) : shown_name(graph, id),
+    label: shown_name(graph, id),
     ...(alias ? { alias } : {}),
     role: role_of(graph, id),
     ...(b.type ? { def: b.type } : {}),

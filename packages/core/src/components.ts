@@ -91,111 +91,98 @@ const stray = (name: string, config: Settings, known: readonly string[]): string
   return odd ? `\`${name}\` knows nothing about \`${odd}\`` : null;
 };
 
-/** How a card is composed, what is drawn inside the box, and where the name
- *  sits. **Closed sets that grow by a code change** — additively, and never
- *  from data. That is the line between an engine and a plugin host. */
+
+/** How a card is composed and how it is painted. **Closed sets that grow by a
+ *  code change** — additively, and never from data. That is the line between an
+ *  engine and a plugin host.
+ *
+ *  **Five questions, and every key belongs to one of them**: the name, the
+ *  label, the border, the fill, and the mark. A key named for the row that asks
+ *  it is a key nobody has to translate — `voice`, `decor`, `ink` and `line`
+ *  each said *which* answer without saying *what it was about*, so the name and
+ *  the label shared one answer between them and neither could be set alone. */
+
 /** **No `shape`.** A definition picking a diamond or a hex drew as one on the
  *  canvas and as a rectangle everywhere else, which is a promise only one
  *  renderer kept. It comes back when every renderer can keep it.
  *
- *  **No `layout` either.** It offered five ways a card could be composed and
- *  no renderer read any of them — five validated values carried through three
- *  packages and drawn by nothing. What actually puts values on a card is
- *  `shows`, which names them. */
+ *  **No `layout` either.** It offered five ways a card could be composed and no
+ *  renderer read any of them. What actually puts values on a card is `shows`,
+ *  which names them. */
 
-/** Where one of a card's two writings sits. **The same three for both**, since
- *  the question is the same one asked of the name and of the type. */
-export const PLACES = ["inside", "below", "none"] as const;
+/** Where the label sits — the subtype where one is named, the base kind
+ *  otherwise. **The name is not asked this**: a card without its name is a box
+ *  nobody can read, and the toggle that hid it was a third way of saying the
+ *  same nothing. */
+export const DISPLAYS = ["above", "inside", "below", "none"] as const;
 
-/** Which end of the card its writing reads from. **Three, and the first is
- *  what every card did before there was a choice** — so a definition saying
- *  nothing draws exactly as it always has. Composition rather than colour,
- *  which is why it is `card` and not `style`. */
+/** Which end of the card its writing reads from. **Three, and the first is what
+ *  every card did before there was a choice** — so a definition saying nothing
+ *  draws exactly as it always has. */
 export const ALIGNS = ["left", "center", "right"] as const;
 
-/** The named families a definition may pick from. **Four, and each is a preset
- *  over `hue` and `intensity`** — the two numbers below are the mechanism, and
- *  a slot is a name for a pair of them that the *theme* chooses.
+/** The named families a definition may pick from. **Each is a preset over `hue`
+ *  and `intensity`** — the two numbers below are the mechanism, and a family is
+ *  a name for a pair of them that the *theme* chooses.
  *
- *  **Six were four too many and two too alike.** `tertiary` and `quaternary`
- *  carried the same chroma as `secondary` and differed only by hue, at a
- *  chroma the fill step scales to 0.02 — so three of the six were the same
- *  near-black on a card. Naming more families was never what was missing;
- *  saying which hue was.
- *
- *  **A slot is theme-relative and a hue is not.** `primary` is green in retro
+ *  **A family is theme-relative and a hue is not.** `primary` is green in retro
  *  and teal in modern, which is what keeps a shipped package looking like the
  *  theme it is opened in. A hue names an angle and means it everywhere, which
- *  is what a workspace wants for a vocabulary of its own. Both are offered
- *  because they answer different questions. */
-export const SLOTS = ["primary", "secondary", "neutral", "muted",
-                      "away", "note"] as const;
+ *  is what a workspace wants for a vocabulary of its own. */
+export const FAMILIES = ["primary", "secondary", "neutral", "muted",
+                         "away", "note"] as const;
 
 /** The hue angle a usage paints itself with, in degrees, when a named family is
- *  not what was wanted. **The theme still owns lightness**, which is where
- *  *ink reads on fill* actually comes from — so an angle is safe to say and a
+ *  not what was wanted. **The theme still owns lightness**, which is where *ink
+ *  reads on fill* actually comes from — so an angle is safe to say and a
  *  lightness is not. */
 export const HUE = { min: 0, max: 360 } as const;
 
 /** How much chroma that hue is taken at, as a fraction of the theme's own
- *  ceiling. **Not a lightness and not an opacity**: those are the ladder's, and
- *  a definition reaching for either is how a card stops reading in one of the
- *  three themes. */
+ *  ceiling. **Not a lightness and not an opacity**: those are the ladder's. */
 export const INTENSITY = { min: 0, max: 1 } as const;
 
-/** The style answers that are **ranges rather than sets**. Named here beside
- *  the ranges themselves, so the one action that writes a look can tell a
- *  number from a word without keeping a second list of its own. */
+/** The answers that are **ranges rather than sets**. Named here beside the
+ *  ranges themselves, so the one action that writes a look can tell a number
+ *  from a word without keeping a second list of its own. */
 export const NUMBERS: readonly string[] = ["hue", "intensity", "opacity"];
-/** How heavy a border is. **Three steps, and the first is the ordinary one.**
- *  It used to run hairline / thin / thick at half a pixel, one and two — but a
- *  border cannot be half a device pixel, so the first two rendered identically
- *  and the set offered a choice it could not keep. Renamed as well as respaced:
- *  a step called *hairline* cannot be what a card is normally drawn with. */
-export const WEIGHTS = ["thin", "medium", "thick"] as const;
-/** How heavily the name is set. **The words everybody already uses for it** —
- *  it was `quiet · normal · loud`, which is a third scale of loudness beside
- *  contrast and opacity and means none of the same things. */
-export const VOICES = ["light", "normal", "bold"] as const;
 
-/** How the name is marked, as against how heavily it is set. **One value, not
- *  three flags** — italic *and* struck through is a combination nobody has
- *  asked for, and a closed set stays one lookup while three booleans become
- *  eight states to draw and to reason about. Revisit if a real case wants
- *  two at once. */
-export const DECORS = ["none", "italic", "underline", "strike"] as const;
+/** How heavy a border is. **Three steps, and the first is the ordinary one.** A
+ *  border cannot be half a device pixel, so a set finer than this offers a
+ *  choice it cannot keep. */
+export const WIDTHS = ["thin", "medium", "thick"] as const;
+
+/** How a border is drawn. **The line styles that still read at one pixel** — a
+ *  groove or a ridge needs two and draws as solid below that. */
+export const BORDERS = ["solid", "dashed", "dotted", "double", "none"] as const;
+
+/** How heavily a writing is set. Asked of the name and of the label separately,
+ *  because they are two writings and not one. */
+export const WEIGHTS = ["light", "normal", "bold"] as const;
+
+/** How a writing is faced. **One value, not three flags** — italic *and* struck
+ *  through is a combination nobody has asked for, and a closed set stays one
+ *  lookup where three booleans become eight states to draw. */
+export const FONTS = ["none", "italic", "underline", "strike"] as const;
 
 /** What fills a card behind its writing. **Pattern, never colour** — every one
  *  of these is drawn from the card's own steps, so a hatch follows whatever
- *  family or hue it was given. This is what a reference was getting from a
- *  hardcoded rule that no definition could reach. */
+ *  family or hue it was given. */
 export const FILLS = ["solid", "hatch", "wash", "none"] as const;
 
 /** How opaque the fill is, from nothing to solid. **A number, because it is
- *  one** — three named steps were three invented words for a quantity everybody
- *  already has a word for, and the one that mattered most was a 6% wash no name
- *  would have suggested. **The fill alone**: never the ink and never the line,
- *  so a card that has gone transparent is still a card with writing on it. */
+ *  one.** The fill alone: never the ink and never the border, so a card that
+ *  has gone transparent is still a card with writing on it. */
 export const OPACITY = { min: 0, max: 1 } as const;
 
-/** How far the border and the writing stand out from the card behind them.
+/** How far a border or a writing stands out from the card behind it.
  *
  *  **Four rungs of the theme's ladder, in order.** Not a number, because the
  *  ladder is tuned per theme and the four are not evenly spaced on it — a
  *  fraction would land somewhere nobody chose, and land differently in each of
- *  the three. The names say what they look like rather than what the ramp
- *  calls them.
- *
- *  **This replaced `emphasis`.** That was three fixed pairings of these two —
- *  quiet levelled both to `faint`, strong took the border to `strong` — which
- *  is why a reference could not be said at all: it wanted both at `strong`, a
- *  fourth pairing the shorthand had no word for. Two plain answers say every
- *  pairing there is, so the shorthand was one vocabulary too many. */
+ *  the three. The names say what they look like rather than what the ramp calls
+ *  them. */
 export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
-
-/** Style sets this build ships. Open: a set is an asset, and a build names the
- *  ones it carries. A definition may not name one nobody ships. */
-const SETS: readonly string[] = [];
 
 /** Which block module interprets a block, and that module's own keys. Every
  *  module owns its slice, so the `block` component names which and delegates
@@ -215,51 +202,57 @@ const block: Component = {
   },
 };
 
-/** What a card is *made of* — a name, a mark, a few of its fields, and the
- *  verb its usages are named by — rather than what it is coloured, which is
- *  `style`, or where it sits, which is the engine's.
+/** What a card is *made of* — where its label sits, which way its writing
+ *  reads, the two marks in its corners and a few of its fields — rather than
+ *  what it is painted, which is `style`.
  *
- *  **`icon` is a name from the theme's set, not a drawing.** A definition says
- *  which mark its usages wear; a name this build does not know falls back to
- *  the one the role would draw, so a card from a package this build has never
- *  seen still says what sort of thing it is. */
+ *  **`icon` is a name from the theme's set, not a drawing.** A name this build
+ *  does not know falls back to the one the role would draw, so a card from a
+ *  package this build has never seen still says what sort of thing it is.
+ *
+ *  **`mark` is the other corner, and it says nothing the engine knows.** `icon`
+ *  says what sort of thing this is; `mark` is whatever a vocabulary wants to
+ *  flag about one — drawn quietly, out of the way of the writing. It took the
+ *  corner a lock used to sit in, which was engine state nobody could subtype. */
 const card: Component = {
   name: "card",
   check: (config) =>
-    /** **Two writings, two questions.** `name` is what somebody called it;
-     *  `label` is what sort of thing it is. They used to be one key, so putting
-     *  the type on a card took the name off it. */
-    one_of("card.name", config["name"], PLACES)
-    ?? one_of("card.label", config["label"], PLACES)
+    one_of("card.label", config["label"], DISPLAYS)
     ?? one_of("card.align", config["align"], ALIGNS)
     ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["name", "label", "align", "shows", "icon"]),
+    ?? stray("card", config, ["label", "align", "shows", "icon", "mark"]),
 };
 
+/** How a card is painted: its border, its fill, and each of its two writings.
+ *
+ *  **Every key says what it is about** where the same word is asked twice.
+ *  `name_weight` and `label_weight` are one question of two writings;
+ *  `border_width` is a third weight and shares nothing with either. */
 const style: Component = {
   name: "style",
   check: (config) =>
-    one_of("style.slot", config["slot"], SLOTS)
-    ?? one_of("style.weight", config["weight"], WEIGHTS)
-    ?? one_of("style.voice", config["voice"], VOICES)
-    ?? one_of("style.decor", config["decor"], DECORS)
-    ?? one_of("style.line", config["line"], CONTRASTS)
-    ?? one_of("style.ink", config["ink"], CONTRASTS)
+    one_of("style.family", config["family"], FAMILIES)
     ?? one_of("style.fill", config["fill"], FILLS)
-    /** **`hue` wins over `slot` where both are said**, so a preset can be
+    ?? one_of("style.border_width", config["border_width"], WIDTHS)
+    ?? one_of("style.border_style", config["border_style"], BORDERS)
+    ?? one_of("style.border_contrast", config["border_contrast"], CONTRASTS)
+    ?? one_of("style.name_font", config["name_font"], FONTS)
+    ?? one_of("style.name_weight", config["name_weight"], WEIGHTS)
+    ?? one_of("style.name_contrast", config["name_contrast"], CONTRASTS)
+    ?? one_of("style.label_font", config["label_font"], FONTS)
+    ?? one_of("style.label_weight", config["label_weight"], WEIGHTS)
+    ?? one_of("style.label_contrast", config["label_contrast"], CONTRASTS)
+    /** **`hue` wins over `family` where both are said**, so a preset can be
      *  nudged without first being cleared. Neither is required. */
     ?? within("style.hue", config["hue"], HUE)
-    ?? within("style.opacity", config["opacity"], OPACITY)
     ?? within("style.intensity", config["intensity"], INTENSITY)
-    ?? (config["set"] !== undefined && !SETS.includes(String(config["set"]))
-        ? SETS.length
-          ? `\`style.set\` has to be one of ${SETS.join(", ")}`
-          : "`style.set` names a style set, and this build ships none"
-        : null)
-    ?? stray("style", config, ["set", "slot", "weight", "voice", "decor",
-                               "fill", "opacity", "line", "ink",
-                               "hue", "intensity"]),
+    ?? within("style.opacity", config["opacity"], OPACITY)
+    ?? stray("style", config, ["family", "fill", "hue", "intensity", "opacity",
+                               "border_width", "border_style", "border_contrast",
+                               "name_font", "name_weight", "name_contrast",
+                               "label_font", "label_weight", "label_contrast"]),
 };
+
 
 /** One constraint and four rules. Each is a lookup, a count or one fixed
  *  comparison — the shapes are checked here, and what survives is what `review`

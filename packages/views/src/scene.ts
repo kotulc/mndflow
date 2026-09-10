@@ -79,7 +79,6 @@ export type BoxData = {
 };
 
 export type Mark = "container" | "reference" | "missing" | "note" | "group" | "grid"
-                 | "unlabelled" | "locked"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "merged";
 

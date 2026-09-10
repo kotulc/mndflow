@@ -11,9 +11,9 @@
  *  pair, and edits the name there too. */
 
 import { useMemo, useRef, useState } from "react";
-import { alias_of, children, is_interface, is_named, is_reference, module_named,
-         module_of, shown_name, vocabulary,
-         type Act, type Graph, type Id } from "@mnd/core";
+import { BLOCK_MODULES, alias_of, children, is_interface, is_named, is_reference,
+         module_named, module_of, shown_name, vocabulary,
+         type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
 
@@ -80,51 +80,93 @@ function under(graph: Graph, parent: Id | null) {
   });
 }
 
-/** **The vocabulary's own ids, which are not anything's.** Prefixed so they
- *  cannot collide with a block or a definition, because nothing here is in the
- *  graph: the folder is a rendering, and its rows are realised only when one is
- *  dragged out. That is what spares it a seed change, a door migration and
- *  every defence against rename, delete and drop. */
-const VOCAB = "@vocab";
-const pack_id = (from: string | null) => `${VOCAB}:${from ?? ""}`;
+/** **The folder's own ids, which are not anything's.** Prefixed so they cannot
+ *  collide with a block or a definition, because nothing here is in the graph:
+ *  the folder is a rendering, and its rows are realised only when one is dragged
+ *  out. That is what spares it a seed change, a door migration and every defence
+ *  against rename, delete and drop. */
+const VOCAB = "@defs";
+const sect_id = (name: string) => `${VOCAB}:${name}`;
 
-/** Which mark a definition's base kind wears. **The tree's own reading**, so
- *  a definition row and a block of that kind are told apart by nothing. */
+/** **What the shipped floor calls itself**, and the ids it ships under. The
+ *  tree's own copy, because the explorer may not reach the package that lays
+ *  the floor down.
+ *
+ *  **Placed by `from`, or by being one of those ids.** `from` is the mechanism
+ *  and is right for everything a workspace or a package writes — but a base
+ *  kind's id is reserved (a pinned definition is `def_…`, a package's is
+ *  dotted), so a shipped record that reached this build without its `from` —
+ *  out of an older file, say — is still a shipped kind and belongs under
+ *  *default* rather than among the workspace's own. */
+const BASE = "base";
+const BASE_IDS: readonly string[] = [...BLOCK_MODULES, "line", "directed"];
+const shipped = (d: Definition) => d.from === BASE || BASE_IDS.includes(d.id);
+
+/** Which mark a definition's base kind wears. **The tree's own reading**, so a
+ *  definition row and a block of that kind are told apart by nothing. */
 const KIND_MARK: Record<string, Mark> = {
   block: "leaf", folder: "folder", resource: "resource", reference: "reference",
   interface: "interface", group: "group", grid: "grid", note: "note",
 };
 
-/** The vocabulary, as rows: a pinned root, one folder per source, and a row per
- *  definition. **Ordinary rows** — same renderer, same guides, same marks, same
- *  fold state, so the tree gained a branch rather than the panel gaining a
- *  second list. */
+/** The definitions, as rows: **what every plain block follows, then what this
+ *  workspace has named, then what it has brought in.** In that order, because
+ *  that is the order they win in — the base is the floor, the workspace's own
+ *  sits over it, and a package is somebody else's vocabulary beside both.
+ *
+ *  **Ordinary rows** — same renderer, same guides, same marks, same fold state,
+ *  so the tree gained a branch rather than the panel gaining a second list. */
 function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
   const groups = vocabulary(graph);
   if (!groups.length) return [];
-  const out: Row[] = [{ id: VOCAB, depth: 0, label: "vocabulary", kids: groups.length,
+  const listed = groups.flatMap((g) => g.defs);
+  const base = listed.filter(shipped).sort((a, b) => a.name.localeCompare(b.name));
+  const own = listed.filter((d) => !shipped(d) && !d.from);
+  const packs = groups.map((g) => ({ ...g, defs: g.defs.filter((d) => !shipped(d)) }))
+    .filter((g) => g.from !== null && g.defs.length);
+
+  const sections: { id: Id; label: string; defs: typeof base; packs: typeof packs }[] = [
+    { id: sect_id("default"), label: "default", defs: base, packs: [] },
+    { id: sect_id("workspace"), label: "workspace", defs: own, packs: [] },
+    ...(packs.length
+      ? [{ id: sect_id("packages"), label: "packages", defs: [], packs }] : []),
+  ];
+
+  const out: Row[] = [{ id: VOCAB, depth: 0, label: "definitions", kids: sections.length,
                         mark: "pin", named: true, alias: "", of: "pack", guides: [] }];
   if (folded.includes(VOCAB)) return out;
-  groups.forEach((g, n) => {
-    const id = pack_id(g.from);
-    const more = n < groups.length - 1;
-    out.push({ id, depth: 1, label: g.from ?? "this workspace", kids: g.defs.length,
+
+  /** One definition, wherever it sits. **The default wears the word**: the same
+   *  slot a block uses to tell two rows apart says which definition every plain
+   *  one of its kind follows. */
+  const def_row = (d: Definition, depth: number, guides: boolean[]): Row => ({
+    id: d.id, depth, label: d.name, kids: 0,
+    mark: KIND_MARK[module_named(graph, d.id)] ?? "leaf",
+    named: true, alias: d.default ? "default" : "", of: "def", guides,
+  });
+
+  sections.forEach((sec, n) => {
+    const more = n < sections.length - 1;
+    const kids = sec.packs.length || sec.defs.length;
+    out.push({ id: sec.id, depth: 1, label: sec.label, kids,
                mark: "folder", named: true, alias: "", of: "pack", guides: [more] });
-    if (folded.includes(id)) return;
-    g.defs.forEach((d, i) => {
-      out.push({ id: d.id, depth: 2, label: d.name, kids: 0,
-                 mark: KIND_MARK[module_named(graph, d.id)] ?? "leaf",
-                 /** **The default wears the word.** The same slot a block uses
-                  *  to tell two rows apart says which definition every plain one
-                  *  of its kind follows. */
-                 named: true, alias: d.default ? "default" : "", of: "def",
-                 guides: [more, i < g.defs.length - 1] });
+    if (folded.includes(sec.id)) return;
+    sec.defs.forEach((d, i) => out.push(def_row(d, 2, [more, i < sec.defs.length - 1])));
+    sec.packs.forEach((g, i) => {
+      const id = sect_id(`pack:${g.from}`);
+      const after = i < sec.packs.length - 1;
+      out.push({ id, depth: 2, label: g.from!, kids: g.defs.length,
+                 mark: "folder", named: true, alias: "", of: "pack",
+                 guides: [more, after] });
+      if (folded.includes(id)) return;
+      g.defs.forEach((d, j) =>
+        out.push(def_row(d, 3, [more, after, j < g.defs.length - 1])));
     });
   });
   return out;
 }
 
-/** The tree is blocks, under the vocabulary that types them. */
+/** The tree is blocks, under the definitions that type them. */
 function tree_of(graph: Graph, folded: readonly Id[], vocab = false): Row[] {
   const out: Row[] = vocab ? vocab_of(graph, folded) : [];
   /** **A row's columns are its holder's, plus one for itself.** Every column

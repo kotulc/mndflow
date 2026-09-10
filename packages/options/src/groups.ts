@@ -25,18 +25,8 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** The one element that is picked, and what it says about how it is drawn.
-   *
-   *  **`framed` is the whole of it.** A group and a grid write their name on a
-   *  frame and can be told not to; a card *is* its name, so hiding it leaves a
-   *  rectangle nobody can read. This used to be two booleans — one per holder
-   *  module — which were only ever read as their union. */
-  element?: {
-    id: string;
-    labelled: boolean;
-    locked: boolean;
-    framed?: boolean;
-  };
+  /** The one element that is picked. */
+  element?: { id: string };
   arrangement?: Arrangement;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
@@ -128,30 +118,16 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  selection, and everything above them is about what you are looking at.
    *
    *  The element group is where the rest of what one thing can be told belongs
-   *  as it arrives — locking where it sits, which way round it reads, and
-   *  pinning its definition are all answers about one element and not about the
-   *  layer around it. */
+   *  as it arrives — every answer about one element rather than about the layer
+   *  around it. */
   if (chrome.element) {
-    const { id, labelled, locked, framed } = chrome.element;
-    const named = framed;
+    const { id } = chrome.element;
     out.push({
       key: "element", label: "element",
       controls: [
         { key: "define", icon: "define", word: "define",
           tip: "What this is: its name, type, tags, look and values",
           run: () => act("define", { id }) },
-        ...(named ? [{
-          key: "label", word: "label",
-          tip: labelled ? "Stop writing the name on the frame"
-                        : "Write the name on the frame",
-          icon: (labelled ? "label_on" : "label_off") as IconName,
-          on: labelled,
-          run: () => act("label", { ids: [id], shown: labelled ? "no" : "yes" }),
-        }] : []),
-        { key: "lock", word: "lock",
-          tip: locked ? "Let the app work its place out again" : "Fix it where it is",
-          icon: locked ? "locked" : "unlocked", on: locked,
-          run: () => act("lock", { ids: [id], fixed: locked ? "no" : "yes" }) },
       ],
     });
   }

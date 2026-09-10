@@ -5,9 +5,9 @@
  *  key it cannot make sense of, so what arrives here is well-formed or absent.
  *  This turns what survived into the handful of names a renderer keys off.
  *
- *  **A definition picks within the theme's palette; it never names a colour, a
- *  pixel or a font.** `slot` is one of six hue families and `emphasis` says how
- *  loudly to take it — both closed sets, so *ink reads on fill* holds in every
+ *  **A definition picks within the theme's palette; it never names a colour or
+ *  a pixel.** `family` is one of six the theme owns and every contrast is a
+ *  rung on its ladder — closed sets, so *ink reads on fill* holds in every
  *  theme without anybody checking. Everything below is a name from a closed
  *  set, which is what lets the whole of it live in a stylesheet.
  *
@@ -16,38 +16,47 @@
  *  what lets the CLI's text and SVG renderers say what a card would look like
  *  without resolving React. */
 
-import { ALIGNS, config_of, CONTRASTS, DECORS, def_of, FILLS, is_container,
-         is_interface, kind_word, PLACES, SLOTS, VOICES, WEIGHTS,
-         WEIGHTS as WEIGHT_NAMES, type Graph, type Id } from "@mnd/core";
+import { ALIGNS, BORDERS, config_of, CONTRASTS, def_of, DISPLAYS, FAMILIES, FILLS,
+         FONTS, is_container, is_interface, kind_word, WEIGHTS, WIDTHS,
+         type Graph, type Id } from "@mnd/core";
 
-export type Slot = (typeof SLOTS)[number];
-export type Weight = (typeof WEIGHT_NAMES)[number];
-export type Voice = (typeof VOICES)[number];
-export type Place = (typeof PLACES)[number];
+export type Family = (typeof FAMILIES)[number];
+export type Width = (typeof WIDTHS)[number];
+export type Border = (typeof BORDERS)[number];
+export type Weight = (typeof WEIGHTS)[number];
+export type Font = (typeof FONTS)[number];
+export type Display = (typeof DISPLAYS)[number];
 export type Align = (typeof ALIGNS)[number];
-export type Decor = (typeof DECORS)[number];
 export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
 
 /** What one usage looks like. Every field is a name from a closed set, so a
- *  renderer is a lookup table and a definition cannot invent a value. */
+ *  renderer is a lookup table and a definition cannot invent a value.
+ *
+ *  **Grouped the way it is asked**: the fill, the border, and each of the two
+ *  writings. A property named for the row that sets it is one nothing has to
+ *  translate on the way to a stylesheet. */
 export type Look = {
-  slot: Slot;
-  weight: Weight;
-  voice: Voice;
-  decor: Decor;
+  /** Which family the theme paints this with. */
+  family: Family;
   fill: Fill;
-  /** How far the border stands out from the card. Absent is the ordinary one. */
-  line?: Contrast;
-  /** How far the writing stands out. Absent is the ordinary one. */
-  ink?: Contrast;
   /** How opaque the fill is, 0 to 1. Absent is solid. */
   opacity?: number;
-  /** Where the block's own name sits. */
-  name: Place;
-  /** Where the **type** sits — the named subtype where there is one, and the
-   *  base kind otherwise. A second writing, not a replacement for the first. */
-  label: Place;
+  border_width: Width;
+  border_style: Border;
+  /** How far the border stands out from the card. Absent is the ordinary one. */
+  border_contrast?: Contrast;
+  name_font: Font;
+  name_weight: Weight;
+  /** How far the name stands out. Absent is the ordinary one. */
+  name_contrast?: Contrast;
+  label_font: Font;
+  label_weight: Weight;
+  label_contrast?: Contrast;
+  /** Where the **label** sits — the subtype where there is one, the base kind
+   *  otherwise. **The name is never asked this**: it is always drawn. */
+  label: Display;
+  /** Which end of the card its writing reads from. */
   align: Align;
   /** What sort of thing this is, as a word: the subtype where somebody named
    *  one, the base kind otherwise. **Always a word** — the card decides whether
@@ -57,9 +66,12 @@ export type Look = {
   shows?: readonly string[];
   /** The mark this draws in its corner instead of the one its role would. */
   icon?: string;
+  /** The other corner: a quiet mark a vocabulary flags a usage with. Nothing
+   *  the engine reads — it draws it and says no more about it. */
+  mark?: string;
   /** The hue angle this paints itself with, where somebody gave one instead of
-   *  naming a family. **`slot` still says which family it is otherwise** — a
-   *  hue is the finer answer to the same question, not a second question. */
+   *  naming a family. **`family` still says which it is otherwise** — a hue is
+   *  the finer answer to the same question, not a second question. */
   hue?: number;
   /** How much of the theme's chroma ceiling that hue is taken at. Only read
    *  where `hue` is given; a family carries its own. */
@@ -67,11 +79,13 @@ export type Look = {
 };
 
 /** What a card is when its definition says nothing. Neutral, ordinary weight,
- *  ordinary voice: the look every unclassified block already had. */
+ *  ordinary writing: the look every unclassified block already had. */
 export const PLAIN: Look = {
-  slot: "neutral", weight: "thin", voice: "normal",
-  decor: "none", fill: "solid",
-  name: "inside", label: "none", align: "left", kind: "block",
+  family: "neutral", fill: "solid",
+  border_width: "thin", border_style: "solid",
+  name_font: "none", name_weight: "normal",
+  label_font: "none", label_weight: "normal",
+  label: "none", align: "left", kind: "block",
 };
 
 /** One value if it is in the set, or the fallback. **The door already refused
@@ -103,20 +117,19 @@ export function look_of(graph: Graph, id: Id): Look {
   const named = b.type ? graph.defs[b.type]?.name : undefined;
 
   return {
-    slot: one(style["slot"], SLOTS, PLAIN.slot),
-    weight: one(style["weight"], WEIGHTS, weight_of(graph, id)),
-    voice: one(style["voice"], VOICES, PLAIN.voice),
-    decor: one(style["decor"], DECORS, PLAIN.decor),
-    name: one(card["name"], PLACES, PLAIN.name),
-    label: one(card["label"], PLACES, PLAIN.label),
-    align: one(card["align"], ALIGNS, PLAIN.align),
+    family: one(style["family"], FAMILIES, PLAIN.family),
     fill: one(style["fill"], FILLS, PLAIN.fill),
-    ...(typeof style["line"] === "string"
-        && (CONTRASTS as readonly string[]).includes(style["line"])
-      ? { line: style["line"] as Contrast } : {}),
-    ...(typeof style["ink"] === "string"
-        && (CONTRASTS as readonly string[]).includes(style["ink"])
-      ? { ink: style["ink"] as Contrast } : {}),
+    border_width: one(style["border_width"], WIDTHS, width_of(graph, id)),
+    border_style: one(style["border_style"], BORDERS, PLAIN.border_style),
+    name_font: one(style["name_font"], FONTS, PLAIN.name_font),
+    name_weight: one(style["name_weight"], WEIGHTS, PLAIN.name_weight),
+    label_font: one(style["label_font"], FONTS, PLAIN.label_font),
+    label_weight: one(style["label_weight"], WEIGHTS, PLAIN.label_weight),
+    label: one(card["label"], DISPLAYS, PLAIN.label),
+    align: one(card["align"], ALIGNS, PLAIN.align),
+    ...contrast("border_contrast", style["border_contrast"]),
+    ...contrast("name_contrast", style["name_contrast"]),
+    ...contrast("label_contrast", style["label_contrast"]),
     ...(typeof style["opacity"] === "number" && Number.isFinite(style["opacity"])
       ? { opacity: style["opacity"] } : {}),
     /** **The subtype where there is one, the base kind otherwise.** A card that
@@ -127,6 +140,7 @@ export function look_of(graph: Graph, id: Id): Look {
      *  drawing** — what it draws is the theme's, and a name it does not know
      *  falls back to the role mark rather than to nothing. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
+    ...(typeof card["mark"] === "string" && card["mark"] ? { mark: card["mark"] } : {}),
     /** **A number the door already bounded.** Anything else is absent rather
      *  than clamped: a look this build cannot read falls back to its family,
      *  which is what every other unreadable answer here does. */
@@ -138,6 +152,14 @@ export function look_of(graph: Graph, id: Id): Look {
       ? { shows: (card["shows"] as unknown[]).filter((f) => typeof f === "string") }
       : {}),
   };
+}
+
+/** One contrast, under its own name, and absent where nobody said. **Three keys
+ *  ask it** — the border and each of the two writings — so the reading is
+ *  written once rather than spread over three spreads. */
+function contrast(key: string, value: unknown): Record<string, Contrast> {
+  return typeof value === "string" && (CONTRASTS as readonly string[]).includes(value)
+    ? { [key]: value as Contrast } : {};
 }
 
 /** A look as one string, for anything asking *has this changed*.
@@ -161,9 +183,9 @@ export function look_key(look?: Look): string {
 /** How heavy a border is when the definition has not said.
  *
  *  **A container holds a layer of its own, so it says so before you descend.**
- *  That is the one weight the engine sets on its own, and a definition naming
- *  `style.weight` overrides it like anything else. */
-function weight_of(graph: Graph, id: Id): Weight {
+ *  That is the one width the engine sets on its own, and a definition naming
+ *  `style.border_width` overrides it like anything else. */
+function width_of(graph: Graph, id: Id): Width {
   const b = graph.blocks[id]!;
   if (is_interface(b)) return "thin";
   return is_container(graph, id) ? "medium" : "thin";

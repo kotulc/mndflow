@@ -1,0 +1,193 @@
+/* How a card is painted. **One table, every surface that draws one.**
+
+   The stage draws a card, the tray previews the same card beside the controls
+   that set it, and both used to carry a copy of this table — two hundred lines
+   apiece, and a swatch that painted itself differently from the card it
+   previewed would be worse than no swatch. It lives with the ramp because the
+   ramp is what it reads: `--s-<family>-<step>`, which the theme owns.
+
+   **Two halves.** The family table maps the six steps onto whatever carries
+   `data-family` — a card, a group shell, a chip — and paints nothing. What
+   paints is scoped to `.card-face`, which is the class a surface puts on the
+   box it draws a card in. */
+
+/* ── The families ─────────────────────────────────────────────────────────── */
+
+[data-family] {
+  --card-fill: var(--s-neutral-fill);
+  --card-line: var(--s-neutral-line);
+  --card-ink: var(--s-neutral-ink);
+  --card-edge: var(--s-neutral-stroke);
+  --card-dim: var(--s-neutral-dim);
+  --step-line: var(--s-neutral-line);
+  --step-ink: var(--s-neutral-ink);
+}
+
+[data-family="primary"] {
+  --card-fill: var(--s-primary-fill);    --card-line: var(--s-primary-line);
+  --card-ink: var(--s-primary-ink);      --card-edge: var(--s-primary-stroke);
+  --card-dim: var(--s-primary-dim);
+  --step-line: var(--s-primary-line); --step-ink: var(--s-primary-ink);
+}
+
+[data-family="secondary"] {
+  --card-fill: var(--s-secondary-fill);  --card-line: var(--s-secondary-line);
+  --card-ink: var(--s-secondary-ink);    --card-edge: var(--s-secondary-stroke);
+  --card-dim: var(--s-secondary-dim);
+  --step-line: var(--s-secondary-line); --step-ink: var(--s-secondary-ink);
+}
+
+[data-family="neutral"] {
+  --card-fill: var(--s-neutral-fill);    --card-line: var(--s-neutral-line);
+  --card-ink: var(--s-neutral-ink);      --card-edge: var(--s-neutral-stroke);
+  --card-dim: var(--s-neutral-dim);
+  --step-line: var(--s-neutral-line); --step-ink: var(--s-neutral-ink);
+}
+
+/* **Elsewhere and a remark.** A reference and a note are the model speaking,
+   and their hue is fixed across every theme, which is the whole point of them. */
+[data-family="away"] {
+  --card-fill: var(--s-away-fill);       --card-line: var(--s-away-line);
+  --card-ink: var(--s-away-ink);         --card-edge: var(--s-away-stroke);
+  --card-dim: var(--s-away-dim);
+  --step-line: var(--s-away-line); --step-ink: var(--s-away-ink);
+}
+
+[data-family="note"] {
+  --card-fill: var(--s-note-fill);       --card-line: var(--s-note-line);
+  --card-ink: var(--s-note-ink);         --card-edge: var(--s-note-stroke);
+  --card-dim: var(--s-note-dim);
+  --step-line: var(--s-note-line); --step-ink: var(--s-note-ink);
+}
+
+[data-family="muted"] {
+  --card-fill: var(--s-muted-fill);      --card-line: var(--s-muted-line);
+  --card-ink: var(--s-muted-ink);        --card-edge: var(--s-muted-stroke);
+  --card-dim: var(--s-muted-dim);
+  --step-line: var(--s-muted-line); --step-ink: var(--s-muted-ink);
+}
+
+/* **A usage painting itself from its own two numbers.** `--card-h` and
+   `--card-c` arrive inline from the element; the steps are computed the way
+   every named family's are, against the theme's own ladder. So a hue somebody
+   picked keeps *ink reads on fill* in all three themes for the same reason a
+   family does — the lightness was never the definition's to give. The factors
+   match `ramp.css`; they are the same six steps. */
+[data-family="tint"] {
+  --card-fill: oklch(var(--l-fill) calc(var(--card-c, 0.12) * 0.18) var(--card-h, 200));
+  --card-line: oklch(var(--l-line) calc(var(--card-c, 0.12) * 0.40) var(--card-h, 200));
+  --card-edge: oklch(var(--l-edge) var(--card-c, 0.12) var(--card-h, 200));
+  --card-dim: oklch(var(--l-dim) calc(var(--card-c, 0.12) * 0.30) var(--card-h, 200));
+  --card-ink: oklch(var(--l-ink) calc(var(--card-c, 0.12) * 0.32) var(--card-h, 200));
+  --step-line: oklch(var(--l-line) calc(var(--card-c, 0.12) * 0.40) var(--card-h, 200));
+  --step-ink: oklch(var(--l-ink) calc(var(--card-c, 0.12) * 0.32) var(--card-h, 200));
+}
+
+/* ── The border ───────────────────────────────────────────────────────────── */
+
+/* Three widths and five line styles, so a definition cannot ask for a fourth of
+   either. **`none` keeps the box and drops the line**, so a card that loses its
+   border does not shift against its neighbours. */
+[data-border-width="thin"]   { --card-border-width: var(--weight-thin); }
+[data-border-width="medium"] { --card-border-width: var(--weight-medium); }
+[data-border-width="thick"]  { --card-border-width: var(--weight-thick); }
+[data-border-style="solid"]  { --card-border-style: solid; }
+[data-border-style="dashed"] { --card-border-style: dashed; }
+[data-border-style="dotted"] { --card-border-style: dotted; }
+[data-border-style="double"] { --card-border-style: double; }
+[data-border-style="none"]   { --card-line: transparent; }
+
+/* **How far a border or a writing stands out.** Four rungs of the ladder, in
+   order, asked three times over — the border, the name and the label are three
+   things that may stand out by different amounts. `emphasis` offered three
+   fixed pairings of the first two, which is why a reference could not be said
+   at all: it wanted both at `strong`, and no pairing named it. */
+[data-border-contrast="faint"]  { --card-line: var(--card-dim); }
+[data-border-contrast="soft"]   { --card-line: var(--step-line); }
+[data-border-contrast="strong"] { --card-line: var(--card-edge); }
+[data-border-contrast="full"]   { --card-line: var(--step-ink); }
+
+/* ── The face ─────────────────────────────────────────────────────────────── */
+
+/* **What the ground is drawn from.** Defined before it is read — an undefined
+   `var()` makes `background` invalid at computed-value time, which renders as
+   no background at all rather than as a default. Every read below carries the
+   fill as a fallback for the same reason. */
+.card-face {
+  --card-ground-src: var(--card-fill);
+  border: var(--card-border-width, var(--weight-thin))
+          var(--card-border-style, solid) var(--card-line);
+  color: var(--card-ink);
+}
+
+.card-face[data-fill="wash"] { --card-ground-src: var(--card-dim); }
+
+/* **How opaque the fill is** — the fill alone, so the writing stays readable
+   however far the ground shows through.
+
+   **The number rides in the alpha slot of a relative colour**, where a custom
+   property is an ordinary number. It cannot ride in `color-mix`'s percentage
+   slot, which is the one position substitution is not dependable in. A browser
+   without relative colour keeps the solid ground rather than losing the card's
+   background altogether. */
+.card-face[data-fill] {
+  background: var(--card-ground-src, var(--card-fill));
+  background-clip: padding-box;
+}
+
+@supports (color: oklch(from red l c h)) {
+  .card-face[data-fill][data-sheer] {
+    background: oklch(from var(--card-ground-src, var(--card-fill)) l c h / var(--card-opacity, 1));
+    background-clip: padding-box;
+  }
+}
+
+.card-face[data-fill="hatch"] {
+  background:
+    repeating-linear-gradient(135deg,
+      color-mix(in oklch, var(--card-edge) 10%, transparent) 0 5px,
+      transparent 5px 10px),
+    var(--card-ground-src, var(--card-fill));
+  background-clip: padding-box;
+}
+
+@supports (color: oklch(from red l c h)) {
+  .card-face[data-fill="hatch"][data-sheer] {
+    background:
+      repeating-linear-gradient(135deg,
+        color-mix(in oklch, var(--card-edge) 10%, transparent) 0 5px,
+        transparent 5px 10px),
+      oklch(from var(--card-ground-src, var(--card-fill)) l c h / var(--card-opacity, 1));
+    background-clip: padding-box;
+  }
+}
+
+.card-face[data-fill="none"] { background: none; }
+
+/* ── The two writings ─────────────────────────────────────────────────────── */
+
+/* **The name and the label are asked the same three questions separately.** One
+   shared answer could not say *a quiet label under a bold name*, which is most
+   of what putting a type on a card is for. */
+[data-name-weight="light"]  .card-name { opacity: 0.72; font-weight: 400; }
+[data-name-weight="normal"] .card-name { font-weight: 500; }
+[data-name-weight="bold"]   .card-name { font-weight: 700; letter-spacing: 0.01em; }
+[data-label-weight="light"]  .card-label { opacity: 0.72; font-weight: 400; }
+[data-label-weight="normal"] .card-label { font-weight: 500; }
+[data-label-weight="bold"]   .card-label { font-weight: 700; letter-spacing: 0.01em; }
+
+[data-name-font="italic"]    .card-name { font-style: italic; }
+[data-name-font="underline"] .card-name { text-decoration: underline; }
+[data-name-font="strike"]    .card-name { text-decoration: line-through; }
+[data-label-font="italic"]    .card-label { font-style: italic; }
+[data-label-font="underline"] .card-label { text-decoration: underline; }
+[data-label-font="strike"]    .card-label { text-decoration: line-through; }
+
+[data-name-contrast="faint"]  .card-name { color: var(--card-dim); }
+[data-name-contrast="soft"]   .card-name { color: var(--step-line); }
+[data-name-contrast="strong"] .card-name { color: var(--card-edge); }
+[data-name-contrast="full"]   .card-name { color: var(--step-ink); }
+[data-label-contrast="faint"]  .card-label { color: var(--card-dim); }
+[data-label-contrast="soft"]   .card-label { color: var(--step-line); }
+[data-label-contrast="strong"] .card-label { color: var(--card-edge); }
+[data-label-contrast="full"]   .card-label { color: var(--step-ink); }

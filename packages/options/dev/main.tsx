@@ -26,7 +26,7 @@ function Harness() {
   const [chrome, set_chrome] = useState<Chrome>({
     slots: SLOTS["block"]!, arrangement: "free", interfaces: true,
     lattice: true, module: "line",
-    element: { id: "block_pump", labelled: true, locked: false, framed: true },
+    element: { id: "block_pump" },
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
@@ -37,10 +37,6 @@ function Harness() {
       set_chrome((c) => ({ ...c, module: args!["module"] as never }));
     }
     if (name === "lattice") set_chrome((c) => ({ ...c, lattice: args!["show"] as boolean }));
-    if (name === "lock") {
-      set_chrome((c) => (c.element
-        ? { ...c, element: { ...c.element, locked: args!["fixed"] === "yes" } } : c));
-    }
   };
 
   const groups = groups_of(chrome, act);

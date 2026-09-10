@@ -16,7 +16,7 @@
  *  Pure, and now stateless: it reads the graph and says what it found. */
 
 import { rules_of, type Graph, type Id, type Rules as InForce } from "@mnd/core";
-import { Line } from "./Body";
+import { Body, Line } from "./Body";
 
 /** Each rule, and what it is asking. */
 const STATED = [
@@ -40,13 +40,18 @@ export function Rules({ graph, holder }: RulesProps) {
   const force = rules_of(graph, holder);
   const word = (v: string) => graph.defs[v]?.name ?? v;
   const said = STATED.filter((r) => (force[r.name as keyof InForce] as string[] | undefined)?.length);
+  const note = graph.defs[holder] ? "what it asks of every usage" : "what it is held to";
 
   if (!said.length && !force.ends && !force.degree) {
-    return <p className="empty">nothing is asked of it</p>;
+    return (
+      <Body head="rules" note={note}>
+        <p className="empty">nothing is asked of it</p>
+      </Body>
+    );
   }
 
   return (
-    <>
+    <Body head="rules" note={note}>
       {said.map((r) => (
         <Line key={r.name} label={r.word} tip={r.tip}>
           {((force[r.name as keyof InForce] as string[]) ?? []).map((v) => (
@@ -64,7 +69,7 @@ export function Rules({ graph, holder }: RulesProps) {
           <span className="says">{degree_word(force.degree)}</span>
         </Line>
       ) : null}
-    </>
+    </Body>
   );
 }
 

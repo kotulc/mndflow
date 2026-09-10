@@ -12,6 +12,7 @@ import { Tray } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
+import "@mnd/theme/card.css";
 import "../src/tray.css";
 import "./dev.css";
 

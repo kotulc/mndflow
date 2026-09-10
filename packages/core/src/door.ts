@@ -34,7 +34,7 @@ const OPS = new Set<string>([
   "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
-  "set_labelled", "set_locked", "set_tags", "set_look",
+  "set_tags", "set_look",
 ]);
 
 /** Read a log in, repairing what it can.
@@ -70,10 +70,49 @@ export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
                   what: `${taken} write${taken > 1 ? "s" : ""} to a shipped definition` });
   }
 
+  /** **A repair the door itself got wrong, put back.** The style vocabulary was
+   *  renamed key for key; a build between the two could not read the old words
+   *  and dropped the whole component — *and wrote the drop into the log*, which
+   *  is what makes this recoverable at all: what it dropped is still in the step
+   *  before it. Put back here, and renamed by `inspect` below in the same load. */
+  const back = restored(log);
+  if (back) {
+    faults.push({ kind: "repaired",
+                  what: `${back} look${back > 1 ? "s" : ""} an older build had dropped` });
+  }
+
   const mend = inspect(fold(log, floor));
   faults.push(...mend.faults);
   if (mend.repairs.length) log.push(repair_step(log.length, mend.repairs));
   return { log, faults };
+}
+
+/** Every component bag a repair step took off a definition, given back — in
+ *  place, because a repair is the app's own writing and not anybody's intent.
+ *
+ *  **Only the keys that were renamed**, and only where the record it replaced
+ *  had one: a repair that dropped something genuinely malformed drops it again
+ *  a few lines below, and says so. */
+function restored(log: Log): number {
+  const held = new Map<Id, Definition>();
+  let back = 0;
+  for (const step of log) {
+    for (const m of step.mutations) {
+      if (m.op !== "set_def") continue;
+      const was = held.get(m.def.id);
+      if (was && step.action === "repair") {
+        for (const key of Object.keys(RENAMED)) {
+          if (m.def.components?.[key] !== undefined) continue;
+          const dropped = was.components?.[key];
+          if (dropped === undefined) continue;
+          m.def.components = { ...m.def.components, [key]: dropped };
+          back++;
+        }
+      }
+      held.set(m.def.id, m.def);
+    }
+  }
+  return back;
 }
 
 function repair_step(at: number, mutations: Mutation[]): Step {
@@ -240,6 +279,22 @@ export function inspect(graph: Graph): Inspection {
     for (const s of kept) repairs.push({ op: "merge_cells", id: g.id, span: s });
   }
 
+  /** **The style vocabulary was renamed, key for key**, so that every key says
+   *  what part of the card it is about: the name and the label used to share one
+   *  weight, one facing and one contrast between them, and neither could be set
+   *  alone. A file written before that says `slot` and means `family`.
+   *
+   *  **Renamed rather than dropped.** An unknown key takes the *whole* `style`
+   *  component down with it, so a workspace opened once without this would come
+   *  back with every card painted plain. */
+  for (const [id, looks] of stale_looks(graph)) {
+    for (const { key, was, now, value } of looks) {
+      repairs.push({ op: "set_look", id, key, name: was, value: null });
+      if (now) repairs.push({ op: "set_look", id, key, name: now, value });
+    }
+    faults.push({ kind: "repaired", what: `"${name(id)}" said its look the old way` });
+  }
+
   /** One definition, one repair. Filing, extension and every component key it
    *  claims are three separate faults and one mended record — two `set_def`s
    *  for the same definition would leave the later one undoing the earlier. */
@@ -280,6 +335,13 @@ export function inspect(graph: Graph): Inspection {
       const rules = { ...(old_c as Record<string, unknown>),
                       ...(mended.components?.["rules"] ?? {}) };
       mended = { ...mended, components: { ...without(mended.components, "constraints"), rules } };
+    }
+    /** The same renaming, one layer up: a definition says it in `components`
+     *  where a block says it in `looks`, and they are the same bag. */
+    const renamed = renaming(mended.components);
+    if (renamed) {
+      faults.push({ kind: "repaired", what: `"${d.name}" said its look the old way` });
+      mended = { ...mended, components: renamed };
     }
     /** `tertiary` and `quaternary` were retired, not renamed — they carried
      *  `secondary`'s chroma and differed only by hue, at a chroma the fill step
@@ -345,6 +407,57 @@ function merge_at_span(g: Block, r: number, c: number): Span | null {
 
 /** A definition's components without one key, and no `components` at all once
  *  the last one goes — nothing still at its default is written. */
+/** **What the old style vocabulary called each key.** One map, read by both
+ *  repairs — a definition says it in `components` and a block says it in
+ *  `looks`, and they are the same bag one layer apart.
+ *
+ *  `card.name` has no new name: **a card always writes its name now**, so the
+ *  three places it could sit were three ways of saying the same nothing. */
+const RENAMED: Record<string, Record<string, string | null>> = {
+  style: { slot: "family", weight: "border_width", line: "border_contrast",
+           voice: "name_weight", decor: "name_font", ink: "name_contrast",
+           set: null },
+  card: { name: null },
+};
+
+/** Every stale property one holder says, as the moves that would mend it. */
+function stale_looks(graph: Graph) {
+  const out: [Id, { key: string; was: string; now: string | null; value: unknown }[]][] = [];
+  for (const b of Object.values(graph.blocks)) {
+    const moves: { key: string; was: string; now: string | null; value: unknown }[] = [];
+    for (const [key, map] of Object.entries(RENAMED)) {
+      const held = b.looks?.[key];
+      if (!held) continue;
+      for (const [was, now] of Object.entries(map)) {
+        if (held[was] === undefined) continue;
+        moves.push({ key, was, now, value: held[was] });
+      }
+    }
+    if (moves.length) out.push([b.id, moves]);
+  }
+  return out;
+}
+
+/** The same bag, said the new way, or null where nothing was stale. */
+function renaming(components: Definition["components"]): Definition["components"] | null {
+  if (!components) return null;
+  let moved = false;
+  const out: NonNullable<Definition["components"]> = { ...components };
+  for (const [key, map] of Object.entries(RENAMED)) {
+    const held = components[key];
+    if (!held) continue;
+    const next: Record<string, unknown> = { ...held };
+    for (const [was, now] of Object.entries(map)) {
+      if (next[was] === undefined) continue;
+      if (now) next[now] = next[was];
+      delete next[was];
+      moved = true;
+    }
+    out[key] = next;
+  }
+  return moved ? out : null;
+}
+
 function without(components: Definition["components"], key: string): Definition["components"] {
   const out = { ...components };
   delete out[key];

@@ -27,9 +27,9 @@ function def(name: string, module: string, extend?: string,
 
 /** Eight, and every package or project subtype extends one of them.
  *
- *  **Each picks a slot, and none names a colour.** A slot is a family the theme
- *  decides per theme, so `primary` is green in retro and blue in modern and a
- *  definition never learns which. What is being said here is only that being,
+ *  **Each picks a family, and none names a colour.** A family is the theme's to
+ *  decide, so `primary` is green in retro and blue in modern and a definition
+ *  never learns which. What is being said here is only that being,
  *  doing, having and connecting are different kinds of thing — and that a
  *  folder and a boundary are the furniture around them.
  *
@@ -39,30 +39,31 @@ function def(name: string, module: string, extend?: string,
  *  is opened in. */
 export const BASE: Definition[] = [
   def("folder", "folder", undefined,
-      {}, { slot: "neutral", line: "faint", ink: "faint" }),
+      {}, { family: "neutral", border_contrast: "faint", name_contrast: "faint" }),
   def("block", "block", undefined,
-      {}, { slot: "primary" }),
+      {}, { family: "primary" }),
   /** **Elsewhere, and it says so on its face.** The hatch and the violet were a
    *  hardcoded rule for eight months, which is why nothing could subtype a
    *  reference: whatever a subtype said about colour, the stylesheet said it
    *  louder. Said here, it is ordinary — and `away` is a family whose hue is
    *  fixed across every theme on purpose. */
   def("reference", "reference", undefined,
-      {}, { slot: "away", line: "strong", ink: "strong",
+      {}, { family: "away", border_contrast: "strong", name_contrast: "strong",
             fill: "hatch", opacity: 0.55 }),
-  /** An interface is a seat on a wall; a name on one is in the way. */
+  /** An interface is a seat on a wall, and draws as the seat rather than as a
+   *  card — so what it says here is only which family it is painted from. */
   def("interface", "interface", undefined,
-      { name: "none" }, { slot: "secondary", weight: "thin" }),
+      {}, { family: "secondary", border_width: "thin" }),
   def("resource", "resource", undefined,
-      {}, { slot: "secondary", line: "faint", ink: "faint" }),
+      {}, { family: "secondary", border_contrast: "faint", name_contrast: "faint" }),
   def("group", "group", undefined,
-      {}, { slot: "muted", line: "faint", ink: "faint" }),
+      {}, { family: "muted", border_contrast: "faint", name_contrast: "faint" }),
   def("grid", "grid", undefined,
-      {}, { slot: "muted", line: "faint", ink: "faint" }),
+      {}, { family: "muted", border_contrast: "faint", name_contrast: "faint" }),
   /** A remark, in the amber every theme keeps for one. Was a hardcoded rule
    *  for the same reason the reference was. */
   def("note", "note", "resource",
-      {}, { slot: "note", line: "strong", ink: "faint",
+      {}, { family: "note", border_contrast: "strong", name_contrast: "faint",
             fill: "wash", opacity: 0.06 }),
 ];
 

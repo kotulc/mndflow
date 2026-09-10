@@ -231,13 +231,17 @@
 .menu .asking .choices button:hover { color: var(--accent); }
 .menu .asking .about { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 
-/* The vocabulary: what the workspace can say, above the tree of what it is.
+/* The definitions: what the workspace can say, above the tree of what it is.
    **Ordinary rows** — the marks, guides, indent and fold are the tree's own, so
    what is left here is the little that differs: the seam under the folder, a
    quieter pack row, and a definition drawn as a word rather than a name being
-   edited in place. */
+   edited in place.
+
+   **A folder lights when it holds something**, here as everywhere else in the
+   tree: these rows took the accent whatever they held, so an empty *workspace*
+   read as loudly as a full one and the mark said nothing. `.mark.on` already
+   answers that question for every other row. */
 .explorer .tree li.pack .label { color: var(--muted); }
-.explorer .tree li.pack .mark { color: var(--accent); }
 
 .explorer .tree li.def .label { color: var(--text); }
 .explorer .tree li.def .alias {

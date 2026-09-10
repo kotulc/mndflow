@@ -1,31 +1,33 @@
-/** The context tray: **two tabs, two questions.**
+/** The context tray: **one shell, one tab per question.**
  *
- *  *Definition* is the one thing you have hold of, described — a block, a
- *  relationship or a definition out of the vocabulary, all in one panel.
- *  *Contents* is everything the layer holds, as a table: the only place a
- *  relationship or an interface is found without hunting for it on the drawing.
+ *  *Settings* is what the one thing you have hold of is and how it draws,
+ *  *fields* is what it carries, *rules* is what it is held to, and *contents*
+ *  is everything the layer holds as a table — the only place a relationship or an interface is
+ *  found without hunting for it on the drawing.
  *
- *  **One shell: tabs on the left, icon controls on the right.** Below it a
- *  body, and every body is the same pattern — an optional filter rail, optional
- *  column labels, then rows of a label and its content, banded for contrast.
+ *  **The tabs are what is answerable.** Nothing picked, and only contents has
+ *  anything to say; pick a block, a relationship or a definition and the other
+ *  three appear, all about that one thing. Three tabs that said *pick something*
+ *  were three ways of saying the same nothing.
  *
- *  **Three sizes, and two controls for them.** The chevron is a handle on the
- *  tray's own edge, centred and standing slightly above it — it is what you
- *  reach for to open and shut, so it sits on the seam rather than among the
- *  tabs. Expand is far right in the bar and takes the full height, which is
- *  what a long list of fields wants. **Nothing closes it but its own control** —
- *  a click on the canvas selects a row.
+ *  **The bar is the handle.** Its whole background opens and shuts the tray,
+ *  with the chevron centred in it saying which way it will go — reaching for the
+ *  edge of a panel is the gesture people already have. Expand is far right and
+ *  takes the full height, which is what a long list of fields wants.
  *
  *  A pure function of its props, like every other surface: it holds which tab
  *  and which filter, and every gesture leaves as an action name or a
  *  selection. */
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
-import { Element } from "./Element";
+import { Styles } from "./Styles";
+import { Fields } from "./Fields";
+import { Rules } from "./Rules";
 import { Chain } from "./Chain";
-import { children, is_container, module_of, type Act, type Graph, type Id } from "@mnd/core";
+import { children, def_of, is_container, isa, module_of,
+         type Act, type Graph, type Id } from "@mnd/core";
 
 export type TrayProps = {
   graph: Graph;
@@ -41,18 +43,21 @@ export type TrayProps = {
    *  as an action name like every other gesture in the app. Absent, the tray
    *  lists and edits nothing. */
   onAct?: Act;
-  /** Which tab to show. The rail's cog asks for `definition`; left alone the tray
-   *  keeps whichever tab was last open. */
+  /** Which tab to show. The rail's cog asks for `settings`; left alone the tray
+   *  keeps whichever tab was last open that still has something to say. */
   tab?: Tab;
   onTab?: (tab: Tab) => void;
-  /** Which definition the vocabulary folder has hold of. **It wins the
-   *  definition tab while it is set**: picking a row there is asking about the
-   *  definition, not about whatever block was picked before it. One panel
-   *  describes all three, so this only decides *which id*. */
+  /** Which definition the definitions folder has hold of. **It wins while it is
+   *  set**: picking a row there is asking about the definition, not about
+   *  whatever block was picked before it. */
   pickedDef?: Id | null;
 };
 
-export type Tab = "definition" | "contents";
+export type Tab = "settings" | "fields" | "rules" | "contents";
+
+/** Every tab, in the order they are read: what it is, what it carries, what it
+ *  is held to, then what is around it. */
+const TABS: readonly Tab[] = ["settings", "fields", "rules", "contents"];
 
 const HEAD: { key: "kind" | "name" | "what" | "type"; label: string; width: string }[] = [
   { key: "kind", label: "kind", width: "16%" },
@@ -78,11 +83,9 @@ export function Tray(props: TrayProps) {
           pickedDef = null } = props;
   const [held_tab, set_held_tab] = useState<Tab>("contents");
   /** **Full height, as a control of its own.** Shut and open is one question;
-   *  how much room the body gets is another, and folding them into one chevron
+   *  how much room the body gets is another, and folding them into one control
    *  made a third state nobody could reach without passing through a second. */
   const [big, set_big] = useState(false);
-  const tab = props.tab ?? held_tab;
-  const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
   const [only, set_only] = useState<Sort | "all" | "types">("all");
   /** Field columns the reader asked for, in the order they asked. */
   const [columns, set_columns] = useState<string[]>([]);
@@ -90,6 +93,17 @@ export function Tray(props: TrayProps) {
 
   const one = picked.length === 1 ? picked[0]! : null;
   const held_def = pickedDef && graph.defs[pickedDef] ? pickedDef : null;
+  /** **One panel, one id.** A block, a relationship and a definition answer the
+   *  same questions, so what is described is whichever was picked last — and a
+   *  definition wins, because picking one *is* asking about it. */
+  const about = onAct ? held_def ?? one : null;
+
+  /** **What can be answered is what is offered.** Contents is always there; the
+   *  other three are about one thing, so they arrive with it. */
+  const tabs = about ? TABS : (["contents"] as const);
+  const asked = props.tab ?? held_tab;
+  const tab: Tab = tabs.includes(asked) ? asked : "contents";
+  const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
 
   /** **What the table is about.** A container you have hold of narrows it to
    *  that container's own contents; anything else, and the open layer is what
@@ -100,6 +114,15 @@ export function Tray(props: TrayProps) {
   const shown = only === "all" || only === "types"
     ? rows : rows.filter((r) => r.sort === only);
 
+  /** **How many each chip would leave**, said on the chip. A filter that says
+   *  what it narrows to is one nobody has to try to find out — and *types* is a
+   *  count of what the picked thing resolves through, which is the one number
+   *  that is not about this layer. */
+  const counted = (sort: Sort | "all" | "types") =>
+    sort === "all" ? rows.length
+      : sort === "types" ? (one ? isa(graph, def_of(graph, one)).length : 0)
+      : rows.filter((r) => r.sort === sort).length;
+
   /** Every field name in the listing, so a column can be asked for by name
    *  rather than typed blind. */
   const offered = [...new Set(rows.flatMap((r) => Object.keys(r.fields)))]
@@ -108,33 +131,36 @@ export function Tray(props: TrayProps) {
   const cell = (row: Row, key: string) =>
     key in row.fields ? row.fields[key]! : String(row[key as keyof Row] ?? "");
 
+  /** **The bar's background is the handle, and its controls are not.** A click
+   *  that landed on a tab or on expand has already been answered. */
+  const on_bar = (e: MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    onOpen(!open);
+  };
+
   return (
     <section className={["tray", open ? "open" : "shut", open && big ? "big" : ""]
                .filter(Boolean).join(" ")} aria-label="Contents">
-      {/* **Tabs left, controls right.** What the tray is showing is a question
-          about the model; how big it is, is a question about the window, and
-          the two do not belong in the same strip. */}
-      {/* **The handle sits on the seam.** Opening and shutting is a gesture
-          about the edge between the tray and the drawing, so the control is on
-          that edge — centred, and standing proud of it so it can be reached
-          while the tray is shut. */}
-      <button className="tray-handle" title={open ? "shut the tray" : "open the tray"}
-              onClick={() => onOpen(!open)}><Icon name={open ? "less" : "more"} /></button>
-
-      <div className="tray-bar">
+      <div className="tray-bar" onClick={on_bar}
+           title={open ? "shut the tray" : "open the tray"}>
         {open ? (
           <span className="tabs">
-            <button className={tab === "definition" ? "on" : ""}
-                    onClick={() => set_tab("definition")}>definition</button>
-            <button className={tab === "contents" ? "on" : ""}
-                    onClick={() => set_tab("contents")}>contents</button>
+            {tabs.map((t) => (
+              <button key={t} className={tab === t ? "on" : ""}
+                      onClick={() => set_tab(t)}>{t}</button>
+            ))}
           </span>
         ) : <span className="name">{label}</span>}
-        {/* **A count, and only where counting says something.** *One element*
-            restated what the panel below it was already showing. */}
-        {open && tab === "contents"
-          ? <span className="holds">{shown.length} held</span> : null}
+
+        {/* **The chevron says which way the bar will go.** Centred, because it
+            is about the bar as a whole rather than about anything in it. */}
+        <span className="tray-chevron"><Icon name={open ? "less" : "more"} /></span>
+
         <span className="tray-tools">
+          {/* **A count, and only where counting says something.** *One element*
+              restated what the panel below it was already showing. */}
+          {open && tab === "contents"
+            ? <span className="holds">{shown.length} held</span> : null}
           {open ? (
             <button className={big ? "on" : ""}
                     title={big ? "give the stage its room back" : "take the full height"}
@@ -145,15 +171,11 @@ export function Tray(props: TrayProps) {
         </span>
       </div>
 
-      {/* **One panel, one id.** A block, a relationship and a definition answer
-          the same questions, so what is being described is whichever was picked
-          last — and a definition wins, because picking one *is* what asking
-          about it looks like. */}
-      {open && tab === "definition" ? (
+      {open && about && onAct && tab !== "contents" ? (
         <div className="tray-body">
-          {(held_def ?? one) && onAct
-            ? <Element graph={graph} id={(held_def ?? one)!} onAct={onAct} />
-            : <p className="empty">pick one thing to describe it</p>}
+          {tab === "settings" ? <Styles graph={graph} id={about} onAct={onAct} /> : null}
+          {tab === "fields" ? <Fields graph={graph} id={about} onAct={onAct} /> : null}
+          {tab === "rules" ? <Rules graph={graph} holder={about} /> : null}
         </div>
       ) : null}
 
@@ -162,7 +184,9 @@ export function Tray(props: TrayProps) {
           <div className="filters">
             {FILTERS.map((f) => (
               <button key={f.sort} className={only === f.sort ? "on" : ""}
-                      onClick={() => set_only(f.sort)}>{f.label}</button>
+                      onClick={() => set_only(f.sort)}>
+                {f.label}<span className="count">{counted(f.sort)}</span>
+              </button>
             ))}
             {/* A column per field, so one value can be read down a layer. */}
             <span className="columns">

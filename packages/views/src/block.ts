@@ -97,7 +97,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const said = carried(graph, g.id);
     const grid = is_grid(graph, g.id);
     const mark: Mark = grid ? "grid" : "group";
-    const marks: Mark[] = said.marks.includes("unlabelled") ? [mark, "unlabelled"] : [mark];
+    const marks: Mark[] = [mark];
     holders.push(node(g.id, box,
                       { ...said, marks, cells: [], nest: group_depth(graph, g.id),
                         holds: members_of(graph, g.id).map((b) => b.id),
@@ -121,11 +121,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
       return { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
                selectable: false, draggable: false };
     }
-    /** **This is the lock that bites.** An interface has no place of its own —
-     *  it is re-seated on whichever wall it was last slid to — so *locked* is
-     *  the one way to say it belongs on this wall and stays there. */
-    const seat = node(p.id, p, data, "seat");
-    return b.locked ? { ...seat, draggable: false } : seat;
+    return node(p.id, p, data, "seat");
   });
 
   const drawn = [...holders, ...boxes, ...seats];

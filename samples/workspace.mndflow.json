@@ -15,7 +15,7 @@
           },
           "card": {},
           "style": {
-            "slot": "primary"
+            "family": "primary"
           }
         }
       },
@@ -26,10 +26,10 @@
         "extends": "block",
         "components": {
           "style": {
-            "slot": "muted",
+            "family": "muted",
             "fill": "hatch",
             "opacity": 0.25,
-            "decor": "italic"
+            "name_font": "italic"
           },
           "card": {
             "label": "below",
@@ -44,10 +44,10 @@
         "extends": "block",
         "components": {
           "style": {
-            "slot": "primary",
-            "voice": "bold",
-            "decor": "underline",
-            "line": "full"
+            "family": "primary",
+            "name_weight": "bold",
+            "name_font": "underline",
+            "border_contrast": "full"
           },
           "card": {
             "align": "center",
@@ -64,8 +64,8 @@
           "style": {
             "hue": 285,
             "intensity": 0.8,
-            "line": "strong",
-            "ink": "full"
+            "border_contrast": "strong",
+            "name_contrast": "full"
           },
           "card": {
             "label": "inside",
@@ -82,7 +82,7 @@
         "extends": "block",
         "components": {
           "style": {
-            "slot": "secondary",
+            "family": "secondary",
             "fill": "wash",
             "opacity": 0.5
           },
@@ -106,9 +106,9 @@
           },
           "card": {},
           "style": {
-            "slot": "neutral",
-            "line": "faint",
-            "ink": "faint"
+            "family": "neutral",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
           }
         }
       },
@@ -123,9 +123,9 @@
           },
           "card": {},
           "style": {
-            "slot": "muted",
-            "line": "faint",
-            "ink": "faint"
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
           }
         }
       },
@@ -140,9 +140,9 @@
           },
           "card": {},
           "style": {
-            "slot": "muted",
-            "line": "faint",
-            "ink": "faint"
+            "family": "muted",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
           }
         }
       },
@@ -155,12 +155,10 @@
           "block": {
             "module": "interface"
           },
-          "card": {
-            "name": "none"
-          },
+          "card": {},
           "style": {
-            "slot": "secondary",
-            "weight": "thin"
+            "family": "secondary",
+            "border_width": "thin"
           }
         }
       },
@@ -182,9 +180,9 @@
           },
           "card": {},
           "style": {
-            "slot": "note",
-            "line": "strong",
-            "ink": "faint",
+            "family": "note",
+            "border_contrast": "strong",
+            "name_contrast": "faint",
             "fill": "wash",
             "opacity": 0.06
           }
@@ -201,9 +199,9 @@
           },
           "card": {},
           "style": {
-            "slot": "away",
-            "line": "strong",
-            "ink": "strong",
+            "family": "away",
+            "border_contrast": "strong",
+            "name_contrast": "strong",
             "fill": "hatch",
             "opacity": 0.55
           }
@@ -220,9 +218,9 @@
           },
           "card": {},
           "style": {
-            "slot": "secondary",
-            "line": "faint",
-            "ink": "faint"
+            "family": "secondary",
+            "border_contrast": "faint",
+            "name_contrast": "faint"
           }
         }
       }

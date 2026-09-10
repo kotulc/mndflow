@@ -18,6 +18,6 @@ export * from "./text";
 
 export { project, type Config } from "./block";
 
-export { CELLS, PLAIN, cells_of, look_key, look_of, type Cell, type Place,
-         type Fill, type Look, type Slot, type Voice,
-         type Weight } from "./look";
+export { CELLS, PLAIN, cells_of, look_key, look_of, type Align, type Border,
+         type Cell, type Contrast, type Display, type Family, type Fill,
+         type Font, type Look, type Weight, type Width } from "./look";

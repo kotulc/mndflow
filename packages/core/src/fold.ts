@@ -226,18 +226,6 @@ function apply(graph: Graph, m: Mutation): void {
     case "drop_def":
       delete graph.defs[m.id];
       return;
-    case "set_labelled": {
-      const b = graph.blocks[m.id];
-      /** **Only the answer that is not the default is kept.** Absent means
-       *  drawn, so turning it back on writes nothing to carry. */
-      if (b) { if (m.labelled) delete b.labelled; else b.labelled = false; }
-      return;
-    }
-    case "set_locked": {
-      const b = graph.blocks[m.id];
-      if (b) { if (m.locked) b.locked = true; else delete b.locked; }
-      return;
-    }
     case "set_tags": {
       const b = graph.blocks[m.id];
       if (!b) return;

@@ -121,15 +121,6 @@ export type Block = {
    *  it is like, and there can be any number of them; this is one mark the app
    *  hands out so that a thing with no name still has something to be called. */
   alias?: number;
-  /** Whether the drawing writes this block's name on it. **Absent is yes.**
-   *  Model data rather than a display preference: what a card says about itself
-   *  is part of what the layer says, so it travels and it undoes. */
-  labelled?: boolean;
-  /** Whether this block is fixed where it was put. **Absent is no.**
-   *
-   *  **A lock is not a hand brake.** You may always drag a locked block; on an
-   *  interface it is a mark for now. Seat assignment is routing's to work out. */
-  locked?: boolean;
   /** What this one block says about how it draws, over whatever its definition
    *  said. **The last word in the cascade**, keyed the way a definition's
    *  components are (`card`, `style`) so the two layer without translating.
@@ -273,8 +264,6 @@ export type Mutation =
   | { op: "set_def"; def: Definition }
   | { op: "drop_def"; id: Id }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
-  | { op: "set_labelled"; id: Id; labelled: boolean }
-  | { op: "set_locked"; id: Id; locked: boolean }
   | { op: "set_tags"; id: Id; tags: string[] }
   /** One property of one component on one block. `null` gives it back to
    *  whatever the chain said, which is not the same as setting a default. */

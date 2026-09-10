@@ -108,16 +108,7 @@ export function App() {
    *  element is, and the answer for four of them is four answers. */
   const only = s.picked().length === 1 ? s.picked()[0] : s.cells()[0]?.group;
   const on = only ? graph.blocks[only] : undefined;
-  const mod = on ? module_of(graph, on.id) : null;
-  /** **Only a group is framed.** Grids own a corner and solid edges; groups are
-   *  dashed rims round whatever they hold. */
-  /** **A holder writes its name on its frame; a card is its name.** Only the
-   *  first can be told to say nothing and still read, which is the whole of
-   *  what `framed` decides. */
-  const element = on
-    ? { id: on.id, labelled: on.labelled !== false, locked: !!on.locked,
-        framed: mod === "group" || mod === "grid" }
-    : null;
+  const element = on ? { id: on.id } : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -296,7 +287,7 @@ export function App() {
     }
     /** **Not an action** — it writes nothing and asks for nothing. Describing
      *  a thing is opening the panel that already describes it. */
-    if (name === "define") { set_tab("definition"); set_tray(true); return; }
+    if (name === "define") { set_tab("settings"); set_tray(true); return; }
     if (name === "export") { void s.save(); return; }
     act(name, args);
   };
@@ -382,12 +373,12 @@ export function App() {
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={(ids) => { s.pick(ids); set_picked_def(null); }}
         pickedDef={picked_def}
-        /** **Picking a definition describes it**, which is the definition tab
-         *  and nothing else — so the tray opens on it the way the rail's cog
-         *  opens on an element. */
+        /** **Picking a definition describes it**, which is the settings tab
+         *  and nothing else — so the tray opens on it the way the rail's cog opens
+         *  on an element. */
         onPickDef={(id) => {
           set_picked_def(id);
-          if (id) { s.pick([]); set_tab("definition"); set_tray(true); }
+          if (id) { s.pick([]); set_tab("settings"); set_tray(true); }
         }}
       />
 
