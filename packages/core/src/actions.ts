@@ -1548,6 +1548,46 @@ register(
   },
 );
 
+/** **Give the drawing back to what it inherits.** Every look this one element
+ *  says for itself, cleared in one act — the panel offers a *reset*, and one
+ *  undo has to put every answer back at once or the gesture is a lie.
+ *
+ *  **The drawing only.** `block` says which module interprets it and `rules`
+ *  says what it is held to; neither is how it draws, and neither is this act's
+ *  to drop. */
+register(
+  {
+    name: "plain",
+    about: "gives back every look this says for itself, to whatever it inherits",
+    on: ["block", "selection"],
+    args: [{ name: "ids", form: "block", required: true }],
+    check: (ctx, args) => {
+      const ids = ids_of(ctx, args);
+      if (!ids.length) return "nothing is selected";
+      for (const id of ids) {
+        const why = borrowed(ctx.graph, id);
+        if (why) return why;
+      }
+      return null;
+    },
+    run: (ctx, args) => {
+      const out: Mutation[] = [];
+      for (const id of ids_of(ctx, args)) {
+        const d = ctx.graph.defs[id];
+        if (d) {
+          const held = { ...(d.components ?? {}) };
+          delete held["card"];
+          delete held["style"];
+          out.push({ op: "set_def", def: { ...d, components: held } });
+          continue;
+        }
+        out.push({ op: "drop_looks", id });
+      }
+      return { mutations: out };
+    },
+  },
+);
+
 register(
   {
     name: "tag",

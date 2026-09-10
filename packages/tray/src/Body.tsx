@@ -32,6 +32,34 @@ export function Body({ head, note, children }: BodyProps) {
   );
 }
 
+export type RailProps = {
+  /** What the rail is a rail of. Absent draws no word. */
+  label?: ReactNode;
+  /** The chips, in the order they read. `said` lights a dot: this one has been
+   *  answered for itself. */
+  of: readonly { key: string; word: string; said?: boolean }[];
+  on: string;
+  onPick: (key: string) => void;
+};
+
+/** **A rail narrows what is listed; it does not navigate.** The same chips the
+ *  contents tab filters with, asking the same sort of question — so anything
+ *  with more rows than one reading can hold gets them by passing a list. */
+export function Rail({ label, of, on, onPick }: RailProps) {
+  return (
+    <div className="rail">
+      {label ? <h5>{label}</h5> : null}
+      <div className="filters">
+        {of.map((c) => (
+          <button key={c.key} className={[on === c.key ? "on" : "", c.said ? "said" : ""]
+                    .filter(Boolean).join(" ")}
+                  onClick={() => onPick(c.key)}>{c.word}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export type LineProps = {
   /** The word in the left gutter. **One question per row**, so it is a word and
    *  not a sentence. */

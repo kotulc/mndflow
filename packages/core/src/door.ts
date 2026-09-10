@@ -34,7 +34,7 @@ const OPS = new Set<string>([
   "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
-  "set_tags", "set_look",
+  "set_tags", "set_look", "drop_looks",
 ]);
 
 /** Read a log in, repairing what it can.

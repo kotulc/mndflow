@@ -168,15 +168,15 @@
 .tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
 
 /* ── How one thing draws ───────────────────────────────────────────────────
-   **Two columns, and the drawing heads the first.** What it *is* on the left,
-   under the card it makes; how it is *painted* on the right, under the rail
-   that says which part of the card is being asked about.
+   **Two columns, and each is headed by what it is read against.** What it *is*
+   on the left, under the card it makes; how it is *painted* on the right, under
+   the kind it is one of.
 
-   **One head height, and the rail sits at the bottom of it.** The two have to
-   agree on where their first row starts, and the rail has to be against the
-   rows it switches — a rail floating above them reads as a second navigation
-   rather than as a filter over them. Both, by hanging the rail from the foot of
-   the head rather than standing it at the top. */
+   **One head height, stated once.** The two columns have to agree on where
+   their rows start, and their heads hold different things — a card on the left,
+   what kind of card and the rail on the right. A number here is one line to
+   change; letting each column take its own put the two sets of rows on
+   different lines. */
 
 .styles {
   display: grid;
@@ -184,35 +184,102 @@
   gap: 14px;
   padding: 8px 10px 10px;
   align-items: start;
+  --head: 88px;
 }
 
 .styles > .col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 
-/* **One band across both columns.** The card is centred in its own, the rail
-   fills the other, and neither moves when the answers below them change. */
+/* **One band across both columns.** The card is centred in its own; the other
+   holds what kind of card it is at the top and the rail at the foot, against
+   the rows the rail narrows. */
 .styles-head {
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  height: 88px;
+  height: var(--head);
+  gap: 8px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--divider);
 }
 
-/* The rail hangs from the foot of its head, so it is against its own rows while
-   the card keeps the room it needs beside it — with its own word above it,
-   because five parts of a card read as five more answers otherwise. */
+/* **The rail is the seam on this side.** The head drew one line and the rail
+   under it drew another, six pixels apart — one seam, and it is the rail's,
+   which puts it on the same line the card's head draws across the way. */
 .styles > .draws > .styles-head {
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-end;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-/* The same head the banded bodies wear, so the two columns are read the same
-   way down the panel. */
-.styles-head > .rail-said {
+/* What is being drawn, and how many of that kind there are. */
+.kind-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* What is being drawn, what kind of one, and how many of them there are.
+   **Set to the right**, where the column's own edge is, so it reads as a
+   heading over the rail rather than as one more answer. */
+.kind-line { justify-content: flex-end; padding: 0 8px; }
+
+.kind-line > .holder {
+  flex: none;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* **The one control over the whole column**, so it sits at its right edge with
+   what it would undo named to the left of it. */
+.kind-line > .reset {
+  flex: none;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  color: var(--muted);
+  background: none;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.kind-line > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.kind-line > .reset:disabled { opacity: 0.35; cursor: default; }
+
+/* Ruled off from the kind: how many there are is a different fact about it. */
+.kind-line > .tally {
+  flex: none;
+  padding-left: 8px;
+  border-left: 1px solid var(--divider);
+  color: var(--faint);
+  font-size: 10px;
+}
+
+/* ── A rail over a table ───────────────────────────────────────────────────
+   **One component wherever a table has more readings than one.** The word
+   beside it says what it is a rail of, and it sits against the rows it narrows
+   rather than floating over them. */
+/* **The head of the table under it**, drawn the way the contents table draws
+   its own: the surface behind it, a divider below, and the word set in the same
+   9px the column heads are. The row's own gutter and edge, so the word over the
+   rows and the words in them start on one line, and the chips start where the
+   answers do. */
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+}
+
+.rail > h5 {
+  flex: none;
+  width: 6.8em;
   margin: 0;
   color: var(--faint);
   font-size: 9px;
@@ -221,24 +288,17 @@
   text-transform: uppercase;
 }
 
-/* **The rail narrows what is listed; it does not navigate.** The contents tab's
-   own chips, asking the same sort of question — so it wears no border of its
-   own and no padding to hold it off the rows below. */
-/* **Two lines where there is one seam.** The rail is a `.filters` rail, and
-   that rule carries a rule of its own — stated later in this sheet, so it won
-   and drew a second line just above the head's. The head owns the seam. */
-.styles-head > .styles-rail {
+.rail > .filters {
   padding: 0;
+  border: none;
   flex: 1 1 auto;
   min-width: 0;
-  border: none;
-  align-content: flex-start;
 }
 
 /* A part this element has answered for itself, so what has been customised is
    visible without opening each one. A dot, because the word is the label and a
    second colour on it would compete with the lit chip. */
-.styles-rail > button.said::after {
+.rail .filters > button.said::after {
   content: "";
   display: inline-block;
   width: 3px;
@@ -282,7 +342,7 @@
 /* ── The body pattern ─────────────────────────────────────────────────────────
    A label on the left, its content on the right, banded down the page. Every
    tray body is this, which is what replaced a tab strip inside a tab. */
-.rows { display: flex; flex-direction: column; min-width: 0; }
+.rows { display: flex; flex-direction: column; min-width: 0; font-size: 12px; }
 
 .rows + .rows { border-top: 1px solid var(--divider); padding-top: 5px; margin-top: 4px; }
 
@@ -290,7 +350,10 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0 0 3px;
+  margin: 0;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
   color: var(--faint);
   font-size: 9px;
   font-weight: normal;
@@ -300,23 +363,33 @@
 
 .rows > h4 .from { color: var(--faint); text-transform: none; letter-spacing: 0; }
 
+/* **One row height, so two columns of them step together.** A row is a
+   question and its answer whatever the answer is made of — an input is taller
+   than a chip, and left to their own heights the left column's fourth row sat
+   between the right column's fourth and fifth. Anything that wraps still grows;
+   nothing else does.
+
+   **Ruled, not banded, and ruled the way the contents table is.** One table
+   look for every body in the tray: the same padding, the same 12px, the same
+   divider under each row — so a describing row and a listed row read as the
+   same sort of thing, which they are. Banding was a second answer to the same
+   question and only this surface used it. */
 .rows > .row {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 2px 4px;
-  border-radius: 2px;
+  min-height: 30px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
 }
 
-/* **Banded, so a long run stays readable across.** A wash rather than a step —
-   the stripe carries the eye from a label to its content and should not be the
-   first thing seen. */
-.rows > .row:nth-of-type(even) { background: var(--band); }
-
+/* **Wide enough for the longest word in it**, which is *definition*. A gutter
+   that clips is a gutter that stopped being one — and both columns share it, so
+   it is stated once here. */
 .rows > .row > label {
   flex: none;
-  width: 4.4em;
+  width: 6.8em;
   color: var(--faint);
   font-size: 9px;
   letter-spacing: 0.06em;
@@ -341,26 +414,48 @@
 .rows > .row.value > .line > input { flex: 1 1 auto; min-width: 0; }
 .rows > .row.value > .line > .form { color: var(--faint); font-size: 10px; }
 .rows > .row.add > .line > input { flex: 1 1 auto; min-width: 0; }
+/* **What sort of value is a short answer**, so it keeps a short box and the
+   name takes the rest of the row. */
+.rows > .row.add > .line > select { flex: 0 0 8em; }
 .rows > .row > .line > .drop { flex: none; }
 .rows > .row > .line > .says { color: var(--muted); font-size: 11px; }
-.rows > .empty { color: var(--faint); font-size: 11px; font-style: italic; margin: 2px 4px; }
+.rows > .empty { color: var(--faint); font-size: 11px; font-style: italic;
+                 margin: 0; padding: 4px 8px; }
 
-/* The same inline controls the element rows already used, now on any line. */
+/* **A ground, not a box, and it takes the whole answer column.** Underlined,
+   they drew a second rule two pixels above the row's own; boxed, they drew a
+   rectangle whose edges never quite met anything. A filled ground says *type
+   here* without drawing a single line, so the only rules on the panel are the
+   table's — and every one of them spans the same column, so they are all the
+   same length. */
 .rows > .row > .line > select,
 .rows > .row > .line > input {
+  /* **It takes what the row has left**, rather than a width of its own: a
+     stated 100% pushed the drop button and the form picker onto a second line
+     in every field row. Growing from nothing fills the same space where there
+     is nothing beside it, which is what makes the three answers on the left
+     column identical. */
+  flex: 1 1 0;
+  min-width: 0;
+  /* **One stated height for every control**, so a row holding a picker is the
+     same height as a row holding a box and the two columns keep step. */
+  box-sizing: border-box;
+  height: 22px;
   color: inherit;
-  background: none;
+  /* **A wash, not a step.** 3% of ink over whatever is behind it is enough to
+     say *type here* and not enough to read before the words in it — the same
+     reasoning the banded rows were built on, and the same value. */
+  background: var(--band);
   border: 1px solid transparent;
-  border-bottom-color: var(--divider);
-  border-radius: 0;
-  padding: 1px 2px;
+  border-radius: 2px;
+  padding: 0 6px;
   font: inherit;
 }
 
 .rows > .row > .line > select:hover,
-.rows > .row > .line > input:hover { border-bottom-color: var(--border); }
+.rows > .row > .line > input:hover { border-color: var(--divider); }
 .rows > .row > .line > select:focus,
-.rows > .row > .line > input:focus { outline: none; border-bottom-color: var(--accent); }
+.rows > .row > .line > input:focus { outline: none; border-color: var(--accent); }
 .rows > .row > .line > select:disabled,
 .rows > .row > .line > input:disabled { opacity: 0.5; }
 

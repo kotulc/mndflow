@@ -235,6 +235,15 @@ function apply(graph: Graph, m: Mutation): void {
       if (kept.length) b.tags = kept; else delete b.tags;
       return;
     }
+    case "drop_looks": {
+      const b = graph.blocks[m.id];
+      if (!b?.looks) return;
+      const looks = { ...b.looks };
+      delete looks["card"];
+      delete looks["style"];
+      if (Object.keys(looks).length) b.looks = looks; else delete b.looks;
+      return;
+    }
     case "set_look": {
       const b = graph.blocks[m.id];
       if (!b) return;

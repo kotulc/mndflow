@@ -265,6 +265,12 @@ export type Mutation =
   | { op: "drop_def"; id: Id }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
   | { op: "set_tags"; id: Id; tags: string[] }
+  /** Everything this block says about how it draws, given back at once.
+   *  **The inverse of `set_look`, and one write rather than one per property**
+   *  — a reset has to undo in a single step or it is a gesture that takes ten
+   *  undos to unsay. The drawing only: what it is held to is `rules`, and that
+   *  is not this op's to drop. */
+  | { op: "drop_looks"; id: Id }
   /** One property of one component on one block. `null` gives it back to
    *  whatever the chain said, which is not the same as setting a default. */
   | { op: "set_look"; id: Id; key: string; name: string; value: unknown };

@@ -170,6 +170,20 @@ A relationship carries a definition exactly as a block does — `group: "relatio
 
 **Waits on** the block half being settled, since it inherits whatever that decides about naming, filing and unpinning.
 
+### ST.16 — Settings, at whatever you have hold of
+
+**One panel, three scopes.** The tray's *settings* tab describes the one thing picked; the same tab describes the **layer** you are in when nothing is picked, and the **workspace** when the rail's project settings asks for it. What is being settled changes; the panel does not.
+
+**The rail's project settings opens it.** Today that control runs an action nothing answers. It should put the tray on settings with the workspace as its subject — the same way the element group's *define* puts it there with a block.
+
+| scope | what it settles |
+|---|---|
+| **workspace** | what every layer starts from: the theme, the default definitions per kind, what a new block is made as |
+| **layer** | how this layer is arranged and drawn — the answers that live on the layer today and are reached from the rail |
+| **element** | what it is, how it draws, what it carries — the panel as it stands |
+
+**Open.** Whether a scope is picked in the panel or arrived at by what is selected; whether a layer's settings are the same rows as an element's or a shorter set; and what a workspace-level default looks like beside `Definition.default`, which already answers *what every plain block of this kind follows*.
+
 ### ST.12 — The plan stops being prose that agents parse
 
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as

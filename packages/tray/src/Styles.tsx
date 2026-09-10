@@ -21,7 +21,7 @@ import { ALIGNS, BLOCK_MODULES, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS,
          shown_name, type Act, type Definition, type Graph, type Id,
          type Role } from "@mnd/core";
 import { Icon, names, type IconName } from "@mnd/theme";
-import { Body, Line } from "./Body";
+import { Body, Line, Rail } from "./Body";
 import { Card } from "./Card";
 import { held, reading } from "./holder";
 
@@ -196,6 +196,22 @@ export function Styles({ graph, id, onAct }: StylesProps) {
   const shows = config_of(graph, d ? d.id : b ? id : undefined, "card")["shows"];
   const label = d ? d.name : shown_name(graph, id);
   const word = d ? d.name : (named ? graph.defs[named]?.name : undefined) ?? kind;
+  /** **What is being drawn, not what is holding it.** *Block · block* said the
+   *  same word twice and neither of them was the question — what the rows below
+   *  settle is a card, and this says which kind of one.
+   *
+   *  The tally is how many of that kind the workspace holds; a definition counts
+   *  what names it, which is the same question asked of a kind. */
+  const holder = edge ? "line type:" : "card type:";
+  const tally = d
+    ? Object.values(graph.blocks).filter((x) => x.type === d.id).length
+    : Object.values(graph.blocks).filter((x) => module_of(graph, x.id) === kind).length;
+
+  /** Whether this one says anything about its drawing at all, which is what
+   *  there would be to give back. */
+  const its_own = ["card", "style"].some((key) => Object.keys(
+    (d ? d.components?.[key] : b?.looks?.[key]) ?? {}).length > 0);
+
   const set = (key: "card" | "style", name: string, value: string) =>
     onAct("look", { ids: [id], key, name, value });
   /** **A relationship carries a definition exactly as a block does, and there is
@@ -234,30 +250,22 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           {/* **A definition's name is read-only.** `def_id` slugs a name into
               the id, so renaming one would mint a second definition and leave
               every usage naming the first. Retiring it is unpinning it. */}
+          {/* **The mark it wears is on the card above**, so it does not sit
+              beside the box as well and leave this one row's answer shorter
+              than the two under it. */}
           <Line label="name" tip="What this is called, as the card writes it.">
             {d
-              ? <><input value={d.name} readOnly aria-label="name" />
-                  <span className="alias">{d.id}</span></>
-              : <><input value={b?.label ?? ""} aria-label="name"
-                         placeholder={b ? kind_word(graph, b) : "unnamed"}
-                         onChange={(e) => onAct("rename", { id, label: e.target.value })} />
-                  <span className="alias">{alias_of(graph, id)}</span></>}
+              ? <input value={d.name} readOnly aria-label="name" />
+              : <input value={b?.label ?? ""} aria-label="name"
+                       placeholder={b ? kind_word(graph, b) : "unnamed"}
+                       onChange={(e) => onAct("rename", { id, label: e.target.value })} />}
           </Line>
 
-          {/* **What it is, and it is not a choice.** A subtype refines what a
-              thing is like and never what it is, so the base kind is read
-              rather than picked — and it wears the mark every surface draws
-              it with. */}
-          <Line label="type" className="type"
-                tip="The base kind this rests on. A subtype refines it; nothing changes it.">
-            <span className="base"><Icon name={kind_mark} size={12} />{kind}</span>
-          </Line>
-
-          {/* **Which definition refines it, by where it sits.** The path is the
-              definitions folder's own — `default/note`, `workspace/Pump`,
-              `packages/acme/Valve` — so what the picker offers and what the
-              tree shows are one list said the same way. */}
-          <Line label="subtype" className="subtype"
+          {/* **Which definition it draws through, by where it sits.** The path
+              is the definitions folder's own — `default/note`, `workspace/Pump`,
+              `packages/acme/Valve` — so what the picker offers and what the tree
+              shows are one list said the same way. */}
+          <Line label="definition" className="subtype"
                 tip="The definition this draws through. The path is where it sits in the definitions folder.">
             {d ? (
               <select value={d.extends ?? ""} aria-label="extends" disabled={borrowed}
@@ -267,7 +275,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
                 {roots.map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
               </select>
             ) : (
-              <select value={subtype} aria-label="subtype" disabled={!subtypes.length}
+              <select value={subtype} aria-label="definition" disabled={!subtypes.length}
                       onChange={(e) => onAct("retype", { id, type: e.target.value || kind })}>
                 <option value="">default/{kind}</option>
                 {subtypes.map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
@@ -324,18 +332,29 @@ export function Styles({ graph, id, onAct }: StylesProps) {
       {/* **How it draws.** The rail sits level with the card, and the answers to
           whichever part is lit run under both. */}
       <div className="col draws">
+        {/* **What it is, and how much of it there is.** The kind is read rather
+            than picked — a subtype refines what a thing is like and never what
+            it is — and the count says how many of them this workspace holds,
+            which is the one thing about a kind that is not on the card. */}
         <div className="styles-head">
-          {/* **The rail says what it is a rail of.** Beside a column of what
-              the thing *is*, five words on their own read as five more
-              answers rather than as the parts of one picture. */}
-          <h4 className="rail-said">style</h4>
-          <div className="filters styles-rail">
-            {paints ? GROUPS.map((g) => (
-              <button key={g} className={[group === g ? "on" : "", touched(g) ? "said" : ""]
-                        .filter(Boolean).join(" ")}
-                      onClick={() => set_group(g)}>{g}</button>
-            )) : null}
+          <div className="kind-line">
+            <span className="holder">{holder}</span>
+            <span className="base">{kind}<Icon name={kind_mark} size={12} /></span>
+            <span className="tally">{tally} {tally === 1 ? "instance" : "instances"}</span>
+            {/* **One act, so one undo puts every answer back.** A reset that
+                cleared a property at a time would take as many undos to
+                unsay as it took clicks to say. */}
+            <button className="reset" disabled={borrowed || !its_own}
+                    title={its_own ? "give every look back to what it inherits"
+                                   : "it says nothing of its own to give back"}
+                    onClick={() => onAct("plain", { ids: [id] })}>
+              reset style
+            </button>
           </div>
+          {paints ? (
+            <Rail label="style" on={group} onPick={(g) => set_group(g as Group)}
+                  of={GROUPS.map((g) => ({ key: g, word: g, said: touched(g) }))} />
+          ) : null}
         </div>
 
         {!paints ? (
