@@ -131,7 +131,7 @@ describe("the left button works what is already there", () => {
     fireEvent.doubleClick(frame_name(view));
     typing(field(view), "Typed");
     expect(view.onAct.mock.calls.filter((c) => c[0] === "rename"))
-      .toEqual([["rename", { id: "block_loop", label: "Typed" }]]);
+      .toEqual([["rename", { id: "block_loop", name: "Typed" }]]);
     expect(view.onAct).not.toHaveBeenCalledWith("open", expect.anything());
   });
 
@@ -213,7 +213,7 @@ describe("the keyboard", () => {
     expect(card(view, "block_pump").querySelector(".mnd-naming")).toBeTruthy();
     typing(field(view), "Typed");
     expect(view.onAct).toHaveBeenCalledWith("rename",
-      { id: "block_pump", label: "Typed" });
+      { id: "block_pump", name: "Typed" });
   });
 
   it("deletes everything picked, blocks and relations alike", () => {

@@ -40,7 +40,7 @@ describe("the registry", () => {
     const c = gridded();
     for (const a of all()) {
       const out = a.run(c, { id: "block_tank", to: "block_hx", from: "block_tank",
-                             label: "x", body: "x", text: "x", name: "f", owner: "block_tank",
+                             body: "x", text: "x", name: "f", owner: "block_tank",
                              target: "block_hx", parent: ROOT, holder: "block_tank",
                              members: ["block_tank"], group: "block_hot", dir: "forward",
                              module: "line", arrangement: "down", flow: "in",
@@ -53,7 +53,7 @@ describe("the registry", () => {
   it("returns mutations and never applies them", () => {
     const before = fold(related());
     const c: Context = { graph: before, layer: "block_loop", picked: [] };
-    run("create", c, { label: "Filter" });
+    run("create", c, { name: "Filter" });
     expect(before).toEqual(fold(related()));
   });
 });
@@ -74,8 +74,8 @@ describe("check agrees with run", () => {
    *  parts of an assembly are called the same thing all the time, and the rule
    *  that said otherwise was about typing rather than about the model. */
   it("allows a name a sibling already has", () => {
-    expect(run("create", ctx(), { label: "Pump" })).not.toHaveProperty("refused");
-    expect(run("rename", ctx(), { id: "block_hx", label: "Pump" }))
+    expect(run("create", ctx(), { name: "Pump" })).not.toHaveProperty("refused");
+    expect(run("rename", ctx(), { id: "block_hx", name: "Pump" }))
       .not.toHaveProperty("refused");
     expect(run("move", ctx(), { ids: ["block_pump"], parent: "block_hx" }))
       .not.toHaveProperty("refused");
@@ -89,9 +89,9 @@ describe("check agrees with run", () => {
 describe("what an action absorbs", () => {
   it("move covers nesting, promotion and filing with one argument", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     const ledger = children(s.graph(), ROOT)[0]!.id;
-    s.go("create", { label: "Auth", parent: ledger });
+    s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
     s.go("move", { id: auth, parent: ROOT });
@@ -106,13 +106,13 @@ describe("what an action absorbs", () => {
    *  arriving renumbers the list, at the end unless a drop said otherwise. */
   it("orders siblings as they are added, and as they are dropped", () => {
     const s = session();
-    for (const label of ["A", "B", "C"]) s.go("create", { label });
+    for (const name of ["A", "B", "C"]) s.go("create", { name });
     const named = () => children(s.graph(), ROOT).map((b) => b.name);
     expect(named()).toEqual(["A", "B", "C"]);
 
     /** A gap left by a delete is not somewhere to put the next one. */
     s.go("delete", { ids: [children(s.graph(), ROOT)[1]!.id] });
-    s.go("create", { label: "D" });
+    s.go("create", { name: "D" });
     expect(named()).toEqual(["A", "C", "D"]);
 
     const [a, c, d] = children(s.graph(), ROOT).map((b) => b.id);
@@ -132,7 +132,7 @@ describe("what an action absorbs", () => {
    *  nothing while the tree went on listing it. */
   it("drops the place and the group it had when it leaves a layer", () => {
     const s = session();
-    for (const label of ["Alpha", "Beta"]) s.go("create", { label });
+    for (const name of ["Alpha", "Beta"]) s.go("create", { name });
     const at = (name: string) => children(s.graph(), ROOT).find((b) => b.name === name)!.id;
     const alpha = at("Alpha"), beta = at("Beta");
     s.go("group", { members: [alpha], rows: 2, cols: 2 });
@@ -150,7 +150,7 @@ describe("what an action absorbs", () => {
   /** A reorder is not a move out of anywhere, so it shifts no card. */
   it("keeps where a block sits when it stays under the same parent", () => {
     const s = session();
-    for (const label of ["A", "B"]) s.go("create", { label });
+    for (const name of ["A", "B"]) s.go("create", { name });
     const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
     s.adjust("place", adjustments.place([{ id: a!, x: 96, y: 48 }]));
 
@@ -160,10 +160,10 @@ describe("what an action absorbs", () => {
 
   it("appends what arrives from somewhere else", () => {
     const s = session();
-    s.go("create", { label: "Shelf" });
+    s.go("create", { name: "Shelf" });
     const shelf = children(s.graph(), ROOT)[0]!.id;
-    for (const label of ["A", "B"]) s.go("create", { label, parent: shelf });
-    s.go("create", { label: "Loose" });
+    for (const name of ["A", "B"]) s.go("create", { name, parent: shelf });
+    s.go("create", { name: "Loose" });
     const loose = children(s.graph(), ROOT).find((b) => b.name === "Loose")!.id;
 
     s.go("move", { id: loose, parent: shelf });
@@ -172,11 +172,11 @@ describe("what an action absorbs", () => {
 
   it("group makes a boundary without an into, and joins one with it", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
     const [a, b] = children(s.graph(), loop).map((x) => x.id);
 
     s.go("group", { members: [a] });
@@ -190,7 +190,7 @@ describe("what an action absorbs", () => {
 
   it("dissolves a group when the last member leaves", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     const a = children(s.graph(), ROOT)[0]!.id;
     s.go("group", { members: [a] });
     const group = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
@@ -202,8 +202,8 @@ describe("what an action absorbs", () => {
 
   it("dissolves an empty group shell when it leaves its parent", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
     const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
     s.go("group", { members: [a] });
     const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
@@ -220,8 +220,8 @@ describe("what an action absorbs", () => {
 
   it("dissolves inner when the last block moves to the outer group", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "Temp" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "Temp" });
     const [a, temp] = children(s.graph(), ROOT).map((x) => x.id);
     s.go("group", { members: [a] });
     const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
@@ -237,8 +237,8 @@ describe("what an action absorbs", () => {
 
   it("dissolves empty groups up to the layer", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "Temp" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "Temp" });
     const [a, temp] = children(s.graph(), ROOT).map((x) => x.id);
     s.go("group", { members: [a] });
     const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
@@ -255,8 +255,8 @@ describe("what an action absorbs", () => {
 
   it("dissolves a nested group when its last member leaves", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
     const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
     s.go("group", { members: [a] });
     const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
@@ -272,12 +272,12 @@ describe("what an action absorbs", () => {
 
   it("draws a second boundary on the layer instead of nesting inside the first", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
-    s.go("create", { label: "C" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
+    s.go("create", { name: "C" });
     const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
     s.go("group", { members: [a, b, c] });
     const outer = children(s.graph(), loop).find((x) => x.type === "group")!.id;
@@ -294,13 +294,13 @@ describe("what an action absorbs", () => {
 
   it("merges two group boundaries into one", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
-    s.go("create", { label: "C" });
-    s.go("create", { label: "D" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
+    s.go("create", { name: "C" });
+    s.go("create", { name: "D" });
     const [a, b, c, d] = children(s.graph(), loop).map((x) => x.id);
     s.go("group", { members: [a, b] });
     const g1 = children(s.graph(), loop).find((x) => x.type === "group")!.id;
@@ -321,12 +321,12 @@ describe("what an action absorbs", () => {
 
   it("nests a group inside another when dragged in", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
-    s.go("create", { label: "C" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
+    s.go("create", { name: "C" });
     const [a, b, c] = children(s.graph(), loop).map((x) => x.id);
     s.go("group", { members: [a, b] });
     const outer = children(s.graph(), loop).find((x) => x.type === "group")!.id;
@@ -341,11 +341,11 @@ describe("what an action absorbs", () => {
 
   it("puts a grid inside a group", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
     const [a, b] = children(s.graph(), loop).map((x) => x.id);
     s.go("group", { members: [a], rows: 2, cols: 2 });
     const grid = children(s.graph(), loop).find((x) => x.type === "grid")!.id;
@@ -360,11 +360,11 @@ describe("what an action absorbs", () => {
    *  to be there. */
   it("ties a relationship to a note whichever end the note is", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "Pump" });
-    s.go("create", { label: "Tank" });
+    s.go("create", { name: "Pump" });
+    s.go("create", { name: "Tank" });
     const at = (name: string) => children(s.graph(), loop).find((b) => b.name === name)!.id;
     /** **A note is always about something**, so making one names what. */
     s.go("note", { about: at("Tank"), text: "runs clockwise" });
@@ -390,10 +390,10 @@ describe("what an action absorbs", () => {
 
   it("relate assigns tie and reference from the ends rather than taking them", () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "Pump" });
+    s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop).find((b) => b.name === "Pump")!;
     s.go("note", { about: pump.id, text: "runs clockwise" });
     const note = children(s.graph(), loop).find((b) => b.type === "note")!;
@@ -410,10 +410,10 @@ describe("the way out of a layer", () => {
    *  inside. Its parent is only one of those two. */
   const seated = () => {
     const s = session();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
-    s.go("create", { label: "Pump" });
+    s.go("create", { name: "Pump" });
     const pump = children(s.graph(), loop)[0]!.id;
     s.go("interface", { owner: pump, side: "right" });
     const port = children(s.graph(), pump)[0]!.id;
@@ -449,8 +449,8 @@ describe("the way out of a layer", () => {
 describe("interfaces sit on blocks, not boundaries", () => {
   it("refuses a group for an owner", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
     const ids = children(s.graph(), ROOT).map((b) => b.id);
     s.go("group", { members: ids });
     const group = Object.values(s.graph().blocks).find((b) => b.type === "group")!;
@@ -469,7 +469,7 @@ describe("a field on a layer", () => {
 
   it("records what a layer draws definitions from", () => {
     const s = seeded();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
     expect(s.go("field", { holder: loop, name: "vocabulary",
@@ -495,10 +495,10 @@ describe("a null layer is the root layer", () => {
   it.each(["create", "note", "group", "refer"])(
     "%s never makes a second root", (name) => {
       const s = session();
-      s.go("create", { label: "Ledger" });
+      s.go("create", { name: "Ledger" });
       const ledger = children(s.graph(), ROOT)[0]!.id;
       s.look(null);
-      s.go(name, { label: "A", text: "a note", members: [ledger], target: ledger });
+      s.go(name, { name: "A", text: "a note", members: [ledger], target: ledger });
       const roots = Object.values(s.graph().blocks).filter((b) => b.parent === null);
       expect(roots.map((b) => b.id)).toEqual([ROOT]);
     });

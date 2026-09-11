@@ -17,7 +17,7 @@
  *  without resolving React. */
 
 import { ALIGNS, BORDERS, config_of, CONTRASTS, def_of, DISPLAYS, FAMILIES, FILLS,
-         FONTS, is_container, is_interface, kind_word, WEIGHTS, WIDTHS,
+         FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS, WIDTHS,
          type Graph, type Id } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -58,6 +58,13 @@ export type Look = {
   label: Display;
   /** Which end of the card its writing reads from. */
   align: Align;
+  /** Whether the identity line is drawn — the name, or the kind and handle that
+   *  stand in where nobody has named it. Hidden gives a blank card, or a note
+   *  showing only its body. */
+  name: boolean;
+  /** Whether the handle joins a name somebody **did** set. The fallback always
+   *  carries one, which is the whole reason it needs one. */
+  alias: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named
    *  one, the base kind otherwise. **Always a word** — the card decides whether
    *  to write it from `label`, so there is nothing for absence to mean. */
@@ -86,6 +93,7 @@ export const PLAIN: Look = {
   name_font: "none", name_weight: "normal",
   label_font: "none", label_weight: "normal",
   label: "none", align: "left", kind: "block",
+  name: true, alias: false,
 };
 
 /** One value if it is in the set, or the fallback. **The door already refused
@@ -127,6 +135,8 @@ export function look_of(graph: Graph, id: Id): Look {
     label_weight: one(style["label_weight"], WEIGHTS, PLAIN.label_weight),
     label: one(card["label"], DISPLAYS, PLAIN.label),
     align: one(card["align"], ALIGNS, PLAIN.align),
+    name: one(card["name"], SHOWN, "show") === "show",
+    alias: one(card["alias"], SHOWN, "hide") === "show",
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),

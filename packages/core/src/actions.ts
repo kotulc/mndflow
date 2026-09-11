@@ -9,7 +9,7 @@
 
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
-         def_of, may_retype, members_of, module_of, module_named, next_order, next_alias,
+         def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
          path, reorder } from "./fold";
 import { NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
@@ -215,13 +215,24 @@ function region(ctx: Context, args: Args): { group: Id; span: Span } | null {
     cols: Math.max(...spots.map((s) => s.c)) - c + 1 } };
 }
 
+/** A handle, and the counter bump that hands it out. **One counter per kind**,
+ *  held on the workspace, so a serial is never handed out twice — and both
+ *  travel in the step that made the element, so an undo takes the handle back
+ *  with the thing it named. */
+function handle(ctx: Context, kind: string, n = 1)
+    : { alias: number; bump: Mutation } {
+  const at = next_alias(ctx.graph, kind);
+  return { alias: at, bump: { op: "set_counter", kind, n: at + n - 1 } };
+}
+
 /** The one door making a block, so every caller places and numbers alike. */
 function make_block(ctx: Context, name: string, parent: Id | null, type?: Id): Mutation[] {
   const id = new_id("block");
+  const { alias, bump } = handle(ctx, module_named(ctx.graph, type));
   return [{ op: "add_block", block: {
     id, parent, name: name || undefined, type,
-    order: next_order(ctx.graph, parent), alias: next_alias(ctx.graph),
-  } }];
+    order: next_order(ctx.graph, parent), alias,
+  } }, bump];
 }
 
 // ---------------------------------------------------------------- blocks
@@ -231,13 +242,13 @@ register(
     name: "create",
     about: "makes a new block in a layer, where you pointed if you did",
     on: ["layer"],
-    args: [{ name: "label", form: "text", asks: true },
+    args: [{ name: "name", form: "text", asks: true },
            { name: "parent", form: "block" },
            { name: "type", form: "text" }, { name: "spot", form: "spot" }],
     run: (ctx, args) => {
       const parent = (args["parent"] as Id) ?? here(ctx);
       const type = args["type"] ? String(args["type"]) : undefined;
-      const made = make_block(ctx, text(args, "label"), parent, type);
+      const made = make_block(ctx, text(args, "name"), parent, type);
       const at = spot(args);
       const block = (made[0] as { block: { id: Id } }).block;
       if (at) made.push({ op: "place_block", id: block.id, x: at.x, y: at.y });
@@ -272,12 +283,17 @@ register(
     about: "changes what a block or a relationship is called",
     on: ["block", "edge"],
     args: [{ name: "id", form: "block", required: true },
-           { name: "label", form: "text", required: true }],
+           /** **Asked for, never required.** The menu still stops to offer one;
+            *  what it may not do is refuse an empty answer. */
+           { name: "name", form: "text", asks: true }],
+    /** **A name is not required, so clearing one is not an error.** An element
+     *  that nobody has named reads as its type word and its handle — `Block B3`
+     *  — which is what the fallback is for, so refusing an empty name left the
+     *  one thing a user could not undo about a block. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      if (ctx.graph.edges[id]) return text(args, "label") ? null : "a name is required";
-      if (!ctx.graph.blocks[id]) return "that block is not there";
-      return text(args, "label") ? null : "a name is required";
+      if (ctx.graph.edges[id] || ctx.graph.blocks[id]) return null;
+      return "that block is not there";
     },
     /** **A relationship is named by what it is**, so naming one is filing a
      *  relation definition under that name and pointing the line at it. A type
@@ -285,13 +301,18 @@ register(
      *  been named. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
-      const label = text(args, "label");
+      const name = text(args, "name");
       if (!ctx.graph.edges[id]) {
-        return { mutations: [{ op: "update_block", id, label }] };
+        return { mutations: [{ op: "update_block", id, name }] };
       }
-      const def = def_id(label);
+      /** **Clearing a relationship's name unnames it**, which is dropping the
+       *  type: a relation is named by the definition it points at, so there is
+       *  no empty name to store — and a type set without one draws no label,
+       *  which is the same as never having been named. */
+      if (!name) return { mutations: [{ op: "update_edge", id, type: null }] };
+      const def = def_id(name);
       const out: Mutation[] = ctx.graph.defs[def] ? []
-        : [{ op: "set_def", def: { id: def, group: "relation", name: label } }];
+        : [{ op: "set_def", def: { id: def, group: "relation", name } }];
       return { mutations: [...out, { op: "update_edge", id, type: def }] };
     },
   },
@@ -396,9 +417,11 @@ register(
     run: (ctx, args) => {
       const id = new_id("block");
       const at = spot(args);
+      const ref = handle(ctx, "reference");
       const out: Mutation[] = [{ op: "add_block", block: {
         id, parent: here(ctx), of: id_of(args, "target"), order: next_order(ctx.graph, here(ctx)),
-      } }];
+        alias: ref.alias,
+      } }, ref.bump];
       if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
       return { mutations: out };
     },
@@ -492,8 +515,10 @@ register(
        *  border is worked out from two rectangles; the layer's own border is
        *  four places to stand, so an end aimed at one of them says which and
        *  the geometry stops guessing. */
-      const out: Mutation[] = [{ op: "link_blocks", edge: {
+      const line = handle(ctx, "relation");
+      const out: Mutation[] = [line.bump, { op: "link_blocks", edge: {
         id: new_id("edge"), from, to, module, type: type ? def_id(type) : undefined,
+        alias: line.alias,
         ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
         ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
       } }];
@@ -661,12 +686,13 @@ register(
       const id = new_id("block");
       const edge = text(args, "edge");
       const end = args["end"] as "from" | "to" | undefined;
+      const port = handle(ctx, "interface");
       const out: Mutation[] = [{ op: "add_block", block: {
         id, parent: owner, side,
         at: typeof args["at"] === "number" ? (args["at"] as number)
                                            : mid_of(ctx.graph, owner, side),
-        order: next_order(ctx.graph, owner),
-      } }];
+        order: next_order(ctx.graph, owner), alias: port.alias,
+      } }, port.bump];
       if (edge && end) {
         out.push({ op: "set_end", id: edge, end, port: id },
                  { op: "set_side", id: edge, end, side: null });
@@ -754,8 +780,10 @@ register(
       if (!group) {
         const extent = rows !== null || cols !== null;
         group = new_id("block");
+        const rim = handle(ctx, extent ? "grid" : "group");
+        out.push(rim.bump);
         out.push({ op: "add_block", block: {
-          id: group, parent: here(ctx), type: extent ? "grid" : "group",
+          id: group, parent: here(ctx), type: extent ? "grid" : "group", alias: rim.alias,
           order: next_order(ctx.graph, here(ctx)),
         } });
       }
@@ -827,9 +855,12 @@ register(
     run: (ctx, args) => {
       const id = new_id("block");
       const about = id_of(args, "about") || ctx.picked[0]!;
+      const jot = handle(ctx, "note");
       const out: Mutation[] = [
         { op: "add_block", block: {
-          id, parent: here(ctx), type: "note", order: next_order(ctx.graph, here(ctx)) } },
+          id, parent: here(ctx), type: "note", order: next_order(ctx.graph, here(ctx)),
+          alias: jot.alias } },
+        jot.bump,
         { op: "set_body", id, body: text(args, "text") },
       ];
       const at = spot(args);
@@ -843,7 +874,9 @@ register(
        *  the engine says what sort of line that is. */
       const to = ctx.graph.edges[about] ? null : about;
       if (to) {
-        out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to,
+        const tie = handle(ctx, "relation");
+        out.push(tie.bump);
+        out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to, alias: tie.alias,
                                               module: "tie" } });
       }
       return { mutations: out, effect: { focus: id } };
@@ -1208,15 +1241,18 @@ register(
       const drawn = new Set(edges_in(ctx.graph, ctx.layer).map((e) => `${e.from}|${e.to}`));
       const run = reading(ctx.graph, group);
       const out: Mutation[] = [];
+      let alias = next_alias(ctx.graph, "relation");
+      const first = alias;
       for (let n = 1; n < run.length; n++) {
         const from = run[n - 1]!;
         const to = run[n]!;
         if (drawn.has(`${from}|${to}`)) continue;
         drawn.add(`${from}|${to}`);
         out.push({ op: "link_blocks", edge: {
-          id: new_id("edge"), from, to,
+          id: new_id("edge"), from, to, alias: alias++,
           module: derived_module(ctx.graph, from, to) ?? picked } });
       }
+      if (alias > first) out.push({ op: "set_counter", kind: "relation", n: alias - 1 });
       return { mutations: out,
                ...(out.length ? {} : { effect: { say: "every neighbour is linked already" } }) };
     },
@@ -1241,7 +1277,8 @@ register(
        *  stands, and nothing is applied until the step lands — so asking twice
        *  would hand out one number twice. */
       let order = next_order(ctx.graph, parent);
-      let alias = next_alias(ctx.graph);
+      let alias = next_alias(ctx.graph, "block");
+      const first = alias;
       const out: Mutation[] = [];
       for (const cell of empty_cells(ctx.graph, group)) {
         const id = new_id("block");
@@ -1249,6 +1286,8 @@ register(
         out.push({ op: "set_group", id, group });
         out.push({ op: "seat_cell", id, cell });
       }
+      /** One bump for the run, so the counter lands past everything made. */
+      if (alias > first) out.push({ op: "set_counter", kind: "block", n: alias - 1 });
       return { mutations: out };
     },
   },
@@ -1348,8 +1387,24 @@ register(
     args: [{ name: "name", form: "text", required: true },
            { name: "group", form: "choice", choices: ["block", "relation"] },
            { name: "extends", form: "text" }],
-    check: (ctx, args) => (text(args, "name") ? null : "a definition needs a name")
-      ?? borrowed(ctx.graph, def_id(text(args, "name"))),
+    /** **The cycle guard lives here, not in a picker.** Only the tray's extends
+     *  list ever checked that a chain was not pointed back at its own head, so
+     *  the terminal and any other caller could tie one — and `isa` would walk
+     *  it until its `seen` set stopped it, leaving a definition that quietly
+     *  inherited nothing. */
+    check: (ctx, args) => {
+      const name = text(args, "name");
+      if (!name) return "a definition needs a name";
+      const id = def_id(name);
+      const why = borrowed(ctx.graph, id);
+      if (why) return why;
+      const up = args["extends"] === undefined ? undefined : rooted(ctx, text(args, "extends"));
+      if (up === id) return `"${name}" cannot extend itself`;
+      if (up && isa(ctx.graph, up).some((d) => d.id === id)) {
+        return `"${name}" is already above "${ctx.graph.defs[up]?.name ?? up}"`;
+      }
+      return null;
+    },
     /** **Over what is there, never instead of it.** The id is minted from the
      *  name, so saying the same name again is the same definition — and
      *  replacing the record wholesale threw away every component and field it

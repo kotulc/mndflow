@@ -295,7 +295,7 @@ export function App() {
   /** One of the terminal's four. **Help is the fallback**, so only the three
    *  that write anything are answered here. */
   const command = (match: Match) => {
-    if (match.command === "add") { act("create", { label: match.rest }); return; }
+    if (match.command === "add") { act("create", { name: match.rest }); return; }
     if (match.command === "search") { void s.search(match.rest); return; }
     s.say(`${match.command} is not built yet — “${match.rest}”`);
   };
@@ -419,7 +419,7 @@ export function App() {
              *  anything that exists on a layer — so the graph is asked which it
              *  was. A block wins the tie, being the thing you can point at. */
             if (!graph.blocks[id] && graph.defs[id]) {
-              s.go("create", { label: "", type: id, parent: layer ?? graph.root, spot: at });
+              s.go("create", { name: "", type: id, parent: layer ?? graph.root, spot: at });
               return;
             }
             s.go("refer", { target: id, spot: at });

@@ -29,17 +29,13 @@ export const DRAGGED = "text/mnd-block";
 import { BAND, FRAME, PLAIN, look_key,
          type BoxData, type BoxNode, type Cell, type GridCell, type Look } from "@mnd/views";
 import type { Role } from "@mnd/core";
-import { Icon, Name, known, useNaming, type IconName } from "@mnd/theme";
+import { Icon, Name, known, role_icon, useNaming } from "@mnd/theme";
 
 /** What a card wears in its corner: one mark per sort of block, the same set
  *  the tree draws down its left edge. **A container is solid** — the fill is
  *  what says it holds something, and an outline there would read as the plain
  *  block beside it. */
-const ROLE: Record<Role, IconName> = {
-  block: "role_leaf", container: "role_container", folder: "role_folder",
-  resource: "role_resource", reference: "role_reference", interface: "role_interface",
-  group: "role_group", grid: "role_table", note: "role_note",
-};
+
 
 /** The mark itself. **Top right, on everything that has a corner**: a card says
  *  what it is without being read, which is the one thing a name cannot do —
@@ -49,7 +45,7 @@ function Wears({ role, icon }: { role?: Role; icon?: string }) {
   /** **A mark it was given, or the one its role would draw.** A name this set
    *  does not know falls back rather than drawing nothing, so a card from a
    *  package this build has never seen still says what sort of thing it is. */
-  const mark = icon && known(icon) ? icon : ROLE[role];
+  const mark = icon && known(icon) ? icon : role_icon(role);
   return (
     <span className="mnd-role" data-role={role}>
       <Icon name={mark} solid={!icon && (role === "container" || role === "reference")}

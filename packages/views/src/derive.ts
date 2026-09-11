@@ -50,13 +50,20 @@ export function carried(graph: Graph, id: Id): BoxData {
   const fields = (b.fields ?? [])
     .filter((f) => (look.shows ? look.shows.includes(f.name) : false))
     .map((f) => ({ name: f.name, value: String(f.value ?? "") }));
-  /** **A card always carries its name.** Where nobody has named it, the name
-   *  *is* its kind and its alias — which is what the mark and the number were
-   *  already saying, and is why hiding it said nothing a reader could use. */
-  const alias = alias_of(graph, id);
+  /** **The identity line, or none.** `shown_name` already answers the fallback
+   *  — the name where one is set, its kind and handle where none is — so what
+   *  is asked here is only whether the card draws it, and whether a name
+   *  somebody *did* set carries its handle beside it.
+   *
+   *  **Hiding it is the card's business and nobody else's.** The tree, the tray
+   *  and the CLI read `shown_name` directly, so a blank card is still findable
+   *  everywhere it is listed. */
+  /** **The handle, beside the name rather than inside it.** Unnamed, it is what
+   *  tells two `Block`s apart; named, it is drawn only where the card asked. */
+  const alias = look.alias ? alias_of(graph, id, true) : alias_of(graph, id);
   return {
-    label: shown_name(graph, id),
-    ...(alias ? { alias } : {}),
+    label: look.name ? shown_name(graph, id) : "",
+    ...(alias && look.name ? { alias } : {}),
     role: role_of(graph, id),
     ...(b.type ? { def: b.type } : {}),
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),

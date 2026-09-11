@@ -15,32 +15,18 @@
  *  and every change leaves as an action name. */
 
 import { useState } from "react";
-import { ALIGNS, BLOCK_MODULES, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS,
+import { ALIGNS, BASE_PACKAGE, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS,
          FONTS, HUE, INTENSITY, OPACITY, WEIGHTS, WIDTHS, alias_of, config_of,
-         isa, kind_word, may_retype, module_named, module_of, role_of,
+         isa, kind_word, may_retype, module_named, module_of, role_of, shipped,
          shown_name, type Act, type Definition, type Graph, type Id,
          type Role } from "@mnd/core";
-import { Icon, names, type IconName } from "@mnd/theme";
+import { Icon, names, role_icon, type IconName } from "@mnd/theme";
 import { Body, Line, Rail } from "./Body";
 import { Card } from "./Card";
 import { held, reading } from "./holder";
 
-/** Every id the base packages ship, block kinds and relations alike. A
- *  definition carrying one of these **is** a base kind rather than something
- *  refining one. */
-const BASE_IDS: readonly string[] = [...BLOCK_MODULES, "line", "directed"];
-
 /** What the shipped floor calls itself, for the path a base definition sits at. */
-const BASE = "base";
-
-/** The mark a role wears while nobody has picked one. **The tray's own copy**:
- *  the same nine the stage draws, restated here because a surface may not reach
- *  another surface for them. */
-const ROLE: Record<Role, IconName> = {
-  block: "role_leaf", container: "role_container", folder: "role_folder",
-  resource: "role_resource", reference: "role_reference", interface: "role_interface",
-  group: "role_group", grid: "role_table", note: "role_note",
-};
+const BASE = BASE_PACKAGE;
 
 /** The parts of a card, and the questions each part is asked. **The last two
  *  are one question twice**: which mark sits in which corner — what sort of
@@ -166,7 +152,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
   const kind = d ? module_named(graph, d.id)
     : b ? module_of(graph, id) : edge?.module ?? "relation";
   const role: Role | null = b ? role_of(graph, id) : null;
-  const kind_mark = (role ? ROLE[role] : ROLE[kind as Role] ?? "role_leaf") as IconName;
+  const kind_mark = role_icon(role ?? kind);
 
   /** **One list, and it is the one the definitions folder shows.** `def_of`
    *  resolves by id globally, so a narrower list was never the truth. */
@@ -176,12 +162,14 @@ export function Styles({ graph, id, onAct }: StylesProps) {
   /** **Only what this could become.** A subtype refines what a thing is like
    *  and never what it is, so the picker offers its own kind — and a block, a
    *  folder and a resource count as one kind between them. */
-  const subtypes = all.filter((x) => !BASE_IDS.includes(x.id))
+  const subtypes = all.filter((x) => !shipped(x))
     .filter((x) => !b || may_retype(graph, id, x.id));
   const named = b?.type ?? edge?.type;
   const subtype = named && subtypes.some((x) => x.id === named) ? named : "";
-  /** What a definition may extend: anything but itself and anything below it,
-   *  so a chain cannot be pointed back at its own head. */
+  /** What a definition may extend: anything but itself and anything below it.
+   *  **`define` is the authority** — it refuses a cycle whoever asks, so this
+   *  is only the list keeping its promise that what does not apply is not
+   *  shown. */
   const roots = d
     ? all.filter((x) => x.id !== d.id && !isa(graph, x.id).some((up) => up.id === d.id))
     : [];
@@ -189,7 +177,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
   /** **The definition this block made, as against one it merely names.** Only
    *  its own may be unpinned, renamed by the label, or made a default. */
   const own = d ?? (named ? graph.defs[named] : undefined);
-  const pinned = !!own && !own.from && !BASE_IDS.includes(own.id);
+  const pinned = !!own && !shipped(own);
   const may_default = !!own && pinned && own.group === "block"
     && module_named(graph, own.id) === kind;
 
@@ -258,7 +246,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
               ? <input value={d.name} readOnly aria-label="name" />
               : <input value={b?.name ?? ""} aria-name="name"
                        placeholder={b ? kind_word(graph, b) : "unnamed"}
-                       onChange={(e) => onAct("rename", { id, label: e.target.value })} />}
+                       onChange={(e) => onAct("rename", { id, name: e.target.value })} />}
           </Line>
 
           {/* **Which definition it draws through, by where it sits.** The path

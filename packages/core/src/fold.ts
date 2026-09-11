@@ -5,7 +5,7 @@
  *  needs an inverse. */
 
 import type { Settings } from "./components";
-import { BLOCK_MODULES, OPEN_MODULES, empty_graph,
+import { BLOCK_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -83,6 +83,19 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) b.order = m.order;
       return;
     }
+    case "set_alias": {
+      const held = graph.blocks[m.id] ?? graph.edges[m.id];
+      if (held) held.alias = m.alias;
+      return;
+    }
+    /** **The workspace holds every counter**, so a handle is minted from what
+     *  was handed out rather than from what is still alive. Undone with the
+     *  step that made the element, which is right: undone, it never existed. */
+    case "set_counter": {
+      const ws = graph.blocks[graph.root];
+      if (ws) ws.counters = { ...(ws.counters ?? {}), [m.kind]: m.n };
+      return;
+    }
     case "place_block": {
       const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }
@@ -157,7 +170,12 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     case "update_edge": {
       const e = graph.edges[m.id];
-      if (e) e.type = m.type;
+      if (!e) return;
+      /** **Null unnames it.** A relationship is named by the definition it
+       *  points at, so clearing the name is dropping the type — and an absent
+       *  one is how a file stays small. */
+      if (m.type === null) delete e.type;
+      else e.type = m.type;
       return;
     }
     case "delete_edge":
@@ -417,46 +435,66 @@ export function kind_word(graph: Graph, b: Block): string {
   return WORD[module_of(graph, b.id)];
 }
 
-/** The mark a block wears beside its type while nobody has named it, so two
- *  things both reading `Block` can still be told apart. Empty once somebody has
- *  named it, and empty for anything that carries no alias.
+/** Which letter each kind's handles run under.
+ *
+ *  **One per kind, and no collisions.** The obvious first letters could not
+ *  give one each — group and grid both want `G`, reference and resource both
+ *  want `R` — so a grid takes the `D` out of its own name and a resource takes
+ *  `E` for *external*.
+ *
+ *  **The letter is derived, never stored.** An element carries only its number,
+ *  so which letter a kind runs under is a decision this table can change on its
+ *  own — no migration, and no file to rewrite.
+ *
+ *  **Safe because a kind is fixed at creation.** Nothing is ever retyped across
+ *  modules and promotion mints a new element rather than converting one, so a
+ *  letter never has to be rewritten — which is the whole point of a handle. */
+export const ALIAS_LETTER: Record<string, string> = {
+  block: "B", folder: "F", resource: "E", interface: "I", reference: "R",
+  group: "G", grid: "D", note: "N", relation: "L",
+};
+
+/** Which counter an element draws its handle from. A relationship has one kind;
+ *  a block has its module. */
+export function alias_kind(graph: Graph, id: Id): string {
+  return graph.edges[id] ? "relation" : module_of(graph, id);
+}
+
+/** The mark an element wears beside its type while nobody has named it, so two
+ *  things both reading `Block` can still be told apart.
  *
  *  **Never the id.** A tail of the id would be stable and unique and would read
- *  as the random string it is; the alias is handed out in order, so the marks
- *  in a workspace run `A1`, `A2`, `A3`. */
-export function alias_of(graph: Graph, id: Id): string {
-  const b = graph.blocks[id];
-  if (!b || b.alias === undefined || is_named(graph, id)) return "";
-  if (module_of(graph, id) === "group" || module_of(graph, id) === "grid") return "";
-  return alias_name(b.alias);
-}
-
-/** How many serials share a letter before it turns over. */
-const PER_LETTER = 9;
-
-/** A serial as a mark: `A1` to `A9`, `B1` to `Z9`, then `AA1`. Short enough to
- *  read at a glance, and ordered by when the block was made. */
-export function alias_name(n: number): string {
-  const num = (n % PER_LETTER) + 1;
-  let rank = Math.floor(n / PER_LETTER);
-  let letters = "";
-  do {
-    letters = String.fromCharCode(65 + (rank % 26)) + letters;
-    rank = Math.floor(rank / 26) - 1;
-  } while (rank >= 0);
-  return `${letters}${num}`;
-}
-
-/** The serial the next block takes: one past the highest handed out.
+ *  as the random string it is; a handle is handed out in order, so the marks of
+ *  one kind run `B1`, `B2`, `B3`.
  *
- *  **A high-water mark, not a count.** Counting hands out a serial a living
- *  block already wears as soon as anything in the middle has been deleted. */
-export function next_alias(graph: Graph): number {
-  let most = -1;
-  for (const b of Object.values(graph.blocks)) {
-    if (typeof b.alias === "number" && b.alias > most) most = b.alias;
-  }
-  return most + 1;
+ *  **Empty once somebody has named it** — that is `card.alias: hide`, which is
+ *  the default. A card asking for its handle beside a name reads it from here
+ *  all the same. */
+export function alias_of(graph: Graph, id: Id, always = false): string {
+  const held = graph.blocks[id] ?? graph.edges[id];
+  if (!held || held.alias === undefined) return "";
+  /** **Hidden once it is named**, which is `card.alias: hide` — the default.
+   *  A relationship is named by the definition it points at, so a type is what
+   *  counts as one; without this an unnamed block dropped its handle while a
+   *  named line kept drawing `feeds L1`. */
+  const named = graph.edges[id] ? !!graph.edges[id]!.type : is_named(graph, id);
+  if (!always && named) return "";
+  return alias_name(alias_kind(graph, id), held.alias);
+}
+
+/** A serial as a mark: `B1`, `I4`, `L12`. Short enough to read at a glance, and
+ *  ordered by when the element was made. */
+export function alias_name(kind: string, n: number): string {
+  return `${ALIAS_LETTER[kind] ?? "B"}${n}`;
+}
+
+/** The serial the next element of this kind takes.
+ *
+ *  **Read from the workspace's own counter, never scanned.** A high-water scan
+ *  is safe against a gap in the middle and not against the top: delete the
+ *  highest and the next one made takes that serial back. */
+export function next_alias(graph: Graph, kind: string): number {
+  return (graph.blocks[graph.root]?.counters?.[kind] ?? 0) + 1;
 }
 
 /** Whether somebody named this block, as against the tag it wears until they
@@ -467,18 +505,39 @@ export function is_named(graph: Graph, id: Id): boolean {
   if (!b) return false;
   const target = b.of ? stands_for(graph, id) : b;
   if (!target) return false;
-  if (target.name?.trim()) return true;
-  return module_of(graph, target.id) === "note" && !!target.body?.trim();
+  /** **A name, and only a name.** A note's body used to count as one, which is
+   *  the same note-shaped exception `shown_name` carried — and now that every
+   *  block may hold a body, a block with text in it and nothing in its name
+   *  field is exactly as unnamed as any other. */
+  return !!target.name?.trim();
 }
 
-/** The name to show.
+/** **What a thing is called, and only that.** The name where one is set, its
+ *  type word where none is.
  *
- *  A reference reads its target and a gone target reads *missing*. **A note is
- *  its text**, so it reads its body — there is nothing else on it to name.
- *  **Blank is not a name**: an empty label falls back like an absent one. */
+ *  **The handle is `alias_of`'s, and it is composed by whoever draws.** Every
+ *  surface already had a slot of its own for it — the tree dims it, the card
+ *  sets it beside the name — so folding it in here rendered it twice and took
+ *  the styling with it. One rule, two readers:
+ *
+ *  ```
+ *  shown_name  →  "Feed pump", or "Block" where nobody has named it
+ *  alias_of    →  "B3" while it is unnamed, and whenever a card asks
+ *  ```
+ *
+ *  A reference reads its target and a gone target reads *missing*.
+ *  **Blank is not a name**: an empty one falls back like an absent one.
+ *
+ *  **Never the body.** A note used to read its own text here, which made it the
+ *  one element with a fallback of its own — and now that every block may carry
+ *  a body, one rule replaces it.
+ *
+ *  **This is what the explorer, the tray, the CLI and the terminal read**, and
+ *  it owes nothing to `card.name`: hiding a name makes a clean drawing and must
+ *  never make an element unfindable in the tree. */
 export function shown_name(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
-  if (!b) return "missing";
+  if (!b) return graph.edges[id] ? named_edge(graph, id) : "missing";
   if (b.of) {
     const target = stands_for(graph, id);
     if (!target || target.id === b.id) return "missing";
@@ -489,10 +548,15 @@ export function shown_name(graph: Graph, id: Id): string {
 
 function named(graph: Graph, b: Block): string {
   const name = b.name?.trim();
-  if (name) return name;
-  const body = b.body?.trim();
-  if (body && module_of(graph, b.id) === "note") return body;
-  return fallback(graph, b);
+  return name || fallback(graph, b);
+}
+
+/** A relationship's, which has no name field of its own yet — so it is always
+ *  the word its type or its module gives, and the handle beside it is what
+ *  tells two apart. */
+function named_edge(graph: Graph, id: Id): string {
+  const e = graph.edges[id]!;
+  return e.type ? graph.defs[e.type]?.name ?? e.module : e.module;
 }
 
 /** The number a new sibling takes: one past the last.
@@ -869,6 +933,29 @@ export function default_for(graph: Graph, kind: BlockModule): Id | undefined {
   return undefined;
 }
 
+/** The two relation definitions the base ships. **Not the four relation
+ *  modules** — `reference` and `tie` are assigned from what sits at the ends and
+ *  are nobody's to name, so they ship no definition to name them. */
+export const BASE_RELATIONS: readonly string[] = ["line", "directed"];
+
+/** What the shipped floor calls itself. */
+export const BASE_PACKAGE = "base";
+
+/** Whether this definition is one the app ships rather than one anybody wrote.
+ *
+ *  **Asked in one place.** The tray and the explorer each held a copy of the
+ *  same two lists, and the shape of a base id is exactly the kind of thing that
+ *  drifts when it is written down twice.
+ *
+ *  **`from` is the mechanism, and the ids are the backstop**: a base kind's id
+ *  is reserved, so a shipped record that reached this build without its `from`
+ *  — out of an older file — is still a shipped kind. */
+export function shipped(d: Definition): boolean {
+  return d.from === BASE_PACKAGE
+    || (BLOCK_MODULES as readonly string[]).includes(d.id)
+    || BASE_RELATIONS.includes(d.id);
+}
+
 /** One package's block definitions, as the vocabulary section lists them. */
 export type Vocabulary = {
   /** The package these came from. **Null is the workspace's own.** */
@@ -904,16 +991,17 @@ export function vocabulary(graph: Graph): Vocabulary[] {
 
 /** Whether this block may be told to name that definition.
  *
- *  **A block, a folder and a resource are one family**: they differ in what
- *  they are for, and a gesture changing one to another has nothing to invent.
- *  Every other kind stays its own — a group has members, an interface a wall,
- *  a reference a target and a note its text, and none of those can be conjured
- *  by a change of type. Within a kind, any subtype of it will do. */
+ *  **A kind is fixed at creation, and only a definition of that kind will do.**
+ *  A block, a folder and a resource used to swap freely on the grounds that
+ *  they differ only in what they are for — but *make the kind you meant* is one
+ *  fewer thing to explain than a rule about which three are interchangeable,
+ *  and a handle that never has to be rewritten is what it buys.
+ *
+ *  **`retype` is not what goes.** It does two jobs: pointing a block at a
+ *  definition — which *is* how a vocabulary is applied — and changing which
+ *  module answers for it. Only the second was ever the holdover. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
-  const now = module_of(graph, id);
-  const next = module_named(graph, type);
-  if (now === next) return true;
-  return OPEN_MODULES.includes(now) && OPEN_MODULES.includes(next);
+  return module_of(graph, id) === module_named(graph, type);
 }
 
 /** What a block is, as the one word every surface draws a mark for.

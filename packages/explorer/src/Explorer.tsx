@@ -11,8 +11,8 @@
  *  pair, and edits the name there too. */
 
 import { useMemo, useRef, useState } from "react";
-import { BLOCK_MODULES, alias_of, children, is_interface, is_named, is_reference,
-         module_named, module_of, shown_name, vocabulary,
+import { alias_of, children, is_interface, is_named, is_reference,
+         module_named, module_of, shipped, shown_name, vocabulary,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
@@ -88,19 +88,6 @@ function under(graph: Graph, parent: Id | null) {
 const VOCAB = "@defs";
 const sect_id = (name: string) => `${VOCAB}:${name}`;
 
-/** **What the shipped floor calls itself**, and the ids it ships under. The
- *  tree's own copy, because the explorer may not reach the package that lays
- *  the floor down.
- *
- *  **Placed by `from`, or by being one of those ids.** `from` is the mechanism
- *  and is right for everything a workspace or a package writes — but a base
- *  kind's id is reserved (a pinned definition is `def_…`, a package's is
- *  dotted), so a shipped record that reached this build without its `from` —
- *  out of an older file, say — is still a shipped kind and belongs under
- *  *default* rather than among the workspace's own. */
-const BASE = "base";
-const BASE_IDS: readonly string[] = [...BLOCK_MODULES, "line", "directed"];
-const shipped = (d: Definition) => d.from === BASE || BASE_IDS.includes(d.id);
 
 /** Which mark a definition's base kind wears. **The tree's own reading**, so a
  *  definition row and a block of that kind are told apart by nothing. */
@@ -293,7 +280,7 @@ export function Explorer(props: ExplorerProps) {
     done: (label: string | null) => {
       const id = naming;
       set_naming(null);
-      if (id && label !== null) onAct("rename", { id, label });
+      if (id && label !== null) onAct("rename", { id, name: label });
     },
   }), [naming, onAct]);
 
@@ -335,7 +322,7 @@ export function Explorer(props: ExplorerProps) {
   const add = (type?: string) => {
     const label = prompt(type === "folder" ? "name the folder" : "name the block");
     if (label === null) return;
-    onAct("create", { label, parent: target, type });
+    onAct("create", { name: label, parent: target, type });
   };
 
   return (

@@ -13,7 +13,8 @@
  *  teaches people to ignore the real ones. */
 
 import { unreadable } from "./components";
-import { covers, fold, can_hold, is_grid, module_named, overlaps, subtree } from "./fold";
+import { alias_kind, covers, fold, can_hold, is_grid, module_named, overlaps,
+         subtree } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Span, type Step } from "./types";
@@ -30,7 +31,8 @@ export type Checked = {
 
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
-  "place_block", "order_block", "size_block", "set_body", "set_group", "seat_cell",
+  "place_block", "order_block", "set_alias", "set_counter", "size_block", "set_body",
+  "set_group", "seat_cell",
   "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
   "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
@@ -188,10 +190,68 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 
 /** What the door enforces. Reports what is wrong and how to mend it, and
  *  changes nothing itself. */
+/** Every element given a handle, and the counters left past the highest one.
+ *
+ *  **Renumbered per kind, in the order they were made.** Handles used to run
+ *  one workspace-wide sequence whose letter was only the high digit; they now
+ *  run a counter per kind, so an existing serial means nothing under the new
+ *  scheme and every one is handed out again. A workspace written before handles
+ *  reached relationships gets them here too.
+ *
+ *  **Ordered by the serial already carried**, falling back to the id, so a
+ *  renumbering is stable across folds and two loads of one file agree. */
+function handed_out(graph: Graph): Mutation[] {
+  const out: Mutation[] = [];
+  const counts: Record<string, number> = {};
+  /** **All or nothing, and the graph says which.** A graph that hands out
+   *  handles at all gets one for every element — gaps are how a workspace ended
+   *  up with lettered blocks beside blank groups, notes and lines, because each
+   *  kind mints on its own path and not every path had been taught to.
+   *
+   *  A graph that has never handed one out — a fixture, a translator's, an
+   *  import — is left alone. Minting for those would make the door rewrite
+   *  every graph it ever read, and no file would round-trip. */
+  const held: { id: Id; alias?: number }[] = [
+    ...Object.values(graph.blocks).filter((b) => b.id !== graph.root),
+    ...Object.values(graph.edges),
+  ];
+  const uses = held.some((it) => typeof it.alias === "number")
+    || !!graph.blocks[graph.root]?.counters;
+  if (!uses) return [];
+  const order = [...held].sort((a, z) =>
+    (a.alias ?? Number.MAX_SAFE_INTEGER) - (z.alias ?? Number.MAX_SAFE_INTEGER)
+    || a.id.localeCompare(z.id));
+
+  for (const it of order) {
+    const kind = alias_kind(graph, it.id);
+    const n = (counts[kind] ?? 0) + 1;
+    counts[kind] = n;
+    if (it.alias !== n) out.push({ op: "set_alias", id: it.id, alias: n });
+  }
+  const ws = graph.blocks[graph.root]?.counters ?? {};
+  for (const [kind, n] of Object.entries(counts)) {
+    if (ws[kind] !== n) out.push({ op: "set_counter", kind, n });
+  }
+  return out;
+}
+
 export function inspect(graph: Graph): Inspection {
   const faults: Fault[] = [];
   const repairs: Mutation[] = [];
   const name = (id: Id) => graph.blocks[id]?.name ?? id;
+
+  /** **Handles, before anything else.** Every element carries one now, per
+   *  kind, so a workspace written under the old single sequence is renumbered
+   *  once on the way in. */
+  const handles = handed_out(graph);
+  if (handles.length) {
+    const marks = handles.filter((m) => m.op === "set_alias").length;
+    repairs.push(...handles);
+    if (marks) {
+      faults.push({ kind: "repaired",
+                    what: `${marks} handle${marks > 1 ? "s" : ""} renumbered by kind` });
+    }
+  }
 
   if (!graph.blocks[graph.root]) {
     faults.push({ kind: "repaired", what: "a missing root" });

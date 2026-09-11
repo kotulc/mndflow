@@ -7,95 +7,7 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 ## Next up
 
-**In order.** Each is a phase's worth on its own; the grid below is what they build on. **0 gates the rest** — identity is what the explorer, the definition canvas and pinning all rest on.
-
-### 0 — Identity
-
-**Settled, and it gates everything below.** Five id shapes and four naming systems were in play, with two of them doing each other's job. The split, stated once:
-
-| | Answers | Scope | Changes | Drawn |
-|---|---|---|---|---|
-| **`id`** | which thing, for the file and the code | workspace | never | never |
-| **`alias`** | which thing, **for a person** | workspace, per kind | never once minted | when unnamed, or when asked for |
-| **`name`** | what it means | none — not unique | **freely** | **a style option**, like every other writing on the card |
-| **`order`** | where it sits among its siblings | per parent | on every move | never |
-
-**`id` is machine identity, `alias` is human identity, `name` is meaning.** Every earlier wrinkle came from one of the three being asked to do another's job.
-
-**Ids are minted, and a readable name is derived from them.**
-
-| | |
-|---|---|
-| **reserved ids stay bare words** | `ws`, and the shipped base definitions. A published contract — `defs/README` says the engine knows them by id |
-| **everything else is minted and opaque** | elements and definitions alike. **`def_<slug>` goes**: it broke the rule `ids.ts` opens with — *a name is never part of an id* — and made a definition unrenameable, which is why the panel had to show its name read-only |
-| **`<owner>.<name>` is derived, never stored** | `ws.pump`, `sysml.part` — computed from the owner and the **current** name, so it is always accurate. A frozen slug would have gone stale on the first rename; this cannot |
-| **a package mints once, at authoring time** | its ids are its contract and a written-down token is as stable as a slug ever was |
-
-**Renaming always succeeds.** Nothing resolves by name, so a collision costs an ambiguous display name and nothing else — it is a warning, never a refusal. *Not being able to change a name, and not being told why,* was the whole complaint, and minted ids are what answer it.
-
-**Kind is fixed at creation, which is what makes a handle permanent.**
-
-| | |
-|---|---|
-| **`OPEN_MODULES` goes** | with it the clause in `may_retype` that let a block, a folder and a resource swap. **A block may only name a definition of its own module.** A user makes the kind they meant |
-| **`retype` stays** | it is doing two jobs and only one is the holdover. Pointing a block at a definition — plain block to `Pump` — *is* how a vocabulary is applied, and removing it would remove subtyping. Only the cross-module half goes |
-| **promotion mints rather than converts** | an anchor is derived and stored nowhere, so promoting one adds a new interface block. Nothing's handle is ever rewritten |
-
-**Aliases.**
-
-| | |
-|---|---|
-| **every element carries one** | blocks and relationships alike. Three unnamed lines in a layer all read `line` today, with nothing to tell them apart |
-| **per kind, with a plain counter** | Safe **because kind is now fixed at creation** — the earlier objection, that a promoted or retyped element would have to change its handle, no longer applies |
-| **the letters** | `B` block, `F` folder, `E` resource (*external*), `I` interface, `R` reference, `G` group, `T` grid (*table*, which is what its icon is already called), `N` note, `L` relation. **No collisions** — `E` and `T` are what resolve group/grid and reference/resource, which the obvious first letters could not |
-| **groups and grids get one too** | they are excluded today. An unnamed boundary therefore starts reading `G3` where it currently reads nothing, since `WORD` gives group and grid an empty type word |
-| **the letter stops being a digit** | `alias_name` encodes one integer today — `(n % 9) + 1` with the letters as `floor(n / 9)` in base 26 — so the letter was positional and never meant anything. Per-kind letters replace that encoding with a counter each, trading `A1…Z9` in two characters for `I247` at scale |
-| **a definition needs none** | its derived `<owner>.<name>` already is its handle |
-| **a stored counter, not a scan** | `next_alias` is a high-water mark over *live* elements, so it is safe against a gap in the middle but **reuses the serial of the highest one once that is deleted**. A handle that comes back meaning something else is not a handle |
-| **`card.alias: "show" \| "hide"`** | whether the handle joins the displayed name. A component key, so it cascades: a definition may say *every Pump shows its handle*, one element may override, and the checkbox writes `look card alias` |
-
-**One identity line, one fallback rule.** A card draws what the thing is called, and where nothing is called anything it draws what it *is* plus its handle. **Never the body** — that was a note-shaped branch in `named()`, and one rule for every block replaces it.
-
-```
-name, if set   →  "Feed pump"    (+ alias where card.alias = show → "Feed pump B4")
-otherwise      →  label + alias  →  "Note N3"
-```
-
-**Most of this already exists**: `named()` falls through `fallback()` to `kind_word()`, which returns the type word for anything unnamed, and `alias_of` already returns nothing once something is named — which is `card.alias: hide` as the default. Two changes only: **append the alias to the fallback**, and **delete the note-body branch**.
-
-**The words, because one of them just changed meaning.** `Block.label` is renamed `Block.name`, so **label** no longer names a field and now means the opposite thing.
-
-| Word | Is | Lives |
-|---|---|---|
-| **name** | the user's text, optional | `Block.name` — a field |
-| **label** | the **type word** — the definition's name, or the module word | **derived, never a field.** `look.kind` already computes it |
-| **alias** | the handle, `N3` | `Block.alias` |
-
-**Two keys govern the identity line, and a third the type word.**
-
-| Key | Governs |
-|---|---|
-| **`card.name`** | whether the identity line is drawn at all. Hidden gives a blank card, or a note showing only its body. **It reverses a recorded decision** — `components.ts` says *the name is not asked this: a card without its name is a box nobody can read*. That premise is what changed: once a block carries a body, a nameless card is not a blank box |
-| **`card.alias`** | whether the handle joins a **set** name. The fallback always carries one, which is the whole reason it needs one |
-| **`card.label`** | unchanged — where the type word sits as a *second* writing: above, inside, below, none |
-
-**`card.*` governs the card and nothing else.** The explorer, the tray, the CLI and the terminal read `shown_name` and the supplied icons, and treat every block alike — so hiding a name makes a clean diagram and never makes a block unfindable in the tree. **This is the one rule that keeps card styling from becoming functional**, and `shown_name` is read by eight modules across the seam, so it has to hold.
-
-**Existing `def_<slug>` ids are left alone.** `def_pump` is a valid opaque id that happens to look like a slug; only new definitions mint opaquely. Nothing depends on the shape, so rewriting every block's `type` across the sample workspace and both shipped packages buys nothing.
-
-**The toggle belongs in the style rail's `name` group, not in the Body section.** Hiding the identity line gives a body-only note, but the same key gives a blank card with no body at all — filing it under Body would make a card-wide control look like a body feature.
-
-**`num` is renamed `order`**, which is all it has ever been. **`Block.label` is renamed `Block.name`** — the field held what the card draws as its *name*, while `card.label` positions the **type word**, so the schema was calling two different things by one word a row apart.
-
-**What the settings panel asks.**
-
-| Row | Means | Writes |
-|---|---|---|
-| **name** | what this one thing is called. **Not required** — absent, it reads as its type word, which `kind_word` already does | `Block.name` / `Definition.name` |
-| **alias** | its handle, read-only, with the show-in-name checkbox beside it | `card.alias` |
-| **type** | which definition it resolves through, of its own module only | `Block.type` / `Definition.extends` |
-| ~~**label**~~ | **goes.** It was a draft name for pinning rather than a property of anything, one row from the field that writes the block's name. `pin` already has `asks: true` on its name argument, so the menu prompts for it | — |
-| **BODY** | full width, **below the two columns**, under its own label | `Block.body` — see 5 |
+**In order.** Each is a phase's worth on its own; the grid below is what they build on. **Identity is built** and is in Landed — it was what the explorer, the definition canvas and pinning all rested on.
 
 ### 1 — Relationships, interfaces and ports
 
@@ -150,12 +62,9 @@ otherwise      →  label + alias  →  "Note N3"
 | **`Styles.tsx` is 429 lines with ~30 `d ?` branches** | the two columns are two things. The left is *identity* — name, definition, label, pin, default — and is where every branch lives; the right is already uniform over any holder. Split them, and the second takes a block, a relationship or a definition without asking which |
 | **`ROWS` is half a table** | 13 controls are declared as data; `hue`, `intensity`, `opacity`, `icon` and `mark` are hand-written JSX with their own group guards. A `form` on `Question` collapses them, and `NUMBERS` and the range consts already carry the metadata |
 | **`card.shows` cannot be set** | validated at the door, read by `look_of`, drawn by the stage *and* by the preview, and no surface authors it. Give it a row or drop the key |
-| **three tables are copied** | `BASE_IDS` and the `Role → IconName` map each live in two packages, and the definition-path wording in two more. The icon map is icon data and belongs in `theme`; `BASE_IDS` wants a `shipped()` in core — its literal `"line", "directed"` is the two shipped relation *defs*, not the four relation modules, so it breaks quietly if that ever gets an export |
-| **`role_of` (9) vs `module_of` (8)** | `container` exists in one and not the other, which is why the tray reads `ROLE[kind as Role] ?? "role_leaf"` — two fallbacks and a cast at one call site |
-| **the extends chain is written from three places** | `pin` sets it, `define` re-points it, the picker offers it — and only `define` checks `borrowed`, only the picker checks for cycles. The cycle guard belongs in `define`'s `check` |
 | ~~**`Definition.name` is read-only**~~ | **settled in 0.** Scoped ids frozen at creation mean a rename never rewrites the id, so the name becomes an ordinary editable field and `pin`'s *is already taken* becomes a real name check within one owner |
 
-**Three of these do not wait on 1**: the copied tables, the `role_of` / `module_of` mismatch, and the cycle guard. They touch no definition shape and can land any time. The other four all turn on what a relation definition holds, and splitting `Styles.tsx` before that is known risks splitting it in the wrong place.
+**The three that did not wait on 1 are built** — see Landed. What is left all turns on what a relation definition holds, and splitting `Styles.tsx` before that is known risks splitting it in the wrong place.
 
 ### 3 — The tray
 
@@ -228,6 +137,43 @@ Both are projections over different sources, neither is a block, and a third cos
 **Recommendation: debounce.** It is a few lines against a store, a collector and a fault kind, and the boundary above keeps the door open.
 
 ## Landed
+
+### Identity
+
+**Built.** `id` is machine identity, `alias` is human identity, `name` is meaning, `order` is position — and every earlier wrinkle came from one of the four being asked to do another's job.
+
+| | |
+|---|---|
+| **`Block.label` → `Block.name`** | and the `update_block` mutation with it. **`label` no longer names a field**: it means the *type word*, which `card.label` positions. The rename was done by changing the type and letting `tsc` name every site, because the word was overloaded four ways — `card.label`, the menu's `Entry.label`, the rail's `Control.label`, the tree's `Row.label` — and a blind replace would have corrupted three of them |
+| **`Block.num` → `Block.order`**, `next_num` → `next_order` | it was only ever sibling order |
+| **the `create` and `rename` argument is `name`** | leaving it `label` would have kept the trap alive one layer out, where an action arg called `label` wrote a field called `name` |
+| **one fallback rule** | `shown_name` gives the name where one is set and the **type word** where none is; `alias_of` gives the handle while a thing is unnamed, and whenever a card asks. **Each surface composes the two** — the tree dims the handle, the card sets it beside the name, the CLI joins them with a space. **Never the body**: that was a note-shaped branch, and `is_named` carried the same exception, so both went |
+| **`card.name` and `card.alias`** | whether the identity line draws at all, and whether the handle joins a name somebody *did* set. **`card.*` governs the card and nothing else** — the tree, the tray and the CLI read `shown_name`, so a hidden name makes a clean drawing and never makes an element unfindable |
+| **handles per kind** | `B` block, `F` folder, `E` resource, `I` interface, `R` reference, `G` group, `D` grid, `N` note, `L` relation — no collisions, where the obvious first letters gave two. **The letter is derived, never stored**: an element carries only its number, so which letter a kind runs under can change with no migration and no file to rewrite. **Relationships carry one now**; three unnamed lines all read `line` before |
+| **a counter per kind on the workspace** | `next_alias` was a high-water mark over *live* elements, so deleting the highest handed its serial back. Counters ride in the step that mints, so an undo takes the handle back with the thing it named |
+| **`OPEN_MODULES` is gone** | with the clause in `may_retype` that let block, folder and resource swap. A kind is fixed at creation, which is what makes a handle permanent. **`retype` stays** — pointing a block at a definition is how a vocabulary is applied, and only the cross-module half was the holdover |
+
+**The door migrates both.** `label`/`num` are renamed in `read_step`, because a mutation carries them — by the time a graph exists to inspect, an old `add_block` has already laid down a block with neither field. It reaches `add_block`, `update_block`, `order_block` and a checkpoint's blocks, and **never a `set_look`**, so `card.label` survives untouched. Handles are renumbered per kind in `inspect` — see below for what that reaches.
+
+**Handles are composed, never folded in.** Putting the handle inside `shown_name`'s fallback drew it twice — every surface already had a slot of its own for it, so the tree, the tray's table and the settings card each rendered `Block B3 B3`, and folding it in would have taken the muted styling with it. **One rule, two readers**, and whoever draws puts them together.
+
+**Three bugs this turned up, none caught by the suite:**
+
+- **`rename` silently did nothing.** It emitted `update_block { label }` against a mutation whose field is `name`, and no test asserted a renamed block's name, so 326 green tests said it worked. Found by driving it.
+- **`is_named` counted a note's body as a name**, which is why an unnamed note drew no handle. The same note-shaped exception as the fallback, one function over.
+- **`rename` refused an empty name**, so a name was the one thing about a block a user could not undo — and `update_edge` could not express *no type* at all, so unnaming a relationship had nowhere to go. Its `type` takes `null` now, and the argument is *asked for* rather than required.
+
+**The door backfills all or nothing.** A graph that hands out handles at all gets one for every element; a graph that never has — a fixture, a translator's, an import — is left alone. Renumbering only what already carried a handle left a real workspace with lettered blocks beside blank groups, notes and lines, because each kind mints on its own path.
+
+### Shared tables
+
+**Built**, and all three were listed under *Definitions, unified*.
+
+| | |
+|---|---|
+| **`role_icon` / `ROLE_ICON` in `theme`** | the role-to-mark table was copied in the stage, the tray and the explorer. It is icon data, so it lives beside the icons — and the tray's `ROLE[kind as Role] ?? "role_leaf"`, two fallbacks and a cast, is one call |
+| **`shipped()` in core** | the tray and the explorer each held a copy of `[...BLOCK_MODULES, "line", "directed"]`. Its literal was the two shipped relation *defs*, not the four relation modules, so it was exactly the kind of thing that drifts when written twice |
+| **the cycle guard is in `define`** | only the tray's extends picker checked that a chain was not pointed at its own head, so the terminal could tie one and `isa` would walk it until its `seen` set stopped it. The picker still filters — that is the list keeping its promise that what does not apply is not shown — but the action is the authority |
 
 ### Pinning
 

@@ -99,7 +99,7 @@ describe("it emits action names and mutates nothing", () => {
     const field = container.querySelector(".label.mnd-naming")!;
     field.textContent = "Typed";
     fireEvent.blur(field);
-    expect(onAct).toHaveBeenCalledWith("rename", { id: "block_auth", label: "Typed" });
+    expect(onAct).toHaveBeenCalledWith("rename", { id: "block_auth", name: "Typed" });
   });
 
   /** **The mark is the fold, and it says which way it is set.** One icon for
@@ -129,7 +129,7 @@ describe("it emits action names and mutates nothing", () => {
     const { onAct } = mount(fold(nested()), { picked: ["block_edge"] });
     fireEvent.click(screen.getByTitle(/add a block/));
     expect(onAct).toHaveBeenCalledWith("create",
-      { label: "Typed", parent: "block_edge", type: undefined });
+      { name: "Typed", parent: "block_edge", type: undefined });
   });
 
   /** **Where you are, when you have picked nothing.** The canvas makes a block
@@ -151,7 +151,7 @@ describe("it emits action names and mutates nothing", () => {
     const { onAct } = mount(fold(nested()));
     fireEvent.click(screen.getByTitle(/add a folder/));
     expect(onAct).toHaveBeenCalledWith("create",
-      { label: "Typed", parent: ROOT, type: "folder" });
+      { name: "Typed", parent: ROOT, type: "folder" });
   });
 
   it("makes nothing when the name is abandoned", () => {

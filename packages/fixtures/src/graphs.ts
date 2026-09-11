@@ -13,7 +13,7 @@ import { SCHEMA } from "@mnd/core";
 const file = (graph: unknown, schema = SCHEMA, id = "sample"): string =>
   JSON.stringify({ schema, id, graph }, null, 2) + "\n";
 
-const ROOT_BLOCK = { id: "ws", parent: null, label: "workspace", type: "folder" };
+const ROOT_BLOCK = { id: "ws", parent: null, name: "workspace", type: "folder" };
 
 /** What a well-formed file looks like: a root, a tree under it, one relation. */
 export function clean(): string {
@@ -22,9 +22,9 @@ export function clean(): string {
     defs: {},
     blocks: {
       ws: ROOT_BLOCK,
-      block_loop: { id: "block_loop", parent: "ws", label: "Coolant Loop", num: 1 },
-      block_pump: { id: "block_pump", parent: "block_loop", label: "Pump", num: 1 },
-      block_hx: { id: "block_hx", parent: "block_loop", label: "Heat Exchanger", num: 2 },
+      block_loop: { id: "block_loop", parent: "ws", name: "Coolant Loop", order: 1 },
+      block_pump: { id: "block_pump", parent: "block_loop", name: "Pump", order: 1 },
+      block_hx: { id: "block_hx", parent: "block_loop", name: "Heat Exchanger", order: 2 },
     },
     edges: {
       edge_a: { id: "edge_a", from: "block_pump", to: "block_hx", module: "directed" },
@@ -40,7 +40,7 @@ export function orphaned(): string {
     defs: {},
     blocks: {
       ws: ROOT_BLOCK,
-      block_lost: { id: "block_lost", parent: "block_gone", label: "Lost", num: 1 },
+      block_lost: { id: "block_lost", parent: "block_gone", name: "Lost", order: 1 },
     },
     edges: {},
   });
@@ -54,7 +54,7 @@ export function dangling(): string {
     defs: {},
     blocks: {
       ws: ROOT_BLOCK,
-      block_pump: { id: "block_pump", parent: "ws", label: "Pump", num: 1 },
+      block_pump: { id: "block_pump", parent: "ws", name: "Pump", order: 1 },
     },
     edges: {
       edge_a: { id: "edge_a", from: "block_pump", to: "block_gone", module: "line" },
@@ -69,7 +69,7 @@ export function rootless(): string {
     root: "ws",
     defs: {},
     blocks: {
-      block_pump: { id: "block_pump", parent: "ws", label: "Pump", num: 1 },
+      block_pump: { id: "block_pump", parent: "ws", name: "Pump", order: 1 },
     },
     edges: {},
   });
@@ -97,7 +97,7 @@ export function ahead(): string {
   return file({
     root: "ws",
     defs: {},
-    blocks: { ws: ROOT_BLOCK, block_new: { id: "block_new", parent: "ws", label: "New", num: 1 } },
+    blocks: { ws: ROOT_BLOCK, block_new: { id: "block_new", parent: "ws", name: "New", order: 1 } },
     edges: {},
   }, `${major}.99`);
 }
@@ -134,7 +134,7 @@ export function muddled(): string {
     },
     blocks: {
       ws: ROOT_BLOCK,
-      block_valve: { id: "block_valve", parent: "ws", label: "Valve", type: "def_valve", num: 1 },
+      block_valve: { id: "block_valve", parent: "ws", name: "Valve", type: "def_valve", order: 1 },
     },
     edges: {},
   });

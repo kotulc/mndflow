@@ -121,6 +121,11 @@ export type Block = {
    *  it is like, and there can be any number of them; this is one mark the app
    *  hands out so that a thing with no name still has something to be called. */
   alias?: number;
+  /** **The workspace's own, and nowhere else's.** One counter per kind, so a
+   *  handle is never handed out twice — a high-water scan reused the serial of
+   *  the highest element as soon as that one was deleted, and a handle that
+   *  comes back meaning something else is not a handle. */
+  counters?: Record<string, number>;
   /** What this one block says about how it draws, over whatever its definition
    *  said. **The last word in the cascade**, keyed the way a definition's
    *  components are (`card`, `style`) so the two layer without translating.
@@ -152,6 +157,10 @@ export type Relation = {
   /** Legacy; not read by layout. */
   fromAt?: number;
   toAt?: number;
+  /** **A relationship carries a handle exactly as a block does.** Three unnamed
+   *  lines in a layer all read `line` without one, with nothing to tell them
+   *  apart. */
+  alias?: number;
   fields?: Field[];
 };
 
@@ -170,17 +179,6 @@ export const BLOCK_MODULES: readonly BlockModule[] = [
   "reference", "interface", "group", "grid", "note",
 ];
 
-/** **The kinds a block may be changed between.** A block, a folder and a
- *  resource differ in what they are *for* and in nothing a gesture would have
- *  to invent, so one becomes another by saying so.
- *
- *  Everything else is arrived at by making one: a reference is a second
- *  appearance of something, an interface is seated on a wall, a group has
- *  members and a note is its text — each of them carries something a plain
- *  block has no answer for, so retyping into one would have to make it up.
- *  **Subtyping them is not the same act**: make one, customise it, and pin
- *  that, which never changes anybody's kind. */
-export const OPEN_MODULES: readonly BlockModule[] = ["block", "folder", "resource"];
 
 export type Components = Record<string, Record<string, unknown>>;
 
@@ -241,6 +239,8 @@ export type Mutation =
   | { op: "move_block"; id: Id; parent: Id | null }
   | { op: "place_block"; id: Id; x: number; y: number }
   | { op: "order_block"; id: Id; order: number }
+  | { op: "set_alias"; id: Id; alias: number }
+  | { op: "set_counter"; kind: string; n: number }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }
@@ -250,7 +250,7 @@ export type Mutation =
   | { op: "merge_cells"; id: Id; span: Span }
   | { op: "split_cells"; id: Id; r: number; c: number }
   | { op: "link_blocks"; edge: Relation }
-  | { op: "update_edge"; id: Id; type: Id }
+  | { op: "update_edge"; id: Id; type: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "set_dir"; id: Id; dir: Dir }
   | { op: "set_form"; id: Id; module: RelationModule }

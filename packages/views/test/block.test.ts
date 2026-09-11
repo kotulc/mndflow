@@ -103,9 +103,9 @@ describe("what the projection shows", () => {
 
   it("reads a reference's target, and says missing when it is gone", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     const ledger = children(s.graph(), ROOT)[0]!.id;
-    s.go("create", { label: "Auth", parent: ledger });
+    s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
     s.go("refer", { target: auth });
 

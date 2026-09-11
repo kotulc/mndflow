@@ -16,9 +16,9 @@ function memory(): Storage & { held: () => Log | null } {
 describe("undo is a refold", () => {
   it("needs no inverse, and the graph comes back by the same path", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     const after_one = hash(s.graph());
-    s.go("create", { label: "Site" });
+    s.go("create", { name: "Site" });
     expect(hash(s.graph())).not.toBe(after_one);
     expect(s.undo()).toBe(true);
     expect(hash(s.graph())).toBe(after_one);
@@ -26,9 +26,9 @@ describe("undo is a refold", () => {
 
   it("unwinds in the order things were applied", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
-    s.go("create", { label: "C" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
+    s.go("create", { name: "C" });
     s.undo();
     expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A", "B"]);
     s.undo();
@@ -42,17 +42,17 @@ describe("undo is a refold", () => {
 
   it("redoes what it reverted, and drops the redo once work continues", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     s.undo();
     expect(s.redo()).toBe(true);
     s.undo();
-    s.go("create", { label: "B" });
+    s.go("create", { name: "B" });
     expect(s.redo()).toBe(false);
   });
 
   it("restores the graph, never the context", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     const a = children(s.graph(), ROOT)[0]!.id;
     s.pick([a]);
     s.go("delete", { id: a });
@@ -65,7 +65,7 @@ describe("undo is a refold", () => {
 describe("one step per action", () => {
   it("writes one step however many mutations it took", () => {
     const s = session();
-    s.go("create", { label: "Pump" });
+    s.go("create", { name: "Pump" });
     const pump = Object.values(s.graph().blocks).find((b) => b.name === "Pump")!.id;
     s.go("note", { about: pump, text: "hello", spot: { x: 24, y: 24 } });
     expect(s.log().filter((x) => x.action === "note")).toHaveLength(1);
@@ -75,17 +75,17 @@ describe("one step per action", () => {
   it("writes nothing for a refusal", () => {
     const s = session();
     const before = s.log().length;
-    expect(s.go("create", { label: "" })).toBeNull();
+    expect(s.go("create", { name: "" })).toBeNull();
     /** A sibling may wear the same name, so two of these are two steps. */
-    s.go("create", { label: "A" });
-    expect(s.go("create", { label: "A" })).toBeNull();
+    s.go("create", { name: "A" });
+    expect(s.go("create", { name: "A" })).toBeNull();
     expect(s.go("refer", { target: "block_nowhere" })).toMatch(/not there/);
     expect(s.log().length).toBe(before + 3);
   });
 
   it("writes no step for navigation", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     const before = s.log().length;
     s.go("open", { id: children(s.graph(), ROOT)[0]!.id });
     s.go("up");
@@ -157,7 +157,7 @@ describe("storage", () => {
   it("saves as you go and comes back after a reload", () => {
     const store = memory();
     const one = session({ storage: store });
-    one.go("create", { label: "Ledger" });
+    one.go("create", { name: "Ledger" });
     const two = session({ storage: store });
     expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Ledger"]);
   });
@@ -181,13 +181,13 @@ describe("storage", () => {
 
   it("says nothing on opening a clean log", () => {
     const store = memory();
-    session({ storage: store }).go("create", { label: "A" });
+    session({ storage: store }).go("create", { name: "A" });
     expect(session({ storage: store }).said()).toBeNull();
   });
 
   it("survives storage that forgets", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     expect(children(s.graph(), ROOT)).toHaveLength(1);
   });
 });
@@ -214,7 +214,7 @@ describe("a new workspace", () => {
   it("puts back exactly what a first run opens with", () => {
     const s = session({ defs: seed() });
     const fresh = Object.keys(s.graph().defs).sort();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     expect(Object.keys(s.graph().blocks)).toHaveLength(2);
 
     s.reset();
@@ -234,7 +234,7 @@ describe("a new workspace", () => {
 
   it("leaves nothing to undo into", () => {
     const s = session({ defs: seed() });
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     s.reset();
     s.undo();
     expect(Object.keys(s.graph().blocks)).toEqual([ROOT]);

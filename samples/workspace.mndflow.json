@@ -234,7 +234,8 @@
         "x": 168,
         "y": 0,
         "name": "Heat Exchanger",
-        "order": 2
+        "order": 2,
+        "alias": 1
       },
       "b_loop": {
         "id": "b_loop",
@@ -242,7 +243,8 @@
         "x": 0,
         "y": 0,
         "name": "Primary Loop",
-        "order": 1
+        "order": 1,
+        "alias": 2
       },
       "b_note": {
         "id": "b_note",
@@ -252,7 +254,8 @@
         "x": 336,
         "y": 96,
         "name": "",
-        "order": 6
+        "order": 6,
+        "alias": 1
       },
       "b_pump": {
         "id": "b_pump",
@@ -269,7 +272,8 @@
         "x": 0,
         "y": 0,
         "name": "Feed Pump",
-        "order": 1
+        "order": 1,
+        "alias": 3
       },
       "b_ref": {
         "id": "b_ref",
@@ -278,7 +282,8 @@
         "x": 0,
         "y": 192,
         "name": "",
-        "order": 7
+        "order": 7,
+        "alias": 1
       },
       "b_res": {
         "id": "b_res",
@@ -287,7 +292,8 @@
         "x": 168,
         "y": 192,
         "name": "Coolant",
-        "order": 8
+        "order": 8,
+        "alias": 1
       },
       "b_spare": {
         "id": "b_spare",
@@ -296,7 +302,8 @@
         "x": 0,
         "y": 96,
         "name": "Spare Pump",
-        "order": 4
+        "order": 4,
+        "alias": 4
       },
       "b_tank": {
         "id": "b_tank",
@@ -305,7 +312,8 @@
         "x": 336,
         "y": 0,
         "name": "Surge Tank",
-        "order": 3
+        "order": 3,
+        "alias": 5
       },
       "b_title": {
         "id": "b_title",
@@ -314,7 +322,8 @@
         "x": 168,
         "y": 96,
         "name": "Primary Loop",
-        "order": 5
+        "order": 5,
+        "alias": 6
       },
       "c_a": {
         "id": "c_a",
@@ -326,7 +335,8 @@
         },
         "header": true,
         "name": "Duty",
-        "order": 3
+        "order": 3,
+        "alias": 7
       },
       "c_b": {
         "id": "c_b",
@@ -337,21 +347,24 @@
           "c": 0
         },
         "name": "Standby",
-        "order": 4
+        "order": 4,
+        "alias": 8
       },
       "f_plant": {
         "id": "f_plant",
         "parent": "ws",
         "type": "folder",
         "name": "Coolant Plant",
-        "order": 1
+        "order": 1,
+        "alias": 1
       },
       "g_wet": {
         "id": "g_wet",
         "parent": "b_loop",
         "type": "group",
         "name": "Wet side",
-        "order": 9
+        "order": 9,
+        "alias": 1
       },
       "gr_matrix": {
         "id": "gr_matrix",
@@ -362,7 +375,8 @@
         "x": 0,
         "y": 320,
         "name": "Duty",
-        "order": 2
+        "order": 2,
+        "alias": 1
       },
       "i_in": {
         "id": "i_in",
@@ -371,13 +385,25 @@
         "at": 0.5,
         "flow": "in",
         "name": "",
-        "order": 1
+        "order": 1,
+        "alias": 1
       },
       "ws": {
         "id": "ws",
         "parent": null,
         "type": "folder",
-        "name": "workspace"
+        "name": "workspace",
+        "counters": {
+          "block": 8,
+          "note": 1,
+          "reference": 1,
+          "resource": 1,
+          "relation": 3,
+          "folder": 1,
+          "group": 1,
+          "grid": 1,
+          "interface": 1
+        }
       }
     },
     "edges": {
@@ -386,20 +412,23 @@
         "from": "b_pump",
         "module": "directed",
         "dir": "one",
-        "to": "b_hx"
+        "to": "b_hx",
+        "alias": 1
       },
       "e_out": {
         "id": "e_out",
         "from": "b_hx",
         "module": "directed",
         "dir": "one",
-        "to": "b_tank"
+        "to": "b_tank",
+        "alias": 2
       },
       "e_tie": {
         "id": "e_tie",
         "from": "b_note",
         "module": "tie",
-        "to": "b_hx"
+        "to": "b_hx",
+        "alias": 3
       }
     }
   }

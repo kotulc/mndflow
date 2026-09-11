@@ -200,3 +200,24 @@ export function Icon({ name, size = 16, solid = false, className }: {
     </svg>
   );
 }
+
+/** Which mark each role wears. **Icon data, so it lives beside the icons** —
+ *  the stage, the tray and the explorer each kept a copy of this, and three
+ *  copies of one table is three chances for a kind to be drawn two ways.
+ *
+ *  **Nine, and `container` is the one that is not a module.** It is derived
+ *  from what a block holds rather than from what it is, which is why the table
+ *  is keyed by role and not by module. */
+export const ROLE_ICON: Record<string, IconName> = {
+  block: "role_leaf", container: "role_container", folder: "role_folder",
+  resource: "role_resource", reference: "role_reference",
+  interface: "role_interface", group: "role_group", grid: "role_table",
+  note: "role_note",
+};
+
+/** The mark for a role, falling back to the plain block's. **A name this build
+ *  does not know still draws something**, which is what lets a package from a
+ *  newer build open here. */
+export function role_icon(role: string | undefined): IconName {
+  return ROLE_ICON[role ?? ""] ?? "role_leaf";
+}

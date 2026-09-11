@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { check, children, fold, read, review, say, session, shown_name, write,
+import { alias_of, check, children, fold, read, review, say, session, shown_name, write,
          type Fault, type Graph, type Id, type Log, type Storage } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { fixture, graph_file, GRAPH_NAMES, NAMES } from "@mnd/fixtures";
@@ -74,7 +74,11 @@ function tree(log: Log): string {
   const walk = (id: Id | null, depth: number) => {
     for (const b of children(graph, id)) {
       const kids = children(graph, b.id).length;
-      lines.push(`${"  ".repeat(depth)}${kids ? "▾" : "·"} ${shown_name(graph, b.id)}`);
+      /** **The handle beside the name, composed here like every other
+       *  surface.** Text has no way to dim one, so it is simply set after. */
+      const called = [shown_name(graph, b.id), alias_of(graph, b.id)]
+        .filter(Boolean).join(" ");
+      lines.push(`${"  ".repeat(depth)}${kids ? "▾" : "·"} ${called}`);
       walk(b.id, depth + 1);
     }
   };

@@ -103,9 +103,9 @@ describe("derived readings", () => {
 describe("references", () => {
   it("reads its target's name, and missing when the target is gone", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     const ledger = children(s.graph(), ROOT)[0]!.id;
-    s.go("create", { label: "Auth", parent: ledger });
+    s.go("create", { name: "Auth", parent: ledger });
     const auth = children(s.graph(), ledger)[0]!.id;
 
     s.look(null);
@@ -164,23 +164,24 @@ describe("definitions cascade", () => {
   });
 });
 
-/** **A subtype refines what a thing is like, never what it is.** A block, a
- *  folder and a resource are one family; every other kind is its own. */
+/** **A subtype refines what a thing is like, never what it is.** A kind is
+ *  fixed at creation, so every kind is its own and a user makes the one they
+ *  meant. */
 describe("what a block may become", () => {
-  it("swaps freely among block, folder and resource", () => {
+  /** A kind is fixed at creation: only a definition of the block's own module
+   *  will do, so a vocabulary still applies and nothing changes kind. */
+  it("takes a definition of its own kind", () => {
     const s = kinds();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     const id = children(s.graph(), ROOT)[0]!.id;
-    for (const type of ["folder", "resource", "block"]) {
-      expect(s.go("retype", { id, type })).toBeNull();
-      expect(module_of(s.graph(), id)).toBe(type);
-    }
+    expect(s.go("retype", { id, type: "block" })).toBeNull();
+    expect(module_of(s.graph(), id)).toBe("block");
   });
 
-  it.each(["group", "grid", "note", "interface", "reference"])(
+  it.each(["folder", "resource", "group", "grid", "note", "interface", "reference"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
-      s.go("create", { label: "A" });
+      s.go("create", { name: "A" });
       const id = children(s.graph(), ROOT)[0]!.id;
       expect(s.go("retype", { id, type })).toEqual(expect.any(String));
       expect(module_of(s.graph(), id)).toBe("block");

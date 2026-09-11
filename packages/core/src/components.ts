@@ -116,6 +116,10 @@ const stray = (name: string, config: Settings, known: readonly string[]): string
  *  same nothing. */
 export const DISPLAYS = ["above", "inside", "below", "none"] as const;
 
+/** Whether a writing is drawn at all. **Two answers, and `show` is what
+ *  everything did before there was a choice.** */
+export const SHOWN = ["show", "hide"] as const;
+
 /** Which end of the card its writing reads from. **Three, and the first is what
  *  every card did before there was a choice** — so a definition saying nothing
  *  draws exactly as it always has. */
@@ -219,8 +223,20 @@ const card: Component = {
   check: (config) =>
     one_of("card.label", config["label"], DISPLAYS)
     ?? one_of("card.align", config["align"], ALIGNS)
+    /** **The identity line, and the handle beside it.** `name` draws what the
+     *  thing is called — the name where one is set, its kind and handle where
+     *  none is. `alias` adds the handle to a name somebody *did* set, which the
+     *  fallback already carries and a named card does not.
+     *
+     *  **`name` reverses an earlier decision** that a card without its name is
+     *  a box nobody can read. That premise went when a block gained a body: a
+     *  nameless card is not a blank one, and a note wanting only its text is
+     *  the case it was missing. */
+    ?? one_of("card.name", config["name"], SHOWN)
+    ?? one_of("card.alias", config["alias"], SHOWN)
     ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["label", "align", "shows", "icon", "mark"]),
+    ?? stray("card", config, ["label", "align", "shows", "icon", "mark",
+                              "name", "alias"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings.

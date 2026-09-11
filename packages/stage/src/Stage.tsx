@@ -315,7 +315,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onNamed={(label) => {
           const id = naming;
           set_naming(null);
-          if (id && label !== null) onAct("rename", { id, label });
+          if (id && label !== null) onAct("rename", { id, name: label });
         }}
         onGesture={gesture}
         onPick={onPick}
