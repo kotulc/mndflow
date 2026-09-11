@@ -189,6 +189,38 @@ A relationship carries a definition exactly as a block does — `group: "relatio
 Stories, work, what a thing owns and what it waits on are a **schema**, not a document. Drafted as
 translator.md, and **probably its own project** rather than anything to build here.
 
+### ST.17 — What a vocabulary asks of a usage is stated where it is read
+
+A definition says what must be true of anything naming it — the fields a usage has to carry, what it may hold, what may sit at a relationship's ends, how many lines may meet it, which fields have to agree across one — and **all five are said in one place, in the same words, by the same gesture.**
+
+**Pulled, and the reason is the seam.** The panel shipped reading all five and writing three: `look` sets one scalar at `key → name`, and `ends` and `degree` are nested records, so what the panel wrote was a scalar where a record was wanted — ignored by `rules_of`, then dropped by the door on the next save. A surface that can state half a vocabulary is worse than one that states none, because what it cannot say is invisible. The model side stands: the `rules` component validates all five at the door, `rules_of` resolves them down the chain, and `review` reads what survives.
+
+| | |
+|---|---|
+| **what unblocks it** | `look` reaching a nested property — a dotted `name`, or a shape the fold's `set_look` and `stated` both already walk. Without that, three of five is the ceiling |
+| **where it is stated** | a definition asks it of every usage; one element may state it for itself, since `looks` is already a components bag. Both, or only the definition? |
+| **when it is refused** | advised while modelling, refused at translation — settled. What is unsettled is whether a violation is a mark on the card, a row in the tray, or both |
+| **`holds` and the engine** | the only containment rule there is. Authoring it is the first time a user can make a layer refuse a drop, so the drop gesture has to read it |
+
+**Wants ST.15 under it first**: `ends` is a relation definition's rule, and there is nowhere to customise a relation definition until a relationship is described the way a block is.
+
+
+### ST.18 — A block holds content, so it is worth opening
+
+Write a requirement's text, a part's description, a script's code **into the block itself** — and have it travel, export, undo and be searched like everything else the block carries. A block stops being a box with a name on it and becomes somewhere work actually lives.
+
+**The want is utility, not annotation.** A note already says something *about* a diagram. This is different: the block **is** the requirement, and its text is the requirement's body. Anything less means the real content lives in another tool and the model points at it.
+
+| | |
+|---|---|
+| **already half-built** | `Block.body` is in the schema, `set_body` folds it, `describe` writes it — and only the note reads it, with no surface offering it |
+| **every block** | a requirement is a block with a description; confining bodies to `resource` forces a wrapper element around everything worth documenting |
+| **a note stays a module** | and for reasons that are not about text: it is the only ordinary card that resizes, and a relationship touching one is derived as a `tie`. What changes is only that it stops being the *sole* holder of a body |
+| **format is the definition's** | `Requirement` says markdown, `Script` says code. Not a new value form — the closed set stays as it is, and `body` is a slot beside `fields` |
+
+**What it opens, and is not in scope yet:** search over content, a body rendered on the card rather than in the panel, and code with a language. Each is its own thing once the text is there at all.
+
+**Watch for:** `set_body` carries the whole string into the log, and the graph is folded by replaying every step. Bodies are the first thing this project stores that is large and edited often — see 5 in todo.md, which keeps the graph and the file carrying **text rather than a content id** so the storage choice stays reversible.
 
 ## Recent Decisions
 

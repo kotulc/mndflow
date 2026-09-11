@@ -1,14 +1,21 @@
 /** The context tray: **one shell, one tab per question.**
  *
  *  *Settings* is what the one thing you have hold of is and how it draws,
- *  *fields* is what it carries, *rules* is what it is held to, and *contents*
- *  is everything the layer holds as a table — the only place a relationship or an interface is
- *  found without hunting for it on the drawing.
+ *  *fields* is what it carries, and *contents* is everything the layer holds as
+ *  a table — the only place a relationship or an interface is found without
+ *  hunting for it on the drawing.
  *
  *  **The tabs are what is answerable.** Nothing picked, and only contents has
  *  anything to say; pick a block, a relationship or a definition and the other
- *  three appear, all about that one thing. Three tabs that said *pick something*
- *  were three ways of saying the same nothing.
+ *  two appear, both about that one thing. A tab that said *pick something* was
+ *  a way of saying nothing.
+ *
+ *  **Rules are read nowhere yet.** The panel could state three of the five
+ *  kinds and only show the other two, because `look` writes one scalar and
+ *  `ends` and `degree` are nested records — and a surface that states half a
+ *  vocabulary is worse than one that states none, since what it cannot say is
+ *  invisible. `rules_of` and the `rules` component stand; the surface comes
+ *  back when all five can be written. See ST.17.
  *
  *  **The bar is the handle.** Its whole background opens and shuts the tray,
  *  with the chevron centred in it saying which way it will go — reaching for the
@@ -24,7 +31,6 @@ import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Styles } from "./Styles";
 import { Fields } from "./Fields";
-import { Rules } from "./Rules";
 import { Chain } from "./Chain";
 import { children, def_of, is_container, isa, module_of,
          type Act, type Graph, type Id } from "@mnd/core";
@@ -53,11 +59,11 @@ export type TrayProps = {
   pickedDef?: Id | null;
 };
 
-export type Tab = "settings" | "fields" | "rules" | "contents";
+export type Tab = "settings" | "fields" | "contents";
 
-/** Every tab, in the order they are read: what it is, what it carries, what it
- *  is held to, then what is around it. */
-const TABS: readonly Tab[] = ["settings", "fields", "rules", "contents"];
+/** Every tab, in the order they are read: what it is, what it carries, then
+ *  what is around it. */
+const TABS: readonly Tab[] = ["settings", "fields", "contents"];
 
 const HEAD: { key: "kind" | "name" | "what" | "type"; label: string; width: string }[] = [
   { key: "kind", label: "kind", width: "16%" },
@@ -175,7 +181,6 @@ export function Tray(props: TrayProps) {
         <div className="tray-body">
           {tab === "settings" ? <Styles graph={graph} id={about} onAct={onAct} /> : null}
           {tab === "fields" ? <Fields graph={graph} id={about} onAct={onAct} /> : null}
-          {tab === "rules" ? <Rules graph={graph} holder={about} /> : null}
         </div>
       ) : null}
 
