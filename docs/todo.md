@@ -7,72 +7,28 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 ## Next up
 
-**In order.** Each is a phase's worth on its own; the grid below is what they build on. **Identity is built** and is in Landed — it was what the explorer, the definition canvas and pinning all rested on.
+**In order.** Each is a phase's worth on its own; the grid below is what they build on. **Identity and relationships are built** and are in Landed — between them they settled what a definition says and what a surface reads off it.
 
-### 1 — Relationships, interfaces and ports
+### 1 — Definitions, unified
 
-**One area, not two.** What a relationship *is* and what an interface *is* are the same question asked at the two ends of a line, and neither settles alone. Designed; building next.
-
-**The ends model stays as it is.** `from` and `to` always name a block — the real one where the end is an anchor, the interface block where it has been promoted — and `fromSide` says the wall in the first case. So *is this end a port* is `module_of(graph, e.from) === "interface"`: derived, stored nowhere, and **asked per end**, which is what lets one end be a port and the other not. One end and only one is the ordinary case — a proxy port meeting an internal part — and the engine could not keep *both or neither* anyway, since it refuses an interface on a note and on a boundary.
-
-**A line and its ends are not one element.** An interface is a real element with a name and a type, and the model already said so under *promotion*. Four things it would cost: a port takes many lines and an owned end could not share one; an interface outlives every line, so an unconnected port would be unsayable; deleting a line would delete named content, against *displacement is never destructive*; and `degree` would die, since every minted-per-line interface has degree 1.
-
-**Settled.**
+**Unblocked: a relation definition holds `line` and the shared `style`, and the tray reads both.** The cascade is right — `isa` → `config_of` per property → the element's own `looks` last — and it is unified over definitions and over all eight block modules. It is **not** unified over blocks and relationships, and the panel that edits it still branches on which of the three it is holding.
 
 | | |
 |---|---|
-| **`card` is the block-only component; `style` is shared** | all ten `style` keys — family, hue, intensity, opacity, the three border keys, the three name keys — apply to a block, an interface **and** a line. What a line and an interface lack is a *face*, which is exactly what `card` describes: label placement, align, shows, icon, mark, fill. So **a module declares which components it honours**, and the tray's group rail filters on it. `MODULES` in `components.ts` already gives every module a key list and every one of them is empty |
-| **a relationship gets a small `line` component** | the two arrowheads, and what draws at each end. Flat keys — `from_arrow`, `to_arrow`, `from_shows`, `shows`, `to_shows` — matching the `name_*` and `border_*` convention, and flat because `look` writes one scalar |
-| **multiplicity and a guard are fields on the relationship** | neither is an interface: one port serves many lines, each with its own. What makes them special is only *where they draw*, which is `line.from_shows` / `shows` / `to_shows` — the direct parallel to `card.shows`. Role name and stereotype are the same mechanism. **`degree` is not multiplicity**: `degree` is a rule on a definition counting how many lines may meet a usage; multiplicity is a value on one end of one relationship |
-| **`ends` walks through a port** | `end()` checks the type of whatever block the line touches, so promoting an end silently broke every `ends` rule written against block types. It now checks the end block and, where that is an interface, accepts a match on its owner. **No new keys** — `fromFlow` already checks a property only an interface has, so the two divide the labour: `from` says what kind of thing is at this end, `fromFlow` says it must be a port and which direction |
-| **the settings preview is a run between two ends** | a `Wire` in the tray, sibling to `Card` and built the same way: a short run, each end drawn as anchor or port, arrowheads from `dir`, the name in the middle, end fields where `from_shows` names any. Painted from the same `style` attributes the stage paints from, so preview and canvas cannot disagree |
-| **the line's menu** | *add direction* (`direct forward`, when undirected), *flip direction* (`flip`, when directed and not both), *remove direction* (`direct none`), and *promote this end* / *promote both* (`interface` with `edge` and `end`, which already does the whole job). **`flip` and `direct back` are never both offered** — they draw the identical picture and only one moves `from` and `to`, which `chain`, allocation and `ends` all read |
-| **menu verbs are named by their subject** | *rename block*, *rename relation*, *delete relation*. `Entry` already takes a `label`, so it is a word per entry and no new mechanism. Worth it because the `route`, `name`, `anchor` and `box` menus are all reachable within a few pixels of one line |
-| **no double-click on a line** | two clicks already mean *go in* or *edit this name*, and the wire's name takes the second out of the double-click handler. Direction is the menu's |
-| **`refer`, `interface` and `group` take a `type`** | only `create` does today, which is why a definition can be dragged out but not applied on the way in |
-| **a definition needing something a layer cannot supply is refused** | `create` has no `check` at all, so dragging an **interface** definition out mints a wall-less block that `is_interface` calls false and `module_of` calls an interface. The guard belongs on `create`, not only on the drop path, because the terminal calls `create` with a type directly |
-
-**What a dragged definition does.**
-
-| Module | Empty ground | On a block |
-|---|---|---|
-| block, folder, resource, note | create in the layer | create in the layer, clear of it — as today |
-| **grid** | create — a grid owns its corner, so an empty one is a real thing | beside it, never on it |
-| **interface** | refuse: *interfaces may only be added to existing blocks* | becomes an interface of that block |
-| **group** | refuse: a rim round nothing has no bounds | a rim round that block |
-| **reference** | refuse | **refuse — and it is refused on a block too.** `refer` already turns down a target on the current layer, so there is no drop that would work. A reference is made by dragging the **block**; a reference *definition* is style-only and applies by retyping an existing reference through the tray's picker |
-
-**The drop path has to hit-test**, which it does not: `onDrop` runs `clear_of`, which deliberately *avoids* the cards it would now need to land on. `Flow` already answers this for node drags through `landing_on`.
-
-**Still open.**
-
-| | |
-|---|---|
-| **whether pinning applies to a relationship** | a customised line could file a relation definition the way a block files a block one. If it does, the vocabulary section holds something undraggable; if it does not, relation vocabulary has no home |
-| **what an interface definition says** | an interface is the one anchor for every port-like thing — a proxy port, a full port, a pin and a constraint parameter — and today a definition says nothing about which. It stays an ordinary block definition extending `interface`; the question is whether the `interface` module earns keys of its own |
-| **`flow` still constrains nothing** | `ends.fromFlow` reads it, and nothing else does. Whether a definition may *state* a flow, rather than only be checked against one, is unanswered |
-| **housekeeping** | `fromAt` and `toAt` are marked *legacy, not read by layout* and should go. `unlink` says *and any interfaces it leaves spare* and its run deletes only the edge — the run is right, the wording is wrong |
-
-### 2 — Definitions, unified
-
-**After 1, because the shape of a relation definition decides how much of this is shared.** The cascade is right — `isa` → `config_of` per property → the element's own `looks` last — and it is unified over definitions and over all eight block modules. It is **not** unified over blocks and relationships, and the panel that edits it still branches on which of the three it is holding.
-
-| | |
-|---|---|
-| **`Styles.tsx` is 429 lines with ~30 `d ?` branches** | the two columns are two things. The left is *identity* — name, definition, label, pin, default — and is where every branch lives; the right is already uniform over any holder. Split them, and the second takes a block, a relationship or a definition without asking which |
+| **`Styles.tsx` is 567 lines** | and it grew, because the right column now serves three holders. The two columns are two things: the left is *identity* — name, definition, label, pin, default — and is where every branch still lives; the right is uniform over any holder already. Split them, and the second takes a block, a relationship or a definition without asking which |
 | **`ROWS` is half a table** | 13 controls are declared as data; `hue`, `intensity`, `opacity`, `icon` and `mark` are hand-written JSX with their own group guards. A `form` on `Question` collapses them, and `NUMBERS` and the range consts already carry the metadata |
-| **`card.shows` cannot be set** | validated at the door, read by `look_of`, drawn by the stage *and* by the preview, and no surface authors it. Give it a row or drop the key |
-| ~~**`Definition.name` is read-only**~~ | **settled in 0.** Scoped ids frozen at creation mean a rename never rewrites the id, so the name becomes an ordinary editable field and `pin`'s *is already taken* becomes a real name check within one owner |
+| ~~**`card.shows` cannot be set**~~ | **settled in *Relationships*.** It has a row, and so do `card.name`, `card.alias` and the three `line` shows — `LISTS` in `actions.ts` names every list-valued property in one place |
+| ~~**`Definition.name` is read-only**~~ | **settled in *Identity*.** Scoped ids frozen at creation mean a rename never rewrites the id, so the name becomes an ordinary editable field and `pin`'s *is already taken* becomes a real name check within one owner |
 
-**The three that did not wait on 1 are built** — see Landed. What is left all turns on what a relation definition holds, and splitting `Styles.tsx` before that is known risks splitting it in the wrong place.
+**What a relation definition holds is now known**, which is what this was waiting on: `line` plus the shared `style`, and the rail already filters by what a module honours. So the split is the work, and `ROWS` is where it starts.
 
-### 3 — The tray
+### 2 — The tray
 
 **Context-sensitive.** Three tabs now — settings, fields, contents — and full height landed as a control of its own. What is left is what the tray becomes when it fills the stage, and whether a layer's settings are the same rows as an element's. See ST.16.
 
-**Rules came out.** The panel could state three of the five kinds and only show the other two, because `look` writes one scalar and `ends` and `degree` are nested records. The model side stands — the `rules` component validates all five at the door, `rules_of` resolves them down the chain, `review` reads what survives. See ST.17, which wants 1 under it first.
+**Rules came out.** The panel could state three of the five kinds and only show the other two, because `look` writes one scalar and `ends` and `degree` are nested records. The model side stands — the `rules` component validates all five at the door, `rules_of` resolves them down the chain, `review` reads what survives. See ST.17.
 
-### 4 — The explorer
+### 3 — The explorer
 
 **One tree, sections all the way down.** The panel holds two things today — the workspace and the definitions folder — and **the only difference that should matter is which one the user writes and which one the app does.**
 
@@ -91,22 +47,22 @@ Both are projections over different sources, neither is a block, and a third cos
 
 | What that needs | |
 |---|---|
-| **`look_of` takes a definition id** | today it bails to `PLAIN` for anything not in `graph.blocks`, and must read `config_of(graph, d.id, …)` instead. **The same edit item 1 needs for edges** |
+| **`look_of` takes a definition id** | today it bails to `PLAIN` for anything not in `graph.blocks`. The edge half is done — `settings()` reads the cascade for either holder and `wire_of` spends it — so what is left is the definition case |
 | **`pickedDef` merges into `picked`** | its docstring overstates the cost: `held()`, the `look` action and the settings panel already take either id. What needs auditing is the action `check`s doing `graph.blocks[id]`, which would refuse with a confusing message rather than a clear one |
 | **the row builder stops branching on `of`** | and the menu gets genuinely simpler rather than relocated — `offer(ctx)` already narrows by each action's `on` scope, so giving a definition id a scope lets the registry narrow the menu and the explorer stops carrying a list |
 | **`alias` is no longer overloaded** | it was carrying a block's `A1` and a definition row's word *default* in one slot. Identity is settled in 0; *default* needs a slot of its own or a mark |
 | **`Mark` loses `pin`** | nine marks say what a block is; the tenth was the definitions folder's icon |
 
-**Relations stay out of the tree.** A relationship is made by drawing between two ends, never by dropping, so there is nothing to drag a relation row onto. Pinned relation types are offered on the rail's `relations` group instead — see 1.
+**Relations stay out of the tree.** A relationship is made by drawing between two ends, never by dropping, so there is nothing to drag a relation row onto. Pinned relation types would be offered on the rail's `relations` group instead — and whether a relationship may be pinned at all is still open.
 
 **No per-row marks.** Saying on a row that it cannot be dropped on empty ground is another specialization; what refuses a drop is the action, which already says why.
 
-**What a definition canvas cannot show.** A grid definition drawn as a card cannot show cells or extent, a reference cannot show its hatch over a target, an interface is eight pixels. So the canvas compares **`style` only** — which is exactly the split settled in 1, where `style` is shared across blocks, interfaces and lines and `card` is not. It answers *do these look like a family?* and not *what will this be?*
+**What a definition canvas cannot show.** A grid definition drawn as a card cannot show cells or extent, a reference cannot show its hatch over a target, an interface is eight pixels. So the canvas compares **`style` only** — which is exactly the split built in *Relationships*, where `style` is shared across blocks, interfaces and lines and `card` is not. It answers *do these look like a family?* and not *what will this be?*
 
 **Wants the tray first**, as before. Search results live here already, lit rather than hidden.
 
 
-### 5 — Block content
+### 4 — Block content
 
 **A block holds text, and that is what makes it more than a structural container.** A requirement is a block with a description; a script is a block with code; a note is a block whose text is what it draws. See ST.18.
 
@@ -114,14 +70,14 @@ Both are projections over different sources, neither is a block, and a third cos
 
 **The note stays a module.** It earns it twice over, and neither reason is about text: it is **the only ordinary card whose size is yours to set** — `NoteNode` is the one card carrying a resizer, every other being sized from what it holds — and **a relationship touching one is derived as a `tie`**, which `derived_module` reads before anything else. Both survive every block gaining a body.
 
-**A note draws its identity line on its own line above its body.** Named, that is the name; unnamed, it is `Note N3` like every other card — **never the body text**, which is already in the space below it. A body-only note is `card.name: hide`, not a special case.
+**A note draws its identity line on its own line above its body.** Named, that is the name; unnamed, it is `Note N3` like every other card — **never the body text**, which is already in the space below it. A body-only note is `card.name: hide`, which the settings panel can now set.
 
 | | |
 |---|---|
 | **every block, not only `resource`** | a requirement *is* a block with a description, and confining bodies to resources forces a wrapper element around everything worth documenting. `body` is already on `Block`, so this is the default |
 | **drawn or held** | a note draws its body; a requirement holds one and shows it in the panel. A `card` key, cascading like everything else |
 | **format is the definition's business** | `Requirement` says markdown, `Script` says code. **Not a new value form** — the closed set stays `text`, `number`, `flag`, `choice`, `link`, and `body` is a slot beside `fields` rather than one of them |
-| **where it is edited** | the settings panel, full width below the two columns, under a BODY label — see 0 |
+| **where it is edited** | the settings panel, full width below the two columns, under a BODY label |
 
 **How it is stored: debounce first, content-address only if it bites.**
 
@@ -137,6 +93,38 @@ Both are projections over different sources, neither is a block, and a third cos
 **Recommendation: debounce.** It is a few lines against a store, a collector and a fault kind, and the boundary above keeps the door open.
 
 ## Landed
+
+### Relationships, interfaces and ports
+
+**Built.** What a relationship *is* and what an interface *is* were one question asked at the two ends of a line, and the answer is that a run is an element like any other: it carries a definition, a look of its own, a handle and fields, and it is drawn from the same table a card is.
+
+| | |
+|---|---|
+| **a module declares what it honours** | `honours(module)` in `components.ts`. A block honours `card`, `style`, `rules`; a **run** honours `line`, `style`, `rules`; an **interface** honours `style`, `rules` — it is eight pixels of wall with no face to compose. The tray's rail filters on it, so no panel branches on which of the three it is holding |
+| **`style` is shared, `card` is the block's** | one table paints a card, a port and a run — family, hue, intensity, opacity, the three border keys, the three name keys. What a line and an interface lack is a *face*, which is what `card` describes |
+| **the `line` component** | `from_arrow`, `to_arrow`, `name`, `alias`, `from_shows`, `shows`, `to_shows`. Flat keys, because `look` writes one scalar |
+| **five arrowheads** | `none`, `arrow`, `open`, `hollow`, `diamond`. **A shape, never a direction**: `dir` says which ends point and is what `flip`, `chain` and `ends` read; an end nobody shaped draws a filled head where it points and nothing where it does not — so an undirected line can still carry a diamond at one end, and a line saying neither draws exactly as it always did. `heads()` in `scene.ts` resolves the two into one answer, so the canvas, the SVG export and the outline cannot draw one run three ways |
+| **`Relation.looks`** | a run's own last word over its definition, the same bag a block carries one layer apart. `set_look`, `drop_looks` and `rules_of` take whichever holder the id names. **Local until it is pinned** — and whether a run may be pinned is still open, so the tray does not offer it |
+| **multiplicity and a guard are fields** | neither is an interface: one port serves many lines, each with its own. What makes them special is where they draw, which is the three `shows` lists. Role name and stereotype are the same mechanism |
+| **`ends` walks through a port** | promoting an end mints an interface and takes the line to it, so every `ends` rule written against a block type silently stopped matching. It now accepts a match on the end block *or* on its owner. **No new keys** — `fromFlow` reads a property only an interface has, so the two divide the labour |
+| **the run's menu** | *rename relation*, *add direction*, *flip direction*, *remove direction*, *promote both ends*, *delete relation* — and *promote this end* on a grip, which is the only gesture that knows which end. **`flip` and *point back* are never both offered**: they draw the identical picture and only one moves `from` and `to` |
+| **menu verbs by subject** | *rename block*, *rename note*, *rename group*, *rename relation*. The `route`, `name`, `anchor` and `box` menus are all within a few pixels of one line |
+| **no double-click on a run** | two clicks already mean *go in* or *edit this name*, and a run has neither |
+| **`refer`, `interface` and `group` take a `type`** | only `create` did, so a definition could be dragged out and become a block while a port, a band or a stand-in had to be made plain and retyped afterwards |
+| **the drop path hit-tests** | the same test a node drag uses. `clear_of` deliberately avoids the cards a dropped definition has to land on, so reading it a second way would be two geometries to keep in step |
+| **a layer that cannot supply it refuses** | on `create`, not only on the drop path, because the terminal names a type directly. *interfaces may only be added to existing blocks* / *a boundary is a rim round something* / *a reference is made by dragging the block* |
+| **the preview is a run** | `Wire` in the tray, sibling to `Card`: two seats, the heads, the name in the middle, each end's values under the end they are about — painted from the same `data-` attributes the canvas paints from |
+
+**A run's identity line is the one place it parts company with a card**, and the reason is what each is identified by. A card is a box, and a box with nothing written on it is unreadable — which is why an unnamed one falls back to its kind and its handle. A run is identified by the two things it joins, so it draws its name where somebody named it and nothing where nobody did; the handle draws where `line.alias` asks for it. Everywhere a run is *listed* — the tray, the CLI, the menu — `shown_name` still answers `line` and `alias_of` still answers `L3`.
+
+**Two bugs this turned up:**
+
+- **A batch minted one serial twice.** `handle` read the counter off a graph that had not been folded yet, so promoting both ends of a run made `I1` and `I1`. `handles()` counts within the act and bumps the counter once; `chain` and `fill` had each worked round this with a running number of their own, and now say it the same way.
+- **Right-click on empty ground never named the block.** It emitted `create { label }` against an argument called `name` — the last site the identity rename missed, and no test covered the prompt path.
+
+**Still open**, and each was open before this: whether pinning applies to a relationship; whether the `interface` module earns keys of its own; whether a definition may *state* a flow rather than only be checked against one.
+
+**Housekeeping done:** `fromAt` and `toAt` are gone with the `at` on `set_side` and the dead `adjustments.wall`; `unlink` says what it does.
 
 ### Identity
 

@@ -13,7 +13,7 @@
  *  wrong — which is how an older build opens a newer package. What a component
  *  refuses is dropped, and only that key. */
 
-import { BLOCK_MODULES, type Definition } from "./types";
+import { BLOCK_MODULES, RELATION_MODULES, type Definition } from "./types";
 
 /** What a definition holds under one component's key. Free-form: the component
  *  says what its own shape is, and nothing else may read it. */
@@ -169,6 +169,19 @@ export const WEIGHTS = ["light", "normal", "bold"] as const;
  *  lookup where three booleans become eight states to draw. */
 export const FONTS = ["none", "italic", "underline", "strike"] as const;
 
+/** What draws at one end of a run. **Five, and every renderer keeps all five**
+ *  — each is a marker path on the canvas and in the SVG export, and the text
+ *  renderer degrades an arrow to `-->` the way it already did. That is the line
+ *  `shape` fell the wrong side of: a card drawn as a diamond in one renderer
+ *  and a rectangle in the rest.
+ *
+ *  **A shape, not a direction.** `dir` says which ends a relationship points
+ *  at and is what `flip`, `chain` and `ends` read; this says what is drawn
+ *  there. An end nobody gave a shape draws a filled head where `dir` points at
+ *  it and nothing where it does not — so a line saying neither draws exactly as
+ *  it always has, and an undirected line can still carry a diamond at one end. */
+export const ARROWS = ["none", "arrow", "open", "hollow", "diamond"] as const;
+
 /** What fills a card behind its writing. **Pattern, never colour** — every one
  *  of these is drawn from the card's own steps, so a hatch follows whatever
  *  family or hue it was given. */
@@ -188,21 +201,52 @@ export const OPACITY = { min: 0, max: 1 } as const;
  *  them. */
 export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 
-/** Which block module interprets a block, and that module's own keys. Every
- *  module owns its slice, so the `block` component names which and delegates
- *  the rest — no module has configuration of its own yet, and each says so. */
-const MODULES = new Map<string, (config: Settings) => string | null>(
-  BLOCK_MODULES.map((m) => [m as string, (config: Settings) => stray(m, config, [])]),
-);
+/** The drawing keys, as against what a thing is held to. **`plain` gives these
+ *  back and leaves `rules` alone** — a reset is about how something looks and
+ *  never about what its vocabulary asked of it. */
+export const DRAWN: readonly string[] = ["card", "style", "line"];
+
+/** **What each module honours, and the keys it owns of its own.**
+ *
+ *  `style` is shared: how loudly a thing is taken — its family, its hue, its
+ *  border, its writing — is the same question of a card, of a port and of a
+ *  run. What a line and an interface lack is a **face**, which is exactly what
+ *  `card` describes: where the label sits, which way the writing reads, the two
+ *  corner marks. A relationship honours `line` in its place, which says what
+ *  draws at each of its two ends.
+ *
+ *  **Declared rather than derived**, so the tray's rail filters on it and no
+ *  panel has to know which of the three it is holding. `keys` is what the
+ *  module configures under `block`; every one is empty, because no module has
+ *  configuration of its own yet and each says so. */
+const CARD: readonly string[] = ["card", "style", "rules"];
+const WALL: readonly string[] = ["style", "rules"];
+const WIRE: readonly string[] = ["line", "style", "rules"];
+
+const MODULES: Record<string, { honours: readonly string[]; keys: readonly string[] }> = {
+  ...Object.fromEntries(BLOCK_MODULES.map((m) => [m, { honours: CARD, keys: [] }])),
+  ...Object.fromEntries(RELATION_MODULES.map((m) => [m, { honours: WIRE, keys: [] }])),
+  /** An interface is eight pixels of wall. It is painted like anything else and
+   *  there is no face on it to compose. */
+  interface: { honours: WALL, keys: [] },
+};
+
+/** Which components this module honours. **Unknown is a card**: a module this
+ *  build has never heard of is drawn as the ordinary thing rather than left
+ *  with nothing to say about itself. */
+export function honours(module: string): readonly string[] {
+  return MODULES[module]?.honours ?? CARD;
+}
 
 const block: Component = {
   name: "block",
   check: (config) => {
     if (config["module"] === undefined) return stray("block", config, ["module"]);
-    const named = MODULES.get(String(config["module"]));
+    const named = BLOCK_MODULES.includes(String(config["module"]) as never)
+      ? MODULES[String(config["module"])] : undefined;
     if (!named) return `\`block.module\` has to be one of ${BLOCK_MODULES.join(", ")}`;
     const { module: _named, ...rest } = config;
-    return named(rest);
+    return stray(String(config["module"]), rest, named.keys);
   },
 };
 
@@ -269,6 +313,39 @@ const style: Component = {
                                "label_font", "label_weight", "label_contrast"]),
 };
 
+/** What a run draws: a head at each end, and which of its values sit where.
+ *
+ *  **`card`’s counterpart, not a second `style`.** A relationship is painted
+ *  from the same shared `style` a card is — its family, its hue, its weight,
+ *  its writing — and what it has instead of a face is two ends and a middle.
+ *
+ *  **Flat keys**, matching the `name_*` and `border_*` convention, because a
+ *  look writes one scalar at a time and a nested record has nowhere to be
+ *  typed.
+ *
+ *  **Multiplicity, a guard, a role name and a stereotype are ordinary fields**
+ *  on the relationship. None of them is an interface — one port serves many
+ *  lines, each with its own — and what makes them special is only *where they
+ *  draw*, which is what the three `shows` keys say. */
+const line: Component = {
+  name: "line",
+  check: (config) =>
+    one_of("line.from_arrow", config["from_arrow"], ARROWS)
+    ?? one_of("line.to_arrow", config["to_arrow"], ARROWS)
+    /** The identity line, exactly as a card asks it. A run nobody has named
+     *  reads its module and its handle; hiding it leaves a bare run. */
+    ?? one_of("line.name", config["name"], SHOWN)
+    ?? one_of("line.alias", config["alias"], SHOWN)
+    /** Which of its fields draw at each end and in the middle. **Three lists
+     *  rather than one**: a multiplicity belongs at the end it counts and a
+     *  stereotype belongs beside the name. */
+    ?? words("line.from_shows", config["from_shows"])
+    ?? words("line.shows", config["shows"])
+    ?? words("line.to_shows", config["to_shows"])
+    ?? stray("line", config, ["from_arrow", "to_arrow", "name", "alias",
+                              "from_shows", "shows", "to_shows"]),
+};
+
 
 /** One constraint and four rules. Each is a lookup, a count or one fixed
  *  comparison — the shapes are checked here, and what survives is what `review`
@@ -306,4 +383,4 @@ const rules: Component = {
 /** What this build publishes. The engine ships its components the same way
  *  anybody else would, so there is no privileged path a later module would
  *  have to be measured against. */
-publish(block, card, style, rules);
+publish(block, card, line, style, rules);

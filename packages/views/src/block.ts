@@ -3,13 +3,13 @@
  *  A layer is what is looked at; this is the looking. It reads the graph and
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
-import { children, covers, edges_in, group_depth, is_grid, is_group, is_header,
-         is_holder, is_interface, members_of, module_of, role_of, shown_name,
+import { alias_of, children, covers, edges_in, group_depth, is_grid, is_group,
+         is_header, is_holder, is_interface, members_of, module_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
-import { look_of } from "./look";
+import { look_of, wire_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type Mark, type Scene,
          type Slot } from "./scene";
@@ -174,14 +174,39 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     .map(box_of);
 
   const edges: LineEdge[] = linked.map((e): LineEdge => {
+    const wire = wire_of(graph, e.id);
+    /** **A run says what it is where somebody said, and nothing where nobody
+     *  did.** This is the one place a run and a card part company, and the
+     *  reason is what each is identified by: a card is a box, and a box with
+     *  nothing written on it is unreadable — which is why an unnamed one falls
+     *  back to its kind and its handle. A run is identified by the two things
+     *  it joins, so a diagram of plain lines wants no writing on any of them.
+     *
+     *  **The handle draws where the line asks for it** — `line.alias` — rather
+     *  than standing in for a name nobody set. */
+    const named = !!graph.edges[e.id]?.type;
+    const label = wire.name && named ? shown_name(graph, e.id) : "";
+    const said = { label, ...(wire.alias ? { alias: alias_of(graph, e.id, true) } : {}) };
+    const values = (names: readonly string[] | undefined) =>
+      (names ?? []).flatMap((name) => {
+        const f = e.fields?.find((x) => x.name === name);
+        return f ? [{ name, value: String(f.value ?? "") }] : [];
+      });
+    const at_from = values(wire.from_shows);
+    const at_to = values(wire.to_shows);
+    const middle = values(wire.shows);
     return {
       id: e.id,
       source: e.from,
       target: e.to,
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
-      label: e.type ? graph.defs[e.type]?.name : undefined,
-      data: { module: e.module, dir: e.dir ?? "none",
+      ...(said.label ? { label: said.label } : {}),
+      data: { module: e.module, dir: e.dir ?? "none", wire,
+              ...(said.alias ? { alias: said.alias } : {}),
+              ...(at_from.length ? { from_fields: at_from } : {}),
+              ...(middle.length ? { fields: middle } : {}),
+              ...(at_to.length ? { to_fields: at_to } : {}),
               ...(solid.length ? { clear: solid } : {}) },
     };
   });

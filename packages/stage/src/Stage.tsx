@@ -17,11 +17,11 @@ import { is_grid, is_header } from "@mnd/core";
  *  and a word of its own. **Repeated here rather than imported** — the stage
  *  does not know the explorer exists, and this is the shape they agree on. */
 export type Entry = { name: string; label?: string; args?: Args };
-import { FlowView, type Adjust, type Gesture } from "./Flow";
+import { FlowView, type Adjust, type Gesture, type Landing } from "./Flow";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 
-export type { Adjust };
+export type { Adjust, Landing };
 
 export type StageProps = {
   scene: Scene;
@@ -35,8 +35,9 @@ export type StageProps = {
   cells?: readonly Spot[];
   onPickCells?: (cells: readonly Spot[]) => void;
   /** A row dropped from the tree onto the drawing — a block, or a definition
-   *  out of the vocabulary. The id says which. */
-  onDrop?: (id: string, at: { x: number; y: number }) => void;
+   *  out of the vocabulary. The id says which, and `land` says what it came
+   *  down on: a port goes on a block and a rim goes round one. */
+  onDrop?: (id: string, at: { x: number; y: number }, land: Landing) => void;
   /** The offered-action list, where the host has one. **Given rather than
    *  built**: the canvas and the tree offer the same actions, so the same menu
    *  serves both and neither package owns it.
@@ -78,10 +79,47 @@ function header_offers(id: string, graph: Graph): Entry[] {
     : [{ name: "header", label: "promote", args: {} }];
 }
 
-/** What a card's menu lists besides the shared box actions. */
+/** What a card's menu lists besides the shared box actions.
+ *
+ *  **Named by subject.** *Rename* and *delete* are within a few pixels of a
+ *  run's own on this canvas, and a word that does not say what it is about is a
+ *  word you have to aim carefully to be sure of. */
 function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
-  const base: (string | Entry)[] = ["rename", "open", "interface", "relate", "note", "pin"];
-  return [...base, ...header_offers(id, graph), "leave", "delete"];
+  const base: (string | Entry)[] = [
+    { name: "rename", label: "rename block" },
+    "open", "interface", "relate", "note", "pin"];
+  return [...base, ...header_offers(id, graph),
+          "leave", { name: "delete", label: "delete block" }];
+}
+
+/** What a run offers about its direction.
+ *
+ *  **Never *flip* and *point back* together.** They draw the identical picture
+ *  and only one of them moves `from` and `to` — which `chain`, allocation and
+ *  every `ends` rule read — so offering both is offering a choice between a
+ *  change and a change that only looks like one. */
+function route_offers(id: string, graph: Graph): Entry[] {
+  const dir = graph.edges[id]?.dir ?? "none";
+  if (dir === "none") {
+    return [{ name: "direct", label: "add direction", args: { dir: "forward" } }];
+  }
+  return [
+    ...(dir === "both" ? [] : [{ name: "flip", label: "flip direction" }]),
+    { name: "direct", label: "remove direction", args: { dir: "none" } },
+  ];
+}
+
+/** What a run's menu lists. A relationship is renamed by naming what it is, so
+ *  the word says *relation* wherever it appears. */
+function wire_offers(id: string, graph: Graph): readonly (string | Entry)[] {
+  return [{ name: "rename", label: "rename relation" },
+          ...route_offers(id, graph),
+          /** **The run says which run it is.** A grip knows the edge it is on;
+           *  a click on the line itself has to name it, or `interface` reads the
+           *  edge's id as the block to set a port into. */
+          { name: "interface", label: "promote both ends",
+            args: { edge: id, end: "both" } },
+          "note", { name: "delete", label: "delete relation" }];
 }
 
 /** What the right button offers for this gesture — not everything the registry
@@ -95,6 +133,11 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
     return box_offers(g.on, graph);
   }
   if (g.kind === "box" && g.on) return box_offers(g.on, graph);
+  /** **A run and its name are one subject.** A relationship's name is drawn off
+   *  the line, so a right-click on either has to offer the same list. */
+  if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
+    return wire_offers(g.on, graph);
+  }
   return offers[g.kind];
 }
 
@@ -181,16 +224,19 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
    *  Empty ground has no list — right there makes a block, which is one
    *  gesture doing one thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
-    name: ["rename", "delete"],
+    name: [{ name: "rename", label: "rename block" },
+           { name: "delete", label: "delete block" }],
     /** **A note is a remark, not a block.** There is nothing inside it to open
      *  and no wall to set an interface into; what is left is what it says and
      *  whether it stays. */
-    note: ["rename", "relate", "pin", "delete"],
+    note: [{ name: "rename", label: "rename note" }, "relate", "pin",
+           { name: "delete", label: "delete note" }],
     box: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
     seat: ["rename", "open", "interface", "relate", "note", "pin", "delete"],
     /** **A group and a grid write their name on the frame** when told to. */
-    band: ["rename", "label", "fill",
-           { name: "chain", args: module ? { module } : {} }, "pin", "delete"],
+    band: [{ name: "rename", label: "rename group" }, "label", "fill",
+           { name: "chain", args: module ? { module } : {} }, "pin",
+           { name: "delete", label: "delete group" }],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
      *  and remove are two entries each rather than one entry and a second
@@ -209,8 +255,15 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       { name: "chain", label: "chain grid", args: module ? { module } : {} },
       { name: "transpose", label: "transpose grid" },
     ],
+    /** Replaced per run by `wire_offers`, which needs the graph to know which
+     *  way it already points. Named here so the kind is still declared. */
     route: ["rename", "note", "delete"],
-    anchor: ["rename", "delete"],
+    /** **A grip is the one place that knows both ends.** Promoting is
+     *  `interface` with an edge and an end, which it already does whole. */
+    anchor: [{ name: "interface", label: "promote this end" },
+             { name: "interface", label: "promote both ends", args: { end: "both" } },
+             { name: "rename", label: "rename relation" },
+             { name: "delete", label: "delete relation" }],
     /** **The room's wall is a border like a card's**, but an interface is chosen
      *  from the menu — a right click here is the offered list, not a shortcut. */
     frame: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
@@ -281,8 +334,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
      *  about, and a menu whose only useful entry is *create* is a click in the
      *  way of the thing you came to do. */
     if (!g.on || g.kind === "empty") {
-      const label = prompt("name it");
-      if (label !== null) onAct("create", { label, spot: made_at(scene, g.at) });
+      const name = prompt("name it");
+      if (name !== null) onAct("create", { name, spot: made_at(scene, g.at) });
       return;
     }
     /** **A right-click inside the picked cells is about them.** It is about

@@ -279,13 +279,14 @@ describe("what the canvas draws", () => {
   });
 
   /** The edge elements themselves need measured handles, so what is checked
-   *  here is that every route was handed over — React Flow builds one arrow
-   *  marker per marker kind it was actually given. */
+   *  here is that every route was handed over, and that the heads a run may
+   *  draw are on the page for one to point at. */
   it("hands every route to the canvas", () => {
     const view = mount();
     expect(view.scene.edges.length).toBeGreaterThan(0);
     expect(view.container.querySelector(".react-flow__edges")).not.toBeNull();
-    expect(view.container.querySelector(".react-flow__arrowhead")).not.toBeNull();
+    expect(view.container.querySelector("#mnd-head-arrow")).not.toBeNull();
+    expect(view.container.querySelector("#mnd-head-diamond")).not.toBeNull();
   });
 
   /** The viewport is React Flow's, and its presence is the whole point of it

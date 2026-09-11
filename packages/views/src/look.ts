@@ -16,9 +16,9 @@
  *  what lets the CLI's text and SVG renderers say what a card would look like
  *  without resolving React. */
 
-import { ALIGNS, BORDERS, config_of, CONTRASTS, def_of, DISPLAYS, FAMILIES, FILLS,
-         FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS, WIDTHS,
-         type Graph, type Id } from "@mnd/core";
+import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, def_of, DISPLAYS, FAMILIES,
+         FILLS, FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS, WIDTHS,
+         type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];
@@ -29,6 +29,7 @@ export type Display = (typeof DISPLAYS)[number];
 export type Align = (typeof ALIGNS)[number];
 export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
+export type Arrow = (typeof ARROWS)[number];
 
 /** What one usage looks like. Every field is a name from a closed set, so a
  *  renderer is a lookup table and a definition cannot invent a value.
@@ -96,6 +97,17 @@ export const PLAIN: Look = {
   name: true, alias: false,
 };
 
+/** What this element says under one component key, chain first and its own last
+ *  word over it.
+ *
+ *  **Written once, for either holder.** A block and a relationship carry the
+ *  same bag one layer apart — `def_of` already answers for both — so the
+ *  cascade is read here rather than once per look. */
+function settings(graph: Graph, id: Id, key: string): Settings {
+  const it = graph.blocks[id] ?? graph.edges[id];
+  return { ...config_of(graph, def_of(graph, id), key), ...(it?.looks?.[key] ?? {}) };
+}
+
 /** One value if it is in the set, or the fallback. **The door already refused
  *  anything else**, so this is the second line and not the first: it is what
  *  keeps an older build reading a newer package rather than throwing on it. */
@@ -116,9 +128,8 @@ export function look_of(graph: Graph, id: Id): Look {
   /** **The chain, then the block.** A definition says what a kind of thing is
    *  like and the element has the last word over it — the same cascade the
    *  definitions themselves resolve by, with one more layer on the end. */
-  const names = def_of(graph, id);
-  const card = { ...config_of(graph, names, "card"), ...(b.looks?.["card"] ?? {}) };
-  const style = { ...config_of(graph, names, "style"), ...(b.looks?.["style"] ?? {}) };
+  const card = settings(graph, id, "card");
+  const style = settings(graph, id, "style");
   /** **The subtype, which is not the same as the definition.** A card says what
    *  it is only where somebody told it apart; the base kind is what the mark in
    *  the corner already says, and repeating it on every card is noise. */
@@ -140,8 +151,7 @@ export function look_of(graph: Graph, id: Id): Look {
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),
-    ...(typeof style["opacity"] === "number" && Number.isFinite(style["opacity"])
-      ? { opacity: style["opacity"] } : {}),
+    ...number("opacity", style["opacity"]),
     /** **The subtype where there is one, the base kind otherwise.** A card that
      *  nobody told apart still has a sort, and saying it is what `label` is
      *  for — so this is a word rather than sometimes a word. */
@@ -154,13 +164,9 @@ export function look_of(graph: Graph, id: Id): Look {
     /** **A number the door already bounded.** Anything else is absent rather
      *  than clamped: a look this build cannot read falls back to its family,
      *  which is what every other unreadable answer here does. */
-    ...(typeof style["hue"] === "number" && Number.isFinite(style["hue"])
-      ? { hue: style["hue"] } : {}),
-    ...(typeof style["intensity"] === "number" && Number.isFinite(style["intensity"])
-      ? { intensity: style["intensity"] } : {}),
-    ...(Array.isArray(card["shows"])
-      ? { shows: (card["shows"] as unknown[]).filter((f) => typeof f === "string") }
-      : {}),
+    ...number("hue", style["hue"]),
+    ...number("intensity", style["intensity"]),
+    ...listed("shows", card["shows"]),
   };
 }
 
@@ -172,6 +178,97 @@ function contrast(key: string, value: unknown): Record<string, Contrast> {
     ? { [key]: value as Contrast } : {};
 }
 
+/** How one run draws.
+ *
+ *  **The shared `style` answers under their own names, and the `line`
+ *  component's own beside them.** A relationship is painted exactly as a card
+ *  is — its family, its hue, its weight, the writing of its name — and what it
+ *  has in place of a face is two ends and a middle. Naming the shared keys the
+ *  way `style` names them is what lets one stylesheet paint a card and a run. */
+export type Wire = {
+  family?: Family;
+  opacity?: number;
+  hue?: number;
+  intensity?: number;
+  /** How heavy the run is drawn, and how. The card's border keys, doing the
+   *  same job on a line that has nothing else to be a border of. */
+  border_width?: Width;
+  border_style?: Border;
+  border_contrast?: Contrast;
+  name_font?: Font;
+  name_weight?: Weight;
+  name_contrast?: Contrast;
+  /** What draws at each end. **A shape, never a direction** — `dir` says which
+   *  ends point, and an end nobody gave a shape draws a filled head where it
+   *  points and nothing where it does not. */
+  from_arrow?: Arrow;
+  to_arrow?: Arrow;
+  /** Whether the identity line draws, and whether the handle joins a name
+   *  somebody did set. The same two questions a card answers. */
+  name: boolean;
+  alias: boolean;
+  /** Which of the relationship's fields draw where. **Three lists** — a
+   *  multiplicity belongs at the end it counts, a stereotype beside the name. */
+  from_shows?: readonly string[];
+  shows?: readonly string[];
+  to_shows?: readonly string[];
+};
+
+/** What a run is when nothing was said about it: a line that draws its name and
+ *  takes its weight, its dash and its colour from the module it is.
+ *
+ *  **Nothing said is nothing stated.** A card falls back to a full look because
+ *  it is a box and a box must be painted; a run already has one — `reference`
+ *  is elsewhere-coloured and dashed, a `tie` is a dotted whisper — and a look
+ *  that answered *neutral, thin, solid* on a line nobody styled would paint
+ *  over the one thing those two modules say about themselves. So every shared
+ *  key here is **absent until a vocabulary states it**. */
+export const BARE: Wire = { name: true, alias: false };
+
+export function wire_of(graph: Graph, id: Id): Wire {
+  if (!graph.edges[id]) return BARE;
+  const style = settings(graph, id, "style");
+  const line = settings(graph, id, "line");
+
+  return {
+    name: one(line["name"], SHOWN, "show") === "show",
+    alias: one(line["alias"], SHOWN, "hide") === "show",
+    ...word("family", style["family"], FAMILIES),
+    ...word("border_width", style["border_width"], WIDTHS),
+    ...word("border_style", style["border_style"], BORDERS),
+    ...word("border_contrast", style["border_contrast"], CONTRASTS),
+    ...word("name_font", style["name_font"], FONTS),
+    ...word("name_weight", style["name_weight"], WEIGHTS),
+    ...word("name_contrast", style["name_contrast"], CONTRASTS),
+    ...number("opacity", style["opacity"]),
+    ...number("hue", style["hue"]),
+    ...number("intensity", style["intensity"]),
+    ...word("from_arrow", line["from_arrow"], ARROWS),
+    ...word("to_arrow", line["to_arrow"], ARROWS),
+    ...listed("from_shows", line["from_shows"]),
+    ...listed("shows", line["shows"]),
+    ...listed("to_shows", line["to_shows"]),
+  };
+}
+
+/** One word from a closed set, under its own name, and **absent where nobody
+ *  said** — which is what lets whatever draws it keep its own ground. */
+function word(key: string, value: unknown, set: readonly string[]): Record<string, string> {
+  return typeof value === "string" && set.includes(value) ? { [key]: value } : {};
+}
+
+/** A number the door already bounded, under its own name. Absent rather than
+ *  clamped: a look this build cannot read falls back like any other. */
+function number(key: string, value: unknown): Record<string, number> {
+  return typeof value === "number" && Number.isFinite(value) ? { [key]: value } : {};
+}
+
+/** A list of field names, with anything that is not one dropped. */
+function listed(key: string, value: unknown): Record<string, string[]> {
+  return Array.isArray(value)
+    ? { [key]: value.filter((f): f is string => typeof f === "string") } : {};
+}
+
 /** A look as one string, for anything asking *has this changed*.
  *
  *  **Read off the object rather than listed by hand.** Two places used to name
@@ -180,7 +277,7 @@ function contrast(key: string, value: unknown): Record<string, Contrast> {
  *  re-renders — and both were blind to any property added after they were
  *  written, so a card kept its old drawing until something else changed. A key
  *  derived from the value cannot fall behind the value. */
-export function look_key(look?: Look): string {
+export function look_key(look?: Look | Wire): string {
   if (!look) return "";
   return Object.keys(look).sort()
     .map((k) => {

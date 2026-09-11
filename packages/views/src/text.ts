@@ -5,7 +5,7 @@
  *  It draws **shape, not coordinates** — a grid coarse enough that nudging a
  *  card by a cell does not rewrite the expectation. */
 
-import { box_of, type Scene } from "./scene";
+import { box_of, heads, type Scene } from "./scene";
 
 const CELL = 24;
 
@@ -99,8 +99,13 @@ export function outline(scene: Scene): string {
     lines.push(`  ${n.data.label}${marks}`);
   }
   for (const e of scene.edges) {
-    const arrow = e.data?.module === "directed" ? "-->" : "---";
-    lines.push(`  ${e.source} ${arrow} ${e.target}${e.label ? ` (${e.label})` : ""}`);
+    /** **Three characters, whatever shape the heads are.** A diamond and a
+     *  hollow triangle are the same fact here — there is a head at this end —
+     *  which is as much as a text rendering has ever claimed. */
+    const end = heads(e.data);
+    const arrow = `${end.from === "none" ? "-" : "<"}-${end.to === "none" ? "-" : ">"}`;
+    const said = [e.label, e.data?.alias].filter(Boolean).join(" ");
+    lines.push(`  ${e.source} ${arrow} ${e.target}${said ? ` (${said})` : ""}`);
   }
   return lines.join("\n");
 }

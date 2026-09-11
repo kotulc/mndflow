@@ -621,6 +621,53 @@
    does not move as the answer changes. */
 .preview { padding: 14px 0; }
 
+/* ── The run ──────────────────────────────────────────────────────────────
+   **`preview-card`'s sibling.** A short run between two seats, painted from the
+   same shared table — `style` applies to a block, an interface and a line — so
+   the heads, the dash and the writing are the canvas's own. */
+.preview-wire {
+  position: relative;
+  box-sizing: border-box;
+  width: 188px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--card-ink, var(--text));
+}
+.preview-run { display: block; overflow: visible; }
+.preview-line {
+  fill: none;
+  stroke: var(--card-line, var(--route));
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+.preview-line.core {
+  stroke: var(--surface);
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+.preview-wire[data-border-style="double"] .preview-line {
+  stroke-width: calc(var(--card-border-width, var(--weight-thin)) * 3);
+}
+.preview-wire[data-border-style="none"] .preview-line { stroke: transparent; }
+.preview-wire[data-border-style="dotted"] .preview-line { stroke-linecap: round; }
+.preview-seat { fill: var(--card-line, var(--route)); }
+
+/* The name sits over the middle of the run and each end's writing under the end
+   it is about — the same three places the canvas puts them. */
+.preview-wire-name {
+  display: block;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.preview-wire-end {
+  position: absolute;
+  top: 100%;
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.preview-wire-end.from { left: 0; }
+.preview-wire-end.to { right: 0; }
+
 .preview-fields {
   margin: 2px 0 0;
   flex: none;

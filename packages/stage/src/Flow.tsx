@@ -24,7 +24,7 @@ import { NamingContext } from "@mnd/theme";
 import { CellsContext, DRAGGED, NODE_TYPES } from "./nodes";
 
 export { DRAGGED };
-import { EDGE_TYPES } from "./Wire";
+import { EDGE_TYPES, Heads } from "./Wire";
 
 /** What a gesture on the canvas meant. The consumer decides what to do with
  *  it. `kind` is what was under the pointer, never what it looked like. */
@@ -82,6 +82,11 @@ export type Adjust =
    *  `h` all along with no gesture that wrote them. */
   | { kind: "size"; on: string; w: number; h: number; to: Point };
 
+/** What something dropped on the canvas came to rest on: a card it landed over,
+ *  a holder it landed within, and the cell of that holder where it is a grid. */
+export type Landing = { over: string | null; into: string | null;
+                        cell?: { r: number; c: number } };
+
 export type FlowViewProps = {
   scene: Scene;
   picked?: readonly Id[];
@@ -114,10 +119,16 @@ export type FlowViewProps = {
   /** What the app is saying, shown over the drawing rather than beside it. */
   said?: React.ReactNode;
   /** Something dropped onto the drawing from outside it, at the point it
-   *  landed. The explorer drags rows of both sorts — a block and a definition —
-   *  and **the id says which**, because whoever catches one has the graph.
-   *  Anything else setting the same payload works the same. */
-  onDrop?: (id: string, at: Point) => void;
+   *  landed and on whatever it landed on. The explorer drags rows of both
+   *  sorts — a block and a definition — and **the id says which**, because
+   *  whoever catches one has the graph. Anything else setting the same payload
+   *  works the same.
+   *
+   *  **The hit test is the one a node drag uses.** A port goes on a block and a
+   *  rim goes round one, so a dropped definition has to know what it came down
+   *  on — and working that out a second way from `clear_of`, which deliberately
+   *  *avoids* cards, would be two geometries to keep in step. */
+  onDrop?: (id: string, at: Point, land: Landing) => void;
   /** Which name is being typed in place, and what was typed. **A name is
    *  edited where it is read**, so the field is drawn on the thing it names
    *  rather than in a dialog over it — and like every other gesture the canvas
@@ -295,8 +306,6 @@ const READS: Record<string, string> = {
 function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
   return scene.edges.map((e) => {
     const d = e.data;
-    const forward = d?.dir === "forward" || d?.dir === "both" || d?.module === "directed";
-    const back = d?.dir === "back" || d?.dir === "both";
     return {
       ...e,
       type: "wire",
@@ -305,10 +314,12 @@ function edges_of(scene: Scene, picked: readonly Id[]): LineEdge[] {
       className: READS[d?.module ?? "line"] ?? "line",
       /** **The end is taken hold of by its own grip**, which appears when the
        *  line is picked. The library's anchors sit on the same two points and
-       *  cannot be told apart from it. */
+       *  cannot be told apart from it.
+       *
+       *  **No markers here.** What draws at each end is `Wire`'s: `dir` and the
+       *  shape a definition named resolve to one answer, and answering it here
+       *  as well gave the two halves of one question two places to disagree. */
       reconnectable: false,
-      markerEnd: forward ? { type: "arrowclosed" as const } : undefined,
-      markerStart: back ? { type: "arrowclosed" as const } : undefined,
     };
   });
 }
@@ -1183,7 +1194,10 @@ function Canvas(props: FlowViewProps) {
         const id = e.dataTransfer.getData(DRAGGED);
         if (!id) return;
         e.preventDefault();
-        onDrop?.(id, at(e));
+        const spot = at(e);
+        const land = landing_on(id, spot);
+        onDrop?.(id, spot, { over: land.over?.id ?? null, into: land.into?.id ?? null,
+                             ...(land.cell ? { cell: land.cell } : {}) });
       }}
       proOptions={{ hideAttribution: true }}
       /** **Depth is the notation's, not the selection's.** Lifting a picked
@@ -1276,8 +1290,13 @@ function Canvas(props: FlowViewProps) {
          *  land here as ground. Everything else that has a node behind it —
          *  the frame's own name included — is already reported as that node,
          *  and answering it here as well opened the rename twice. */
-        const wire = el.closest<HTMLElement>(".mnd-wire-name")?.dataset["edge"];
-        if (wire) { say(wire, e, "left", 2); return; }
+        /** **Two clicks on a run mean nothing.** They already mean *go in* or
+         *  *edit this name* everywhere else, and a relationship has no inside
+         *  — so what is left is its name, which the menu renames, and its
+         *  direction, which the menu sets. Swallowed rather than passed on,
+         *  because the ground behind a run would otherwise take you up a
+         *  layer. */
+        if (el.closest<HTMLElement>(".mnd-wire-name")) return;
         if (el.closest(".react-flow__node")) return;
         const p = at(e);
         const inside = frame && p.x >= frame.x && p.y >= frame.y
@@ -1373,14 +1392,23 @@ function Canvas(props: FlowViewProps) {
                        *  a border that is not there. */
                       onGesture?.({ on: g.edge, kind: "anchor", button: "right", count: 1,
                                     at: at(e), screen: { x: e.clientX, y: e.clientY },
-                                    given: { end: g.end,
-                                             on: g.on === FRAME ? scene.layer : g.on,
+                                    /** **Named for the argument each fills.**
+                                     *  `interface` asks for an owner, an edge
+                                     *  and an end, and a grip is the one place
+                                     *  that knows all three — so it says them
+                                     *  in the action's own words rather than in
+                                     *  the canvas's. */
+                                    given: { end: g.end, edge: g.edge,
+                                             owner: g.on === FRAME ? scene.layer : g.on,
                                              side: g.side, at: g.at } });
                     }} />
             );
           })}
         </ViewportPortal>
       ) : null}
+      {/* **The heads every run draws from.** One set of markers for the page,
+          addressed by id — see `Heads`. */}
+      <Heads />
       {chrome ? <Background variant={BackgroundVariant.Dots} gap={UNIT} size={1} /> : null}
       {/* **The unit, ruled over the whole canvas as squares.**
           One square is the unit everything on the drawing is measured in: a

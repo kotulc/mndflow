@@ -7,8 +7,8 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, can_hold, module_of, offer, session,
-         type Id, type RelationModule } from "@mnd/core";
+import { adjustments, can_hold, module_named, module_of, offer, session,
+         type Args, type Graph, type Id, type Point, type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, extent_of, holds, nearest_seat, project, snap, tidy,
          BLOCK, PORT } from "@mnd/views";
@@ -406,7 +406,7 @@ export function App() {
            *  block already in this layer is the one thing a drop cannot say, and
            *  `refer` is what says so — it is the action's to refuse, not the
            *  app's to guess at. */
-          onDrop={(id, spot) => {
+          onDrop={(id, spot, land) => {
             /** **Where the pointer was, clear of what is already there.** A row
              *  is dropped by its middle, and a card is placed by its corner. */
             const at = clear_of(
@@ -414,12 +414,12 @@ export function App() {
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
             /** **A definition dragged out makes a block naming it.** No new
-             *  action and no second payload: `create` already takes a type, and
-             *  what the vocabulary drags is a row of `graph.defs` rather than
-             *  anything that exists on a layer — so the graph is asked which it
-             *  was. A block wins the tie, being the thing you can point at. */
+             *  action and no second payload: what the vocabulary drags is a row
+             *  of `graph.defs` rather than anything that exists on a layer — so
+             *  the graph is asked which it was. A block wins the tie, being the
+             *  thing you can point at. */
             if (!graph.blocks[id] && graph.defs[id]) {
-              s.go("create", { name: "", type: id, parent: layer ?? graph.root, spot: at });
+              s.go(...dropped(graph, id, land.over, at, layer));
               return;
             }
             s.go("refer", { target: id, spot: at });
@@ -457,4 +457,29 @@ export function App() {
                                  chrome)} />
     </div>
   );
+}
+
+/** **What a dragged definition makes, by what it is a definition of.**
+ *
+ *  Three of the eight kinds are made *of* something: a port goes on a block, a
+ *  rim goes round one, and a stand-in stands for one. Each has an action that
+ *  says what it needs, so this picks the action and the actions keep the rules
+ *  — a drop on empty ground falls through to `create`, which refuses the three
+ *  in the words the user should read.
+ *
+ *  **A grid is made with an extent.** An empty grid is a real thing only
+ *  because it owns its corner, and one with no rows and no columns would have
+ *  nothing to draw — so a dropped grid arrives as a small one you can seat
+ *  something in. */
+const GRID = { rows: 2, cols: 2 };
+
+function dropped(graph: Graph, type: Id, on: Id | null, at: Point,
+                 layer: Id | null): [string, Args] {
+  const kind = module_named(graph, type);
+  if (on && kind === "interface") return ["interface", { owner: on, type }];
+  if (on && kind === "group") return ["group", { members: [on], type }];
+  /** **Beside a block, never on it.** A grid is a region of the lattice and a
+   *  card dropped onto one is seated; a grid dropped onto a card is neither. */
+  if (kind === "grid") return ["group", { ...GRID, type, spot: at }];
+  return ["create", { name: "", type, parent: layer ?? graph.root, spot: at }];
 }

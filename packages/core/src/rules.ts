@@ -13,7 +13,7 @@
  *  the whole of the matching. A malformed rule is ignored rather than thrown
  *  on, the same way a component validates its own key and no other. */
 
-import { children, def_of, isa, subtree } from "./fold";
+import { children, def_of, is_interface, isa, subtree } from "./fold";
 import type { Components, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "degree" | "match";
@@ -79,7 +79,9 @@ function layers_of(graph: Graph, id: Id | undefined): Rules[] {
   if (!id) return [];
   if (graph.defs[id]) return isa(graph, id).map((d) => read_rules(d.components));
   const chain = isa(graph, def_of(graph, id)).map((d) => read_rules(d.components));
-  const own = graph.blocks[id]?.looks;
+  /** **Whichever holder the id names.** A relationship carries the same bag a
+   *  block does, so a line may state a rule over its own chain too. */
+  const own = (graph.blocks[id] ?? graph.edges[id])?.looks;
   return own?.["rules"] ? [read_rules(own), ...chain] : chain;
 }
 
@@ -209,13 +211,28 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
   }
 }
 
+/** **A rule about an end walks through a port.**
+ *
+ *  Promoting an end mints an interface on the block and takes the line to it,
+ *  so a rule written against what sits at an end stopped matching the moment
+ *  anybody promoted one — and nothing said so, because a rule is advice. What
+ *  the rule means is *what is at this end*, and a port is part of the block it
+ *  is set into.
+ *
+ *  **No new keys.** `fromFlow` reads a property only an interface has, so the
+ *  two divide the labour: `from` says what sort of thing is at this end, and
+ *  `fromFlow` says it must be a port and which way it runs. */
 function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
-  if (allowed && !is_one_of(graph, graph.blocks[at]?.type, allowed)) {
+  const met = graph.blocks[at];
+  const owner = met && is_interface(met) && met.parent
+    ? graph.blocks[met.parent] : undefined;
+  if (allowed && !is_one_of(graph, met?.type, allowed)
+      && !is_one_of(graph, owner?.type, allowed)) {
     notes.push({ kind: "ends", id,
-                 what: `"${label(graph, at)}" may not sit at the ${way} end` });
+                 what: `"${label(graph, owner?.id ?? at)}" may not sit at the ${way} end` });
   }
-  if (flow && graph.blocks[at]?.flow !== flow) {
+  if (flow && met?.flow !== flow) {
     notes.push({ kind: "ends", id,
                  what: `the ${way} end wants a ${flow} interface` });
   }

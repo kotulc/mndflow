@@ -41,8 +41,11 @@ export function held(graph: Graph, id: Id): Held | null {
  *  trait resolves to. */
 export function reading(graph: Graph, id: Id, it: Held) {
   const { def: d } = it;
+  /** **Whichever holder this is.** A block and a relationship carry the same
+   *  bag one layer apart, so a run's own last word is read here exactly as a
+   *  card's is — without it every control on a run read as *inherit*. */
   const said = (key: string, name: string) =>
-    d ? d.components?.[key]?.[name] : it.block?.looks?.[key]?.[name];
+    d ? d.components?.[key]?.[name] : (it.block ?? it.edge)?.looks?.[key]?.[name];
   /** What it inherits, for the answers it has not overridden. **Shown in the
    *  picker rather than left blank**: an empty one used to read as the trait's
    *  own name, so a card drawing itself green offered a box saying *neutral*. */

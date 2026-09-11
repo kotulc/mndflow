@@ -635,6 +635,56 @@
 }
 .mnd-flow .react-flow__edge.tie .react-flow__arrowhead * { fill: var(--note-dim); }
 
+/* ── What a vocabulary says about a run ───────────────────────────────────── */
+
+/* **The same table a card is painted from.** `style` is shared, so a run
+   carries `data-family`, the border keys and the name keys exactly as a card
+   does and `card.css` computes the steps. What is below only spends them.
+
+   **An attribute appears only where something said it**, which is what leaves
+   the module rules above in charge of a plain line, a reference and a tie. */
+.mnd-wire[data-family] .react-flow__edge-path { stroke: var(--card-line); }
+.mnd-wire[data-border-width] .react-flow__edge-path {
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+.mnd-wire[data-border-style="dashed"] .react-flow__edge-path { stroke-dasharray: 5 4; }
+.mnd-wire[data-border-style="dotted"] .react-flow__edge-path {
+  stroke-dasharray: 0 3.5;
+  stroke-linecap: round;
+}
+.mnd-wire[data-border-style="none"] .react-flow__edge-path { stroke: transparent; }
+
+/* **A double run is two strokes.** The run is widened and `mnd-wire-core` draws
+   the ground back through the middle of it — the only way a single stroke can
+   read as two lines. */
+.mnd-wire[data-border-style="double"] .react-flow__edge-path {
+  stroke-width: calc(var(--card-border-width, var(--weight-thin)) * 3);
+}
+.mnd-wire-core {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+
+/* **Selection still wins.** A run somebody picked reads as picked whatever its
+   vocabulary painted it. */
+.mnd-flow .react-flow__edge.selected .mnd-wire .react-flow__edge-path {
+  stroke: var(--accent);
+}
+
+/* What a run says at one of its ends — a multiplicity, a role name, a guard.
+   Set like the name in the middle and smaller, because it qualifies rather than
+   names. */
+.mnd-wire-end {
+  position: absolute;
+  padding: 0 3px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Handles are for connecting, not for looking at: they appear while a
    connection is being made and are invisible the rest of the time. */
 .mnd-flow .react-flow__handle {

@@ -4,7 +4,7 @@
  *  drift from the log that produced it — and undo is a refold, so no mutation
  *  needs an inverse. */
 
-import type { Settings } from "./components";
+import { DRAWN, type Settings } from "./components";
 import { BLOCK_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
@@ -212,11 +212,8 @@ function apply(graph: Graph, m: Mutation): void {
       const e = graph.edges[m.id];
       if (!e) return;
       const key = m.end === "from" ? "fromSide" : "toSide";
-      const along = m.end === "from" ? "fromAt" : "toAt";
-      if (m.side === null) { delete e[key]; delete e[along]; return; }
-      e[key] = m.side;
-      if (m.at === undefined) delete e[along];
-      else e[along] = m.at;
+      if (m.side === null) delete e[key];
+      else e[key] = m.side;
       return;
     }
     case "mark_port": {
@@ -253,24 +250,26 @@ function apply(graph: Graph, m: Mutation): void {
       if (kept.length) b.tags = kept; else delete b.tags;
       return;
     }
+    /** **Whichever holder the id names.** A block and a relationship carry the
+     *  same bag one layer apart, so the drawing keys a line answers — `line`
+     *  and the shared `style` — are given back the same way a card's are. */
     case "drop_looks": {
-      const b = graph.blocks[m.id];
-      if (!b?.looks) return;
-      const looks = { ...b.looks };
-      delete looks["card"];
-      delete looks["style"];
-      if (Object.keys(looks).length) b.looks = looks; else delete b.looks;
+      const it = graph.blocks[m.id] ?? graph.edges[m.id];
+      if (!it?.looks) return;
+      const looks = { ...it.looks };
+      for (const key of DRAWN) delete looks[key];
+      if (Object.keys(looks).length) it.looks = looks; else delete it.looks;
       return;
     }
     case "set_look": {
-      const b = graph.blocks[m.id];
-      if (!b) return;
-      const held = { ...(b.looks?.[m.key] ?? {}) };
+      const it = graph.blocks[m.id] ?? graph.edges[m.id];
+      if (!it) return;
+      const held = { ...(it.looks?.[m.key] ?? {}) };
       if (m.value === null || m.value === undefined) delete held[m.name];
       else held[m.name] = m.value;
-      const looks = { ...(b.looks ?? {}) };
+      const looks = { ...(it.looks ?? {}) };
       if (Object.keys(held).length) looks[m.key] = held; else delete looks[m.key];
-      if (Object.keys(looks).length) b.looks = looks; else delete b.looks;
+      if (Object.keys(looks).length) it.looks = looks; else delete it.looks;
       return;
     }
     case "set_arrangement": {

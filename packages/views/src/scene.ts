@@ -13,7 +13,7 @@
 
 import type { Edge, Node } from "@xyflow/react";
 import type { Dir, Id, RelationModule, Role, Side } from "@mnd/core";
-import type { Cell, Look } from "./look";
+import type { Arrow, Cell, Look, Wire } from "./look";
 import type { Perch } from "./seat";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
@@ -100,6 +100,19 @@ export type GridCell = {
 export type LineData = {
   module: RelationModule;
   dir: Dir;
+  /** How it is painted and what draws at its ends. **Names from closed sets**,
+   *  the same way a box carries its look — so a renderer is a lookup table and
+   *  a definition cannot invent a value. */
+  wire?: Wire;
+  /** The handle, beside the name rather than inside it. Unnamed, it is what
+   *  tells two runs apart; named, it draws only where the line asked. */
+  alias?: string;
+  /** The values this run draws, at the end each belongs to. **Three lists** —
+   *  a multiplicity sits at the end it counts and a stereotype beside the name,
+   *  which is the whole of what makes either of them special. */
+  from_fields?: readonly { name: string; value: string }[];
+  fields?: readonly { name: string; value: string }[];
+  to_fields?: readonly { name: string; value: string }[];
   /** The boxes this run must stay outside of: **every card on the layer**.
    *
    *  It used to be the two ends' own boxes and nothing else, on the reasoning
@@ -132,6 +145,26 @@ export function holds(n: { type?: string } | null | undefined): boolean {
 
 /** One line. React Flow's edge, with our data on it. */
 export type LineEdge = Edge<LineData>;
+
+/** What draws at each end of a run.
+ *
+ *  **Two questions with one answer.** `dir` says which ends a relationship
+ *  points at — the model's, and what `flip`, `chain` and every `ends` rule read
+ *  — and the `line` component says what shape is drawn there. A shape somebody
+ *  named wins; an end that points and was given no shape draws the ordinary
+ *  filled head; an end that is neither draws nothing.
+ *
+ *  **Resolved once**, so the canvas and the SVG export cannot draw one line
+ *  two ways. */
+export function heads(data: LineData | undefined): { from: Arrow; to: Arrow } {
+  const dir = data?.dir ?? "none";
+  const to = dir === "forward" || dir === "both" || data?.module === "directed";
+  const from = dir === "back" || dir === "both";
+  return {
+    from: data?.wire?.from_arrow ?? (from ? "arrow" : "none"),
+    to: data?.wire?.to_arrow ?? (to ? "arrow" : "none"),
+  };
+}
 
 /** Which control group this projection offers. The shell knows how to build
  *  each; a module declaring none simply has none.

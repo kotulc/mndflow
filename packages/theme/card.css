@@ -191,3 +191,13 @@
 [data-label-contrast="soft"]   .card-label { color: var(--step-line); }
 [data-label-contrast="strong"] .card-label { color: var(--card-edge); }
 [data-label-contrast="full"]   .card-label { color: var(--step-ink); }
+
+/* ── The heads a run draws ────────────────────────────────────────────────── */
+
+/* **A head takes its line's own colour.** A marker draws in its own context, so
+   `context-stroke` is the whole of how a head stays part of the run it ends —
+   and it is here rather than in the canvas because the tray previews the same
+   run beside the controls that set it. */
+.mnd-heads { position: absolute; width: 0; height: 0; overflow: hidden; }
+.mnd-head { fill: context-stroke; stroke: none; }
+.mnd-head.open { fill: none; stroke: context-stroke; stroke-width: 1.4; }

@@ -40,6 +40,9 @@ export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 /** Closed: two are picked, two are assigned from what sits at the ends. */
 export type RelationModule = "line" | "directed" | "reference" | "tie";
 
+export const RELATION_MODULES: readonly RelationModule[] =
+  ["line", "directed", "reference", "tie"];
+
 export type Dir = "none" | "forward" | "back" | "both";
 
 /** Closed, and permanent. */
@@ -154,13 +157,15 @@ export type Relation = {
   /** Which wall a relationship end leaves by. */
   fromSide?: Side;
   toSide?: Side;
-  /** Legacy; not read by layout. */
-  fromAt?: number;
-  toAt?: number;
   /** **A relationship carries a handle exactly as a block does.** Three unnamed
    *  lines in a layer all read `line` without one, with nothing to tell them
    *  apart. */
   alias?: number;
+  /** What this one line says about how it draws, over whatever its definition
+   *  said. **The same bag a block carries**, keyed the same way — `style` is
+   *  shared and `line` is the relationship's own, exactly as `card` is the
+   *  block's. Local until it is pinned, like a block's. */
+  looks?: Components;
   fields?: Field[];
 };
 
@@ -257,7 +262,7 @@ export type Mutation =
   | { op: "flip_edge"; id: Id }
   | { op: "set_end"; id: Id; end: "from" | "to"; port: Id }
   | { op: "set_port"; id: Id; side: Side; at: number }
-  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null; at?: number }
+  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
   | { op: "set_field"; id: Id; field: Field }
   | { op: "drop_field"; id: Id; name: string }

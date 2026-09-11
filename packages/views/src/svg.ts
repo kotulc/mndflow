@@ -12,7 +12,7 @@
 
 import { getSmoothStepPath, Position } from "@xyflow/system";
 import type { Side } from "@mnd/core";
-import { box_of, extent, type BoxNode, type LineEdge, type Scene } from "./scene";
+import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
 import { at_seat, type Perch } from "./seat";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
@@ -107,6 +107,8 @@ svg.scene .route .head { fill: var(--stroke); }
 svg.scene .route text { fill: var(--dim); font: 10px var(--face); }
 svg.scene .route.directed path { stroke: var(--lead); }
 svg.scene .route.directed .head { fill: var(--lead); }
+svg.scene .head.open { fill: none; stroke: currentColor; stroke-width: 1.4; }
+svg.scene .route.directed .head.open { fill: none; stroke: var(--lead); }
 svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.9; }
 svg.scene .route.tie path {
   stroke: var(--note-dim); stroke-dasharray: 0 4; stroke-linecap: round;
@@ -131,9 +133,7 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
     + ` preserveAspectRatio="xMidYMid meet" aria-label="${esc(name)}">`,
     `<title>${esc(name)}</title>`,
     `<style>${paper.style ?? SHEET}</style>`,
-    `<defs><marker id="${key}-arrow" viewBox="0 0 10 10" refX="9" refY="5"`
-    + ` markerWidth="6" markerHeight="6" orient="auto-start-reverse">`
-    + `<path d="M 0 0 L 10 5 L 0 10 z" class="head" /></marker></defs>`,
+    `<defs>${markers(key)}</defs>`,
   ];
 
   if (scene.frame) {
@@ -212,17 +212,40 @@ function line(edge: LineEdge, at: Map<string, At>, met: ReadonlyMap<string, Perc
   });
 
   const data = edge.data;
-  const forward = data?.dir === "forward" || data?.dir === "both"
-               || data?.module === "directed";
-  const back = data?.dir === "back" || data?.dir === "both";
+  const end = heads(data);
+  /** **The name, and whatever the run draws beside it.** The handle where the
+   *  line asked for one, and the fields it puts in the middle. */
+  const middle = [String(edge.label ?? ""), data?.alias ?? "",
+                  ...(data?.fields ?? []).map((f) => f.value)].filter(Boolean).join(" ");
   return `<g class="route ${data?.module ?? "line"}"><path d="${d}"`
-    + (forward ? ` marker-end="url(#${key}-arrow)"` : ``)
-    + (back ? ` marker-start="url(#${key}-arrow)"` : ``) + ` />`
-    + (edge.label
+    + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
+    + (end.to === "none" ? `` : ` marker-end="url(#${key}-${end.to})"`) + ` />`
+    + (middle
         ? `<text x="${round(cx)}" y="${round(cy - 4)}" text-anchor="middle">`
-          + `${esc(String(edge.label))}</text>`
+          + `${esc(middle)}</text>`
         : ``)
     + `</g>`;
+}
+
+/** The four heads a run may draw, as markers.
+ *
+ *  **One viewBox and one anchor**, so every shape meets the end at the same
+ *  point and swapping one for another never shifts where the line stops. A
+ *  hollow head and a hollow diamond are the same paths unfilled, which is what
+ *  the class is for. */
+const HEADS: Record<string, { d: string; open?: boolean }> = {
+  arrow: { d: "M 0 0 L 10 5 L 0 10 z" },
+  open: { d: "M 0 0 L 10 5 L 0 10", open: true },
+  hollow: { d: "M 0 0 L 10 5 L 0 10 z", open: true },
+  diamond: { d: "M 0 5 L 5 0 L 10 5 L 5 10 z", open: true },
+};
+
+function markers(key: string): string {
+  return Object.entries(HEADS).map(([name, head]) =>
+    `<marker id="${key}-${name}" viewBox="0 0 10 10" refX="9" refY="5"`
+    + ` markerWidth="6" markerHeight="6" orient="auto-start-reverse">`
+    + `<path d="${head.d}" class="${head.open ? "head open" : "head"}" /></marker>`
+  ).join("");
 }
 
 /** How a side names itself to the path function. */

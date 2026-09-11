@@ -18,6 +18,7 @@ export * from "./text";
 
 export { project, type Config } from "./block";
 
-export { CELLS, PLAIN, cells_of, look_key, look_of, type Align, type Border,
-         type Cell, type Contrast, type Display, type Family, type Fill,
-         type Font, type Look, type Weight, type Width } from "./look";
+export { BARE, CELLS, PLAIN, cells_of, look_key, look_of, wire_of, type Align,
+         type Arrow, type Border, type Cell, type Contrast, type Display,
+         type Family, type Fill, type Font, type Look, type Weight, type Width,
+         type Wire } from "./look";
