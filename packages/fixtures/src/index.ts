@@ -13,10 +13,10 @@ const step = (action: string, mutations: Mutation[]): Step =>
 /** `num` is fixed at creation and is what the explorer reads its order from, so
  *  a fixture counts per parent exactly as the create action does. */
 let counts: Record<string, number> = {};
-const block = (id: string, parent: string | null, label: string, type?: string): Mutation => {
+const block = (id: string, parent: string | null, name: string, type?: string): Mutation => {
   const key = parent ?? "";
   counts[key] = (counts[key] ?? 0) + 1;
-  return { op: "add_block", block: { id, parent, label, type, num: counts[key] } };
+  return { op: "add_block", block: { id, parent, name, type, order: counts[key] } };
 };
 
 const start = () => { n = 0; counts = {}; };
@@ -102,9 +102,9 @@ export function interfaced(): Log {
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("interface", [
       { op: "add_block", block: { id: "port_out", parent: "block_pump",
-                                  side: "right", at: 0.5, flow: "out", num: 1 } },
+                                  side: "right", at: 0.5, flow: "out", order: 1 } },
       { op: "add_block", block: { id: "port_in", parent: "block_hx",
-                                  side: "left", at: 0.5, flow: "in", num: 1 } },
+                                  side: "left", at: 0.5, flow: "in", order: 1 } },
     ]),
     step("relate", [link("edge_flow", "port_out", "port_in", "directed")]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),

@@ -38,7 +38,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "update_block": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      if (m.label !== undefined) b.label = m.label;
+      if (m.name !== undefined) b.name = m.name;
       if (m.type === null) delete b.type;
       else if (m.type !== undefined) b.type = m.type;
       return;
@@ -80,7 +80,7 @@ function apply(graph: Graph, m: Mutation): void {
     }
     case "order_block": {
       const b = graph.blocks[m.id];
-      if (b) b.num = m.num;
+      if (b) b.order = m.order;
       return;
     }
     case "place_block": {
@@ -339,7 +339,7 @@ export function children(graph: Graph, layer: Id | null): Block[] {
   const here = layer_id(graph, layer);
   return Object.values(graph.blocks)
     .filter((b) => b.parent === here)
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
 /** The chain from root down to this block, itself last. */
@@ -467,7 +467,7 @@ export function is_named(graph: Graph, id: Id): boolean {
   if (!b) return false;
   const target = b.of ? stands_for(graph, id) : b;
   if (!target) return false;
-  if (target.label?.trim()) return true;
+  if (target.name?.trim()) return true;
   return module_of(graph, target.id) === "note" && !!target.body?.trim();
 }
 
@@ -488,8 +488,8 @@ export function shown_name(graph: Graph, id: Id): string {
 }
 
 function named(graph: Graph, b: Block): string {
-  const label = b.label?.trim();
-  if (label) return label;
+  const name = b.name?.trim();
+  if (name) return name;
   const body = b.body?.trim();
   if (body && module_of(graph, b.id) === "note") return body;
   return fallback(graph, b);
@@ -500,8 +500,8 @@ function named(graph: Graph, b: Block): string {
  *  **Appended, never inserted.** The lowest free number filled the gap a
  *  deleted sibling left, which put the newest block in the middle of a list
  *  whose whole meaning is the order things were added. */
-export function next_num(graph: Graph, parent: Id | null): number {
-  return children(graph, parent).reduce((n, b) => Math.max(n, b.num ?? 0), 0) + 1;
+export function next_order(graph: Graph, parent: Id | null): number {
+  return children(graph, parent).reduce((n, b) => Math.max(n, b.order ?? 0), 0) + 1;
 }
 
 /** The siblings of a layer, renumbered so `moved` sits in front of `before` —
@@ -512,7 +512,7 @@ export function next_num(graph: Graph, parent: Id | null): number {
  *  The block being moved may be arriving from another layer, so it is taken
  *  out of the list before it is put back. */
 export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id[],
-                        before?: Id | null): { id: Id; num: number }[] {
+                        before?: Id | null): { id: Id; order: number }[] {
   /** **Several arrive as one run**, in the order they were handed over — put in
    *  one at a time each would land in front of the last, and a selection
    *  dropped somewhere would arrive backwards. */
@@ -521,8 +521,8 @@ export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id
   const at = before ? rest.indexOf(before) : -1;
   const order = at < 0 ? [...rest, ...run] : [...rest.slice(0, at), ...run, ...rest.slice(at)];
   return order
-    .map((id, i) => ({ id, num: i + 1 }))
-    .filter(({ id, num }) => (graph.blocks[id]?.num ?? 0) !== num);
+    .map((id, i) => ({ id, order: i + 1 }))
+    .filter(({ id, order }) => (graph.blocks[id]?.order ?? 0) !== order);
 }
 
 /** What an end is **drawn on**. An interface is drawn on its owner, and
@@ -612,7 +612,7 @@ export function group_depth(graph: Graph, id: Id): number {
 export function members_of(graph: Graph, group: Id): Block[] {
   return Object.values(graph.blocks)
     .filter((b) => b.group === group)
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
 /** Whether `holder` may contain `id` — not itself and not a cycle.

@@ -30,9 +30,9 @@ describe("undo is a refold", () => {
     s.go("create", { label: "B" });
     s.go("create", { label: "C" });
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.label)).toEqual(["A", "B"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A", "B"]);
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.label)).toEqual(["A"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A"]);
   });
 
   it("reports itself spent when there is nothing left", () => {
@@ -66,7 +66,7 @@ describe("one step per action", () => {
   it("writes one step however many mutations it took", () => {
     const s = session();
     s.go("create", { label: "Pump" });
-    const pump = Object.values(s.graph().blocks).find((b) => b.label === "Pump")!.id;
+    const pump = Object.values(s.graph().blocks).find((b) => b.name === "Pump")!.id;
     s.go("note", { about: pump, text: "hello", spot: { x: 24, y: 24 } });
     expect(s.log().filter((x) => x.action === "note")).toHaveLength(1);
     expect(s.log().find((x) => x.action === "note")!.mutations.length).toBeGreaterThan(1);
@@ -101,7 +101,7 @@ describe("the door", () => {
   it("repairs a block whose parent is not there, and says so", () => {
     const log = flat();
     log.push({ id: "s", action: "x", at: 9, status: "applied", mutations: [
-      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", label: "Orphan" } },
+      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", name: "Orphan" } },
     ] });
     const got = check(log);
     expect(say(got.faults)).toMatch(/repaired/);
@@ -159,13 +159,13 @@ describe("storage", () => {
     const one = session({ storage: store });
     one.go("create", { label: "Ledger" });
     const two = session({ storage: store });
-    expect(children(two.graph(), ROOT).map((b) => b.label)).toEqual(["Ledger"]);
+    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Ledger"]);
   });
 
   it("keeps a repair, so a mended log is not re-read as damaged", () => {
     const store = memory();
     store.write([{ id: "s", action: "hand-edited", at: 0, status: "applied", mutations: [
-      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", label: "Orphan" } },
+      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", name: "Orphan" } },
     ] }]);
 
     const one = session({ storage: store });
@@ -176,7 +176,7 @@ describe("storage", () => {
     const two = session({ storage: store });
     expect(two.said()).toBeNull();
     expect(store.held()!.filter((x) => x.action === "repair")).toHaveLength(1);
-    expect(children(two.graph(), ROOT).map((b) => b.label)).toEqual(["Orphan"]);
+    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Orphan"]);
   });
 
   it("says nothing on opening a clean log", () => {
@@ -197,7 +197,7 @@ describe("compaction", () => {
     let log: Log = [];
     for (let i = 0; i < CAP + 400; i++) {
       log.push({ id: `step_${i}`, action: "create", at: i, status: "applied", mutations: [
-        { op: "add_block", block: { id: `block_${i}`, parent: ROOT, label: `B${i}` } },
+        { op: "add_block", block: { id: `block_${i}`, parent: ROOT, name: `B${i}` } },
       ] });
     }
     const before = fold(log);

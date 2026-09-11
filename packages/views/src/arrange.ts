@@ -40,7 +40,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
   const unit = (id: Id) => loose_unit(graph, id);
   const structural = loose.filter((b) => !is_satellite(graph, layer, b));
   const satellites = loose.filter((b) => is_satellite(graph, layer, b))
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 
   const sized: Sized[] = structural.map((b) => ({
     b, s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
@@ -114,14 +114,14 @@ function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Arrangeme
   const edges = band_edges(graph, layer, band_id);
   const structural = members.filter((b) => !is_satellite(graph, layer, b));
   const satellites = members.filter((b) => is_satellite(graph, layer, b))
-    .sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
   const sized = structural.map((b) => ({
     b,
     s: is_group(graph, b.id) ? band_size(graph, layer, b, how) : size_of(graph, b.id),
   }));
 
   const ordered_mem = [...sized].sort((a, b) =>
-    (a.b.num ?? 0) - (b.b.num ?? 0) || a.b.id.localeCompare(b.b.id));
+    (a.b.order ?? 0) - (b.b.order ?? 0) || a.b.id.localeCompare(b.b.id));
   const packed_in = how === "grid" ? pack_units(graph, layer, sized, unit, edges)
                                    : packed(ordered_mem).layout;
   return from_corner([...packed_in,
@@ -277,7 +277,7 @@ function connected(graph: Graph, layer: Id | null, units: Block[],
     adj.set(a, [...new Set([...(adj.get(a) ?? []), b])]);
     adj.set(b, [...new Set([...(adj.get(b) ?? []), a])]);
   }
-  const sorted = [...units].sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+  const sorted = [...units].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
   const seen = new Set<Id>();
   const out: Block[][] = [];
   for (const start of sorted) {
@@ -291,13 +291,13 @@ function connected(graph: Graph, layer: Id | null, units: Block[],
       const b = by_id.get(id);
       if (b) comp.push(b);
       const next = [...(adj.get(id) ?? [])].sort((a, b) =>
-        (by_id.get(a)?.num ?? 0) - (by_id.get(b)?.num ?? 0) || a.localeCompare(b));
+        (by_id.get(a)?.order ?? 0) - (by_id.get(b)?.order ?? 0) || a.localeCompare(b));
       for (const n of next) if (!seen.has(n) && ids.has(n)) queue.push(n);
     }
     out.push(comp);
   }
   return out.sort((a, b) => b.length - a.length
-    || (a[0]!.num ?? 0) - (b[0]!.num ?? 0)
+    || (a[0]!.order ?? 0) - (b[0]!.order ?? 0)
     || a[0]!.id.localeCompare(b[0]!.id));
 }
 
@@ -682,10 +682,10 @@ function placement_order(graph: Graph, layer: Id | null, units: Block[],
     adj.set(a, [...new Set([...(adj.get(a) ?? []), b])]);
     adj.set(b, [...new Set([...(adj.get(b) ?? []), a])]);
   }
-  const sorted = [...units].sort((a, b) => (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id));
+  const sorted = [...units].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
   const start = [...sorted].sort((a, b) =>
     (adj.get(b.id)?.length ?? 0) - (adj.get(a.id)?.length ?? 0)
-    || (a.num ?? 0) - (b.num ?? 0) || a.id.localeCompare(b.id))[0]!.id;
+    || (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))[0]!.id;
   const seen = new Set<Id>();
   const out: Block[] = [];
   const queue: Id[] = [start];
@@ -696,7 +696,7 @@ function placement_order(graph: Graph, layer: Id | null, units: Block[],
     const b = by_id.get(id);
     if (b) out.push(b);
     const next = [...(adj.get(id) ?? [])].sort((a, b) =>
-      (by_id.get(a)?.num ?? 0) - (by_id.get(b)?.num ?? 0) || a.localeCompare(b));
+      (by_id.get(a)?.order ?? 0) - (by_id.get(b)?.order ?? 0) || a.localeCompare(b));
     for (const n of next) if (!seen.has(n)) queue.push(n);
   }
   for (const b of sorted) if (!seen.has(b.id)) out.push(b);

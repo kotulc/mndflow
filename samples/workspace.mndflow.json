@@ -229,35 +229,34 @@
       "b_hx": {
         "id": "b_hx",
         "parent": "b_loop",
-        "label": "Heat Exchanger",
         "group": "g_wet",
         "type": "def_vessel",
-        "num": 2,
         "x": 168,
-        "y": 0
+        "y": 0,
+        "name": "Heat Exchanger",
+        "order": 2
       },
       "b_loop": {
         "id": "b_loop",
         "parent": "f_plant",
-        "label": "Primary Loop",
-        "num": 1,
         "x": 0,
-        "y": 0
+        "y": 0,
+        "name": "Primary Loop",
+        "order": 1
       },
       "b_note": {
         "id": "b_note",
         "parent": "b_loop",
-        "label": "",
         "type": "note",
         "body": "Hatch and wash are said by the definition now, not by the stylesheet.",
-        "num": 6,
         "x": 336,
-        "y": 96
+        "y": 96,
+        "name": "",
+        "order": 6
       },
       "b_pump": {
         "id": "b_pump",
         "parent": "b_loop",
-        "label": "Feed Pump",
         "group": "g_wet",
         "type": "def_pump",
         "fields": [
@@ -267,117 +266,118 @@
             "value": "50"
           }
         ],
-        "num": 1,
         "x": 0,
-        "y": 0
+        "y": 0,
+        "name": "Feed Pump",
+        "order": 1
       },
       "b_ref": {
         "id": "b_ref",
         "parent": "b_loop",
-        "label": "",
         "of": "b_hx",
-        "num": 7,
         "x": 0,
-        "y": 192
+        "y": 192,
+        "name": "",
+        "order": 7
       },
       "b_res": {
         "id": "b_res",
         "parent": "b_loop",
-        "label": "Coolant",
         "type": "resource",
-        "num": 8,
         "x": 168,
-        "y": 192
+        "y": 192,
+        "name": "Coolant",
+        "order": 8
       },
       "b_spare": {
         "id": "b_spare",
         "parent": "b_loop",
-        "label": "Spare Pump",
         "type": "def_ghost",
-        "num": 4,
         "x": 0,
-        "y": 96
+        "y": 96,
+        "name": "Spare Pump",
+        "order": 4
       },
       "b_tank": {
         "id": "b_tank",
         "parent": "b_loop",
-        "label": "Surge Tank",
         "type": "def_vessel",
-        "num": 3,
         "x": 336,
-        "y": 0
+        "y": 0,
+        "name": "Surge Tank",
+        "order": 3
       },
       "b_title": {
         "id": "b_title",
         "parent": "b_loop",
-        "label": "Primary Loop",
         "type": "def_heading",
-        "num": 5,
         "x": 168,
-        "y": 96
+        "y": 96,
+        "name": "Primary Loop",
+        "order": 5
       },
       "c_a": {
         "id": "c_a",
         "parent": "f_plant",
-        "label": "Duty",
         "group": "gr_matrix",
         "cell": {
           "r": 0,
           "c": 0
         },
         "header": true,
-        "num": 3
+        "name": "Duty",
+        "order": 3
       },
       "c_b": {
         "id": "c_b",
         "parent": "f_plant",
-        "label": "Standby",
         "group": "gr_matrix",
         "cell": {
           "r": 1,
           "c": 0
         },
-        "num": 4
+        "name": "Standby",
+        "order": 4
       },
       "f_plant": {
         "id": "f_plant",
         "parent": "ws",
-        "label": "Coolant Plant",
         "type": "folder",
-        "num": 1
+        "name": "Coolant Plant",
+        "order": 1
       },
       "g_wet": {
         "id": "g_wet",
         "parent": "b_loop",
-        "label": "Wet side",
         "type": "group",
-        "num": 9
+        "name": "Wet side",
+        "order": 9
       },
       "gr_matrix": {
         "id": "gr_matrix",
         "parent": "f_plant",
-        "label": "Duty",
         "type": "grid",
         "cols": 2,
-        "num": 2,
         "rows": 2,
         "x": 0,
-        "y": 320
+        "y": 320,
+        "name": "Duty",
+        "order": 2
       },
       "i_in": {
         "id": "i_in",
         "parent": "b_pump",
-        "label": "",
         "side": "left",
         "at": 0.5,
         "flow": "in",
-        "num": 1
+        "name": "",
+        "order": 1
       },
       "ws": {
         "id": "ws",
         "parent": null,
-        "label": "workspace",
-        "type": "folder"
+        "type": "folder",
+        "name": "workspace"
       }
     },
     "edges": {

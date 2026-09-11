@@ -107,7 +107,7 @@ describe("what an action absorbs", () => {
   it("orders siblings as they are added, and as they are dropped", () => {
     const s = session();
     for (const label of ["A", "B", "C"]) s.go("create", { label });
-    const named = () => children(s.graph(), ROOT).map((b) => b.label);
+    const named = () => children(s.graph(), ROOT).map((b) => b.name);
     expect(named()).toEqual(["A", "B", "C"]);
 
     /** A gap left by a delete is not somewhere to put the next one. */
@@ -133,7 +133,7 @@ describe("what an action absorbs", () => {
   it("drops the place and the group it had when it leaves a layer", () => {
     const s = session();
     for (const label of ["Alpha", "Beta"]) s.go("create", { label });
-    const at = (label: string) => children(s.graph(), ROOT).find((b) => b.label === label)!.id;
+    const at = (name: string) => children(s.graph(), ROOT).find((b) => b.name === name)!.id;
     const alpha = at("Alpha"), beta = at("Beta");
     s.go("group", { members: [alpha], rows: 2, cols: 2 });
     const grid = Object.values(s.graph().blocks).find((b) => b.type === "grid")!.id;
@@ -164,10 +164,10 @@ describe("what an action absorbs", () => {
     const shelf = children(s.graph(), ROOT)[0]!.id;
     for (const label of ["A", "B"]) s.go("create", { label, parent: shelf });
     s.go("create", { label: "Loose" });
-    const loose = children(s.graph(), ROOT).find((b) => b.label === "Loose")!.id;
+    const loose = children(s.graph(), ROOT).find((b) => b.name === "Loose")!.id;
 
     s.go("move", { id: loose, parent: shelf });
-    expect(children(s.graph(), shelf).map((b) => b.label)).toEqual(["A", "B", "Loose"]);
+    expect(children(s.graph(), shelf).map((b) => b.name)).toEqual(["A", "B", "Loose"]);
   });
 
   it("group makes a boundary without an into, and joins one with it", () => {
@@ -365,7 +365,7 @@ describe("what an action absorbs", () => {
     s.look(loop);
     s.go("create", { label: "Pump" });
     s.go("create", { label: "Tank" });
-    const at = (label: string) => children(s.graph(), loop).find((b) => b.label === label)!.id;
+    const at = (name: string) => children(s.graph(), loop).find((b) => b.name === name)!.id;
     /** **A note is always about something**, so making one names what. */
     s.go("note", { about: at("Tank"), text: "runs clockwise" });
     const note = children(s.graph(), loop).find((b) => b.type === "note")!.id;
@@ -394,7 +394,7 @@ describe("what an action absorbs", () => {
     const loop = children(s.graph(), ROOT)[0]!.id;
     s.look(loop);
     s.go("create", { label: "Pump" });
-    const pump = children(s.graph(), loop).find((b) => b.label === "Pump")!;
+    const pump = children(s.graph(), loop).find((b) => b.name === "Pump")!;
     s.go("note", { about: pump.id, text: "runs clockwise" });
     const note = children(s.graph(), loop).find((b) => b.type === "note")!;
 

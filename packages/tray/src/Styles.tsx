@@ -256,7 +256,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           <Line label="name" tip="What this is called, as the card writes it.">
             {d
               ? <input value={d.name} readOnly aria-label="name" />
-              : <input value={b?.label ?? ""} aria-label="name"
+              : <input value={b?.name ?? ""} aria-name="name"
                        placeholder={b ? kind_word(graph, b) : "unnamed"}
                        onChange={(e) => onAct("rename", { id, label: e.target.value })} />}
           </Line>

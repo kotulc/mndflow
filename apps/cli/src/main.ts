@@ -88,7 +88,7 @@ function find_layer(log: Log, want: string | undefined): Id | null {
   if (!want) return null;
   const graph = fold(log, FLOOR);
   if (graph.blocks[want]) return want;
-  const hit = Object.values(graph.blocks).find((b) => b.label === want);
+  const hit = Object.values(graph.blocks).find((b) => b.name === want);
   if (!hit) {
     console.error(`  no layer called "${want}"`);
     process.exit(1);

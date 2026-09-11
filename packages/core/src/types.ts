@@ -75,7 +75,7 @@ export type Block = {
   id: Id;
   parent: Id | null;
   type?: Id;
-  label?: string;
+  name?: string;
   body?: string;
   /** A reference: the block it stands for. */
   of?: Id;
@@ -109,8 +109,8 @@ export type Block = {
   arrangement?: Arrangement;
   side?: Side;
   at?: number;
-  num?: number;
-  /** **A serial, minted once and never rewritten.** `num` is a position among
+  order?: number;
+  /** **A serial, minted once and never rewritten.** `order` is a position among
    *  siblings and is renumbered whenever anything moves, so a name read off it
    *  changed while you rearranged. This is handed out at creation and is the
    *  block's for good — which is what lets a block nobody has named be told
@@ -225,7 +225,7 @@ export type Graph = {
 };
 
 export function empty_graph(): Graph {
-  return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, label: "workspace", type: "folder" } },
+  return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" } },
            edges: {}, defs: {} };
 }
 
@@ -236,11 +236,11 @@ export type Mutation =
   /** `type: null` clears it, which is not the same as leaving it alone.
    *  **A block naming nothing is its base kind**, so absence is an answer
    *  somebody can mean — and `unpin` has to be able to give it back. */
-  | { op: "update_block"; id: Id; label?: string; type?: Id | null }
+  | { op: "update_block"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_block"; id: Id }
   | { op: "move_block"; id: Id; parent: Id | null }
   | { op: "place_block"; id: Id; x: number; y: number }
-  | { op: "order_block"; id: Id; num: number }
+  | { op: "order_block"; id: Id; order: number }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }

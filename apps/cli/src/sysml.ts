@@ -154,7 +154,7 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
 
     /** The outermost package is the workspace itself, not a block in it. */
     if (held.length === 1 && word === "package" && !graph.blocks[at([label])]) {
-      graph.blocks[graph.root]!.label = label;
+      graph.blocks[graph.root]!.name = name;
       if (line.opens) held.push(graph.root);
       continue;
     }
@@ -164,7 +164,7 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
     const parent = here();
     const port = word === "port";
     graph.blocks[id] = {
-      id, parent, label, type, num: ++n,
+      id, parent, name, type, order: ++n,
       ...(port ? { side: "right" as const, at: 0.5 } : {}),
     };
     if (points) {
@@ -179,7 +179,7 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
    *  is kept rather than tidied away. */
   for (const r of stands) {
     const target = graph.blocks[at(r.at)];
-    if (target) graph.blocks[r.id] = { ...graph.blocks[r.id]!, of: target.id, label: undefined };
+    if (target) graph.blocks[r.id] = { ...graph.blocks[r.id]!, of: target.id, name: undefined };
   }
 
   /** Ends are resolved once everything is placed: a relation may name
@@ -198,11 +198,11 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
 /** A name, or an owner and its port, resolved to what it addresses. */
 function find(graph: Graph, named: readonly string[]): Id | null {
   const hit = Object.values(graph.blocks)
-    .filter((b) => b.label === named[0])
+    .filter((b) => b.name === named[0])
     .sort((a, b) => a.id.localeCompare(b.id))[0];
   if (!hit) return null;
   if (named.length === 1) return hit.id;
-  const port = children(graph, hit.id).find((k) => k.label === named[1]);
+  const port = children(graph, hit.id).find((k) => k.name === named[1]);
   return port?.id ?? hit.id;
 }
 

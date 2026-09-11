@@ -14,8 +14,8 @@ import { ROOT, allocated_to, allocations_of, at_cell, fold, head_of, is_grid,
 /** A grid of `rows` × `cols` on a layer, with nothing seated in it yet. */
 function board(rows = 3, cols = 4): Graph {
   return { root: ROOT, edges: {}, defs: {}, blocks: {
-    [ROOT]: { id: ROOT, parent: null, label: "workspace", type: "folder" },
-    layer: { id: "layer", parent: ROOT, type: "block", label: "Board" },
+    [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" },
+    layer: { id: "layer", parent: ROOT, type: "block", name: "Board" },
     grid: { id: "grid", parent: "layer", type: "grid", rows, cols, x: 0, y: 0 },
   } };
 }
@@ -33,7 +33,7 @@ function commit(name: string, mutations: Mutation[]): void {
 /** Put a block in a cell. Returns its id, so a test reads as what it did. */
 function seat(id: Id, r: number, c: number, header = false): Id {
   commit("seat", [
-    { op: "add_block", block: { id, parent: "layer", type: "block", label: id } },
+    { op: "add_block", block: { id, parent: "layer", type: "block", name: id } },
     { op: "set_group", id, group: "grid" },
     { op: "seat_cell", id, cell: { r, c } },
     ...(header ? [{ op: "set_header", id, header: true } as Mutation] : []),

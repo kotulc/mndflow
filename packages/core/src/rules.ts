@@ -123,7 +123,7 @@ function value_of(graph: Graph, id: Id, name: string): string | undefined {
 }
 
 function label(graph: Graph, id: Id): string {
-  return graph.blocks[id]?.label ?? id;
+  return graph.blocks[id]?.name ?? id;
 }
 
 /** What a graph asked for and did not get.

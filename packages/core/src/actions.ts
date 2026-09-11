@@ -9,7 +9,7 @@
 
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
-         def_of, may_retype, members_of, module_of, module_named, next_num, next_alias,
+         def_of, may_retype, members_of, module_of, module_named, next_order, next_alias,
          path, reorder } from "./fold";
 import { NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
@@ -216,11 +216,11 @@ function region(ctx: Context, args: Args): { group: Id; span: Span } | null {
 }
 
 /** The one door making a block, so every caller places and numbers alike. */
-function make_block(ctx: Context, label: string, parent: Id | null, type?: Id): Mutation[] {
+function make_block(ctx: Context, name: string, parent: Id | null, type?: Id): Mutation[] {
   const id = new_id("block");
   return [{ op: "add_block", block: {
-    id, parent, label: label || undefined, type,
-    num: next_num(ctx.graph, parent), alias: next_alias(ctx.graph),
+    id, parent, name: name || undefined, type,
+    order: next_order(ctx.graph, parent), alias: next_alias(ctx.graph),
   } }];
 }
 
@@ -370,7 +370,7 @@ register(
        *  place in the queue — so arriving anywhere renumbers the list it
        *  arrives in. */
       for (const at of reorder(ctx.graph, parent, ids, before)) {
-        out.push({ op: "order_block", id: at.id, num: at.num });
+        out.push({ op: "order_block", id: at.id, order: at.order });
       }
       /** A spot is where one thing was let go of. Several were let go of in one
        *  place, and only the layer can say where each of them belongs. */
@@ -397,7 +397,7 @@ register(
       const id = new_id("block");
       const at = spot(args);
       const out: Mutation[] = [{ op: "add_block", block: {
-        id, parent: here(ctx), of: id_of(args, "target"), num: next_num(ctx.graph, here(ctx)),
+        id, parent: here(ctx), of: id_of(args, "target"), order: next_order(ctx.graph, here(ctx)),
       } }];
       if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
       return { mutations: out };
@@ -665,7 +665,7 @@ register(
         id, parent: owner, side,
         at: typeof args["at"] === "number" ? (args["at"] as number)
                                            : mid_of(ctx.graph, owner, side),
-        num: next_num(ctx.graph, owner),
+        order: next_order(ctx.graph, owner),
       } }];
       if (edge && end) {
         out.push({ op: "set_end", id: edge, end, port: id },
@@ -756,7 +756,7 @@ register(
         group = new_id("block");
         out.push({ op: "add_block", block: {
           id: group, parent: here(ctx), type: extent ? "grid" : "group",
-          num: next_num(ctx.graph, here(ctx)),
+          order: next_order(ctx.graph, here(ctx)),
         } });
       }
       if (rows !== null || cols !== null) {
@@ -829,7 +829,7 @@ register(
       const about = id_of(args, "about") || ctx.picked[0]!;
       const out: Mutation[] = [
         { op: "add_block", block: {
-          id, parent: here(ctx), type: "note", num: next_num(ctx.graph, here(ctx)) } },
+          id, parent: here(ctx), type: "note", order: next_order(ctx.graph, here(ctx)) } },
         { op: "set_body", id, body: text(args, "text") },
       ];
       const at = spot(args);
@@ -1240,12 +1240,12 @@ register(
       /** **Counted forward here.** Both readers answer from the graph as it
        *  stands, and nothing is applied until the step lands — so asking twice
        *  would hand out one number twice. */
-      let num = next_num(ctx.graph, parent);
+      let order = next_order(ctx.graph, parent);
       let alias = next_alias(ctx.graph);
       const out: Mutation[] = [];
       for (const cell of empty_cells(ctx.graph, group)) {
         const id = new_id("block");
-        out.push({ op: "add_block", block: { id, parent, num: num++, alias: alias++ } });
+        out.push({ op: "add_block", block: { id, parent, order: order++, alias: alias++ } });
         out.push({ op: "set_group", id, group });
         out.push({ op: "seat_cell", id, cell });
       }

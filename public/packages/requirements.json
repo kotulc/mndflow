@@ -129,8 +129,8 @@
       "ws": {
         "id": "ws",
         "parent": null,
-        "label": "workspace",
-        "type": "folder"
+        "type": "folder",
+        "name": "workspace"
       }
     },
     "edges": {}

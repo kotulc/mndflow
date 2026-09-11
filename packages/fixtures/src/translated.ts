@@ -59,9 +59,9 @@ const VOCAB: Definition[] = [
 ];
 
 /** Where a block came from, as the one field name every view module reads. */
-function block(id: Id, parent: Id | null, type: string, label: string,
-               source: string, num: number, more: Partial<Block> = {}): Block {
-  return { id, parent, type, label, num,
+function block(id: Id, parent: Id | null, type: string, name: string,
+               source: string, order: number, more: Partial<Block> = {}): Block {
+  return { id, parent, type, name, order,
            fields: [{ name: "source", form: "link", value: source }],
            ...more };
 }
@@ -72,7 +72,7 @@ function block(id: Id, parent: Id | null, type: string, label: string,
 export function translated(): Graph {
   const graph = base_graph();
 
-  graph.blocks[HOME] = { id: HOME, parent: ROOT, type: "folder", label: "Handbook", num: 1 };
+  graph.blocks[HOME] = { id: HOME, parent: ROOT, type: "folder", name: "Handbook", order: 1 };
   for (const d of VOCAB) graph.defs[d.id] = d;
 
   const blocks: Block[] = [

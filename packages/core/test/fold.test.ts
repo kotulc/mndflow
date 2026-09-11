@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { fixture, flat, nested, related } from "@mnd/fixtures";
 import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
-         is_top_block, module_named, module_of, next_num, path, session,
+         is_top_block, module_named, module_of, next_order, path, session,
          shown_name, stands_for, subtree, ROOT, type Definition } from "../src/index";
 
 describe("fold", () => {
@@ -18,8 +18,8 @@ describe("fold", () => {
   it("throws the graph away rather than editing it", () => {
     const log = flat();
     const once = fold(log);
-    once.blocks["block_ledger"]!.label = "scribbled on";
-    expect(fold(log).blocks["block_ledger"]!.label).toBe("Ledger");
+    once.blocks["block_ledger"]!.name = "scribbled on";
+    expect(fold(log).blocks["block_ledger"]!.name).toBe("Ledger");
   });
 
   it("skips reverted steps", () => {
@@ -89,14 +89,14 @@ describe("derived readings", () => {
 
   it("reads a null layer as the root layer, and never as the root itself", () => {
     const graph = fold(nested());
-    expect(children(graph, null).map((b) => b.label)).toEqual(["Shelf", "Site"]);
+    expect(children(graph, null).map((b) => b.name)).toEqual(["Shelf", "Site"]);
     expect(children(graph, null).map((b) => b.id)).not.toContain(ROOT);
     expect(children(graph, null)).toEqual(children(graph, ROOT));
   });
 
   it("takes the lowest number not in use among siblings", () => {
     const graph = fold(flat());
-    expect(next_num(graph, "block_ledger")).toBeGreaterThan(0);
+    expect(next_order(graph, "block_ledger")).toBeGreaterThan(0);
   });
 });
 

@@ -347,7 +347,7 @@ export function App() {
         <Terminal
           offered={offered_here}
           said={quiet && said?.kind === "mirror" ? null : said?.text ?? null}
-          context={layer ? `in ${graph.blocks[layer]?.label ?? "a layer"}` : "the workspace"}
+          context={layer ? `in ${graph.blocks[layer]?.name ?? "a layer"}` : "the workspace"}
           expanded={wide}
           onExpand={set_wide}
           onAct={(name) => act(name)}
@@ -438,7 +438,7 @@ export function App() {
         <Tray
           graph={graph}
           layer={layer}
-          label={layer ? graph.blocks[layer]?.label ?? "layer" : "workspace"}
+          label={layer ? graph.blocks[layer]?.name ?? "layer" : "workspace"}
           open={tray}
           onOpen={set_tray}
           tab={tab}

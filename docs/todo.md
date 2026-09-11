@@ -46,7 +46,9 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | | |
 |---|---|
 | **every element carries one** | blocks and relationships alike. Three unnamed lines in a layer all read `line` today, with nothing to tell them apart |
-| **per kind, with a plain counter** | `B1`, `I1`, `L1`, `G1`. Safe **because kind is now fixed at creation** — the earlier objection, that a promoted or retyped element would have to change its handle, no longer applies |
+| **per kind, with a plain counter** | Safe **because kind is now fixed at creation** — the earlier objection, that a promoted or retyped element would have to change its handle, no longer applies |
+| **the letters** | `B` block, `F` folder, `E` resource (*external*), `I` interface, `R` reference, `G` group, `T` grid (*table*, which is what its icon is already called), `N` note, `L` relation. **No collisions** — `E` and `T` are what resolve group/grid and reference/resource, which the obvious first letters could not |
+| **groups and grids get one too** | they are excluded today. An unnamed boundary therefore starts reading `G3` where it currently reads nothing, since `WORD` gives group and grid an empty type word |
 | **the letter stops being a digit** | `alias_name` encodes one integer today — `(n % 9) + 1` with the letters as `floor(n / 9)` in base 26 — so the letter was positional and never meant anything. Per-kind letters replace that encoding with a counter each, trading `A1…Z9` in two characters for `I247` at scale |
 | **a definition needs none** | its derived `<owner>.<name>` already is its handle |
 | **a stored counter, not a scan** | `next_alias` is a high-water mark over *live* elements, so it is safe against a gap in the middle but **reuses the serial of the highest one once that is deleted**. A handle that comes back meaning something else is not a handle |
@@ -76,6 +78,10 @@ otherwise      →  label + alias  →  "Note N3"
 | **`card.name`** | whether the identity line is drawn at all. Hidden gives a blank card, or a note showing only its body. **It reverses a recorded decision** — `components.ts` says *the name is not asked this: a card without its name is a box nobody can read*. That premise is what changed: once a block carries a body, a nameless card is not a blank box |
 | **`card.alias`** | whether the handle joins a **set** name. The fallback always carries one, which is the whole reason it needs one |
 | **`card.label`** | unchanged — where the type word sits as a *second* writing: above, inside, below, none |
+
+**`card.*` governs the card and nothing else.** The explorer, the tray, the CLI and the terminal read `shown_name` and the supplied icons, and treat every block alike — so hiding a name makes a clean diagram and never makes a block unfindable in the tree. **This is the one rule that keeps card styling from becoming functional**, and `shown_name` is read by eight modules across the seam, so it has to hold.
+
+**Existing `def_<slug>` ids are left alone.** `def_pump` is a valid opaque id that happens to look like a slug; only new definitions mint opaquely. Nothing depends on the shape, so rewriting every block's `type` across the sample workspace and both shipped packages buys nothing.
 
 **The toggle belongs in the style rail's `name` group, not in the Body section.** Hiding the identity line gives a body-only note, but the same key gives a blank card with no body at all — filing it under Body would make a card-wide control look like a body feature.
 

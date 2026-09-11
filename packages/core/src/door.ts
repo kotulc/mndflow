@@ -53,8 +53,9 @@ export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
 
   const log: Log = [];
   let taken = 0;
+  const tally = { moved: 0 };
   for (const raw of input) {
-    const step = read_step(raw, faults);
+    const step = read_step(raw, faults, tally);
     if (!step) continue;
     const kept = step.mutations.filter((m) => {
       const shipped = (m.op === "set_def" && floor[m.def.id])
@@ -68,6 +69,11 @@ export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
   if (taken) {
     faults.push({ kind: "repaired",
                   what: `${taken} write${taken > 1 ? "s" : ""} to a shipped definition` });
+  }
+  if (tally.moved) {
+    faults.push({ kind: "repaired",
+                  what: `${tally.moved} block${tally.moved > 1 ? "s" : ""} written before `
+                      + "`label` became `name`" });
   }
 
   /** **A repair the door itself got wrong, put back.** The style vocabulary was
@@ -119,7 +125,39 @@ function repair_step(at: number, mutations: Mutation[]): Step {
   return { id: new_id("step"), action: "repair", at, status: "applied", mutations };
 }
 
-function read_step(raw: unknown, faults: Fault[]): Step | null {
+/** **`label` became `name` and `num` became `order`**, and both are read here
+ *  rather than mended below, because a mutation carries them: by the time a
+ *  graph exists to inspect, an old `add_block` has already laid down a block
+ *  with neither field, and there is nothing left to rename.
+ *
+ *  **Only where the word means a block.** `card.label` is a component key and
+ *  says where the *type word* sits, which is a different thing that kept its
+ *  name — so this reaches into `add_block`, `update_block` and `order_block`
+ *  and nowhere near a `set_look` or a `set_def`. A checkpoint carries whole
+ *  blocks, so it is walked too. */
+function renamed(m: Record<string, unknown>): boolean {
+  const on = (o: unknown): boolean => {
+    if (!o || typeof o !== "object") return false;
+    const b = o as Record<string, unknown>;
+    let did = false;
+    if ("label" in b && !("name" in b)) { b["name"] = b["label"]; delete b["label"]; did = true; }
+    if ("num" in b && !("order" in b)) { b["order"] = b["num"]; delete b["num"]; did = true; }
+    return did;
+  };
+  switch (m["op"]) {
+    case "add_block": return on(m["block"]);
+    case "update_block": case "order_block": return on(m);
+    case "checkpoint": {
+      const g = m["graph"] as { blocks?: Record<string, unknown> } | undefined;
+      let did = false;
+      for (const b of Object.values(g?.blocks ?? {})) did = on(b) || did;
+      return did;
+    }
+    default: return false;
+  }
+}
+
+function read_step(raw: unknown, faults: Fault[], tally: { moved: number }): Step | null {
   if (!raw || typeof raw !== "object") {
     faults.push({ kind: "dropped", what: "a step that is not an object" });
     return null;
@@ -131,7 +169,10 @@ function read_step(raw: unknown, faults: Fault[]): Step | null {
   }
   const kept: Mutation[] = [];
   for (const m of s.mutations) {
-    if (m && typeof m === "object" && OPS.has((m as Mutation).op)) kept.push(m as Mutation);
+    if (m && typeof m === "object" && OPS.has((m as Mutation).op)) {
+      if (renamed(m as Record<string, unknown>)) tally.moved++;
+      kept.push(m as Mutation);
+    }
     else faults.push({ kind: "dropped", what: "an op this build does not know" });
   }
   return {
@@ -150,12 +191,12 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 export function inspect(graph: Graph): Inspection {
   const faults: Fault[] = [];
   const repairs: Mutation[] = [];
-  const name = (id: Id) => graph.blocks[id]?.label ?? id;
+  const name = (id: Id) => graph.blocks[id]?.name ?? id;
 
   if (!graph.blocks[graph.root]) {
     faults.push({ kind: "repaired", what: "a missing root" });
     repairs.push({ op: "add_block",
-      block: { id: graph.root, parent: null, label: "workspace", type: "folder" } });
+      block: { id: graph.root, parent: null, name: "workspace", type: "folder" } });
   }
 
   for (const b of Object.values(graph.blocks)) {
