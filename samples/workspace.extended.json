@@ -35,12 +35,6 @@
         "name": "Test",
         "group": "relation"
       },
-      "directed": {
-        "id": "directed",
-        "name": "directed",
-        "from": "base",
-        "group": "relation"
-      },
       "folder": {
         "id": "folder",
         "name": "folder",
@@ -779,7 +773,8 @@
       "edge_adr55k2me3et": {
         "id": "edge_adr55k2me3et",
         "from": "block_roesrpnridkj",
-        "module": "directed",
+        "module": "line",
+        "dir": "forward",
         "alias": 11,
         "to": "block_sxbqlnfb9zl6"
       },

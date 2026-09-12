@@ -4,7 +4,7 @@
  *  every suite and every dev harness. One set of sample data, three consumers. */
 
 import { seed } from "@mnd/defs";
-import { ROOT, type Log, type Mutation, type Step } from "@mnd/core";
+import { ROOT, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
 
 let n = 0;
 const step = (action: string, mutations: Mutation[]): Step =>
@@ -21,9 +21,10 @@ const block = (id: string, parent: string | null, name: string, type?: string): 
 
 const start = () => { n = 0; counts = {}; };
 
-const link = (id: string, from: string, to: string,
-              module: "line" | "directed" = "line"): Mutation =>
-  ({ op: "link_blocks", edge: { id, from, to, module } });
+/** **A run points because `dir` says so.** There is no `directed` module to
+ *  ask for — which way it runs is the one fact, stored once. */
+const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
+  ({ op: "link_blocks", edge: { id, from, to, module: "line", ...(dir ? { dir } : {}) } });
 
 /** The base package, through the same door as everything else. */
 const base = (): Step => step("seed", seed());
@@ -73,9 +74,9 @@ export function related(): Log {
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("create", [block("block_tank", "block_loop", "Reservoir", "block")]),
     step("create", [block("block_valve", "block_loop", "Valve", "block")]),
-    step("relate", [link("edge_a", "block_pump", "block_hx", "directed")]),
-    step("relate", [link("edge_b", "block_hx", "block_tank", "directed")]),
-    step("relate", [link("edge_c", "block_tank", "block_pump", "directed")]),
+    step("relate", [link("edge_a", "block_pump", "block_hx", "forward")]),
+    step("relate", [link("edge_b", "block_hx", "block_tank", "forward")]),
+    step("relate", [link("edge_c", "block_tank", "block_pump", "forward")]),
     step("relate", [link("edge_d", "block_valve", "block_hx")]),
     step("note", [
       block("block_note", "block_loop", "", "note"),
@@ -106,7 +107,7 @@ export function interfaced(): Log {
       { op: "add_block", block: { id: "port_in", parent: "block_hx",
                                   side: "left", at: 0.5, flow: "in", order: 1 } },
     ]),
-    step("relate", [link("edge_flow", "port_out", "port_in", "directed")]),
+    step("relate", [link("edge_flow", "port_out", "port_in", "forward")]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "grid" }]),
   ];
@@ -151,9 +152,9 @@ export function gridded(): Log {
       joins("block_build"), seat("block_build", 2, 2),
     ]),
     step("chain", [
-      link("edge_1", "block_draft", "block_review", "directed"),
-      link("edge_2", "block_review", "block_ship", "directed"),
-      link("edge_3", "block_plan", "block_build", "directed"),
+      link("edge_1", "block_draft", "block_review", "forward"),
+      link("edge_2", "block_review", "block_ship", "forward"),
+      link("edge_3", "block_plan", "block_build", "forward"),
     ]),
   ];
 }

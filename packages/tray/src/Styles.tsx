@@ -16,11 +16,10 @@
 
 import { useState } from "react";
 import { ALIGNS, ARROWS, BASE_PACKAGE, BORDERS, CONTRASTS, DISPLAYS, FAMILIES,
-         FILLS, FONTS, HUE, INTENSITY, OPACITY, RELATION_MODULES, SHOWN, WEIGHTS,
-         WIDTHS, alias_of, config_of, honours, isa, kind_word, may_retype,
-         module_named, module_of, role_of, shipped, shown_name, type Act,
-         type Definition, type Graph, type Id, type RelationModule,
-         type Role } from "@mnd/core";
+         FILLS, FONTS, HUE, INTENSITY, OPACITY, SHOWN, WEIGHTS,
+         WIDTHS, alias_of, config_of, DEFAULTS, honours, isa, kind_word, may_retype,
+         module_named, module_of, relation_named, role_of, shipped, shown_name,
+         type Act, type Definition, type Graph, type Id, type Role } from "@mnd/core";
 import { Icon, names, role_icon, type IconName } from "@mnd/theme";
 import { Body, Line, Rail } from "./Body";
 import { Card } from "./Card";
@@ -33,9 +32,13 @@ const BASE = BASE_PACKAGE;
 /** The parts of a drawing, and the questions each part is asked. **The last two
  *  are one question twice**: which mark sits in which corner — what sort of
  *  thing it is, and whatever else its vocabulary wants to flag. */
-const GROUPS = ["name", "label", "line", "colour", "fill",
+const GROUPS = ["name", "label", "head", "values", "colour", "fill",
                 "border", "icon", "mark"] as const;
 export type Group = (typeof GROUPS)[number];
+
+/** What a part is called on a **run**, where the card's word is wrong for it.
+ *  A run has no border; what those three keys set is its stroke. */
+const AS_RUN: Partial<Record<Group, string>> = { border: "stroke" };
 
 /** **Which component makes each part meaningful**, which is what the rail
  *  filters on. Not where the keys are validated — `style.fill` is a `style` key
@@ -45,17 +48,25 @@ export type Group = (typeof GROUPS)[number];
  *  and the groups that compose one are simply not listed for it; a run has
  *  `line` instead, and an interface has neither. */
 const ASKS: Record<Group, string> = {
-  name: "style", label: "card", line: "line", colour: "style",
+  name: "style", label: "card", head: "line", values: "card", colour: "style",
   fill: "card", border: "style", icon: "card", mark: "card",
 };
+
+/** The parts whose answers are drawn rather than listed — a pair of sliders, a
+ *  grid of marks — so they are offered even though `ROWS` gives them none. */
+const HAND: readonly Group[] = ["colour", "icon", "mark"];
 
 type Key = "card" | "style" | "line";
 
 /** One question. **`form` says how it is answered** — a word from a closed set
  *  is chips, and a list of field names is typed, because the names belong to
- *  this one usage and no closed set could hold them. */
+ *  this one usage and no closed set could hold them.
+ *
+ *  `omit` is what a **run** is not offered, where an answer that makes sense of
+ *  a card makes none of a line. */
 type Question = { word: string; key: Key; name: string; tip: string;
                   form?: "words";
+                  omit?: readonly string[];
                   of: readonly { value: string; word: string }[] };
 
 const plain = (of: readonly string[]) => of.map((v) => ({ value: v, word: v }));
@@ -75,6 +86,17 @@ const IDENTITY = (key: Key): Question[] => [
     of: plain(SHOWN) },
 ];
 
+/** Which of a block's values the card writes.
+ *
+ *  **A card's question and nobody else's.** A run has no values to write — an
+ *  edge is a join, and what a connection has to say belongs to the blocks at
+ *  its ends — so this is one row rather than the three ends it used to be. */
+const WRITTEN: Question[] = [
+  { word: "shows", key: "card", name: "shows", form: "words",
+    tip: "Which of this usage's fields the card writes under its name, in the "
+       + "order it writes them. Names, separated by commas.", of: [] },
+];
+
 const ROWS: Record<Group, Question[]> = {
   name: [
     { word: "font", key: "style", name: "name_font",
@@ -87,7 +109,11 @@ const ROWS: Record<Group, Question[]> = {
       of: plain(CONTRASTS) },
     { word: "align", key: "card", name: "align",
       tip: "Which end of the card its writing reads from.", of: plain(ALIGNS) },
+    /** **Both holders' identity questions, and the filter picks.** A block
+     *  honours `card` and not `line`; a run honours `line` and not `card` — so
+     *  the same two rows serve both and neither panel branches. */
     ...IDENTITY("card"),
+    ...IDENTITY("line"),
   ],
   label: [
     { word: "font", key: "style", name: "label_font",
@@ -102,28 +128,19 @@ const ROWS: Record<Group, Question[]> = {
          + "The label is the subtype where one is named, the base kind otherwise.",
       of: plain(DISPLAYS) },
   ],
-  /** What a run draws: a head at each end, whether it says its name, and which
-   *  of its values sit where. **Multiplicity and a guard are ordinary fields**
-   *  — what makes them special is only where they draw, which is the three
-   *  lists below. */
-  line: [
+  /** **What draws where a run ends.** Its own part of the rail, because a head
+   *  is what a run has in place of a face — and the three border keys below set
+   *  its stroke rather than any border, which is what they are called there. */
+  head: [
     { word: "from head", key: "line", name: "from_arrow",
       tip: "What draws where the run leaves. A shape, never a direction — which "
          + "ends point is the menu's, and an end that points draws a filled head "
          + "unless told another.", of: plain(ARROWS) },
     { word: "to head", key: "line", name: "to_arrow",
       tip: "What draws where the run arrives.", of: plain(ARROWS) },
-    ...IDENTITY("line"),
-    { word: "at from", key: "line", name: "from_shows", form: "words",
-      tip: "Which of this relationship's fields draw at the end it leaves — a "
-         + "multiplicity, a role name, a guard. Names, separated by commas.",
-      of: [] },
-    { word: "in middle", key: "line", name: "shows", form: "words",
-      tip: "Which fields draw beside the name, in the middle of the run.",
-      of: [] },
-    { word: "at to", key: "line", name: "to_shows", form: "words",
-      tip: "Which fields draw at the end it arrives at.", of: [] },
   ],
+  /** Which of its own values this writes, and where. */
+  values: WRITTEN,
   border: [
     { word: "width", key: "style", name: "border_width",
       tip: "How heavy the border is. Three steps, named on the ramp.",
@@ -131,9 +148,12 @@ const ROWS: Record<Group, Question[]> = {
     { word: "contrast", key: "style", name: "border_contrast",
       tip: "How far the border stands out from the card behind it.",
       of: plain(CONTRASTS) },
+    /** **`none` is a card's answer and not a run's.** On a card it keeps the box
+     *  and drops the line, which is a thing somebody means; on a run it deletes
+     *  the run, which is what deleting the run is for. */
     { word: "style", key: "style", name: "border_style",
       tip: "How the border is drawn. `none` keeps the card's box and drops "
-         + "only the line.", of: plain(BORDERS) },
+         + "only the line.", of: plain(BORDERS), omit: ["none"] },
   ],
   /** **How loudly it is taken**, which is the one part of a drawing every
    *  module honours. A card, a port and a run are all painted from it. */
@@ -149,9 +169,6 @@ const ROWS: Record<Group, Question[]> = {
       tip: "What fills the card behind its writing. Pattern, never colour — a "
          + "hatch follows whatever family or hue the card was given.",
       of: plain(FILLS) },
-    { word: "shows", key: "card", name: "shows", form: "words",
-      tip: "Which of this usage's fields the card writes under its name, in the "
-         + "order it writes them. Names, separated by commas.", of: [] },
   ],
   icon: [],
   mark: [],
@@ -160,34 +177,43 @@ const ROWS: Record<Group, Question[]> = {
 /** The two rows that are a mark rather than a word, and the corner each sits
  *  in. **One control, twice** — a mark is a picture and a list of names is not
  *  how anybody picks one. */
-const MARKS: Record<"icon" | "mark", { name: string; tip: string; inherit: string }> = {
+const MARKS: Record<"icon" | "mark", { name: string; tip: string }> = {
   icon: { name: "icon",
-    tip: "The mark drawn in its top corner instead of the one its role would.",
-    inherit: "its role’s own mark" },
+    tip: "The mark drawn in its top corner instead of the one its role would. "
+       + "Nothing lit is the role's own mark." },
   mark: { name: "mark",
     tip: "A quiet mark in its bottom corner — whatever this vocabulary wants to "
-       + "flag about a usage. It says nothing to the engine.",
-    inherit: "no mark at all" },
+       + "flag about a usage. It says nothing to the engine." },
 };
 
 export type StylesProps = { graph: Graph; id: Id; onAct: Act };
 
-/** One question's answers. **Inherit is a choice, not an empty box** — it is
- *  what most elements are, so it is offered first and its tip says what it
- *  takes. */
-function Options({ q, said, chain, set, off }: {
+/** One question's answers.
+ *
+ *  **No *inherit* chip.** What a row inherits is a value like any other, so the
+ *  chip it would land on is lit rather than a seventh chip standing in for it —
+ *  which is one fewer control per row and says what the thing actually draws.
+ *  **Lit two ways**: quietly where the answer came from the chain or from the
+ *  app, and brightly where this element set it. Pressing the one it set gives
+ *  it back, so nothing has to be written to say *unchanged* — a definition
+ *  still holds only what somebody chose.
+ *
+ *  A run's `style` shows no lit chip where nothing was said, because nothing
+ *  stands in: an unstyled run draws from its module, which is not a value from
+ *  any of these sets. */
+function Options({ q, said, chain, set, off, runs }: {
   q: Question;
   said: (key: string, name: string) => unknown;
   chain: (key: string, name: string) => string;
   set: (key: Key, name: string, value: string) => void;
   off: boolean;
+  runs: boolean;
 }) {
-  const on = (v: string | undefined) => said(q.key, q.name) === v;
+  const own = said(q.key, q.name);
   /** **A list of names is typed, not picked.** The names belong to this one
-   *  usage, so there is no closed set to offer — and an empty box is *inherit*
-   *  here the same way the chip is on every other row. */
+   *  usage, so there is no closed set to offer — and an empty box is what it
+   *  inherits here the same way a lit chip is on every other row. */
   if (q.form === "words") {
-    const own = said(q.key, q.name);
     const value = Array.isArray(own) ? own.join(", ") : String(own ?? "");
     return (
       <Line label={q.word} tip={q.tip} off={off}>
@@ -197,16 +223,31 @@ function Options({ q, said, chain, set, off }: {
       </Line>
     );
   }
+
+  /** What it draws: what it says for itself, then what its chain says, then
+   *  what the app draws where nobody has said. */
+  const from_app = runs && q.key === "style"
+    ? "" : DEFAULTS[`${q.key}.${q.name}` as keyof typeof DEFAULTS] ?? "";
+  const at = String(own ?? "") || chain(q.key, q.name) || from_app;
+  const mine = own !== undefined;
+  const offered = q.of.filter((c) => !(runs && q.omit?.includes(c.value)));
+
   return (
     <Line label={q.word} tip={q.tip} off={off} className="options">
-      <button className={on(undefined) ? "opt on" : "opt"} disabled={off}
-              title={`inherit — ${chain(q.key, q.name) || "the app’s own default"}`}
-              onClick={() => set(q.key, q.name, "")}>inherit</button>
-      {q.of.map((c) => (
-        <button key={c.value} title={c.word} disabled={off}
-                className={on(c.value) ? "opt on" : "opt"}
-                onClick={() => set(q.key, q.name, c.value)}>{c.word}</button>
-      ))}
+      {offered.map((c) => {
+        const on = at === c.value;
+        return (
+          <button key={c.value} disabled={off}
+                  className={["opt", on ? "on" : "", on && mine ? "set" : ""]
+                    .filter(Boolean).join(" ")}
+                  title={on && mine ? `${c.word} — set here; press again to give it back`
+                    : on ? `${c.word} — inherited`
+                    : c.word}
+                  onClick={() => set(q.key, q.name, on && mine ? "" : c.value)}>
+            {c.word}
+          </button>
+        );
+      })}
     </Line>
   );
 }
@@ -239,24 +280,6 @@ function Named({ id, value, placeholder, live, onAct }: {
   );
 }
 
-/** What the named fields say, as one line. **The preview reads the same values
- *  the canvas does** — a name that no field answers simply says nothing. */
-function values(fields: readonly { name: string; value?: string }[],
-                names: string): string {
-  return names.split(",").map((n) => n.trim()).filter(Boolean)
-    .map((n) => fields.find((f) => f.name === n)?.value ?? "")
-    .filter(Boolean).join(" ");
-}
-
-/** Which relation module a relation definition refines. **The nearest link that
- *  names one**, exactly the way `module_named` answers for a block — a relation
- *  definition names no module of its own, so its chain is what says. */
-function relation_named(graph: Graph, id: Id): RelationModule {
-  const base = isa(graph, id)
-    .find((x) => RELATION_MODULES.includes(x.name as RelationModule));
-  return (base?.name as RelationModule) ?? "line";
-}
-
 /** Where a definition sits in the definitions folder, as a path. **The tree's
  *  own three sections**, so the picker and the folder say one thing. */
 function where(d: Definition): string {
@@ -287,8 +310,13 @@ export function Styles({ graph, id, onAct }: StylesProps) {
   const honoured = honours(kind);
   /** Whether what is held is drawn as a run rather than as a card. */
   const runs = honoured.includes("line");
-  const parts = GROUPS.filter((g) => honoured.includes(ASKS[g]));
   const asked = (g: Group) => ROWS[g].filter((q) => honoured.includes(q.key));
+  /** **A part with nothing left to ask is not a part.** The component says
+   *  whether the part exists at all; the rows say whether this holder has any
+   *  of them — an interface honours `style` and has no `line` keys, so *values*
+   *  goes rather than listing an empty panel. */
+  const parts = GROUPS.filter((g) =>
+    honoured.includes(ASKS[g]) && (asked(g).length > 0 || HAND.includes(g)));
   const role: Role | null = b ? role_of(graph, id) : null;
   const kind_mark = role_icon(role ?? kind);
 
@@ -374,9 +402,6 @@ export function Styles({ graph, id, onAct }: StylesProps) {
               this one, which lists the parts this kind of thing has. */}
           {runs ? (
             <Wire label={label} alias={edge ? alias_of(graph, id, true) : undefined}
-                  from={values(it.fields, now("line", "from_shows", ""))}
-                  to={values(it.fields, now("line", "to_shows", ""))}
-                  shows={values(it.fields, now("line", "shows", ""))}
                   said={said} now={now} />
           ) : (
             <Card label={label} alias={b ? alias_of(graph, id) : undefined}
@@ -431,9 +456,16 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           {/* **The label names the pin.** What the card writes as its type is
               what the definition is called, so one word answers both — and
               ticking *pin* below is what files it under that name. */}
-          {b ? (
+          {/* **For a run these two rows are close together and are not one.**
+              *name* is the definition it points at now; *label* is the name a
+              new one would be filed under, and pinning is what files it. */}
+          {b || edge ? (
             <Line label="label"
-                  tip="What sort of thing this is. Pinning files a definition under this name.">
+                  tip={runs
+                    ? "What to call the definition pinning would file. A run is "
+                      + "named by the definition it points at, so this becomes its "
+                      + "name once it is pinned."
+                    : "What sort of thing this is. Pinning files a definition under this name."}>
               <input value={pinned ? own!.name : draft} aria-label="label"
                      placeholder={kind} readOnly={pinned}
                      onChange={(e) => set_draft(e.target.value)} />
@@ -443,27 +475,34 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           {/* **Two boxes, and each says something different.** Whether this is
               in the vocabulary, and whether every plain one of its kind follows
               it. Both are about the definition the label names. */}
-          {/* **Whether a run may be pinned is not settled**, so it is not offered
-              — a checkbox whose answer nobody has agreed is worse than none. */}
-          {!runs && (b || pinned) ? (
+          {b || edge || pinned ? (
           <Line label="pin" className="marks"
                 tip="Whether this is in the vocabulary, and what its kind follows.">
-            {b || pinned ? (
+            {/* **A run is pinned exactly as a card is**, and a pinned run is
+                offered on the rail's relations group rather than in the tree —
+                a relationship is drawn between two ends, so there is nothing to
+                drag a row onto. */}
+            {b || edge || pinned ? (
               <label className="check" title="Keep this look as a definition anything can name">
                 <input type="checkbox" checked={pinned} disabled={borrowed}
                        onChange={(e) => e.target.checked
                          ? onAct("pin", { id, name: draft.trim() || kind })
                          : onAct("unpin", { id: own!.id })} />
-                pin block
+                pin {runs ? "line" : "block"}
               </label>
             ) : null}
-            <label className="check"
-                   title={`Every ${kind} that names nothing draws from this one instead of the base`}>
-              <input type="checkbox" checked={!!own?.default} disabled={!may_default}
-                     onChange={(e) => onAct("default", { id: own!.id,
-                                                         on: e.target.checked ? "yes" : "no" })} />
-              make default
-            </label>
+            {/* **A default is a block's for now.** `Definition.default` names a
+                block module, and what a plain run follows is a separate
+                question from what a right drag draws. */}
+            {!runs ? (
+              <label className="check"
+                     title={`Every ${kind} that names nothing draws from this one instead of the base`}>
+                <input type="checkbox" checked={!!own?.default} disabled={!may_default}
+                       onChange={(e) => onAct("default", { id: own!.id,
+                                                           on: e.target.checked ? "yes" : "no" })} />
+                make default
+              </label>
+            ) : null}
           </Line>
           ) : null}
         </Body>
@@ -500,7 +539,8 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           </div>
           {paints ? (
             <Rail label="style" on={part} onPick={(g) => set_group(g as Group)}
-                  of={parts.map((g) => ({ key: g, word: g, said: touched(g) }))} />
+                  of={parts.map((g) => ({ key: g, word: (runs && AS_RUN[g]) || g,
+                                          said: touched(g) }))} />
           ) : null}
         </div>
 
@@ -508,7 +548,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
         <Body>
           {asked(part).map((q) => (
             <Options key={`${q.key}.${q.name}`} q={q} said={said} chain={chain} set={set}
-                     off={q.name === "family" && tinted} />
+                     runs={runs} off={q.name === "family" && tinted} />
           ))}
 
           {/* **A hue sits above the families and takes precedence over them.**
@@ -551,16 +591,23 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           {part === "icon" || part === "mark" ? (
             <Line label={MARKS[part].name} className="marks-grid"
                   tip={MARKS[part].tip}>
-              <button className={said("card", part) === undefined ? "opt on" : "opt"}
-                      title={`inherit — ${chain("card", part) || MARKS[part].inherit}`}
-                      onClick={() => set("card", part, "")}>inherit</button>
-              {names().map((n) => (
-                <button key={n} title={n}
-                        className={said("card", part) === n ? "opt mark on" : "opt mark"}
-                        onClick={() => set("card", part, n)}>
-                  <Icon name={n} size={13} />
-                </button>
-              ))}
+              {/* **The one it draws is lit, whether or not this said so.** The
+                  mark it inherits reads quietly; the one this element chose
+                  reads brightly, and pressing that one gives it back. */}
+              {names().map((n) => {
+                const own = said("card", part) === n;
+                const on = own || (said("card", part) === undefined
+                                   && chain("card", part) === n);
+                return (
+                  <button key={n} title={own ? `${n} — set here; press again to give it back`
+                    : on ? `${n} — inherited` : n}
+                          className={["opt", "mark", on ? "on" : "", own ? "set" : ""]
+                            .filter(Boolean).join(" ")}
+                          onClick={() => set("card", part, own ? "" : n)}>
+                    <Icon name={n} size={13} />
+                  </button>
+                );
+              })}
             </Line>
           ) : null}
         </Body>

@@ -1,4 +1,5 @@
-import { ARRANGEMENTS, type Act, type Arrangement, type RelationModule } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement, type Dir,
+         type RelationModule } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; **a verb leaves it undefined**, since there is
@@ -31,8 +32,17 @@ export type Chrome = {
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
   interfaces?: boolean;
-  /** Which way a right drag draws a line. */
+  /** What a right drag draws: which module, which way it points, and which
+   *  definition it names. */
   module?: RelationModule;
+  dir?: Dir;
+  type?: string;
+  /** **The pinned lines, which is where a relation vocabulary lives.** A
+   *  relationship is drawn between two ends and never dropped, so there is
+   *  nothing to drag a relation row onto — the tree keeps blocks and the rail
+   *  keeps these. Each says which module it refines, so it draws the mark that
+   *  module draws. */
+  relations?: readonly { id: string; name: string; module: RelationModule }[];
 };
 
 /** How a layer places what it holds. */
@@ -41,15 +51,18 @@ const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
   grid: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
 };
 
-/** The ways a line is drawn, as the ones a right drag may pick. **Three of the
- *  four** — a reference line is assigned from what sits at its ends and is
+/** What a right drag may draw. **A module and a direction**, because *straight*
+ *  and *directed* were never two sorts of run — they are one run with and
+ *  without a `dir`, and a `directed` module saying so again is the same fact
+ *  filed twice. A reference line is assigned from what sits at its ends and is
  *  nobody's to choose. */
-const LINES: { module: RelationModule; icon: IconName; word: string; tip: string }[] = [
-  { module: "line", icon: "relation_plain", word: "straight",
+const LINES: { key: string; module: RelationModule; dir?: Dir;
+               icon: IconName; word: string; tip: string }[] = [
+  { key: "plain", module: "line", icon: "relation_plain", word: "straight",
     tip: "A right drag makes a plain line" },
-  { module: "directed", icon: "relation_directed", word: "directed",
-    tip: "A right drag makes a line that points" },
-  { module: "tie", icon: "relation_tie", word: "tie",
+  { key: "directed", module: "line", dir: "forward", icon: "relation_directed",
+    word: "directed", tip: "A right drag makes a line that points" },
+  { key: "tie", module: "tie", icon: "relation_tie", word: "tie",
     tip: "A right drag makes an association" },
 ];
 
@@ -103,13 +116,28 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
    *  what a relationship *is* travels in the file, unlike everything in
    *  `display` above. */
   if (has("relations")) {
+    const named = chrome.type ?? "";
     out.push({
       key: "relations", label: "relations",
-      controls: LINES.map((l): Control => ({
-        key: `line:${l.module}`, icon: l.icon, word: l.word, tip: l.tip,
-        on: (chrome.module ?? "line") === l.module,
-        run: () => act("relate_with", { module: l.module }),
-      })),
+      controls: [
+        ...LINES.map((l): Control => ({
+          key: `line:${l.key}`, icon: l.icon, word: l.word, tip: l.tip,
+          /** **A definition named wins the light.** Picking a pinned line is
+           *  picking its module too, so lighting both would say the rail is in
+           *  two states at once. */
+          on: !named && (chrome.module ?? "line") === l.module
+              && (chrome.dir ?? "none") === (l.dir ?? "none"),
+          run: () => act("relate_with", { module: l.module, dir: l.dir ?? "none" }),
+        })),
+        /** **What somebody pinned**, drawn with its own module's mark. */
+        ...(chrome.relations ?? []).map((d): Control => ({
+          key: `type:${d.id}`, word: d.name,
+          icon: LINES.find((l) => l.module === d.module)?.icon ?? "relation_plain",
+          tip: `A right drag draws a ${d.name}`,
+          on: named === d.id,
+          run: () => act("relate_with", { module: d.module, type: d.id }),
+        })),
+      ],
     });
   }
 

@@ -73,7 +73,9 @@ export function rows_of(graph: Graph, layer: Id | null): Row[] {
     const named = e.type ? graph.defs[e.type]?.name ?? e.type : "";
     out.push({
       id: e.id, sort: "relationship", kind: e.module,
-      fields: Object.fromEntries((e.fields ?? []).map((f) => [f.name, f.value ?? ""])),
+      /** **None, and never any.** An edge holds no values — what a connection
+       *  has to say belongs to the blocks at its ends. */
+      fields: {},
       name: named || e.module,
       what: `${called(e.from)} → ${called(e.to)}`,
       type: named,

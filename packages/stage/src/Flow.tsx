@@ -298,7 +298,7 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
  *  — a definition's slot is what colour means on this canvas, and a line
  *  borrowing one would be saying something the vocabulary already says. */
 const READS: Record<string, string> = {
-  line: "line", directed: "directed", reference: "reference", tie: "tie",
+  line: "line", reference: "reference", tie: "tie",
 };
 
 /** **Which seat each end meets is the projection's**, and arrives on the edge
@@ -408,9 +408,15 @@ function signature(scene: Scene, frame: Frame | null): string {
         n.data.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(""),
       ].join(":");
     }).join("|"),
-    scene.edges.map((e) =>
-      `${e.id}:${e.source}>${e.target}:${e.data?.dir}:${e.data?.module}:${e.label ?? ""}`)
-      .join("|"),
+    /** **Everything a run draws from, the same way a card's is read.** Styling
+     *  one moves nothing and renames nothing; what it changes is the look, and
+     *  a signature blind to that left the old run on the canvas until you
+     *  navigated away and back. Read off the look itself, so a key added to it
+     *  cannot be forgotten here. */
+    scene.edges.map((e) => [
+      e.id, `${e.source}>${e.target}`, e.data?.dir, e.data?.module,
+      e.label ?? "", e.data?.alias ?? "", look_key(e.data?.wire),
+    ].join(":")).join("|"),
   ].join("~");
 }
 

@@ -78,7 +78,7 @@
         "from": "requirements",
         "group": "relation",
         "name": "satisfies",
-        "extends": "directed",
+        "extends": "line",
         "components": {
           "rules": {
             "ends": {
@@ -100,7 +100,7 @@
         "from": "requirements",
         "group": "relation",
         "name": "verifies",
-        "extends": "directed",
+        "extends": "line",
         "components": {
           "rules": {
             "ends": {

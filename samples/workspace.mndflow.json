@@ -89,12 +89,6 @@
           "card": {}
         }
       },
-      "directed": {
-        "id": "directed",
-        "name": "directed",
-        "from": "base",
-        "group": "relation"
-      },
       "folder": {
         "id": "folder",
         "name": "folder",
@@ -229,39 +223,41 @@
       "b_hx": {
         "id": "b_hx",
         "parent": "b_loop",
+        "name": "Heat Exchanger",
         "group": "g_wet",
         "type": "def_vessel",
-        "x": 168,
-        "y": 0,
-        "name": "Heat Exchanger",
+        "alias": 1,
         "order": 2,
-        "alias": 1
+        "x": 168,
+        "y": 0
       },
       "b_loop": {
         "id": "b_loop",
         "parent": "f_plant",
-        "x": 0,
-        "y": 0,
         "name": "Primary Loop",
+        "alias": 2,
         "order": 1,
-        "alias": 2
+        "x": 0,
+        "y": 0
       },
       "b_note": {
         "id": "b_note",
         "parent": "b_loop",
-        "type": "note",
-        "body": "Hatch and wash are said by the definition now, not by the stylesheet.",
-        "x": 336,
-        "y": 96,
         "name": "",
+        "type": "note",
+        "alias": 1,
+        "body": "Hatch and wash are said by the definition now, not by the stylesheet.",
         "order": 6,
-        "alias": 1
+        "x": 336,
+        "y": 96
       },
       "b_pump": {
         "id": "b_pump",
         "parent": "b_loop",
+        "name": "Feed Pump",
         "group": "g_wet",
         "type": "def_pump",
+        "alias": 3,
         "fields": [
           {
             "name": "rated flow",
@@ -269,130 +265,128 @@
             "value": "50"
           }
         ],
-        "x": 0,
-        "y": 0,
-        "name": "Feed Pump",
         "order": 1,
-        "alias": 3
+        "x": 0,
+        "y": 0
       },
       "b_ref": {
         "id": "b_ref",
         "parent": "b_loop",
-        "of": "b_hx",
-        "x": 0,
-        "y": 192,
         "name": "",
+        "of": "b_hx",
+        "alias": 1,
         "order": 7,
-        "alias": 1
+        "x": 0,
+        "y": 192
       },
       "b_res": {
         "id": "b_res",
         "parent": "b_loop",
-        "type": "resource",
-        "x": 168,
-        "y": 192,
         "name": "Coolant",
+        "type": "resource",
+        "alias": 1,
         "order": 8,
-        "alias": 1
+        "x": 168,
+        "y": 192
       },
       "b_spare": {
         "id": "b_spare",
         "parent": "b_loop",
-        "type": "def_ghost",
-        "x": 0,
-        "y": 96,
         "name": "Spare Pump",
+        "type": "def_ghost",
+        "alias": 4,
         "order": 4,
-        "alias": 4
+        "x": 0,
+        "y": 96
       },
       "b_tank": {
         "id": "b_tank",
         "parent": "b_loop",
-        "type": "def_vessel",
-        "x": 336,
-        "y": 0,
         "name": "Surge Tank",
+        "type": "def_vessel",
+        "alias": 5,
         "order": 3,
-        "alias": 5
+        "x": 336,
+        "y": 0
       },
       "b_title": {
         "id": "b_title",
         "parent": "b_loop",
-        "type": "def_heading",
-        "x": 168,
-        "y": 96,
         "name": "Primary Loop",
+        "type": "def_heading",
+        "alias": 6,
         "order": 5,
-        "alias": 6
+        "x": 168,
+        "y": 96
       },
       "c_a": {
         "id": "c_a",
         "parent": "f_plant",
+        "name": "Duty",
         "group": "gr_matrix",
+        "alias": 7,
         "cell": {
           "r": 0,
           "c": 0
         },
         "header": true,
-        "name": "Duty",
-        "order": 3,
-        "alias": 7
+        "order": 3
       },
       "c_b": {
         "id": "c_b",
         "parent": "f_plant",
+        "name": "Standby",
         "group": "gr_matrix",
+        "alias": 8,
         "cell": {
           "r": 1,
           "c": 0
         },
-        "name": "Standby",
-        "order": 4,
-        "alias": 8
+        "order": 4
       },
       "f_plant": {
         "id": "f_plant",
         "parent": "ws",
-        "type": "folder",
         "name": "Coolant Plant",
-        "order": 1,
-        "alias": 1
+        "type": "folder",
+        "alias": 1,
+        "order": 1
       },
       "g_wet": {
         "id": "g_wet",
         "parent": "b_loop",
-        "type": "group",
         "name": "Wet side",
-        "order": 9,
-        "alias": 1
+        "type": "group",
+        "alias": 1,
+        "order": 9
       },
       "gr_matrix": {
         "id": "gr_matrix",
         "parent": "f_plant",
+        "name": "Duty",
         "type": "grid",
+        "alias": 1,
         "cols": 2,
+        "order": 2,
         "rows": 2,
         "x": 0,
-        "y": 320,
-        "name": "Duty",
-        "order": 2,
-        "alias": 1
+        "y": 320
       },
       "i_in": {
         "id": "i_in",
         "parent": "b_pump",
+        "name": "",
         "side": "left",
+        "alias": 1,
         "at": 0.5,
         "flow": "in",
-        "name": "",
-        "order": 1,
-        "alias": 1
+        "order": 1
       },
       "ws": {
         "id": "ws",
         "parent": null,
-        "type": "folder",
         "name": "workspace",
+        "type": "folder",
         "counters": {
           "block": 8,
           "note": 1,
@@ -410,25 +404,25 @@
       "e_flow": {
         "id": "e_flow",
         "from": "b_pump",
-        "module": "directed",
+        "module": "line",
         "dir": "one",
-        "to": "b_hx",
-        "alias": 1
+        "alias": 1,
+        "to": "b_hx"
       },
       "e_out": {
         "id": "e_out",
         "from": "b_hx",
-        "module": "directed",
+        "module": "line",
         "dir": "one",
-        "to": "b_tank",
-        "alias": 2
+        "alias": 2,
+        "to": "b_tank"
       },
       "e_tie": {
         "id": "e_tie",
         "from": "b_note",
         "module": "tie",
-        "to": "b_hx",
-        "alias": 3
+        "alias": 3,
+        "to": "b_hx"
       }
     }
   }

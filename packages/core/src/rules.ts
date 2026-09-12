@@ -119,9 +119,11 @@ function is_one_of(graph: Graph, type: Id | undefined, allowed: Id[]): boolean {
   return isa(graph, type).some((d) => allowed.includes(d.id));
 }
 
+/** What a block answers for one field name. **A block, because only a block
+ *  holds values** — `match` reads it off both *ends*, which is the shape this
+ *  had all along. */
 function value_of(graph: Graph, id: Id, name: string): string | undefined {
-  const held = graph.blocks[id]?.fields ?? graph.edges[id]?.fields;
-  return held?.find((f) => f.name === name)?.value;
+  return graph.blocks[id]?.fields?.find((f) => f.name === name)?.value;
 }
 
 function label(graph: Graph, id: Id): string {
@@ -175,12 +177,9 @@ export function review(graph: Graph, scope?: Id): Note[] {
     if (!holds_block(e.from) && !holds_block(e.to)) continue;
     const rules = rules_of(graph, e.id);
 
-    for (const name of rules.required ?? []) {
-      if (!value_of(graph, e.id, name)) {
-        notes.push({ kind: "required", id: e.id, what: `a relation needs a value for ${name}` });
-      }
-    }
-
+    /** **No `required` here.** It asks whether a usage carries a value, and an
+     *  edge carries none — a relation definition stating one would be asking
+     *  for something nothing could ever answer. */
     if (rules.ends) {
       end(notes, graph, e.id, "from", e.from, rules.ends.from, rules.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, rules.ends.to, rules.ends.toFlow);

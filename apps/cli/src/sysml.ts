@@ -190,7 +190,8 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
     if (!from || !to) continue;
     const id = `sysml:edge:${from}>${to}`;
     graph.edges[id] = { id, from, to, type: l.type,
-                        module: l.word === "flow" ? "directed" : "line" };
+                        module: "line" as const,
+                        ...(l.word === "flow" ? { dir: "forward" as const } : {}) };
   }
   return graph;
 }

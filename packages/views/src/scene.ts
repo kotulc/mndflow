@@ -105,14 +105,12 @@ export type LineData = {
    *  a definition cannot invent a value. */
   wire?: Wire;
   /** The handle, beside the name rather than inside it. Unnamed, it is what
-   *  tells two runs apart; named, it draws only where the line asked. */
+   *  tells two runs apart; named, it draws only where the line asked.
+   *
+   *  **And that is everything a run writes.** An edge holds no values, so there
+   *  is nothing at either end to draw — an anchor is mute, and a promoted end
+   *  is a port, which draws itself. */
   alias?: string;
-  /** The values this run draws, at the end each belongs to. **Three lists** —
-   *  a multiplicity sits at the end it counts and a stereotype beside the name,
-   *  which is the whole of what makes either of them special. */
-  from_fields?: readonly { name: string; value: string }[];
-  fields?: readonly { name: string; value: string }[];
-  to_fields?: readonly { name: string; value: string }[];
   /** The boxes this run must stay outside of: **every card on the layer**.
    *
    *  It used to be the two ends' own boxes and nothing else, on the reasoning
@@ -149,8 +147,9 @@ export type LineEdge = Edge<LineData>;
 /** What draws at each end of a run.
  *
  *  **Two questions with one answer.** `dir` says which ends a relationship
- *  points at — the model's, and what `flip`, `chain` and every `ends` rule read
- *  — and the `line` component says what shape is drawn there. A shape somebody
+ *  points at — the whole of it, since there is no `directed` module saying the
+ *  same thing over again — and the `line` component says what shape is drawn
+ *  there. A shape somebody
  *  named wins; an end that points and was given no shape draws the ordinary
  *  filled head; an end that is neither draws nothing.
  *
@@ -158,7 +157,7 @@ export type LineEdge = Edge<LineData>;
  *  two ways. */
 export function heads(data: LineData | undefined): { from: Arrow; to: Arrow } {
   const dir = data?.dir ?? "none";
-  const to = dir === "forward" || dir === "both" || data?.module === "directed";
+  const to = dir === "forward" || dir === "both";
   const from = dir === "back" || dir === "both";
   return {
     from: data?.wire?.from_arrow ?? (from ? "arrow" : "none"),

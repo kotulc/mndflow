@@ -109,7 +109,7 @@
         "group": "relation",
         "name": "satisfy",
         "body": "A part satisfies a requirement.",
-        "extends": "directed",
+        "extends": "line",
         "names": {
           "sysml": "«satisfy»"
         },
@@ -130,7 +130,7 @@
         "group": "relation",
         "name": "item flow",
         "body": "What travels along a connector.",
-        "extends": "directed",
+        "extends": "line",
         "names": {
           "sysml": "«itemFlow»"
         },

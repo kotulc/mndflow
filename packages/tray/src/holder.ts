@@ -13,7 +13,9 @@ export type Held = {
   def: Definition | null;
   block: Block | null;
   edge: Relation | null;
-  /** What it carries — a usage's values, or a definition's schema. */
+  /** What it carries — a block's values, or a definition's schema. **Empty on a
+   *  relationship**, which holds none: a connection is a join, and what one has
+   *  to say belongs to the blocks at its ends. */
   fields: readonly (Field | FieldDef)[];
   /** **A package resists editing.** Somebody else's vocabulary, so every action
    *  refuses to write it and a panel says so rather than offering controls that
@@ -29,8 +31,7 @@ export function held(graph: Graph, id: Id): Held | null {
   if (b) return { def: null, block: b, edge: null, fields: b.fields ?? [],
                   borrowed: false };
   const e = graph.edges[id];
-  if (e) return { def: null, block: null, edge: e, fields: e.fields ?? [],
-                  borrowed: false };
+  if (e) return { def: null, block: null, edge: e, fields: [], borrowed: false };
   return null;
 }
 

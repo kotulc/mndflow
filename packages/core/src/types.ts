@@ -37,11 +37,16 @@ export type Arrangement = "free" | "grid";
 
 export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 
-/** Closed: two are picked, two are assigned from what sits at the ends. */
-export type RelationModule = "line" | "directed" | "reference" | "tie";
+/** Closed: one is picked, two are assigned from what sits at the ends.
+ *
+ *  **There was a `directed` here, and it said nothing `dir` did not.** A run
+ *  was made `directed` at the same moment it was given a direction and made
+ *  `line` again when the direction came off, so the two were one fact stored
+ *  twice — and every renderer had to ask both. Which way a run points is `dir`,
+ *  and that is the whole of it. */
+export type RelationModule = "line" | "reference" | "tie";
 
-export const RELATION_MODULES: readonly RelationModule[] =
-  ["line", "directed", "reference", "tie"];
+export const RELATION_MODULES: readonly RelationModule[] = ["line", "reference", "tie"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 
@@ -166,7 +171,17 @@ export type Relation = {
    *  shared and `line` is the relationship's own, exactly as `card` is the
    *  block's. Local until it is pinned, like a block's. */
   looks?: Components;
-  fields?: Field[];
+  /** **No fields, and that is the whole design.** An edge is a join: which two
+   *  things, which way, what draws at each end. Everything a connection has to
+   *  *say* belongs to a block — a role name is the port's name, a multiplicity
+   *  is `degree` on a definition, a guard is a condition and a condition is a
+   *  thing you name. The model already believed this before it was stated:
+   *  `ends.fromFlow` reads the interface, `rules.match` reads both ends, and
+   *  `ends` resolves an end to the block behind it.
+   *
+   *  **An anchor is mute, and promotion is the price of speech.** Annotating an
+   *  end means promoting it, which is what makes promotion mean something
+   *  rather than being a routing convenience. */
 };
 
 /** Which block module the engine dispatches on. Open — one more is additive.
@@ -264,6 +279,7 @@ export type Mutation =
   | { op: "set_port"; id: Id; side: Side; at: number }
   | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
+  /** A value on a **block**. An edge has none to set — see `Relation`. */
   | { op: "set_field"; id: Id; field: Field }
   | { op: "drop_field"; id: Id; name: string }
   | { op: "set_def"; def: Definition }

@@ -27,7 +27,8 @@ export function clean(): string {
       block_hx: { id: "block_hx", parent: "block_loop", name: "Heat Exchanger", order: 2 },
     },
     edges: {
-      edge_a: { id: "edge_a", from: "block_pump", to: "block_hx", module: "directed" },
+      edge_a: { id: "edge_a", from: "block_pump", to: "block_hx", module: "line",
+                dir: "forward" },
     },
   });
 }

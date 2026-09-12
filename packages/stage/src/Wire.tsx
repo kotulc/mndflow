@@ -57,11 +57,6 @@ function paint(look: Look): { attrs: Record<string, string>; style: CSSPropertie
   };
 }
 
-/** The values drawn at one place on the run, as one line of text. */
-function said(fields: readonly { name: string; value: string }[] | undefined): string {
-  return (fields ?? []).map((f) => f.value).filter(Boolean).join(" ");
-}
-
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
           label, data, style } = props;
@@ -79,10 +74,10 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
 
-  /** **The name, the handle and whatever the middle shows, on one line.** Each
-   *  is composed rather than folded into the one before it, so a run nobody has
-   *  named still draws the values it was told to. */
-  const middle = [label ? String(label) : "", data?.alias ?? "", said(data?.fields)]
+  /** **The name and the handle, composed rather than folded together.** That is
+   *  the whole of what a run writes: an edge holds no values, so there is
+   *  nothing at either end to draw and nothing else in the middle. */
+  const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
 
   return (
@@ -111,39 +106,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
           </div>
         </EdgeLabelRenderer>
       ) : null}
-      {/* **What each end says, at the end it is about.** A multiplicity counts
-          the end it sits at and a role names that end, so neither belongs in
-          the middle beside the relationship's own name. */}
-      <Ends id={id} at={run} from={said(data?.from_fields)} to={said(data?.to_fields)}
-            attrs={attrs} style={tint} />
     </>
-  );
-}
-
-/** The two end labels, where either has anything to say. Placed on the run's
- *  own first and last points, which are where it meets each border. */
-function Ends({ id, at, from, to, attrs, style }: {
-  id: string;
-  at: readonly { x: number; y: number }[];
-  from: string;
-  to: string;
-  attrs: Record<string, string>;
-  style: CSSProperties;
-}) {
-  if (!from && !to) return null;
-  const ends = [{ key: "from", text: from, p: at[0] },
-                { key: "to", text: to, p: at.at(-1) }]
-    .filter((e) => e.text && e.p);
-  return (
-    <EdgeLabelRenderer>
-      {ends.map((e) => (
-        <div key={e.key} className="mnd-wire-end nodrag nopan" data-edge={id} {...attrs}
-             style={{ ...style,
-                      transform: `translate(-50%, -50%) translate(${e.p!.x}px, ${e.p!.y}px)` }}>
-          <span className="card-name">{e.text}</span>
-        </div>
-      ))}
-    </EdgeLabelRenderer>
   );
 }
 

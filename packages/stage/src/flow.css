@@ -612,10 +612,9 @@
 .mnd-wire-name:hover { color: var(--text); }
 .react-flow__edge.selected .mnd-wire-name { color: var(--accent); }
 
-/* Straight, directed and tie share one weight and one stroke — the module
-   still reads from dash and arrowhead, not from how loud the line is. */
-.mnd-flow .react-flow__edge.line .react-flow__edge-path,
-.mnd-flow .react-flow__edge.directed .react-flow__edge-path {
+/* A plain run, whether or not it points: **which way it points is `dir` and
+   draws as a head**, never as a different weight or stroke. */
+.mnd-flow .react-flow__edge.line .react-flow__edge-path {
   stroke-width: 1.5;
   opacity: 1;
 }
@@ -672,18 +671,6 @@
   stroke: var(--accent);
 }
 
-/* What a run says at one of its ends — a multiplicity, a role name, a guard.
-   Set like the name in the middle and smaller, because it qualifies rather than
-   names. */
-.mnd-wire-end {
-  position: absolute;
-  padding: 0 3px;
-  color: var(--muted);
-  font-size: 9px;
-  line-height: 1.5;
-  white-space: nowrap;
-  pointer-events: none;
-}
 
 /* Handles are for connecting, not for looking at: they appear while a
    connection is being made and are invisible the rest of the time. */

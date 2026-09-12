@@ -14,10 +14,10 @@
 
 import { unreadable } from "./components";
 import { alias_kind, covers, fold, can_hold, is_grid, module_named, overlaps,
-         subtree } from "./fold";
+         subtree, BASE_RELATIONS } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
-         type Span, type Step } from "./types";
+         type Relation, type Span, type Step } from "./types";
 
 export type Fault = {
   kind: "repaired" | "dropped";
@@ -277,6 +277,62 @@ export function inspect(graph: Graph): Inspection {
       faults.push({ kind: "dropped", what: "a relation with an end that is not there" });
       repairs.push({ op: "delete_edge", id });
     }
+  }
+
+  /** **`directed` was a module and is now a direction.** A run was made
+   *  `directed` at the moment it was given a direction and made `line` again
+   *  when the direction came off, so the two were one fact stored twice. A file
+   *  written before that was settled says it the old way — and one written
+   *  before `dir` existed at all says only the module, which meant forward.
+   *
+   *  The shipped `directed` definition went with it, so a run or a subtype
+   *  naming it is re-pointed at `line` rather than left dangling for the
+   *  missing-extends check to blank. */
+  for (const e of Object.values(graph.edges)) {
+    const was = (e as Relation & { module?: string }).module as string;
+    const stale = was === "directed";
+    const typed = e.type === "directed";
+    if (!stale && !typed) continue;
+    faults.push({ kind: "repaired",
+                  what: "a relation was `directed`, which is a direction now" });
+    const { module: _gone, ...rest } = e as Relation & { module?: string };
+    repairs.push({ op: "link_blocks", edge: {
+      ...rest, module: "line",
+      ...(typed ? {} : { type: e.type }),
+      dir: e.dir ?? (stale ? "forward" : "none"),
+    } });
+  }
+  for (const d of Object.values(graph.defs)) {
+    if (d.extends !== "directed") continue;
+    faults.push({ kind: "repaired", what: `"${d.name}" extended \`directed\`` });
+    repairs.push({ op: "set_def", def: { ...d, extends: "line" } });
+  }
+  /** **And the retired definition itself.** A whole-workspace export carries
+   *  the floor, so a file written before this holds the base's own copy — and
+   *  the floor is re-laid on every fold, which no longer lays this one down. */
+  if (graph.defs["directed"] && !BASE_RELATIONS.includes("directed")) {
+    faults.push({ kind: "dropped", what: "the retired `directed` definition" });
+    repairs.push({ op: "drop_def", id: "directed" });
+  }
+
+  /** **An edge holds no values.** A connection is a join: what one has to say
+   *  belongs to the blocks at its ends — a role name is the port's name, a
+   *  multiplicity is `degree` on a definition, a guard is a condition and a
+   *  condition is a thing you name. A file written before that was settled may
+   *  carry values on a relationship, and one this build no longer reads would
+   *  ride along into every file written from here.
+   *
+   *  **Dropped rather than moved.** There is no end to move them to that is not
+   *  a guess: an anchor is mute, and which of two blocks a value was about is
+   *  not something the value says. Said out loud, so it is not a silent loss. */
+  for (const e of Object.values(graph.edges)) {
+    const was = (e as Relation & { fields?: unknown[] }).fields;
+    if (!Array.isArray(was) || !was.length) continue;
+    faults.push({ kind: "dropped",
+                  what: `a relation carried ${was.length} `
+                      + `value${was.length === 1 ? "" : "s"}, which an edge no longer holds` });
+    const { fields: _gone, ...rest } = e as Relation & { fields?: unknown[] };
+    repairs.push({ op: "link_blocks", edge: { ...rest } });
   }
 
   /** `groups: Id[]` → `group: Id`. **One group per block**, so a block that was

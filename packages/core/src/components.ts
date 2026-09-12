@@ -201,6 +201,37 @@ export const OPACITY = { min: 0, max: 1 } as const;
  *  them. */
 export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 
+/** **What a card draws where nobody has said** — the app's own answer, as
+ *  against a definition's or an element's.
+ *
+ *  **Here rather than beside the renderer, because two surfaces need it.** The
+ *  drawing resolves a look against it, and the settings panel lights the chip a
+ *  row would draw when nothing is set — and two copies of this would drift the
+ *  moment either changed. `as const` is what makes the drawing's own table
+ *  type-check against the closed sets, so a typo here is a build error.
+ *
+ *  **A run has almost none.** What an unstyled run draws is its module's own —
+ *  a tie is a dotted whisper, a reference is elsewhere-coloured — so nothing
+ *  here stands in for its `style`, and a panel showing one lights no chip,
+ *  which is the truth. Its two identity keys are the card's, said again under
+ *  the component that owns them. */
+export const DEFAULTS = {
+  "card.label": "none",
+  "card.align": "left",
+  "card.name": "show",
+  "card.alias": "hide",
+  "line.name": "show",
+  "line.alias": "hide",
+  "style.family": "neutral",
+  "style.fill": "solid",
+  "style.border_width": "thin",
+  "style.border_style": "solid",
+  "style.name_font": "none",
+  "style.name_weight": "normal",
+  "style.label_font": "none",
+  "style.label_weight": "normal",
+} as const;
+
 /** The drawing keys, as against what a thing is held to. **`plain` gives these
  *  back and leaves `rules` alone** — a reset is about how something looks and
  *  never about what its vocabulary asked of it. */
@@ -313,20 +344,22 @@ const style: Component = {
                                "label_font", "label_weight", "label_contrast"]),
 };
 
-/** What a run draws: a head at each end, and which of its values sit where.
+/** What a run draws: a head at each end, and whether it says its own name.
  *
  *  **`card`’s counterpart, not a second `style`.** A relationship is painted
  *  from the same shared `style` a card is — its family, its hue, its weight,
- *  its writing — and what it has instead of a face is two ends and a middle.
+ *  its writing — and what it has instead of a face is two ends.
+ *
+ *  **Four keys, and it is meant to stay small.** An edge is a join: which two
+ *  things, which way, what draws where it meets each of them. Everything a
+ *  connection has to *say* belongs to a block — a role name is the port's name,
+ *  a multiplicity is `degree` on a definition, a guard is a condition and a
+ *  condition is a thing you name. There is nothing here to list values with,
+ *  because there are no values on an edge to list.
  *
  *  **Flat keys**, matching the `name_*` and `border_*` convention, because a
  *  look writes one scalar at a time and a nested record has nowhere to be
- *  typed.
- *
- *  **Multiplicity, a guard, a role name and a stereotype are ordinary fields**
- *  on the relationship. None of them is an interface — one port serves many
- *  lines, each with its own — and what makes them special is only *where they
- *  draw*, which is what the three `shows` keys say. */
+ *  typed. */
 const line: Component = {
   name: "line",
   check: (config) =>
@@ -336,14 +369,7 @@ const line: Component = {
      *  reads its module and its handle; hiding it leaves a bare run. */
     ?? one_of("line.name", config["name"], SHOWN)
     ?? one_of("line.alias", config["alias"], SHOWN)
-    /** Which of its fields draw at each end and in the middle. **Three lists
-     *  rather than one**: a multiplicity belongs at the end it counts and a
-     *  stereotype belongs beside the name. */
-    ?? words("line.from_shows", config["from_shows"])
-    ?? words("line.shows", config["shows"])
-    ?? words("line.to_shows", config["to_shows"])
-    ?? stray("line", config, ["from_arrow", "to_arrow", "name", "alias",
-                              "from_shows", "shows", "to_shows"]),
+    ?? stray("line", config, ["from_arrow", "to_arrow", "name", "alias"]),
 };
 
 

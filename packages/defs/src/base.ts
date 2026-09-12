@@ -67,11 +67,16 @@ export const BASE: Definition[] = [
             fill: "wash", opacity: 0.06 }),
 ];
 
-/** The two relation definitions the base ships, so an untyped line still
- *  resolves to something with a name. */
+/** The one relation definition the base ships, so an untyped run still resolves
+ *  to something with a name.
+ *
+ *  **One, not two.** `directed` was a definition of nothing: a run points
+ *  because `dir` says so, and a second base definition meaning *dir is not
+ *  none* was the same fact filed twice. A **tie** and a **reference** are
+ *  assigned from what sits at the ends and are drawn by their module, so
+ *  neither has a definition to name either. */
 export const RELATIONS: Definition[] = [
   { id: "line", from: PACKAGE, group: "relation", name: "line" },
-  { id: "directed", from: PACKAGE, group: "relation", name: "directed" },
 ];
 
 export const ALL: Definition[] = [...BASE, ...RELATIONS];

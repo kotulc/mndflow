@@ -525,9 +525,9 @@ describe("seats", () => {
     ids.forEach((id, i) => {
       graph.blocks[id] = { id, parent: layer, type: "block", order: 20 + i };
     });
-    graph.edges["edge_ab"] = { id: "edge_ab", from: "block_a", to: "block_b", module: "directed" };
-    graph.edges["edge_bc"] = { id: "edge_bc", from: "block_b", to: "block_c", module: "directed" };
-    graph.edges["edge_cd"] = { id: "edge_cd", from: "block_c", to: "block_d", module: "directed" };
+    graph.edges["edge_ab"] = { id: "edge_ab", from: "block_a", to: "block_b", module: "line", dir: "forward" };
+    graph.edges["edge_bc"] = { id: "edge_bc", from: "block_b", to: "block_c", module: "line", dir: "forward" };
+    graph.edges["edge_cd"] = { id: "edge_cd", from: "block_c", to: "block_d", module: "line", dir: "forward" };
     const spots = under(graph, layer, "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const [a, b, c, d] = ids.map((id) => at.get(id)!);
@@ -696,7 +696,7 @@ describe("seats", () => {
     graph.blocks["block_in"] = { id: "block_in", parent: "block_board", type: "block", order: 50 };
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
-    graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", module: "directed" };
+    graph.edges["edge_in"] = { id: "edge_in", from: "block_in", to: "block_draft", module: "line", dir: "forward" };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes", module: "line" };
     graph.blocks["block_pad"]!.group = "block_mid";
     const spots = under(graph, "block_board", "grid");
@@ -717,7 +717,7 @@ describe("seats", () => {
     graph.blocks["block_out"] = { id: "block_out", parent: "block_board", type: "block", order: 53 };
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
-    graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", module: "directed" };
+    graph.edges["edge_out"] = { id: "edge_out", from: "block_ship", to: "block_out", module: "line", dir: "forward" };
     graph.edges["edge_mid"] = { id: "edge_mid", from: "block_mid", to: "block_lanes", module: "line" };
     graph.blocks["block_pad"]!.group = "block_mid";
     const spots = under(graph, "block_board", "grid");

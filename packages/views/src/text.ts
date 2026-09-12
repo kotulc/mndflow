@@ -44,7 +44,7 @@ export function draw(scene: Scene): string {
       const t = steps === 0 ? 0 : i / steps;
       const x = Math.round((from.x + (to.x - from.x) * t - left) / CELL);
       const y = Math.round((from.y + (to.y - from.y) * t - top) / CELL);
-      if (grid[y]?.[x] === " ") put(x, y, e.data?.module === "directed" ? "+" : ".");
+      if (grid[y]?.[x] === " ") put(x, y, (e.data?.dir ?? "none") !== "none" ? "+" : ".");
     }
   }
 

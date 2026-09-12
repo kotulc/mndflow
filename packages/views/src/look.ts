@@ -16,9 +16,9 @@
  *  what lets the CLI's text and SVG renderers say what a card would look like
  *  without resolving React. */
 
-import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, def_of, DISPLAYS, FAMILIES,
-         FILLS, FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS, WIDTHS,
-         type Graph, type Id, type Settings } from "@mnd/core";
+import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
+         FAMILIES, FILLS, FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS,
+         WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];
@@ -86,15 +86,33 @@ export type Look = {
   intensity?: number;
 };
 
+/** Whether a writing draws, as the closed set says it. **Widened on purpose**:
+ *  the defaults table is `as const`, so comparing one of its literals to a word
+ *  reads to the compiler as a comparison that can never hold. */
+const shows = (said: string): boolean => said === "show";
+
 /** What a card is when its definition says nothing. Neutral, ordinary weight,
- *  ordinary writing: the look every unclassified block already had. */
+ *  ordinary writing: the look every unclassified block already had.
+ *
+ *  **Read from the one table rather than written out again.** The settings
+ *  panel lights the chip a row would draw when nothing is set, which is this
+ *  same answer — so it lives in `core` beside the closed sets it is drawn
+ *  from, and a typo in either is a build error rather than a card and a chip
+ *  quietly disagreeing. */
 export const PLAIN: Look = {
-  family: "neutral", fill: "solid",
-  border_width: "thin", border_style: "solid",
-  name_font: "none", name_weight: "normal",
-  label_font: "none", label_weight: "normal",
-  label: "none", align: "left", kind: "block",
-  name: true, alias: false,
+  family: DEFAULTS["style.family"],
+  fill: DEFAULTS["style.fill"],
+  border_width: DEFAULTS["style.border_width"],
+  border_style: DEFAULTS["style.border_style"],
+  name_font: DEFAULTS["style.name_font"],
+  name_weight: DEFAULTS["style.name_weight"],
+  label_font: DEFAULTS["style.label_font"],
+  label_weight: DEFAULTS["style.label_weight"],
+  label: DEFAULTS["card.label"],
+  align: DEFAULTS["card.align"],
+  name: shows(DEFAULTS["card.name"]),
+  alias: shows(DEFAULTS["card.alias"]),
+  kind: "block",
 };
 
 /** What this element says under one component key, chain first and its own last
@@ -204,14 +222,12 @@ export type Wire = {
   from_arrow?: Arrow;
   to_arrow?: Arrow;
   /** Whether the identity line draws, and whether the handle joins a name
-   *  somebody did set. The same two questions a card answers. */
+   *  somebody did set. The same two questions a card answers.
+   *
+   *  **And nothing else.** A run has no values to write: an anchor is mute, and
+   *  anything an end has to say is said by the port it was promoted to. */
   name: boolean;
   alias: boolean;
-  /** Which of the relationship's fields draw where. **Three lists** — a
-   *  multiplicity belongs at the end it counts, a stereotype beside the name. */
-  from_shows?: readonly string[];
-  shows?: readonly string[];
-  to_shows?: readonly string[];
 };
 
 /** What a run is when nothing was said about it: a line that draws its name and
@@ -231,8 +247,8 @@ export function wire_of(graph: Graph, id: Id): Wire {
   const line = settings(graph, id, "line");
 
   return {
-    name: one(line["name"], SHOWN, "show") === "show",
-    alias: one(line["alias"], SHOWN, "hide") === "show",
+    name: one(line["name"], SHOWN, DEFAULTS["line.name"]) === "show",
+    alias: one(line["alias"], SHOWN, DEFAULTS["line.alias"]) === "show",
     ...word("family", style["family"], FAMILIES),
     ...word("border_width", style["border_width"], WIDTHS),
     ...word("border_style", style["border_style"], BORDERS),
@@ -245,9 +261,6 @@ export function wire_of(graph: Graph, id: Id): Wire {
     ...number("intensity", style["intensity"]),
     ...word("from_arrow", line["from_arrow"], ARROWS),
     ...word("to_arrow", line["to_arrow"], ARROWS),
-    ...listed("from_shows", line["from_shows"]),
-    ...listed("shows", line["shows"]),
-    ...listed("to_shows", line["to_shows"]),
   };
 }
 

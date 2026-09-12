@@ -183,30 +183,23 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
      *  it joins, so a diagram of plain lines wants no writing on any of them.
      *
      *  **The handle draws where the line asks for it** — `line.alias` — rather
-     *  than standing in for a name nobody set. */
+     *  than standing in for a name nobody set.
+     *
+     *  **And nothing else is written.** An edge holds no values, so there is
+     *  nothing at an end to draw: an anchor is mute, and what a promoted end
+     *  has to say is drawn by the port, which is a block like any other. */
     const named = !!graph.edges[e.id]?.type;
     const label = wire.name && named ? shown_name(graph, e.id) : "";
-    const said = { label, ...(wire.alias ? { alias: alias_of(graph, e.id, true) } : {}) };
-    const values = (names: readonly string[] | undefined) =>
-      (names ?? []).flatMap((name) => {
-        const f = e.fields?.find((x) => x.name === name);
-        return f ? [{ name, value: String(f.value ?? "") }] : [];
-      });
-    const at_from = values(wire.from_shows);
-    const at_to = values(wire.to_shows);
-    const middle = values(wire.shows);
+    const alias = wire.alias ? alias_of(graph, e.id, true) : "";
     return {
       id: e.id,
       source: e.from,
       target: e.to,
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
-      ...(said.label ? { label: said.label } : {}),
+      ...(label ? { label } : {}),
       data: { module: e.module, dir: e.dir ?? "none", wire,
-              ...(said.alias ? { alias: said.alias } : {}),
-              ...(at_from.length ? { from_fields: at_from } : {}),
-              ...(middle.length ? { fields: middle } : {}),
-              ...(at_to.length ? { to_fields: at_to } : {}),
+              ...(alias ? { alias } : {}),
               ...(solid.length ? { clear: solid } : {}) },
     };
   });

@@ -105,10 +105,7 @@ svg.scene .card.cell.filled text { fill: var(--lead); }
 svg.scene .route path { fill: none; stroke: var(--stroke); stroke-width: 1.5; }
 svg.scene .route .head { fill: var(--stroke); }
 svg.scene .route text { fill: var(--dim); font: 10px var(--face); }
-svg.scene .route.directed path { stroke: var(--lead); }
-svg.scene .route.directed .head { fill: var(--lead); }
 svg.scene .head.open { fill: none; stroke: currentColor; stroke-width: 1.4; }
-svg.scene .route.directed .head.open { fill: none; stroke: var(--lead); }
 svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.9; }
 svg.scene .route.tie path {
   stroke: var(--note-dim); stroke-dasharray: 0 4; stroke-linecap: round;
@@ -213,10 +210,9 @@ function line(edge: LineEdge, at: Map<string, At>, met: ReadonlyMap<string, Perc
 
   const data = edge.data;
   const end = heads(data);
-  /** **The name, and whatever the run draws beside it.** The handle where the
-   *  line asked for one, and the fields it puts in the middle. */
-  const middle = [String(edge.label ?? ""), data?.alias ?? "",
-                  ...(data?.fields ?? []).map((f) => f.value)].filter(Boolean).join(" ");
+  /** **The name, and the handle where the line asked for one.** A run writes
+   *  nothing else — an edge holds no values. */
+  const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
   return `<g class="route ${data?.module ?? "line"}"><path d="${d}"`
     + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
     + (end.to === "none" ? `` : ` marker-end="url(#${key}-${end.to})"`) + ` />`

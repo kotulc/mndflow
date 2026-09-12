@@ -1,8 +1,8 @@
 /** The run, and only the run.
  *
- *  **`Card`'s sibling, built the same way.** A short run between two ends, each
- *  drawn as the anchor or the port it is, the heads the `line` component names,
- *  the relationship's own name in the middle and whatever it says at each end.
+ *  **`Card`'s sibling, built the same way.** A short run between two seats, the
+ *  heads the `line` component names, and the relationship's own name over it —
+ *  which is the whole of what a run writes, because an edge holds no values.
  *
  *  **It paints itself from the theme's own card table**, the one the stage
  *  paints from: `style` is shared across a block, an interface and a line, so
@@ -13,22 +13,21 @@
 import { type CSSProperties } from "react";
 import { head_url, Heads } from "@mnd/theme";
 
-/** How long the run is drawn, and how much air is left round it. Two ends and a
- *  name in the middle need the width; the height is what one line of writing
- *  above the run takes. */
+/** How long the run is drawn, and how much air is left round it. The name over
+ *  it needs the width; the height is what one line of writing plus the run
+ *  itself takes. */
 const RUN = { w: 188, h: 34, y: 22 };
 
 /** The seat each end is drawn as: a filled square for an anchor on a border. */
 const SEAT = 7;
 
 export type WireProps = {
-  /** What the relationship is called, as the run writes it. */
+  /** What the relationship is called, as the run writes it — which, with its
+   *  handle, is the whole of what a run writes. **An edge holds no values**, so
+   *  there is nothing at either end to draw: an anchor is mute, and a promoted
+   *  end is a port, which draws itself. */
   label: string;
   alias?: string;
-  /** What it says at each end and in the middle, as the values would read. */
-  from?: string;
-  to?: string;
-  shows?: string;
   /** What it says for itself, and what it draws as. */
   said: (key: string, name: string) => unknown;
   now: (key: string, name: string, fallback: string) => string;
@@ -41,11 +40,11 @@ const DASH: Record<string, string | undefined> = {
   dashed: "5 4", dotted: "0 3.5", solid: undefined, double: undefined, none: undefined,
 };
 
-export function Wire({ label, alias, from, to, shows, said, now }: WireProps) {
+export function Wire({ label, alias, said, now }: WireProps) {
   const tinted = said("style", "hue") !== undefined;
   const style = now("style", "border_style", "solid");
   const width = now("style", "border_width", "thin");
-  const middle = [label, alias, shows].filter(Boolean).join(" ");
+  const middle = [label, alias].filter(Boolean).join(" ");
   const y = RUN.y;
 
   return (
@@ -83,8 +82,6 @@ export function Wire({ label, alias, from, to, shows, said, now }: WireProps) {
             ? <line className="preview-line core" x1={SEAT} y1={y} x2={RUN.w - SEAT} y2={y} />
             : null}
         </svg>
-        {from ? <span className="preview-wire-end from card-name">{from}</span> : null}
-        {to ? <span className="preview-wire-end to card-name">{to}</span> : null}
       </div>
     </div>
   );

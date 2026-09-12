@@ -719,9 +719,13 @@ function placement_mates(graph: Graph, layer: Id | null, id: Id, taken: Placed[]
 function link_flow_between(graph: Graph, layer: Id | null, a: Id, b: Id,
                            unit: (id: Id) => Id): { from: Id; to: Id } | null {
   for (const e of edges_in(graph, layer)) {
-    if (e.module !== "directed") continue;
-    const from = unit(e.from);
-    const to = unit(e.to);
+    /** **A run that points, whichever way it points.** `dir` is the whole of
+     *  the question now, and a run pointing back runs the other way. */
+    const dir = e.dir ?? "none";
+    if (dir === "none") continue;
+    const ends = dir === "back" ? [e.to, e.from] : [e.from, e.to];
+    const from = unit(ends[0]!);
+    const to = unit(ends[1]!);
     if (from === a && to === b) return { from, to };
     if (from === b && to === a) return { from: b, to: a };
   }

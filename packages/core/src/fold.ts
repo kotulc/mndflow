@@ -5,10 +5,10 @@
  *  needs an inverse. */
 
 import { DRAWN, type Settings } from "./components";
-import { BLOCK_MODULES, empty_graph,
+import { BLOCK_MODULES, RELATION_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
-         type Relation, type Span, type Step } from "./types";
+         type Relation, type RelationModule, type Span, type Step } from "./types";
 
 /** A group with nobody in it is not a boundary any more — dissolve it, and if
  *  that empties the group it sat in, dissolve that too. Grids are kept: an empty
@@ -223,16 +223,18 @@ function apply(graph: Graph, m: Mutation): void {
       else b.flow = m.flow;
       return;
     }
+    /** **A block, and only a block.** An edge holds no values — what a
+     *  connection has to say belongs to the blocks at its ends. */
     case "set_field": {
-      const holder = graph.blocks[m.id] ?? graph.edges[m.id];
-      if (!holder) return;
-      const rest = (holder.fields ?? []).filter((f) => f.name !== m.field.name);
-      holder.fields = [...rest, { ...m.field }];
+      const b = graph.blocks[m.id];
+      if (!b) return;
+      const rest = (b.fields ?? []).filter((f) => f.name !== m.field.name);
+      b.fields = [...rest, { ...m.field }];
       return;
     }
     case "drop_field": {
-      const holder = graph.blocks[m.id] ?? graph.edges[m.id];
-      if (holder?.fields) holder.fields = holder.fields.filter((f) => f.name !== m.name);
+      const b = graph.blocks[m.id];
+      if (b?.fields) b.fields = b.fields.filter((f) => f.name !== m.name);
       return;
     }
     case "set_def":
@@ -935,7 +937,7 @@ export function default_for(graph: Graph, kind: BlockModule): Id | undefined {
 /** The two relation definitions the base ships. **Not the four relation
  *  modules** — `reference` and `tie` are assigned from what sits at the ends and
  *  are nobody's to name, so they ship no definition to name them. */
-export const BASE_RELATIONS: readonly string[] = ["line", "directed"];
+export const BASE_RELATIONS: readonly string[] = ["line"];
 
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
@@ -974,6 +976,30 @@ export type Vocabulary = {
  *  **Every definition gets a row, including the base kinds.** A workspace
  *  default is an ordinary definition wearing a mark, not a row standing in for
  *  another one, so there is nothing to replace and nothing to put back. */
+/** Which relation module a relation definition refines. **The nearest link that
+ *  names one**, exactly as `module_named` answers for a block — a relation
+ *  definition names no module of its own, so its chain is what says. */
+export function relation_named(graph: Graph, type: Id | undefined): RelationModule {
+  const base = isa(graph, type)
+    .find((d) => RELATION_MODULES.includes(d.name as RelationModule));
+  return (base?.name as RelationModule) ?? "line";
+}
+
+/** The relation definitions a right drag may draw with.
+ *
+ *  **The rail's list, not the tree's.** A relationship is made by drawing
+ *  between two ends and never by dropping, so there is nothing to drag a
+ *  relation row onto — which is why a pinned line is offered on the options
+ *  rail's `relations` group instead of in the explorer.
+ *
+ *  The shipped two *are* the modules, and the modules are already offered, so
+ *  what is left is what somebody pinned or a package brought in. */
+export function relations(graph: Graph): Definition[] {
+  return Object.values(graph.defs)
+    .filter((d) => d.group === "relation" && !shipped(d))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function vocabulary(graph: Graph): Vocabulary[] {
   const groups = new Map<string | null, Definition[]>();
   for (const d of Object.values(graph.defs)) {

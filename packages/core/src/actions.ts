@@ -11,7 +11,7 @@ import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
          path, reorder } from "./fold";
-import { DRAWN, NUMBERS } from "./components";
+import { component, DRAWN, NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, VALUE_FORMS,
          type Arrangement, type Block, type BlockModule,
@@ -564,9 +564,11 @@ register(
     args: [{ name: "from", form: "block", required: true },
            { name: "to", form: "block", required: true },
            { name: "type", form: "text" },
-           /** **Three of the four.** A reference line is assigned from what
-            *  sits at its ends, so it is nobody's to pick. */
-           { name: "module", form: "choice", choices: ["line", "directed", "tie"] },
+           /** **Two of the three.** A reference line is assigned from what sits
+            *  at its ends, so it is nobody's to pick. */
+           { name: "module", form: "choice", choices: ["line", "tie"] },
+           /** Which way it points, where the gesture that drew it says. */
+           { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
            { name: "fromSide", form: "choice", choices: SIDES },
            { name: "toSide", form: "choice", choices: SIDES }],
     check: (ctx, args) => {
@@ -581,6 +583,7 @@ register(
       const to = id_of(args, "to");
       const picked = (args["module"] as RelationModule) ?? "line";
       const module = derived_module(ctx.graph, from, to) ?? picked;
+      const dir = String(args["dir"] ?? "none") as Dir;
       const type = text(args, "type");
       /** **A wall said by the gesture that drew it.** Where a line meets a
        *  border is worked out from two rectangles; the layer's own border is
@@ -588,9 +591,13 @@ register(
        *  the geometry stops guessing. */
       const line = handles(ctx, "relation");
       const alias = line.take();
+      /** **A definition already there is named by its id**, and anything else
+       *  is a name to file one under — which is how the rail hands over a
+       *  pinned line and how the terminal takes a word. */
+      const named = type ? (ctx.graph.defs[type] ? type : def_id(type)) : undefined;
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
-        id: new_id("edge"), from, to, module, type: type ? def_id(type) : undefined,
-        alias,
+        id: new_id("edge"), from, to, module, type: named,
+        alias, ...(dir !== "none" ? { dir } : {}),
         ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
         ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
       } }];
@@ -669,17 +676,13 @@ register(
       return fixed ? `a relationship to a ${fixed === "tie" ? "note" : "reference"} is a ${fixed}`
                    : null;
     },
-    /** **A plain line is `none`.** Whether a relationship is a line or directed
-     *  and which way its arrows point were two settings saying one thing: a
-     *  line is a directed relationship pointing nowhere. */
-    run: (_ctx, args) => {
-      const id = id_of(args, "id");
-      const dir = String(args["dir"]) as Dir;
-      return { mutations: [
-        { op: "set_form", id, module: dir === "none" ? "line" : "directed" },
-        { op: "set_dir", id, dir },
-      ] };
-    },
+    /** **One fact, said once.** Whether a relationship was a `line` or a
+     *  `directed` and which way its arrows point were the same setting stored
+     *  twice — written together, read apart, and one more thing for every
+     *  renderer to ask. A run points because `dir` says so. */
+    run: (_ctx, args) => ({ mutations: [
+      { op: "set_dir", id: id_of(args, "id"), dir: String(args["dir"]) as Dir },
+    ] }),
   },
 );
 
@@ -743,9 +746,9 @@ const SHARED: readonly number[] =
 const noted = (graph: Graph, id: Id): boolean =>
   graph.blocks[id]?.type === "note" || module_of(graph, id) === "note";
 
-/** What a chain may draw. **Three of the four** — a reference line is assigned
+/** What a chain may draw. **Two of the three** — a reference line is assigned
  *  from what sits at its ends, so it is nobody's to pick. */
-const CHAINED: readonly RelationModule[] = ["line", "directed", "tie"];
+const CHAINED: readonly RelationModule[] = ["line", "tie"];
 
 function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
   const a = graph.blocks[from];
@@ -1366,17 +1369,26 @@ register(
      *  line a right drag would. A tie to a note and a reference line are still
      *  assigned from what sits at the ends. */
     args: [{ name: "group", form: "block" },
-           { name: "module", form: "choice", choices: ["line", "directed", "tie"] }],
+           { name: "module", form: "choice", choices: ["line", "tie"] },
+           { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
+           { name: "type", form: "text" }],
     check: (ctx, args) => {
       const group = grid_named(ctx, args);
       if (!group) return "point at a grid, or a cell of one";
+      const type = text(args, "type");
+      if (type && ctx.graph.defs[type]?.group !== "relation") {
+        return `"${type}" is not a relation definition`;
+      }
       return reading(ctx.graph, group).length > 1
         ? null : "a chain needs two filled cells";
     },
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const said = text(args, "module");
-      const picked = CHAINED.find((m) => m === said) ?? "directed";
+      const picked = CHAINED.find((m) => m === said) ?? "line";
+      /** **A chain reads, so it points.** Left unsaid it runs forward, which is
+       *  what makes the reading order visible. */
+      const dir = String(args["dir"] ?? "forward") as Dir;
       const drawn = new Set(edges_in(ctx.graph, ctx.layer).map((e) => `${e.from}|${e.to}`));
       const run = reading(ctx.graph, group);
       const out: Mutation[] = [];
@@ -1387,7 +1399,8 @@ register(
         if (drawn.has(`${from}|${to}`)) continue;
         drawn.add(`${from}|${to}`);
         out.push({ op: "link_blocks", edge: {
-          id: new_id("edge"), from, to, alias: line.take(),
+          id: new_id("edge"), from, to, alias: line.take(), ...typed(args),
+          ...(dir !== "none" ? { dir } : {}),
           module: derived_module(ctx.graph, from, to) ?? picked } });
       }
       out.push(...line.bump());
@@ -1457,6 +1470,16 @@ function named_def(ctx: Context, id: Id): Id | undefined {
   return ctx.graph.defs[id] ? id : def_of(ctx.graph, id);
 }
 
+/** Why this holder has nowhere to put a value. **An edge is the only one**: a
+ *  block holds values and a definition declares them, and a relationship is a
+ *  join rather than a thing with properties. */
+function holds_values(ctx: Context, args: Args): string | null {
+  const id = id_of(args, "holder");
+  return ctx.graph.edges[id]
+    ? "a relationship holds no values — promote an end and put it on the port"
+    : null;
+}
+
 function borrowed(graph: Graph, id: Id): string | null {
   const d = graph.defs[id];
   if (!d?.from) return null;
@@ -1466,8 +1489,11 @@ function borrowed(graph: Graph, id: Id): string | null {
 register(
   {
     name: "field",
-    about: "sets a named value on this, or adds a field to a definition so every usage carries one",
-    on: ["layer", "block", "edge"],
+    about: "sets a named value on a block, or adds a field to a definition",
+    /** **Not on an edge.** A connection holds no values: a role name is the
+     *  port's name, a multiplicity is `degree` on a definition, and a guard is
+     *  a condition — which is a thing, and a thing is a block. */
+    on: ["layer", "block"],
     /** **One act, and the holder says which.** Setting a value on a usage and
      *  declaring a field on a definition are the same thing said about two
      *  sorts of holder — `form`, `unit` and `choices` describe a field and are
@@ -1479,7 +1505,7 @@ register(
            { name: "unit", form: "text" },
            { name: "choices", form: "text" }],
     check: (ctx, args) => (text(args, "name") ? null : "a field needs a name")
-      ?? borrowed(ctx.graph, id_of(args, "holder")),
+      ?? holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
     /** **Fields union with the subtype's winning by name**, so declaring one
      *  that is already there rewrites it rather than doubling it. */
     run: (ctx, args) => {
@@ -1503,11 +1529,12 @@ register(
   },
   {
     name: "unfield",
-    about: "drops a named value from this, or a field from a definition",
-    on: ["layer", "block", "edge"],
+    about: "drops a named value from a block, or a field from a definition",
+    on: ["layer", "block"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true }],
-    check: (ctx, args) => borrowed(ctx.graph, id_of(args, "holder")),
+    check: (ctx, args) =>
+      holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
@@ -1624,8 +1651,11 @@ register(
 register(
   {
     name: "pin",
-    about: "makes this block's look a definition anything else can name",
-    on: ["block"],
+    about: "makes this look a definition anything else can name",
+    /** **A run is pinned exactly as a card is.** It carries the same bag one
+     *  layer apart, so *point at a thing that already reads the way you want*
+     *  is one act over both — and a relation vocabulary has a home at last. */
+    on: ["block", "edge"],
     /** **Everything the block says, and a name. No other arguments.** Three
      *  toggles asked somebody to decide, at the moment of pointing at a thing,
      *  questions they had no way to answer yet — and every one of them had an
@@ -1639,7 +1669,7 @@ register(
      *  the name rather than with the id it slugged to. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      if (!ctx.graph.blocks[id]) return "pick a block to pin";
+      if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "pick a block or a line to pin";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
       const held = ctx.graph.defs[def_id(name)];
@@ -1647,28 +1677,33 @@ register(
     },
     run: (ctx, args) => {
       const id = id_of(args, "id");
-      const b = ctx.graph.blocks[id]!;
+      const edge = ctx.graph.edges[id];
+      const it = ctx.graph.blocks[id] ?? edge!;
       const name = text(args, "name");
       const taken: Components = {};
-      for (const [key, config] of Object.entries(b.looks ?? {})) taken[key] = { ...config };
+      for (const [key, config] of Object.entries(it.looks ?? {})) taken[key] = { ...config };
       /** **The schema, never the values.** What a block happens to hold is that
        *  block's answer; reading it as the default for every future one is a
-       *  guess, and the values stay where they were either way. */
-      const fields = (b.fields ?? []).map((f): FieldDef => ({ name: f.name, form: f.form }));
+       *  guess, and the values stay where they were either way.
+       *
+       *  **Nothing for a run**, which holds no values to make a schema of. */
+      const fields = (ctx.graph.blocks[id]?.fields ?? [])
+        .map((f): FieldDef => ({ name: f.name, form: f.form }));
 
       /** **`from` absent, because this workspace made it** — which is the whole
        *  of where a definition belongs. Every layer can reach it either way:
        *  resolution is by id and never by where a record sits. */
       const def: Definition = {
-        id: def_id(name), group: "block", name,
+        id: def_id(name), group: edge ? "relation" : "block", name,
         extends: def_of(ctx.graph, id),
         fields: fields.length ? fields : undefined,
         components: Object.keys(taken).length ? taken : undefined,
       };
 
       const out: Mutation[] = [{ op: "set_def", def },
-                               { op: "update_block", id, type: def.id }];
-      /** **The block drops what moved and keeps what did not.** Nothing about
+                               edge ? { op: "update_edge", id, type: def.id }
+                                    : { op: "update_block", id, type: def.id }];
+      /** **The usage drops what moved and keeps what did not.** Nothing about
        *  how it draws changes — it reads the same answers one layer further
        *  along the chain, which is what makes them reachable by anything else. */
       for (const [key, config] of Object.entries(taken)) {
@@ -1703,30 +1738,42 @@ register(
       const d = ctx.graph.defs[id];
       const out: Mutation[] = [];
 
-      for (const b of Object.values(ctx.graph.blocks)) {
-        if (b.type !== id) continue;
-        /** **The block's own word wins.** It was already the last layer over
+      /** **Every usage, of either sort.** A relationship names a definition
+       *  exactly as a block does, so what dissolves into one dissolves into the
+       *  other — the only difference is which op re-points it and what *plain*
+       *  means for that kind. */
+      const usages = [...Object.values(ctx.graph.blocks), ...Object.values(ctx.graph.edges)];
+      for (const it of usages) {
+        if (it.type !== id) continue;
+        /** **The usage's own word wins.** It was already the last layer over
          *  this definition, so a dissolve may not overwrite it. */
         for (const [key, config] of Object.entries(d?.components ?? {})) {
           for (const [prop, value] of Object.entries(config)) {
-            if (b.looks?.[key]?.[prop] === undefined) {
-              out.push({ op: "set_look", id: b.id, key, name: prop, value });
+            if (it.looks?.[key]?.[prop] === undefined) {
+              out.push({ op: "set_look", id: it.id, key, name: prop, value });
             }
           }
         }
-        for (const f of d?.fields ?? []) {
-          if (!(b.fields ?? []).some((held) => held.name === f.name)) {
-            out.push({ op: "set_field", id: b.id, field: { name: f.name, form: f.form } });
+        /** **A schema goes back to blocks only.** A run never carried one, so
+         *  there is nothing to give it. */
+        const held = ctx.graph.blocks[it.id];
+        for (const f of held ? d?.fields ?? [] : []) {
+          if (!(held!.fields ?? []).some((had) => had.name === f.name)) {
+            out.push({ op: "set_field", id: it.id, field: { name: f.name, form: f.form } });
           }
         }
-        /** **Absent where absent means the same thing.** There is no such
-         *  thing as an untyped block — one naming nothing *is* its base kind —
-         *  so a block that was plain before it was pinned comes back plain
-         *  rather than carrying the word `block`, and the file is the one it
+        /** **Absent where absent means the same thing.** There is no such thing
+         *  as an untyped usage — one naming nothing *is* its base kind — so a
+         *  thing that was plain before it was pinned comes back plain rather
+         *  than carrying the word `block` or `line`, and the file is the one it
          *  started as. Anything else names what this extended. */
-        const bare = b.of ? "reference" : b.side !== undefined ? "interface" : "block";
-        out.push({ op: "update_block", id: b.id,
-                   type: d?.extends === undefined || d.extends === bare ? null : d.extends });
+        const edge = ctx.graph.edges[it.id];
+        const b = ctx.graph.blocks[it.id];
+        const bare = edge ? edge.module
+          : b?.of ? "reference" : b?.side !== undefined ? "interface" : "block";
+        const type = d?.extends === undefined || d.extends === bare ? null : d.extends;
+        out.push(edge ? { op: "update_edge", id: it.id, type }
+                      : { op: "update_block", id: it.id, type });
       }
 
       /** A subtype rooted here is re-pointed rather than left dangling for the
@@ -1816,17 +1863,16 @@ const LOOKS: readonly string[] = ["card", "style", "line", "rules"];
  *  a list rather than stringified, which stored `"pump"` where a `["pump"]` was
  *  wanted and left the rule matching nothing.
  *
- *  **Named by component and key**, because three components ask for a list now:
- *  which fields a card shows, which a run shows at each of its ends, and the
- *  three rule kinds that name several things.
+ *  **Named by component and key**, because two components ask for a list: which
+ *  of a block's fields a card writes, and the three rule kinds that name
+ *  several things. A run asks for none — an edge holds no values to list.
  *
  *  **Split on commas and never on spaces.** A field is called *rated flow* as
  *  readily as *flow*, and splitting on whitespace turned one name into two that
  *  nothing could ever satisfy — so a rule stating the one field the sample
  *  ships reported two violations against a field that was answered. */
 const LISTS: readonly string[] = [
-  "card.shows", "line.from_shows", "line.shows", "line.to_shows",
-  "rules.required", "rules.holds", "rules.match",
+  "card.shows", "rules.required", "rules.holds", "rules.match",
 ];
 
 /** The rule kinds a look may not state. **Both are nested records** — `ends`
@@ -1859,6 +1905,15 @@ register(
       if (String(args["key"]) === "rules" && NESTED.includes(text(args, "name"))) {
         return `\`${text(args, "name")}\` is stated on a definition, not set here`;
       }
+      /** **The component says what it knows, and it says so here.** Anything it
+       *  would not have is dropped at the door on the next save — written,
+       *  drawn from until then, and gone when the file is reopened. Asking the
+       *  component itself keeps one answer rather than a second allowlist. */
+      const said = value_of(args);
+      if (said !== null) {
+        const why = component(String(args["key"]))?.check({ [text(args, "name")]: said });
+        if (why) return why;
+      }
       for (const id of ids) {
         const why = borrowed(ctx.graph, id);
         if (why) return why;
@@ -1866,17 +1921,9 @@ register(
       return null;
     },
     run: (ctx, args) => {
-      const said = args["value"];
       const key = String(args["key"]);
       const name = text(args, "name");
-      /** **A range keeps its type.** Everything a look says is a word from a
-       *  closed set except `hue` and `intensity`, and stringifying those left a
-       *  card carrying `"200"` — which reads as neither a number nor a name, so
-       *  the drawing quietly ignored it and the slider did nothing. */
-      const value = said === undefined || said === null || said === "" ? null
-        : LISTS.includes(`${key}.${name}`) ? list(said)
-        : NUMBERS.includes(name) && Number.isFinite(Number(said)) ? Number(said)
-        : String(said);
+      const value = value_of(args);
       return { mutations: ids_of(ctx, args).map((id): Mutation => {
         const d = ctx.graph.defs[id];
         return d ? { op: "set_def", def: stated(d, key, name, value) }
@@ -1885,6 +1932,23 @@ register(
     },
   },
 );
+
+/** What a look is being set to, as the component would hold it — or `null`,
+ *  which gives the property back to the chain.
+ *
+ *  **A range keeps its type.** Everything a look says is a word from a closed
+ *  set except `hue` and `intensity`, and stringifying those left a card
+ *  carrying `"200"` — which reads as neither a number nor a name, so the
+ *  drawing quietly ignored it and the slider did nothing. */
+function value_of(args: Args): unknown {
+  const said = args["value"];
+  const key = String(args["key"]);
+  const name = text(args, "name");
+  if (said === undefined || said === null || said === "") return null;
+  if (LISTS.includes(`${key}.${name}`)) return list(said);
+  return NUMBERS.includes(name) && Number.isFinite(Number(said))
+    ? Number(said) : String(said);
+}
 
 /** A definition with one property of one component set, or given back.
  *

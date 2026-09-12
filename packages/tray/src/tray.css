@@ -296,18 +296,10 @@
 }
 
 /* A part this element has answered for itself, so what has been customised is
-   visible without opening each one. A dot, because the word is the label and a
-   second colour on it would compete with the lit chip. */
-.rail .filters > button.said::after {
-  content: "";
-  display: inline-block;
-  width: 3px;
-  height: 3px;
-  margin-left: 4px;
-  vertical-align: middle;
-  border-radius: 50%;
-  background: currentColor;
-}
+   visible without opening each one. **The word carries it**, the same way a
+   chip does one row down — a dot beside it was a second notation for the one
+   fact the rows below already draw. */
+.rail .filters > button.said { color: var(--accent); }
 
 /* The kind, then what refines it. The mark reads as one step down from the
    other, which is what the chain actually is. */
@@ -649,8 +641,8 @@
 .preview-wire[data-border-style="dotted"] .preview-line { stroke-linecap: round; }
 .preview-seat { fill: var(--card-line, var(--route)); }
 
-/* The name sits over the middle of the run and each end's writing under the end
-   it is about — the same three places the canvas puts them. */
+/* The name sits over the middle of the run, which is the one place a run
+   writes: an edge holds no values, so neither end has anything to say. */
 .preview-wire-name {
   display: block;
   text-align: center;
@@ -658,15 +650,6 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.preview-wire-end {
-  position: absolute;
-  top: 100%;
-  font-size: 10px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.preview-wire-end.from { left: 0; }
-.preview-wire-end.to { right: 0; }
 
 .preview-fields {
   margin: 2px 0 0;
@@ -757,7 +740,18 @@
   background: var(--text);
   box-shadow: 0 0 0 1px var(--bg);
 }
-.rows .opt.on { color: var(--accent); border-color: var(--accent); background: var(--tint); }
+/* **Lit two ways, because there are two things to know.** What a row draws is
+   lit; whether *this* element is what said so is the difference between the two
+   — quiet for an answer that came from the chain or from the app, bright for
+   one set here. There is no *inherit* chip: what a row inherits is a value like
+   any other, so the chip it lands on is lit rather than a chip standing in for
+   it, and pressing a bright one gives it back. */
+.rows .opt.on {
+  color: var(--text);
+  border-color: var(--muted);
+  background: var(--hover);
+}
+.rows .opt.on.set { color: var(--accent); border-color: var(--accent); background: var(--tint); }
 .rows .opt:disabled { opacity: 0.3; }
 
 

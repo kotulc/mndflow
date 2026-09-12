@@ -105,8 +105,14 @@ export function Tray(props: TrayProps) {
   const about = onAct ? held_def ?? one : null;
 
   /** **What can be answered is what is offered.** Contents is always there; the
-   *  other three are about one thing, so they arrive with it. */
-  const tabs = about ? TABS : (["contents"] as const);
+   *  others are about one thing, so they arrive with it.
+   *
+   *  **A relationship has no fields tab.** An edge holds no values — what a
+   *  connection has to say belongs to the blocks at its ends — so the tab is
+   *  not there rather than there and empty. */
+  const tabs: readonly Tab[] = !about ? ["contents"]
+    : graph.edges[about] ? TABS.filter((t) => t !== "fields")
+    : TABS;
   const asked = props.tab ?? held_tab;
   const tab: Tab = tabs.includes(asked) ? asked : "contents";
   const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };

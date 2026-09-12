@@ -13,6 +13,11 @@
  *  not any particular one — a documentation collection, because that is the
  *  first of the class, and the shape is what is being held to.
  *
+ *  **An edge carries no values**, which is the one thing a translator has to
+ *  know about relationships here: the run is the join and the definition is
+ *  what it is. Metadata found on a foreign edge becomes a definition, or a note
+ *  tied to the run.
+ *
  *  The two things a translator needs that ordinary modelling does not:
  *
  *  - **a vocabulary filed on the tier root**, so the file carries the meaning
@@ -53,9 +58,12 @@ const VOCAB: Definition[] = [
        { name: "checked", form: "flag" }]),
   def("term", "note", {  },
       [{ name: "source", form: "link" }]),
-  { id: "doc.link", group: "relation", name: "doc.link",
-    extends: "directed", fields: [{ name: "kind", form: "text" },
-                                  { name: "text", form: "text" }] },
+  /** **A relation definition declares no fields**, because an edge holds no
+   *  values: a connection is a join, and what one has to say belongs to the
+   *  blocks at its ends. A translator that finds metadata on a foreign edge
+   *  maps it to the *definition* — a link of kind `internal` is a definition
+   *  named `internal` — or ties a note to the run for free text. */
+  { id: "doc.link", group: "relation", name: "doc.link", extends: "line" },
 ];
 
 /** Where a block came from, as the one field name every view module reads. */
@@ -100,9 +108,7 @@ export function translated(): Graph {
 
   graph.edges["link_start_vocab"] = {
     id: "link_start_vocab", from: "sec_config", to: "page_vocab",
-    module: "directed", type: "doc.link",
-    fields: [{ name: "kind", form: "text", value: "internal" },
-             { name: "text", form: "text", value: "see the vocabulary" }],
+    module: "line", dir: "forward", type: "doc.link",
   };
 
   return graph;

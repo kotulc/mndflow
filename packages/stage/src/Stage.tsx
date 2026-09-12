@@ -56,10 +56,13 @@ export type StageProps = {
   onSaid?: () => void;
   /** Whether the backdrop rules the canvas into cells. */
   lattice?: boolean;
-  /** Which way a right drag draws a line. **The rail picked it and the stage
-   *  passes it on** — what a new relationship is is the model's, so it goes
-   *  through the action like everything else. */
+  /** What a right drag draws: which module, which way it points, and which
+   *  pinned definition it names. **The rail picked them and the stage passes
+   *  them on** — what a new relationship is is the model's, so it goes through
+   *  the action like everything else. */
   module?: string;
+  dir?: string;
+  type?: string;
 };
 
 /** What has no inside to open. A boundary is its members' bounds and a note is
@@ -142,7 +145,15 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, module }: StageProps) {
+                       menu, said, onSaid, lattice, module, dir, type }: StageProps) {
+  /** What a right drag, or a chain, is told to draw. Named once so the rail's
+   *  pick reaches every gesture that makes a relationship. */
+  /** **Always said, so the rail is obeyed.** A chain runs forward where nobody
+   *  says otherwise, which is what makes its reading order visible — but the
+   *  rail *has* said, and a chain draws the same sort of run a right drag
+   *  would. */
+  const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
+                    ...(type ? { type } : {}) };
   /** The name being typed on the drawing, as the thing it names. **Held here
    *  because renaming is an action** — the canvas draws the field and says
    *  what was typed; what that means is settled in the one place every other
@@ -235,7 +246,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     seat: ["rename", "open", "interface", "relate", "note", "pin", "delete"],
     /** **A group and a grid write their name on the frame** when told to. */
     band: [{ name: "rename", label: "rename group" }, "label", "fill",
-           { name: "chain", args: module ? { module } : {} }, "pin",
+           { name: "chain", args: drawing }, "pin",
            { name: "delete", label: "delete group" }],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
@@ -252,7 +263,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       { name: "remove", label: "remove row", args: { way: "row" } },
       { name: "remove", label: "remove column", args: { way: "col" } },
       { name: "fill", label: "fill grid" },
-      { name: "chain", label: "chain grid", args: module ? { module } : {} },
+      { name: "chain", label: "chain grid", args: drawing },
       { name: "transpose", label: "transpose grid" },
     ],
     /** Replaced per run by `wire_offers`, which needs the graph to know which
@@ -373,8 +384,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
-        onRelate={(from, to, walls) =>
-          onAct("relate", { from, to, ...walls, ...(module ? { module } : {}) })}
+        onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls, ...drawing })}
         /** A right drag across empty ground draws a **group**, sized in cells.
          *
          *  **Sketch first, impose order after**: whatever loose cards the sweep

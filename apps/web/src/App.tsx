@@ -7,8 +7,10 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, can_hold, module_named, module_of, offer, session,
-         type Args, type Graph, type Id, type Point, type RelationModule } from "@mnd/core";
+import { adjustments, can_hold, module_named, module_of, offer, relation_named,
+         relations, session,
+         type Args, type Dir, type Graph, type Id, type Point,
+         type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, extent_of, holds, nearest_seat, project, snap, tidy,
          BLOCK, PORT } from "@mnd/views";
@@ -66,7 +68,11 @@ export function App() {
   const [shown, set_shown] = useState({ interfaces: true, lattice: true });
   /** Which way a right drag draws a line. Display state until it is drawn, and
    *  then it is what the relationship was made as. */
-  const [module, set_module] = useState<RelationModule>("line");
+  /** **What a right drag draws**, as the rail left it: a module always, and a
+   *  pinned definition where one was picked. One piece of state, because
+   *  picking a pinned line picks its module too. */
+  const [drawing, set_drawing] =
+    useState<{ module: RelationModule; dir?: Dir; type?: string }>({ module: "line" });
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
   /** Which definition the vocabulary section has hold of. **Shell state, beside
@@ -101,6 +107,14 @@ export function App() {
   const scene = useMemo(
     () => project(graph, layer, { interfaces: shown.interfaces }),
     [graph, layer, shown.interfaces]);
+
+  /** **The pinned lines, as the rail lists them.** A relation vocabulary has no
+   *  home in the tree — a relationship is drawn between two ends and never
+   *  dropped — so what somebody pinned is offered beside the three modules. */
+  const pinned_lines = useMemo(
+    () => relations(graph).map((d) => ({ id: d.id, name: d.name,
+                                         module: relation_named(graph, d.id) })),
+    [graph]);
 
   /** **The one picked thing, so the rail can offer what only it can be told.**
    *  Picking a cell picks the grid it is in, so pointing at a cell is enough to
@@ -267,7 +281,14 @@ export function App() {
   const chrome = (name: string, args?: Record<string, unknown>) => {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
-    if (name === "relate_with") { set_module(args!["module"] as RelationModule); return; }
+    if (name === "relate_with") {
+      const type = args!["type"] ? String(args!["type"]) : undefined;
+      const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
+      set_drawing({ module: args!["module"] as RelationModule,
+                    ...(dir && dir !== "none" ? { dir } : {}),
+                    ...(type ? { type } : {}) });
+      return;
+    }
     /** **Nothing behind it yet.** It says so rather than doing nothing, which
      *  is the one failure that looks exactly like the app having missed the
      *  press. */
@@ -428,7 +449,9 @@ export function App() {
           cells={s.cells()}
           onPickCells={(cells) => { s.pick_cells(cells); set_picked_def(null); }}
           lattice={shown.lattice}
-          module={module}
+          module={drawing.module}
+          {...(drawing.dir ? { dir: drawing.dir } : {})}
+          {...(drawing.type ? { type: drawing.type } : {})}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
           onPick={(ids) => s.pick(ids)}
@@ -452,7 +475,13 @@ export function App() {
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces,
-                                   lattice: shown.lattice, module,
+                                   lattice: shown.lattice, module: drawing.module,
+                                   ...(drawing.dir ? { dir: drawing.dir } : {}),
+                                   ...(drawing.type ? { type: drawing.type } : {}),
+                                   /** **Where a relation vocabulary lives.** The
+                                    *  tree keeps blocks; a pinned line is drawn
+                                    *  between two ends, so it is offered here. */
+                                   relations: pinned_lines,
                                    ...(element ? { element } : {}) },
                                  chrome)} />
     </div>
