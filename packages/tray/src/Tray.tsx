@@ -107,11 +107,14 @@ export function Tray(props: TrayProps) {
   /** **What can be answered is what is offered.** Contents is always there; the
    *  others are about one thing, so they arrive with it.
    *
-   *  **A relationship has no fields tab.** An edge holds no values — what a
-   *  connection has to say belongs to the blocks at its ends — so the tab is
-   *  not there rather than there and empty. */
+   *  **Nothing to do with a relationship has a fields tab.** An edge holds no
+   *  values — what a connection has to say belongs to the blocks at its ends —
+   *  so neither a run nor a relation *definition* has a schema to declare, and
+   *  the tab is not there rather than there and unanswerable. */
+  const holds_none = !!about
+    && (!!graph.edges[about] || graph.defs[about]?.group === "relation");
   const tabs: readonly Tab[] = !about ? ["contents"]
-    : graph.edges[about] ? TABS.filter((t) => t !== "fields")
+    : holds_none ? TABS.filter((t) => t !== "fields")
     : TABS;
   const asked = props.tab ?? held_tab;
   const tab: Tab = tabs.includes(asked) ? asked : "contents";

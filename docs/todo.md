@@ -1,13 +1,13 @@
 # Todo
 
-**What is decided but not built, and what is still undesigned.** The goal state lives in design.md, spec.md and each package's `docs/`; this is the worklist against it, newest thinking first.
+**What is decided but not built, and what is still undesigned.** The goal state lives in design.md, spec.md and each package's `docs/`; this is the worklist against it.
 
 Not a backlog of everything — an item earns a line here by being a decision somebody has to act on.
 
 
 ## Next up
 
-**In order.** Each is a phase's worth on its own; the grid below is what they build on. **Identity and relationships are built** and are in Landed — between them they settled what a definition says and what a surface reads off it.
+**In order.** Each is a phase's worth on its own. Identity, relationships, pinning and the grid are built; what they left unanswered is under *Open questions*.
 
 ### 1 — Definitions, unified
 
@@ -15,10 +15,9 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 | | |
 |---|---|
-| **`Styles.tsx` is 567 lines** | and it grew, because the right column now serves three holders. The two columns are two things: the left is *identity* — name, definition, label, pin, default — and is where every branch still lives; the right is uniform over any holder already. Split them, and the second takes a block, a relationship or a definition without asking which |
-| **`ROWS` is half a table** | 13 controls are declared as data; `hue`, `intensity`, `opacity`, `icon` and `mark` are hand-written JSX with their own group guards. A `form` on `Question` collapses them, and `NUMBERS` and the range consts already carry the metadata |
-| ~~**`card.shows` cannot be set**~~ | **settled in *Relationships*.** It has a row, and so do `card.name`, `card.alias` and the three `line` shows — `LISTS` in `actions.ts` names every list-valued property in one place |
-| ~~**`Definition.name` is read-only**~~ | **settled in *Identity*.** Scoped ids frozen at creation mean a rename never rewrites the id, so the name becomes an ordinary editable field and `pin`'s *is already taken* becomes a real name check within one owner |
+| **`Styles.tsx` is 618 lines** | and it grew, because the right column now serves three holders. The two columns are two things: the left is *identity* — name, definition, label, pin, default — and is where every branch still lives; the right is uniform over any holder already. Split them, and the second takes a block, a relationship or a definition without asking which |
+| **`ROWS` is most of a table now** | every chip row is data, including the two identity toggles and the `words` rows. What is left hand-written is `colour` (two sliders), `icon` and `mark` (a grid of marks) — named in `HAND` because they have no `ROWS` entry at all. A second `form` on `Question` — `range` and `marks` — collapses the last three, and `NUMBERS` and the range consts already carry the metadata |
+| **`values` is a one-row group** | it held `card.shows` and the three `line` shows; the line half went with relation fields, so a whole rail entry now stands for one row. It belongs with `name` or with `label` — decide when the split above happens, not before |
 
 **What a relation definition holds is now known**, which is what this was waiting on: `line` plus the shared `style`, and the rail already filters by what a module honours. So the split is the work, and `ROWS` is where it starts.
 
@@ -50,17 +49,16 @@ Both are projections over different sources, neither is a block, and a third cos
 | **`look_of` takes a definition id** | today it bails to `PLAIN` for anything not in `graph.blocks`. The edge half is done — `settings()` reads the cascade for either holder and `wire_of` spends it — so what is left is the definition case |
 | **`pickedDef` merges into `picked`** | its docstring overstates the cost: `held()`, the `look` action and the settings panel already take either id. What needs auditing is the action `check`s doing `graph.blocks[id]`, which would refuse with a confusing message rather than a clear one |
 | **the row builder stops branching on `of`** | and the menu gets genuinely simpler rather than relocated — `offer(ctx)` already narrows by each action's `on` scope, so giving a definition id a scope lets the registry narrow the menu and the explorer stops carrying a list |
-| **`alias` is no longer overloaded** | it was carrying a block's `A1` and a definition row's word *default* in one slot. Identity is settled in 0; *default* needs a slot of its own or a mark |
+| **`alias` is no longer overloaded** | it was carrying a block's `A1` and a definition row's word *default* in one slot. Identity is settled; *default* needs a slot of its own or a mark |
 | **`Mark` loses `pin`** | nine marks say what a block is; the tenth was the definitions folder's icon |
 
-**Relations stay out of the tree.** A relationship is made by drawing between two ends, never by dropping, so there is nothing to drag a relation row onto. **Built**: pinned relation types are offered on the rail's `relations` group instead.
+**Relations stay out of the tree.** A relationship is made by drawing between two ends, never by dropping, so there is nothing to drag a relation row onto — pinned relation types are offered on the rail's `relations` group instead.
 
 **No per-row marks.** Saying on a row that it cannot be dropped on empty ground is another specialization; what refuses a drop is the action, which already says why.
 
-**What a definition canvas cannot show.** A grid definition drawn as a card cannot show cells or extent, a reference cannot show its hatch over a target, an interface is eight pixels. So the canvas compares **`style` only** — which is exactly the split built in *Relationships*, where `style` is shared across blocks, interfaces and lines and `card` is not. It answers *do these look like a family?* and not *what will this be?*
+**What a definition canvas cannot show.** A grid definition drawn as a card cannot show cells or extent, a reference cannot show its hatch over a target, an interface is eight pixels. So the canvas compares **`style` only** — `style` is shared across blocks, interfaces and lines and `card` is not. It answers *do these look like a family?* and not *what will this be?*
 
 **Wants the tray first**, as before. Search results live here already, lit rather than hidden.
-
 
 ### 4 — Block content
 
@@ -92,139 +90,25 @@ Both are projections over different sources, neither is a block, and a third cos
 
 **Recommendation: debounce.** It is a few lines against a store, a collector and a fault kind, and the boundary above keeps the door open.
 
-## Landed
 
-### Relationships, interfaces and ports
+## Open questions
 
-**Built.** What a relationship *is* and what an interface *is* were one question asked at the two ends of a line, and the answer is that a run is an element like any other: it carries a definition, a look of its own, a handle and fields, and it is drawn from the same table a card is.
+**Decided enough to build around, not decided enough to build.** Each is a question somebody has to answer, not a phase's worth of work.
 
-| | |
-|---|---|
-| **a module declares what it honours** | `honours(module)` in `components.ts`. A block honours `card`, `style`, `rules`; a **run** honours `line`, `style`, `rules`; an **interface** honours `style`, `rules` — it is eight pixels of wall with no face to compose. The tray's rail filters on it, so no panel branches on which of the three it is holding |
-| **`style` is shared, `card` is the block's** | one table paints a card, a port and a run — family, hue, intensity, opacity, the three border keys, the three name keys. What a line and an interface lack is a *face*, which is what `card` describes |
-| **the `line` component** | `from_arrow`, `to_arrow`, `name`, `alias` — four keys, and it is meant to stay small. Flat, because `look` writes one scalar |
-| **`directed` is gone, and `dir` is the whole of it** | a run was made `directed` at the moment it was given a direction and made `line` again when it came off — one fact stored twice, and every renderer had to ask both. **Three modules** (`line`, `reference`, `tie`) and **one shipped relation definition** (`line`); a tie and a reference are assigned from the ends and drawn by their module, so neither needs one. The rail's *straight* and *directed* are one module with and without a `dir`. The door migrates a stale module, a subtype that extended it, and the retired definition itself |
-| **five arrowheads** | `none`, `arrow`, `open`, `hollow`, `diamond`. **A shape, never a direction**: `dir` says which ends point and is what `flip`, `chain` and `ends` read; an end nobody shaped draws a filled head where it points and nothing where it does not — so an undirected line can still carry a diamond at one end, and a line saying neither draws exactly as it always did. `heads()` in `scene.ts` resolves the two into one answer, so the canvas, the SVG export and the outline cannot draw one run three ways |
-| **`Relation.looks`** | a run's own last word over its definition, the same bag a block carries one layer apart. `set_look`, `drop_looks` and `rules_of` take whichever holder the id names. **Local until it is pinned**, exactly as a block's is |
-| **a run is pinned like a card** | `pin` and `unpin` take either holder: the looks and the field schema move into a relation definition, the run names it and drops the overrides, and `unpin` dissolves it back into every run that named it. Lossless both ways |
-| **a pinned line lives on the rail** | `relations(graph)` lists what is not shipped, and the `relations` option group offers each beside the three modules — picking one sets the module *and* the type a right drag draws. **Not the tree**: a relationship is drawn between two ends and never dropped, so there is no row to drag |
-| **an edge holds no values** | `Relation.fields` is gone, and with it the three `shows` lists. **A connection is a join**: which two things, which way, what draws at each end. What one has to *say* belongs to a block — a **role name** is the port's name, a **multiplicity** is `degree` on a definition, a **guard** is a condition and a condition is a thing you name, a **stereotype** is the definition. The model already believed this: `ends.fromFlow` reads the interface, `rules.match` reads both *ends*, and `ends` resolves an end to the block behind it |
-| **an anchor is mute** | annotating an end means promoting it, which is what makes promotion mean something rather than being a routing convenience. `field` and `unfield` refuse a relationship and say where the value goes; the tray drops the fields tab for a run; the door drops values a stale file left on an edge, out loud |
-| **`ends` walks through a port** | promoting an end mints an interface and takes the line to it, so every `ends` rule written against a block type silently stopped matching. It now accepts a match on the end block *or* on its owner. **No new keys** — `fromFlow` reads a property only an interface has, so the two divide the labour |
-| **the run's menu** | *rename relation*, *add direction*, *flip direction*, *remove direction*, *promote both ends*, *delete relation* — and *promote this end* on a grip, which is the only gesture that knows which end. **`flip` and *point back* are never both offered**: they draw the identical picture and only one moves `from` and `to` |
-| **menu verbs by subject** | *rename block*, *rename note*, *rename group*, *rename relation*. The `route`, `name`, `anchor` and `box` menus are all within a few pixels of one line |
-| **no double-click on a run** | two clicks already mean *go in* or *edit this name*, and a run has neither |
-| **`refer`, `interface` and `group` take a `type`** | only `create` did, so a definition could be dragged out and become a block while a port, a band or a stand-in had to be made plain and retyped afterwards |
-| **the drop path hit-tests** | the same test a node drag uses. `clear_of` deliberately avoids the cards a dropped definition has to land on, so reading it a second way would be two geometries to keep in step |
-| **a layer that cannot supply it refuses** | on `create`, not only on the drop path, because the terminal names a type directly. *interfaces may only be added to existing blocks* / *a boundary is a rim round something* / *a reference is made by dragging the block* |
-| **the preview is a run** | `Wire` in the tray, sibling to `Card`: two seats, the heads and the name over the middle — painted from the same `data-` attributes the canvas paints from |
-| **the panel lights what a row draws** | there is no *inherit* chip. What a row inherits is a value like any other, so the chip it lands on is **lit quietly**; one this element set is **lit brightly**, and pressing that one gives it back. So nothing is written to say *unchanged* — a definition still holds only what somebody chose — and the rail's word carries the same distinction instead of a dot beside it |
-| **`DEFAULTS` in core** | what a card draws where nobody has said, as one `as const` table. `PLAIN` is read from it and the panel lights from it, so a typo is a build error rather than a card and a chip quietly disagreeing. **A run has almost none**: an unstyled run draws from its module, so its `style` rows light nothing, which is the truth |
-| **`border_style` drops `none` on a run** | on a card it keeps the box and drops the line, which is a thing somebody means; on a run it deletes the run, which is what deleting the run is for |
-| **a look the component would drop is refused** | `look` asks the component itself, so a key it does not know is turned down in the component's own words rather than written, drawn from, and gone on the next save |
-
-**A run's identity line is the one place it parts company with a card**, and the reason is what each is identified by. A card is a box, and a box with nothing written on it is unreadable — which is why an unnamed one falls back to its kind and its handle. A run is identified by the two things it joins, so it draws its name where somebody named it and nothing where nobody did; the handle draws where `line.alias` asks for it. Everywhere a run is *listed* — the tray, the CLI, the menu — `shown_name` still answers `line` and `alias_of` still answers `L3`.
-
-**Two bugs this turned up:**
-
-- **A batch minted one serial twice.** `handle` read the counter off a graph that had not been folded yet, so promoting both ends of a run made `I1` and `I1`. `handles()` counts within the act and bumps the counter once; `chain` and `fill` had each worked round this with a running number of their own, and now say it the same way.
-- **Right-click on empty ground never named the block.** It emitted `create { label }` against an argument called `name` — the last site the identity rename missed, and no test covered the prompt path.
-
-**The rail's parts, per holder.** A part is listed when the module honours the component it belongs to *and* the holder has a row in it — so a card gets name, label, values, colour, fill, border and the two marks; a run gets name, head, colour and **stroke** (the same three keys, under the word that means something on a line); an interface gets name, colour and stroke. The `handle` toggle sits with `name` for both.
-
-**What a translator does now.** Metadata found on a foreign edge maps to the relation *definition* — a link of kind `internal` is a definition named `internal` — or to a note tied to the run. Lossier, and deliberate: **what a translator cannot carry is what this model does not believe in.**
-
-**One bug this turned up.** The scene signature read a run's `dir`, `module` and label but not its look, so styling one changed nothing on the canvas until you navigated away and back. It reads the look off itself now, the way the card half already did.
-
-**Still open:** whether a *default* relation definition makes sense — `Definition.default` names a block module, and what a plain run follows is a different question from what a right drag draws; whether the `interface` module earns keys of its own; whether a definition may *state* a flow rather than only be checked against one.
-
-**Housekeeping done:** `fromAt` and `toAt` are gone with the `at` on `set_side` and the dead `adjustments.wall`; `unlink` says what it does.
-
-### Identity
-
-**Built.** `id` is machine identity, `alias` is human identity, `name` is meaning, `order` is position — and every earlier wrinkle came from one of the four being asked to do another's job.
+### Relationships and definitions
 
 | | |
 |---|---|
-| **`Block.label` → `Block.name`** | and the `update_block` mutation with it. **`label` no longer names a field**: it means the *type word*, which `card.label` positions. The rename was done by changing the type and letting `tsc` name every site, because the word was overloaded four ways — `card.label`, the menu's `Entry.label`, the rail's `Control.label`, the tree's `Row.label` — and a blind replace would have corrupted three of them |
-| **`Block.num` → `Block.order`**, `next_num` → `next_order` | it was only ever sibling order |
-| **the `create` and `rename` argument is `name`** | leaving it `label` would have kept the trap alive one layer out, where an action arg called `label` wrote a field called `name` |
-| **one fallback rule** | `shown_name` gives the name where one is set and the **type word** where none is; `alias_of` gives the handle while a thing is unnamed, and whenever a card asks. **Each surface composes the two** — the tree dims the handle, the card sets it beside the name, the CLI joins them with a space. **Never the body**: that was a note-shaped branch, and `is_named` carried the same exception, so both went |
-| **`card.name` and `card.alias`** | whether the identity line draws at all, and whether the handle joins a name somebody *did* set. **`card.*` governs the card and nothing else** — the tree, the tray and the CLI read `shown_name`, so a hidden name makes a clean drawing and never makes an element unfindable |
-| **handles per kind** | `B` block, `F` folder, `E` resource, `I` interface, `R` reference, `G` group, `D` grid, `N` note, `L` relation — no collisions, where the obvious first letters gave two. **The letter is derived, never stored**: an element carries only its number, so which letter a kind runs under can change with no migration and no file to rewrite. **Relationships carry one now**; three unnamed lines all read `line` before |
-| **a counter per kind on the workspace** | `next_alias` was a high-water mark over *live* elements, so deleting the highest handed its serial back. Counters ride in the step that mints, so an undo takes the handle back with the thing it named |
-| **`OPEN_MODULES` is gone** | with the clause in `may_retype` that let block, folder and resource swap. A kind is fixed at creation, which is what makes a handle permanent. **`retype` stays** — pointing a block at a definition is how a vocabulary is applied, and only the cross-module half was the holdover |
+| **a *default* relation definition** | `Definition.default` names a block module, so a plain run follows nothing. What a plain run draws and what a right drag makes are two questions, and only the second has an answer today |
+| **`tie` is both picked and derived** | the rail offers it and `derived_module` also assigns it whenever an end is a note. Two ways for one module to arrive, and nothing says which wins where they disagree. Settle whether a tie is *only* what touches a note |
+| **a run's `name` and `label` are a hand apart** | *name* is the definition it points at; *label* is the name a pin would file — and both end up being what the run is called. Two inputs one row apart, writing related things. The `Styles.tsx` split is where this gets answered |
+| **promoting an end that is already a port** | offered and then refused, because `when` cannot see which end a menu entry means. Harmless, and it says why |
+| **the `interface` module earns keys of its own** | an interface is the one anchor for a proxy port, a full port, a pin and a constraint parameter, and a definition says nothing about which |
+| **`flow` constrains nothing** | `ends.fromFlow` reads it and nothing else does. Whether a definition may *state* a flow, rather than only be checked against one, is unanswered |
 
-**The door migrates both.** `label`/`num` are renamed in `read_step`, because a mutation carries them — by the time a graph exists to inspect, an old `add_block` has already laid down a block with neither field. It reaches `add_block`, `update_block`, `order_block` and a checkpoint's blocks, and **never a `set_look`**, so `card.label` survives untouched. Handles are renumbered per kind in `inspect` — see below for what that reaches.
+### The grid
 
-**Handles are composed, never folded in.** Putting the handle inside `shown_name`'s fallback drew it twice — every surface already had a slot of its own for it, so the tree, the tray's table and the settings card each rendered `Block B3 B3`, and folding it in would have taken the muted styling with it. **One rule, two readers**, and whoever draws puts them together.
-
-**Three bugs this turned up, none caught by the suite:**
-
-- **`rename` silently did nothing.** It emitted `update_block { label }` against a mutation whose field is `name`, and no test asserted a renamed block's name, so 326 green tests said it worked. Found by driving it.
-- **`is_named` counted a note's body as a name**, which is why an unnamed note drew no handle. The same note-shaped exception as the fallback, one function over.
-- **`rename` refused an empty name**, so a name was the one thing about a block a user could not undo — and `update_edge` could not express *no type* at all, so unnaming a relationship had nowhere to go. Its `type` takes `null` now, and the argument is *asked for* rather than required.
-
-**The door backfills all or nothing.** A graph that hands out handles at all gets one for every element; a graph that never has — a fixture, a translator's, an import — is left alone. Renumbering only what already carried a handle left a real workspace with lettered blocks beside blank groups, notes and lines, because each kind mints on its own path.
-
-### Shared tables
-
-**Built**, and all three were listed under *Definitions, unified*.
-
-| | |
-|---|---|
-| **`role_icon` / `ROLE_ICON` in `theme`** | the role-to-mark table was copied in the stage, the tray and the explorer. It is icon data, so it lives beside the icons — and the tray's `ROLE[kind as Role] ?? "role_leaf"`, two fallbacks and a cast, is one call |
-| **`shipped()` in core** | the tray and the explorer each held a copy of `[...BLOCK_MODULES, "line", "directed"]`. Its literal was the two shipped relation *defs*, not the four relation modules, so it was exactly the kind of thing that drifts when written twice |
-| **the cycle guard is in `define`** | only the tray's extends picker checked that a chain was not pointed at its own head, so the terminal could tie one and `isa` would walk it until its `seen` set stopped it. The picker still filters — that is the list keeping its promise that what does not apply is not shown — but the action is the authority |
-
-### Pinning
-
-**Point at a block that already reads the way you want, and make that a definition.** Built, and every question the decision opened has an answer.
-
-| Was open | Is |
-|---|---|
-| **where it is filed** | nowhere. `home` was removed — it governed nothing, because `def_of` and `isa` resolve by id globally and always did. `from` says who owns a definition, and absent means this workspace made it |
-| **what it takes** | the whole of `looks`, and the field *schema* with no values. What a block happens to hold is that block's answer, not the default for every future one |
-| **what happens to the element** | it names the new definition and drops the overrides, reading the same answers one layer further along the chain. Reversible: `unpin` dissolves a definition back into everything that named it and then drops it, losslessly |
-| **naming** | asked. A name already taken is refused, said with the name rather than with the id it slugged to |
-| **re-pinning** | a new definition. Duplicates are allowed where the names differ — two things reading alike today may diverge tomorrow |
-| **a retired definition living on in every log** | fixed, and not by a migration. **The floor is the shipped package and it is not in the log** — it is handed to `fold` rather than laid down as step 0, so a definition the build changes is changed in every workspace already written. A checkpoint replaces it too, or opening a file would hand a workspace the exporter's copy of `base` |
-
-**Still owed:** which definitions a project draws on is an ordinary field with a hardcoded name, and **nothing checks that a named package exists.**
-
-## The grid
-
-**A visual spreadsheet for blocks.** One canvas view, in which a grid carries rows, columns, merged cells and headers. Blocks are plugged into cells and pulled back out. **This is the central rapid-prototyping feature**, and swimlanes, lifelines, tables and matrices are all meant to fall out of it rather than each costing code.
-
-**Why it matters beyond layout.** The inference that was cut read order from *position along a directional arrangement* — a guess, which is why it needed four tiers and a write-home gate to be safe. A cell address along the reading direction **is** the order, and a header **is** the allocation: both stated rather than guessed. That is what gives design.md's *the model defines itself as the user builds* a mechanism again.
-
-### Built
-
-| | |
-|---|---|
-| **schema** | `group`, `cell {r,c}`, `header`, `rows`, `cols`, `merges: Span[]` on `Block`. A grid owns its `x`/`y`; a boundary still derives its bounds from its members |
-| **mutations** | `set_group`, `seat_cell`, `set_header`, `set_grid`, `merge_cells`, `split_cells` |
-| **readers** | `grid_of`, `cell_of`, `members_of`, `at_cell`, `merge_at`, `region_of`, `group_depth`, and the two that matter — `allocations_of(block)` and `allocated_to(header)` |
-| **the door** | migrates any block carrying an extent to the grid module, drops a cell outside its grid or second into an occupied one, drops overlapping merges. **Every repair frees the block rather than deleting it** |
-| **placement** | `CELL`, `cell_box` honouring merges, gridded members placed by address, a holder's box from its extent or from its members' bounds, a gridded container minified |
-| **actions** | `group` (a boundary or a grid, by argument), `seat`, `header`, `insert`, `remove`, `merge`, `transpose`, `chain`, `leave` |
-| **the canvas** | cells answer a click and carry a `cell` scope in `Context`; right-drag on empty ground draws a grid sized in cells and captures what it covers; a drop resolves to an address; a dragged corner sets an extent |
-| **the retirement** | `table`, `matrix`, `view` and `pin`-as-a-view came out as one piece. Search results are the explorer's |
-
-### Revised since this was decided
-
-**The rows below replace what the original decision said.** Each was changed while building, and the reason is worth keeping.
-
-| Was decided | Is now | Why |
-|---|---|---|
-| arrangement **drops** `grid`, leaving `free` and four directions | arrangement **keeps** `grid` and drops the four directions. **Two values** | The directions ranked by relationships through dagre, which drew a picture of the graph rather than of the model. `grid` names auto-layout onto the lattice, and the lattice is the one a group is a region of — so the two meanings turned out to be the same meaning |
-| a group **is** a grid region; a boundary is one with no rows or columns | `group` and `grid` are **two modules**. 8, not 7 | They differ in what a member's place *is* — a boundary reads its bounds off wherever its members ended up, a grid says where each member goes. That is a difference in code, not in configuration |
-| **one group per block, no nesting** | one group per block, **nesting allowed**, cycles refused | `can_hold` walks the membership chain, and `group_depth` orders both placement and z-order. A grid inside a swimlane is the obvious want and cost nothing once nesting was cycle-checked |
-| **headers are row 0 and column 0**, marked by the grid's `headers` setting | a header is a **promoted block**, and **position says which line it heads**: row 0 heads its column, `{0,0}` heads both, anything else heads its row | Two mechanisms shipped by accident and never met — allocation read the grid setting, the gesture wrote a block field, and allocation was dead as a result. What replaced them was a stored role, which stated the same fact twice and let a drag put the two out of step. **Position is the whole rule now**: promote and demote is the gesture, `transpose` needs no header code, and row 0 / column 0 is still what a header row means — it just is not a setting on the grid |
-| `set_grid {id, rows, cols, headers}` | `set_grid {id, rows, cols}` | follows from the row above |
-| `chain` skips a **header strip** counted off the top and left | `chain` skips **any header, wherever it sits** | simpler, more general, and it drops two readers |
-
-### Still open
+**A visual spreadsheet for blocks**, and **the central rapid-prototyping feature**: swimlanes, lifelines, tables and matrices are all meant to fall out of it rather than each costing code. What makes it more than layout is that **a cell address along the reading direction *is* the order and a header *is* the allocation** — both stated rather than guessed, which is what gives design.md's *the model defines itself as the user builds* a mechanism again.
 
 | | |
 |---|---|
@@ -233,45 +117,6 @@ Both are projections over different sources, neither is a block, and a third cos
 | **one header row, one header column** | falls out of position being the rule: only row 0 can head a column, so a second tier of column headings is not sayable. Fine for a swimlane, a lifeline, a table and a matrix. Revisit only if something real wants two tiers |
 | **a header's scope is a line** | deliberately. A scope that reached down-and-right instead would turn allocation from *at most two, one per axis* into an unordered pile of overlapping rectangles, and would need a nesting rule to answer *what is allocated to this*. Sectioning an outline is a different construct and does not get the word |
 | **what allocation is *for*** | it is derived and correct, and nothing downstream reads it yet. Until something does, *the model defines itself as the user builds* has a mechanism and no product |
-| **swimlanes as the proof** | the `gridded` fixture is one: blocks heading rows, flow relations across, `chain` linking them. It cost no new code, which was the test |
-
-### Watch for
-
-| | |
-|---|---|
-| **two names for one lattice** | `UNIT` is the measure and a `CELL` is a block plus its air. Nothing outside a grid is quantised to a cell — that was the old mistake, and it is worth not making twice |
-| **a holder is two things to most callers** | a boundary and a grid answer the same question nearly everywhere: what a run may pass through, what a sweep picks, what a drop clears. Ask `is_holder` / `holds`, never a pair of literal comparisons — a grid on the wrong side of one walled every line inside it |
-| **repairs are mutations, not edits** | the door returns repairs for somebody else to apply, so a check written after a migration still reads the graph as it came in. That is how the group→grid migration freed every address it had just rescued |
-
-
-## Vocabulary
-
-**Stop inventing words where a convention exists.** With one way to draw, several terms have nothing left to distinguish.
-
-| Gone | Why |
-|---|---|
-| **view module** | there is one way to draw |
-| **view definition** | nothing left to configure |
-| **layer view** | it is *the diagram* |
-| **reading** | cut |
-| **promote** as a *noun* | the gesture is **promote** and **demote**; what it makes is a **header**, and so is the cell it fills. One word each, not two for the thing |
-| **implied order** | nothing infers order from position on a layer any more. A cell address states it |
-
-| Stays | Is |
-|---|---|
-| **layer** | the block you are inside |
-| **diagram** | what a layer looks like drawn |
-| **lattice** | the lines everything lands on, one unit apart. **This is what `grid` used to be asked to mean** |
-| **grid** | a block module: a bounded region of the lattice with an extent and cells |
-| **group** | a block module: a boundary round a set, sized from what it holds |
-| **holder** | either of those two, where a caller means both |
-| **projection**, **Scene** | internal. Code words, not user words |
-
-**`grid` still names two things and that is deliberate now.** The `grid` *arrangement* is auto-layout onto the lattice; the `grid` *module* is a region of it. They are the same lattice, which is what lets a block the layer placed line up with a block seated in a cell — so this is one word for one lattice, seen from two sides.
-
-**Reserved, not retired.** *View* will name a data perspective — table, matrix, sequence — over the model. It is cut now because it currently means nothing, and it comes back defined.
-
-**Use the standard word wherever one exists.** `allocation` is the case that proved the rule: what looked like three inventions — swimlane, lane owner, tag — was one construct SysML already names.
 
 
 ## Loose ends
@@ -281,3 +126,21 @@ Both are projections over different sources, neither is a block, and a third cos
 | **Behaviour has no mechanism** | *The model defines itself as the user builds* is design.md's driving concept. **The grid is now half the answer** — a cell address states order and a header states allocation, both derived from position and stored nowhere. What is still missing is anything that *reads* them: no definition gains a field, no state is inferred, no interface is offered |
 | **Definition shape is cut** | `card.layout` no longer offers `shape`. A definition picking a diamond drew as one on the canvas and as a rectangle in every export — a promise one renderer kept and the others could not. It comes back when they all can |
 | **A named package is unchecked** | which definitions a project draws on is an ordinary field with a hardcoded name, and nothing checks that a named package exists. **The one thing pinning left owing** |
+| **`tie` and `reference` are derived *and* stored** | both are *assigned from what sits at the ends* — except `derived_module` lives in `actions.ts`, so only an action ever derives one, while `Relation.module` stores the answer. A file, an import or a translator's graph saying `module: "line"` between a note and a block keeps saying `line`, where the app would have made it a tie. **Pick one**: the door re-derives both on the way in and the field is a cache, or they are picked like anything else and whoever writes a graph must say |
+| **The SysML round trip loses both** | `mnd translate --round` on the extended sample reports every tie and reference lost and a plain line gained in its place. `LINK` in `apps/cli/src/sysml.ts` maps a module to a keyword on the way **out** — `comment`, `connect` — and `from_sysml` never reads it back, minting `line` for everything. A straight gap in the translator, and separate from the row above: fixing either alone would close it |
+| **`FIRST` still orders retired keys** | `file.ts` lists `label` and `home` among the keys it orders first; neither has named a field since the identity rename and the pinning cleanup |
+| **`LINK` still names `directed`** | `apps/cli/src/sysml.ts` maps a module that came out with `dir`. Dead entry, in the same table the row above has to fix anyway |
+| **`View` is reserved, not retired** | it will name a data perspective — table, matrix, sequence — over the model. Cut now because it currently means nothing, and it comes back defined |
+
+
+## Watch for
+
+**Hazards for the work above**, each one paid for once already.
+
+| | |
+|---|---|
+| **two names for one lattice** | `UNIT` is the measure and a `CELL` is a block plus its air. Nothing outside a grid is quantised to a cell — that was the old mistake, and it is worth not making twice |
+| **a holder is two things to most callers** | a boundary and a grid answer the same question nearly everywhere: what a run may pass through, what a sweep picks, what a drop clears. Ask `is_holder` / `holds`, never a pair of literal comparisons — a grid on the wrong side of one walled every line inside it |
+| **repairs are mutations, not edits** | the door returns repairs for somebody else to apply, so a check written after a migration still reads the graph as it came in. That is how the group→grid migration freed every address it had just rescued |
+| **two heads tables, on purpose** | `theme/heads.tsx` is what the canvas and the tray render; `svg.ts` writes its own in a string, because the SVG export is a standalone document that already carries its own stylesheet and resolves no React. Worth knowing before somebody merges them |
+| **stop inventing words where a convention exists** | `allocation` is the case that proved the rule: what looked like three inventions — swimlane, lane owner, tag — was one construct SysML already names |
