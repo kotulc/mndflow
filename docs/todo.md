@@ -21,9 +21,44 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 **What a relation definition holds is now known**, which is what this was waiting on: `line` plus the shared `style`, and the rail already filters by what a module honours. So the split is the work, and `ROWS` is where it starts.
 
-### 2 — The tray
+### 2 — Relation templates, and the tray's slots
 
-**Context-sensitive.** Three tabs now — settings, fields, contents — and full height landed as a control of its own. What is left is what the tray becomes when it fills the stage, and whether a layer's settings are the same rows as an element's. See ST.16.
+**A relation vocabulary has a home, and it is the tray.** Pinning built the model half and left it unreachable: a definition can be minted from a run and then never renamed, restyled, retired or seen, because `vocabulary()` lists blocks only and `pickedDef` is the only way into the settings panel. This gives it a surface, and the surface is three slots the tray already almost has.
+
+**One kind, two depths — `extends` is the whole decoupling.** A **template** is a relation definition carrying `components`; a **stereotype** is one with a name and an `extends` pointing at a template. Four templates under forty stereotypes costs no schema: `isa` walks the chain, `settings()` resolves it, `define` guards the cycle. **A template is simply a definition nothing names directly**, so what tells the two apart is emergent and no flag says it.
+
+**Not the explorer.** A definition has no parent, so a relation definition in a containment tree is a category error — and reframing one as a block to fit is the special-casing the tree is trying to lose. The explorer stays blocks only, and `relations()` is already the right reader, already exported, already spent by the rail.
+
+**The rail's `settings` is a verb, not a mode.** It opens the tray on the relation context and a later selection wins, so nothing fights what you have hold of — which is the trap a stored context would have set. The `relations` group keeps the three shipped modules, then the pinned templates under a `ruled` divider: the convention the rail already uses for *same subject, two natures*. **A rail click says what a right drag draws and never what the tray describes** — merged, glancing at a template would silently change what you draw next.
+
+**The rail list lives on the workspace**, beside `counters`, and never as a flag on `Definition`: `borrowed()` refuses every write to a definition carrying `from`, so a flag would make an imported template the one thing that cannot be shortlisted. A list also gives rail order, which a boolean cannot.
+
+| The three slots | block | relation |
+|---|---|---|
+| **what this is** | settings | settings |
+| **what it declares** | fields | **templates** — the workspace's, with a usage count |
+| **what exists** | contents — this layer, one level | **usages** — the stereotype roster |
+
+**The asymmetry is required, not a gap.** A block has a vocabulary in the explorer and values to carry; a relationship has neither. Block tabs do not move.
+
+**The usages tab is two tables, stacked.** The roster is stereotypes with their direct counts — **templates are left out**, so the *does a count mean direct or through the chain* question cannot arise. Picking a row fills the second with that stereotype's runs across the project, carrying a **layer** column, because a run named elsewhere is unreadable without one.
+
+**Retype happens in the row.** A dropdown in the type cell, no selection and no navigation — which is what keeps the stack literally two tables. The cost is honest: the usages table then does not select on click the way the contents table does, so one component carries two behaviours.
+
+| What it costs | |
+|---|---|
+| **the workspace list** | an id list on the root block beside `counters`, and the mutation that writes it |
+| **two acts, not one** | minting a template and listing it on the rail are separate checkboxes. `pin` and `unpin` keep exactly what they mean — mint and dissolve — and the rail toggle is its own pair against the list |
+| **`Definition.default` widens** | to `BlockModule \| RelationModule`, and `may_default` drops its `group === "block"` clause. **This is what a plain run follows**, asked as the same checkbox a block's default is |
+| **`retype` takes a selection** | `ids_of` rather than `id_of`, the way `look` and `delete` already do |
+| **`wire_of` takes a definition id** | it bails to `BARE` for anything not in `graph.edges`, so a held template cannot be previewed. *The edge half is done* was true of runs, not of definitions — `look_of` needs the same on the block side |
+| **two row builders** | the roster and the cross-layer instances, with the layer column joined through `path()` |
+
+**Wants the `Styles.tsx` split first**, since both checkboxes land in the identity column that phase is pulling apart.
+
+**Still open: what the two checkboxes are called.** *Minting* is `pin` today and *listing* has no word; calling the second one `pin` reads better on the rail and costs renaming the first. Decide when the panel is built, not before.
+
+**What is left of the tray otherwise.** What it becomes when it fills the stage, and whether a layer's settings are the same rows as an element's. See ST.16.
 
 **Rules came out.** The panel could state three of the five kinds and only show the other two, because `look` writes one scalar and `ends` and `degree` are nested records. The model side stands — the `rules` component validates all five at the door, `rules_of` resolves them down the chain, `review` reads what survives. See ST.17.
 
@@ -99,9 +134,7 @@ Both are projections over different sources, neither is a block, and a third cos
 
 | | |
 |---|---|
-| **a *default* relation definition** | `Definition.default` names a block module, so a plain run follows nothing. What a plain run draws and what a right drag makes are two questions, and only the second has an answer today |
 | **`tie` is both picked and derived** | the rail offers it and `derived_module` also assigns it whenever an end is a note. Two ways for one module to arrive, and nothing says which wins where they disagree. Settle whether a tie is *only* what touches a note |
-| **a run's `name` and `label` are a hand apart** | *name* is the definition it points at; *label* is the name a pin would file — and both end up being what the run is called. Two inputs one row apart, writing related things. The `Styles.tsx` split is where this gets answered |
 | **promoting an end that is already a port** | offered and then refused, because `when` cannot see which end a menu entry means. Harmless, and it says why |
 | **the `interface` module earns keys of its own** | an interface is the one anchor for a proxy port, a full port, a pin and a constraint parameter, and a definition says nothing about which |
 | **`flow` constrains nothing** | `ends.fromFlow` reads it and nothing else does. Whether a definition may *state* a flow, rather than only be checked against one, is unanswered |
