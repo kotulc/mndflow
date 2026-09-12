@@ -174,15 +174,18 @@ A relationship carries a definition exactly as a block does — `group: "relatio
 
 **One panel, three scopes.** The tray's *settings* tab describes the one thing picked; the same tab describes the **layer** you are in when nothing is picked, and the **workspace** when the rail's project settings asks for it. What is being settled changes; the panel does not.
 
-**The rail's project settings opens it.** Today that control runs an action nothing answers. It should put the tray on settings with the workspace as its subject — the same way the element group's *define* puts it there with a block.
+**A scope is arrived at, never picked.** The rail's top group names a subject — workspace, layer, relation — and each puts the tray on the thing itself; which tabs exist follows from what is held. So a later selection wins without anything having to arbitrate, and a stored context never has to answer *the rail says relations and you just clicked a block*. The element scope needs no control at all: selecting something is how you arrive at it.
 
 | scope | what it settles |
 |---|---|
-| **workspace** | what every layer starts from: the theme, the default definitions per kind, what a new block is made as |
+| **workspace** | the root block, read through the block slots: its name and id, the packages the project draws on, and the whole project's contents |
 | **layer** | how this layer is arranged and drawn — the answers that live on the layer today and are reached from the rail |
+| **relation** | the relation vocabulary: what a template is, which are offered on the rail, and which stereotypes are in play |
 | **element** | what it is, how it draws, what it carries — the panel as it stands |
 
-**Open.** Whether a scope is picked in the panel or arrived at by what is selected; whether a layer's settings are the same rows as an element's or a shorter set; and what a workspace-level default looks like beside `Definition.default`, which already answers *what every plain block of this kind follows*.
+**Every scope keeps the same three slots**, and only the words change: *settings* is what this is, the second slot is what it **declares** — fields, packages, templates — and the third is what **exists** — contents, or usages. A tab that cannot be answered is absent rather than empty.
+
+**Open.** Whether a layer's settings are the same rows as an element's or a shorter set; and what a workspace-level default looks like beside `Definition.default`, which answers *what every plain block or run of its kind follows*.
 
 ### ST.12 — The plan stops being prose that agents parse
 

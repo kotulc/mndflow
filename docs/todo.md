@@ -54,9 +54,38 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **`wire_of` takes a definition id** | it bails to `BARE` for anything not in `graph.edges`, so a held template cannot be previewed. *The edge half is done* was true of runs, not of definitions — `look_of` needs the same on the block side |
 | **two row builders** | the roster and the cross-layer instances, with the layer column joined through `path()` |
 
+**The two checkboxes are *make template* and *pin line*** — minting and listing, in that order, both in the settings tab's identity column. Two words, so `pin` and `unpin` keep meaning mint and dissolve and nothing has to be renamed.
+
 **Wants the `Styles.tsx` split first**, since both checkboxes land in the identity column that phase is pulling apart.
 
-**Still open: what the two checkboxes are called.** *Minting* is `pin` today and *listing* has no word; calling the second one `pin` reads better on the rail and costs renaming the first. Decide when the panel is built, not before.
+### 2a — What the tray is pointed at
+
+**The rail's top group names the subject, and context is derived from it.** The group is **workspace / layer / relation**, and two controls come out with the `element` group:
+
+| Removed | Why |
+|---|---|
+| **`define`** | it never reached the action of that name. The app intercepts it and runs `set_tab("settings"); set_tray(true)` — a button whose whole job is opening the tray on the selection, which selecting already does. It also collided with the real `define`, which mints and renames definitions |
+| **`export`** | a duplicate of two save buttons the app chrome already carries, one already called *export the workspace* |
+
+**Never a stored mode.** Each entry sets what the tray *holds*, and which tabs exist follows from the subject — so a later selection wins for free, because selection is the same mechanism. A context stored beside the selection would have had to arbitrate between the two, and there is no honest answer to *the context says relations and you just clicked a block*.
+
+**The rule for an empty subject is the one the tray already has:** the tabs are what is answerable, and a tab that says *pick something* is a way of saying nothing.
+
+| | |
+|---|---|
+| **layer** | holds the layer block. A layer is a block, so this is ordinary element settings and is nearly free |
+| **relation** | has no element to hold. Opens on **templates**, and `settings` arrives with a picked template — entering on the **default** template gives all three tabs an answer at once, and gives `Definition.default` somewhere to be read |
+| **workspace** | holds the root block, **through the same three block slots**, which is what keeps it from being a fourth surface |
+
+**The workspace is a block, so it is read as one.** The root already is one — `empty_graph` makes it a folder called *workspace* — so this is the block context with three rows filled differently, not a panel of its own:
+
+| slot | workspace |
+|---|---|
+| **settings** | name, id, metadata. **No definition, label, pin or template** — the root stands for the project, and nothing names it |
+| **packages** *(the `fields` slot)* | what this project draws on. Two sources exist already: the catalogue `fetch_list` reads, and `vocabulary()` grouped by `from`. **Reconciling the two is the check the Loose ends say nothing performs** |
+| **contents** | the whole project, and this is the one place contents is recursive. `children` and `edges_in` are single-level by design, so this is a second source, not a widened one — and it is what finally gives *every run in the project, filtered to relations* a surface |
+
+**So slot two is *what it declares*** — fields for a block, packages for the workspace, templates for a relation — **and slot three is *what exists***. The word on the tab changes with the subject; the panel does not.
 
 **What is left of the tray otherwise.** What it becomes when it fills the stage, and whether a layer's settings are the same rows as an element's. See ST.16.
 
