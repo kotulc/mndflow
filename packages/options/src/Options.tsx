@@ -20,8 +20,7 @@ export type OptionsProps = {
  *  come and go with the selection are last on purpose**: they are the ones to
  *  push off the bottom of a column that scrolls, and everything above them is
  *  about what you are looking at rather than what you have hold of. */
-const ORDER = ["project", "layer", "views", "flow", "display", "relations",
-               "element", "grid"];
+const ORDER = ["settings", "layer", "views", "flow", "display", "relations", "grid"];
 
 const at = (key: string) => {
   const n = ORDER.indexOf(key);
@@ -45,6 +44,9 @@ export function Options({ groups }: OptionsProps) {
            *  labels. No rule where the group is verbs all the way down — there is
            *  nothing above to divide it from. */
           const first = group.controls.findIndex((c) => c.verb);
+          /** A control may also ask for the rule itself, where a group's seam
+           *  is not the one between a setting and a verb. */
+          const ruled = (n: number) => (n === first && n > 0) || !!group.controls[n]?.ruled;
           return (
             <div key={group.key} className="opts-group" role="group" aria-label={group.label}>
               <span className="opts-label">{group.label}</span>
@@ -52,7 +54,7 @@ export function Options({ groups }: OptionsProps) {
                 <button key={control.key} type="button"
                         className={[control.on ? "on" : "",
                                     control.verb ? "verb" : "",
-                                    n === first && n > 0 ? "ruled" : ""].filter(Boolean).join(" ")}
+                                    ruled(n) ? "ruled" : ""].filter(Boolean).join(" ")}
                         {...(control.on === undefined ? {} : { "aria-pressed": control.on })}
                         title={control.tip}
                         onClick={control.run}>

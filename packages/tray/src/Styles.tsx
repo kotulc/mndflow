@@ -17,7 +17,7 @@
 import { useState } from "react";
 import { ALIGNS, ARROWS, BASE_PACKAGE, BORDERS, CONTRASTS, DISPLAYS, FAMILIES,
          FILLS, FONTS, HUE, INTENSITY, OPACITY, SHOWN, WEIGHTS,
-         WIDTHS, alias_of, config_of, DEFAULTS, honours, isa, kind_word, may_retype,
+         WIDTHS, alias_of, config_of, DEFAULTS, honours, isa, kind_word, may_retype, pinned_lines,
          module_named, module_of, relation_named, role_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type Role } from "@mnd/core";
 import { Icon, names, role_icon, type IconName } from "@mnd/theme";
@@ -344,8 +344,19 @@ export function Styles({ graph, id, onAct }: StylesProps) {
    *  its own may be unpinned, renamed by the label, or made a default. */
   const own = d ?? (named ? graph.defs[named] : undefined);
   const pinned = !!own && !shipped(own);
-  const may_default = !!own && pinned && own.group === "block"
-    && module_named(graph, own.id) === kind;
+  /** **Either sort of module.** A plain run had nothing to follow while this
+   *  named blocks only, and *what a plain line looks like* is a real question
+   *  asked of a relation definition exactly as a block's is of a block one. */
+  const may_default = !!own && pinned
+    && (own.group === "relation" || module_named(graph, own.id) === kind);
+  /** **On the rail, which is not the same as being a definition.** Listing a
+   *  template is its own act against the workspace's shortlist, so the box is
+   *  its own — and it is a line's question only. */
+  const listed = pinned_lines(graph).some((x) => x.id === own?.id);
+  /** **The workspace stands for the project, not for a thing in it.** It is
+   *  a block, so the panel describes it like one — but nothing names it, so
+   *  it has no definition, no label a pin would file, and nothing to pin. */
+  const is_root = !d && id === graph.root;
 
   const shows = config_of(graph, d ? d.id : b ? id : undefined, "card")["shows"];
   const label = d ? d.name : shown_name(graph, id);
@@ -427,10 +438,22 @@ export function Styles({ graph, id, onAct }: StylesProps) {
                        placeholder={b ? kind_word(graph, b) : kind} />}
           </Line>
 
+          {/* **The workspace is named and nothing else.** It stands for the
+              project rather than being a thing in it: nothing names it, so it
+              has no definition to draw through, no label to file one under and
+              nothing to pin. What it *does* declare is which packages it draws
+              on, which is the packages tab beside this one. */}
+          {is_root ? (
+            <Line label="id" tip="What this project is called in the file and in every log.">
+              <input value={id} readOnly aria-label="id" />
+            </Line>
+          ) : null}
+
           {/* **Which definition it draws through, by where it sits.** The path
               is the definitions folder's own — `default/note`, `workspace/Pump`,
               `packages/acme/Valve` — so what the picker offers and what the tree
               shows are one list said the same way. */}
+          {is_root ? null : (
           <Line label="definition" className="subtype"
                 tip="The definition this draws through. The path is where it sits in the definitions folder.">
             {d ? (
@@ -452,6 +475,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
               </select>
             )}
           </Line>
+          )}
 
           {/* **The label names the pin.** What the card writes as its type is
               what the definition is called, so one word answers both — and
@@ -459,7 +483,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
           {/* **For a run these two rows are close together and are not one.**
               *name* is the definition it points at now; *label* is the name a
               new one would be filed under, and pinning is what files it. */}
-          {b || edge ? (
+          {(b || edge) && !is_root ? (
             <Line label="label"
                   tip={runs
                     ? "What to call the definition pinning would file. A run is "
@@ -472,37 +496,48 @@ export function Styles({ graph, id, onAct }: StylesProps) {
             </Line>
           ) : null}
 
-          {/* **Two boxes, and each says something different.** Whether this is
-              in the vocabulary, and whether every plain one of its kind follows
-              it. Both are about the definition the label names. */}
-          {b || edge || pinned ? (
+          {/* **Boxes, and each says something different.** Whether this is in
+              the vocabulary, whether it is offered on the rail, and whether
+              every plain one of its kind follows it. All three are about the
+              definition the label names. */}
+          {(b || edge || pinned) && !is_root ? (
           <Line label="pin" className="marks"
-                tip="Whether this is in the vocabulary, and what its kind follows.">
-            {/* **A run is pinned exactly as a card is**, and a pinned run is
-                offered on the rail's relations group rather than in the tree —
-                a relationship is drawn between two ends, so there is nothing to
-                drag a row onto. */}
+                tip="Whether this is in the vocabulary, where it is offered, and what its kind follows.">
+            {/* **A run is made a template exactly as a card is pinned**: point
+                at one that already reads the way you want, and the look becomes
+                a definition anything else can name. */}
             {b || edge || pinned ? (
               <label className="check" title="Keep this look as a definition anything can name">
                 <input type="checkbox" checked={pinned} disabled={borrowed}
                        onChange={(e) => e.target.checked
                          ? onAct("pin", { id, name: draft.trim() || kind })
                          : onAct("unpin", { id: own!.id })} />
-                pin {runs ? "line" : "block"}
+                {runs ? "make template" : "pin block"}
               </label>
             ) : null}
-            {/* **A default is a block's for now.** `Definition.default` names a
-                block module, and what a plain run follows is a separate
-                question from what a right drag draws. */}
-            {!runs ? (
+            {/* **Listing is not minting**, which is why it is a second box: the
+                rail is a shortlist of the few worth a right drag, and the
+                vocabulary behind it is read in the templates tab. A package's
+                template may be listed too — the list is the workspace's, so
+                nothing is written to a definition somebody else owns. */}
+            {runs ? (
               <label className="check"
-                     title={`Every ${kind} that names nothing draws from this one instead of the base`}>
-                <input type="checkbox" checked={!!own?.default} disabled={!may_default}
-                       onChange={(e) => onAct("default", { id: own!.id,
-                                                           on: e.target.checked ? "yes" : "no" })} />
-                make default
+                     title="Offer this on the rail, so a right drag can draw one">
+                <input type="checkbox" checked={listed} disabled={!pinned}
+                       onChange={(e) => onAct("pin_line", { id: own!.id,
+                                                            on: e.target.checked ? "yes" : "no" })} />
+                pin line
               </label>
             ) : null}
+            {/* **What a plain one of this kind follows** — asked of a line as it
+                is of a card, now that a relation definition can wear it. */}
+            <label className="check"
+                   title={`Every ${kind} that names nothing draws from this one instead of the base`}>
+              <input type="checkbox" checked={!!own?.default} disabled={!may_default}
+                     onChange={(e) => onAct("default", { id: own!.id,
+                                                         on: e.target.checked ? "yes" : "no" })} />
+              make default
+            </label>
           </Line>
           ) : null}
         </Body>

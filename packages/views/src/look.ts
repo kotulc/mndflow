@@ -122,6 +122,11 @@ export const PLAIN: Look = {
  *  same bag one layer apart — `def_of` already answers for both — so the
  *  cascade is read here rather than once per look. */
 function settings(graph: Graph, id: Id, key: string): Settings {
+  /** **A definition is its own last word.** It holds `components` rather than
+   *  `looks`, and `config_of` already walks its chain ending at itself — so
+   *  there is no element layer to lay over it, and asking for one would read a
+   *  field a definition does not have. */
+  if (graph.defs[id]) return config_of(graph, id, key);
   const it = graph.blocks[id] ?? graph.edges[id];
   return { ...config_of(graph, def_of(graph, id), key), ...(it?.looks?.[key] ?? {}) };
 }
@@ -242,7 +247,12 @@ export type Wire = {
 export const BARE: Wire = { name: true, alias: false };
 
 export function wire_of(graph: Graph, id: Id): Wire {
-  if (!graph.edges[id]) return BARE;
+  /** **A run or the definition of one.** The tray describes a held template the
+   *  same way it describes a line, and previewing one meant resolving it — so
+   *  this takes either holder rather than the panel keeping a second reader
+   *  that would drift from this one. */
+  const held = graph.defs[id];
+  if (!graph.edges[id] && held?.group !== "relation") return BARE;
   const style = settings(graph, id, "style");
   const line = settings(graph, id, "line");
 

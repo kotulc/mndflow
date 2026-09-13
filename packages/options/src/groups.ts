@@ -13,6 +13,11 @@ export type Control = {
   /** One-shot: it does something and is done. Ruled off from the settings
    *  above it, and it draws no `on` at all. */
   verb?: boolean;
+  /** **A rule above this control**, where a group holds two natures that are
+   *  not a setting and a verb — the pinned templates against the modules they
+   *  sit under. Asked for rather than derived, because only the group knows
+   *  where its own seam is. */
+  ruled?: boolean;
   run: () => void;
 };
 
@@ -26,8 +31,6 @@ export type Group = {
 export type Chrome = {
   /** Which groups the projection offers. */
   slots: readonly string[];
-  /** The one element that is picked. */
-  element?: { id: string };
   arrangement?: Arrangement;
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
@@ -37,11 +40,10 @@ export type Chrome = {
   module?: RelationModule;
   dir?: Dir;
   type?: string;
-  /** **The pinned lines, which is where a relation vocabulary lives.** A
-   *  relationship is drawn between two ends and never dropped, so there is
-   *  nothing to drag a relation row onto — the tree keeps blocks and the rail
-   *  keeps these. Each says which module it refines, so it draws the mark that
-   *  module draws. */
+  /** **The shortlist, not the vocabulary.** Every relation definition is
+   *  reached and edited in the tray; these are the few somebody pinned as worth
+   *  a right drag, in the order the workspace put them. Each says which module
+   *  it refines, so it draws the mark that module draws. */
   relations?: readonly { id: string; name: string; module: RelationModule }[];
 };
 
@@ -129,49 +131,49 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
               && (chrome.dir ?? "none") === (l.dir ?? "none"),
           run: () => act("relate_with", { module: l.module, dir: l.dir ?? "none" }),
         })),
-        /** **What somebody pinned**, drawn with its own module's mark. */
-        ...(chrome.relations ?? []).map((d): Control => ({
+        /** **What somebody pinned**, drawn with its own module's mark and ruled
+         *  off from the three above.
+         *
+         *  **The rule is not decoration.** The three above are *modules* with
+         *  nothing behind them to edit; these are *definitions*, which is what
+         *  decides whether the tray can describe one — so the divider marks a
+         *  real difference, and it is the same one the rail already draws
+         *  between a setting and a verb. */
+        ...(chrome.relations ?? []).map((d, n): Control => ({
           key: `type:${d.id}`, word: d.name,
           icon: LINES.find((l) => l.module === d.module)?.icon ?? "relation_plain",
           tip: `A right drag draws a ${d.name}`,
           on: named === d.id,
+          ruled: n === 0,
           run: () => act("relate_with", { module: d.module, type: d.id }),
         })),
       ],
     });
   }
 
-  /** **What the picked thing can be told, rather than what the layer can.**
-   *  These sit at the foot of the rail because they come and go with the
-   *  selection, and everything above them is about what you are looking at.
+  /** **What the tray is pointed at.** Each names a subject and opens the panel
+   *  on it; which tabs the panel then offers follows from the subject, so none
+   *  of these is a mode and a later selection simply wins.
    *
-   *  The element group is where the rest of what one thing can be told belongs
-   *  as it arrives — every answer about one element rather than about the layer
-   *  around it. */
-  if (chrome.element) {
-    const { id } = chrome.element;
-    out.push({
-      key: "element", label: "element",
-      controls: [
-        { key: "define", icon: "define", word: "define",
-          tip: "What this is: its name, type, tags, look and values",
-          run: () => act("define", { id }) },
-      ],
-    });
-  }
-
-  /** **What is done to the project itself.** The verbs below are one-shots. */
+   *  **There is no element entry**, because selecting something is how you
+   *  arrive at it — the control that used to sit here ran no action of its own,
+   *  only opening the tray on whatever was already picked.
+   *
+   *  **Verbs, not settings.** A scope is somewhere you go, and it is given up
+   *  the moment you pick something, so lighting one would claim a state the
+   *  rail does not hold. */
   out.push({
-    key: "project", label: "project",
+    key: "settings", label: "settings",
     controls: [
-      /** **The way in to everything the project can be told**, the way `define`
-       *  is for one element. Nothing behind it yet. */
-      { key: "settings", icon: "settings", word: "settings", verb: true,
-        tip: "How this project is set up",
-        run: () => act("settings") },
-      { key: "export", icon: "export_project", word: "export", verb: true,
-        tip: "Export this subtree with what it depends on",
-        run: () => act("export") },
+      { key: "workspace", icon: "settings", word: "workspace", verb: true,
+        tip: "This project: what it is called, what it draws on, and everything it holds",
+        run: () => act("about", { scope: "workspace" }) },
+      { key: "layer", icon: "layout_free", word: "layer", verb: true,
+        tip: "The layer you are in: how it is arranged and what it holds",
+        run: () => act("about", { scope: "layer" }) },
+      { key: "relation", icon: "relation_typed", word: "relations", verb: true,
+        tip: "The line templates and stereotypes this project uses",
+        run: () => act("about", { scope: "relation" }) },
     ],
   });
 

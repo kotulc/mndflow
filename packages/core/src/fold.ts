@@ -96,6 +96,16 @@ function apply(graph: Graph, m: Mutation): void {
       if (ws) ws.counters = { ...(ws.counters ?? {}), [m.kind]: m.n };
       return;
     }
+    case "set_pinned": {
+      const ws = graph.blocks[graph.root];
+      if (!ws) return;
+      /** **Deduplicated, in the order given, and dropped when empty** — the same
+       *  handling `set_tags` gives a list, so an absent field and an empty one
+       *  are never two ways of saying nothing. */
+      const kept = [...new Set(m.ids.filter(Boolean))];
+      if (kept.length) ws.pinned = kept; else delete ws.pinned;
+      return;
+    }
     case "place_block": {
       const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }
@@ -913,7 +923,12 @@ export function def_of(graph: Graph, id: Id): Id | undefined {
   }
   const e = graph.edges[id];
   if (!e) return undefined;
-  return e.type ?? (graph.defs[e.module] ? e.module : undefined);
+  /** **A plain run follows the workspace's default too.** It had nothing to
+   *  follow while `default` named block modules only, so every unnamed line
+   *  drew from the shipped floor whatever the project had said. */
+  if (e.type) return e.type;
+  return default_for(graph, e.module, "relation")
+    ?? (graph.defs[e.module] ? e.module : undefined);
 }
 
 /** **The workspace's own default for a base kind**, where somebody has said
@@ -927,9 +942,13 @@ export function def_of(graph: Graph, id: Id): Id | undefined {
  *  **Naming the base outright still reaches it.** A block typed to `block` has
  *  a `type`, so it never asks this — which is how one block stays pristine
  *  while everything else follows the default. */
-export function default_for(graph: Graph, kind: BlockModule): Id | undefined {
+/** **The group is asked for, because `reference` names two things.** It is a
+ *  block module and a relation module both, so a definition wearing it as a
+ *  default is answering one of two questions and only its group says which. */
+export function default_for(graph: Graph, kind: BlockModule | RelationModule,
+                            group: "block" | "relation" = "block"): Id | undefined {
   for (const d of Object.values(graph.defs)) {
-    if (d.default === kind && !d.from && d.group === "block") return d.id;
+    if (d.default === kind && !d.from && d.group === group) return d.id;
   }
   return undefined;
 }
@@ -985,19 +1004,55 @@ export function relation_named(graph: Graph, type: Id | undefined): RelationModu
   return (base?.name as RelationModule) ?? "line";
 }
 
-/** The relation definitions a right drag may draw with.
+/** Every relation definition this workspace can use, shipped floor aside.
  *
- *  **The rail's list, not the tree's.** A relationship is made by drawing
+ *  **The tray's list, not the tree's.** A relationship is made by drawing
  *  between two ends and never by dropping, so there is nothing to drag a
- *  relation row onto — which is why a pinned line is offered on the options
- *  rail's `relations` group instead of in the explorer.
+ *  relation row onto — which is why the relation vocabulary lives in the tray
+ *  and the explorer keeps blocks.
  *
  *  The shipped two *are* the modules, and the modules are already offered, so
- *  what is left is what somebody pinned or a package brought in. */
+ *  what is left is what somebody made or a package brought in. */
 export function relations(graph: Graph): Definition[] {
   return Object.values(graph.defs)
     .filter((d) => d.group === "relation" && !shipped(d))
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** **What tells a template from a stereotype is what it says, not a flag.** A
+ *  template carries `components` — it is the thing that draws a certain way; a
+ *  stereotype carries a name and an `extends`, and takes its drawing from the
+ *  template above it. Forty stereotypes over four templates, and the chain
+ *  `isa` already walks is the whole of the decoupling.
+ *
+ *  **The wrong-side case is a signal, not a bug**: a stereotype that grows a
+ *  look of its own *is* a template somebody named. */
+export function is_template(d: Definition): boolean {
+  return !!d.components && Object.keys(d.components).length > 0;
+}
+
+/** The relation templates: what a line can be made to look like. */
+export function templates(graph: Graph): Definition[] {
+  return relations(graph).filter(is_template);
+}
+
+/** The stereotypes: what a line can be called. **Templates are left out**, so
+ *  the roster never has to answer whether a count means direct usages or
+ *  everything down the chain. */
+export function stereotypes(graph: Graph): Definition[] {
+  return relations(graph).filter((d) => !is_template(d));
+}
+
+/** The templates offered on the rail, **in the order the workspace put them**.
+ *
+ *  Resolved against `defs` on the way out, so a shortlist naming a definition
+ *  that has since been dissolved simply lists one fewer — a dangling id is not
+ *  worth a repair when the reader can skip it. */
+export function pinned_lines(graph: Graph): Definition[] {
+  const ws = graph.blocks[graph.root];
+  return (ws?.pinned ?? [])
+    .map((id) => graph.defs[id])
+    .filter((d): d is Definition => !!d && d.group === "relation");
 }
 
 export function vocabulary(graph: Graph): Vocabulary[] {

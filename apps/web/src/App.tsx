@@ -7,8 +7,8 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, can_hold, module_named, module_of, offer, relation_named,
-         relations, session,
+import { adjustments, can_hold, module_named, module_of, offer, pinned_lines,
+         relation_named, session, templates,
          type Args, type Dir, type Graph, type Id, type Point,
          type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
@@ -19,7 +19,7 @@ import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
 import type { Adjust } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
-import { Tray, type Tab } from "@mnd/tray";
+import { Tray, type Scope, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_net, browser_storage } from "./ports";
 import { browser_score } from "./score";
@@ -80,6 +80,11 @@ export function App() {
    *  or a relationship, so putting one in `picked` would make every reader of
    *  that list guard for something that is neither. */
   const [picked_def, set_picked_def] = useState<Id | null>(null);
+  /** **Where the rail pointed the tray, for the one subject that is not an
+   *  element.** Given up by any selection, which is the whole of *what you have
+   *  hold of wins* — so it never has to be arbitrated against the selection,
+   *  and there is no state saying *relations* while a block is picked. */
+  const [scope, set_scope] = useState<Scope>("element");
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
   useEffect(() => {
@@ -108,21 +113,13 @@ export function App() {
     () => project(graph, layer, { interfaces: shown.interfaces }),
     [graph, layer, shown.interfaces]);
 
-  /** **The pinned lines, as the rail lists them.** A relation vocabulary has no
-   *  home in the tree — a relationship is drawn between two ends and never
-   *  dropped — so what somebody pinned is offered beside the three modules. */
-  const pinned_lines = useMemo(
-    () => relations(graph).map((d) => ({ id: d.id, name: d.name,
-                                         module: relation_named(graph, d.id) })),
+  /** **The shortlist the rail offers, in the order the workspace put them.**
+   *  Not every relation definition — those are reached and edited in the tray,
+   *  which is where a vocabulary with forty stereotypes in it can be read. */
+  const offered_lines = useMemo(
+    () => pinned_lines(graph).map((d) => ({ id: d.id, name: d.name,
+                                            module: relation_named(graph, d.id) })),
     [graph]);
-
-  /** **The one picked thing, so the rail can offer what only it can be told.**
-   *  Picking a cell picks the grid it is in, so pointing at a cell is enough to
-   *  reach these. Several picked is nothing picked here: the rail says what one
-   *  element is, and the answer for four of them is four answers. */
-  const only = s.picked().length === 1 ? s.picked()[0] : s.cells()[0]?.group;
-  const on = only ? graph.blocks[only] : undefined;
-  const element = on ? { id: on.id } : null;
 
   /** What is offered here, with what each needs and what it would act on —
    *  both read off the registry, so **help teaches whatever the app currently
@@ -306,10 +303,33 @@ export function App() {
                        ...(leaving ? { at: tidy(graph, layer) } : {}) });
       return;
     }
-    /** **Not an action** — it writes nothing and asks for nothing. Describing
-     *  a thing is opening the panel that already describes it. */
-    if (name === "define") { set_tab("settings"); set_tray(true); return; }
-    if (name === "export") { void s.save(); return; }
+    /** **Where the tray is pointed.** Not an action: it writes nothing, and
+     *  each of the three names a subject the panel already knows how to
+     *  describe. **Two of them are just a selection** — a layer is a block and
+     *  the workspace is the root one — so only the relation vocabulary, which
+     *  is not an element at all, needs the scope to say so. */
+    if (name === "about") {
+      const want = String(args!["scope"]);
+      set_tray(true);
+      if (want === "layer") {
+        set_scope("element"); set_picked_def(null);
+        s.pick([layer ?? graph.root]); set_tab("settings");
+        return;
+      }
+      if (want === "workspace") {
+        set_scope("workspace"); set_picked_def(null);
+        s.pick([graph.root]); set_tab("settings");
+        return;
+      }
+      /** **Entering on the default template**, so all three tabs answer at
+       *  once rather than the panel opening on a question. Absent one, the
+       *  templates tab is the list you came for. */
+      const first = templates(graph).find((d) => d.default) ?? null;
+      set_scope("relation"); s.pick([]);
+      set_picked_def(first?.id ?? null);
+      set_tab(first ? "settings" : "templates");
+      return;
+    }
     act(name, args);
   };
 
@@ -392,7 +412,7 @@ export function App() {
         onAct={act}
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
-        onPick={(ids) => { s.pick(ids); set_picked_def(null); }}
+        onPick={(ids) => { s.pick(ids); set_picked_def(null); set_scope("element"); }}
         pickedDef={picked_def}
         /** **Picking a definition describes it**, which is the settings tab
          *  and nothing else — so the tray opens on it the way the rail's cog opens
@@ -447,7 +467,7 @@ export function App() {
           }}
           picked={s.picked()}
           cells={s.cells()}
-          onPickCells={(cells) => { s.pick_cells(cells); set_picked_def(null); }}
+          onPickCells={(cells) => { s.pick_cells(cells); set_picked_def(null); set_scope("element"); }}
           lattice={shown.lattice}
           module={drawing.module}
           {...(drawing.dir ? { dir: drawing.dir } : {})}
@@ -467,8 +487,14 @@ export function App() {
           tab={tab}
           onTab={set_tab}
           picked={s.picked()}
-          onPick={(ids) => { s.pick(ids); set_picked_def(null); }}
+          onPick={(ids) => { s.pick(ids); set_picked_def(null); set_scope("element"); }}
           pickedDef={picked_def}
+          /** **The templates tab picks a definition the way the tree does**, so
+           *  a template row and a vocabulary row set one piece of state rather
+           *  than each keeping its own. The scope is left alone: picking a
+           *  template is staying in the relation vocabulary, not leaving it. */
+          onPickDef={set_picked_def}
+          scope={scope}
           onAct={act}
         />
       </main>
@@ -481,8 +507,7 @@ export function App() {
                                    /** **Where a relation vocabulary lives.** The
                                     *  tree keeps blocks; a pinned line is drawn
                                     *  between two ends, so it is offered here. */
-                                   relations: pinned_lines,
-                                   ...(element ? { element } : {}) },
+                                   relations: offered_lines },
                                  chrome)} />
     </div>
   );

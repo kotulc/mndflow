@@ -32,6 +32,9 @@ import { rows_of, type Row, type Sort } from "./rows";
 import { Styles } from "./Styles";
 import { Fields } from "./Fields";
 import { Chain } from "./Chain";
+import { Packages } from "./Packages";
+import { Templates } from "./Templates";
+import { Usages } from "./Usages";
 import { children, def_of, is_container, isa, module_of,
          type Act, type Graph, type Id } from "@mnd/core";
 
@@ -57,13 +60,38 @@ export type TrayProps = {
    *  set**: picking a row there is asking about the definition, not about
    *  whatever block was picked before it. */
   pickedDef?: Id | null;
+  /** **The templates tab picks a definition the way the explorer does.** One
+   *  panel, one id — so a template row and a definition row set the same state
+   *  rather than each keeping their own. */
+  onPickDef?: (id: Id | null) => void;
+  /** What the rail pointed the tray at, for the two subjects that are not an
+   *  element. **Cleared by any selection**, which is how *what you have hold of
+   *  wins* is kept true without anything having to arbitrate. */
+  scope?: Scope;
 };
 
-export type Tab = "settings" | "fields" | "contents";
+/** What the tray is about. **Only where the subject cannot say it itself**: a
+ *  layer is a block and needs no word, and an element is whatever is picked —
+ *  so this names the workspace, and the relation vocabulary before a template
+ *  has been picked out of it. */
+export type Scope = "element" | "workspace" | "relation";
 
-/** Every tab, in the order they are read: what it is, what it carries, then
- *  what is around it. */
-const TABS: readonly Tab[] = ["settings", "fields", "contents"];
+export type Tab = "settings" | "fields" | "contents" | "templates" | "usages" | "packages";
+
+/** **Three slots, and the words change with the subject.** *Settings* is what
+ *  this is; the second slot is what it **declares** — the values a block
+ *  carries, the packages a project draws on, the templates a vocabulary offers;
+ *  the third is what **exists** — the contents of a layer, or the runs wearing
+ *  a stereotype.
+ *
+ *  A tab that cannot be answered is absent rather than empty, which is the rule
+ *  the panel already kept: one that said *pick something* was a way of saying
+ *  nothing. */
+const SLOTS: Record<"block" | "workspace" | "relation", readonly Tab[]> = {
+  block: ["settings", "fields", "contents"],
+  workspace: ["settings", "packages", "contents"],
+  relation: ["settings", "templates", "usages"],
+};
 
 const HEAD: { key: "kind" | "name" | "what" | "type"; label: string; width: string }[] = [
   { key: "kind", label: "kind", width: "16%" },
@@ -86,8 +114,12 @@ const FILTERS: { sort: Sort | "all" | "types"; label: string }[] = [
 
 export function Tray(props: TrayProps) {
   const { graph, layer, label, open, onOpen, picked, onPick, onHover, onAct,
-          pickedDef = null } = props;
+          pickedDef = null, onPickDef, scope = "element" } = props;
   const [held_tab, set_held_tab] = useState<Tab>("contents");
+  /** Which stereotype the usages tab is reading. **The tab's own**, not the
+   *  panel's — holding one says what the lower table lists and nothing about
+   *  what the settings tab describes. */
+  const [held_sort, set_held_sort] = useState<Id | null>(null);
   /** **Full height, as a control of its own.** Shut and open is one question;
    *  how much room the body gets is another, and folding them into one control
    *  made a third state nobody could reach without passing through a second. */
@@ -104,20 +136,33 @@ export function Tray(props: TrayProps) {
    *  definition wins, because picking one *is* asking about it. */
   const about = onAct ? held_def ?? one : null;
 
+  /** **The subject says what this is, and the rail only where it cannot.** A
+   *  run and a relation definition are both the relation vocabulary, whether
+   *  you reached them from the canvas or from the rail — so context is derived
+   *  from what is held, and there is no stored mode for a later selection to
+   *  contradict. */
+  const of_relation = !!about
+    && (!!graph.edges[about] || graph.defs[about]?.group === "relation");
+  const context = of_relation || (scope === "relation" && !about) ? "relation"
+    : scope === "workspace" && (!about || about === graph.root) ? "workspace"
+    : "block";
+
   /** **What can be answered is what is offered.** Contents is always there; the
-   *  others are about one thing, so they arrive with it.
+   *  rest are about one thing, so they arrive with it.
    *
    *  **Nothing to do with a relationship has a fields tab.** An edge holds no
    *  values — what a connection has to say belongs to the blocks at its ends —
-   *  so neither a run nor a relation *definition* has a schema to declare, and
-   *  the tab is not there rather than there and unanswerable. */
-  const holds_none = !!about
-    && (!!graph.edges[about] || graph.defs[about]?.group === "relation");
-  const tabs: readonly Tab[] = !about ? ["contents"]
-    : holds_none ? TABS.filter((t) => t !== "fields")
-    : TABS;
+   *  so neither a run nor a relation *definition* has a schema to declare.
+   *  **Templates and usages are the vocabulary's, not one template's**, so they
+   *  stand whether or not anything is held. */
+  const slots = SLOTS[context];
+  const tabs: readonly Tab[] = slots.filter((t) =>
+    t === "settings" ? !!about
+      : t === "contents" ? context !== "relation"
+      : true);
   const asked = props.tab ?? held_tab;
-  const tab: Tab = tabs.includes(asked) ? asked : "contents";
+  const fallback: Tab = tabs.includes("contents") ? "contents" : tabs[tabs.length - 1] ?? "contents";
+  const tab: Tab = tabs.includes(asked) ? asked : fallback;
   const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
 
   /** **What the table is about.** A container you have hold of narrows it to
@@ -125,7 +170,13 @@ export function Tray(props: TrayProps) {
    *  is listed. Nothing picked is the layer either way. */
   const within = one && graph.blocks[one]
     && (is_container(graph, one) || module_of(graph, one) === "folder") ? one : layer;
-  const rows = rows_of(graph, within);
+  /** **The workspace is the whole project**, so its contents are everything
+   *  under it rather than the top layer's. Not a widened scope: it is the same
+   *  question — *what does this hold* — asked of the one holder that holds the
+   *  lot. Every other subject stays one level, which is what keeps the word
+   *  meaning one thing. */
+  const deep = context === "workspace";
+  const rows = rows_of(graph, deep ? null : within, deep);
   const shown = only === "all" || only === "types"
     ? rows : rows.filter((r) => r.sort === only);
 
@@ -186,10 +237,19 @@ export function Tray(props: TrayProps) {
         </span>
       </div>
 
-      {open && about && onAct && tab !== "contents" ? (
+      {open && onAct && tab !== "contents" ? (
         <div className="tray-body">
-          {tab === "settings" ? <Styles graph={graph} id={about} onAct={onAct} /> : null}
-          {tab === "fields" ? <Fields graph={graph} id={about} onAct={onAct} /> : null}
+          {tab === "settings" && about
+            ? <Styles graph={graph} id={about} onAct={onAct} /> : null}
+          {tab === "fields" && about
+            ? <Fields graph={graph} id={about} onAct={onAct} /> : null}
+          {tab === "packages" ? <Packages graph={graph} /> : null}
+          {tab === "templates"
+            ? <Templates graph={graph} held={held_def} onPick={onPickDef ?? (() => {})}
+                         onAct={onAct} /> : null}
+          {tab === "usages"
+            ? <Usages graph={graph} held={held_sort} onHold={set_held_sort}
+                      onHover={onHover} onAct={onAct} /> : null}
         </div>
       ) : null}
 

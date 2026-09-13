@@ -134,6 +134,15 @@ export type Block = {
    *  the highest element as soon as that one was deleted, and a handle that
    *  comes back meaning something else is not a handle. */
   counters?: Record<string, number>;
+  /** **The relation templates offered on the rail, in the order they are drawn.**
+   *  The workspace's, like `counters` beside it — and deliberately not a flag on
+   *  the definition, because `borrowed` refuses every write to one carrying
+   *  `from`, which would make an imported template the one thing that could not
+   *  be offered. A list also says what a boolean cannot: what order they sit in.
+   *
+   *  **A shortlist, never the vocabulary.** Every relation definition is reached
+   *  through the tray; these are the few worth a right drag. */
+  pinned?: Id[];
   /** What this one block says about how it draws, over whatever its definition
    *  said. **The last word in the cascade**, keyed the way a definition's
    *  components are (`card`, `style`) so the two layer without translating.
@@ -219,12 +228,17 @@ export type Definition = {
    *  **Declared in the file, never inferred.** Stamping it on the way in would
    *  mark a project export's own definitions as though they were a package's. */
   from?: string;
-  /** **The base kind this stands in for wherever a block names nothing.** One
+  /** **The base kind this stands in for wherever an element names nothing.** One
    *  field, and the whole of *make every plain block read like this* — no
    *  reserved id, no second vocabulary, no action but the checkbox that sets
    *  it. Only a definition of that same kind, and only one this workspace made,
-   *  may wear it: a package must not take over a project by being imported. */
-  default?: BlockModule;
+   *  may wear it: a package must not take over a project by being imported.
+   *
+   *  **Either sort of module**, because a plain run had nothing to follow while
+   *  this named blocks only — and *what a right drag draws* and *what a plain
+   *  line looks like* are two questions. The rail answers the first; this is
+   *  the second, asked as the same checkbox a block's default is. */
+  default?: BlockModule | RelationModule;
   group: "block" | "relation";
   name: string;
   body?: string;
@@ -261,6 +275,10 @@ export type Mutation =
   | { op: "order_block"; id: Id; order: number }
   | { op: "set_alias"; id: Id; alias: number }
   | { op: "set_counter"; kind: string; n: number }
+  /** The whole shortlist, in order. **One write rather than one per entry**, so
+   *  reordering the rail is a single step and a single undo — the same shape
+   *  `set_tags` takes, and for the same reason. */
+  | { op: "set_pinned"; ids: Id[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }

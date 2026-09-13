@@ -10,7 +10,7 @@
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
-         path, reorder } from "./fold";
+         path, relation_named, reorder } from "./fold";
 import { component, DRAWN, NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, VALUE_FORMS,
@@ -375,40 +375,48 @@ register(
     name: "retype",
     about: "sets which definition a block or a relationship names",
     on: ["block", "edge"],
-    args: [{ name: "id", form: "block", required: true },
+    /** **One or many**, because retyping twenty runs to a different stereotype
+     *  is the gesture the usages table is for — and one at a time is the same
+     *  act asked twenty times. */
+    args: [{ name: "ids", form: "block", required: true },
            { name: "type", form: "text", required: true }],
     /** **A subtype refines what a thing is like, never what it is.** A block, a
      *  folder and a resource are one family and swap freely; everything else
      *  stays its own kind, because a group, an interface, a reference and a
      *  note each carry something a change of type cannot invent. */
     check: (ctx, args) => {
-      const id = id_of(args, "id");
+      const ids = ids_of(ctx, args);
+      if (!ids.length) return "nothing is selected";
       const type = text(args, "type") || undefined;
-      /** **A run takes a relation definition and nothing else**, the same way a
-       *  block stays within its own module. Absent unnames it, which is a thing
-       *  somebody can mean. */
-      if (ctx.graph.edges[id]) {
-        if (!type) return null;
-        const d = ctx.graph.defs[type];
-        if (!d) return `there is no definition called "${type}"`;
-        return d.group === "relation" ? null
-          : `"${d.name}" defines a block, not a relationship`;
+      /** **Every one of them, and the first that cannot says why.** A partial
+       *  retype would leave a selection half changed with nothing naming which
+       *  half. */
+      for (const id of ids) {
+        /** **A run takes a relation definition and nothing else**, the same way
+         *  a block stays within its own module. Absent unnames it, which is a
+         *  thing somebody can mean. */
+        if (ctx.graph.edges[id]) {
+          if (!type) continue;
+          const d = ctx.graph.defs[type];
+          if (!d) return `there is no definition called "${type}"`;
+          if (d.group !== "relation") return `"${d.name}" defines a block, not a relationship`;
+          continue;
+        }
+        if (!ctx.graph.blocks[id]) return "that block is not there";
+        if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
+        if (!may_retype(ctx.graph, id, type)) {
+          return `a ${module_of(ctx.graph, id)} cannot become a ${module_named(ctx.graph, type)}`;
+        }
       }
-      if (!ctx.graph.blocks[id]) return "that block is not there";
-      if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
-      return may_retype(ctx.graph, id, type)
-        ? null
-        : `a ${module_of(ctx.graph, id)} cannot become a ${module_named(ctx.graph, type)}`;
+      return null;
     },
     run: (ctx, args) => {
-      const id = id_of(args, "id");
       const type = text(args, "type");
       /** **Nothing named is no type at all**, not an empty one — an absent type
        *  is how a file stays small and how a run reads as unnamed. */
-      if (ctx.graph.edges[id]) {
-        return { mutations: [{ op: "update_edge", id, type: type || null }] };
-      }
-      return { mutations: [{ op: "update_block", id, type }] };
+      return { mutations: ids_of(ctx, args).map((id): Mutation => (ctx.graph.edges[id]
+        ? { op: "update_edge", id, type: type || null }
+        : { op: "update_block", id, type })) };
     },
   },
   {
@@ -1590,7 +1598,7 @@ register(
   },
   {
     name: "default",
-    about: "makes this definition the one every plain block of its kind follows",
+    about: "makes this definition the one every plain element of its kind follows",
     on: ["layer", "block"],
     /** **A checkbox, not a system.** The want is *make every plain block read
      *  like this one*, and a definition already says how a thing reads — so it
@@ -1608,7 +1616,6 @@ register(
       const d = id ? ctx.graph.defs[id] : undefined;
       if (!d) return `there is nothing called "${id_of(args, "id")}" to make a default`;
       if (d.from) return `"${d.name}" comes from ${d.from} — only your own may be a default`;
-      if (d.group !== "block") return "only a block definition may be a default";
       return null;
     },
     /** **Defensive about a definition that is not there.** `check` refuses one,
@@ -1618,7 +1625,11 @@ register(
       const d = id ? ctx.graph.defs[id] : undefined;
       if (!d || !id) return { mutations: [] };
       const off = args["on"] === "no" || args["on"] === false;
-      const kind = module_named(ctx.graph, id);
+      /** **The kind it stands in for, read from its own group.** A relation
+       *  definition wears a relation module, and asking `module_named` for one
+       *  would answer `block` — which is the base kind of a thing it is not. */
+      const kind = d.group === "relation"
+        ? relation_named(ctx.graph, id) : module_named(ctx.graph, id);
       const out: Mutation[] = [];
       /** **Whatever held the kind gives it up first**, so the two never
        *  disagree and the swap is one step and one undo. */
@@ -1714,6 +1725,40 @@ register(
       return { mutations: out, effect: { say: `pinned ${name}` } };
     },
   },
+  /** **Listing a template is not making one.** Two acts and two checkboxes:
+   *  *make template* mints a definition from what a run says, and this offers
+   *  one on the rail — so `pin` and `unpin` go on meaning mint and dissolve,
+   *  and nothing had to be renamed to make room.
+   *
+   *  **The list is the workspace's, never a flag on the definition**, because
+   *  `borrowed` refuses every write to one carrying `from` — and a template
+   *  brought in by a package is exactly what somebody wants on the rail. */
+  {
+    name: "pin_line",
+    about: "offers a relation template on the rail, or takes it off",
+    on: ["layer"],
+    args: [{ name: "id", form: "text", required: true },
+           { name: "on", form: "choice", choices: ["yes", "no"] }],
+    check: (ctx, args) => {
+      const id = id_of(args, "id");
+      const d = ctx.graph.defs[id];
+      if (!d) return `there is nothing called "${id}" to pin`;
+      return d.group === "relation" ? null : `"${d.name}" defines a block, not a line`;
+    },
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      const ws = ctx.graph.blocks[ctx.graph.root];
+      const held = ws?.pinned ?? [];
+      /** **Absent means toggle**, so one control can ask for either and a caller
+       *  that knows the state can still say which it wants. */
+      const said = args["on"] === undefined ? null : text(args, "on") === "yes";
+      const want = said ?? !held.includes(id);
+      const ids = want ? [...held.filter((x) => x !== id), id] : held.filter((x) => x !== id);
+      const name = ctx.graph.defs[id]?.name ?? id;
+      return { mutations: [{ op: "set_pinned", ids }],
+               effect: { say: want ? `${name} is on the rail` : `${name} is off the rail` } };
+    },
+  },
   {
     name: "unpin",
     about: "dissolves a definition back into everything that named it, and drops it",
@@ -1780,6 +1825,15 @@ register(
        *  door to blank. */
       for (const sub of Object.values(ctx.graph.defs)) {
         if (sub.extends === id) out.push({ op: "set_def", def: { ...sub, extends: d?.extends } });
+      }
+
+      /** **Off the rail as it goes.** `pinned_lines` already skips an id whose
+       *  definition is gone, so this is tidiness rather than a repair — but a
+       *  shortlist that quietly holds the dead is one an undo brings back
+       *  pointing at nothing. */
+      const ws = ctx.graph.blocks[ctx.graph.root];
+      if ((ws?.pinned ?? []).includes(id)) {
+        out.push({ op: "set_pinned", ids: ws!.pinned!.filter((x) => x !== id) });
       }
 
       out.push({ op: "drop_def", id });

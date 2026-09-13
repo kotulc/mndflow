@@ -172,7 +172,7 @@ A relationship carries a definition exactly as a block does — `group: "relatio
 
 ### ST.16 — Settings, at whatever you have hold of
 
-**One panel, three scopes.** The tray's *settings* tab describes the one thing picked; the same tab describes the **layer** you are in when nothing is picked, and the **workspace** when the rail's project settings asks for it. What is being settled changes; the panel does not.
+**One panel, four scopes.** The tray's *settings* tab describes the one thing picked; the same tab describes the **layer** you are in, the **workspace** as a whole, and the **relation vocabulary** — each reached from the rail's top group. What is being settled changes; the panel does not.
 
 **A scope is arrived at, never picked.** The rail's top group names a subject — workspace, layer, relation — and each puts the tray on the thing itself; which tabs exist follows from what is held. So a later selection wins without anything having to arbitrate, and a stored context never has to answer *the rail says relations and you just clicked a block*. The element scope needs no control at all: selecting something is how you arrive at it.
 
@@ -185,7 +185,11 @@ A relationship carries a definition exactly as a block does — `group: "relatio
 
 **Every scope keeps the same three slots**, and only the words change: *settings* is what this is, the second slot is what it **declares** — fields, packages, templates — and the third is what **exists** — contents, or usages. A tab that cannot be answered is absent rather than empty.
 
-**Open.** Whether a layer's settings are the same rows as an element's or a shorter set; and what a workspace-level default looks like beside `Definition.default`, which answers *what every plain block or run of its kind follows*.
+**A vocabulary is two depths of one kind.** A **template** carries a look and is what a line is made to look like; a **stereotype** carries a name and an `extends` and is what a line is called. Nothing separates them but what they say, so four templates carry forty stereotypes and the chain resolves them. A template is simply one nothing names directly.
+
+**The rail is a shortlist, not the vocabulary.** What a right drag draws is a few pinned templates, kept as a list on the workspace so order is sayable and a package's template can be offered without writing to something somebody else owns. Everything else is read in the tray, which is where forty of anything belongs.
+
+**Open.** Whether a layer's settings are the same rows as an element's or a shorter set; what a workspace-level default looks like beside `Definition.default`, which answers *what every plain block or run of its kind follows*; and where a stereotype is written down before a line has been drawn to name it.
 
 ### ST.12 — The plan stops being prose that agents parse
 
