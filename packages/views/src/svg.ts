@@ -106,7 +106,6 @@ svg.scene .route path { fill: none; stroke: var(--stroke); stroke-width: 1.5; }
 svg.scene .route .head { fill: var(--stroke); }
 svg.scene .route text { fill: var(--dim); font: 10px var(--face); }
 svg.scene .head.open { fill: none; stroke: currentColor; stroke-width: 1.4; }
-svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.9; }
 svg.scene .route.tie path {
   stroke: var(--note-dim); stroke-dasharray: 0 4; stroke-linecap: round;
   stroke-width: 1.5; opacity: 0.75;

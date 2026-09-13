@@ -1,46 +1,72 @@
 # Context Tray
 
-**Two tabs, two questions.**
+**One context, three tabs.** The tray is about one thing at a time — the context — and its head names it: *workspace*, *block* or *relation*, then the name. The chevron leads the head; expand sits far right.
 
-- **this** — the one element you have hold of, described: what it is called, what it names and what it resolves through, its tags, what it has been told about itself, how it draws, and what it carries. Reached by the rail's cog as well as by the tab.
-- **contents** — everything the layer holds, as a table: blocks, interfaces, relationships, boundaries and notes together. The only place a relationship or an interface is found without hunting for it on the drawing.
+## The context
 
-**The element panel reads top to bottom in the order somebody answers the questions**: name, type, tags, what it shows, how it looks, and what it carries last — because a value is the detail and everything above it is what the thing *is*.
+**The canvas decides it unless something else is held.**
 
-## Two sizes, shut and open
-
-**Shut it is a bar and nothing more**; the stage keeps the rest. **Open, the stage shrinks and re-centres** rather than being covered — a quarter of the height, whatever the tray holds.
-
-**A tray that grew to its contents moved every time a filter changed the row count**, so the row somebody was reaching for was never where they last saw it. A fixed quarter also leaves the drawing more of the stage, which is what is being described.
-
-**Nothing closes it but its own control.** A click on the canvas is how a row gets selected, so closing on an outside click would make the two gestures fight.
-
-## The head
-
-**kind / name / what / type**, because **every row answers all four**. Beyond that a column is a field in scope — the **table's** state, and never a definition's. A column is asked for by name from what the layer actually carries, so one value reads down a layer instead of being opened row by row.
-
-## Narrowing
-
-**Filter chips narrow by what a row is**: all, blocks, interfaces, relations, groups, notes. A **container you have hold of narrows the table to its own contents**; anything else, and the open layer is what is listed. Nothing picked is the layer either way.
-
-**The types filter is not a catalogue.** It is what the thing you have hold of resolves through, base first and its own customisations last — the only reading of *the types here* that says why a card looks the way it does. Seeing every definition there is answers a different question and would bury this one.
-
-| Row | `what` says |
+| gesture | context |
 |---|---|
-| a block | how many it holds, and how many interfaces it carries |
-| an interface | which wall it sits on, and its flow mark |
-| a relationship | the two ends, by name |
+| pick one thing on the canvas | that thing |
+| pick nothing, several things, or click the ground | the open layer — the workspace at the root |
+| a settings toggle on the rail | the workspace, or a blank block or relation definition |
+| a definition row in the explorer or the templates tab | that definition |
+| a row of the tray's own contents table | the context the table was listed under |
 
-**Everything here is derived.** The tray reads the graph and stores nothing, so it cannot fall out of step with the drawing.
+**A hold is given up by any canvas or explorer selection**, which is what puts the rail's toggle out. The explorer sets the layer; the canvas sets the context within it.
 
-## Selection
+## Tabs
 
-- **Hovering a row lights that thing on the stage; clicking selects it.** Same selection the canvas and the explorer use — there is one.
-- **A row is the thing**, so an action reached from here means what it means everywhere.
+**The same three slots for every context**, and only the words change. A tab that cannot be answered is absent rather than empty.
+
+| context | settings | declares | exists |
+|---|---|---|---|
+| workspace | name, id, what an export carries | packages | contents, every layer deep |
+| block, or block definition | identity, style, body | fields | contents, one layer |
+| relation, or relation definition | identity, style | templates | usages |
+
+## Settings
+
+**Two columns and a body.** The left is what the thing *is* and holds every branch on which holder it was given; the right is how it is painted and is uniform over any holder. A block's body runs full width below both.
+
+| holder | name | type |
+|---|---|---|
+| workspace | its name, and its id | — |
+| block | its name | its definition |
+| line | its stereotype, or blank | its template |
+| definition | its name | the definition it refines |
+
+- **The drawing sits at the column's start**, with what kind it is and how many there are beside it.
+- **A line's one type answers both rows.** Picking a stereotype brings its template; picking a template drops the stereotype; a new name files a stereotype over the current template.
+- **Pick one, or name a new one**: every name and type box says what Enter would do before it is done.
+- **Reset style and save** sit at the far end of the tab strip, since they act on the whole tab.
+- **A draft's name is never a lookup**: a name already taken is said, and saving waits.
+- **Every column is a head, a band, then rows**, each of a stated height, so the rows of both columns start on one line.
+- **A body is a block's** — the workspace's included, as its description — never a relationship's or a definition's. Committed when the box is left.
+
+## Drafts
+
+**A blank definition is written before anything names it.** It is edited through the same actions as a real one, kept through clicking away, and saved with the tick beside *reset style* once it has a name nothing else holds. Saving is one step.
+
+## Fields
+
+- **A usage lists its whole schema**, answered or not, then values of its own.
+- **A definition lists what it inherits**, read-only, then what it declares — name, form, unit, choices, default and order.
+- **Text is committed when the box is left**, never per keystroke.
+
+## Contents
+
+- **Filter chips narrow by what a row is**; *types* is what the one thing picked resolves through, base first.
+- **A column is a field in scope**, asked for by name.
+- **Picking a row lights it and keeps the context.** The picked row, when it is in another layer, offers a *view* chip, which opens that layer and picks it there.
+- **Everything is derived.** The tray reads the graph and stores nothing but tab, filter and drafts.
+
+## Two sizes
+
+**Shut it is a bar; open it takes a quarter of the stage**, whatever it holds, so a row stays where it was last seen. Expand takes the full height. Nothing closes it but its own bar.
 
 ## Still open
 
-- **Definitions are editable here** — fields, defaults and presentation, each form with its own shape. Not built.
-- **Filters and a sort**, which is what the `columns` group on the rail is for.
-- **The full size.** Whether the tray grows to fill the stage, and becomes context-sensitive with it, is the next thing this surface is for — see the root `docs/todo.md`. **The stage no longer switches view**, so growing the tray is the only door left.
-- **Adding a field from the bar**, which the legacy app had and this does not.
+- **Rules** — see ST.17.
+- **Adding a field from the bar**, which the legacy app had.

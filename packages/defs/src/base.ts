@@ -72,9 +72,8 @@ export const BASE: Definition[] = [
  *
  *  **One, not two.** `directed` was a definition of nothing: a run points
  *  because `dir` says so, and a second base definition meaning *dir is not
- *  none* was the same fact filed twice. A **tie** and a **reference** are
- *  assigned from what sits at the ends and are drawn by their module, so
- *  neither has a definition to name either. */
+ *  none* was the same fact filed twice. A **tie** is assigned from what sits
+ *  at the ends and drawn by its module, so it has no definition to name either. */
 export const RELATIONS: Definition[] = [
   { id: "line", from: PACKAGE, group: "relation", name: "line" },
 ];

@@ -70,7 +70,6 @@ function Harness() {
         <Tray
           graph={graph}
           layer={here}
-          label={here ? shown_name(graph, here) : "workspace"}
           open={open}
           onOpen={(next) => { say(`open ${next}`); set_open(next); }}
           picked={picked}

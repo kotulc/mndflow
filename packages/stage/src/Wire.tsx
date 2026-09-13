@@ -32,8 +32,8 @@ const BEND = 6;
 function paint(look: Look): { attrs: Record<string, string>; style: CSSProperties } {
   const tinted = look.hue !== undefined;
   /** **Only what was said.** An attribute for every key would paint every run
-   *  neutral and solid, and a reference and a tie would lose the one thing
-   *  their module says about them — so an unstated key leaves no attribute and
+   *  neutral and solid, and a tie would lose the one thing its module says
+   *  about it — so an unstated key leaves no attribute and
    *  the module's own rule keeps the ground. */
   const stated = (name: string, value: string | undefined) =>
     value ? { [`data-${name}`]: value } : {};

@@ -534,6 +534,12 @@
   cursor: text;
 }
 
+/* **Turned off from the rail**: the border, the dimmed band and the name go,
+   and the walls stay reachable for a line or an interface. */
+.mnd-flow.frameless .mnd-frame { border-color: transparent; box-shadow: none; }
+.mnd-flow.frameless .mnd-frame-name,
+.mnd-flow.frameless .mnd-frame > .mnd-role { display: none; }
+
 /* One wall at a time lights as the pointer nears it, so the border says which
    edge an interface put here would be set into — and which one a right-click
    is about to be answered for.
@@ -619,12 +625,6 @@
   opacity: 1;
 }
 .mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
-.mnd-flow .react-flow__edge.reference .react-flow__edge-path {
-  stroke: var(--away);
-  stroke-dasharray: 5 4;
-  opacity: 0.9;
-}
-.mnd-flow .react-flow__edge.reference .react-flow__arrowhead * { fill: var(--away); opacity: 0.9; }
 .mnd-flow .react-flow__edge.tie .react-flow__edge-path {
   stroke: var(--note-dim);
   stroke-width: 1.5;
@@ -641,7 +641,7 @@
    does and `card.css` computes the steps. What is below only spends them.
 
    **An attribute appears only where something said it**, which is what leaves
-   the module rules above in charge of a plain line, a reference and a tie. */
+   the module rules above in charge of a plain line and a tie. */
 .mnd-wire[data-family] .react-flow__edge-path { stroke: var(--card-line); }
 .mnd-wire[data-border-width] .react-flow__edge-path {
   stroke-width: var(--card-border-width, var(--weight-thin));

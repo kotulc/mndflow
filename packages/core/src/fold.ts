@@ -7,7 +7,7 @@
 import { DRAWN, type Settings } from "./components";
 import { BLOCK_MODULES, RELATION_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
-         type Definition, type Graph, type HeaderRole, type Id, type Log, type Mutation,
+         type Definition, type FieldDef, type Graph, type HeaderRole, type Id, type Log, type Mutation,
          type Relation, type RelationModule, type Span, type Step } from "./types";
 
 /** A group with nobody in it is not a boundary any more — dissolve it, and if
@@ -235,16 +235,25 @@ function apply(graph: Graph, m: Mutation): void {
     }
     /** **A block, and only a block.** An edge holds no values — what a
      *  connection has to say belongs to the blocks at its ends. */
+    /** **In place where it is already there.** Setting a value moved the field
+     *  to the end, so editing one reordered the list under the pointer. */
     case "set_field": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      const rest = (b.fields ?? []).filter((f) => f.name !== m.field.name);
-      b.fields = [...rest, { ...m.field }];
+      const had = (b.fields ?? []).some((f) => f.name === m.field.name);
+      b.fields = had
+        ? b.fields!.map((f) => (f.name === m.field.name ? { ...m.field } : f))
+        : [...(b.fields ?? []), { ...m.field }];
       return;
     }
     case "drop_field": {
       const b = graph.blocks[m.id];
       if (b?.fields) b.fields = b.fields.filter((f) => f.name !== m.name);
+      return;
+    }
+    case "order_fields": {
+      const b = graph.blocks[m.id];
+      if (b?.fields) b.fields = ordered_by(b.fields, m.names);
       return;
     }
     case "set_def":
@@ -869,6 +878,30 @@ export function config_of(graph: Graph, type: Id | undefined, key: string): Sett
   return out;
 }
 
+/** A field list put in the order these names give. Anything not named keeps
+ *  its place after them. */
+export function ordered_by<T extends { name: string }>(fields: readonly T[],
+                                                         names: readonly string[]): T[] {
+  const named = names.map((n) => fields.find((f) => f.name === n)).filter((f): f is T => !!f);
+  return [...named, ...fields.filter((f) => !names.includes(f.name))];
+}
+
+/** **The schema a definition declares, down its chain**: base first, and a
+ *  subtype's field replacing its parent's of the same name in the parent's
+ *  place. Each says which definition declared it, which is what separates what
+ *  a definition says from what it inherits. */
+export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { from: Id })[] {
+  const out: (FieldDef & { from: Id })[] = [];
+  for (const d of isa(graph, type).reverse()) {
+    for (const f of d.fields ?? []) {
+      const at = out.findIndex((x) => x.name === f.name);
+      if (at < 0) out.push({ ...f, from: d.id });
+      else out[at] = { ...f, from: d.id };
+    }
+  }
+  return out;
+}
+
 /** Which block module interprets this block.
  *
  *  `of` and `side` win because they are what the block *is* doing, whatever it
@@ -942,9 +975,8 @@ export function def_of(graph: Graph, id: Id): Id | undefined {
  *  **Naming the base outright still reaches it.** A block typed to `block` has
  *  a `type`, so it never asks this — which is how one block stays pristine
  *  while everything else follows the default. */
-/** **The group is asked for, because `reference` names two things.** It is a
- *  block module and a relation module both, so a definition wearing it as a
- *  default is answering one of two questions and only its group says which. */
+/** **The group is asked for**, so a block default is never matched against a
+ *  line's even where a caller forgets which it means. */
 export function default_for(graph: Graph, kind: BlockModule | RelationModule,
                             group: "block" | "relation" = "block"): Id | undefined {
   for (const d of Object.values(graph.defs)) {
@@ -953,9 +985,9 @@ export function default_for(graph: Graph, kind: BlockModule | RelationModule,
   return undefined;
 }
 
-/** The two relation definitions the base ships. **Not the four relation
- *  modules** — `reference` and `tie` are assigned from what sits at the ends and
- *  are nobody's to name, so they ship no definition to name them. */
+/** The one relation definition the base ships. **Not every relation module** —
+ *  `tie` is assigned from what sits at the ends and is nobody's to name, so it
+ *  ships no definition to name it. */
 export const BASE_RELATIONS: readonly string[] = ["line"];
 
 /** What the shipped floor calls itself. */
@@ -1029,6 +1061,12 @@ export function relations(graph: Graph): Definition[] {
  *  look of its own *is* a template somebody named. */
 export function is_template(d: Definition): boolean {
   return !!d.components && Object.keys(d.components).length > 0;
+}
+
+/** **The template a relation type draws through**: itself where it is one, or
+ *  the nearest above it. A stereotype names a line; this is what it looks like. */
+export function template_of(graph: Graph, type: Id | undefined): Definition | undefined {
+  return isa(graph, type).find((d) => d.group === "relation" && is_template(d));
 }
 
 /** The relation templates: what a line can be made to look like. */

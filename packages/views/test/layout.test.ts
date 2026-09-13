@@ -661,7 +661,7 @@ describe("seats", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_draft", module: "reference" };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_draft", module: "line" };
     const spots = under(graph, "block_board", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -678,7 +678,7 @@ describe("seats", () => {
     const graph = fold(fixture("gridded"));
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_build", module: "reference" };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_build", module: "line" };
     const spots = under(graph, "block_board", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -733,8 +733,8 @@ describe("seats", () => {
     graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: graph.root, type: "block", order: 2 };
     graph.blocks["block_ref_a"] = { id: "block_ref_a", parent: "block_board", of: "block_remote_a", order: 98 };
     graph.blocks["block_ref_b"] = { id: "block_ref_b", parent: "block_board", of: "block_remote_b", order: 99 };
-    graph.edges["edge_ref_a"] = { id: "edge_ref_a", from: "block_ref_a", to: "block_draft", module: "reference" };
-    graph.edges["edge_ref_b"] = { id: "edge_ref_b", from: "block_ref_b", to: "block_ship", module: "reference" };
+    graph.edges["edge_ref_a"] = { id: "edge_ref_a", from: "block_ref_a", to: "block_draft", module: "line" };
+    graph.edges["edge_ref_b"] = { id: "edge_ref_b", from: "block_ref_b", to: "block_ship", module: "line" };
     const spots = under(graph, "block_board", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -754,7 +754,7 @@ describe("seats", () => {
     const graph = fold(related());
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "reference" };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "line" };
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -770,7 +770,7 @@ describe("seats", () => {
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99,
                                   x: 2000, y: 2000 };
-    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "reference" };
+    graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "line" };
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(

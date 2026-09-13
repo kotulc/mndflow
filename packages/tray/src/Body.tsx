@@ -26,7 +26,21 @@ export type BodyProps = {
 export function Body({ head, note, children }: BodyProps) {
   return (
     <div className="rows">
-      {head ? <h4>{head}{note ? <span className="from">{note}</span> : null}</h4> : null}
+      {head ? <Band label={head}>{note ? <span className="from">{note}</span> : null}</Band> : null}
+      {children}
+    </div>
+  );
+}
+
+export type BandProps = { label?: ReactNode; children?: ReactNode };
+
+/** **The head of whatever runs under it**, drawn the way a table draws its
+ *  column heads: every section of every tab opens with one, so a settings
+ *  column, a body and a listing all start on the same kind of line. */
+export function Band({ label, children }: BandProps) {
+  return (
+    <div className="rail">
+      {label ? <h5>{label}</h5> : null}
       {children}
     </div>
   );
@@ -47,8 +61,7 @@ export type RailProps = {
  *  with more rows than one reading can hold gets them by passing a list. */
 export function Rail({ label, of, on, onPick }: RailProps) {
   return (
-    <div className="rail">
-      {label ? <h5>{label}</h5> : null}
+    <Band label={label}>
       <div className="filters">
         {of.map((c) => (
           <button key={c.key} className={[on === c.key ? "on" : "", c.said ? "said" : ""]
@@ -56,7 +69,7 @@ export function Rail({ label, of, on, onPick }: RailProps) {
                   onClick={() => onPick(c.key)}>{c.word}</button>
         ))}
       </div>
-    </div>
+    </Band>
   );
 }
 

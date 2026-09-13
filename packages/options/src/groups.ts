@@ -35,6 +35,11 @@ export type Chrome = {
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
   interfaces?: boolean;
+  /** Whether the open layer's frame is drawn. Absent is drawn. */
+  frame?: boolean;
+  /** **Which context the tray holds that is not the canvas's**, if any. Lights
+   *  the matching settings toggle; any selection gives it up. */
+  held?: "workspace" | "block" | "relation" | null;
   /** What a right drag draws: which module, which way it points, and which
    *  definition it names. */
   module?: RelationModule;
@@ -56,8 +61,7 @@ const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
 /** What a right drag may draw. **A module and a direction**, because *straight*
  *  and *directed* were never two sorts of run — they are one run with and
  *  without a `dir`, and a `directed` module saying so again is the same fact
- *  filed twice. A reference line is assigned from what sits at its ends and is
- *  nobody's to choose. */
+ *  filed twice. */
 const LINES: { key: string; module: RelationModule; dir?: Dir;
                icon: IconName; word: string; tip: string }[] = [
   { key: "plain", module: "line", icon: "relation_plain", word: "straight",
@@ -97,6 +101,12 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     out.push({
       key: "display", label: "display",
       controls: [
+        { key: "frame", word: "frame",
+          tip: chrome.frame === false ? "Draw the open layer's border and name"
+                                      : "Stop drawing the open layer's border and name",
+          icon: chrome.frame === false ? "frame_off" : "frame_on",
+          on: chrome.frame !== false,
+          run: () => act("frame", { show: chrome.frame === false }) },
         { key: "guides", word: "guides",
           tip: chrome.lattice ? "Stop ruling the canvas into cells"
                               : "Rule the canvas into cells, faintly, behind everything",
@@ -151,29 +161,27 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** **What the tray is pointed at.** Each names a subject and opens the panel
-   *  on it; which tabs the panel then offers follows from the subject, so none
-   *  of these is a mode and a later selection simply wins.
+  /** **What the tray holds that the canvas does not.** The canvas says the
+   *  rest: a selection is described, and nothing selected is the open layer.
    *
-   *  **There is no element entry**, because selecting something is how you
-   *  arrive at it — the control that used to sit here ran no action of its own,
-   *  only opening the tray on whatever was already picked.
-   *
-   *  **Verbs, not settings.** A scope is somewhere you go, and it is given up
-   *  the moment you pick something, so lighting one would claim a state the
-   *  rail does not hold. */
+   *  **Toggles, lit while held.** The workspace without leaving the layer, or a
+   *  blank block or relation definition to write before anything names it. Any
+   *  selection — a click on the ground included — gives the context back to the
+   *  canvas, which is what puts the light out. */
+  const toggle = (key: "workspace" | "block" | "relation") => () =>
+    act("about", { scope: chrome.held === key ? "canvas" : key });
   out.push({
     key: "settings", label: "settings",
     controls: [
-      { key: "workspace", icon: "settings", word: "workspace", verb: true,
+      { key: "workspace", icon: "settings", word: "workspace", on: chrome.held === "workspace",
         tip: "This project: what it is called, what it draws on, and everything it holds",
-        run: () => act("about", { scope: "workspace" }) },
-      { key: "layer", icon: "layout_free", word: "layer", verb: true,
-        tip: "The layer you are in: how it is arranged and what it holds",
-        run: () => act("about", { scope: "layer" }) },
-      { key: "relation", icon: "relation_typed", word: "relations", verb: true,
-        tip: "The line templates and stereotypes this project uses",
-        run: () => act("about", { scope: "relation" }) },
+        run: toggle("workspace") },
+      { key: "block", icon: "role_leaf", word: "block", on: chrome.held === "block",
+        tip: "A new block definition, written before anything names it",
+        run: toggle("block") },
+      { key: "relation", icon: "relation_typed", word: "relation", on: chrome.held === "relation",
+        tip: "A new relation definition, and the templates and stereotypes in use",
+        run: toggle("relation") },
     ],
   });
 

@@ -239,10 +239,10 @@ export type Wire = {
  *  takes its weight, its dash and its colour from the module it is.
  *
  *  **Nothing said is nothing stated.** A card falls back to a full look because
- *  it is a box and a box must be painted; a run already has one — `reference`
- *  is elsewhere-coloured and dashed, a `tie` is a dotted whisper — and a look
- *  that answered *neutral, thin, solid* on a line nobody styled would paint
- *  over the one thing those two modules say about themselves. So every shared
+ *  it is a box and a box must be painted; a run already has one — a `tie` is a
+ *  dotted whisper — and a look that answered *neutral, thin, solid* on a line
+ *  nobody styled would paint over the one thing that module says about
+ *  itself. So every shared
  *  key here is **absent until a vocabulary states it**. */
 export const BARE: Wire = { name: true, alias: false };
 

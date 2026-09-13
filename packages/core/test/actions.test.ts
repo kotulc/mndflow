@@ -388,7 +388,7 @@ describe("what an action absorbs", () => {
     expect(s.graph().edges[edge.id]!.module).toBe("tie");
   });
 
-  it("relate assigns tie and reference from the ends rather than taking them", () => {
+  it("relate assigns tie from the ends rather than taking it", () => {
     const s = session();
     s.go("create", { name: "Loop" });
     const loop = children(s.graph(), ROOT)[0]!.id;

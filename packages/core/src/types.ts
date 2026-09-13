@@ -37,16 +37,20 @@ export type Arrangement = "free" | "grid";
 
 export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 
-/** Closed: one is picked, two are assigned from what sits at the ends.
+/** Closed: `line` is picked, and `tie` is assigned when an end is a note.
+ *
+ *  **There was a `reference` here too**, and it shared a name with the block
+ *  module — so a lookup by name answered for whichever was registered last. A
+ *  reference card already says it is one; the line to it is an ordinary line.
  *
  *  **There was a `directed` here, and it said nothing `dir` did not.** A run
  *  was made `directed` at the same moment it was given a direction and made
  *  `line` again when the direction came off, so the two were one fact stored
  *  twice — and every renderer had to ask both. Which way a run points is `dir`,
  *  and that is the whole of it. */
-export type RelationModule = "line" | "reference" | "tie";
+export type RelationModule = "line" | "tie";
 
-export const RELATION_MODULES: readonly RelationModule[] = ["line", "reference", "tie"];
+export const RELATION_MODULES: readonly RelationModule[] = ["line", "tie"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 
@@ -300,6 +304,10 @@ export type Mutation =
   /** A value on a **block**. An edge has none to set — see `Relation`. */
   | { op: "set_field"; id: Id; field: Field }
   | { op: "drop_field"; id: Id; name: string }
+  /** The order a block's values are listed in, by name. Names it does not
+   *  carry are ignored, and any it carries that are not named keep their place
+   *  after the named ones. */
+  | { op: "order_fields"; id: Id; names: string[] }
   | { op: "set_def"; def: Definition }
   | { op: "drop_def"; id: Id }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }

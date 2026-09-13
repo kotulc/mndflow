@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, can_hold, module_named, module_of, offer, pinned_lines,
-         relation_named, session, templates,
+         relation_named, session,
          type Args, type Dir, type Graph, type Id, type Point,
          type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
@@ -19,7 +19,7 @@ import { Icon } from "@mnd/theme";
 import { Stage } from "@mnd/stage";
 import type { Adjust } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
-import { Tray, type Scope, type Tab } from "@mnd/tray";
+import { Tray, type Hold, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_net, browser_storage } from "./ports";
 import { browser_score } from "./score";
@@ -65,7 +65,7 @@ export function App() {
   const [wide, set_wide] = useState(false);
   /** The mirror off. **Not the strip collapsed** — two questions, two controls. */
   const [quiet, set_quiet] = useState(false);
-  const [shown, set_shown] = useState({ interfaces: true, lattice: true });
+  const [shown, set_shown] = useState({ interfaces: true, lattice: true, frame: true });
   /** Which way a right drag draws a line. Display state until it is drawn, and
    *  then it is what the relationship was made as. */
   /** **What a right drag draws**, as the rail left it: a module always, and a
@@ -75,16 +75,15 @@ export function App() {
     useState<{ module: RelationModule; dir?: Dir; type?: string }>({ module: "line" });
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
-  /** Which definition the vocabulary section has hold of. **Shell state, beside
-   *  the session's selection and never among it** — a definition is not a block
-   *  or a relationship, so putting one in `picked` would make every reader of
-   *  that list guard for something that is neither. */
-  const [picked_def, set_picked_def] = useState<Id | null>(null);
-  /** **Where the rail pointed the tray, for the one subject that is not an
-   *  element.** Given up by any selection, which is the whole of *what you have
-   *  hold of wins* — so it never has to be arbitrated against the selection,
-   *  and there is no state saying *relations* while a block is picked. */
-  const [scope, set_scope] = useState<Scope>("element");
+  /** **What the tray holds that the canvas did not give it** — the workspace, a
+   *  definition, or a blank one being written. Shell state beside the session's
+   *  selection and never among it, since none of these is a block or a
+   *  relationship. **Given up by any canvas or explorer selection**, so it never
+   *  has to be arbitrated against one. */
+  const [hold, set_hold] = useState<Hold | null>(null);
+  const picked_def = hold?.of === "id" && hold.id !== s.graph().root ? hold.id : null;
+  /** A selection made anywhere but the tray gives the context back to the canvas. */
+  const pick = (ids: Id[]) => { s.pick(ids); set_hold(null); };
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
   useEffect(() => {
@@ -112,6 +111,10 @@ export function App() {
   const scene = useMemo(
     () => project(graph, layer, { interfaces: shown.interfaces }),
     [graph, layer, shown.interfaces]);
+
+  /** What the open layer draws, by id. */
+  const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
+                                       ...scene.edges.map((e) => e.id)]), [scene]);
 
   /** **The shortlist the rail offers, in the order the workspace put them.**
    *  Not every relation definition — those are reached and edited in the tray,
@@ -278,6 +281,7 @@ export function App() {
   const chrome = (name: string, args?: Record<string, unknown>) => {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
+    if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
     if (name === "relate_with") {
       const type = args!["type"] ? String(args!["type"]) : undefined;
       const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
@@ -286,10 +290,6 @@ export function App() {
                     ...(type ? { type } : {}) });
       return;
     }
-    /** **Nothing behind it yet.** It says so rather than doing nothing, which
-     *  is the one failure that looks exactly like the app having missed the
-     *  press. */
-    if (name === "settings") { s.say("project settings are not built yet"); return; }
     /** **The picture is written on the way out, not the way in.** `grid` lays
      *  out from the model and ignores stored places, so the layout only has to
      *  be written down when the layer stops doing that — which is what lets
@@ -303,31 +303,18 @@ export function App() {
                        ...(leaving ? { at: tidy(graph, layer) } : {}) });
       return;
     }
-    /** **Where the tray is pointed.** Not an action: it writes nothing, and
-     *  each of the three names a subject the panel already knows how to
-     *  describe. **Two of them are just a selection** — a layer is a block and
-     *  the workspace is the root one — so only the relation vocabulary, which
-     *  is not an element at all, needs the scope to say so. */
+    /** **Where the tray is pointed.** Not an action: it writes nothing. The
+     *  workspace is held without leaving the layer, and a block or relation
+     *  scope is a blank definition — so the canvas selection is let go, and
+     *  `canvas` hands the context back. */
     if (name === "about") {
       const want = String(args!["scope"]);
+      if (want === "canvas") { set_hold(null); return; }
+      s.pick([]);
+      set_hold(want === "workspace" ? { of: "id", id: graph.root }
+               : { of: "draft", group: want === "relation" ? "relation" : "block" });
       set_tray(true);
-      if (want === "layer") {
-        set_scope("element"); set_picked_def(null);
-        s.pick([layer ?? graph.root]); set_tab("settings");
-        return;
-      }
-      if (want === "workspace") {
-        set_scope("workspace"); set_picked_def(null);
-        s.pick([graph.root]); set_tab("settings");
-        return;
-      }
-      /** **Entering on the default template**, so all three tabs answer at
-       *  once rather than the panel opening on a question. Absent one, the
-       *  templates tab is the list you came for. */
-      const first = templates(graph).find((d) => d.default) ?? null;
-      set_scope("relation"); s.pick([]);
-      set_picked_def(first?.id ?? null);
-      set_tab(first ? "settings" : "templates");
+      set_tab("settings");
       return;
     }
     act(name, args);
@@ -412,13 +399,12 @@ export function App() {
         onAct={act}
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
-        onPick={(ids) => { s.pick(ids); set_picked_def(null); set_scope("element"); }}
+        onPick={pick}
         pickedDef={picked_def}
         /** **Picking a definition describes it**, which is the settings tab
-         *  and nothing else — so the tray opens on it the way the rail's cog opens
-         *  on an element. */
+         *  and nothing else — so the tray opens on it. */
         onPickDef={(id) => {
-          set_picked_def(id);
+          set_hold(id ? { of: "id", id } : null);
           if (id) { s.pick([]); set_tab("settings"); set_tray(true); }
         }}
       />
@@ -467,41 +453,56 @@ export function App() {
           }}
           picked={s.picked()}
           cells={s.cells()}
-          onPickCells={(cells) => { s.pick_cells(cells); set_picked_def(null); set_scope("element"); }}
+          onPickCells={(cells) => {
+            /** **A click lets go of what the canvas cannot show.** A row picked
+             *  from another layer is not drawn here, so nothing else would. */
+            if (!cells.length) s.pick(s.picked().filter((id) => drawn.has(id)));
+            s.pick_cells(cells); set_hold(null);
+          }}
           lattice={shown.lattice}
+          frame={shown.frame}
           module={drawing.module}
           {...(drawing.dir ? { dir: drawing.dir } : {})}
           {...(drawing.type ? { type: drawing.type } : {})}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
-          onPick={(ids) => s.pick(ids)}
+          /** **The canvas reporting what it can draw is not a gesture.** A pick
+           *  it cannot show comes back as that pick minus the part it cannot,
+           *  and taking that as a selection let go of the tray's hold. */
+          onPick={(ids) => {
+            const shown = s.picked().filter((id) => drawn.has(id));
+            const echo = shown.length < s.picked().length && ids.length === shown.length
+              && ids.every((id) => shown.includes(id));
+            if (!echo) pick(ids);
+          }}
           onAct={act}
           onAdjust={adjust}
         />
         <Tray
           graph={graph}
           layer={layer}
-          label={layer ? graph.blocks[layer]?.name ?? "layer" : "workspace"}
           open={tray}
           onOpen={set_tray}
           tab={tab}
           onTab={set_tab}
           picked={s.picked()}
-          onPick={(ids) => { s.pick(ids); set_picked_def(null); set_scope("element"); }}
-          pickedDef={picked_def}
-          /** **The templates tab picks a definition the way the tree does**, so
-           *  a template row and a vocabulary row set one piece of state rather
-           *  than each keeping its own. The scope is left alone: picking a
-           *  template is staying in the relation vocabulary, not leaving it. */
-          onPickDef={set_picked_def}
-          scope={scope}
+          /** **The tray's own tables hold its context**, so a row picked there
+           *  selects without the hold being let go — the tray says which. */
+          onPick={(ids) => s.pick(ids)}
+          hold={hold}
+          onHold={set_hold}
+          onView={(home, id) => { s.look(home); s.pick([id]); set_hold(null); }}
           onAct={act}
         />
       </main>
 
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces,
-                                   lattice: shown.lattice, module: drawing.module,
+                                   lattice: shown.lattice, frame: shown.frame,
+                                   held: hold?.of === "draft" ? hold.group
+                                     : hold?.of === "id" && hold.id === graph.root
+                                       ? "workspace" : null,
+                                   module: drawing.module,
                                    ...(drawing.dir ? { dir: drawing.dir } : {}),
                                    ...(drawing.type ? { type: drawing.type } : {}),
                                    /** **Where a relation vocabulary lives.** The

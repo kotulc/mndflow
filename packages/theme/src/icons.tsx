@@ -111,6 +111,17 @@ const PATHS = {
   guides_on: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17",
   guides_off: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17M4.5 19.5l15-15",
 
+  // The open layer's border, drawn or not. A room with its name set into the
+  // top wall, and the same room struck through.
+  frame_on: "M8 4.5H4.5v15h15v-15H16M10 4.5h4",
+  frame_off: "M8 4.5H4.5v15h15v-15H16M10 4.5h4M5.5 18.5l13-13",
+
+  // Keeping a draft: a tick, because what it says is *this is done*.
+  save: "M5 12.5l4.5 4.5L19 7.5",
+
+  // Going to where a thing lives: an arrow into a room.
+  enter: "M3.5 12h10M10 8.5l3.5 3.5-3.5 3.5M13 4.5h6.5v15H13",
+
   // The project opened out to be set. **Sliders, not a cog** — `define` is the
   // cog and it answers *what is this thing*; this answers *how does the app
   // behave*, and two purposes may not share one drawing.

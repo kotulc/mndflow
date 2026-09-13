@@ -56,6 +56,8 @@ export type StageProps = {
   onSaid?: () => void;
   /** Whether the backdrop rules the canvas into cells. */
   lattice?: boolean;
+  /** Whether the open layer's frame is drawn. */
+  frame?: boolean;
   /** What a right drag draws: which module, which way it points, and which
    *  pinned definition it names. **The rail picked them and the stage passes
    *  them on** — what a new relationship is is the model's, so it goes through
@@ -145,7 +147,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, module, dir, type }: StageProps) {
+                       menu, said, onSaid, lattice, frame, module, dir, type }: StageProps) {
   /** What a right drag, or a chain, is told to draw. Named once so the rail's
    *  pick reaches every gesture that makes a relationship. */
   /** **Always said, so the rail is obeyed.** A chain runs forward where nobody
@@ -375,6 +377,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         cells={cells}
         onPickCells={onPickCells}
         lattice={lattice}
+        {...(frame === undefined ? {} : { frame })}
         naming={naming}
         onNamed={(label) => {
           const id = naming;

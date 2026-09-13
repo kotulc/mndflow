@@ -27,8 +27,7 @@ const KEYWORD: Record<string, string> = {
 };
 
 /** A relation module, as a keyword and back. Directed reads as a flow. */
-const LINK: Record<string, string> = { line: "connect", directed: "flow",
-                                       reference: "connect", tie: "comment" };
+const LINK: Record<string, string> = { line: "connect", tie: "comment" };
 
 const quoted = (name: string) => `'${name.replaceAll("'", "\\'")}'`;
 

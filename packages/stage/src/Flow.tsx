@@ -143,6 +143,10 @@ export type FlowViewProps = {
    *  layer slots straight onto it, so the lines are what both are measured
    *  against rather than decoration behind them. */
   lattice?: boolean;
+  /** Whether the open layer's border and name are drawn. **Visual only**: the
+   *  room is still fitted and its walls still take a line, so hiding it changes
+   *  the picture and nothing about what a gesture reaches. */
+  frame?: boolean;
 };
 
 /** **Fitting frames what is there; it never magnifies.** One small card on a
@@ -298,7 +302,7 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
  *  — a definition's slot is what colour means on this canvas, and a line
  *  borrowing one would be saying something the vocabulary already says. */
 const READS: Record<string, string> = {
-  line: "line", reference: "reference", tie: "tie",
+  line: "line", tie: "tie",
 };
 
 /** **Which seat each end meets is the projection's**, and arrives on the edge
@@ -500,7 +504,7 @@ function middle(box: { x: number; y: number; w: number; h: number },
 
 function Canvas(props: FlowViewProps) {
   const { scene, picked = [], onGesture, onRelate, onSweep, onAdjust, onPick, onDrop,
-          said, chrome = true, lattice = false } = props;
+          said, chrome = true, lattice = false, frame: framed = true } = props;
   const flow = useReactFlow();
   /** What the stable callbacks below read instead of closing over a render. */
   const latest = useRef({ picked, onPick, key: "" });
@@ -1180,7 +1184,7 @@ function Canvas(props: FlowViewProps) {
 
   return (
     <ReactFlow
-      className="mnd-flow"
+      className={framed ? "mnd-flow" : "mnd-flow frameless"}
       nodes={nodes}
       edges={edges}
       nodeTypes={NODE_TYPES}

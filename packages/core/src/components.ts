@@ -211,7 +211,7 @@ export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
  *  type-check against the closed sets, so a typo here is a build error.
  *
  *  **A run has almost none.** What an unstyled run draws is its module's own —
- *  a tie is a dotted whisper, a reference is elsewhere-coloured — so nothing
+ *  a tie is a dotted whisper — so nothing
  *  here stands in for its `style`, and a panel showing one lights no chip,
  *  which is the truth. Its two identity keys are the card's, said again under
  *  the component that owns them. */
@@ -261,6 +261,11 @@ const MODULES: Record<string, { honours: readonly string[]; keys: readonly strin
    *  there is no face on it to compose. */
   interface: { honours: WALL, keys: [] },
 };
+
+/** **One namespace for both groups**, so a module name may mean one thing. A
+ *  block and a relation module sharing a name drew a block definition as a run. */
+const shared = BLOCK_MODULES.filter((m) => (RELATION_MODULES as readonly string[]).includes(m));
+if (shared.length) throw new Error(`module names shared by both groups: ${shared.join(", ")}`);
 
 /** Which components this module honours. **Unknown is a card**: a module this
  *  build has never heard of is drawn as the ordinary thing rather than left

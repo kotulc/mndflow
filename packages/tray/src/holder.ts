@@ -5,7 +5,8 @@
  *  `Definition.components` are the same bag one layer apart. Asked once here, so
  *  no panel below has to know which of the three it was given. */
 
-import { config_of, def_of, type Block, type Definition, type Field, type FieldDef,
+import { config_of, def_of, honours, module_named, module_of, relation_named,
+         type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
 
 export type Held = {
@@ -33,6 +34,16 @@ export function held(graph: Graph, id: Id): Held | null {
   const e = graph.edges[id];
   if (e) return { def: null, block: null, edge: e, fields: [], borrowed: false };
   return null;
+}
+
+/** The base kind this is, or the base kind its usages are — and whether that
+ *  kind draws as a run rather than as a card. */
+export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: boolean } {
+  const { def: d, block: b, edge } = it;
+  const kind = d ? (d.group === "relation" ? relation_named(graph, d.id)
+                                           : module_named(graph, d.id))
+    : b ? module_of(graph, id) : edge?.module ?? "line";
+  return { kind, runs: honours(kind).includes("line") };
 }
 
 /** The three readings every look control needs, over whichever holder this is.

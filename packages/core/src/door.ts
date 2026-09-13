@@ -14,7 +14,7 @@
 
 import { unreadable } from "./components";
 import { alias_kind, covers, fold, can_hold, is_grid, module_named, overlaps,
-         subtree, BASE_RELATIONS } from "./fold";
+         relation_named, subtree, BASE_RELATIONS } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -35,7 +35,7 @@ const OPS = new Set<string>([
   "set_group", "seat_cell",
   "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks", "update_edge",
   "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
-  "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
+  "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def", "set_arrangement",
   "set_tags", "set_look", "drop_looks",
 ]);
 
@@ -315,6 +315,15 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "drop_def", id: "directed" });
   }
 
+  /** **`reference` was a relation module and is now an ordinary line.** It
+   *  shared its name with the block module, and the card at the end already
+   *  says it is a reference. */
+  for (const e of Object.values(graph.edges)) {
+    if ((e.module as string) !== "reference") continue;
+    faults.push({ kind: "repaired", what: "a relation was a `reference` line, which is a line now" });
+    repairs.push({ op: "link_blocks", edge: { ...e, module: "line" } });
+  }
+
   /** **An edge holds no values.** A connection is a join: what one has to say
    *  belongs to the blocks at its ends — a role name is the port's name, a
    *  multiplicity is `degree` on a definition, a guard is a condition and a
@@ -524,10 +533,10 @@ export function inspect(graph: Graph): Inspection {
      *  package's is refused outright: importing one must never take a project
      *  over. Checked here so the read stays a single lookup. */
     if (mended.default !== undefined) {
+      const kind = mended.group === "relation"
+        ? relation_named(graph, mended.id) : module_named(graph, mended.id);
       const why = mended.from ? `a package's definition cannot be a default`
-        : mended.group !== "block" ? `only a block definition may be a default`
-        : module_named(graph, mended.id) !== mended.default
-          ? `it is not a ${mended.default}` : null;
+        : kind !== mended.default ? `it is not a ${mended.default}` : null;
       if (why) {
         faults.push({ kind: "dropped", what: `"${d.name}" claimed a default — ${why}` });
         mended = { ...mended, default: undefined };
@@ -541,9 +550,9 @@ export function inspect(graph: Graph): Inspection {
    *  later-named gives it up. */
   const claimed = new Map<string, string>();
   for (const d of Object.values(graph.defs).sort((a, b) => a.id.localeCompare(b.id))) {
-    if (d.default === undefined || d.from || d.group !== "block") continue;
-    const held = claimed.get(d.default);
-    if (held === undefined) { claimed.set(d.default, d.id); continue; }
+    if (d.default === undefined || d.from) continue;
+    const held = claimed.get(`${d.group}:${d.default}`);
+    if (held === undefined) { claimed.set(`${d.group}:${d.default}`, d.id); continue; }
     faults.push({ kind: "repaired",
                   what: `"${d.name}" and "${graph.defs[held]!.name}" both claimed the ${d.default} default` });
     repairs.push({ op: "set_def", def: { ...d, default: undefined } });

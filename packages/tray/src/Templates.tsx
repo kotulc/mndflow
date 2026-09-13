@@ -18,7 +18,7 @@ const COLUMNS: readonly Column[] = [
   { key: "name", label: "template", width: "38%" },
   { key: "extends", label: "extends", width: "26%" },
   { key: "used", label: "used", width: "14%" },
-  { key: "pinned", label: "rail", width: "22%" },
+  { key: "pinned", label: "pin line", width: "22%" },
 ];
 
 export type TemplatesProps = {

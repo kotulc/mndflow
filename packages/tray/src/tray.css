@@ -35,7 +35,18 @@
   cursor: pointer;
 }
 
-.tray-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* **The context, named**: the word the rail uses for it, then its name, then
+   anything that qualifies it — a draft, a definition, several picked. */
+.tray-context { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.tray-context > .word {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tray-context > .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
 
 .tray-bar .holds {
   color: var(--muted);
@@ -53,13 +64,10 @@
 .tray-tools { display: flex; align-items: center; gap: 2px; flex: none;
               margin-left: auto; }
 
-/* **The chevron is centred in the bar, and the bar is the handle.** A control
-   welded to the edge read as one more piece of the bar; the whole bar reads as
-   what it is — the edge you pull. The mark only says which way it will go. */
+/* **The chevron leads the context it opens.** The whole bar is still the
+   handle; the mark only says which way it will go. */
 .tray-chevron {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: none;
   display: flex;
   align-items: center;
   color: var(--muted);
@@ -141,8 +149,8 @@
 .contents-table tr.picked td {
   background: var(--hover);
   color: var(--accent);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
+.contents-table tr.picked td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
@@ -155,15 +163,86 @@
    **What is answerable is what is offered.** Nothing picked and only contents
    has anything to say; pick one thing and the three about it arrive. */
 
-.tray-bar .tabs { display: flex; gap: 2px; }
-
-.tray-bar .tabs button {
-  padding: 1px 8px;
-  color: var(--muted);
-  border-radius: 2px;
+/* **Tabs on the body's own ground.** The strip is ruled off from what it opens,
+   and the open tab breaks that rule — so it reads as the page it is. */
+.tray-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid var(--divider);
+  background: var(--bg);
 }
 
-.tray-bar .tabs button.on { color: var(--accent); background: var(--hover); }
+.tray-tabs > button {
+  margin-bottom: -1px;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tray-tabs > button:hover { color: var(--text); }
+.tray-tabs > button.on {
+  padding-bottom: 3px;
+  border-color: var(--divider);
+  background: var(--bg);
+  color: var(--accent);
+}
+
+/* **Acts over the whole tab**, at the far end of the strip that opened it. */
+.tab-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-bottom: 3px; }
+.tab-tools > .reset {
+  padding: 1px 7px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.tab-tools > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.tab-tools > .reset:disabled { opacity: 0.35; cursor: default; }
+
+/* ── The body under both columns ─────────────────────────────────────────── */
+.content { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
+.content > textarea {
+  min-height: 6em;
+  resize: vertical;
+  padding: 6px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+.content > textarea:focus { outline: none; border-color: var(--accent); }
+
+/* A value read rather than set. */
+.rows > .row > .line > .read { color: var(--muted); }
+
+/* Go to where a row lives. */
+.contents-table td.view { padding: 0 4px; text-align: right; }
+.contents-table td.view .chip {
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: var(--tint);
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
 
 .tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
 
@@ -184,14 +263,14 @@
   gap: 14px;
   padding: 8px 10px 10px;
   align-items: start;
-  --head: 88px;
+  --head: 72px;
 }
 
-.styles > .col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.styles > .col { display: flex; flex-direction: column; min-width: 0; }
 
-/* **One band across both columns.** The card is centred in its own; the other
-   holds what kind of card it is at the top and the rail at the foot, against
-   the rows the rail narrows. */
+/* **The drawing heads what it is; how it is painted starts at the top.** The
+   head keeps clear room above and below, so a run's label drawn over its line
+   never reaches the band under it. */
 .styles-head {
   display: flex;
   align-items: center;
@@ -199,64 +278,21 @@
   box-sizing: border-box;
   height: var(--head);
   gap: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--divider);
+  margin: 4px 0 8px;
 }
 
-/* **The rail is the seam on this side.** The head drew one line and the rail
-   under it drew another, six pixels apart — one seam, and it is the rail's,
-   which puts it on the same line the card's head draws across the way. */
-.styles > .draws > .styles-head {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 0;
-  border-bottom: none;
-}
+/* **The drawing at the column's start, and what kind it is beside it.** */
+.styles > .what > .styles-head { justify-content: flex-start; gap: 14px; padding: 0 8px; }
 
-/* What is being drawn, and how many of that kind there are. */
-.kind-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
-
-/* What is being drawn, what kind of one, and how many of them there are.
-   **Set to the right**, where the column's own edge is, so it reads as a
-   heading over the rail rather than as one more answer. */
-.kind-line { justify-content: flex-end; padding: 0 8px; }
-
-.kind-line > .holder {
-  flex: none;
+.kind-rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; }
+.kind-rows .holder {
+  margin-right: 8px;
   color: var(--faint);
   font-size: 9px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-
-/* **The one control over the whole column**, so it sits at its right edge with
-   what it would undo named to the left of it. */
-.kind-line > .reset {
-  flex: none;
-  margin-left: 8px;
-  padding: 1px 7px;
-  border: 1px solid var(--divider);
-  border-radius: 2px;
-  color: var(--muted);
-  background: none;
-  font: inherit;
-  font-size: 10px;
-  cursor: pointer;
-}
-
-.kind-line > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
-.kind-line > .reset:disabled { opacity: 0.35; cursor: default; }
-
-/* Ruled off from the kind: how many there are is a different fact about it. */
-.kind-line > .tally {
-  flex: none;
-  padding-left: 8px;
-  border-left: 1px solid var(--divider);
-  color: var(--faint);
-  font-size: 10px;
-}
+.kind-rows .tally { color: var(--faint); font-size: 10px; }
 
 /* ── A rail over a table ───────────────────────────────────────────────────
    **One component wherever a table has more readings than one.** The word
@@ -272,6 +308,8 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
+  box-sizing: border-box;
+  min-height: 28px;
   padding: 3px 8px;
   border-bottom: 1px solid var(--divider);
   background: var(--surface);
@@ -300,6 +338,11 @@
    chip does one row down — a dot beside it was a second notation for the one
    fact the rows below already draw. */
 .rail .filters > button.said { color: var(--accent); }
+
+/* A note in a band, or beside an answer: a count, where it came from, a warning. */
+.rail > .from { color: var(--faint); font-size: 10px; }
+.rows > .row > .line > .from { flex: none; color: var(--faint); font-size: 10px; font-style: italic; }
+.rows > .row > .line > .from.warn { color: var(--warn); }
 
 /* The kind, then what refines it. The mark reads as one step down from the
    other, which is what the chain actually is. */
@@ -336,24 +379,7 @@
    tray body is this, which is what replaced a tab strip inside a tab. */
 .rows { display: flex; flex-direction: column; min-width: 0; font-size: 12px; }
 
-.rows + .rows { border-top: 1px solid var(--divider); padding-top: 5px; margin-top: 4px; }
-
-.rows > h4 {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin: 0;
-  padding: 3px 8px;
-  border-bottom: 1px solid var(--divider);
-  background: var(--surface);
-  color: var(--faint);
-  font-size: 9px;
-  font-weight: normal;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.rows > h4 .from { color: var(--faint); text-transform: none; letter-spacing: 0; }
+.rows + .rows { margin-top: 8px; }
 
 /* **One row height, so two columns of them step together.** A row is a
    question and its answer whatever the answer is made of — an input is taller
@@ -405,6 +431,8 @@
 .rows > .row.sliders > .line { gap: 6px; flex-wrap: nowrap; }
 .rows > .row.value > .line > input { flex: 1 1 auto; min-width: 0; }
 .rows > .row.value > .line > .form { color: var(--faint); font-size: 10px; }
+.rows > .row.value > .line > select { flex: 0 0 6em; }
+.rows > .row.value > label > input { width: 100%; min-width: 0; box-sizing: border-box; }
 .rows > .row.add > .line > input { flex: 1 1 auto; min-width: 0; }
 /* **What sort of value is a short answer**, so it keeps a short box and the
    name takes the rest of the row. */
@@ -714,10 +742,8 @@
     oklch(var(--l-edge) 0.13 360));
 }
 
-/* Intensity runs from the theme's grey to its ceiling, at whatever hue is set,
-   so the two strips read as one control. */
+/* Intensity runs from the theme's grey to its ceiling, at whatever hue is set. */
 .rows > .row.sliders > .line .intensity {
-  flex: 0 1 5em;
   background: linear-gradient(to right,
     oklch(var(--l-edge) 0 var(--card-h, 200)),
     oklch(var(--l-edge) var(--tint-ceiling) var(--card-h, 200)));

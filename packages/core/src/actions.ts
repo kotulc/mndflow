@@ -10,10 +10,10 @@
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
-         path, relation_named, reorder } from "./fold";
+         ordered_by, path, relation_named, reorder, schema_of, template_of } from "./fold";
 import { component, DRAWN, NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
-import { ARRANGEMENTS, VALUE_FORMS,
+import { ARRANGEMENTS, RELATION_MODULES, VALUE_FORMS,
          type Arrangement, type Block, type BlockModule,
          type Cell, type Components, type Definition, type Dir, type FieldDef,
          type Flow, type Graph, type Id,
@@ -366,8 +366,12 @@ register(
        *  which is the same as never having been named. */
       if (!name) return { mutations: [{ op: "update_edge", id, type: null }] };
       const def = def_id(name);
+      /** **A new name is a stereotype over the look the line already wears**,
+       *  so naming a line never takes its template away. */
+      const over = template_of(ctx.graph, ctx.graph.edges[id]!.type)?.id;
       const out: Mutation[] = ctx.graph.defs[def] ? []
-        : [{ op: "set_def", def: { id: def, group: "relation", name } }];
+        : [{ op: "set_def", def: { id: def, group: "relation", name,
+                                   ...(over ? { extends: over } : {}) } }];
       return { mutations: [...out, { op: "update_edge", id, type: def }] };
     },
   },
@@ -572,8 +576,7 @@ register(
     args: [{ name: "from", form: "block", required: true },
            { name: "to", form: "block", required: true },
            { name: "type", form: "text" },
-           /** **Two of the three.** A reference line is assigned from what sits
-            *  at its ends, so it is nobody's to pick. */
+           /** A tie is assigned when an end is a note, whatever is picked. */
            { name: "module", form: "choice", choices: ["line", "tie"] },
            /** Which way it points, where the gesture that drew it says. */
            { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
@@ -628,9 +631,9 @@ register(
      *  about a border this end no longer meets, and keeping it would leave the
      *  line entering the new block from whichever way the old one faced.
      *
-     *  **And what the line is, is asked again.** A tie and a reference are
-     *  assigned from what sits at the ends, so an end dragged onto a note makes
-     *  a tie of the line the same way drawing one there would. */
+     *  **And what the line is, is asked again.** A tie is assigned from what
+     *  sits at the ends, so an end dragged onto a note makes a tie of the line
+     *  the same way drawing one there would. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const end = args["end"] as "from" | "to";
@@ -641,7 +644,7 @@ register(
        *  has gone, and what is left of it is an ordinary line. */
       const was = edge?.module;
       const module = derived_module(ctx.graph, ends[0]!, ends[1]!)
-        ?? (was === "tie" || was === "reference" ? "line" : null);
+        ?? (was === "tie" ? "line" : null);
       return { mutations: [
         { op: "set_end", id, end, port: to },
         { op: "set_side", id, end, side: null },
@@ -674,15 +677,14 @@ register(
     args: [{ name: "id", form: "block", required: true },
            { name: "dir", form: "choice", required: true,
              choices: ["none", "forward", "back", "both"] }],
-    /** **What the ends decide is not on offer.** A line to a note is a tie and
-     *  a line to a reference is a reference — said in words rather than
-     *  written and quietly undone by the next thing that touches an end. */
+    /** **What the ends decide is not on offer.** A line to a note is a tie —
+     *  said in words rather than written and quietly undone by the next thing
+     *  that touches an end. */
     check: (ctx, args) => {
       const edge = ctx.graph.edges[id_of(args, "id")];
       if (!edge) return "needs a relationship";
-      const fixed = derived_module(ctx.graph, edge.from, edge.to);
-      return fixed ? `a relationship to a ${fixed === "tie" ? "note" : "reference"} is a ${fixed}`
-                   : null;
+      return derived_module(ctx.graph, edge.from, edge.to)
+        ? "a relationship to a note is a tie" : null;
     },
     /** **One fact, said once.** Whether a relationship was a `line` or a
      *  `directed` and which way its arrows point were the same setting stored
@@ -746,7 +748,7 @@ function mid_of(graph: Graph, owner: Id, side: Side): number {
 const SHARED: readonly number[] =
   [2, 3, 4, 5, 6].flatMap((d) => Array.from({ length: d - 1 }, (_, n) => (n + 1) / d));
 
-/** `reference` and `tie` are assigned from what sits at the ends, never picked.
+/** `tie` is assigned from what sits at the ends, never picked.
  *
  *  **A note is whatever says it is one.** The definition answers where there is
  *  one to ask; the type the block carries answers where the definitions have
@@ -754,17 +756,9 @@ const SHARED: readonly number[] =
 const noted = (graph: Graph, id: Id): boolean =>
   graph.blocks[id]?.type === "note" || module_of(graph, id) === "note";
 
-/** What a chain may draw. **Two of the three** — a reference line is assigned
- *  from what sits at its ends, so it is nobody's to pick. */
-const CHAINED: readonly RelationModule[] = ["line", "tie"];
-
 function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
-  const a = graph.blocks[from];
-  const b = graph.blocks[to];
-  if (!a || !b) return null;
-  if (noted(graph, from) || noted(graph, to)) return "tie";
-  if (is_reference(a) || is_reference(b)) return "reference";
-  return null;
+  if (!graph.blocks[from] || !graph.blocks[to]) return null;
+  return noted(graph, from) || noted(graph, to) ? "tie" : null;
 }
 
 // ---------------------------------------------------------------- interfaces
@@ -1374,8 +1368,8 @@ register(
     about: "links every filled cell of a grid, in the order it reads",
     on: ["block", "cell"],
     /** **The module the rail has picked**, so a chain draws the same sort of
-     *  line a right drag would. A tie to a note and a reference line are still
-     *  assigned from what sits at the ends. */
+     *  line a right drag would. A tie to a note is still assigned from what
+     *  sits at the ends. */
     args: [{ name: "group", form: "block" },
            { name: "module", form: "choice", choices: ["line", "tie"] },
            { name: "dir", form: "choice", choices: ["none", "forward", "back", "both"] },
@@ -1393,7 +1387,7 @@ register(
     run: (ctx, args) => {
       const group = grid_named(ctx, args)!;
       const said = text(args, "module");
-      const picked = CHAINED.find((m) => m === said) ?? "line";
+      const picked = RELATION_MODULES.find((m) => m === said) ?? "line";
       /** **A chain reads, so it points.** Left unsaid it runs forward, which is
        *  what makes the reading order visible. */
       const dir = String(args["dir"] ?? "forward") as Dir;
@@ -1511,28 +1505,71 @@ register(
            { name: "value", form: "text" },
            { name: "form", form: "choice", choices: VALUE_FORMS },
            { name: "unit", form: "text" },
-           { name: "choices", form: "text" }],
-    check: (ctx, args) => (text(args, "name") ? null : "a field needs a name")
-      ?? holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
-    /** **Fields union with the subtype's winning by name**, so declaring one
-     *  that is already there rewrites it rather than doubling it. */
+           { name: "choices", form: "text" },
+           /** A new name for it, keeping its place and everything else it says. */
+           { name: "to", form: "text" }],
+    check: (ctx, args) => {
+      if (!text(args, "name")) return "a field needs a name";
+      const why = holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder"));
+      if (why) return why;
+      const to = text(args, "to");
+      const holder = id_of(args, "holder");
+      const had = ctx.graph.defs[holder]?.fields ?? ctx.graph.blocks[holder]?.fields ?? [];
+      return to && to !== text(args, "name") && had.some((f) => f.name === to)
+        ? `there is already a field called "${to}"` : null;
+    },
+    /** **Only what was said changes.** A field already there keeps its place,
+     *  its form, its unit and its value unless this says otherwise — so setting
+     *  a unit never blanks the choices, and renaming never moves it. */
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
+      const to = text(args, "to") || name;
       const d = ctx.graph.defs[holder];
-      if (!d) {
-        return { mutations: [{ op: "set_field", id: holder, field: {
-          name, form: "text", value: String(args["value"] ?? ""),
-        } }] };
-      }
-      const form = String(args["form"] ?? "text") as ValueForm;
-      const said: FieldDef = {
-        name, form: VALUE_FORMS.includes(form) ? form : "text",
-        unit: text(args, "unit") || undefined,
-        choices: list(args["choices"]).length ? list(args["choices"]) : undefined,
+      const b = ctx.graph.blocks[holder];
+      const fields: readonly FieldDef[] = d?.fields ?? b?.fields ?? [];
+      const had = fields.find((f) => f.name === name);
+      const said = (key: string) => args[key] !== undefined;
+      const form = String(args["form"] ?? had?.form
+        ?? schema_of(ctx.graph, def_of(ctx.graph, holder)).find((f) => f.name === name)?.form
+        ?? "text") as ValueForm;
+      const field: FieldDef = {
+        ...had, name: to, form: VALUE_FORMS.includes(form) ? form : "text",
+        ...(said("value") ? { value: String(args["value"] ?? "") } : {}),
+        ...(d && said("unit") ? { unit: text(args, "unit") || undefined } : {}),
+        ...(d && said("choices")
+          ? { choices: list(args["choices"]).length ? list(args["choices"]) : undefined } : {}),
       };
-      const rest = (d.fields ?? []).filter((f) => f.name !== name);
-      return { mutations: [{ op: "set_def", def: { ...d, fields: [...rest, said] } }] };
+      /** In its place, whether it was renamed or not. */
+      const next = had ? fields.map((f) => (f.name === name ? field : f)) : [...fields, field];
+      if (d) return { mutations: [{ op: "set_def", def: { ...d, fields: next } }] };
+      if (to === name) return { mutations: [{ op: "set_field", id: holder, field }] };
+      return { mutations: [{ op: "drop_field", id: holder, name },
+                           { op: "set_field", id: holder, field },
+                           { op: "order_fields", id: holder, names: next.map((f) => f.name) }] };
+    },
+  },
+  {
+    name: "order_field",
+    about: "moves a value or a declared field to before another",
+    on: ["layer", "block"],
+    args: [{ name: "holder", form: "block", required: true },
+           { name: "name", form: "text", required: true },
+           /** Which it goes in front of. **Absent is last.** */
+           { name: "before", form: "text" }],
+    check: (ctx, args) =>
+      holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    run: (ctx, args) => {
+      const holder = id_of(args, "holder");
+      const name = text(args, "name");
+      const before = text(args, "before");
+      const d = ctx.graph.defs[holder];
+      const names = (d?.fields ?? ctx.graph.blocks[holder]?.fields ?? [])
+        .map((f) => f.name).filter((n) => n !== name);
+      const at = before ? names.indexOf(before) : -1;
+      names.splice(at < 0 ? names.length : at, 0, name);
+      if (d) return { mutations: [{ op: "set_def", def: { ...d, fields: ordered_by(d.fields ?? [], names) } }] };
+      return { mutations: [{ op: "order_fields", id: holder, names }] };
     },
   },
   {
@@ -1587,12 +1624,20 @@ register(
       const name = text(args, "name");
       const id = def_id(name);
       const held = ctx.graph.defs[id];
+      /** **A draft arrives whole.** The tray writes a definition before it has a
+       *  name, through `look` and `field` against a stand-in — so what it says
+       *  is handed over here and saving is one step and one undo. No input
+       *  method fills these; a caller holding a draft does. */
+      const components = args["components"] as Components | undefined;
+      const fields = args["fields"] as FieldDef[] | undefined;
       return { mutations: [{ op: "set_def", def: {
         ...held,
         id, name,
         group: (args["group"] as "block" | "relation") ?? held?.group ?? "block",
         extends: args["extends"] === undefined ? held?.extends
                                                : rooted(ctx, text(args, "extends")),
+        ...(components && Object.keys(components).length ? { components } : {}),
+        ...(fields?.length ? { fields } : {}),
       } }] };
     },
   },
@@ -1691,7 +1736,9 @@ register(
       const edge = ctx.graph.edges[id];
       const it = ctx.graph.blocks[id] ?? edge!;
       const name = text(args, "name");
-      const taken: Components = {};
+      /** **A run pinned is a template**, and a template is what carries a look —
+       *  so one pinned before anybody styled it still says it draws as a line. */
+      const taken: Components = edge ? { line: {} } : {};
       for (const [key, config] of Object.entries(it.looks ?? {})) taken[key] = { ...config };
       /** **The schema, never the values.** What a block happens to hold is that
        *  block's answer; reading it as the default for every future one is a

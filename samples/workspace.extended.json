@@ -702,7 +702,7 @@
       "edge_1oordonyaxvk": {
         "id": "edge_1oordonyaxvk",
         "from": "block_ew5quzihwe9g",
-        "module": "reference",
+        "module": "line",
         "alias": 1,
         "to": "block_wgrensjcv5bt"
       },
@@ -744,14 +744,14 @@
       "edge_7bomo3xdu80j": {
         "id": "edge_7bomo3xdu80j",
         "from": "block_i5x9yytvukem",
-        "module": "reference",
+        "module": "line",
         "alias": 7,
         "to": "block_ew5quzihwe9g"
       },
       "edge_8pj32ea5dj6w": {
         "id": "edge_8pj32ea5dj6w",
         "from": "block_oud23vt3ldeo",
-        "module": "reference",
+        "module": "line",
         "alias": 8,
         "to": "block_ew5quzihwe9g"
       },
@@ -781,7 +781,7 @@
       "edge_cktxtb5g5aa3": {
         "id": "edge_cktxtb5g5aa3",
         "from": "block_t1f7x1vfkadb",
-        "module": "reference",
+        "module": "line",
         "alias": 12,
         "to": "block_lidqmag9iygj"
       },
@@ -824,14 +824,14 @@
       "edge_l17yb8tyzsio": {
         "id": "edge_l17yb8tyzsio",
         "from": "block_gikyjb1138b4",
-        "module": "reference",
+        "module": "line",
         "alias": 18,
         "to": "block_9vmqohl7du88"
       },
       "edge_n4md0pvs4o71": {
         "id": "edge_n4md0pvs4o71",
         "from": "block_pcm8tjwdotm2",
-        "module": "reference",
+        "module": "line",
         "alias": 19,
         "to": "block_oud23vt3ldeo"
       },
@@ -859,7 +859,7 @@
       "edge_svi4zfuyruut": {
         "id": "edge_svi4zfuyruut",
         "from": "block_i5x9yytvukem",
-        "module": "reference",
+        "module": "line",
         "alias": 23,
         "to": "block_lidqmag9iygj"
       },
