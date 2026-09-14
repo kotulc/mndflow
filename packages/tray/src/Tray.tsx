@@ -155,6 +155,10 @@ export function Tray(props: TrayProps) {
       set_working((w) => ({ ...w, [String(args!["id"])]: String(args!["name"] ?? "") }));
       return;
     }
+    if (name === "@name") {
+      file_draft(String(args?.["name"] ?? "").trim());
+      return;
+    }
     if (drafting && aimed(args).includes(DRAFT)) {
       const next = redraft(view, drafts[drafting], name, args ?? {});
       if (typeof next !== "string") set_drafts((d) => ({ ...d, [drafting]: next }));
@@ -169,31 +173,31 @@ export function Tray(props: TrayProps) {
     ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
   const instance = view.blocks[about] ?? view.edges[about];
 
-  /** **Saving files a definition under its name**, as one step: a draft whole, or
-   *  a block's or a line's working look. A name already taken is said, and never
-   *  looked up. */
-  const draft = drafting ? drafts[drafting] : null;
+  /** **A draft is filed the moment it is named**, whole and as one step, and the
+   *  tray then holds what was filed. A name already taken is never filed. */
+  function file_draft(to: string) {
+    const draft = drafting ? drafts[drafting] : null;
+    if (!draft || !to || def_named(graph, to, draft.group)) return;
+    onAct?.("define", { name: to, group: draft.group, extends: draft.extends ?? "",
+                        ...(draft.label ? { label: draft.label } : {}),
+                        components: draft.components, fields: draft.fields });
+    set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
+    /** **The id `define` will file it under**, since the graph in hand is the
+     *  one from before the save. */
+    onHold({ of: "id", id: def_slot(graph, to, draft.group) });
+  }
+
+  /** **Saving a working look files a definition under its name.** A name already
+   *  taken is said, and never looked up. */
   const line = view.edges[about] ?? null;
   const working_look = !!instance && drawn_looks(instance);
-  const naming = draft ? draft.name.trim() : working_look ? (working[about] ?? "").trim() : "";
+  const naming = working_look ? (working[about] ?? "").trim() : "";
   /** **A name is unique within its group**, so a line may share a block's. */
-  const group = draft ? draft.group : line ? "relation" : "block";
-  const taken = !!naming && !!def_named(graph, naming, group);
-  const save = !naming || taken ? null
-    : draft ? () => {
-      onAct?.("define", { name: naming, group: draft.group, extends: draft.extends ?? "",
-                          ...(draft.label ? { label: draft.label } : {}),
-                          components: draft.components, fields: draft.fields });
-      set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
-      /** **The id `define` will file it under**, since the graph in hand is the
-       *  one from before the save. */
-      onHold({ of: "id", id: def_slot(graph, naming, group) });
-    }
-    : working_look ? () => {
-      act("save_def", { id: about, name: naming });
-      set_working((w) => ({ ...w, [about]: "" }));
-    }
-    : null;
+  const taken = !!naming && !!def_named(graph, naming, line ? "relation" : "block");
+  const save = !naming || taken ? null : () => {
+    act("save_def", { id: about, name: naming });
+    set_working((w) => ({ ...w, [about]: "" }));
+  };
 
   /** **What styling writes.** A block or a line naming a workspace definition
    *  styles that definition, so every usage follows; one that names none — or
@@ -307,7 +311,7 @@ export function Tray(props: TrayProps) {
         </span>
 
         <span className="tray-tools">
-          {open && tab === "contents" ? <span className="holds">{shown.length} held</span> : null}
+          {open && tab === "contents" ? <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span> : null}
           {open ? (
             <button className={big ? "on" : ""}
                     title={big ? "give the stage its room back" : "take the full height"}
@@ -336,7 +340,7 @@ export function Tray(props: TrayProps) {
                         onClick={() => act("none", { ids: [styled] })}>
                   reset style
                 </button>
-                {drafting || working_look ? (
+                {working_look ? (
                   <button className="reset save" disabled={!save}
                           title={save ? "keep this in the table"
                             : taken ? `${naming} already exists`

@@ -339,11 +339,11 @@ export function Explorer(props: ExplorerProps) {
     <nav className="explorer" aria-label="workspace"
          style={{ width }}>
       <div className="bar">
-        {/* **The workspace, as [WS].** One fixed mark for the root the tree
-            names — a click opens the top level, like every other chip. */}
+        {/* **The workspace, as a stack of files.** One fixed mark for the root
+            the tree names — a click opens the top level, like every other chip. */}
         <span className="chip" title="the workspace"
               onClick={() => { onAct("open", { id: graph.root }); onPick([]); }}>
-          <span className="label">[WS]</span>
+          <Icon name="files" />
         </span>
         <span className="tools">
           <button title={`add a block in ${shown_name(graph, target)}`}

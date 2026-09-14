@@ -26,7 +26,7 @@ export function Styles({ graph, id, styled = id, onAct, working = "" }: StylesPr
     <div className="settings">
       <div className={["styles", graph.defs[id] ? "definition" : ""].filter(Boolean).join(" ")}>
         <Identity graph={graph} id={id} onAct={onAct} working={working} />
-        <Looks graph={graph} id={styled} onAct={onAct} />
+        <Looks graph={graph} id={styled} about={id} onAct={onAct} />
       </div>
       {bodied ? <Content key={id} graph={graph} id={id} onAct={onAct} /> : null}
     </div>

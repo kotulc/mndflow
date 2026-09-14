@@ -22,7 +22,7 @@ import { arrangement_of, children, edges_in, group_depth, is_group, is_grid,
          module_of, type Arrangement, type Block, type Graph, type Id,
          type Point, type Relation } from "@mnd/core";
 import { cell_box, centred_in, fills_cell, gridded, on_unit, size_of, snap,
-         GAP, UNIT, type Size } from "./size";
+         BLOCK, GAP, UNIT, type Size } from "./size";
 
 export type Placed = { id: Id; x: number; y: number; w: number; h: number };
 
@@ -89,7 +89,9 @@ function in_band(graph: Graph, id: Id): boolean {
  *  is later hugged to a different size. */
 function band_size(graph: Graph, layer: Id | null, band: Block, how: Arrangement): Size {
   const layout = band_layout(graph, layer, band.id, how);
-  if (!layout.length) return { w: GAP * 2, h: GAP * 2 };
+  /** **An empty band is room for a card**, so one dragged out has somewhere to
+   *  drop what it will hold. */
+  if (!layout.length) return { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
   const right = Math.max(...layout.map((p) => p.x + p.w));
   const bottom = Math.max(...layout.map((p) => p.y + p.h));
   return { w: right + GAP * 2, h: bottom + GAP * 2 };

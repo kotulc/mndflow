@@ -503,9 +503,12 @@ export function App() {
       <Options groups={groups_of({ slots: scene.slots, arrangement: arranged,
                                    interfaces: shown.interfaces,
                                    lattice: shown.lattice, frame: shown.frame,
+                                   /** **The workspace is lit whenever it is the
+                                    *  context**: held, or the root layer with
+                                    *  nothing single picked on it. */
                                    held: hold?.of === "draft" ? hold.group
-                                     : hold?.of === "id" && hold.id === graph.root
-                                       ? "workspace" : null,
+                                     : hold?.of === "id" ? (hold.id === graph.root ? "workspace" : null)
+                                     : layer === null && s.picked().length !== 1 ? "workspace" : null,
                                    module: drawing.module,
                                    ...(drawing.dir ? { dir: drawing.dir } : {}),
                                    ...(drawing.type ? { type: drawing.type } : {}),
@@ -520,11 +523,12 @@ export function App() {
 
 /** **What a dragged definition makes, by what it is a definition of.**
  *
- *  Three of the eight kinds are made *of* something: a port goes on a block, a
- *  rim goes round one, and a stand-in stands for one. Each has an action that
- *  says what it needs, so this picks the action and the actions keep the rules
- *  — a drop on empty ground falls through to `create`, which refuses the three
- *  in the words the user should read.
+ *  Two of the eight kinds are made *of* something: a port goes on a block and a
+ *  stand-in stands for one. Each has an action that says what it needs, so this
+ *  picks the action and the actions keep the rules — a drop on empty ground
+ *  falls through to `create`, which refuses the two in the words the user
+ *  should read. **A group dropped on a block wraps it, and on empty ground is an
+ *  empty group.**
  *
  *  **A grid is made with an extent.** An empty grid is a real thing only
  *  because it owns its corner, and one with no rows and no columns would have

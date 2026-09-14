@@ -9,18 +9,22 @@
  *  leaves as an action name. */
 
 import { useState } from "react";
-import { DEFAULTS, honours, type Act, type Graph, type Id } from "@mnd/core";
+import { DEFAULTS, honours, is_named, type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, names } from "@mnd/theme";
 import { Body, Line, Rail } from "./Body";
 import { held, kind_of, reading } from "./holder";
 import { AS_RUN, ASKS, parts_in_order, ROWS, type Group, type Key,
          type Question } from "./questions";
 
-export type LooksProps = { graph: Graph; id: Id; onAct: Act };
+export type LooksProps = {
+  graph: Graph; id: Id; onAct: Act;
+  /** The element in context, where the look written is its definition's. */
+  about?: Id;
+};
 
 type Reading = ReturnType<typeof reading>;
 
-export function Looks({ graph, id, onAct }: LooksProps) {
+export function Looks({ graph, id, about = id, onAct }: LooksProps) {
   const [group, set_group] = useState<Group>("name");
 
   const it = held(graph, id);
@@ -41,6 +45,9 @@ export function Looks({ graph, id, onAct }: LooksProps) {
   /** **A hue is the family question asked finer**, so while one is set the
    *  families are unreachable rather than merely losing. */
   const tinted = said("style", "hue") !== undefined;
+  /** **What an unset handle draws**: shown while a card is unnamed, which is
+   *  what tells two apart — so that is the answer lit. */
+  const unnamed = !!graph.blocks[about] && !is_named(graph, about);
 
   return (
     <div className="col draws">
@@ -51,7 +58,8 @@ export function Looks({ graph, id, onAct }: LooksProps) {
       <Body>
         {asked(part).map((q) => (
           <Answer key={`${q.key}.${q.name}`} q={q} read={{ said, chain, now }} set={set}
-                  runs={runs} off={q.name === "family" && tinted} />
+                  runs={runs} off={q.name === "family" && tinted}
+                  app={unnamed && q.key === "card" && q.name === "alias" ? "show" : undefined} />
         ))}
       </Body>
     </div>
@@ -64,8 +72,10 @@ export function Looks({ graph, id, onAct }: LooksProps) {
  *  answer it lands on is lit quietly, and one this element set is lit brightly —
  *  pressing that one gives it back. A run's `style` lights nothing where nothing
  *  was said, because an unstyled run draws from its module. */
-function Answer({ q, read, set, off, runs }: {
+function Answer({ q, read, set, off, runs, app }: {
   q: Question; read: Reading; off: boolean; runs: boolean;
+  /** What the app draws here when nothing is said, where it is not the table's. */
+  app?: string;
   set: (key: Key, name: string, value: string) => void;
 }) {
   const { said, chain, now } = read;
@@ -109,8 +119,8 @@ function Answer({ q, read, set, off, runs }: {
   }
 
   /** What it draws: what it says for itself, then its chain, then the app. */
-  const from_app = runs && q.key === "style"
-    ? "" : DEFAULTS[`${q.key}.${q.name}` as keyof typeof DEFAULTS] ?? "";
+  const from_app = app ?? (runs && q.key === "style"
+    ? "" : DEFAULTS[`${q.key}.${q.name}` as keyof typeof DEFAULTS] ?? "");
   const at = String(own ?? "") || chain(q.key, q.name) || from_app;
   const offered = (q.of ?? []).filter((c) => !(runs && q.omit?.includes(c.value)));
 

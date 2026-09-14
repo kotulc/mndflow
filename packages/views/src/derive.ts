@@ -47,9 +47,10 @@ export function carried(graph: Graph, id: Id): BoxData {
   const look = look_of(graph, id);
   const cells = pictured(graph, id)
     ? cells_of(graph, id, (kid) => shown_name(graph, kid)) : [];
-  /** **The handle, beside the name rather than inside it.** Unnamed, it is what
-   *  tells two `Block`s apart; named, it is drawn only where the card asked. */
-  const alias = look.alias ? alias_of(graph, id, true) : alias_of(graph, id);
+  /** **The handle, beside the name rather than inside it.** What the card says
+   *  wins; said nothing, it is drawn only while the card is unnamed. */
+  const alias = look.alias === undefined ? alias_of(graph, id)
+    : look.alias ? alias_of(graph, id, true) : "";
   return {
     label: shown_name(graph, id),
     ...(alias ? { alias } : {}),

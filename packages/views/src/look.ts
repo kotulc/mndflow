@@ -61,9 +61,9 @@ export type Look = {
   align: Align;
   /** Which end of the card its label reads from. */
   label_align: Align;
-  /** Whether the handle joins a name somebody **did** set. The fallback always
-   *  carries one, which is the whole reason it needs one. */
-  alias: boolean;
+  /** Whether the handle is drawn, **where somebody said**. Absent, it is drawn
+   *  only while nobody has named the card, which is what tells two apart. */
+  alias?: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named
    *  one, the base kind otherwise. **Always a word** — the card decides whether
    *  to write it from `label`, so there is nothing for absence to mean. */
@@ -78,11 +78,6 @@ export type Look = {
    *  where `hue` is given; a family carries its own. */
   intensity?: number;
 };
-
-/** Whether a writing draws, as the closed set says it. **Widened on purpose**:
- *  the defaults table is `as const`, so comparing one of its literals to a word
- *  reads to the compiler as a comparison that can never hold. */
-const shows = (said: string): boolean => said === "show";
 
 /** What a card is when its definition says nothing. Neutral, ordinary weight,
  *  ordinary writing: the look every unclassified block already had.
@@ -104,7 +99,6 @@ export const PLAIN: Look = {
   label: DEFAULTS["card.label"],
   align: DEFAULTS["card.align"],
   label_align: DEFAULTS["card.label_align"],
-  alias: shows(DEFAULTS["card.alias"]),
   kind: "block",
 };
 
@@ -163,7 +157,7 @@ export function look_of(graph: Graph, id: Id): Look {
     label: one(card["label"], DISPLAYS, PLAIN.label),
     align: one(card["align"], ALIGNS, PLAIN.align),
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
-    alias: one(card["alias"], SHOWN, "hide") === "show",
+    ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),

@@ -269,14 +269,13 @@ const run_type = (ctx: Context, args: Args, module: RelationModule): { type?: Id
   return type && relation_named(ctx.graph, type) === module ? typed(ctx, args) : {};
 };
 
-/** **What a layer cannot supply on its own.** Three kinds are made *of*
- *  something — a port of a block, a rim round one, a stand-in for one — so a
- *  definition of one dropped on empty ground would mint a wall-less interface,
- *  a band round nothing, or a reference to nothing. Each has an action of its
- *  own that says what it needs. */
+/** **What a layer cannot supply on its own.** Two kinds are made *of*
+ *  something — a port of a block, a stand-in for one — so a definition of one
+ *  dropped on empty ground would mint a wall-less interface or a reference to
+ *  nothing. Each has an action of its own that says what it needs. **A group
+ *  may start empty**, as room for what will go in it. */
 const NEEDS: Partial<Record<BlockModule, string>> = {
   interface: "interfaces may only be added to existing blocks",
-  group: "a boundary is a rim round something — drop it on a block",
   reference: "a reference is made by dragging the block, not its definition",
 };
 

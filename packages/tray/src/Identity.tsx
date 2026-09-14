@@ -1,16 +1,16 @@
 /** What one thing is: **the left column of the settings panel.**
  *
- *  The drawing first, with what kind it is and how many there are beside it;
- *  then what it is called, what it refines, and where it is offered. **Every
+ *  The drawing first, with what kind it is, how many there are and whether it
+ *  is pinned beside it; then what it is called and what it refines. **Every
  *  branch on which holder this is lives here**, which is what leaves the column
  *  beside it uniform.
  *
  *  | holder | rows |
  *  |---|---|
- *  | workspace | name, id |
- *  | block | name, type, offer |
- *  | block definition | name, type, offer |
- *  | relation definition, or a line's | name, label, extends, offer |
+ *  | block, the workspace included | name, tags, type |
+ *  | block definition | name, type |
+ *  | relation definition | name, label, extends |
+ *  | a line | name, label, tags, extends |
  *
  *  **A line is described by the definition it follows.** Styling one makes a
  *  working definition, named here and kept with *save*; which definition a line
@@ -26,6 +26,7 @@ import { Band, Body, Line } from "./Body";
 import { Card } from "./Card";
 import { taken } from "./Definitions";
 import { Entry } from "./Entry";
+import { Tags } from "./Tags";
 import { Wire } from "./Wire";
 import { DRAFT } from "./draft";
 import { held, kind_of, reading } from "./holder";
@@ -100,22 +101,31 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           <Wire label={label} alias={edge ? alias_of(graph, id, true) : undefined}
                 said={said} now={now} />
         ) : (
-          <Card label={label} alias={b ? alias_of(graph, id) : undefined}
+          <Card label={label}
+                alias={!b ? undefined : now("card", "alias", "") === "show" ? alias_of(graph, id, true)
+                  : now("card", "alias", "") === "hide" ? undefined : alias_of(graph, id)}
                 kind={word} icon={(now("card", "icon", "") || role_icon(role ?? kind)) as IconName}
                 role={role ?? kind} said={said} now={now} />
         )}
         <div className="kind-rows">
           <span><span className="holder">{runs ? "line type" : "card type"}</span>
             <span className="base">{kind}<Icon name={mark} size={12} /></span></span>
-          {/* **The workspace says what an export of it carries**, where every
-              other block says how many there are. */}
-          {is_root ? (
-            <span className="tally">{`schema ${SCHEMA} · ${count(Object.keys(graph.blocks).length - 1, "block")} · `
-              + `${count(Object.keys(graph.edges).length, "relation")} · `
-              + `${count(Object.values(graph.defs).filter((x) => !shipped(x)).length, "definition")}`}</span>
-          ) : (
-            <span className="tally">{count(tally, "instance")}</span>
-          )}
+          {/* **The workspace says the schema an export of it is written in**,
+              where every other block says how many there are. */}
+          <span className="tally">{is_root ? `schema ${SCHEMA}` : count(tally, "instance")}</span>
+          {/* **Pinned sits beside the card**: a relation definition on the rail,
+              a block definition in the pinned folder. A base or a default is
+              never pinned, so it offers nothing. */}
+          {own && !fixed ? (
+            <label className="check"
+                   title={runs ? "Offer this on the rail, so a right drag can draw one"
+                               : "List this in the explorer's pinned folder"}>
+              <input type="checkbox" checked={listed} disabled={own.id === DRAFT || wip}
+                     onChange={(e) => onAct("pin", { id: own.id,
+                                                     on: e.target.checked ? "yes" : "no" })} />
+              pinned
+            </label>
+          ) : null}
         </div>
       </div>
 
@@ -125,11 +135,11 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
             kept by saving; a filed definition's is read-only, since its id is
             slugged from it. */}
         {drafted ? (
-          <Line label="name" tip="What this will be called. Saving keeps it under this name.">
-            <input value={d!.name} aria-label="name" placeholder="name it to save it"
-                   onChange={(e) => onAct("define", { id, name: e.target.value,
-                                                     extends: d!.extends ?? "" })} />
-            {clash ? <span className="from warn">{clash}</span> : null}
+          <Line label="name" tip="What this will be called. Naming it adds it to the definitions.">
+            {/* **Named is kept**: leaving the box files the draft under its name. */}
+            <Entry key="draft" value="" label="name" placeholder="name it to add it"
+                   clash={(to) => taken(graph, to, runs ? "relation" : "block", DRAFT)}
+                   onCommit={(to) => onAct("@name", { name: to })} />
           </Line>
         ) : wip && runs ? (
           <Line label="name" tip="This line's working definition. Name it and save it to keep it.">
@@ -169,20 +179,14 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
         ) : null}
 
         {/* **Tags are an element's own**, never its definition's: words that say
-            what this one thing is like. Committed when the box is left. */}
+            what this one thing is like. */}
         {(b || edge) && !d ? (
-          <Line label="tags" tip="Words that say what this is like, separated by commas. Tags carry nothing and are never inherited.">
-            <Entry key={`tags-${id}`} value={((b ?? edge)!.tags ?? []).join(", ")} label="tags"
-                   placeholder="no tags" blank
-                   onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
+          <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
+            <Tags tags={(b ?? edge)!.tags ?? []}
+                  onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
           </Line>
         ) : null}
 
-        {is_root ? (
-          <Line label="id" tip="What this project is called in the file and in every log.">
-            <input value={id} readOnly aria-label="id" />
-          </Line>
-        ) : null}
 
         {/* **Label.** What a line naming the definition draws, exactly as typed;
             its own, never inherited. A working look keeps the one it follows. */}
@@ -251,26 +255,6 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           </Line>
         ) : null}
 
-        {/* **Where the definition is offered.** Pinned puts a relation definition
-            on the rail and a block definition in the explorer's pinned folder. */}
-        <Line label="offer" className="marks"
-              tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
-                        : "Whether this definition is in the pinned folder."}>
-          {/* **A base or a default is never pinned** — every plain one of its
-              kind already follows it. Saying so beats a box that refuses. */}
-          {fixed ? (
-            <span className="read">{`default/${kind} is what every plain ${kind} follows — save a definition to pin one`}</span>
-          ) : (
-            <label className="check"
-                   title={runs ? "Offer this on the rail, so a right drag can draw one"
-                               : "List this in the explorer's pinned folder"}>
-              <input type="checkbox" checked={listed} disabled={own!.id === DRAFT || wip}
-                     onChange={(e) => onAct("pin", { id: own!.id,
-                                                     on: e.target.checked ? "yes" : "no" })} />
-              pinned
-            </label>
-          )}
-        </Line>
       </Body>
 
       {borrowed ? (

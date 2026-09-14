@@ -544,7 +544,8 @@
    element has been told about itself; this one is a claim on every other block
    of its kind, so it reads as the one control on the panel that is not about
    the thing in front of you. */
-.rows > .row > .line > .check {
+.rows > .row > .line > .check,
+.kind-rows > .check {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -553,24 +554,35 @@
   cursor: pointer;
 }
 
-.rows > .row > .line > .check:hover { color: var(--text); }
-.rows > .row > .line > .check input { margin: 0; accent-color: var(--accent); }
+.rows > .row > .line > .check:hover,
+.kind-rows > .check:hover { color: var(--text); }
+.rows > .row > .line > .check input,
+.kind-rows > .check input { margin: 0; accent-color: var(--accent); }
 
-/* Undoing a pin is a small destruction, so it is said in words and wears the
-   border a button gets when it means it. */
-.rows > .row > .line > .undo-pin {
-  display: inline-flex;
+/* **One chip a tag**, and the box to add another takes what the row has left. */
+.rows > .row > .line > .tags {
+  display: flex;
+  flex: 1 1 0;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  padding: 1px 7px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  color: var(--muted);
-  font-size: 11px;
-  cursor: pointer;
+  gap: 3px;
+  min-width: 0;
 }
+.rows > .row > .line > .tags > .tag { display: inline-flex; align-items: center; gap: 3px; }
+.rows > .row > .line > .tags > input {
+  flex: 1 1 8ch;
+  min-width: 8ch;
+  box-sizing: border-box;
+  height: 22px;
+  color: inherit;
+  background: var(--band);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 0 6px;
+  font: inherit;
+}
+.rows > .row > .line > .tags > input:focus { outline: none; border-color: var(--accent); }
 
-.rows > .row > .line > .undo-pin:hover { color: var(--accent); border-color: var(--accent); }
 
 /* ── The card, as the stage draws it ──────────────────────────────────────
    **Five units by two, which is what a block is** — the same box, the same head,
