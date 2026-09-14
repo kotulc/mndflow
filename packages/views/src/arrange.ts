@@ -564,7 +564,8 @@ function is_note(graph: Graph, b: Block): boolean {
 function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   const out: Id[] = [];
   for (const e of edges_in(graph, layer)) {
-    if (e.module !== "tie") continue;
+    /** A note tied only to a line is packed like anything else. */
+    if (e.module !== "tie" || graph.edges[e.from] || graph.edges[e.to]) continue;
     if (e.from === id) out.push(e.to);
     else if (e.to === id) out.push(e.from);
   }

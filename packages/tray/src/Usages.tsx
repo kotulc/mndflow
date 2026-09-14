@@ -30,9 +30,14 @@ export type UsagesProps = {
   onPick: (id: Id) => void;
   onHover?: (id: Id | null) => void;
   onAct: Act;
+  /** **Go to where a line lives**: open its layer and pick it there. */
+  onView?: (id: Id) => void;
+  /** The layer a line is drawn in. */
+  home: (id: Id) => Id | null;
 };
 
-export function Usages({ graph, layer, about, picked, onPick, onHover, onAct }: UsagesProps) {
+export function Usages({ graph, layer, about, picked, onPick, onHover, onAct, onView,
+                         home }: UsagesProps) {
   /** **The root layer reads the whole project** until somebody says otherwise. */
   const [scope, set_scope] = useState<"here" | "workspace">(layer === null ? "workspace" : "here");
   const [module, set_module] = useState("all");
@@ -62,6 +67,7 @@ export function Usages({ graph, layer, about, picked, onPick, onHover, onAct }: 
     ...(deep ? [{ key: "layer", label: "in", width: "18%" }] : []),
     { key: "def", label: "definition", width: deep ? "20%" : "24%" },
     { key: "label", label: "label", width: deep ? "18%" : "20%" },
+    { key: "view", label: "", width: "4.5em" },
   ];
 
   return (
@@ -101,6 +107,14 @@ export function Usages({ graph, layer, about, picked, onPick, onHover, onAct }: 
                     onPick={(id) => onAct("retype", { ids: [r.id], type: id })} />
           ),
           label: r.label,
+          /** **Only on the row picked, and only when it is elsewhere** — one
+           *  that is here already lights. */
+          view: onView && picked.includes(r.id) && home(r.id) !== layer ? (
+            <button className="chip" title="open the layer this is in"
+                    onClick={(e) => { e.stopPropagation(); onView(r.id); }}>
+              view
+            </button>
+          ) : null,
         },
       }))}
     />

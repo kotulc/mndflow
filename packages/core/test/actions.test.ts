@@ -2,12 +2,12 @@
  *  about whether it writes. */
 
 import { describe, expect, it } from "vitest";
-import { related } from "@mnd/fixtures";
+import { FLOOR, related } from "@mnd/fixtures";
 import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
          type Context } from "../src/index";
 
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
-  ({ graph: fold(related()), layer, picked });
+  ({ graph: fold(related(), FLOOR), layer, picked });
 
 /** The same layer with its boundary made into a grid: three cells, two filled,
  *  and a cell picked — what the grid actions are about. **One cell is left
@@ -51,10 +51,10 @@ describe("the registry", () => {
   });
 
   it("returns mutations and never applies them", () => {
-    const before = fold(related());
+    const before = fold(related(), FLOOR);
     const c: Context = { graph: before, layer: "block_loop", picked: [] };
     run("create", c, { name: "Filter" });
-    expect(before).toEqual(fold(related()));
+    expect(before).toEqual(fold(related(), FLOOR));
   });
 });
 

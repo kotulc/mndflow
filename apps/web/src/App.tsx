@@ -75,6 +75,8 @@ export function App() {
     useState<{ module: RelationModule; dir?: Dir; type?: string }>({ module: "line" });
   /** What help is pointing at, as the one lit-target look every surface uses. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
+  /** The tray row under the pointer, lit on the canvas where it is drawn. */
+  const [hovered, set_hovered] = useState<Id | null>(null);
   /** **What the tray holds that the canvas did not give it** — the workspace, a
    *  definition, or a blank one being written. Shell state beside the session's
    *  selection and never among it, since none of these is a block or a
@@ -466,6 +468,7 @@ export function App() {
           {...(drawing.type ? { type: drawing.type } : {})}
           said={said?.text ?? null}
           onSaid={() => s.say("")}
+          lit={hovered && drawn.has(hovered) ? [hovered] : []}
           /** **The canvas reporting what it can draw is not a gesture.** A pick
            *  it cannot show comes back as that pick minus the part it cannot,
            *  and taking that as a selection let go of the tray's hold. */
@@ -489,6 +492,7 @@ export function App() {
           /** **The tray's own tables hold its context**, so a row picked there
            *  selects without the hold being let go — the tray says which. */
           onPick={(ids) => s.pick(ids)}
+          onHover={set_hovered}
           hold={hold}
           onHold={set_hold}
           onView={(home, id) => { s.look(home); s.pick([id]); set_hold(null); }}

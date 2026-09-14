@@ -65,6 +65,9 @@ export type StageProps = {
   module?: string;
   dir?: string;
   type?: string;
+  /** What another surface is pointing at — a hovered table row — drawn in the
+   *  lit-target look. Never a selection, so the tray keeps its context. */
+  lit?: readonly string[];
 };
 
 /** What has no inside to open. A boundary is its members' bounds and a note is
@@ -134,7 +137,11 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
     : readonly (string | Entry)[] | undefined {
   if (g.kind === "brim" && g.on) {
     const n = scene.nodes.find((x) => x.id === g.on);
-    if (holds(n)) return offers.band;
+    /** **Fill is a grid's**: a boundary has no cells to fill. */
+    if (holds(n)) {
+      return n?.type === "grid" ? offers.band
+        : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
+    }
     return box_offers(g.on, graph);
   }
   if (g.kind === "box" && g.on) return box_offers(g.on, graph);
@@ -147,7 +154,7 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, frame, module, dir, type }: StageProps) {
+                       menu, said, onSaid, lattice, frame, module, dir, type, lit = [] }: StageProps) {
   /** What a right drag, or a chain, is told to draw. Named once so the rail's
    *  pick reaches every gesture that makes a relationship. */
   /** **Always said, so the rail is obeyed.** A chain runs forward where nobody
@@ -220,7 +227,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        onPick(scene.nodes.map((n) => n.id));
+        onPick(scene.nodes.filter((n) => n.selectable !== false).map((n) => n.id));
       }
       else return;
     };
@@ -247,7 +254,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     box: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
     seat: ["rename", "open", "interface", "relate", "note", "pin", "delete"],
     /** **A group and a grid write their name on the frame** when told to. */
-    band: [{ name: "rename", label: "rename group" }, "label", "fill",
+    band: [{ name: "rename", label: "rename group" }, "fill",
            { name: "chain", args: drawing }, "pin",
            { name: "delete", label: "delete group" }],
     /** **A cell is an address, not a thing**, so what it offers is what can be
@@ -371,6 +378,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   return (
     <section className="stage">
       <Crumbs trail={scene.trail} onAct={onAct} />
+      {lit.length ? <style>{lit_rules(lit)}</style> : null}
       <FlowView
         scene={scene}
         picked={picked}
@@ -479,6 +487,16 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
 function made_at(scene: Scene, at: { x: number; y: number }) {
   const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
+}
+
+/** The lit-target look, keyed by id. **A rule rather than a class**, so lighting
+ *  a row never rebuilds the canvas's nodes and edges. */
+function lit_rules(ids: readonly string[]): string {
+  const at = (kind: string) =>
+    ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]`);
+  return `${at("node").join(",")} { filter: drop-shadow(0 0 3px var(--accent)); }
+`
+       + `${at("edge").map((s) => `${s} path`).join(",")} { stroke: var(--accent) !important; }`;
 }
 
 function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {

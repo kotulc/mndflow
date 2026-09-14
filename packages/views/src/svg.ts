@@ -10,10 +10,9 @@
  *  this knows about the outside: where a block came from is a field on the
  *  block, and following one is a renderer's business. */
 
-import { getSmoothStepPath, Position } from "@xyflow/system";
-import type { Side } from "@mnd/core";
 import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
-import { at_seat, type Perch } from "./seat";
+import { end_of } from "./knot";
+import { drawn, middle_of, route } from "./route";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
 export type Paper = {
@@ -111,6 +110,7 @@ svg.scene .route.tie path {
   stroke-width: 1.5; opacity: 0.75;
 }
 svg.scene .route.tie .head { fill: var(--note-dim); }
+svg.scene .knot { fill: var(--note-dim); }
 `.trim();
 
 /** The whole scene, as one SVG document. */
@@ -139,9 +139,7 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
       + `<text x="${round(f.x + 12)}" y="${round(f.y)}">${esc(f.label)}</text></g>`);
   }
 
-  const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
-  const met = new Map(scene.perches.map((p) => [`${p.edge}|${p.end}`, p]));
-  for (const e of scene.edges) parts.push(line(e, at, met, key));
+  for (const e of scene.edges) parts.push(line(e, scene, key));
   scene.nodes.forEach((n, i) => parts.push(card(n, `${key}-clip-${i}`)));
 
   parts.push(`</svg>`);
@@ -153,6 +151,11 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
 function card(node: BoxNode, clip: string): string {
   const d = node.data;
   const at = box_of(node);
+  /** A knot is where a tie meets a line: a dot, and nothing to read. */
+  if (node.type === "knot") {
+    return `<circle class="knot" cx="${round(at.x + at.w / 2)}" cy="${round(at.y + at.h / 2)}"`
+      + ` r="${round(at.w / 2)}" />`;
+  }
   const shape = `<rect x="${round(at.x)}" y="${round(at.y)}"`
     + ` width="${round(at.w)}" height="${round(at.h)}" rx="3" />`;
   const drawn = `<g class="${["card", ...d.marks].join(" ")}"`
@@ -176,47 +179,26 @@ function label(node: BoxNode, clip: string): string {
     + ` text-anchor="middle" clip-path="url(#${clip})">${esc(d.label)}</text>`;
 }
 
-/** One line. **The same path the canvas draws** — `getSmoothStepPath` is React
- *  Flow's own, it is a pure function of six numbers, and calling it here is
- *  what keeps the headless drawing and the browser one from drifting.
- *
- *  **Where it meets each end is the projection's**, and arrives as a perch, so
- *  this and the canvas read one answer rather than each working one out. An end
- *  seated on an interface has no perch: it meets the middle of the wall the
- *  interface is set into, which is the whole of that interface. */
-function line(edge: LineEdge, at: Map<string, At>, met: ReadonlyMap<string, Perch>,
-              key: string): string {
-  const a = at.get(edge.source);
-  const b = at.get(edge.target);
+/** One line. **The same run the canvas draws** — one router, fed the ends the
+ *  projection worked out, so the headless drawing and the browser one agree
+ *  and a tie's knot sits on the line it names. */
+function line(edge: LineEdge, scene: Scene, key: string): string {
+  const a = end_of(edge, "from", scene.nodes, scene.perches, scene.frame);
+  const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
   if (!a || !b) return ``;
-  const dx = (b.x + b.w / 2) - (a.x + a.w / 2);
-  const dy = (b.y + b.h / 2) - (a.y + a.h / 2);
-  const across = Math.abs(dx) >= Math.abs(dy);
-  const from_perch = met.get(`${edge.id}|from`);
-  const to_perch = met.get(`${edge.id}|to`);
-  const out = from_perch ? FACE[from_perch.side]
-    : across ? (dx >= 0 ? Position.Right : Position.Left)
-             : (dy >= 0 ? Position.Bottom : Position.Top);
-  const into = to_perch ? FACE[to_perch.side]
-    : across ? (dx >= 0 ? Position.Left : Position.Right)
-             : (dy >= 0 ? Position.Top : Position.Bottom);
-  const from = from_perch ? seated(a, from_perch) : wall(a, out);
-  const to = to_perch ? seated(b, to_perch) : wall(b, into);
-  const [d, cx, cy] = getSmoothStepPath({
-    sourceX: from.x, sourceY: from.y, sourcePosition: out,
-    targetX: to.x, targetY: to.y, targetPosition: into,
-  });
+  const run = route(a, a.face, b, b.face, edge.data?.clear ?? []);
+  const mid = middle_of(run);
 
   const data = edge.data;
   const end = heads(data);
   /** **The name, and the handle where the line asked for one.** A run writes
    *  nothing else — an edge holds no values. */
   const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
-  return `<g class="route ${data?.module ?? "line"}"><path d="${d}"`
+  return `<g class="route ${data?.module ?? "line"}"><path d="${drawn(run, 6)}"`
     + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
     + (end.to === "none" ? `` : ` marker-end="url(#${key}-${end.to})"`) + ` />`
     + (middle
-        ? `<text x="${round(cx)}" y="${round(cy - 4)}" text-anchor="middle">`
+        ? `<text x="${round(mid.x)}" y="${round(mid.y - 4)}" text-anchor="middle">`
           + `${esc(middle)}</text>`
         : ``)
     + `</g>`;
@@ -242,28 +224,6 @@ function markers(key: string): string {
     + `<path d="${head.d}" class="${head.open ? "head open" : "head"}" /></marker>`
   ).join("");
 }
-
-/** How a side names itself to the path function. */
-const FACE: Record<Side, Position> = {
-  top: Position.Top, right: Position.Right,
-  bottom: Position.Bottom, left: Position.Left,
-};
-
-/** The middle of the seat a perch sits on. */
-function seated(b: At, perch: Perch): { x: number; y: number } {
-  const r = at_seat(b, perch);
-  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
-}
-
-/** The middle of one wall of a box. */
-function wall(b: At, side: Position): { x: number; y: number } {
-  if (side === Position.Left) return { x: b.x, y: b.y + b.h / 2 };
-  if (side === Position.Right) return { x: b.x + b.w, y: b.y + b.h / 2 };
-  if (side === Position.Top) return { x: b.x + b.w / 2, y: b.y };
-  return { x: b.x + b.w / 2, y: b.y + b.h };
-}
-
-type At = { x: number; y: number; w: number; h: number };
 
 /** Placements are fractional, and a file that is diffed is read by a person, so
  *  a coordinate is written to the tenth rather than to the sixteenth. */

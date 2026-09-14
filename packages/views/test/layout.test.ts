@@ -5,7 +5,7 @@
  *  right angle, and that reordering the input does not move the output. */
 
 import { describe, expect, it } from "vitest";
-import { fixture, related } from "@mnd/fixtures";
+import { FLOOR, fixture, related } from "@mnd/fixtures";
 import { children, fold, is_grid, is_interface, module_of,
          type Arrangement, type Graph, type Id } from "@mnd/core";
 import { cell_box } from "../src/size";
@@ -15,7 +15,7 @@ import { bounds, boundary, laid, nearest_seat, seated, size_of, snap, tidy, GAP,
 const ARRANGEMENTS: Arrangement[] = ["free", "grid"];
 
 function layer_of(name: string): { graph: Graph; layer: Id } {
-  const graph = fold(fixture(name));
+  const graph = fold(fixture(name), FLOOR);
   const layer = children(graph, graph.root)[0]!.id;
   return { graph, layer };
 }
@@ -115,7 +115,7 @@ describe("placement", () => {
 
 describe("the grid arrangement", () => {
   it("puts everything it places on the lattice, in units", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     for (const p of under(graph, "block_loop", "grid")) {
       expect(Math.abs(p.x % UNIT), `${p.id} x`).toBe(0);
       expect(Math.abs(p.y % UNIT), `${p.id} y`).toBe(0);
@@ -123,7 +123,7 @@ describe("the grid arrangement", () => {
   });
 
   it("reads left to right, then down a row", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid");
     const rows = new Map<number, number[]>();
     for (const p of spots) rows.set(p.y, [...(rows.get(p.y) ?? []), p.x]);
@@ -160,7 +160,7 @@ describe("the grid arrangement", () => {
   });
 
   it("gives a band no cell of its own — it is its members' bounds", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid");
     const band = spots.find((p) => p.id === "block_hot")!;
     const members = Object.values(graph.blocks)
@@ -172,7 +172,7 @@ describe("the grid arrangement", () => {
   });
 
   it("moves a band's members when its corner moves in free mode", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_loop"]!.arrangement = "free";
     graph.blocks["block_hot"]!.x = 0;
     graph.blocks["block_hot"]!.y = 0;
@@ -189,7 +189,7 @@ describe("the grid arrangement", () => {
   });
 
   it("grows a square rather than a line", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = placed(graph, under(graph, "block_loop", "grid"));
     if (spots.length < 4) return;
     expect(new Set(spots.map((p) => p.y)).size).toBeGreaterThan(1);
@@ -257,7 +257,7 @@ describe("a grid's cells sit on the unit lattice", () => {
 describe("the layout leaves room between things", () => {
 
   it("keeps a unit between a band and its neighbours, the way a grid is kept", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid")
       .filter((p) => {
         const m = module_of(graph, p.id);
@@ -306,7 +306,7 @@ describe("the layout leaves room between things", () => {
   });
 
   it("places each id once, even when a group sits inside another", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_inner"] = {
       id: "block_inner", parent: "block_loop", type: "group", order: 20,
     };
@@ -321,7 +321,7 @@ describe("the layout leaves room between things", () => {
   });
 
   it("keeps a unit between a band and a sibling card, never overlapping the rim", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_hello"] = { id: "block_hello", parent: "block_loop", type: "block", order: 30 };
     graph.edges["edge_hello"] = {
       id: "edge_hello", from: "block_hello", to: "block_hx", module: "line",
@@ -338,7 +338,7 @@ describe("the layout leaves room between things", () => {
   });
 
   it("shelves unlinked cards without breaking the related cluster", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_spare"] = { id: "block_spare", parent: "block_loop", type: "block", order: 50 };
     graph.blocks["block_spare2"] = { id: "block_spare2", parent: "block_loop", type: "block", order: 51 };
     const spots = under(graph, "block_loop", "grid");
@@ -353,7 +353,7 @@ describe("the layout leaves room between things", () => {
 
 describe("boundaries", () => {
   it("is its members' bounds plus a margin, and holds them", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = laid(graph, "block_loop");
     const members = Object.values(graph.blocks)
       .filter((b) => b.group === "block_hot").map((b) => b.id);
@@ -376,7 +376,7 @@ describe("seats", () => {
   const card: Placed = { id: "block_pump", x: 0, y: 0, w: 168, h: 36 };
 
   it("puts a lone line on the centre of its wall", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = laid(graph, "block_loop");
     const boxes = new Map(spots.map((p) => [p.id, p]));
     const links = Object.values(graph.edges);
@@ -393,7 +393,7 @@ describe("seats", () => {
   });
 
   it("fans several ends out from the centre of one wall", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = laid(graph, "block_loop");
     const boxes = new Map(spots.map((p) => [p.id, p]));
     const links = Object.values(graph.edges);
@@ -416,7 +416,7 @@ describe("seats", () => {
   });
 
   it("never gives two ends the same seat on one wall", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = laid(graph, "block_loop");
     const boxes = new Map(spots.map((p) => [p.id, p]));
     const links = Object.values(graph.edges);
@@ -430,7 +430,7 @@ describe("seats", () => {
   });
 
   it("keeps related loose cards beside each other under grid", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -446,7 +446,7 @@ describe("seats", () => {
   });
 
   it("lines up directed neighbours on one row so a run can be straight", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const pump = at.get("block_pump")!;
@@ -504,7 +504,7 @@ describe("seats", () => {
   });
 
   it("sits a neighbour of a grid cell above that cell, not past the far edge", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_n"] = { id: "block_n", parent: "block_board", type: "block", order: 80 };
     graph.edges["edge_n"] = { id: "edge_n", from: "block_n", to: "block_draft", module: "line" };
     const spots = under(graph, "block_board", "grid");
@@ -540,7 +540,7 @@ describe("seats", () => {
   });
 
   it("keeps upstream blocks beside a band on the near side, not across it", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
@@ -551,7 +551,7 @@ describe("seats", () => {
   });
 
   it("clusters related cards under grid even with stale hand placement", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_pump"]!.x = 0;
     graph.blocks["block_pump"]!.y = 0;
     graph.blocks["block_valve"]!.x = 3000;
@@ -569,7 +569,7 @@ describe("seats", () => {
   });
 
   it("lines up related band members on one row under grid", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
     const hx = at.get("block_hx")!;
@@ -582,7 +582,7 @@ describe("seats", () => {
   });
 
   it("ignores stale hand placement when arranging band members under grid", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_hx"]!.x = 0;
     graph.blocks["block_hx"]!.y = 400;
     graph.blocks["block_tank"]!.x = 800;
@@ -593,7 +593,7 @@ describe("seats", () => {
   });
 
   it("places a tied note beside what it is about", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
     const spots = under(graph, "block_loop", "grid");
     const at = new Map(spots.map((p) => [p.id, p]));
@@ -606,7 +606,7 @@ describe("seats", () => {
   });
 
   it("pulls a tied note beside its subject even when it was dropped far away", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
     graph.blocks["block_note"]!.x = 2000;
     graph.blocks["block_note"]!.y = 2000;
@@ -621,7 +621,7 @@ describe("seats", () => {
   });
 
   it("tidies a tied note beside what it is about", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_pump", module: "tie" };
     graph.blocks["block_note"]!.x = 2000;
     graph.blocks["block_note"]!.y = 2000;
@@ -642,7 +642,7 @@ describe("seats", () => {
   });
 
   it("places a tied note on the near rim of a grid, aligned with the block it is about", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_note"] = { id: "block_note", parent: "block_board", type: "note", order: 99 };
     graph.edges["edge_note"] = { id: "edge_note", from: "block_note", to: "block_draft", module: "tie" };
     const spots = under(graph, "block_board", "grid");
@@ -658,7 +658,7 @@ describe("seats", () => {
   });
 
   it("places a reference on the near rim of a grid, aligned with the block it is linked to", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_draft", module: "line" };
@@ -675,7 +675,7 @@ describe("seats", () => {
   });
 
   it("anchors a reference on its in-layer link when its target is not on the board", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_board", of: "block_remote", order: 99 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_build", module: "line" };
@@ -692,7 +692,7 @@ describe("seats", () => {
   });
 
   it("places a block beside a grid near its cell, not past an intervening group", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_in"] = { id: "block_in", parent: "block_board", type: "block", order: 50 };
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
@@ -713,7 +713,7 @@ describe("seats", () => {
   });
 
   it("places a downstream block on the near side of a grid, not past an intervening group", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_out"] = { id: "block_out", parent: "block_board", type: "block", order: 53 };
     graph.blocks["block_mid"] = { id: "block_mid", parent: "block_board", type: "group", order: 51 };
     graph.blocks["block_pad"] = { id: "block_pad", parent: "block_board", type: "block", order: 52 };
@@ -728,7 +728,7 @@ describe("seats", () => {
   });
 
   it("keeps two references on the near rim of a grid, aligned with their linked cells", () => {
-    const graph = fold(fixture("gridded"));
+    const graph = fold(fixture("gridded"), FLOOR);
     graph.blocks["block_remote_a"] = { id: "block_remote_a", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_remote_b"] = { id: "block_remote_b", parent: graph.root, type: "block", order: 2 };
     graph.blocks["block_ref_a"] = { id: "block_ref_a", parent: "block_board", of: "block_remote_a", order: 98 };
@@ -751,7 +751,7 @@ describe("seats", () => {
   });
 
   it("places a reference beside the block it is linked to on the layer", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99 };
     graph.edges["edge_ref"] = { id: "edge_ref", from: "block_ref", to: "block_pump", module: "line" };
@@ -766,7 +766,7 @@ describe("seats", () => {
   });
 
   it("pulls a reference beside its linked block even when it was dropped far away", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     graph.blocks["block_remote"] = { id: "block_remote", parent: graph.root, type: "block", order: 1 };
     graph.blocks["block_ref"] = { id: "block_ref", parent: "block_loop", of: "block_remote", order: 99,
                                   x: 2000, y: 2000 };
@@ -782,7 +782,7 @@ describe("seats", () => {
   });
 
   it("seats every interface on the card it belongs to, and nowhere else", () => {
-    const graph = fold(fixture("interfaced"));
+    const graph = fold(fixture("interfaced"), FLOOR);
     const spots = laid(graph, "block_loop");
     const ports = seated(graph, spots);
     expect(ports.map((p) => p.id).sort()).toEqual(["port_in", "port_out"]);
@@ -797,7 +797,7 @@ describe("seats", () => {
   });
 
   it("lays out none of them — an interface is seated, never placed", () => {
-    const graph = fold(fixture("interfaced"));
+    const graph = fold(fixture("interfaced"), FLOOR);
     const spots = laid(graph, "block_loop");
     expect(spots.some((p) => is_interface(graph.blocks[p.id]!))).toBe(false);
   });

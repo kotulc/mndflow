@@ -77,6 +77,10 @@ export function write_subtree(graph: Graph, root: Id): string {
   for (const [eid, e] of Object.entries(graph.edges)) {
     if (ids.has(e.from) && ids.has(e.to)) edges[eid] = e;
   }
+  /** A tie travels with the note and the line it joins. */
+  for (const [eid, e] of Object.entries(graph.edges)) {
+    if ((edges[e.to] && ids.has(e.from)) || (edges[e.from] && ids.has(e.to))) edges[eid] = e;
+  }
   const defs: Record<Id, Graph["defs"][string]> = {};
   const want = [...Object.keys(blocks).map((id) => def_of(graph, id)),
                 ...Object.keys(edges).map((id) => def_of(graph, id))].filter(Boolean) as Id[];

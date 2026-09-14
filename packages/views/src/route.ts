@@ -19,10 +19,10 @@
  *  run, so a route trades a corner for anything shorter than that and takes the
  *  straight lane otherwise. */
 
-import { Position } from "@xyflow/react";
-import { GAP } from "@mnd/views";
+import { Position } from "@xyflow/system";
+import { GAP } from "./size";
 
-export type Rect = { x: number; y: number; w: number; h: number };
+type Rect = { x: number; y: number; w: number; h: number };
 type Point = { x: number; y: number };
 
 /** How far a line runs straight out of a border before it may turn. Wider than

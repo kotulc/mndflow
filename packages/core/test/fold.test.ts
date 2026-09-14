@@ -4,7 +4,7 @@
  *  count that tuning would change. */
 
 import { describe, expect, it } from "vitest";
-import { fixture, flat, nested, related } from "@mnd/fixtures";
+import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
 import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
          is_top_block, module_named, module_of, next_order, path, session,
          shown_name, stands_for, subtree, ROOT, type Definition } from "../src/index";
@@ -31,7 +31,7 @@ describe("fold", () => {
 
   it("always has a root with no parent", () => {
     for (const name of ["flat", "nested", "related"]) {
-      const graph = fold(fixture(name));
+      const graph = fold(fixture(name), FLOOR);
       expect(graph.blocks[graph.root]?.parent).toBeNull();
     }
   });
@@ -48,33 +48,33 @@ describe("fold", () => {
 
 describe("derived readings", () => {
   it("reads a container from what it holds, never from a field", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     expect(is_container(graph, "block_edge")).toBe(true);
     expect(is_container(graph, "block_auth")).toBe(false);
   });
 
   it("reads a tier root from position, and nothing stores one", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     expect(is_top_block(graph, "block_shelf")).toBe(true);
     expect(is_top_block(graph, "block_ledger")).toBe(false);
   });
 
   it("walks a path from root to the block, itself last", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const trail = path(graph, "block_rate").map((b) => b.id);
     expect(trail[0]).toBe(ROOT);
     expect(trail.at(-1)).toBe("block_rate");
   });
 
   it("holds every descendant in a subtree", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const under = subtree(graph, "block_ledger");
     expect(under).toContain("block_rate");
     expect(under).not.toContain("block_site");
   });
 
   it("lists only relations with both ends in the layer", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     for (const e of edges_in(graph, "block_loop")) {
       expect(graph.blocks[e.from]?.parent).toBe("block_loop");
       expect(graph.blocks[e.to]?.parent).toBe("block_loop");
@@ -82,20 +82,20 @@ describe("derived readings", () => {
   });
 
   it("gives a layer that says nothing the free arrangement", () => {
-    const graph = fold(flat());
+    const graph = fold(flat(), FLOOR);
     expect(arrangement_of(graph, "block_ledger")).toBe("free");
-    expect(arrangement_of(fold(related()), "block_loop")).toBe("grid");
+    expect(arrangement_of(fold(related(), FLOOR), "block_loop")).toBe("grid");
   });
 
   it("reads a null layer as the root layer, and never as the root itself", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     expect(children(graph, null).map((b) => b.name)).toEqual(["Shelf", "Site"]);
     expect(children(graph, null).map((b) => b.id)).not.toContain(ROOT);
     expect(children(graph, null)).toEqual(children(graph, ROOT));
   });
 
   it("takes the lowest number not in use among siblings", () => {
-    const graph = fold(flat());
+    const graph = fold(flat(), FLOOR);
     expect(next_order(graph, "block_ledger")).toBeGreaterThan(0);
   });
 });

@@ -11,7 +11,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { fold } from "@mnd/core";
-import { gridded, related } from "@mnd/fixtures";
+import { FLOOR, gridded, related } from "@mnd/fixtures";
 import { project } from "@mnd/views";
 import { Stage } from "../src/index";
 
@@ -19,7 +19,7 @@ afterEach(cleanup);
 beforeEach(() => { vi.spyOn(window, "prompt").mockReturnValue("Typed"); });
 
 function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
-  const graph = fold(related());
+  const graph = fold(related(), FLOOR);
   const scene = project(graph, "block_loop");
   const onAct = vi.fn();
   const onPick = vi.fn();
@@ -196,7 +196,7 @@ describe("the keyboard", () => {
   });
 
   it("does not descend into a grid on a double click", () => {
-    const graph = fold(gridded());
+    const graph = fold(gridded(), FLOOR);
     const scene = project(graph, "block_board");
     const onAct = vi.fn();
     const view = render(

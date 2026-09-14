@@ -11,7 +11,7 @@ import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
          default_for, ordered_by, path, relation_named, reorder, schema_of,
-         base_line, def_named, def_slot, relations, BASE_LINE } from "./fold";
+         base_line, def_named, def_slot, may_tie, relations, BASE_LINE } from "./fold";
 import { component, DRAWN, NUMBERS } from "./components";
 import { new_id } from "./ids";
 import { ARRANGEMENTS, RELATION_MODULES, VALUE_FORMS,
@@ -584,13 +584,24 @@ register(
     check: (ctx, args) => {
       const from = id_of(args, "from");
       const to = id_of(args, "to");
-      if (!ctx.graph.blocks[from] || !ctx.graph.blocks[to]) return "both ends have to be there";
+      const blocks = !!ctx.graph.blocks[from] && !!ctx.graph.blocks[to];
+      if (!blocks && !may_tie(ctx.graph, from, to)) {
+        return ctx.graph.edges[from] || ctx.graph.edges[to]
+          ? "only a note ties to a line" : "both ends have to be there";
+      }
       if (from === to) return "a block cannot relate to itself";
+      /** A type names a relation definition already there; nothing mints one. */
+      const type = text(args, "type");
+      if (type && ctx.graph.defs[type]?.group !== "relation") {
+        return `there is no relation definition called "${type}"`;
+      }
       return null;
     },
     run: (ctx, args) => {
-      const from = id_of(args, "from");
-      const to = id_of(args, "to");
+      /** **A tie on a line runs from its note**, whichever end the drag began at. */
+      const swap = !!ctx.graph.edges[id_of(args, "from")];
+      const from = id_of(args, swap ? "to" : "from");
+      const to = id_of(args, swap ? "from" : "to");
       const picked = (args["module"] as RelationModule) ?? "line";
       const module = derived_module(ctx.graph, from, to) ?? picked;
       const dir = String(args["dir"] ?? "none") as Dir;
@@ -601,12 +612,8 @@ register(
        *  the geometry stops guessing. */
       const line = handles(ctx, "relation");
       const alias = line.take();
-      /** **A definition already there is named by its id**, and anything else
-       *  is a name to file one under — which is how the rail hands over a
-       *  pinned line and how the terminal takes a word. */
-      const named = type ? (ctx.graph.defs[type] ? type : def_slot(ctx.graph, type, "relation")) : undefined;
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
-        id: new_id("edge"), from, to, module, type: named,
+        id: new_id("edge"), from, to, module, ...(type ? { type } : {}),
         alias, ...(dir !== "none" ? { dir } : {}),
         ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
         ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
@@ -622,9 +629,13 @@ register(
            { name: "end", form: "choice", required: true, choices: ["from", "to"] },
            { name: "to", form: "block", required: true }],
     check: (ctx, args) => {
-      if (!ctx.graph.edges[id_of(args, "id")]) return "needs a relationship";
-      if (!ctx.graph.blocks[id_of(args, "to")]) return "needs somewhere to land";
-      return null;
+      const edge = ctx.graph.edges[id_of(args, "id")];
+      if (!edge) return "needs a relationship";
+      const to = id_of(args, "to");
+      if (ctx.graph.blocks[to]) return null;
+      const other = args["end"] === "from" ? edge.to : edge.from;
+      if (!ctx.graph.edges[to]) return "needs somewhere to land";
+      return to !== edge.id && may_tie(ctx.graph, to, other) ? null : "only a note ties to a line";
     },
     /** **The wall the old end was pinned to goes with it.** A side was said
      *  about a border this end no longer meets, and keeping it would leave the
@@ -756,6 +767,7 @@ const noted = (graph: Graph, id: Id): boolean =>
   graph.blocks[id]?.type === "note" || module_of(graph, id) === "note";
 
 function derived_module(graph: Graph, from: Id, to: Id): RelationModule | null {
+  if (may_tie(graph, from, to)) return "tie";
   if (!graph.blocks[from] || !graph.blocks[to]) return null;
   return noted(graph, from) || noted(graph, to) ? "tie" : null;
 }
@@ -990,8 +1002,11 @@ register(
     check: (ctx, args) => {
       if (!text(args, "text")) return "a note is its text";
       const about = id_of(args, "about") || ctx.picked[0] || "";
-      return ctx.graph.blocks[about] || ctx.graph.edges[about]
-        ? null : "a note is always about something";
+      const on = ctx.graph.edges[about];
+      if (on && (ctx.graph.edges[on.from] || ctx.graph.edges[on.to])) {
+        return "a tie has no line of its own to note";
+      }
+      return ctx.graph.blocks[about] || on ? null : "a note is always about something";
     },
     /** **A note is the one card whose size is yours to set**, so the gesture
      *  that draws one may say how big. */
@@ -1012,16 +1027,12 @@ register(
       if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
         out.push({ op: "size_block", id, w, h });
       }
-      /** **A tie, because one end is a note.** The module is assigned from what
-       *  sits at the ends and never picked, so this says who it is about and
-       *  the engine says what sort of line that is. */
-      const to = ctx.graph.edges[about] ? null : about;
-      if (to) {
-        const tie = handles(ctx, "relation");
-        out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to,
-                                              alias: tie.take(), module: "tie" } });
-        out.push(...tie.bump());
-      }
+      /** **A tie, because one end is a note** — to a block, or to a line at its
+       *  midpoint. */
+      const tie = handles(ctx, "relation");
+      out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: about,
+                                            alias: tie.take(), module: "tie" } });
+      out.push(...tie.bump());
       return { mutations: out, effect: { focus: id } };
     },
   },
@@ -1968,7 +1979,8 @@ register(
           const held: Components = { ...(d.components ?? {}) };
           for (const key of DRAWN) delete held[key];
           if (d.group === "relation") held["line"] = {};
-          out.push({ op: "set_def", def: { ...d, components: held } });
+          out.push({ op: "set_def", def: { ...d,
+            components: Object.keys(held).length ? held : undefined } });
           continue;
         }
         /** **A line keeps the definition it names**, which is not a look. */

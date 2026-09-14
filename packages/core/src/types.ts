@@ -167,6 +167,8 @@ export type Block = {
 
 export type Relation = {
   id: Id;
+  /** Blocks, except on a **tie**: a tie joins a note to anything, and one end
+   *  may name a relation, drawn meeting that line at its midpoint. */
   from: Id;
   to: Id;
   module: RelationModule;

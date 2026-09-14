@@ -13,6 +13,8 @@ export * from "./scene";
 export * from "./size";
 export * from "./arrange";
 export * from "./seat";
+export { drawn, middle_of, route, STUB } from "./route";
+export { knot_face, knot_id, knots_of, knotted, middle_of_line, KNOT } from "./knot";
 export * from "./svg";
 export * from "./text";
 

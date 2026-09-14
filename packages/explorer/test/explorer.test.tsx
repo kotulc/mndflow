@@ -6,7 +6,7 @@
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, createEvent, render, fireEvent, screen } from "@testing-library/react";
 import { fold, ROOT, type Graph } from "@mnd/core";
-import { flat, nested, related } from "@mnd/fixtures";
+import { FLOOR, flat, nested, related } from "@mnd/fixtures";
 import { Explorer, tree_of } from "../src/index";
 
 function mount(graph: Graph, over: Partial<Parameters<typeof Explorer>[0]> = {}) {
@@ -28,19 +28,19 @@ afterEach(cleanup);
 
 describe("it shows structure and only structure", () => {
   it("lists blocks nested to any depth", () => {
-    const rows = tree_of(fold(nested()), []);
+    const rows = tree_of(fold(nested(), FLOOR), []);
     expect(rows.map((r) => r.label)).toContain("Rate Limit");
     expect(rows.find((r) => r.label === "Rate Limit")!.depth).toBeGreaterThan(1);
   });
 
   it("never lists a boundary, a note or a reference", () => {
-    const rows = tree_of(fold(related()), []);
+    const rows = tree_of(fold(related(), FLOOR), []);
     expect(rows.map((r) => r.label)).not.toContain("Hot side");
     expect(rows.map((r) => r.label)).not.toContain("the loop runs clockwise");
   });
 
   it("stops at a folded branch", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const all = tree_of(graph, []).length;
     const shut = tree_of(graph, ["block_ledger"]).length;
     expect(shut).toBeLessThan(all);
@@ -48,7 +48,7 @@ describe("it shows structure and only structure", () => {
   });
 
   it("marks a container differently from a leaf, and a folder from both", () => {
-    const rows = tree_of(fold(nested()), []);
+    const rows = tree_of(fold(nested(), FLOOR), []);
     const mark = (label: string) => rows.find((r) => r.label === label)!.mark;
     expect(mark("Shelf")).toBe("folder");
     expect(mark("Edge")).toBe("container");
@@ -58,7 +58,7 @@ describe("it shows structure and only structure", () => {
 
 describe("it emits action names and mutates nothing", () => {
   it("leaves the graph untouched whatever is clicked", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const before = structuredClone(graph);
     const { onAct } = mount(graph);
     fireEvent.click(screen.getByText("Ledger"));
@@ -68,14 +68,14 @@ describe("it emits action names and mutates nothing", () => {
   });
 
   it("reveals what was clicked, and picks it", () => {
-    const { onAct, onPick } = mount(fold(nested()));
+    const { onAct, onPick } = mount(fold(nested(), FLOOR));
     fireEvent.click(screen.getByText("Ledger"));
     expect(onPick).toHaveBeenCalledWith(["block_ledger"]);
     expect(onAct).toHaveBeenCalledWith("reveal", { id: "block_ledger" });
   });
 
   it("never opens a row on a click, however many rows are clicked", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     for (const label of ["Ledger", "Edge", "Auth"]) fireEvent.click(screen.getByText(label));
     expect(onAct).not.toHaveBeenCalledWith("open", expect.anything());
   });
@@ -84,7 +84,7 @@ describe("it emits action names and mutates nothing", () => {
     const order: string[] = [];
     const onAct = vi.fn((name: string) => order.push(`act:${name}`));
     const onPick = vi.fn(() => order.push("pick"));
-    render(<Explorer graph={fold(nested())} open={null} picked={[]} folded={[]}
+    render(<Explorer graph={fold(nested(), FLOOR)} open={null} picked={[]} folded={[]}
                      onAct={onAct} onPick={onPick} onFold={vi.fn()} />);
     fireEvent.click(screen.getByText("Ledger"));
     expect(order).toEqual(["act:reveal", "pick"]);
@@ -94,7 +94,7 @@ describe("it emits action names and mutates nothing", () => {
    *  clicks open the row's own name, and what was typed is said when it is
    *  left. */
   it("renames in place on a double click", () => {
-    const { onAct, container } = mount(fold(nested()));
+    const { onAct, container } = mount(fold(nested(), FLOOR));
     fireEvent.doubleClick(screen.getByText("Auth"));
     const field = container.querySelector(".label.mnd-naming")!;
     field.textContent = "Typed";
@@ -105,7 +105,7 @@ describe("it emits action names and mutates nothing", () => {
   /** **The mark is the fold, and it says which way it is set.** One icon for
    *  what the row is and whether you are seeing all of it. */
   it("folds a branch from its mark, which reads as open until it is shut", () => {
-    const { onFold, container } = mount(fold(nested()));
+    const { onFold, container } = mount(fold(nested(), FLOOR));
     const row = container.querySelector('li[data-mark="container"]')!;
     expect(row.querySelector(".mark.on")).toBeTruthy();
     fireEvent.click(row.querySelector(".mark")!);
@@ -113,7 +113,7 @@ describe("it emits action names and mutates nothing", () => {
   });
 
   it("folds nothing from a row that lists nothing", () => {
-    const { onFold, container } = mount(fold(nested()));
+    const { onFold, container } = mount(fold(nested(), FLOOR));
     const leaf = container.querySelector('li[data-mark="leaf"]')!;
     expect(leaf.querySelector(".mark.on")).toBeNull();
     fireEvent.click(leaf.querySelector(".mark")!);
@@ -121,12 +121,12 @@ describe("it emits action names and mutates nothing", () => {
   });
 
   it("counts what it holds", () => {
-    const rows = tree_of(fold(nested()), []);
+    const rows = tree_of(fold(nested(), FLOOR), []);
     expect(rows.find((r) => r.label === "Edge")!.kids).toBe(2);
   });
 
   it("creates under whatever is picked", () => {
-    const { onAct } = mount(fold(nested()), { picked: ["block_edge"] });
+    const { onAct } = mount(fold(nested(), FLOOR), { picked: ["block_edge"] });
     fireEvent.click(screen.getByTitle(/add a block/));
     expect(onAct).toHaveBeenCalledWith("create",
       { name: "Typed", parent: "block_edge", type: undefined });
@@ -136,19 +136,19 @@ describe("it emits action names and mutates nothing", () => {
    *  in the layer it is showing; the tree said the workspace, so adding one
    *  from in a layer put it somewhere you were not looking. */
   it("creates where the stage is pointed when nothing is picked", () => {
-    const { onAct } = mount(fold(nested()), { open: "block_edge" });
+    const { onAct } = mount(fold(nested(), FLOOR), { open: "block_edge" });
     fireEvent.click(screen.getByTitle(/add a block/));
     expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: "block_edge" });
   });
 
   it("creates at the workspace when nothing is picked and nothing is open", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     fireEvent.click(screen.getByTitle(/add a block/));
     expect(onAct.mock.calls[0]![1]).toMatchObject({ parent: ROOT });
   });
 
   it("has a folder shortcut that reaches the same create", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     fireEvent.click(screen.getByTitle(/add a folder/));
     expect(onAct).toHaveBeenCalledWith("create",
       { name: "Typed", parent: ROOT, type: "folder" });
@@ -156,17 +156,17 @@ describe("it emits action names and mutates nothing", () => {
 
   it("makes nothing when the name is abandoned", () => {
     vi.spyOn(window, "prompt").mockReturnValue(null);
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     fireEvent.click(screen.getByTitle(/add a block/));
     expect(onAct).not.toHaveBeenCalled();
   });
 
   it("offers no delete when nothing is picked", () => {
-    expect(mount(fold(nested())).getByTitle(/delete/).hasAttribute("disabled")).toBe(true);
+    expect(mount(fold(nested(), FLOOR)).getByTitle(/delete/).hasAttribute("disabled")).toBe(true);
   });
 
   it("deletes what is picked", () => {
-    const { onAct, getByTitle } = mount(fold(nested()), { picked: ["block_auth"] });
+    const { onAct, getByTitle } = mount(fold(nested(), FLOOR), { picked: ["block_auth"] });
     fireEvent.click(getByTitle(/delete/));
     expect(onAct).toHaveBeenCalledWith("delete", { id: "block_auth" });
   });
@@ -190,21 +190,21 @@ describe("re-filing", () => {
   };
 
   it("moves a row dropped onto another row", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     drop_at(drag("Auth")("Billing"), 0.5);
     expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: "block_billing" });
   });
 
   /** **On a row is into it; between two rows is beside them.** */
   it("puts a row in front of the one it was dropped above", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     drop_at(drag("Auth")("Billing"), 0.1);
     expect(onAct).toHaveBeenCalledWith("move",
       { ids: ["block_auth"], parent: "block_ledger", before: "block_billing" });
   });
 
   it("puts a row last when it was dropped below the last of them", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     drop_at(drag("Auth")("Billing"), 0.9);
     expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: "block_ledger" });
   });
@@ -212,7 +212,7 @@ describe("re-filing", () => {
   /** **One place down, not to the end.** Below a row whose next sibling is the
    *  block in hand, that block was asked to go in front of itself. */
   it("puts a row one place down when it is dropped below the one above it", () => {
-    const { onAct } = mount(fold(related()));
+    const { onAct } = mount(fold(related(), FLOOR));
     drop_at(drag("Heat Exchanger")("Pump"), 0.9);
     expect(onAct).toHaveBeenCalledWith("move",
       { ids: ["block_hx"], parent: "block_loop", before: "block_tank" });
@@ -222,14 +222,14 @@ describe("re-filing", () => {
    *  is dragged out of what holds it. */
   it.each([[".floor"]])(
     "makes a block a project when it is dropped on %s", (where) => {
-      const { onAct, container } = mount(fold(nested()));
+      const { onAct, container } = mount(fold(nested(), FLOOR));
       fireEvent.dragStart(screen.getByText("Auth").closest("li")!);
       fireEvent.drop(container.querySelector(where)!);
       expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: ROOT });
     });
 
   it("does nothing when a row is dropped on itself", () => {
-    const { onAct } = mount(fold(nested()));
+    const { onAct } = mount(fold(nested(), FLOOR));
     const row = screen.getByText("Auth").closest("li")!;
     fireEvent.dragStart(row);
     drop_at(row, 0.5);
@@ -239,7 +239,7 @@ describe("re-filing", () => {
 
 describe("the two states read differently", () => {
   it("draws open as a wash and picked as the accent, and stacks them", () => {
-    const { container } = mount(fold(nested()),
+    const { container } = mount(fold(nested(), FLOOR),
       { open: "block_ledger", picked: ["block_auth"] });
     expect(container.querySelector("li.open")).not.toBeNull();
     expect(container.querySelector("li.picked")).not.toBeNull();
@@ -247,21 +247,21 @@ describe("the two states read differently", () => {
   });
 
   it("says nothing is selected when nothing is", () => {
-    const { container } = mount(fold(nested()), { open: "block_ledger" });
+    const { container } = mount(fold(nested(), FLOOR), { open: "block_ledger" });
     expect(container.querySelector("li.picked")).toBeNull();
   });
 });
 
 describe("folding", () => {
   it("asks for one branch to shut when its mark is clicked", () => {
-    const { onFold, onAct } = mount(fold(nested()));
+    const { onFold, onAct } = mount(fold(nested(), FLOOR));
     fireEvent.click(screen.getByText("Ledger").closest("li")!.querySelector(".mark")!);
     expect(onFold).toHaveBeenCalledWith("block_ledger", true);
     expect(onAct).not.toHaveBeenCalled();
   });
 
   it("reads anything open at all, so it can always open again", () => {
-    const shut = tree_of(fold(nested()), ["block_shelf", "block_site"]);
+    const shut = tree_of(fold(nested(), FLOOR), ["block_shelf", "block_site"]);
     expect(shut.every((r) => r.depth === 0)).toBe(true);
   });
 });
@@ -274,7 +274,7 @@ describe("an empty workspace", () => {
   });
 
   it("lists a flat project's children under it", () => {
-    expect(tree_of(fold(flat()), []).map((r) => r.label))
+    expect(tree_of(fold(flat(), FLOOR), []).map((r) => r.label))
       .toEqual(["Ledger", "Edge", "Auth", "Billing"]);
   });
 });

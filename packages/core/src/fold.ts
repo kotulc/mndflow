@@ -23,6 +23,15 @@ function dissolve_group_if_empty(graph: Graph, id: Id): void {
   if (holder) dissolve_group_if_empty(graph, holder);
 }
 
+/** A relation gone, and every tie that ended on it with it. */
+function drop_edge(graph: Graph, id: Id): void {
+  if (!graph.edges[id]) return;
+  delete graph.edges[id];
+  for (const [eid, e] of Object.entries(graph.edges)) {
+    if (e.from === id || e.to === id) drop_edge(graph, eid);
+  }
+}
+
 /** Replay one mutation onto a graph, in place. The graph is always a fresh one
  *  owned by `fold`, so mutating it here is safe and cheap. */
 function apply(graph: Graph, m: Mutation): void {
@@ -50,7 +59,7 @@ function apply(graph: Graph, m: Mutation): void {
       for (const id of subtree(graph, m.id)) {
         delete graph.blocks[id];
         for (const [eid, e] of Object.entries(graph.edges)) {
-          if (e.from === id || e.to === id) delete graph.edges[eid];
+          if (e.from === id || e.to === id) drop_edge(graph, eid);
         }
       }
       /** **A gone group frees what it held.** The address was the group's, so
@@ -190,7 +199,7 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "delete_edge":
-      delete graph.edges[m.id];
+      drop_edge(graph, m.id);
       return;
     case "set_dir": {
       const e = graph.edges[m.id];
@@ -635,9 +644,23 @@ export function edges_in(graph: Graph, layer: Id | null): Relation[] {
   const here = new Set(children(graph, layer).map((b) => b.id));
   const room = layer_id(graph, layer);
   const drawn = (id: Id) => here.has(owner_of(graph, id)) || owner_of(graph, id) === room;
-  return Object.values(graph.edges)
-    .filter((e) => drawn(e.from) && drawn(e.to))
-    .sort((a, b) => a.id.localeCompare(b.id));
+  const lines = Object.values(graph.edges).filter((e) => drawn(e.from) && drawn(e.to));
+  /** **A tie on a line is layer local**: drawn where that line is drawn. */
+  const shown = new Set(lines.map((e) => e.id));
+  const ties = Object.values(graph.edges).filter((e) =>
+    (shown.has(e.to) && drawn(e.from)) || (shown.has(e.from) && drawn(e.to)));
+  return [...lines, ...ties].sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** Whether a relation may end on this id: a block, or — for a tie between a note
+ *  and a line — a relation that does not itself end on a relation. */
+export function may_tie(graph: Graph, from: Id, to: Id): boolean {
+  const line = (id: Id) => {
+    const e = graph.edges[id];
+    return !!e && !graph.edges[e.from] && !graph.edges[e.to];
+  };
+  const note = (id: Id) => !!graph.blocks[id] && module_of(graph, id) === "note";
+  return (line(from) && note(to)) || (line(to) && note(from));
 }
 
 /** The layer's arrangement. `free` is what a layer says nothing about. */

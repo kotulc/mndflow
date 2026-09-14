@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { session, type Id } from "@mnd/core";
+import { seed } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
 import { Explorer } from "../src/index";
 import "@mnd/theme/ramp.css";
@@ -25,7 +26,7 @@ function Harness() {
   const [folded, set_folded] = useState<Id[]>([]);
 
   if (!held.has(name)) {
-    const made = session();
+    const made = session({ defs: seed() });
     for (const step of fixture(name)) made.adjust(step.action, step.mutations);
     held.set(name, made);
   }

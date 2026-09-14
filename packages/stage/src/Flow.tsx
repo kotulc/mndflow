@@ -17,7 +17,7 @@ import {
   type Node, type NodeChange, type OnSelectionChangeFunc,
 } from "@xyflow/react";
 import type { Id, Point, Side, Spot } from "@mnd/core";
-import { at_seat, box_of, extent, holds, look_key, nearest_seat, perch_id, roomed,
+import { at_seat, box_of, extent, holds, knots_of, look_key, nearest_seat, perch_id, roomed,
          swept_cells, FRAME, PORT, CELL, UNIT,
          type BoxNode, type Frame, type LineEdge, type Scene } from "@mnd/views";
 import { NamingContext } from "@mnd/theme";
@@ -192,7 +192,7 @@ const SIDES: readonly Side[] = ["top", "right", "bottom", "left"];
  *  front of every other card on the layer — so that is turned off and this
  *  table is the whole of the answer. */
 const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4,
+  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4, knot: 4,
 };
 
 /** The layer's working area, shaped like the panel it is shown in.
@@ -280,7 +280,15 @@ function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | null): Box
     });
   }
 
-  for (const n of scene.nodes) {
+  /** **A knot is placed again on the room the panel grew**, since a line to the
+   *  wall runs where the wall now is. */
+  const knots = frame && scene.nodes.some((n) => n.type === "knot")
+    ? new Map(knots_of(scene.edges, scene.nodes, scene.perches, frame).map((k) => [k.id, k]))
+    : null;
+
+  for (const drawn of scene.nodes) {
+    const k = knots?.get(drawn.id);
+    const n = k ? { ...drawn, position: k.position, data: { ...drawn.data, ...k.data } } : drawn;
     const nest = (n.data.nest ?? 0) * 2;
     const base = DEPTH[n.type ?? "card"] ?? 1;
     const band = n.type === "group";
@@ -801,6 +809,10 @@ function Canvas(props: FlowViewProps) {
       const side = SIDES.find((s) => rim.classList.contains(`mnd-rim-${s}`));
       return { on: FRAME, ...(side ? { side } : {}) };
     }
+    /** **A line is somewhere a tie can end**, at its middle. */
+    const line = el instanceof Element ? el.closest(".react-flow__edge, .mnd-wire-name") : null;
+    const run = line?.getAttribute("data-id") ?? line?.getAttribute("data-edge");
+    if (run) return { on: run };
     const node = el instanceof Element ? el.closest(".react-flow__node") : null;
     const id = node?.getAttribute("data-id") ?? null;
     /** **A relationship never ends on a boundary.** A band says *these belong

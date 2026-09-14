@@ -15,10 +15,14 @@
  *  could do none of those without a second copy of the type scale. */
 
 import { type CSSProperties } from "react";
-import { BaseEdge, EdgeLabelRenderer, type EdgeProps } from "@xyflow/react";
-import { heads, BARE, type LineEdge, type Wire as Look } from "@mnd/views";
+import { BaseEdge, EdgeLabelRenderer, Position, useInternalNode,
+         type EdgeProps } from "@xyflow/react";
+import { drawn, heads, knot_face, knotted, middle_of, route, BARE, type LineEdge,
+         type Wire as Look } from "@mnd/views";
 import { head_url, Heads, Name, useNaming } from "@mnd/theme";
-import { drawn, middle_of, route } from "./route";
+
+const FACE = { top: Position.Top, right: Position.Right,
+               bottom: Position.Bottom, left: Position.Left } as const;
 
 /** How square a right-angled corner is. Small enough to read as a corner, big
  *  enough not to look like an artefact at the zoom a whole layer is seen at. */
@@ -58,8 +62,17 @@ function paint(look: Look): { attrs: Record<string, string>; style: CSSPropertie
 }
 
 export function Wire(props: EdgeProps<LineEdge>) {
-  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
-          label, data, style } = props;
+  const { id, source, target, sourceX, sourceY, targetX, targetY, label, data, style } = props;
+  /** **A tie leaves a knot square to the line**, toward its own note, so
+   *  several ties on one line each arrive clear of it. */
+  const ends = { [source]: useInternalNode(source), [target]: useInternalNode(target) };
+  const face = (knot: string, at: { x: number; y: number }, far: { x: number; y: number },
+                given: Position) =>
+    knotted(knot) ? FACE[knot_face(ends[knot]?.data?.["side"] as never, at, far)] : given;
+  const sourcePosition = face(source, { x: sourceX, y: sourceY }, { x: targetX, y: targetY },
+                              props.sourcePosition);
+  const targetPosition = face(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY },
+                              props.targetPosition);
 
   /** **A line with no name still has somewhere to type one.** Nothing is drawn
    *  for a relationship nobody has named, so asking to name one had nowhere to

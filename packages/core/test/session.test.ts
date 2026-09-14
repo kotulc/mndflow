@@ -2,7 +2,7 @@
  *  round trip that changes nothing. */
 
 import { describe, expect, it } from "vitest";
-import { flat, nested, related } from "@mnd/fixtures";
+import { FLOOR, flat, nested, related } from "@mnd/fixtures";
 import { seed } from "@mnd/defs";
 import { CAP, check, children, compact, fold, hash, read, say, session, write,
          write_subtree, ROOT, type Log, type Storage } from "../src/index";
@@ -95,7 +95,7 @@ describe("one step per action", () => {
 
 describe("the door", () => {
   it("says nothing about a clean log", () => {
-    expect(say(check(nested()).faults)).toBe("");
+    expect(say(check(nested(), FLOOR).faults)).toBe("");
   });
 
   it("repairs a block whose parent is not there, and says so", () => {
@@ -121,25 +121,25 @@ describe("the door", () => {
 
 describe("files", () => {
   it("round-trips through the file format", () => {
-    const before = fold(related());
+    const before = fold(related(), FLOOR);
     const got = read(write(before));
     expect(got.faults).toHaveLength(0);
     expect(fold(got.log)).toEqual(before);
   });
 
   it("re-exports byte-identically", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     expect(write(graph)).toBe(write(fold(read(write(graph)).log)));
   });
 
   it("refuses a file written for another major schema", () => {
-    const bad = JSON.parse(write(fold(flat())));
+    const bad = JSON.parse(write(fold(flat(), FLOOR)));
     bad.schema = "9.0";
     expect(read(JSON.stringify(bad)).faults[0]!.kind).toBe("dropped");
   });
 
   it("exports a subtree with the definitions it reaches, and nothing else", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const out = JSON.parse(write_subtree(graph, "block_ledger"));
     expect(out.graph.blocks["block_rate"]).toBeDefined();
     expect(out.graph.blocks["block_site"]).toBeUndefined();
@@ -148,8 +148,8 @@ describe("files", () => {
   });
 
   it("computes the hash rather than storing it", () => {
-    expect(JSON.parse(write(fold(flat())))).not.toHaveProperty("hash");
-    expect(hash(fold(flat()))).toBe(hash(fold(flat())));
+    expect(JSON.parse(write(fold(flat(), FLOOR)))).not.toHaveProperty("hash");
+    expect(hash(fold(flat(), FLOOR))).toBe(hash(fold(flat(), FLOOR)));
   });
 });
 

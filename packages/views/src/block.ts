@@ -9,6 +9,7 @@ import { alias_of, children, covers, edges_in, group_depth, is_grid, is_group,
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
+import { knot_id, knots_of } from "./knot";
 import { look_of, wire_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type Mark, type Scene,
@@ -135,73 +136,43 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     boxes_full.set(FRAME, room);
     for (const p of room.ports) boxes_full.set(p.id, at_seat(room, p));
   }
-  const assigned = room && layer
-    ? assign_seats(graph, linked, spots, boxes_full, { id: FRAME, of: layer })
-    : { perches, port_at };
-  const met = new Map(assigned.perches.map((p) => [`${p.edge}|${p.end}`, p]));
-  const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
-  for (const p of assigned.perches) {
-    const held = offered.get(p.on) ?? [];
-    held.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
-    offered.set(p.on, held);
-  }
+  const walls = room && layer ? { id: FRAME, of: layer } : undefined;
+  let assigned = walls ? assign_seats(graph, linked, spots, boxes_full, walls)
+                       : { perches, port_at };
 
-  /** The seats each box offers, put onto the box that offers them. */
-  const placed = drawn.map((n) => {
-    const own = offered.get(n.id);
-    return own ? { ...n, data: { ...n.data, seats: own } } : n;
-  });
-
-  /** **The two ends, and which seat each meets.** Where the run goes between
-   *  them is still the renderer's; which point it leaves from is geometry, and
-   *  geometry is this module's. */
-  /** **Everything a run has to get round**, which is every card on the layer.
-   *
-   *  **A holder is not one, either sort.** A band and a grid are both drawn
-   *  round things that live inside them, so a run reaching one of those has to
-   *  get in — and a grid walled in every run between two of its own cells,
-   *  which left the search with no way through and an elbow drawn across
-   *  whatever it passed. Nor is the room, which is what the whole layer is
-   *  inside. What is left is the cards and the notes — and an interface is part
-   *  of the card it is seated on rather than a box of its own, so it is already
-   *  covered by that card.
-   *
-   *  Worked out once for the layer rather than per line: it is the same list
-   *  every time, and a projection runs once per change. */
+  /** **A holder is not something a run gets round**, and neither is the room or
+   *  an interface, which is part of the card it sits on. What is left is the
+   *  cards and the notes — worked out once for the layer. */
   const held = new Set(holders.map((n) => n.id));
   const solid = drawn
     .filter((n) => !held.has(n.id) && !n.data.on)
     .map(box_of);
 
-  const edges: LineEdge[] = linked.map((e): LineEdge => {
-    const wire = wire_of(graph, e.id);
-    /** **A run says what it is where somebody said, and nothing where nobody
-     *  did.** This is the one place a run and a card part company, and the
-     *  reason is what each is identified by: a card is a box, and a box with
-     *  nothing written on it is unreadable — which is why an unnamed one falls
-     *  back to its kind and its handle. A run is identified by the two things
-     *  it joins, so a diagram of plain lines wants no writing on any of them.
-     *
-     *  **The handle draws where the line asks for it** — `line.alias` — rather
-     *  than standing in for a name nobody set.
-     *
-     *  **And nothing else is written.** An edge holds no values, so there is
-     *  nothing at an end to draw: an anchor is mute, and what a promoted end
-     *  has to say is drawn by the port, which is a block like any other. */
-    const label = wire.name ? label_of(graph, e.id) : "";
-    const alias = wire.alias ? alias_of(graph, e.id, true) : "";
-    return {
-      id: e.id,
-      source: e.from,
-      target: e.to,
-      sourceHandle: handle(met, e.id, "from", "s"),
-      targetHandle: handle(met, e.id, "to", "t"),
-      ...(label ? { label } : {}),
-      data: { module: e.module, dir: e.dir ?? "none", wire,
-              ...(alias ? { alias } : {}),
-              ...(solid.length ? { clear: solid } : {}) },
-    };
+  /** **A tie on a line meets it at the middle of its run.** The lines are drawn
+   *  first, a knot is placed on each one a tie names, and the seats are worked
+   *  out again so the note's end faces its knot. */
+  const knots = knots_of(line_edges(graph, linked, assigned.perches, solid), drawn,
+                         assigned.perches, room ?? undefined);
+  if (knots.length) {
+    for (const k of knots) boxes_full.set(k.id, box_of(k));
+    assigned = assign_seats(graph, linked, spots, boxes_full, walls);
+  }
+
+  const met = new Map(assigned.perches.map((p) => [`${p.edge}|${p.end}`, p]));
+  const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
+  for (const p of assigned.perches) {
+    const kept = offered.get(p.on) ?? [];
+    kept.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
+    offered.set(p.on, kept);
+  }
+
+  /** The seats each box offers, put onto the box that offers them. */
+  const placed = [...drawn, ...knots].map((n) => {
+    const own = offered.get(n.id);
+    return own ? { ...n, data: { ...n.data, seats: own } } : n;
   });
+
+  const edges = line_edges(graph, linked, assigned.perches, solid, met);
 
   /** The walls' own seats, put on the frame that offers them. */
   const walled = offered.get(FRAME);
@@ -309,10 +280,41 @@ function landed(graph: Graph, e: Relation, layer: Id | null): Relation {
     const b = graph.blocks[id];
     return b && is_interface(b) ? b.side : undefined;
   };
-  /** The layer itself is the frame around you, and the frame is not a block. */
-  const here = (id: Id): Id => (layer !== null && id === layer ? FRAME : id);
+  /** The layer itself is the frame around you, and the frame is not a block;
+   *  a line a tie ends on is met at its knot. */
+  const here = (id: Id): Id => (layer !== null && id === layer ? FRAME
+    : graph.edges[id] ? knot_id(id) : id);
   return { ...e, from: here(e.from), to: here(e.to),
            fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
+}
+
+/** Every line as the canvas draws it: its two ends, which seat each meets, and
+ *  what it says.
+ *
+ *  **A run says what it is where somebody said, and nothing where nobody
+ *  did.** A card with nothing written on it is unreadable, so an unnamed one
+ *  falls back to its kind; a run is identified by the two things it joins, so
+ *  a diagram of plain lines wants no writing on any of them. The handle draws
+ *  where the line asks for it — `line.alias`. */
+function line_edges(graph: Graph, linked: readonly Relation[], perches: readonly Perch[],
+                    solid: readonly { x: number; y: number; w: number; h: number }[],
+                    met = new Map(perches.map((p) => [`${p.edge}|${p.end}`, p]))): LineEdge[] {
+  return linked.map((e): LineEdge => {
+    const wire = wire_of(graph, e.id);
+    const label = wire.name ? label_of(graph, e.id) : "";
+    const alias = wire.alias ? alias_of(graph, e.id, true) : "";
+    return {
+      id: e.id,
+      source: e.from,
+      target: e.to,
+      sourceHandle: handle(met, e.id, "from", "s"),
+      targetHandle: handle(met, e.id, "to", "t"),
+      ...(label ? { label } : {}),
+      data: { module: e.module, dir: e.dir ?? "none", wire,
+              ...(alias ? { alias } : {}),
+              ...(solid.length ? { clear: solid } : {}) },
+    };
+  });
 }
 
 /** Which handle an end leaves by.

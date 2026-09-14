@@ -104,8 +104,9 @@ function home_of(graph: Graph, id: Id): Id | null {
   const e = graph.edges[id];
   const b = graph.blocks[e ? owner_of(graph, e.from) : id];
   if (!b) return null;
-  if (is_interface(b)) return graph.blocks[b.parent ?? ""]?.parent ?? null;
-  return b.parent ?? null;
+  const home = is_interface(b) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
+  /** **The root layer is `null`**, as the open layer names it. */
+  return !home || home === graph.root ? null : home;
 }
 
 export function Tray(props: TrayProps) {
@@ -313,7 +314,7 @@ export function Tray(props: TrayProps) {
                 <button className="reset" disabled={borrowed || !resettable}
                         title={resettable ? "give every look back to what it inherits"
                                           : "it says nothing of its own to give back"}
-                        onClick={() => act("plain", { ids: [about] })}>
+                        onClick={() => act("none", { ids: [about] })}>
                   reset style
                 </button>
                 {drafting || (line && its_own) ? (
@@ -342,7 +343,9 @@ export function Tray(props: TrayProps) {
           ) : null}
           {onAct && tab === "usages" ? (
             <Usages graph={listed} layer={layer} about={held_def}
-                    picked={picked} onPick={pick_row} onHover={onHover} onAct={act} />
+                    picked={picked} onPick={pick_row} onHover={onHover} onAct={act}
+                    {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
+                    home={(id) => home_of(graph, id)} />
           ) : null}
 
           {tab === "contents" ? (

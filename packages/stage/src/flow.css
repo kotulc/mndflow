@@ -634,6 +634,10 @@
 }
 .mnd-flow .react-flow__edge.tie .react-flow__arrowhead * { fill: var(--note-dim); }
 
+/* Where a tie meets a line. **It takes no pointer**: the line under it answers. */
+.mnd-flow .react-flow__node-knot { pointer-events: none; }
+.mnd-knot { width: 100%; height: 100%; border-radius: 50%; background: var(--note-dim); }
+
 /* ── What a vocabulary says about a run ───────────────────────────────────── */
 
 /* **The same table a card is painted from.** `style` is shared, so a run

@@ -228,9 +228,10 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     undo() {
-      const last = [...log].reverse()
-        .find((s) => s.status === "applied" && s.action !== "checkpoint");
-      if (!last) return false;
+      const last = [...log].reverse().find((s) => s.status === "applied");
+      /** **A checkpoint cannot be undone**, whether compaction or an import
+       *  wrote it — and nothing before one can be reached. */
+      if (!last || last.mutations.some((m) => m.op === "checkpoint")) return false;
       last.status = "reverted";
       settle();
       return true;
@@ -317,9 +318,9 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     },
 
     load(text) {
-      const got = read(text);
+      const got = read(text, floor);
       if (got.log.length === 0) {
-        said = { text: "that file could not be read", at: Date.now(), kind: "note" };
+        said = { text: say(got.faults) || "that file could not be read", at: Date.now(), kind: "note" };
         listener?.();
         return;
       }
@@ -327,6 +328,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       layer = null;
       picked = [];
       cells = [];
+      said = got.faults.length ? { text: say(got.faults), at: Date.now(), kind: "note" } : null;
       settle();
     },
 

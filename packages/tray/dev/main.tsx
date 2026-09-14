@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { children, fold, shown_name, type Id } from "@mnd/core";
-import { fixture, NAMES } from "@mnd/fixtures";
+import { FLOOR, fixture, NAMES } from "@mnd/fixtures";
 import { Tray } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
@@ -31,12 +31,12 @@ function richest(graph: ReturnType<typeof fold>): Id | null {
 
 function Harness() {
   const [name, set_name] = useState<string>("related");
-  const [layer, set_layer] = useState<Id | null>(() => richest(fold(fixture("related"))));
+  const [layer, set_layer] = useState<Id | null>(() => richest(fold(fixture("related"), FLOOR)));
   const [open, set_open] = useState(true);
   const [picked, set_picked] = useState<Id[]>([]);
   const [log, set_log] = useState<string[]>([]);
 
-  const graph = fold(fixture(name));
+  const graph = fold(fixture(name), FLOOR);
   const layers: (Id | null)[] = [null, ...Object.keys(graph.blocks).filter((id) =>
     children(graph, id).length > 0)];
   const here = layer && graph.blocks[layer] ? layer : null;
@@ -49,7 +49,7 @@ function Harness() {
         <b>tray</b>
         <select value={name} onChange={(e) => {
           set_name(e.target.value);
-          set_layer(richest(fold(fixture(e.target.value))));
+          set_layer(richest(fold(fixture(e.target.value), FLOOR)));
           set_picked([]);
         }}>
           {NAMES.map((n) => <option key={n}>{n}</option>)}

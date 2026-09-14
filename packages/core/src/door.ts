@@ -13,7 +13,7 @@
  *  teaches people to ignore the real ones. */
 
 import { component, unreadable } from "./components";
-import { alias_kind, covers, fold, can_hold, is_grid, module_named, overlaps,
+import { alias_kind, covers, fold, can_hold, is_grid, may_tie, module_named, overlaps,
          relation_named, shipped, subtree, BASE_RELATIONS } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
@@ -273,7 +273,9 @@ export function inspect(graph: Graph): Inspection {
   }
 
   for (const [id, e] of Object.entries(graph.edges)) {
-    if (!graph.blocks[e.from] || !graph.blocks[e.to]) {
+    const blocks = !!graph.blocks[e.from] && !!graph.blocks[e.to];
+    const tied = e.module === "tie" && may_tie(graph, e.from, e.to);
+    if (!blocks && !tied) {
       faults.push({ kind: "dropped", what: "a relation with an end that is not there" });
       repairs.push({ op: "delete_edge", id });
     }

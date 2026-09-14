@@ -94,6 +94,22 @@ Both are projections over different sources, neither is a block, and a third cos
 | **format is the definition's business** | `Requirement` says markdown, `Script` says code. **Not a new value form** — the closed set stays `text`, `number`, `flag`, `choice`, `link`, and `body` is a slot beside `fields` rather than one of them |
 | **content addressing, only if it bites** | the graph and the file carry text, never a content id, so blobs can come later without touching a reader. A checkpoint carries every body in full, so it earns itself when bodies are edited often, not merely when they are large |
 
+### 5 — Docs, brought up to the model
+
+**The docs are stale, and they are rewritten to match the code.** The 2026-09-13 review found drift across most of them; this is the pass that closes it.
+
+| doc | what trails |
+|---|---|
+| **spec.md** | the Scene is `nodes`, `edges`, `perches` rather than boxes, routes and hits; `net` is bound and `score` reaches the terminal directly; storage is localStorage; the kit table; *every log folds clean*; the elbow invariant |
+| **definitions.md** | relation modules are `line` and `tie`; resolution is global by id, not by `home`; a kind is fixed at creation; `constraints` folded into `rules`; card layouts and the old style keys; pinning |
+| **schema.md** | `name` and `order`; relation fields and ports; `from`, `default`, `label` and no `home` on a definition; the mutation ops; files are flat with `parent`; no name uniqueness |
+| **core engine, workspace, model** | file layout, the `rel_` prefix, `is_top_block`, relation types |
+| **actions.md** | forty-one actions, not twenty-five; `label`, `lock` and `undefine` gone; `pin`, `unpin`, `pin_line`, `none`, `baseline`, `default`, `rename_def`, `order_field` missing; three adjustments; promotion has a gesture |
+| **ports.md, defs.md** | `net` is bound; packages live in `public/packages`; `tie` ships no definition |
+| **packages README** | view modules, dagre, routing, the Scene shape |
+| **options.md, explorer.md** | the settings group replaced the element group; interfaces are never listed; the definitions section |
+| **stories.md, README** | ST.4, ST.13, ST.15, ST.16 and the tray section; package search fetches at run time |
+
 
 ## Open questions
 

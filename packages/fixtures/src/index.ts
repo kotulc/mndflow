@@ -3,7 +3,7 @@
  *  Folding one is what exercises the engine, so the same files feed the CLI,
  *  every suite and every dev harness. One set of sample data, three consumers. */
 
-import { seed } from "@mnd/defs";
+import { base_graph } from "@mnd/defs";
 import { ROOT, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
 
 let n = 0;
@@ -26,21 +26,21 @@ const start = () => { n = 0; counts = {}; };
 const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
   ({ op: "link_blocks", edge: { id, from, to, module: "line", ...(dir ? { dir } : {}) } });
 
-/** The base package, through the same door as everything else. */
-const base = (): Step => step("seed", seed());
+/** **The shipped floor**, which every fold of a fixture starts from. It is
+ *  never a step: a log is a history of intent, and what the app ships is not. */
+export const FLOOR = base_graph().defs;
 
-/** The floor and nothing else: a workspace as it opens for the first time.
+/** Nothing but the floor: a workspace as it opens for the first time.
  *  What the question loop starts from, and what a fresh session folds to. */
 export function blank(): Log {
   start();
-  return [base()];
+  return [];
 }
 
 /** One project, three siblings, nothing else. The simplest thing that draws. */
 export function flat(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_ledger", ROOT, "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
     step("create", [block("block_auth", "block_ledger", "Auth", "block")]),
@@ -52,7 +52,6 @@ export function flat(): Log {
 export function nested(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_shelf", ROOT, "Shelf", "folder")]),
     step("create", [block("block_ledger", "block_shelf", "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
@@ -68,7 +67,6 @@ export function nested(): Log {
 export function related(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
@@ -97,7 +95,6 @@ export function related(): Log {
 export function interfaced(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
@@ -130,7 +127,6 @@ export function gridded(): Log {
     ["block_plan", "Plan"], ["block_build", "Build"],
   ];
   return [
-    base(),
     step("create", [block("block_board", ROOT, "Board", "block")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
     step("group", [

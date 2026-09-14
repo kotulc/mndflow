@@ -45,7 +45,7 @@ npm i ./vendor/mnd-kit-0.1.0.tgz    # vendored, or fetched from a release
 ## Using it
 
 ```ts
-import { base_graph, validate, review, write, open, block, draw_svg } from "@mnd/kit";
+import { base_graph, validate, review, write, open, project, draw_svg } from "@mnd/kit";
 
 const graph = base_graph();           // a workspace with the floor in it
 const faults = validate(graph);       // what it violates, if anything
@@ -53,7 +53,7 @@ const notes = review(graph);          // what its definitions asked for and did 
 const file = write(graph, "docs");    // what mndflow reads back
 const back = open(file).graph;        // and the same state, in again
 
-const svg = draw_svg(block.project(back, layer, {}));
+const svg = draw_svg(project(back, layer, {}));
 ```
 
 **Two questions, and only one of them mends.** `validate` asks whether a graph can be *read*; `review` asks whether it says what its definitions asked for. A model is legitimately unfinished, so a note is advice — **a translator is where it becomes a refusal.**

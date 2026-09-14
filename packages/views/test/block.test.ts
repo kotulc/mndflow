@@ -4,7 +4,7 @@
  *  handles anything that does. Neither imports the other. */
 
 import { describe, expect, it } from "vitest";
-import { fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
+import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
 import { children, fold, session, ROOT, type Graph, type Id } from "@mnd/core";
 import { box_of, draw, faults, outline, project, EMPTY, type Scene } from "../src/index";
 
@@ -16,7 +16,7 @@ function layers(graph: Graph): (Id | null)[] {
 
 describe("every scene is well-formed", () => {
   it.each(NAMES)("over every layer of %s", (name) => {
-    const graph = fold(fixture(name));
+    const graph = fold(fixture(name), FLOOR);
     for (const layer of layers(graph)) {
       expect(faults(project(graph, layer)), `layer ${layer}`).toEqual([]);
     }
@@ -32,7 +32,7 @@ describe("every scene is well-formed", () => {
 });
 
 describe("the invariants catch what they are for", () => {
-  const good = project(fold(related()), "block_loop");
+  const good = project(fold(related(), FLOOR), "block_loop");
 
   it("an edge reaching a node that is not drawn", () => {
     const bad: Scene = { ...good,
@@ -58,25 +58,25 @@ describe("the invariants catch what they are for", () => {
 
 describe("what the projection shows", () => {
   it("draws one box per unit in the layer, and no more", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const scene = project(graph, "block_ledger");
     expect(scene.nodes.map((b) => b.id).sort())
       .toEqual(children(graph, "block_ledger").map((b) => b.id).sort());
   });
 
   it("draws nothing from another layer", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const scene = project(graph, "block_ledger");
     expect(scene.nodes.map((b) => b.id)).not.toContain("block_rate");
   });
 
   it("gives every node a type, so a renderer never guesses", () => {
-    const scene = project(fold(related()), "block_loop");
+    const scene = project(fold(related(), FLOOR), "block_loop");
     expect(scene.nodes.every((n) => !!n.type)).toBe(true);
   });
 
   it("projects a grid as a lattice, not a card", () => {
-    const scene = project(fold(fixture("gridded")), "block_board");
+    const scene = project(fold(fixture("gridded"), FLOOR), "block_board");
     const lanes = scene.nodes.find((n) => n.id === "block_lanes")!;
     expect(lanes.type).toBe("grid");
     expect(lanes.data.grid?.length).toBeGreaterThan(0);
@@ -84,7 +84,7 @@ describe("what the projection shows", () => {
   });
 
   it("marks how a block reads without anything declaring it", () => {
-    const scene = project(fold(related()), "block_loop");
+    const scene = project(fold(related(), FLOOR), "block_loop");
     const mark = (id: string) => scene.nodes.find((b) => b.id === id)!.data.marks;
     expect(mark("block_note")).toContain("note");
     expect(mark("block_hot")).toContain("group");
@@ -92,7 +92,7 @@ describe("what the projection shows", () => {
   });
 
   it("sizes a boundary to what it holds", () => {
-    const scene = project(fold(related()), "block_loop");
+    const scene = project(fold(related(), FLOOR), "block_loop");
     const band = box_of(scene.nodes.find((b) => b.data.marks.includes("group"))!);
     for (const id of ["block_hx", "block_tank"]) {
       const box = box_of(scene.nodes.find((b) => b.id === id)!);
@@ -118,7 +118,7 @@ describe("what the projection shows", () => {
   });
 
   it("carries a trail from the root down to the layer", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const trail = project(graph, "block_rate").trail.map((t) => t.id);
     expect(trail[0]).toBe(ROOT);
     expect(trail.at(-1)).toBe("block_rate");
@@ -128,7 +128,7 @@ describe("what the projection shows", () => {
    *  so hiding interfaces must not take away the group that shows them, which
    *  is `relations`. */
   it("offers the control groups it can answer, hiding one or not", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     expect(project(graph, "block_loop").slots).toContain("relations");
     expect(project(graph, "block_loop", { interfaces: false }).slots)
       .toContain("relations");
@@ -138,7 +138,7 @@ describe("what the projection shows", () => {
    *  relationships tied to them, so a hidden one keeps its seat as a berth
    *  that draws nothing and answers no gesture. */
   it("leaves a berth where an interface is hidden", () => {
-    const graph = fold(fixture("interfaced"));
+    const graph = fold(fixture("interfaced"), FLOOR);
     const off = project(graph, "block_loop", { interfaces: false });
     const ports = off.nodes.filter((b) => b.data.marks.includes("interface"));
     expect(ports.length).toBeGreaterThan(0);
@@ -147,21 +147,21 @@ describe("what the projection shows", () => {
   });
 
   it("is a pure function of the graph — it writes nothing", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     const before = structuredClone(graph);
     project(graph, "block_loop");
     expect(graph).toEqual(before);
   });
 
   it("is stable — projecting twice gives the same scene", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     expect(project(graph, "block_loop")).toEqual(project(graph, "block_loop"));
   });
 });
 
 describe("the text renderer", () => {
   it("draws a scene as shape rather than coordinates", () => {
-    const scene = project(fold(related()), "block_loop");
+    const scene = project(fold(related(), FLOOR), "block_loop");
     const picture = draw(scene);
     /** A card for every block, a band round the group, and more than one row of
      *  them. **Never what fits inside a card** — how many characters a name
@@ -175,18 +175,18 @@ describe("the text renderer", () => {
   });
 
   it("says so rather than drawing nothing for an empty layer", () => {
-    expect(draw(project(fold(flat()), "block_edge"))).toBe("(empty)");
+    expect(draw(project(fold(flat(), FLOOR), "block_edge"))).toBe("(empty)");
   });
 
   it("outlines what a scene holds", () => {
-    const text = outline(project(fold(related()), "block_loop"));
+    const text = outline(project(fold(related(), FLOOR), "block_loop"));
     expect(text).toContain("Coolant Loop");
     expect(text).toContain("-->");
   });
 
   it("draws every fixture without throwing", () => {
     for (const name of NAMES) {
-      const graph = fold(fixture(name));
+      const graph = fold(fixture(name), FLOOR);
       for (const layer of layers(graph)) {
         expect(() => draw(project(graph, layer))).not.toThrow();
       }
@@ -195,7 +195,7 @@ describe("the text renderer", () => {
 });
 
 describe("interfaces are seated, not placed", () => {
-  const scene = project(fold(fixture("interfaced")), "block_loop");
+  const scene = project(fold(fixture("interfaced"), FLOOR), "block_loop");
   const port = () => scene.nodes.find((b) => b.id === "port_out")!;
 
   it("draws one, on the card it belongs to", () => {
@@ -221,7 +221,7 @@ describe("interfaces are seated, not placed", () => {
    *  drawn.** Hiding the seats that moved a line's ends would make a display
    *  preference redraw the model. */
   it("hides the seats and moves neither the lines nor their ends", () => {
-    const off = project(fold(fixture("interfaced")), "block_loop", { interfaces: false });
+    const off = project(fold(fixture("interfaced"), FLOOR), "block_loop", { interfaces: false });
     expect(off.nodes.every((b) => !b.data.marks.includes("interface")
                                || b.data.marks.includes("berth"))).toBe(true);
     expect(off.edges.map((r) => `${r.id}:${r.source}>${r.target}`).sort())
@@ -240,7 +240,7 @@ describe("interfaces are seated, not placed", () => {
  *  every keystroke and the canvas goes back to feeling stuck. */
 describe("the same graph projects the same scene", () => {
   it("says the same thing twice", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     expect(project(graph, "block_loop"))
       .toEqual(project(graph, "block_loop"));
   });
