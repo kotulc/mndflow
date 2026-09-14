@@ -576,8 +576,14 @@ function named(graph: Graph, b: Block): string {
  *  the word its type or its module gives, and the handle beside it is what
  *  tells two apart. */
 function named_edge(graph: Graph, id: Id): string {
-  const e = graph.edges[id]!;
-  return e.type ? graph.defs[e.type]?.name ?? e.module : e.module;
+  return label_of(graph, id) || graph.edges[id]!.module;
+}
+
+/** **What a line draws beside itself**: the label of the definition it follows,
+ *  or nothing. A definition id answers for itself. */
+export function label_of(graph: Graph, id: Id): string {
+  const d = graph.defs[id] ?? graph.defs[def_of(graph, id) ?? ""];
+  return d?.label ?? "";
 }
 
 /** The number a new sibling takes: one past the last.
@@ -991,9 +997,8 @@ export function default_for(graph: Graph, kind: BlockModule | RelationModule,
  *  ships no definition to name it. */
 export const BASE_RELATIONS: readonly string[] = ["line"];
 
-/** The ids the workspace's base template and base type are filed under. */
-export const BASE_TEMPLATE = "def_default";
-export const BASE_TYPE = "def_none";
+/** The id the workspace's base line is filed under when the app files it. */
+export const BASE_LINE = "def_default";
 
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
@@ -1056,57 +1061,35 @@ export function relations(graph: Graph): Definition[] {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** **What tells a template from a stereotype is what it says, not a flag.** A
- *  template carries `components` — it is the thing that draws a certain way; a
- *  stereotype carries a name and an `extends`, and takes its drawing from the
- *  template above it. Forty stereotypes over four templates, and the chain
- *  `isa` already walks is the whole of the decoupling.
- *
- *  **The wrong-side case is a signal, not a bug**: a stereotype that grows a
- *  look of its own *is* a template somebody named. */
-export function is_template(d: Definition): boolean {
-  return !!d.components && Object.keys(d.components).length > 0;
-}
-
-/** **The template a relation type draws through**: itself where it is one, or
- *  the nearest above it. A stereotype names a line; this is what it looks like. */
-export function template_of(graph: Graph, type: Id | undefined): Definition | undefined {
-  return isa(graph, type).find((d) => d.group === "relation" && is_template(d));
-}
-
-/** **The base line**: the type a line naming nothing follows, and the template
- *  that type draws through. Read off the workspace's default, never off an id,
- *  so a workspace that filed its base another way still has one. */
-export function base_type(graph: Graph): Definition | undefined {
+/** **The base line**: the definition every line naming nothing follows. Read
+ *  off the workspace's default, never off an id, so a workspace that filed its
+ *  base another way still has one. */
+export function base_line(graph: Graph): Definition | undefined {
   const id = default_for(graph, "line", "relation");
   return id ? graph.defs[id] : undefined;
 }
 
-export function base_template(graph: Graph): Definition | undefined {
-  return template_of(graph, base_type(graph)?.id);
-}
-
-/** A definition by what it is called. **Its name, not the id slugged from it** —
- *  a definition renamed keeps its id, so the slug no longer finds it. */
+/** A definition by what it is called. **Its name, never the id slugged from it** —
+ *  a definition renamed keeps its id, so a slug finds the wrong one or none. */
 export function def_named(graph: Graph, name: string, group?: "block" | "relation"): Definition | undefined {
   const want = name.trim();
   if (!want) return undefined;
   /** **The workspace's own first**: one may share a name with a shipped kind. */
   const hits = Object.values(graph.defs)
     .filter((d) => d.name === want && (!group || d.group === group));
-  return hits.find((d) => !d.from) ?? hits[0] ?? graph.defs[def_id(want)];
+  return hits.find((d) => !d.from) ?? hits[0];
 }
 
-/** The relation templates: what a line can be made to look like. */
-export function templates(graph: Graph): Definition[] {
-  return relations(graph).filter(is_template);
-}
-
-/** The stereotypes: what a line can be called. **Templates are left out**, so
- *  the roster never has to answer whether a count means direct usages or
- *  everything down the chain. */
-export function stereotypes(graph: Graph): Definition[] {
-  return relations(graph).filter((d) => !is_template(d));
+/** The id a name is filed under: the definition already called that, or a
+ *  fresh slug. **A slug another definition holds is suffixed**, since names
+ *  are unique across the workspace and ids only have to be. */
+export function def_slot(graph: Graph, name: string): Id {
+  const held = def_named(graph, name);
+  if (held) return held.id;
+  const slug = def_id(name);
+  let id = slug;
+  for (let n = 2; graph.defs[id]; n++) id = `${slug}_${n}`;
+  return id;
 }
 
 /** The templates offered on the rail, **in the order the workspace put them**.

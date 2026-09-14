@@ -5,8 +5,8 @@
  *  hunting for it on the drawing. Everything here is derived from the graph;
  *  the tray stores nothing and writes nothing. */
 
-import { alias_of, children, def_of, default_for, edges_in, is_interface, is_template, isa,
-         module_of, path, pinned_lines, shown_name, stereotypes, template_of, templates,
+import { alias_of, base_line, children, def_of, edges_in, is_interface, isa, label_of,
+         module_of, path, shipped, shown_name,
          type Block, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. Coarser than `kind`: a
@@ -112,65 +112,40 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
 }
 
 
-/** One relation template, as the template tab's table lists it. */
-export type TemplateRow = {
+/** One relation definition, as the definitions tab lists it. */
+export type DefRow = {
   id: Id;
   name: string;
-  /** What it refines, by name — blank where it refines a base module. */
-  extends: string;
-  /** Whether it is offered on the rail. */
-  pinned: boolean;
-  /** Whether plain lines draw through it. */
-  base: boolean;
-  /** Lines drawing through it: naming it, a type under it, or nothing at all
-   *  and following the base. */
-  used: number;
-};
-
-/** The workspace's relation templates, **the base one first**, with how many
- *  lines draw through each — counted down the chain, since a template exists
- *  to be extended. */
-export function template_rows(graph: Graph): TemplateRow[] {
-  const listed = pinned_lines(graph).map((d) => d.id);
-  const base = template_of(graph, default_for(graph, "line", "relation"))?.id;
-  return templates(graph).map((d) => ({
-    id: d.id,
-    name: d.name,
-    extends: d.extends ? graph.defs[d.extends]?.name ?? d.extends : "",
-    pinned: listed.includes(d.id),
-    base: d.id === base,
-    used: Object.values(graph.edges)
-      .filter((e) => isa(graph, def_of(graph, e.id)).some((x) => x.id === d.id)).length,
-  })).sort((a, z) => Number(z.base) - Number(a.base));
-}
-
-/** One type, as the types tab lists it. */
-export type StereotypeRow = {
-  id: Id;
-  name: string;
-  /** The template it extends, so a row can offer to change it. */
-  template: Id;
+  /** What a line naming it draws; blank for none. */
+  label: string;
+  /** What it extends — blank for the base line. */
+  extends: Id;
   /** Whether plain lines follow it. */
   base: boolean;
-  /** Lines naming it — or, for the base type, naming nothing. */
+  /** The package it came from, where somebody else wrote it. */
+  from: string;
+  /** Lines following it — naming it, or naming nothing where it is the base. */
   used: number;
 };
 
-/** Every type in the workspace, **used or not**, the base one first. A roster:
- *  an unused type is exactly what it has to be able to show. */
-export function stereotype_rows(graph: Graph): StereotypeRow[] {
-  const counts = new Map<string, number>();
+/** **Every relation definition the workspace can name**, the base first and
+ *  then by name. A roster: an unused one is exactly what it has to show, and a
+ *  name refused as taken has to be findable here. */
+export function def_rows(graph: Graph): DefRow[] {
+  const floor = base_line(graph)?.id;
+  const used = new Map<string, number>();
   for (const e of Object.values(graph.edges)) {
     const d = def_of(graph, e.id);
-    if (d) counts.set(d, (counts.get(d) ?? 0) + 1);
+    if (d) used.set(d, (used.get(d) ?? 0) + 1);
   }
-  return stereotypes(graph).map((d) => ({
-    id: d.id,
-    name: d.name,
-    template: template_of(graph, d.id)?.id ?? "",
-    base: !!d.default,
-    used: counts.get(d.id) ?? 0,
-  })).sort((a, z) => Number(z.base) - Number(a.base));
+  return Object.values(graph.defs)
+    /** **The shipped floor is not listed**: nobody chose it, and nothing edits it. */
+    .filter((d) => d.group === "relation" && !shipped(d))
+    .map((d): DefRow => ({
+      id: d.id, name: d.name, label: d.label ?? "", extends: d.extends ?? "",
+      base: d.id === floor, from: d.from ?? "", used: used.get(d.id) ?? 0,
+    }))
+    .sort((a, z) => Number(z.base) - Number(a.base) || a.name.localeCompare(z.name));
 }
 
 /** One line, as the usages tab lists it. */
@@ -181,10 +156,14 @@ export type UsageRow = {
   what: string;
   /** Where in the project it is, as a path. */
   layer: string;
-  /** The template it draws through, by name. */
-  template: string;
-  /** The type it names — blank where it follows the base or names a template. */
-  type: Id;
+  /** The module it is drawn by. */
+  module: string;
+  /** Every definition it resolves through, nearest first. */
+  chain: Id[];
+  /** The definition it names — blank where it follows the base. */
+  def: Id;
+  /** What it draws beside itself. */
+  label: string;
 };
 
 /** The lines in a layer, or **every line there is** for the workspace — the one
@@ -198,8 +177,10 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     name: called(e.id),
     what: `${called(e.from)} → ${called(e.to)}`,
     layer: layer_path(graph, e.from),
-    template: template_of(graph, def_of(graph, e.id))?.name ?? "",
-    type: e.type && graph.defs[e.type] && !is_template(graph.defs[e.type]!) ? e.type : "",
+    module: e.module,
+    chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
+    def: e.type && e.type !== base_line(graph)?.id ? e.type : "",
+    label: label_of(graph, e.id),
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 

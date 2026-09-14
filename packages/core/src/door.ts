@@ -14,8 +14,7 @@
 
 import { component, unreadable } from "./components";
 import { alias_kind, covers, fold, can_hold, is_grid, module_named, overlaps,
-         relation_named, subtree, template_of, is_template,
-         BASE_RELATIONS, BASE_TEMPLATE, BASE_TYPE } from "./fold";
+         relation_named, shipped, subtree, BASE_RELATIONS } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -587,7 +586,7 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "set_def", def: { ...d, default: undefined } });
   }
 
-  repairs.push(...base_line(graph, faults));
+  repairs.push(...base_shape(graph, faults));
   return { faults, repairs };
 }
 
@@ -595,41 +594,62 @@ export function inspect(graph: Graph): Inspection {
 
 
 
-/** **Plain lines follow a type, and a type extends a template.** A workspace
- *  written before that was settled may say it another way: a template made the
- *  default for lines, or a default type drawing through no template at all.
- *  Either is put back into shape, and a template extending nothing is put under
- *  the base — so editing the base template reaches every line it should. */
-function base_line(graph: Graph, faults: Fault[]): Mutation[] {
+/** **A relation definition is one kind of thing**: a name, an optional label,
+ *  and what it extends. A workspace written when templates and types were two
+ *  is put into that shape, off the graph as it came in:
+ *
+ *  | it said | it becomes |
+ *  |---|---|
+ *  | a type — no look — beside an old base type | a definition labelled with its name |
+ *  | a base type standing in for plain lines | gone; the definition it extended is the base |
+ *  | a definition reaching nothing of the workspace's | extends the base |
+ *
+ *  **An old file is told by its base type**: a default holder with no look of
+ *  its own. Only then is a definition with no look read as a type, so what a
+ *  translator hands over passes untouched. */
+function base_shape(graph: Graph, faults: Fault[]): Mutation[] {
   const out: Mutation[] = [];
-  const held = Object.values(graph.defs)
-    .find((d) => d.group === "relation" && d.default === "line" && !d.from);
-  if (!held) return out;
-  let template = template_of(graph, held.id);
-  if (is_template(held)) {
-    faults.push({ kind: "repaired", what: `"${held.name}" was a template standing in for plain lines` });
-    out.push({ op: "set_def", def: { ...held, default: undefined } });
-    out.push({ op: "set_def", def: { id: BASE_TYPE, group: "relation", name: "none",
-                                     extends: held.id, default: "line" } });
-    template = held;
-  } else if (!template) {
-    faults.push({ kind: "repaired", what: `"${held.name}" drew through no template` });
-    template = graph.defs[BASE_TEMPLATE]
-      ?? { id: BASE_TEMPLATE, group: "relation", name: "default", components: { line: {} } };
-    out.push({ op: "set_def", def: template });
-    out.push({ op: "set_def", def: { ...held, extends: template.id } });
+  const own = Object.values(graph.defs).filter((d) => d.group === "relation" && !d.from);
+  const mended = new Map(own.map((d) => [d.id, d]));
+  const legacy = (d: Definition) => !d.components?.["line"];
+
+  /** **The base**: the default holder, or what an old base type extended. */
+  let base = own.find((d) => d.default === "line");
+  const old = !!base && legacy(base);
+  if (base && old) {
+    const up = base.extends ? mended.get(base.extends) : undefined;
+    if (up) {
+      faults.push({ kind: "repaired", what: `"${base.name}" stood in for plain lines, and "${up.name}" is the base now` });
+      for (const e of Object.values(graph.edges)) {
+        if (e.type === base.id) out.push({ op: "update_edge", id: e.id, type: null });
+      }
+      for (const d of own) {
+        if (d.extends === base.id) mended.set(d.id, { ...mended.get(d.id)!, extends: up.id });
+      }
+      out.push({ op: "drop_def", id: base.id });
+      mended.delete(base.id);
+      mended.set(up.id, { ...mended.get(up.id)!, default: "line" });
+      base = up;
+    } else {
+      mended.set(base.id, { ...base, components: { ...base.components, line: {} } });
+    }
   }
-  /** **Every other relation definition reaches a template**: a template whose
-   *  parent is none of the workspace's — nothing, or the shipped `line` — goes
-   *  under the base, and so does a type drawing through no template at all. */
-  const base = template.id;
-  const shipped_line = (id: string | undefined) => !id || !!graph.defs[id]?.from;
-  for (const d of Object.values(graph.defs)) {
-    if (d.group !== "relation" || d.from || d.id === base || d.id === held.id) continue;
-    const orphan = is_template(d) ? shipped_line(d.extends) : !template_of(graph, d.id);
-    if (!orphan) continue;
-    faults.push({ kind: "repaired", what: `"${d.name}" reached no template, and now extends the base` });
-    out.push({ op: "set_def", def: { ...d, extends: base } });
+
+  for (const d of mended.values()) {
+    let next = d;
+    if (old && legacy(next)) {
+      faults.push({ kind: "repaired", what: `"${d.name}" was a type, and is labelled with its name` });
+      next = { ...next, label: next.label ?? next.name,
+               components: { ...next.components, line: {} } };
+    }
+    /** **Every other definition reaches the base**, or a package's line. */
+    const up = next.extends ? graph.defs[next.extends] : undefined;
+    const reaches = !!up && (mended.has(up.id) || (!!up.from && !shipped(up)));
+    if (base && next.id !== base.id && !reaches) {
+      faults.push({ kind: "repaired", what: `"${d.name}" reached no definition, and now extends the base` });
+      next = { ...next, extends: base.id };
+    }
+    if (next !== graph.defs[d.id]) out.push({ op: "set_def", def: next });
   }
   return out;
 }

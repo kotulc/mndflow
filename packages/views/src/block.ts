@@ -4,7 +4,7 @@
  *  hands back a Scene — it never writes a mutation and never touches the DOM. */
 
 import { alias_of, children, covers, edges_in, group_depth, is_grid, is_group,
-         is_header, is_holder, is_interface, members_of, module_of, role_of, shown_name,
+         is_header, is_holder, is_interface, label_of, members_of, module_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
@@ -188,8 +188,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
      *  **And nothing else is written.** An edge holds no values, so there is
      *  nothing at an end to draw: an anchor is mute, and what a promoted end
      *  has to say is drawn by the port, which is a block like any other. */
-    const named = !!graph.edges[e.id]?.type;
-    const label = wire.name && named ? shown_name(graph, e.id) : "";
+    const label = wire.name ? label_of(graph, e.id) : "";
     const alias = wire.alias ? alias_of(graph, e.id, true) : "";
     return {
       id: e.id,

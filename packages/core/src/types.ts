@@ -245,6 +245,10 @@ export type Definition = {
   default?: BlockModule | RelationModule;
   group: "block" | "relation";
   name: string;
+  /** **What a line naming this draws, exactly as typed** — a stereotype such as
+   *  `<<relates>>`. Its own and never inherited: a definition extending a
+   *  labelled one says nothing until it says a label of its own. */
+  label?: string;
   body?: string;
   extends?: Id;
   fields?: FieldDef[];

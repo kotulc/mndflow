@@ -144,6 +144,7 @@
 /* Hovering a row lights that thing on the stage; clicking selects it. */
 .contents-table tbody tr:hover td { background: var(--hover); color: var(--text); }
 .contents-table tbody tr { cursor: pointer; }
+.contents-table tbody tr.add { cursor: default; }
 
 .contents-table tr.picked td {
   background: var(--hover);
@@ -483,9 +484,13 @@
 
 /* **A picker in a table cell answers the way one in a row does**: the same
    wash, the same edge on hover, and the cell's own font. */
+/* **Every control takes the whole cell**, so a column of them lines up. */
 .contents-table td select {
   box-sizing: border-box;
   height: 20px;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
   max-width: 100%;
   padding: 0 4px;
   border: 1px solid transparent;
@@ -496,8 +501,6 @@
 }
 .contents-table td select:hover { border-color: var(--divider); }
 
-/* The base type's name is the absence of one, so it reads as a placeholder. */
-.contents-table td .none { color: var(--faint); font-style: italic; }
 
 /* **The last row adds one**: a box where a name goes, and what it would clash
    with said beside it. */
@@ -515,6 +518,7 @@
   font: inherit;
 }
 .contents-table td .adding > input:focus { outline: none; border-color: var(--accent); }
+.contents-table td .adding > input:hover { border-color: var(--divider); }
 .contents-table td .adding > .warn { flex: none; color: var(--warn); font-size: 10px; }
 .contents-table td.drop { text-align: right; }
 .contents-table td .drop {
@@ -849,7 +853,8 @@
    thing that decides whether it is worth pressing, so it is on the chip rather
    than found by pressing it. The outline is what makes a row of them read as
    controls rather than as words. */
-.filters > button {
+.filters > button,
+.filters > .chips > button {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
@@ -860,17 +865,25 @@
   font-size: 11px;
 }
 
-.filters > button:hover { color: var(--text); border-color: var(--border); }
-.filters > button.on { color: var(--accent); border-color: var(--accent);
+.filters > button:hover,
+.filters > .chips > button:hover { color: var(--text); border-color: var(--border); }
+.filters > button.on,
+.filters > .chips > button.on { color: var(--accent); border-color: var(--accent);
                        background: var(--tint); }
 
 /* The count sits back from the word: the word is what you are choosing, and
    this is what it would leave. */
-.filters > button > .count { color: var(--faint); font-size: 10px; }
-.filters > button.on > .count { color: var(--accent); opacity: 0.8; }
+.filters > button > .count,
+.filters > .chips > button > .count { color: var(--faint); font-size: 10px; }
+.filters > button.on > .count,
+.filters > .chips > button.on > .count { color: var(--accent); opacity: 0.8; }
 
 /* Columns asked for by name, so the one field you are comparing reads down the
    layer instead of being opened row by row. */
+/* Each question's chips hold together; a second question stands apart. */
+.filters > .chips { display: inline-flex; align-items: center; gap: 3px; }
+.filters > .chips.split { margin-left: 6px; padding-left: 8px; border-left: 1px solid var(--divider); }
+
 .filters .columns { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 
 .filters .columns .chip {

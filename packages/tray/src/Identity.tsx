@@ -10,28 +10,30 @@
  *  | workspace | name, id |
  *  | block | name, type, offer |
  *  | block definition | name, type, offer |
- *  | template, or a line's template | name, extends, offer |
+ *  | relation definition, or a line's | name, label, extends, offer |
  *
- *  **A line is described by its template.** Styling one makes a working
- *  template, named here and kept with *save template*; its type is a different
- *  property, set on the types and usages tabs.
+ *  **A line is described by the definition it follows.** Styling one makes a
+ *  working definition, named here and kept with *save*; which definition a line
+ *  follows is set on the usages tab.
  *
  *  A pure function of its props, like every other surface. */
 
 import { useState } from "react";
-import { alias_of, BASE_PACKAGE, base_template, def_named, def_of, isa, kind_word, may_retype, module_of,
-         pinned_lines, role_of, shipped, shown_name, template_of, templates,
+import { alias_of, BASE_PACKAGE, base_line, def_of, isa, kind_word, may_retype, module_of,
+         pinned_lines, relations, role_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
 import { Card } from "./Card";
+import { taken } from "./Definitions";
+import { Entry } from "./Entry";
 import { Wire } from "./Wire";
 import { DRAFT } from "./draft";
 import { held, kind_of, reading } from "./holder";
 
 export type IdentityProps = {
   graph: Graph; id: Id; onAct: Act;
-  /** What a line's working template will be saved as. */
+  /** What a line's working definition will be saved as. */
   working?: string;
 };
 
@@ -45,39 +47,40 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
   const drafted = id === DRAFT;
   const named = b?.type;
 
-  /** **The template this is about**: itself, or the one a line draws through. */
-  const template = runs ? (d ?? template_of(graph, def_of(graph, id))) : undefined;
-  /** A line that says anything about its own drawing has a working template. */
+  /** **The relation definition this is about**: itself, or the one a line follows. */
+  const follows = runs ? (d ?? graph.defs[def_of(graph, id) ?? ""]) : undefined;
+  /** A line that says anything about its own drawing has a working definition. */
   const wip = !!edge && ["line", "style"].some((k) => Object.keys(edge.looks?.[k] ?? {}).length > 0);
   /** The name being written, and whether it is taken. **Never a lookup.** */
   const writing = drafted ? d!.name.trim() : wip ? working.trim() : "";
-  const taken = writing ? def_named(graph, writing) : undefined;
-  const base = base_template(graph);
+  const clash = writing ? taken(graph, writing, drafted ? DRAFT : undefined) : null;
+  const base = base_line(graph);
 
   /** **The definition the boxes are about.** */
-  const own = runs ? template : d ?? (named ? graph.defs[named] : undefined);
+  const own = runs ? follows : d ?? (named ? graph.defs[named] : undefined);
   const mine = !!own && !shipped(own) && !own.from && own.id !== DRAFT;
   const listed = pinned_lines(graph).some((x) => x.id === own?.id);
 
   const role = b ? role_of(graph, id) : null;
-  const label = d ? d.name : shown_name(graph, id);
+  /** **A line's preview draws what the canvas does**: the label it follows. */
+  const label = runs ? own?.label ?? "" : d ? d.name : shown_name(graph, id);
   const word = (d ?? (named ? graph.defs[named] : undefined))?.name ?? kind;
   const shows = now("card", "shows", "");
 
-  /** How many of this the workspace holds: lines drawing through the template,
+  /** How many of this the workspace holds: lines drawing through the definition,
    *  blocks naming the definition, or blocks of the kind. */
   const tally = runs
     ? Object.values(graph.edges)
-        .filter((x) => isa(graph, def_of(graph, x.id)).some((up) => up.id === template?.id)).length
+        .filter((x) => isa(graph, def_of(graph, x.id)).some((up) => up.id === follows?.id)).length
     : d ? Object.values(graph.blocks).filter((x) => x.type === d.id).length
     : Object.values(graph.blocks).filter((x) => module_of(graph, x.id) === kind).length;
   const mark: IconName = runs ? (kind === "tie" ? "relation_tie" : "relation_plain")
     : role_icon(role ?? kind);
 
-  /** What a definition may extend: its own group, and for a template only
-   *  templates — never itself or anything below it. */
+  /** What a definition may extend: its own group — never itself or anything
+   *  below it. */
   const extendable = (self: Definition) =>
-    (runs ? templates(graph) : Object.values(graph.defs).filter((x) => x.group === "block"))
+    (runs ? relations(graph) : Object.values(graph.defs).filter((x) => x.group === "block"))
       .filter((x) => x.id !== self.id && !isa(graph, x.id).some((up) => up.id === self.id))
       .sort((a, z) => a.name.localeCompare(z.name));
 
@@ -104,7 +107,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
       <Band label="identity" />
       <Body>
-        {/* **Name.** A draft's and a working template's are written here and
+        {/* **Name.** A draft's and a working definition's are written here and
             kept by saving; a filed definition's is read-only, since its id is
             slugged from it. */}
         {drafted ? (
@@ -112,22 +115,26 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
             <input value={d!.name} aria-label="name" placeholder="name it to save it"
                    onChange={(e) => onAct("define", { id, name: e.target.value,
                                                      extends: d!.extends ?? "" })} />
-            {taken ? <span className="from warn">{taken.name} already exists</span> : null}
+            {clash ? <span className="from warn">{clash}</span> : null}
           </Line>
         ) : wip ? (
-          <Line label="name" tip="This line's working template. Name it and save it to keep it.">
-            <input value={working} aria-label="name" placeholder="name the working template"
+          <Line label="name" tip="This line's working definition. Name it and save it to keep it.">
+            <input value={working} aria-label="name" placeholder="name the working definition"
                    onChange={(e) => onAct("@working", { id, name: e.target.value })} />
-            {taken ? <span className="from warn">{taken.name} already exists</span>
+            {clash ? <span className="from warn">{clash}</span>
                    : <span className="from">working</span>}
           </Line>
-        ) : runs ? (
-          <Line label="name" tip="The template this draws through.">
-            <input value={template?.name ?? ""} readOnly aria-label="name" />
-          </Line>
-        ) : d ? (
-          <Line label="name" tip="What this definition is called. Retiring it is unpinning it.">
-            <input value={d.name} readOnly aria-label="name" />
+        ) : runs || d ? (
+          <Line label="name" tip={runs ? "The definition this follows. Renaming it keeps every line naming it."
+                                       : "What this definition is called. Renaming it keeps everything naming it."}>
+            {/* **Renamed in place**: the id stays, so nothing naming it is retyped. */}
+            {mine ? (
+              <Entry key={own!.id} value={own!.name} label="name"
+                     clash={(to) => taken(graph, to, own!.id)}
+                     onCommit={(to) => onAct("rename_def", { id: own!.id, name: to })} />
+            ) : (
+              <input value={own?.name ?? ""} readOnly aria-label="name" />
+            )}
           </Line>
         ) : b ? (
           <Line label="name" tip="What this is called, as the drawing writes it.">
@@ -142,18 +149,37 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           </Line>
         ) : null}
 
-        {/* **Extends, or type.** A template refines a template; a block
+        {/* **Label.** What a line naming the definition draws, exactly as typed;
+            its own, never inherited. A working look keeps the one it follows. */}
+        {runs && drafted ? (
+          <Line label="label" tip="What a line naming this draws, exactly as typed — a stereotype such as <<relates>>.">
+            <input value={d!.label ?? ""} aria-label="label" placeholder="no label"
+                   onChange={(e) => onAct("define", { id, name: d!.name, label: e.target.value,
+                                                     extends: d!.extends ?? "" })} />
+          </Line>
+        ) : runs ? (
+          <Line label="label" tip="What a line naming this draws, exactly as typed — a stereotype such as <<relates>>.">
+            {mine && !wip ? (
+              <Entry key={own!.id} value={own!.label ?? ""} label="label" placeholder="no label" blank
+                     onCommit={(to) => onAct("define", { name: own!.name, label: to })} />
+            ) : (
+              <input value={own?.label ?? ""} readOnly aria-label="label" placeholder="no label" />
+            )}
+          </Line>
+        ) : null}
+
+        {/* **Extends, or type.** A relation definition refines another; a block
             definition refines a block definition; a block names one. */}
         {d && runs && d.id === base?.id ? (
-          <Line label="extends" tip="The base template is what every other one extends, so it extends nothing.">
+          <Line label="extends" tip="The base line is what every other definition extends, so it extends nothing.">
             <span className="read" />
           </Line>
         ) : d ? (
           <Line label={runs ? "extends" : "type"} className="subtype"
-                tip={runs ? "The template this one refines — the base template unless another is picked."
+                tip={runs ? "The definition this one refines — the base line unless another is picked."
                           : "The definition this one refines."}>
-            {/* **A template always extends one**: the base, where nothing more
-                particular was said. A block definition may refine nothing. */}
+            {/* **A relation definition always extends one**: the base, where nothing
+                more particular was said. A block definition may refine nothing. */}
             <select value={d.extends ?? (runs ? base?.id ?? "" : "")}
                     aria-label={runs ? "extends" : "type"} disabled={borrowed}
                     onChange={(e) => onAct("define", { ...(drafted ? { id } : {}),
@@ -163,10 +189,10 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
             </select>
           </Line>
         ) : edge ? (
-          <Line label="extends" tip="The template a working look is saved over.">
-            <span className="read">{wip ? template?.name ?? ""
-              : template?.id === base?.id ? ""
-              : graph.defs[template?.extends ?? ""]?.name ?? base?.name ?? ""}</span>
+          <Line label="extends" tip="The definition a working look is saved over.">
+            <span className="read">{wip ? follows?.name ?? ""
+              : follows?.id === base?.id ? ""
+              : graph.defs[follows?.extends ?? ""]?.name ?? base?.name ?? ""}</span>
           </Line>
         ) : b ? (
           <Line label="type" className="subtype"
@@ -189,12 +215,11 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           </Line>
         ) : null}
 
-        {/* **Where the definition is offered.** A template goes on the rail; a
-            block definition may be what every plain block follows. What plain
-            lines follow is the base type, set on the types tab. */}
+        {/* **Where the definition is offered.** A relation definition goes on the
+            rail; a block definition may be what every plain block follows. */}
         {!is_root ? (
           <Line label="offer" className="marks"
-                tip={runs ? "Whether this template is on the rail, so a right drag can draw one."
+                tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
                           : "Whether every plain one of its kind follows this definition."}>
             {runs ? (
               <label className="check" title="Offer this on the rail, so a right drag can draw one">
