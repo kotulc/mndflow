@@ -66,7 +66,8 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
               *  ancestor at depth *j+1* has a sibling still to come; the last
               *  column is the row's own. */
              guides: boolean[] };
-type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin";
+type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
+  | "locked" | "vocabulary";
 
 /** What the tree draws under a block. A boundary, a note, a field and a
  *  reference are never listed — a reference is a second appearance of
@@ -108,21 +109,23 @@ function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
   const listed = groups.flatMap((g) => g.defs);
   const base = listed.filter((d) => d.default !== undefined)
     .sort((a, b) => a.name.localeCompare(b.name));
-  /** **The workspace folder lists what the workspace pinned**, in pin order. */
+  /** **The pinned folder lists what the workspace pinned**, in pin order. */
   const own = pinned_defs(graph, "block")
     .filter((d) => !shipped(d) && !d.from && d.default === undefined);
   const packs = groups.map((g) => ({ ...g, defs: g.defs.filter((d) => !shipped(d)) }))
     .filter((g) => g.from !== null && g.defs.length);
 
-  const sections: { id: Id; label: string; defs: typeof base; packs: typeof packs }[] = [
-    { id: sect_id("default"), label: "default", defs: base, packs: [] },
-    { id: sect_id("workspace"), label: "workspace", defs: own, packs: [] },
+  /** **Each folder wears what it is**: the defaults are locked in place, the
+   *  pinned are pinned, and a package is a folder like any other. */
+  const sections: { id: Id; label: string; mark: Mark; defs: typeof base; packs: typeof packs }[] = [
+    { id: sect_id("default"), label: "default", mark: "locked", defs: base, packs: [] },
+    { id: sect_id("pinned"), label: "pinned", mark: "pin", defs: own, packs: [] },
     ...(packs.length
-      ? [{ id: sect_id("packages"), label: "packages", defs: [], packs }] : []),
+      ? [{ id: sect_id("packages"), label: "packages", mark: "folder" as Mark, defs: [], packs }] : []),
   ];
 
   const out: Row[] = [{ id: VOCAB, depth: 0, label: "definitions", kids: sections.length,
-                        mark: "pin", named: true, alias: "", of: "pack", guides: [] }];
+                        mark: "vocabulary", named: true, alias: "", of: "pack", guides: [] }];
   if (folded.includes(VOCAB)) return out;
 
   /** One definition, wherever it sits. A default reads as its kind. */
@@ -136,7 +139,7 @@ function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
     const more = n < sections.length - 1;
     const kids = sec.packs.length || sec.defs.length;
     out.push({ id: sec.id, depth: 1, label: sec.label, kids,
-               mark: "folder", named: true, alias: "", of: "pack", guides: [more] });
+               mark: sec.mark, named: true, alias: "", of: "pack", guides: [more] });
     if (folded.includes(sec.id)) return;
     sec.defs.forEach((d, i) => out.push(def_row(d, 2, [more, i < sec.defs.length - 1])));
     sec.packs.forEach((g, i) => {
@@ -221,6 +224,8 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
   group: { icon: "role_group" },
   grid: { icon: "role_table" },
   pin: { icon: "pin" },
+  locked: { icon: "locked" },
+  vocabulary: { icon: "vocabulary" },
 };
 
 export function Explorer(props: ExplorerProps) {

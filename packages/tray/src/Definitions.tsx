@@ -9,7 +9,7 @@
  *  | row | edits |
  *  |---|---|
  *  | the workspace's own | name, label, extends, remove |
- *  | a default | label; it extends its base and stays |
+ *  | a default | label, extends within its kind; it stays |
  *  | a package's | nothing — extend it instead |
  *
  *  **The last row adds one.** Picking a row holds it, so settings describes it;
@@ -17,8 +17,8 @@
  *  points them at it. Picking alone never changes a drawing. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, may_retype, type Act, type Graph,
-         type Id } from "@mnd/core";
+import { def_named, def_of, isa, may_retype, module_named, relation_named, shipped,
+         type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { Choice, Table, type Column } from "./Table";
 import { def_rows, type DefRow } from "./rows";
@@ -77,10 +77,14 @@ export function Definitions({ graph, group, held, lines, target = "the selection
     k === "all" || (k === "package" ? !!r.from : !!r.label);
   const sorts = group === "relation" ? SORTS : SORTS.filter((s) => s.key !== "labelled");
 
-  /** What a definition may extend: a default or another definition, never
-   *  itself or anything below it. */
-  const above = (self: Id | null) => rows
-    .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)))
+  /** What a definition may extend: a base, a default or another definition,
+   *  never itself or anything below it — and **a default only within its kind**. */
+  const kind = (id: Id) => (group === "relation" ? relation_named(graph, id) : module_named(graph, id));
+  const floor = Object.values(graph.defs).filter((d) => d.group === group && shipped(d))
+    .map((d) => ({ id: d.id, name: `base/${d.name}` }));
+  const above = (self: Id | null) => [...floor, ...rows]
+    .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)
+      && (graph.defs[self]?.default === undefined || kind(r.id) === graph.defs[self]!.default)))
     .map((r) => ({ value: r.id, word: r.name }));
 
   const extend = up && graph.defs[up] ? up : from;
@@ -117,11 +121,11 @@ export function Definitions({ graph, group, held, lines, target = "the selection
             ) : r.from ? `${r.name} · ${r.from}` : r.name,
             label: mine ? (
               <Entry value={r.label} label={`label of ${r.name}`} placeholder="no label" blank
-                     onCommit={(to) => onAct("define", { name: r.name, group, label: to })} />
+                     onCommit={(to) => onAct("define", { name: graph.defs[r.id]!.name, group, label: to })} />
             ) : r.label,
-            extends: !mine || r.base ? graph.defs[r.extends]?.name ?? "" : (
+            extends: !mine ? graph.defs[r.extends]?.name ?? "" : (
               <Choice value={r.extends} label={`what ${r.name} extends`} of={above(r.id)}
-                      onPick={(id) => onAct("define", { name: r.name, group, extends: id })} />
+                      onPick={(id) => onAct("define", { name: graph.defs[r.id]!.name, group, extends: id })} />
             ),
             used: String(r.used),
           },

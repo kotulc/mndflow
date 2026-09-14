@@ -346,7 +346,13 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
       {/* **No head to put it in.** A note is its text, so the mark hangs in
           the card's own corner rather than in a row of its own. */}
       <Wears role={data.role} />
-      <Name id={id} className="mnd-note-text" text={data.label} />
+      {look.label === "above"
+        ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
+      <Name id={id} className="mnd-note-text card-name" text={data.label} />
+      {look.label === "inside"
+        ? <span className="mnd-kind mnd-note-kind card-label">{look.kind}</span> : null}
+      {look.label === "below"
+        ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -504,9 +510,17 @@ function GroupNode({ id, data, selected }: NodeProps<BoxNode>) {
   const group = ["mnd-group", has_cells ? "gridded" : "",
                  selected ? "picked" : ""].filter(Boolean).join(" ");
   return (
-    <div className={shell}>
-      <Name id={id} className="mnd-group-name" text={data.label} />
-      <div className={group} {...dressed(look)} title={data.label}>
+    <div className={shell} {...dressed(look)}>
+      {/* **The name and its label float above the frame together**, dressed
+          from the shell so the writing rules reach them. */}
+      <span className="mnd-group-title">
+        {look.label === "above" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+        <Name id={id} className="mnd-group-name card-name" text={data.label} />
+        {look.label === "inside" ? <span className="mnd-kind card-label">{look.kind}</span> : null}
+      </span>
+      {look.label === "below"
+        ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
+      <div className={group} title={data.label}>
         {has_cells ? null : <BandRim />}
         {has_cells ? <Lattice id={id} cells={data.grid!} /> : null}
         {has_cells ? <Edge /> : null}

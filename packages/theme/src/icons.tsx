@@ -78,6 +78,8 @@ const PATHS = {
   // already spends on *the settings of this*.
   /** The vocabulary's mark: a definition somebody pinned by pointing. */
   pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
+  /** The definitions: the words a workspace can say, as three letters. */
+  vocabulary: "M2.5 16.5l2.75-9 2.75 9M3.4 13.5h3.7M10 7.5v9h2.75a2.25 2.25 0 0 0 0-4.5H10h2.25a2.25 2.25 0 0 0 0-4.5zM21.5 9.25a2.75 2.75 0 0 0-5 1.5v2.5a2.75 2.75 0 0 0 5 1.5",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the

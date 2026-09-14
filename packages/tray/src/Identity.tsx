@@ -18,8 +18,8 @@
  *
  *  A pure function of its props, like every other surface. */
 
-import { alias_of, BASE_PACKAGE, def_of, isa, kind_word, may_retype, module_of,
-         pinned_defs, relations, role_of, shipped, shown_name,
+import { alias_of, BASE_PACKAGE, SCHEMA, def_of, isa, kind_word, may_retype, module_named, module_of,
+         pinned_defs, relation_named, role_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -35,6 +35,9 @@ export type IdentityProps = {
   /** What a line's working definition will be saved as. */
   working?: string;
 };
+
+/** A count and its noun, plural where it is not one. */
+const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 
 export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
   const it = held(graph, id);
@@ -59,7 +62,8 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
   /** **The definition the boxes are about.** */
   const own = runs ? follows : d ?? (named ? graph.defs[named] : undefined);
   const mine = !!own && !shipped(own) && !own.from && own.id !== DRAFT;
-  /** **A base or a default is fixed**: never renamed, re-rooted or pinned. */
+  /** **A base or a default is fixed**: never renamed, removed or pinned. A
+   *  default may still be re-typed; a base may not. */
   const fixed = !own || shipped(own) || own.default !== undefined;
   const listed = pinned_defs(graph, runs ? "relation" : "block").some((x) => x.id === own?.id);
 
@@ -79,10 +83,15 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
   /** What a definition may extend: its own group — never itself or anything
    *  below it. */
+  /** Where a definition sits, pinned ones under their folder. */
+  const path = (x: Definition) => where(x, (graph.blocks[graph.root]?.pinned ?? []).includes(x.id));
+  const kind_named = (x: Id) => (runs ? relation_named(graph, x) : module_named(graph, x));
   const extendable = (self: Definition) =>
-    (runs ? relations(graph) : Object.values(graph.defs).filter((x) => x.group === "block"))
-      .filter((x) => x.id !== self.id && !isa(graph, x.id).some((up) => up.id === self.id))
-      .sort((a, z) => a.name.localeCompare(z.name));
+    Object.values(graph.defs).filter((x) => x.group === self.group && x.id !== self.id
+      && !isa(graph, x.id).some((up) => up.id === self.id)
+      /** **A default keeps its kind**, or it would stop standing in for it. */
+      && (self.default === undefined || kind_named(x.id) === self.default))
+      .sort((a, z) => path(a).localeCompare(path(z)));
 
   return (
     <div className="col what">
@@ -95,13 +104,19 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                 kind={word} icon={(now("card", "icon", "") || role_icon(role ?? kind)) as IconName}
                 role={role ?? kind} said={said} now={now} />
         )}
-        {!is_root ? (
-          <div className="kind-rows">
-            <span><span className="holder">{runs ? "line type" : "card type"}</span>
-              <span className="base">{kind}<Icon name={mark} size={12} /></span></span>
-            <span className="tally">{tally} {tally === 1 ? "instance" : "instances"}</span>
-          </div>
-        ) : null}
+        <div className="kind-rows">
+          <span><span className="holder">{runs ? "line type" : "card type"}</span>
+            <span className="base">{kind}<Icon name={mark} size={12} /></span></span>
+          {/* **The workspace says what an export of it carries**, where every
+              other block says how many there are. */}
+          {is_root ? (
+            <span className="tally">{`schema ${SCHEMA} · ${count(Object.keys(graph.blocks).length - 1, "block")} · `
+              + `${count(Object.keys(graph.edges).length, "relation")} · `
+              + `${count(Object.values(graph.defs).filter((x) => !shipped(x)).length, "definition")}`}</span>
+          ) : (
+            <span className="tally">{count(tally, "instance")}</span>
+          )}
+        </div>
       </div>
 
       <Band label="identity" />
@@ -132,7 +147,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                      clash={(to) => taken(graph, to, own!.group, own!.id)}
                      onCommit={(to) => onAct("rename_def", { id: own!.id, name: to })} />
             ) : (
-              <input value={own ? where(own) : ""} readOnly aria-label="name" />
+              <input value={own ? path(own) : ""} readOnly aria-label="name" />
             )}
           </Line>
         ) : b ? (
@@ -144,12 +159,22 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
         {/* **A block's working definition** is named on a row of its own, since
             its name row is the block's. */}
-        {b && wip && !is_root ? (
+        {b && wip ? (
           <Line label="definition" tip="This block's working definition. Name it and save it to keep it.">
             <input value={working} aria-label="definition" placeholder="name the working definition"
                    onChange={(e) => onAct("@working", { id, name: e.target.value })} />
             {clash ? <span className="from warn">{clash}</span>
                    : <span className="from">working</span>}
+          </Line>
+        ) : null}
+
+        {/* **Tags are an element's own**, never its definition's: words that say
+            what this one thing is like. Committed when the box is left. */}
+        {(b || edge) && !d ? (
+          <Line label="tags" tip="Words that say what this is like, separated by commas. Tags carry nothing and are never inherited.">
+            <Entry key={`tags-${id}`} value={((b ?? edge)!.tags ?? []).join(", ")} label="tags"
+                   placeholder="no tags" blank
+                   onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
           </Line>
         ) : null}
 
@@ -180,29 +205,29 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
         {/* **Extends, or type.** A relation definition refines another; a block
             definition refines a block definition; a block names one. */}
-        {d && fixed ? (
+        {d && shipped(d) ? (
           <Line label={runs ? "extends" : "type"}
-                tip="A default extends its kind's base, and a base extends nothing of the workspace's.">
-            <span className="read">{graph.defs[d.extends ?? ""] ? where(graph.defs[d.extends!]!) : ""}</span>
+                tip="A base is shipped and extends nothing.">
+            <span className="read">{graph.defs[d.extends ?? ""] ? path(graph.defs[d.extends!]!) : ""}</span>
           </Line>
         ) : d ? (
           <Line label={runs ? "extends" : "type"} className="subtype"
-                tip="The definition this one refines — its kind's default unless another is picked.">
-            {/* **Every definition extends one**: its kind's default, where nothing
+                tip="The definition this one refines — its kind's base unless another is picked.">
+            {/* **Every definition extends one**: its kind's base, where nothing
                 more particular was said. */}
             <select value={d.extends ?? ""}
                     aria-label={runs ? "extends" : "type"} disabled={borrowed}
                     onChange={(e) => onAct("define", { ...(drafted ? { id } : {}),
                                                        name: d.name, group: d.group, extends: e.target.value })}>
-              {extendable(d).map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
+              {extendable(d).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
           </Line>
         ) : edge ? (
           <Line label="extends" tip="The definition a working look is saved over.">
-            <span className="read">{wip ? (follows ? where(follows) : "")
-              : graph.defs[follows?.extends ?? ""] ? where(graph.defs[follows!.extends!]!) : ""}</span>
+            <span className="read">{wip ? (follows ? path(follows) : "")
+              : graph.defs[follows?.extends ?? ""] ? path(graph.defs[follows!.extends!]!) : ""}</span>
           </Line>
-        ) : b && !is_root ? (
+        ) : b ? (
           <Line label="type" className="subtype"
                 tip={`Which ${kind} definition this block follows. Only definitions of its own kind apply.`}>
             {/* **Only what applies.** A block keeps its kind, so the list is the
@@ -214,8 +239,8 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
               {Object.values(graph.defs)
                 .filter((x) => x.group === "block" && !shipped(x) && x.default === undefined
                                && may_retype(graph, id, x.id))
-                .sort((a, z) => where(a).localeCompare(where(z)))
-                .map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
+                .sort((a, z) => path(a).localeCompare(path(z)))
+                .map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
             {mine && !fixed ? (
               <button className="drop" title={`remove ${own!.name}, dissolving it into everything naming it`}
@@ -227,27 +252,25 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
         ) : null}
 
         {/* **Where the definition is offered.** Pinned puts a relation definition
-            on the rail and a block definition in the explorer's workspace folder. */}
-        {!is_root ? (
-          <Line label="offer" className="marks"
-                tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
-                          : "Whether this definition is in the workspace folder."}>
-            {/* **A base or a default is never pinned** — every plain one of its
-                kind already follows it. Saying so beats a box that refuses. */}
-            {fixed ? (
-              <span className="read">{`default/${kind} is what every plain ${kind} follows — save a definition to pin one`}</span>
-            ) : (
-              <label className="check"
-                     title={runs ? "Offer this on the rail, so a right drag can draw one"
-                                 : "List this in the explorer's workspace folder"}>
-                <input type="checkbox" checked={listed} disabled={own!.id === DRAFT || wip}
-                       onChange={(e) => onAct("pin", { id: own!.id,
-                                                       on: e.target.checked ? "yes" : "no" })} />
-                pinned
-              </label>
-            )}
-          </Line>
-        ) : null}
+            on the rail and a block definition in the explorer's pinned folder. */}
+        <Line label="offer" className="marks"
+              tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
+                        : "Whether this definition is in the pinned folder."}>
+          {/* **A base or a default is never pinned** — every plain one of its
+              kind already follows it. Saying so beats a box that refuses. */}
+          {fixed ? (
+            <span className="read">{`default/${kind} is what every plain ${kind} follows — save a definition to pin one`}</span>
+          ) : (
+            <label className="check"
+                   title={runs ? "Offer this on the rail, so a right drag can draw one"
+                               : "List this in the explorer's pinned folder"}>
+              <input type="checkbox" checked={listed} disabled={own!.id === DRAFT || wip}
+                     onChange={(e) => onAct("pin", { id: own!.id,
+                                                     on: e.target.checked ? "yes" : "no" })} />
+              pinned
+            </label>
+          )}
+        </Line>
       </Body>
 
       {borrowed ? (
@@ -262,9 +285,9 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
 /** Where a definition sits in the definitions folder, as a path. **The tree's
  *  own sections**, so the picker and the folder say one thing. */
-function where(d: Definition): string {
+function where(d: Definition, pinned = false): string {
   return d.default ? `default/${d.default}`
     : d.from === BASE_PACKAGE ? `base/${d.name}`
     : d.from ? `packages/${d.from}/${d.name}`
-    : `workspace/${d.name}`;
+    : pinned ? `pinned/${d.name}` : d.name;
 }

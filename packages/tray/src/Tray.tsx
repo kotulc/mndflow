@@ -21,7 +21,7 @@
  *  selection or a hold. */
 
 import { useState, type MouseEvent } from "react";
-import { children, def_named, def_of, def_slot, default_for, is_container, is_interface,
+import { children, def_named, def_of, def_slot, is_container, is_interface,
          module_of, owner_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
@@ -74,7 +74,7 @@ export type Tab = "settings" | "fields" | "contents" | "definitions" | "usages" 
  *  one a line can name, and usages are the lines. */
 const SLOTS: Record<"block" | "workspace" | "relation", readonly Tab[]> = {
   block: ["settings", "fields", "contents", "definitions", "usages"],
-  workspace: ["settings", "packages", "contents"],
+  workspace: ["settings", "fields", "contents", "definitions", "usages", "packages"],
   relation: ["settings", "definitions", "usages"],
 };
 
@@ -167,7 +167,7 @@ export function Tray(props: TrayProps) {
    *  working definition, saved under a name. */
   const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
     ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
-  const instance = about !== graph.root ? view.blocks[about] ?? view.edges[about] : undefined;
+  const instance = view.blocks[about] ?? view.edges[about];
 
   /** **Saving files a definition under its name**, as one step: a draft whole, or
    *  a block's or a line's working look. A name already taken is said, and never
@@ -328,7 +328,7 @@ export function Tray(props: TrayProps) {
             ))}
             {/* **The acts over the whole settings tab**, at the end of the strip
                 that opened it: give every look back, and keep what was made. */}
-            {onAct && tab === "settings" && about !== graph.root ? (
+            {onAct && tab === "settings" ? (
               <span className="tab-tools">
                 <button className="reset" disabled={borrowed || !its_own}
                         title={its_own ? "give every look back to what it inherits"
@@ -361,9 +361,7 @@ export function Tray(props: TrayProps) {
                          held={targets.length && !hold ? lit_def ?? held_def : held_def}
                          onAct={act} lines={targets} target={target_name}
                          onPick={pick_def}
-                         from={held_def ?? (context === "relation"
-                           ? default_for(graph, "line", "relation")
-                           : default_for(graph, "block")) ?? ""} />
+                         from={held_def ?? (context === "relation" ? "line" : "block")} />
           ) : null}
           {onAct && tab === "usages" ? (
             <Usages graph={graph} group={context === "relation" ? "relation" : "block"}

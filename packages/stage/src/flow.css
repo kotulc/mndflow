@@ -78,13 +78,6 @@
   overflow: hidden;
 }
 
-/* **A note is one writing and it is the name**, so it is faced with it — the
-   theme's table keys off the card's own two spans and a note's body is
-   neither. */
-[data-name-font="italic"] .mnd-note-text { font-style: italic; }
-[data-name-font="underline"] .mnd-note-text { text-decoration: underline; }
-[data-name-font="strike"] .mnd-note-text { text-decoration: line-through; }
-
 /* Under the card rather than in it: it hangs into the gutter the layout already
    leaves between cards, so no box has to grow to carry one. */
 .mnd-under {
@@ -337,6 +330,7 @@
   pointer-events: none;
 }
 .mnd-flow .react-flow__node.mnd-band-node .mnd-brim > span,
+.mnd-flow .react-flow__node.mnd-band-node .mnd-group-title,
 .mnd-flow .react-flow__node.mnd-band-node .mnd-group-name {
   pointer-events: auto;
 }
@@ -396,18 +390,25 @@
   height: 100%;
   overflow: visible;
 }
-.mnd-group-name {
+.mnd-group-title {
   position: absolute;
   bottom: 100%;
   left: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 1ch;
   margin-bottom: 4px;
   padding: 0 6px;
   background: var(--bg);
   font-size: 11px;
   line-height: 1.2;
   white-space: nowrap;
-  cursor: text;
   z-index: 2;
+}
+[data-align="center"] > .mnd-group-title { left: 50%; transform: translateX(-50%); }
+[data-align="right"] > .mnd-group-title { left: auto; right: 12px; }
+.mnd-group-name {
+  cursor: text;
   pointer-events: auto;
 }
 .mnd-group-shell:not(.gridded) .mnd-group-name:empty::before {

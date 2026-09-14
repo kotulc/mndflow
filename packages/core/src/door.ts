@@ -13,7 +13,7 @@
  *  teaches people to ignore the real ones. */
 
 import { component, unreadable } from "./components";
-import { alias_kind, covers, default_for, fold, can_hold, is_grid, may_tie, module_named,
+import { alias_kind, covers, fold, can_hold, is_grid, may_tie, module_named,
          overlaps, relation_named, shipped, subtree, BASE_RELATIONS } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
@@ -575,22 +575,14 @@ export function inspect(graph: Graph, log?: Log): Inspection {
         mended = { ...mended, default: undefined };
       }
     }
-    /** **A default extends its shipped base, and nothing else.** */
-    if (mended.default !== undefined && graph.defs[mended.default]
-        && mended.extends !== mended.default) {
-      faults.push({ kind: "repaired", what: `"${d.name}" is a default, and now extends its base` });
-      mended = { ...mended, extends: mended.default };
-    }
-    /** **Every other definition of the workspace's extends a default**, or one
-     *  of the workspace's own or a package's — never a shipped base directly. */
-    const up = mended.extends ? graph.defs[mended.extends] : undefined;
-    if (!mended.from && mended.default === undefined && !shipped(mended) && (!up || shipped(up))) {
-      const kind = mended.group === "relation"
-        ? relation_named(graph, up?.id) : module_named(graph, up?.id);
-      const target = default_for(graph, kind, mended.group);
-      if (target && target !== mended.id) {
-        faults.push({ kind: "repaired", what: `"${d.name}" now extends the ${kind} default` });
-        mended = { ...mended, extends: target };
+    /** **Every definition of the workspace's extends something**: its kind's
+     *  shipped base where it says nothing, a default included. */
+    if (!mended.from && !shipped(mended) && !mended.extends) {
+      const base = mended.default
+        ?? (mended.group === "relation" ? relation_named(graph, undefined) : module_named(graph, undefined));
+      if (graph.defs[base] && base !== mended.id) {
+        faults.push({ kind: "repaired", what: `"${d.name}" now extends the ${base} base` });
+        mended = { ...mended, extends: base };
       }
     }
     if (mended !== graph.defs[d.id]) repairs.push({ op: "set_def", def: mended });

@@ -4,7 +4,6 @@ export { DRAFT, aimed, blank, redraft, with_draft,
 export { Definitions, taken, type DefinitionsProps } from "./Definitions";
 export { Entry, type EntryProps } from "./Entry";
 export { Content, type ContentProps } from "./Content";
-export { Project, type ProjectProps } from "./Project";
 export { def_rows, rows_of, usage_rows, type DefRow, type Row, type Sort,
          type UsageRow } from "./rows";
 export { ChipBar, Choice, Table, type Adding, type Chips, type Column, type Line as TableLine,

@@ -10,7 +10,7 @@
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
-         default_for, ordered_by, path, relation_named, reorder, schema_of, shipped,
+         ordered_by, path, relation_named, reorder, schema_of, shipped,
          stored_type, plain_type, def_named, def_slot, may_tie } from "./fold";
 import { component, DRAWN, NUMBERS } from "./components";
 import { new_id } from "./ids";
@@ -1658,21 +1658,19 @@ register(
       const group = (args["group"] as "block" | "relation") ?? held?.group ?? "block";
       const said = args["extends"] === undefined ? held?.extends
                                                  : rooted(ctx, text(args, "extends"), group);
-      /** **A new definition extends its group's default** where nothing more
-       *  particular was said, and a default always extends its base. A relation
-       *  definition says it draws as a line, which the door tells it from an old
-       *  type by. */
-      const base = held?.default ?? default_for(ctx.graph, group === "relation" ? "line" : "block", group);
+      /** **A new definition extends its kind's shipped base** where nothing more
+       *  particular was said. A relation definition says it draws as a line,
+       *  which the door tells it from an old type by. */
       const label = args["label"] === undefined ? held?.label : text(args, "label") || undefined;
       return { mutations: [{ op: "set_def", def: {
         ...held,
         id, name, group, label,
-        extends: held?.default ?? said ?? (base !== id ? base : undefined),
+        extends: said ?? held?.default ?? (group === "relation" ? "line" : "block"),
         ...(group === "relation" && !held?.components?.["line"] ? { components: { ...held?.components, line: {} } } : {}),
         ...(components && Object.keys(components).length ? { components } : {}),
         ...(fields?.length ? { fields } : {}),
       } },
-      /** **A new block definition is pinned**, so it lists in the workspace folder. */
+      /** **A new block definition is pinned**, so it lists in the pinned folder. */
       ...(group === "block" && !held
         ? [{ op: "set_pinned" as const, ids: pinning(ctx.graph, id, true) }] : [])] };
     },
@@ -1783,7 +1781,7 @@ register(
         }
       }
       /** **A block definition is pinned as it is saved**, so it lists in the
-       *  explorer's workspace folder; a relation definition waits to be put on
+       *  explorer's pinned folder; a relation definition waits to be put on
        *  the rail. */
       if (!edge) out.push({ op: "set_pinned", ids: pinning(ctx.graph, def.id, true) });
       return { mutations: out, effect: { say: `saved ${name}` } };
@@ -1791,14 +1789,14 @@ register(
   },
   /** **Pinning offers a definition; it never makes or removes one.** A relation
    *  definition pinned is on the rail, a block definition pinned is in the
-   *  explorer's workspace folder.
+   *  explorer's pinned folder.
    *
    *  **The list is the workspace's, never a flag on the definition**, because
    *  `borrowed` refuses every write to one carrying `from` — and a package's
    *  definition is exactly what somebody may want offered. */
   {
     name: "pin",
-    about: "offers a definition on the rail or in the workspace folder, or takes it off",
+    about: "offers a definition on the rail or in the pinned folder, or takes it off",
     on: ["layer"],
     args: [{ name: "id", form: "text", required: true },
            { name: "on", form: "choice", choices: ["yes", "no"] }],
@@ -1818,7 +1816,7 @@ register(
        *  that knows the state can still say which it wants. */
       const said = args["on"] === undefined ? null : text(args, "on") === "yes";
       const want = said ?? !held.includes(id);
-      const where = d?.group === "relation" ? "the rail" : "the workspace folder";
+      const where = d?.group === "relation" ? "the rail" : "the pinned folder";
       return { mutations: [{ op: "set_pinned", ids: pinning(ctx.graph, id, want) }],
                effect: { say: `${d?.name ?? id} is ${want ? "in" : "out of"} ${where}` } };
     },
@@ -1944,8 +1942,8 @@ register(
 register(
   {
     name: "tag",
-    about: "puts words on a block to say what it is like",
-    on: ["block", "selection"],
+    about: "puts words on a block or a relationship to say what it is like",
+    on: ["block", "edge", "selection"],
     /** **The whole list, every time.** Adding and taking away are the same act
      *  said two ways, and a list handed over whole is one step and one undo
      *  whichever it was. */

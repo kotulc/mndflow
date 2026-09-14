@@ -181,6 +181,9 @@ export type Relation = {
    *  lines in a layer all read `line` without one, with nothing to tell them
    *  apart. */
   alias?: number;
+  /** Words put on this line to say what it is like — its own, exactly as a
+   *  block's are. */
+  tags?: string[];
   /** What this one line says about how it draws, over whatever its definition
    *  said. **The same bag a block carries**, keyed the same way — `style` is
    *  shared and `line` is the relationship's own, exactly as `card` is the

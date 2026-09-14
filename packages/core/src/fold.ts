@@ -273,7 +273,7 @@ function apply(graph: Graph, m: Mutation): void {
       delete graph.defs[m.id];
       return;
     case "set_tags": {
-      const b = graph.blocks[m.id];
+      const b = graph.blocks[m.id] ?? graph.edges[m.id];
       if (!b) return;
       /** **Trimmed, deduplicated and in the order they were given.** A tag is a
        *  word, so two spellings of one whitespace apart are one tag. */
@@ -1110,7 +1110,7 @@ export function def_slot(graph: Graph, name: string, group?: "block" | "relation
 
 /** The definitions of one group the workspace pinned, **in the order it put
  *  them**: relation definitions offered on the rail, block definitions listed in
- *  the explorer's workspace folder.
+ *  the explorer's pinned folder.
  *
  *  Resolved against `defs` on the way out, so a pin naming a definition that has
  *  since been removed simply lists one fewer. */

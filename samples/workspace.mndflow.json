@@ -19,6 +19,62 @@
           }
         }
       },
+      "def_default_block": {
+        "id": "def_default_block",
+        "name": "block",
+        "group": "block",
+        "extends": "block",
+        "default": "block"
+      },
+      "def_default_folder": {
+        "id": "def_default_folder",
+        "name": "folder",
+        "group": "block",
+        "extends": "folder",
+        "default": "folder"
+      },
+      "def_default_grid": {
+        "id": "def_default_grid",
+        "name": "grid",
+        "group": "block",
+        "extends": "grid",
+        "default": "grid"
+      },
+      "def_default_group": {
+        "id": "def_default_group",
+        "name": "group",
+        "group": "block",
+        "extends": "group",
+        "default": "group"
+      },
+      "def_default_interface": {
+        "id": "def_default_interface",
+        "name": "interface",
+        "group": "block",
+        "extends": "interface",
+        "default": "interface"
+      },
+      "def_default_note": {
+        "id": "def_default_note",
+        "name": "note",
+        "group": "block",
+        "extends": "note",
+        "default": "note"
+      },
+      "def_default_reference": {
+        "id": "def_default_reference",
+        "name": "reference",
+        "group": "block",
+        "extends": "reference",
+        "default": "reference"
+      },
+      "def_default_resource": {
+        "id": "def_default_resource",
+        "name": "resource",
+        "group": "block",
+        "extends": "resource",
+        "default": "resource"
+      },
       "def_ghost": {
         "id": "def_ghost",
         "name": "Draft",
@@ -68,10 +124,7 @@
             "name_contrast": "full"
           },
           "card": {
-            "label": "inside",
-            "shows": [
-              "rated flow"
-            ]
+            "label": "inside"
           }
         }
       },
@@ -160,7 +213,13 @@
         "id": "line",
         "name": "line",
         "from": "base",
-        "group": "relation"
+        "group": "relation",
+        "components": {
+          "relation": {
+            "module": "line"
+          },
+          "line": {}
+        }
       },
       "note": {
         "id": "note",
@@ -201,6 +260,20 @@
           }
         }
       },
+      "rel_default_line": {
+        "id": "rel_default_line",
+        "name": "line",
+        "group": "relation",
+        "extends": "line",
+        "default": "line"
+      },
+      "rel_default_tie": {
+        "id": "rel_default_tie",
+        "name": "tie",
+        "group": "relation",
+        "extends": "tie",
+        "default": "tie"
+      },
       "resource": {
         "id": "resource",
         "name": "resource",
@@ -216,6 +289,18 @@
             "border_contrast": "faint",
             "name_contrast": "faint"
           }
+        }
+      },
+      "tie": {
+        "id": "tie",
+        "name": "tie",
+        "from": "base",
+        "group": "relation",
+        "components": {
+          "relation": {
+            "module": "tie"
+          },
+          "line": {}
         }
       }
     },
@@ -397,7 +482,13 @@
           "group": 1,
           "grid": 1,
           "interface": 1
-        }
+        },
+        "pinned": [
+          "def_ghost",
+          "def_heading",
+          "def_pump",
+          "def_vessel"
+        ]
       }
     },
     "edges": {
