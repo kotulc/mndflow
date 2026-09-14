@@ -53,7 +53,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
   const wip = !!edge && ["line", "style"].some((k) => Object.keys(edge.looks?.[k] ?? {}).length > 0);
   /** The name being written, and whether it is taken. **Never a lookup.** */
   const writing = drafted ? d!.name.trim() : wip ? working.trim() : "";
-  const clash = writing ? taken(graph, writing, drafted ? DRAFT : undefined) : null;
+  const clash = writing ? taken(graph, writing, runs ? "relation" : "block", drafted ? DRAFT : undefined) : null;
   const base = base_line(graph);
 
   /** **The definition the boxes are about.** */
@@ -130,7 +130,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
             {/* **Renamed in place**: the id stays, so nothing naming it is retyped. */}
             {mine ? (
               <Entry key={own!.id} value={own!.name} label="name"
-                     clash={(to) => taken(graph, to, own!.id)}
+                     clash={(to) => taken(graph, to, own!.group, own!.id)}
                      onCommit={(to) => onAct("rename_def", { id: own!.id, name: to })} />
             ) : (
               <input value={own?.name ?? ""} readOnly aria-label="name" />
@@ -161,7 +161,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           <Line label="label" tip="What a line naming this draws, exactly as typed — a stereotype such as <<relates>>.">
             {mine && !wip ? (
               <Entry key={own!.id} value={own!.label ?? ""} label="label" placeholder="no label" blank
-                     onCommit={(to) => onAct("define", { name: own!.name, label: to })} />
+                     onCommit={(to) => onAct("define", { name: own!.name, group: "relation", label: to })} />
             ) : (
               <input value={own?.label ?? ""} readOnly aria-label="label" placeholder="no label" />
             )}
@@ -183,7 +183,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
             <select value={d.extends ?? (runs ? base?.id ?? "" : "")}
                     aria-label={runs ? "extends" : "type"} disabled={borrowed}
                     onChange={(e) => onAct("define", { ...(drafted ? { id } : {}),
-                                                       name: d.name, extends: e.target.value })}>
+                                                       name: d.name, group: d.group, extends: e.target.value })}>
               {runs ? null : <option value="">nothing</option>}
               {extendable(d).map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
             </select>

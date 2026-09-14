@@ -363,7 +363,7 @@ register(
       /** **Clearing a relationship's name unnames it**: it goes back to the base
        *  line, since a relation is named by the definition it points at. */
       if (!name) return { mutations: [{ op: "update_edge", id, type: null }] };
-      const def = def_slot(ctx.graph, name);
+      const def = def_slot(ctx.graph, name, "relation");
       /** **A new name is a label over the look the line already wears**, so
        *  naming a line never takes its drawing away. */
       const over = def_of(ctx.graph, id);
@@ -604,7 +604,7 @@ register(
       /** **A definition already there is named by its id**, and anything else
        *  is a name to file one under — which is how the rail hands over a
        *  pinned line and how the terminal takes a word. */
-      const named = type ? (ctx.graph.defs[type] ? type : def_slot(ctx.graph, type)) : undefined;
+      const named = type ? (ctx.graph.defs[type] ? type : def_slot(ctx.graph, type, "relation")) : undefined;
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
         id: new_id("edge"), from, to, module, type: named,
         alias, ...(dir !== "none" ? { dir } : {}),
@@ -1456,13 +1456,13 @@ register(
  *  that name would mint.** A panel hands over an id and a person types a name,
  *  and slugging unconditionally turned `block` into `def_block` — a definition
  *  that is not there, which the door then blanked. */
-function rooted(ctx: Context, said: string): Id | undefined {
+function rooted(ctx: Context, said: string, group?: "block" | "relation"): Id | undefined {
   if (!said) return undefined;
   if (ctx.graph.defs[said]) return said;
   /** **An id that is not there is not a name.** Slugging one minted
    *  `def_def_default` out of a template that had not been filed yet. */
-  if (said.startsWith("def_")) return undefined;
-  return def_slot(ctx.graph, said);
+  if (said.startsWith("def_") || said.startsWith("rel_")) return undefined;
+  return def_slot(ctx.graph, said, group);
 }
 
 /** The definition an id means. **A definition names itself; a block names the
@@ -1608,16 +1608,15 @@ register(
     check: (ctx, args) => {
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      const id = def_slot(ctx.graph, name);
+      /** **A name is unique within its group**, so a block and a line may share
+       *  one; the group said picks which is meant. */
+      const group = args["group"] as "block" | "relation" | undefined;
+      const id = def_slot(ctx.graph, name, group);
       const why = borrowed(ctx.graph, id);
       if (why) return why;
-      /** **A name is the workspace's, not a group's**, so saying it for the other
-       *  group would turn one definition into the other sort. */
-      const held = ctx.graph.defs[id];
-      if (held && args["group"] && held.group !== args["group"]) {
-        return `"${held.name}" already defines a ${held.group === "block" ? "block" : "line"}`;
-      }
-      const up = args["extends"] === undefined ? undefined : rooted(ctx, text(args, "extends"));
+      const within = group ?? ctx.graph.defs[id]?.group;
+      const up = args["extends"] === undefined ? undefined
+        : rooted(ctx, text(args, "extends"), within);
       if (up === id) return `"${name}" cannot extend itself`;
       if (up && isa(ctx.graph, up).some((d) => d.id === id)) {
         return `"${name}" is already above "${ctx.graph.defs[up]?.name ?? up}"`;
@@ -1632,7 +1631,7 @@ register(
     run: (ctx, args) => {
       const name = text(args, "name");
       /** **By name first**, so a definition renamed is still the one meant. */
-      const id = def_slot(ctx.graph, name);
+      const id = def_slot(ctx.graph, name, args["group"] as "block" | "relation" | undefined);
       const held = ctx.graph.defs[id];
       /** **A draft arrives whole.** The tray writes a definition before it has a
        *  name, through `look` and `field` against a stand-in — so what it says
@@ -1642,7 +1641,7 @@ register(
       const fields = args["fields"] as FieldDef[] | undefined;
       const group = (args["group"] as "block" | "relation") ?? held?.group ?? "block";
       const said = args["extends"] === undefined ? held?.extends
-                                                 : rooted(ctx, text(args, "extends"));
+                                                 : rooted(ctx, text(args, "extends"), group);
       /** **A relation definition extends the base line** where nothing more
        *  particular was said — unless it is the base line. It always says it
        *  draws as a line, which is what the door tells it from an old type by. */
@@ -1672,7 +1671,7 @@ register(
       if (!d) return "there is no such definition";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      const other = def_named(ctx.graph, name);
+      const other = def_named(ctx.graph, name, d.group);
       if (other && other.id !== d.id) return `"${other.name}" already exists`;
       return borrowed(ctx.graph, d.id);
     },
@@ -1768,7 +1767,7 @@ register(
       if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "pick a block or a line to pin";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      const held = def_named(ctx.graph, name);
+      const held = def_named(ctx.graph, name, ctx.graph.edges[id] ? "relation" : "block");
       return held ? `"${held.name}" is already taken` : null;
     },
     run: (ctx, args) => {
@@ -1796,7 +1795,7 @@ register(
       const over = def_of(ctx.graph, id);
       const label = edge ? ctx.graph.defs[over ?? ""]?.label : undefined;
       const def: Definition = {
-        id: def_slot(ctx.graph, name), group: edge ? "relation" : "block", name,
+        id: def_slot(ctx.graph, name, edge ? "relation" : "block"), group: edge ? "relation" : "block", name,
         ...(label ? { label } : {}),
         extends: over,
         fields: fields.length ? fields : undefined,

@@ -15,28 +15,35 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **the settings panel is split** | `Styles.tsx` only lays out `Identity.tsx` (every branch on the holder), `Looks.tsx` (uniform) and `Content.tsx` (a block's body). Every row is data in `questions.ts`, sliders and mark grids included — `HAND` and the `values` group are gone |
 | **the tray has one context** | a `Hold` — the workspace, a definition, or a blank draft — or else the canvas: one thing picked, or the open layer. Any canvas or explorer selection drops the hold. The head names the context, the tabs sit in the body, reset and save sit at the end of the strip, and the body scrolls under it |
 | **the rail's settings group toggles** | *workspace* holds the root without leaving the layer; *block* and *relation* open a blank definition, kept through clicking away and saved once named. *Display* gained *frame* |
-| **lines are template, types, usages** | a type always extends a template; plain lines follow the base type *none*, which extends the base template. Both are read off the workspace's default, filed by `baseline` on the first edit, and repaired into shape at the door. A line's own style is a working template, kept with *save template*. Templates and types are added, renamed (`rename_def` keeps the id), removed and repointed in their tables |
+| **a relation definition is one kind** | templates and types are gone: a definition is a name, an optional `label` and what it extends. The label is what a line naming it draws, stored exactly as typed and never inherited. Plain lines follow one base line — read off the workspace's default, filed by `baseline` on the first edit — which can be renamed and labelled, extends nothing and is never removed. A line's own style is a working definition; saving it moves the line onto it and copies the label it followed |
+| **the door rewrites the two-kind shape** | a file still carrying a base type (a default holder with no look) loses it: the definition it extended becomes the base, lines naming it go plain, and every look-less definition is labelled with its name. Only such a file is touched, so a translator's output passes as it is |
+| **names are unique within a group** | a block and a line may share a name. `def_named` and `def_slot` take the group, and ids carry a group prefix — `def_` for blocks, `rel_` for relations — so the only suffix left is a new definition reusing a renamed one's name |
+| **tray tables are one component** | `Table` takes chip groups, a remove offered on the picked row only, and an add row; `Entry` commits a name when left and says a clash beside it; `Choice` fills its cell. Contents renames blocks and edits field columns in the row. **Definitions** lists every relation definition the workspace made — name, label, extends, used — with *apply* on the picked row pointing the selected lines at it. **Usages** narrows by here/workspace, line/tie and the held definition, retypes in the row, and *retype all* points every listed line at one definition in one step |
 | **fields are a schema and its answers** | a usage lists its definition chain's schema, answered or not; a definition lists what it inherits. Rename and order are `field` with `to` and `order_field`, over a new `order_fields` op. Text commits when the box is left |
 | **a block has a body** | the workspace's included, as its description. Committed once per editing session — the debounce §4 recommended |
 | **the door checks an element's looks** | a key or a word nothing reads is dropped from a block or a line, as it already was from a definition |
 
-**The extended sample is the tester's workspace, repaired and rewritten.** It opens clean.
+**The extended sample is the tester's workspace.** It still carries the two-kind shape — `def_none`, templates and types — so it opens with repairs rather than clean until it is rewritten.
 
 
 ## Next up
 
 **In order.** Each is a phase's worth on its own.
 
-### 1 — Lines, what is left of templates and types
+### 1 — Lines, what is left of definitions
 
 | | |
 |---|---|
-| **saving a working template on a typed line** | files the template and leaves the line's type and look alone, since the type is a different property. The line only draws through what was saved once its type is pointed at it. Whether saving should move it is unanswered |
-| **a tie has no template** | the base type is `default: "line"`, so a tie draws through nothing and usages shows it blank. Either ties get a base of their own or the tables say *tie* rather than nothing |
+| **schema.md describes templates and types** | it still carries the two-kind model and the base type, and has no `label` or `rel_` ids. tray.md is current |
+| **the sample is not rewritten** | it is repaired on every open instead. Rewrite it once the shape settles so it opens clean again |
+| **a tie has no base** | the base is `default: "line"`, so a tie follows nothing and draws no label. Either ties get a base of their own or the tables say *tie* rather than nothing |
+| **a line's label box edits the definition** | with a line in context, the label row writes the definition it follows — every line naming it changes — and is read-only once the line has a working look. Whether a line's settings should edit its definition at all is unanswered |
+| **an ungrouped `define` picks either** | the tray always says the group; a caller that does not — the terminal — gets whichever definition holds the name, the workspace's own first |
 | **the base line costs two undos** | the first edit to the base files it and then makes the edit, as two steps |
-| **removal says *unpinned*** | removing a template or a type reuses `unpin`, and its toast is the pin word |
+| **removal is `unpin`** | its toast now says *removed*, but the action keeps the pin word, and *pin line* stays in settings while the definitions table has no pin |
 | **`baseline` is on the registry** | so the terminal offers it like any other action |
-| **block definitions still branch** | a block's type row picks or names a definition; a template's identity is name, extends and offer. Whether blocks follow lines — definitions edited as the tab's subject, instances only answering them — is undecided, and deliberately left as it was |
+| **block definitions still branch** | a block's type row picks or names a definition; a relation definition's identity is name, label, extends and offer. Whether blocks follow lines — definitions edited in one table, instances only answering them — is undecided, and deliberately left as it was |
+| **nothing new is tested** | `def_slot`, the door rewrite and the table controls were driven in the browser only, since the shape is still moving |
 
 ### 2 — The tray, what is left of it
 
@@ -100,9 +107,9 @@ Both are projections over different sources, neither is a block, and a third cos
 | **promoting an end that is already a port** | offered and then refused, because `when` cannot see which end a menu entry means. Harmless, and it says why |
 | **the `interface` module earns keys of its own** | an interface is the one anchor for a proxy port, a full port, a pin and a constraint parameter, and a definition says nothing about which |
 | **`flow` constrains nothing** | `ends.fromFlow` reads it and nothing else does. Whether a definition may *state* a flow, rather than only be checked against one, is unanswered |
-| **a template is one that carries `components`** | still derived. Every door that makes one — saving a draft, saving a working look, reset — now keeps `line: {}` so a template never turns into a type by losing its look. A type that grows a look of its own still becomes a template and moves tables, and nobody has met that yet |
-| **the base floor lists as a package** | the packages tab shows `base` beside anything imported, because `from` is what makes a definition somebody else's and the floor carries one. True, and possibly noise — the floor is not a package you chose |
-| **a definition may share a shipped name** | the sample's template `line` does. `def_named` prefers the workspace's own, so it works; whether a name a shipped kind holds should be refused is unanswered |
+| **a translator must say `label`** | a line definition with no label draws no words, so what a translator hands over is silent until it sets one. The seam's fixture does not |
+| **the base floor lists as a package** | the packages tab shows `base` beside anything imported, because `from` is what makes a definition somebody else's and the floor carries one. The definitions table already leaves the floor out |
+| **a definition may share a shipped name** | the sample's definition `line` does. `def_named` prefers the workspace's own, so it works; whether a name a shipped kind holds should be refused is unanswered |
 
 ### The grid
 
@@ -128,7 +135,7 @@ Both are projections over different sources, neither is a block, and a third cos
 | **The SysML round trip loses ties** | `LINK` in `apps/cli/src/sysml.ts` maps `tie` to `comment` on the way out and `from_sysml` never reads it back, minting `line`. Its `directed` and `reference` entries are gone |
 | **`FIRST` still orders retired keys** | `file.ts` lists `label` and `home` among the keys it orders first; neither has named a field since the identity rename and the pinning cleanup |
 | **`locked` rides along** | blocks in the sample still carry `locked: true`, which nothing reads and the door does not drop |
-| **Docs trail the model** | schema.md still lists `directed` and `reference` among relation modules and has no `order_fields`; ST.15 and ST.16 still describe a stereotype as named on the line itself. tray.md is current |
+| **Docs trail the model** | schema.md still lists `directed` and `reference` among relation modules and has no `order_fields`, `label` or `rel_` ids; ST.15 and ST.16 still describe a stereotype as named on the line itself |
 | **`View` is reserved, not retired** | it will name a data perspective — table, matrix, sequence — over the model. Cut now because it currently means nothing, and it comes back defined |
 
 
@@ -143,8 +150,10 @@ Both are projections over different sources, neither is a block, and a third cos
 | **repairs are mutations, not edits** | the door returns repairs for somebody else to apply, so a check written after a migration still reads the graph as it came in. That is how the group→grid migration freed every address it had just rescued |
 | **two heads tables, on purpose** | `theme/heads.tsx` is what the canvas and the tray render; `svg.ts` writes its own in a string, because the SVG export is a standalone document that already carries its own stylesheet and resolves no React. Worth knowing before somebody merges them |
 | **stop inventing words where a convention exists** | `allocation` is the case that proved the rule: what looked like three inventions — swimlane, lane owner, tag — was one construct SysML already names |
-| **the base line is read, never assumed** | `base_type` and `base_template` read the workspace's default. Hard-coding `def_default` is how a draft minted `def_def_default` in a workspace whose base was filed another way |
-| **a name is not an id** | `rename_def` keeps the id, so `def_id(name)` stops finding a renamed definition. Ask `def_named`; a check written against the slug will call a taken name free |
-| **the draft is never listed** | it stands in the panel's graph so the registry can edit it, and nowhere else. Tables read the graph without it — reading the panel's graph is how a new type renamed the draft instead of being added |
+| **the base line is read, never assumed** | `base_line` reads the workspace's default. The sample's base is `def_default` and a new one is `rel_default`; hard-coding either is how a draft minted `def_def_default` once |
+| **a name is not an id, and not a group** | `rename_def` keeps the id, so a slug stops finding a renamed definition, and a block and a line may share a name. Ask `def_named` / `def_slot` **with the group**; a check without it calls a line's name taken by a block |
+| **the graph in hand is from before the act** | an action's result lands on the next render, so reading the graph straight after dispatching finds nothing. Saving a draft held a lookup of its own name and dropped the tray to the workspace; hold the id `def_slot` says it will mint |
+| **a control in a row stops the click** | a row pick holds a context, so every `Entry`, `Choice` and chip stops propagation — one that does not swaps the panel out from under the box being typed in |
+| **the draft is never listed** | it stands in the panel's graph so the registry can edit it, and nowhere else. Tables read the graph without it — reading the panel's graph is how a new definition renamed the draft instead of being added |
 | **the canvas echoes a selection it cannot draw** | a row picked from another layer comes back from the canvas as an empty pick. App ignores that echo; a surface taking the canvas's report as a gesture will drop the tray's hold |
 | **`contents` is one level everywhere but the workspace** | `children` and `edges_in` answer *in this layer*, which is what makes the word mean one thing. The workspace reads deep because it **is** the project — and so do usages. Anything else going recursive is the drift to catch |

@@ -998,7 +998,7 @@ export function default_for(graph: Graph, kind: BlockModule | RelationModule,
 export const BASE_RELATIONS: readonly string[] = ["line"];
 
 /** The id the workspace's base line is filed under when the app files it. */
-export const BASE_LINE = "def_default";
+export const BASE_LINE = "rel_default";
 
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
@@ -1080,13 +1080,13 @@ export function def_named(graph: Graph, name: string, group?: "block" | "relatio
   return hits.find((d) => !d.from) ?? hits[0];
 }
 
-/** The id a name is filed under: the definition already called that, or a
- *  fresh slug. **A slug another definition holds is suffixed**, since names
- *  are unique across the workspace and ids only have to be. */
-export function def_slot(graph: Graph, name: string): Id {
-  const held = def_named(graph, name);
+/** The id a name is filed under: the definition of that group already called
+ *  that, or a fresh slug under the group's prefix. **Suffixed only when a
+ *  renamed definition still holds the slug**, since a rename keeps its id. */
+export function def_slot(graph: Graph, name: string, group?: "block" | "relation"): Id {
+  const held = def_named(graph, name, group);
   if (held) return held.id;
-  const slug = def_id(name);
+  const slug = def_id(name, group);
   let id = slug;
   for (let n = 2; graph.defs[id]; n++) id = `${slug}_${n}`;
   return id;

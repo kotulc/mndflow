@@ -57,7 +57,7 @@ export function aimed(args: Args | undefined): string[] {
  *  decides whether the base line has to be filed first. */
 export function touched(args: Args | undefined): string[] {
   if (!args) return [];
-  return [...aimed(args), args["extends"], args["name"] ? def_id(String(args["name"])) : undefined]
+  return [...aimed(args), args["extends"], args["name"] ? def_id(String(args["name"]), "relation") : undefined]
     .filter((x): x is string => typeof x === "string" && !!x);
 }
 

@@ -19,8 +19,9 @@ export function new_id(kind: "block" | "edge" | "def" | "step"): string {
 }
 
 /** A definition minted from a name somebody typed, so it settles rather than
- *  churning on every fold. */
-export function def_id(name: string): string {
+ *  churning on every fold. **Each group has its own prefix** — `def_` for a
+ *  block, `rel_` for a relation — so a block and a line may share a name. */
+export function def_id(name: string, group: "block" | "relation" = "block"): string {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
-  return `def_${slug || "unnamed"}`;
+  return `${group === "relation" ? "rel" : "def"}_${slug || "unnamed"}`;
 }

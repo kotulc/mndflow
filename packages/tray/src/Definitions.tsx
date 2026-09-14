@@ -4,8 +4,9 @@
  *  A definition is a name, an optional label and what it extends. The label is
  *  what a line naming it draws — a stereotype, exactly as typed — and is its
  *  own: extending a definition and giving it another label is how one look
- *  carries several names. **A name is the workspace's**, so one refused as
- *  taken is always here to be found.
+ *  carries several names. **A name is unique among relation definitions**, so
+ *  one refused as taken is always here to be found; a block definition may
+ *  share it.
  *
  *  | row | edits |
  *  |---|---|
@@ -51,12 +52,12 @@ export type DefinitionsProps = {
   onAct: Act;
 };
 
-/** Why a name may not be used, or null. **Said with what holds it.** */
-export function taken(graph: Graph, name: string, self?: Id): string | null {
-  const other = def_named(graph, name);
-  if (!other || other.id === self) return null;
-  return other.group === "block" ? `${other.name} is a block definition`
-    : `${other.name} already exists`;
+/** Why a name may not be used in a group, or null. **A block and a line may
+ *  share a name**; two of one group may not. */
+export function taken(graph: Graph, name: string, group: "block" | "relation",
+                      self?: Id): string | null {
+  const other = def_named(graph, name, group);
+  return !other || other.id === self ? null : `${other.name} already exists`;
 }
 
 export function Definitions({ graph, held, lines, from, onPick, onAct }: DefinitionsProps) {
@@ -76,7 +77,7 @@ export function Definitions({ graph, held, lines, from, onPick, onAct }: Definit
     .map((r) => ({ value: r.id, word: r.name }));
 
   const extend = up && graph.defs[up] ? up : from;
-  const clash = name.trim() ? taken(graph, name) : null;
+  const clash = name.trim() ? taken(graph, name, "relation") : null;
   const add = () => {
     if (!name.trim() || clash) return;
     onAct("define", { name: name.trim(), group: "relation", extends: extend,
@@ -103,16 +104,16 @@ export function Definitions({ graph, held, lines, from, onPick, onAct }: Definit
             /** **Renamed in place**; the id stays, so nothing naming it is retyped. */
             name: mine ? (
               <Entry value={r.name} label={`rename ${r.name}`}
-                     clash={(to) => taken(graph, to, r.id)}
+                     clash={(to) => taken(graph, to, "relation", r.id)}
                      onCommit={(to) => onAct("rename_def", { id: r.id, name: to })} />
             ) : `${r.name} · ${r.from}`,
             label: mine ? (
               <Entry value={r.label} label={`label of ${r.name}`} placeholder="no label" blank
-                     onCommit={(to) => onAct("define", { name: r.name, label: to })} />
+                     onCommit={(to) => onAct("define", { name: r.name, group: "relation", label: to })} />
             ) : r.label,
             extends: !mine || r.base ? graph.defs[r.extends]?.name ?? "" : (
               <Choice value={r.extends} label={`what ${r.name} extends`} of={above(r.id)}
-                      onPick={(id) => onAct("define", { name: r.name, extends: id })} />
+                      onPick={(id) => onAct("define", { name: r.name, group: "relation", extends: id })} />
             ),
             used: String(r.used),
             /** **Only on the row picked, and only where a line would change.** */

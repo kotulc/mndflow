@@ -173,7 +173,9 @@ export function Tray(props: TrayProps) {
   const draft = drafting ? drafts[drafting] : null;
   const line = view.edges[about] ?? null;
   const naming = draft ? draft.name.trim() : line ? (working[about] ?? "").trim() : "";
-  const taken = !!naming && !!def_named(listed, naming);
+  /** **A name is unique within its group**, so a line may share a block's. */
+  const group = draft ? draft.group : "relation";
+  const taken = !!naming && !!def_named(listed, naming, group);
   const save = !naming || taken ? null
     : draft ? () => {
       if (base_unfiled(graph) && draft.group === "relation") onAct?.("baseline");
@@ -183,7 +185,7 @@ export function Tray(props: TrayProps) {
       set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
       /** **The id `define` will file it under**, since the graph in hand is the
        *  one from before the save. */
-      onHold({ of: "id", id: def_slot(graph, naming) });
+      onHold({ of: "id", id: def_slot(graph, naming, group) });
     }
     : line ? () => {
       if (base_unfiled(graph)) onAct?.("baseline");
