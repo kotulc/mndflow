@@ -235,9 +235,14 @@
 /* A value read rather than set. */
 .rows > .row > .line > .read { color: var(--muted); }
 
-/* Go to where a row lives. */
-.contents-table td.view { padding: 0 4px; text-align: right; }
-.contents-table td.view .chip {
+/* **What acts on a row sits right**, in one compact column: its chips, then
+   remove. */
+.contents-table td.drop { padding: 0 4px; }
+.contents-table td .acts { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
+.contents-table td .acts { min-width: 0; }
+/* A chip longer than its column is cut, never allowed to widen it. */
+.contents-table td .acts .chip { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.contents-table td .acts .chip {
   padding: 0 6px;
   border: 1px solid var(--accent);
   border-radius: 2px;
@@ -520,7 +525,6 @@
 .contents-table td .adding > input:focus { outline: none; border-color: var(--accent); }
 .contents-table td .adding > input:hover { border-color: var(--divider); }
 .contents-table td .adding > .warn { flex: none; color: var(--warn); font-size: 10px; }
-.contents-table td.drop { text-align: right; }
 .contents-table td .drop {
   padding: 0 2px;
   border: none;

@@ -8,21 +8,17 @@
  *  |---|---|
  *  | chips above | `chips`, one group per question; each narrows on its own |
  *  | a cell | a node, so a row carries its own control — `Entry`, `Choice` |
- *  | remove | a row's `onDrop`, offered on the picked row only |
+ *  | actions | a row's `actions` and `onDrop`, right-aligned in one compact last column |
  *  | the last row | `adding`: cells that write a new row, and the button that adds it |
+ *
+ *  **The data columns share the width evenly**; only the action column is sized.
  *
  *  Pure: it holds nothing, and every change leaves through a callback. */
 
 import type { ReactNode } from "react";
 import { Icon } from "@mnd/theme";
 
-export type Column = {
-  key: string;
-  label: string;
-  /** Left to the browser where it is absent, which is what a column of
-   *  controls wants. */
-  width?: string;
-};
+export type Column = { key: string; label: string };
 
 export type Line = {
   id: string;
@@ -30,11 +26,22 @@ export type Line = {
   /** What the browser shows on hover, per column. Strings only: a title is an
    *  attribute, so a node has nothing to give it. */
   titles?: Record<string, string>;
+  /** Chips that act on the row, set right in the action column beside remove. */
+  actions?: ReactNode;
   /** Removes the row. Absent, the row cannot be removed. */
   onDrop?: () => void;
   /** Said on the remove button. */
   drop?: string;
 };
+
+/** **Where a listing reaches**: the open layer, or the whole workspace. */
+export type Scope = "layer" | "workspace";
+
+/** The scope chips, the same question in every table that asks it. */
+export function scope_chips(on: Scope, onPick: (to: Scope) => void): Chips {
+  return { key: "scope", on, onPick: (k) => onPick(k as Scope),
+           of: [{ key: "layer", word: "layer" }, { key: "workspace", word: "workspace" }] };
+}
 
 /** **One question's chips**, lit one at a time. */
 export type Chips = {
@@ -63,14 +70,22 @@ export type TableProps = {
   picked?: readonly string[];
   onPick?: (id: string) => void;
   onHover?: (id: string | null) => void;
+  /** **The action column, reserved up front** at this width, so a chip appearing
+   *  on a picked row never reflows the columns. Absent, a column is kept only
+   *  where rows can be removed or added. */
+  acts?: string;
   /** What stands in the body when there is nothing. **Said rather than blank**,
    *  because an empty table and a broken one look identical. */
   empty: string;
 };
 
 export function Table(props: TableProps) {
-  const { columns, rows, chips = [], tools, adding, picked = [], onPick, onHover, empty } = props;
-  const drops = !!adding || rows.some((r) => r.onDrop);
+  const { columns, rows, chips = [], tools, adding, picked = [], onPick, onHover, empty,
+          acts } = props;
+  const drops = !!acts || !!adding || rows.some((r) => r.onDrop);
+  /** **Set on the cells as well as the column**: the head and the body are laid
+   *  out as two tables so the body can scroll, and neither reads a `<col>`. */
+  const act_w = acts ?? "2rem";
   const span = columns.length + (drops ? 1 : 0);
 
   const cells = (of: Record<string, ReactNode>, titles?: Record<string, string>) =>
@@ -88,13 +103,13 @@ export function Table(props: TableProps) {
 
       <table className="contents-table">
         <colgroup>
-          {columns.map((c) => <col key={c.key} style={c.width ? { width: c.width } : undefined} />)}
-          {drops ? <col style={{ width: "2.5em" }} /> : null}
+          {columns.map((c) => <col key={c.key} />)}
+          {drops ? <col style={{ width: act_w }} /> : null}
         </colgroup>
         <thead>
           <tr>
             {columns.map((c) => <th key={c.key}>{c.label}</th>)}
-            {drops ? <th /> : null}
+            {drops ? <th style={{ width: act_w }} /> : null}
           </tr>
         </thead>
         <tbody onMouseLeave={() => onHover?.(null)}>
@@ -105,14 +120,17 @@ export function Table(props: TableProps) {
                 onClick={onPick ? () => onPick(row.id) : undefined}>
               {cells(row.cells, row.titles)}
               {drops ? (
-                <td className="drop">
-                  {/* **Only on the row picked**, so a remove is never one stray click. */}
-                  {row.onDrop && picked.includes(row.id) ? (
-                    <button className="drop" title={row.drop ?? "remove"}
-                            onClick={(e) => { e.stopPropagation(); row.onDrop!(); }}>
-                      <Icon name="remove" />
-                    </button>
-                  ) : null}
+                <td className="drop" style={{ width: act_w }}>
+                  <span className="acts">
+                    {row.actions}
+                    {/* **Only on the row picked**, so a remove is never one stray click. */}
+                    {row.onDrop && picked.includes(row.id) ? (
+                      <button className="drop" title={row.drop ?? "remove"}
+                              onClick={(e) => { e.stopPropagation(); row.onDrop!(); }}>
+                        <Icon name="remove" />
+                      </button>
+                    ) : null}
+                  </span>
                 </td>
               ) : null}
             </tr>
@@ -123,11 +141,13 @@ export function Table(props: TableProps) {
           {adding ? (
             <tr className="add">
               {cells(adding.cells)}
-              <td className="drop">
-                <button className="drop" title={adding.title} disabled={!adding.ready}
-                        onClick={adding.onAdd}>
-                  <Icon name="add" />
-                </button>
+              <td className="drop" style={{ width: act_w }}>
+                <span className="acts">
+                  <button className="drop" title={adding.title} disabled={!adding.ready}
+                          onClick={adding.onAdd}>
+                    <Icon name="add" />
+                  </button>
+                </span>
               </td>
             </tr>
           ) : null}

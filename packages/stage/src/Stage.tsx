@@ -66,7 +66,7 @@ export type StageProps = {
   dir?: string;
   type?: string;
   /** What another surface is pointing at — a hovered table row — drawn in the
-   *  lit-target look. Never a selection, so the tray keeps its context. */
+   *  hover look: an accent outline. Never a selection, so the tray keeps its context. */
   lit?: readonly string[];
 };
 
@@ -489,14 +489,17 @@ function made_at(scene: Scene, at: { x: number; y: number }) {
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
 }
 
-/** The lit-target look, keyed by id. **A rule rather than a class**, so lighting
- *  a row never rebuilds the canvas's nodes and edges. */
+/** The hover look, keyed by id. **A rule rather than a class**, so lighting a row
+ *  never rebuilds the canvas's nodes and edges.
+ *
+ *  **Hover outlines; a pick shows more.** Hovered, a card is ringed and a run is
+ *  stroked in the accent. Picked, a card also raises its fill and a run shows
+ *  its grips — so the two differ in what is shown, not in how loudly. */
 function lit_rules(ids: readonly string[]): string {
-  const at = (kind: string) =>
-    ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]`);
-  return `${at("node").join(",")} { filter: drop-shadow(0 0 3px var(--accent)); }
-`
-       + `${at("edge").map((s) => `${s} path`).join(",")} { stroke: var(--accent) !important; }`;
+  const at = (kind: string, inner: string) =>
+    ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
+  return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,
+          `${at("edge", " path")} { stroke: var(--accent) !important; opacity: 1; }`].join("\n");
 }
 
 function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {

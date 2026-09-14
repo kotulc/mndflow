@@ -4,7 +4,7 @@
  *
  *  | chips | narrows to |
  *  |---|---|
- *  | here / workspace | the open layer's lines, or every line in the project |
+ *  | layer / workspace | the open layer's usages, or every one in the workspace |
  *  | line / tie | the module a line is drawn by |
  *  | any / the definition | lines following what the tray holds, or anything extending it |
  *
@@ -16,7 +16,7 @@
 import { useState } from "react";
 import { base_line, may_retype, RELATION_MODULES, relations, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
-import { Choice, Table, type Column } from "./Table";
+import { Choice, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
 
 /** The base's option in *retype all*, whose own value is blank. */
@@ -26,6 +26,9 @@ export type UsagesProps = {
   graph: Graph;
   /** Which usages: blocks or lines. */
   group: "block" | "relation";
+  /** Where the listing reaches, held by the tray for every table. */
+  scope: Scope;
+  onScope: (to: Scope) => void;
   layer: Id | null;
   /** The definition the tray is about, which the third chip group narrows by. */
   about: Id | null;
@@ -39,11 +42,10 @@ export type UsagesProps = {
   home: (id: Id) => Id | null;
 };
 
-export function Usages({ graph, group, layer, about, picked, onPick, onHover, onAct, onView,
+export function Usages({ graph, group, scope, onScope, layer, about, picked, onPick, onHover, onAct, onView,
                          home }: UsagesProps) {
   const lines = group === "relation";
   /** **The root layer reads the whole project** until somebody says otherwise. */
-  const [scope, set_scope] = useState<"here" | "workspace">(layer === null ? "workspace" : "here");
   const [module, set_module] = useState("all");
   const [by, set_by] = useState("any");
 
@@ -74,12 +76,11 @@ export function Usages({ graph, group, layer, about, picked, onPick, onHover, on
                                  && keep.keep(r));
 
   const columns: readonly Column[] = [
-    { key: "name", label: lines ? "line" : "block", width: deep ? "18%" : "22%" },
-    { key: "what", label: lines ? "joins" : "kind", width: deep ? "26%" : "34%" },
-    ...(deep ? [{ key: "layer", label: "in", width: "18%" }] : []),
-    { key: "def", label: "definition", width: deep ? "20%" : "24%" },
-    ...(lines ? [{ key: "label", label: "label", width: deep ? "18%" : "20%" }] : []),
-    { key: "view", label: "", width: "4.5em" },
+    { key: "name", label: lines ? "line" : "block" },
+    { key: "what", label: lines ? "joins" : "kind" },
+    ...(deep ? [{ key: "layer", label: "in" }] : []),
+    { key: "def", label: "definition" },
+    ...(lines ? [{ key: "label", label: "label" }] : []),
   ];
 
   /** **Blank is the base.** A line naming nothing follows the base line; a block
@@ -92,6 +93,7 @@ export function Usages({ graph, group, layer, about, picked, onPick, onHover, on
   return (
     <Table
       columns={columns}
+      acts="4rem"
       picked={picked}
       onPick={onPick}
       onHover={onHover}
@@ -105,11 +107,10 @@ export function Usages({ graph, group, layer, about, picked, onPick, onHover, on
             .map((o) => <option key={o.value || BLANK} value={o.value || BLANK}>{o.word}</option>)}
         </select>
       ) : null}
-      empty={all.length ? "nothing of that sort" : deep ? "no lines in this project yet"
-                                                    : "no lines in this layer"}
+      empty={all.length ? "nothing of that sort"
+        : `no ${lines ? "lines" : "blocks"} in this ${deep ? "workspace" : "layer"} yet`}
       chips={[
-        { key: "scope", on: scope, onPick: (k) => set_scope(k as "here" | "workspace"),
-          of: [{ key: "here", word: "here" }, { key: "workspace", word: "workspace" }] },
+        scope_chips(scope, onScope),
         ...(lines ? [{ key: "module", on: module, onPick: set_module,
           of: modules.map((m) => ({ key: m, word: m,
             count: m === "all" ? all.length : all.filter((r) => r.module === m).length })) }] : []),
@@ -128,15 +129,15 @@ export function Usages({ graph, group, layer, about, picked, onPick, onHover, on
                     onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id, r.id) })} />
           ),
           label: r.label,
-          /** **Only on the row picked, and only when it is elsewhere** — one
-           *  that is here already lights. */
-          view: onView && picked.includes(r.id) && home(r.id) !== layer ? (
-            <button className="chip" title="open the layer this is in"
-                    onClick={(e) => { e.stopPropagation(); onView(r.id); }}>
-              view
-            </button>
-          ) : null,
         },
+        /** **Only on the row picked, and only when it is elsewhere** — one that
+         *  is here already lights. */
+        actions: onView && picked.includes(r.id) && home(r.id) !== layer ? (
+          <button className="chip" title="open the layer this is in"
+                  onClick={(e) => { e.stopPropagation(); onView(r.id); }}>
+            view
+          </button>
+        ) : null,
       }))}
     />
   );

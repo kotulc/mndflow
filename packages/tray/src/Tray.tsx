@@ -32,7 +32,7 @@ import { Chain } from "./Chain";
 import { Packages } from "./Packages";
 import { Definitions } from "./Definitions";
 import { Entry } from "./Entry";
-import { ChipBar, Table, type Column } from "./Table";
+import { ChipBar, scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
 import { aimed, base_unfiled, blank, DRAFT, redraft, touched, with_base, with_draft,
          type DraftGroup } from "./draft";
@@ -81,10 +81,10 @@ const SLOTS: Record<"block" | "workspace" | "relation", readonly Tab[]> = {
 };
 
 const HEAD: readonly Column[] = [
-  { key: "kind", label: "kind", width: "16%" },
-  { key: "name", label: "name", width: "26%" },
-  { key: "what", label: "what", width: "34%" },
-  { key: "type", label: "type", width: "16%" },
+  { key: "kind", label: "kind" },
+  { key: "name", label: "name" },
+  { key: "what", label: "what" },
+  { key: "type", label: "type" },
 ];
 
 /** What a filter narrows to. `all` is not a sort, so it is named beside them. */
@@ -122,6 +122,13 @@ export function Tray(props: TrayProps) {
   /** Field columns the reader asked for, in the order they asked. */
   const [columns, set_columns] = useState<string[]>([]);
   const [adding, set_adding] = useState("");
+  /** **Where the listings reach**, shared by every table that asks, so a tab
+   *  change keeps it. The layer until somebody asks for the workspace. */
+  const [scope, set_scope] = useState<Scope>("layer");
+  /** The listing a table row was picked from, kept while that row is the pick. */
+  const [browse, set_browse] = useState<{ id: Id; within: Id | null } | null>(null);
+  /** The definition row lit while something on the canvas is picked. */
+  const [lit_def, set_lit_def] = useState<Id | null>(null);
   /** **One draft per group, kept until saved.** Clicking away puts the context
    *  back on the canvas and leaves the draft where it was. */
   const [drafts, set_drafts] = useState<Record<DraftGroup, Definition>>(
@@ -169,13 +176,21 @@ export function Tray(props: TrayProps) {
     onAct?.(name, args);
   };
 
+  /** **Whether a block or a line says anything about its own drawing** — its
+   *  working definition, saved under a name. */
+  const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
+    ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
+  const instance = about !== graph.root ? view.blocks[about] ?? view.edges[about] : undefined;
+
   /** **Saving files a definition under its name**, as one step: a draft whole, or
-   *  a line's working look. A name already taken is said, and never looked up. */
+   *  a block's or a line's working look. A name already taken is said, and never
+   *  looked up. */
   const draft = drafting ? drafts[drafting] : null;
   const line = view.edges[about] ?? null;
-  const naming = draft ? draft.name.trim() : line ? (working[about] ?? "").trim() : "";
+  const working_look = !!instance && drawn_looks(instance);
+  const naming = draft ? draft.name.trim() : working_look ? (working[about] ?? "").trim() : "";
   /** **A name is unique within its group**, so a line may share a block's. */
-  const group = draft ? draft.group : "relation";
+  const group = draft ? draft.group : line ? "relation" : "block";
   const taken = !!naming && !!def_named(listed, naming, group);
   const save = !naming || taken ? null
     : draft ? () => {
@@ -188,8 +203,8 @@ export function Tray(props: TrayProps) {
        *  one from before the save. */
       onHold({ of: "id", id: def_slot(graph, naming, group) });
     }
-    : line ? () => {
-      if (base_unfiled(graph)) onAct?.("baseline");
+    : working_look ? () => {
+      if (line && base_unfiled(graph)) onAct?.("baseline");
       act("save_def", { id: about, name: naming });
       set_working((w) => ({ ...w, [about]: "" }));
     }
@@ -198,12 +213,9 @@ export function Tray(props: TrayProps) {
   /** **What styling writes.** A block or a line naming a workspace definition
    *  styles that definition, so every usage follows; one that names none — or
    *  already says something of its own — keeps a working look to save. */
-  const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
-    ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
-  const instance = view.blocks[about] ?? view.edges[about];
   const typed = instance?.type ? view.defs[instance.type] : undefined;
-  const styled: Id = about !== graph.root && instance && typed && !shipped(typed) && !typed.from
-    && !drawn_looks(instance) ? typed.id : about;
+  const styled: Id = instance && typed && !shipped(typed) && !typed.from && !working_look
+    ? typed.id : about;
 
   /** Whether the context says anything about its drawing at all, which is what
    *  *reset style* would give back — and whether it is somebody else's. */
@@ -212,12 +224,14 @@ export function Tray(props: TrayProps) {
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
   const borrowed = !!view.defs[styled]?.from;
 
-  /** **What the table is about.** A container in context lists its own
-   *  contents; anything else lists the open layer. The workspace is the whole
-   *  project, so its listing is deep. */
-  const within = graph.blocks[about] && about !== graph.root
-    && (is_container(graph, about) || module_of(graph, about) === "folder") ? about : layer;
-  const deep = context === "workspace";
+  /** **What the table is about.** In the layer scope a container in context
+   *  lists its own contents and anything else lists the open layer; the
+   *  workspace scope lists everything. **A row picked from the table keeps the
+   *  listing it was picked from**, so the table never swaps under the pointer. */
+  const within = browse && one === browse.id ? browse.within
+    : graph.blocks[about] && about !== graph.root
+      && (is_container(graph, about) || module_of(graph, about) === "folder") ? about : layer;
+  const deep = scope === "workspace";
   const rows = rows_of(graph, deep ? null : within, deep);
   const shown = only === "all" || only === "types"
     ? rows : rows.filter((r) => r.sort === only);
@@ -264,16 +278,32 @@ export function Tray(props: TrayProps) {
    *  line picked resolves through. */
   const held_def = listed.defs[about] ? about : def_of(listed, about) ?? null;
 
-  /** **A row picked here keeps the tray where it is.** The table is this
-   *  context's answer, so picking from it lights the thing and holds the
-   *  context rather than swapping the table out from under the pointer. */
+  /** **A row picked here is the context now**, exactly as a pick on the canvas
+   *  is: any held definition or draft is let go, and the table stays on the tab
+   *  and listing it was picked from. */
   const pick_row = (id: Id) => {
+    set_browse({ id, within });
     onPick([id]);
-    if (!hold) onHold({ of: "id", id: about });
+    onHold(null);
   };
 
-  /** **The head says what the context is**, in the word the rail uses for it. */
-  const word = context === "relation" ? "relation" : context;
+  /** **With something picked on the canvas, a definition row only lights**, and
+   *  offers to apply itself to what is picked; with nothing picked it becomes the
+   *  context. */
+  const targets = picked.filter((id) => (context === "relation" ? !!listed.edges[id]
+                                                                : !!listed.blocks[id]));
+  const pick_def = (id: Id) => {
+    if (targets.length && !hold) { set_lit_def(id); return; }
+    onHold({ of: "id", id });
+  };
+  const target_name = targets.length === 1 ? shown_name(graph, targets[0]!)
+    : `${targets.length} ${context === "relation" ? "lines" : "blocks"}`;
+
+  /** **The head names the context** — what it is and what it is called, and
+   *  nothing about how it came to be the context. */
+  const word = drafting ? `new ${drafting} definition`
+    : view.defs[about] ? `${view.defs[about]!.group} definition`
+    : context === "relation" ? "relation" : context;
   const name = drafting ? drafts[drafting].name
     : view.defs[about] ? view.defs[about]!.name : shown_name(graph, about);
 
@@ -291,9 +321,7 @@ export function Tray(props: TrayProps) {
         <span className="tray-context">
           <span className="word">{word}</span>
           {name ? <span className="name">{name}</span> : null}
-          {drafting ? <span className="note">new definition</span> : null}
-          {view.defs[about] && !drafting ? <span className="note">definition</span> : null}
-          {picked.length > 1 && !hold ? <span className="note">{picked.length} selected</span> : null}
+          {picked.length > 1 && !hold ? <span className="note">{`${picked.length} items`}</span> : null}
         </span>
 
         <span className="tray-tools">
@@ -326,7 +354,7 @@ export function Tray(props: TrayProps) {
                         onClick={() => act("none", { ids: [styled] })}>
                   reset style
                 </button>
-                {drafting || (line && drawn_looks(line)) ? (
+                {drafting || working_look ? (
                   <button className="reset save" disabled={!save}
                           title={save ? "keep this in the table"
                             : taken ? `${naming} already exists`
@@ -350,15 +378,15 @@ export function Tray(props: TrayProps) {
           {onAct && tab === "packages" ? <Packages graph={graph} /> : null}
           {onAct && tab === "definitions" ? (
             <Definitions graph={listed} group={context === "relation" ? "relation" : "block"}
-                         held={held_def} onAct={act}
-                         lines={picked.filter((id) => context === "relation"
-                           ? !!listed.edges[id] : !!listed.blocks[id])}
-                         onPick={(id) => onHold({ of: "id", id })}
+                         held={targets.length && !hold ? lit_def ?? held_def : held_def}
+                         onAct={act} lines={targets} target={target_name}
+                         onPick={pick_def}
                          from={held_def ?? (context === "relation"
                            ? base_line(listed)?.id ?? BASE_LINE : "block")} />
           ) : null}
           {onAct && tab === "usages" ? (
             <Usages graph={listed} group={context === "relation" ? "relation" : "block"}
+                    scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
                     picked={picked} onPick={pick_row} onHover={onHover} onAct={act}
                     {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
@@ -373,16 +401,16 @@ export function Tray(props: TrayProps) {
                   base first — never a list of every definition. */}
               {only === "types" ? (
                 <>
-                  <ChipBar chips={[chips]} tools={tools} />
+                  <ChipBar chips={[scope_chips(scope, set_scope), chips]} tools={tools} />
                   <Chain graph={graph} id={one} />
                 </>
               ) : (
                 <Table
-                  columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n })),
-                            { key: "@view", label: "", width: "4.5em" }]}
-                  chips={[chips]} tools={tools}
+                  columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n }))]}
+                  chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="5rem"
                   picked={picked} onPick={pick_row} onHover={onHover}
-                  empty={within === layer ? "this layer holds nothing yet"
+                  empty={deep ? "this workspace holds nothing yet"
+                    : within === layer ? "this layer holds nothing yet"
                     : children(graph, within).length ? "nothing of that sort"
                     : "it holds nothing yet"}
                   rows={shown.map((row) => {
@@ -406,15 +434,15 @@ export function Tray(props: TrayProps) {
                                    onCommit={(to) => act("field", { holder: row.id, name: n,
                                                                     value: to })} />
                           ) : cell(row, n)])),
-                        /** **Only on the row picked, and only when it is elsewhere** —
-                         *  one that is here already lights. */
-                        "@view": onView && picked.includes(row.id) && home !== layer ? (
-                          <button className="chip" title="open the layer this is in"
-                                  onClick={(e) => { e.stopPropagation(); onView(home, row.id); }}>
-                            view
-                          </button>
-                        ) : null,
                       },
+                      /** **Only on the row picked, and only when it is elsewhere** —
+                       *  one that is here already lights. */
+                      actions: onView && picked.includes(row.id) && home !== layer ? (
+                        <button className="chip" title="open the layer this is in"
+                                onClick={(e) => { e.stopPropagation(); onView(home, row.id); }}>
+                          view
+                        </button>
+                      ) : null,
                       ...(onAct ? { onDrop: () => act("delete", { ids: [row.id] }),
                                     drop: `delete ${row.name}` } : {}),
                     };

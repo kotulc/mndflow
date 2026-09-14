@@ -445,10 +445,14 @@
 .mnd-card.out, .mnd-seat.out { border-color: var(--away); }
 
 /* Selection is the app speaking about your model, so it takes the accent and
-   no definition may claim it. */
+   no definition may claim it. **A picked card also raises its fill**, which is
+   what a hover — an outline only — never does. */
 .mnd-card.picked, .mnd-seat.picked {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+}
+.mnd-card.card-face.picked[data-fill] {
+  background: color-mix(in oklch, var(--card-ground-src, var(--card-fill)) 70%, var(--accent));
 }
 
 /* An interface, seated on a wall. The mark is the whole of it. */

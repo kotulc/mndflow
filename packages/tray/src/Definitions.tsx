@@ -24,11 +24,10 @@ import { Choice, Table, type Column } from "./Table";
 import { def_rows, type DefRow } from "./rows";
 
 const COLUMNS: readonly Column[] = [
-  { key: "name", label: "name", width: "28%" },
-  { key: "label", label: "label", width: "24%" },
-  { key: "extends", label: "extends", width: "28%" },
-  { key: "used", label: "used", width: "10%" },
-  { key: "view", label: "", width: "4.5em" },
+  { key: "name", label: "name" },
+  { key: "label", label: "label" },
+  { key: "extends", label: "extends" },
+  { key: "used", label: "used" },
 ];
 
 /** A block definition has no label. */
@@ -50,6 +49,8 @@ export type DefinitionsProps = {
   held: Id | null;
   /** What is selected on the canvas, which *apply* points at the picked row. */
   lines: readonly Id[];
+  /** What *apply* names: the one thing picked, or how many. */
+  target?: string;
   /** What a new row extends until another is picked — the one in hand. */
   from: Id;
   onPick: (id: Id) => void;
@@ -64,7 +65,8 @@ export function taken(graph: Graph, name: string, group: "block" | "relation",
   return !other || other.id === self ? null : `${other.name} already exists`;
 }
 
-export function Definitions({ graph, group, held, lines, from, onPick, onAct }: DefinitionsProps) {
+export function Definitions({ graph, group, held, lines, target = "the selection", from, onPick,
+                              onAct }: DefinitionsProps) {
   const [only, set_only] = useState<Only>("all");
   const [name, set_name] = useState("");
   const [label, set_label] = useState("");
@@ -99,6 +101,7 @@ export function Definitions({ graph, group, held, lines, from, onPick, onAct }: 
   return (
     <Table
       columns={group === "relation" ? COLUMNS : BLOCK_COLUMNS}
+      acts="11rem"
       picked={held ? [held] : []}
       onPick={onPick}
       empty="nothing of that sort"
@@ -125,19 +128,19 @@ export function Definitions({ graph, group, held, lines, from, onPick, onAct }: 
                       onPick={(id) => onAct("define", { name: r.name, group, extends: id })} />
             ),
             used: String(r.used),
-            /** **Only on the row picked, and only where a line would change.** */
-            view: r.id === held && lines.some((id) => def_of(graph, id) !== r.id
-                                                      && (group === "relation"
-                                                          || may_retype(graph, id, r.id))) ? (
-              <button className="chip" title={`point the selection at ${r.name}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAct("retype", { ids: [...lines], type: r.base ? "" : r.id });
-                      }}>
-                apply
-              </button>
-            ) : null,
           },
+          /** **Only on the row picked, and only where something would change.** */
+          actions: r.id === held && lines.some((id) => def_of(graph, id) !== r.id
+                                                    && (group === "relation"
+                                                        || may_retype(graph, id, r.id))) ? (
+            <button className="chip" title={`point ${target} at ${r.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAct("retype", { ids: [...lines], type: r.base ? "" : r.id });
+                    }}>
+              {`apply to ${target}`}
+            </button>
+          ) : null,
           /** **Removing keeps how its lines draw**: looks go down into each line,
            *  and anything extending it extends what it extended. */
           /** **The tray stays on definitions**: what was held goes to the base. */
@@ -167,7 +170,6 @@ export function Definitions({ graph, group, held, lines, from, onPick, onAct }: 
           ),
           extends: <Choice value={extend} label="extends" of={above(null)} onPick={set_up} />,
           used: "",
-          view: null,
         },
       }}
     />

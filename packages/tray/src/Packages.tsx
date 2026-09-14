@@ -13,9 +13,9 @@ import { Table, type Column } from "./Table";
 import { vocabulary, type Graph } from "@mnd/core";
 
 const COLUMNS: readonly Column[] = [
-  { key: "name", label: "package", width: "46%" },
-  { key: "defs", label: "definitions", width: "27%" },
-  { key: "used", label: "in use", width: "27%" },
+  { key: "name", label: "package" },
+  { key: "defs", label: "definitions" },
+  { key: "used", label: "in use" },
 ];
 
 export type PackagesProps = { graph: Graph };

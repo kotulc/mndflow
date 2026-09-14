@@ -18,7 +18,6 @@
  *
  *  A pure function of its props, like every other surface. */
 
-import { useState } from "react";
 import { alias_of, BASE_PACKAGE, base_line, def_of, isa, kind_word, may_retype, module_of,
          pinned_defs, relations, role_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
@@ -49,8 +48,10 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
   /** **The relation definition this is about**: itself, or the one a line follows. */
   const follows = runs ? (d ?? graph.defs[def_of(graph, id) ?? ""]) : undefined;
-  /** A line that says anything about its own drawing has a working definition. */
-  const wip = !!edge && ["line", "style"].some((k) => Object.keys(edge.looks?.[k] ?? {}).length > 0);
+  /** A block or a line that says anything about its own drawing has a working
+   *  definition, named here and kept with *save definition*. */
+  const wip = (edge ? ["line", "style"] : b ? ["card", "style"] : [])
+    .some((k) => Object.keys((edge ?? b)?.looks?.[k] ?? {}).length > 0);
   /** The name being written, and whether it is taken. **Never a lookup.** */
   const writing = drafted ? d!.name.trim() : wip ? working.trim() : "";
   const clash = writing ? taken(graph, writing, runs ? "relation" : "block", drafted ? DRAFT : undefined) : null;
@@ -114,7 +115,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                                                      extends: d!.extends ?? "" })} />
             {clash ? <span className="from warn">{clash}</span> : null}
           </Line>
-        ) : wip ? (
+        ) : wip && runs ? (
           <Line label="name" tip="This line's working definition. Name it and save it to keep it.">
             <input value={working} aria-label="name" placeholder="name the working definition"
                    onChange={(e) => onAct("@working", { id, name: e.target.value })} />
@@ -137,6 +138,17 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           <Line label="name" tip="What this is called, as the drawing writes it.">
             <input value={b.name ?? ""} aria-label="name" placeholder={kind_word(graph, b)}
                    onChange={(e) => onAct("rename", { id, name: e.target.value })} />
+          </Line>
+        ) : null}
+
+        {/* **A block's working definition** is named on a row of its own, since
+            its name row is the block's. */}
+        {b && wip && !is_root ? (
+          <Line label="definition" tip="This block's working definition. Name it and save it to keep it.">
+            <input value={working} aria-label="definition" placeholder="name the working definition"
+                   onChange={(e) => onAct("@working", { id, name: e.target.value })} />
+            {clash ? <span className="from warn">{clash}</span>
+                   : <span className="from">working</span>}
           </Line>
         ) : null}
 
@@ -191,18 +203,20 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
               : follows?.id === base?.id ? ""
               : graph.defs[follows?.extends ?? ""]?.name ?? base?.name ?? ""}</span>
           </Line>
-        ) : b ? (
+        ) : b && !is_root ? (
           <Line label="type" className="subtype"
-                tip="What sort of thing this is. Pick one, or type a new name to keep this look as a definition.">
-            <Picker key={`${id}:${named ?? ""}`} id={id}
-                    current={named && graph.defs[named] && !shipped(graph.defs[named]!)
-                      ? graph.defs[named]!.name : ""}
-                    offered={Object.values(graph.defs).filter((x) => x.group === "block"
-                      && !shipped(x) && may_retype(graph, id, x.id))}
-                    blank={`default/${kind}`} noun="definition"
-                    onPick={(x) => onAct("retype", { ids: [id], type: x.id })}
-                    onNew={(name) => onAct("save_def", { id, name })}
-                    onClear={() => onAct("retype", { ids: [id], type: kind })} />
+                tip={`Which ${kind} definition this block follows. Only definitions of its own kind apply.`}>
+            {/* **Only what applies.** A block keeps its kind, so the list is the
+                base kind and every definition of that kind. */}
+            <select value={named && graph.defs[named] && !shipped(graph.defs[named]!) ? named : ""}
+                    aria-label="type"
+                    onChange={(e) => onAct("retype", { ids: [id], type: e.target.value || kind })}>
+              <option value="">{`default/${kind}`}</option>
+              {Object.values(graph.defs)
+                .filter((x) => x.group === "block" && !shipped(x) && may_retype(graph, id, x.id))
+                .sort((a, z) => where(a).localeCompare(where(z)))
+                .map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
+            </select>
             {mine ? (
               <button className="drop" title={`remove ${own!.name}, dissolving it into everything naming it`}
                       onClick={() => onAct("remove_def", { id: own!.id })}>
@@ -219,16 +233,22 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           <Line label="offer" className="marks"
                 tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
                           : "Whether this definition is in the workspace folder, and whether every plain one of its kind follows it."}>
-            <label className="check"
-                   title={runs ? "Offer this on the rail, so a right drag can draw one"
-                               : "List this in the explorer's workspace folder"}>
-              <input type="checkbox" checked={listed}
-                     disabled={!own || shipped(own) || own.id === DRAFT || wip}
-                     onChange={(e) => onAct("pin", { id: own!.id,
-                                                     on: e.target.checked ? "yes" : "no" })} />
-              pinned
-            </label>
-            {runs ? null : (
+            {/* **A base kind is never pinned** — it is the floor, not a definition
+                anybody made. Saying so beats a box that refuses. */}
+            {!runs && (!own || shipped(own)) ? (
+              <span className="read">{`default/${kind} is a base kind — save a definition to pin one`}</span>
+            ) : (
+              <label className="check"
+                     title={runs ? "Offer this on the rail, so a right drag can draw one"
+                                 : "List this in the explorer's workspace folder"}>
+                <input type="checkbox" checked={listed}
+                       disabled={!own || shipped(own) || own.id === DRAFT || wip}
+                       onChange={(e) => onAct("pin", { id: own!.id,
+                                                       on: e.target.checked ? "yes" : "no" })} />
+                pinned
+              </label>
+            )}
+            {runs || !own || shipped(own) ? null : (
               <label className="check"
                      title={`Every ${kind} that names nothing draws from this one instead of the base`}>
                 <input type="checkbox" checked={!!own?.default} disabled={!mine}
@@ -248,46 +268,6 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
         </p>
       ) : null}
     </div>
-  );
-}
-
-/** **Pick one, or name a new one.** A box over a list: a name the list holds
- *  picks it, a name it does not holds a new one, and nothing clears it — and
- *  what Enter would do is said beside the box before it is done.
- *
- *  Committed on Enter or on leaving the box, never per keystroke. */
-function Picker({ id, current, offered, blank, noun, onPick, onNew, onClear }: {
-  id: Id; current: string; offered: readonly Definition[]; blank: string; noun: string;
-  onPick: (d: Definition) => void; onNew: (name: string) => void; onClear: () => void;
-}) {
-  const [draft, set_draft] = useState(current);
-  const said = draft.trim();
-  const hit = offered.find((x) => x.name === said || x.id === said || where(x) === said);
-  const list = `${noun}-${id}`;
-  const hint = said === current ? null
-    : !said ? blank : hit ? `uses ${where(hit)}` : `new ${noun}`;
-
-  const commit = () => {
-    if (said === current) return;
-    if (!said) onClear();
-    else if (hit) onPick(hit);
-    else onNew(said);
-  };
-
-  return (
-    <>
-      <input value={draft} list={list} aria-label={noun} placeholder={blank}
-             onChange={(e) => set_draft(e.target.value)}
-             onBlur={commit}
-             onKeyDown={(e) => {
-               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-               if (e.key === "Escape") set_draft(current);
-             }} />
-      <datalist id={list}>
-        {offered.map((x) => <option key={x.id} value={x.name}>{where(x)}</option>)}
-      </datalist>
-      {hint ? <span className="from">{hint}</span> : null}
-    </>
   );
 }
 
