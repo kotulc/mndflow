@@ -11,9 +11,13 @@ import { Identity } from "./Identity";
 import { Looks } from "./Looks";
 import { Project } from "./Project";
 
-export type StylesProps = { graph: Graph; id: Id; onAct: Act };
+export type StylesProps = {
+  graph: Graph; id: Id; onAct: Act;
+  /** The name a line's working template will be saved as. */
+  working?: string;
+};
 
-export function Styles({ graph, id, onAct }: StylesProps) {
+export function Styles({ graph, id, onAct, working = "" }: StylesProps) {
   const root = id === graph.root;
   /** **A body is a block's** — the workspace's included, as its description —
    *  and never a relationship's or a definition's. */
@@ -21,7 +25,7 @@ export function Styles({ graph, id, onAct }: StylesProps) {
   return (
     <div className="settings">
       <div className={["styles", graph.defs[id] ? "definition" : ""].filter(Boolean).join(" ")}>
-        <Identity graph={graph} id={id} onAct={onAct} />
+        <Identity graph={graph} id={id} onAct={onAct} working={working} />
         {root ? <Project graph={graph} /> : <Looks graph={graph} id={id} onAct={onAct} />}
       </div>
       {bodied ? <Content key={id} graph={graph} id={id} onAct={onAct} /> : null}

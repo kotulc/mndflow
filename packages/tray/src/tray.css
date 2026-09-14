@@ -101,24 +101,23 @@
   background: var(--bg);
 }
 
+/* **The body scrolls, never a table in it.** A table scrolling inside a panel
+   that also scrolled was two scrollbars for one reading, and a quarter-height
+   tray left the inner one a few rows tall. */
 .contents-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
   display: block;
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex: 1;
-  min-height: 0;
+  flex: none;
 }
+
+.tray-body > * { flex: none; }
 
 .contents-table thead,
 .contents-table tbody { display: table; width: 100%; table-layout: fixed; }
 
 .contents-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   padding: 3px 8px;
   border-bottom: 1px solid var(--divider);
   background: var(--surface);
@@ -197,6 +196,10 @@
   background: var(--bg);
   color: var(--accent);
 }
+
+/* **One gap under the strip, whichever tab it opened**, so a table head, a
+   filter row and a settings column all start the same distance below it. */
+.tray-tabs + * { margin-top: 2px; }
 
 /* **Acts over the whole tab**, at the far end of the strip that opened it. */
 .tab-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-bottom: 3px; }
@@ -278,7 +281,7 @@
   box-sizing: border-box;
   height: var(--head);
   gap: 8px;
-  margin: 4px 0 8px;
+  margin: 0 0 8px;
 }
 
 /* **The drawing at the column's start, and what kind it is beside it.** */
@@ -477,6 +480,54 @@
 .rows > .row > .line > input:focus { outline: none; border-color: var(--accent); }
 .rows > .row > .line > select:disabled,
 .rows > .row > .line > input:disabled { opacity: 0.5; }
+
+/* **A picker in a table cell answers the way one in a row does**: the same
+   wash, the same edge on hover, and the cell's own font. */
+.contents-table td select {
+  box-sizing: border-box;
+  height: 20px;
+  max-width: 100%;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--band);
+  color: inherit;
+  font: inherit;
+}
+.contents-table td select:hover { border-color: var(--divider); }
+
+/* The base type's name is the absence of one, so it reads as a placeholder. */
+.contents-table td .none { color: var(--faint); font-style: italic; }
+
+/* **The last row adds one**: a box where a name goes, and what it would clash
+   with said beside it. */
+.contents-table td .adding { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.contents-table td .adding > input {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--band);
+  color: inherit;
+  font: inherit;
+}
+.contents-table td .adding > input:focus { outline: none; border-color: var(--accent); }
+.contents-table td .adding > .warn { flex: none; color: var(--warn); font-size: 10px; }
+.contents-table td.drop { text-align: right; }
+.contents-table td .drop {
+  padding: 0 2px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.contents-table td .drop:hover:not(:disabled) { color: var(--accent); }
+.contents-table td .drop:disabled { opacity: 0.35; cursor: default; }
+.contents-table td select:focus { outline: none; border-color: var(--accent); }
+.contents-table td select option { background: var(--surface); color: var(--text); }
 
 .rows > .row > .line > .into { flex: none; color: var(--faint); font-size: 11px; }
 .rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }

@@ -5,9 +5,9 @@
  *  hunting for it on the drawing. Everything here is derived from the graph;
  *  the tray stores nothing and writes nothing. */
 
-import { alias_of, children, edges_in, is_interface, is_template, isa, module_of, path,
-         pinned_lines, shown_name, stereotypes, templates,
-         type Block, type Definition, type Graph, type Id } from "@mnd/core";
+import { alias_of, children, def_of, default_for, edges_in, is_interface, is_template, isa,
+         module_of, path, pinned_lines, shown_name, stereotypes, template_of, templates,
+         type Block, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. Coarser than `kind`: a
  *  folder and a container are both blocks to somebody narrowing a list. */
@@ -112,7 +112,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
 }
 
 
-/** One relation template, as the templates tab lists it. */
+/** One relation template, as the template tab's table lists it. */
 export type TemplateRow = {
   id: Id;
   name: string;
@@ -120,98 +120,87 @@ export type TemplateRow = {
   extends: string;
   /** Whether it is offered on the rail. */
   pinned: boolean;
-  /** Runs drawing through it, whether they name it or a stereotype under it. */
+  /** Whether plain lines draw through it. */
+  base: boolean;
+  /** Lines drawing through it: naming it, a type under it, or nothing at all
+   *  and following the base. */
   used: number;
 };
 
-/** The workspace's relation templates: **what a line can be made to look
- *  like**, with what draws through each.
- *
- *  **The count reaches down the chain**, because a template's whole purpose is
- *  to be extended — counting only the runs that name it directly would report
- *  zero for the one template every line in the project resolves through. */
+/** The workspace's relation templates, **the base one first**, with how many
+ *  lines draw through each — counted down the chain, since a template exists
+ *  to be extended. */
 export function template_rows(graph: Graph): TemplateRow[] {
   const listed = pinned_lines(graph).map((d) => d.id);
+  const base = template_of(graph, default_for(graph, "line", "relation"))?.id;
   return templates(graph).map((d) => ({
     id: d.id,
     name: d.name,
     extends: d.extends ? graph.defs[d.extends]?.name ?? d.extends : "",
     pinned: listed.includes(d.id),
+    base: d.id === base,
     used: Object.values(graph.edges)
-      .filter((e) => isa(graph, e.type).some((x) => x.id === d.id)).length,
-  }));
+      .filter((e) => isa(graph, def_of(graph, e.id)).some((x) => x.id === d.id)).length,
+  })).sort((a, z) => Number(z.base) - Number(a.base));
 }
 
-/** One stereotype, as the usages roster lists it. */
+/** One type, as the types tab lists it. */
 export type StereotypeRow = {
   id: Id;
   name: string;
-  /** The template it draws through, by name. */
-  template: string;
-  /** Runs naming it. **Directly**, which is the only reading a stereotype has:
-   *  nothing extends one, because a definition that grows a look is a template. */
+  /** The template it extends, so a row can offer to change it. */
+  template: Id;
+  /** Whether plain lines follow it. */
+  base: boolean;
+  /** Lines naming it — or, for the base type, naming nothing. */
   used: number;
 };
 
-/** Every stereotype in the workspace, **used or not**.
- *
- *  A roster rather than a listing of runs: an unused stereotype is exactly what
- *  a roster has to be able to show, and a run cannot be unused. Templates are
- *  left out, so a count here never has to say whether it means direct usages or
- *  everything down the chain. */
+/** Every type in the workspace, **used or not**, the base one first. A roster:
+ *  an unused type is exactly what it has to be able to show. */
 export function stereotype_rows(graph: Graph): StereotypeRow[] {
   const counts = new Map<string, number>();
   for (const e of Object.values(graph.edges)) {
-    if (e.type) counts.set(e.type, (counts.get(e.type) ?? 0) + 1);
+    const d = def_of(graph, e.id);
+    if (d) counts.set(d, (counts.get(d) ?? 0) + 1);
   }
   return stereotypes(graph).map((d) => ({
     id: d.id,
     name: d.name,
-    template: chain_template(graph, d),
+    template: template_of(graph, d.id)?.id ?? "",
+    base: !!d.default,
     used: counts.get(d.id) ?? 0,
-  }));
+  })).sort((a, z) => Number(z.base) - Number(a.base));
 }
 
-/** One run drawing through a stereotype, wherever it sits. */
+/** One line, as the usages tab lists it. */
 export type UsageRow = {
   id: Id;
   name: string;
   /** Which two things it joins. */
   what: string;
-  /** Where in the project it is, as a path. **Necessary, not decoration** — a
-   *  run listed across layers is unreadable without saying which one. */
+  /** Where in the project it is, as a path. */
   layer: string;
-  /** The definition it names, so a row can offer to change it. */
-  type: string;
+  /** The template it draws through, by name. */
+  template: string;
+  /** The type it names — blank where it follows the base or names a template. */
+  type: Id;
 };
 
-/** Every run naming this definition, **across the whole project**.
- *
- *  Not `edges_in`, which is one layer by design — this is the one listing that
- *  crosses them, because a stereotype is a workspace fact and the runs wearing
- *  it are wherever somebody drew them. */
-export function usage_rows(graph: Graph, type: Id | null): UsageRow[] {
+/** The lines in a layer, or **every line there is** for the workspace — the one
+ *  holder whose reading is the whole project. */
+export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): UsageRow[] {
   const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
     .filter(Boolean).join(" ");
-  return Object.values(graph.edges)
-    .filter((e) => !!type && e.type === type)
-    .map((e) => ({
-      id: e.id,
-      name: [shown_name(graph, e.id), alias_of(graph, e.id)].filter(Boolean).join(" "),
-      what: `${called(e.from)} → ${called(e.to)}`,
-      layer: layer_path(graph, e.from),
-      type: e.type ?? "",
-    }))
-    .sort((a, b) => a.layer.localeCompare(b.layer) || a.id.localeCompare(b.id));
-}
-
-/** The template a stereotype draws through: **the nearest link up the chain
- *  that says how anything looks.** Blank where nothing above it does. */
-function chain_template(graph: Graph, d: Definition): string {
-  for (const up of isa(graph, d.extends)) {
-    if (is_template(up)) return up.name;
-  }
-  return "";
+  const lines = deep ? Object.values(graph.edges) : edges_in(graph, layer);
+  return lines.map((e) => ({
+    id: e.id,
+    name: called(e.id),
+    what: `${called(e.from)} → ${called(e.to)}`,
+    layer: layer_path(graph, e.from),
+    template: template_of(graph, def_of(graph, e.id))?.name ?? "",
+    type: e.type && graph.defs[e.type] && !is_template(graph.defs[e.type]!) ? e.type : "",
+  })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 
 /** Where a run sits, named by the layer holding the block at its end. The

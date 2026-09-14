@@ -5,6 +5,7 @@
  *  needs an inverse. */
 
 import { DRAWN, type Settings } from "./components";
+import { def_id } from "./ids";
 import { BLOCK_MODULES, RELATION_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type FieldDef, type Graph, type HeaderRole, type Id, type Log, type Mutation,
@@ -990,6 +991,10 @@ export function default_for(graph: Graph, kind: BlockModule | RelationModule,
  *  ships no definition to name it. */
 export const BASE_RELATIONS: readonly string[] = ["line"];
 
+/** The ids the workspace's base template and base type are filed under. */
+export const BASE_TEMPLATE = "def_default";
+export const BASE_TYPE = "def_none";
+
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
 
@@ -1067,6 +1072,29 @@ export function is_template(d: Definition): boolean {
  *  the nearest above it. A stereotype names a line; this is what it looks like. */
 export function template_of(graph: Graph, type: Id | undefined): Definition | undefined {
   return isa(graph, type).find((d) => d.group === "relation" && is_template(d));
+}
+
+/** **The base line**: the type a line naming nothing follows, and the template
+ *  that type draws through. Read off the workspace's default, never off an id,
+ *  so a workspace that filed its base another way still has one. */
+export function base_type(graph: Graph): Definition | undefined {
+  const id = default_for(graph, "line", "relation");
+  return id ? graph.defs[id] : undefined;
+}
+
+export function base_template(graph: Graph): Definition | undefined {
+  return template_of(graph, base_type(graph)?.id);
+}
+
+/** A definition by what it is called. **Its name, not the id slugged from it** —
+ *  a definition renamed keeps its id, so the slug no longer finds it. */
+export function def_named(graph: Graph, name: string, group?: "block" | "relation"): Definition | undefined {
+  const want = name.trim();
+  if (!want) return undefined;
+  /** **The workspace's own first**: one may share a name with a shipped kind. */
+  const hits = Object.values(graph.defs)
+    .filter((d) => d.name === want && (!group || d.group === group));
+  return hits.find((d) => !d.from) ?? hits[0] ?? graph.defs[def_id(want)];
 }
 
 /** The relation templates: what a line can be made to look like. */

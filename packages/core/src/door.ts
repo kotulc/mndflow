@@ -12,9 +12,10 @@
  *  A normalisation that carried nothing is not a repair — a false alarm is what
  *  teaches people to ignore the real ones. */
 
-import { unreadable } from "./components";
+import { component, unreadable } from "./components";
 import { alias_kind, covers, fold, can_hold, is_grid, module_named, overlaps,
-         relation_named, subtree, BASE_RELATIONS } from "./fold";
+         relation_named, subtree, template_of, is_template,
+         BASE_RELATIONS, BASE_TEMPLATE, BASE_TYPE } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -324,6 +325,15 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "link_blocks", edge: { ...e, module: "line" } });
   }
 
+  /** **An empty type is no type.** Absent is how a line follows the base; a
+   *  blank string named a definition nobody has. */
+  for (const e of Object.values(graph.edges)) {
+    if (e.type !== "") continue;
+    faults.push({ kind: "repaired", what: "a relation named an empty type" });
+    const { type: _blank, ...rest } = e;
+    repairs.push({ op: "link_blocks", edge: rest });
+  }
+
   /** **An edge holds no values.** A connection is a join: what one has to say
    *  belongs to the blocks at its ends — a role name is the port's name, a
    *  multiplicity is `degree` on a definition, a guard is a condition and a
@@ -461,6 +471,25 @@ export function inspect(graph: Graph): Inspection {
     faults.push({ kind: "repaired", what: `"${name(id)}" said its look the old way` });
   }
 
+  /** **A look nothing can read is dropped, one property at a time.** A
+   *  definition's components are checked below; an element's own say is the
+   *  same bag and was never checked, so a retired key or a word out of its set
+   *  rode along in every file — drawn from nowhere and offered nowhere. Keys the
+   *  rename above moves are left to it. */
+  const stale = new Set(stale_looks(graph).flatMap(([id, moves]) =>
+    moves.map((m) => `${id}|${m.key}|${m.was}`)));
+  for (const it of [...Object.values(graph.blocks), ...Object.values(graph.edges)]) {
+    for (const [key, config] of Object.entries(it.looks ?? {})) {
+      const c = component(key);
+      if (!c || !config || typeof config !== "object") continue;
+      for (const [prop, value] of Object.entries(config)) {
+        if (stale.has(`${it.id}|${key}|${prop}`) || !c.check({ [prop]: value })) continue;
+        faults.push({ kind: "dropped", what: `"${name(it.id)}" said ${key}.${prop}, which nothing reads` });
+        repairs.push({ op: "set_look", id: it.id, key, name: prop, value: null });
+      }
+    }
+  }
+
   /** One definition, one repair. Filing, extension and every component key it
    *  claims are three separate faults and one mended record — two `set_def`s
    *  for the same definition would leave the later one undoing the earlier. */
@@ -558,12 +587,52 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "set_def", def: { ...d, default: undefined } });
   }
 
+  repairs.push(...base_line(graph, faults));
   return { faults, repairs };
 }
 
 
 
 
+
+/** **Plain lines follow a type, and a type extends a template.** A workspace
+ *  written before that was settled may say it another way: a template made the
+ *  default for lines, or a default type drawing through no template at all.
+ *  Either is put back into shape, and a template extending nothing is put under
+ *  the base — so editing the base template reaches every line it should. */
+function base_line(graph: Graph, faults: Fault[]): Mutation[] {
+  const out: Mutation[] = [];
+  const held = Object.values(graph.defs)
+    .find((d) => d.group === "relation" && d.default === "line" && !d.from);
+  if (!held) return out;
+  let template = template_of(graph, held.id);
+  if (is_template(held)) {
+    faults.push({ kind: "repaired", what: `"${held.name}" was a template standing in for plain lines` });
+    out.push({ op: "set_def", def: { ...held, default: undefined } });
+    out.push({ op: "set_def", def: { id: BASE_TYPE, group: "relation", name: "none",
+                                     extends: held.id, default: "line" } });
+    template = held;
+  } else if (!template) {
+    faults.push({ kind: "repaired", what: `"${held.name}" drew through no template` });
+    template = graph.defs[BASE_TEMPLATE]
+      ?? { id: BASE_TEMPLATE, group: "relation", name: "default", components: { line: {} } };
+    out.push({ op: "set_def", def: template });
+    out.push({ op: "set_def", def: { ...held, extends: template.id } });
+  }
+  /** **Every other relation definition reaches a template**: a template whose
+   *  parent is none of the workspace's — nothing, or the shipped `line` — goes
+   *  under the base, and so does a type drawing through no template at all. */
+  const base = template.id;
+  const shipped_line = (id: string | undefined) => !id || !!graph.defs[id]?.from;
+  for (const d of Object.values(graph.defs)) {
+    if (d.group !== "relation" || d.from || d.id === base || d.id === held.id) continue;
+    const orphan = is_template(d) ? shipped_line(d.extends) : !template_of(graph, d.id);
+    if (!orphan) continue;
+    faults.push({ kind: "repaired", what: `"${d.name}" reached no template, and now extends the base` });
+    out.push({ op: "set_def", def: { ...d, extends: base } });
+  }
+  return out;
+}
 
 /** The span covering an address, read off a group in hand. The fold's reader
  *  asks the graph; the door already has the block. */

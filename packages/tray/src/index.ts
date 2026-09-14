@@ -1,5 +1,7 @@
 export { Tray, type TrayProps, type Tab, type Hold } from "./Tray";
-export { DRAFT, blank, redraft, with_draft, type DraftGroup } from "./draft";
+export { DRAFT, aimed, base_unfiled, blank, redraft, touched, with_base, with_draft,
+         type DraftGroup } from "./draft";
+export { Types, type TypesProps } from "./Types";
 export { Content, type ContentProps } from "./Content";
 export { Project, type ProjectProps } from "./Project";
 export { rows_of, stereotype_rows, template_rows, usage_rows,

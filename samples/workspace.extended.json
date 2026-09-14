@@ -19,21 +19,103 @@
           }
         }
       },
+      "def_base": {
+        "id": "def_base",
+        "name": "Base",
+        "group": "relation",
+        "extends": "def_default",
+        "components": {
+          "line": {},
+          "style": {
+            "hue": 292,
+            "intensity": 0.15
+          }
+        }
+      },
+      "def_default": {
+        "id": "def_default",
+        "name": "default",
+        "group": "relation",
+        "components": {
+          "line": {}
+        }
+      },
+      "def_line": {
+        "id": "def_line",
+        "name": "line",
+        "group": "relation",
+        "extends": "def_default",
+        "components": {
+          "style": {
+            "intensity": 0.4,
+            "hue": 78,
+            "border_width": "medium"
+          },
+          "line": {
+            "alias": "show",
+            "name": "show"
+          }
+        }
+      },
+      "def_none": {
+        "id": "def_none",
+        "name": "none",
+        "group": "relation",
+        "extends": "def_default",
+        "default": "line"
+      },
+      "def_relates": {
+        "id": "def_relates",
+        "name": "<<relates>>",
+        "group": "relation",
+        "extends": "def_default",
+        "components": {
+          "line": {},
+          "style": {
+            "hue": 314
+          }
+        }
+      },
       "def_relation": {
         "id": "def_relation",
-        "name": "Relation",
-        "group": "relation"
+        "name": "relation",
+        "group": "relation",
+        "extends": "def_line"
       },
       "def_special": {
         "id": "def_special",
         "name": "special",
         "group": "block",
-        "extends": "folder"
+        "extends": "folder",
+        "components": {
+          "style": {
+            "family": "secondary",
+            "hue": 300,
+            "intensity": 0.4,
+            "name_font": "italic"
+          },
+          "card": {
+            "label": "below"
+          }
+        }
+      },
+      "def_specialer": {
+        "id": "def_specialer",
+        "name": "specialer",
+        "group": "block",
+        "extends": "def_special"
       },
       "def_test": {
         "id": "def_test",
         "name": "Test",
-        "group": "relation"
+        "group": "relation",
+        "extends": "def_default"
+      },
+      "def_test_block": {
+        "id": "def_test_block",
+        "name": "Test Block",
+        "group": "block",
+        "extends": "block"
       },
       "folder": {
         "id": "folder",
@@ -183,12 +265,12 @@
         "type": "note",
         "alias": 1,
         "body": "Some note",
-        "h": 111,
+        "h": 48,
         "locked": true,
-        "order": 10,
-        "w": 191,
+        "order": 8,
+        "w": 130,
         "x": 120,
-        "y": 168
+        "y": 192
       },
       "block_2nzmkg5bbb6e": {
         "id": "block_2nzmkg5bbb6e",
@@ -196,10 +278,10 @@
         "type": "grid",
         "alias": 1,
         "cols": 2,
-        "order": 12,
+        "order": 10,
         "rows": 3,
         "x": -240,
-        "y": -24
+        "y": 0
       },
       "block_2y5dibibfcqa": {
         "id": "block_2y5dibibfcqa",
@@ -268,6 +350,14 @@
         "x": -216,
         "y": -48
       },
+      "block_9ixqbt42jrdd": {
+        "id": "block_9ixqbt42jrdd",
+        "parent": "block_lidqmag9iygj",
+        "alias": 24,
+        "order": 4,
+        "x": -24,
+        "y": 168
+      },
       "block_9vmqohl7du88": {
         "id": "block_9vmqohl7du88",
         "parent": "block_ew5quzihwe9g",
@@ -290,9 +380,9 @@
       "block_d7b79oajslu5": {
         "id": "block_d7b79oajslu5",
         "parent": "ws",
-        "name": "Res",
+        "name": "resources",
         "group": "block_phj6wc786dlo",
-        "type": "def_special",
+        "type": "folder",
         "alias": 2,
         "order": 1,
         "x": 144,
@@ -377,24 +467,23 @@
       },
       "block_ht3r5k5pz2lg": {
         "id": "block_ht3r5k5pz2lg",
-        "parent": "ws",
-        "name": "Resource A",
+        "parent": "block_d7b79oajslu5",
+        "name": "resource A",
         "type": "resource",
         "alias": 1,
         "header": true,
         "looks": {
           "style": {
             "intensity": 0.5,
-            "emphasis": "strong",
             "family": "muted"
           },
           "card": {
             "align": "left"
           }
         },
-        "order": 16,
-        "x": -240,
-        "y": 288
+        "order": 3,
+        "x": 120,
+        "y": 0
       },
       "block_i5g6cnrkmsa1": {
         "id": "block_i5g6cnrkmsa1",
@@ -411,9 +500,9 @@
         "name": "Ref",
         "of": "block_6mkkngq8lsy9",
         "alias": 4,
-        "order": 8,
+        "order": 6,
         "x": -384,
-        "y": 0
+        "y": 24
       },
       "block_ka9vluxhbn5n": {
         "id": "block_ka9vluxhbn5n",
@@ -427,7 +516,7 @@
             "border_width": "thick"
           }
         },
-        "order": 11,
+        "order": 9,
         "tags": [
           "World",
           "Hello",
@@ -438,12 +527,27 @@
           "Good"
         ],
         "x": -96,
-        "y": -312
+        "y": -288
+      },
+      "block_ktni5736gxyy": {
+        "id": "block_ktni5736gxyy",
+        "parent": "ws",
+        "name": "Test",
+        "type": "def_specialer",
+        "alias": 3,
+        "looks": {
+          "card": {
+            "alias": "show"
+          }
+        },
+        "order": 13,
+        "x": 120,
+        "y": 0
       },
       "block_lidqmag9iygj": {
         "id": "block_lidqmag9iygj",
         "parent": "ws",
-        "name": "Hello_Multi_Line_World",
+        "name": "hello world",
         "group": "block_2nzmkg5bbb6e",
         "alias": 11,
         "arrangement": "grid",
@@ -481,14 +585,14 @@
           "r": 1,
           "c": 1
         },
-        "order": 9,
+        "order": 7,
         "x": -144,
         "y": -168
       },
       "block_pcm8tjwdotm2": {
         "id": "block_pcm8tjwdotm2",
         "parent": "ws",
-        "name": "Block",
+        "name": "block",
         "group": "block_2nzmkg5bbb6e",
         "alias": 4,
         "arrangement": "grid",
@@ -508,7 +612,7 @@
         "group": "block_ka9vluxhbn5n",
         "type": "group",
         "alias": 5,
-        "order": 13,
+        "order": 11,
         "x": 0,
         "y": -192
       },
@@ -538,16 +642,40 @@
       },
       "block_r1u3fmlv2njn": {
         "id": "block_r1u3fmlv2njn",
-        "parent": "ws",
+        "parent": "block_d7b79oajslu5",
+        "name": "new block",
+        "type": "def_test_block",
         "alias": 5,
-        "order": 15,
+        "fields": [
+          {
+            "name": "is_block",
+            "form": "flag",
+            "value": "true"
+          },
+          {
+            "name": "rows",
+            "form": "number",
+            "value": ""
+          },
+          {
+            "name": "metadata",
+            "form": "text",
+            "value": ""
+          }
+        ],
+        "looks": {
+          "card": {
+            "label": "below"
+          }
+        },
+        "order": 2,
         "x": 120,
-        "y": -24
+        "y": -120
       },
       "block_r7p0oaz4i8ol": {
         "id": "block_r7p0oaz4i8ol",
-        "parent": "ws",
-        "name": "Project L56 Alpha Beta Gammma",
+        "parent": "block_ht3r5k5pz2lg",
+        "name": "projection of l56 block",
         "alias": 22,
         "looks": {
           "card": {
@@ -555,13 +683,10 @@
             "icon": "role_table"
           },
           "style": {
-            "name_weight": "quiet",
             "name_font": "none"
           }
         },
-        "order": 17,
-        "x": -96,
-        "y": 288
+        "order": 1
       },
       "block_rh7ulbcyydze": {
         "id": "block_rh7ulbcyydze",
@@ -575,13 +700,9 @@
       "block_rj10qdx5jhn9": {
         "id": "block_rj10qdx5jhn9",
         "parent": "ws",
+        "name": "block",
         "group": "block_ka9vluxhbn5n",
         "alias": 6,
-        "looks": {
-          "card": {
-            "layout": "compartments"
-          }
-        },
         "order": 5,
         "x": -192,
         "y": 96
@@ -611,12 +732,12 @@
       },
       "block_squino1ojal3": {
         "id": "block_squino1ojal3",
-        "parent": "ws",
-        "name": "Band",
+        "parent": "block_d7b79oajslu5",
+        "name": "bank",
         "alias": 12,
-        "order": 7,
-        "x": 144,
-        "y": -312
+        "order": 1,
+        "x": 96,
+        "y": -216
       },
       "block_swt7wg3ubr7p": {
         "id": "block_swt7wg3ubr7p",
@@ -645,9 +766,9 @@
         "name": "R",
         "of": "block_2y5dibibfcqa",
         "alias": 6,
-        "order": 18,
+        "order": 12,
         "x": -360,
-        "y": -96
+        "y": -72
       },
       "block_wgrensjcv5bt": {
         "id": "block_wgrensjcv5bt",
@@ -672,7 +793,7 @@
       "block_xpgood1tsdl8": {
         "id": "block_xpgood1tsdl8",
         "parent": "ws",
-        "name": "Parent",
+        "name": "parent",
         "alias": 15,
         "arrangement": "grid",
         "header": true,
@@ -680,21 +801,30 @@
         "x": -240,
         "y": -288
       },
+      "block_yaf0hip7kk3j": {
+        "id": "block_yaf0hip7kk3j",
+        "parent": "block_lidqmag9iygj",
+        "alias": 23,
+        "order": 3,
+        "x": -48,
+        "y": -312
+      },
       "ws": {
         "id": "ws",
         "parent": null,
-        "name": "workspace",
+        "name": "testspace",
         "type": "folder",
         "arrangement": "grid",
         "counters": {
-          "block": 22,
-          "folder": 2,
+          "block": 24,
+          "folder": 3,
           "resource": 1,
           "group": 5,
           "note": 1,
           "grid": 5,
           "reference": 7,
-          "relation": 24
+          "relation": 24,
+          "interface": 1
         }
       }
     },
@@ -711,6 +841,11 @@
         "from": "block_rh7ulbcyydze",
         "module": "line",
         "alias": 2,
+        "looks": {
+          "style": {
+            "hue": 314
+          }
+        },
         "to": "block_6mkkngq8lsy9"
       },
       "edge_43o9s7aodw1k": {
@@ -796,8 +931,12 @@
         "id": "edge_eiu51lknmwwg",
         "from": "block_d7b79oajslu5",
         "module": "line",
-        "type": "def_relation",
         "alias": 14,
+        "looks": {
+          "line": {
+            "alias": "show"
+          }
+        },
         "to": "block_squino1ojal3"
       },
       "edge_hoab40s8w31k": {

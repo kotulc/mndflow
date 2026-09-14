@@ -21,8 +21,9 @@
  *  selection or a hold. */
 
 import { useState, type MouseEvent } from "react";
-import { children, def_id, def_of, is_container, is_interface, isa, module_of, owner_of,
-         shown_name, type Act, type Definition, type Graph, type Id } from "@mnd/core";
+import { BASE_TEMPLATE, BASE_TYPE, base_template, children, def_named, def_of, is_container, is_interface, isa,
+         module_of, owner_of, shown_name, template_of,
+         type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
 import { Styles } from "./Styles";
@@ -30,8 +31,10 @@ import { Fields } from "./Fields";
 import { Chain } from "./Chain";
 import { Packages } from "./Packages";
 import { Templates } from "./Templates";
+import { Types } from "./Types";
 import { Usages } from "./Usages";
-import { aims_at_draft, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
+import { aimed, base_unfiled, blank, DRAFT, redraft, touched, with_base, with_draft,
+         type DraftGroup } from "./draft";
 
 /** **What the tray holds that the canvas did not give it.** An id — the
  *  workspace, a definition, or the subject a table row was picked under — or a
@@ -62,15 +65,23 @@ export type TrayProps = {
   onView?: (layer: Id | null, id: Id) => void;
 };
 
-export type Tab = "settings" | "fields" | "contents" | "templates" | "usages" | "packages";
+export type Tab = "settings" | "fields" | "contents" | "types" | "usages" | "packages";
 
 /** **Three slots, and the words change with the subject.** *Settings* is what
  *  this is; the second slot is what it **declares**; the third is what
- *  **exists**. A tab that cannot be answered is absent rather than empty. */
+ *  **exists**. A tab that cannot be answered is absent rather than empty.
+ *
+ *  **A line's settings are its template**, so the slot is called that there: a
+ *  template is what is defined, types are what name a line, and usages are the
+ *  lines. */
 const SLOTS: Record<"block" | "workspace" | "relation", readonly Tab[]> = {
   block: ["settings", "fields", "contents"],
   workspace: ["settings", "packages", "contents"],
-  relation: ["settings", "templates", "usages"],
+  relation: ["settings", "types", "usages"],
+};
+
+const TAB_WORD: Partial<Record<"block" | "workspace" | "relation", Partial<Record<Tab, string>>>> = {
+  relation: { settings: "template" },
 };
 
 const HEAD: { key: "kind" | "name" | "what" | "type"; label: string; width: string }[] = [
@@ -105,8 +116,8 @@ export function Tray(props: TrayProps) {
   const { graph, layer, open, onOpen, picked, onPick, onHover, onAct, onView,
           hold = null, onHold = () => {} } = props;
   const [held_tab, set_held_tab] = useState<Tab>("contents");
-  /** Which stereotype the usages tab is reading. The tab's own. */
-  const [held_sort, set_held_sort] = useState<Id | null>(null);
+  /** **What a line's working template will be saved as**, per line. */
+  const [working, set_working] = useState<Record<Id, string>>({});
   /** **Full height, as a control of its own.** Shut and open is one question;
    *  how much room the body gets is another. */
   const [big, set_big] = useState(false);
@@ -122,12 +133,16 @@ export function Tray(props: TrayProps) {
   /** **What the tray is about.** A hold wins while it stands; otherwise the one
    *  thing picked, and otherwise the open layer. */
   const drafting = hold?.of === "draft" ? hold.group : null;
+  /** **The base line stands in until it is filed**, so every panel reads it. */
+  const view = with_base(drafting ? with_draft(graph, drafts[drafting]) : graph);
+  /** **What the lists read: every real definition, and never the draft.** A
+   *  draft is not in the table until it is saved, and nothing may extend it. */
+  const listed = with_base(graph);
   const one = picked.length === 1 ? picked[0]! : null;
-  const held_id = hold?.of === "id" && (graph.defs[hold.id] || graph.blocks[hold.id])
+  const held_id = hold?.of === "id" && (view.defs[hold.id] || view.blocks[hold.id])
     ? hold.id : null;
   const here = layer ?? graph.root;
   const about: Id = drafting ? DRAFT : held_id ?? one ?? here;
-  const view = drafting ? with_draft(graph, drafts[drafting]) : graph;
 
   const of_relation = !!view.edges[about] || view.defs[about]?.group === "relation";
   const context = of_relation ? "relation" : about === graph.root ? "workspace" : "block";
@@ -137,27 +152,46 @@ export function Tray(props: TrayProps) {
   const tab: Tab = tabs.includes(asked) ? asked : tabs[tabs.length - 1]!;
   const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
 
-  /** **A draft is edited through the registry**, and everything else goes out. */
+  /** **A draft is edited through the registry**; the base line is filed the
+   *  first time anything touches it; and everything else goes out. */
   const act: Act = (name, args) => {
-    if (drafting && aims_at_draft(args)) {
-      const next = redraft(graph, drafts[drafting], name, args ?? {});
+    const ids = aimed(args);
+    if (name === "@working") {
+      set_working((w) => ({ ...w, [String(args!["id"])]: String(args!["name"] ?? "") }));
+      return;
+    }
+    if (drafting && ids.includes(DRAFT)) {
+      const next = redraft(view, drafts[drafting], name, args ?? {});
       if (typeof next !== "string") set_drafts((d) => ({ ...d, [drafting]: next }));
       return;
+    }
+    const near = touched(args);
+    if (base_unfiled(graph) && (near.includes(BASE_TEMPLATE) || near.includes(BASE_TYPE))) {
+      onAct?.("baseline");
     }
     onAct?.(name, args);
   };
 
-  /** **Saving files the draft under its name**, as one step, and describes what
-   *  was saved — the draft goes back to blank for the next one. */
+  /** **Saving files a template under its name**, as one step: a draft whole, or
+   *  a line's working look. A name already taken is said, and never looked up. */
   const draft = drafting ? drafts[drafting] : null;
-  const taken = !!draft && !!graph.defs[def_id(draft.name.trim())];
-  const save = draft && draft.name.trim() && !taken ? () => {
-    const name = draft.name.trim();
-    onAct?.("define", { name, group: draft.group, extends: draft.extends ?? "",
-                        components: draft.components, fields: draft.fields });
-    set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
-    onHold({ of: "id", id: def_id(name) });
-  } : null;
+  const line = view.edges[about] ?? null;
+  const naming = draft ? draft.name.trim() : line ? (working[about] ?? "").trim() : "";
+  const taken = !!naming && !!def_named(listed, naming);
+  const save = !naming || taken ? null
+    : draft ? () => {
+      if (base_unfiled(graph) && draft.group === "relation") onAct?.("baseline");
+      onAct?.("define", { name: naming, group: draft.group, extends: draft.extends ?? "",
+                          components: draft.components, fields: draft.fields });
+      set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
+      onHold({ of: "id", id: def_named(graph, naming)?.id ?? "" });
+    }
+    : line ? () => {
+      if (base_unfiled(graph)) onAct?.("baseline");
+      act("pin", { id: about, name: naming });
+      set_working((w) => ({ ...w, [about]: "" }));
+    }
+    : null;
 
   /** Whether the context says anything about its drawing at all, which is what
    *  *reset style* would give back — and whether it is somebody else's. */
@@ -165,6 +199,9 @@ export function Tray(props: TrayProps) {
   const bag = holder && ("components" in holder ? holder.components : "looks" in holder ? holder.looks : undefined);
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
   const borrowed = !!view.defs[about]?.from;
+  /** A line drawing through a template it names is reset too: back to its type's. */
+  const resettable = its_own
+    || (!!line?.type && !!view.defs[line.type]?.components && about !== DRAFT);
 
   /** **What the table is about.** A container in context lists its own
    *  contents; anything else lists the open layer. The workspace is the whole
@@ -235,42 +272,56 @@ export function Tray(props: TrayProps) {
         <div className="tray-body">
           <div className="tray-tabs">
             {tabs.map((t) => (
-              <button key={t} className={tab === t ? "on" : ""} onClick={() => set_tab(t)}>{t}</button>
+              <button key={t} className={tab === t ? "on" : ""} onClick={() => set_tab(t)}>
+                {TAB_WORD[context]?.[t] ?? t}
+              </button>
             ))}
             {/* **The acts over the whole settings tab**, at the end of the strip
-                that opened it: give every look back, and keep a draft. */}
+                that opened it: give every look back, and keep what was made. */}
             {onAct && tab === "settings" && about !== graph.root ? (
               <span className="tab-tools">
-                <button className="reset" disabled={borrowed || !its_own}
-                        title={its_own ? "give every look back to what it inherits"
-                                       : "it says nothing of its own to give back"}
+                <button className="reset" disabled={borrowed || !resettable}
+                        title={resettable ? "give every look back to what it inherits"
+                                          : "it says nothing of its own to give back"}
                         onClick={() => act("plain", { ids: [about] })}>
                   reset style
                 </button>
-                {drafting ? (
+                {drafting || (line && its_own) ? (
                   <button className="reset save" disabled={!save}
-                          title={save ? "keep this as a definition"
-                                      : "name it — a name nothing else holds — to keep it"}
+                          title={save ? "keep this in the table"
+                            : taken ? `${naming} already exists`
+                            : "name it to keep it"}
                           onClick={() => save?.()}>
-                    <Icon name="save" size={12} />
+                    {context === "relation" ? "save template" : "save definition"}
                   </button>
                 ) : null}
               </span>
             ) : null}
           </div>
 
-          {onAct && tab === "settings" ? <Styles graph={view} id={about} onAct={act} /> : null}
-          {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
-          {onAct && tab === "packages" ? <Packages graph={graph} /> : null}
-          {onAct && tab === "templates" ? (
-            <Templates graph={graph} held={held_id}
+          {onAct && tab === "settings" ? (
+            <Styles graph={view} id={about} onAct={act} working={working[about] ?? ""} />
+          ) : null}
+          {/* **The templates, under the template they are about.** Picking one
+              describes it; picking it again goes back to a blank one. */}
+          {onAct && tab === "settings" && context === "relation" ? (
+            <Templates graph={listed}
+                       held={listed.defs[about] ? about : template_of(listed, def_of(listed, about))?.id ?? null}
                        onPick={(id) => onHold(id === held_id ? { of: "draft", group: "relation" }
                                                              : { of: "id", id })}
-                       onAct={onAct} />
+                       onAct={act} />
           ) : null}
-          {onAct && tab === "usages"
-            ? <Usages graph={graph} held={held_sort} onHold={set_held_sort}
-                      onHover={onHover} onAct={onAct} /> : null}
+          {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
+          {onAct && tab === "packages" ? <Packages graph={graph} /> : null}
+          {onAct && tab === "types" ? (
+            <Types graph={listed} onAct={act}
+                   from={template_of(listed, listed.defs[about] ? about : def_of(listed, about))?.id
+                         ?? base_template(listed)?.id ?? BASE_TEMPLATE} />
+          ) : null}
+          {onAct && tab === "usages" ? (
+            <Usages graph={listed} layer={layer} deep={layer === null}
+                    picked={picked} onPick={pick_row} onHover={onHover} onAct={act} />
+          ) : null}
 
           {tab === "contents" ? (
             <>

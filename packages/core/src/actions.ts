@@ -10,7 +10,8 @@
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
-         ordered_by, path, relation_named, reorder, schema_of, template_of } from "./fold";
+         default_for, is_template, ordered_by, path, relation_named, reorder, schema_of,
+         template_of, templates, base_template, def_named, BASE_TEMPLATE, BASE_TYPE } from "./fold";
 import { component, DRAWN, NUMBERS } from "./components";
 import { def_id, new_id } from "./ids";
 import { ARRANGEMENTS, RELATION_MODULES, VALUE_FORMS,
@@ -1460,6 +1461,9 @@ register(
 function rooted(ctx: Context, said: string): Id | undefined {
   if (!said) return undefined;
   if (ctx.graph.defs[said]) return said;
+  /** **An id that is not there is not a name.** Slugging one minted
+   *  `def_def_default` out of a template that had not been filed yet. */
+  if (said.startsWith("def_")) return undefined;
   const by_name = Object.values(ctx.graph.defs).find((d) => d.name === said);
   return by_name?.id ?? def_id(said);
 }
@@ -1605,7 +1609,7 @@ register(
     check: (ctx, args) => {
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
-      const id = def_id(name);
+      const id = def_named(ctx.graph, name)?.id ?? def_id(name);
       const why = borrowed(ctx.graph, id);
       if (why) return why;
       const up = args["extends"] === undefined ? undefined : rooted(ctx, text(args, "extends"));
@@ -1622,7 +1626,8 @@ register(
      *  Only what was said changes. */
     run: (ctx, args) => {
       const name = text(args, "name");
-      const id = def_id(name);
+      /** **By name first**, so a definition renamed is still the one meant. */
+      const id = def_named(ctx.graph, name)?.id ?? def_id(name);
       const held = ctx.graph.defs[id];
       /** **A draft arrives whole.** The tray writes a definition before it has a
        *  name, through `look` and `field` against a stand-in — so what it says
@@ -1630,15 +1635,42 @@ register(
        *  method fills these; a caller holding a draft does. */
       const components = args["components"] as Components | undefined;
       const fields = args["fields"] as FieldDef[] | undefined;
+      const group = (args["group"] as "block" | "relation") ?? held?.group ?? "block";
+      const said = args["extends"] === undefined ? held?.extends
+                                                 : rooted(ctx, text(args, "extends"));
+      /** **A relation definition extends the base template** where nothing more
+       *  particular was said — unless it is the base template. */
+      const base = group === "relation" ? base_template(ctx.graph)?.id : undefined;
       return { mutations: [{ op: "set_def", def: {
         ...held,
-        id, name,
-        group: (args["group"] as "block" | "relation") ?? held?.group ?? "block",
-        extends: args["extends"] === undefined ? held?.extends
-                                               : rooted(ctx, text(args, "extends")),
+        id, name, group,
+        extends: said ?? (base && base !== id ? base : undefined),
         ...(components && Object.keys(components).length ? { components } : {}),
         ...(fields?.length ? { fields } : {}),
       } }] };
+    },
+  },
+  {
+    name: "rename_def",
+    about: "changes what a definition is called, and so what every usage naming it reads",
+    on: ["layer"],
+    /** **The id stays.** Everything naming the definition names it by id, so a
+     *  rename reaches every line or block at once — which is what renaming a
+     *  type is for. */
+    args: [{ name: "id", form: "text", required: true },
+           { name: "name", form: "text", required: true }],
+    check: (ctx, args) => {
+      const d = ctx.graph.defs[id_of(args, "id")];
+      if (!d) return "there is no such definition";
+      const name = text(args, "name");
+      if (!name) return "a definition needs a name";
+      const other = def_named(ctx.graph, name);
+      if (other && other.id !== d.id) return `"${other.name}" already exists`;
+      return borrowed(ctx.graph, d.id);
+    },
+    run: (ctx, args) => {
+      const d = ctx.graph.defs[id_of(args, "id")]!;
+      return { mutations: [{ op: "set_def", def: { ...d, name: text(args, "name") } }] };
     },
   },
   {
@@ -1751,13 +1783,22 @@ register(
       /** **`from` absent, because this workspace made it** — which is the whole
        *  of where a definition belongs. Every layer can reach it either way:
        *  resolution is by id and never by where a record sits. */
+      /** **A template extends a template, never a type.** A line's working look
+       *  is filed over the template it draws through; a line naming a type keeps
+       *  it — the type is a different property — and keeps its look until the
+       *  type is pointed at what was saved. */
+      const over = edge ? template_of(ctx.graph, def_of(ctx.graph, id))?.id : def_of(ctx.graph, id);
+      const typed = !!edge?.type && !is_template_id(ctx.graph, edge.type);
       const def: Definition = {
         id: def_id(name), group: edge ? "relation" : "block", name,
-        extends: def_of(ctx.graph, id),
+        extends: over,
         fields: fields.length ? fields : undefined,
         components: Object.keys(taken).length ? taken : undefined,
       };
 
+      if (typed) {
+        return { mutations: [{ op: "set_def", def }], effect: { say: `saved ${name}` } };
+      }
       const out: Mutation[] = [{ op: "set_def", def },
                                edge ? { op: "update_edge", id, type: def.id }
                                     : { op: "update_block", id, type: def.id }];
@@ -1863,7 +1904,10 @@ register(
         const b = ctx.graph.blocks[it.id];
         const bare = edge ? edge.module
           : b?.of ? "reference" : b?.side !== undefined ? "interface" : "block";
-        const type = d?.extends === undefined || d.extends === bare ? null : d.extends;
+        /** **A line whose template was the base's child goes back to the base
+         *  type**, not onto the base template by name. */
+        const based = !!edge && d?.extends === base_template(ctx.graph)?.id;
+        const type = d?.extends === undefined || d.extends === bare || based ? null : d.extends;
         out.push(edge ? { op: "update_edge", id: it.id, type }
                       : { op: "update_block", id: it.id, type });
       }
@@ -1898,7 +1942,7 @@ register(
  *  to drop. */
 register(
   {
-    name: "plain",
+    name: "none",
     about: "gives back every look this says for itself, to whatever it inherits",
     on: ["block", "edge", "selection"],
     args: [{ name: "ids", form: "block", required: true }],
@@ -1916,17 +1960,61 @@ register(
       for (const id of ids_of(ctx, args)) {
         const d = ctx.graph.defs[id];
         if (d) {
-          const held = { ...(d.components ?? {}) };
+          /** **A template reset is still a template**: it goes back to the app's
+           *  default look, and keeps saying it draws as a line. */
+          const held: Components = { ...(d.components ?? {}) };
+          const template = d.group === "relation" && is_template(d);
           for (const key of DRAWN) delete held[key];
+          if (template) held["line"] = {};
           out.push({ op: "set_def", def: { ...d, components: held } });
           continue;
         }
         out.push({ op: "drop_looks", id });
+        /** **A line reset goes back to its type's template.** One pointing at a
+         *  template directly is let go of it; one naming a type keeps the type,
+         *  which is a different property. */
+        const e = ctx.graph.edges[id];
+        if (e?.type && is_template_id(ctx.graph, e.type)) {
+          out.push({ op: "update_edge", id, type: null });
+        }
       }
       return { mutations: out };
     },
   },
+  {
+    name: "baseline",
+    about: "gives plain lines a template and a type of this workspace's own",
+    on: ["layer"],
+    /** **Made when first needed, not seeded.** A workspace nobody customised
+     *  writes nothing; the first edit to the base template or the base type
+     *  files both — a template every plain line draws through, and a type
+     *  naming it that plain lines follow. */
+    args: [],
+    run: (ctx) => {
+      if (default_for(ctx.graph, "line", "relation")) return { mutations: [] };
+      const template = ctx.graph.defs[BASE_TEMPLATE] ?? {
+        id: BASE_TEMPLATE, group: "relation" as const, name: "default", components: { line: {} },
+      };
+      /** **Every template extends the base where nothing more particular was
+       *  said**, so the ones made before it existed are put under it too. */
+      const orphans = templates(ctx.graph)
+        .filter((d) => d.id !== template.id && !d.extends)
+        .map((d): Mutation => ({ op: "set_def", def: { ...d, extends: template.id } }));
+      return { mutations: [
+        { op: "set_def", def: template },
+        { op: "set_def", def: { id: BASE_TYPE, group: "relation", name: "none",
+                                extends: template.id, default: "line" } },
+        ...orphans,
+      ] };
+    },
+  },
 );
+
+/** Whether an id names a template. */
+function is_template_id(graph: Graph, id: Id): boolean {
+  const d = graph.defs[id];
+  return !!d && is_template(d);
+}
 
 register(
   {
