@@ -13,8 +13,8 @@
  *  teaches people to ignore the real ones. */
 
 import { component, unreadable } from "./components";
-import { alias_kind, covers, fold, can_hold, is_grid, may_tie, module_named, overlaps,
-         relation_named, shipped, subtree, BASE_RELATIONS } from "./fold";
+import { alias_kind, covers, default_for, fold, can_hold, is_grid, may_tie, module_named,
+         overlaps, relation_named, shipped, subtree, BASE_RELATIONS } from "./fold";
 import { new_id } from "./ids";
 import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
          type Relation, type Span, type Step } from "./types";
@@ -89,7 +89,7 @@ export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
                   what: `${back} look${back > 1 ? "s" : ""} an older build had dropped` });
   }
 
-  const mend = inspect(fold(log, floor));
+  const mend = inspect(fold(log, floor), log);
   faults.push(...mend.faults);
   if (mend.repairs.length) log.push(repair_step(log.length, mend.repairs));
   return { log, faults };
@@ -235,7 +235,7 @@ function handed_out(graph: Graph): Mutation[] {
   return out;
 }
 
-export function inspect(graph: Graph): Inspection {
+export function inspect(graph: Graph, log?: Log): Inspection {
   const faults: Fault[] = [];
   const repairs: Mutation[] = [];
   const name = (id: Id) => graph.blocks[id]?.name ?? id;
@@ -493,9 +493,12 @@ export function inspect(graph: Graph): Inspection {
 
   /** One definition, one repair. Filing, extension and every component key it
    *  claims are three separate faults and one mended record — two `set_def`s
-   *  for the same definition would leave the later one undoing the earlier. */
+   *  for the same definition would leave the later one undoing the earlier, so
+   *  the legacy relation shape is worked out first and mended on from here. */
+  const shaped = base_shape(graph, faults);
   for (const d of Object.values(graph.defs)) {
-    let mended = d;
+    if (shaped.dropped.has(d.id)) continue;
+    let mended = shaped.defs.get(d.id) ?? d;
     /** `structure` → `block`. **The base kind was renamed, not retired**, so a
      *  subtype that roots there still resolves. **Mended here rather than in a
      *  repair of its own**: a second `set_def` for one definition leaves the
@@ -572,8 +575,28 @@ export function inspect(graph: Graph): Inspection {
         mended = { ...mended, default: undefined };
       }
     }
-    if (mended !== d) repairs.push({ op: "set_def", def: mended });
+    /** **A default extends its shipped base, and nothing else.** */
+    if (mended.default !== undefined && graph.defs[mended.default]
+        && mended.extends !== mended.default) {
+      faults.push({ kind: "repaired", what: `"${d.name}" is a default, and now extends its base` });
+      mended = { ...mended, extends: mended.default };
+    }
+    /** **Every other definition of the workspace's extends a default**, or one
+     *  of the workspace's own or a package's — never a shipped base directly. */
+    const up = mended.extends ? graph.defs[mended.extends] : undefined;
+    if (!mended.from && mended.default === undefined && !shipped(mended) && (!up || shipped(up))) {
+      const kind = mended.group === "relation"
+        ? relation_named(graph, up?.id) : module_named(graph, up?.id);
+      const target = default_for(graph, kind, mended.group);
+      if (target && target !== mended.id) {
+        faults.push({ kind: "repaired", what: `"${d.name}" now extends the ${kind} default` });
+        mended = { ...mended, extends: target };
+      }
+    }
+    if (mended !== graph.defs[d.id]) repairs.push({ op: "set_def", def: mended });
   }
+  repairs.push(...shaped.out);
+  if (log) repairs.push(...pin_once(log, graph, faults));
 
   /** **One default per kind.** Two definitions claiming the same one leaves
    *  which one wins to whatever order the record happens to be in, so the
@@ -588,8 +611,41 @@ export function inspect(graph: Graph): Inspection {
     repairs.push({ op: "set_def", def: { ...d, default: undefined } });
   }
 
-  repairs.push(...base_shape(graph, faults));
   return { faults, repairs };
+}
+
+/** **Block definitions filed before block pinning existed are pinned, once.**
+ *  Anything filed after the first pin of a block definition was offered its
+ *  pin by the act that made it, and anything ever named in a pin was the
+ *  owner's to leave — so unpinning is never undone on the next load. */
+function pin_once(log: Log, graph: Graph, faults: Fault[]): Mutation[] {
+  const named = new Set<Id>();
+  const before = new Set<Id>();
+  let pinning = false;
+  const pins = (ids: readonly Id[]) => {
+    ids.forEach((id) => named.add(id));
+    if (ids.some((id) => graph.defs[id]?.group === "block")) pinning = true;
+  };
+  for (const step of log) {
+    if (step.status !== "applied") continue;
+    for (const m of step.mutations) {
+      if (m.op === "checkpoint") {
+        for (const d of Object.values(m.graph.defs)) if (!pinning) before.add(d.id);
+        pins(m.graph.blocks[m.graph.root]?.pinned ?? []);
+      }
+      if (m.op === "set_def" && !pinning) before.add(m.def.id);
+      if (m.op === "set_pinned") pins(m.ids);
+    }
+  }
+  const want = [...before].filter((id) => {
+    const d = graph.defs[id];
+    return !!d && d.group === "block" && !d.from && d.default === undefined && !shipped(d)
+      && !named.has(id);
+  });
+  if (!want.length) return [];
+  faults.push({ kind: "repaired",
+                what: `${want.length} block definition${want.length > 1 ? "s" : ""} pinned` });
+  return [{ op: "set_pinned", ids: [...(graph.blocks[graph.root]?.pinned ?? []), ...want] }];
 }
 
 
@@ -604,16 +660,21 @@ export function inspect(graph: Graph): Inspection {
  *  |---|---|
  *  | a type — no look — beside an old base type | a definition labelled with its name |
  *  | a base type standing in for plain lines | gone; the definition it extended is the base |
- *  | a definition reaching nothing of the workspace's | extends the base |
  *
  *  **An old file is told by its base type**: a default holder with no look of
- *  its own. Only then is a definition with no look read as a type, so what a
- *  translator hands over passes untouched. */
-function base_shape(graph: Graph, faults: Fault[]): Mutation[] {
+ *  its own and no shipped base above it. Only then is a definition with no look
+ *  read as a type, so what a translator hands over passes untouched.
+ *
+ *  **Worked out, not written**: the records come back for the caller to mend
+ *  further and file once, beside what else has to be said. */
+function base_shape(graph: Graph, faults: Fault[])
+    : { defs: Map<Id, Definition>; dropped: Set<Id>; out: Mutation[] } {
   const out: Mutation[] = [];
+  const dropped = new Set<Id>();
   const own = Object.values(graph.defs).filter((d) => d.group === "relation" && !d.from);
   const mended = new Map(own.map((d) => [d.id, d]));
-  const legacy = (d: Definition) => !d.components?.["line"];
+  const legacy = (d: Definition) => !d.components?.["line"]
+    && !(d.extends && graph.defs[d.extends] && shipped(graph.defs[d.extends]!));
 
   /** **The base**: the default holder, or what an old base type extended. */
   let base = own.find((d) => d.default === "line");
@@ -629,31 +690,22 @@ function base_shape(graph: Graph, faults: Fault[]): Mutation[] {
         if (d.extends === base.id) mended.set(d.id, { ...mended.get(d.id)!, extends: up.id });
       }
       out.push({ op: "drop_def", id: base.id });
+      dropped.add(base.id);
       mended.delete(base.id);
       mended.set(up.id, { ...mended.get(up.id)!, default: "line" });
-      base = up;
     } else {
       mended.set(base.id, { ...base, components: { ...base.components, line: {} } });
     }
   }
 
-  for (const d of mended.values()) {
-    let next = d;
-    if (old && legacy(next)) {
+  if (old) {
+    for (const d of mended.values()) {
+      if (!legacy(d)) continue;
       faults.push({ kind: "repaired", what: `"${d.name}" was a type, and is labelled with its name` });
-      next = { ...next, label: next.label ?? next.name,
-               components: { ...next.components, line: {} } };
+      mended.set(d.id, { ...d, label: d.label ?? d.name, components: { ...d.components, line: {} } });
     }
-    /** **Every other definition reaches the base**, or a package's line. */
-    const up = next.extends ? graph.defs[next.extends] : undefined;
-    const reaches = !!up && (mended.has(up.id) || (!!up.from && !shipped(up)));
-    if (base && next.id !== base.id && !reaches) {
-      faults.push({ kind: "repaired", what: `"${d.name}" reached no definition, and now extends the base` });
-      next = { ...next, extends: base.id };
-    }
-    if (next !== graph.defs[d.id]) out.push({ op: "set_def", def: next });
   }
-  return out;
+  return { defs: mended, dropped, out };
 }
 
 /** The span covering an address, read off a group in hand. The fold's reader

@@ -874,7 +874,3 @@
 
 .contents-table td.value { color: var(--muted); }
 
-/* The cascade, read top to bottom in the order things win. The element is the
-   last row because it has the final say, and it is not a definition. */
-.contents-table.chain tr.picked td { color: var(--accent); }
-

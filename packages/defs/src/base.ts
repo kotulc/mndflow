@@ -67,16 +67,17 @@ export const BASE: Definition[] = [
             fill: "wash", opacity: 0.06 }),
 ];
 
-/** The one relation definition the base ships, so an untyped run still resolves
- *  to something with a name.
- *
- *  **One, not two.** `directed` was a definition of nothing: a run points
- *  because `dir` says so, and a second base definition meaning *dir is not
- *  none* was the same fact filed twice. A **tie** is assigned from what sits
- *  at the ends and drawn by its module, so it has no definition to name either. */
-export const RELATIONS: Definition[] = [
-  { id: "line", from: PACKAGE, group: "relation", name: "line" },
-];
+/** One relation definition per relation module, shipped and locked, exactly as
+ *  a block kind is. **The module is said in `relation`**, the way a block kind
+ *  says its own in `block`, so nothing reads it off a name. */
+function rel(module: string): Definition {
+  return { id: module, from: PACKAGE, group: "relation", name: module,
+           components: { relation: { module }, line: {} } };
+}
+
+/** A line and a tie. `directed` was a definition of nothing: a run points
+ *  because `dir` says so. */
+export const RELATIONS: Definition[] = [rel("line"), rel("tie")];
 
 export const ALL: Definition[] = [...BASE, ...RELATIONS];
 

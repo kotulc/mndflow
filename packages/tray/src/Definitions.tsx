@@ -9,7 +9,7 @@
  *  | row | edits |
  *  |---|---|
  *  | the workspace's own | name, label, extends, remove |
- *  | the base line | name and label; it extends nothing and stays |
+ *  | a default | label; it extends its base and stays |
  *  | a package's | nothing — extend it instead |
  *
  *  **The last row adds one.** Picking a row holds it, so settings describes it;
@@ -17,7 +17,7 @@
  *  points them at it. Picking alone never changes a drawing. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, may_retype, shipped, type Act, type Graph,
+import { def_named, def_of, isa, may_retype, type Act, type Graph,
          type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { Choice, Table, type Column } from "./Table";
@@ -73,17 +73,13 @@ export function Definitions({ graph, group, held, lines, target = "the selection
   const [up, set_up] = useState<Id | null>(null);
 
   const rows = def_rows(graph, group);
-  const base = rows.find((r) => r.base)?.id;
   const fits = (r: DefRow, k: Only) =>
     k === "all" || (k === "package" ? !!r.from : !!r.label);
   const sorts = group === "relation" ? SORTS : SORTS.filter((s) => s.key !== "labelled");
 
-  /** What a definition may extend: never itself or anything below it. **A block
-   *  definition may extend a shipped kind**, which is where every one roots. */
-  const floor = group === "block"
-    ? Object.values(graph.defs).filter((d) => d.group === "block" && shipped(d))
-        .map((d) => ({ id: d.id, name: d.name })) : [];
-  const above = (self: Id | null) => [...floor, ...rows]
+  /** What a definition may extend: a default or another definition, never
+   *  itself or anything below it. */
+  const above = (self: Id | null) => rows
     .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)))
     .map((r) => ({ value: r.id, word: r.name }));
 
@@ -114,11 +110,11 @@ export function Definitions({ graph, group, held, lines, target = "the selection
           titles: { name: r.from ? `${r.name}, from ${r.from}` : r.name, label: r.label },
           cells: {
             /** **Renamed in place**; the id stays, so nothing naming it is retyped. */
-            name: mine ? (
+            name: mine && !r.base ? (
               <Entry value={r.name} label={`rename ${r.name}`}
                      clash={(to) => taken(graph, to, group, r.id)}
                      onCommit={(to) => onAct("rename_def", { id: r.id, name: to })} />
-            ) : `${r.name} · ${r.from}`,
+            ) : r.from ? `${r.name} · ${r.from}` : r.name,
             label: mine ? (
               <Entry value={r.label} label={`label of ${r.name}`} placeholder="no label" blank
                      onCommit={(to) => onAct("define", { name: r.name, group, label: to })} />
@@ -143,10 +139,10 @@ export function Definitions({ graph, group, held, lines, target = "the selection
           ) : null,
           /** **Removing keeps how its lines draw**: looks go down into each line,
            *  and anything extending it extends what it extended. */
-          /** **The tray stays on definitions**: what was held goes to the base. */
+          /** **The tray stays on definitions**: what was held goes to what it extended. */
           ...(mine && !r.base ? { drop: `remove ${r.name}`, onDrop: () => {
             onAct("remove_def", { id: r.id });
-            if (base && r.id === held) onPick(base);
+            if (r.extends && r.id === held) onPick(r.extends);
           } } : {}),
         };
       })}

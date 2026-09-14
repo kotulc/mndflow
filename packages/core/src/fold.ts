@@ -5,7 +5,7 @@
  *  needs an inverse. */
 
 import { DRAWN, type Settings } from "./components";
-import { def_id } from "./ids";
+import { def_id, default_id } from "./ids";
 import { BLOCK_MODULES, RELATION_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type FieldDef, type Graph, type HeaderRole, type Id, type Log, type Mutation,
@@ -341,12 +341,32 @@ export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
       if (m.op === "checkpoint") lay(graph, floor);
     }
   }
+  lay_defaults(graph, floor);
   return graph;
 }
 
 /** The shipped package, over whatever is there. */
 function lay(graph: Graph, floor: Graph["defs"]): void {
   for (const [id, def] of Object.entries(floor)) graph.defs[id] = def;
+}
+
+/** **Every base kind has a default the workspace may edit**, standing in until
+ *  the first edit files it — so a workspace nobody customised writes nothing.
+ *  A default extends its base and says nothing else until somebody does. */
+function lay_defaults(graph: Graph, floor: Graph["defs"]): void {
+  for (const base of Object.values(floor)) {
+    const kind = base_kind(base);
+    if (!kind || default_for(graph, kind, base.group)) continue;
+    const id = default_id(kind, base.group);
+    graph.defs[id] = { id, group: base.group, name: kind, extends: base.id, default: kind };
+  }
+}
+
+/** The kind a shipped base is the root of, or null for one refining another
+ *  kind's look — `note` extends `resource` and is still its own root. */
+function base_kind(d: Definition): BlockModule | RelationModule | null {
+  const said = d.components?.[d.group === "relation" ? "relation" : "block"]?.["module"];
+  return said === d.id ? (said as BlockModule | RelationModule) : null;
 }
 
 
@@ -978,35 +998,42 @@ export function module_named(graph: Graph, type: Id | undefined): BlockModule {
  *  reader asks this rather than the field. A relationship answers the same way
  *  from its module. */
 export function def_of(graph: Graph, id: Id): Id | undefined {
+  /** **Naming a shipped base is naming nothing**: every plain element follows
+   *  its kind's default, and a base is only ever reached through one. */
+  const named = (type: Id | undefined) =>
+    type && !(graph.defs[type] && shipped(graph.defs[type]!)) ? type : undefined;
   const b = graph.blocks[id];
   if (b) {
-    if (b.type) return b.type;
     const kind = module_of(graph, id);
-    return default_for(graph, kind) ?? (graph.defs[kind] ? kind : undefined);
+    return named(b.type) ?? default_for(graph, kind) ?? (graph.defs[kind] ? kind : undefined);
   }
   const e = graph.edges[id];
   if (!e) return undefined;
-  /** **A plain run follows the workspace's default too.** It had nothing to
-   *  follow while `default` named block modules only, so every unnamed line
-   *  drew from the shipped floor whatever the project had said. */
-  if (e.type) return e.type;
-  return default_for(graph, e.module, "relation")
+  return named(e.type) ?? default_for(graph, e.module, "relation")
     ?? (graph.defs[e.module] ? e.module : undefined);
 }
 
-/** **The workspace's own default for a base kind**, where somebody has said
- *  one. A definition wearing `default` stands in for the shipped one wherever a
- *  block names nothing — which is how *make every plain block read like this*
- *  is said, without a reserved id or a second vocabulary.
- *
- *  **Only the workspace's own, never a package's.** A package must not take
- *  over a project by being imported, and `from` is the whole of that check.
- *
- *  **Naming the base outright still reaches it.** A block typed to `block` has
- *  a `type`, so it never asks this — which is how one block stays pristine
- *  while everything else follows the default. */
-/** **The group is asked for**, so a block default is never matched against a
- *  line's even where a caller forgets which it means. */
+/** What an element stores to name this definition. **A base or a default is
+ *  stored as plain**: absent where the element's shape already says its kind,
+ *  and the kind's own id where only the type can — a note, a group, a folder. */
+export function stored_type(graph: Graph, type: Id | undefined): Id | undefined {
+  const d = type ? graph.defs[type] : undefined;
+  if (!d || !(shipped(d) || d.default)) return type || undefined;
+  if (d.group === "relation") return undefined;
+  return plain_type(module_named(graph, type)) ?? undefined;
+}
+
+/** What a plain block of this kind stores as its type: nothing, or the kind. */
+export function plain_type(kind: BlockModule): Id | null {
+  return STRUCTURAL.includes(kind) ? null : kind;
+}
+
+/** Kinds an element's own shape says, so a plain one names nothing. */
+const STRUCTURAL: readonly BlockModule[] = ["block", "reference", "interface"];
+
+/** **The workspace's default for a base kind**: the one editable definition
+ *  every plain element of that kind follows. Only the workspace's own, never a
+ *  package's, and the group is asked for so a block kind never matches a line's. */
 export function default_for(graph: Graph, kind: BlockModule | RelationModule,
                             group: "block" | "relation" = "block"): Id | undefined {
   for (const d of Object.values(graph.defs)) {
@@ -1015,13 +1042,8 @@ export function default_for(graph: Graph, kind: BlockModule | RelationModule,
   return undefined;
 }
 
-/** The one relation definition the base ships. **Not every relation module** —
- *  `tie` is assigned from what sits at the ends and is nobody's to name, so it
- *  ships no definition to name it. */
-export const BASE_RELATIONS: readonly string[] = ["line"];
-
-/** The id the workspace's base line is filed under when the app files it. */
-export const BASE_LINE = "rel_default";
+/** The relation definitions the base ships: one per relation module. */
+export const BASE_RELATIONS: readonly string[] = ["line", "tie"];
 
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
@@ -1048,48 +1070,19 @@ export type Vocabulary = {
   defs: Definition[];
 };
 
-/** Every block definition this workspace can reach, grouped by where it came
- *  from — its own first, then the base, then each imported package.
- *
- *  **A rendering, not blocks.** The folder the explorer draws from this has no
- *  ids of its own and nothing in it is realised until a row is dragged out,
- *  which is why it needs no reserved block, no seed change, no door migration
- *  and no defences against rename, delete and drop — and why it works in every
- *  workspace already written.
- *
- *  **Every definition gets a row, including the base kinds.** A workspace
- *  default is an ordinary definition wearing a mark, not a row standing in for
- *  another one, so there is nothing to replace and nothing to put back. */
-/** Which relation module a relation definition refines. **The nearest link that
- *  names one**, exactly as `module_named` answers for a block — a relation
- *  definition names no module of its own, so its chain is what says. */
+/** Which relation module a relation definition refines: **the nearest link that
+ *  says, in `relation`**, exactly as `module_named` answers for a block. */
 export function relation_named(graph: Graph, type: Id | undefined): RelationModule {
-  const base = isa(graph, type)
-    .find((d) => RELATION_MODULES.includes(d.name as RelationModule));
-  return (base?.name as RelationModule) ?? "line";
+  const named = config_of(graph, type, "relation")["module"];
+  return RELATION_MODULES.includes(named as RelationModule) ? named as RelationModule : "line";
 }
 
-/** Every relation definition this workspace can use, shipped floor aside.
- *
- *  **The tray's list, not the tree's.** A relationship is made by drawing
- *  between two ends and never by dropping, so there is nothing to drag a
- *  relation row onto — which is why the relation vocabulary lives in the tray
- *  and the explorer keeps blocks.
- *
- *  The shipped two *are* the modules, and the modules are already offered, so
- *  what is left is what somebody made or a package brought in. */
+/** Every relation definition this workspace can name — its defaults, its own
+ *  and its packages' — with the shipped floor aside. */
 export function relations(graph: Graph): Definition[] {
   return Object.values(graph.defs)
     .filter((d) => d.group === "relation" && !shipped(d))
     .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-/** **The base line**: the definition every line naming nothing follows. Read
- *  off the workspace's default, never off an id, so a workspace that filed its
- *  base another way still has one. */
-export function base_line(graph: Graph): Definition | undefined {
-  const id = default_for(graph, "line", "relation");
-  return id ? graph.defs[id] : undefined;
 }
 
 /** A definition by what it is called. **Its name, never the id slugged from it** —
@@ -1128,6 +1121,9 @@ export function pinned_defs(graph: Graph, group: "block" | "relation"): Definiti
     .filter((d): d is Definition => !!d && d.group === group);
 }
 
+/** Every block definition this workspace can reach, grouped by where it came
+ *  from — its own first, then the base, then each imported package. **A
+ *  rendering, not blocks**: nothing in it is realised until a row is dragged out. */
 export function vocabulary(graph: Graph): Vocabulary[] {
   const groups = new Map<string | null, Definition[]>();
   for (const d of Object.values(graph.defs)) {

@@ -10,8 +10,8 @@
 import { arrangement_of, at_cell, can_hold, children, covers, edges_in, head_of,
          is_grid, is_group, is_header, is_holder, is_interface, is_reference, layer_id,
          def_of, isa, may_retype, members_of, module_of, module_named, next_order, next_alias,
-         default_for, ordered_by, path, relation_named, reorder, schema_of,
-         base_line, def_named, def_slot, may_tie, relations, BASE_LINE } from "./fold";
+         default_for, ordered_by, path, relation_named, reorder, schema_of, shipped,
+         stored_type, plain_type, def_named, def_slot, may_tie } from "./fold";
 import { component, DRAWN, NUMBERS } from "./components";
 import { new_id } from "./ids";
 import { ARRANGEMENTS, RELATION_MODULES, VALUE_FORMS,
@@ -255,10 +255,18 @@ function may_wear(ctx: Context, args: Args, kind: BlockModule): string | null {
     ? null : `"${d.name}" is not a ${kind} definition`;
 }
 
-/** The type an action writes, where one was named and it passed `may_wear`. */
-const typed = (args: Args): { type?: Id } => {
-  const type = text(args, "type");
+/** The type an action writes, where one was named and it passed `may_wear` —
+ *  **as stored**, so naming a base or a default makes a plain element. */
+const typed = (ctx: Context, args: Args): { type?: Id } => {
+  const type = stored_type(ctx.graph, text(args, "type"));
   return type ? { type } : {};
+};
+
+/** The relation type a run of this module writes: **only one of its own
+ *  module**, so a line picked on the rail never names a tie's definition. */
+const run_type = (ctx: Context, args: Args, module: RelationModule): { type?: Id } => {
+  const type = text(args, "type");
+  return type && relation_named(ctx.graph, type) === module ? typed(ctx, args) : {};
 };
 
 /** **What a layer cannot supply on its own.** Three kinds are made *of*
@@ -277,7 +285,7 @@ function make_block(ctx: Context, name: string, parent: Id | null, type?: Id): M
   const id = new_id("block");
   const serial = handles(ctx, module_named(ctx.graph, type));
   return [{ op: "add_block", block: {
-    id, parent, name: name || undefined, type,
+    id, parent, name: name || undefined, type: stored_type(ctx.graph, type),
     order: next_order(ctx.graph, parent), alias: serial.take(),
   } }, ...serial.bump()];
 }
@@ -383,10 +391,8 @@ register(
      *  act asked twenty times. */
     args: [{ name: "ids", form: "block", required: true },
            { name: "type", form: "text", required: true }],
-    /** **A subtype refines what a thing is like, never what it is.** A block, a
-     *  folder and a resource are one family and swap freely; everything else
-     *  stays its own kind, because a group, an interface, a reference and a
-     *  note each carry something a change of type cannot invent. */
+    /** **A subtype refines what a thing is like, never what it is.** Every
+     *  element stays its own kind, a run its own module included. */
     check: (ctx, args) => {
       const ids = ids_of(ctx, args);
       if (!ids.length) return "nothing is selected";
@@ -398,28 +404,32 @@ register(
         /** **A run takes a relation definition and nothing else**, the same way
          *  a block stays within its own module. Absent unnames it, which is a
          *  thing somebody can mean. */
-        if (ctx.graph.edges[id]) {
+        const edge = ctx.graph.edges[id];
+        if (edge) {
           if (!type) continue;
           const d = ctx.graph.defs[type];
           if (!d) return `there is no definition called "${type}"`;
           if (d.group !== "relation") return `"${d.name}" defines a block, not a relationship`;
+          if (relation_named(ctx.graph, type) !== edge.module) {
+            return `a ${edge.module} cannot follow a ${relation_named(ctx.graph, type)} definition`;
+          }
           continue;
         }
         if (!ctx.graph.blocks[id]) return "that block is not there";
         if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
-        if (!may_retype(ctx.graph, id, type)) {
+        if (type && !may_retype(ctx.graph, id, type)) {
           return `a ${module_of(ctx.graph, id)} cannot become a ${module_named(ctx.graph, type)}`;
         }
       }
       return null;
     },
+    /** **Nothing named, a base or a default is plain** — stored the way a plain
+     *  element of that kind is, so it follows the default. */
     run: (ctx, args) => {
-      const type = text(args, "type");
-      /** **Nothing named is no type at all**, not an empty one — an absent type
-       *  is how a file stays small and how a run reads as unnamed. */
+      const type = stored_type(ctx.graph, text(args, "type"));
       return { mutations: ids_of(ctx, args).map((id): Mutation => (ctx.graph.edges[id]
-        ? { op: "update_edge", id, type: type || null }
-        : { op: "update_block", id, type })) };
+        ? { op: "update_edge", id, type: type ?? null }
+        : { op: "update_block", id, type: type ?? plain_type(module_of(ctx.graph, id)) })) };
     },
   },
   {
@@ -502,7 +512,7 @@ register(
       const ref = handles(ctx, "reference");
       const out: Mutation[] = [{ op: "add_block", block: {
         id, parent: here(ctx), of: id_of(args, "target"), order: next_order(ctx.graph, here(ctx)),
-        alias: ref.take(), ...typed(args),
+        alias: ref.take(), ...typed(ctx, args),
       } }, ...ref.bump()];
       if (at) out.push({ op: "place_block", id, x: at.x, y: at.y });
       return { mutations: out };
@@ -605,7 +615,6 @@ register(
       const picked = (args["module"] as RelationModule) ?? "line";
       const module = derived_module(ctx.graph, from, to) ?? picked;
       const dir = String(args["dir"] ?? "none") as Dir;
-      const type = text(args, "type");
       /** **A wall said by the gesture that drew it.** Where a line meets a
        *  border is worked out from two rectangles; the layer's own border is
        *  four places to stand, so an end aimed at one of them says which and
@@ -613,7 +622,7 @@ register(
       const line = handles(ctx, "relation");
       const alias = line.take();
       const out: Mutation[] = [...line.bump(), { op: "link_blocks", edge: {
-        id: new_id("edge"), from, to, module, ...(type ? { type } : {}),
+        id: new_id("edge"), from, to, module, ...run_type(ctx, args, module),
         alias, ...(dir !== "none" ? { dir } : {}),
         ...(side_of(args, "fromSide") ? { fromSide: side_of(args, "fromSide") } : {}),
         ...(side_of(args, "toSide") ? { toSide: side_of(args, "toSide") } : {}),
@@ -655,10 +664,14 @@ register(
       const was = edge?.module;
       const module = derived_module(ctx.graph, ends[0]!, ends[1]!)
         ?? (was === "tie" ? "line" : null);
+      /** **A definition of the old module does not follow it to the new one.** */
+      const changed = !!module && module !== was;
+      const stale = changed && !!edge?.type && relation_named(ctx.graph, edge.type) !== module;
       return { mutations: [
         { op: "set_end", id, end, port: to },
         { op: "set_side", id, end, side: null },
-        ...(module && module !== was ? [{ op: "set_form" as const, id, module }] : []),
+        ...(changed ? [{ op: "set_form" as const, id, module: module! }] : []),
+        ...(stale ? [{ op: "update_edge" as const, id, type: null }] : []),
       ] };
     },
   },
@@ -838,7 +851,7 @@ register(
           id, parent: owner, side,
           at: end === undefined && typeof args["at"] === "number"
             ? (args["at"] as number) : mid_of(ctx.graph, owner, side),
-          order: next_order(ctx.graph, owner), alias: port.take(), ...typed(args),
+          order: next_order(ctx.graph, owner), alias: port.take(), ...typed(ctx, args),
         } });
         if (edge && end) {
           out.push({ op: "set_end", id: edge, end, port: id },
@@ -939,7 +952,7 @@ register(
         out.push(...rim.bump());
         out.push({ op: "add_block", block: {
           id: group, parent: here(ctx), type: extent ? "grid" : "group", alias,
-          order: next_order(ctx.graph, here(ctx)), ...typed(args),
+          order: next_order(ctx.graph, here(ctx)), ...typed(ctx, args),
         } });
       }
       if (rows !== null || cols !== null) {
@@ -1410,10 +1423,10 @@ register(
         const to = run[n]!;
         if (drawn.has(`${from}|${to}`)) continue;
         drawn.add(`${from}|${to}`);
+        const module = derived_module(ctx.graph, from, to) ?? picked;
         out.push({ op: "link_blocks", edge: {
-          id: new_id("edge"), from, to, alias: line.take(), ...typed(args),
-          ...(dir !== "none" ? { dir } : {}),
-          module: derived_module(ctx.graph, from, to) ?? picked } });
+          id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args, module),
+          ...(dir !== "none" ? { dir } : {}), module } });
       }
       out.push(...line.bump());
       return { mutations: out,
@@ -1474,14 +1487,6 @@ function rooted(ctx: Context, said: string, group?: "block" | "relation"): Id | 
    *  `def_def_default` out of a template that had not been filed yet. */
   if (said.startsWith("def_") || said.startsWith("rel_")) return undefined;
   return def_slot(ctx.graph, said, group);
-}
-
-/** The definition an id means. **A definition names itself; a block names the
- *  one it resolves through**, so *make this the default* can be said by pointing
- *  at a customised block rather than by finding its type in a list first —
- *  which is how somebody arrives at wanting it. */
-function named_def(ctx: Context, id: Id): Id | undefined {
-  return ctx.graph.defs[id] ? id : def_of(ctx.graph, id);
 }
 
 /** Why this holder has nowhere to put a value. **An edge is the only one**: a
@@ -1653,16 +1658,17 @@ register(
       const group = (args["group"] as "block" | "relation") ?? held?.group ?? "block";
       const said = args["extends"] === undefined ? held?.extends
                                                  : rooted(ctx, text(args, "extends"), group);
-      /** **A relation definition extends the base line** where nothing more
-       *  particular was said — unless it is the base line. It always says it
-       *  draws as a line, which is what the door tells it from an old type by. */
-      const base = group === "relation" ? base_line(ctx.graph)?.id : undefined;
+      /** **A new definition extends its group's default** where nothing more
+       *  particular was said, and a default always extends its base. A relation
+       *  definition says it draws as a line, which the door tells it from an old
+       *  type by. */
+      const base = held?.default ?? default_for(ctx.graph, group === "relation" ? "line" : "block", group);
       const label = args["label"] === undefined ? held?.label : text(args, "label") || undefined;
       return { mutations: [{ op: "set_def", def: {
         ...held,
         id, name, group, label,
-        extends: said ?? (base && base !== id ? base : undefined),
-        ...(group === "relation" && !held ? { components: { line: {} } } : {}),
+        extends: held?.default ?? said ?? (base !== id ? base : undefined),
+        ...(group === "relation" && !held?.components?.["line"] ? { components: { ...held?.components, line: {} } } : {}),
         ...(components && Object.keys(components).length ? { components } : {}),
         ...(fields?.length ? { fields } : {}),
       } },
@@ -1685,6 +1691,7 @@ register(
       if (!d) return "there is no such definition";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
+      if (d.default) return `the ${d.default} default keeps its name`;
       const other = def_named(ctx.graph, name, d.group);
       if (other && other.id !== d.id) return `"${other.name}" already exists`;
       return borrowed(ctx.graph, d.id);
@@ -1692,54 +1699,6 @@ register(
     run: (ctx, args) => {
       const d = ctx.graph.defs[id_of(args, "id")]!;
       return { mutations: [{ op: "set_def", def: { ...d, name: text(args, "name") } }] };
-    },
-  },
-  {
-    name: "default",
-    about: "makes this definition the one every plain element of its kind follows",
-    on: ["layer", "block"],
-    /** **A checkbox, not a system.** The want is *make every plain block read
-     *  like this one*, and a definition already says how a thing reads — so it
-     *  wears the base kind it stands in for and `def_of` asks one more
-     *  question. There is no reserved id, no second vocabulary and nothing to
-     *  put back when it is taken off.
-     *
-     *  **One at a time, and only its own kind.** A folder definition cannot be
-     *  the default for blocks, and a package's cannot be a default at all —
-     *  which is the whole of *a package must not take over a project*. */
-    args: [{ name: "id", form: "text", required: true },
-           { name: "on", form: "choice", choices: ["yes", "no"] }],
-    check: (ctx, args) => {
-      const id = named_def(ctx, id_of(args, "id"));
-      const d = id ? ctx.graph.defs[id] : undefined;
-      if (!d) return `there is nothing called "${id_of(args, "id")}" to make a default`;
-      if (d.from) return `"${d.name}" comes from ${d.from} — only your own may be a default`;
-      return null;
-    },
-    /** **Defensive about a definition that is not there.** `check` refuses one,
-     *  but a run is reachable directly and there is nothing to say without it. */
-    run: (ctx, args) => {
-      const id = named_def(ctx, id_of(args, "id"));
-      const d = id ? ctx.graph.defs[id] : undefined;
-      if (!d || !id) return { mutations: [] };
-      const off = args["on"] === "no" || args["on"] === false;
-      /** **The kind it stands in for, read from its own group.** A relation
-       *  definition wears a relation module, and asking `module_named` for one
-       *  would answer `block` — which is the base kind of a thing it is not. */
-      const kind = d.group === "relation"
-        ? relation_named(ctx.graph, id) : module_named(ctx.graph, id);
-      const out: Mutation[] = [];
-      /** **Whatever held the kind gives it up first**, so the two never
-       *  disagree and the swap is one step and one undo. */
-      for (const held of Object.values(ctx.graph.defs)) {
-        if (held.id !== id && held.default === kind) {
-          out.push({ op: "set_def", def: { ...held, default: undefined } });
-        }
-      }
-      out.push({ op: "set_def", def: { ...d, default: off ? undefined : kind } });
-      return { mutations: out,
-               effect: { say: off ? `${d.name} is no longer the default`
-                                  : `plain ${kind}s follow ${d.name}` } };
     },
   },
 );
@@ -1843,9 +1802,13 @@ register(
     on: ["layer"],
     args: [{ name: "id", form: "text", required: true },
            { name: "on", form: "choice", choices: ["yes", "no"] }],
+    /** **A base or a default is never pinned**: every plain element already
+     *  follows one, and the rail and the default folder offer them. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      return ctx.graph.defs[id] ? null : `there is nothing called "${id}" to pin`;
+      const d = ctx.graph.defs[id];
+      if (!d) return `there is nothing called "${id}" to pin`;
+      return shipped(d) || d.default ? `"${d.name}" is a base or a default, and is never pinned` : null;
     },
     run: (ctx, args) => {
       const id = id_of(args, "id");
@@ -1872,6 +1835,7 @@ register(
     check: (ctx, args) => {
       const id = id_of(args, "id");
       if (!ctx.graph.defs[id]) return `there is nothing called "${id}" to remove`;
+      if (ctx.graph.defs[id]!.default) return "a default stays — reset its style instead";
       return borrowed(ctx.graph, id);
     },
     /** **Defensive about a definition that is not there.** `check` refuses one,
@@ -1905,19 +1869,11 @@ register(
             out.push({ op: "set_field", id: it.id, field: { name: f.name, form: f.form } });
           }
         }
-        /** **Absent where absent means the same thing.** There is no such thing
-         *  as an untyped usage — one naming nothing *is* its base kind — so a
-         *  thing that was plain before it was pinned comes back plain rather
-         *  than carrying the word `block` or `line`, and the file is the one it
-         *  started as. Anything else names what this extended. */
+        /** **What this extended, as stored.** A default or a base comes back
+         *  plain, stored the way any plain element of that kind is. */
         const edge = ctx.graph.edges[it.id];
-        const b = ctx.graph.blocks[it.id];
-        const bare = edge ? edge.module
-          : b?.of ? "reference" : b?.side !== undefined ? "interface" : "block";
-        /** **A line whose definition extended the base goes back to plain**,
-         *  not onto the base by name. */
-        const based = !!edge && d?.extends === base_line(ctx.graph)?.id;
-        const type = d?.extends === undefined || d.extends === bare || based ? null : d.extends;
+        const type = stored_type(ctx.graph, d?.extends)
+          ?? (edge ? null : plain_type(module_of(ctx.graph, it.id)));
         out.push(edge ? { op: "update_edge", id: it.id, type }
                       : { op: "update_block", id: it.id, type });
       }
@@ -1981,26 +1937,6 @@ register(
         out.push({ op: "drop_looks", id });
       }
       return { mutations: out };
-    },
-  },
-  {
-    name: "baseline",
-    about: "gives plain lines a definition of this workspace's own",
-    on: ["layer"],
-    /** **Made when first needed, not seeded.** A workspace nobody customised
-     *  writes nothing; the first edit to the base line files it. */
-    args: [],
-    run: (ctx) => {
-      if (default_for(ctx.graph, "line", "relation")) return { mutations: [] };
-      const base: Definition = { id: BASE_LINE, group: "relation", name: "default",
-                                 components: { line: {} }, ...ctx.graph.defs[BASE_LINE],
-                                 default: "line" };
-      /** **Every definition extends the base where nothing more particular was
-       *  said**, so the ones made before it existed are put under it too. */
-      const orphans = relations(ctx.graph)
-        .filter((d) => d.id !== base.id && !d.extends)
-        .map((d): Mutation => ({ op: "set_def", def: { ...d, extends: base.id } }));
-      return { mutations: [{ op: "set_def", def: base }, ...orphans] };
     },
   },
 );

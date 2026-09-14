@@ -1,5 +1,5 @@
 export { Tray, type TrayProps, type Tab, type Hold } from "./Tray";
-export { DRAFT, aimed, base_unfiled, blank, redraft, touched, with_base, with_draft,
+export { DRAFT, aimed, blank, redraft, with_draft,
          type DraftGroup } from "./draft";
 export { Definitions, taken, type DefinitionsProps } from "./Definitions";
 export { Entry, type EntryProps } from "./Entry";
@@ -18,5 +18,4 @@ export { Fields, type FieldsProps } from "./Fields";
 export { Card, type CardProps } from "./Card";
 export { Band, Body, Line, Rail, type BandProps, type BodyProps, type LineProps,
          type RailProps } from "./Body";
-export { Chain, type ChainProps } from "./Chain";
 export { held, reading, type Held } from "./holder";

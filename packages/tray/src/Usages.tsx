@@ -14,7 +14,7 @@
  *  Picking a row selects the line, the way contents does. */
 
 import { useState } from "react";
-import { base_line, may_retype, RELATION_MODULES, relations, shipped,
+import { may_retype, RELATION_MODULES, relation_named, relations, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Choice, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
@@ -51,18 +51,15 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
 
   const deep = scope === "workspace";
   const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
-  /** **The base is blank**: a line naming nothing follows it. */
-  const base = lines ? base_line(graph) : undefined;
-  const offered = lines
-    ? [{ value: "", word: base?.name ?? "default" },
-       ...relations(graph).filter((d) => d.id !== base?.id)
-         .map((d) => ({ value: d.id, word: d.name }))]
-    : [{ value: "", word: "default" },
-       ...Object.values(graph.defs).filter((d) => d.group === "block" && !shipped(d))
-         .map((d) => ({ value: d.id, word: d.name }))];
-  /** What one block may be retyped to: its own kind's definitions only. */
-  const fits = (id: Id) => (lines ? offered
-    : offered.filter((o) => !o.value || may_retype(graph, id, o.value)));
+  /** **The default is blank**: an element naming nothing follows its kind's. */
+  const offered = [{ value: "", word: "default" },
+    ...(lines ? relations(graph) : Object.values(graph.defs).filter((d) => d.group === "block"))
+      .filter((d) => !shipped(d) && d.default === undefined)
+      .map((d) => ({ value: d.id, word: d.name }))];
+  /** What one usage may be retyped to: its own kind's or module's definitions only. */
+  const fits = (id: Id) => offered.filter((o) => !o.value
+    || (lines ? relation_named(graph, o.value) === graph.edges[id]?.module
+              : may_retype(graph, id, o.value)));
 
   const held = about ? graph.defs[about] : undefined;
   const narrow = [
@@ -83,12 +80,8 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
     ...(lines ? [{ key: "label", label: "label" }] : []),
   ];
 
-  /** **Blank is the base.** A line naming nothing follows the base line; a block
-   *  goes back to its own kind. */
-  const blank_to = (value: string, id?: Id) => {
-    const said = value === BLANK ? "" : value;
-    return said || lines ? said : all.find((r) => r.id === id)?.module ?? "";
-  };
+  /** **Blank is the default**: each usage goes back to its own kind's. */
+  const blank_to = (value: string) => (value === BLANK ? "" : value);
 
   return (
     <Table
@@ -100,11 +93,9 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
       tools={rows.length ? (
         <select value="" aria-label="retype every line listed"
                 onChange={(e) => onAct("retype", { ids: rows.map((r) => r.id),
-                                                  type: blank_to(e.target.value, rows[0]?.id) })}>
+                                                  type: blank_to(e.target.value) })}>
           <option value="">retype all {rows.length} →</option>
-          {/* A block's base is its own kind, so *retype all* has no one blank to offer. */}
-          {offered.filter((o) => lines || o.value)
-            .map((o) => <option key={o.value || BLANK} value={o.value || BLANK}>{o.word}</option>)}
+          {offered.map((o) => <option key={o.value || BLANK} value={o.value || BLANK}>{o.word}</option>)}
         </select>
       ) : null}
       empty={all.length ? "nothing of that sort"
@@ -126,7 +117,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
           layer: r.layer,
           def: (
             <Choice value={r.def} label={`what ${r.name} follows`} of={fits(r.id)}
-                    onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id, r.id) })} />
+                    onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id) })} />
           ),
           label: r.label,
         },

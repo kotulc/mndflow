@@ -286,6 +286,14 @@ const block: Component = {
   },
 };
 
+/** Which relation module a relation definition refines — `block`'s counterpart. */
+const relation: Component = {
+  name: "relation",
+  check: (config) =>
+    one_of("relation.module", config["module"], RELATION_MODULES)
+    ?? stray("relation", config, ["module"]),
+};
+
 /** What a card is *made of* — where its label sits and which way each writing
  *  reads — rather than what it is painted, which is `style`.
  *
@@ -399,4 +407,4 @@ const rules: Component = {
 /** What this build publishes. The engine ships its components the same way
  *  anybody else would, so there is no privileged path a later module would
  *  have to be measured against. */
-publish(block, card, line, style, rules);
+publish(block, card, line, relation, style, rules);

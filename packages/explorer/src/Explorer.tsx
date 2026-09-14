@@ -97,9 +97,8 @@ const KIND_MARK: Record<string, Mark> = {
 };
 
 /** The definitions, as rows: **what every plain block follows, then what this
- *  workspace has named, then what it has brought in.** In that order, because
- *  that is the order they win in — the base is the floor, the workspace's own
- *  sits over it, and a package is somebody else's vocabulary beside both.
+ *  workspace has pinned, then what it has brought in.** The shipped base is
+ *  not listed: it is locked, and every default extends it.
  *
  *  **Ordinary rows** — same renderer, same guides, same marks, same fold state,
  *  so the tree gained a branch rather than the panel gaining a second list. */
@@ -107,9 +106,11 @@ function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
   const groups = vocabulary(graph);
   if (!groups.length) return [];
   const listed = groups.flatMap((g) => g.defs);
-  const base = listed.filter(shipped).sort((a, b) => a.name.localeCompare(b.name));
+  const base = listed.filter((d) => d.default !== undefined)
+    .sort((a, b) => a.name.localeCompare(b.name));
   /** **The workspace folder lists what the workspace pinned**, in pin order. */
-  const own = pinned_defs(graph, "block").filter((d) => !shipped(d) && !d.from);
+  const own = pinned_defs(graph, "block")
+    .filter((d) => !shipped(d) && !d.from && d.default === undefined);
   const packs = groups.map((g) => ({ ...g, defs: g.defs.filter((d) => !shipped(d)) }))
     .filter((g) => g.from !== null && g.defs.length);
 
@@ -124,13 +125,11 @@ function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
                         mark: "pin", named: true, alias: "", of: "pack", guides: [] }];
   if (folded.includes(VOCAB)) return out;
 
-  /** One definition, wherever it sits. **The default wears the word**: the same
-   *  slot a block uses to tell two rows apart says which definition every plain
-   *  one of its kind follows. */
+  /** One definition, wherever it sits. A default reads as its kind. */
   const def_row = (d: Definition, depth: number, guides: boolean[]): Row => ({
-    id: d.id, depth, label: d.name, kids: 0,
+    id: d.id, depth, label: d.default ?? d.name, kids: 0,
     mark: KIND_MARK[module_named(graph, d.id)] ?? "leaf",
-    named: true, alias: d.default ? "default" : "", of: "def", guides,
+    named: true, alias: "", of: "def", guides,
   });
 
   sections.forEach((sec, n) => {

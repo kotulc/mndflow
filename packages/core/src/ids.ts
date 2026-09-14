@@ -25,3 +25,9 @@ export function def_id(name: string, group: "block" | "relation" = "block"): str
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
   return `${group === "relation" ? "rel" : "def"}_${slug || "unnamed"}`;
 }
+
+/** The id a kind's default definition is filed under: `def_default_note`,
+ *  `rel_default_tie`. */
+export function default_id(kind: string, group: "block" | "relation" = "block"): string {
+  return `${group === "relation" ? "rel" : "def"}_default_${kind}`;
+}

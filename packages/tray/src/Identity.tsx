@@ -18,7 +18,7 @@
  *
  *  A pure function of its props, like every other surface. */
 
-import { alias_of, BASE_PACKAGE, base_line, def_of, isa, kind_word, may_retype, module_of,
+import { alias_of, BASE_PACKAGE, def_of, isa, kind_word, may_retype, module_of,
          pinned_defs, relations, role_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
@@ -55,11 +55,12 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
   /** The name being written, and whether it is taken. **Never a lookup.** */
   const writing = drafted ? d!.name.trim() : wip ? working.trim() : "";
   const clash = writing ? taken(graph, writing, runs ? "relation" : "block", drafted ? DRAFT : undefined) : null;
-  const base = base_line(graph);
 
   /** **The definition the boxes are about.** */
   const own = runs ? follows : d ?? (named ? graph.defs[named] : undefined);
   const mine = !!own && !shipped(own) && !own.from && own.id !== DRAFT;
+  /** **A base or a default is fixed**: never renamed, re-rooted or pinned. */
+  const fixed = !own || shipped(own) || own.default !== undefined;
   const listed = pinned_defs(graph, runs ? "relation" : "block").some((x) => x.id === own?.id);
 
   const role = b ? role_of(graph, id) : null;
@@ -126,12 +127,12 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
           <Line label="name" tip={runs ? "The definition this follows. Renaming it keeps every line naming it."
                                        : "What this definition is called. Renaming it keeps everything naming it."}>
             {/* **Renamed in place**: the id stays, so nothing naming it is retyped. */}
-            {mine ? (
+            {mine && !fixed ? (
               <Entry key={own!.id} value={own!.name} label="name"
                      clash={(to) => taken(graph, to, own!.group, own!.id)}
                      onCommit={(to) => onAct("rename_def", { id: own!.id, name: to })} />
             ) : (
-              <input value={own?.name ?? ""} readOnly aria-label="name" />
+              <input value={own ? where(own) : ""} readOnly aria-label="name" />
             )}
           </Line>
         ) : b ? (
@@ -179,45 +180,44 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
         {/* **Extends, or type.** A relation definition refines another; a block
             definition refines a block definition; a block names one. */}
-        {d && runs && d.id === base?.id ? (
-          <Line label="extends" tip="The base line is what every other definition extends, so it extends nothing.">
-            <span className="read" />
+        {d && fixed ? (
+          <Line label={runs ? "extends" : "type"}
+                tip="A default extends its kind's base, and a base extends nothing of the workspace's.">
+            <span className="read">{graph.defs[d.extends ?? ""] ? where(graph.defs[d.extends!]!) : ""}</span>
           </Line>
         ) : d ? (
           <Line label={runs ? "extends" : "type"} className="subtype"
-                tip={runs ? "The definition this one refines — the base line unless another is picked."
-                          : "The definition this one refines."}>
-            {/* **A relation definition always extends one**: the base, where nothing
-                more particular was said. A block definition may refine nothing. */}
-            <select value={d.extends ?? (runs ? base?.id ?? "" : "")}
+                tip="The definition this one refines — its kind's default unless another is picked.">
+            {/* **Every definition extends one**: its kind's default, where nothing
+                more particular was said. */}
+            <select value={d.extends ?? ""}
                     aria-label={runs ? "extends" : "type"} disabled={borrowed}
                     onChange={(e) => onAct("define", { ...(drafted ? { id } : {}),
                                                        name: d.name, group: d.group, extends: e.target.value })}>
-              {runs ? null : <option value="">nothing</option>}
               {extendable(d).map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
             </select>
           </Line>
         ) : edge ? (
           <Line label="extends" tip="The definition a working look is saved over.">
-            <span className="read">{wip ? follows?.name ?? ""
-              : follows?.id === base?.id ? ""
-              : graph.defs[follows?.extends ?? ""]?.name ?? base?.name ?? ""}</span>
+            <span className="read">{wip ? (follows ? where(follows) : "")
+              : graph.defs[follows?.extends ?? ""] ? where(graph.defs[follows!.extends!]!) : ""}</span>
           </Line>
         ) : b && !is_root ? (
           <Line label="type" className="subtype"
                 tip={`Which ${kind} definition this block follows. Only definitions of its own kind apply.`}>
             {/* **Only what applies.** A block keeps its kind, so the list is the
                 base kind and every definition of that kind. */}
-            <select value={named && graph.defs[named] && !shipped(graph.defs[named]!) ? named : ""}
+            <select value={named && own && !fixed ? named : ""}
                     aria-label="type"
                     onChange={(e) => onAct("retype", { ids: [id], type: e.target.value || kind })}>
               <option value="">{`default/${kind}`}</option>
               {Object.values(graph.defs)
-                .filter((x) => x.group === "block" && !shipped(x) && may_retype(graph, id, x.id))
+                .filter((x) => x.group === "block" && !shipped(x) && x.default === undefined
+                               && may_retype(graph, id, x.id))
                 .sort((a, z) => where(a).localeCompare(where(z)))
                 .map((x) => <option key={x.id} value={x.id}>{where(x)}</option>)}
             </select>
-            {mine ? (
+            {mine && !fixed ? (
               <button className="drop" title={`remove ${own!.name}, dissolving it into everything naming it`}
                       onClick={() => onAct("remove_def", { id: own!.id })}>
                 <Icon name="remove" />
@@ -227,34 +227,23 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
         ) : null}
 
         {/* **Where the definition is offered.** Pinned puts a relation definition
-            on the rail and a block definition in the explorer's workspace folder;
-            a block definition may also be what every plain block follows. */}
+            on the rail and a block definition in the explorer's workspace folder. */}
         {!is_root ? (
           <Line label="offer" className="marks"
                 tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
-                          : "Whether this definition is in the workspace folder, and whether every plain one of its kind follows it."}>
-            {/* **A base kind is never pinned** — it is the floor, not a definition
-                anybody made. Saying so beats a box that refuses. */}
-            {!runs && (!own || shipped(own)) ? (
-              <span className="read">{`default/${kind} is a base kind — save a definition to pin one`}</span>
+                          : "Whether this definition is in the workspace folder."}>
+            {/* **A base or a default is never pinned** — every plain one of its
+                kind already follows it. Saying so beats a box that refuses. */}
+            {fixed ? (
+              <span className="read">{`default/${kind} is what every plain ${kind} follows — save a definition to pin one`}</span>
             ) : (
               <label className="check"
                      title={runs ? "Offer this on the rail, so a right drag can draw one"
                                  : "List this in the explorer's workspace folder"}>
-                <input type="checkbox" checked={listed}
-                       disabled={!own || shipped(own) || own.id === DRAFT || wip}
+                <input type="checkbox" checked={listed} disabled={own!.id === DRAFT || wip}
                        onChange={(e) => onAct("pin", { id: own!.id,
                                                        on: e.target.checked ? "yes" : "no" })} />
                 pinned
-              </label>
-            )}
-            {runs || !own || shipped(own) ? null : (
-              <label className="check"
-                     title={`Every ${kind} that names nothing draws from this one instead of the base`}>
-                <input type="checkbox" checked={!!own?.default} disabled={!mine}
-                       onChange={(e) => onAct("default", { id: own!.id,
-                                                           on: e.target.checked ? "yes" : "no" })} />
-                make default
               </label>
             )}
           </Line>
@@ -272,9 +261,10 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 }
 
 /** Where a definition sits in the definitions folder, as a path. **The tree's
- *  own three sections**, so the picker and the folder say one thing. */
+ *  own sections**, so the picker and the folder say one thing. */
 function where(d: Definition): string {
-  return d.from === BASE_PACKAGE ? `default/${d.name}`
+  return d.default ? `default/${d.default}`
+    : d.from === BASE_PACKAGE ? `base/${d.name}`
     : d.from ? `packages/${d.from}/${d.name}`
     : `workspace/${d.name}`;
 }

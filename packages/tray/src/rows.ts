@@ -5,7 +5,7 @@
  *  hunting for it on the drawing. Everything here is derived from the graph;
  *  the tray stores nothing and writes nothing. */
 
-import { alias_of, base_line, children, def_of, edges_in, is_interface, isa, label_of,
+import { alias_of, children, def_of, edges_in, is_interface, isa, label_of,
          module_of, path, shipped, shown_name, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
@@ -72,7 +72,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
         : [within, held ? `holds ${held}` : "",
            ports ? `${ports} interface${ports > 1 ? "s" : ""}` : ""]
             .filter(Boolean).join(" · "),
-      type: b.type ? graph.defs[b.type]?.name ?? b.type : "",
+      type: plain(graph, b.type) ? "" : graph.defs[b.type!]?.name ?? b.type!,
     });
 
     for (const port of children(graph, b.id)) {
@@ -81,7 +81,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
         id: port.id, sort: "interface", kind: "interface", name: called(port.id),
         fields: Object.fromEntries((port.fields ?? []).map((f) => [f.name, f.value ?? ""])),
         what: `on ${called(b.id)}, ${port.side} wall`,
-        type: port.type ? graph.defs[port.type]?.name ?? port.type : "",
+        type: plain(graph, port.type) ? "" : graph.defs[port.type!]?.name ?? port.type!,
       });
     }
   }
@@ -96,7 +96,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     ? Object.values(graph.edges).sort((a, b) => a.id.localeCompare(b.id))
     : edges_in(graph, layer);
   for (const e of runs) {
-    const named = e.type ? graph.defs[e.type]?.name ?? e.type : "";
+    const named = plain(graph, e.type) ? "" : graph.defs[e.type!]?.name ?? e.type!;
     out.push({
       id: e.id, sort: "relationship", kind: e.module,
       /** **None, and never any.** An edge holds no values — what a connection
@@ -118,9 +118,9 @@ export type DefRow = {
   name: string;
   /** What a line naming it draws; blank for none, and always for a block's. */
   label: string;
-  /** What it extends — blank for the base line. */
+  /** What it extends. */
   extends: Id;
-  /** Whether plain lines follow it. */
+  /** Whether it is its kind's default, which every plain element follows. */
   base: boolean;
   /** The package it came from, where somebody else wrote it. */
   from: string;
@@ -128,11 +128,10 @@ export type DefRow = {
   used: number;
 };
 
-/** **Every definition of one group the workspace can name**, the base first
- *  and then by name. A roster: an unused one is exactly what it has to show, and
+/** **Every definition of one group the workspace can name**, the defaults
+ *  first and then by name. A roster: an unused one is exactly what it has to show, and
  *  a name refused as taken has to be findable here. */
 export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
-  const floor = group === "relation" ? base_line(graph)?.id : undefined;
   const used = new Map<string, number>();
   const usages = group === "relation" ? Object.keys(graph.edges)
     : Object.keys(graph.blocks).filter((id) => id !== graph.root);
@@ -144,8 +143,8 @@ export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
     /** **The shipped floor is not listed**: nobody chose it, and nothing edits it. */
     .filter((d) => d.group === group && !shipped(d))
     .map((d): DefRow => ({
-      id: d.id, name: d.name, label: d.label ?? "", extends: d.extends ?? "",
-      base: d.id === floor, from: d.from ?? "", used: used.get(d.id) ?? 0,
+      id: d.id, name: d.default ? `default/${d.default}` : d.name, label: d.label ?? "", extends: d.extends ?? "",
+      base: d.default !== undefined, from: d.from ?? "", used: used.get(d.id) ?? 0,
     }))
     .sort((a, z) => Number(z.base) - Number(a.base) || a.name.localeCompare(z.name));
 }
@@ -162,7 +161,7 @@ export type UsageRow = {
   module: string;
   /** Every definition it resolves through, nearest first. */
   chain: Id[];
-  /** The definition it names — blank where it follows the base. */
+  /** The definition it names — blank where it follows its default. */
   def: Id;
   /** What it draws beside itself. */
   label: string;
@@ -181,7 +180,7 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     layer: layer_path(graph, e.from),
     module: e.module,
     chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
-    def: e.type && e.type !== base_line(graph)?.id ? e.type : "",
+    def: plain(graph, e.type) ? "" : e.type!,
     label: label_of(graph, e.id),
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
@@ -201,10 +200,15 @@ export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean):
     layer: layer_path(graph, b.id),
     module: module_of(graph, b.id),
     chain: isa(graph, def_of(graph, b.id)).map((d) => d.id),
-    def: b.type && !shipped(graph.defs[b.type] ?? { id: b.type, group: "block", name: "" })
-      ? b.type : "",
+    def: plain(graph, b.type) ? "" : b.type!,
     label: "",
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
+}
+
+/** Whether a stored type is plain: nothing, a shipped base or a default. */
+function plain(graph: Graph, type: Id | undefined): boolean {
+  const d = type ? graph.defs[type] : undefined;
+  return !type || (!!d && (shipped(d) || d.default !== undefined));
 }
 
 /** Where a run sits, named by the layer holding the block at its end. The
