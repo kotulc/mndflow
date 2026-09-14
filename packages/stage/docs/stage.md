@@ -25,3 +25,8 @@
 - **Dropping a card on another card is a `move`, which is sayable; dropping it anywhere else is a `place`, which is not.**
 - **A drop lands on a box and never on the frame** — the frame spans the whole layer, so counting it would make every drop a re-parent.
 - **The stage publishes its geometry upward** so the options rail calls what it was handed. The shell never reaches into the stage.
+- **A right drag from a note onto a line ties the note to that line**, met at the midpoint of the line's run by a `knot` the projection places. A tie on a line is drawn only where the line is.
+
+## Hover and pick
+
+**Another surface points; only a gesture picks.** A hovered table row arrives as `lit` and draws an accent outline round a card or an accent stroke on a run. A pick draws an accent border and a raised fill on a card, and the grips on a run — so the two differ in what is shown, never only in strength.
