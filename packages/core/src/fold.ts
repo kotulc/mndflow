@@ -1115,16 +1115,17 @@ export function def_slot(graph: Graph, name: string, group?: "block" | "relation
   return id;
 }
 
-/** The templates offered on the rail, **in the order the workspace put them**.
+/** The definitions of one group the workspace pinned, **in the order it put
+ *  them**: relation definitions offered on the rail, block definitions listed in
+ *  the explorer's workspace folder.
  *
- *  Resolved against `defs` on the way out, so a shortlist naming a definition
- *  that has since been dissolved simply lists one fewer — a dangling id is not
- *  worth a repair when the reader can skip it. */
-export function pinned_lines(graph: Graph): Definition[] {
+ *  Resolved against `defs` on the way out, so a pin naming a definition that has
+ *  since been removed simply lists one fewer. */
+export function pinned_defs(graph: Graph, group: "block" | "relation"): Definition[] {
   const ws = graph.blocks[graph.root];
   return (ws?.pinned ?? [])
     .map((id) => graph.defs[id])
-    .filter((d): d is Definition => !!d && d.group === "relation");
+    .filter((d): d is Definition => !!d && d.group === group);
 }
 
 export function vocabulary(graph: Graph): Vocabulary[] {

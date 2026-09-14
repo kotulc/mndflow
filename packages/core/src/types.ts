@@ -277,7 +277,7 @@ export type Mutation =
   | { op: "add_block"; block: Block }
   /** `type: null` clears it, which is not the same as leaving it alone.
    *  **A block naming nothing is its base kind**, so absence is an answer
-   *  somebody can mean — and `unpin` has to be able to give it back. */
+   *  somebody can mean — and `remove_def` has to be able to give it back. */
   | { op: "update_block"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_block"; id: Id }
   | { op: "move_block"; id: Id; parent: Id | null }

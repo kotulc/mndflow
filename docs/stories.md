@@ -229,6 +229,18 @@ Write a requirement's text, a part's description, a script's code **into the blo
 
 **Watch for:** `set_body` carries the whole string into the log, and the graph is folded by replaying every step. Bodies are the first thing this project stores that is large and edited often — see 5 in todo.md, which keeps the graph and the file carrying **text rather than a content id** so the storage choice stays reversible.
 
+### ST.19 — A card's bottom corner says what the system knows about it
+
+The bottom-right corner of every card is **reserved for one system mark** — something the app works out about the element rather than something a vocabulary or a user picks. The top corner says what sort of thing it is; this one says what state it is in.
+
+**Not a style.** The old `card.mark` let a definition put any icon there, which made the corner a second, unexplained icon slot. It is gone, and nothing may set the corner by hand.
+
+| | |
+|---|---|
+| **what it marks** | undecided — a rule note, a missing reference, a locked package, an unsaved working look are all candidates |
+| **one mark or several** | one corner and one mark; which wins when two apply is part of the design |
+| **what it answers** | whether hovering or clicking the mark says why, and where that is said |
+
 ## Recent Decisions
 
 ## Out of scope, recorded so nothing is built on it

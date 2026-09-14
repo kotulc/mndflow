@@ -3,7 +3,7 @@
  *  The whole host contract, and the only place in the app that knows a browser
  *  is what it is running in. */
 
-import { check, type Files, type Log, type Net, type Storage } from "@mnd/core";
+import type { Files, Log, Net, Storage } from "@mnd/core";
 
 const KEY = "mnd.log.v2";
 
@@ -13,7 +13,10 @@ export function browser_storage(): Storage {
       try {
         const raw = localStorage.getItem(KEY);
         if (!raw) return null;
-        return check(JSON.parse(raw)).log;
+        /** **Read, never checked.** The session runs the door over what this
+         *  returns, with the shipped floor under it; checking here without the
+         *  floor blanked every `extends` naming a base kind. */
+        return JSON.parse(raw) as Log;
       } catch {
         return null;
       }

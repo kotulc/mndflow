@@ -11,8 +11,8 @@
  *  from the card it previews would be worse than no preview. */
 
 import { type CSSProperties } from "react";
-import { Icon, known, type IconName } from "@mnd/theme";
-import type { Field, FieldDef, Role } from "@mnd/core";
+import { Icon, type IconName } from "@mnd/theme";
+import type { Role } from "@mnd/core";
 
 export type CardProps = {
   /** What it is called, and the number it wears where nobody has named it. */
@@ -24,18 +24,12 @@ export type CardProps = {
   /** What sort of thing it is, top right. */
   icon: IconName;
   role: Role | string;
-  /** The other corner: what its vocabulary flags about it, drawn quietly. */
-  mark?: string;
-  /** The values the card is told to show, where it is told to show any. */
-  fields: readonly (Field | FieldDef)[];
-  shows: boolean;
   /** What it says for itself, and what it draws as. */
   said: (key: string, name: string) => unknown;
   now: (key: string, name: string, fallback: string) => string;
 };
 
-export function Card({ label, alias, kind, icon, role, mark, fields, shows,
-                       said, now }: CardProps) {
+export function Card({ label, alias, kind, icon, role, said, now }: CardProps) {
   const tinted = said("style", "hue") !== undefined;
   const opacity = Number(now("style", "opacity", "1"));
   const sheer = opacity < 1;
@@ -65,14 +59,12 @@ export function Card({ label, alias, kind, icon, role, mark, fields, shows,
            data-label-weight={now("style", "label_weight", "normal")}
            data-label-contrast={now("style", "label_contrast", "") || undefined}
            data-label={at}
-           data-align={now("card", "align", "left")}>
+           data-align={now("card", "align", "left")}
+           data-label-align={now("card", "label_align", "left")}>
         {at === "above" ? <span className="preview-over">{word}</span> : null}
         <span className="preview-role" data-role={role}>
           <Icon name={icon} size={11} />
         </span>
-        {mark && known(mark)
-          ? <span className="preview-mark"><Icon name={mark} size={11} /></span>
-          : null}
         <div className="preview-head">
           <span className="preview-named">
             <span className="preview-label card-name">{label}</span>
@@ -80,14 +72,6 @@ export function Card({ label, alias, kind, icon, role, mark, fields, shows,
           </span>
           {at === "inside" ? word : null}
         </div>
-        {shows && fields.length ? (
-          <dl className="preview-fields">
-            {fields.slice(0, 2).map((f) => (
-              <div key={f.name}><dt>{f.name}</dt>
-                <dd>{(f as Field).value ?? ""}</dd></div>
-            ))}
-          </dl>
-        ) : null}
         {at === "below" ? <span className="preview-under">{word}</span> : null}
       </div>
     </div>

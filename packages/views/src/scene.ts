@@ -66,8 +66,6 @@ export type BoxData = {
   /** How many group boundaries enclose this block. **Deeper draws in front**,
    *  so an inner band is taken hold of before the one round it. */
   nest?: number;
-  /** The fields this usage shows, already resolved to what they say. */
-  fields?: readonly { name: string; value: string }[];
   /** Which wall this is set into, on a box that is seated rather than placed.
    *  A line reaching an interface leaves by the interface's own wall, which is
    *  the one fact about it a router cannot work out from two rectangles. */

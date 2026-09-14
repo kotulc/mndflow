@@ -72,7 +72,6 @@ function seen(p: NodeProps<BoxNode>): string {
     look_key(d.look),
     d.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(","),
     d.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(","),
-    d.fields?.map((f) => `${f.name}=${f.value}`).join(","),
     d.seats?.map((t) => `${t.id}${t.side}${t.at}`).join(","),
   ].join("|");
 }
@@ -210,6 +209,7 @@ function dressed(look: Look) {
     "data-label-weight": look.label_weight,
     "data-label": look.label,
     "data-align": look.align,
+    "data-label-align": look.label_align,
     ...(look.border_contrast ? { "data-border-contrast": look.border_contrast } : {}),
     ...(look.name_contrast ? { "data-name-contrast": look.name_contrast } : {}),
     ...(look.label_contrast ? { "data-label-contrast": look.label_contrast } : {}),
@@ -287,8 +287,7 @@ function Holds({ cells }: { cells: readonly Cell[] }) {
  *  reference, a note, a lane, a cell.
  *
  *  Composed rather than styled: a head that carries the name and the subtype it
- *  names, then whatever the layout asks for beneath it — the children a
- *  container holds, or the fields a note shows. */
+ *  names, then the children a container holds beneath it. */
 function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
   useSeats(id, data.seats);
   const look = data.look ?? PLAIN;
@@ -302,12 +301,7 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
          {...dressed(look)} data-def={data.def} title={data.label}>
       <Brim />
       <Wears role={data.role} icon={data.look?.icon} />
-      {/* **The other corner.** What sort of thing it is sits top right; what
-          its vocabulary flags about it sits bottom right, quietly, so the two
-          never argue over one place. */}
-      {look.mark && known(look.mark)
-        ? <span className="mnd-mark"><Icon name={look.mark} size={11} /></span>
-        : null}
+      {/* **The bottom-right corner is reserved** for a system mark. See ST.19. */}
       {label === "above"
         ? <span className="mnd-over mnd-kind card-label">{look.kind}</span> : null}
       <div className="mnd-head">
@@ -329,16 +323,6 @@ function CardNode({ id, data, selected }: NodeProps<BoxNode>) {
       {label === "below"
         ? <span className="mnd-under mnd-kind card-label">{look.kind}</span> : null}
       {data.cells?.length ? <Holds cells={data.cells} /> : null}
-      {data.fields?.length ? (
-        <dl className="mnd-fields">
-          {data.fields.map((f) => (
-            <div key={f.name}>
-              <dt>{f.name}</dt>
-              <dd>{f.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );
@@ -363,13 +347,6 @@ function NoteNode({ id, data, selected }: NodeProps<BoxNode>) {
           the card's own corner rather than in a row of its own. */}
       <Wears role={data.role} />
       <Name id={id} className="mnd-note-text" text={data.label} />
-      {data.fields?.length ? (
-        <dl className="mnd-fields">
-          {data.fields.map((f) => (
-            <div key={f.name}><dt>{f.name}</dt><dd>{f.value}</dd></div>
-          ))}
-        </dl>
-      ) : null}
       {data.seats?.length ? <Seats seats={data.seats} /> : null}
     </div>
   );

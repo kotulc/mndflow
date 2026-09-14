@@ -6,7 +6,7 @@
  *  the tray stores nothing and writes nothing. */
 
 import { alias_of, base_line, children, def_of, edges_in, is_interface, isa, label_of,
-         module_of, path, shipped, shown_name,
+         module_of, path, shipped, shown_name, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. Coarser than `kind`: a
@@ -112,11 +112,11 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
 }
 
 
-/** One relation definition, as the definitions tab lists it. */
+/** One definition, as the definitions tab lists it. */
 export type DefRow = {
   id: Id;
   name: string;
-  /** What a line naming it draws; blank for none. */
+  /** What a line naming it draws; blank for none, and always for a block's. */
   label: string;
   /** What it extends — blank for the base line. */
   extends: Id;
@@ -124,23 +124,25 @@ export type DefRow = {
   base: boolean;
   /** The package it came from, where somebody else wrote it. */
   from: string;
-  /** Lines following it — naming it, or naming nothing where it is the base. */
+  /** Usages of **this definition only**, never of what extends it. */
   used: number;
 };
 
-/** **Every relation definition the workspace can name**, the base first and
- *  then by name. A roster: an unused one is exactly what it has to show, and a
- *  name refused as taken has to be findable here. */
-export function def_rows(graph: Graph): DefRow[] {
-  const floor = base_line(graph)?.id;
+/** **Every definition of one group the workspace can name**, the base first
+ *  and then by name. A roster: an unused one is exactly what it has to show, and
+ *  a name refused as taken has to be findable here. */
+export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
+  const floor = group === "relation" ? base_line(graph)?.id : undefined;
   const used = new Map<string, number>();
-  for (const e of Object.values(graph.edges)) {
-    const d = def_of(graph, e.id);
+  const usages = group === "relation" ? Object.keys(graph.edges)
+    : Object.keys(graph.blocks).filter((id) => id !== graph.root);
+  for (const id of usages) {
+    const d = def_of(graph, id);
     if (d) used.set(d, (used.get(d) ?? 0) + 1);
   }
   return Object.values(graph.defs)
     /** **The shipped floor is not listed**: nobody chose it, and nothing edits it. */
-    .filter((d) => d.group === "relation" && !shipped(d))
+    .filter((d) => d.group === group && !shipped(d))
     .map((d): DefRow => ({
       id: d.id, name: d.name, label: d.label ?? "", extends: d.extends ?? "",
       base: d.id === floor, from: d.from ?? "", used: used.get(d.id) ?? 0,
@@ -181,6 +183,27 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
     def: e.type && e.type !== base_line(graph)?.id ? e.type : "",
     label: label_of(graph, e.id),
+  })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
+}
+
+/** The blocks in a layer, or **every block there is** for the workspace, as
+ *  the usages tab lists them. `what` is the kind, since a block joins nothing. */
+export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean): UsageRow[] {
+  const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
+    .filter(Boolean).join(" ");
+  const blocks = deep
+    ? subtree(graph, graph.root).filter((id) => id !== graph.root).map((id) => graph.blocks[id]!)
+    : children(graph, layer);
+  return blocks.map((b) => ({
+    id: b.id,
+    name: called(b.id),
+    what: module_of(graph, b.id),
+    layer: layer_path(graph, b.id),
+    module: module_of(graph, b.id),
+    chain: isa(graph, def_of(graph, b.id)).map((d) => d.id),
+    def: b.type && !shipped(graph.defs[b.type] ?? { id: b.type, group: "block", name: "" })
+      ? b.type : "",
+    label: "",
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 

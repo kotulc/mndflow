@@ -100,8 +100,8 @@
   pointer-events: none;
 }
 
-[data-align="center"] > .mnd-under { text-align: center; }
-[data-align="right"] > .mnd-under { text-align: right; }
+[data-label-align="center"] > .mnd-under { text-align: center; }
+[data-label-align="right"] > .mnd-under { text-align: right; }
 
 /* Over the card, in the same gutter and by the same means. **The label is the
    one writing that may leave the box**, so both sides of it are the layout's
@@ -119,8 +119,8 @@
   pointer-events: none;
 }
 
-[data-align="center"] > .mnd-over { text-align: center; }
-[data-align="right"] > .mnd-over { text-align: right; }
+[data-label-align="center"] > .mnd-over { text-align: center; }
+[data-label-align="right"] > .mnd-over { text-align: right; }
 
 /* **Two lines, where there is room for two.** A name clipped mid-word says less
    than a name that wrapped, and the card has the height for it whenever the
@@ -140,21 +140,6 @@
 [data-align="right"] > .mnd-head > .mnd-named { justify-content: flex-end; }
 [data-align="center"] > .mnd-note-text { text-align: center; }
 [data-align="right"] > .mnd-note-text { text-align: right; }
-
-/* The other corner: what a vocabulary flags about this one, as against what it
-   is. **Quiet on purpose** — the mark says *and also this*, so it is read after
-   the name and the kind rather than before them. */
-.mnd-mark {
-  position: absolute;
-  bottom: 2px;
-  right: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--card-dim);
-  opacity: 0.75;
-  pointer-events: none;
-}
 
 .mnd-alias {
   flex: none;
@@ -302,26 +287,6 @@
 .mnd-cell.container { border-color: color-mix(in oklch, var(--card-line) 45%, transparent); }
 .mnd-cell.reference { color: var(--away); font-style: italic; }
 .mnd-cell.note { color: var(--note); font-style: italic; }
-
-/* The fields a card shows, where its layout asks for them. */
-.mnd-fields {
-  margin: 2px 0 0;
-  flex: none;
-  font-size: 10px;
-  color: var(--muted);
-  pointer-events: none;
-  overflow: hidden;
-}
-.mnd-fields > div { display: flex; gap: 6px; }
-.mnd-fields dt { flex: none; opacity: 0.7; }
-.mnd-fields dd {
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--text);
-}
 
 /* Somewhere else, and a description rather than structure. */
 /* **A reference and a note are ordinary cards now.** Both were drawn here by a

@@ -662,8 +662,6 @@ function merge_at_span(g: Block, r: number, c: number): Span | null {
   return g.merges?.find((s) => covers(s, r, c)) ?? null;
 }
 
-/** A definition's components without one key, and no `components` at all once
- *  the last one goes — nothing still at its default is written. */
 /** **What the old style vocabulary called each key.** One map, read by both
  *  repairs — a definition says it in `components` and a block says it in
  *  `looks`, and they are the same bag one layer apart.
@@ -674,7 +672,7 @@ const RENAMED: Record<string, Record<string, string | null>> = {
   style: { slot: "family", weight: "border_width", line: "border_contrast",
            voice: "name_weight", decor: "name_font", ink: "name_contrast",
            set: null },
-  card: { name: null },
+  card: { name: null, mark: null, shows: null },
 };
 
 /** Every stale property one holder says, as the moves that would mend it. */
@@ -715,6 +713,8 @@ function renaming(components: Definition["components"]): Definition["components"
   return moved ? out : null;
 }
 
+/** A definition's components without one key, and no `components` at all once
+ *  the last one goes — nothing still at its default is written. */
 function without(components: Definition["components"], key: string): Definition["components"] {
   const out = { ...components };
   delete out[key];

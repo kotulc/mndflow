@@ -7,10 +7,8 @@
 import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
          INTENSITY, OPACITY, SHOWN, WEIGHTS, WIDTHS } from "@mnd/core";
 
-/** The parts of a drawing, and the questions each part is asked. **The last two
- *  are one question twice**: which mark sits in which corner — what sort of
- *  thing it is, and whatever else its vocabulary wants to flag. */
-const GROUPS = ["name", "label", "head", "colour", "fill", "border", "icon", "mark"] as const;
+/** The parts of a drawing, and the questions each part is asked. */
+const GROUPS = ["name", "label", "head", "colour", "border", "icon"] as const;
 export type Group = (typeof GROUPS)[number];
 
 /** The parts, in the order the rail lists them. */
@@ -21,11 +19,9 @@ export const parts_in_order = (): readonly Group[] => GROUPS;
 export const AS_RUN: Partial<Record<Group, string>> = { border: "stroke" };
 
 /** **Which component makes each part meaningful**, which is what the rail
- *  filters on. Not where the keys are validated — `style.fill` is a `style` key
- *  and a run has nothing to fill — but what the part is a part *of*. */
+ *  filters on — what the part is a part *of*. */
 export const ASKS: Record<Group, string> = {
-  name: "style", label: "card", head: "line", colour: "style",
-  fill: "card", border: "style", icon: "card", mark: "card",
+  name: "style", label: "card", head: "line", colour: "style", border: "style", icon: "card",
 };
 
 export type Key = "card" | "style" | "line";
@@ -33,7 +29,6 @@ export type Key = "card" | "style" | "line";
 /** One question. **`form` says how it is answered**:
  *
  *  - `chips` — a word from a closed set
- *  - `words` — a list of field names, typed, because they belong to one usage
  *  - `range` — a number between two ends, with what it draws when unsaid
  *  - `marks` — every mark this build ships, as a grid
  *
@@ -41,7 +36,7 @@ export type Key = "card" | "style" | "line";
  *  a card makes none of a line. */
 export type Question = {
   word: string; key: Key; name: string; tip: string;
-  form: "chips" | "words" | "range" | "marks";
+  form: "chips" | "range" | "marks";
   of?: readonly { value: string; word: string }[];
   omit?: readonly string[];
   range?: { min: number; max: number; step: number; fallback: string };
@@ -49,20 +44,12 @@ export type Question = {
 
 const plain = (of: readonly string[]) => of.map((v) => ({ value: v, word: v }));
 
-/** The two questions every identity line is asked, under whichever component
- *  owns it. **One table, two holders** — a card asks them of `card` and a run
- *  of `line`, and the filter by what a module honours picks. */
-const IDENTITY = (key: Key): Question[] => [
-  { word: "shown", key, name: "name", form: "chips",
-    tip: "Whether the identity line is drawn at all — the name, or the kind and "
-       + "handle that stand in where nobody has named it. Hiding it never makes "
-       + "this harder to find: the tree and the tray read the name regardless.",
-    of: plain(SHOWN) },
-  { word: "handle", key, name: "alias", form: "chips",
-    tip: "Whether the handle joins a name somebody did set. What stands in for a "
-       + "name always carries one, which is the whole reason it has one.",
-    of: plain(SHOWN) },
-];
+/** Whether the handle joins a name, asked under whichever component owns it. */
+const HANDLE = (key: Key): Question =>
+  ({ word: "handle", key, name: "alias", form: "chips",
+     tip: "Whether the handle joins a name somebody did set. What stands in for a "
+        + "name always carries one, which is the whole reason it has one.",
+     of: plain(SHOWN) });
 
 export const ROWS: Record<Group, Question[]> = {
   name: [
@@ -75,16 +62,19 @@ export const ROWS: Record<Group, Question[]> = {
       tip: "How far the name stands out from the card behind it.",
       of: plain(CONTRASTS) },
     { word: "align", key: "card", name: "align", form: "chips",
-      tip: "Which end of the card its writing reads from.", of: plain(ALIGNS) },
-    ...IDENTITY("card"),
-    ...IDENTITY("line"),
-    /** **Which values the card writes under its name.** A card's question only:
-     *  a run holds no values, so the filter drops it there. */
-    { word: "shows", key: "card", name: "shows", form: "words",
-      tip: "Which of this usage's fields the card writes under its name, in the "
-         + "order it writes them. Names, separated by commas." },
+      tip: "Which end of the card the name reads from.", of: plain(ALIGNS) },
+    /** **A card always writes its name**; a run may leave its own off. */
+    { word: "shown", key: "line", name: "name", form: "chips",
+      tip: "Whether the run writes its name — the label of the definition it follows.",
+      of: plain(SHOWN) },
+    HANDLE("card"),
+    HANDLE("line"),
   ],
   label: [
+    { word: "display", key: "card", name: "label", form: "chips",
+      tip: "Where the label sits: over the card, in it, under it, or nowhere. "
+         + "The label is the subtype where one is named, the base kind otherwise.",
+      of: plain(DISPLAYS) },
     { word: "font", key: "style", name: "label_font", form: "chips",
       tip: "How the label is faced.", of: plain(FONTS) },
     { word: "weight", key: "style", name: "label_weight", form: "chips",
@@ -92,10 +82,8 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "contrast", key: "style", name: "label_contrast", form: "chips",
       tip: "How far the label stands out from the card behind it.",
       of: plain(CONTRASTS) },
-    { word: "display", key: "card", name: "label", form: "chips",
-      tip: "Where the label sits: over the card, in it, under it, or nowhere. "
-         + "The label is the subtype where one is named, the base kind otherwise.",
-      of: plain(DISPLAYS) },
+    { word: "align", key: "card", name: "label_align", form: "chips",
+      tip: "Which end of the card the label reads from.", of: plain(ALIGNS) },
   ],
   /** **What draws where a run ends**, which is what a run has in place of a face. */
   head: [
@@ -127,6 +115,10 @@ export const ROWS: Record<Group, Question[]> = {
          + "hue and intensity, and the theme is what picks it — so retro paints "
          + "primary green where modern paints it teal.",
       of: plain(FAMILIES) },
+    { word: "pattern", key: "style", name: "fill", form: "chips",
+      tip: "What fills the card behind its writing. Pattern, never colour — a "
+         + "hatch follows whatever family or hue the card was given.",
+      of: plain(FILLS) },
     { word: "hue", key: "style", name: "hue", form: "range",
       tip: "The angle this paints itself at. Set, it takes precedence over the family.",
       range: { ...HUE, step: 1, fallback: "200" } },
@@ -139,20 +131,9 @@ export const ROWS: Record<Group, Question[]> = {
          + "however far the ground shows through.",
       range: { ...OPACITY, step: 0.02, fallback: "1" } },
   ],
-  fill: [
-    { word: "pattern", key: "style", name: "fill", form: "chips",
-      tip: "What fills the card behind its writing. Pattern, never colour — a "
-         + "hatch follows whatever family or hue the card was given.",
-      of: plain(FILLS) },
-  ],
   icon: [
     { word: "icon", key: "card", name: "icon", form: "marks",
       tip: "The mark drawn in its top corner instead of the one its role would. "
          + "Nothing lit is the role's own mark." },
-  ],
-  mark: [
-    { word: "mark", key: "card", name: "mark", form: "marks",
-      tip: "A quiet mark in its bottom corner — whatever this vocabulary wants to "
-         + "flag about a usage. It says nothing to the engine." },
   ],
 };

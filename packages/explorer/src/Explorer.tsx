@@ -12,7 +12,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { alias_of, children, is_interface, is_named, is_reference,
-         module_named, module_of, shipped, shown_name, vocabulary,
+         module_named, module_of, pinned_defs, shipped, shown_name, vocabulary,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
@@ -108,7 +108,8 @@ function vocab_of(graph: Graph, folded: readonly Id[]): Row[] {
   if (!groups.length) return [];
   const listed = groups.flatMap((g) => g.defs);
   const base = listed.filter(shipped).sort((a, b) => a.name.localeCompare(b.name));
-  const own = listed.filter((d) => !shipped(d) && !d.from);
+  /** **The workspace folder lists what the workspace pinned**, in pin order. */
+  const own = pinned_defs(graph, "block").filter((d) => !shipped(d) && !d.from);
   const packs = groups.map((g) => ({ ...g, defs: g.defs.filter((d) => !shipped(d)) }))
     .filter((g) => g.from !== null && g.defs.length);
 

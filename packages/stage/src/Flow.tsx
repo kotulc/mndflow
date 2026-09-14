@@ -412,7 +412,6 @@ function signature(scene: Scene, frame: Frame | null): string {
          *  line moves nothing and renames nothing; what it changes is the
          *  cells, and a signature blind to them left the old grid drawn. */
         n.data.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(""),
-        n.data.fields?.map((f) => `${f.name}=${f.value}`).join(""),
         /** **Where a line meets this card is part of what it draws.** Pinning
          *  an end to another wall moves nothing and renames nothing; what it
          *  moves is a handle, and a signature blind to that leaves the line

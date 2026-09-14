@@ -13,11 +13,13 @@ import { Project } from "./Project";
 
 export type StylesProps = {
   graph: Graph; id: Id; onAct: Act;
+  /** What the style column writes: the id, or the definition it follows. */
+  styled?: Id;
   /** The name a line's working template will be saved as. */
   working?: string;
 };
 
-export function Styles({ graph, id, onAct, working = "" }: StylesProps) {
+export function Styles({ graph, id, styled = id, onAct, working = "" }: StylesProps) {
   const root = id === graph.root;
   /** **A body is a block's** — the workspace's included, as its description —
    *  and never a relationship's or a definition's. */
@@ -26,7 +28,7 @@ export function Styles({ graph, id, onAct, working = "" }: StylesProps) {
     <div className="settings">
       <div className={["styles", graph.defs[id] ? "definition" : ""].filter(Boolean).join(" ")}>
         <Identity graph={graph} id={id} onAct={onAct} working={working} />
-        {root ? <Project graph={graph} /> : <Looks graph={graph} id={id} onAct={onAct} />}
+        {root ? <Project graph={graph} /> : <Looks graph={graph} id={styled} onAct={onAct} />}
       </div>
       {bodied ? <Content key={id} graph={graph} id={id} onAct={onAct} /> : null}
     </div>

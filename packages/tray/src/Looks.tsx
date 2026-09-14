@@ -72,18 +72,6 @@ function Answer({ q, read, set, off, runs }: {
   const own = said(q.key, q.name);
   const mine = own !== undefined;
 
-  /** **A list of names is typed, not picked** — they belong to this one usage. */
-  if (q.form === "words") {
-    const value = Array.isArray(own) ? own.join(", ") : String(own ?? "");
-    return (
-      <Line label={q.word} tip={q.tip} off={off}>
-        <input value={value} aria-label={q.name} disabled={off}
-               placeholder={chain(q.key, q.name) || "none"}
-               onChange={(e) => set(q.key, q.name, e.target.value)} />
-      </Line>
-    );
-  }
-
   /** **A quantity is a slider**, with a way back to whatever it inherits. */
   if (q.form === "range") {
     const r = q.range!;

@@ -1,12 +1,10 @@
-/** The definitions tab: **every relation definition a line can name**, in one
- *  table over the whole workspace.
+/** The definitions tab: **every definition of one group the workspace can
+ *  name**, in one table — relation definitions for a line, block definitions for
+ *  a block.
  *
- *  A definition is a name, an optional label and what it extends. The label is
- *  what a line naming it draws — a stereotype, exactly as typed — and is its
- *  own: extending a definition and giving it another label is how one look
- *  carries several names. **A name is unique among relation definitions**, so
- *  one refused as taken is always here to be found; a block definition may
- *  share it.
+ *  A definition is a name and what it extends; a relation definition also has a
+ *  label, what a line naming it draws, exactly as typed. **A name is unique
+ *  within its group**, so one refused as taken is always here to be found.
  *
  *  | row | edits |
  *  |---|---|
@@ -19,7 +17,8 @@
  *  points them at it. Picking alone never changes a drawing. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, type Act, type Graph, type Id } from "@mnd/core";
+import { def_named, def_of, isa, may_retype, shipped, type Act, type Graph,
+         type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { Choice, Table, type Column } from "./Table";
 import { def_rows, type DefRow } from "./rows";
@@ -32,6 +31,9 @@ const COLUMNS: readonly Column[] = [
   { key: "view", label: "", width: "4.5em" },
 ];
 
+/** A block definition has no label. */
+const BLOCK_COLUMNS = COLUMNS.filter((c) => c.key !== "label");
+
 const SORTS = [
   { key: "all", word: "all" },
   { key: "labelled", word: "labelled" },
@@ -42,9 +44,11 @@ type Only = (typeof SORTS)[number]["key"];
 
 export type DefinitionsProps = {
   graph: Graph;
+  /** Which definitions: a block's or a line's. */
+  group: "block" | "relation";
   /** The definition the tray has hold of, lit. */
   held: Id | null;
-  /** The lines selected on the canvas, which *apply* points at the picked row. */
+  /** What is selected on the canvas, which *apply* points at the picked row. */
   lines: readonly Id[];
   /** What a new row extends until another is picked — the one in hand. */
   from: Id;
@@ -60,28 +64,33 @@ export function taken(graph: Graph, name: string, group: "block" | "relation",
   return !other || other.id === self ? null : `${other.name} already exists`;
 }
 
-export function Definitions({ graph, held, lines, from, onPick, onAct }: DefinitionsProps) {
+export function Definitions({ graph, group, held, lines, from, onPick, onAct }: DefinitionsProps) {
   const [only, set_only] = useState<Only>("all");
   const [name, set_name] = useState("");
   const [label, set_label] = useState("");
   const [up, set_up] = useState<Id | null>(null);
 
-  const rows = def_rows(graph);
+  const rows = def_rows(graph, group);
   const base = rows.find((r) => r.base)?.id;
   const fits = (r: DefRow, k: Only) =>
     k === "all" || (k === "package" ? !!r.from : !!r.label);
+  const sorts = group === "relation" ? SORTS : SORTS.filter((s) => s.key !== "labelled");
 
-  /** What a definition may extend: never itself or anything below it. */
-  const above = (self: Id | null) => rows
+  /** What a definition may extend: never itself or anything below it. **A block
+   *  definition may extend a shipped kind**, which is where every one roots. */
+  const floor = group === "block"
+    ? Object.values(graph.defs).filter((d) => d.group === "block" && shipped(d))
+        .map((d) => ({ id: d.id, name: d.name })) : [];
+  const above = (self: Id | null) => [...floor, ...rows]
     .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)))
     .map((r) => ({ value: r.id, word: r.name }));
 
   const extend = up && graph.defs[up] ? up : from;
-  const clash = name.trim() ? taken(graph, name, "relation") : null;
+  const clash = name.trim() ? taken(graph, name, group) : null;
   const add = () => {
     if (!name.trim() || clash) return;
-    onAct("define", { name: name.trim(), group: "relation", extends: extend,
-                      label: label.trim() });
+    onAct("define", { name: name.trim(), group, extends: extend,
+                      ...(group === "relation" ? { label: label.trim() } : {}) });
     set_name("");
     set_label("");
     set_up(null);
@@ -89,12 +98,12 @@ export function Definitions({ graph, held, lines, from, onPick, onAct }: Definit
 
   return (
     <Table
-      columns={COLUMNS}
+      columns={group === "relation" ? COLUMNS : BLOCK_COLUMNS}
       picked={held ? [held] : []}
       onPick={onPick}
       empty="nothing of that sort"
       chips={[{ key: "sort", on: only, onPick: (k) => set_only(k as Only),
-                of: SORTS.map((s) => ({ ...s, count: rows.filter((r) => fits(r, s.key)).length })) }]}
+                of: sorts.map((s) => ({ ...s, count: rows.filter((r) => fits(r, s.key)).length })) }]}
       rows={rows.filter((r) => fits(r, only)).map((r) => {
         const mine = !r.from;
         return {
@@ -104,21 +113,23 @@ export function Definitions({ graph, held, lines, from, onPick, onAct }: Definit
             /** **Renamed in place**; the id stays, so nothing naming it is retyped. */
             name: mine ? (
               <Entry value={r.name} label={`rename ${r.name}`}
-                     clash={(to) => taken(graph, to, "relation", r.id)}
+                     clash={(to) => taken(graph, to, group, r.id)}
                      onCommit={(to) => onAct("rename_def", { id: r.id, name: to })} />
             ) : `${r.name} · ${r.from}`,
             label: mine ? (
               <Entry value={r.label} label={`label of ${r.name}`} placeholder="no label" blank
-                     onCommit={(to) => onAct("define", { name: r.name, group: "relation", label: to })} />
+                     onCommit={(to) => onAct("define", { name: r.name, group, label: to })} />
             ) : r.label,
             extends: !mine || r.base ? graph.defs[r.extends]?.name ?? "" : (
               <Choice value={r.extends} label={`what ${r.name} extends`} of={above(r.id)}
-                      onPick={(id) => onAct("define", { name: r.name, group: "relation", extends: id })} />
+                      onPick={(id) => onAct("define", { name: r.name, group, extends: id })} />
             ),
             used: String(r.used),
             /** **Only on the row picked, and only where a line would change.** */
-            view: r.id === held && lines.some((id) => def_of(graph, id) !== r.id) ? (
-              <button className="chip" title={`point the selected lines at ${r.name}`}
+            view: r.id === held && lines.some((id) => def_of(graph, id) !== r.id
+                                                      && (group === "relation"
+                                                          || may_retype(graph, id, r.id))) ? (
+              <button className="chip" title={`point the selection at ${r.name}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onAct("retype", { ids: [...lines], type: r.base ? "" : r.id });
@@ -131,7 +142,7 @@ export function Definitions({ graph, held, lines, from, onPick, onAct }: Definit
            *  and anything extending it extends what it extended. */
           /** **The tray stays on definitions**: what was held goes to the base. */
           ...(mine && !r.base ? { drop: `remove ${r.name}`, onDrop: () => {
-            onAct("unpin", { id: r.id });
+            onAct("remove_def", { id: r.id });
             if (base && r.id === held) onPick(base);
           } } : {}),
         };

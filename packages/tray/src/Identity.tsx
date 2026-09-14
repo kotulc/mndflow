@@ -20,7 +20,7 @@
 
 import { useState } from "react";
 import { alias_of, BASE_PACKAGE, base_line, def_of, isa, kind_word, may_retype, module_of,
-         pinned_lines, relations, role_of, shipped, shown_name,
+         pinned_defs, relations, role_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -59,20 +59,18 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
   /** **The definition the boxes are about.** */
   const own = runs ? follows : d ?? (named ? graph.defs[named] : undefined);
   const mine = !!own && !shipped(own) && !own.from && own.id !== DRAFT;
-  const listed = pinned_lines(graph).some((x) => x.id === own?.id);
+  const listed = pinned_defs(graph, runs ? "relation" : "block").some((x) => x.id === own?.id);
 
   const role = b ? role_of(graph, id) : null;
   /** **A line's preview draws what the canvas does**: the label it follows. */
   const label = runs ? own?.label ?? "" : d ? d.name : shown_name(graph, id);
   const word = (d ?? (named ? graph.defs[named] : undefined))?.name ?? kind;
-  const shows = now("card", "shows", "");
 
-  /** How many of this the workspace holds: lines drawing through the definition,
-   *  blocks naming the definition, or blocks of the kind. */
+  /** How many of this the workspace holds: **usages of this definition only**,
+   *  never of what extends it — or, for a plain block, blocks of its kind. */
   const tally = runs
-    ? Object.values(graph.edges)
-        .filter((x) => isa(graph, def_of(graph, x.id)).some((up) => up.id === follows?.id)).length
-    : d ? Object.values(graph.blocks).filter((x) => x.type === d.id).length
+    ? Object.values(graph.edges).filter((x) => def_of(graph, x.id) === follows?.id).length
+    : own ? Object.keys(graph.blocks).filter((x) => def_of(graph, x) === own.id).length
     : Object.values(graph.blocks).filter((x) => module_of(graph, x.id) === kind).length;
   const mark: IconName = runs ? (kind === "tie" ? "relation_tie" : "relation_plain")
     : role_icon(role ?? kind);
@@ -93,8 +91,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
         ) : (
           <Card label={label} alias={b ? alias_of(graph, id) : undefined}
                 kind={word} icon={(now("card", "icon", "") || role_icon(role ?? kind)) as IconName}
-                role={role ?? kind} mark={now("card", "mark", "")}
-                fields={it.fields} shows={shows.length > 0} said={said} now={now} />
+                role={role ?? kind} said={said} now={now} />
         )}
         {!is_root ? (
           <div className="kind-rows">
@@ -204,32 +201,34 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                       && !shipped(x) && may_retype(graph, id, x.id))}
                     blank={`default/${kind}`} noun="definition"
                     onPick={(x) => onAct("retype", { ids: [id], type: x.id })}
-                    onNew={(name) => onAct("pin", { id, name })}
+                    onNew={(name) => onAct("save_def", { id, name })}
                     onClear={() => onAct("retype", { ids: [id], type: kind })} />
             {mine ? (
-              <button className="drop" title={`dissolve ${own!.name} back into everything naming it`}
-                      onClick={() => onAct("unpin", { id: own!.id })}>
+              <button className="drop" title={`remove ${own!.name}, dissolving it into everything naming it`}
+                      onClick={() => onAct("remove_def", { id: own!.id })}>
                 <Icon name="remove" />
               </button>
             ) : null}
           </Line>
         ) : null}
 
-        {/* **Where the definition is offered.** A relation definition goes on the
-            rail; a block definition may be what every plain block follows. */}
+        {/* **Where the definition is offered.** Pinned puts a relation definition
+            on the rail and a block definition in the explorer's workspace folder;
+            a block definition may also be what every plain block follows. */}
         {!is_root ? (
           <Line label="offer" className="marks"
                 tip={runs ? "Whether this definition is on the rail, so a right drag can draw one."
-                          : "Whether every plain one of its kind follows this definition."}>
-            {runs ? (
-              <label className="check" title="Offer this on the rail, so a right drag can draw one">
-                <input type="checkbox" checked={listed}
-                       disabled={!own || shipped(own) || own.id === DRAFT || wip}
-                       onChange={(e) => onAct("pin_line", { id: own!.id,
-                                                            on: e.target.checked ? "yes" : "no" })} />
-                pin line
-              </label>
-            ) : (
+                          : "Whether this definition is in the workspace folder, and whether every plain one of its kind follows it."}>
+            <label className="check"
+                   title={runs ? "Offer this on the rail, so a right drag can draw one"
+                               : "List this in the explorer's workspace folder"}>
+              <input type="checkbox" checked={listed}
+                     disabled={!own || shipped(own) || own.id === DRAFT || wip}
+                     onChange={(e) => onAct("pin", { id: own!.id,
+                                                     on: e.target.checked ? "yes" : "no" })} />
+              pinned
+            </label>
+            {runs ? null : (
               <label className="check"
                      title={`Every ${kind} that names nothing draws from this one instead of the base`}>
                 <input type="checkbox" checked={!!own?.default} disabled={!mine}

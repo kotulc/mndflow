@@ -57,12 +57,10 @@ export type Look = {
   /** Where the **label** sits — the subtype where there is one, the base kind
    *  otherwise. **The name is never asked this**: it is always drawn. */
   label: Display;
-  /** Which end of the card its writing reads from. */
+  /** Which end of the card its name reads from. */
   align: Align;
-  /** Whether the identity line is drawn — the name, or the kind and handle that
-   *  stand in where nobody has named it. Hidden gives a blank card, or a note
-   *  showing only its body. */
-  name: boolean;
+  /** Which end of the card its label reads from. */
+  label_align: Align;
   /** Whether the handle joins a name somebody **did** set. The fallback always
    *  carries one, which is the whole reason it needs one. */
   alias: boolean;
@@ -70,13 +68,8 @@ export type Look = {
    *  one, the base kind otherwise. **Always a word** — the card decides whether
    *  to write it from `label`, so there is nothing for absence to mean. */
   kind: string;
-  /** Which of a usage's fields the card shows, in the order it shows them. */
-  shows?: readonly string[];
   /** The mark this draws in its corner instead of the one its role would. */
   icon?: string;
-  /** The other corner: a quiet mark a vocabulary flags a usage with. Nothing
-   *  the engine reads — it draws it and says no more about it. */
-  mark?: string;
   /** The hue angle this paints itself with, where somebody gave one instead of
    *  naming a family. **`family` still says which it is otherwise** — a hue is
    *  the finer answer to the same question, not a second question. */
@@ -110,7 +103,7 @@ export const PLAIN: Look = {
   label_weight: DEFAULTS["style.label_weight"],
   label: DEFAULTS["card.label"],
   align: DEFAULTS["card.align"],
-  name: shows(DEFAULTS["card.name"]),
+  label_align: DEFAULTS["card.label_align"],
   alias: shows(DEFAULTS["card.alias"]),
   kind: "block",
 };
@@ -169,7 +162,7 @@ export function look_of(graph: Graph, id: Id): Look {
     label_weight: one(style["label_weight"], WEIGHTS, PLAIN.label_weight),
     label: one(card["label"], DISPLAYS, PLAIN.label),
     align: one(card["align"], ALIGNS, PLAIN.align),
-    name: one(card["name"], SHOWN, "show") === "show",
+    label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
     alias: one(card["alias"], SHOWN, "hide") === "show",
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
@@ -183,13 +176,11 @@ export function look_of(graph: Graph, id: Id): Look {
      *  drawing** — what it draws is the theme's, and a name it does not know
      *  falls back to the role mark rather than to nothing. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
-    ...(typeof card["mark"] === "string" && card["mark"] ? { mark: card["mark"] } : {}),
     /** **A number the door already bounded.** Anything else is absent rather
      *  than clamped: a look this build cannot read falls back to its family,
      *  which is what every other unreadable answer here does. */
     ...number("hue", style["hue"]),
     ...number("intensity", style["intensity"]),
-    ...listed("shows", card["shows"]),
   };
 }
 
@@ -284,12 +275,6 @@ function word(key: string, value: unknown, set: readonly string[]): Record<strin
  *  clamped: a look this build cannot read falls back like any other. */
 function number(key: string, value: unknown): Record<string, number> {
   return typeof value === "number" && Number.isFinite(value) ? { [key]: value } : {};
-}
-
-/** A list of field names, with anything that is not one dropped. */
-function listed(key: string, value: unknown): Record<string, string[]> {
-  return Array.isArray(value)
-    ? { [key]: value.filter((f): f is string => typeof f === "string") } : {};
 }
 
 /** A look as one string, for anything asking *has this changed*.

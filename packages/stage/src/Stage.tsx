@@ -95,7 +95,7 @@ function header_offers(id: string, graph: Graph): Entry[] {
 function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
   const base: (string | Entry)[] = [
     { name: "rename", label: "rename block" },
-    "open", "interface", "relate", "note", "pin"];
+    "open", "interface", "relate", "note", { name: "save_def", label: "save definition" }];
   return [...base, ...header_offers(id, graph),
           "leave", { name: "delete", label: "delete block" }];
 }
@@ -237,9 +237,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
 
   /** **What the right button offers, per thing.** Agreed rather than derived:
    *  the registry says what an action can act on, which is a wider question
-   *  than what belongs on a card's menu. **`pin` is on every one that names a
-   *  block**, because pointing at a thing that already reads the way you want
-   *  is the whole of how a definition gets made.
+   *  than what belongs on a card's menu. **Saving a definition is on every one
+   *  that names a block**, because pointing at a thing that already reads the
+   *  way you want is the whole of how a definition gets made.
    *
    *  Empty ground has no list — right there makes a block, which is one
    *  gesture doing one thing. */
@@ -249,13 +249,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** **A note is a remark, not a block.** There is nothing inside it to open
      *  and no wall to set an interface into; what is left is what it says and
      *  whether it stays. */
-    note: [{ name: "rename", label: "rename note" }, "relate", "pin",
+    note: [{ name: "rename", label: "rename note" }, "relate", { name: "save_def", label: "save definition" },
            { name: "delete", label: "delete note" }],
-    box: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
-    seat: ["rename", "open", "interface", "relate", "note", "pin", "delete"],
+    box: ["rename", "open", "interface", "relate", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
+    seat: ["rename", "open", "interface", "relate", "note", { name: "save_def", label: "save definition" }, "delete"],
     /** **A group and a grid write their name on the frame** when told to. */
     band: [{ name: "rename", label: "rename group" }, "fill",
-           { name: "chain", args: drawing }, "pin",
+           { name: "chain", args: drawing }, { name: "save_def", label: "save definition" },
            { name: "delete", label: "delete group" }],
     /** **A cell is an address, not a thing**, so what it offers is what can be
      *  done to the lattice at that address and nothing about a block. Insert
@@ -286,7 +286,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
              { name: "delete", label: "delete relation" }],
     /** **The room's wall is a border like a card's**, but an interface is chosen
      *  from the menu — a right click here is the offered list, not a shortcut. */
-    frame: ["rename", "open", "interface", "relate", "note", "pin", "leave", "delete"],
+    frame: ["rename", "open", "interface", "relate", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
   };
 
   /** **What several things offer is not what one thing offers.** Rename, open

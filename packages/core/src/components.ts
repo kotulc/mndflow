@@ -218,7 +218,7 @@ export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 export const DEFAULTS = {
   "card.label": "none",
   "card.align": "left",
-  "card.name": "show",
+  "card.label_align": "left",
   "card.alias": "hide",
   "line.name": "show",
   "line.alias": "hide",
@@ -286,37 +286,22 @@ const block: Component = {
   },
 };
 
-/** What a card is *made of* — where its label sits, which way its writing
- *  reads, the two marks in its corners and a few of its fields — rather than
- *  what it is painted, which is `style`.
+/** What a card is *made of* — where its label sits and which way each writing
+ *  reads — rather than what it is painted, which is `style`.
  *
  *  **`icon` is a name from the theme's set, not a drawing.** A name this build
- *  does not know falls back to the one the role would draw, so a card from a
- *  package this build has never seen still says what sort of thing it is.
- *
- *  **`mark` is the other corner, and it says nothing the engine knows.** `icon`
- *  says what sort of thing this is; `mark` is whatever a vocabulary wants to
- *  flag about one — drawn quietly, out of the way of the writing. It took the
- *  corner a lock used to sit in, which was engine state nobody could subtype. */
+ *  does not know falls back to the one the role would draw. The bottom corner is
+ *  the system's, and nothing here sets it. */
 const card: Component = {
   name: "card",
   check: (config) =>
     one_of("card.label", config["label"], DISPLAYS)
     ?? one_of("card.align", config["align"], ALIGNS)
-    /** **The identity line, and the handle beside it.** `name` draws what the
-     *  thing is called — the name where one is set, its kind and handle where
-     *  none is. `alias` adds the handle to a name somebody *did* set, which the
-     *  fallback already carries and a named card does not.
-     *
-     *  **`name` reverses an earlier decision** that a card without its name is
-     *  a box nobody can read. That premise went when a block gained a body: a
-     *  nameless card is not a blank one, and a note wanting only its text is
-     *  the case it was missing. */
-    ?? one_of("card.name", config["name"], SHOWN)
+    ?? one_of("card.label_align", config["label_align"], ALIGNS)
+    /** **A card always writes its name**; `alias` adds the handle to a name
+     *  somebody *did* set, which the fallback already carries. */
     ?? one_of("card.alias", config["alias"], SHOWN)
-    ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["label", "align", "shows", "icon", "mark",
-                              "name", "alias"]),
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings.

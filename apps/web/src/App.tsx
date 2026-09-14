@@ -7,7 +7,7 @@
  *  **If this file turns out to be interesting, a seam is in the wrong place.** */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, can_hold, module_named, module_of, offer, pinned_lines,
+import { adjustments, can_hold, module_named, module_of, offer, pinned_defs,
          relation_named, session,
          type Args, type Dir, type Graph, type Id, type Point,
          type RelationModule } from "@mnd/core";
@@ -122,7 +122,7 @@ export function App() {
    *  Not every relation definition — those are reached and edited in the tray,
    *  which is where a vocabulary with forty stereotypes in it can be read. */
   const offered_lines = useMemo(
-    () => pinned_lines(graph).map((d) => ({ id: d.id, name: d.name,
+    () => pinned_defs(graph, "relation").map((d) => ({ id: d.id, name: d.name,
                                             module: relation_named(graph, d.id) })),
     [graph]);
 

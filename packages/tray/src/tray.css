@@ -606,20 +606,6 @@
 .preview-role[data-role="note"] { color: var(--note-dim); }
 .preview-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
 
-/* The other corner: what a vocabulary flags about this one. Quiet, so it is
-   read after the name and the kind rather than before them. */
-.preview-mark {
-  position: absolute;
-  bottom: 2px;
-  right: 3px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--card-dim, var(--muted));
-  opacity: 0.75;
-  pointer-events: none;
-}
-
 .preview-head {
   display: flex;
   flex: 1;
@@ -687,10 +673,10 @@
 .preview-over { bottom: 100%; margin-bottom: 2px; }
 .preview-under { top: 100%; margin-top: 2px; }
 
-.preview-card[data-align="center"] .preview-over,
-.preview-card[data-align="center"] .preview-under { text-align: center; }
-.preview-card[data-align="right"] .preview-over,
-.preview-card[data-align="right"] .preview-under { text-align: right; }
+.preview-card[data-label-align="center"] .preview-over,
+.preview-card[data-label-align="center"] .preview-under { text-align: center; }
+.preview-card[data-label-align="right"] .preview-over,
+.preview-card[data-label-align="right"] .preview-under { text-align: right; }
 
 /* **The card keeps the gutter its label may sit in**, so the row below the head
    does not move as the answer changes. */
@@ -732,25 +718,6 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.preview-fields {
-  margin: 2px 0 0;
-  flex: none;
-  font-size: 10px;
-  color: var(--muted);
-  overflow: hidden;
-}
-
-.preview-fields > div { display: flex; gap: 6px; }
-.preview-fields dt { flex: none; opacity: 0.7; }
-.preview-fields dd {
-  margin: 0;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--text);
 }
 
 /* ── One answer, as a chip ────────────────────────────────────────────────

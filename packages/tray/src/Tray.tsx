@@ -22,7 +22,7 @@
 
 import { useState, type MouseEvent } from "react";
 import { BASE_LINE, base_line, children, def_named, def_of, def_slot, is_container, is_interface, isa,
-         module_of, owner_of, shown_name,
+         module_of, owner_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -75,7 +75,7 @@ export type Tab = "settings" | "fields" | "contents" | "definitions" | "usages" 
  *  **A line's settings are the definition it follows**; definitions are every
  *  one a line can name, and usages are the lines. */
 const SLOTS: Record<"block" | "workspace" | "relation", readonly Tab[]> = {
-  block: ["settings", "fields", "contents"],
+  block: ["settings", "fields", "contents", "definitions", "usages"],
   workspace: ["settings", "packages", "contents"],
   relation: ["settings", "definitions", "usages"],
 };
@@ -190,18 +190,27 @@ export function Tray(props: TrayProps) {
     }
     : line ? () => {
       if (base_unfiled(graph)) onAct?.("baseline");
-      act("pin", { id: about, name: naming });
+      act("save_def", { id: about, name: naming });
       set_working((w) => ({ ...w, [about]: "" }));
     }
     : null;
 
+  /** **What styling writes.** A block or a line naming a workspace definition
+   *  styles that definition, so every usage follows; one that names none — or
+   *  already says something of its own — keeps a working look to save. */
+  const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
+    ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
+  const instance = view.blocks[about] ?? view.edges[about];
+  const typed = instance?.type ? view.defs[instance.type] : undefined;
+  const styled: Id = about !== graph.root && instance && typed && !shipped(typed) && !typed.from
+    && !drawn_looks(instance) ? typed.id : about;
+
   /** Whether the context says anything about its drawing at all, which is what
    *  *reset style* would give back — and whether it is somebody else's. */
-  const holder = view.defs[about] ?? view.blocks[about] ?? view.edges[about];
+  const holder = view.defs[styled] ?? view.blocks[styled] ?? view.edges[styled];
   const bag = holder && ("components" in holder ? holder.components : "looks" in holder ? holder.looks : undefined);
   const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
-  const borrowed = !!view.defs[about]?.from;
-  const resettable = its_own;
+  const borrowed = !!view.defs[styled]?.from;
 
   /** **What the table is about.** A container in context lists its own
    *  contents; anything else lists the open layer. The workspace is the whole
@@ -311,13 +320,13 @@ export function Tray(props: TrayProps) {
                 that opened it: give every look back, and keep what was made. */}
             {onAct && tab === "settings" && about !== graph.root ? (
               <span className="tab-tools">
-                <button className="reset" disabled={borrowed || !resettable}
-                        title={resettable ? "give every look back to what it inherits"
+                <button className="reset" disabled={borrowed || !its_own}
+                        title={its_own ? "give every look back to what it inherits"
                                           : "it says nothing of its own to give back"}
-                        onClick={() => act("none", { ids: [about] })}>
+                        onClick={() => act("none", { ids: [styled] })}>
                   reset style
                 </button>
-                {drafting || (line && its_own) ? (
+                {drafting || (line && drawn_looks(line)) ? (
                   <button className="reset save" disabled={!save}
                           title={save ? "keep this in the table"
                             : taken ? `${naming} already exists`
@@ -331,24 +340,34 @@ export function Tray(props: TrayProps) {
           </div>
 
           {onAct && tab === "settings" ? (
-            <Styles graph={view} id={about} onAct={act} working={working[about] ?? ""} />
+            <Styles graph={view} id={about} styled={styled} onAct={act}
+                    working={working[about] ?? ""} />
           ) : null}
-          {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
+          {/* **Fields and contents are an instance's.** A held definition has none. */}
+          {onAct && tab === "fields" && view.defs[about] ? (
+            <p className="empty">pick an instance to see its fields</p>
+          ) : onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
           {onAct && tab === "packages" ? <Packages graph={graph} /> : null}
           {onAct && tab === "definitions" ? (
-            <Definitions graph={listed} held={held_def} onAct={act}
-                         lines={picked.filter((id) => !!listed.edges[id])}
+            <Definitions graph={listed} group={context === "relation" ? "relation" : "block"}
+                         held={held_def} onAct={act}
+                         lines={picked.filter((id) => context === "relation"
+                           ? !!listed.edges[id] : !!listed.blocks[id])}
                          onPick={(id) => onHold({ of: "id", id })}
-                         from={held_def ?? base_line(listed)?.id ?? BASE_LINE} />
+                         from={held_def ?? (context === "relation"
+                           ? base_line(listed)?.id ?? BASE_LINE : "block")} />
           ) : null}
           {onAct && tab === "usages" ? (
-            <Usages graph={listed} layer={layer} about={held_def}
+            <Usages graph={listed} group={context === "relation" ? "relation" : "block"}
+                    layer={layer} about={held_def}
                     picked={picked} onPick={pick_row} onHover={onHover} onAct={act}
                     {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
                     home={(id) => home_of(graph, id)} />
           ) : null}
 
-          {tab === "contents" ? (
+          {tab === "contents" && view.defs[about] ? (
+            <p className="empty">pick an instance to see its contents</p>
+          ) : tab === "contents" ? (
             <>
               {/* **The types filter is what the one thing picked resolves through**,
                   base first — never a list of every definition. */}

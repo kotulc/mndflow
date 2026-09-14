@@ -1665,7 +1665,10 @@ register(
         ...(group === "relation" && !held ? { components: { line: {} } } : {}),
         ...(components && Object.keys(components).length ? { components } : {}),
         ...(fields?.length ? { fields } : {}),
-      } }] };
+      } },
+      /** **A new block definition is pinned**, so it lists in the workspace folder. */
+      ...(group === "block" && !held
+        ? [{ op: "set_pinned" as const, ids: pinning(ctx.graph, id, true) }] : [])] };
     },
   },
   {
@@ -1741,23 +1744,19 @@ register(
   },
 );
 
-/** **`undefine` was retired, and `unpin` is the one remover.** Dropping a
- *  definition without dissolving it left every block that named it drawing
- *  differently for no reason anybody asked for — two verbs for one act, where
- *  only one of them was lossless. */
+/** The pinned list with one id added, or taken off. */
+function pinning(graph: Graph, id: Id, on: boolean): Id[] {
+  const held = graph.blocks[graph.root]?.pinned ?? [];
+  return on ? [...held.filter((x) => x !== id), id] : held.filter((x) => x !== id);
+}
 
-/** **A vocabulary built by pointing.** Point at a block that already reads the
- *  way you want and make that a definition, rather than writing one first and
- *  applying it after.
- *
- *  **The pin is the moment somebody says *these are the same kind of thing*.**
- *  That is not derivable from the graph, which is why it is stored and why
- *  customising a block files nothing on its own. `look` over a selection
- *  already covers *make these look alike, now*; this is the other need. */
+/** **A vocabulary built by pointing.** Point at a block or a line that already
+ *  reads the way you want and save that as a definition, rather than writing
+ *  one first and applying it after. */
 register(
   {
-    name: "pin",
-    about: "makes this look a definition anything else can name",
+    name: "save_def",
+    about: "saves how this looks as a definition anything else can name",
     /** **A run is pinned exactly as a card is.** It carries the same bag one
      *  layer apart, so *point at a thing that already reads the way you want*
      *  is one act over both — and a relation vocabulary has a home at last. */
@@ -1775,7 +1774,7 @@ register(
      *  the name rather than with the id it slugged to. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "pick a block or a line to pin";
+      if (!ctx.graph.blocks[id] && !ctx.graph.edges[id]) return "pick a block or a line to save";
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
       const held = def_named(ctx.graph, name, ctx.graph.edges[id] ? "relation" : "block");
@@ -1824,58 +1823,55 @@ register(
           out.push({ op: "set_look", id, key, name: prop, value: null });
         }
       }
-      return { mutations: out, effect: { say: `pinned ${name}` } };
+      /** **A block definition is pinned as it is saved**, so it lists in the
+       *  explorer's workspace folder; a relation definition waits to be put on
+       *  the rail. */
+      if (!edge) out.push({ op: "set_pinned", ids: pinning(ctx.graph, def.id, true) });
+      return { mutations: out, effect: { say: `saved ${name}` } };
     },
   },
-  /** **Listing a template is not making one.** Two acts and two checkboxes:
-   *  *make template* mints a definition from what a run says, and this offers
-   *  one on the rail — so `pin` and `unpin` go on meaning mint and dissolve,
-   *  and nothing had to be renamed to make room.
+  /** **Pinning offers a definition; it never makes or removes one.** A relation
+   *  definition pinned is on the rail, a block definition pinned is in the
+   *  explorer's workspace folder.
    *
    *  **The list is the workspace's, never a flag on the definition**, because
-   *  `borrowed` refuses every write to one carrying `from` — and a template
-   *  brought in by a package is exactly what somebody wants on the rail. */
+   *  `borrowed` refuses every write to one carrying `from` — and a package's
+   *  definition is exactly what somebody may want offered. */
   {
-    name: "pin_line",
-    about: "offers a relation template on the rail, or takes it off",
+    name: "pin",
+    about: "offers a definition on the rail or in the workspace folder, or takes it off",
     on: ["layer"],
     args: [{ name: "id", form: "text", required: true },
            { name: "on", form: "choice", choices: ["yes", "no"] }],
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      const d = ctx.graph.defs[id];
-      if (!d) return `there is nothing called "${id}" to pin`;
-      return d.group === "relation" ? null : `"${d.name}" defines a block, not a line`;
+      return ctx.graph.defs[id] ? null : `there is nothing called "${id}" to pin`;
     },
     run: (ctx, args) => {
       const id = id_of(args, "id");
-      const ws = ctx.graph.blocks[ctx.graph.root];
-      const held = ws?.pinned ?? [];
+      const d = ctx.graph.defs[id];
+      const held = ctx.graph.blocks[ctx.graph.root]?.pinned ?? [];
       /** **Absent means toggle**, so one control can ask for either and a caller
        *  that knows the state can still say which it wants. */
       const said = args["on"] === undefined ? null : text(args, "on") === "yes";
       const want = said ?? !held.includes(id);
-      const ids = want ? [...held.filter((x) => x !== id), id] : held.filter((x) => x !== id);
-      const name = ctx.graph.defs[id]?.name ?? id;
-      return { mutations: [{ op: "set_pinned", ids }],
-               effect: { say: want ? `${name} is on the rail` : `${name} is off the rail` } };
+      const where = d?.group === "relation" ? "the rail" : "the workspace folder";
+      return { mutations: [{ op: "set_pinned", ids: pinning(ctx.graph, id, want) }],
+               effect: { say: `${d?.name ?? id} is ${want ? "in" : "out of"} ${where}` } };
     },
   },
   {
-    name: "unpin",
+    name: "remove_def",
     about: "dissolves a definition back into everything that named it, and drops it",
     on: ["layer"],
     /** **One act, and lossless.** What the definition said goes into each
      *  block's own `looks`, its field schema into each block's `fields` with no
      *  values, and only then is it dropped — so nothing about the drawing
-     *  changes and nothing has to be put back by hand.
-     *
-     *  A `ws.<kind>` override is unpinned the same way: no block *names* it, so
-     *  there is nothing to dissolve, and dropping it brings the base row back. */
+     *  changes and nothing has to be put back by hand. */
     args: [{ name: "id", form: "text", required: true }],
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      if (!ctx.graph.defs[id]) return `there is nothing called "${id}" to unpin`;
+      if (!ctx.graph.defs[id]) return `there is nothing called "${id}" to remove`;
       return borrowed(ctx.graph, id);
     },
     /** **Defensive about a definition that is not there.** `check` refuses one,
@@ -1932,10 +1928,8 @@ register(
         if (sub.extends === id) out.push({ op: "set_def", def: { ...sub, extends: d?.extends } });
       }
 
-      /** **Off the rail as it goes.** `pinned_lines` already skips an id whose
-       *  definition is gone, so this is tidiness rather than a repair — but a
-       *  shortlist that quietly holds the dead is one an undo brings back
-       *  pointing at nothing. */
+      /** **Unpinned as it goes.** `pinned_defs` already skips an id whose
+       *  definition is gone, so this is tidiness rather than a repair. */
       const ws = ctx.graph.blocks[ctx.graph.root];
       if ((ws?.pinned ?? []).includes(id)) {
         out.push({ op: "set_pinned", ids: ws!.pinned!.filter((x) => x !== id) });
@@ -2055,9 +2049,7 @@ const LOOKS: readonly string[] = ["card", "style", "line", "rules"];
  *  readily as *flow*, and splitting on whitespace turned one name into two that
  *  nothing could ever satisfy — so a rule stating the one field the sample
  *  ships reported two violations against a field that was answered. */
-const LISTS: readonly string[] = [
-  "card.shows", "rules.required", "rules.holds", "rules.match",
-];
+const LISTS: readonly string[] = ["rules.required", "rules.holds", "rules.match"];
 
 /** The rule kinds a look may not state. **Both are nested records** — `ends`
  *  has a `from` and a `to`, `degree` an `in` and an `out` — and a look says one
