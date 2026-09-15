@@ -1,20 +1,6 @@
-/** What a relationship looks like.
- *
- *  **The run is ours**; what the library gives is the frame to draw it in. A
- *  run bends square and gets round what it passes, and what it says is set
- *  beside it: its name in the middle, and whatever values it draws at each end.
- *
- *  **It is painted from the same table a card is.** `style` is shared across a
- *  block, an interface and a line, so the attributes below are the ones
- *  `look_of` names and the ones `card.css` reads — which is what keeps a
- *  vocabulary looking like one family whether it drew a box or a run.
- *
- *  A name is HTML rather than SVG text, so it takes the ramp's type like
- *  everything else on the page: one font stack, one set of steps, and a name
- *  that can be hovered and right-clicked like the line it belongs to. SVG text
- *  could do none of those without a second copy of the type scale. */
+/** What a relationship looks like. */
 
-import { type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import { BaseEdge, EdgeLabelRenderer, Position, useInternalNode,
          type EdgeProps } from "@xyflow/react";
 import { drawn, heads, knot_face, knotted, middle_of, route, BARE, type LineEdge,
@@ -24,21 +10,13 @@ import { head_url, Heads, Name, useNaming } from "@mnd/theme";
 const FACE = { top: Position.Top, right: Position.Right,
                bottom: Position.Bottom, left: Position.Left } as const;
 
-/** How square a right-angled corner is. Small enough to read as a corner, big
- *  enough not to look like an artefact at the zoom a whole layer is seen at. */
+/** How square a right-angled corner is. */
 const BEND = 6;
 
-/** How a run paints itself, as the attributes `card.css` already reads.
- *
- *  **A tint is the family question asked finer**, exactly as it is on a card: a
- *  hue somebody picked arrives as two custom properties and the family table
- *  computes its six steps from them. */
+/** How a run paints itself, as the attributes `card.css` already reads. */
 function paint(look: Look): { attrs: Record<string, string>; style: CSSProperties } {
   const tinted = look.hue !== undefined;
-  /** **Only what was said.** An attribute for every key would paint every run
-   *  neutral and solid, and a tie would lose the one thing its module says
-   *  about it — so an unstated key leaves no attribute and
-   *  the module's own rule keeps the ground. */
+  /** Only stated keys become attributes, so an unstyled tie keeps its module's look. */
   const stated = (name: string, value: string | undefined) =>
     value ? { [`data-${name}`]: value } : {};
   return {
@@ -63,8 +41,7 @@ function paint(look: Look): { attrs: Record<string, string>; style: CSSPropertie
 
 export function Wire(props: EdgeProps<LineEdge>) {
   const { id, source, target, sourceX, sourceY, targetX, targetY, label, data, style } = props;
-  /** **A tie leaves a knot square to the line**, toward its own note, so
-   *  several ties on one line each arrive clear of it. */
+  /** A tie leaves its knot square to the line, toward its note. */
   const ends = { [source]: useInternalNode(source), [target]: useInternalNode(target) };
   const face = (knot: string, at: { x: number; y: number }, far: { x: number; y: number },
                 given: Position) =>
@@ -74,11 +51,9 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const targetPosition = face(target, { x: targetX, y: targetY }, { x: sourceX, y: sourceY },
                               props.targetPosition);
 
-  /** **A line with no name still has somewhere to type one.** Nothing is drawn
-   *  for a relationship nobody has named, so asking to name one had nowhere to
-   *  put the field. */
+  /** A line with no name still has somewhere to type one. */
   const naming = useNaming();
-  /** **A run is a route**, and a route through the card it ends on is wrong. */
+  /** A run routes round the cards it ends on. */
   const run = route({ x: sourceX, y: sourceY }, sourcePosition,
                     { x: targetX, y: targetY }, targetPosition, data?.clear ?? []);
   const path = drawn(run, BEND);
@@ -87,9 +62,7 @@ export function Wire(props: EdgeProps<LineEdge>) {
   const end = heads(data);
   const { attrs, style: tint } = paint(look);
 
-  /** **The name and the handle, composed rather than folded together.** That is
-   *  the whole of what a run writes: an edge holds no values, so there is
-   *  nothing at either end to draw and nothing else in the middle. */
+  /** The name and the handle, composed rather than folded together. */
   const middle = [label ? String(label) : "", data?.alias ?? ""]
     .filter(Boolean).join(" ");
 
@@ -98,19 +71,13 @@ export function Wire(props: EdgeProps<LineEdge>) {
       <g className="mnd-wire" {...attrs} style={tint}>
         <BaseEdge id={id} path={path} style={style}
                   markerStart={head_url(end.from)} markerEnd={head_url(end.to)} />
-        {/* **A double line is two strokes, not a thicker one.** The stylesheet
-            widens the run and this draws the ground back through the middle of
-            it, which is the only way a stroke can be double. */}
+        {/* A double line is two strokes, not a thicker one. */}
         {look.border_style === "double"
           ? <path className="mnd-wire-core" d={path} /> : null}
       </g>
       {middle || naming.id === id ? (
         <EdgeLabelRenderer>
-          {/* `nodrag` and `nopan` because the label sits in a layer over the
-              canvas: without them a press on a name pans the viewport.
-              **A relationship's name is drawn off the line**, so it says whose
-              it is: it is not in the line's own hit area, and nothing else
-              could work out from a pointer which run it belongs to. */}
+          {/* `nodrag` and `nopan`, so a press on a name does not pan. */}
           <div className="mnd-wire-name nodrag nopan" data-edge={id} {...attrs}
                style={{ ...tint,
                         transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}
@@ -123,11 +90,8 @@ export function Wire(props: EdgeProps<LineEdge>) {
   );
 }
 
-/** **The heads live in the theme**, beside the role marks and for the same
- *  reason: the tray previews a run from the same table the canvas draws it
- *  from. Re-exported so the canvas mounts one set for the page. */
+/** The heads live in the theme, shared with the tray's preview. */
 export { Heads };
 
-/** One type, keyed by the name a projection asks for. Registered once at module
- *  scope — a fresh object each render remounts every line on the canvas. */
+/** One type, keyed by the name a projection asks for. */
 export const EDGE_TYPES = { wire: Wire } as const;

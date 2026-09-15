@@ -173,7 +173,6 @@ export function App({ storage }: { storage: Storage }) {
       if (end) s.go("relink", { id: a.on, end: a.end, to: end });
       return;
     }
-    if (a.kind === "anchor") return;
     /** Several cards put down at once. */
     if (a.kind === "place") {
       s.adjust("place", adjustments.place(
