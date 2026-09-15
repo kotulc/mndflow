@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { browser_storage } from "./ports";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
@@ -11,4 +12,6 @@ import "@mnd/options/src/options.css";
 import "@mnd/tray/src/tray.css";
 import "@mnd/terminal/src/terminal.css";
 
-createRoot(document.getElementById("root")!).render(<App />);
+/** The workspace is loaded before the app mounts, so the session reads it at once. */
+void browser_storage().then((storage) =>
+  createRoot(document.getElementById("root")!).render(<App storage={storage} />));

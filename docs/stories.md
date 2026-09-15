@@ -311,6 +311,9 @@ rather than by the back door.
 
 ## Small settled rules
 
+- **A group goes when its last member leaves.** Leaving, being deleted or moving to another layer all count, and a group emptied that way takes an emptied holder with it. **A group is empty only when it was made empty** — a group definition dropped on empty ground is room for what goes in.
+- **Unpinned definitions live in the tray.** The explorer lists defaults, pinned definitions and packages, never every definition, exactly as the rail offers only pinned relations.
+
 - **A project row carries its block count** — `Coolant Loop (34)` — so the weight of a folded
   project reads at a glance. The **explorer's alone**; derived, never stored. **It must not count
   references**, or a view of forty things reads as a forty-block project.
@@ -321,14 +324,6 @@ rather than by the back door.
   definitions. **Not a vocabulary package**, and not in scope for resolution. A later story.
 - **One sample per view module, eventually** — not just the one. A sample proves the format and
   decides what a first project looks like.
-- **One design for every panel edge and every panel label.** The explorer, terminal and tray each
-  fold, and each does it differently today. **One thick edge that lights on hover, carrying an arrow
-  that says which way it folds.** The options column is not one of them — fixed width, does not
-  fold. **The label**: the frame writes its name *on* its own border with the ground showing
-  through, and every panel takes that treatment, so a panel and a frame read as the same kind of
-  thing. **Not a resize handle** — drag-to-size means a stored width per panel and a refit on every
-  drag.  
-  
 
 ## Migration: What was retired
 

@@ -68,8 +68,6 @@ const LINES: { key: string; module: RelationModule; dir?: Dir;
     tip: "A right drag makes a plain line" },
   { key: "directed", module: "line", dir: "forward", icon: "relation_directed",
     word: "directed", tip: "A right drag makes a line that points" },
-  { key: "tie", module: "tie", icon: "relation_tie", word: "tie",
-    tip: "A right drag makes an association" },
 ];
 
 /** The standard groups, from the slots a projection declared.
@@ -151,7 +149,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
          *  between a setting and a verb. */
         ...(chrome.relations ?? []).map((d, n): Control => ({
           key: `type:${d.id}`, word: d.name,
-          icon: LINES.find((l) => l.module === d.module)?.icon ?? "relation_plain",
+          icon: "relation_plain",
           tip: `A right drag draws a ${d.name}`,
           on: named === d.id,
           ruled: n === 0,

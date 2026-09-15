@@ -6,7 +6,7 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { fold } from "./fold";
+import { alias_kind, fold, module_of, next_alias, path, plain_type, step, touched } from "./fold";
 import { compact, parse, read, write } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";
@@ -41,6 +41,8 @@ export type Session = {
   go: (name: string, args?: Args) => string | null;
   /** An adjustment: positional, unsayable, and undoable like anything else. */
   adjust: (name: string, mutations: Mutation[]) => void;
+  /** Everything `fn` runs or adjusts lands as one step, and undoes as one. */
+  batch: (fn: () => void) => void;
 
   look: (layer: Id | null) => void;
   pick: (ids: Id[]) => void;
@@ -137,7 +139,15 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   if (opened_faults.length) said = { text: say(opened_faults), at: Date.now(), kind: "note" };
 
   const settle = () => {
+    const was = graph;
     graph = fold(log, floor);
+    /** A layer that is gone gives way to its nearest surviving ancestor. */
+    if (layer && !graph.blocks[layer]) {
+      layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
+      if (layer === graph.root) layer = null;
+      picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
+      cells = [];
+    }
     storage.write(log);
     listener?.();
   };
@@ -150,9 +160,18 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     return null;
   };
 
+  /** The open batch: undefined outside one, null until its first step lands. */
+  let batching: Step | null | undefined;
+
   const append = (action: string, mutations: Mutation[]) => {
     if (mutations.length === 0) return;
+    if (batching) {
+      batching.mutations.push(...mutations);
+      settle();
+      return;
+    }
     const step: Step = { id: new_id("step"), action, at: log.length, status: "applied", mutations };
+    if (batching === null) batching = step;
     log = compact([...live(log), step]);
     settle();
   };
@@ -192,6 +211,12 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
     adjust(name, mutations) {
       append(name, mutations);
+    },
+
+    batch(fn) {
+      if (batching !== undefined) { fn(); return; }
+      batching = null;
+      try { fn(); } finally { batching = undefined; }
     },
 
     look(next) {
@@ -260,16 +285,38 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
         listener?.();
         return got.faults;
       }
-      const from = got.graph;
+      const from = fold([step("import", "import", 0, [{ op: "checkpoint", graph: got.graph }])], floor);
       const target = into ?? layer ?? graph.root;
       const mutations: Mutation[] = [];
-      for (const d of Object.values(from.defs)) mutations.push({ op: "set_def", def: d });
-      for (const b of Object.values(from.blocks)) {
-        if (b.id === from.root) continue;
-        const parent = b.parent === from.root || !b.parent ? target : b.parent;
-        mutations.push({ op: "add_block", block: { ...b, parent } });
+      /** The workspace always wins: nothing it holds is replaced, and its
+       *  defaults stand for the file's. */
+      const plain = (type: Id | undefined) => !!type && from.defs[type]?.default !== undefined;
+      for (const d of Object.values(from.defs)) {
+        if (touched(d) && d.default === undefined && !graph.defs[d.id]) {
+          mutations.push({ op: "set_def", def: d });
+        }
       }
-      for (const e of Object.values(from.edges)) mutations.push({ op: "link_blocks", edge: e });
+      /** Incoming elements take the workspace's next handles, in their own order. */
+      const counts: Record<string, number> = {};
+      const serial = (id: Id) => {
+        const kind = alias_kind(from, id);
+        counts[kind] = (counts[kind] ?? next_alias(graph, kind) - 1) + 1;
+        return counts[kind]!;
+      };
+      const by_alias = <T extends { id: Id; alias?: number }>(all: T[]) =>
+        all.sort((a, z) => (a.alias ?? 0) - (z.alias ?? 0) || a.id.localeCompare(z.id));
+      for (const b of by_alias(Object.values(from.blocks))) {
+        if (b.id === from.root || graph.blocks[b.id]) continue;
+        const parent = b.parent === from.root || !b.parent ? target : b.parent;
+        const type = plain(b.type) ? plain_type(module_of(from, b.id)) ?? undefined : b.type;
+        mutations.push({ op: "add_block", block: { ...b, parent, type, alias: serial(b.id) } });
+      }
+      for (const e of by_alias(Object.values(from.edges))) {
+        if (graph.edges[e.id]) continue;
+        const type = plain(e.type) ? undefined : e.type;
+        mutations.push({ op: "link_blocks", edge: { ...e, type, alias: serial(e.id) } });
+      }
+      for (const [kind, n] of Object.entries(counts)) mutations.push({ op: "set_counter", kind, n });
       append("import", mutations);
 
       /** **The door runs over what arrived, not over what was sent.** A package

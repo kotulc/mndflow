@@ -27,15 +27,18 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 **In order.** Each is a phase's worth on its own.
 
+### 0 — Review, 2026-09-14: decided, not built
+
+| | |
+|---|---|
+| **docstrings are minimal** | every comment short and to the point; oversized files split by purpose |
+
 ### 1 — Definitions, what is left of them
 
 | | |
 |---|---|
 | **an ungrouped `define` picks either** | the tray always says the group; a caller that does not — the terminal — gets whichever definition holds the name, the workspace's own first |
 | **dragging a tie's end onto a line does not relink** | `relink` accepts a line end, but the canvas's end grip only lands on blocks |
-| **a relation definition is not pinned when saved** | `define` and `save_def` pin a new block definition and never a relation one. Decide whether the rail follows the explorer |
-| **`save_def` extends what the element followed** | a saved look extends the default its element drew from, so its drawing does not change — not the base a new definition otherwise extends. Confirm that is wanted |
-| **an empty group dissolves** | a dropped group may start empty, but it goes when its last member leaves. Decide whether a group persists as a grid does |
 | **pinning once skips file imports** | a file carries no history, so an imported workspace's block definitions pin on its next load rather than on import |
 | **a note about a tie is refused** | a tie ends on a line, never on a tie, so there is no line of its own to note |
 | **nothing new is tested** | the base model, the door's repairs, `pin` / `save_def` / `remove_def`, tags and the tray were driven in the browser only, since the shape is still moving |
@@ -107,13 +110,11 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 | | |
 |---|---|
-| **`tie` is both picked and derived** | the rail offers it and `derived_module` assigns it whenever an end is a note; `relink` turns a picked tie between two blocks back into a line. Settle whether a tie is *only* what touches a note |
 | **promoting an end that is already a port** | offered and then refused, because `when` cannot see which end a menu entry means |
 | **the `interface` module earns keys of its own** | an interface is the one anchor for a proxy port, a full port, a pin and a constraint parameter, and a definition says nothing about which |
 | **`flow` constrains nothing** | `ends.fromFlow` reads it and nothing else does |
 | **a translator must say `label`** | a line definition with no label draws no words |
 | **a definition may share a shipped name** | every default is named after its kind; `def_named` prefers the workspace's own, so it works. Whether a name a shipped kind holds should be refused is unanswered |
-| **exports carry untouched defaults** | a whole-workspace export writes every definition, so ten defaults nobody edited ride in every file |
 
 ### The grid
 
@@ -135,7 +136,6 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **Behaviour has no mechanism** | *the model defines itself as the user builds* has half an answer in the grid; nothing yet reads an order or an allocation |
 | **Definition shape is cut** | it comes back when every renderer can draw one |
 | **A named package is unchecked** | the packages tab reads what is in use off `vocabulary()`; reconciling that against the catalogue is the check |
-| **`tie` is derived *and* stored** | only an action derives one, while `Relation.module` stores the answer. The door re-derives it, or it is picked like anything else |
 | **The SysML round trip loses ties** | `tie` goes out as `comment` and comes back as `line`; a tie on a line has no SysML form |
 | **The SVG export paints by kind** | notes, groups and ties are coloured by class in `svg.ts`, where the canvas reads their definitions |
 | **Note detection is spelled three ways** | `module_of`, a literal `type === "note"`, and a `config_of` read in `cells_of` |

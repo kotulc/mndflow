@@ -5,22 +5,22 @@
  *  needs an inverse. */
 
 import { DRAWN, type Settings } from "./components";
-import { def_id, default_id } from "./ids";
+import { default_id } from "./ids";
 import { BLOCK_MODULES, RELATION_MODULES, empty_graph,
          type Arrangement, type Block, type BlockModule, type Cell,
          type Definition, type FieldDef, type Graph, type HeaderRole, type Id, type Log, type Mutation,
          type Relation, type RelationModule, type Span, type Step } from "./types";
 
-/** A group with nobody in it is not a boundary any more — dissolve it, and if
- *  that empties the group it sat in, dissolve that too. Grids are kept: an empty
- *  grid is still a region someone drew. */
-function dissolve_group_if_empty(graph: Graph, id: Id): void {
-  const g = graph.blocks[id];
-  if (!g || !is_group(graph, id)) return;
-  if (members_of(graph, id).length > 0) return;
-  const holder = g.group;
-  delete graph.blocks[id];
-  if (holder) dissolve_group_if_empty(graph, holder);
+/** A group whose last member just left is deleted, and so is a holder that
+ *  empties. A group made empty is never passed here. */
+function emptied(graph: Graph, id: Id | undefined): void {
+  const g = id ? graph.blocks[id] : undefined;
+  if (!g || !is_group(graph, g.id) || members_of(graph, g.id).length) return;
+  delete graph.blocks[g.id];
+  for (const [eid, e] of Object.entries(graph.edges)) {
+    if (e.from === g.id || e.to === g.id) drop_edge(graph, eid);
+  }
+  emptied(graph, g.group);
 }
 
 /** A relation gone, and every tie that ended on it with it. */
@@ -54,8 +54,7 @@ function apply(graph: Graph, m: Mutation): void {
       return;
     }
     case "delete_block": {
-      const deleted = graph.blocks[m.id];
-      const holder = deleted?.group;
+      const holder = graph.blocks[m.id]?.group;
       for (const id of subtree(graph, m.id)) {
         delete graph.blocks[id];
         for (const [eid, e] of Object.entries(graph.edges)) {
@@ -67,7 +66,7 @@ function apply(graph: Graph, m: Mutation): void {
       for (const b of Object.values(graph.blocks)) {
         if (b.group === m.id) { delete b.group; delete b.cell; }
       }
-      if (holder) dissolve_group_if_empty(graph, holder);
+      emptied(graph, holder);
       return;
     }
     case "move_block": {
@@ -82,10 +81,12 @@ function apply(graph: Graph, m: Mutation): void {
        *
        *  **Staying put keeps them**: a move that only reorders siblings is not
        *  a move out of anywhere, and it has no business shifting a card. */
+      const holder = b.group;
       if (b.parent !== m.parent) {
         delete b.x; delete b.y; delete b.group; delete b.cell;
       }
       b.parent = m.parent;
+      if (holder !== b.group) emptied(graph, holder);
       return;
     }
     case "order_block": {
@@ -134,18 +135,15 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_group": {
       const b = graph.blocks[m.id];
       if (!b) return;
+      /** An address is the group's, so leaving one drops it. The group left
+       *  behind goes if that was its last member. */
       const was = b.group;
-      /** **An address is the group's.** Leaving one drops it rather than
-       *  carrying it into the next, where it would mean somewhere else. */
       if (m.group === null) { delete b.group; delete b.cell; delete b.header; }
       else {
         if (b.group !== m.group) { delete b.cell; delete b.header; }
         b.group = m.group;
       }
-      if (was && was !== m.group) dissolve_group_if_empty(graph, was);
-      /** **An empty shell is not a boundary**, whether it just lost its last
-       *  member or was taken out of the group it sat in. */
-      if (m.group === null) dissolve_group_if_empty(graph, m.id);
+      if (was !== b.group) emptied(graph, was);
       return;
     }
     case "seat_cell": {
@@ -683,6 +681,13 @@ export function may_tie(graph: Graph, from: Id, to: Id): boolean {
   return (line(from) && note(to)) || (line(to) && note(from));
 }
 
+/** What a relation between these ends is: a tie where an end is a note or a
+ *  line, a line otherwise. Derived, never picked. */
+export function derived_module(graph: Graph, from: Id, to: Id): RelationModule {
+  const noted = (id: Id) => !!graph.blocks[id] && module_of(graph, id) === "note";
+  return may_tie(graph, from, to) || noted(from) || noted(to) ? "tie" : "line";
+}
+
 /** The layer's arrangement. `free` is what a layer says nothing about. */
 export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
   return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
@@ -1063,6 +1068,17 @@ export function shipped(d: Definition): boolean {
     || BASE_RELATIONS.includes(d.id);
 }
 
+/** Whether a definition is the workspace's to write out: not shipped, and not
+ *  a default nobody has edited. */
+export function touched(d: Definition): boolean {
+  if (shipped(d)) return false;
+  if (d.default === undefined) return true;
+  return Object.keys(d).some((k) => !LAID.includes(k) && (d as Record<string, unknown>)[k] !== undefined);
+}
+
+/** The keys a default is laid with. */
+const LAID = ["id", "group", "name", "extends", "default"];
+
 /** One package's block definitions, as the vocabulary section lists them. */
 export type Vocabulary = {
   /** The package these came from. **Null is the workspace's own.** */
@@ -1094,18 +1110,6 @@ export function def_named(graph: Graph, name: string, group?: "block" | "relatio
   const hits = Object.values(graph.defs)
     .filter((d) => d.name === want && (!group || d.group === group));
   return hits.find((d) => !d.from) ?? hits[0];
-}
-
-/** The id a name is filed under: the definition of that group already called
- *  that, or a fresh slug under the group's prefix. **Suffixed only when a
- *  renamed definition still holds the slug**, since a rename keeps its id. */
-export function def_slot(graph: Graph, name: string, group?: "block" | "relation"): Id {
-  const held = def_named(graph, name, group);
-  if (held) return held.id;
-  const slug = def_id(name, group);
-  let id = slug;
-  for (let n = 2; graph.defs[id]; n++) id = `${slug}_${n}`;
-  return id;
 }
 
 /** The definitions of one group the workspace pinned, **in the order it put

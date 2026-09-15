@@ -53,7 +53,7 @@ const EDGE = 8;
 
 export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
   const box = useRef<HTMLDivElement>(null);
-  const [asking, set_asking] = useState<Action | null>(null);
+  const [asking, set_asking] = useState<(Action & { filled?: Args }) | null>(null);
   const [typed, set_typed] = useState("");
   /** Where it actually fits. **A menu opens at the pointer until it cannot** —
    *  a long list opened near the foot of the window runs off the bottom, and
@@ -130,7 +130,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
   const take = (x: { action: Action; args?: Args }) => {
     const need = wanted(x.action, x.args);
     if (need.length === 0) { onAct(x.action.name, { ...known(), ...x.args }); onShut(); return; }
-    set_asking({ ...x.action, args: need });
+    set_asking({ ...x.action, args: need, filled: x.args });
     set_typed("");
   };
 
@@ -142,8 +142,8 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
      *  when nobody was asked at all. */
     const said = typed.trim();
     onAct(asking.name, said || need.required
-      ? { ...known(), [need.name]: said }
-      : known());
+      ? { ...known(), ...asking.filled, [need.name]: said }
+      : { ...known(), ...asking.filled });
     onShut();
   };
 
@@ -156,7 +156,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
             <div className="choices">
               {asking.args[0]!.choices!.map((c) => (
                 <button key={c} onClick={() => {
-                  onAct(asking.name, { ...known(), [asking.args[0]!.name]: c });
+                  onAct(asking.name, { ...known(), ...asking.filled, [asking.args[0]!.name]: c });
                   onShut();
                 }}>{c}</button>
               ))}

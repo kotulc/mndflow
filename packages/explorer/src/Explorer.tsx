@@ -321,7 +321,7 @@ export function Explorer(props: ExplorerProps) {
   /** What is in hand at a drop, whichever surface started it. */
   const dropped = (e: React.DragEvent): Id[] => {
     const said = e.dataTransfer?.getData("text/mnd-block");
-    return dragging.length ? [...dragging] : said ? [said] : [];
+    return (dragging.length ? [...dragging] : said ? [said] : []).filter((id) => !!graph.blocks[id]);
   };
 
   const add = (type?: string) => {

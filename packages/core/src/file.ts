@@ -9,7 +9,7 @@
  *  byte-identical — which is what the canonical layout is for. */
 
 import { inspect, type Fault } from "./door";
-import { def_of, fold, subtree } from "./fold";
+import { def_of, fold, subtree, touched } from "./fold";
 import { new_id } from "./ids";
 import { empty_graph, SCHEMA, type File, type Graph, type Id, type Log, type Step }
   from "./types";
@@ -41,18 +41,19 @@ const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
   return (x < 0 ? FIRST.length : x) - (y < 0 ? FIRST.length : y) || a.localeCompare(b);
 };
 
-function ordered<T extends { id: Id }>(all: Record<Id, T>): Record<Id, T> {
+function ordered<T extends { id: Id }>(all: Record<Id, T>, keep = (_: T) => true): Record<Id, T> {
   const out: Record<Id, T> = {};
-  for (const id of Object.keys(all).sort()) out[id] = trim(all[id]!);
+  for (const id of Object.keys(all).sort()) if (keep(all[id]!)) out[id] = trim(all[id]!);
   return out;
 }
 
-/** The graph, laid out for reading: definitions first, then blocks, then relations. */
+/** The graph, laid out for reading: definitions first, then blocks, then relations.
+ *  Only touched definitions travel; the floor and untouched defaults are laid on read. */
 export function write(graph: Graph, id = "workspace"): string {
   const file: File = {
     schema: SCHEMA,
     id,
-    graph: { root: graph.root, defs: ordered(graph.defs), blocks: ordered(graph.blocks),
+    graph: { root: graph.root, defs: ordered(graph.defs, touched), blocks: ordered(graph.blocks),
              edges: ordered(graph.edges) },
   };
   return JSON.stringify(file, null, 2) + "\n";

@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adjustments, can_hold, module_named, module_of, offer, pinned_defs,
          relation_named, session,
-         type Args, type Dir, type Graph, type Id, type Point,
+         type Args, type Storage, type Dir, type Graph, type Id, type Point,
          type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, extent_of, holds, nearest_seat, project, snap, tidy,
@@ -21,7 +21,7 @@ import type { Adjust } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, type Hold, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
-import { browser_files, browser_net, browser_storage } from "./ports";
+import { browser_files, browser_net } from "./ports";
 import { browser_score } from "./score";
 
 /** The three looks, each with the mark it wears. One control that cycles: the
@@ -40,12 +40,12 @@ const scoring = browser_score();
  *  an app may assume where *outside the workspace* is. */
 const CATALOGUE = "/packages/index.json";
 
-export function App() {
+export function App({ storage }: { storage: Storage }) {
   /** Lazily, and once. `useRef(session(...))` evaluates its argument on every
    *  render — the ref keeps the first, but each of the others still opens
    *  storage and can write to it. */
   const held = useRef<ReturnType<typeof session> | null>(null);
-  held.current ??= session({ storage: browser_storage(), files: browser_files(),
+  held.current ??= session({ storage, files: browser_files(),
                              net: browser_net(), catalogue: CATALOGUE, defs: seed() });
   const s = held.current;
   const [, bump] = useState(0);
@@ -89,6 +89,11 @@ export function App() {
 
   useEffect(() => { s.watch(() => bump((n) => n + 1)); }, [s]);
   useEffect(() => {
+    const full = () => s.say("storage is full — export to keep this work", "note");
+    window.addEventListener("mnd:full", full);
+    return () => window.removeEventListener("mnd:full", full);
+  }, [s]);
+  useEffect(() => {
     document.documentElement.dataset["theme"] = theme;
     localStorage.setItem("mnd.theme", theme);
   }, [theme]);
@@ -122,8 +127,9 @@ export function App() {
    *  Not every relation definition — those are reached and edited in the tray,
    *  which is where a vocabulary with forty stereotypes in it can be read. */
   const offered_lines = useMemo(
-    () => pinned_defs(graph, "relation").map((d) => ({ id: d.id, name: d.name,
-                                            module: relation_named(graph, d.id) })),
+    () => pinned_defs(graph, "relation")
+      .filter((d) => relation_named(graph, d.id) === "line")
+      .map((d) => ({ id: d.id, name: d.name, module: "line" as const })),
     [graph]);
 
   /** What is offered here, with what each needs and what it would act on —
@@ -179,11 +185,17 @@ export function App() {
     return groups[0]?.id ?? null;
   };
 
-  /** An adjustment is positional and unsayable, and undoable like anything
-   *  else. **The canvas already worked out where it landed** — it snaps to the
-   *  grid and constrains a seated interface to its own card — so the app only
-   *  writes what it was handed. */
-  const adjust = (a: Adjust) => {
+  /** One gesture, one step. Moving anything by hand on a `grid` layer hands the
+   *  layer to `free`, keeping where the grid had put everything. */
+  const adjust = (a: Adjust) => s.batch(() => {
+    if (arranged === "grid" && ["place", "move", "wall-seat"].includes(a.kind)) {
+      act("arrange", { layer, arrangement: "free", at: tidy(graph, layer) });
+    }
+    adjust_now(a);
+  });
+
+  /** An adjustment, as the canvas worked it out: the app only writes it. */
+  const adjust_now = (a: Adjust) => {
     /** A corner dragged writes the two fields a block has always carried, plus
      *  where it now sits: a resize from a left or top handle moves the card as
      *  well as sizes it. */

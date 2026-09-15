@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 import { open, review, validate, write } from "@mnd/core";
-import { TIER, translated } from "@mnd/fixtures";
+import { FLOOR, TIER, translated } from "@mnd/fixtures";
 import { SHEET, draw_svg, project } from "@mnd/views";
 
 const graph = translated();
@@ -30,10 +30,10 @@ describe("a translator's graph", () => {
   });
 
   it("survives a file round trip", () => {
-    const back = open(write(graph, "handbook"));
+    const back = open(write(graph, "handbook"), FLOOR);
     expect(back.faults).toEqual([]);
     expect(back.graph.blocks).toEqual(graph.blocks);
-    expect(back.graph.defs).toEqual(graph.defs);
+    expect(back.graph.defs).toMatchObject(graph.defs);
   });
 
   it("projects the layer it filed its vocabulary on", () => {

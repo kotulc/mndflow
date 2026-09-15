@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
+import { seed } from "@mnd/defs";
 import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
          type Context } from "../src/index";
 
@@ -200,22 +201,19 @@ describe("what an action absorbs", () => {
     expect(s.graph().blocks[a]!.group).toBeUndefined();
   });
 
-  it("dissolves an empty group shell when it leaves its parent", () => {
-    const s = session();
-    s.go("create", { name: "A" });
+  it("keeps a group made empty when it leaves its parent", () => {
+    const s = session({ defs: seed() });
     s.go("create", { name: "B" });
-    const [a, b] = children(s.graph(), ROOT).map((x) => x.id);
-    s.go("group", { members: [a] });
-    const inner = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+    const b = children(s.graph(), ROOT)[0]!.id;
     s.go("group", { members: [b] });
-    const outer = children(s.graph(), ROOT).find((x) => x.type === "group" && x.id !== inner)!.id;
-    s.go("group", { members: [inner], into: outer });
-    s.go("leave", { ids: [a] });
+    const outer = children(s.graph(), ROOT).find((x) => x.type === "group")!.id;
+    s.go("create", { name: "", type: "group" });
+    const shell = children(s.graph(), ROOT).find((x) => x.type === "group" && x.id !== outer)!.id;
+    s.go("group", { members: [shell], into: outer });
 
-    expect(s.go("leave", { ids: [inner] })).toBeNull();
-    expect(s.graph().blocks[inner]).toBeUndefined();
-    expect(s.graph().blocks[outer]).toBeTruthy();
-    expect(s.graph().blocks[b!]!.group).toBe(outer);
+    expect(s.go("leave", { ids: [shell] })).toBeNull();
+    expect(s.graph().blocks[shell]).toBeTruthy();
+    expect(s.graph().blocks[outer]!).toBeTruthy();
   });
 
   it("dissolves inner when the last block moves to the outer group", () => {

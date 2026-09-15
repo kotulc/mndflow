@@ -21,7 +21,7 @@
  *  selection or a hold. */
 
 import { useState, type MouseEvent } from "react";
-import { children, def_named, def_of, def_slot, is_container, is_interface,
+import { children, def_named, def_of, is_container, is_interface, new_id,
          module_of, owner_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
@@ -178,13 +178,13 @@ export function Tray(props: TrayProps) {
   function file_draft(to: string) {
     const draft = drafting ? drafts[drafting] : null;
     if (!draft || !to || def_named(graph, to, draft.group)) return;
-    onAct?.("define", { name: to, group: draft.group, extends: draft.extends ?? "",
+    /** Minted here, so the tray can hold what it filed. */
+    const id = new_id(draft.group === "relation" ? "rel" : "def");
+    onAct?.("define", { id, name: to, group: draft.group, extends: draft.extends ?? "",
                         ...(draft.label ? { label: draft.label } : {}),
                         components: draft.components, fields: draft.fields });
     set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
-    /** **The id `define` will file it under**, since the graph in hand is the
-     *  one from before the save. */
-    onHold({ of: "id", id: def_slot(graph, to, draft.group) });
+    onHold({ of: "id", id });
   }
 
   /** **Saving a working look files a definition under its name.** A name already

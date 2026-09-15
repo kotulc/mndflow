@@ -223,6 +223,7 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                     aria-label={runs ? "extends" : "type"} disabled={borrowed}
                     onChange={(e) => onAct("define", { ...(drafted ? { id } : {}),
                                                        name: d.name, group: d.group, extends: e.target.value })}>
+              {d.extends ? null : <option value="">{`base/${kind}`}</option>}
               {extendable(d).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
           </Line>

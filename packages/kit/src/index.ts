@@ -29,7 +29,7 @@ export {
   type Point, type RelationModule, type Relation, type Side,
   type Cell, type HeaderRole, type Span, type ValueForm,
   ARRANGEMENTS, BLOCK_MODULES, ROOT, SCHEMA,
-  def_id, empty_graph, new_id,
+  empty_graph, new_id,
 } from "@mnd/core";
 
 /** Files. An envelope holding a graph, in and out. */

@@ -122,9 +122,9 @@ describe("the door", () => {
 describe("files", () => {
   it("round-trips through the file format", () => {
     const before = fold(related(), FLOOR);
-    const got = read(write(before));
+    const got = read(write(before), FLOOR);
     expect(got.faults).toHaveLength(0);
-    expect(fold(got.log)).toEqual(before);
+    expect(fold(got.log, FLOOR)).toEqual(before);
   });
 
   it("re-exports byte-identically", () => {
@@ -144,7 +144,7 @@ describe("files", () => {
     expect(out.graph.blocks["block_rate"]).toBeDefined();
     expect(out.graph.blocks["block_site"]).toBeUndefined();
     expect(out.graph.blocks["block_ledger"].parent).toBeNull();
-    expect(out.graph.defs["block"]).toBeDefined();
+    expect(out.graph.defs["block"]).toBeUndefined();
   });
 
   it("computes the hash rather than storing it", () => {
@@ -225,7 +225,7 @@ describe("a new workspace", () => {
 
   it("drops a definition this build no longer ships", () => {
     const s = session({ defs: seed() });
-    s.go("define", { name: "activity", group: "view" });
+    s.go("define", { name: "activity", group: "block" });
     expect(Object.values(s.graph().defs).some((d) => d.name === "activity")).toBe(true);
 
     s.reset();
