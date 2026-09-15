@@ -1,25 +1,11 @@
-/** The rule kinds, asked rather than enforced.
- *
- *  **They advise while modelling and refuse only at translation.** A model is
- *  legitimately unfinished, so nothing here is a fault and nothing here is
- *  repaired: the door owns what makes a graph readable, and this owns what a
- *  vocabulary asked for. A note is a note until a translator decides otherwise.
- *
- *  **One constraint and four rules**, each a lookup, a count or one fixed
- *  comparison. No operators, nothing to parse, and no rule language — what they
- *  cannot say is a module's `validate` hook, which is code.
- *
- *  A rule naming a definition means **it or anything below it**, so `isa` is
- *  the whole of the matching. A malformed rule is ignored rather than thrown
- *  on, the same way a component validates its own key and no other. */
+/** The rule kinds, asked rather than enforced. */
 
 import { children, def_of, is_interface, isa, subtree } from "./fold";
 import type { Components, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "degree" | "match";
 
-/** What a usage asked for and did not get. Carries the thing at fault, so a
- *  caller can light it up without searching for it. */
+/** What a usage asked for and did not get. */
 export type Note = {
   kind: NoteKind;
   /** The block or relation the note is about. */
@@ -29,10 +15,9 @@ export type Note = {
 
 export type Range = { min?: number; max?: number };
 
-/** What a definition may declare. Read defensively — a shape this build does
- *  not recognise is left alone rather than refused. */
+/** What a definition may declare. */
 export type Rules = {
-  /** Field names a usage must carry a value for. The one constraint. */
+  /** Field names a usage must carry a value for. */
   required?: string[];
   /** Which definitions may sit at each end, and optionally which flow. */
   ends?: { from?: Id[]; to?: Id[]; fromFlow?: Flow; toFlow?: Flow };
@@ -54,16 +39,7 @@ const range = (v: unknown): Range | undefined => {
   return ok(min) && ok(max) ? { min, max } : undefined;
 };
 
-/** The rules in force, nearest first, and the nearest declaration of each kind
- *  wins. **A list replaces rather than unions** — `holds` and `required` are
- *  lists and the nearer statement is the whole answer, which is strictly more
- *  expressive: a usage stating the list can narrow it *or* widen it.
- *
- *  **It takes an id, and the id says which question.** A definition asks what
- *  its own chain declares; anything else is a usage, and a usage's own
- *  `looks.rules` is the last layer over that chain — the same shape `look_of`
- *  gives `card` and `style`, so everything a definition may say now has a usage
- *  counterpart. */
+/** The rules in force, nearest first, and the nearest declaration of each kind wins. */
 export function rules_of(graph: Graph, id: Id | undefined): Rules {
   const out: Rules = {};
   for (const from of layers_of(graph, id)) {
@@ -79,8 +55,7 @@ function layers_of(graph: Graph, id: Id | undefined): Rules[] {
   if (!id) return [];
   if (graph.defs[id]) return isa(graph, id).map((d) => read_rules(d.components));
   const chain = isa(graph, def_of(graph, id)).map((d) => read_rules(d.components));
-  /** **Whichever holder the id names.** A relationship carries the same bag a
-   *  block does, so a line may state a rule over its own chain too. */
+  /** Whichever holder the id names. */
   const own = (graph.blocks[id] ?? graph.edges[id])?.looks;
   return own?.["rules"] ? [read_rules(own), ...chain] : chain;
 }
@@ -119,9 +94,7 @@ function is_one_of(graph: Graph, type: Id | undefined, allowed: Id[]): boolean {
   return isa(graph, type).some((d) => allowed.includes(d.id));
 }
 
-/** What a block answers for one field name. **A block, because only a block
- *  holds values** — `match` reads it off both *ends*, which is the shape this
- *  had all along. */
+/** What a block answers for one field name. */
 function value_of(graph: Graph, id: Id, name: string): string | undefined {
   return graph.blocks[id]?.fields?.find((f) => f.name === name)?.value;
 }
@@ -130,11 +103,7 @@ function label(graph: Graph, id: Id): string {
   return graph.blocks[id]?.name ?? id;
 }
 
-/** What a graph asked for and did not get.
- *
- *  **Scoped, because that is how it is used**: the tray asks about the open
- *  layer and a translator asks about the subtree it is emitting, and neither
- *  wants to hear about the rest of the workspace. Absent, the whole graph. */
+/** What a graph asked for and did not get. */
 export function review(graph: Graph, scope?: Id): Note[] {
   const notes: Note[] = [];
   const within = scope ? new Set(subtree(graph, scope)) : null;
@@ -151,8 +120,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
       }
     }
 
-    /** `holds` is the vocabulary's containment rule. The engine owns exactly
-     *  one of its own — a view holds references — and this is the other kind. */
+    /** The vocabulary's containment rule. */
     if (rules.holds) {
       for (const child of children(graph, b.id)) {
         if (!is_one_of(graph, child.type, rules.holds)) {
@@ -162,8 +130,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
       }
     }
 
-    /** Every relationship meeting the usage, wherever it is drawn — degree is
-     *  about the thing, never about the layer somebody is looking at. */
+    /** Degree counts every relation meeting the block, in any layer. */
     if (rules.degree) {
       const met = Object.values(graph.edges);
       count(notes, b.id, label(graph, b.id), "in",
@@ -177,16 +144,13 @@ export function review(graph: Graph, scope?: Id): Note[] {
     if (!holds_block(e.from) && !holds_block(e.to)) continue;
     const rules = rules_of(graph, e.id);
 
-    /** **No `required` here.** It asks whether a usage carries a value, and an
-     *  edge carries none — a relation definition stating one would be asking
-     *  for something nothing could ever answer. */
+    /** An edge has no `required`: it carries no values. */
     if (rules.ends) {
       end(notes, graph, e.id, "from", e.from, rules.ends.from, rules.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, rules.ends.to, rules.ends.toFlow);
     }
 
-    /** `match` is one fixed comparison: the same field name, read off both
-     *  ends, agreeing. Absent on either end is a disagreement. */
+    /** `match` is one fixed comparison: the same field name, read off both ends, agreeing. */
     for (const name of rules.match ?? []) {
       if (value_of(graph, e.from, name) !== value_of(graph, e.to, name)) {
         notes.push({ kind: "match", id: e.id,
@@ -210,17 +174,7 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
   }
 }
 
-/** **A rule about an end walks through a port.**
- *
- *  Promoting an end mints an interface on the block and takes the line to it,
- *  so a rule written against what sits at an end stopped matching the moment
- *  anybody promoted one — and nothing said so, because a rule is advice. What
- *  the rule means is *what is at this end*, and a port is part of the block it
- *  is set into.
- *
- *  **No new keys.** `fromFlow` reads a property only an interface has, so the
- *  two divide the labour: `from` says what sort of thing is at this end, and
- *  `fromFlow` says it must be a port and which way it runs. */
+/** A rule about an end walks through a port. */
 function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
   const met = graph.blocks[at];

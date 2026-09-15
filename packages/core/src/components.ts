@@ -1,28 +1,12 @@
-/** The module contract: what a module publishes, and what validates it.
- *
- *  **A package is data and a module is code.** A package ships definitions and
- *  costs nobody anything; a module is engine code, and what it publishes is
- *  components — the keys a definition's `components` bag configures.
- *
- *  **A component owns its key and reads no other's.** They share one graph and
- *  one log, so separate checks are not separate state: the key is the boundary,
- *  and this is where it is enforced.
- *
- *  **Each validates its own key at the door.** A component absent from the
- *  build validates nothing, so its configuration is *unvalidated* rather than
- *  wrong — which is how an older build opens a newer package. What a component
- *  refuses is dropped, and only that key. */
+/** The module contract: what a module publishes, and what validates it. */
 
 import { BLOCK_MODULES, RELATION_MODULES, type Definition } from "./types";
 
-/** What a definition holds under one component's key. Free-form: the component
- *  says what its own shape is, and nothing else may read it. */
+/** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
 
-/** One published component. `check` answers the same question an action's
- *  does — why this would not work, in words, or null. Words rather than a
- *  boolean, because the door says what it dropped and "invalid" is not
- *  something anybody can act on. */
+/** One published component. `check` answers the same question an action's does — why this would not
+ *  work, in words, or null. */
 export type Component = {
   name: string;
   check: (config: Settings) => string | null;
@@ -30,9 +14,7 @@ export type Component = {
 
 const held = new Map<string, Component>();
 
-/** Publish components, at load and before any log is read. Publishing one name
- *  twice is the later one winning, so a build can replace a component without a
- *  second registry to keep in step. */
+/** Publish components, at load and before any log is read. */
 export function publish(...list: Component[]): void {
   for (const c of list) held.set(c.name, c);
 }
@@ -46,11 +28,7 @@ export function component(name: string): Component | null {
   return held.get(name) ?? null;
 }
 
-/** What a definition says that this build cannot read, key by key.
- *
- *  **An unknown component is left alone** — it may be a newer build's, and
- *  refusing it is how an older build would fail to open a newer package. An
- *  unknown *key* within a claimed one is the component's own to refuse. */
+/** What a definition says that this build cannot read, key by key. */
 export function unreadable(def: Definition): { key: string; why: string }[] {
   const out: { key: string; why: string }[] = [];
   for (const [key, config] of Object.entries(def.components ?? {})) {
@@ -70,8 +48,8 @@ const one_of = (key: string, value: unknown, set: readonly string[]): string | n
   value === undefined || (typeof value === "string" && set.includes(value))
     ? null : `\`${key}\` has to be one of ${set.join(", ")}`;
 
-/** A number inside a range. **Finite, because `NaN` and infinity both survive
- *  `typeof` and neither is a hue.** */
+/** A number inside a range. Finite, because `NaN` and infinity both survive `typeof` and neither is
+ *  a hue. */
 const within = (key: string, value: unknown,
                 range: { min: number; max: number }): string | null =>
   value === undefined
@@ -83,138 +61,64 @@ const words = (key: string, value: unknown): string | null =>
   value === undefined || (Array.isArray(value) && value.every((v) => typeof v === "string"))
     ? null : `\`${key}\` has to be a list of names`;
 
-/** An unknown key is refused rather than ignored. A component owning its key
- *  owns the whole of it, so a misspelt `shp` is a mistake this build can
- *  actually see — unlike an unknown *component*, which is left alone. */
+/** An unknown key is refused rather than ignored. */
 const stray = (name: string, config: Settings, known: readonly string[]): string | null => {
   const odd = Object.keys(config).find((k) => !known.includes(k));
   return odd ? `\`${name}\` knows nothing about \`${odd}\`` : null;
 };
 
 
-/** How a card is composed and how it is painted. **Closed sets that grow by a
- *  code change** — additively, and never from data. That is the line between an
- *  engine and a plugin host.
- *
- *  **Five questions, and every key belongs to one of them**: the name, the
- *  label, the border, the fill, and the mark. A key named for the row that asks
- *  it is a key nobody has to translate — `voice`, `decor`, `ink` and `line`
- *  each said *which* answer without saying *what it was about*, so the name and
- *  the label shared one answer between them and neither could be set alone. */
 
-/** **No `shape`.** A definition picking a diamond or a hex drew as one on the
- *  canvas and as a rectangle everywhere else, which is a promise only one
- *  renderer kept. It comes back when every renderer can keep it.
- *
- *  **No `layout` either.** It offered five ways a card could be composed and no
- *  renderer read any of them. What actually puts values on a card is `shows`,
- *  which names them. */
 
-/** Where the label sits — the subtype where one is named, the base kind
- *  otherwise. **The name is not asked this**: a card without its name is a box
- *  nobody can read, and the toggle that hid it was a third way of saying the
- *  same nothing. */
+/** Where the label sits — the subtype where one is named, the base kind otherwise. */
 export const DISPLAYS = ["above", "inside", "below", "none"] as const;
 
-/** Whether a writing is drawn at all. **Two answers, and `show` is what
- *  everything did before there was a choice.** */
+/** Whether a writing is drawn at all. */
 export const SHOWN = ["show", "hide"] as const;
 
-/** Which end of the card its writing reads from. **Three, and the first is what
- *  every card did before there was a choice** — so a definition saying nothing
- *  draws exactly as it always has. */
+/** Which end of the card its writing reads from. */
 export const ALIGNS = ["left", "center", "right"] as const;
 
-/** The named families a definition may pick from. **Each is a preset over `hue`
- *  and `intensity`** — the two numbers below are the mechanism, and a family is
- *  a name for a pair of them that the *theme* chooses.
- *
- *  **A family is theme-relative and a hue is not.** `primary` is green in retro
- *  and teal in modern, which is what keeps a shipped package looking like the
- *  theme it is opened in. A hue names an angle and means it everywhere, which
- *  is what a workspace wants for a vocabulary of its own. */
+/** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
                          "away", "note"] as const;
 
-/** The hue angle a usage paints itself with, in degrees, when a named family is
- *  not what was wanted. **The theme still owns lightness**, which is where *ink
- *  reads on fill* actually comes from — so an angle is safe to say and a
- *  lightness is not. */
+/** The hue angle a usage paints itself with, in degrees, when a named family is not what was
+ *  wanted. */
 export const HUE = { min: 0, max: 360 } as const;
 
-/** How much chroma that hue is taken at, as a fraction of the theme's own
- *  ceiling. **Not a lightness and not an opacity**: those are the ladder's. */
+/** How much chroma that hue is taken at, as a fraction of the theme's own ceiling. */
 export const INTENSITY = { min: 0, max: 1 } as const;
 
-/** The answers that are **ranges rather than sets**. Named here beside the
- *  ranges themselves, so the one action that writes a look can tell a number
- *  from a word without keeping a second list of its own. */
+/** The answers that are ranges rather than sets. */
 export const NUMBERS: readonly string[] = ["hue", "intensity", "opacity"];
 
-/** How heavy a border is. **Three steps, and the first is the ordinary one.** A
- *  border cannot be half a device pixel, so a set finer than this offers a
- *  choice it cannot keep. */
+/** How heavy a border is. Three steps, and the first is the ordinary one. */
 export const WIDTHS = ["thin", "medium", "thick"] as const;
 
-/** How a border is drawn. **The line styles that still read at one pixel** — a
- *  groove or a ridge needs two and draws as solid below that. */
+/** How a border is drawn: styles that read at one pixel. */
 export const BORDERS = ["solid", "dashed", "dotted", "double", "none"] as const;
 
-/** How heavily a writing is set. Asked of the name and of the label separately,
- *  because they are two writings and not one. */
+/** How heavily a writing is set, asked of name and label separately. */
 export const WEIGHTS = ["light", "normal", "bold"] as const;
 
-/** How a writing is faced. **One value, not three flags** — italic *and* struck
- *  through is a combination nobody has asked for, and a closed set stays one
- *  lookup where three booleans become eight states to draw. */
+/** How a writing is faced. One value, not three flags. */
 export const FONTS = ["none", "italic", "underline", "strike"] as const;
 
-/** What draws at one end of a run. **Five, and every renderer keeps all five**
- *  — each is a marker path on the canvas and in the SVG export, and the text
- *  renderer degrades an arrow to `-->` the way it already did. That is the line
- *  `shape` fell the wrong side of: a card drawn as a diamond in one renderer
- *  and a rectangle in the rest.
- *
- *  **A shape, not a direction.** `dir` says which ends a relationship points
- *  at and is what `flip`, `chain` and `ends` read; this says what is drawn
- *  there. An end nobody gave a shape draws a filled head where `dir` points at
- *  it and nothing where it does not — so a line saying neither draws exactly as
- *  it always has, and an undirected line can still carry a diamond at one end. */
+/** What draws at one end of a run. */
 export const ARROWS = ["none", "arrow", "open", "hollow", "diamond"] as const;
 
-/** What fills a card behind its writing. **Pattern, never colour** — every one
- *  of these is drawn from the card's own steps, so a hatch follows whatever
- *  family or hue it was given. */
+/** What fills a card behind its writing. */
 export const FILLS = ["solid", "hatch", "wash", "none"] as const;
 
-/** How opaque the fill is, from nothing to solid. **A number, because it is
- *  one.** The fill alone: never the ink and never the border, so a card that
- *  has gone transparent is still a card with writing on it. */
+/** How opaque the fill is, from nothing to solid. */
 export const OPACITY = { min: 0, max: 1 } as const;
 
-/** How far a border or a writing stands out from the card behind it.
- *
- *  **Four rungs of the theme's ladder, in order.** Not a number, because the
- *  ladder is tuned per theme and the four are not evenly spaced on it — a
- *  fraction would land somewhere nobody chose, and land differently in each of
- *  the three. The names say what they look like rather than what the ramp calls
- *  them. */
+/** How far a border or a writing stands out from the card behind it. */
 export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
 
-/** **What a card draws where nobody has said** — the app's own answer, as
- *  against a definition's or an element's.
- *
- *  **Here rather than beside the renderer, because two surfaces need it.** The
- *  drawing resolves a look against it, and the settings panel lights the chip a
- *  row would draw when nothing is set — and two copies of this would drift the
- *  moment either changed. `as const` is what makes the drawing's own table
- *  type-check against the closed sets, so a typo here is a build error.
- *
- *  **A run has almost none.** What an unstyled run draws is its module's own —
- *  a tie is a dotted whisper — so nothing
- *  here stands in for its `style`, and a panel showing one lights no chip,
- *  which is the truth. Its two identity keys are the card's, said again under
- *  the component that owns them. */
+/** What a card draws where nobody has said — the app's own answer, as against a definition's or an
+ *  element's. */
 export const DEFAULTS = {
   "card.label": "none",
   "card.align": "left",
@@ -232,24 +136,10 @@ export const DEFAULTS = {
   "style.label_weight": "normal",
 } as const;
 
-/** The drawing keys, as against what a thing is held to. **`plain` gives these
- *  back and leaves `rules` alone** — a reset is about how something looks and
- *  never about what its vocabulary asked of it. */
+/** The drawing keys, as against what a thing is held to. */
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
-/** **What each module honours, and the keys it owns of its own.**
- *
- *  `style` is shared: how loudly a thing is taken — its family, its hue, its
- *  border, its writing — is the same question of a card, of a port and of a
- *  run. What a line and an interface lack is a **face**, which is exactly what
- *  `card` describes: where the label sits, which way the writing reads, the two
- *  corner marks. A relationship honours `line` in its place, which says what
- *  draws at each of its two ends.
- *
- *  **Declared rather than derived**, so the tray's rail filters on it and no
- *  panel has to know which of the three it is holding. `keys` is what the
- *  module configures under `block`; every one is empty, because no module has
- *  configuration of its own yet and each says so. */
+/** What each module honours, and the keys it owns of its own. */
 const CARD: readonly string[] = ["card", "style", "rules"];
 const WALL: readonly string[] = ["style", "rules"];
 const WIRE: readonly string[] = ["line", "style", "rules"];
@@ -257,19 +147,15 @@ const WIRE: readonly string[] = ["line", "style", "rules"];
 const MODULES: Record<string, { honours: readonly string[]; keys: readonly string[] }> = {
   ...Object.fromEntries(BLOCK_MODULES.map((m) => [m, { honours: CARD, keys: [] }])),
   ...Object.fromEntries(RELATION_MODULES.map((m) => [m, { honours: WIRE, keys: [] }])),
-  /** An interface is eight pixels of wall. It is painted like anything else and
-   *  there is no face on it to compose. */
+  /** An interface is eight pixels of wall. */
   interface: { honours: WALL, keys: [] },
 };
 
-/** **One namespace for both groups**, so a module name may mean one thing. A
- *  block and a relation module sharing a name drew a block definition as a run. */
+/** One namespace for both groups, so a module name may mean one thing. */
 const shared = BLOCK_MODULES.filter((m) => (RELATION_MODULES as readonly string[]).includes(m));
 if (shared.length) throw new Error(`module names shared by both groups: ${shared.join(", ")}`);
 
-/** Which components this module honours. **Unknown is a card**: a module this
- *  build has never heard of is drawn as the ordinary thing rather than left
- *  with nothing to say about itself. */
+/** Which components this module honours. */
 export function honours(module: string): readonly string[] {
   return MODULES[module]?.honours ?? CARD;
 }
@@ -294,29 +180,19 @@ const relation: Component = {
     ?? stray("relation", config, ["module"]),
 };
 
-/** What a card is *made of* — where its label sits and which way each writing
- *  reads — rather than what it is painted, which is `style`.
- *
- *  **`icon` is a name from the theme's set, not a drawing.** A name this build
- *  does not know falls back to the one the role would draw. The bottom corner is
- *  the system's, and nothing here sets it. */
+/** What a card is made of, as against how it is painted (`style`). */
 const card: Component = {
   name: "card",
   check: (config) =>
     one_of("card.label", config["label"], DISPLAYS)
     ?? one_of("card.align", config["align"], ALIGNS)
     ?? one_of("card.label_align", config["label_align"], ALIGNS)
-    /** **A card always writes its name**; `alias` adds the handle to a name
-     *  somebody *did* set, which the fallback already carries. */
+    /** `alias` shows the handle beside a name that was set. */
     ?? one_of("card.alias", config["alias"], SHOWN)
     ?? stray("card", config, ["label", "align", "label_align", "icon", "alias"]),
 };
 
-/** How a card is painted: its border, its fill, and each of its two writings.
- *
- *  **Every key says what it is about** where the same word is asked twice.
- *  `name_weight` and `label_weight` are one question of two writings;
- *  `border_width` is a third weight and shares nothing with either. */
+/** How a card is painted: its border, its fill, and each of its two writings. */
 const style: Component = {
   name: "style",
   check: (config) =>
@@ -331,8 +207,8 @@ const style: Component = {
     ?? one_of("style.label_font", config["label_font"], FONTS)
     ?? one_of("style.label_weight", config["label_weight"], WEIGHTS)
     ?? one_of("style.label_contrast", config["label_contrast"], CONTRASTS)
-    /** **`hue` wins over `family` where both are said**, so a preset can be
-     *  nudged without first being cleared. Neither is required. */
+    /** `hue` wins over `family` where both are said, so a preset can be nudged without first being
+     *  cleared. */
     ?? within("style.hue", config["hue"], HUE)
     ?? within("style.intensity", config["intensity"], INTENSITY)
     ?? within("style.opacity", config["opacity"], OPACITY)
@@ -342,44 +218,20 @@ const style: Component = {
                                "label_font", "label_weight", "label_contrast"]),
 };
 
-/** What a run draws: a head at each end, and whether it says its own name.
- *
- *  **`card`’s counterpart, not a second `style`.** A relationship is painted
- *  from the same shared `style` a card is — its family, its hue, its weight,
- *  its writing — and what it has instead of a face is two ends.
- *
- *  **Four keys, and it is meant to stay small.** An edge is a join: which two
- *  things, which way, what draws where it meets each of them. Everything a
- *  connection has to *say* belongs to a block — a role name is the port's name,
- *  a multiplicity is `degree` on a definition, a guard is a condition and a
- *  condition is a thing you name. There is nothing here to list values with,
- *  because there are no values on an edge to list.
- *
- *  **Flat keys**, matching the `name_*` and `border_*` convention, because a
- *  look writes one scalar at a time and a nested record has nowhere to be
- *  typed. */
+/** What a run draws: a head at each end, and whether it says its own name. */
 const line: Component = {
   name: "line",
   check: (config) =>
     one_of("line.from_arrow", config["from_arrow"], ARROWS)
     ?? one_of("line.to_arrow", config["to_arrow"], ARROWS)
-    /** The identity line, exactly as a card asks it. A run nobody has named
-     *  reads its module and its handle; hiding it leaves a bare run. */
+    /** The identity line, exactly as a card asks it. */
     ?? one_of("line.name", config["name"], SHOWN)
     ?? one_of("line.alias", config["alias"], SHOWN)
     ?? stray("line", config, ["from_arrow", "to_arrow", "name", "alias"]),
 };
 
 
-/** One constraint and four rules. Each is a lookup, a count or one fixed
- *  comparison — the shapes are checked here, and what survives is what `review`
- *  reads.
- *
- *  **`required` used to live under its own `constraints` key.** It was the only
- *  thing there, and two component keys for one concept is drift: what a
- *  vocabulary asks of a usage is one question, whether it is answered by a
- *  field the usage must carry or by what may sit at its ends. The door moves
- *  an old one across. */
+/** One constraint and four rules. */
 const rules: Component = {
   name: "rules",
   check: (config) => {
@@ -404,7 +256,5 @@ const rules: Component = {
   },
 };
 
-/** What this build publishes. The engine ships its components the same way
- *  anybody else would, so there is no privileged path a later module would
- *  have to be measured against. */
+/** What this build publishes. */
 publish(block, card, line, relation, style, rules);

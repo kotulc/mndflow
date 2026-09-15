@@ -1,8 +1,4 @@
-/** Mutation replay, and the derived readings of a graph.
- *
- *  The graph is thrown away and rebuilt rather than edited, so it can never
- *  drift from the log that produced it — and undo is a refold, so no mutation
- *  needs an inverse. */
+/** Mutation replay, and the derived readings of a graph. */
 
 import { DRAWN, type Settings } from "./components";
 import { default_id } from "./ids";
@@ -11,8 +7,7 @@ import { BLOCK_MODULES, RELATION_MODULES, empty_graph,
          type Definition, type FieldDef, type Graph, type HeaderRole, type Id, type Log, type Mutation,
          type Relation, type RelationModule, type Span, type Step } from "./types";
 
-/** A group whose last member just left is deleted, and so is a holder that
- *  empties. A group made empty is never passed here. */
+/** A group whose last member just left is deleted, and so is a holder that empties. */
 function emptied(graph: Graph, id: Id | undefined): void {
   const g = id ? graph.blocks[id] : undefined;
   if (!g || !is_group(graph, g.id) || members_of(graph, g.id).length) return;
@@ -32,8 +27,7 @@ function drop_edge(graph: Graph, id: Id): void {
   }
 }
 
-/** Replay one mutation onto a graph, in place. The graph is always a fresh one
- *  owned by `fold`, so mutating it here is safe and cheap. */
+/** Replay one mutation onto a graph, in place. */
 function apply(graph: Graph, m: Mutation): void {
   switch (m.op) {
     case "checkpoint":
@@ -61,8 +55,7 @@ function apply(graph: Graph, m: Mutation): void {
           if (e.from === id || e.to === id) drop_edge(graph, eid);
         }
       }
-      /** **A gone group frees what it held.** The address was the group's, so
-       *  it goes with it and the block stays where it is on the layer. */
+      /** A deleted group frees its members. */
       for (const b of Object.values(graph.blocks)) {
         if (b.group === m.id) { delete b.group; delete b.cell; }
       }
@@ -72,15 +65,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "move_block": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** **A group is the layer's, the way an address is the group's.** Where a
-       *  block sits and which group holds it are both facts about the layer it
-       *  was in, so leaving one drops them — carried across, a block kept
-       *  membership of a grid that is not here, and a grid places its members
-       *  by address, so the drawing had nowhere to put it and drew nothing at
-       *  all while the tree went on listing it.
-       *
-       *  **Staying put keeps them**: a move that only reorders siblings is not
-       *  a move out of anywhere, and it has no business shifting a card. */
+      /** Leaving a layer drops the block's place and group there. */
       const holder = b.group;
       if (b.parent !== m.parent) {
         delete b.x; delete b.y; delete b.group; delete b.cell;
@@ -99,9 +84,7 @@ function apply(graph: Graph, m: Mutation): void {
       if (held) held.alias = m.alias;
       return;
     }
-    /** **The workspace holds every counter**, so a handle is minted from what
-     *  was handed out rather than from what is still alive. Undone with the
-     *  step that made the element, which is right: undone, it never existed. */
+    /** Counters live on the workspace and only ever rise. */
     case "set_counter": {
       const ws = graph.blocks[graph.root];
       if (ws) ws.counters = { ...(ws.counters ?? {}), [m.kind]: m.n };
@@ -110,9 +93,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_pinned": {
       const ws = graph.blocks[graph.root];
       if (!ws) return;
-      /** **Deduplicated, in the order given, and dropped when empty** — the same
-       *  handling `set_tags` gives a list, so an absent field and an empty one
-       *  are never two ways of saying nothing. */
+      /** Deduplicated, in order, and dropped when empty. */
       const kept = [...new Set(m.ids.filter(Boolean))];
       if (kept.length) ws.pinned = kept; else delete ws.pinned;
       return;
@@ -135,8 +116,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_group": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** An address is the group's, so leaving one drops it. The group left
-       *  behind goes if that was its last member. */
+      /** An address is the group's, so leaving one drops it. */
       const was = b.group;
       if (m.group === null) { delete b.group; delete b.cell; delete b.header; }
       else {
@@ -173,8 +153,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "merge_cells": {
       const b = graph.blocks[m.id];
       if (!b) return;
-      /** A merge replaces whatever it covers: two spans over one cell leaves
-       *  *what is this cell's extent* without an answer. */
+      /** A merge replaces any merge it overlaps. */
       b.merges = [...(b.merges ?? []).filter((s) => !overlaps(s, m.span)), { ...m.span }];
       return;
     }
@@ -189,9 +168,7 @@ function apply(graph: Graph, m: Mutation): void {
     case "update_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
-      /** **Null unnames it.** A relationship is named by the definition it
-       *  points at, so clearing the name is dropping the type — and an absent
-       *  one is how a file stays small. */
+      /** Null clears the type. */
       if (m.type === null) delete e.type;
       else e.type = m.type;
       return;
@@ -241,10 +218,7 @@ function apply(graph: Graph, m: Mutation): void {
       else b.flow = m.flow;
       return;
     }
-    /** **A block, and only a block.** An edge holds no values — what a
-     *  connection has to say belongs to the blocks at its ends. */
-    /** **In place where it is already there.** Setting a value moved the field
-     *  to the end, so editing one reordered the list under the pointer. */
+    /** Set in place where the field exists, else appended. */
     case "set_field": {
       const b = graph.blocks[m.id];
       if (!b) return;
@@ -273,15 +247,12 @@ function apply(graph: Graph, m: Mutation): void {
     case "set_tags": {
       const b = graph.blocks[m.id] ?? graph.edges[m.id];
       if (!b) return;
-      /** **Trimmed, deduplicated and in the order they were given.** A tag is a
-       *  word, so two spellings of one whitespace apart are one tag. */
+      /** Trimmed, deduplicated and in the order they were given. */
       const kept = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
       if (kept.length) b.tags = kept; else delete b.tags;
       return;
     }
-    /** **Whichever holder the id names.** A block and a relationship carry the
-     *  same bag one layer apart, so the drawing keys a line answers — `line`
-     *  and the shared `style` — are given back the same way a card's are. */
+    /** Gives back the drawing looks of whichever holder the id names. */
     case "drop_looks": {
       const it = graph.blocks[m.id] ?? graph.edges[m.id];
       if (!it?.looks) return;
@@ -309,20 +280,7 @@ function apply(graph: Graph, m: Mutation): void {
   }
 }
 
-/** Rebuild the graph by replaying every applied step over the floor.
- *
- *  **The floor is the shipped package, and it is not in the log.** It used to
- *  be step 0, which meant every workspace carried a private copy of `base` made
- *  the day it was created — so a definition the build changed afterwards was
- *  invisible in every workspace already written, and starting a new one was the
- *  only cure. A log is a history of *intent*, and what the app ships is not the
- *  user's intent.
- *
- *  Handed in rather than imported: `defs` depends on `core`, so core may not
- *  depend back. An app passes the floor the same way it passes a port.
- *
- *  **Nothing else changes.** The floor lands in `graph.defs` exactly where the
- *  seed step used to put it, so every reader sees what it always saw. */
+/** Rebuild the graph by replaying every applied step over the floor. */
 export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
   const graph = empty_graph();
   lay(graph, floor);
@@ -330,12 +288,7 @@ export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
     if (step.status !== "applied") continue;
     for (const m of step.mutations) {
       apply(graph, m);
-      /** **A checkpoint replaces the whole graph, floor and all.** An imported
-       *  file carries every definition it could reach, the shipped ones
-       *  included — so without this, opening a file would hand a workspace the
-       *  *exporter's* copy of `base` and the drift would be back, arriving by
-       *  post. The floor is re-laid over it, so a file is self-contained to
-       *  read and the receiving build always draws in its own vocabulary. */
+      /** A checkpoint replaces the floor too, so it is laid again. */
       if (m.op === "checkpoint") lay(graph, floor);
     }
   }
@@ -348,9 +301,7 @@ function lay(graph: Graph, floor: Graph["defs"]): void {
   for (const [id, def] of Object.entries(floor)) graph.defs[id] = def;
 }
 
-/** **Every base kind has a default the workspace may edit**, standing in until
- *  the first edit files it — so a workspace nobody customised writes nothing.
- *  A default extends its base and says nothing else until somebody does. */
+/** Lays an unfiled default for every base kind that has none. */
 function lay_defaults(graph: Graph, floor: Graph["defs"]): void {
   for (const base of Object.values(floor)) {
     const kind = base_kind(base);
@@ -360,8 +311,7 @@ function lay_defaults(graph: Graph, floor: Graph["defs"]): void {
   }
 }
 
-/** The kind a shipped base is the root of, or null for one refining another
- *  kind's look — `note` extends `resource` and is still its own root. */
+/** The kind a shipped base is the root of, or null. */
 function base_kind(d: Definition): BlockModule | RelationModule | null {
   const said = d.components?.[d.group === "relation" ? "relation" : "block"]?.["module"];
   return said === d.id ? (said as BlockModule | RelationModule) : null;
@@ -387,20 +337,12 @@ export function subtree(graph: Graph, id: Id): Id[] {
   return out;
 }
 
-/** **A null layer is the root layer.** One reading, everywhere: nothing else
- *  has `parent: null`, so taking it literally would hand back the root as its
- *  own child. */
+/** A null layer is the root layer. */
 export function layer_id(graph: Graph, layer: Id | null): Id {
   return layer ?? graph.root;
 }
 
-/** The direct children of a layer, in a stable order.
- *
- *  By `num` then id. **The number is where it sits**: it is given at the end
- *  of the list when a block is made and rewritten when somebody puts one
- *  somewhere else, so this reads as the order they were made until you move
- *  one. The id is the tie-break that keeps it deterministic when two carry the
- *  same number. */
+/** The direct children of a layer, in a stable order. */
 export function children(graph: Graph, layer: Id | null): Block[] {
   const here = layer_id(graph, layer);
   return Object.values(graph.blocks)
@@ -431,16 +373,12 @@ export function is_reference(b: Block): boolean {
   return b.of !== undefined;
 }
 
-/** A block holding blocks draws as a container. Derived, never declared. */
+/** A block holding blocks draws as a container. */
 export function is_container(graph: Graph, id: Id): boolean {
   return Object.values(graph.blocks).some((b) => b.parent === id && !is_interface(b));
 }
 
-/** A block no other block contains.
- *
- *  Read from position and stored nowhere. There is no project type — a
- *  top-level block is informally a *project*, the way a block with children is
- *  informally a container. */
+/** A block no other block contains. */
 export function is_top_block(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   return !!b && b.parent === graph.root;
@@ -458,18 +396,11 @@ export function stands_for(graph: Graph, id: Id): Block | null {
 }
 
 function fallback(graph: Graph, b: Block): string {
-  /** **A boundary needs no name.** It says *these belong together*, and the
-   *  band round them already says it — a word nobody chose is a caption on
-   *  every group saying nothing. Named where somebody names one. */
+  /** A boundary reads its kind word, which is blank. */
   return kind_word(graph, b);
 }
 
-/** What a block is called when nobody has called it anything: **its type**.
- *
- *  A subtype names itself, so a *Valve* nobody named reads `Valve`. The seven
- *  base definitions are the module in other words, so they defer to it — a
- *  plain block reads `Block` rather than `Structure`. A boundary reads nothing:
- *  the band round its members already says what it is. */
+/** The word each kind reads as when nothing is named; a boundary has none. */
 const WORD: Record<BlockModule, string> = {
   block: "Block", folder: "Folder", resource: "Resource",
   interface: "Interface", reference: "Reference", group: "", grid: "", note: "Note",
@@ -483,106 +414,48 @@ export function kind_word(graph: Graph, b: Block): string {
   return WORD[module_of(graph, b.id)];
 }
 
-/** Which letter each kind's handles run under.
- *
- *  **One per kind, and no collisions.** The obvious first letters could not
- *  give one each — group and grid both want `G`, reference and resource both
- *  want `R` — so a grid takes the `D` out of its own name and a resource takes
- *  `E` for *external*.
- *
- *  **The letter is derived, never stored.** An element carries only its number,
- *  so which letter a kind runs under is a decision this table can change on its
- *  own — no migration, and no file to rewrite.
- *
- *  **Safe because a kind is fixed at creation.** Nothing is ever retyped across
- *  modules and promotion mints a new element rather than converting one, so a
- *  letter never has to be rewritten — which is the whole point of a handle. */
+/** Which letter each kind's handles run under. */
 export const ALIAS_LETTER: Record<string, string> = {
   block: "B", folder: "F", resource: "E", interface: "I", reference: "R",
   group: "G", grid: "D", note: "N", relation: "L",
 };
 
-/** Which counter an element draws its handle from. A relationship has one kind;
- *  a block has its module. */
+/** Which counter an element draws its handle from. */
 export function alias_kind(graph: Graph, id: Id): string {
   return graph.edges[id] ? "relation" : module_of(graph, id);
 }
 
-/** The mark an element wears beside its type while nobody has named it, so two
- *  things both reading `Block` can still be told apart.
- *
- *  **Never the id.** A tail of the id would be stable and unique and would read
- *  as the random string it is; a handle is handed out in order, so the marks of
- *  one kind run `B1`, `B2`, `B3`.
- *
- *  **Empty once somebody has named it** — that is `card.alias: hide`, which is
- *  the default. A card asking for its handle beside a name reads it from here
- *  all the same. */
+/** An element's handle while it is unnamed, or always when asked. */
 export function alias_of(graph: Graph, id: Id, always = false): string {
   const held = graph.blocks[id] ?? graph.edges[id];
   if (!held || held.alias === undefined) return "";
-  /** **Hidden once it is named**, which is `card.alias: hide` — the default.
-   *  A relationship is named by the definition it points at, so a type is what
-   *  counts as one; without this an unnamed block dropped its handle while a
-   *  named line kept drawing `feeds L1`. */
+  /** A line counts as named by its type. */
   const named = graph.edges[id] ? !!graph.edges[id]!.type : is_named(graph, id);
   if (!always && named) return "";
   return alias_name(alias_kind(graph, id), held.alias);
 }
 
-/** A serial as a mark: `B1`, `I4`, `L12`. Short enough to read at a glance, and
- *  ordered by when the element was made. */
+/** A serial as a mark: `B1`, `I4`, `L12`. */
 export function alias_name(kind: string, n: number): string {
   return `${ALIAS_LETTER[kind] ?? "B"}${n}`;
 }
 
-/** The serial the next element of this kind takes.
- *
- *  **Read from the workspace's own counter, never scanned.** A high-water scan
- *  is safe against a gap in the middle and not against the top: delete the
- *  highest and the next one made takes that serial back. */
+/** The serial the next element of this kind takes. */
 export function next_alias(graph: Graph, kind: string): number {
   return (graph.blocks[graph.root]?.counters?.[kind] ?? 0) + 1;
 }
 
-/** Whether somebody named this block, as against the tag it wears until they
- *  do. **Asked so a surface can draw the difference** — a placeholder that
- *  reads as loudly as a name is a name nobody chose. */
+/** Whether somebody named this block, as against the tag it wears until they do. */
 export function is_named(graph: Graph, id: Id): boolean {
   const b = graph.blocks[id];
   if (!b) return false;
   const target = b.of ? stands_for(graph, id) : b;
   if (!target) return false;
-  /** **A name, and only a name.** A note's body used to count as one, which is
-   *  the same note-shaped exception `shown_name` carried — and now that every
-   *  block may hold a body, a block with text in it and nothing in its name
-   *  field is exactly as unnamed as any other. */
+  /** Only the name counts, never the body. */
   return !!target.name?.trim();
 }
 
-/** **What a thing is called, and only that.** The name where one is set, its
- *  type word where none is.
- *
- *  **The handle is `alias_of`'s, and it is composed by whoever draws.** Every
- *  surface already had a slot of its own for it — the tree dims it, the card
- *  sets it beside the name — so folding it in here rendered it twice and took
- *  the styling with it. One rule, two readers:
- *
- *  ```
- *  shown_name  →  "Feed pump", or "Block" where nobody has named it
- *  alias_of    →  "B3" while it is unnamed, and whenever a card asks
- *  ```
- *
- *  A reference reads its target and a gone target reads *missing*.
- *  **Blank is not a name**: an empty one falls back like an absent one.
- *
- *  **Never the body.** A note used to read its own text here, which made it the
- *  one element with a fallback of its own — and now that every block may carry
- *  a body, one rule replaces it.
- *
- *  **This is what the explorer, the tray, the CLI and the terminal read**, and
- *  it owes nothing to `card.name`: hiding a name makes a clean drawing and must
- *  never make an element unfindable in the tree. */
+/** What a thing is called, and only that. */
 export function shown_name(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (!b) return graph.edges[id] ? named_edge(graph, id) : "missing";
@@ -599,41 +472,26 @@ function named(graph: Graph, b: Block): string {
   return name || fallback(graph, b);
 }
 
-/** A relationship's, which has no name field of its own yet — so it is always
- *  the word its type or its module gives, and the handle beside it is what
- *  tells two apart. */
+/** A relationship reads its label, or its module. */
 function named_edge(graph: Graph, id: Id): string {
   return label_of(graph, id) || graph.edges[id]!.module;
 }
 
-/** **What a line draws beside itself**: the label of the definition it follows,
- *  or nothing. A definition id answers for itself. */
+/** What a line draws beside itself: the label of the definition it follows, or nothing. */
 export function label_of(graph: Graph, id: Id): string {
   const d = graph.defs[id] ?? graph.defs[def_of(graph, id) ?? ""];
   return d?.label ?? "";
 }
 
-/** The number a new sibling takes: one past the last.
- *
- *  **Appended, never inserted.** The lowest free number filled the gap a
- *  deleted sibling left, which put the newest block in the middle of a list
- *  whose whole meaning is the order things were added. */
+/** The number a new sibling takes: one past the last. */
 export function next_order(graph: Graph, parent: Id | null): number {
   return children(graph, parent).reduce((n, b) => Math.max(n, b.order ?? 0), 0) + 1;
 }
 
-/** The siblings of a layer, renumbered so `moved` sits in front of `before` —
- *  or last, where nothing is named. **Only what actually shifts**: a move
- *  inside a list is one step, and every sibling saying its number again would
- *  bury what happened.
- *
- *  The block being moved may be arriving from another layer, so it is taken
- *  out of the list before it is put back. */
+/** The sibling orders that change when `moved` goes before `before`, or last. */
 export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id[],
                         before?: Id | null): { id: Id; order: number }[] {
-  /** **Several arrive as one run**, in the order they were handed over — put in
-   *  one at a time each would land in front of the last, and a selection
-   *  dropped somewhere would arrive backwards. */
+  /** Several arrive as one run, in the order given. */
   const run = Array.isArray(moved) ? [...moved] : [moved as Id];
   const rest = children(graph, parent).filter((b) => !run.includes(b.id)).map((b) => b.id);
   const at = before ? rest.indexOf(before) : -1;
@@ -643,35 +501,26 @@ export function reorder(graph: Graph, parent: Id | null, moved: Id | readonly Id
     .filter(({ id, order }) => (graph.blocks[id]?.order ?? 0) !== order);
 }
 
-/** What an end is **drawn on**. An interface is drawn on its owner, and
- *  everything else on itself — so promoting a relationship's seat to an
- *  interface moves where the line lands without moving which layer it is in. */
+/** The block an end is drawn on: an interface's owner, or itself. */
 export function owner_of(graph: Graph, id: Id): Id {
   const b = graph.blocks[id];
   return b && is_interface(b) && b.parent ? b.parent : id;
 }
 
-/** Relations with both ends drawn in this layer.
- *
- *  An end seated on a child counts as that child. **The layer itself counts
- *  too**, and so does an interface of its own: seen from within, the layer is
- *  the frame around you, and a relationship reaching it is drawn meeting that
- *  frame. Left out, a block wired to the layer's own interface had a
- *  relationship that existed in the model and was drawn in no layer at all. */
+/** Relations with both ends drawn in this layer. */
 export function edges_in(graph: Graph, layer: Id | null): Relation[] {
   const here = new Set(children(graph, layer).map((b) => b.id));
   const room = layer_id(graph, layer);
   const drawn = (id: Id) => here.has(owner_of(graph, id)) || owner_of(graph, id) === room;
   const lines = Object.values(graph.edges).filter((e) => drawn(e.from) && drawn(e.to));
-  /** **A tie on a line is layer local**: drawn where that line is drawn. */
+  /** Ties on those lines are drawn with them. */
   const shown = new Set(lines.map((e) => e.id));
   const ties = Object.values(graph.edges).filter((e) =>
     (shown.has(e.to) && drawn(e.from)) || (shown.has(e.from) && drawn(e.to)));
   return [...lines, ...ties].sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Whether a relation may end on this id: a block, or — for a tie between a note
- *  and a line — a relation that does not itself end on a relation. */
+/** Whether these ends make a tie between a note and a line. */
 export function may_tie(graph: Graph, from: Id, to: Id): boolean {
   const line = (id: Id) => {
     const e = graph.edges[id];
@@ -681,8 +530,7 @@ export function may_tie(graph: Graph, from: Id, to: Id): boolean {
   return (line(from) && note(to)) || (line(to) && note(from));
 }
 
-/** What a relation between these ends is: a tie where an end is a note or a
- *  line, a line otherwise. Derived, never picked. */
+/** What a relation between these ends is: a tie where an end is a note or a line, a line otherwise. */
 export function derived_module(graph: Graph, from: Id, to: Id): RelationModule {
   const noted = (id: Id) => !!graph.blocks[id] && module_of(graph, id) === "note";
   return may_tie(graph, from, to) || noted(from) || noted(to) ? "tie" : "line";
@@ -693,14 +541,7 @@ export function arrangement_of(graph: Graph, layer: Id | null): Arrangement {
   return graph.blocks[layer_id(graph, layer)]?.arrangement ?? "free";
 }
 
-/** Whether a block is a grid — a region with an extent and cells to seat in.
- *
- *  **The module is the whole answer.** These used to sniff `rows`/`cols` and
- *  compare `type` against two literal words, so a definition subtyping either
- *  module disagreed with them — and `size_of` followed the sniff, which drew
- *  such a grid at card size. `module_of` already resolves a definition chain
- *  and already lets `type` name a module directly, so there is one answer and
- *  everything reads it. */
+/** Whether a block is a grid — a region with an extent and cells to seat in. */
 export function is_grid(graph: Graph, id: Id): boolean {
   return module_of(graph, id) === "grid";
 }
@@ -710,9 +551,7 @@ export function is_group(graph: Graph, id: Id): boolean {
   return module_of(graph, id) === "group";
 }
 
-/** Whether a block holds others, either way. **The question most callers
- *  actually have**: a grid and a boundary differ in how they draw and in
- *  nothing about whether something may sit inside them. */
+/** Whether a block holds others, either way. */
 export function is_holder(graph: Graph, id: Id): boolean {
   const m = module_of(graph, id);
   return m === "grid" || m === "group";
@@ -724,17 +563,13 @@ export function grid_of(graph: Graph, id: Id): Block | null {
   return (held ? graph.blocks[held] : undefined) ?? null;
 }
 
-/** Where in that group it sits. **An address with no group is nothing**, so
- *  both have to be there for either to mean anything. */
+/** Where a block sits in its group, or null. */
 export function cell_of(graph: Graph, id: Id): Cell | null {
   const b = graph.blocks[id];
   return b?.group && b.cell ? { ...b.cell } : null;
 }
 
-/** How many groups enclose a block — zero for one sitting on the layer.
- *
- *  **The one answer for nesting**, so what draws on top of what and what is
- *  placed before what cannot disagree. */
+/** How many groups enclose a block — zero for one sitting on the layer. */
 export function group_depth(graph: Graph, id: Id): number {
   let depth = 0;
   let at = graph.blocks[id]?.group;
@@ -754,13 +589,7 @@ export function members_of(graph: Graph, group: Id): Block[] {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
-/** Whether `holder` may contain `id` — not itself and not a cycle.
- *
- *  **A cell holds a block, never another holder.** A boundary is containment
- *  and nothing else, so bands nest freely; a grid is an address space, and a
- *  grid or band seated in one of its cells is sized by what *it* holds — so
- *  the cell it was given no longer says how big it is, and the lattice a cell
- *  address means is no longer the layer's one. */
+/** Whether `holder` may contain `id` — not itself and not a cycle. */
 export function can_hold(graph: Graph, holder: Id, id: Id,
                         held?: ReadonlyMap<Id, Id | undefined>): boolean {
   const g = graph.blocks[holder];
@@ -784,8 +613,7 @@ export function merge_at(graph: Graph, group: Id, r: number, c: number): Span | 
   return graph.blocks[group]?.merges?.find((s) => covers(s, r, c)) ?? null;
 }
 
-/** What sits at this address. **A merged region is one cell**, so every address
- *  under a span answers with the block seated at its corner. */
+/** What sits at this address; a merge answers at every address it covers. */
 export function at_cell(graph: Graph, group: Id, r: number, c: number): Block | null {
   const span = merge_at(graph, group, r, c);
   const want = span ? { r: span.r, c: span.c } : { r, c };
@@ -793,8 +621,7 @@ export function at_cell(graph: Graph, group: Id, r: number, c: number): Block | 
     .find((b) => b.cell?.r === want.r && b.cell?.c === want.c) ?? null;
 }
 
-/** Whether a span covers this address. Exported working, used by the readers
- *  above and by whoever draws a grid. */
+/** Whether a span covers this address. */
 export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
@@ -804,19 +631,7 @@ export function is_header(b: Block): boolean {
   return !!b.header;
 }
 
-/** Which line a seated block's position puts it in charge of, whether or not it
- *  is a header.
- *
- *  **Position is the whole rule, and it is one sentence**: row 0 heads its
- *  column, the corner heads both, anything else heads its row. So promoting is
- *  one gesture with nothing to choose, and a grid means the same thing turned
- *  on its side — `transpose` moves a lane owner from column 0 into row 0 and it
- *  becomes a column head with no code to do it.
- *
- *  **A line, never a region.** A cell sits in one row and one column, so it has
- *  at most two headers, one per axis — which is what lets a matrix fall out of
- *  a pair of them. A scope reaching down and right instead would compose into
- *  an unordered pile and leave *what is allocated to this* without an answer. */
+/** Which line a seated block's position puts it in charge of, whether or not it is a header. */
 export function would_head(graph: Graph, id: Id): HeaderRole | null {
   const at = region_of(graph, id);
   if (!at) return null;
@@ -829,15 +644,13 @@ export function head_of(graph: Graph, id: Id): HeaderRole | null {
   return graph.blocks[id]?.header ? would_head(graph, id) : null;
 }
 
-/** Whether this block heads rows, or columns. The corner heads both. */
+/** Whether this block heads rows, or columns. */
 export function heads(graph: Graph, id: Id, way: "row" | "col"): boolean {
   const role = head_of(graph, id);
   return role === way || role === "both";
 }
 
-/** The region a seated block occupies: the merge covering its address, or the
- *  one cell it sits in. **A merge is a cell's extent**, so a header merged
- *  down three rows heads all three. */
+/** The region a seated block occupies: the merge covering its address, or the one cell it sits in. */
 export function region_of(graph: Graph, id: Id): Span | null {
   const b = graph.blocks[id];
   if (!b?.group || !b.cell) return null;
@@ -849,18 +662,8 @@ function along(a: number, an: number, b: number, bn: number): boolean {
   return a < b + bn && b < a + an;
 }
 
-/** The headers a block is **allocated to**: the block heading its row, the one
- *  heading its column, or both.
- *
- *  **A header claims its line from where it sits onward**, in the reading
- *  direction. So a second header further along a row is a **subheader**: what
- *  follows it is allocated to both, and what came before it only to the first.
- *  The subheader is itself allocated to the header above it, which is what
- *  makes the nesting readable.
- *
- *  **Derived from position and stored nowhere.** A block leaving the grid loses
- *  its allocation, which is correct — the allocation *was* the position.
- *  Durable classification is a field somebody typed. */
+/** The headers a block is allocated to: the block heading its row, the one heading its column, or
+ *  both. */
 export function allocations_of(graph: Graph, id: Id): Block[] {
   const me = region_of(graph, id);
   const group = graph.blocks[id]?.group;
@@ -872,8 +675,7 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
     if (!at) continue;
     const row = heads(graph, h.id, "row")
              && along(me.r, me.rows, at.r, at.rows) && me.c >= at.c;
-    /** Symmetric, and a no-op while only row 0 heads a column — a column header
-     *  always sits at `r: 0`, so there is nothing upstream of one to exclude. */
+    /** Symmetric; column headers always sit in row 0. */
     const col = heads(graph, h.id, "col")
              && along(me.c, me.cols, at.c, at.cols) && me.r >= at.r;
     if (row || col) out.push(h);
@@ -881,8 +683,7 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
   return out;
 }
 
-/** Everything allocated to this header — the rows it heads, the columns it
- *  heads, or both where it heads its grid either way. */
+/** Everything allocated to this header. */
 export function allocated_to(graph: Graph, id: Id): Block[] {
   const group = graph.blocks[id]?.group;
   if (!group || !graph.blocks[id]?.header) return [];
@@ -891,13 +692,6 @@ export function allocated_to(graph: Graph, id: Id): Block[] {
 }
 
 
-/** **`defs_in_scope` and `resolve_def` were here, and both read `home`.** One
- *  listed what a block's ancestors had filed; the other found one by name. Every
- *  resolution in the engine goes by id and is global, so the first was a
- *  narrower answer than the truth — it disagreed with the vocabulary folder
- *  beside it — and the second had no caller but its own test. Looking a
- *  definition up by name is what `def_id` collisions are for.
- */
 
 /** A definition and the chain it extends, nearest first. */
 export function isa(graph: Graph, type: Id | undefined): Definition[] {
@@ -914,37 +708,22 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
   return out;
 }
 
-/** What one component reads for a usage of this definition: **the chain, laid
- *  down base first, one property at a time.**
- *
- *  A cascade, and the same one everywhere: the root says what a whole kind of
- *  thing is like, each refinement says only what it changes, and the nearest
- *  has the last word. **Per property, not per key** — restating `card` to set
- *  a shape used to throw away the layout the base had set, so a subtype could
- *  not change one thing without restating everything it had inherited.
- *
- *  Order is stated and never inferred, which is why one parent is enough and
- *  there is no diamond to resolve: what comes later wins, and the chain is a
- *  list. What comes back is what the door let through, so nothing downstream
- *  guards for a shape this build cannot read. */
+/** What one component reads for a usage of this definition: the chain, laid down base first, one
+ *  property at a time. */
 export function config_of(graph: Graph, type: Id | undefined, key: string): Settings {
   const out: Settings = {};
   for (const d of isa(graph, type).reverse()) Object.assign(out, d.components?.[key]);
   return out;
 }
 
-/** A field list put in the order these names give. Anything not named keeps
- *  its place after them. */
+/** A field list put in the order these names give. */
 export function ordered_by<T extends { name: string }>(fields: readonly T[],
                                                          names: readonly string[]): T[] {
   const named = names.map((n) => fields.find((f) => f.name === n)).filter((f): f is T => !!f);
   return [...named, ...fields.filter((f) => !names.includes(f.name))];
 }
 
-/** **The schema a definition declares, down its chain**: base first, and a
- *  subtype's field replacing its parent's of the same name in the parent's
- *  place. Each says which definition declared it, which is what separates what
- *  a definition says from what it inherits. */
+/** A definition's field schema down its chain, nearer fields replacing farther ones. */
 export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { from: Id })[] {
   const out: (FieldDef & { from: Id })[] = [];
   for (const d of isa(graph, type).reverse()) {
@@ -957,10 +736,7 @@ export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { fro
   return out;
 }
 
-/** Which block module interprets this block.
- *
- *  `of` and `side` win because they are what the block *is* doing, whatever it
- *  names; otherwise the nearest definition in the chain that says. */
+/** Which block module interprets this block. */
 export function module_of(graph: Graph, id: Id): BlockModule {
   const b = graph.blocks[id];
   if (!b) return "block";
@@ -969,42 +745,20 @@ export function module_of(graph: Graph, id: Id): BlockModule {
   return module_named(graph, b.type);
 }
 
-/** The kind a definition belongs to: **the nearest link in its chain that says
- *  what kind it is.**
- *
- *  A subtype that says nothing inherits its parent's kind, which is what makes
- *  a chain of refinements safe — a *Valve* refining a block is still a block.
- *  Declaring one is how the base kinds are stated at all, and `note` is the
- *  proof it must stay possible: it extends `resource` for the way it draws and
- *  says its own kind on top of that.
- *
- *  **What stops a block changing kind is the gesture, not the chain** — see
- *  `may_retype`, which is where the rule anybody can feel is written. */
+/** The kind a definition belongs to: the nearest link in its chain that says what kind it is. */
 export function module_named(graph: Graph, type: Id | undefined): BlockModule {
   const named = config_of(graph, type, "block")["module"];
   if (typeof named === "string" && BLOCK_MODULES.includes(named as BlockModule)) {
     return named as BlockModule;
   }
-  /** **The type field can name the module directly.** `group` and `grid` are
-   *  stamped on creation before a definition is consulted. */
+  /** The type field can name the module directly. */
   if (type && BLOCK_MODULES.includes(type as BlockModule)) return type as BlockModule;
   return "block";
 }
 
-/** The definition a thing resolves through.
- *
- *  **There is no such thing as an untyped block.** `block` is the base kind and
- *  a block that names nothing *is* one — the field being absent is how a file
- *  stays small, not a second sort of thing. Read as two, an ordinary block drew
- *  on neutral with a name layout while a block that said `block` out loud drew
- *  on primary with a type layout: the same thing, two ways, two looks.
- *
- *  So what is absent resolves to the definition its kind is named by, and every
- *  reader asks this rather than the field. A relationship answers the same way
- *  from its module. */
+/** The definition a thing resolves through. */
 export function def_of(graph: Graph, id: Id): Id | undefined {
-  /** **Naming a shipped base is naming nothing**: every plain element follows
-   *  its kind's default, and a base is only ever reached through one. */
+  /** A shipped base resolves to its kind's default. */
   const named = (type: Id | undefined) =>
     type && !(graph.defs[type] && shipped(graph.defs[type]!)) ? type : undefined;
   const b = graph.blocks[id];
@@ -1018,9 +772,7 @@ export function def_of(graph: Graph, id: Id): Id | undefined {
     ?? (graph.defs[e.module] ? e.module : undefined);
 }
 
-/** What an element stores to name this definition. **A base or a default is
- *  stored as plain**: absent where the element's shape already says its kind,
- *  and the kind's own id where only the type can — a note, a group, a folder. */
+/** What an element stores to name this definition. */
 export function stored_type(graph: Graph, type: Id | undefined): Id | undefined {
   const d = type ? graph.defs[type] : undefined;
   if (!d || !(shipped(d) || d.default)) return type || undefined;
@@ -1036,9 +788,8 @@ export function plain_type(kind: BlockModule): Id | null {
 /** Kinds an element's own shape says, so a plain one names nothing. */
 const STRUCTURAL: readonly BlockModule[] = ["block", "reference", "interface"];
 
-/** **The workspace's default for a base kind**: the one editable definition
- *  every plain element of that kind follows. Only the workspace's own, never a
- *  package's, and the group is asked for so a block kind never matches a line's. */
+/** The workspace's default for a base kind: the one editable definition every plain element of that
+ *  kind follows. */
 export function default_for(graph: Graph, kind: BlockModule | RelationModule,
                             group: "block" | "relation" = "block"): Id | undefined {
   for (const d of Object.values(graph.defs)) {
@@ -1053,23 +804,15 @@ export const BASE_RELATIONS: readonly string[] = ["line", "tie"];
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
 
-/** Whether this definition is one the app ships rather than one anybody wrote.
- *
- *  **Asked in one place.** The tray and the explorer each held a copy of the
- *  same two lists, and the shape of a base id is exactly the kind of thing that
- *  drifts when it is written down twice.
- *
- *  **`from` is the mechanism, and the ids are the backstop**: a base kind's id
- *  is reserved, so a shipped record that reached this build without its `from`
- *  — out of an older file — is still a shipped kind. */
+/** Whether this definition is one the app ships rather than one anybody wrote. */
 export function shipped(d: Definition): boolean {
   return d.from === BASE_PACKAGE
     || (BLOCK_MODULES as readonly string[]).includes(d.id)
     || BASE_RELATIONS.includes(d.id);
 }
 
-/** Whether a definition is the workspace's to write out: not shipped, and not
- *  a default nobody has edited. */
+/** Whether a definition is the workspace's to write out: not shipped, and not a default nobody has
+ *  edited. */
 export function touched(d: Definition): boolean {
   if (shipped(d)) return false;
   if (d.default === undefined) return true;
@@ -1081,43 +824,35 @@ const LAID = ["id", "group", "name", "extends", "default"];
 
 /** One package's block definitions, as the vocabulary section lists them. */
 export type Vocabulary = {
-  /** The package these came from. **Null is the workspace's own.** */
+  /** The package these came from. Null is the workspace's own. */
   from: string | null;
   defs: Definition[];
 };
 
-/** Which relation module a relation definition refines: **the nearest link that
- *  says, in `relation`**, exactly as `module_named` answers for a block. */
+/** The relation module a definition refines, down its chain. */
 export function relation_named(graph: Graph, type: Id | undefined): RelationModule {
   const named = config_of(graph, type, "relation")["module"];
   return RELATION_MODULES.includes(named as RelationModule) ? named as RelationModule : "line";
 }
 
-/** Every relation definition this workspace can name — its defaults, its own
- *  and its packages' — with the shipped floor aside. */
+/** Every relation definition except the shipped floor. */
 export function relations(graph: Graph): Definition[] {
   return Object.values(graph.defs)
     .filter((d) => d.group === "relation" && !shipped(d))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** A definition by what it is called. **Its name, never the id slugged from it** —
- *  a definition renamed keeps its id, so a slug finds the wrong one or none. */
+/** A definition by what it is called. */
 export function def_named(graph: Graph, name: string, group?: "block" | "relation"): Definition | undefined {
   const want = name.trim();
   if (!want) return undefined;
-  /** **The workspace's own first**: one may share a name with a shipped kind. */
+  /** The workspace's own first: one may share a name with a shipped kind. */
   const hits = Object.values(graph.defs)
     .filter((d) => d.name === want && (!group || d.group === group));
   return hits.find((d) => !d.from) ?? hits[0];
 }
 
-/** The definitions of one group the workspace pinned, **in the order it put
- *  them**: relation definitions offered on the rail, block definitions listed in
- *  the explorer's pinned folder.
- *
- *  Resolved against `defs` on the way out, so a pin naming a definition that has
- *  since been removed simply lists one fewer. */
+/** Pinned definitions of one group, in pin order. */
 export function pinned_defs(graph: Graph, group: "block" | "relation"): Definition[] {
   const ws = graph.blocks[graph.root];
   return (ws?.pinned ?? [])
@@ -1125,9 +860,7 @@ export function pinned_defs(graph: Graph, group: "block" | "relation"): Definiti
     .filter((d): d is Definition => !!d && d.group === group);
 }
 
-/** Every block definition this workspace can reach, grouped by where it came
- *  from — its own first, then the base, then each imported package. **A
- *  rendering, not blocks**: nothing in it is realised until a row is dragged out. */
+/** Block definitions grouped by package, the workspace's own first. */
 export function vocabulary(graph: Graph): Vocabulary[] {
   const groups = new Map<string | null, Definition[]>();
   for (const d of Object.values(graph.defs)) {
@@ -1142,31 +875,12 @@ export function vocabulary(graph: Graph): Vocabulary[] {
                               defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
 }
 
-/** Whether this block may be told to name that definition.
- *
- *  **A kind is fixed at creation, and only a definition of that kind will do.**
- *  A block, a folder and a resource used to swap freely on the grounds that
- *  they differ only in what they are for — but *make the kind you meant* is one
- *  fewer thing to explain than a rule about which three are interchangeable,
- *  and a handle that never has to be rewritten is what it buys.
- *
- *  **`retype` is not what goes.** It does two jobs: pointing a block at a
- *  definition — which *is* how a vocabulary is applied — and changing which
- *  module answers for it. Only the second was ever the holdover. */
+/** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
   return module_of(graph, id) === module_named(graph, type);
 }
 
-/** What a block is, as the one word every surface draws a mark for.
- *
- *  **The module, plus the one thing a module cannot say.** A structure block
- *  that holds a layer of its own is a container, which is a fact about what it
- *  holds rather than about what it is — and it is the difference a reader needs
- *  most, because it says whether there is anywhere to go. Behavior and view
- *  have no mark of their own: what they are is said by the definition they
- *  name, and a second word for it would be one too many.
- *
- *  Asked here so the tree, the canvas and every other surface answer alike. */
+/** What a block is, as the one word every surface draws a mark for. */
 export type Role = "block" | "container" | "folder" | "resource" | "reference"
                  | "interface" | "group" | "grid" | "note";
 

@@ -1,7 +1,4 @@
-/** The one door a log comes in through.
- *
- *  Every log is checked before it is folded. What can be repaired comes back as
- *  a repair step; what cannot is dropped. A clean log says nothing. */
+/** The one door a log comes in through. */
 
 import { component, unreadable } from "./components";
 import { covers, derived_module, fold, can_hold, is_grid, may_tie, module_named, overlaps,
@@ -30,8 +27,7 @@ const OPS = new Set<string>([
   "set_arrangement", "set_tags", "set_look", "drop_looks",
 ]);
 
-/** Read a log in, repairing what it can. Writes to a shipped definition are
- *  stripped: the floor is the build's, never the log's. */
+/** Read a log in, repairing what it can. */
 export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
   const faults: Fault[] = [];
   if (!Array.isArray(input)) return { log: [], faults: [{ kind: "dropped", what: "not a log" }] };
@@ -131,8 +127,8 @@ export function inspect(graph: Graph): Inspection {
 
 type Say = (kind: Fault["kind"], what: string, ...mend: Mutation[]) => void;
 
-/** One block per cell, inside its grid, in a group that can hold it; merges
- *  inside the grid and never overlapping. A repair frees, never deletes. */
+/** One block per cell, inside its grid, in a group that can hold it; merges inside the grid and
+ *  never overlapping. */
 function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
   const taken = new Set<string>();
   for (const b of Object.values(graph.blocks)) {
@@ -188,8 +184,8 @@ function looks(graph: Graph, name: (id: Id) => string, say: Say): void {
   }
 }
 
-/** One mended record per definition: extends something that is there, only
- *  readable components, a default only for its own kind, and one per kind. */
+/** One mended record per definition: extends something that is there, only readable components, a
+ *  default only for its own kind, and one per kind. */
 function definitions(graph: Graph, say: Say): void {
   const claimed = new Set<string>();
   for (const d of Object.values(graph.defs).sort((a, z) => a.id.localeCompare(z.id))) {

@@ -1,8 +1,4 @@
-/** The one log, and the loop every input surface drives.
- *
- *  Hold the log, fold it, run an action, append what it wrote. Undo flips a
- *  status and refolds — no mutation needs an inverse, and the graph that comes
- *  back was built by the same fold that built the original. */
+/** The one log, and the loop every input surface drives. */
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
@@ -14,17 +10,13 @@ import { ROOT } from "./types";
 import type { Fault } from "./door";
 import type { Graph, Id, Log, Mutation, Step } from "./types";
 
-/** **Everything the app says goes to one strip, and not all of it is a
- *  mirror.** A create echoed back is; a refusal, a repair report or a rule note
- *  is the app answering for itself. Quiet mode silences the one and never the
- *  other, which is the only reason the two are told apart. */
+/** What the app says: a mirror of what was done, or a note of its own. */
 export type Said = { text: string; at: number; kind: "mirror" | "note" };
 
 /** A package that arrived, and what the door had to say about it. */
 export type Found = { name: string; about: string; faults: Fault[] };
 
-/** One row of the catalogue a `net` binding points at. Read defensively: it is
- *  written outside this workspace and nothing here wrote it. */
+/** One row of the catalogue a `net` binding points at. */
 type Listed = { name: string; about: string; at: string };
 
 export type Session = {
@@ -32,8 +24,7 @@ export type Session = {
   graph: () => Graph;
   layer: () => Id | null;
   picked: () => Id[];
-  /** Which cells are picked. **Beside the ids, never among them** — a cell has
-   *  no id, so it could not ride in `picked` without pretending to be a block. */
+  /** Which cells are picked, beside the ids. */
   cells: () => Spot[];
   said: () => Said | null;
 
@@ -54,23 +45,11 @@ export type Session = {
 
   save: (name?: string) => Promise<void>;
   load: (text: string) => void;
-  /** **Back to a fresh workspace**, seeded exactly as the first run was.
-   *
-   *  The log is what the workspace *is*, so starting over is dropping it and
-   *  laying the seed down again — not a mutation, and not undoable, because
-   *  there is nothing left to undo into. **It is also the only way a definition
-   *  this build no longer ships leaves a workspace that already has it**: the
-   *  seed is written once, when storage is empty, so a base definition retired
-   *  in code lives on in every log written before it went. */
+  /** Back to a fresh, empty workspace; not undoable. */
   reset: () => void;
-  /** **A file in, grafted rather than opened.** Its definitions are taken and
-   *  its blocks are appended to a layer, as one ordinary step — so a package
-   *  fetched from outside and a subtree imported from a file arrive the same
-   *  way, through the same door, and both undo. Returns what the door found. */
+  /** Grafts a file's definitions and elements into a layer, as one step. */
   graft: (text: string, into?: Id | null) => Fault[];
-  /** **A definition package from outside the workspace, in through the door.**
-   *  Null where there is nowhere to search, nothing by that name, or nothing
-   *  there — the strip is told which, and the workspace is unchanged. */
+  /** A definition package from outside the workspace, in through the door. */
   search: (want: string) => Promise<Found | null>;
 
   /** Called after every change. One subscriber is all a host needs. */
@@ -78,15 +57,9 @@ export type Session = {
 };
 
 export type Seed = {
-  /** Where the definition packages are listed. A host fact, like a port —
-   *  nothing above an app may assume where *outside the workspace* is. */
+  /** Where the definition packages are listed. */
   catalogue?: string;
-  /** The definitions a fresh workspace opens with.
-   *
-   *  The engine needs a floor — something to draw and place a block that names
-   *  no type — but it may not reach for the package that supplies one: `defs`
-   *  depends on core, so core cannot depend back. An app hands it in, the same
-   *  way it hands in a port. */
+  /** The shipped floor every fold starts from. */
   defs?: Mutation[];
 };
 
@@ -98,9 +71,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let log: Log = [];
   let graph: Graph = fold(log);
   let layer: Id | null = null;
-  /** The layer the open one was reached from. **Not a history** — one step, for
-   *  the one question that cannot be answered from the graph: which of the two
-   *  layers that draw an interface you were looking at when you went into it. */
+  /** The layer the open one was reached from, for leaving an interface. */
   let from: Id | null = null;
   let picked: Id[] = [];
   let cells: Spot[] = [];
@@ -108,14 +79,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   let listener: (() => void) | null = null;
   let opened_faults: import("./door").Fault[] = [];
 
-  /** **The shipped package, as the floor every fold starts from.** It is not a
-   *  step and never enters the log: a log is a history of intent, and what the
-   *  app ships is not the user's. Supplied fresh on every load, so a definition
-   *  the build changes is current in every workspace the moment it opens —
-   *  there is nothing to reconcile because there is no second copy.
-   *
-   *  Empty where an app binds no definitions, which is what the CLI's raw-log
-   *  paths and every headless test do. */
+  /** The shipped package, as the floor every fold starts from. */
   const floor: Graph["defs"] = {};
   for (const m of ports.defs ?? []) if (m.op === "set_def") floor[m.def.id] = m.def;
 
@@ -126,10 +90,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
   if (opened) {
     const checked = check(opened, floor);
     log = checked.log;
-    /** A repair is a step, so it has to be kept. Left in memory it would be
-     *  made again on every load, and the log would be re-read as damaged each
-     *  time — the door would be telling the truth about something it had
-     *  already mended. */
+    /** Repairs are kept, so the next open is clean. */
     if (checked.faults.length) storage.write(log);
     opened_faults = checked.faults;
   } else {
@@ -227,19 +188,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       listener?.();
     },
 
-    /** **Picking elsewhere lets go of the cells.** The grid a cell is in is not
-     *  elsewhere — clicking a cell picks the grid too, because the canvas
-     *  reports one gesture as both, and an action on a cell is an action on
-     *  that grid at an address. */
+    /** Picking elsewhere lets go of the cells. */
     pick(ids) {
       picked = ids;
       if (!cells.every((c) => ids.includes(c.group))) cells = [];
       listener?.();
     },
 
-    /** **A cell is picked beside the grid it is in**, never instead of it: an
-     *  action asked of a cell is an action on that grid at an address, and the
-     *  rail and the resize handles are the grid's. */
+    /** Picking cells picks their grids too. */
     pick_cells(next) {
       cells = [...next];
       const groups = [...new Set(cells.map((c) => c.group))];
@@ -254,8 +210,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
 
     undo() {
       const last = [...log].reverse().find((s) => s.status === "applied");
-      /** **A checkpoint cannot be undone**, whether compaction or an import
-       *  wrote it — and nothing before one can be reached. */
+      /** A checkpoint cannot be undone. */
       if (!last || last.mutations.some((m) => m.op === "checkpoint")) return false;
       last.status = "reverted";
       settle();
@@ -274,9 +229,6 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       await files.save(`${name}.json`, write(graph, name));
     },
 
-    /** Ids survive the round trip, so a collision means the two really are the
-     *  same thing and the newer record replaces it. Anything the package held
-     *  at its own root lands in the target layer. */
     graft(text, into) {
       const got = parse(text);
       if (!got.graph) {
@@ -288,8 +240,8 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       const from = fold([step("import", "import", 0, [{ op: "checkpoint", graph: got.graph }])], floor);
       const target = into ?? layer ?? graph.root;
       const mutations: Mutation[] = [];
-      /** The workspace always wins: nothing it holds is replaced, and its
-       *  defaults stand for the file's. */
+      /** The workspace always wins: nothing it holds is replaced, and its defaults stand for the
+       *  file's. */
       const plain = (type: Id | undefined) => !!type && from.defs[type]?.default !== undefined;
       for (const d of Object.values(from.defs)) {
         if (touched(d) && d.default === undefined && !graph.defs[d.id]) {
@@ -319,10 +271,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       for (const [kind, n] of Object.entries(counts)) mutations.push({ op: "set_counter", kind, n });
       append("import", mutations);
 
-      /** **The door runs over what arrived, not over what was sent.** A package
-       *  extending the workspace's own definitions is whole once it is here and
-       *  broken on its own, so checking it in isolation would repair away the
-       *  very thing it came for. A repair is a step, like any other. */
+      /** The door runs over the workspace as it now stands. */
       const mend = inspect(graph);
       if (mend.repairs.length) append("repair", mend.repairs);
       const faults = [...got.faults, ...mend.faults];
@@ -346,8 +295,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       const text = await net.get(beside(catalogue, hit.at));
       if (text === null) return refuse(`“${hit.name}” could not be fetched`);
 
-      /** **Filed under the workspace**, so every layer can reach it: a package
-       *  brought in for one block would be invisible from the next. */
+      /** Packages are filed under the workspace root. */
       const faults = this.graft(text, ROOT);
       said = { text: faults.length ? `brought in ${hit.name} — ${say(faults)}`
                                    : `brought in ${hit.name}`, at: Date.now(), kind: "note" };
@@ -402,15 +350,13 @@ async function fetch_list(net: NonNullable<Ports["net"]>,
   }
 }
 
-/** A package's address, relative to the catalogue that listed it. Absolute
- *  stays absolute, so a catalogue may point anywhere. */
+/** A package's address, relative to the catalogue that listed it. */
 function beside(catalogue: string, at: string): string {
   if (/^(https?:)?\/\//.test(at) || at.startsWith("/")) return at;
   return catalogue.replace(/[^/\\]*$/, "") + at;
 }
 
-/** Redo is only ever the run of reverted steps at the end. Anything done after
- *  an undo drops them, which is what makes the log a line rather than a tree. */
+/** Redo is only ever the run of reverted steps at the end. */
 function live(log: Log): Log {
   let end = log.length;
   while (end > 0 && log[end - 1]!.status === "reverted") end--;

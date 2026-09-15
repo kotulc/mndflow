@@ -1,5 +1,5 @@
-/** The closed engine. Everything public is exported here; nothing imports a
- *  deep path, so a reach into an internal is a build error. */
+/** The closed engine. Everything public is exported here; nothing imports a deep path, so a reach
+ *  into an internal is a build error. */
 
 export * from "./types";
 export * from "./ids";
