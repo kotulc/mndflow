@@ -10,6 +10,8 @@ import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
 import "@mnd/theme/card.css";
 import "../src/tray.css";
+import "../src/fields.css";
+import "../src/preview.css";
 import "./dev.css";
 
 /** The layer with the most in it. */

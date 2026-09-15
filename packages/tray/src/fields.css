@@ -1,0 +1,167 @@
+/* The tray's body rows: a label left, its answer right, and the controls that answer. */
+
+/* ── The body pattern: a label left, its content right, banded ── */
+.rows { display: flex; flex-direction: column; min-width: 0; font-size: 12px; }
+
+.rows + .rows { margin-top: 8px; }
+
+/* One row height, so two columns of them step together. */
+.rows > .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* Wide enough for the longest word in it, which is *definition*. */
+.rows > .row > label {
+  flex: none;
+  width: 6.8em;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The content half: whatever answers the label, wrapping where it must. */
+.rows > .row > .line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rows > .row[aria-disabled] > label { opacity: 0.4; }
+.rows > .row[aria-disabled] { cursor: not-allowed; }
+
+.rows > .row.options > .line { gap: 3px; }
+.rows > .row.sliders > .line { gap: 6px; flex-wrap: nowrap; }
+.rows > .row.value > .line > input { flex: 1 1 auto; min-width: 0; }
+.rows > .row.value > .line > .form { color: var(--faint); font-size: 10px; }
+.rows > .row.value > .line > select { flex: 0 0 6em; }
+.rows > .row.value > label > input { width: 100%; min-width: 0; box-sizing: border-box; }
+.rows > .row.add > .line > input { flex: 1 1 auto; min-width: 0; }
+/* A form picker keeps a short box; the name takes the rest. */
+.rows > .row.add > .line > select { flex: 0 0 8em; }
+.rows > .row > .line > .drop { flex: none; }
+.rows > .empty { color: var(--faint); font-size: 11px; font-style: italic;
+                 margin: 0; padding: 4px 8px; }
+
+/* A ground, not a box, and it takes the whole answer column. */
+.rows > .row > .line > select,
+.rows > .row > .line > input {
+  /* It takes what the row has left. */
+  flex: 1 1 0;
+  min-width: 0;
+  /* One height for every control, so the two columns keep step. */
+  box-sizing: border-box;
+  height: 22px;
+  color: inherit;
+  /* A 3% wash says type here. */
+  background: var(--band);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 0 6px;
+  font: inherit;
+}
+
+.rows > .row > .line > select:hover,
+.rows > .row > .line > input:hover { border-color: var(--divider); }
+.rows > .row > .line > select:focus,
+.rows > .row > .line > input:focus { outline: none; border-color: var(--accent); }
+.rows > .row > .line > select:disabled,
+.rows > .row > .line > input:disabled { opacity: 0.5; }
+
+/* Every control takes the whole cell, so a column of them lines up. */
+.contents-table td select {
+  box-sizing: border-box;
+  height: 20px;
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--band);
+  color: inherit;
+  font: inherit;
+}
+.contents-table td select:hover { border-color: var(--divider); }
+
+/* The adding row: a name box and what it clashes with. */
+.contents-table td .adding { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.contents-table td .adding > input {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--band);
+  color: inherit;
+  font: inherit;
+}
+.contents-table td .adding > input:focus { outline: none; border-color: var(--accent); }
+.contents-table td .adding > input:hover { border-color: var(--divider); }
+.contents-table td .adding > .warn { flex: none; color: var(--warn); font-size: 10px; }
+.contents-table td .drop {
+  padding: 0 2px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.contents-table td .drop:hover:not(:disabled) { color: var(--accent); }
+.contents-table td .drop:disabled { opacity: 0.35; cursor: default; }
+.contents-table td select:focus { outline: none; border-color: var(--accent); }
+.contents-table td select option { background: var(--surface); color: var(--text); }
+
+.rows > .row > .line > .into { flex: none; color: var(--faint); font-size: 11px; }
+.rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }
+
+/* A box, because it is a yes and a no. */
+.rows > .row > .line > .check,
+.kind-rows > .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.rows > .row > .line > .check:hover,
+.kind-rows > .check:hover { color: var(--text); }
+.rows > .row > .line > .check input,
+.kind-rows > .check input { margin: 0; accent-color: var(--accent); }
+
+/* One chip a tag, and the box to add another takes what the row has left. */
+.rows > .row > .line > .tags {
+  display: flex;
+  flex: 1 1 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.rows > .row > .line > .tags > .tag { display: inline-flex; align-items: center; gap: 3px; }
+.rows > .row > .line > .tags > input {
+  flex: 1 1 8ch;
+  min-width: 8ch;
+  box-sizing: border-box;
+  height: 22px;
+  color: inherit;
+  background: var(--band);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  padding: 0 6px;
+  font: inherit;
+}
+.rows > .row > .line > .tags > input:focus { outline: none; border-color: var(--accent); }

@@ -1,7 +1,7 @@
 /** A graph out as SysML, and the same text back as a graph. */
 
-import { children, edges_in, empty_graph, is_interface, is_reference, module_of, owner_of,
-         path, shown_name, SCHEMA,
+import { children, edge_module, edges_in, empty_graph, is_interface, is_reference, module_of,
+         owner_of, path, shown_name, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
 /** What each block module is called, absent a definition that says otherwise. */
@@ -34,7 +34,7 @@ function end_of(graph: Graph, id: Id): string {
 }
 
 function relation(graph: Graph, e: Relation): string {
-  const word = LINK[e.module] ?? "connect";
+  const word = LINK[edge_module(graph, e.id)] ?? "connect";
   const type = e.type ? ` : ${e.type}` : "";
   return `${word} ${end_of(graph, e.from)} to ${end_of(graph, e.to)}${type};`;
 }
@@ -157,7 +157,6 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
     if (!from || !to) continue;
     const id = `sysml:edge:${from}>${to}`;
     graph.edges[id] = { id, from, to, type: l.type,
-                        module: "line" as const,
                         ...(l.word === "flow" ? { dir: "forward" as const } : {}) };
   }
   return graph;
@@ -187,6 +186,6 @@ export function shape_of(graph: Graph): string[] {
     .map((b) => `${keyword(graph, b.id)} ${trail(b.id)}${b.type ? ` : ${b.type}` : ""}`
               + (is_reference(b) && b.of ? ` -> ${trail(b.of)}` : ""));
   const edges = Object.values(graph.edges)
-    .map((e) => `${e.module} ${trail(owner_of(graph, e.from))} -> ${trail(owner_of(graph, e.to))}`);
+    .map((e) => `${edge_module(graph, e.id)} ${trail(owner_of(graph, e.from))} -> ${trail(owner_of(graph, e.to))}`);
   return [...blocks.sort(), ...edges.sort()];
 }

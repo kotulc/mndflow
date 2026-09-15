@@ -1,12 +1,11 @@
 /** The block view: any planar projection. */
 
-import { alias_of, children, covers, edges_in, group_depth, is_grid, is_group,
-         is_header, is_holder, is_interface, label_of, members_of, module_of, role_of, shown_name,
+import { alias_of, children, covers, edge_module, edges_in, group_depth, is_grid, is_group,
+         is_header, is_holder, is_interface, is_note, label_of, members_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
-import { knot_id, knots_of } from "./knot";
 import { look_of, wire_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type Mark, type Scene,
@@ -53,7 +52,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const nest = group_depth(graph, p.id);
     const drawn = node(p.id, p,
                        gridded(graph, p.id) ? { ...data, cells: [], nest } : { ...data, nest },
-                       module_of(graph, p.id) === "note" ? "note" : "card");
+                       is_note(graph, p.id) ? "note" : "card");
     return drawn;
   });
 
@@ -100,7 +99,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     for (const p of room.ports) boxes_full.set(p.id, at_seat(room, p));
   }
   const walls = room && layer ? { id: FRAME, of: layer } : undefined;
-  let assigned = walls ? assign_seats(graph, linked, spots, boxes_full, walls)
+  const assigned = walls ? assign_seats(graph, linked, spots, boxes_full, walls)
                        : { perches, port_at };
 
   /** Runs route round cards and notes, not holders, the room or interfaces. */
@@ -108,14 +107,6 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   const solid = drawn
     .filter((n) => !held.has(n.id) && !n.data.on)
     .map(box_of);
-
-  /** A tie on a line meets it at the middle of its run. */
-  const knots = knots_of(line_edges(graph, linked, assigned.perches, solid), drawn,
-                         assigned.perches, room ?? undefined);
-  if (knots.length) {
-    for (const k of knots) boxes_full.set(k.id, box_of(k));
-    assigned = assign_seats(graph, linked, spots, boxes_full, walls);
-  }
 
   const met = new Map(assigned.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
@@ -126,7 +117,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
   }
 
   /** The seats each box offers, put onto the box that offers them. */
-  const placed = [...drawn, ...knots].map((n) => {
+  const placed = drawn.map((n) => {
     const own = offered.get(n.id);
     return own ? { ...n, data: { ...n.data, seats: own } } : n;
   });
@@ -215,9 +206,8 @@ function landed(graph: Graph, e: Relation, layer: Id | null): Relation {
     const b = graph.blocks[id];
     return b && is_interface(b) ? b.side : undefined;
   };
-  /** The layer itself is the frame; a line a tie ends on is met at its knot. */
-  const here = (id: Id): Id => (layer !== null && id === layer ? FRAME
-    : graph.edges[id] ? knot_id(id) : id);
+  /** The layer itself is the frame. */
+  const here = (id: Id): Id => (layer !== null && id === layer ? FRAME : id);
   return { ...e, from: here(e.from), to: here(e.to),
            fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
 }
@@ -237,7 +227,7 @@ function line_edges(graph: Graph, linked: readonly Relation[], perches: readonly
       sourceHandle: handle(met, e.id, "from", "s"),
       targetHandle: handle(met, e.id, "to", "t"),
       ...(label ? { label } : {}),
-      data: { module: e.module, dir: e.dir ?? "none", wire,
+      data: { module: edge_module(graph, e.id), dir: e.dir ?? "none", wire,
               ...(alias ? { alias } : {}),
               ...(solid.length ? { clear: solid } : {}) },
     };

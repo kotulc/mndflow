@@ -35,11 +35,13 @@ A hovered row never becomes the context.
 
 | context | tabs |
 |---|---|
-| workspace | settings · packages · contents |
+| workspace | settings · fields · contents · definitions · usages · packages — every block tab, plus packages |
 | block, or block definition | settings · fields · contents · definitions · usages |
 | relation, or relation definition | settings · definitions · usages |
 
-**Fields and contents are an instance's.** With a definition in context they say to pick an instance.
+**Contents are an instance's.** With a definition in context, the fields tab declares that definition's schema instead of values.
+
+**The workspace is a block.** It takes the same settings panel as any block, styled for wherever an export is used, with its schema beside the card.
 
 ## Definitions
 
@@ -47,19 +49,19 @@ A hovered row never becomes the context.
 
 | thing | is |
 |---|---|
-| **base line** | what every line naming nothing follows — `default` when the app files it; extends nothing, may be renamed and labelled, and is never removed |
-| **base kind** | what a block naming nothing is — `default/block`, `default/note` and the rest. Shipped, never edited, never pinned |
+| **base** | a shipped kind — `base/block`, `base/line` and the rest. Extends nothing, and is never written, pinned or removed |
+| **default** | the one editable definition per kind that every plain element of that kind follows — shown as `default/<kind>`. Extends its base; never renamed, removed or pinned, and may be re-typed within its kind |
 | **label** | what a line naming a relation definition draws, **exactly as typed** — a stereotype such as `<<relates>>`. Its own and never inherited |
 | **working look** | what a block or a line says about its own drawing while it names no workspace definition — named and kept with *save definition*, dropped by *reset style* |
 
-- **Styling edits the definition where there is one.** A block or a line naming a workspace definition styles that definition, so every usage follows. One naming a base kind or a package's definition — or already carrying a working look — styles itself.
-- **Saving a working look makes a definition and moves the element onto it.** A line keeps the label it was drawing. A block definition is pinned as it is saved.
-- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail; a pinned block definition is in the explorer's workspace folder.
+- **Styling edits the definition where there is one.** A block or a line naming a workspace definition styles that definition, so every usage follows. One naming a default, a base or a package's definition — or already carrying a working look — styles itself.
+- **Saving a working look makes a definition and moves the element onto it.** A line keeps the label it was drawing. **Saving never pins.**
+- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail — a line definition only, since the rail offers no *tie*; a pinned block definition is in the explorer's *pinned* folder. Unpinned definitions live here, in the tray.
 - **Removing dissolves.** Its looks go down into each usage, anything extending it extends what it extended, and it is unpinned.
 - **A name is unique within its group.** A block definition and a relation definition may share one. A name already taken is said, never looked up.
 - **Renaming keeps the id**, so every usage reads the new name and nothing is retyped.
-- **Filed when first needed.** The base line stands in until the first edit to it, so a workspace nobody customised writes nothing.
-- **An old file is put into shape when opened**: a base type standing in for plain lines is dropped, the definition it extended becomes the base, and each old type is labelled with its name.
+- **Filed when first needed.** A default is laid by the fold until its first edit files it, so a workspace nobody customised writes nothing.
+- **Ids are minted**, never a slug of the name, so renaming touches nothing but the name.
 
 ## Settings
 
@@ -68,13 +70,15 @@ A hovered row never becomes the context.
 | holder | identity rows |
 |---|---|
 | workspace | name, id |
-| block | name, definition *(while it has a working look)*, type, offer |
-| block definition | name, type, offer |
-| relation definition, or a line | name, label, extends, offer |
+| block | name, tags, definition *(while it has a working look)*, type |
+| block definition | name, type |
+| relation definition | name, label, extends |
+| a line | name, tags, label, extends |
 
 - **The drawing sits at the column's start**, with its kind and how many usages name this exact definition beside it.
-- **Type is a dropdown**: the base kind, then every definition of the block's own kind. A block never changes kind.
-- **Offer** is *pinned* — and, for a block definition, *make default*, which makes every plain block of its kind follow it. A base kind says it cannot be pinned.
+- **Tags are chips**, on a block or a line, with a box to add another. Never inherited.
+- **Type is a dropdown**: the default, then every definition of the block's own kind. A block never changes kind. **Extends is always shown**, read-only for a base.
+- ***Pinned* sits beside the card.** Bases and defaults offer none.
 - **Reset style and save definition** sit at the far end of the tab strip, since they act on the whole tab.
 - **A body is a block's** — the workspace's included, as its description — never a relationship's or a definition's. Committed when the box is left.
 
@@ -93,7 +97,7 @@ A hovered row never becomes the context.
 
 ## Drafts
 
-**A blank definition is written before anything names it.** It is edited through the same actions as a real one, kept through clicking away, and saved with *save definition* once it has a name nothing in its group holds. Saving is one step, and the tray then holds what was saved.
+**A blank definition is filed when it is named.** Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`. *Save definition* is only for a working look.
 
 ## Tables
 
@@ -115,15 +119,15 @@ A hovered row never becomes the context.
 ### Contents
 
 - **Layer scope lists one level**: a container in context lists its own contents, anything else the open layer. **Workspace scope lists everything**, each row saying where it sits.
-- **Chips narrow by what a row is**; *types* is what the one thing picked resolves through, base first.
+- **Chips narrow by what a row is.**
 - **A column is a field in scope**, asked for by name, and its values are edited in the row.
 - **A block is renamed in its row**; a line is named by its definition.
 - **The picked row, when it is in another layer, offers *view***, which opens that layer and picks it there.
 
 ### Definitions
 
-- **Every definition of the context's group the workspace can name**, the base line first: name, label *(relations)*, extends, used. The shipped floor is left out; chips narrow to *labelled* and *packages*.
-- **Name, label and extends are edited in the row**; a package's are not. A block definition may extend a base kind.
+- **Every definition of the context's group the workspace can name**, the defaults first: name, label *(relations)*, extends, used. The shipped floor is left out; chips narrow to *labelled* and *packages*.
+- **Name, label and extends are edited in the row**; a package's are not, and a default's name is not.
 - **The last row adds one.**
 - **With something picked, the lit row offers *apply to …***, which points the picked elements at it. Picking alone never changes a drawing.
 
@@ -146,5 +150,4 @@ A hovered row never becomes the context.
 ## Still open
 
 - **Rules** — see ST.17.
-- **A definition's field schema** has no place in the panel while fields are an instance's.
 - **Adding a field from the bar**, which the legacy app had.

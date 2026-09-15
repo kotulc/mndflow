@@ -1,8 +1,8 @@
 /** Making, naming, typing and moving blocks; navigating layers; arranging one. */
 
-import { children, def_named, def_of, is_interface, is_reference, may_retype, module_named,
-         module_of, next_order, path, plain_type, relation_named, reorder,
-         stored_type } from "../fold";
+import { def_named, def_of, edge_module, may_retype, module_named, module_of, plain_type, relation_named,
+         stored_type } from "../defs";
+import { children, is_interface, is_reference, next_order, path, reorder } from "../tree";
 import { new_id } from "../ids";
 import { ARRANGEMENTS, type Arrangement, type Definition, type Id, type Mutation } from "../types";
 import { register } from "./registry";
@@ -100,8 +100,9 @@ register(
           const d = ctx.graph.defs[type];
           if (!d) return `there is no definition called "${type}"`;
           if (d.group !== "relation") return `"${d.name}" defines a block, not a relationship`;
-          if (relation_named(ctx.graph, type) !== edge.module) {
-            return `a ${edge.module} cannot follow a ${relation_named(ctx.graph, type)} definition`;
+          const module = edge_module(ctx.graph, id);
+          if (relation_named(ctx.graph, type) !== module) {
+            return `a ${module} cannot follow a ${relation_named(ctx.graph, type)} definition`;
           }
           continue;
         }

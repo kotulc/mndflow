@@ -424,18 +424,11 @@ export const Group = memo(GroupNode, same);
 export const Grid = memo(GroupNode, same);
 export const Seat = memo(SeatNode, same);
 
-/** Where a tie meets a line: a dot at the run's middle. */
-function KnotNode() {
-  return <div className="mnd-knot"><Middle /></div>;
-}
-export const Knot = memo(KnotNode, same);
-
 export const NODE_TYPES = {
   card: Card,
   note: Note,
   group: Group,
   grid: Grid,
   seat: Seat,
-  knot: Knot,
   frame: Frame,
 } as const;

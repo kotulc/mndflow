@@ -1,8 +1,10 @@
 /** The one door a log comes in through. */
 
 import { component, unreadable } from "./components";
-import { covers, derived_module, fold, can_hold, is_grid, may_tie, module_named, overlaps,
-         relation_named, shipped, subtree } from "./fold";
+import { module_named, relation_named, shipped } from "./defs";
+import { fold } from "./fold";
+import { can_hold, covers, is_grid, overlaps } from "./holders";
+import { subtree } from "./tree";
 import { new_id } from "./ids";
 import { ROOT, type Graph, type Id, type Log, type Mutation, type Span, type Step } from "./types";
 
@@ -22,7 +24,7 @@ const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "size_block", "set_body",
   "set_group", "seat_cell", "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks",
-  "update_edge", "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port",
+  "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def",
   "set_arrangement", "set_tags", "set_look", "drop_looks",
 ]);
@@ -106,16 +108,10 @@ export function inspect(graph: Graph): Inspection {
     }
   }
 
-  /** Every relation has both ends, and is the module its ends make it. */
+  /** Every relation has a block at both ends. */
   for (const e of Object.values(graph.edges)) {
-    const blocks = !!graph.blocks[e.from] && !!graph.blocks[e.to];
-    if (!blocks && !may_tie(graph, e.from, e.to)) {
+    if (!graph.blocks[e.from] || !graph.blocks[e.to]) {
       say("dropped", "a relation with an end that is not there", { op: "delete_edge", id: e.id });
-      continue;
-    }
-    const module = derived_module(graph, e.from, e.to);
-    if (e.module !== module) {
-      say("repaired", `a ${e.module} that its ends make a ${module}`, { op: "set_form", id: e.id, module });
     }
   }
 

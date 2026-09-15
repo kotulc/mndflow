@@ -75,7 +75,7 @@ export function translated(): Graph {
 
   graph.edges["link_start_vocab"] = {
     id: "link_start_vocab", from: "sec_config", to: "page_vocab",
-    module: "line", dir: "forward", type: "doc.link",
+    dir: "forward", type: "doc.link",
   };
 
   return graph;

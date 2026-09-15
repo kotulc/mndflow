@@ -19,7 +19,7 @@ export function clean(): string {
       block_hx: { id: "block_hx", parent: "block_loop", name: "Heat Exchanger", order: 2 },
     },
     edges: {
-      edge_a: { id: "edge_a", from: "block_pump", to: "block_hx", module: "line",
+      edge_a: { id: "edge_a", from: "block_pump", to: "block_hx",
                 dir: "forward" },
     },
   });
@@ -48,7 +48,7 @@ export function dangling(): string {
       block_pump: { id: "block_pump", parent: "ws", name: "Pump", order: 1 },
     },
     edges: {
-      edge_a: { id: "edge_a", from: "block_pump", to: "block_gone", module: "line" },
+      edge_a: { id: "edge_a", from: "block_pump", to: "block_gone" },
     },
   });
 }

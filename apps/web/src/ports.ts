@@ -5,14 +5,13 @@ import type { Files, Log, Mutation, Net, Storage } from "@mnd/core";
 
 const DB = createStore("mnd", "workspace");
 const LOG = "log";
-const OLD = "mnd.log.v2";
 
 /** A body as the stored log carries it: the hash of text kept once, beside it. */
 type Ref = { $blob: string };
 
 /** The log in IndexedDB, with every body swapped for a content hash. */
 export async function browser_storage(): Promise<Storage> {
-  const stored = (await get<Log>(LOG, DB)) ?? old_log();
+  const stored = await get<Log>(LOG, DB);
   const kept = new Set((await keys(DB)).map(String).filter((k) => k !== LOG));
   const log = stored ? await unpack(stored) : null;
   if (log) await sweep(stored!, kept);
@@ -28,7 +27,6 @@ export async function browser_storage(): Promise<Storage> {
         const { packed, blobs } = await pack(next, kept);
         await setMany([...blobs, [LOG, packed]], DB);
         for (const [k] of blobs) kept.add(k);
-        localStorage.removeItem(OLD);
       } catch {
         window.dispatchEvent(new CustomEvent("mnd:full"));
       }
@@ -47,16 +45,6 @@ export async function browser_storage(): Promise<Storage> {
       void del(LOG, DB);
     },
   };
-}
-
-/** A log from before IndexedDB, if this browser still holds one. */
-function old_log(): Log | null {
-  try {
-    const raw = localStorage.getItem(OLD);
-    return raw ? (JSON.parse(raw) as Log) : null;
-  } catch {
-    return null;
-  }
 }
 
 /** Every body in a mutation, including those inside a checkpoint's blocks. */

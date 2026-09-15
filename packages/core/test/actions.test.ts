@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
 import { seed } from "@mnd/defs";
-import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
+import { ROOT, adjustments, all, children, edge_module, fold, offer, run, session, writes,
          type Context } from "../src/index";
 
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
@@ -360,19 +360,19 @@ describe("what an action absorbs", () => {
     const before = new Set(Object.keys(s.graph().edges));
     s.go("relate", { from: note, to: at("Pump"), module: "directed" });
     const edge = Object.values(s.graph().edges).find((e) => !before.has(e.id))!;
-    expect(edge.module).toBe("tie");
+    expect(edge_module(s.graph(), edge.id)).toBe("tie");
 
     /** Asked to be a plain line, it says what it is instead of writing a step. */
     s.go("direct", { id: edge.id, dir: "none" });
-    expect(s.graph().edges[edge.id]!.module).toBe("tie");
+    expect(edge_module(s.graph(), edge.id)).toBe("tie");
 
     /** And an end taken off the note is an ordinary line again. */
     s.go("relink", { id: edge.id, end: "from", to: at("Tank") });
-    expect(s.graph().edges[edge.id]!.module).toBe("line");
+    expect(edge_module(s.graph(), edge.id)).toBe("line");
 
     /** An end taken back onto it ties it again. */
     s.go("relink", { id: edge.id, end: "from", to: note });
-    expect(s.graph().edges[edge.id]!.module).toBe("tie");
+    expect(edge_module(s.graph(), edge.id)).toBe("tie");
   });
 
   it("relate assigns tie from the ends rather than taking it", () => {
@@ -387,7 +387,8 @@ describe("what an action absorbs", () => {
 
     const before = new Set(Object.keys(s.graph().edges));
     s.go("relate", { from: pump.id, to: note.id, module: "line" });
-    expect(Object.values(s.graph().edges).find((e) => !before.has(e.id))!.module).toBe("tie");
+    const made = Object.values(s.graph().edges).find((e) => !before.has(e.id))!;
+    expect(edge_module(s.graph(), made.id)).toBe("tie");
   });
 });
 

@@ -2,22 +2,24 @@
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_grid, is_header } from "@mnd/core";
+import { is_grid, is_header, is_interface } from "@mnd/core";
 
 /** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
 import { FlowView, type Adjust, type Gesture, type Landing } from "./Flow";
+import { moves_of, type Move } from "./moves";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 
-export type { Adjust, Landing };
+export type { Adjust, Landing, Move };
 
 export type StageProps = {
   scene: Scene;
   graph: Graph;
   picked: readonly string[];
   onAct: Act;
-  onAdjust?: (adjust: Adjust) => void;
+  /** The writes one canvas adjustment comes to, for the host to run as one step. */
+  onAdjust?: (moves: readonly Move[]) => void;
   onPick: (ids: string[]) => void;
   /** Which cells are picked, beside the ids. */
   cells?: readonly Spot[];
@@ -78,14 +80,37 @@ function route_offers(id: string, graph: Graph): Entry[] {
   ];
 }
 
+/** The ends of a run that are not interfaces yet, and so may be promoted. */
+function bare_ends(id: string, graph: Graph): ("from" | "to")[] {
+  const e = graph.edges[id];
+  if (!e) return [];
+  return (["from", "to"] as const).filter((end) => {
+    const b = graph.blocks[e[end]];
+    return !!b && !is_interface(b);
+  });
+}
+
+/** Promoting what is bare: both ends, one, or nothing when both are interfaces already. */
+function promote_offers(id: string, graph: Graph, here?: "from" | "to"): Entry[] {
+  const bare = bare_ends(id, graph);
+  const out: Entry[] = [];
+  if (here && bare.includes(here)) {
+    out.push({ name: "interface", label: "promote this end", args: { edge: id, end: here } });
+  }
+  if (bare.length === 2) {
+    out.push({ name: "interface", label: "promote both ends", args: { edge: id, end: "both" } });
+  } else if (bare.length === 1 && !here) {
+    out.push({ name: "interface", label: "promote end", args: { edge: id, end: bare[0]! } });
+  }
+  return out;
+}
+
 /** A run's menu. */
 function wire_offers(id: string, graph: Graph): readonly (string | Entry)[] {
   return [{ name: "rename", label: "rename relation" },
           ...route_offers(id, graph),
-          /** The line names itself, so `interface` promotes its ends. */
-          { name: "interface", label: "promote both ends",
-            args: { edge: id, end: "both" } },
-          "note", { name: "delete", label: "delete relation" }];
+          ...promote_offers(id, graph),
+          { name: "delete", label: "delete relation" }];
 }
 
 /** What the right button offers for this gesture — not everything the registry could act on. */
@@ -105,6 +130,12 @@ function list_for(g: Gesture, scene: Scene, graph: Graph,
   /** A run and its name are one subject. */
   if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
     return wire_offers(g.on, graph);
+  }
+  /** A grip knows which end it is. */
+  if (g.kind === "anchor" && g.on && graph.edges[g.on]) {
+    return [...promote_offers(g.on, graph, g.given?.["end"] as "from" | "to"),
+            { name: "rename", label: "rename relation" },
+            { name: "delete", label: "delete relation" }];
   }
   return offers[g.kind];
 }
@@ -192,13 +223,8 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       { name: "chain", label: "chain grid", args: drawing },
       { name: "transpose", label: "transpose grid" },
     ],
-    /** Replaced per run by `wire_offers`. */
-    route: ["rename", "note", "delete"],
-    /** A grip is the one place that knows both ends. */
-    anchor: [{ name: "interface", label: "promote this end" },
-             { name: "interface", label: "promote both ends", args: { end: "both" } },
-             { name: "rename", label: "rename relation" },
-             { name: "delete", label: "delete relation" }],
+    /** Replaced per run by `wire_offers`, and per grip by `promote_offers`. */
+    route: ["rename", "delete"],
     /** The room's wall offers what a card's border does. */
     frame: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
   };
@@ -271,14 +297,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls, ...drawing })}
         /** A right drag across empty ground draws a grid, seating what it covered. */
         onSweep={(box) => onAct("group", swept(scene, box))}
-        onAdjust={(adjust) => {
-          /** A card dropped on a card is a move; anything else goes to the app. */
-          if (adjust.kind === "move" && adjust.over && adjust.over !== adjust.on) {
-            onAct("move", { id: adjust.on, parent: adjust.over });
-            return;
-          }
-          onAdjust?.(adjust);
-        }}
+        onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}
         said={said ? (
           <>
             <span>{said}</span>

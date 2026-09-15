@@ -1,7 +1,8 @@
 /** Argument readers and makers shared by the actions. */
 
-import { def_named, layer_id, module_named, next_alias, next_order, relation_named, shipped,
-         stored_type } from "../fold";
+import { def_named, module_named, relation_named, shipped, stored_type } from "../defs";
+import { next_alias } from "../names";
+import { layer_id, next_order } from "../tree";
 import { new_id } from "../ids";
 import type { BlockModule, Cell, Definition, Graph, Id, Mutation, RelationModule, Side,
               Span } from "../types";

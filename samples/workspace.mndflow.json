@@ -263,7 +263,6 @@
       "e_flow": {
         "id": "e_flow",
         "from": "b_pump",
-        "module": "line",
         "dir": "one",
         "alias": 1,
         "to": "b_hx"
@@ -271,7 +270,6 @@
       "e_out": {
         "id": "e_out",
         "from": "b_hx",
-        "module": "line",
         "dir": "one",
         "alias": 2,
         "to": "b_tank"
@@ -279,7 +277,6 @@
       "e_tie": {
         "id": "e_tie",
         "from": "b_note",
-        "module": "tie",
         "alias": 3,
         "to": "b_hx"
       }

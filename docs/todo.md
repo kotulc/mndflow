@@ -14,34 +14,63 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **one base model for every kind** | the shipped base is locked: eight block kinds plus `line` and `tie`, a relation base naming its module in `relation.module`. Every kind has a **default** — a workspace definition extending its base, laid by the fold until its first edit files it. Plain elements, and elements naming a base, follow their default. Defaults are never renamed, removed or pinned, and may be re-typed within their kind. Everything else is the workspace's and extends its base unless told otherwise |
 | **the base line is gone** | `baseline`, `default` (*make default*), `BASE_LINE`, `base_line` and the tray's stand-in are removed; the door reads a default by its marker, so `rel_default` and `def_default` still work |
 | **kinds stay kinds** | `retype`, `relate`, `chain` and `relink` keep a run's definition within its module, and store a base or a default as plain |
-| **the door repairs once** | a default or definition extending nothing is pointed at its base; block definitions filed before block pinning existed are pinned once, on a stored log only |
+| **the door checks, it does not migrate** | legacy repairs are gone; the door keeps integrity, component validation, one default per kind, a definition extending nothing pointed at its base, and a relation's module re-derived from its ends. A schema change re-saves the samples instead |
 | **definitions in the tray** | the fields tab declares a held definition's schema; extends is always shown, read-only for a base; a blank definition is filed when it is named; *save definition* is only for a working look |
 | **the workspace is a block** | the same settings panel, styled for wherever an export is used, with the schema beside the card and every block tab plus packages |
 | **identity rows** | name, tags as chips, type or extends; *pinned* sits beside the card, and bases and defaults offer none. Relations carry tags too |
 | **explorer** | folders are *definitions* (ABC), *default* (lock) and *pinned* (pin); the bar's mark is a stack of files |
 | **canvas** | group, grid and note names and labels take their styles; an explicit handle setting wins, an unset one shows only on an unnamed card; a default group dropped on empty ground makes an empty group |
-| **samples** | both re-saved with their repairs and pins, and both open clean |
+| **samples** | both re-saved in the current format — no floor, no untouched defaults — and both open clean |
+
+**Built in the review pass** (2026-09-14, five commits after `452ed05`).
+
+| | |
+|---|---|
+| **ids are minted, names are labels** | a new definition gets `def_…` / `rel_…` from `new_id`, never a slug of its name. `def_slot` and `def_id` are gone; a caller that must know the id first (the tray's draft) mints it and passes `id` to `define` |
+| **`define` requires a group** | block or relation, from every caller; `extends` must name a definition of that group |
+| **saving never pins** | `define` and `save_def` pin nothing. Pinning is an explicit act per definition; unpinned definitions live in the tray |
+| **renaming a line renames its definition** | `rename` on a line runs over the workspace definition it follows; one following a default or package files a new definition over it. A taken name is refused |
+| **`tie` is derived** | `relate`, `chain` and `relink` assign it from the ends; the rail offers *straight* and *directed* only, and pinned tie definitions are not offered |
+| **a group goes with its last member** | leaving, deletion or moving layer; an emptied holder goes too. A group is empty only when it was made empty |
+| **export and graft carry what was touched** | `write` skips the floor and untouched defaults. `graft` never replaces what the workspace holds, keeps the workspace's defaults, and gives incoming elements the next handles |
+| **one gesture, one step** | `session.batch(fn)` merges everything `fn` runs into one step; `App.adjust` wraps every canvas adjustment |
+| **hand-moving on a `grid` layer sets it `free`** | the grid's positions are written first, in the same step |
+| **bodies stay out of the stored log** | the browser log lives in IndexedDB (`idb-keyval`), loaded before the app mounts; each body is stored once by SHA-256 and the log carries the hash |
+| **review bugs fixed** | Backspace in a textarea deleted the selection; `relink` could land a tie on a plain block; `move` took a null parent; `define` extended missing names; `remove_def` dropped what subtypes inherited; a deleted open layer stranded the session; a full storage was silent; menus dropped prefilled args; unreachable *relate* entries; `create` made loose notes and extentless grids |
+| **comments distilled, files split** | every docstring one or two sentences. `core/src/actions.ts` is `actions/` by subject; `stage/src/Flow.tsx` lost `gestures.ts`, `arrays.ts`, `pointer.ts`, `Sweeping.tsx` |
+
+
+## Hand-off
+
+| | |
+|---|---|
+| **commits are the user's** | no agent commits; leave work in the tree and suggest a message |
+| **a rewrite backup is still in the repo** | `backup-before-reword` and `refs/original/refs/heads/add-pinned-defs` hold the pre-reword history. Delete once the branch is pushed: `git branch -D backup-before-reword` and `git update-ref -d refs/original/refs/heads/add-pinned-defs` |
+| **the branch is unpushed** | `add-pinned-defs` is twelve commits ahead of origin |
+| **checks that pass** | `npm run typecheck`, `npx vitest run` (326), `npm run lint:css`; the CLI's `check` on both samples reads clean |
+| **what was driven in a browser** | create, body write and reload from IndexedDB, Backspace in the body box, a drag on a `grid` layer. Nothing else new was driven |
 
 
 ## Next up
 
 **In order.** Each is a phase's worth on its own.
 
-### 0 — Review, 2026-09-14: decided, not built
+### 0 — Maintainability, what is left of it
 
 | | |
 |---|---|
-| **docstrings are minimal** | every comment short and to the point; oversized files split by purpose |
+| **the canvas is one component** | `Canvas` in `stage/src/Flow.tsx` is ~650 lines; its camera, selection echo and drag handling share refs, so splitting it means extracting hooks with care |
+| **large modules** | `core/src/fold.ts` (~900), `views/src/arrange.ts` (~700), `stage/src/flow.css` and `tray/src/tray.css` (~800 each) |
+| **`App.tsx` decides drops** | `adjust_now` resolves groups, cells and seats in the shell, against its own header's rule |
+| **`browser_storage` reads the old localStorage log once** | a one-time pick-up for this browser; remove it once no browser holds `mnd.log.v2` |
 
 ### 1 — Definitions, what is left of them
 
 | | |
 |---|---|
-| **an ungrouped `define` picks either** | the tray always says the group; a caller that does not — the terminal — gets whichever definition holds the name, the workspace's own first |
 | **dragging a tie's end onto a line does not relink** | `relink` accepts a line end, but the canvas's end grip only lands on blocks |
-| **pinning once skips file imports** | a file carries no history, so an imported workspace's block definitions pin on its next load rather than on import |
 | **a note about a tie is refused** | a tie ends on a line, never on a tie, so there is no line of its own to note |
-| **nothing new is tested** | the base model, the door's repairs, `pin` / `save_def` / `remove_def`, tags and the tray were driven in the browser only, since the shape is still moving |
+| **nothing new is tested** | the base model, `pin` / `save_def` / `remove_def`, tags, the tray, `batch`, `graft`, body storage and the group rule were driven or scripted only, since the shape is still moving |
 
 ### 2 — The tray, what is left of it
 
@@ -90,16 +119,18 @@ Not a backlog of everything — an item earns a line here by being a decision so
 
 | doc | what trails |
 |---|---|
-| **spec.md** | the Scene is `nodes`, `edges`, `perches`, with a `knot` node for a tie on a line; `net` is bound and `score` reaches the terminal directly; storage is localStorage; the kit table; the elbow invariant |
-| **definitions.md** | base, default and workspace definitions; `relation.module`; relation modules are `line` and `tie`; resolution is global by id; a kind is fixed at creation; `constraints` folded into `rules`; pinning |
+| **spec.md** | the Scene is `nodes`, `edges`, `perches`, with a `knot` node for a tie on a line; `net` is bound and `score` reaches the terminal directly; storage is IndexedDB with bodies by hash, loaded before mount; `session.batch`; the kit table; the elbow invariant |
+| **definitions.md** | base, default and workspace definitions; `relation.module`; relation modules are `line` and `tie`, and `tie` is derived; ids are minted, never slugged; resolution is global by id; a kind is fixed at creation; `constraints` folded into `rules`; pinning is explicit; a group goes with its last member |
+| **core engine, workspace, file** | the door does not migrate; export carries touched definitions only; graft keeps the workspace's; `core/src/actions/` |
 | **schema.md** | `name` and `order`; relation tags and ports; `from`, `default`, `label` on a definition; the mutation ops; files are flat with `parent`; a tie's end may name a relation; `card` keys are `label`, `align`, `label_align`, `icon`, `alias` |
 | **tray.md, explorer.md** | defaults replace the base line and *make default*; the pinned folder; pinned beside the card; tags; the workspace as a block; drafts filed when named; the types chip gone |
 | **core engine, workspace, model** | file layout, the `rel_` prefix, `is_top_block`, relation types |
-| **actions.md** | `label`, `lock`, `undefine`, `baseline` and `default` gone; `pin`, `save_def`, `remove_def`, `none`, `rename_def`, `order_field` missing; `tag` takes a relation; three adjustments; `relate`, `relink` and `note` take a line as a tie's end |
+| **actions.md** | `label`, `lock`, `undefine`, `baseline` and `default` gone; `pin`, `save_def`, `remove_def`, `none`, `rename_def`, `order_field` missing; `define` requires `group` and takes `id`; `relate` and `chain` take no `module`; `rename` on a line renames its definition; `tag` takes a relation; three adjustments; `relate`, `relink` and `note` take a line as a tie's end |
 | **ports.md, defs.md** | `net` is bound; packages live in `public/packages`; `tie` ships a base |
 | **packages README** | view modules, routing in `views/route.ts`, the Scene shape |
 | **options.md** | the settings group replaced the element group |
 | **stories.md, README** | ST.4, ST.13, ST.15, ST.16 and the tray section; package search fetches at run time |
+| **tray.md, options.md** | the rail offers no *tie*; the draft's extends shows `base/<kind>` until one is picked |
 
 
 ## Open questions
@@ -138,10 +169,9 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **A named package is unchecked** | the packages tab reads what is in use off `vocabulary()`; reconciling that against the catalogue is the check |
 | **The SysML round trip loses ties** | `tie` goes out as `comment` and comes back as `line`; a tie on a line has no SysML form |
 | **The SVG export paints by kind** | notes, groups and ties are coloured by class in `svg.ts`, where the canvas reads their definitions |
-| **Note detection is spelled three ways** | `module_of`, a literal `type === "note"`, and a `config_of` read in `cells_of` |
-| **The door renames old looks on blocks only** | `stale_looks` never reads a relation's `looks` |
-| **`FIRST` still orders a retired key** | `file.ts` lists `home` |
-| **`locked` rides along** | the extended sample still carries `locked: true`, which nothing reads and the door does not drop |
+| **Note detection is spelled three ways** | `module_of`, a literal `type === "note"` in `arrange.ts`, and a `config_of` read in `look.ts`'s `cells_of` |
+| **`locked` rides along** | the extended sample still carries `locked: true` three times, which nothing reads and the door does not drop |
+| **A tie's module is stored and derived** | `Relation.module` is kept for readers; the door re-derives it, so the two can never disagree for long |
 | **`View` is reserved, not retired** | it will name a data perspective over the model |
 
 
@@ -159,8 +189,11 @@ Not a backlog of everything — an item earns a line here by being a decision so
 | **a default is read by its marker, never its id** | the sample's are `def_default` and `def_default_*`, a new one `rel_default_line`. Ask `default_for` |
 | **naming a base is naming nothing** | `def_of` sends a base type to its kind's default, and `stored_type` writes a base or a default as plain. A new maker that writes `type` directly skips both |
 | **a default's display is not its name** | tables show `default/<kind>`; an action keyed on a name must be given the definition's own name, or it files a new one |
-| **a name is not an id, and not a group** | ask `def_named` / `def_slot` **with the group** |
-| **the graph in hand is from before the act** | hold the id `def_slot` says it will mint rather than looking one up |
+| **a name is not an id, and not a group** | ask `def_named` **with the group**; ids are minted and never derived from a name |
+| **the graph in hand is from before the act** | mint the id and pass it to the action rather than looking one up afterwards |
+| **a batch folds between calls** | inside `session.batch` each action sees the one before it, and all of them undo as one |
+| **no door migrations** | a schema change re-saves the samples; it never adds a repair |
+| **a group goes with its last member** | anything that moves a member out of a group may delete the group, and any relation on it |
 | **a control in a row stops the click** | every `Entry`, `Choice` and chip stops propagation, or the row is repicked under it |
 | **a row pick keeps its listing** | `browse` holds the listing a row was picked from |
 | **the draft is never listed** | tables read the graph without it |

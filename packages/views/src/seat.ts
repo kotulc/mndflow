@@ -3,7 +3,6 @@
 import { children, is_interface, type Graph, type Id, type Relation,
          type Side } from "@mnd/core";
 import type { Placed } from "./arrange";
-import { knotted } from "./knot";
 import { PORT, seat_frac, seat_marks } from "./size";
 
 export type Seat = { side: Side; at: number };
@@ -94,8 +93,7 @@ export function assign_seats(graph: Graph, links: readonly Relation[],
       const box = boxes.get(id);
       const other = boxes.get(end === "from" ? e.to : e.from);
       const b = graph.blocks[id];
-      /** A knot is met at its middle, like an interface. */
-      if (!box || !other || (b && is_interface(b)) || knotted(id)) continue;
+      if (!box || !other || (b && is_interface(b))) continue;
       const far = end === "from" ? e.to : e.from;
       const side = walled(far) ?? side_for(id, far, box, other, frame);
       claims.push({ key: `${e.id}|${end}`, on: id, side,
@@ -125,7 +123,7 @@ export function assign_seats(graph: Graph, links: readonly Relation[],
     for (const end of ["from", "to"] as const) {
       const id = end === "from" ? e.from : e.to;
       const b = graph.blocks[id];
-      if (!boxes.get(id) || (b && is_interface(b)) || knotted(id)) continue;
+      if (!boxes.get(id) || (b && is_interface(b))) continue;
       const key = `${e.id}|${end}`;
       const spot = at.get(key);
       if (spot === undefined) continue;

@@ -1,6 +1,7 @@
 /** Boundaries, grids as made, and notes. */
 
-import { can_hold, is_group, members_of, next_order } from "../fold";
+import { can_hold, is_group, members_of } from "../holders";
+import { next_order } from "../tree";
 import { new_id } from "../ids";
 import type { Graph, Id, Mutation } from "../types";
 import { register } from "./registry";
@@ -119,8 +120,8 @@ register(
   },
   {
     name: "note",
-    about: "writes a note about a block or a relationship, tied to it",
-    on: ["block", "edge"],
+    about: "writes a note about a block, tied to it",
+    on: ["block"],
     /** A note is always about something, and is made with its tie. */
     args: [{ name: "about", form: "block", required: true },
            { name: "text", form: "text", required: true, asks: true },
@@ -129,11 +130,7 @@ register(
     check: (ctx, args) => {
       if (!text(args, "text")) return "a note is its text";
       const about = id_of(args, "about") || ctx.picked[0] || "";
-      const on = ctx.graph.edges[about];
-      if (on && (ctx.graph.edges[on.from] || ctx.graph.edges[on.to])) {
-        return "a tie has no line of its own to note";
-      }
-      return ctx.graph.blocks[about] || on ? null : "a note is always about something";
+      return ctx.graph.blocks[about] ? null : "a note is always about a block";
     },
     /** The drawing gesture may size a note. */
     run: (ctx, args) => {
@@ -153,10 +150,10 @@ register(
       if (typeof w === "number" && typeof h === "number" && w > 0 && h > 0) {
         out.push({ op: "size_block", id, w, h });
       }
-      /** The tie, to a block or a line. */
+      /** The tie to the block it is about. */
       const tie = handles(ctx, "relation");
       out.push({ op: "link_blocks", edge: { id: new_id("edge"), from: id, to: about,
-                                            alias: tie.take(), module: "tie" } });
+                                            alias: tie.take() } });
       out.push(...tie.bump());
       return { mutations: out, effect: { focus: id } };
     },

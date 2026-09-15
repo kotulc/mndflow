@@ -1,7 +1,7 @@
 /** The usages tab: the lines or the blocks, and what each is. */
 
 import { useState } from "react";
-import { may_retype, RELATION_MODULES, relation_named, relations, shipped,
+import { edge_module, may_retype, RELATION_MODULES, relation_named, relations, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Choice, scope_chips, Table, type Column, type Scope } from "./Table";
 import { block_usage_rows, usage_rows } from "./rows";
@@ -45,7 +45,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
       .map((d) => ({ value: d.id, word: d.name }))];
   /** What one usage may be retyped to: its own kind's or module's definitions only. */
   const fits = (id: Id) => offered.filter((o) => !o.value
-    || (lines ? relation_named(graph, o.value) === graph.edges[id]?.module
+    || (lines ? relation_named(graph, o.value) === edge_module(graph, id)
               : may_retype(graph, id, o.value)));
 
   const held = about ? graph.defs[about] : undefined;

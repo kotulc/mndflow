@@ -1,6 +1,6 @@
 /** What the tray has hold of, and how to read it. */
 
-import { config_of, def_of, honours, module_named, module_of, relation_named,
+import { config_of, def_of, edge_module, honours, module_named, module_of, relation_named,
          type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
 
@@ -29,10 +29,10 @@ export function held(graph: Graph, id: Id): Held | null {
 
 /** The base kind this is or its usages are, and whether it draws as a run. */
 export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: boolean } {
-  const { def: d, block: b, edge } = it;
+  const { def: d, block: b } = it;
   const kind = d ? (d.group === "relation" ? relation_named(graph, d.id)
                                            : module_named(graph, d.id))
-    : b ? module_of(graph, id) : edge?.module ?? "line";
+    : b ? module_of(graph, id) : edge_module(graph, id);
   return { kind, runs: honours(kind).includes("line") };
 }
 

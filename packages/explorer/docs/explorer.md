@@ -26,18 +26,19 @@ A minimal file (block) tree with each block name listed after its identifying ic
 - **The bar's `＋` follows the selection**, and its tooltip names which, so the meaning is never hidden. **Add folder is a shortcut, not a second concept** — the same `create`, arriving with its type filled, and offered only where a folder can go.
 - **Right-click opens the offered list** for the selection, in fixed order.
 - **Every row is draggable**, and a drag crossing a tier lands as that tier's elementary unit rather than refusing. **Dropping in the clear space below makes the block top-level**, since a tier root is a block no other block contains.
-- **A move drops what does not travel** — group memberships, note ties, and relationships to anything staying behind. A move is never confirmed first; undo is the answer.
+- **A move drops what does not travel** — group memberships, note ties, and relationships to anything staying behind; **a group whose last member leaves goes with it**. A move is never confirmed first; undo is the answer.
 - **Folding is the user's alone**: walking into a layer never rearranges the tree.
 
 ## Definitions
 
-**A folder of block definitions above the tree**, drawn with the same rows and marks — a rendering, never blocks.
+**A *definitions* folder above the tree** (marked ABC), drawn with the same rows and marks — a rendering, never blocks. **It lists pinned definitions only**; unpinned ones live in the tray's tabs.
 
-| section | lists |
-|---|---|
-| **default** | the shipped base kinds |
-| **workspace** | the block definitions the workspace **pinned**, in pin order. Unpinning takes one out of the folder and leaves the definition standing |
-| **packages** | each imported package's block definitions |
+| folder | mark | lists |
+|---|---|---|
+| **default** | lock | the workspace's default for each block kind |
+| **pinned** | pin | the block definitions the workspace **pinned**, in pin order. Unpinning takes one out of the folder and leaves the definition standing |
+
+**The bar's mark is a stack of files.**
 
 - **Picking a row holds that definition in the tray**; dragging one onto the drawing makes a block naming it.
 - **Interfaces are never listed** in the tree.

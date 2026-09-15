@@ -1,6 +1,6 @@
 /** Every action, registered on import. */
 
-import { arrangement_of, children, edges_in } from "../fold";
+import { arrangement_of, children, edges_in } from "../tree";
 import type { Id, Mutation, Side } from "../types";
 import "./blocks";
 import "./relations";

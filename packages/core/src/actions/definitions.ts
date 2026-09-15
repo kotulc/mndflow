@@ -1,7 +1,7 @@
 /** Fields, definitions, pinning, and giving looks back. */
 
 import { def_named, def_of, isa, module_of, ordered_by, plain_type, schema_of, shipped,
-         stored_type } from "../fold";
+         stored_type } from "../defs";
 import { DRAWN } from "../components";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
          type Mutation, type ValueForm } from "../types";

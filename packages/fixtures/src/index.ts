@@ -19,7 +19,7 @@ const start = () => { n = 0; counts = {}; };
 
 /** A run points because `dir` says so. */
 const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
-  ({ op: "link_blocks", edge: { id, from, to, module: "line", ...(dir ? { dir } : {}) } });
+  ({ op: "link_blocks", edge: { id, from, to, ...(dir ? { dir } : {}) } });
 
 /** The shipped floor, which every fold of a fixture starts from. */
 export const FLOOR = base_graph().defs;

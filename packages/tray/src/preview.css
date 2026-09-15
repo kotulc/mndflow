@@ -1,0 +1,202 @@
+/* How one thing draws in the tray: the card and run previews, and answers as chips. */
+
+/* ── The card, as the stage draws it ── */
+
+.preview-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 120px;
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* Its role, top right; what has been done to it, bottom right. */
+.preview-role {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  display: inline-flex;
+  color: var(--muted);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.preview-role[data-role="note"] { color: var(--note-dim); }
+.preview-role[data-role="reference"] { color: var(--away); opacity: 0.85; }
+
+.preview-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* The gutter the corner mark stands in. */
+  padding-right: 13px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview-named {
+  display: inline-flex;
+  align-items: baseline;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.preview-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Two lines, where there is room. */
+.preview-card[data-label="above"] .preview-label,
+.preview-card[data-label="below"] .preview-label,
+.preview-card[data-label="none"] .preview-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* Which end the writing reads from. */
+.preview-card[data-align="center"] .preview-named { justify-content: center; }
+.preview-card[data-align="right"] .preview-named { justify-content: flex-end; }
+.preview-alias { flex: none; margin-left: 0.5ch; color: var(--muted); opacity: 0.7; }
+
+/* The label sits back a step from the name. */
+.preview-kind {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* Over the card and under it, in the gutter either way. */
+.preview-over, .preview-under {
+  position: absolute;
+  left: 0;
+  right: 0;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--card-dim, var(--muted));
+  pointer-events: none;
+}
+
+.preview-over { bottom: 100%; margin-bottom: 2px; }
+.preview-under { top: 100%; margin-top: 2px; }
+
+.preview-card[data-label-align="center"] .preview-over,
+.preview-card[data-label-align="center"] .preview-under { text-align: center; }
+.preview-card[data-label-align="right"] .preview-over,
+.preview-card[data-label-align="right"] .preview-under { text-align: right; }
+
+/* The preview keeps the label's gutter, so rows do not move. */
+.preview { padding: 14px 0; }
+
+/* ── The run: `preview-card`'s sibling ── */
+.preview-wire {
+  position: relative;
+  box-sizing: border-box;
+  width: 188px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--card-ink, var(--text));
+}
+.preview-run { display: block; overflow: visible; }
+.preview-line {
+  fill: none;
+  stroke: var(--card-line, var(--route));
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+.preview-line.core {
+  stroke: var(--surface);
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+.preview-wire[data-border-style="double"] .preview-line {
+  stroke-width: calc(var(--card-border-width, var(--weight-thin)) * 3);
+}
+.preview-wire[data-border-style="none"] .preview-line { stroke: transparent; }
+.preview-wire[data-border-style="dotted"] .preview-line { stroke-linecap: round; }
+.preview-seat { fill: var(--card-line, var(--route)); }
+
+/* The name over the run's middle. */
+.preview-wire-name {
+  display: block;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── One answer, as a chip ── */
+
+.rows .opt {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.rows .opt:hover { color: var(--text); border-color: var(--accent); background: var(--hover); }
+
+/* The hue strip is its own legend. */
+.rows > .row.sliders > .line { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
+
+.rows > .row.sliders > .line input[type="range"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.rows > .row.sliders > .line .hue {
+  background: linear-gradient(to right,
+    oklch(var(--l-edge) 0.13 0), oklch(var(--l-edge) 0.13 60),
+    oklch(var(--l-edge) 0.13 120), oklch(var(--l-edge) 0.13 180),
+    oklch(var(--l-edge) 0.13 240), oklch(var(--l-edge) 0.13 300),
+    oklch(var(--l-edge) 0.13 360));
+}
+
+/* Intensity runs from the theme's grey to its ceiling, at whatever hue is set. */
+.rows > .row.sliders > .line .intensity {
+  background: linear-gradient(to right,
+    oklch(var(--l-edge) 0 var(--card-h, 200)),
+    oklch(var(--l-edge) var(--tint-ceiling) var(--card-h, 200)));
+}
+
+.rows > .row.sliders > .line input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--text);
+  box-shadow: 0 0 0 1px var(--bg);
+}
+
+.rows > .row.sliders > .line input[type="range"]::-moz-range-thumb {
+  width: 3px;
+  height: 14px;
+  border: none;
+  border-radius: 1px;
+  background: var(--text);
+  box-shadow: 0 0 0 1px var(--bg);
+}
+/* Lit two ways, because there are two things to know. */
+.rows .opt.on {
+  color: var(--text);
+  border-color: var(--muted);
+  background: var(--hover);
+}
+.rows .opt.on.set { color: var(--accent); border-color: var(--accent); background: var(--tint); }
+.rows .opt:disabled { opacity: 0.3; }

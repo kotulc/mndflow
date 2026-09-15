@@ -27,7 +27,10 @@ npx vitest run packages/stage        # its suite, from the repo root
 
 | | Is |
 |---|---|
-| `Stage.tsx` | hosts one view, owns the global keys, turns a gesture into an action name, and draws the crumbs and the strip |
+| `Stage.tsx` | hosts the canvas, owns the global keys, turns a gesture into an action name, and draws the crumbs and the strip |
+| `Flow.tsx` | the canvas, composed from `room`, `sync`, `draw` and `drag` hooks and `Grips` |
+| `moves.ts` | what a canvas adjustment writes, handed to the host as one batch |
+| `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids |
 | `stage.css` | the look |
 | `dev/` | its own Vite root, and a harness holding the state the component refuses to |
 

@@ -1,7 +1,7 @@
 /** The grid: seating, headers, allocation, and the actions that reshape one. */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { ROOT, allocated_to, allocations_of, at_cell, fold, head_of, is_grid,
+import { ROOT, allocated_to, allocations_of, at_cell, edge_module, fold, head_of, is_grid,
          members_of, offer, run, step, would_head,
          type Args, type Cell, type Context, type Graph, type Id,
          type Log, type Mutation } from "../src/index";
@@ -284,7 +284,7 @@ describe("chain", () => {
 
   it("draws the module it was given", () => {
     laid(); act("chain", { module: "line" });
-    expect(Object.values(g.edges).every((e) => e.module === "line")).toBe(true);
+    expect(Object.keys(g.edges).every((id) => edge_module(g, id) === "line")).toBe(true);
   });
 
   it("adds nothing the second time", () => {

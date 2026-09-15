@@ -10,7 +10,10 @@ import { Stage } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
-import "@mnd/stage/src/scene.css";
+import "@mnd/theme/card.css";
+import "../src/flow.css";
+import "../src/routes.css";
+import "../src/groups.css";
 import "../src/stage.css";
 import "./dev.css";
 

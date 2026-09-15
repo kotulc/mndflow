@@ -1,17 +1,14 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adjustments, can_hold, module_named, module_of, offer, pinned_defs,
-         relation_named, session,
+import { module_named, offer, pinned_defs, relation_named, session,
          type Args, type Storage, type Dir, type Graph, type Id, type Point,
          type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, extent_of, holds, nearest_seat, project, snap, tidy,
-         BLOCK, PORT } from "@mnd/views";
+import { box_of, clear_of, holds, project, tidy, BLOCK } from "@mnd/views";
 import { Explorer, Menu } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
-import { Stage } from "@mnd/stage";
-import type { Adjust } from "@mnd/stage";
+import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
 import { Tray, type Hold, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
@@ -115,116 +112,13 @@ export function App({ storage }: { storage: Storage }) {
     s.go(name, args ?? {});
   };
 
-  /** Where a hand-placed thing comes to rest: on the lattice. */
-  const put = (_id: Id, to: { x: number; y: number }) => ({ x: snap(to.x), y: snap(to.y) });
-
-  /** Which group a drop joins, read from where the block came to rest. */
-  const land_group = (to: { x: number; y: number },
-                      size: { w: number; h: number },
-                      held: Id | null): Id | null => {
-    const cx = to.x + size.w / 2;
-    const cy = to.y + size.h / 2;
-    if (held) {
-      const band = scene.nodes.find((n) => n.id === held);
-      if (band) {
-        const b = box_of(band);
-        if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) return held;
-      }
+  /** One gesture, one step: every write an adjustment comes to. */
+  const adjust = (moves: readonly Move[]) => s.batch(() => {
+    for (const m of moves) {
+      if ("act" in m) s.go(m.act, m.args);
+      else s.adjust(m.adjust, m.mutations);
     }
-    const groups = scene.nodes
-      .filter((n) => n.type === "group" && n.id !== held)
-      .filter((n) => {
-        const b = box_of(n);
-        return cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h;
-      })
-      .sort((a, b) => (b.data.nest ?? 0) - (a.data.nest ?? 0));
-    return groups[0]?.id ?? null;
-  };
-
-  /** One gesture, one step. Moving anything by hand on a `grid` layer hands the layer to `free`,
-   *  keeping where the grid had put everything. */
-  const adjust = (a: Adjust) => s.batch(() => {
-    if (arranged === "grid" && ["place", "move", "wall-seat"].includes(a.kind)) {
-      act("arrange", { layer, arrangement: "free", at: tidy(graph, layer) });
-    }
-    adjust_now(a);
   });
-
-  /** An adjustment, as the canvas worked it out: the app only writes it. */
-  const adjust_now = (a: Adjust) => {
-    /** A corner dragged sizes the card and moves it where a left or top handle moved. */
-    if (a.kind === "size") {
-      /** A grid is sized in cells, never in pixels. */
-      const on = graph.blocks[a.on];
-      if (on && module_of(graph, a.on) === "grid") {
-        s.go("group", { into: a.on, ...extent_of(a.w, a.h), spot: put(a.on, a.to) });
-        return;
-      }
-      s.adjust("size", adjustments.size(a.on, a.w, a.h));
-      s.adjust("place", adjustments.place([{ id: a.on, x: snap(a.to.x), y: snap(a.to.y) }]));
-      return;
-    }
-    if (a.kind === "wall-seat") {
-      s.adjust("seat", adjustments.seat(a.on, a.side, a.at));
-      return;
-    }
-    if (a.kind === "wall") {
-      const end = graph.blocks[a.to] ? a.to : null;
-      if (end) s.go("relink", { id: a.on, end: a.end, to: end });
-      return;
-    }
-    /** Several cards put down at once. */
-    if (a.kind === "place") {
-      s.adjust("place", adjustments.place(
-        a.at.map((p) => ({ id: p.id, ...put(p.id, p.to) }))));
-      return;
-    }
-    /** A seated interface slides along its card. */
-    const drawn = scene.nodes.find((n) => n.id === a.on);
-    const on = drawn?.data.on ? scene.nodes.find((n) => n.id === drawn.data.on) : null;
-    if (on) {
-      /** Read from the port's middle, not its corner. */
-      const seat = nearest_seat(box_of(on),
-                                { x: a.to.x + PORT.w / 2, y: a.to.y + PORT.h / 2 });
-      s.adjust("seat", adjustments.seat(a.on, seat.side, seat.at));
-      return;
-    }
-    const block = graph.blocks[a.on];
-    const landed = drawn ? box_of(drawn) : BLOCK;
-    const held = block?.group ?? null;
-    const here = a.cell ? a.into : land_group(a.to, landed, held);
-    const mod = block ? module_of(graph, a.on) : null;
-
-    /** A group is placed by its members. */
-    if (mod === "group") {
-      if (a.cell && here) {
-        s.go("seat", { id: a.on, group: here, at: `${a.cell.r},${a.cell.c}` });
-        return;
-      }
-      if (here && here !== a.on && can_hold(graph, here, a.on)) {
-        if (held !== here) s.go("group", { members: [a.on], into: here });
-        return;
-      }
-      if (held && held === here) return;
-      if (held && !here) {
-        s.go("leave", { ids: [a.on] });
-        s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
-        return;
-      }
-      s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
-      return;
-    }
-
-    /** Where a block came to rest says which group or cell it is in. */
-    s.adjust("place", adjustments.place([{ id: a.on, ...put(a.on, a.to) }]));
-    if (a.cell && here) {
-      s.go("seat", { id: a.on, group: here, at: `${a.cell.r},${a.cell.c}` });
-      return;
-    }
-    if (held === here) return;
-    if (here) s.go("group", { members: [a.on], into: here });
-    else s.go("leave", { ids: [a.on] });
-  };
 
   /** The rail's controls: display state here, everything else an action. */
   const chrome = (name: string, args?: Record<string, unknown>) => {

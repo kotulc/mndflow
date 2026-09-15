@@ -1,6 +1,6 @@
 /** What the open layer holds, as rows. */
 
-import { alias_of, children, def_of, edges_in, is_interface, isa, label_of,
+import { alias_of, children, def_of, edge_module, edges_in, is_interface, isa, label_of,
          module_of, path, shipped, shown_name, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
@@ -72,10 +72,10 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
   for (const e of runs) {
     const named = plain(graph, e.type) ? "" : graph.defs[e.type!]?.name ?? e.type!;
     out.push({
-      id: e.id, sort: "relationship", kind: e.module,
+      id: e.id, sort: "relationship", kind: edge_module(graph, e.id),
       /** An edge holds no values. */
       fields: {},
-      name: named || e.module,
+      name: named || edge_module(graph, e.id),
       what: `${called(e.from)} → ${called(e.to)}`,
       type: named,
     });
@@ -148,7 +148,7 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     name: called(e.id),
     what: `${called(e.from)} → ${called(e.to)}`,
     layer: layer_path(graph, e.from),
-    module: e.module,
+    module: edge_module(graph, e.id),
     chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
     def: plain(graph, e.type) ? "" : e.type!,
     label: label_of(graph, e.id),

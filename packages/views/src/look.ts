@@ -1,7 +1,7 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
-         FAMILIES, FILLS, FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS,
+         FAMILIES, FILLS, FONTS, is_container, is_interface, is_note, kind_word, SHOWN, WEIGHTS,
          WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
@@ -269,7 +269,7 @@ export function cells_of(graph: Graph, id: Id, shown: (id: Id) => string): Cell[
       id: b.id,
       label,
       kind: b.of ? "reference"
-        : config_of(graph, b.type, "block")["module"] === "note" ? "note"
+        : is_note(graph, b.id) ? "note"
         : is_container(graph, b.id) ? "container" : "block",
       tint: tint_of(label),
       ...seats[at]!,

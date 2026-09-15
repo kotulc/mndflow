@@ -1,6 +1,6 @@
 /** The action registry: the closed surface every input method works against. */
 
-import { is_interface } from "../fold";
+import { is_interface } from "../tree";
 import type { Graph, Id, Mutation } from "../types";
 
 /** What an input method can fill. */

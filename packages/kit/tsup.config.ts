@@ -14,8 +14,8 @@ export default defineConfig({
   clean: true,
   /** The stylesheets the React entry reads, as one file. */
   onSuccess: async () => {
-    const sheets = ["../theme/icons.css", "../stage/src/flow.css",
-                    "../explorer/src/explorer.css"];
+    const sheets = ["../theme/icons.css", "../stage/src/flow.css", "../stage/src/routes.css",
+                    "../stage/src/groups.css", "../explorer/src/explorer.css"];
     writeFileSync("dist/react.css", sheets.map((f) => readFileSync(f, "utf8")).join("\n"));
   },
 });

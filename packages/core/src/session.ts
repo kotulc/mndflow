@@ -2,7 +2,10 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { alias_kind, fold, module_of, next_alias, path, plain_type, step, touched } from "./fold";
+import { module_of, plain_type, touched } from "./defs";
+import { fold, step } from "./fold";
+import { alias_kind, next_alias } from "./names";
+import { path } from "./tree";
 import { compact, parse, read, write } from "./file";
 import { new_id } from "./ids";
 import { no_files, no_storage, type Ports } from "./ports";

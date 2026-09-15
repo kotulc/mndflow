@@ -1,7 +1,7 @@
 /** A Scene as React Flow's node and edge arrays, and the canvas's constants. */
 
 import type { Id } from "@mnd/core";
-import { at_seat, box_of, knots_of, look_key, perch_id, roomed, FRAME, type BoxNode, type Frame,
+import { at_seat, box_of, look_key, perch_id, roomed, FRAME, type BoxNode, type Frame,
          type LineEdge, type Scene } from "@mnd/views";
 
 /** Fitting frames what is there; it never magnifies. */
@@ -25,7 +25,7 @@ export const MIN_ZOOM = 0.1;
 
 /** Draw order: room, holders, cards, then seats; selection never lifts a node. */
 export const DEPTH: Record<string, number> = {
-  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4, knot: 4,
+  frame: 0, group: 1, grid: 1, card: 3, control: 3, seat: 4,
 };
 
 /** The layer's room, grown to the panel's shape and size in whole cells. */
@@ -90,14 +90,7 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
     });
   }
 
-  /** Knots are placed again on the grown room. */
-  const knots = frame && scene.nodes.some((n) => n.type === "knot")
-    ? new Map(knots_of(scene.edges, scene.nodes, scene.perches, frame).map((k) => [k.id, k]))
-    : null;
-
-  for (const drawn of scene.nodes) {
-    const k = knots?.get(drawn.id);
-    const n = k ? { ...drawn, position: k.position, data: { ...drawn.data, ...k.data } } : drawn;
+  for (const n of scene.nodes) {
     const nest = (n.data.nest ?? 0) * 2;
     const base = DEPTH[n.type ?? "card"] ?? 1;
     const band = n.type === "group";

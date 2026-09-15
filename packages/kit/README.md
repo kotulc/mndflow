@@ -66,7 +66,7 @@ const svg = draw_svg(project(back, layer, {}));
 
 > **A signature naming `Log`, `Step` or `Mutation` is internal. Graph to graph, and graph to Scene, is the seam.**
 
-**Sealed, with no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, the inference, and `layout`. A consumer places nothing — projecting is what places, and the Scene it hands back already carries the geometry.
+**Sealed, with no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, and placement. A consumer places nothing — projecting is what places, and the Scene it hands back already carries the geometry.
 
 - **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **That is the price of a mutation union that stays free to grow**, and it is the right one.
 - **The export list is written out**, one name at a time. `export *` from the engine is how the log leaks.

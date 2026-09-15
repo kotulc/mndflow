@@ -1,6 +1,7 @@
 /** The rule kinds, asked rather than enforced. */
 
-import { children, def_of, is_interface, isa, subtree } from "./fold";
+import { def_of, isa } from "./defs";
+import { children, is_interface, subtree } from "./tree";
 import type { Components, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "degree" | "match";

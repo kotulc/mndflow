@@ -1,7 +1,9 @@
 /** The envelope, and the canonical layout. */
 
 import { inspect, type Fault } from "./door";
-import { def_of, fold, subtree, touched } from "./fold";
+import { def_of, touched } from "./defs";
+import { fold } from "./fold";
+import { subtree } from "./tree";
 import { new_id } from "./ids";
 import { empty_graph, SCHEMA, type File, type Graph, type Id, type Log, type Step }
   from "./types";
@@ -18,7 +20,7 @@ function trim<T extends object>(o: T): T {
 }
 
 /** Keys a record writes first; the rest follow alphabetically. */
-const FIRST = ["id", "parent", "label", "name", "from", "group", "module",
+const FIRST = ["id", "parent", "label", "name", "from", "group",
                "type", "extends", "default", "of", "side", "dir"];
 
 const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
@@ -54,10 +56,6 @@ export function write_subtree(graph: Graph, root: Id): string {
   const edges: Record<Id, Graph["edges"][string]> = {};
   for (const [eid, e] of Object.entries(graph.edges)) {
     if (ids.has(e.from) && ids.has(e.to)) edges[eid] = e;
-  }
-  /** A tie travels with the note and the line it joins. */
-  for (const [eid, e] of Object.entries(graph.edges)) {
-    if ((edges[e.to] && ids.has(e.from)) || (edges[e.from] && ids.has(e.to))) edges[eid] = e;
   }
   const defs: Record<Id, Graph["defs"][string]> = {};
   const want = [...Object.keys(blocks).map((id) => def_of(graph, id)),

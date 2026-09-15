@@ -8,10 +8,25 @@
 |---|---|
 | model | the object graph: blocks, relations, definitions, and the block modules that interpret them |
 | schema | the data contract, and what the door enforces on the way in |
-| workspace | the root, the one log, and definition resolution up the tree |
+| workspace | the root, the one log, and definition resolution by id |
 | actions | the closed action set: scope, arguments, `check`, and the mutations each writes |
 | rules | the one constraint and four rules, asked rather than enforced. Advice while modelling, a refusal at translation |
 | ports | the entire host contract. Nothing else may assume where a project lives |
+
+## Source layout
+
+| File | Is |
+|---|---|
+| `types.ts` | every shared shape: the graph, the mutations, the steps |
+| `fold.ts` | replay: a log folded into a graph over the shipped floor, defaults laid |
+| `tree.ts` | layers, children, order, owners and the relations drawn in a layer |
+| `holders.ts` | groups and grids: membership, cells, merges, headers, allocation |
+| `defs.ts` | definitions: chains, kinds, defaults, and what an element resolves through — a relation's module included |
+| `names.ts` | what elements are called: names, handles, labels, roles |
+| `door.ts` · `file.ts` | the one way in, and the envelope |
+| `components.ts` · `rules.ts` | what a definition configures, and the advice it gives |
+| `session.ts` | the log, undo, batches, grafts, and the ports bound |
+| `actions/` | the action set, one file per subject, registered on import |
 
 **Placement and routing are not here** — they are layout, which depends on core and is equally headless. Splitting them keeps the fold free of geometry and lets either be tested without the other.
 
@@ -32,6 +47,7 @@
 - **A repair is a step**, written like any other work — so it is visible, undoable, and never made twice.
 - **The user is told once**, and a clean log says nothing. **A normalisation that carried nothing is not a repair**: a false alarm is what teaches people to ignore the real ones.
 - **A module the build does not know falls back to the base block, and says so.** Falling back silently is the one thing to avoid.
+- **The door checks; it never migrates.** It keeps integrity, component validation, one default per kind, and a definition extending nothing pointed at its base. A schema change re-saves the samples rather than adding a repair.
 
 ## Files
 
@@ -43,12 +59,13 @@
 - **A reference out of the subtree is kept, not tidied away**, and reads *missing* where it lands. Same rule as a deleted target, so importing needs no second answer. A relationship with one end outside is dropped, exactly as moving a block drops what does not travel.
 - **Importing one is a checkpoint**, so there is no second format and no second reader.
 - **Importing replaces the session and is saved from then on** — a file is a snapshot, the session is the working copy.
+- **Grafting is not importing**: a file's definitions and elements come into a layer as one step, and **the workspace wins** — nothing it holds is replaced, its defaults stand for the file's, and incoming elements take its next handles.
 - **The base is what cannot be ignored**; everything else is `meta`, free-form and safely ignorable. The test is whether dropping a field changes what the model *is*.
-- **Nothing still at its default is written** — a file the size of the choices in it.
+- **Nothing still at its default is written** — a file the size of the choices in it. **Only touched definitions travel**: never the shipped floor, never a default nobody edited.
 - **Major schema must match; a higher minor is readable.**
 - **Exporting changes nothing**, so re-exporting an unchanged subtree is byte-identical — which is what the canonical layout is for.
-- **Laid out for reading**: definitions first, then the block tree, then relationships. Blocks nest under their parents so `parent` is never written; siblings sort by id so a rename is one line.
-- **Ids say what they point at** — `block_`, `edge_`, `def_`, `step_`. A name is never part of an id.
+- **Laid out for reading**: definitions first, then blocks, then relationships, each flat and sorted by id so a rename is one line. A block writes its `parent`.
+- **Ids say what they point at** — `block_`, `edge_`, `def_`, `rel_`, `step_`. **Minted, never derived from a name**; a default is `def_default_<kind>` or `rel_default_<kind>`, and is still read by its marker rather than its id.
 - **A log is not a file.** The reader takes envelopes only, so nothing can hand the engine a history it did not write itself.
 - **Session state stays out**, `meta` included: opening somebody's file must not rearrange your toggles.
 

@@ -18,7 +18,7 @@ export type Arrangement = "free" | "grid";
 
 export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 
-/** A relation's kind: `tie` where an end is a note or a line, `line` otherwise. */
+/** A relation's kind, read from its ends: `tie` where an end is a note, `line` otherwise. */
 export type RelationModule = "line" | "tie";
 
 export const RELATION_MODULES: readonly RelationModule[] = ["line", "tie"];
@@ -94,10 +94,8 @@ export type Block = {
 
 export type Relation = {
   id: Id;
-  /** Blocks, except a tie, whose end may be a line. */
   from: Id;
   to: Id;
-  module: RelationModule;
   type?: Id;
   dir?: Dir;
   /** Which wall a relationship end leaves by. */
@@ -181,7 +179,6 @@ export type Mutation =
   | { op: "update_edge"; id: Id; type: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "set_dir"; id: Id; dir: Dir }
-  | { op: "set_form"; id: Id; module: RelationModule }
   | { op: "flip_edge"; id: Id }
   | { op: "set_end"; id: Id; end: "from" | "to"; port: Id }
   | { op: "set_port"; id: Id; side: Side; at: number }

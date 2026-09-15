@@ -23,9 +23,25 @@
 - **A click in the explorer navigates; a click on the stage selects and never navigates.**
 - **A left drag is decided at the press and never revised** — a gesture that changes its mind halfway is the aim-and-hope this design is written against.
 - **Dropping a card on another card is a `move`, which is sayable; dropping it anywhere else is a `place`, which is not.**
+- **The stage works out what an adjustment writes** (`moves.ts`) — a place and a `group`, a `leave`, a `seat`, a `relink`, an `arrange` to `free` on a `grid` layer — and hands the list to the host, which runs it as one batch. **One gesture, one step.**
 - **A drop lands on a box and never on the frame** — the frame spans the whole layer, so counting it would make every drop a re-parent.
 - **The stage publishes its geometry upward** so the options rail calls what it was handed. The shell never reaches into the stage.
-- **A right drag from a note onto a line ties the note to that line**, met at the midpoint of the line's run by a `knot` the projection places. A tie on a line is drawn only where the line is.
+- **A right drag lands on a card, never on a line.** A relationship joins two blocks; a note is tied to the block it is about.
+- **A run's menu offers promoting only the ends that are not interfaces yet**, and a grip's menu knows which end it is.
+
+## Inside the canvas
+
+**`Flow.tsx` is the canvas, composed from hooks with one job each.**
+
+| | Is |
+|---|---|
+| `room.ts` | the room a layer is drawn in, and the camera that flies to it |
+| `sync.ts` | React Flow's copy of the arrays, kept in step with the Scene and the selection |
+| `draw.ts` | the right button: a relationship from a card, a grid across the ground |
+| `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |
+| `Grips.tsx` | the ends of what is picked, and the berths of hidden interfaces |
+| `moves.ts` | what an adjustment writes, as actions and positional changes |
+| `flow.css` · `routes.css` · `groups.css` | cards and the frame; runs and their ends; bands and grids — loaded in that order |
 
 ## Hover and pick
 

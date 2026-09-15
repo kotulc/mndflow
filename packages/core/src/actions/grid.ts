@@ -1,7 +1,8 @@
 /** Cells, headers, rows and columns of a grid. */
 
-import { at_cell, can_hold, covers, derived_module, edges_in, head_of, is_grid, is_header,
-         members_of, next_order } from "../fold";
+import { derived_module } from "../defs";
+import { at_cell, can_hold, covers, head_of, is_grid, is_header, members_of } from "../holders";
+import { edges_in, next_order } from "../tree";
 import { new_id } from "../ids";
 import type { Block, Cell, Dir, Graph, Id, Mutation, Span } from "../types";
 import { register, type Args, type Context } from "./registry";
@@ -323,7 +324,7 @@ register(
         const module = derived_module(ctx.graph, from, to);
         out.push({ op: "link_blocks", edge: {
           id: new_id("edge"), from, to, alias: line.take(), ...run_type(ctx, args, module),
-          ...(dir !== "none" ? { dir } : {}), module } });
+          ...(dir !== "none" ? { dir } : {}) } });
       }
       out.push(...line.bump());
       return { mutations: out,

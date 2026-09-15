@@ -1,7 +1,7 @@
 /** A Scene as one standalone SVG. */
 
 import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
-import { end_of } from "./knot";
+import { end_of } from "./ends";
 import { drawn, middle_of, route } from "./route";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
@@ -87,7 +87,6 @@ svg.scene .route.tie path {
   stroke-width: 1.5; opacity: 0.75;
 }
 svg.scene .route.tie .head { fill: var(--note-dim); }
-svg.scene .knot { fill: var(--note-dim); }
 `.trim();
 
 /** The whole scene, as one SVG document. */
@@ -127,11 +126,6 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
 function card(node: BoxNode, clip: string): string {
   const d = node.data;
   const at = box_of(node);
-  /** A knot is where a tie meets a line: a dot, and nothing to read. */
-  if (node.type === "knot") {
-    return `<circle class="knot" cx="${round(at.x + at.w / 2)}" cy="${round(at.y + at.h / 2)}"`
-      + ` r="${round(at.w / 2)}" />`;
-  }
   const shape = `<rect x="${round(at.x)}" y="${round(at.y)}"`
     + ` width="${round(at.w)}" height="${round(at.h)}" rx="3" />`;
   const drawn = `<g class="${["card", ...d.marks].join(" ")}"`

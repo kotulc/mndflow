@@ -1,6 +1,6 @@
 # mndflow
 
-**A client-only editor for rapidly composing descriptive blocks into systems models.** No server, no language model, nothing fetched at run time. One log lives in the session, the graph is folded from it, and everything runs in the browser.
+**A client-only editor for rapidly composing descriptive blocks into systems models.** No server and no language model. One log lives in the browser, the graph is folded from it, and everything runs there — the only thing fetched at run time is a definition package somebody searches for.
 
 **Everything is a block.** A note, a folder, an interface, a group and a grid are placed, dragged, named and laid out alike. What a block *is* comes from a **definition** in a shipped package rather than from a form the engine hardcodes — so the same graph reads as plain blocks and flows to one person and as SysML to another, because what changed is the names and the drawing, never the structure.
 
@@ -36,7 +36,7 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-The embedding weights and the ONNX runtime are vendored under `public/` and stored in LFS — about 60MB of `.onnx` and `.wasm` that a normal clone fetches for you. Nothing is downloaded at run time, so the app works offline and on first load. A clone that came down without LFS still runs: ranking falls back to substring and the console says so, and `git lfs install && git lfs pull` fixes it.
+The embedding weights and the ONNX runtime are vendored under `public/` and stored in LFS — about 60MB of `.onnx` and `.wasm` that a normal clone fetches for you. The model is never downloaded at run time, so the app works offline and on first load; only package search reaches `public/packages`. A clone that came down without LFS still runs: ranking falls back to substring and the console says so, and `git lfs install && git lfs pull` fixes it.
 
 ### Using it
 
@@ -45,11 +45,11 @@ The embedding weights and the ONNX runtime are vendored under `public/` and stor
 | **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
 | **Explorer** | the tree, and the menu that hangs off it. **A click navigates** |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
-| **Options** | the control groups the current projection asks for — arrangement, and what a card shows |
+| **Options** | settings for the workspace or a new definition, then the groups the projection asks for — arrangement, what the drawing shows, and what a right drag draws |
 | **Tray** | what the open layer holds, as rows |
 | **Terminal** | four commands — `+` add, `:` filter, `*` search, `?` help. Help is the fallback, and every registered action is reachable there |
 
-Work is kept in `localStorage` as you go; **export** writes the whole graph to a file that **import** reads back.
+Work is kept in IndexedDB as you go; **export** writes the whole graph to a file that **import** reads back.
 
 ---
 
