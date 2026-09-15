@@ -1,9 +1,4 @@
-/** What the tray has hold of, and how to read it.
- *
- *  **One id, three holders.** A block, a relationship or a definition out of the
- *  vocabulary — each answers the same questions, and `Block.looks` and
- *  `Definition.components` are the same bag one layer apart. Asked once here, so
- *  no panel below has to know which of the three it was given. */
+/** What the tray has hold of, and how to read it. */
 
 import { config_of, def_of, honours, module_named, module_of, relation_named,
          type Block, type Definition, type Field, type FieldDef,
@@ -14,13 +9,9 @@ export type Held = {
   def: Definition | null;
   block: Block | null;
   edge: Relation | null;
-  /** What it carries — a block's values, or a definition's schema. **Empty on a
-   *  relationship**, which holds none: a connection is a join, and what one has
-   *  to say belongs to the blocks at its ends. */
+  /** What it carries — a block's values, or a definition's schema. */
   fields: readonly (Field | FieldDef)[];
-  /** **A package resists editing.** Somebody else's vocabulary, so every action
-   *  refuses to write it and a panel says so rather than offering controls that
-   *  will be turned down. */
+  /** A package's definition resists editing. */
   borrowed: boolean;
 };
 
@@ -36,8 +27,7 @@ export function held(graph: Graph, id: Id): Held | null {
   return null;
 }
 
-/** The base kind this is, or the base kind its usages are — and whether that
- *  kind draws as a run rather than as a card. */
+/** The base kind this is or its usages are, and whether it draws as a run. */
 export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: boolean } {
   const { def: d, block: b, edge } = it;
   const kind = d ? (d.group === "relation" ? relation_named(graph, d.id)
@@ -46,21 +36,13 @@ export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: b
   return { kind, runs: honours(kind).includes("line") };
 }
 
-/** The three readings every look control needs, over whichever holder this is.
- *
- *  **What it says, what it inherits, and what it draws as.** The card is painted
- *  from the third, so a preview and the drawing cannot disagree about what a
- *  trait resolves to. */
+/** The three readings every look control needs, over whichever holder this is. */
 export function reading(graph: Graph, id: Id, it: Held) {
   const { def: d } = it;
-  /** **Whichever holder this is.** A block and a relationship carry the same
-   *  bag one layer apart, so a run's own last word is read here exactly as a
-   *  card's is — without it every control on a run read as *inherit*. */
+  /** A block's or a line's own look. */
   const said = (key: string, name: string) =>
     d ? d.components?.[key]?.[name] : (it.block ?? it.edge)?.looks?.[key]?.[name];
-  /** What it inherits, for the answers it has not overridden. **Shown in the
-   *  picker rather than left blank**: an empty one used to read as the trait's
-   *  own name, so a card drawing itself green offered a box saying *neutral*. */
+  /** What it inherits, for the answers it has not overridden. */
   const chain = (key: string, name: string) => {
     const from = config_of(graph, d ? d.extends : def_of(graph, id), key)[name];
     return from === undefined || from === null ? "" : String(from);

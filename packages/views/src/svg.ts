@@ -1,14 +1,4 @@
-/** A Scene as one standalone SVG.
- *
- *  The third renderer, and the one a published page can hold: no React, no DOM
- *  and no runtime — a string a build step writes to a file. It draws the same
- *  class vocabulary the React renderer does, so a page that already carries the
- *  theme styles it, and it ships its own stylesheet so a file opened alone
- *  still reads.
- *
- *  **A box that names a link becomes an anchor.** That is the whole of what
- *  this knows about the outside: where a block came from is a field on the
- *  block, and following one is a renderer's business. */
+/** A Scene as one standalone SVG. */
 
 import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
 import { end_of } from "./knot";
@@ -18,30 +8,17 @@ import { drawn, middle_of, route } from "./route";
 export type Paper = {
   /** The accessible name. Defaults to what the layer is called. */
   title?: string;
-  /** Replaces the default stylesheet outright. **`""` drops the `<style>`
-   *  block**, which is what a page embedding the drawing in MDX wants: CSS is
-   *  braces, and MDX reads a brace as the start of an expression. Load `SHEET`
-   *  once on such a page instead of once per drawing. */
+  /** Replaces the default stylesheet outright. */
   style?: string;
   /** Room around the drawing. */
   pad?: number;
-  /** What every generated id is prefixed with, so several drawings can sit on
-   *  one page without their markers and clips colliding. */
+  /** Prefix for generated ids, so drawings on one page do not collide. */
   id?: string;
 };
 
 const PAD = 24;
 
-/** The default stylesheet.
- *
- *  Every value is **read from the ramp with a fallback**: inlined in a page
- *  carrying the theme it takes the page's, and standing alone it takes the
- *  whiteprint, which is what a documentation site is. These are the only
- *  colours outside `theme`, and they exist so a file works with nothing loaded
- *  — never as a second palette to pick from.
- *
- *  Exported so a page holding several drawings can carry it once and pass
- *  `style: ""` to each. */
+/** The default stylesheet. */
 export const SHEET = `
 svg.scene {
   --ground: var(--s-neutral-ground, oklch(0.958 0.008 232));
@@ -146,8 +123,7 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
   return parts.join("\n") + "\n";
 }
 
-/** One card. A box that names a link is **wrapped** rather than drawn
- *  differently: where it points is not a look. */
+/** One card; a linked box is wrapped, not restyled. */
 function card(node: BoxNode, clip: string): string {
   const d = node.data;
   const at = box_of(node);
@@ -165,8 +141,7 @@ function card(node: BoxNode, clip: string): string {
   return d.link ? `<a href="${esc(d.link)}">${drawn}</a>` : drawn;
 }
 
-/** A name too long for its card is clipped — the same rule the React renderer
- *  draws by. */
+/** A name too long for its card is clipped. */
 function label(node: BoxNode, clip: string): string {
   const d = node.data;
   if (!d.label) return ``;
@@ -179,9 +154,7 @@ function label(node: BoxNode, clip: string): string {
     + ` text-anchor="middle" clip-path="url(#${clip})">${esc(d.label)}</text>`;
 }
 
-/** One line. **The same run the canvas draws** — one router, fed the ends the
- *  projection worked out, so the headless drawing and the browser one agree
- *  and a tie's knot sits on the line it names. */
+/** One line, routed the same way the canvas routes it. */
 function line(edge: LineEdge, scene: Scene, key: string): string {
   const a = end_of(edge, "from", scene.nodes, scene.perches, scene.frame);
   const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
@@ -191,8 +164,7 @@ function line(edge: LineEdge, scene: Scene, key: string): string {
 
   const data = edge.data;
   const end = heads(data);
-  /** **The name, and the handle where the line asked for one.** A run writes
-   *  nothing else — an edge holds no values. */
+  /** The name, and the handle where the line asked for one. */
   const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
   return `<g class="route ${data?.module ?? "line"}"><path d="${drawn(run, 6)}"`
     + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
@@ -204,12 +176,7 @@ function line(edge: LineEdge, scene: Scene, key: string): string {
     + `</g>`;
 }
 
-/** The four heads a run may draw, as markers.
- *
- *  **One viewBox and one anchor**, so every shape meets the end at the same
- *  point and swapping one for another never shifts where the line stops. A
- *  hollow head and a hollow diamond are the same paths unfilled, which is what
- *  the class is for. */
+/** The four heads a run may draw, as markers. */
 const HEADS: Record<string, { d: string; open?: boolean }> = {
   arrow: { d: "M 0 0 L 10 5 L 0 10 z" },
   open: { d: "M 0 0 L 10 5 L 0 10", open: true },
@@ -225,16 +192,12 @@ function markers(key: string): string {
   ).join("");
 }
 
-/** Placements are fractional, and a file that is diffed is read by a person, so
- *  a coordinate is written to the tenth rather than to the sixteenth. */
+/** Coordinates to the tenth. */
 function round(n: number): string {
   return String(Math.round(n * 10) / 10);
 }
 
-/** **Braces are escaped along with the markup characters.** They mean nothing
- *  in SVG and everything in MDX, where a `{` opens an expression — so a label
- *  carrying one would break the page holding the drawing rather than the
- *  drawing. A reference costs nothing anywhere else, and reads as the brace. */
+/** Braces are escaped along with the markup characters. */
 function esc(text: string): string {
   return text.replace(/[<>&"'{}]/g, (c) =>
     ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;",

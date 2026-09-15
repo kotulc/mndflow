@@ -1,18 +1,4 @@
-/** What one thing carries.
- *
- *  **A definition declares the schema and a usage answers it.** A block lists
- *  every field its definition chain declares, answered or not, then the values
- *  it carries of its own; a definition lists what it inherits, read-only, then
- *  what it declares.
- *
- *  | row | what can change |
- *  |---|---|
- *  | a usage answering its schema | the value; clearing gives the default back |
- *  | a usage's own value | name, form, value, order |
- *  | a definition's own field | name, form, unit, choices, default, order |
- *  | an inherited field | nothing — it is its parent's to change |
- *
- *  **Text is committed when the box is left**, never per keystroke. */
+/** What one thing carries. */
 
 import { useState } from "react";
 import { def_of, schema_of, VALUE_FORMS, type Act, type Field, type FieldDef,
@@ -33,8 +19,7 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
 
   const own = it.fields as readonly FieldDef[];
   const names = own.map((f) => f.name);
-  /** **The schema this answers**, or inherits: the chain above a definition,
-   *  and the whole chain for a usage. */
+  /** The schema this answers or inherits. */
   const schema = schema_of(graph, d ? d.extends : def_of(graph, id))
     .filter((f) => !(d && names.includes(f.name)));
   const answers = d ? [] : schema;
@@ -139,7 +124,7 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
   );
 }
 
-/** A value, answered the way its form asks: a box, a number, a tick, a pick. */
+/** A value, answered the way its form asks. */
 function Value({ field, fallback, disabled, onSet }: {
   field: Field | FieldDef; fallback: string; disabled?: boolean;
   onSet: (value: string) => void;
@@ -168,8 +153,7 @@ function Value({ field, fallback, disabled, onSet }: {
   );
 }
 
-/** A box that says what it holds when it is left, or on Enter — never per
- *  keystroke. Escape puts back what it held. */
+/** A box committed when left or on Enter. */
 function Commit({ value, label, placeholder, disabled, type = "text", onCommit }: {
   value: string; label: string; placeholder?: string; disabled?: boolean;
   type?: string; onCommit: (value: string) => void;

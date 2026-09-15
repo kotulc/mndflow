@@ -1,30 +1,12 @@
-/** The `score` port, bound to sentence embeddings computed in the browser.
- *
- *  MiniLM runs locally over ONNX — vendored weights and a vendored runtime
- *  under `public/`, so **nothing is requested from a network at run time**.
- *  Choosing among known options is a similarity problem rather than a
- *  generation one, which is why nothing here calls a language model.
- *
- *  Similarity is the cosine between sentence embeddings, so `Invoices` and
- *  `Billing` are close despite sharing no letters — which is the whole of what
- *  substring cannot answer.
- *
- *  **Embedding is asynchronous and ranking happens during a render**, so this
- *  keeps a cache: an answer comes back now from what is there, anything else is
- *  queued, and a listener hears when more can be answered. **Lazily**: the
- *  library and the weights are fetched on the first thing anybody asks about,
- *  so an app nobody types in never pays for them. */
+/** The `score` port, bound to sentence embeddings computed in the browser. */
 
 import type { Score } from "@mnd/core";
 
 const MODEL = "Xenova/all-MiniLM-L6-v2";
-/** Texts embedded per batch — enough to be worth a call, small enough to
- *  return between frames. */
+/** Texts embedded per batch — enough to be worth a call, small enough to return between frames. */
 const BATCH = 24;
 
-/** Below this two things are unrelated rather than faintly related. Measured
- *  against MiniLM: unrelated short phrases land at 0.10–0.20, and a real match
- *  at 0.27 upwards. **What counts as close belongs to whatever is measuring.** */
+/** Below this two things are unrelated rather than faintly related. */
 const FLOOR = 0.24;
 
 const cache = new Map<string, Float32Array>();
@@ -44,16 +26,14 @@ function announce(): void {
   for (const listen of listeners) listen();
 }
 
-/** Load the library and the weights once, on the first text anybody asks
- *  about. Dynamic, so neither is in the bundle a first paint waits for. */
+/** Load the library and the weights once, on the first text anybody asks about. */
 function model(): Promise<Extract> {
   pipe ??= (async () => {
     const { env, pipeline } = await import("@xenova/transformers");
     env.localModelPath = "/models";
     env.allowRemoteModels = false;
     env.allowLocalModels = true;
-    /** Left alone the ONNX runtime fetches its wasm from a CDN, which would
-     *  make the offline claim untrue and a flaky network a broken app. */
+    /** The runtime's wasm is served locally, not from a CDN. */
     env.backends.onnx.wasm.wasmPaths = "/ort/";
     return await pipeline("feature-extraction", MODEL) as unknown as Extract;
   })();
@@ -77,10 +57,7 @@ async function drain(): Promise<void> {
       announce();
     }
   } catch (why) {
-    /** The app is unharmed — an unanswerable rank is a cold one, and the
-     *  caller's fallback still works. **Said once, though**: a capability that
-     *  quietly never arrives is indistinguishable from one nobody bound, and
-     *  that is the version of this failure worth avoiding. */
+    /** Without a scorer, ranking falls back to substring. */
     if (!failed) console.warn("mnd: no scorer, ranking falls back to substring —", why);
     failed = true;
     queue.clear();
@@ -89,8 +66,7 @@ async function drain(): Promise<void> {
   }
 }
 
-/** The vector for a text, or null when it is not embedded yet. Asking is what
- *  schedules it, so a caller need only ask again once told. */
+/** The vector for a text, or null when it is not embedded yet. */
 function vector(text: string): Float32Array | null {
   const want = key(text);
   if (!want) return null;

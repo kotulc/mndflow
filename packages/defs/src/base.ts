@@ -1,18 +1,8 @@
-/** The `base` package: one definition per block module, shipped and locked.
- *
- *  The engine needs a floor — something to draw and place a block that names
- *  no type — and it gets one as definitions it knows by id rather than as a
- *  closed set of engine-side sorts. It is **open**: shipping one more is an
- *  additive change, not a closed set being widened.
- *
- *  The engine may key off one of these only for **how a block draws and where
- *  it sits**. Never for what it is, and never for what may contain what. */
+/** The `base` package: one definition per block module, shipped and locked. */
 
 import { empty_graph, type Definition, type Graph } from "@mnd/core";
 
-/** What every definition here says it came from. **A package resists editing**,
- *  and this is the whole of how that is asked — no hardcoded id list, and the
- *  same answer for a package fetched from outside. */
+/** What every definition here says it came from. */
 export const PACKAGE = "base";
 
 function def(name: string, module: string, extend?: string,
@@ -25,33 +15,17 @@ function def(name: string, module: string, extend?: string,
   };
 }
 
-/** Eight, and every package or project subtype extends one of them.
- *
- *  **Each picks a family, and none names a colour.** A family is the theme's to
- *  decide, so `primary` is green in retro and blue in modern and a definition
- *  never learns which. What is being said here is only that being,
- *  doing, having and connecting are different kinds of thing — and that a
- *  folder and a boundary are the furniture around them.
- *
- *  **The base names families rather than hues on purpose.** A hue means the
- *  same angle in every theme, which is right for a workspace's own vocabulary
- *  and wrong for what ships: a shipped package should look like the theme it
- *  is opened in. */
+/** Eight base kinds; every subtype extends one. */
 export const BASE: Definition[] = [
   def("folder", "folder", undefined,
       {}, { family: "neutral", border_contrast: "faint", name_contrast: "faint" }),
   def("block", "block", undefined,
       {}, { family: "primary" }),
-  /** **Elsewhere, and it says so on its face.** The hatch and the violet were a
-   *  hardcoded rule for eight months, which is why nothing could subtype a
-   *  reference: whatever a subtype said about colour, the stylesheet said it
-   *  louder. Said here, it is ordinary — and `away` is a family whose hue is
-   *  fixed across every theme on purpose. */
+  /** A reference is painted as elsewhere. */
   def("reference", "reference", undefined,
       {}, { family: "away", border_contrast: "strong", name_contrast: "strong",
             fill: "hatch", opacity: 0.55 }),
-  /** An interface is a seat on a wall, and draws as the seat rather than as a
-   *  card — so what it says here is only which family it is painted from. */
+  /** An interface draws as its seat, so only its family matters. */
   def("interface", "interface", undefined,
       {}, { family: "secondary", border_width: "thin" }),
   def("resource", "resource", undefined,
@@ -60,23 +34,19 @@ export const BASE: Definition[] = [
       {}, { family: "muted", border_contrast: "faint", name_contrast: "faint" }),
   def("grid", "grid", undefined,
       {}, { family: "muted", border_contrast: "faint", name_contrast: "faint" }),
-  /** A remark, in the amber every theme keeps for one. Was a hardcoded rule
-   *  for the same reason the reference was. */
+  /** A remark, in the amber every theme keeps for one. */
   def("note", "note", "resource",
       {}, { family: "note", border_contrast: "strong", name_contrast: "faint",
             fill: "wash", opacity: 0.06 }),
 ];
 
-/** One relation definition per relation module, shipped and locked, exactly as
- *  a block kind is. **The module is said in `relation`**, the way a block kind
- *  says its own in `block`, so nothing reads it off a name. */
+/** One relation definition per relation module, shipped and locked, exactly as a block kind is. */
 function rel(module: string): Definition {
   return { id: module, from: PACKAGE, group: "relation", name: module,
            components: { relation: { module }, line: {} } };
 }
 
-/** A line and a tie. `directed` was a definition of nothing: a run points
- *  because `dir` says so. */
+/** A line and a tie. */
 export const RELATIONS: Definition[] = [rel("line"), rel("tie")];
 
 export const ALL: Definition[] = [...BASE, ...RELATIONS];
@@ -85,16 +55,12 @@ export function by_id(id: string): Definition | null {
   return ALL.find((d) => d.id === id) ?? null;
 }
 
-/** The base package as mutations, so it arrives through the same door as
- *  everything else rather than being spliced into a graph. */
+/** The base package as mutations, through the same door as everything else. */
 export function seed(): { op: "set_def"; def: Definition }[] {
   return ALL.map((d) => ({ op: "set_def" as const, def: d }));
 }
 
-/** The same package as state: a fresh workspace with the floor already in it.
- *
- *  `seed` hands mutations to a session. This hands a graph to anything that
- *  has no session and wants one to build on. */
+/** The same package as state: a fresh graph with the floor in it. */
 export function base_graph(): Graph {
   const defs: Graph["defs"] = {};
   for (const d of ALL) defs[d.id] = d;

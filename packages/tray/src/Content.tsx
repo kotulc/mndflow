@@ -1,8 +1,4 @@
-/** A block's body: **the text that makes it more than a box with a name.**
- *
- *  Full width under the two settings columns. **One step per editing session,
- *  never one per keystroke** — `set_body` carries the whole string and the log
- *  replays every step, so the text is committed when the box is left. */
+/** A block's body: the text that makes it more than a box with a name. */
 
 import { useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";

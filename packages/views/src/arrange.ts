@@ -1,21 +1,4 @@
-/** Where everything in a layer sits.
- *
- *  One setting, two values. `free` is hand placement, rounded to the unit
- *  lattice. `grid` is auto-layout: it ignores stored positions and assigns
- *  every loose unit a box on that lattice from the relationships and the
- *  sizes, so a well-laid layer never has to be nudged by hand.
- *
- *  **Related units share a row or a column and sit one gap apart.** Unrelated
- *  ones fill the next slots of a square-ish shelf. A group or a grid is one
- *  rectangle, sized from what it holds, and spaced like any other box. The
- *  gap is a hard 1-unit halo — never a post-pass hope.
- *
- *  **The lattice is the layer's, not a group's.** A cell is the same size
- *  wherever it is, measured from the layer's origin, so a block the layer
- *  placed and a block seated in a group land on the same lines.
- *
- *  Switching to `grid` still writes the auto-layout as ordinary placements, so
- *  returning to `free` keeps that picture as a starting hand layout. */
+/** Where everything in a layer sits. */
 
 import { arrangement_of, children, edges_in, group_depth, is_group, is_grid,
          is_header, is_holder, is_interface, is_reference, layer_id, members_of,
@@ -30,8 +13,7 @@ type Sized = { b: Block; s: Size };
 type Rect = { x: number; y: number; w: number; h: number };
 type Side = "left" | "right" | "above" | "below";
 
-/** Every block drawn in this layer, placed. Interfaces are seated on their
- *  owner rather than laid out, so they are not here. */
+/** Every block drawn in this layer, placed. */
 export function laid(graph: Graph, layer: Id | null): Placed[] {
   const units = children(graph, layer).filter((b) => !is_interface(b));
   if (units.length === 0) return [];
@@ -49,16 +31,12 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
     ? centred(pack_units(graph, layer, sized, unit))
     : free(sized);
 
-  /** **Bands first, then cells.** A grid seated in a band gets its own spot
-   *  from the band; asking where its members sit before that happened is what
-   *  dropped every block of a nested grid out of the drawing. */
+  /** Bands first, then cells: a grid in a band takes its spot from the band. */
   const band_spots = band_members(graph, layer, how, units, structural_spots);
   const cell_spots = celled(graph, units, [...structural_spots, ...band_spots]);
   const laid_so_far = unique([...structural_spots, ...band_spots, ...cell_spots]);
 
-  /** **What was put somewhere stands first.** A hand-placed satellite is a
-   *  spot like any other, so it is on the board before anything is seated
-   *  beside an anchor — the same order `free` gives the structural units. */
+  /** What was put somewhere stands first. */
   const fixed: Placed[] = [];
   const floating: Block[] = [];
   for (const b of satellites) {
@@ -82,15 +60,10 @@ function in_band(graph: Graph, id: Id): boolean {
   return !!b?.group && is_group(graph, b.group);
 }
 
-/** What a band takes up for spacing: its members packed, plus a margin.
- *
- *  **The same footprint it will draw.** Internals are worked out first, then
- *  the band is one rectangle among its neighbours — never a placeholder that
- *  is later hugged to a different size. */
+/** What a band takes up for spacing: its members packed, plus a margin. */
 function band_size(graph: Graph, layer: Id | null, band: Block, how: Arrangement): Size {
   const layout = band_layout(graph, layer, band.id, how);
-  /** **An empty band is room for a card**, so one dragged out has somewhere to
-   *  drop what it will hold. */
+  /** An empty band keeps room for a card. */
   if (!layout.length) return { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
   const right = Math.max(...layout.map((p) => p.x + p.w));
   const bottom = Math.max(...layout.map((p) => p.y + p.h));
@@ -103,15 +76,13 @@ function band_edges(graph: Graph, layer: Id | null, band_id: Id) {
   return edges_in(graph, layer).filter((e) => inside.has(e.from) && inside.has(e.to));
 }
 
-/** Lay out a band's members relative to its corner — same packer as the layer
- *  under `grid`, shelf packing under `free`. */
+/** A band's members, relative to its corner. */
 function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Arrangement): Placed[] {
   const members = members_of(graph, band_id)
     .filter((b) => !is_interface(b) && !gridded(graph, b.id));
   if (!members.length) return [];
 
-  /** **Members stay themselves inside a band**, rather than collapsing to the
-   *  band the way they do on the layer. */
+  /** Inside a band, members stay themselves. */
   const unit = (id: Id) => id;
   const edges = band_edges(graph, layer, band_id);
   const structural = members.filter((b) => !is_satellite(graph, layer, b));
@@ -130,9 +101,7 @@ function band_layout(graph: Graph, layer: Id | null, band_id: Id, how: Arrangeme
                       ...seat_satellites(graph, layer, satellites, packed_in, unit, edges)]);
 }
 
-/** A band's layout shifted so its own corner is the top-left of everything in
- *  it. **A band is its members' bounds**, so a satellite seated above or left
- *  of its anchor moves the rim rather than hanging outside it. */
+/** A band's layout shifted so its own corner is the top-left of everything in it. */
 function from_corner(layout: Placed[]): Placed[] {
   if (!layout.length) return layout;
   const dx = Math.min(...layout.map((p) => p.x));
@@ -185,12 +154,7 @@ function packed(all: Sized[]): { layout: Placed[]; w: number; h: number } {
   return { layout, w: right, h: bottom };
 }
 
-/** Where a seated block draws, given where its grid came to rest.
- *
- *  **Said once.** A block centres in the cell it was given, because blocks
- *  never resize; a header fills it. **Never re-snapped** — the address already
- *  places it exactly, and rounding to the nearest step is what pushed a centred
- *  block into the corner of its own cell. */
+/** Where a seated block draws, given where its grid came to rest. */
 function cell_spot(graph: Graph, b: Block, grid: Placed): Placed {
   const box = cell_box(graph.blocks[b.group!]!, b.cell!.r, b.cell!.c);
   const in_cell = is_header(b) ? fills_cell(box) : centred_in(box, size_of(graph, b.id));
@@ -198,12 +162,7 @@ function cell_spot(graph: Graph, b: Block, grid: Placed): Placed {
            w: in_cell.w, h: in_cell.h };
 }
 
-/** Every gridded member, placed by its address inside the grid holding it.
- *
- *  **Once the grid is placed, and never before** — the address says where in
- *  the grid, and where the grid sits is the layer's answer. **Shallowest
- *  first**, so a grid that is itself seated in a cell is placed before the
- *  blocks seated in it ask where it went. */
+/** Every gridded member, placed by its address inside the grid holding it. */
 function celled(graph: Graph, units: readonly Block[], spots: readonly Placed[]): Placed[] {
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
@@ -219,16 +178,13 @@ function celled(graph: Graph, units: readonly Block[], spots: readonly Placed[])
   return out;
 }
 
-/** The one order a layer is ever stated in, so the same graph draws the same
- *  picture whatever placed it. */
+/** The one order a layer is ever stated in, so the same graph draws the same picture whatever
+ *  placed it. */
 function ordered(spots: Placed[]): Placed[] {
   return spots.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Hand placement is what draws; anything unplaced fills the room around it.
- *
- *  **One measure, so one rounding.** A card, a note and a grid all land on the
- *  same lattice. */
+/** Hand placement is what draws; anything unplaced fills the room around it. */
 function put(at: { x: number; y: number }) {
   return { x: snap(at.x), y: snap(at.y) };
 }
@@ -250,10 +206,7 @@ function free(all: Sized[]): Placed[] {
   return out;
 }
 
-/** Auto-layout: related clusters first, leftovers on a square-ish shelf.
- *
- *  Stored positions are ignored — `grid` is a picture of the model, not of
- *  wherever something was last dropped. */
+/** Auto-layout: related clusters first, leftovers on a square-ish shelf. */
 function pack_units(graph: Graph, layer: Id | null, sized: Sized[],
                     unit: (id: Id) => Id,
                     edges = edges_in(graph, layer)): Placed[] {
@@ -303,8 +256,7 @@ function connected(graph: Graph, layer: Id | null, units: Block[],
     || a[0]!.id.localeCompare(b[0]!.id));
 }
 
-/** Place one related cluster: first unit at the origin, each later one in the
- *  nearest free cell around a mate — a grid around a hub, a row along a chain. */
+/** One related cluster, each unit in the nearest free cell around a mate. */
 function place_cluster(graph: Graph, layer: Id | null, items: Sized[],
                        unit: (id: Id) => Id,
                        edges = edges_in(graph, layer)): Placed[] {
@@ -361,11 +313,7 @@ function inner_of(graph: Graph, layer: Id | null, id: Id, holder: Placed,
   return member_spot(graph, layer, id, holder.id, taken, "grid");
 }
 
-/** One cell away from a mate on `side`. `n` is how many card-slots out.
- *
- *  **Above and below clear the container**, aligned with the member the
- *  edge names. Sitting above the member itself lands inside a tall group
- *  or grid, so the search skipped that cell and jumped to a far corner. */
+/** One cell away from a mate on `side`. */
 function beside_at(p: Placed, side: Side, size: Size, inner: Placed | null, n: number): Point {
   const y = inner?.y ?? p.y;
   const x_align = inner?.x ?? p.x;
@@ -380,8 +328,7 @@ function beside_at(p: Placed, side: Side, size: Size, inner: Placed | null, n: n
   }
 }
 
-/** Diagonal cells around a mate — near the related member first, then the
- *  container's own corners. */
+/** Diagonal cells around a mate, nearest the related member first. */
 function corners_at(p: Placed, size: Size, toward: Placed): Point[] {
   const dx = size.w + GAP;
   const dy = size.h + GAP;
@@ -405,14 +352,7 @@ function separation(at: Point, size: Size, toward: Placed): number {
   return dx + dy;
 }
 
-/** Preferred cell: the free neighbour nearest the related member.
- *
- *  **Around the member, not the far corner of its container.** Siblings of
- *  a hub take the four sides then the corners, so a star becomes a grid.
- *  When those sides of a tall group are taken, the leftover sits above (or
- *  below) the member it names — not at the opposite corner, which is what
- *  made a path walk around the whole box. A chain still walks one step
- *  along its own mate, so A→B→C stays a run. */
+/** Preferred cell: the free neighbour nearest the related member. */
 function desired_at(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
                     unit: (id: Id) => Id, size: Size,
                     edges = edges_in(graph, layer)): Point | null {
@@ -440,9 +380,7 @@ function desired_at(graph: Graph, layer: Id | null, id: Id, taken: Placed[],
   return pool[0]!.at;
 }
 
-/** Nearest lattice point to `at` where a box of this size keeps a unit of air
- *  from everything already placed. Chebyshev rings, so a free cell beside or
- *  below is taken before one many cards down the same row. */
+/** The nearest lattice point where a box keeps a unit of air from everything placed. */
 function fit(taken: readonly Rect[], at: Point, s: Size): { x: number; y: number } {
   const x0 = snap(at.x);
   const y0 = snap(at.y);
@@ -471,10 +409,7 @@ function fit(taken: readonly Rect[], at: Point, s: Size): { x: number; y: number
 /** How far a box may hunt for a clear slot, in units. */
 const REACH = 64;
 
-/** The tidy: auto-layout written as ordinary placements, so `free` can keep it.
- *
- *  **This is what the button does.** `grid` as a mode already draws this
- *  picture; writing it down is what lets a later `free` start from it. */
+/** The tidy: auto-layout written as ordinary placements, so `free` can keep it. */
 export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: number }[] {
   const g: Graph = structuredClone(graph);
   const lid = layer_id(g, layer);
@@ -490,9 +425,7 @@ export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: nu
     .map(({ id, x, y }) => ({ id, x, y }));
 }
 
-/** Positions are relative to the layer's centre, so a layer stays centred as it
- *  grows in any direction. Exported because anything that places has to end
- *  the same way — a reading included. */
+/** Positions relative to the layer's centre. */
 export function centred(spots: Placed[]): Placed[] {
   if (spots.length === 0) return spots;
   const left = Math.min(...spots.map((p) => p.x));
@@ -504,14 +437,7 @@ export function centred(spots: Placed[]): Placed[] {
   return ordered(spots.map((p) => ({ ...p, x: p.x + dx || 0, y: p.y + dy || 0 })));
 }
 
-/** Somewhere near `at` a new box of this size can go without landing on
- *  anything already drawn.
- *
- *  **Where you pointed, or the nearest grid step that is free.** A card made on
- *  what looks like empty ground is 168 wide, so aiming just clear of a
- *  neighbour still buried it — and two made in the same place stacked exactly.
- *  Steps outward a cell at a time and takes the first spot that is clear,
- *  which is nearly always the one you asked for. */
+/** A spot near `at` where a new box lands on nothing drawn. */
 export function clear_of(taken: readonly Rect[], at: { x: number; y: number },
                          size: Size): { x: number; y: number } {
   const free_at = (x: number, y: number) => !taken.some((t) =>
@@ -534,11 +460,7 @@ export function clear_of(taken: readonly Rect[], at: { x: number; y: number },
 /** How far the search for a clear drop reaches, in cells. */
 const RINGS = 16;
 
-/** What the whole layer takes up, plus the room a new thing needs.
- *
- *  Positions are centred on the origin, so what is needed is twice the furthest
- *  **edge** from it. Twice the furthest corner plus its own width counts the
- *  same box twice and leaves a layer drawn at a third of the size it could be. */
+/** What the whole layer takes up, plus the room a new thing needs. */
 export function bounds(spots: readonly Placed[]): { w: number; h: number } {
   if (spots.length === 0) return { w: UNIT * 16, h: UNIT * 10 };
   const reach = (a: number, b: number) => Math.max(Math.abs(a), Math.abs(b));
@@ -547,8 +469,7 @@ export function bounds(spots: readonly Placed[]): { w: number; h: number } {
   return { w: w + GAP * 2, h: h + GAP * 2 };
 }
 
-/** A boundary is its members' bounds plus a cell of air — its size is a fact
- *  about what it holds, never something stored. */
+/** A boundary: its members' bounds plus a cell of air. */
 export function boundary(spots: readonly Placed[], members: readonly Id[]): Placed | null {
   const inside = spots.filter((p) => members.includes(p.id));
   if (inside.length === 0) return null;
@@ -574,8 +495,7 @@ function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   return out;
 }
 
-/** A note tied to something, or a reference of something — seated beside what
- *  it names once that has landed, rather than ranked into the packing. */
+/** Notes and references seat beside what they name, outside the packing. */
 function is_satellite(graph: Graph, layer: Id | null, b: Block): boolean {
   if (is_reference(b) && b.of) return true;
   return is_note(graph, b) && tie_targets(graph, layer, b.id).length > 0;
@@ -590,8 +510,7 @@ function layer_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   return out;
 }
 
-/** The card a satellite should sit beside — the block itself, not the grid that
- *  holds it. */
+/** The card a satellite should sit beside — the block itself, not the grid that holds it. */
 function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
                           placed: readonly Placed[]): Placed | null {
   if (is_reference(b)) {
@@ -610,11 +529,7 @@ function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
   return null;
 }
 
-/** Seat a note or reference in the same nearest cell the packer would pick.
- *
- *  **Not a second policy.** These used to always drop below a grid or band,
- *  so a reference of a top cell sat under the whole lattice. They now ask
- *  `desired_at` for the free neighbour nearest the named block. */
+/** Seat a note or reference in the same nearest cell the packer would pick. */
 function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Placed[],
                         graph: Graph, layer: Id | null, unit: (id: Id) => Id,
                         edges?: Relation[]): Placed {
@@ -623,14 +538,7 @@ function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Plac
   return { id, ...fit(taken, hint, size), ...size };
 }
 
-/** Seat every satellite, in whatever coordinates `placed` is written in.
- *
- *  **One pass, run on the layer and again inside every band.** A band is the
- *  same arrangement over its own members, so what floats on a layer floats in a
- *  band too — filtering satellites out of a band's packing and running no pass
- *  after it drew an empty rim and lost the cards, which sat in no layout at
- *  all. `unit` and `edges` are the ones that packing used, because a mate has
- *  to be found among what is actually standing here. */
+/** Seat every satellite, in whatever coordinates `placed` is written in. */
 function seat_satellites(graph: Graph, layer: Id | null, satellites: readonly Block[],
                          placed: readonly Placed[], unit: (id: Id) => Id,
                          edges?: Relation[]): Placed[] {
@@ -722,8 +630,7 @@ function placement_mates(graph: Graph, layer: Id | null, id: Id, taken: Placed[]
 function link_flow_between(graph: Graph, layer: Id | null, a: Id, b: Id,
                            unit: (id: Id) => Id): { from: Id; to: Id } | null {
   for (const e of edges_in(graph, layer)) {
-    /** **A run that points, whichever way it points.** `dir` is the whole of
-     *  the question now, and a run pointing back runs the other way. */
+    /** A run that points, whichever way it points. */
     const dir = e.dir ?? "none";
     if (dir === "none") continue;
     const ends = dir === "back" ? [e.to, e.from] : [e.from, e.to];
@@ -735,8 +642,7 @@ function link_flow_between(graph: Graph, layer: Id | null, a: Id, b: Id,
   return null;
 }
 
-/** Which sides to try first when anchoring beside a mate — upstream goes left,
- *  downstream goes right, so a run through a band meets on the near edge. */
+/** Sides to try first beside a mate: upstream left, downstream right. */
 function anchor_sides(graph: Graph, layer: Id | null, id: Id, mates: readonly Id[],
                       unit: (id: Id) => Id): Side[] {
   const uid = unit(id);

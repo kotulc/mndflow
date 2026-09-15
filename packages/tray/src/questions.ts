@@ -1,8 +1,4 @@
-/** The questions the settings panel asks of how something draws, as data.
- *
- *  **Every row is a table entry**, including the sliders and the mark grids:
- *  `form` says how a row is answered, so the panel draws one component per form
- *  rather than a hand-written block per part. */
+/** The questions the settings panel asks of how something draws, as data. */
 
 import { ALIGNS, ARROWS, BORDERS, CONTRASTS, DISPLAYS, FAMILIES, FILLS, FONTS, HUE,
          INTENSITY, OPACITY, SHOWN, WEIGHTS, WIDTHS } from "@mnd/core";
@@ -14,26 +10,17 @@ export type Group = (typeof GROUPS)[number];
 /** The parts, in the order the rail lists them. */
 export const parts_in_order = (): readonly Group[] => GROUPS;
 
-/** What a part is called on a **run**, where the card's word is wrong for it.
- *  A run has no border; what those three keys set is its stroke. */
+/** What a part is called on a run, where the card's word is wrong for it. */
 export const AS_RUN: Partial<Record<Group, string>> = { border: "stroke" };
 
-/** **Which component makes each part meaningful**, which is what the rail
- *  filters on — what the part is a part *of*. */
+/** Which component each part belongs to; the rail filters on it. */
 export const ASKS: Record<Group, string> = {
   name: "style", label: "card", head: "line", colour: "style", border: "style", icon: "card",
 };
 
 export type Key = "card" | "style" | "line";
 
-/** One question. **`form` says how it is answered**:
- *
- *  - `chips` — a word from a closed set
- *  - `range` — a number between two ends, with what it draws when unsaid
- *  - `marks` — every mark this build ships, as a grid
- *
- *  `omit` is what a **run** is not offered, where an answer that makes sense of
- *  a card makes none of a line. */
+/** One question. `form` says how it is answered: */
 export type Question = {
   word: string; key: Key; name: string; tip: string;
   form: "chips" | "range" | "marks";
@@ -63,7 +50,7 @@ export const ROWS: Record<Group, Question[]> = {
       of: plain(CONTRASTS) },
     { word: "align", key: "card", name: "align", form: "chips",
       tip: "Which end of the card the name reads from.", of: plain(ALIGNS) },
-    /** **A card always writes its name**; a run may leave its own off. */
+    /** A card always writes its name; a run may leave its own off. */
     { word: "shown", key: "line", name: "name", form: "chips",
       tip: "Whether the run writes its name — the label of the definition it follows.",
       of: plain(SHOWN) },
@@ -85,7 +72,7 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "align", key: "card", name: "label_align", form: "chips",
       tip: "Which end of the card the label reads from.", of: plain(ALIGNS) },
   ],
-  /** **What draws where a run ends**, which is what a run has in place of a face. */
+  /** What draws where a run ends, which is what a run has in place of a face. */
   head: [
     { word: "from head", key: "line", name: "from_arrow", form: "chips",
       tip: "What draws where the run leaves. A shape, never a direction — which "
@@ -101,14 +88,12 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "contrast", key: "style", name: "border_contrast", form: "chips",
       tip: "How far the border stands out from the card behind it.",
       of: plain(CONTRASTS) },
-    /** **`none` is a card's answer and not a run's.** On a run it would delete
-     *  the run, which is what deleting the run is for. */
+    /** `none` is a card's answer and not a run's. */
     { word: "style", key: "style", name: "border_style", form: "chips",
       tip: "How the border is drawn. `none` keeps the card's box and drops "
          + "only the line.", of: plain(BORDERS), omit: ["none"] },
   ],
-  /** **How loudly it is taken**, which every module honours. A hue is the family
-   *  question asked finer; the theme still owns every lightness. */
+  /** How loudly it is taken, which every module honours. */
   colour: [
     { word: "family", key: "style", name: "family", form: "chips",
       tip: "Which family the theme paints this with. A family is a preset over "
@@ -125,7 +110,7 @@ export const ROWS: Record<Group, Question[]> = {
     { word: "intensity", key: "style", name: "intensity", form: "range",
       tip: "How far the hue is taken, as a fraction of the theme's own ceiling.",
       range: { ...INTENSITY, step: 0.05, fallback: "0.65" } },
-    /** **Transparency is a quantity**, so it is a slider rather than named steps. */
+    /** Transparency is a quantity, so it is a slider rather than named steps. */
     { word: "opacity", key: "style", name: "opacity", form: "range",
       tip: "How opaque the fill is. The fill alone, so the writing stays readable "
          + "however far the ground shows through.",

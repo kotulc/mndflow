@@ -1,7 +1,4 @@
-/** Sample data, as **logs** rather than graphs.
- *
- *  Folding one is what exercises the engine, so the same files feed the CLI,
- *  every suite and every dev harness. One set of sample data, three consumers. */
+/** Sample data, as logs rather than graphs. */
 
 import { base_graph } from "@mnd/defs";
 import { ROOT, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
@@ -10,8 +7,7 @@ let n = 0;
 const step = (action: string, mutations: Mutation[]): Step =>
   ({ id: `step_${String(++n).padStart(4, "0")}`, action, at: n, status: "applied", mutations });
 
-/** `num` is fixed at creation and is what the explorer reads its order from, so
- *  a fixture counts per parent exactly as the create action does. */
+/** Orders counted per parent, as the create action counts them. */
 let counts: Record<string, number> = {};
 const block = (id: string, parent: string | null, name: string, type?: string): Mutation => {
   const key = parent ?? "";
@@ -21,23 +17,20 @@ const block = (id: string, parent: string | null, name: string, type?: string): 
 
 const start = () => { n = 0; counts = {}; };
 
-/** **A run points because `dir` says so.** There is no `directed` module to
- *  ask for — which way it runs is the one fact, stored once. */
+/** A run points because `dir` says so. */
 const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
   ({ op: "link_blocks", edge: { id, from, to, module: "line", ...(dir ? { dir } : {}) } });
 
-/** **The shipped floor**, which every fold of a fixture starts from. It is
- *  never a step: a log is a history of intent, and what the app ships is not. */
+/** The shipped floor, which every fold of a fixture starts from. */
 export const FLOOR = base_graph().defs;
 
-/** Nothing but the floor: a workspace as it opens for the first time.
- *  What the question loop starts from, and what a fresh session folds to. */
+/** Nothing but the floor: a workspace as it opens for the first time. */
 export function blank(): Log {
   start();
   return [];
 }
 
-/** One project, three siblings, nothing else. The simplest thing that draws. */
+/** One project, three siblings, nothing else. */
 export function flat(): Log {
   start();
   return [
@@ -48,7 +41,7 @@ export function flat(): Log {
   ];
 }
 
-/** Two projects, one nested two deep, one folder. Exercises the tree. */
+/** Two projects, one nested two deep, one folder. */
 export function nested(): Log {
   start();
   return [
@@ -63,7 +56,7 @@ export function nested(): Log {
   ];
 }
 
-/** A chain and a fan, with a note and a boundary. What routing is tested on. */
+/** A chain and a fan, with a note and a boundary. */
 export function related(): Log {
   start();
   return [
@@ -89,9 +82,7 @@ export function related(): Log {
   ];
 }
 
-/** Interfaces, seated and related through. What `seat` and `wall` are proven
- *  on: two ports on walls of their own, and one relationship running port to
- *  port rather than card to card. */
+/** Interfaces, seated and related through. */
 export function interfaced(): Log {
   start();
   return [
@@ -110,12 +101,7 @@ export function interfaced(): Log {
   ];
 }
 
-/** A grid, with a block in each row header and a flow across each lane.
- *
- *  **Swimlanes, and they cost no code of their own.** A group with an extent,
- *  a block in every cell of column 0, and the rest of each row read left to
- *  right — every one of which is an ordinary block placed by an ordinary
- *  address. What makes it a swimlane is where the blocks are. */
+/** A grid, with a block in each row header and a flow across each lane. */
 export function gridded(): Log {
   start();
   const seat = (id: string, r: number, c: number): Mutation =>
@@ -167,8 +153,8 @@ export function fixture(name: string): Log {
   return make();
 }
 
-/** Sample **files**, for the seam that takes state rather than history. */
+/** Sample files, for the seam that takes state rather than history. */
 export { GRAPHS, GRAPH_NAMES, graph_file, type GraphName } from "./graphs";
 
-/** A graph as a **translator** hands one over, for the seam's contract test. */
+/** A graph as a translator hands one over, for the seam's contract test. */
 export { TIER, translated } from "./translated";

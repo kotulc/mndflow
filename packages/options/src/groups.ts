@@ -2,21 +2,17 @@ import { ARRANGEMENTS, type Act, type Arrangement, type Dir,
          type RelationModule } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
-/** One control. `on` lights it; **a verb leaves it undefined**, since there is
- *  no state a verb puts anything in. */
+/** One control. `on` lights it; a verb leaves it undefined, since there is no state a verb puts
+ *  anything in. */
 export type Control = {
   key: string;
   icon: IconName;
   word: string;
   tip: string;
   on?: boolean;
-  /** One-shot: it does something and is done. Ruled off from the settings
-   *  above it, and it draws no `on` at all. */
+  /** One-shot: it does something and is done. */
   verb?: boolean;
-  /** **A rule above this control**, where a group holds two natures that are
-   *  not a setting and a verb — the pinned templates against the modules they
-   *  sit under. Asked for rather than derived, because only the group knows
-   *  where its own seam is. */
+  /** A rule above this control, where a group's seam is not setting against verb. */
   ruled?: boolean;
   run: () => void;
 };
@@ -35,20 +31,15 @@ export type Chrome = {
   /** Whether the backdrop draws the lattice everything lands on. */
   lattice?: boolean;
   interfaces?: boolean;
-  /** Whether the open layer's frame is drawn. Absent is drawn. */
+  /** Whether the open layer's frame is drawn. */
   frame?: boolean;
-  /** **Which context the tray holds that is not the canvas's**, if any. Lights
-   *  the matching settings toggle; any selection gives it up. */
+  /** Which context the tray holds that is not the canvas's, if any. */
   held?: "workspace" | "block" | "relation" | null;
-  /** What a right drag draws: which module, which way it points, and which
-   *  definition it names. */
+  /** What a right drag draws: which module, which way it points, and which definition it names. */
   module?: RelationModule;
   dir?: Dir;
   type?: string;
-  /** **The shortlist, not the vocabulary.** Every relation definition is
-   *  reached and edited in the tray; these are the few somebody pinned as worth
-   *  a right drag, in the order the workspace put them. Each says which module
-   *  it refines, so it draws the mark that module draws. */
+  /** The shortlist, not the vocabulary. */
   relations?: readonly { id: string; name: string; module: RelationModule }[];
 };
 
@@ -58,10 +49,7 @@ const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
   grid: { icon: "layout_grid", tip: "Auto-layout: related blocks share a row, a unit of air between everything" },
 };
 
-/** What a right drag may draw. **A module and a direction**, because *straight*
- *  and *directed* were never two sorts of run — they are one run with and
- *  without a `dir`, and a `directed` module saying so again is the same fact
- *  filed twice. */
+/** What a right drag may draw: a line, straight or directed. */
 const LINES: { key: string; module: RelationModule; dir?: Dir;
                icon: IconName; word: string; tip: string }[] = [
   { key: "plain", module: "line", icon: "relation_plain", word: "straight",
@@ -70,16 +58,12 @@ const LINES: { key: string; module: RelationModule; dir?: Dir;
     word: "directed", tip: "A right drag makes a line that points" },
 ];
 
-/** The standard groups, from the slots a projection declared.
- *
- *  **`types` is the one group the page cannot build alone**, so a module
- *  declaring it also answers it — the names arrive on `Chrome`. */
+/** The standard groups, from the slots a projection declared. */
 export function groups_of(chrome: Chrome, act: Act): Group[] {
   const has = (slot: string) => chrome.slots.includes(slot);
   const out: Group[] = [];
 
-  /** **How the layer places what it holds.** `free` and `grid` are a setting
-   *  the layer is always in one of. */
+  /** How the layer places what it holds. */
   if (has("layer")) {
     out.push({
       key: "layer", label: "layer",
@@ -91,10 +75,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** **What the drawing shows, rather than what it holds.** Nothing here writes
-   *  to the log — guides, ports shown or hidden change the picture in front of
-   *  you and nothing about the model — which is exactly what separates it from
-   *  `relations` below. */
+  /** What the drawing shows, rather than what it holds. */
   if (has("display")) {
     out.push({
       key: "display", label: "display",
@@ -111,9 +92,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
           icon: chrome.lattice ? "guides_on" : "guides_off",
           on: !!chrome.lattice,
           run: () => act("lattice", { show: !chrome.lattice }) },
-        /** **`ports`, not `interfaces`.** One word, and the column is 68px
-         *  wide — the long one wrapped to three lines and set the height of
-         *  every row beside it. */
+        /** `ports`, short enough for the column. */
         { key: "ports", word: "ports", tip: "Draw interfaces on their walls",
           icon: chrome.interfaces === false ? "ports_off" : "ports_on",
           on: chrome.interfaces !== false,
@@ -122,9 +101,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** **What a right drag makes.** One question, and the answer is the model's:
-   *  what a relationship *is* travels in the file, unlike everything in
-   *  `display` above. */
+  /** What a right drag makes. */
   if (has("relations")) {
     const named = chrome.type ?? "";
     out.push({
@@ -132,21 +109,12 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
       controls: [
         ...LINES.map((l): Control => ({
           key: `line:${l.key}`, icon: l.icon, word: l.word, tip: l.tip,
-          /** **A definition named wins the light.** Picking a pinned line is
-           *  picking its module too, so lighting both would say the rail is in
-           *  two states at once. */
+          /** A definition named wins the light. */
           on: !named && (chrome.module ?? "line") === l.module
               && (chrome.dir ?? "none") === (l.dir ?? "none"),
           run: () => act("relate_with", { module: l.module, dir: l.dir ?? "none" }),
         })),
-        /** **What somebody pinned**, drawn with its own module's mark and ruled
-         *  off from the three above.
-         *
-         *  **The rule is not decoration.** The three above are *modules* with
-         *  nothing behind them to edit; these are *definitions*, which is what
-         *  decides whether the tray can describe one — so the divider marks a
-         *  real difference, and it is the same one the rail already draws
-         *  between a setting and a verb. */
+        /** Pinned relation definitions, ruled off from the lines above. */
         ...(chrome.relations ?? []).map((d, n): Control => ({
           key: `type:${d.id}`, word: d.name,
           icon: "relation_plain",
@@ -159,13 +127,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
     });
   }
 
-  /** **What the tray holds that the canvas does not.** The canvas says the
-   *  rest: a selection is described, and nothing selected is the open layer.
-   *
-   *  **Toggles, lit while held.** The workspace without leaving the layer, or a
-   *  blank block or relation definition to write before anything names it. Any
-   *  selection — a click on the ground included — gives the context back to the
-   *  canvas, which is what puts the light out. */
+  /** What the tray holds that the canvas does not. */
   const toggle = (key: "workspace" | "block" | "relation") => () =>
     act("about", { scope: chrome.held === key ? "canvas" : key });
   out.push({

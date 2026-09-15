@@ -1,16 +1,10 @@
-/** What the open layer holds, as rows.
- *
- *  **Blocks, interfaces, relationships, boundaries and notes together** — the
- *  tray is the only place a relationship or an interface is found without
- *  hunting for it on the drawing. Everything here is derived from the graph;
- *  the tray stores nothing and writes nothing. */
+/** What the open layer holds, as rows. */
 
 import { alias_of, children, def_of, edges_in, is_interface, isa, label_of,
          module_of, path, shipped, shown_name, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
-/** What a row is, which is also how it is filtered. Coarser than `kind`: a
- *  folder and a container are both blocks to somebody narrowing a list. */
+/** What a row is, which is also how it is filtered. */
 export type Sort = "block" | "interface" | "relationship" | "group" | "note";
 
 export type Row = {
@@ -23,31 +17,18 @@ export type Row = {
   what: string;
   /** The definition it names, if any. */
   type: string;
-  /** Every value it carries, by field name. **The table reads a column out of
-   *  this**, so adding one costs no second pass over the graph. */
+  /** Every value it carries, by field name. */
   fields: Record<string, string>;
 };
 
-/** The head is kind / name / what / type, because **every row answers it**.
- *  Beyond that a column is a field in scope, which is the table's state and
- *  never a definition's.
- *
- *  **`deep` is the workspace's reading, and nobody else's.** A layer holds what
- *  sits in it, one level, which is what makes *contents* mean one thing — but
- *  the workspace *is* the whole project, so listing everything under it is not
- *  a widened scope, it is the same scope asked of the root. It is the one
- *  listing that crosses layers, which is why a row then says where it sits. */
+/** The head is kind / name / what / type, because every row answers it. */
 export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
   const out: Row[] = [];
-  /** A listing has one column for a name, so the mark an unnamed thing wears
-   *  joins it there rather than sitting beside it — otherwise every untouched
-   *  block in a layer reads the same word. */
+  /** The name column carries an unnamed element's handle. */
   const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
     .filter(Boolean).join(" ");
 
-  /** **Every layer below, or just this one.** Interfaces are reached through
-   *  their block either way, so the walk skips them and the loop below picks
-   *  them up where they hang. */
+  /** Every layer below, or just this one. */
   const walk = (at: Id | null): Block[] => children(graph, at)
     .flatMap((b) => (deep && !is_interface(b) ? [b, ...walk(b.id)] : [b]));
 
@@ -55,9 +36,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     const kind = module_of(graph, b.id);
     const held = children(graph, b.id).filter((k) => !is_interface(k)).length;
     const ports = children(graph, b.id).filter((k) => is_interface(k)).length;
-    /** **Where it sits, once the listing crosses layers.** Redundant in a
-     *  single layer, where everything shares one — so it joins what the row
-     *  already says rather than costing a column that would be blank at home. */
+    /** Where it sits, once the listing crosses layers. */
     const within = deep && b.parent && b.parent !== layer
       ? `in ${called(b.parent)}` : "";
     out.push({
@@ -86,12 +65,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     }
   }
 
-  /** An untyped relationship falls back to its module, the way an unnamed
-   *  block falls back to its role — a blank name reads as broken.
-   *
-   *  **Deep takes every run there is**, because the blocks above are now every
-   *  block there is: `edges_in` answers *drawn in this layer*, which is a
-   *  narrower question than *anywhere under it*. */
+  /** An untyped relationship reads its module. */
   const runs = deep && layer === null
     ? Object.values(graph.edges).sort((a, b) => a.id.localeCompare(b.id))
     : edges_in(graph, layer);
@@ -99,8 +73,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     const named = plain(graph, e.type) ? "" : graph.defs[e.type!]?.name ?? e.type!;
     out.push({
       id: e.id, sort: "relationship", kind: e.module,
-      /** **None, and never any.** An edge holds no values — what a connection
-       *  has to say belongs to the blocks at its ends. */
+      /** An edge holds no values. */
       fields: {},
       name: named || e.module,
       what: `${called(e.from)} → ${called(e.to)}`,
@@ -124,13 +97,11 @@ export type DefRow = {
   base: boolean;
   /** The package it came from, where somebody else wrote it. */
   from: string;
-  /** Usages of **this definition only**, never of what extends it. */
+  /** Usages of this definition only, never of what extends it. */
   used: number;
 };
 
-/** **Every definition of one group the workspace can name**, the defaults
- *  first and then by name. A roster: an unused one is exactly what it has to show, and
- *  a name refused as taken has to be findable here. */
+/** Every definition of one group the workspace can name, the defaults first and then by name. */
 export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
   const used = new Map<string, number>();
   const usages = group === "relation" ? Object.keys(graph.edges)
@@ -140,7 +111,7 @@ export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
     if (d) used.set(d, (used.get(d) ?? 0) + 1);
   }
   return Object.values(graph.defs)
-    /** **The shipped floor is not listed**: nobody chose it, and nothing edits it. */
+    /** The shipped floor is not listed: nobody chose it, and nothing edits it. */
     .filter((d) => d.group === group && !shipped(d))
     .map((d): DefRow => ({
       id: d.id, name: d.default ? `default/${d.default}` : d.name, label: d.label ?? "", extends: d.extends ?? "",
@@ -167,8 +138,7 @@ export type UsageRow = {
   label: string;
 };
 
-/** The lines in a layer, or **every line there is** for the workspace — the one
- *  holder whose reading is the whole project. */
+/** The lines in a layer, or every line for the workspace. */
 export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): UsageRow[] {
   const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
     .filter(Boolean).join(" ");
@@ -185,8 +155,7 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 
-/** The blocks in a layer, or **every block there is** for the workspace, as
- *  the usages tab lists them. `what` is the kind, since a block joins nothing. */
+/** The blocks in a layer, or every block there is for the workspace, as the usages tab lists them. */
 export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean): UsageRow[] {
   const called = (id: Id) => [shown_name(graph, id), alias_of(graph, id)]
     .filter(Boolean).join(" ");
@@ -211,8 +180,7 @@ function plain(graph: Graph, type: Id | undefined): boolean {
   return !type || (!!d && (shipped(d) || d.default !== undefined));
 }
 
-/** Where a run sits, named by the layer holding the block at its end. The
- *  workspace itself reads as its own name rather than as an empty path. */
+/** Where a run sits, named by the layer holding the block at its end. */
 function layer_path(graph: Graph, end: Id): string {
   const holder = graph.blocks[end]?.parent;
   if (!holder) return shown_name(graph, graph.root);

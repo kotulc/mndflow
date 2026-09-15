@@ -1,7 +1,4 @@
-/** What the browser binds.
- *
- *  The whole host contract, and the only place in the app that knows a browser
- *  is what it is running in. */
+/** What the browser binds. */
 
 import { createStore, del, get, keys, setMany } from "idb-keyval";
 import type { Files, Log, Mutation, Net, Storage } from "@mnd/core";
@@ -13,11 +10,7 @@ const OLD = "mnd.log.v2";
 /** A body as the stored log carries it: the hash of text kept once, beside it. */
 type Ref = { $blob: string };
 
-/** The log in IndexedDB, with every body swapped for a content hash.
- *
- *  Loaded once before the app mounts, so the session reads it synchronously.
- *  Writes are coalesced and never block a gesture. Unread by the door here:
- *  the session checks what this returns. */
+/** The log in IndexedDB, with every body swapped for a content hash. */
 export async function browser_storage(): Promise<Storage> {
   const stored = (await get<Log>(LOG, DB)) ?? old_log();
   const kept = new Set((await keys(DB)).map(String).filter((k) => k !== LOG));
@@ -133,9 +126,7 @@ async function sha(text: string): Promise<string> {
   return hex;
 }
 
-/** Fetching, and nothing else. What comes back is text and goes through the
- *  door like any other file — **nothing fetched is trusted more than something
- *  opened**. */
+/** Fetching, and nothing else; what comes back goes through the door. */
 export function browser_net(): Net {
   return {
     async get(where) {

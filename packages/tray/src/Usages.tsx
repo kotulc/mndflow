@@ -1,17 +1,4 @@
-/** The usages tab: **the lines or the blocks, and what each is.**
- *
- *  Chips narrow three ways, each on its own:
- *
- *  | chips | narrows to |
- *  |---|---|
- *  | layer / workspace | the open layer's usages, or every one in the workspace |
- *  | line / tie | the module a line is drawn by |
- *  | any / the definition | lines following what the tray holds, or anything extending it |
- *
- *  Each row offers the definition it names, so a line is retyped where it is
- *  listed, and says the label that draws. **Retype all** sets every line the
- *  chips leave listed at once — one step, one undo.
- *  Picking a row selects the line, the way contents does. */
+/** The usages tab: the lines or the blocks, and what each is. */
 
 import { useState } from "react";
 import { may_retype, RELATION_MODULES, relation_named, relations, shipped,
@@ -36,7 +23,7 @@ export type UsagesProps = {
   onPick: (id: Id) => void;
   onHover?: (id: Id | null) => void;
   onAct: Act;
-  /** **Go to where a line lives**: open its layer and pick it there. */
+  /** Go to where a line lives: open its layer and pick it there. */
   onView?: (id: Id) => void;
   /** The layer a line is drawn in. */
   home: (id: Id) => Id | null;
@@ -45,13 +32,13 @@ export type UsagesProps = {
 export function Usages({ graph, group, scope, onScope, layer, about, picked, onPick, onHover, onAct, onView,
                          home }: UsagesProps) {
   const lines = group === "relation";
-  /** **The root layer reads the whole project** until somebody says otherwise. */
+  /** The root layer reads the whole project until somebody says otherwise. */
   const [module, set_module] = useState("all");
   const [by, set_by] = useState("any");
 
   const deep = scope === "workspace";
   const all = lines ? usage_rows(graph, layer, deep) : block_usage_rows(graph, layer, deep);
-  /** **The default is blank**: an element naming nothing follows its kind's. */
+  /** The default is blank: an element naming nothing follows its kind's. */
   const offered = [{ value: "", word: "default" },
     ...(lines ? relations(graph) : Object.values(graph.defs).filter((d) => d.group === "block"))
       .filter((d) => !shipped(d) && d.default === undefined)
@@ -80,7 +67,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
     ...(lines ? [{ key: "label", label: "label" }] : []),
   ];
 
-  /** **Blank is the default**: each usage goes back to its own kind's. */
+  /** Blank is the default: each usage goes back to its own kind's. */
   const blank_to = (value: string) => (value === BLANK ? "" : value);
 
   return (
@@ -121,8 +108,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
           ),
           label: r.label,
         },
-        /** **Only on the row picked, and only when it is elsewhere** — one that
-         *  is here already lights. */
+        /** A view chip on the picked row, only when it lives elsewhere. */
         actions: onView && picked.includes(r.id) && home(r.id) !== layer ? (
           <button className="chip" title="open the layer this is in"
                   onClick={(e) => { e.stopPropagation(); onView(r.id); }}>

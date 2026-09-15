@@ -1,9 +1,4 @@
-/** The settings tab: **what a thing is on the left, how it is painted on the
- *  right, and what it says below both.**
- *
- *  The left branches on which holder it was given and the right does not, so
- *  each lives in its own module and this only lays them out. **The workspace is
- *  a block like any other**, painted for wherever an export of it is used. */
+/** The settings tab: identity on the left, looks on the right, body below. */
 
 import { type Act, type Graph, type Id } from "@mnd/core";
 import { Content } from "./Content";
@@ -19,8 +14,7 @@ export type StylesProps = {
 };
 
 export function Styles({ graph, id, styled = id, onAct, working = "" }: StylesProps) {
-  /** **A body is a block's** — the workspace's included, as its description —
-   *  and never a relationship's or a definition's. */
+  /** Only a block has a body. */
   const bodied = !!graph.blocks[id];
   return (
     <div className="settings">

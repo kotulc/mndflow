@@ -1,12 +1,4 @@
-/** Sample **files**, as graphs rather than logs.
- *
- *  A log fixture proves the engine agrees with itself: it folds what this build
- *  wrote, through the door this build owns. That is the wrong shape for the one
- *  thing the outside world can do — hand over a file **this engine never
- *  wrote** — so these are hand-written, and most of them are wrong on purpose.
- *
- *  They are text, not graphs, because the seam takes text: a file that does not
- *  parse is one of the things `open` has to answer for. */
+/** Sample files, as graphs rather than logs. */
 
 import { SCHEMA } from "@mnd/core";
 
@@ -33,8 +25,7 @@ export function clean(): string {
   });
 }
 
-/** A block whose parent is not in the file. **Repaired** to the root, because a
- *  block nobody holds is still a block somebody wrote down. */
+/** A block whose parent is not in the file. */
 export function orphaned(): string {
   return file({
     root: "ws",
@@ -47,8 +38,7 @@ export function orphaned(): string {
   });
 }
 
-/** A relation with an end that is not there. **Dropped** — a line to nowhere
- *  cannot be drawn, and there is nothing to guess. */
+/** A relation with an end that is not there. */
 export function dangling(): string {
   return file({
     root: "ws",
@@ -63,8 +53,7 @@ export function dangling(): string {
   });
 }
 
-/** No root block at all. **Repaired**, since every other block needs somewhere
- *  to hang and the root is the one thing the engine can supply itself. */
+/** No root block at all; repaired. */
 export function rootless(): string {
   return file({
     root: "ws",
@@ -76,9 +65,7 @@ export function rootless(): string {
   });
 }
 
-/** A definition extending one that did not travel, and another filed under a
- *  block that is not there. **Both repaired** rather than dropped: a definition
- *  still names and presents its usages without its parent. */
+/** A definition extending one that did not travel. */
 export function unmoored(): string {
   return file({
     root: "ws",
@@ -91,8 +78,7 @@ export function unmoored(): string {
   });
 }
 
-/** A higher **minor** schema. Readable: what this build does not know about is
- *  carried rather than refused. */
+/** A higher minor schema; readable. */
 export function ahead(): string {
   const [major] = SCHEMA.split(".");
   return file({
@@ -103,7 +89,7 @@ export function ahead(): string {
   }, `${major}.99`);
 }
 
-/** A higher **major** schema. **Dropped** — the shapes are not the same shapes. */
+/** A higher major schema; dropped. */
 export function future(): string {
   return file({ root: "ws", defs: {}, blocks: { ws: ROOT_BLOCK }, edges: {} }, "99.0");
 }
@@ -113,13 +99,7 @@ export function garbage(): string {
   return "{ this is not a file";
 }
 
-/** Definitions saying things their own components cannot read, and one saying
- *  something no component in this build claims at all.
- *
- *  **Each key is dropped alone and the rest of the definition stands** — a
- *  misspelt shape costs a card, never a definition. The `sketch` key belongs to
- *  no component here, so it is carried untouched: unvalidated rather than
- *  wrong, which is how this build opens a package a later one wrote. */
+/** Definitions saying things their components cannot read, or no component claims. */
 export function muddled(): string {
   return file({
     root: "ws",

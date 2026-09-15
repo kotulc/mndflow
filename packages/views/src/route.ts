@@ -1,23 +1,4 @@
-/** Where a line runs between two borders.
- *
- *  **A search over the lanes a layer leaves, not a handful of guesses.**
- *
- *  The library's step router knows the two ends and nothing else, and the six
- *  shapes this used to try knew only the two end boxes — so a run between two
- *  cards went straight through whatever stood between them. On a busy layer
- *  that was most of them.
- *
- *  What replaces it is the standard answer to this problem. **Only a handful of
- *  lines matter**: a run that has to get round a box turns just clear of one of
- *  its edges, so the candidate turning points are the obstacle edges plus a
- *  margin, in both axes, and nowhere else. That grid is a few hundred points
- *  for a layer of thirty cards, and the cheapest path across it — counting a
- *  corner as worth a good stretch of line — is the run somebody would have
- *  drawn: few bends, no detours, and never through a card.
- *
- *  **Fewest corners first, then shortest.** A corner costs `TURN` pixels of
- *  run, so a route trades a corner for anything shorter than that and takes the
- *  straight lane otherwise. */
+/** Where a line runs between two borders. */
 
 import { Position } from "@xyflow/system";
 import { GAP } from "./size";
@@ -25,12 +6,10 @@ import { GAP } from "./size";
 type Rect = { x: number; y: number; w: number; h: number };
 type Point = { x: number; y: number };
 
-/** How far a line runs straight out of a border before it may turn. Wider than
- *  the border band, so the first turn is always clear of the card. */
+/** How far a line runs straight out of a border before it may turn. */
 export const STUB = 16;
 
-/** Clear space kept between a run and a box it goes round. **The gap the
- *  layout leaves**, so a lane between two things is a lane a line can take. */
+/** Clear space kept between a run and a box it goes round. */
 const MARGIN = GAP;
 
 /** Which way a run sets off from each face. */
@@ -41,7 +20,7 @@ const AWAY: Record<string, Point> = {
   [Position.Bottom]: { x: 0, y: 1 },
 };
 
-/** The corners of a run, in order. Both ends leave square to their border. */
+/** The corners of a run, in order. */
 export function route(from: Point, out: Position, to: Point, into: Position,
                       clear: readonly Rect[]): Point[] {
   const a = step(from, out);
@@ -54,10 +33,7 @@ function step(at: Point, face: Position): Point {
   return { x: at.x + d.x * STUB, y: at.y + d.y * STUB };
 }
 
-/** What a corner costs, as a length of run it is worth going out of the way to
- *  avoid. **Two cells' worth**: a route takes a detour over a bend up to about
- *  that far, which is what keeps a run from stepping round every card it passes
- *  and from jogging when a lane a little further off would be straight. */
+/** What a corner costs, as a length of run it is worth going out of the way to avoid. */
 const TURN = 60;
 
 type Way = 0 | 1 | 2 | 3;
@@ -74,11 +50,7 @@ function back(w: Way): Way {
   return (w ^ 1) as Way;
 }
 
-/** The lines a turn may happen on.
- *
- *  **Just clear of every box, in both axes, plus the two ends' own lines.** A
- *  run turning anywhere else could turn on one of these instead and be no
- *  longer for it, so this is the whole of the search and it is small. */
+/** The lines a turn may happen on. */
 function lanes(a: Point, b: Point, clear: readonly Rect[]) {
   const xs = new Set<number>([a.x, b.x]);
   const ys = new Set<number>([a.y, b.y]);
@@ -88,14 +60,7 @@ function lanes(a: Point, b: Point, clear: readonly Rect[]) {
     ys.add(r.y - MARGIN);
     ys.add(r.y + r.h + MARGIN);
   }
-  /** **A lane outside everything, on all four sides.**
-   *
-   *  A stub can be the outermost line there is — an interface in the top wall
-   *  of the topmost card is one — and a run has to reach it from beyond it, or
-   *  there is no way to come at that border square. Without somewhere out
-   *  there to turn, the search could not satisfy the way in at all: it found
-   *  nothing, fell back to an elbow, and an elbow is the one answer that goes
-   *  through whatever is in the way. Which is exactly what it did. */
+  /** A lane outside everything, on all four sides. */
   const out = (set: Set<number>) => {
     const all = [...set];
     set.add(Math.min(...all) - STUB * 2);
@@ -106,12 +71,7 @@ function lanes(a: Point, b: Point, clear: readonly Rect[]) {
   return { xs: [...xs].sort((p, q) => p - q), ys: [...ys].sort((p, q) => p - q) };
 }
 
-/** The cheapest run between the two stubs that stays out of every box.
- *
- *  Dijkstra over the lane crossings, with the way the run is travelling as part
- *  of where it is — which is what lets a corner be paid for. It leaves by the
- *  face it was given and arrives facing the border it lands on, so neither end
- *  turns on the spot. */
+/** The cheapest run between the two stubs that stays out of every box. */
 function shortest(a: Point, b: Point, out: Position, into: Position,
                   clear: readonly Rect[]): Point[] {
   const { xs, ys } = lanes(a, b, clear);
@@ -125,12 +85,7 @@ function shortest(a: Point, b: Point, out: Position, into: Position,
   const key = (ix: number, iy: number, w: Way) => (iy * xs.length + ix) * 4 + w;
   const best = new Map<number, number>();
   const came = new Map<number, number>();
-  /** **The way *in*, which is the far face's own way turned round.** A face
-   *  sends a run *out* of the border it belongs to; the last leg travels the
-   *  other way, into it. Asked for the face's own way, the search had to reach
-   *  the far stub travelling away from the card it was about to enter — so it
-   *  came at it sideways and the run met the border at a corner instead of
-   *  square to it. */
+  /** The way *in*, which is the far face's own way turned round. */
   const arrive = back(way_of(into));
   const start = key(ax, ay, way_of(out));
   const queue: { k: number; ix: number; iy: number; w: Way; cost: number }[] =
@@ -139,8 +94,7 @@ function shortest(a: Point, b: Point, out: Position, into: Position,
   let done: number | null = null;
 
   while (queue.length) {
-    /** A layer's lanes are a few hundred points, so scanning for the cheapest
-     *  beats keeping a heap in step with it. */
+    /** A linear scan for the cheapest beats a heap at this size. */
     let n = 0;
     for (let i = 1; i < queue.length; i++) if (queue[i]!.cost < queue[n]!.cost) n = i;
     const here = queue.splice(n, 1)[0]!;
@@ -165,8 +119,7 @@ function shortest(a: Point, b: Point, out: Position, into: Position,
     }
   }
 
-  /** Nothing got through — every lane out of one end is walled. An elbow is
-   *  wrong, but it is drawn and it says where the two ends are. */
+  /** Nothing got through — every lane out of one end is walled. */
   if (done === null) return [a, { x: b.x, y: a.y }, b];
 
   const run: Point[] = [];
@@ -227,8 +180,8 @@ function toward(from: Point, to: Point, by: number): Point {
            y: from.y + ((to.y - from.y) / d) * by };
 }
 
-/** Where a name sits on a run: the middle of its longest leg, so a label lands
- *  on a stretch of line rather than on a corner. */
+/** Where a name sits on a run: the middle of its longest leg, so a label lands on a stretch of line
+ *  rather than on a corner. */
 export function middle_of(run: readonly Point[]): Point {
   let best = { at: { x: run[0]!.x, y: run[0]!.y }, span: -1 };
   for (let i = 1; i < run.length; i++) {

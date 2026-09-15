@@ -1,19 +1,13 @@
-/** A definition the tray shows before the log holds it.
- *
- *  **A draft** is one being written before it has a name. It stands in the
- *  graph under its own id, so every panel reads it like a real definition — and
- *  the actions that edit it run exactly as they do on a real one. Nothing
- *  reaches the log until it is saved. */
+/** A definition the tray shows before the log holds it. */
 
 import { run, type Args, type Definition, type Graph } from "@mnd/core";
 
-/** The id a draft stands in under. Not one `def_id` can mint from a name. */
+/** The id a draft stands in under. */
 export const DRAFT = "@draft";
 
 export type DraftGroup = "block" | "relation";
 
-/** A blank definition. **A relation draft draws as a line**, and extends its
- *  group's default until somebody picks another — said when it is saved. */
+/** A blank definition; a relation draft draws as a line. */
 export function blank(group: DraftGroup): Definition {
   return group === "relation"
     ? { id: DRAFT, group, name: "", components: { line: {} } }
@@ -25,8 +19,7 @@ export function with_draft(graph: Graph, draft: Definition): Graph {
   return { ...graph, defs: { ...graph.defs, [DRAFT]: draft } };
 }
 
-/** The ids an action writes to. **Not what it points at**: a definition
- *  extending another writes itself, never the one above. */
+/** The ids an action writes to, not what it points at. */
 export function aimed(args: Args | undefined): string[] {
   if (!args) return [];
   const ids = Array.isArray(args["ids"]) ? (args["ids"] as unknown[]).map(String) : [];
@@ -34,11 +27,7 @@ export function aimed(args: Args | undefined): string[] {
     .filter((x): x is string => typeof x === "string" && !!x);
 }
 
-/** What the draft becomes after one action, or the words it was refused with.
- *
- *  **`define` is answered here**, because on a draft it means *name it* or
- *  *point it somewhere* — and the real action keys on the name, which would
- *  file it for good. */
+/** What the draft becomes after one action, or the words it was refused with. */
 export function redraft(graph: Graph, draft: Definition, name: string,
                         args: Args): Definition | string {
   if (name === "define") {

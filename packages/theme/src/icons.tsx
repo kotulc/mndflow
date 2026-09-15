@@ -1,35 +1,16 @@
-/** The app's icon vocabulary — one set, one grid, one weight.
- *
- *  Vendored inline SVG rather than a font or a package. A Unicode mark renders
- *  from whatever system font happens to carry it: unhinted at small sizes,
- *  with metrics that differ per platform and a baseline it sits off, which is
- *  why chrome built from glyphs reads blurry and indistinct. These draw at an
- *  exact size with one stroke weight.
- *
- *  **No mark means two things.** A name here is a purpose, never a shape —
- *  `fold_all`, not `minus_box` — so two purposes cannot quietly share one
- *  drawing. One purpose may have many callers, which is why `remove` serves
- *  every *take this away* in the app rather than each surface drawing its own.
- *
- *  The design language, in one place so a new icon inherits it rather than
- *  inventing its own: a 24-unit grid, 1.5 stroke, round caps and joins,
- *  `currentColor`, no fill unless the mark is solid by nature, and a stroke
- *  across a mark reads as *not that* — never as a second mark. */
+/** The app's icon vocabulary — one set, one grid, one weight. */
 
 const GRID = 24;
 const WEIGHT = 1.5;
 
-/** Interfaces on a wall — the block with stubs. **One drawing** for the tree
- *  mark and the display toggle's *ports on* state. */
+/** Interfaces on a wall — the block with stubs. */
 const PORTS = "M6 6h12v12H6zM2.5 12H6M18 12h3.5";
 
-/** Every icon, keyed by what it means. Paths only — the frame is shared. */
+/** Every icon, keyed by what it means. */
 const PATHS = {
   // Making and taking away.
   add: "M12 5v14M5 12h14",
-  /** **On the same footprint as `add`**, not the row mark's: a folder drawn to
-   *  its own width sat short beside the marks it shares a bar with, and read as
-   *  a smaller control than the ones either side of it. */
+  /** Drawn on `add`'s footprint so it sits level with the bar's other marks. */
   add_folder: "M5 5.5h5l2 2h7v11H5zM12 10.5v5M9.5 13h5",
   remove: "M6 6l12 12M18 6L6 18",
 
@@ -76,7 +57,7 @@ const PATHS = {
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
-  /** The vocabulary's mark: a definition somebody pinned by pointing. */
+  /** A pinned definition. */
   pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
   /** The workspace: a stack of files, as every file explorer draws one. */
   files: "M9 3.5h7l3.5 3.5v10.5H9zM16 3.5V7h3.5M5.5 7v13.5H15",
@@ -179,14 +160,12 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
-/** Whether a name is one this set draws — the guard a stored name goes
- *  through, so a mark that was never drawn fails where it is read. */
+/** Whether a name is one this set draws. */
 export function known(name: string): name is IconName {
   return name in PATHS;
 }
 
-/** What one name draws. Exposed so the set can be held to its own rule — two
- *  purposes sharing a path is the mistake it exists to prevent. */
+/** What one name draws. */
 export function paths(name: IconName): string {
   return PATHS[name];
 }
@@ -196,9 +175,7 @@ export function names(): IconName[] {
   return Object.keys(PATHS) as IconName[];
 }
 
-/** One icon. `solid` fills it instead of stroking — for the marks that are
- *  solid by nature, like a container row, where the fill is what says it holds
- *  something and an outline would read as the empty leaf beside it. */
+/** One icon; `solid` fills instead of stroking. */
 export function Icon({ name, size = 16, solid = false, className }: {
   name: IconName;
   size?: number;
@@ -216,13 +193,7 @@ export function Icon({ name, size = 16, solid = false, className }: {
   );
 }
 
-/** Which mark each role wears. **Icon data, so it lives beside the icons** —
- *  the stage, the tray and the explorer each kept a copy of this, and three
- *  copies of one table is three chances for a kind to be drawn two ways.
- *
- *  **Nine, and `container` is the one that is not a module.** It is derived
- *  from what a block holds rather than from what it is, which is why the table
- *  is keyed by role and not by module. */
+/** Which mark each role wears. */
 export const ROLE_ICON: Record<string, IconName> = {
   block: "role_leaf", container: "role_container", folder: "role_folder",
   resource: "role_resource", reference: "role_reference",
@@ -230,9 +201,7 @@ export const ROLE_ICON: Record<string, IconName> = {
   note: "role_note",
 };
 
-/** The mark for a role, falling back to the plain block's. **A name this build
- *  does not know still draws something**, which is what lets a package from a
- *  newer build open here. */
+/** The mark for a role, falling back to the plain block's. */
 export function role_icon(role: string | undefined): IconName {
   return ROLE_ICON[role ?? ""] ?? "role_leaf";
 }

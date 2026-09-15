@@ -1,8 +1,4 @@
-/** A name box, **committed when it is left** — never per keystroke.
- *
- *  Enter leaves it, Escape gives the name back, and a name the caller says is
- *  taken is said beside the box and not kept. One box for a table cell and a
- *  settings row, so a rename behaves alike wherever it is offered. */
+/** A name box, committed when it is left — never per keystroke. */
 
 import { useState } from "react";
 

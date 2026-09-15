@@ -1,9 +1,4 @@
-/** A Scene as text.
- *
- *  The second renderer, and the one that makes a notation testable with no
- *  browser in the process: a regression is a diff rather than a screenshot.
- *  It draws **shape, not coordinates** — a grid coarse enough that nudging a
- *  card by a cell does not rewrite the expectation. */
+/** A Scene as text. */
 
 import { box_of, heads, type Scene } from "./scene";
 
@@ -29,9 +24,7 @@ export function draw(scene: Scene): string {
     for (let i = 0; i < text.length && x + i < cols; i++) row[x + i] = text[i]!;
   };
 
-  /** **A straight run between the two ends**, which is all a grid this coarse
-   *  could show anyway — where a line actually bends is the renderer's, and a
-   *  drawing of shape rather than coordinates never depended on it. */
+  /** A straight run between the ends; bends are the renderer's. */
   const where = new Map(at.map((b, i) => [scene.nodes[i]!.id, b]));
   for (const e of scene.edges) {
     const a = where.get(e.source);
@@ -61,13 +54,7 @@ export function draw(scene: Scene): string {
     put(x, y, open + label.padEnd(room, " ") + close);
   }
 
-  /** **A grid draws its lattice**, so a text drawing shows the shape the model
-   *  is in and not only what is in it. A header reads `=` and every other cell
-   *  `-`; a merged cell is one wide rule like any other.
-   *
-   *  Drawn last, into blank ground, and **never over a card** — a card's own
-   *  padding is blank and is still the card's, so a rule laid into it read as
-   *  part of the name. */
+  /** A grid draws its lattice. */
   const boxed = (x: number, y: number) => at.some((b) => {
     const bx = Math.round((b.x - left) / CELL);
     const by = Math.round((b.y - top) / CELL);
@@ -89,8 +76,7 @@ export function draw(scene: Scene): string {
   return grid.map((row) => row.join("").replace(/\s+$/, "")).join("\n").replace(/\n+$/, "");
 }
 
-/** What the scene holds, as a list. Easier to read than a drawing when what is
- *  being checked is composition rather than placement. */
+/** What the scene holds, as a list. */
 export function outline(scene: Scene): string {
   const lines: string[] = [];
   lines.push(scene.trail.map((t) => t.label).join(" / ") || "(root)");
@@ -99,9 +85,7 @@ export function outline(scene: Scene): string {
     lines.push(`  ${n.data.label}${marks}`);
   }
   for (const e of scene.edges) {
-    /** **Three characters, whatever shape the heads are.** A diamond and a
-     *  hollow triangle are the same fact here — there is a head at this end —
-     *  which is as much as a text rendering has ever claimed. */
+    /** Three characters, whatever shape the heads are. */
     const end = heads(e.data);
     const arrow = `${end.from === "none" ? "-" : "<"}-${end.to === "none" ? "-" : ">"}`;
     const said = [e.label, e.data?.alias].filter(Boolean).join(" ");

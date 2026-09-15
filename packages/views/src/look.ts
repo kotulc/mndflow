@@ -1,20 +1,4 @@
-/** How a usage of a definition draws.
- *
- *  **The contract already existed and was already validated; nothing read it.**
- *  `core` publishes the `card` and `style` components and drops at the door any
- *  key it cannot make sense of, so what arrives here is well-formed or absent.
- *  This turns what survived into the handful of names a renderer keys off.
- *
- *  **A definition picks within the theme's palette; it never names a colour or
- *  a pixel.** `family` is one of six the theme owns and every contrast is a
- *  rung on its ladder — closed sets, so *ink reads on fill* holds in every
- *  theme without anybody checking. Everything below is a name from a closed
- *  set, which is what lets the whole of it live in a stylesheet.
- *
- *  Here rather than in the drawing because a look is derived from the graph,
- *  and everything else derived from the graph is derived here — which is also
- *  what lets the CLI's text and SVG renderers say what a card would look like
- *  without resolving React. */
+/** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
          FAMILIES, FILLS, FONTS, is_container, is_interface, kind_word, SHOWN, WEIGHTS,
@@ -31,21 +15,16 @@ export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
 export type Arrow = (typeof ARROWS)[number];
 
-/** What one usage looks like. Every field is a name from a closed set, so a
- *  renderer is a lookup table and a definition cannot invent a value.
- *
- *  **Grouped the way it is asked**: the fill, the border, and each of the two
- *  writings. A property named for the row that sets it is one nothing has to
- *  translate on the way to a stylesheet. */
+/** What one usage looks like, as names from closed sets. */
 export type Look = {
   /** Which family the theme paints this with. */
   family: Family;
   fill: Fill;
-  /** How opaque the fill is, 0 to 1. Absent is solid. */
+  /** How opaque the fill is, 0 to 1. */
   opacity?: number;
   border_width: Width;
   border_style: Border;
-  /** How far the border stands out from the card. Absent is the ordinary one. */
+  /** How far the border stands out from the card. */
   border_contrast?: Contrast;
   name_font: Font;
   name_weight: Weight;
@@ -54,39 +33,26 @@ export type Look = {
   label_font: Font;
   label_weight: Weight;
   label_contrast?: Contrast;
-  /** Where the **label** sits — the subtype where there is one, the base kind
-   *  otherwise. **The name is never asked this**: it is always drawn. */
+  /** Where the label sits — the subtype where there is one, the base kind otherwise. */
   label: Display;
   /** Which end of the card its name reads from. */
   align: Align;
   /** Which end of the card its label reads from. */
   label_align: Align;
-  /** Whether the handle is drawn, **where somebody said**. Absent, it is drawn
-   *  only while nobody has named the card, which is what tells two apart. */
+  /** Whether the handle is drawn, where somebody said. */
   alias?: boolean;
-  /** What sort of thing this is, as a word: the subtype where somebody named
-   *  one, the base kind otherwise. **Always a word** — the card decides whether
-   *  to write it from `label`, so there is nothing for absence to mean. */
+  /** What sort of thing this is, as a word: the subtype where somebody named one, the base kind
+   *  otherwise. */
   kind: string;
   /** The mark this draws in its corner instead of the one its role would. */
   icon?: string;
-  /** The hue angle this paints itself with, where somebody gave one instead of
-   *  naming a family. **`family` still says which it is otherwise** — a hue is
-   *  the finer answer to the same question, not a second question. */
+  /** The hue angle this paints itself with, where somebody gave one instead of naming a family. */
   hue?: number;
-  /** How much of the theme's chroma ceiling that hue is taken at. Only read
-   *  where `hue` is given; a family carries its own. */
+  /** How much of the theme's chroma ceiling that hue is taken at. */
   intensity?: number;
 };
 
-/** What a card is when its definition says nothing. Neutral, ordinary weight,
- *  ordinary writing: the look every unclassified block already had.
- *
- *  **Read from the one table rather than written out again.** The settings
- *  panel lights the chip a row would draw when nothing is set, which is this
- *  same answer — so it lives in `core` beside the closed sets it is drawn
- *  from, and a typo in either is a build error rather than a card and a chip
- *  quietly disagreeing. */
+/** What a card is when its definition says nothing. */
 export const PLAIN: Look = {
   family: DEFAULTS["style.family"],
   fill: DEFAULTS["style.fill"],
@@ -102,47 +68,28 @@ export const PLAIN: Look = {
   kind: "block",
 };
 
-/** What this element says under one component key, chain first and its own last
- *  word over it.
- *
- *  **Written once, for either holder.** A block and a relationship carry the
- *  same bag one layer apart — `def_of` already answers for both — so the
- *  cascade is read here rather than once per look. */
+/** What this element says under one component key, chain first and its own last word over it. */
 function settings(graph: Graph, id: Id, key: string): Settings {
-  /** **A definition is its own last word.** It holds `components` rather than
-   *  `looks`, and `config_of` already walks its chain ending at itself — so
-   *  there is no element layer to lay over it, and asking for one would read a
-   *  field a definition does not have. */
+  /** A definition is its own last word. */
   if (graph.defs[id]) return config_of(graph, id, key);
   const it = graph.blocks[id] ?? graph.edges[id];
   return { ...config_of(graph, def_of(graph, id), key), ...(it?.looks?.[key] ?? {}) };
 }
 
-/** One value if it is in the set, or the fallback. **The door already refused
- *  anything else**, so this is the second line and not the first: it is what
- *  keeps an older build reading a newer package rather than throwing on it. */
+/** One value if it is in the set, or the fallback. */
 function one<T extends string>(value: unknown, set: readonly T[], fallback: T): T {
   return typeof value === "string" && (set as readonly string[]).includes(value)
     ? value as T : fallback;
 }
 
-/** How this usage draws.
- *
- *  Two component keys, read separately and merged nowhere: `card` says what it
- *  is made of and `style` says how loudly it is taken. Neither reads the
- *  other's, which is the whole point of the key being the boundary. */
+/** How this usage draws. */
 export function look_of(graph: Graph, id: Id): Look {
   const b = graph.blocks[id];
   if (!b) return PLAIN;
 
-  /** **The chain, then the block.** A definition says what a kind of thing is
-   *  like and the element has the last word over it — the same cascade the
-   *  definitions themselves resolve by, with one more layer on the end. */
+  /** The chain, then the block's own last word. */
   const card = settings(graph, id, "card");
   const style = settings(graph, id, "style");
-  /** **The subtype, which is not the same as the definition.** A card says what
-   *  it is only where somebody told it apart; the base kind is what the mark in
-   *  the corner already says, and repeating it on every card is noise. */
   const named = b.type ? graph.defs[b.type]?.name : undefined;
 
   return {
@@ -162,80 +109,48 @@ export function look_of(graph: Graph, id: Id): Look {
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),
     ...number("opacity", style["opacity"]),
-    /** **The subtype where there is one, the base kind otherwise.** A card that
-     *  nobody told apart still has a sort, and saying it is what `label` is
-     *  for — so this is a word rather than sometimes a word. */
+    /** The subtype where there is one, the base kind otherwise. */
     kind: named ?? kind_word(graph, b).toLowerCase(),
-    /** A mark of its own, where somebody picked one. **A name, never a
-     *  drawing** — what it draws is the theme's, and a name it does not know
-     *  falls back to the role mark rather than to nothing. */
+    /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
-    /** **A number the door already bounded.** Anything else is absent rather
-     *  than clamped: a look this build cannot read falls back to its family,
-     *  which is what every other unreadable answer here does. */
+    /** A number the door already bounded. */
     ...number("hue", style["hue"]),
     ...number("intensity", style["intensity"]),
   };
 }
 
-/** One contrast, under its own name, and absent where nobody said. **Three keys
- *  ask it** — the border and each of the two writings — so the reading is
- *  written once rather than spread over three spreads. */
+/** One contrast, under its own name, and absent where nobody said. */
 function contrast(key: string, value: unknown): Record<string, Contrast> {
   return typeof value === "string" && (CONTRASTS as readonly string[]).includes(value)
     ? { [key]: value as Contrast } : {};
 }
 
-/** How one run draws.
- *
- *  **The shared `style` answers under their own names, and the `line`
- *  component's own beside them.** A relationship is painted exactly as a card
- *  is — its family, its hue, its weight, the writing of its name — and what it
- *  has in place of a face is two ends and a middle. Naming the shared keys the
- *  way `style` names them is what lets one stylesheet paint a card and a run. */
+/** How one run draws. */
 export type Wire = {
   family?: Family;
   opacity?: number;
   hue?: number;
   intensity?: number;
-  /** How heavy the run is drawn, and how. The card's border keys, doing the
-   *  same job on a line that has nothing else to be a border of. */
+  /** How heavy the run is drawn, and how. */
   border_width?: Width;
   border_style?: Border;
   border_contrast?: Contrast;
   name_font?: Font;
   name_weight?: Weight;
   name_contrast?: Contrast;
-  /** What draws at each end. **A shape, never a direction** — `dir` says which
-   *  ends point, and an end nobody gave a shape draws a filled head where it
-   *  points and nothing where it does not. */
+  /** What draws at each end: a shape, never a direction. */
   from_arrow?: Arrow;
   to_arrow?: Arrow;
-  /** Whether the identity line draws, and whether the handle joins a name
-   *  somebody did set. The same two questions a card answers.
-   *
-   *  **And nothing else.** A run has no values to write: an anchor is mute, and
-   *  anything an end has to say is said by the port it was promoted to. */
+  /** Whether the identity line draws, and whether the handle joins a name somebody did set. */
   name: boolean;
   alias: boolean;
 };
 
-/** What a run is when nothing was said about it: a line that draws its name and
- *  takes its weight, its dash and its colour from the module it is.
- *
- *  **Nothing said is nothing stated.** A card falls back to a full look because
- *  it is a box and a box must be painted; a run already has one — a `tie` is a
- *  dotted whisper — and a look that answered *neutral, thin, solid* on a line
- *  nobody styled would paint over the one thing that module says about
- *  itself. So every shared
- *  key here is **absent until a vocabulary states it**. */
+/** A run nobody styled: draws its name and keeps its module's look. */
 export const BARE: Wire = { name: true, alias: false };
 
 export function wire_of(graph: Graph, id: Id): Wire {
-  /** **A run or the definition of one.** The tray describes a held template the
-   *  same way it describes a line, and previewing one meant resolving it — so
-   *  this takes either holder rather than the panel keeping a second reader
-   *  that would drift from this one. */
+  /** A run or the definition of one. */
   const held = graph.defs[id];
   if (!graph.edges[id] && held?.group !== "relation") return BARE;
   const style = settings(graph, id, "style");
@@ -259,26 +174,17 @@ export function wire_of(graph: Graph, id: Id): Wire {
   };
 }
 
-/** One word from a closed set, under its own name, and **absent where nobody
- *  said** — which is what lets whatever draws it keep its own ground. */
+/** One word from a closed set, absent where nobody said. */
 function word(key: string, value: unknown, set: readonly string[]): Record<string, string> {
   return typeof value === "string" && set.includes(value) ? { [key]: value } : {};
 }
 
-/** A number the door already bounded, under its own name. Absent rather than
- *  clamped: a look this build cannot read falls back like any other. */
+/** A number the door already bounded, under its own name. */
 function number(key: string, value: unknown): Record<string, number> {
   return typeof value === "number" && Number.isFinite(value) ? { [key]: value } : {};
 }
 
-/** A look as one string, for anything asking *has this changed*.
- *
- *  **Read off the object rather than listed by hand.** Two places used to name
- *  the properties one by one — the scene signature that decides whether the
- *  canvas rebuilds, and the node comparator that decides whether a card
- *  re-renders — and both were blind to any property added after they were
- *  written, so a card kept its old drawing until something else changed. A key
- *  derived from the value cannot fall behind the value. */
+/** A look as one string, for anything asking *has this changed*. */
 export function look_key(look?: Look | Wire): string {
   if (!look) return "";
   return Object.keys(look).sort()
@@ -289,23 +195,14 @@ export function look_key(look?: Look | Wire): string {
     .join(";");
 }
 
-/** How heavy a border is when the definition has not said.
- *
- *  **A container holds a layer of its own, so it says so before you descend.**
- *  That is the one width the engine sets on its own, and a definition naming
- *  `style.border_width` overrides it like anything else. */
+/** How heavy a border is when the definition has not said. */
 function width_of(graph: Graph, id: Id): Width {
   const b = graph.blocks[id]!;
   if (is_interface(b)) return "thin";
   return is_container(graph, id) ? "medium" : "thin";
 }
 
-/** What a container is holding, for the picture drawn inside its card.
- *
- *  **Only the immediate children, and only so many.** Nesting past one level is
- *  what descending is for, and a card the size of a grid row has room for a
- *  handful of cells before each says nothing. Interfaces are never in here —
- *  they sit on the wall, and a block with interfaces is still a block. */
+/** What a container is holding, for the picture drawn inside its card. */
 export const CELLS = 9;
 
 export type Cell = {
@@ -315,24 +212,16 @@ export type Cell = {
   kind: "block" | "container" | "reference" | "note";
   /** More than fit, folded into the last cell. */
   rest?: number;
-  /** Where this cell sits in the band, as fractions of it. **A tiling rather
-   *  than a row of chips** — a container reads as a picture of what it holds,
-   *  and equal columns say every child is the same size and shape. */
+  /** Where this cell sits in the band, as fractions of it. */
   x: number;
   y: number;
   w: number;
   h: number;
-  /** One of a few shades, so neighbouring cells read apart.
-   *
-   *  **From the name, not from a model.** A cell's job is to say *this
-   *  container holds several distinct things*; that reads as long as adjacent
-   *  cells differ, and a name is the one thing about a child that is stable,
-   *  free and already here. Nothing is claimed by a particular shade. */
+  /** One of a few shades, so neighbouring cells read apart. */
   tint: 0 | 1 | 2 | 3;
 };
 
-/** A small stable number from a name. Not a hash worth the word — it only has
- *  to be steady across renders and spread names over four values. */
+/** A small stable number from a name. */
 function tint_of(name: string): 0 | 1 | 2 | 3 {
   let n = 0;
   for (let i = 0; i < name.length; i++) n = (n * 31 + name.charCodeAt(i)) % 1024;
@@ -344,9 +233,7 @@ export type Tile = { x: number; y: number; w: number; h: number };
 /** The whole band, which is what a packing is worked out in. */
 const WHOLE: Tile = { x: 0, y: 0, w: 1, h: 1 };
 
-/** One region cut into `n` parts: whole, halved, or large-first with two
- *  stacked beside it. `stacked` is which way the halving runs — regions sit as
- *  columns so their cells stay wide, and cells within one sit as rows. */
+/** One region cut into `n` parts: whole, halved, or large-first with two stacked beside it. */
 function split(n: number, box: Tile, stacked: boolean): Tile[] {
   const { x, y, w, h } = box;
   if (n <= 1) return [box];
@@ -359,12 +246,7 @@ function split(n: number, box: Tile, stacked: boolean): Tile[] {
           { x: x + w / 2, y: y + h / 2, w: w / 2, h: h / 2 }];
 }
 
-/** Up to {@link CELLS} cells tiled into the band, as fractions of it.
- *
- *  **The same cut, twice.** One to three cells fill the band; four to six sit
- *  as two columns; seven to nine as three regions — and each region is cut the
- *  same way again. So a container of two reads as halves and one of nine still
- *  reads as nine distinct things rather than as a grid. */
+/** Up to {@link CELLS} cells tiled into the band, as fractions of it. */
 export function pack(count: number): Tile[] {
   const n = Math.min(Math.max(count, 0), CELLS);
   if (n < 1) return [];

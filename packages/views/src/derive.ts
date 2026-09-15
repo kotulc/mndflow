@@ -1,8 +1,4 @@
-/** What every module derives the same way.
- *
- *  A mark is how a block reads and a trail is where the layer sits — neither is
- *  a notation's to decide, so all three modules ask the same question here
- *  rather than each answering it slightly differently. */
+/** What every module derives the same way. */
 
 import { alias_of, is_container, is_header, is_interface, is_named, is_reference,
          module_of, path, role_of, shown_name, stands_for,
@@ -11,8 +7,7 @@ import { cells_of, look_of } from "./look";
 import { pictured } from "./size";
 import type { BoxData, Mark, Scene } from "./scene";
 
-/** How a block reads. Every one of these is derived from what it holds or from
- *  where it sits — none of them is a sort of thing. */
+/** How a block reads, derived from what it holds or where it sits. */
 export function marks_of(graph: Graph, id: Id): Mark[] {
   const b = graph.blocks[id]!;
   const out: Mark[] = [];
@@ -30,25 +25,19 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
     if (b.flow === "out" || b.flow === "both") out.push("out");
   }
   if (is_container(graph, id) && !is_reference(b)) out.push("container");
-  /** Wearing its type rather than a name somebody chose. Drawn quietly, so a
-   *  placeholder does not read as loudly as a name. */
+  /** Wearing its type rather than a name somebody chose. */
   if (!is_named(graph, id)) out.push("unnamed");
   if (is_header(b)) out.push("header");
   return out;
 }
 
-/** Everything a drawn block carries beyond where it sits.
- *
- *  **Written once**, so the three projections cannot drift on what a card is
- *  told. A box that stands for nothing in the graph does not come through
- *  here — it has no definition to have a look. */
+/** Everything a drawn block carries beyond where it sits. */
 export function carried(graph: Graph, id: Id): BoxData {
   const b = graph.blocks[id]!;
   const look = look_of(graph, id);
   const cells = pictured(graph, id)
     ? cells_of(graph, id, (kid) => shown_name(graph, kid)) : [];
-  /** **The handle, beside the name rather than inside it.** What the card says
-   *  wins; said nothing, it is drawn only while the card is unnamed. */
+  /** The handle, beside the name rather than inside it. */
   const alias = look.alias === undefined ? alias_of(graph, id)
     : look.alias ? alias_of(graph, id, true) : "";
   return {
@@ -63,21 +52,17 @@ export function carried(graph: Graph, id: Id): BoxData {
   };
 }
 
-/** The field a box's link is read from. One name, so a translator and every
- *  renderer agree without either naming the other. */
+/** The field a box's link is read from. */
 export const SOURCE = "source";
 
-/** Where a block points, if it says. A `link` field is an ordinary value the
- *  model already has a form for, so nothing new had to exist for a box to be
- *  clickable — and a block that names none simply is not. */
+/** Where a block points, if it says. */
 export function link_of(graph: Graph, id: Id): string | undefined {
   const said = graph.blocks[id]?.fields
     ?.find((f) => f.name === SOURCE && f.form === "link");
   return said?.value || undefined;
 }
 
-/** The trail from the root down to the layer, for a breadcrumb. The root is
- *  its own trail: a null layer is the root layer. */
+/** The trail from the root down to the layer, for a breadcrumb. */
 export function trail_of(graph: Graph, layer: Id | null): Scene["trail"] {
   return layer === null
     ? [{ id: graph.root, label: shown_name(graph, graph.root) }]

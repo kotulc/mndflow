@@ -1,13 +1,4 @@
-/** The options rail: one column, fixed to the right, holding every control the
- *  thing on the stage has.
- *
- *  **One surface whose contents vary, not one per view.** A view module says
- *  which groups it offers and this draws them in a fixed order, whatever order
- *  it was handed. A matrix has no interfaces toggle because it declares none,
- *  never because one was greyed out.
- *
- *  Like every other surface it is a pure function of its props: it holds
- *  nothing and every control leaves as an action name somebody else runs. */
+/** The options rail: every control the thing on the stage has, in one column. */
 
 import { Icon } from "@mnd/theme";
 import type { Group } from "./groups";
@@ -16,10 +7,7 @@ export type OptionsProps = {
   groups: readonly Group[];
 };
 
-/** Drawn in this order whatever order a module lists them. **The three that
- *  come and go with the selection are last on purpose**: they are the ones to
- *  push off the bottom of a column that scrolls, and everything above them is
- *  about what you are looking at rather than what you have hold of. */
+/** Drawn in this order whatever order a module lists them. */
 const ORDER = ["settings", "layer", "views", "flow", "display", "relations", "grid"];
 
 const at = (key: string) => {
@@ -38,14 +26,9 @@ export function Options({ groups }: OptionsProps) {
       </div>
       <div className="body">
         {shown.map((group) => {
-          /** **Where the verbs begin.** A group is about one subject and some
-           *  subjects have both a setting and something you do to them, so the
-           *  two are ruled apart inside the group rather than split across two
-           *  labels. No rule where the group is verbs all the way down — there is
-           *  nothing above to divide it from. */
+          /** Where a group's verbs begin, ruled apart from its settings. */
           const first = group.controls.findIndex((c) => c.verb);
-          /** A control may also ask for the rule itself, where a group's seam
-           *  is not the one between a setting and a verb. */
+          /** A control may ask for its own rule. */
           const ruled = (n: number) => (n === first && n > 0) || !!group.controls[n]?.ruled;
           return (
             <div key={group.key} className="opts-group" role="group" aria-label={group.label}>

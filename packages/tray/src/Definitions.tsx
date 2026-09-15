@@ -1,20 +1,4 @@
-/** The definitions tab: **every definition of one group the workspace can
- *  name**, in one table — relation definitions for a line, block definitions for
- *  a block.
- *
- *  A definition is a name and what it extends; a relation definition also has a
- *  label, what a line naming it draws, exactly as typed. **A name is unique
- *  within its group**, so one refused as taken is always here to be found.
- *
- *  | row | edits |
- *  |---|---|
- *  | the workspace's own | name, label, extends, remove |
- *  | a default | label, extends within its kind; it stays |
- *  | a package's | nothing — extend it instead |
- *
- *  **The last row adds one.** Picking a row holds it, so settings describes it;
- *  with lines selected on the canvas, the picked row offers **apply**, which
- *  points them at it. Picking alone never changes a drawing. */
+/** The definitions tab: every definition of one group, in one table. */
 
 import { useState } from "react";
 import { def_named, def_of, isa, may_retype, module_named, relation_named, shipped,
@@ -57,8 +41,7 @@ export type DefinitionsProps = {
   onAct: Act;
 };
 
-/** Why a name may not be used in a group, or null. **A block and a line may
- *  share a name**; two of one group may not. */
+/** Why a name may not be used in a group, or null. */
 export function taken(graph: Graph, name: string, group: "block" | "relation",
                       self?: Id): string | null {
   const other = def_named(graph, name, group);
@@ -77,8 +60,7 @@ export function Definitions({ graph, group, held, lines, target = "the selection
     k === "all" || (k === "package" ? !!r.from : !!r.label);
   const sorts = group === "relation" ? SORTS : SORTS.filter((s) => s.key !== "labelled");
 
-  /** What a definition may extend: a base, a default or another definition,
-   *  never itself or anything below it — and **a default only within its kind**. */
+  /** What a definition may extend: never itself or below it, and a default only within its kind. */
   const kind = (id: Id) => (group === "relation" ? relation_named(graph, id) : module_named(graph, id));
   const floor = Object.values(graph.defs).filter((d) => d.group === group && shipped(d))
     .map((d) => ({ id: d.id, name: `base/${d.name}` }));
@@ -113,7 +95,7 @@ export function Definitions({ graph, group, held, lines, target = "the selection
           id: r.id,
           titles: { name: r.from ? `${r.name}, from ${r.from}` : r.name, label: r.label },
           cells: {
-            /** **Renamed in place**; the id stays, so nothing naming it is retyped. */
+            /** Renamed in place; the id stays, so nothing naming it is retyped. */
             name: mine && !r.base ? (
               <Entry value={r.name} label={`rename ${r.name}`}
                      clash={(to) => taken(graph, to, group, r.id)}
@@ -129,7 +111,7 @@ export function Definitions({ graph, group, held, lines, target = "the selection
             ),
             used: String(r.used),
           },
-          /** **Only on the row picked, and only where something would change.** */
+          /** Only on the row picked, and only where something would change. */
           actions: r.id === held && lines.some((id) => def_of(graph, id) !== r.id
                                                     && (group === "relation"
                                                         || may_retype(graph, id, r.id))) ? (
@@ -141,9 +123,7 @@ export function Definitions({ graph, group, held, lines, target = "the selection
               {`apply to ${target}`}
             </button>
           ) : null,
-          /** **Removing keeps how its lines draw**: looks go down into each line,
-           *  and anything extending it extends what it extended. */
-          /** **The tray stays on definitions**: what was held goes to what it extended. */
+          /** Removing keeps how its lines draw; the tray moves to what it extended. */
           ...(mine && !r.base ? { drop: `remove ${r.name}`, onDrop: () => {
             onAct("remove_def", { id: r.id });
             if (r.extends && r.id === held) onPick(r.extends);

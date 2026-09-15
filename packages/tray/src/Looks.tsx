@@ -1,12 +1,4 @@
-/** How one thing is painted: **the right column of the settings panel.**
- *
- *  **Uniform over every holder.** A block, a relationship and a definition carry
- *  the same bag one layer apart, and a module declares which components it
- *  honours — so this reads the rows off `ROWS`, filters them by what the kind
- *  honours, and never asks which of the three it was given.
- *
- *  A pure function of its props: it holds which part is lit, and every change
- *  leaves as an action name. */
+/** How one thing is painted: the right column of the settings panel. */
 
 import { useState } from "react";
 import { DEFAULTS, honours, is_named, type Act, type Graph, type Id } from "@mnd/core";
@@ -32,8 +24,7 @@ export function Looks({ graph, id, about = id, onAct }: LooksProps) {
   const { said, chain, now } = reading(graph, id, it);
   const { kind, runs } = kind_of(graph, id, it);
 
-  /** **A part with nothing left to ask is not a part.** The component says
-   *  whether the part exists at all; the rows say whether this kind has any. */
+  /** A part with nothing left to ask is not a part. */
   const honoured = honours(kind);
   const asked = (g: Group) => ROWS[g].filter((q) => honoured.includes(q.key));
   const parts = parts_in_order().filter((g) => honoured.includes(ASKS[g]) && asked(g).length > 0);
@@ -42,11 +33,9 @@ export function Looks({ graph, id, about = id, onAct }: LooksProps) {
 
   const set = (key: Key, name: string, value: string) =>
     onAct("look", { ids: [id], key, name, value });
-  /** **A hue is the family question asked finer**, so while one is set the
-   *  families are unreachable rather than merely losing. */
+  /** While a hue is set, the families are unreachable. */
   const tinted = said("style", "hue") !== undefined;
-  /** **What an unset handle draws**: shown while a card is unnamed, which is
-   *  what tells two apart — so that is the answer lit. */
+  /** An unset handle shows while a card is unnamed, so that answer is lit. */
   const unnamed = !!graph.blocks[about] && !is_named(graph, about);
 
   return (
@@ -66,12 +55,7 @@ export function Looks({ graph, id, about = id, onAct }: LooksProps) {
   );
 }
 
-/** One question's answers, drawn by its form.
- *
- *  **No *inherit* chip.** What a row inherits is a value like any other, so the
- *  answer it lands on is lit quietly, and one this element set is lit brightly —
- *  pressing that one gives it back. A run's `style` lights nothing where nothing
- *  was said, because an unstyled run draws from its module. */
+/** One question's answers, drawn by its form. */
 function Answer({ q, read, set, off, runs, app }: {
   q: Question; read: Reading; off: boolean; runs: boolean;
   /** What the app draws here when nothing is said, where it is not the table's. */
@@ -82,7 +66,7 @@ function Answer({ q, read, set, off, runs, app }: {
   const own = said(q.key, q.name);
   const mine = own !== undefined;
 
-  /** **A quantity is a slider**, with a way back to whatever it inherits. */
+  /** A quantity is a slider, with a way back to whatever it inherits. */
   if (q.form === "range") {
     const r = q.range!;
     return (
@@ -97,7 +81,7 @@ function Answer({ q, read, set, off, runs, app }: {
     );
   }
 
-  /** **Every mark this build ships**, rather than the nine a role wears. */
+  /** Every mark this build ships, rather than the nine a role wears. */
   if (q.form === "marks") {
     return (
       <Line label={q.word} tip={q.tip} className="marks-grid">

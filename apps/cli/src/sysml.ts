@@ -1,39 +1,22 @@
-/** A graph out as SysML, and the same text back as a graph.
- *
- *  **A standard is a translation layer, never a shape the model bends to.** A
- *  part property is a block with a parent, a port is an interface, a
- *  requirement is a block with two fields — so this is a name map and nothing
- *  more. It reads a graph and writes text; it never touches the log, the steps
- *  or the engine's reader, which is the whole of what a translator is allowed
- *  to know.
- *
- *  **The keyword is the map.** A definition saying `names.sysml` supplies it;
- *  anything else falls back to what its module already is. That is what makes
- *  bringing in the `sysml` package change the output without changing a block.
- *
- *  The reader exists to prove the emitter. It takes what this writes — a small,
- *  honest subset of the v2 textual notation — and hands back a graph, so
- *  *emitted, re-imported, emitted again* is a property anybody can check. */
+/** A graph out as SysML, and the same text back as a graph. */
 
 import { children, edges_in, empty_graph, is_interface, is_reference, module_of, owner_of,
          path, shown_name, SCHEMA,
          type Block, type Graph, type Id, type Relation } from "@mnd/core";
 
-/** What each block module is called, absent a definition that says otherwise.
- *  **Not a closed set of things** — a fallback table, one entry per module. */
+/** What each block module is called, absent a definition that says otherwise. */
 const KEYWORD: Record<string, string> = {
   folder: "package", structure: "part", reference: "ref",
   interface: "port", resource: "item", group: "package", note: "comment", view: "view",
 };
 
-/** A relation module, as a keyword and back. Directed reads as a flow. */
+/** A relation module, as a keyword and back. */
 const LINK: Record<string, string> = { line: "connect", tie: "comment" };
 
 const quoted = (name: string) => `'${name.replaceAll("'", "\\'")}'`;
 
-/** The keyword a block is written with: its definition's SysML name where it
- *  has one, else the module's. `«part»` is the name a package supplies and
- *  `part` is the word the notation wants, so the guillemets come off. */
+/** The keyword a block is written with: its definition's SysML name where it has one, else the
+ *  module's. */
 function keyword(graph: Graph, id: Id): string {
   const type = graph.blocks[id]?.type;
   const said = type ? graph.defs[type]?.names?.["sysml"] : undefined;
@@ -41,8 +24,7 @@ function keyword(graph: Graph, id: Id): string {
   return KEYWORD[module_of(graph, id)] ?? "part";
 }
 
-/** How an end is written: a port by its owner and its own name, anything else
- *  by its name alone. Names are unique among siblings, so this is an address. */
+/** How an end is written: a port by its owner and its own name, anything else by its name alone. */
 function end_of(graph: Graph, id: Id): string {
   const b = graph.blocks[id];
   if (b && is_interface(b) && b.parent) {
@@ -57,8 +39,7 @@ function relation(graph: Graph, e: Relation): string {
   return `${word} ${end_of(graph, e.from)} to ${end_of(graph, e.to)}${type};`;
 }
 
-/** Where a block sits, written out — the address the notation uses for
- *  anything it has to point at rather than contain. */
+/** A block's address, for anything the notation points at. */
 function address(graph: Graph, id: Id): string {
   return path(graph, id).slice(1).map((b) => quoted(shown_name(graph, b.id))).join(".");
 }
@@ -66,9 +47,7 @@ function address(graph: Graph, id: Id): string {
 function block(graph: Graph, b: Block, depth: number): string[] {
   const pad = "  ".repeat(depth);
   const type = b.type ? ` : ${b.type}` : "";
-  /** **A reference is drawn and a link is not**, so what a reference stands for
-   *  has to travel: without it the notation says only that something is here,
-   *  and reading it back would make a part of an appearance. */
+  /** A reference writes what it stands for. */
   const stands = b.of ? ` -> ${address(graph, b.of)}` : "";
   const head = `${pad}${keyword(graph, b.id)} ${quoted(shown_name(graph, b.id))}${type}${stands}`;
   const inside = [
@@ -101,9 +80,7 @@ const RELATION = new RegExp(
 
 const unquote = (s: string) => s.replaceAll("\\'", "'");
 
-/** An id from where a thing sits. **Names are unique among siblings**, so the
- *  path is an identity — which is what lets the round trip be compared at all
- *  without the notation having to carry ids it has no place for. */
+/** An id from where a thing sits. */
 const at = (trail: readonly string[]) => `sysml:${trail.join("/")}`;
 
 function lines_of(text: string): Line[] {
@@ -113,13 +90,7 @@ function lines_of(text: string): Line[] {
     .map((t) => ({ depth: 0, text: t, opens: t.endsWith("{"), closes: t === "}" }));
 }
 
-/** The text back as a graph — **the reader that proves the emitter**, and no
- *  more: it takes the subset this writes rather than the notation at large.
- *
- *  **The vocabulary does not travel and is not meant to.** A notation names a
- *  type; what that type *is* is a definition package, which is brought in
- *  separately and already in the workspace anybody imports into. `known` is
- *  that workspace's, so what comes back resolves the way it would there. */
+/** The text back as a graph: the subset this writes, to prove the emitter. */
 export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
   const graph = { ...empty_graph(), defs: { ...known } };
   const trail: string[] = [];
@@ -173,16 +144,13 @@ export function from_sysml(text: string, known: Graph["defs"] = {}): Graph {
     else trail.pop();
   }
 
-  /** What a reference stands for, once everything it could name is placed. A
-   *  target that did not travel leaves the reference reading **missing**, which
-   *  is kept rather than tidied away. */
+  /** What a reference stands for, once everything it could name is placed. */
   for (const r of stands) {
     const target = graph.blocks[at(r.at)];
     if (target) graph.blocks[r.id] = { ...graph.blocks[r.id]!, of: target.id, name: undefined };
   }
 
-  /** Ends are resolved once everything is placed: a relation may name
-   *  something written after it. */
+  /** Ends resolve once everything is placed. */
   for (const l of links) {
     const from = find(graph, l.from);
     const to = find(graph, l.to);
@@ -211,11 +179,7 @@ export function as_file(graph: Graph, id = "sysml"): string {
   return JSON.stringify({ schema: SCHEMA, id, graph }, null, 2) + "\n";
 }
 
-/** What the notation carries, for comparing one graph with another.
- *
- *  **Equivalent, not identical.** Ids, positions and the log never travel, so
- *  what a round trip has to preserve is the tree of names, what each is, and
- *  which of them are joined — and that is exactly what this reads. */
+/** What the notation carries, for comparing one graph with another. */
 export function shape_of(graph: Graph): string[] {
   const trail = (id: Id) => path(graph, id).slice(1).map((b) => shown_name(graph, b.id)).join("/");
   const blocks = Object.values(graph.blocks)

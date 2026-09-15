@@ -1,14 +1,4 @@
-/** The drawing, and only the drawing.
- *
- *  **The one thing on the panel that is a picture rather than an answer**, so it
- *  is never a table. Five units by two, the same box and the same corner mark
- *  the canvas draws — a smaller sketch in a different shape would be a second
- *  drawing to learn rather than an answer to *what will this look like*.
- *
- *  **It paints itself from the theme's own card table**, the one the stage
- *  paints from: `card-face` and the two writings, and every `data-` attribute
- *  named the way `look_of` names it. A preview that painted itself differently
- *  from the card it previews would be worse than no preview. */
+/** The drawing, and only the drawing. */
 
 import { type CSSProperties } from "react";
 import { Icon, type IconName } from "@mnd/theme";
@@ -18,8 +8,7 @@ export type CardProps = {
   /** What it is called, and the number it wears where nobody has named it. */
   label: string;
   alias?: string;
-  /** What sort of thing it is: the subtype where one is named, the base kind
-   *  otherwise. Written or not according to `card.label`. */
+  /** What sort of thing it is: the subtype where one is named, the base kind otherwise. */
   kind: string;
   /** What sort of thing it is, top right. */
   icon: IconName;

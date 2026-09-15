@@ -1,31 +1,16 @@
-/** The run, and only the run.
- *
- *  **`Card`'s sibling, built the same way.** A short run between two seats, the
- *  heads the `line` component names, and the relationship's own name over it —
- *  which is the whole of what a run writes, because an edge holds no values.
- *
- *  **It paints itself from the theme's own card table**, the one the stage
- *  paints from: `style` is shared across a block, an interface and a line, so
- *  every `data-` attribute below is named the way `look_of` names it. A preview
- *  that painted itself differently from the run it previews would be worse than
- *  no preview. */
+/** The run, and only the run. */
 
 import { type CSSProperties } from "react";
 import { head_url, Heads } from "@mnd/theme";
 
-/** How long the run is drawn, and how much air is left round it. The name over
- *  it needs the width; the height is what one line of writing plus the run
- *  itself takes. */
+/** How long the run is drawn, and how much air is left round it. */
 const RUN = { w: 188, h: 34, y: 22 };
 
 /** The seat each end is drawn as: a filled square for an anchor on a border. */
 const SEAT = 7;
 
 export type WireProps = {
-  /** What the relationship is called, as the run writes it — which, with its
-   *  handle, is the whole of what a run writes. **An edge holds no values**, so
-   *  there is nothing at either end to draw: an anchor is mute, and a promoted
-   *  end is a port, which draws itself. */
+  /** What the relationship is called, as the run writes it. */
   label: string;
   alias?: string;
   /** What it says for itself, and what it draws as. */
@@ -33,9 +18,7 @@ export type WireProps = {
   now: (key: string, name: string, fallback: string) => string;
 };
 
-/** The dash a stroke style is drawn with. **Four, and `double` is two strokes**
- *  rather than a dash — drawn as a wide run with the ground back through it,
- *  exactly as the canvas draws one. */
+/** The dash a stroke style is drawn with. */
 const DASH: Record<string, string | undefined> = {
   dashed: "5 4", dotted: "0 3.5", solid: undefined, double: undefined, none: undefined,
 };
@@ -68,9 +51,7 @@ export function Wire({ label, alias, said, now }: WireProps) {
         <svg className="preview-run" width={RUN.w} height={RUN.h}
              viewBox={`0 0 ${RUN.w} ${RUN.h}`} aria-hidden="true">
           <Heads id="tray" />
-          {/* **The two ends are seats on a border**, which is what a run meets
-              wherever it ends — so the preview draws the join rather than the
-              cards, which are not what these controls are about. */}
+          {/* The ends drawn as seats on a border. */}
           <rect className="preview-seat" x={0} y={y - SEAT / 2} width={SEAT / 2} height={SEAT} />
           <rect className="preview-seat" x={RUN.w - SEAT / 2} y={y - SEAT / 2}
                 width={SEAT / 2} height={SEAT} />

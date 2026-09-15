@@ -1,10 +1,4 @@
-/** The offered-action list.
- *
- *  Membership only, in a fixed order — the list has no ordering of its own, and
- *  a menu has no positions to learn, so **what does not apply is not shown**
- *  rather than greyed out.
- *
- *  It asks for what it needs and then names an action. It never writes. */
+/** The offered-action list. */
 
 import { useEffect, useRef, useState } from "react";
 import { offer, type Action, type Args, type Context } from "@mnd/core";
@@ -12,38 +6,22 @@ import { offer, type Action, type Args, type Context } from "@mnd/core";
 export type MenuProps = {
   ctx: Context;
   at: { x: number; y: number };
-  /** Where on the drawing this was opened, when it was opened on a drawing.
-   *  **A position can only come from a gesture**, and a menu raised by one can
-   *  pass the gesture's on — so a block made from the canvas lands under the
-   *  pointer, and one made from the tree is placed by the layout. */
+  /** Where on the drawing this was opened, when it was opened on a drawing. */
   spot?: { x: number; y: number };
-  /** What the gesture that raised this already knows. **A menu on a
-   *  relationship's end knows which end, and whose border it meets** — nothing
-   *  here could work either out, and an action needing them is offered only
-   *  where they are given. */
+  /** What the gesture that raised this already knows. */
   given?: Record<string, unknown>;
-  /** The actions this context offers, in the order they are drawn. **An agreed
-   *  list rather than everything that happens to apply** — the registry says
-   *  what an action *could* act on, which is a wider question than what belongs
-   *  on a card's menu. Absent, the registry answers, which is what the tree
-   *  wants.
-   *
-   *  **An entry may fill an argument and name itself for it.** One action asked
-   *  two ways is two entries — *insert row* and *insert column* — rather than
-   *  one entry and a second panel to get through. */
+  /** The actions this context offers, in the order they are drawn. */
   only?: readonly (string | Entry)[];
   onAct: (name: string, args?: Record<string, unknown>) => void;
   onShut: () => void;
 };
 
-/** One named entry: an action, optionally with an argument already filled and
- *  a word of its own to read as. */
+/** One named entry: an action, optionally with arguments filled and a label. */
 export type Entry = { name: string; label?: string; args?: Args };
 
 const entry_of = (e: string | Entry): Entry => (typeof e === "string" ? { name: e } : e);
 
-/** What a menu can fill on its own. Without a place to point at, an action
- *  that needs one is not offered. */
+/** What a menu can fill on its own. */
 function askable(a: Action, spot: boolean): boolean {
   return spot || !a.args.some((arg) => arg.form === "spot" && arg.required);
 }
@@ -55,11 +33,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
   const box = useRef<HTMLDivElement>(null);
   const [asking, set_asking] = useState<(Action & { filled?: Args }) | null>(null);
   const [typed, set_typed] = useState("");
-  /** Where it actually fits. **A menu opens at the pointer until it cannot** —
-   *  a long list opened near the foot of the window runs off the bottom, and
-   *  the entries nobody can reach are the ones at the end of the alphabet. It
-   *  is measured rather than guessed, because how long it is depends on what
-   *  is offered here. */
+  /** Where the menu fits inside the window. */
   const [sits, set_sits] = useState(at);
   useEffect(() => {
     const el = box.current;
@@ -86,9 +60,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
 
   const one = ctx.picked.length === 1 ? ctx.picked[0]! : null;
 
-  /** **What the context can fill without asking**, and `group` is one of them:
-   *  every grid action asks which grid, and the answer is the one thing picked
-   *  or the one the picked cells are in. */
+  /** What the context fills without asking. */
   const known = (): Record<string, unknown> => ({
     id: one, holder: one, owner: one, of: [...ctx.picked], about: one,
     group: ctx.cells?.[0]?.group ?? one,
@@ -97,27 +69,19 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
     ...given,
   });
 
-  /** What the menu stops to ask for: everything the action requires, and the
-   *  name of anything it makes. **Something being made is always worth
-   *  naming** — the derived name is a fallback, not an answer, and typing one
-   *  here is the difference between “pump” and “block 4”. */
+  /** What the menu stops to ask for: required arguments and the name of anything made. */
   const held = ["id", "ids", "holder", "owner", "of", "members", "target", "about", "group"];
   const wanted = (a: Action, filled?: Args) =>
     a.args.filter((arg) => (arg.required || arg.asks)
       && !held.includes(arg.name) && !(given && arg.name in given)
       && !(filled && arg.name in filled));
 
-  /** **Offered when this menu could actually finish it.** It stops for one
-   *  thing and no more, so an action still missing two of them would be run
-   *  half-filled — which is how an entry that cannot work gets into a list
-   *  whose whole rule is that what does not apply is not shown. */
+  /** Offered only when the menu can finish it with one question. */
   const fillable = (a: Action, filled?: Args) =>
     wanted(a, filled).filter((arg) => arg.required).length <= 1;
 
   const offered = offer(ctx).filter((a) => askable(a, spot !== undefined));
-  /** Named order, not the registry's — a list somebody agreed reads in the
-   *  order they agreed it. What is named and does not apply here is left out
-   *  rather than shown dead. */
+  /** Entries in the agreed order. */
   const entries: { action: Action; label: string; args?: Args }[] = (
     only
       ? only.map(entry_of)
@@ -137,9 +101,7 @@ export function Menu({ ctx, at, spot, given, only, onAct, onShut }: MenuProps) {
   const answer = () => {
     if (!asking) return;
     const need = asking.args[0]!;
-    /** **Left blank is left out**, not sent as an empty string. An optional
-     *  name nobody typed is the action deriving one, which is what it does
-     *  when nobody was asked at all. */
+    /** Left blank is left out, not sent as an empty string. */
     const said = typed.trim();
     onAct(asking.name, said || need.required
       ? { ...known(), ...asking.filled, [need.name]: said }

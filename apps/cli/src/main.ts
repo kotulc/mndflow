@@ -1,8 +1,4 @@
-/** The headless app, and the harness that makes *independent and testable* true.
- *
- *  A passing suite proves the code agrees with itself. This proves the packages
- *  compose — that a log folds, an action writes, a layer projects, and a Scene
- *  is complete enough to draw from, with no React anywhere in the process. */
+/** The headless app: folds, acts, projects and checks without React. */
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -38,22 +34,11 @@ const USAGE = `mnd — the headless harness
   --from sets the package catalogue search reads (default public/packages/index.json)
 `;
 
-/** **The shipped package, as the floor every fold here starts from.** The app
- *  binds it the way it binds a port; the harness is an app, so it does too.
- *  Without it a file that does not carry the base kinds reads as broken, and
- *  every command below drew from an empty vocabulary. */
+/** The shipped package, as the floor every fold here starts from. */
 const FLOOR: Graph["defs"] = {};
 for (const m of seed()) FLOOR[m.def.id] = m.def;
 
-/** A fixture of either kind, an exported file, or a raw log.
- *
- *  **A log is not a file** — `read` takes envelopes only. This is the harness,
- *  and log fixtures are logs, so it opens one itself through the door rather
- *  than asking the file format to keep a second shape alive for it.
- *
- *  A **file** fixture is a graph this engine never wrote, so `check <name>` is
- *  how the outward reader is driven: what it repairs is printed like anything
- *  else the door says. */
+/** A fixture of either kind, an exported file, or a raw log. */
 function load(source: string): { log: Log; faults: Fault[] } {
   if (NAMES.includes(source as never)) return { log: fixture(source), faults: [] };
   const text = GRAPH_NAMES.includes(source as never)
@@ -74,8 +59,7 @@ function tree(log: Log): string {
   const walk = (id: Id | null, depth: number) => {
     for (const b of children(graph, id)) {
       const kids = children(graph, b.id).length;
-      /** **The handle beside the name, composed here like every other
-       *  surface.** Text has no way to dim one, so it is simply set after. */
+      /** The handle beside the name, composed here like every other surface. */
       const called = [shown_name(graph, b.id), alias_of(graph, b.id)]
         .filter(Boolean).join(" ");
       lines.push(`${"  ".repeat(depth)}${kids ? "▾" : "·"} ${called}`);
@@ -105,13 +89,10 @@ function flag(args: string[], name: string): string | undefined {
   return at >= 0 ? args[at + 1] : undefined;
 }
 
-/** The flags that take the argument after them. Without knowing which do, a
- *  flag's value reads as a positional and `--how down` asks for a layer called
- *  "down". */
+/** The flags that take the argument after them. */
 const VALUED = ["--how", "--layer", "--from", "--with"];
 
-/** What is left once every flag, every flag's value and every pair is taken
- *  out: the positionals, and nothing else. */
+/** The positional arguments. */
 function loose(args: string[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < args.length; i++) {
@@ -135,8 +116,7 @@ function pairs(args: string[]): Record<string, unknown> {
   return out;
 }
 
-/** Where this host keeps its packages: beside the vendored weights, at the
- *  repo root, shared by every host that binds `net`. */
+/** Where the packages catalogue lives, at the repo root. */
 const CATALOGUE = resolve(dirname(fileURLToPath(import.meta.url)),
                           "../../../public/packages/index.json");
 
@@ -150,8 +130,7 @@ async function main(argv: string[]): Promise<void> {
   const { log, faults: reading } = load(source);
   const how = flag(rest, "how");
   const plain = loose(rest);
-  /** Everything but `check` gets the headline; `check` **is** the door's
-   *  report, so it prints the detail rather than being told twice. */
+  /** Everything but `check` prints a headline of what the door said. */
   if (reading.length && verb !== "check") console.error(`  ${say(reading)}`);
 
   switch (verb) {
@@ -159,9 +138,7 @@ async function main(argv: string[]): Promise<void> {
       console.log(tree(log));
       return;
 
-    /** A **file** fixture is a graph this engine never wrote, so its faults
-     *  are the ones the door found on the way in. A log arrives unread, so
-     *  running the door over it is what finds anything at all. */
+    /** A file fixture's faults are the door's on the way in; a log is checked here. */
     case "check": {
       const found = reading.length ? reading : check(log, FLOOR).faults;
       console.log(found.length ? say(found) : "clean");
@@ -169,9 +146,7 @@ async function main(argv: string[]): Promise<void> {
       return;
     }
 
-    /** The other half of validity. `check` runs the door; this asks what the
-     *  definitions in scope wanted and did not get, which is advice until a
-     *  translator turns it into a refusal. */
+    /** What the definitions in scope asked for and did not get. */
     case "review": {
       const graph = fold(log, FLOOR);
       const notes = review(graph, find_layer(log, plain[0]) ?? undefined);
@@ -225,9 +200,7 @@ async function main(argv: string[]): Promise<void> {
       return;
     }
 
-    /** A definition package from outside the workspace, **in through the
-     *  door**: what arrives is a file like any other, checked against the graph
-     *  it is joining rather than against itself, and what was repaired is said. */
+    /** A package from outside, in through the door against the workspace it joins. */
     case "search": {
       const s = session({ storage: held(log), defs: seed(), net: node_net(),
                           catalogue: flag(rest, "from") ?? CATALOGUE });
@@ -243,15 +216,9 @@ async function main(argv: string[]): Promise<void> {
     }
 
 
-    /** **A standard is a translation layer, never a shape the model bends to.**
-     *  One way out; the reader exists to prove it, so `--round` emits, reads
-     *  the text back through the door, and asks whether the two graphs say the
-     *  same thing. Ids and positions do not travel, so *equivalent* is what
-     *  the notation carries — the tree, what each thing is, and what joins. */
+    /** SysML out, and with `--round`, back in and compared. */
     case "translate": {
-      /** **The keyword is the map.** Bringing a vocabulary in changes what the
-       *  same graph is called and nothing about the graph, which is the whole
-       *  claim a translation layer makes. */
+      /** `--with` brings a vocabulary in first, so its names are used. */
       const want = flag(rest, "with");
       let held_log = log;
       if (want) {

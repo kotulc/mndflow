@@ -1,13 +1,4 @@
-/** The packages tab: **what this project draws on.**
- *
- *  The workspace's `fields` slot. A block declares what it carries; the
- *  workspace declares what it borrows — the same position in the panel, and
- *  the word changes with the subject.
- *
- *  **Two sources, reconciled here.** `vocabulary` groups every definition by
- *  the package it came from, so what is *in use* is read off the graph rather
- *  than trusted from a list. A package a project names but has nothing from is
- *  the case nothing checked for. */
+/** The packages tab: what this project draws on. */
 
 import { Table, type Column } from "./Table";
 import { vocabulary, type Graph } from "@mnd/core";
@@ -21,8 +12,7 @@ const COLUMNS: readonly Column[] = [
 export type PackagesProps = { graph: Graph };
 
 export function Packages({ graph }: PackagesProps) {
-  /** **The workspace's own is not a package.** It is what this project made,
-   *  which is the thing every other row is defined against. */
+  /** The workspace's own is not a package. */
   const packs = vocabulary(graph).filter((g) => g.from !== null);
   const used = new Set(Object.values(graph.blocks).map((b) => b.type)
     .concat(Object.values(graph.edges).map((e) => e.type))

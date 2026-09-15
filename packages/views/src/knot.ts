@@ -1,8 +1,4 @@
-/** Where a tie meets a line: **the middle of the line's run.**
- *
- *  A tie joins a note to anything, a line included. The line has no box, so a
- *  knot stands in for it — a small node at the midpoint of the run, read off
- *  what the scene already draws so the projection and the canvas agree. */
+/** Where a tie meets a line: the middle of the line's run. */
 
 import { Position } from "@xyflow/system";
 import type { Id, Side } from "@mnd/core";
@@ -58,8 +54,7 @@ export function end_of(edge: LineEdge, which: "from" | "to", nodes: readonly Box
   return { ...centre(box), face: FACE[facing(box, other ? box_of(other) : box)] };
 }
 
-/** The middle of a drawn line's run, and whether the leg there runs across,
- *  or null where either end is not drawn. */
+/** The middle of a drawn line's run, or null where an end is not drawn. */
 export function middle_of_line(edge: LineEdge, nodes: readonly BoxNode[],
                                perches: readonly Perch[], frame?: Frame)
     : (Point & { across: boolean }) | null {
@@ -73,8 +68,7 @@ export function middle_of_line(edge: LineEdge, nodes: readonly BoxNode[],
   return { ...at, across };
 }
 
-/** Which way a tie leaves a knot: **square to the line**, toward its note. The
- *  knot's `side` says how the line runs there — `top` across, `left` down. */
+/** Which way a tie leaves a knot: square to the line, toward its note. */
 export function knot_face(side: Side | undefined, at: Point, far: Point): Side {
   return side === "left" ? (far.x >= at.x ? "right" : "left")
                          : (far.y >= at.y ? "bottom" : "top");

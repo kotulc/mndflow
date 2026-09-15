@@ -1,19 +1,4 @@
-/** One table, wherever the tray lists things.
- *
- *  **Contents, definitions, usages and packages are one layout.** They differ in
- *  where their rows come from and what the columns are called, which is data —
- *  so the markup is written once and the tabs hand it rows.
- *
- *  | part | given by |
- *  |---|---|
- *  | chips above | `chips`, one group per question; each narrows on its own |
- *  | a cell | a node, so a row carries its own control — `Entry`, `Choice` |
- *  | actions | a row's `actions` and `onDrop`, right-aligned in one compact last column |
- *  | the last row | `adding`: cells that write a new row, and the button that adds it |
- *
- *  **The data columns share the width evenly**; only the action column is sized.
- *
- *  Pure: it holds nothing, and every change leaves through a callback. */
+/** One table, wherever the tray lists things. */
 
 import type { ReactNode } from "react";
 import { Icon } from "@mnd/theme";
@@ -23,8 +8,7 @@ export type Column = { key: string; label: string };
 export type Line = {
   id: string;
   cells: Record<string, ReactNode>;
-  /** What the browser shows on hover, per column. Strings only: a title is an
-   *  attribute, so a node has nothing to give it. */
+  /** What the browser shows on hover, per column. */
   titles?: Record<string, string>;
   /** Chips that act on the row, set right in the action column beside remove. */
   actions?: ReactNode;
@@ -34,7 +18,7 @@ export type Line = {
   drop?: string;
 };
 
-/** **Where a listing reaches**: the open layer, or the whole workspace. */
+/** Where a listing reaches: the open layer, or the whole workspace. */
 export type Scope = "layer" | "workspace";
 
 /** The scope chips, the same question in every table that asks it. */
@@ -43,7 +27,7 @@ export function scope_chips(on: Scope, onPick: (to: Scope) => void): Chips {
            of: [{ key: "layer", word: "layer" }, { key: "workspace", word: "workspace" }] };
 }
 
-/** **One question's chips**, lit one at a time. */
+/** One question's chips, lit one at a time. */
 export type Chips = {
   key: string;
   of: readonly { key: string; word: string; count?: number }[];
@@ -70,12 +54,9 @@ export type TableProps = {
   picked?: readonly string[];
   onPick?: (id: string) => void;
   onHover?: (id: string | null) => void;
-  /** **The action column, reserved up front** at this width, so a chip appearing
-   *  on a picked row never reflows the columns. Absent, a column is kept only
-   *  where rows can be removed or added. */
+  /** The action column's width, reserved so a chip never reflows the columns. */
   acts?: string;
-  /** What stands in the body when there is nothing. **Said rather than blank**,
-   *  because an empty table and a broken one look identical. */
+  /** What stands in the body when there is nothing. */
   empty: string;
 };
 
@@ -83,8 +64,7 @@ export function Table(props: TableProps) {
   const { columns, rows, chips = [], tools, adding, picked = [], onPick, onHover, empty,
           acts } = props;
   const drops = !!acts || !!adding || rows.some((r) => r.onDrop);
-  /** **Set on the cells as well as the column**: the head and the body are laid
-   *  out as two tables so the body can scroll, and neither reads a `<col>`. */
+  /** Widths are set on cells: head and body are separate tables. */
   const act_w = acts ?? "2rem";
   const span = columns.length + (drops ? 1 : 0);
 
@@ -123,7 +103,7 @@ export function Table(props: TableProps) {
                 <td className="drop" style={{ width: act_w }}>
                   <span className="acts">
                     {row.actions}
-                    {/* **Only on the row picked**, so a remove is never one stray click. */}
+                    {/* Only on the row picked, so a remove is never one stray click. */}
                     {row.onDrop && picked.includes(row.id) ? (
                       <button className="drop" title={row.drop ?? "remove"}
                               onClick={(e) => { e.stopPropagation(); row.onDrop!(); }}>
@@ -157,8 +137,7 @@ export function Table(props: TableProps) {
   );
 }
 
-/** **The bar above a table**: each group of chips, then any tools at the far
- *  end. Drawn on its own where a tab shows something other than a table. */
+/** The bar above a table: each group of chips, then any tools at the far end. */
 export function ChipBar({ chips, tools }: { chips: readonly Chips[]; tools?: ReactNode }) {
   return (
     <div className="filters">

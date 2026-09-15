@@ -1,8 +1,4 @@
-/** An element's tags, **one chip each**, with a box to add more.
- *
- *  Pressing a chip takes that tag off; typing a word and leaving the box, or
- *  pressing Enter, puts it on. Commas add several at once. Every change hands
- *  back the whole list, the way the `tag` action takes it. */
+/** An element's tags, one chip each, with a box to add more. */
 
 import { useState } from "react";
 import { Icon } from "@mnd/theme";
