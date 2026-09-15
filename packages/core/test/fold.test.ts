@@ -1,7 +1,4 @@
-/** The fold: determinism, derivation, and undo as a refold.
- *
- *  Properties, never values — nothing here asserts a coordinate, an id or a
- *  count that tuning would change. */
+/** The fold: determinism, derivation, and undo as a refold. */
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
@@ -121,12 +118,8 @@ describe("references", () => {
   });
 });
 
-/** **The cascade, and the one rule it exists to make true.** A chain is laid
- *  down base first, one property at a time, and the nearest link has the last
- *  word ~~ so a refinement says only what it changes and inherits the rest. */
-/** The base kinds, as the eight definitions that name them. Stated here rather
- *  than imported: core ships no vocabulary — an app hands one in — so a test
- *  seeds what it needs. */
+/** The cascade, and the one rule it exists to make true. */
+/** The base kinds, as the eight definitions that name them. */
 const BASE: Definition[] = ["block", "folder", "resource", "reference",
                             "interface", "group", "grid", "note"].map((name) => ({
   id: name, group: "block" as const, name,
@@ -164,12 +157,9 @@ describe("definitions cascade", () => {
   });
 });
 
-/** **A subtype refines what a thing is like, never what it is.** A kind is
- *  fixed at creation, so every kind is its own and a user makes the one they
- *  meant. */
+/** A subtype refines what a thing is like, never what it is. */
 describe("what a block may become", () => {
-  /** A kind is fixed at creation: only a definition of the block's own module
-   *  will do, so a vocabulary still applies and nothing changes kind. */
+  /** A block takes only a definition of its own kind. */
   it("takes a definition of its own kind", () => {
     const s = kinds();
     s.go("create", { name: "A" });

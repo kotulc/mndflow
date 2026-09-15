@@ -1,7 +1,4 @@
-/* A quarter of the stage when open, whatever it holds. A tray that grew to its
-   contents moved every time a filter changed the row count, so the row you were
-   reaching for was never where you last saw it — and a quarter leaves the
-   drawing more of the stage, which is what is being described. */
+/* A quarter of the stage when open, whatever it holds. */
 
 .tray {
   position: relative;
@@ -15,14 +12,10 @@
 }
 
 .tray.open { height: 25%; }
-/* **Full height, when the body has more to say than a quarter of the window.**
-   Nine style rows and a list of fields do not fit a bar; the stage is what the
-   app is for, so this is asked for rather than assumed. */
+/* Full height, when the body has more to say than a quarter of the window. */
 .tray.open.big { height: 100%; }
 
-/* **A step above the body it heads.** Same surface as the shell around it,
-   while the body drops to the ground the stage sits on — so the bar reads as
-   chrome and what it opens reads as content. */
+/* A step above the body it heads. */
 .tray-bar {
   position: relative;
   display: flex;
@@ -35,8 +28,7 @@
   cursor: pointer;
 }
 
-/* **The context, named**: the word the rail uses for it, then its name, then
-   anything that qualifies it — a draft, a definition, several picked. */
+/* The context: its word, its name, and what qualifies it. */
 .tray-context { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .tray-context > .word {
   flex: none;
@@ -57,15 +49,11 @@
   padding-right: 4px;
 }
 
-/* **Tabs left, controls far right.** What the tray shows is a question about
-   the model; how big it is, is a question about the window. `margin-left: auto`
-   here rather than on `.holds`, so the controls stay pinned to the edge whether
-   or not anything is being counted. */
+/* Tabs left, controls far right. */
 .tray-tools { display: flex; align-items: center; gap: 2px; flex: none;
               margin-left: auto; }
 
-/* **The chevron leads the context it opens.** The whole bar is still the
-   handle; the mark only says which way it will go. */
+/* The chevron leads the context it opens. */
 .tray-chevron {
   flex: none;
   display: flex;
@@ -90,8 +78,7 @@
 .tray-tools button:hover { color: var(--accent); }
 .tray-tools button.on { color: var(--accent); }
 
-/* The table scrolls **down** inside the tray, never sideways: columns are given
-   widths and long text is cut instead. */
+/* The body scrolls down, never sideways. */
 .tray-body {
   display: flex;
   flex-direction: column;
@@ -101,9 +88,7 @@
   background: var(--bg);
 }
 
-/* **The body scrolls, never a table in it.** A table scrolling inside a panel
-   that also scrolled was two scrollbars for one reading, and a quarter-height
-   tray left the inner one a few rows tall. */
+/* The body scrolls, never a table in it. */
 .contents-table {
   width: 100%;
   border-collapse: collapse;
@@ -155,16 +140,12 @@
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
 
-/* The tray is a fixed quarter, so what is being described scrolls rather than
-   pushing the rest out of reach. */
+/* The body scrolls rather than pushing content out of reach. */
 .tray.open .tray-body { overflow: auto; }
 
-/* ── The tabs ─────────────────────────────────────────────────────────────
-   **What is answerable is what is offered.** Nothing picked and only contents
-   has anything to say; pick one thing and the three about it arrive. */
+/* ── The tabs ── */
 
-/* **Tabs on the body's own ground.** The strip is ruled off from what it opens,
-   and the open tab breaks that rule — so it reads as the page it is. */
+/* Tabs on the body's own ground. */
 .tray-tabs {
   position: sticky;
   top: 0;
@@ -198,11 +179,10 @@
   color: var(--accent);
 }
 
-/* **One gap under the strip, whichever tab it opened**, so a table head, a
-   filter row and a settings column all start the same distance below it. */
+/* One gap under the tabs, whichever tab is open. */
 .tray-tabs + * { margin-top: 2px; }
 
-/* **Acts over the whole tab**, at the far end of the strip that opened it. */
+/* Acts over the whole tab, at the far end of the strip that opened it. */
 .tab-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-bottom: 3px; }
 .tab-tools > .reset {
   padding: 1px 7px;
@@ -235,8 +215,7 @@
 /* A value read rather than set. */
 .rows > .row > .line > .read { color: var(--muted); }
 
-/* **What acts on a row sits right**, in one compact column: its chips, then
-   remove. */
+/* What acts on a row sits right, in one compact column: its chips, then remove. */
 .contents-table td.drop { padding: 0 4px; }
 .contents-table td .acts { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
 .contents-table td .acts { min-width: 0; }
@@ -255,16 +234,7 @@
 
 .tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
 
-/* ── How one thing draws ───────────────────────────────────────────────────
-   **Two columns, and each is headed by what it is read against.** What it *is*
-   on the left, under the card it makes; how it is *painted* on the right, under
-   the kind it is one of.
-
-   **One head height, stated once.** The two columns have to agree on where
-   their rows start, and their heads hold different things — a card on the left,
-   what kind of card and the rail on the right. A number here is one line to
-   change; letting each column take its own put the two sets of rows on
-   different lines. */
+/* ── How one thing draws: two columns ── */
 
 .styles {
   display: grid;
@@ -277,9 +247,7 @@
 
 .styles > .col { display: flex; flex-direction: column; min-width: 0; }
 
-/* **The drawing heads what it is; how it is painted starts at the top.** The
-   head keeps clear room above and below, so a run's label drawn over its line
-   never reaches the band under it. */
+/* The drawing heads what it is; how it is painted starts at the top. */
 .styles-head {
   display: flex;
   align-items: center;
@@ -290,7 +258,7 @@
   margin: 0 0 8px;
 }
 
-/* **The drawing at the column's start, and what kind it is beside it.** */
+/* The drawing at the column's start, and what kind it is beside it. */
 .styles > .what > .styles-head { justify-content: flex-start; gap: 14px; padding: 0 8px; }
 
 .kind-rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; }
@@ -303,15 +271,8 @@
 }
 .kind-rows .tally { color: var(--faint); font-size: 10px; }
 
-/* ── A rail over a table ───────────────────────────────────────────────────
-   **One component wherever a table has more readings than one.** The word
-   beside it says what it is a rail of, and it sits against the rows it narrows
-   rather than floating over them. */
-/* **The head of the table under it**, drawn the way the contents table draws
-   its own: the surface behind it, a divider below, and the word set in the same
-   9px the column heads are. The row's own gutter and edge, so the word over the
-   rows and the words in them start on one line, and the chips start where the
-   answers do. */
+/* ── A rail over a table ── */
+/* The rail heads its table the way the contents table heads its own. */
 .rail {
   display: flex;
   align-items: center;
@@ -342,10 +303,7 @@
   min-width: 0;
 }
 
-/* A part this element has answered for itself, so what has been customised is
-   visible without opening each one. **The word carries it**, the same way a
-   chip does one row down — a dot beside it was a second notation for the one
-   fact the rows below already draw. */
+/* A part answered by the element itself is lit. */
 .rail .filters > button.said { color: var(--accent); }
 
 /* A note in a band, or beside an answer: a count, where it came from, a warning. */
@@ -353,8 +311,7 @@
 .rows > .row > .line > .from { flex: none; color: var(--faint); font-size: 10px; font-style: italic; }
 .rows > .row > .line > .from.warn { color: var(--warn); }
 
-/* The kind, then what refines it. The mark reads as one step down from the
-   other, which is what the chain actually is. */
+/* The kind, then what refines it. */
 .styles .base {
   flex: none;
   display: inline-flex;
@@ -365,12 +322,10 @@
   white-space: nowrap;
 }
 
-/* Three boxes on one line: in the vocabulary, fixed where it sits, and what its
-   kind follows. They are one row because they are one question about status. */
+/* Three boxes on one line. */
 .rows > .row.marks > .line { gap: 10px; }
 
-/* Every mark this build ships, as a grid — a mark is a picture, and a list of
-   names is not how anybody picks one. */
+/* Every mark this build ships, as a grid. */
 .rows > .row.marks-grid > .line { gap: 2px; }
 
 .rows > .row.marks-grid .opt.mark {
@@ -383,24 +338,12 @@
 
 .styles .not-yet { color: var(--faint); font-size: 11px; margin: 0; padding: 10px 2px; }
 
-/* ── The body pattern ─────────────────────────────────────────────────────────
-   A label on the left, its content on the right, banded down the page. Every
-   tray body is this, which is what replaced a tab strip inside a tab. */
+/* ── The body pattern: a label left, its content right, banded ── */
 .rows { display: flex; flex-direction: column; min-width: 0; font-size: 12px; }
 
 .rows + .rows { margin-top: 8px; }
 
-/* **One row height, so two columns of them step together.** A row is a
-   question and its answer whatever the answer is made of — an input is taller
-   than a chip, and left to their own heights the left column's fourth row sat
-   between the right column's fourth and fifth. Anything that wraps still grows;
-   nothing else does.
-
-   **Ruled, not banded, and ruled the way the contents table is.** One table
-   look for every body in the tray: the same padding, the same 12px, the same
-   divider under each row — so a describing row and a listed row read as the
-   same sort of thing, which they are. Banding was a second answer to the same
-   question and only this surface used it. */
+/* One row height, so two columns of them step together. */
 .rows > .row {
   display: flex;
   align-items: center;
@@ -411,9 +354,7 @@
   border-bottom: 1px solid var(--divider);
 }
 
-/* **Wide enough for the longest word in it**, which is *definition*. A gutter
-   that clips is a gutter that stopped being one — and both columns share it, so
-   it is stated once here. */
+/* Wide enough for the longest word in it, which is *definition*. */
 .rows > .row > label {
   flex: none;
   width: 6.8em;
@@ -443,36 +384,23 @@
 .rows > .row.value > .line > select { flex: 0 0 6em; }
 .rows > .row.value > label > input { width: 100%; min-width: 0; box-sizing: border-box; }
 .rows > .row.add > .line > input { flex: 1 1 auto; min-width: 0; }
-/* **What sort of value is a short answer**, so it keeps a short box and the
-   name takes the rest of the row. */
+/* A form picker keeps a short box; the name takes the rest. */
 .rows > .row.add > .line > select { flex: 0 0 8em; }
 .rows > .row > .line > .drop { flex: none; }
 .rows > .empty { color: var(--faint); font-size: 11px; font-style: italic;
                  margin: 0; padding: 4px 8px; }
 
-/* **A ground, not a box, and it takes the whole answer column.** Underlined,
-   they drew a second rule two pixels above the row's own; boxed, they drew a
-   rectangle whose edges never quite met anything. A filled ground says *type
-   here* without drawing a single line, so the only rules on the panel are the
-   table's — and every one of them spans the same column, so they are all the
-   same length. */
+/* A ground, not a box, and it takes the whole answer column. */
 .rows > .row > .line > select,
 .rows > .row > .line > input {
-  /* **It takes what the row has left**, rather than a width of its own: a
-     stated 100% pushed the drop button and the form picker onto a second line
-     in every field row. Growing from nothing fills the same space where there
-     is nothing beside it, which is what makes the three answers on the left
-     column identical. */
+  /* It takes what the row has left. */
   flex: 1 1 0;
   min-width: 0;
-  /* **One stated height for every control**, so a row holding a picker is the
-     same height as a row holding a box and the two columns keep step. */
+  /* One height for every control, so the two columns keep step. */
   box-sizing: border-box;
   height: 22px;
   color: inherit;
-  /* **A wash, not a step.** 3% of ink over whatever is behind it is enough to
-     say *type here* and not enough to read before the words in it — the same
-     reasoning the banded rows were built on, and the same value. */
+  /* A 3% wash says type here. */
   background: var(--band);
   border: 1px solid transparent;
   border-radius: 2px;
@@ -487,9 +415,7 @@
 .rows > .row > .line > select:disabled,
 .rows > .row > .line > input:disabled { opacity: 0.5; }
 
-/* **A picker in a table cell answers the way one in a row does**: the same
-   wash, the same edge on hover, and the cell's own font. */
-/* **Every control takes the whole cell**, so a column of them lines up. */
+/* Every control takes the whole cell, so a column of them lines up. */
 .contents-table td select {
   box-sizing: border-box;
   height: 20px;
@@ -507,8 +433,7 @@
 .contents-table td select:hover { border-color: var(--divider); }
 
 
-/* **The last row adds one**: a box where a name goes, and what it would clash
-   with said beside it. */
+/* The adding row: a name box and what it clashes with. */
 .contents-table td .adding { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .contents-table td .adding > input {
   flex: 1 1 0;
@@ -540,10 +465,7 @@
 .rows > .row > .line > .into { flex: none; color: var(--faint); font-size: 11px; }
 .rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }
 
-/* **A box, because it is a yes and a no.** The toggles beside it are things the
-   element has been told about itself; this one is a claim on every other block
-   of its kind, so it reads as the one control on the panel that is not about
-   the thing in front of you. */
+/* A box, because it is a yes and a no. */
 .rows > .row > .line > .check,
 .kind-rows > .check {
   display: inline-flex;
@@ -559,7 +481,7 @@
 .rows > .row > .line > .check input,
 .kind-rows > .check input { margin: 0; accent-color: var(--accent); }
 
-/* **One chip a tag**, and the box to add another takes what the row has left. */
+/* One chip a tag, and the box to add another takes what the row has left. */
 .rows > .row > .line > .tags {
   display: flex;
   flex: 1 1 0;
@@ -584,16 +506,7 @@
 .rows > .row > .line > .tags > input:focus { outline: none; border-color: var(--accent); }
 
 
-/* ── The card, as the stage draws it ──────────────────────────────────────
-   **Five units by two, which is what a block is** — the same box, the same head,
-   the same corner mark the canvas sets. A smaller sketch in a different shape
-   would be a second drawing to learn rather than an answer to *what will this
-   look like*.
-
-   **It paints itself from the theme's card table**, the one the stage paints
-   from. The tray used to keep a copy — two hundred lines of it — and a swatch
-   that painted itself differently from the card it previews is worse than no
-   swatch. What is left here is the preview's own size and layout. */
+/* ── The card, as the stage draws it ── */
 
 .preview-card {
   position: relative;
@@ -607,8 +520,7 @@
   font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* Its role, top right; what has been done to it, bottom right. The two never
-   argue over one place. */
+/* Its role, top right; what has been done to it, bottom right. */
 .preview-role {
   position: absolute;
   top: 3px;
@@ -628,8 +540,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  /* The gutter the corner mark stands in, so a long name clips before it rather
-     than running under it. */
+  /* The gutter the corner mark stands in. */
   padding-right: 13px;
   min-height: 0;
   overflow: hidden;
@@ -645,8 +556,7 @@
 
 .preview-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Two lines, where there is room for two — a name clipped mid-word says less
-   than one that wrapped. */
+/* Two lines, where there is room. */
 .preview-card[data-label="above"] .preview-label,
 .preview-card[data-label="below"] .preview-label,
 .preview-card[data-label="none"] .preview-label {
@@ -657,14 +567,12 @@
   text-overflow: clip;
 }
 
-/* Which end the writing reads from. The head still sets its ends apart, so the
-   label keeps the right edge either way. */
+/* Which end the writing reads from. */
 .preview-card[data-align="center"] .preview-named { justify-content: center; }
 .preview-card[data-align="right"] .preview-named { justify-content: flex-end; }
 .preview-alias { flex: none; margin-left: 0.5ch; color: var(--muted); opacity: 0.7; }
 
-/* The label sits back a step: what the card is called is the thing being read,
-   and this is the note beside it. */
+/* The label sits back a step from the name. */
 .preview-kind {
   flex: none;
   font-size: 10px;
@@ -673,9 +581,7 @@
   pointer-events: none;
 }
 
-/* **Over the card and under it, in the gutter either way.** The label is the one
-   writing that may leave the box, and the preview keeps the room for it so the
-   card does not jump as the answer changes. */
+/* Over the card and under it, in the gutter either way. */
 .preview-over, .preview-under {
   position: absolute;
   left: 0;
@@ -694,14 +600,10 @@
 .preview-card[data-label-align="right"] .preview-over,
 .preview-card[data-label-align="right"] .preview-under { text-align: right; }
 
-/* **The card keeps the gutter its label may sit in**, so the row below the head
-   does not move as the answer changes. */
+/* The preview keeps the label's gutter, so rows do not move. */
 .preview { padding: 14px 0; }
 
-/* ── The run ──────────────────────────────────────────────────────────────
-   **`preview-card`'s sibling.** A short run between two seats, painted from the
-   same shared table — `style` applies to a block, an interface and a line — so
-   the heads, the dash and the writing are the canvas's own. */
+/* ── The run: `preview-card`'s sibling ── */
 .preview-wire {
   position: relative;
   box-sizing: border-box;
@@ -726,8 +628,7 @@
 .preview-wire[data-border-style="dotted"] .preview-line { stroke-linecap: round; }
 .preview-seat { fill: var(--card-line, var(--route)); }
 
-/* The name sits over the middle of the run, which is the one place a run
-   writes: an edge holds no values, so neither end has anything to say. */
+/* The name over the run's middle. */
 .preview-wire-name {
   display: block;
   text-align: center;
@@ -736,9 +637,7 @@
   text-overflow: ellipsis;
 }
 
-/* ── One answer, as a chip ────────────────────────────────────────────────
-   The same option control on every row of every group, so a border width and a
-   place a label sits are picked the same way. */
+/* ── One answer, as a chip ── */
 
 
 .rows .opt {
@@ -752,11 +651,7 @@
 
 .rows .opt:hover { color: var(--text); border-color: var(--accent); background: var(--hover); }
 
-/* **The hue strip is its own legend.** A slider labelled *hue* says nothing;
-   one painted along the hues it sets needs no label at all. The band is drawn
-   at the theme's own card lightness, so what runs under the thumb is the range
-   of cards actually available rather than a saturated rainbow nothing here can
-   produce. */
+/* The hue strip is its own legend. */
 .rows > .row.sliders > .line { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; }
 
 .rows > .row.sliders > .line input[type="range"] {
@@ -804,12 +699,7 @@
   background: var(--text);
   box-shadow: 0 0 0 1px var(--bg);
 }
-/* **Lit two ways, because there are two things to know.** What a row draws is
-   lit; whether *this* element is what said so is the difference between the two
-   — quiet for an answer that came from the chain or from the app, bright for
-   one set here. There is no *inherit* chip: what a row inherits is a value like
-   any other, so the chip it lands on is lit rather than a chip standing in for
-   it, and pressing a bright one gives it back. */
+/* Lit two ways, because there are two things to know. */
 .rows .opt.on {
   color: var(--text);
   border-color: var(--muted);
@@ -832,10 +722,7 @@
   flex-wrap: wrap;
 }
 
-/* **A chip with an edge and a number.** What a filter would leave is the one
-   thing that decides whether it is worth pressing, so it is on the chip rather
-   than found by pressing it. The outline is what makes a row of them read as
-   controls rather than as words. */
+/* A chip with an edge and a number. */
 .filters > button,
 .filters > .chips > button {
   display: inline-flex;
@@ -854,15 +741,12 @@
 .filters > .chips > button.on { color: var(--accent); border-color: var(--accent);
                        background: var(--tint); }
 
-/* The count sits back from the word: the word is what you are choosing, and
-   this is what it would leave. */
+/* The count sits back from the word. */
 .filters > button > .count,
 .filters > .chips > button > .count { color: var(--faint); font-size: 10px; }
 .filters > button.on > .count,
 .filters > .chips > button.on > .count { color: var(--accent); opacity: 0.8; }
 
-/* Columns asked for by name, so the one field you are comparing reads down the
-   layer instead of being opened row by row. */
 /* Each question's chips hold together; a second question stands apart. */
 .filters > .chips { display: inline-flex; align-items: center; gap: 3px; }
 .filters > .chips.split { margin-left: 6px; padding-left: 8px; border-left: 1px solid var(--divider); }

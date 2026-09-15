@@ -1,7 +1,4 @@
-/** The block view proves every Scene it emits is well-formed.
- *
- *  A producer proves its output satisfies the invariants; a consumer proves it
- *  handles anything that does. Neither imports the other. */
+/** The block view proves every Scene it emits is well-formed. */
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related, NAMES as FIXTURES } from "@mnd/fixtures";
@@ -124,9 +121,7 @@ describe("what the projection shows", () => {
     expect(trail.at(-1)).toBe("block_rate");
   });
 
-  /** A slot says what the projection **can** offer, never what it is doing —
-   *  so hiding interfaces must not take away the group that shows them, which
-   *  is `relations`. */
+  /** Hiding interfaces keeps the `relations` group. */
   it("offers the control groups it can answer, hiding one or not", () => {
     const graph = fold(related(), FLOOR);
     expect(project(graph, "block_loop").slots).toContain("relations");
@@ -134,9 +129,7 @@ describe("what the projection shows", () => {
       .toContain("relations");
   });
 
-  /** Hiding interfaces is a display preference and says nothing about the
-   *  relationships tied to them, so a hidden one keeps its seat as a berth
-   *  that draws nothing and answers no gesture. */
+  /** A hidden interface keeps its seat as a berth. */
   it("leaves a berth where an interface is hidden", () => {
     const graph = fold(fixture("interfaced"), FLOOR);
     const off = project(graph, "block_loop", { interfaces: false });
@@ -163,9 +156,7 @@ describe("the text renderer", () => {
   it("draws a scene as shape rather than coordinates", () => {
     const scene = project(fold(related(), FLOOR), "block_loop");
     const picture = draw(scene);
-    /** A card for every block, a band round the group, and more than one row of
-     *  them. **Never what fits inside a card** — how many characters a name
-     *  gets is the block's width in disguise, and this draws shape. */
+    /** A card for every block, a band round the group, and more than one row of them. */
     const cards = scene.nodes.filter((n) => !n.data.marks.includes("group")
                                          && !n.data.marks.includes("grid")
                                          && !n.data.marks.includes("reference"));
@@ -217,9 +208,7 @@ describe("interfaces are seated, not placed", () => {
     expect([line.source, line.target]).toEqual(["port_out", "port_in"]);
   });
 
-  /** **A line meets the border in the same place whether or not the square is
-   *  drawn.** Hiding the seats that moved a line's ends would make a display
-   *  preference redraw the model. */
+  /** A line meets the border in the same place whether or not the square is drawn. */
   it("hides the seats and moves neither the lines nor their ends", () => {
     const off = project(fold(fixture("interfaced"), FLOOR), "block_loop", { interfaces: false });
     expect(off.nodes.every((b) => !b.data.marks.includes("interface")
@@ -231,13 +220,7 @@ describe("interfaces are seated, not placed", () => {
 });
 
 
-/** **A projection is a pure function, and the drawing depends on it.**
- *
- *  Every node component is memoised on what it draws rather than on the object
- *  it arrives in, precisely because these objects are rebuilt on every render
- *  of the app. That only works while two runs over one graph say the same
- *  thing — if a projection ever varies, every card on the layer re-renders on
- *  every keystroke and the canvas goes back to feeling stuck. */
+/** A projection is a pure function, and the drawing depends on it. */
 describe("the same graph projects the same scene", () => {
   it("says the same thing twice", () => {
     const graph = fold(related(), FLOOR);

@@ -1,7 +1,4 @@
-/** The stage, on its own, over a fixture.
- *
- *  Same shape as the explorer's harness: it holds the state the component
- *  refuses to, and logs every action name the stage emits. */
+/** The stage, on its own, over a fixture. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";

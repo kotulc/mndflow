@@ -1,5 +1,5 @@
-/** The loop, the door and the file: undo by refold, repairs reported, and a
- *  round trip that changes nothing. */
+/** The loop, the door and the file: undo by refold, repairs reported, and a round trip that changes
+ *  nothing. */
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, flat, nested, related } from "@mnd/fixtures";
@@ -207,9 +207,7 @@ describe("compaction", () => {
   });
 });
 
-/** **Starting over is dropping the log, not editing it.** A fresh workspace is
- *  the seed laid down again — which is also the only way a definition this
- *  build no longer ships leaves a workspace that already carried one. */
+/** Starting over is dropping the log, not editing it. */
 describe("a new workspace", () => {
   it("puts back exactly what a first run opens with", () => {
     const s = session({ defs: seed() });

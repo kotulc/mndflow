@@ -1,11 +1,4 @@
-/**
- * Run vitest once with a hard wall clock. Agents used to leave orphan
- * `vitest` trees when Shell backgrounded a hung suite; exit 124 is timeout.
- *
- *   node scripts/test-ci.mjs              # full suite
- *   node scripts/test-ci.mjs tests/graph  # scoped
- *   VITEST_CI_TIMEOUT_MS=180000 node scripts/test-ci.mjs
- */
+/** Run vitest once with a hard wall clock. */
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

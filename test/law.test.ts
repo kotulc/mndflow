@@ -1,12 +1,4 @@
-/** The one law, as a test.
- *
- *  **Dependencies run one way, and only `core` may name a closed set.** Both
- *  halves are checked here rather than in a review: an arrow pointed the wrong
- *  way is a failure with the file and the arrow named, and a closed set
- *  declared outside the engine is caught where it is written.
- *
- *  This is the test the whole structure exists to make possible. Without it the
- *  boundaries are a convention, and a convention is what the old tree had. */
+/** The one law, as a test. */
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -15,41 +7,30 @@ import { describe, expect, it } from "vitest";
 const ROOT = join(__dirname, "..");
 const PACKAGES = join(ROOT, "packages");
 
-/** Who may import whom **in `src/`**. A package may import itself and these,
- *  and nothing else. Keep in step with the monorepo README — this file owns
- *  the list. */
+/** Who may import whom in `src/`. */
 const ALLOWED: Record<string, readonly string[]> = {
   core: [],
   defs: ["core"],
   fixtures: ["core", "defs"],
   theme: [],
-  /** Sizing, placement and the notation, in one package. **A layout package
-   *  stopped earning its boundary** once ranking became a call into dagre and
-   *  routing became the canvas's — what was left was two files nothing but
-   *  this called. */
+  /** Sizing, placement and the notation, in one package. */
   views: ["core"],
   explorer: ["core", "theme"],
-  /** The drawing, and the components it draws with. **A render package stopped
-   *  earning its boundary** for the same reason: it existed to be the seam
-   *  between a Scene and React, and React Flow is that seam now. */
+  /** The drawing, and the components it draws with. */
   stage: ["core", "views", "theme"],
-  /** The seam, and the one package allowed to reach everything: it adds
-   *  nothing and only re-exports, so it cannot put a dependency anywhere the
-   *  map does not already allow. */
+  /** The seam: may reach everything, since it only re-exports. */
   kit: ["core", "defs", "explorer", "views", "stage", "theme"],
   options: ["core", "theme"],
   tray: ["core", "theme"],
   terminal: ["core", "theme"],
 };
 
-/** Sample data is for proving things, never for shipping. A test and a dev
- *  harness may reach it; nothing under `src/` may. */
+/** Sample data is for proving things, never for shipping. */
 const FIXTURES = "fixtures";
 
 type Arrow = { file: string; from: string; to: string; where: "src" | "test" | "dev" };
 
-/** A package is a directory with a manifest. The repo also holds directories
- *  that are not workspaces, and they are none of this test's business. */
+/** A package is a directory with a manifest. */
 function packages(): string[] {
   return readdirSync(PACKAGES).filter((name) => {
     const dir = join(PACKAGES, name);
@@ -111,10 +92,7 @@ describe("dependencies run one way", () => {
     expect(reached.every((a) => a.where !== "src")).toBe(true);
   });
 
-  /** **Declared, and not necessarily at run time.** A package that bundles its
-   *  siblings into one artifact must not also ask a consumer to fetch them, so
-   *  `kit` declares them as build dependencies. What this rule is for is an
-   *  import nobody wrote down at all. */
+  /** Declared, and not necessarily at run time. */
   it("keeps every manifest in step with what its src imports", () => {
     const missing: string[] = [];
     for (const from of packages()) {
@@ -144,10 +122,7 @@ describe("dependencies run one way", () => {
 });
 
 describe("only core may name a closed set", () => {
-  /** A closed set is an exported array of **string literals** — the shape every
-   *  enumeration of *sorts of things* takes. An array of objects is data and an
-   *  array of identifiers is a registry; neither is the engine deciding what
-   *  kinds of thing exist, which is the only thing this rule is about. */
+  /** A closed set: an exported array of string literals. */
   const CLOSED = /export const [A-Z][A-Z_]*\s*(?::[^=]+)?=\s*\[\s*"[^"]*"[^\]]*\]/g;
 
   it("finds none outside core", () => {

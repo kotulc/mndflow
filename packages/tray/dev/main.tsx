@@ -1,8 +1,4 @@
-/** The tray, on its own, over a fixture.
- *
- *  It holds the state the component refuses to and logs what it emits. Pick a
- *  fixture and a layer above: the rows are the layer read straight from the
- *  graph, which is the whole of what this surface does. */
+/** The tray, on its own, over a fixture. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -16,8 +12,7 @@ import "@mnd/theme/card.css";
 import "../src/tray.css";
 import "./dev.css";
 
-/** The layer with the most in it, so the harness opens on something worth
- *  looking at rather than on a workspace holding one block. */
+/** The layer with the most in it. */
 function richest(graph: ReturnType<typeof fold>): Id | null {
   const layers = Object.keys(graph.blocks);
   let best: Id | null = null;

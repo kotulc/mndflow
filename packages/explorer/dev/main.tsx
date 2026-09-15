@@ -1,8 +1,4 @@
-/** The explorer, on its own, over a fixture.
- *
- *  The harness holds the state the component refuses to: it folds a fixture,
- *  hands the result down as props, and logs every action the component emits.
- *  About fifty lines, and the fastest way to see a component misbehave. */
+/** The explorer, on its own, over a fixture. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";

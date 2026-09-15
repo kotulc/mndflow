@@ -1,5 +1,5 @@
-/** The action surface: `check` agrees with `run`, and every action is honest
- *  about whether it writes. */
+/** The action surface: `check` agrees with `run`, and every action is honest about whether it
+ *  writes. */
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
@@ -10,9 +10,7 @@ import { ROOT, adjustments, all, children, fold, offer, run, session, writes,
 const ctx = (picked: string[] = [], layer: string | null = "block_loop"): Context =>
   ({ graph: fold(related(), FLOOR), layer, picked });
 
-/** The same layer with its boundary made into a grid: three cells, two filled,
- *  and a cell picked — what the grid actions are about. **One cell is left
- *  empty on purpose**, so an action that fills them has something to do. */
+/** A grid of three cells, two filled, one picked. */
 const gridded = (): Context => {
   const c = ctx(["block_pump"]);
   const b = c.graph.blocks;
@@ -71,9 +69,7 @@ describe("check agrees with run", () => {
     expect(out).toHaveProperty("refused");
   });
 
-  /** **A name is not an identity, so nothing is refused for wearing one.** Two
-   *  parts of an assembly are called the same thing all the time, and the rule
-   *  that said otherwise was about typing rather than about the model. */
+  /** A name is not an identity, so nothing is refused for wearing one. */
   it("allows a name a sibling already has", () => {
     expect(run("create", ctx(), { name: "Pump" })).not.toHaveProperty("refused");
     expect(run("rename", ctx(), { id: "block_hx", name: "Pump" }))
@@ -102,9 +98,7 @@ describe("what an action absorbs", () => {
     expect(s.graph().blocks[auth]!.parent).toBe(ledger);
   });
 
-  /** **Where it sits is where you put it.** A block keeps the number it was
-   *  made with, which among a new set of siblings is somebody else's place — so
-   *  arriving renumbers the list, at the end unless a drop said otherwise. */
+  /** Where it sits is where you put it. */
   it("orders siblings as they are added, and as they are dropped", () => {
     const s = session();
     for (const name of ["A", "B", "C"]) s.go("create", { name });
@@ -127,10 +121,7 @@ describe("what an action absorbs", () => {
     expect(named()).toEqual(["D", "C", "A"]);
   });
 
-  /** **A group is the layer's, the way an address is the group's.** A block
-   *  that kept its old grid on the way out was placed by an address in a grid
-   *  the new layer does not hold, so the drawing had nowhere to put it and drew
-   *  nothing while the tree went on listing it. */
+  /** A group is the layer's, the way an address is the group's. */
   it("drops the place and the group it had when it leaves a layer", () => {
     const s = session();
     for (const name of ["Alpha", "Beta"]) s.go("create", { name });
@@ -353,9 +344,7 @@ describe("what an action absorbs", () => {
     expect(s.graph().blocks[grid]!.group).toBe(band);
   });
 
-  /** **What the ends decide is not on offer.** A relationship is a tie because
-   *  one end of it is a note, whichever end that is and however the line came
-   *  to be there. */
+  /** What the ends decide is not on offer. */
   it("ties a relationship to a note whichever end the note is", () => {
     const s = session();
     s.go("create", { name: "Loop" });
@@ -364,7 +353,7 @@ describe("what an action absorbs", () => {
     s.go("create", { name: "Pump" });
     s.go("create", { name: "Tank" });
     const at = (name: string) => children(s.graph(), loop).find((b) => b.name === name)!.id;
-    /** **A note is always about something**, so making one names what. */
+    /** A note is always about something, so making one names what. */
     s.go("note", { about: at("Tank"), text: "runs clockwise" });
     const note = children(s.graph(), loop).find((b) => b.type === "note")!.id;
 
@@ -403,9 +392,7 @@ describe("what an action absorbs", () => {
 });
 
 describe("the way out of a layer", () => {
-  /** An interface is drawn in two layers at once: on its owner's border, out in
-   *  the layer that holds the owner, and in that owner's own wall seen from
-   *  inside. Its parent is only one of those two. */
+  /** An interface is drawn on its owner's border and in its owner's own wall. */
   const seated = () => {
     const s = session();
     s.go("create", { name: "Loop" });
@@ -458,8 +445,7 @@ describe("interfaces sit on blocks, not boundaries", () => {
 });
 
 describe("a field on a layer", () => {
-  /** A fresh workspace has no floor until an app hands one in — core may not
-   *  reach for the package that supplies it. */
+  /** A session with a minimal floor handed in. */
   const seeded = () => session({ defs: ["block", "note"].map((name) => ({
     op: "set_def" as const,
     def: { id: name, group: "block" as const, name },
@@ -476,8 +462,7 @@ describe("a field on a layer", () => {
     expect(field.value).toBe("structure note");
   });
 
-  /** **A definition holder declares rather than sets.** The same act, told
-   *  about a definition instead of a usage. */
+  /** A definition holder declares rather than sets. */
   it("adds a field to a definition when the holder is one", () => {
     const s = seeded();
     expect(s.go("field", { holder: "block", name: "mass", form: "number",
@@ -522,9 +507,7 @@ describe("offer", () => {
     expect(one).toContain("rename");
   });
 
-  /** **Navigation is a gesture, not a menu entry.** Leaving a layer is `open`
-   *  with nothing to open, which nothing but a gesture can say — so it is never
-   *  in the offered list, and there is no scope where it would be wrong. */
+  /** Navigation is a gesture, not a menu entry. */
   it("offers no way out at layer scope", () => {
     expect(offer(ctx([], null)).map((a) => a.name)).not.toContain("open");
     expect(offer(ctx([], "block_loop")).map((a) => a.name)).not.toContain("open");

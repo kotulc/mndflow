@@ -1,7 +1,4 @@
-/** The explorer, driven on its own.
- *
- *  What is pinned: it shows structure and only structure, it emits action names
- *  and mutates nothing, and the two states it draws are told apart. */
+/** The explorer, driven on its own. */
 
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, createEvent, render, fireEvent, screen } from "@testing-library/react";
@@ -90,9 +87,7 @@ describe("it emits action names and mutates nothing", () => {
     expect(order).toEqual(["act:reveal", "pick"]);
   });
 
-  /** **A name is typed where it is read**, on the tree as on the drawing: two
-   *  clicks open the row's own name, and what was typed is said when it is
-   *  left. */
+  /** Two clicks rename a row in place. */
   it("renames in place on a double click", () => {
     const { onAct, container } = mount(fold(nested(), FLOOR));
     fireEvent.doubleClick(screen.getByText("Auth"));
@@ -102,8 +97,7 @@ describe("it emits action names and mutates nothing", () => {
     expect(onAct).toHaveBeenCalledWith("rename", { id: "block_auth", name: "Typed" });
   });
 
-  /** **The mark is the fold, and it says which way it is set.** One icon for
-   *  what the row is and whether you are seeing all of it. */
+  /** The mark is the fold, and it says which way it is set. */
   it("folds a branch from its mark, which reads as open until it is shut", () => {
     const { onFold, container } = mount(fold(nested(), FLOOR));
     const row = container.querySelector('li[data-mark="container"]')!;
@@ -132,9 +126,7 @@ describe("it emits action names and mutates nothing", () => {
       { name: "Typed", parent: "block_edge", type: undefined });
   });
 
-  /** **Where you are, when you have picked nothing.** The canvas makes a block
-   *  in the layer it is showing; the tree said the workspace, so adding one
-   *  from in a layer put it somewhere you were not looking. */
+  /** Where you are, when you have picked nothing. */
   it("creates where the stage is pointed when nothing is picked", () => {
     const { onAct } = mount(fold(nested(), FLOOR), { open: "block_edge" });
     fireEvent.click(screen.getByTitle(/add a block/));
@@ -173,13 +165,11 @@ describe("it emits action names and mutates nothing", () => {
 });
 
 describe("re-filing", () => {
-  /** A drop a fraction of the way down a row. A row in a headless DOM has no
-   *  size of its own, and where you let go is the whole question here. */
+  /** A drop a fraction of the way down a row. */
   function drop_at(el: Element, down: number) {
     el.getBoundingClientRect = () => ({ top: 0, height: 100 }) as DOMRect;
     const drop = createEvent.drop(el);
-    /** Written on rather than passed in: a headless `DragEvent` takes no
-     *  pointer of its own, and where you let go is the whole question here. */
+    /** Where the drop lands is written onto the event. */
     Object.defineProperty(drop, "clientY", { value: down * 100 });
     fireEvent(el, drop);
   }
@@ -195,7 +185,7 @@ describe("re-filing", () => {
     expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: "block_billing" });
   });
 
-  /** **On a row is into it; between two rows is beside them.** */
+  /** On a row is into it; between two rows is beside them. */
   it("puts a row in front of the one it was dropped above", () => {
     const { onAct } = mount(fold(nested(), FLOOR));
     drop_at(drag("Auth")("Billing"), 0.1);
@@ -209,8 +199,7 @@ describe("re-filing", () => {
     expect(onAct).toHaveBeenCalledWith("move", { ids: ["block_auth"], parent: "block_ledger" });
   });
 
-  /** **One place down, not to the end.** Below a row whose next sibling is the
-   *  block in hand, that block was asked to go in front of itself. */
+  /** One place down, not to the end. */
   it("puts a row one place down when it is dropped below the one above it", () => {
     const { onAct } = mount(fold(related(), FLOOR));
     drop_at(drag("Heat Exchanger")("Pump"), 0.9);
@@ -218,8 +207,7 @@ describe("re-filing", () => {
       { ids: ["block_hx"], parent: "block_loop", before: "block_tank" });
   });
 
-  /** **Everything that is not a row is the workspace**, which is how a block
-   *  is dragged out of what holds it. */
+  /** Dropping outside the rows moves into the workspace. */
   it.each([[".floor"]])(
     "makes a block a project when it is dropped on %s", (where) => {
       const { onAct, container } = mount(fold(nested(), FLOOR));

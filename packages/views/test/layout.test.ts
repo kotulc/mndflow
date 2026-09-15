@@ -1,8 +1,4 @@
-/** Placement and routing, as properties.
- *
- *  Nothing here asserts a coordinate. What is pinned is that cards do not
- *  overlap, that routes terminate on the cards they name, that every elbow is a
- *  right angle, and that reordering the input does not move the output. */
+/** Placement and routing, as properties. */
 
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, related } from "@mnd/fixtures";
@@ -30,9 +26,7 @@ function overlaps(a: Placed, b: Placed): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-/** A group is drawn **round** what it holds, so it overlaps its members by
- *  definition and sits on the lattice by its rim rather than by its middle.
- *  Every property below is about the things a layer places. */
+/** Groups overlap their members and sit on the lattice by their rim. */
 function placed(graph: Graph, spots: Placed[]): Placed[] {
   return spots.filter((p) => {
     const m = module_of(graph, p.id);
@@ -69,9 +63,7 @@ describe("placement", () => {
     }
   });
 
-  /** **Only under `free`.** A block slotted into the lattice is centred in its
-   *  cell, which leaves it half a step off the backdrop dots — the cell is what
-   *  places it, and re-snapping is what pushed a centred block into a corner. */
+  /** Only under `free`; a gridded block is centred in its cell. */
   it("lands on the grid under free", () => {
     const { graph, layer } = layer_of("related");
     for (const p of under(graph, layer, "free")) {
@@ -197,10 +189,7 @@ describe("the grid arrangement", () => {
 });
 
 
-/** **The one invariant a grid has to keep.** Its cells are the layer's own
- *  lattice, drawn — so every line in one falls on a line the backdrop already
- *  draws, whatever placed the grid and whichever way the layer is arranged. A
- *  grid half a unit off its own guides is the failure this pins down. */
+/** The one invariant a grid has to keep. */
 describe("a grid's cells sit on the unit lattice", () => {
   const grids = (graph: Graph, spots: Placed[]) =>
     spots.filter((p) => is_grid(graph, p.id));
@@ -251,9 +240,7 @@ describe("a grid's cells sit on the unit lattice", () => {
   });
 });
 
-/** **Room between one thing and the next.** A block is smaller than its cell
- *  and a grid keeps a ring inside its box, so what is *drawn* always stands
- *  clear of its neighbours — never touching, never sharing a line. */
+/** Room between one thing and the next. */
 describe("the layout leaves room between things", () => {
 
   it("keeps a unit between a band and its neighbours, the way a grid is kept", () => {
@@ -276,17 +263,13 @@ describe("the layout leaves room between things", () => {
 
   it("keeps at least a unit between any two things it places", () => {
     const { graph: from, layer } = layer_of("gridded");
-    /** A grid and some loose cards on one layer, which is the case this is
-     *  about: the fixture seats everything it has. */
+    /** A grid and loose cards on one layer. */
     const graph: Graph = structuredClone(from);
     for (const id of ["block_plan", "block_build"]) {
       delete graph.blocks[id]!.cell;
       delete graph.blocks[id]!.group;
     }
-    /** **What the layer placed**, which is not the same as what it holds: a
-     *  block seated in a grid is placed by its address inside it and is drawn
-     *  over the band on purpose. A band is its members' bounds and has no place
-     *  of its own either. */
+    /** What the layer placed; seated blocks are placed by their address. */
     const spots = under(graph, layer, "grid")
       .filter((p) => is_grid(graph, p.id)
                   || (!graph.blocks[p.id]!.cell && module_of(graph, p.id) !== "group"
@@ -438,8 +421,7 @@ describe("seats", () => {
     const pump = at.get("block_pump")!;
     const hot = at.get("block_hot")!;
     const hx = at.get("block_hx")!;
-    /** Pump feeds a member of the hot-side band — neighbours, aligned with
-     *  that member so a line can run straight into its face. */
+    /** Pump sits beside the hot-side member it feeds, aligned with it. */
     expect(gap(pump, hot)).toBeGreaterThanOrEqual(GAP);
     expect(gap(pump, hot)).toBeLessThanOrEqual(GAP + UNIT);
     expect(pump.y).toBe(hx.y);
@@ -452,8 +434,7 @@ describe("seats", () => {
     const pump = at.get("block_pump")!;
     const hx = at.get("block_hx")!;
     const valve = at.get("block_valve")!;
-    /** Directed edges leave pump on the member's row. An undirected sibling
-     *  sits above that member rather than past the far end of the band. */
+    /** Directed edges leave pump on the member's row. */
     expect(pump.y).toBe(hx.y);
     expect(valve.x).toBe(hx.x);
     expect(valve.y + valve.h + GAP).toBe(at.get("block_hot")!.y);
@@ -562,8 +543,8 @@ describe("seats", () => {
     const at = new Map(spots.map((p) => [p.id, p]));
     const gap = (a: Placed, b: Placed) => Math.max(
       b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    /** Both hang off the band they actually relate to — not off each other
-     *  in a line stretching past it. */
+    /** Both hang off the band they actually relate to — not off each other in a line stretching
+     *  past it. */
     expect(gap(at.get("block_pump")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
     expect(gap(at.get("block_valve")!, at.get("block_hot")!)).toBeLessThanOrEqual(GAP + UNIT);
   });
@@ -706,8 +687,8 @@ describe("seats", () => {
     const draft = at.get("block_draft")!;
     const gap = (a: Placed, b: Placed) => Math.max(
       b.x - (a.x + a.w), a.x - (b.x + b.w), b.y - (a.y + a.h), a.y - (b.y + b.h));
-    /** Near the named cell — above it on a wide grid, not left of the
-     *  whole lattice and not past an intervening group. */
+    /** Near the named cell — above it on a wide grid, not left of the whole lattice and not past an
+     *  intervening group. */
     expect(inn.x === draft.x || inn.y === draft.y).toBe(true);
     expect(gap(inn, lanes)).toBeLessThanOrEqual(GAP + UNIT);
   });

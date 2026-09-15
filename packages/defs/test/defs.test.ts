@@ -1,9 +1,4 @@
-/** The producer side of the module contract.
- *
- *  **Every shipped definition passes the door, and every module any of them
- *  names exists.** A package is data, so the only thing it can get wrong is
- *  saying something no component in the build can read — which is exactly what
- *  the door now answers, and what this asks it. */
+/** The producer side of the module contract. */
 
 import { describe, expect, it } from "vitest";
 import { BLOCK_MODULES, config_of, unreadable, validate } from "@mnd/core";

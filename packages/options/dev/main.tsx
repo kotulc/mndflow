@@ -1,7 +1,4 @@
-/** The options rail, on its own, over static chrome.
- *
- *  It holds the state the component refuses to and logs every control it
- *  emits. The slots below are what a projection would have declared. */
+/** The options rail, on its own, over static chrome. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -12,9 +9,7 @@ import "@mnd/theme/icons.css";
 import "../src/options.css";
 import "./dev.css";
 
-/** What a projection offers, as it would arrive from a Scene. **The second is
- *  the same layer with a grid picked**, which is what the context group at the
- *  foot of the rail answers for. */
+/** What a projection offers, as it would arrive from a Scene. */
 const SLOTS: Record<string, string[]> = {
   block: ["layer", "display", "relations"],
   "block, a grid picked": ["layer", "display", "relations"],

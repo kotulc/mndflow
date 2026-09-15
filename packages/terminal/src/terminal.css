@@ -1,6 +1,4 @@
-/* One collapsible strip on the **raised** step — not the page ground the navbar
-   shares, not the fill the panel bars share. The body row's strong top rule lives
-   in `base.css`; this is the terminal's own edge. */
+/* One collapsible strip on the raised step. */
 
 .chat {
   min-width: 0;
@@ -17,8 +15,7 @@
   padding: 6px 20px;
 }
 
-/* Shut it shows **the current context or completion, plus a chip** — one row,
-   so the completion sits beside the prompt rather than above it. */
+/* Shut, the completion sits beside the prompt. */
 .chat.collapsed .terminal {
   flex: 1 1 52%;
   min-width: 0;
@@ -97,8 +94,7 @@
 
 .chat .now { overflow: hidden; padding-top: 2px; }
 
-/* A completion says what it matched and fills an example, so the prompt shows
-   its own shape and there is no syntax to learn. */
+/* A completion says what it matched and fills an example. */
 .chat .matched { color: var(--muted); font-size: 11px; margin-top: 2px; }
 .chat .matched b { color: var(--accent); font-weight: 600; }
 .chat .matched em { color: var(--text); font-style: normal; }
@@ -106,12 +102,10 @@
 .chat .matched .asks { white-space: nowrap; }
 .chat .said { color: var(--text); }
 
-/* Quiet reads as off rather than as another state to learn: the control dims
-   with the thing it silenced. */
+/* Quiet dims the control. */
 .chat .bound.mute[aria-pressed="true"] { color: var(--faint); }
 
-/* The question, when the conversation is running. Louder than a completion:
-   it is the one thing on the strip actually waiting for you. */
+/* The question, when the conversation is running. */
 .chat .hint { color: var(--muted); font-size: 11px; }
 
 /* The prompt. A caret and a line, and nothing that looks like a form. */
@@ -136,9 +130,7 @@
 
 .chat .typed input::placeholder { color: var(--faint); }
 
-/* Chips are the offered list. Each keeps the base button's border and ground,
-   so a control here reads as the same kind of thing as a control on the rail —
-   one app, not two toolbars that happened to grow separately. */
+/* Chips keep the base button look, so they read like the rail's controls. */
 .chat .choices { display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start; }
 
 .chat .chip {

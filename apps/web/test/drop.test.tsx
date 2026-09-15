@@ -1,15 +1,4 @@
-/** The one thing the shell decides about a drop, driven through the shell.
- *
- *  **A block dropped onto the drawing arrives as a reference.** The only thing
- *  that is not is a block the layer already holds, and then nothing happens at
- *  all. Where the block came from, what holds it and how deep it sits change
- *  nothing — the rule has no other case, and this is here because it used to
- *  have three: a drop of a child of something drawn here promoted it a level
- *  instead of referring to it, and a drop of something already here silently
- *  re-placed the card.
- *
- *  Driven through `App` rather than through the action, because the branching
- *  that broke it lived in the shell and an action test would not have seen it. */
+/** The one thing the shell decides about a drop, driven through the shell. */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
@@ -60,8 +49,7 @@ function fold_of(): Record<string, { parent: string | null; of?: string }> {
 }
 
 describe("a block dropped from the tree onto the drawing", () => {
-  /** **The case that broke.** Ledger is held by Shelf, and Shelf is drawn in
-   *  this layer — which used to be read as *bring it up a level*. */
+  /** Ledger is held by Shelf, which is drawn in this layer. */
   it("refers to a child of something drawn in this layer", () => {
     const view = render(<App storage={storage} />);
     const was = log().length;
@@ -81,8 +69,7 @@ describe("a block dropped from the tree onto the drawing", () => {
     expect(fold_of()["block_rate"]!.parent).toBe("block_edge");
   });
 
-  /** **The one exception, and it is the whole of it.** Nothing arrives, and
-   *  nothing already here is moved or re-placed either. */
+  /** The one exception, and it is the whole of it. */
   it("does nothing with a block this layer already holds", () => {
     const view = render(<App storage={storage} />);
     const was = log().length;

@@ -1,14 +1,4 @@
-/** The seam's contract, from the outside.
- *
- *  **A producer proves its output satisfies the invariants; a consumer proves
- *  it handles anything that does.** This is the consumer half, and the producer
- *  is a translator that does not live here — so what is held to is the *shape*
- *  a translator hands over, never a particular one, and nothing in this file
- *  imports one.
- *
- *  The names below are the ones `@mnd/kit` re-exports and nothing else. That is
- *  the point of running it: an outside tool reaches only these, so if the round
- *  trip needs anything else the seam is short a name. */
+/** The seam's contract, from the outside. */
 
 import { describe, expect, it } from "vitest";
 import { open, review, validate, write } from "@mnd/core";
@@ -16,8 +6,7 @@ import { FLOOR, TIER, translated } from "@mnd/fixtures";
 import { SHEET, draw_svg, project } from "@mnd/views";
 
 const graph = translated();
-/** One layer is a block and its direct children, so the pages are drawn from
- *  the folder holding them rather than from the tier root above it. */
+/** Drawn from the folder holding the pages. */
 const scene = project(graph, "set_guides", {});
 
 describe("a translator's graph", () => {
@@ -42,9 +31,7 @@ describe("a translator's graph", () => {
   });
 });
 
-/** **Where a block came from is a field, and following one is a renderer's.**
- *  A translator makes a box clickable by saying so in the graph — never by
- *  reaching into a drawing — so these are the tests that keep that true. */
+/** Where a block came from is a field, and following one is a renderer's. */
 describe("a drawing as navigation", () => {
   it("carries the source link on every navigable box", () => {
     for (const n of scene.nodes) expect(n.data.link).toBeTruthy();
@@ -55,8 +42,7 @@ describe("a drawing as navigation", () => {
   });
 });
 
-/** A page holding the drawing is Markdown or MDX, and MDX reads a brace as the
- *  start of an expression. Neither the markup nor a label may hand it one. */
+/** Inlined in MDX, where a brace starts an expression. */
 describe("a drawing inlined in a page", () => {
   it("drops the stylesheet when one is supplied empty", () => {
     expect(draw_svg(scene, { style: "" })).toContain("<style></style>");

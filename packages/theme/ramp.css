@@ -1,48 +1,21 @@
-/* The colour ramp (Y.5). Slots × steps, and nothing anywhere names a colour.
-   Reverses U.4: a theme reaches the drawing now, not only the shell.
-
-   A **step** is a job — `fill` is what a thing rests on, `ink` is text on it —
-   and it means the same job in every slot and every theme, which is what makes
-   contrast structural instead of checked by eye three times.
-
-   A **slot** is a family. `primary` is green in retro and blue in modern: slots
-   are theme-relative, never hues, because a slot meaning *jade* everywhere is
-   what left the diagram green inside a blue shell. There is deliberately no
-   slot named for a lightness — lightness is the ladder's, and a `dark` slot
-   could not survive the light theme.
-
-   Steps are **computed**, not written: a theme declares a lightness ladder and
-   two numbers a slot, and `oklch()` does the rest. It is perceptually uniform,
-   so one ladder holds its contrast across every hue. Twenty numbers a theme
-   rather than sixty hand-picked hexes.
-
-   Slot variables are `--s-<slot>-<step>`. The `--s-` is not decoration: it
-   keeps the `muted` *slot* clear of `--muted`, the chrome's dim text. */
+/* The colour ramp (Y.5). Slots × steps, and nothing anywhere names a colour. */
 
 :root {
-  /* Two accent families and two greys, per theme. **A family is a preset over
-     the same two numbers a usage may give directly** — a hue and a chroma —
-     so naming more of them was never what was missing. */
+  /* Two accent families and two greys, per theme. */
   --primary-h: 150; --primary-c: 0.19;
   --secondary-h: 200; --secondary-c: 0.12;
   --neutral-h: 160; --neutral-c: 0.05;
   --muted-h: 160; --muted-c: 0.025;
 
-  /* Reserved: the app speaking about your model rather than the model
-     speaking, so a definition can never pick one. Their **hue is fixed across
-     themes** — violet always means elsewhere, amber always a note — while
-     their lightness follows the ladder, which is what the old flat hexes could
-     not do and why they were invisible in `light`. */
+  /* Reserved: the app speaking about your model rather than the model speaking, so a definition
+     can never pick one. */
   --away-h: 286; --away-c: 0.12;
   --note-h: 78; --note-c: 0.09;
   --error-h: 25; --error-c: 0.18;
   --warn-h: 50; --warn-c: 0.14;
 }
 
-/* A theme is its ladder plus twelve numbers. `--l-outside` is the ground beyond
-   the frame — dimmer than the working area in every theme, but *relative* to it
-   rather than a fixed near-black, which is what left a dark surround around a
-   pale canvas. */
+/* A theme is its ladder plus twelve numbers. */
 
 /* `retro` — the greens the app was built in. */
 :root,
@@ -66,10 +39,7 @@
   --muted-h: 160; --muted-c: 0.025;
 }
 
-/* `modern` — a cyanotype. The paper is *blue*, not black, which is why this one
-   needs its own ladder rather than retro's: a blueprint's ground sits well off
-   the floor, and the chroma on the greys is what makes it read as paper instead
-   of as a dark grey shell with blue accents. */
+/* `modern` — a cyanotype, on blue paper with its own ladder. */
 :root[data-theme="modern"] {
   --l-ground: 0.225;
   --l-fill: 0.275;
@@ -84,19 +54,14 @@
   --outside-a: 0.62;
   color-scheme: dark;
 
-  /* **Blue, not blue-green.** At 205 the primary family came out a teal that
-     read as green beside the retro theme's actual green, which made the one
-     family every base block wears the hardest one to name. Secondary moves out
-     of its way rather than sitting fifteen degrees off it, where the two were
-     one colour. */
+  /* Blue, not blue-green, so primary never reads as green. */
   --primary-h: 230; --primary-c: 0.13;
   --secondary-h: 195; --secondary-c: 0.11;
   --neutral-h: 245; --neutral-c: 0.075;
   --muted-h: 245; --muted-c: 0.045;
 }
 
-/* `light` — the whiteprint the cyanotype became: blue ink on pale paper. The
-   ladder inverts. */
+/* `light` — the whiteprint the cyanotype became: blue ink on pale paper. */
 :root[data-theme="light"] {
   --l-ground: 0.958;
   --l-fill: 0.985;
@@ -117,15 +82,7 @@
   --muted-h: 232; --muted-c: 0.014;
 }
 
-/* The steps, written once. Chroma is scaled per step as well as per slot: a
-   card filled with `primary` must not be neon, while its border and its text
-   still have to carry the family.
-
-   **`line` and `stroke` are two jobs, not one.** `line` is a border drawn on a
-   card — it sits against `fill`. `stroke` is a line drawn on the **canvas
-   ground**: the frame, the walls, a route. One step served both until the
-   whiteprint made the difference visible, where a `line` on pale paper all but
-   vanished while the flow walls stayed — the frame looked deleted. */
+/* The steps, written once; chroma scales per step as well as per slot. */
 :root {
   --s-primary-fill: oklch(var(--l-fill) calc(var(--primary-c) * 0.18) var(--primary-h));
   --s-primary-raised: oklch(var(--l-raised) calc(var(--primary-c) * 0.26) var(--primary-h));
@@ -145,8 +102,7 @@
 
 
 
-  /* The greys carry the shell, so these two are the only slots with a ground
-     and a divider — the steps a card has no use for. */
+  /* The greys carry the shell, so only they have a ground and a divider. */
   --s-neutral-ground: oklch(var(--l-ground) calc(var(--neutral-c) * 0.30) var(--neutral-h));
   --s-neutral-fill: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h));
   --s-neutral-raised: oklch(var(--l-raised) calc(var(--neutral-c) * 0.40) var(--neutral-h));
@@ -176,10 +132,7 @@
   --s-note-dim: oklch(var(--l-dim) calc(var(--note-c) * 0.32) var(--note-h));
   --s-note-ink: oklch(var(--l-ink) calc(var(--note-c) * 0.30) var(--note-h));
 
-  /* **What a usage's own two numbers are measured against.** `intensity` is a
-     fraction of this ceiling rather than a raw chroma, so a definition still
-     cannot out-shout the theme it is opened in — and the ladder above still
-     owns every lightness, which is where *ink reads on fill* comes from. */
+  /* What a usage's own two numbers are measured against. */
   --tint-ceiling: 0.19;
 
   --s-error-edge: oklch(var(--l-edge) var(--error-c) var(--error-h));
@@ -187,19 +140,12 @@
   --s-warn-edge: oklch(var(--l-edge) var(--warn-c) var(--warn-h));
 }
 
-/* The shell reads the ramp rather than a palette of its own (Y.5). Two colour
-   systems drifting apart is how the diagram stayed green inside a blue shell,
-   so these are names for steps now and not values. */
+/* The shell reads the ramp rather than a palette of its own (Y.5). */
 :root {
   --bg: var(--s-neutral-ground);
   --surface: var(--s-neutral-fill);
   --hover: var(--s-neutral-raised);
-  /* What a banded row sits on. **A wash, not a step.** Banding with `ground`
-     under a `fill` surface is a whole rung of the ladder — 5 points of L in
-     both dark themes — so the eye read the stripes before it read the rows.
-     3% of ink is ~2 points in all three, and it is ink rather than a step so
-     the band always moves *toward* the writing: lighter on a dark theme, darker
-     on a light one, without either being said twice. */
+  /* What a banded row sits on. A wash, not a step. */
   --band: color-mix(in oklch, var(--s-neutral-ink) 3%, transparent);
   --divider: var(--s-neutral-divide);
   --border: var(--s-neutral-line);
@@ -216,13 +162,10 @@
   --note-dim: var(--s-note-stroke);
   --error: var(--s-error-edge);
   --warn: var(--s-warn-edge);
-  /* Translucent panels ride over whatever is behind them, so this one keeps an
-     alpha the steps do not carry. */
+  /* Translucent panels keep an alpha. */
   --chrome: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h) / 0.92);
 
-  /* What the drawing reads (Y.6). Named for the thing rather than the slot, so
-     `Y.7` can point a definition at another slot without touching a rule. The
-     default is `neutral`, which is what an unstyled model gets. */
+  /* What the drawing reads, named for the thing rather than the slot. */
   --card-fill: var(--s-neutral-fill);
   --card-line: var(--s-neutral-line);
   --card-raised: var(--s-neutral-raised);
@@ -230,34 +173,22 @@
   --card-veil: oklch(var(--l-fill) calc(var(--neutral-c) * 0.35) var(--neutral-h) / 0.6);
   --card-veil-lit: oklch(var(--l-raised) calc(var(--neutral-c) * 0.4) var(--neutral-h) / 0.75);
   --glow: color-mix(in oklch, var(--accent) 35%, transparent);
-  /* Walls and interfaces are the engine's own structure, so they carry the
-     app's hue rather than a definition's. */
+  /* Walls and interfaces are the engine's own structure, so they carry the app's hue rather than a
+     definition's. */
   --wall: var(--s-primary-stroke);
   --wall-lit: var(--s-primary-dim);
   /* Ink that has to read on a filled warning or error patch. */
   --on-loud: var(--s-neutral-ground);
-  /* Routes. Read by the canvas, which hands these to React Flow as stroke
-     values — a `var()` resolves there because the edge is drawn in the page. */
+  /* Routes, handed to React Flow as stroke values. */
   --route: var(--s-primary-stroke);
   --route-head: var(--s-primary-dim);
-  /* A tie is a note's own line, so it is the note's hue a step down — the same
-     value the note card is drawn in, which is what makes a remark and the line
-     carrying it to a block read as one thing. */
+  /* A tie takes the note's hue. */
   --route-tie: var(--s-note-stroke);
-  /* Beyond the frame. Dimmer than the working area in every theme, but taken
-     from the ladder rather than fixed — a near-black surround is right in a
-     cyanotype and wrong on a whiteprint. */
+  /* Beyond the frame: dimmer, taken from the ladder. */
   --outside: oklch(var(--l-outside) calc(var(--neutral-c) * 0.3) var(--neutral-h)
                    / var(--outside-a));
 
-  /* What a definition's `style.weight` names comes to (Y.9). Theme-wide and
-     not per-theme, since a stroke weight is not a colour — but here rather
-     than in the component, so the numbers stay the stylesheet's. */
-  /* **Doubling, because a border cannot be half a device pixel.** Half a pixel
-     against one against two came out as three borders nobody could tell apart:
-     the browser rounded the first two to the same line. One, two, four are three
-     lines anybody can tell apart at any zoom, and `thin` is what a card is
-     drawn with unless something says otherwise. */
+  /* Doubling, because a border cannot be half a device pixel. */
   --weight-thin: 1px;
   --weight-medium: 2px;
   --weight-thick: 4px;

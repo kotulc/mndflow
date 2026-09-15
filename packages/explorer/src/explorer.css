@@ -4,10 +4,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  /* Width is dragged, and the panel writes it inline. Never grows or shrinks
-     to fit the row: what it was dragged to is what it is, up to a third of the
-     window — said here as well as at the grip, so a window resized narrower
-     gives the drawing its two thirds back without anybody dragging anything. */
+  /* Width is dragged, and the panel writes it inline. */
   flex: none;
   max-width: 33.333vw;
   border-right: 1px solid var(--divider);
@@ -15,8 +12,7 @@
   overflow: hidden;
 }
 
-/* The edge, as the control that sets the width. It sits over the panel's own
-   border rather than beside it, so nothing moves when the pointer arrives. */
+/* The edge, as the control that sets the width. */
 .explorer .grip {
   position: absolute;
   top: 0;
@@ -30,8 +26,7 @@
 
 .explorer .grip:hover, .explorer .grip:active { background: var(--accent); }
 
-/* The tree's own header — one step above the tree, closer to the body than
-   the navbar's fill. Shell rules for `.bar` live in `base.css`. */
+/* The tree's own header. */
 
 .explorer .bar .chip {
   display: inline-flex;
@@ -45,9 +40,7 @@
 
 .explorer .bar .chip .icon-svg { flex: none; }
 
-/* The name is its own element, so it is the one that has to trail off — an
-   ellipsis on the chip around it never had the text to put one on, and a long
-   name was cut off mid-letter at the panel's edge. */
+/* The name trails off, not the chip around it. */
 .explorer .bar .chip .label {
   min-width: 0;
   overflow: hidden;
@@ -79,16 +72,12 @@
   border-left: 2px solid transparent;
 }
 
-/* A branch reads tighter than the things it hangs off. Top-level rows are
-   several trees, not one list, so they are spaced apart; everything under one
-   of them is a single run and closes up. */
+/* A branch reads tighter than the things it hangs off. */
 .explorer .tree li.top { padding-top: 3px; padding-bottom: 3px; }
 .explorer .tree li.top + li.top, .explorer .tree li:not(.top) + li.top { margin-top: 6px; }
 .explorer .tree li.top:first-child { margin-top: 0; }
 
-/* Guide lines, one per level above the row, hung under the holder's mark. The
-   last stops at the row's middle when nothing follows it, so an open nest below
-   does not stretch its holder's line through the grandchildren. */
+/* Guide lines, one per level above the row, hung under the holder's mark. */
 .explorer .tree .guide {
   position: absolute;
   top: 0;
@@ -98,13 +87,10 @@
   pointer-events: none;
 }
 
-/* Nothing follows in this column, so the line stops where the row it belongs
-   to sits rather than running on past it. */
+/* Nothing follows in this column, so the line stops at this row. */
 .explorer .tree .guide.stop { bottom: auto; height: 50%; }
 
-/* A branch's own segment, joining its mark to the line under it. **It starts
-   below the mark, not at its middle** — this column is the row's own, so a
-   line from the centre ran straight down through the icon. */
+/* A branch's own segment, joining its mark to the line under it. */
 .explorer .tree .guide.down { top: calc(50% + 8px); }
 
 /* The tick across to the row, ending where its mark begins. */
@@ -118,10 +104,7 @@
   background: var(--divider);
 }
 
-/* Two states, two looks, and never the same wash. Open is where the stage is
-   pointed — a tint, because it is the app saying where you are; picked is what
-   an action would act on, and it reads first on the neutral step with the rail
-   beside it. Both on `--hover`, the one told the other nothing. */
+/* Two states, two looks, and never the same wash. */
 .explorer .tree li.open { background: var(--tint); }
 .explorer .tree li.picked {
   border-left-color: var(--accent);
@@ -129,8 +112,7 @@
   background: var(--hover);
 }
 
-/* What a narrowing found, and what it did not. **Lit, never hidden** — the
-   tree is the only place a match can be seen where it lives. */
+/* What a narrowing found, and what it did not. */
 .explorer .tree li.lit {
   background: var(--hover);
   border-left-color: var(--accent);
@@ -139,10 +121,7 @@
 .explorer .tree li.dim { color: var(--faint); }
 .explorer .tree li.dim .mark { color: var(--faint); }
 
-/* Where a drop would land. The clear space below the tree is the workspace;
-   a row under the pointer names a branch. The floor takes a quiet wash; rows
-   take the same wash for the branch, with a stronger step on the holder and a
-   seam line when the drop is above or below. */
+/* Where a drop would land. */
 .explorer .tree li.floor.out {
   background: color-mix(in oklch, var(--accent) 6%, var(--bg));
 }
@@ -157,32 +136,25 @@
 }
 .explorer .tree li.to-above { box-shadow: inset 0 1px 0 0 var(--accent); }
 .explorer .tree li.to-below { box-shadow: inset 0 -1px 0 0 var(--accent); }
-/* The mark sits on the row's own centre line, whatever the label's height —
-   the icon is a box, not a glyph riding a baseline. */
+/* The mark sits on the row's centre line. */
 .explorer .tree .mark {
   display: inline-flex;
   align-items: center;
   color: var(--muted);
   flex: none;
-  /* **Only a branch is a button.** A leaf holds nothing to fold, and a pointer
-     over one promised something it could not do. */
+  /* Only a branch's mark is a button. */
   cursor: default;
 }
 .explorer .tree .mark.on, .explorer .tree .mark.shut { cursor: pointer; }
 .explorer .tree li.picked .mark { color: var(--accent); }
-/* **An open branch says so in the mark.** The icon is what folds one, so it
-   takes the accent while what it holds is listed and stands down when it is
-   shut — the one place in the tree where a colour is a state and not a role. */
+/* An open branch says so in the mark. */
 .explorer .tree .mark.on { color: var(--accent); }
-/* A shut branch stands down even where the row is lit: whether you are seeing
-   what it holds is not the same question as whether it is picked. */
+/* A shut branch's mark stands down even on a picked row. */
 .explorer .tree li.picked .mark.shut { color: var(--muted); }
 .explorer .tree .mark.shut:hover, .explorer .tree .mark.on:hover { color: var(--accent); }
 .explorer .tree .label { overflow: hidden; text-overflow: ellipsis; }
 
-/* Reading its type rather than a name somebody chose — quiet, so a
-   placeholder never reads as loudly as a name, and the mark beside it quieter
-   still. */
+/* An unnamed row reads quietly. */
 .explorer .tree li.unnamed .label { opacity: 0.6; font-style: italic; }
 
 .explorer .tree .alias {
@@ -193,12 +165,10 @@
   letter-spacing: 0.04em;
 }
 
-/* The clear space below takes a drop too: a block dropped there becomes a
-   project, since a project is a block nothing contains. */
+/* The space below the tree takes a drop into the workspace. */
 .explorer .tree .floor { min-height: 48px; border-left-color: transparent; }
 
-/* The offered list. Membership only, in a fixed order — a menu has no positions
-   worth learning, so what does not apply is not shown rather than greyed out. */
+/* The offered list. */
 
 .menu {
   position: fixed;
@@ -231,16 +201,7 @@
 .menu .asking .choices button:hover { color: var(--accent); }
 .menu .asking .about { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
 
-/* The definitions: what the workspace can say, above the tree of what it is.
-   **Ordinary rows** — the marks, guides, indent and fold are the tree's own, so
-   what is left here is the little that differs: the seam under the folder, a
-   quieter pack row, and a definition drawn as a word rather than a name being
-   edited in place.
-
-   **A folder lights when it holds something**, here as everywhere else in the
-   tree: these rows took the accent whatever they held, so an empty *workspace*
-   read as loudly as a full one and the mark said nothing. `.mark.on` already
-   answers that question for every other row. */
+/* The definitions: what the workspace can say, above the tree of what it is. */
 .explorer .tree li.pack .label { color: var(--muted); }
 
 .explorer .tree li.def .label { color: var(--text); }
@@ -251,8 +212,7 @@
   text-transform: uppercase;
 }
 
-/* **One line between what the workspace can say and what it is.** Two lists,
-   one panel — the seam is what keeps them from reading as one run. */
+/* One line between what the workspace can say and what it is. */
 .explorer .tree li.sep {
   border-top: 1px solid var(--divider);
   margin-top: 3px;
