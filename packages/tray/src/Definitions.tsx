@@ -39,10 +39,8 @@ export type DefinitionsProps = {
   target?: string;
   /** What a new row extends until another is picked — the one in hand. */
   from: Id;
-  /** What the list opens narrowed to, as the explorer's section left it. */
+  /** What the list opens narrowed to, as the explorer's folder left it. */
   seed?: Only;
-  /** One package, when the tray is pointed at it: the packages chip becomes that package. */
-  pack?: string;
   onPick: (id: Id) => void;
   onAct: Act;
 };
@@ -55,7 +53,7 @@ export function taken(graph: Graph, name: string, group: "block" | "relation",
 }
 
 export function Definitions({ graph, group, held, lines, target = "the selection", from, onPick,
-                              onAct, seed = "all", pack }: DefinitionsProps) {
+                              onAct, seed = "all" }: DefinitionsProps) {
   const [only, set_only] = useState<Only>(seed);
   const [name, set_name] = useState("");
   const [label, set_label] = useState("");
@@ -66,13 +64,12 @@ export function Definitions({ graph, group, held, lines, target = "the selection
   const pinned = new Set(pinned_defs(graph, group).map((d) => d.id));
   const fits = (r: DefRow, k: Only) =>
     k === "all" ? true
-    : k === "package" ? (pack ? r.from === pack : !!r.from)
+    : k === "package" ? !!r.from
     : k === "default" ? r.base
     : k === "pinned" ? pinned.has(r.id)
     : !!r.label;
-  /** A package in context names its own chip; a block group has no labels. */
-  const sorts = SORTS.filter((s) => (group === "relation" || s.key !== "labelled"))
-    .map((s) => (s.key === "package" && pack ? { ...s, word: pack } : s));
+  /** Only a relation carries a label. */
+  const sorts = SORTS.filter((s) => group === "relation" || s.key !== "labelled");
 
   /** What a definition may extend: never itself or below it, and a default only within its kind. */
   const kind = (id: Id) => (group === "relation" ? relation_named(graph, id) : module_named(graph, id));

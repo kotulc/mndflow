@@ -12,12 +12,12 @@
 ├──────────────────────────────────────────────────────────────┤  controls that reach a port
 │ + Heat Exchanger_                            add blocks      │  terminal: four commands
 ├──────────────┬─────────────────────────────┬─────────────────┤
-│ Ledger/      │   ┌╌╌╌╌╌╌╌╌┐                │ Arrangement     │
-│ ▾ Edge/      │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● grid│  stage: one layer, and a
-│   ├─ Auth    │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
-│   └─ Rate…   │   └╌╌╌╌╌╌╌╌┘                │ Shows           │
-│ · Billing    ├─────────────────────────────┤   ☑ label       │  options: the slots the
-│              │ contents · this             │   ☐ fields      │  projection asked for
+│ packages     │   ┌╌╌╌╌╌╌╌╌┐                │ Arrangement     │
+│ definitions  │   ┆ Edge   ┆ ──▶ ( Billing )│   ○ free  ● grid│  stage: one layer, and a
+│ ▾ workspace  │   ┆ ▪ ▪    ┆                │                 │  grid is a block on it
+│   ▾ Ledger/  │   └╌╌╌╌╌╌╌╌┘                │ Shows           │
+│    ├─ Auth   ├─────────────────────────────┤   ☑ label       │  options: the slots the
+│    └─ Rate…  │ contents · this             │   ☐ fields      │  projection asked for
 │  explorer    │  Auth   Module              │                 │
 └──────────────┴─────────────────────────────┴─────────────────┘
                        tray: what the open layer holds
@@ -43,7 +43,7 @@ The embedding weights and the ONNX runtime are vendored under `public/` and stor
 | Where | What you can do |
 |---|---|
 | **Header** | undo, redo, import, export, a new workspace, the terminal, the theme — each reaches a **port**, never the graph |
-| **Explorer** | the tree, and the menu that hangs off it. **A click navigates** |
+| **Explorer** | three collections — packages, definitions, and the workspace's tree — and the menu that hangs off the tree. **A click on a block navigates; a click on a library row points the tray** |
 | **Stage** | **the left button works what is there; the right button makes something new.** Within the right button a click makes what sits at a point and a drag makes what has extent. A click here selects and never navigates |
 | **Options** | settings for the workspace or a new definition, then the groups the projection asks for — arrangement, what the drawing shows, and what a right drag draws |
 | **Tray** | what the open layer holds, as rows |

@@ -9,12 +9,13 @@
 
 | | |
 |---|---|
-| **checks** | `npm run typecheck` clean, `npx vitest run` 354 in 13 files, `npm run lint:css` clean, and the CLI's `check` reads both samples clean |
+| **checks** | `npm run typecheck` clean, `npx vitest run` 356 in 13 files, `npm run lint:css` clean, and the CLI's `check` reads both samples clean |
 | **the model** | one base per kind — eight block kinds, `line` and `tie` — and one editable **default** per kind that every plain element follows. Everything else is the workspace's and extends its base. Ids are minted, names are labels, and a name is unique within its group |
 | **relations** | `line` and `tie`, with `tie` derived from the ends and re-derived at the door. Both ends are blocks: a tie on a line came out with the last commit |
 | **the door checks, it does not migrate** | integrity, component validation, one default per kind, and a definition extending nothing pointed at its base. A schema change re-saves the samples |
 | **definitions** | made from an element with `save_def`, dissolved with `remove_def`, offered with `pin` — the rail for a line, the explorer's pinned folder for a block. Styling an element that names a workspace definition edits that definition; anything else keeps a working look |
-| **the tray** | one context named plainly in the head, five tabs for a block and three for a relation, tables with one shared *layer / workspace* scope, and hover distinct from a pick |
+| **the explorer** | three collections under one row renderer — packages, definitions, the workspace — each ruled off from the one above. The workspace is the single root and every top-level block is a branch under it; a library row points the tray rather than folding |
+| **the tray** | one context named plainly in the head, four tabs for a block, four for a definition, three for a relation and one for each library section, tables with one shared *layer / workspace* scope, and hover distinct from a pick |
 | **storage** | the log in IndexedDB, each body kept once by SHA-256 hash, loaded before the app mounts. One gesture is one step, through `session.batch` |
 | **what is proven** | the suites cover the engine, the door, the grid, geometry and the seam. The canvas and the tray are driven by hand — the base model, pinning, tags, `batch`, `graft`, body storage and the group rule have no tests |
 
@@ -41,12 +42,11 @@
 | **rules are stated nowhere** | the panel could state three of the five kinds and show the other two, because `look` writes one scalar while `ends` and `degree` are nested records. The model side stands: the `rules` component validates all five at the door, `rules_of` resolves them, and `review` reads what survives. See ST.17 |
 | **a block is renamed per keystroke** | the settings name box sends `rename` on every change; every other box commits when it is left |
 | **grids filter as blocks** | the contents chips count a grid under *blocks*, not *groups* |
-| **the base floor lists as a package** | the packages tab shows `base` beside anything imported, because the floor carries a `from` |
 | **adding a field from the bar** | the legacy app had it |
 
 ### 3 — The explorer
 
-**One tree, sections all the way down.** The panel holds the workspace and the definition folders, and the only difference that should matter is which one the user writes and which one the app does. A section is a projection the app hands over, never a block — `vocab_of` already emits one beside the tree.
+**One tree, sections all the way down.** The panel holds three collections drawn with one row — packages, definitions, and the workspace itself — and the only difference that should matter is which one the user writes and which one the app does. A section is a projection the app hands over, never a block — `packs_of` and `vocab_of` already emit two beside the tree.
 
 **A definition is drawn as a block.** Same row renderer, same marks, same selection, and the projected folders are openable canvases holding their definitions, each wearing its own style, so a vocabulary reads as a family. The canvas compares `style` only, since a grid, a reference or an interface drawn as a card cannot show what makes it one.
 
@@ -78,8 +78,8 @@
 | doc | what trails |
 |---|---|
 | **spec.md** | a `knot` node for a tie on a line, which is gone |
-| **tray.md, explorer.md, options.md** | the rail offers no *tie*; the pinned folder; the draft's extends showing `base/<kind>` until one is picked |
-| **stories.md, README** | ST.4, ST.13, ST.15 and ST.16, and the tray section; package search fetches at run time |
+| **options.md** | the rail offers no *tie* |
+| **stories.md, README** | ST.4, ST.13 and ST.15; package search fetches at run time |
 | **defs.md** | packages live in `public/packages`; `tie` ships a base |
 
 
@@ -114,7 +114,7 @@
 |---|---|
 | **Behaviour has no mechanism** | *the model defines itself as the user builds* has half an answer in the grid; nothing yet reads an order or an allocation |
 | **Definition shape is cut** | it comes back when every renderer can draw one |
-| **A named package is unchecked** | the packages tab reads what is in use off `vocabulary()`; reconciling that against the catalogue is the check |
+| **A named package is unchecked** | the packages tab reads what is in use off `packages()`; reconciling that against the catalogue is the check |
 | **The SysML round trip loses ties** | `tie` goes out as `comment` and comes back as `line` |
 | **The SVG export paints by kind** | notes, groups and ties are coloured by class in `svg.ts`, where the canvas reads their definitions |
 | **Note detection is spelled three ways** | `module_of`, a literal `type === "note"` in `arrange.ts`, and a `config_of` read in `look.ts` |

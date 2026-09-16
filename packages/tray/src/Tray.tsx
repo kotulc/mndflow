@@ -55,7 +55,7 @@ const SLOTS: Record<Context, readonly Tab[]> = {
   definition: ["definitions", "settings", "fields", "usages"],
   relation: ["settings", "definitions", "usages"],
   library: ["definitions"],
-  packages: ["packages", "definitions"],
+  packages: ["packages"],
 };
 
 const HEAD: readonly Column[] = [
@@ -231,10 +231,8 @@ export function Tray(props: TrayProps) {
     </>
   );
 
-  /** What the definitions tab opens narrowed to; the key re-seeds it when the section changes. */
-  const narrowed: Only = library?.of === "defs" ? library.only
-    : library?.of === "packs" ? "package" : "all";
-  const pack = library?.of === "packs" ? library.from : null;
+  /** What the definitions tab opens narrowed to; the key re-seeds it when the folder changes. */
+  const narrowed: Only = library?.of === "defs" ? library.only : "all";
 
   /** The definition a relation context is about. */
   const held_def = graph.defs[about] ? about : def_of(graph, about) ?? null;
@@ -337,9 +335,7 @@ export function Tray(props: TrayProps) {
                       onPick={(from) => onHold({ of: "packs", from })} />
           ) : null}
           {onAct && tab === "definitions" ? (
-            <Definitions key={`${narrowed}:${pack ?? ""}`} seed={narrowed}
-                         {...(pack ? { pack } : {})}
-                         graph={graph} group={context === "relation" ? "relation" : "block"}
+            <Definitions key={narrowed} seed={narrowed} graph={graph} group={context === "relation" ? "relation" : "block"}
                          held={targets.length && !hold ? lit_def ?? held_def : held_def}
                          onAct={act} lines={targets} target={target_name}
                          onPick={pick_def}

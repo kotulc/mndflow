@@ -173,12 +173,12 @@ A relationship carries a definition exactly as a block does — `group: "relatio
 
 | scope | what it settles |
 |---|---|
-| **workspace** | **a block**, in the same panel as any other: its name and id, its schema beside the card, every block tab, and the packages it draws on |
+| **workspace** | **a block**, in the same panel as any other and with nothing extra: its name and id, its schema beside the card, and every block tab. What it draws on is the explorer's *packages* section, not a tab the root alone carries |
 | **block** | a blank block definition, filed when it is named |
 | **relation** | a blank relation definition, filed when it is named |
 | **element** | what it is, how it draws, what it carries |
 
-**Every scope keeps the same three slots**, and only the words change: *settings* is what this is, the second slot is what it **declares** — fields, packages, templates — and the third is what **exists** — contents, or usages. A tab that cannot be answered is absent rather than empty.
+**Every scope keeps the same three slots**, and only the words change: *settings* is what this is, the second slot is what it **declares** — fields, templates — and the third is what **exists** — contents, or usages. A tab that cannot be answered is absent rather than empty.
 
 **A vocabulary is two depths of one kind.** A **template** carries a look and is what a line is made to look like; a **stereotype** carries a name and an `extends` and is what a line is called. Nothing separates them but what they say, so four templates carry forty stereotypes and the chain resolves them. A template is simply one nothing names directly.
 
@@ -278,7 +278,7 @@ component.
 
 **The rule the rest falls out of: the tray shows whatever is in context.** Nothing picked is the open layer. One table serves contents, definitions, usages and packages, differing only in rows and columns.
 
-**Definitions are held, not picked.** What types exist and what fields a type declares are the **vocabulary**, reached by holding a definition — from the explorer, the definitions tab, or the rail's settings — so editing one never depends on something being selected on the stage.
+**Definitions are held, not picked.** What types exist and what fields a type declares are the **vocabulary**, reached by holding a definition — from the explorer, the definitions tab, or the rail's settings — so editing one never depends on something being selected on the stage. **A folder of them is held the same way**: the explorer's sections put the tray on the whole list, narrowed to what the folder holds.
 
 
 ## Updated interaction rules (model rules)
@@ -302,7 +302,8 @@ component.
 ## Small settled rules
 
 - **A group goes when its last member leaves.** Leaving, being deleted or moving to another layer all count, and a group emptied that way takes an emptied holder with it. **A group is empty only when it was made empty** — a group definition dropped on empty ground is room for what goes in.
-- **Unpinned definitions live in the tray.** The explorer lists defaults, pinned definitions and packages, never every definition, exactly as the rail offers only pinned relations.
+- **Unpinned definitions live in the tray.** The explorer lists defaults and pinned definitions, never every definition, exactly as the rail offers only pinned relations. **Packages are a section of their own** above them, naming what the workspace draws on and listing none of it — a package's definitions are read in the tray.
+- **A library row points the tray, it does not fold.** Clicking *packages*, *definitions*, *default*, *pinned* or one definition sets what the tray is about; the mark is what folds, exactly as it is on a block.
 
 - **A project row carries its block count** — `Coolant Loop (34)` — so the weight of a folded
   project reads at a glance. The **explorer's alone**; derived, never stored. **It must not count

@@ -1,6 +1,6 @@
 # Context Tray
 
-**One context, several tabs.** The tray is about one thing at a time — the context — and its head names it plainly: *workspace*, *block Tank*, *relation feeds*, *block definition Pump*, *new block definition*. The head never says how the context was reached. The chevron leads the head; expand sits far right.
+**One context, several tabs.** The tray is about one thing at a time — the context — and its head names it plainly: *block workspace*, *block Tank*, *relation feeds*, *block definition Pump*, *packages sysml*, *new block definition*. The head never says how the context was reached. The chevron leads the head; expand sits far right.
 
 ## The context
 
@@ -12,11 +12,13 @@
 | pick a row in contents or usages | that thing — the table keeps its tab and its listing |
 | pick nothing, several things, or click the ground | the open layer — the workspace at the root |
 | a settings toggle on the rail | the workspace, or a blank block or relation definition |
-| a definition row in the explorer | that definition |
+| a definition row in the explorer | that definition, opened on its settings |
+| a definition folder in the explorer — *definitions*, *default*, *pinned* | the whole list, narrowed to that folder |
+| the explorer's *packages* section, or one package in it | the packages, or that one |
 | a definition row in the definitions tab, with nothing picked | that definition |
 | a definition row in the definitions tab, with something picked | nothing changes — the row lights and offers *apply to …* |
 
-**A hold — the workspace, a definition or a draft — is given up by any pick of an element**, on the canvas or in a table. The explorer sets the layer; the canvas and the tables set the context within it.
+**A hold — a definition, a library section or a draft — is given up by any pick of an element**, on the canvas or in a table. The explorer sets the layer; the canvas and the tables set the context within it.
 
 ## Hover and pick
 
@@ -35,13 +37,17 @@ A hovered row never becomes the context.
 
 | context | tabs |
 |---|---|
-| workspace | settings · fields · contents · definitions · usages · packages — every block tab, plus packages |
-| block, or block definition | settings · fields · contents · definitions · usages |
+| block | settings · fields · contents · usages |
+| block definition | definitions · settings · fields · usages |
 | relation, or relation definition | settings · definitions · usages |
+| a definition folder | definitions |
+| packages | packages |
 
 **Contents are an instance's.** With a definition in context, the fields tab declares that definition's schema instead of values.
 
-**The workspace is a block.** It takes the same settings panel as any block, styled for wherever an export is used, with its schema beside the card.
+**The workspace is a block, and nothing more.** It takes the same settings panel and the same tabs as any block, styled for wherever an export is used, with its schema beside the card. **It carries no packages tab** — what the workspace draws on is reached by selecting the explorer's *packages* section, the same way any other collection is reached.
+
+**The definitions tab is a definition's, not an instance's.** A block in context lists no definitions: the list is the explorer's sections, and the tab appears once a definition is what the tray has hold of.
 
 ## Definitions
 
@@ -126,10 +132,16 @@ A hovered row never becomes the context.
 
 ### Definitions
 
-- **Every definition of the context's group the workspace can name**, the defaults first: name, label *(relations)*, extends, used. The shipped floor is left out; chips narrow to *labelled* and *packages*.
+- **Every definition of the context's group the workspace can name**, the defaults first: name, label *(relations)*, extends, used. The shipped floor is left out; chips narrow to *defaults*, *pinned*, *packages* and — for relations — *labelled*. **The chips are the explorer's folders said again**, and a folder selected there opens the tab on its chip.
 - **Name, label and extends are edited in the row**; a package's are not, and a default's name is not.
 - **The last row adds one.**
 - **With something picked, the lit row offers *apply to …***, which points the picked elements at it. Picking alone never changes a drawing.
+
+### Packages
+
+- **What the workspace draws on**, one row each: package, blocks, relations, in use. **The shipped floor is nobody's package** and is never listed.
+- **Blocks and relations are counted apart**, since the definitions tab lists one group at a time.
+- **Picking a row points the tray at that package**, which the explorer's section lights in turn.
 
 ### Usages
 
