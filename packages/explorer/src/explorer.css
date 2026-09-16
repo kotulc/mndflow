@@ -66,16 +66,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 1px 8px 1px 0;
+  /* One height for every row, so the guide columns run unbroken and the marks sit on a grid. */
+  height: 20px;
+  line-height: 1;
+  padding: 0 8px 0 0;
   cursor: default;
   white-space: nowrap;
   border-left: 2px solid transparent;
 }
 
-/* A branch reads tighter than the things it hangs off. */
-.explorer .tree li.top { padding-top: 3px; padding-bottom: 3px; }
-.explorer .tree li.top + li.top, .explorer .tree li:not(.top) + li.top { margin-top: 6px; }
-.explorer .tree li.top:first-child { margin-top: 0; }
+/* A root — the definitions, and the workspace itself — carries its name a shade stronger. */
+.explorer .tree li.top .label { font-weight: 600; }
 
 /* Guide lines, one per level above the row, hung under the holder's mark. */
 .explorer .tree .guide {
@@ -87,11 +88,11 @@
   pointer-events: none;
 }
 
-/* Nothing follows in this column, so the line stops at this row. */
+/* Nothing follows in this column, so the line stops on this row's centre line. */
 .explorer .tree .guide.stop { bottom: auto; height: 50%; }
 
-/* A branch's own segment, joining its mark to the line under it. */
-.explorer .tree .guide.down { top: calc(50% + 8px); }
+/* A branch's own segment, joining the underside of its mark to the line under it. */
+.explorer .tree .guide.down { top: calc(50% + 7px); }
 
 /* The tick across to the row, ending where its mark begins. */
 .explorer .tree .guide.tick::after {
@@ -103,6 +104,9 @@
   height: 1px;
   background: var(--divider);
 }
+
+/* The last row in a branch turns the elbow: the tick sits at the foot of the stopped line. */
+.explorer .tree .guide.tick.stop::after { top: 100%; }
 
 /* Two states, two looks, and never the same wash. */
 .explorer .tree li.open { background: var(--tint); }
@@ -212,9 +216,13 @@
   text-transform: uppercase;
 }
 
-/* One line between what the workspace can say and what it is. */
-.explorer .tree li.sep {
+/* One line between what the workspace can say and what it is, drawn in the gap. */
+.explorer .tree li.sep { margin-top: 9px; }
+.explorer .tree li.sep::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 8px;
+  top: -5px;
   border-top: 1px solid var(--divider);
-  margin-top: 3px;
-  padding-top: 3px;
 }

@@ -38,7 +38,7 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
              /** Per indent column, whether its guide line carries on past this row. */
              guides: boolean[] };
 type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
-  | "locked" | "vocabulary";
+  | "locked" | "vocabulary" | "workspace";
 
 /** What the tree draws under a block. */
 function under(graph: Graph, parent: Id | null) {
@@ -121,7 +121,7 @@ function tree_of(graph: Graph, folded: readonly Id[], vocab = false): Row[] {
     const kin = under(graph, parent);
     kin.forEach((b, n) => {
       const kids = under(graph, b.id);
-      const guides = depth ? [...held, n < kin.length - 1] : [];
+      const guides = [...held, n < kin.length - 1];
       out.push({ id: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
                  mark: module_of(graph, b.id) === "folder" ? "folder"
@@ -131,7 +131,12 @@ function tree_of(graph: Graph, folded: readonly Id[], vocab = false): Row[] {
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });
   };
-  walk(graph.root, 0, []);
+  /** The workspace is the one root; every top-level block is a branch under it. */
+  const top = under(graph, graph.root);
+  out.push({ id: graph.root, depth: 0, label: shown_name(graph, graph.root), kids: top.length,
+             named: is_named(graph, graph.root), alias: "", of: "block", mark: "workspace",
+             guides: [] });
+  if (!folded.includes(graph.root)) walk(graph.root, 1, []);
   return out;
 }
 
@@ -171,6 +176,7 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
   pin: { icon: "pin" },
   locked: { icon: "locked" },
   vocabulary: { icon: "vocabulary" },
+  workspace: { icon: "files" },
 };
 
 export function Explorer(props: ExplorerProps) {
@@ -237,6 +243,9 @@ export function Explorer(props: ExplorerProps) {
     onPick([id]);
   };
 
+  /** Where a drop on a row lands; nothing sits beside the workspace, so its drops land in it. */
+  const where_on = (e: React.DragEvent, id: Id) => (id === graph.root ? "in" : seam(e));
+
   /** What a drag off this row carries. */
   const load = (id: Id): Id[] =>
     picked.includes(id) ? blocks.filter((r) => picked.includes(r.id)).map((r) => r.id) : [id];
@@ -275,7 +284,7 @@ export function Explorer(props: ExplorerProps) {
                       if (r.kids > 0) onFold(r.id, any_open);
                     }
                   }}><Icon name={any_open ? "fold_all" : "unfold_all"} /></button>
-          <button title="delete what is picked" disabled={!one}
+          <button title="delete what is picked" disabled={!one || one === graph.root}
                   onClick={() => one && onAct("delete", { id: one })}><Icon name="remove" /></button>
         </span>
       </div>
@@ -301,7 +310,8 @@ export function Explorer(props: ExplorerProps) {
                 ].filter(Boolean).join(" ")}
                 data-mark={r.mark}
                 style={{ paddingLeft: 8 + r.depth * STEP }}
-                draggable={r.of === "def" || (r.of === "block" && naming !== r.id)}
+                draggable={r.of === "def"
+                           || (r.of === "block" && r.id !== graph.root && naming !== r.id)}
                 onDragStart={(e) => {
                   /** One payload for both sorts of row; the receiver asks which. */
                   if (r.of === "def") {
@@ -321,13 +331,13 @@ export function Explorer(props: ExplorerProps) {
                   /** The row answers, not the panel behind it. */
                   e.stopPropagation();
                   set_out(false);
-                  if (!dragging.includes(r.id)) set_over({ id: r.id, where: seam(e) });
+                  if (!dragging.includes(r.id)) set_over({ id: r.id, where: where_on(e, r.id) });
                 }}
                 onDrop={(e) => {
                   if (r.of !== "block") return;
                   e.preventDefault();
                   e.stopPropagation();
-                  const where = seam(e);
+                  const where = where_on(e, r.id);
                   const ids = dropped(e).filter((id) => id !== r.id);
                   set_over(null);
                   set_dragging([]);

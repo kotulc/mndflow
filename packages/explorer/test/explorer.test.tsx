@@ -157,6 +157,11 @@ describe("it emits action names and mutates nothing", () => {
     expect(mount(fold(nested(), FLOOR)).getByTitle(/delete/).hasAttribute("disabled")).toBe(true);
   });
 
+  it("offers no delete for the workspace, which cannot be deleted", () => {
+    expect(mount(fold(nested(), FLOOR), { picked: [ROOT] })
+      .getByTitle(/delete/).hasAttribute("disabled")).toBe(true);
+  });
+
   it("deletes what is picked", () => {
     const { onAct, getByTitle } = mount(fold(nested(), FLOOR), { picked: ["block_auth"] });
     fireEvent.click(getByTitle(/delete/));
@@ -250,19 +255,24 @@ describe("folding", () => {
 
   it("reads anything open at all, so it can always open again", () => {
     const shut = tree_of(fold(nested(), FLOOR), ["block_shelf", "block_site"]);
-    expect(shut.every((r) => r.depth === 0)).toBe(true);
+    expect(shut.every((r) => r.depth <= 1)).toBe(true);
+  });
+
+  it("shuts the whole tree when the workspace itself is folded", () => {
+    expect(tree_of(fold(nested(), FLOOR), [ROOT]).map((r) => r.id)).toEqual([ROOT]);
   });
 });
 
 describe("an empty workspace", () => {
-  it("draws without a row, and still offers create", () => {
+  it("draws the workspace and nothing under it, and still offers create", () => {
     const { container, getByTitle } = mount(fold([]));
-    expect(container.querySelectorAll("li:not(.floor)")).toHaveLength(0);
+    expect(container.querySelectorAll("li:not(.floor)")).toHaveLength(1);
     expect(getByTitle(/add a block/).hasAttribute("disabled")).toBe(false);
   });
 
-  it("lists a flat project's children under it", () => {
-    expect(tree_of(fold(flat(), FLOOR), []).map((r) => r.label))
-      .toEqual(["Ledger", "Edge", "Auth", "Billing"]);
+  it("lists a flat project's children under the one workspace root", () => {
+    const rows = tree_of(fold(flat(), FLOOR), []);
+    expect(rows.map((r) => r.label)).toEqual(["workspace", "Ledger", "Edge", "Auth", "Billing"]);
+    expect(rows.map((r) => r.depth)).toEqual([0, 1, 2, 2, 2]);
   });
 });
