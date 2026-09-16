@@ -1,7 +1,7 @@
 /** The definitions tab: every definition of one group, in one table. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, may_retype, module_named, relation_named, shipped,
+import { def_named, def_of, isa, may_retype, module_named, pinned_defs, relation_named, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { Choice, Table, type Column } from "./Table";
@@ -19,11 +19,13 @@ const BLOCK_COLUMNS = COLUMNS.filter((c) => c.key !== "label");
 
 const SORTS = [
   { key: "all", word: "all" },
+  { key: "default", word: "defaults" },
+  { key: "pinned", word: "pinned" },
   { key: "labelled", word: "labelled" },
   { key: "package", word: "packages" },
 ] as const;
 
-type Only = (typeof SORTS)[number]["key"];
+export type Only = (typeof SORTS)[number]["key"];
 
 export type DefinitionsProps = {
   graph: Graph;
@@ -37,6 +39,10 @@ export type DefinitionsProps = {
   target?: string;
   /** What a new row extends until another is picked — the one in hand. */
   from: Id;
+  /** What the list opens narrowed to, as the explorer's section left it. */
+  seed?: Only;
+  /** One package, when the tray is pointed at it: the packages chip becomes that package. */
+  pack?: string;
   onPick: (id: Id) => void;
   onAct: Act;
 };
@@ -49,16 +55,24 @@ export function taken(graph: Graph, name: string, group: "block" | "relation",
 }
 
 export function Definitions({ graph, group, held, lines, target = "the selection", from, onPick,
-                              onAct }: DefinitionsProps) {
-  const [only, set_only] = useState<Only>("all");
+                              onAct, seed = "all", pack }: DefinitionsProps) {
+  const [only, set_only] = useState<Only>(seed);
   const [name, set_name] = useState("");
   const [label, set_label] = useState("");
   const [up, set_up] = useState<Id | null>(null);
 
   const rows = def_rows(graph, group);
+  /** What the workspace pinned, which is a folder in the explorer and a chip here. */
+  const pinned = new Set(pinned_defs(graph, group).map((d) => d.id));
   const fits = (r: DefRow, k: Only) =>
-    k === "all" || (k === "package" ? !!r.from : !!r.label);
-  const sorts = group === "relation" ? SORTS : SORTS.filter((s) => s.key !== "labelled");
+    k === "all" ? true
+    : k === "package" ? (pack ? r.from === pack : !!r.from)
+    : k === "default" ? r.base
+    : k === "pinned" ? pinned.has(r.id)
+    : !!r.label;
+  /** A package in context names its own chip; a block group has no labels. */
+  const sorts = SORTS.filter((s) => (group === "relation" || s.key !== "labelled"))
+    .map((s) => (s.key === "package" && pack ? { ...s, word: pack } : s));
 
   /** What a definition may extend: never itself or below it, and a default only within its kind. */
   const kind = (id: Id) => (group === "relation" ? relation_named(graph, id) : module_named(graph, id));

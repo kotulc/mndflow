@@ -6,7 +6,7 @@ import { module_named, offer, pinned_defs, relation_named, session,
          type RelationModule } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, holds, project, tidy, BLOCK } from "@mnd/views";
-import { Explorer, Menu } from "@mnd/explorer";
+import { Explorer, Menu, type Section } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
@@ -59,7 +59,10 @@ export function App({ storage }: { storage: Storage }) {
   const [hovered, set_hovered] = useState<Id | null>(null);
   /** What the tray holds that the canvas did not give it; any other selection drops it. */
   const [hold, set_hold] = useState<Hold | null>(null);
-  const picked_def = hold?.of === "id" && hold.id !== s.graph().root ? hold.id : null;
+  /** Which library row the explorer lights: whatever the tray has hold of. */
+  const section: Section | null =
+    hold?.of === "defs" || hold?.of === "packs" ? hold
+    : hold?.of === "id" && hold.id !== s.graph().root ? { of: "def", id: hold.id } : null;
   /** A selection made anywhere but the tray gives the context back to the canvas. */
   const pick = (ids: Id[]) => { s.pick(ids); set_hold(null); };
 
@@ -230,11 +233,14 @@ export function App({ storage }: { storage: Storage }) {
         onFold={(id, shut) =>
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
-        pickedDef={picked_def}
-        /** Picking a definition opens the tray's settings on it. */
-        onPickDef={(id) => {
-          set_hold(id ? { of: "id", id } : null);
-          if (id) { s.pick([]); set_tab("settings"); set_tray(true); }
+        section={section}
+        /** A library row points the tray: a definition at its settings, a folder at its list. */
+        onSection={(at) => {
+          s.pick([]);
+          set_tray(true);
+          if (at.of === "def") { set_hold({ of: "id", id: at.id }); set_tab("settings"); return; }
+          set_hold(at);
+          set_tab(at.of === "packs" ? "packages" : "definitions");
         }}
       />
 

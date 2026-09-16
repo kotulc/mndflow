@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { session, type Id } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
-import { Explorer } from "../src/index";
+import { Explorer, type Section } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
@@ -20,7 +20,7 @@ function Harness() {
   const [open, set_open] = useState<Id | null>(null);
   const [picked, set_picked] = useState<Id[]>([]);
   const [folded, set_folded] = useState<Id[]>([]);
-  const [picked_def, set_picked_def] = useState<Id | null>(null);
+  const [section, set_section] = useState<Section | null>(null);
 
   if (!held.has(name)) {
     const made = session({ defs: seed() });
@@ -56,8 +56,8 @@ function Harness() {
           onFold={(id, shut) =>
             set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
           onPick={set_picked}
-          pickedDef={picked_def}
-          onPickDef={set_picked_def}
+          section={section}
+          onSection={(at) => { set_section(at); say(`about ${JSON.stringify(at)}`); }}
         />
         <pre className="log">{log.join("\n") || "every action it emits shows here"}</pre>
       </div>

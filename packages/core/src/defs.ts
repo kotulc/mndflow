@@ -201,6 +201,18 @@ export function vocabulary(graph: Graph): Vocabulary[] {
                               defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
 }
 
+/** Every package the workspace draws on, named, with all it brought — of either group. The
+ *  shipped floor is nobody's package. */
+export function packages(graph: Graph): { from: string; defs: Definition[] }[] {
+  const groups = new Map<string, Definition[]>();
+  for (const d of Object.values(graph.defs)) {
+    if (!d.from || shipped(d)) continue;
+    groups.set(d.from, [...(groups.get(d.from) ?? []), d]);
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
+    .map(([from, defs]) => ({ from, defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
+}
+
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
   return module_of(graph, id) === module_named(graph, type);
