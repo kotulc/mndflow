@@ -10,11 +10,13 @@ export { ChipBar, Choice, Table, type Adding, type Chips, type Column, type Line
          type TableProps } from "./Table";
 export { Packages, type PackagesProps } from "./Packages";
 export { Usages, type UsagesProps } from "./Usages";
-export { Styles, type StylesProps } from "./Styles";
+export { Element, type ElementProps } from "./Element";
+export { Style, type StyleProps } from "./Style";
+export { Drawing, type DrawingProps } from "./Drawing";
 export { Identity, type IdentityProps } from "./Identity";
 export { Looks, type LooksProps } from "./Looks";
 export { Fields, type FieldsProps } from "./Fields";
 export { Card, type CardProps } from "./Card";
 export { Band, Body, Line, Rail, type BandProps, type BodyProps, type LineProps,
          type RailProps } from "./Body";
-export { held, reading, type Held } from "./holder";
+export { defined, held, reading, type Held } from "./holder";

@@ -152,7 +152,7 @@ export function App({ storage }: { storage: Storage }) {
       set_hold(want === "workspace" ? { of: "id", id: graph.root }
                : { of: "draft", group: want === "relation" ? "relation" : "block" });
       set_tray(true);
-      set_tab("settings");
+      set_tab("element");
       return;
     }
     act(name, args);
@@ -234,11 +234,11 @@ export function App({ storage }: { storage: Storage }) {
           set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
         onPick={pick}
         section={section}
-        /** A library row points the tray: a definition at its settings, a folder at its list. */
+        /** A library row points the tray: a definition at its element tab, a folder at its list. */
         onSection={(at) => {
           s.pick([]);
           set_tray(true);
-          if (at.of === "def") { set_hold({ of: "id", id: at.id }); set_tab("settings"); return; }
+          if (at.of === "def") { set_hold({ of: "id", id: at.id }); set_tab("element"); return; }
           set_hold(at);
           set_tab(at.of === "packs" ? "packages" : "definitions");
         }}

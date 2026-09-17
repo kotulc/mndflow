@@ -6,7 +6,8 @@ import { children, def_named, def_of, is_container, is_interface, new_id,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
-import { Styles } from "./Styles";
+import { Element } from "./Element";
+import { Style } from "./Style";
 import { Fields } from "./Fields";
 import { Packages } from "./Packages";
 import { Definitions, type Only } from "./Definitions";
@@ -44,16 +45,16 @@ export type TrayProps = {
   onView?: (layer: Id | null, id: Id) => void;
 };
 
-export type Tab = "settings" | "fields" | "contents" | "definitions" | "usages" | "packages";
+export type Tab = "element" | "style" | "fields" | "contents" | "definitions" | "usages" | "packages";
 
 /** What the tray is about. The workspace is a block like any other. */
 type Context = "block" | "definition" | "relation" | "library" | "packages";
 
 /** A slot per context, and the words change with the subject. */
 const SLOTS: Record<Context, readonly Tab[]> = {
-  block: ["settings", "fields", "contents", "usages"],
-  definition: ["definitions", "settings", "fields", "usages"],
-  relation: ["settings", "definitions", "usages"],
+  block: ["element", "style", "fields", "contents", "usages"],
+  definition: ["definitions", "element", "style", "fields", "usages"],
+  relation: ["element", "style", "definitions", "usages"],
   library: ["definitions"],
   packages: ["packages"],
 };
@@ -89,8 +90,6 @@ export function Tray(props: TrayProps) {
   const { graph, layer, open, onOpen, picked, onPick, onHover, onAct, onView,
           hold = null, onHold = () => {} } = props;
   const [held_tab, set_held_tab] = useState<Tab>("contents");
-  /** What a line's working definition will be saved as, per line. */
-  const [working, set_working] = useState<Record<Id, string>>({});
   /** Full height, as a control of its own. */
   const [big, set_big] = useState(false);
   const [only, set_only] = useState<Sort | "all">("all");
@@ -131,10 +130,6 @@ export function Tray(props: TrayProps) {
 
   /** A draft is edited through the registry, and everything else goes out. */
   const act: Act = (name, args) => {
-    if (name === "@working") {
-      set_working((w) => ({ ...w, [String(args!["id"])]: String(args!["name"] ?? "") }));
-      return;
-    }
     if (name === "@name") {
       file_draft(String(args?.["name"] ?? "").trim());
       return;
@@ -165,16 +160,7 @@ export function Tray(props: TrayProps) {
     onHold({ of: "id", id });
   }
 
-  /** Saving a working look files a definition under its name. */
-  const line = view.edges[about] ?? null;
   const working_look = !!instance && drawn_looks(instance);
-  const naming = working_look ? (working[about] ?? "").trim() : "";
-  /** A name is unique within its group, so a line may share a block's. */
-  const taken = !!naming && !!def_named(graph, naming, line ? "relation" : "block");
-  const save = !naming || taken ? null : () => {
-    act("save_def", { id: about, name: naming });
-    set_working((w) => ({ ...w, [about]: "" }));
-  };
 
   /** What styling writes: a workspace definition the element names, else the element's own look. */
   const typed = instance?.type ? view.defs[instance.type] : undefined;
@@ -302,8 +288,8 @@ export function Tray(props: TrayProps) {
                 {t}
               </button>
             ))}
-            {/* Reset and save act on the whole settings tab. */}
-            {onAct && tab === "settings" ? (
+            {/* Reset acts on the whole style tab. */}
+            {onAct && tab === "style" ? (
               <span className="tab-tools">
                 <button className="reset" disabled={borrowed || !its_own}
                         title={its_own ? "give every look back to what it inherits"
@@ -311,22 +297,13 @@ export function Tray(props: TrayProps) {
                         onClick={() => act("none", { ids: [styled] })}>
                   reset style
                 </button>
-                {working_look ? (
-                  <button className="reset save" disabled={!save}
-                          title={save ? "keep this in the table"
-                            : taken ? `${naming} already exists`
-                            : "name it to keep it"}
-                          onClick={() => save?.()}>
-                    save definition
-                  </button>
-                ) : null}
               </span>
             ) : null}
           </div>
 
-          {onAct && tab === "settings" ? (
-            <Styles graph={view} id={about} styled={styled} onAct={act}
-                    working={working[about] ?? ""} />
+          {onAct && tab === "element" ? <Element graph={view} id={about} onAct={act} /> : null}
+          {onAct && tab === "style" ? (
+            <Style graph={view} id={about} styled={styled} onAct={act} />
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
           {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}

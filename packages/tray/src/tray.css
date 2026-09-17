@@ -78,8 +78,9 @@
 .tray-tools button:hover { color: var(--accent); }
 .tray-tools button.on { color: var(--accent); }
 
-/* The body scrolls down, never sideways. */
+/* The body scrolls down, never sideways, and its tabs lay out by its width. */
 .tray-body {
+  container: tray / inline-size;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -234,32 +235,28 @@
 
 .tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
 
-/* ── How one thing draws: two columns ── */
+/* ── The element and style tabs: the drawing left, its rows right ── */
 
-.styles {
+/* Narrow: the drawing beside its rows, and a block's body under both. */
+.panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 14px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-areas: "drawing rows" "body body";
+  gap: 10px 14px;
   padding: 8px 10px 10px;
   align-items: start;
-  --head: 72px;
 }
 
-.styles > .col { display: flex; flex-direction: column; min-width: 0; }
+.panel > .drawing { grid-area: drawing; }
+.panel > .col { grid-area: rows; display: flex; flex-direction: column; min-width: 0; }
+.panel > .content { grid-area: body; padding: 0; }
 
-/* The drawing heads what it is; how it is painted starts at the top. */
-.styles-head {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  height: var(--head);
-  gap: 8px;
-  margin: 0 0 8px;
-}
+/* The drawing over what kind it is. */
+.drawing { display: flex; flex-direction: column; gap: 4px; padding: 0 8px; }
 
-/* The drawing at the column's start, and what kind it is beside it. */
-.styles > .what > .styles-head { justify-content: flex-start; gap: 14px; padding: 0 8px; }
+/* The drawing fills its column; the run scales with it. */
+.drawing .preview-card, .drawing .preview-wire { width: 100%; }
+.drawing .preview-run { width: 100%; height: auto; }
 
 .kind-rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; }
 .kind-rows .holder {
@@ -270,6 +267,22 @@
   text-transform: uppercase;
 }
 .kind-rows .tally { color: var(--faint); font-size: 10px; }
+
+/* Wide: one row across — the body takes a third column, the style groups a column of their own. */
+@container tray (min-width: 960px) {
+  .panel.element {
+    grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "drawing rows body";
+  }
+
+  .panel.style > .draws {
+    display: grid;
+    grid-template-columns: 7.5em minmax(0, 1fr);
+    align-items: start;
+  }
+  .panel.style > .draws > .rail { flex-direction: column; align-items: stretch; height: 100%; }
+  .panel.style > .draws > .rail > .filters { flex-direction: column; align-items: stretch; }
+}
 
 /* ── A rail over a table ── */
 /* The rail heads its table the way the contents table heads its own. */
@@ -312,7 +325,7 @@
 .rows > .row > .line > .from.warn { color: var(--warn); }
 
 /* The kind, then what refines it. */
-.styles .base {
+.kind-rows .base {
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -336,7 +349,7 @@
   padding: 2px 0;
 }
 
-.styles .not-yet { color: var(--faint); font-size: 11px; margin: 0; padding: 10px 2px; }
+.panel .not-yet { color: var(--faint); font-size: 11px; margin: 0; padding: 10px 2px; }
 
 /* ── The contents table's filters and columns ─────────────────────────────── */
 

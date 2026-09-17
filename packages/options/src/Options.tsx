@@ -8,7 +8,7 @@ export type OptionsProps = {
 };
 
 /** Drawn in this order whatever order a module lists them. */
-const ORDER = ["settings", "layer", "views", "flow", "display", "relations", "grid"];
+const ORDER = ["elements", "layer", "views", "flow", "display", "relations", "grid"];
 
 const at = (key: string) => {
   const n = ORDER.indexOf(key);

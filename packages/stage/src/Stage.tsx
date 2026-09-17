@@ -63,7 +63,7 @@ function header_offers(id: string, graph: Graph): Entry[] {
 function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
   const base: (string | Entry)[] = [
     { name: "rename", label: "rename block" },
-    "open", "interface", "note", { name: "save_def", label: "save definition" }];
+    "open", "interface", "note"];
   return [...base, ...header_offers(id, graph),
           "leave", { name: "delete", label: "delete block" }];
 }
@@ -204,13 +204,13 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     name: [{ name: "rename", label: "rename block" },
            { name: "delete", label: "delete block" }],
     /** A note is a remark, not a block. */
-    note: [{ name: "rename", label: "rename note" }, { name: "save_def", label: "save definition" },
+    note: [{ name: "rename", label: "rename note" },
            { name: "delete", label: "delete note" }],
-    box: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
-    seat: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "delete"],
+    box: ["rename", "open", "interface", "note", "leave", "delete"],
+    seat: ["rename", "open", "interface", "note", "delete"],
     /** A group and a grid write their name on the frame when told to. */
     band: [{ name: "rename", label: "rename group" }, "fill",
-           { name: "chain", args: drawing }, { name: "save_def", label: "save definition" },
+           { name: "chain", args: drawing },
            { name: "delete", label: "delete group" }],
     /** A cell offers what can be done to the lattice there. */
     cell: [
@@ -226,7 +226,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     /** Replaced per run by `wire_offers`, and per grip by `promote_offers`. */
     route: ["rename", "delete"],
     /** The room's wall offers what a card's border does. */
-    frame: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
+    frame: ["rename", "open", "interface", "note", "leave", "delete"],
   };
 
   /** What a selection of several offers. */

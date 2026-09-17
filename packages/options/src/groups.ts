@@ -131,7 +131,7 @@ export function groups_of(chrome: Chrome, act: Act): Group[] {
   const toggle = (key: "workspace" | "block" | "relation") => () =>
     act("about", { scope: chrome.held === key ? "canvas" : key });
   out.push({
-    key: "settings", label: "settings",
+    key: "elements", label: "elements",
     controls: [
       { key: "workspace", icon: "settings", word: "workspace", on: chrome.held === "workspace",
         tip: "This project: what it is called, what it draws on, and everything it holds",

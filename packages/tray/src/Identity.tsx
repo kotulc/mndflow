@@ -1,65 +1,25 @@
-/** What one thing is: the left column of the settings panel. */
+/** What one thing is: the identity rows of the element tab. */
 
-import { alias_of, BASE_PACKAGE, SCHEMA, def_of, isa, kind_word, may_retype, module_named, module_of,
-         pinned_defs, relation_named, role_of, shipped, shown_name,
+import { BASE_PACKAGE, isa, kind_word, may_retype, module_named, relation_named, shipped,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
-import { Icon, role_icon, type IconName } from "@mnd/theme";
+import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
-import { Card } from "./Card";
 import { taken } from "./Definitions";
 import { Entry } from "./Entry";
 import { Tags } from "./Tags";
-import { Wire } from "./Wire";
 import { DRAFT } from "./draft";
-import { held, kind_of, reading } from "./holder";
+import { defined, held, kind_of } from "./holder";
 
-export type IdentityProps = {
-  graph: Graph; id: Id; onAct: Act;
-  /** What a line's working definition will be saved as. */
-  working?: string;
-};
+export type IdentityProps = { graph: Graph; id: Id; onAct: Act };
 
-/** A count and its noun, plural where it is not one. */
-const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
-
-export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
+export function Identity({ graph, id, onAct }: IdentityProps) {
   const it = held(graph, id);
   if (!it) return <p className="empty">that is not here any more</p>;
   const { def: d, block: b, edge, borrowed } = it;
-  const { said, now } = reading(graph, id, it);
   const { kind, runs } = kind_of(graph, id, it);
-  const is_root = !d && id === graph.root;
+  const { follows, own, mine, fixed, wip } = defined(graph, id, it, runs);
   const drafted = id === DRAFT;
   const named = b?.type;
-
-  /** The relation definition this is about: itself, or the one a line follows. */
-  const follows = runs ? (d ?? graph.defs[def_of(graph, id) ?? ""]) : undefined;
-  /** A block or line with looks of its own has a working definition to save. */
-  const wip = (edge ? ["line", "style"] : b ? ["card", "style"] : [])
-    .some((k) => Object.keys((edge ?? b)?.looks?.[k] ?? {}).length > 0);
-  /** The name being written, and whether it is taken. */
-  const writing = drafted ? d!.name.trim() : wip ? working.trim() : "";
-  const clash = writing ? taken(graph, writing, runs ? "relation" : "block", drafted ? DRAFT : undefined) : null;
-
-  /** The definition the boxes are about. */
-  const own = runs ? follows : d ?? (named ? graph.defs[named] : undefined);
-  const mine = !!own && !shipped(own) && !own.from && own.id !== DRAFT;
-  /** A base or a default is fixed: never renamed, removed or pinned. */
-  const fixed = !own || shipped(own) || own.default !== undefined;
-  const listed = pinned_defs(graph, runs ? "relation" : "block").some((x) => x.id === own?.id);
-
-  const role = b ? role_of(graph, id) : null;
-  /** A line's preview draws what the canvas does: the label it follows. */
-  const label = runs ? own?.label ?? "" : d ? d.name : shown_name(graph, id);
-  const word = (d ?? (named ? graph.defs[named] : undefined))?.name ?? kind;
-
-  /** Usages of this definition only, or blocks of its kind for a plain block. */
-  const tally = runs
-    ? Object.values(graph.edges).filter((x) => def_of(graph, x.id) === follows?.id).length
-    : own ? Object.keys(graph.blocks).filter((x) => def_of(graph, x) === own.id).length
-    : Object.values(graph.blocks).filter((x) => module_of(graph, x.id) === kind).length;
-  const mark: IconName = runs ? (kind === "tie" ? "relation_tie" : "relation_plain")
-    : role_icon(role ?? kind);
 
   /** Where a definition sits, pinned ones under their folder. */
   const path = (x: Definition) => where(x, (graph.blocks[graph.root]?.pinned ?? []).includes(x.id));
@@ -71,38 +31,15 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
       && (self.default === undefined || kind_named(x.id) === self.default))
       .sort((a, z) => path(a).localeCompare(path(z)));
 
-  return (
-    <div className="col what">
-      <div className="styles-head">
-        {runs ? (
-          <Wire label={label} alias={edge ? alias_of(graph, id, true) : undefined}
-                said={said} now={now} />
-        ) : (
-          <Card label={label}
-                alias={!b ? undefined : now("card", "alias", "") === "show" ? alias_of(graph, id, true)
-                  : now("card", "alias", "") === "hide" ? undefined : alias_of(graph, id)}
-                kind={word} icon={(now("card", "icon", "") || role_icon(role ?? kind)) as IconName}
-                role={role ?? kind} said={said} now={now} />
-        )}
-        <div className="kind-rows">
-          <span><span className="holder">{runs ? "line type" : "card type"}</span>
-            <span className="base">{kind}<Icon name={mark} size={12} /></span></span>
-          {/* The workspace shows its schema; everything else its instance count. */}
-          <span className="tally">{is_root ? `schema ${SCHEMA}` : count(tally, "instance")}</span>
-          {/* Pinned: a relation on the rail, a block in the pinned folder. */}
-          {own && !fixed ? (
-            <label className="check"
-                   title={runs ? "Offer this on the rail, so a right drag can draw one"
-                               : "List this in the explorer's pinned folder"}>
-              <input type="checkbox" checked={listed} disabled={own.id === DRAFT || wip}
-                     onChange={(e) => onAct("pin", { id: own.id,
-                                                     on: e.target.checked ? "yes" : "no" })} />
-              pinned
-            </label>
-          ) : null}
-        </div>
-      </div>
+  /** Naming a working look saves it as a definition, the moment the box is left. */
+  const saving = (label: string) => (
+    <Entry key={`working-${id}`} value="" label={label} placeholder="name it to save it"
+           clash={(to) => taken(graph, to, runs ? "relation" : "block")}
+           onCommit={(to) => onAct("save_def", { id, name: to })} />
+  );
 
+  return (
+    <div className="col identity">
       <Band label="identity" />
       <Body>
         {/* Name: a draft's or working definition's is written here; a filed one's is renamed in
@@ -115,11 +52,8 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                    onCommit={(to) => onAct("@name", { name: to })} />
           </Line>
         ) : wip && runs ? (
-          <Line label="name" tip="This line's working definition. Name it and save it to keep it.">
-            <input value={working} aria-label="name" placeholder="name the working definition"
-                   onChange={(e) => onAct("@working", { id, name: e.target.value })} />
-            {clash ? <span className="from warn">{clash}</span>
-                   : <span className="from">working</span>}
+          <Line label="name" tip="This line's working definition. Naming it saves it.">
+            {saving("name")}
           </Line>
         ) : runs || d ? (
           <Line label="name" tip={runs ? "The definition this follows. Renaming it keeps every line naming it."
@@ -142,22 +76,10 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
 
         {/* A block's working definition is named on its own row. */}
         {b && wip ? (
-          <Line label="definition" tip="This block's working definition. Name it and save it to keep it.">
-            <input value={working} aria-label="definition" placeholder="name the working definition"
-                   onChange={(e) => onAct("@working", { id, name: e.target.value })} />
-            {clash ? <span className="from warn">{clash}</span>
-                   : <span className="from">working</span>}
+          <Line label="definition" tip="This block's working definition. Naming it saves it.">
+            {saving("definition")}
           </Line>
         ) : null}
-
-        {/* Tags are the element's own, never its definition's. */}
-        {(b || edge) && !d ? (
-          <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
-            <Tags tags={(b ?? edge)!.tags ?? []}
-                  onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
-          </Line>
-        ) : null}
-
 
         {/* Label: what a line naming the definition draws; never inherited. */}
         {runs && drafted ? (
@@ -220,6 +142,14 @@ export function Identity({ graph, id, onAct, working = "" }: IdentityProps) {
                 <Icon name="remove" />
               </button>
             ) : null}
+          </Line>
+        ) : null}
+
+        {/* Tags are the element's own, never its definition's. */}
+        {(b || edge) && !d ? (
+          <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
+            <Tags tags={(b ?? edge)!.tags ?? []}
+                  onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
           </Line>
         ) : null}
 
