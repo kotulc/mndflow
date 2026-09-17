@@ -1,28 +1,12 @@
-/** The module contract: what a module publishes, and what validates it.
- *
- *  **A package is data and a module is code.** A package ships definitions and
- *  costs nobody anything; a module is engine code, and what it publishes is
- *  components — the keys a definition's `components` bag configures.
- *
- *  **A component owns its key and reads no other's.** They share one graph and
- *  one log, so separate checks are not separate state: the key is the boundary,
- *  and this is where it is enforced.
- *
- *  **Each validates its own key at the door.** A component absent from the
- *  build validates nothing, so its configuration is *unvalidated* rather than
- *  wrong — which is how an older build opens a newer package. What a component
- *  refuses is dropped, and only that key. */
+/** The module contract: what a module publishes, and what validates it. */
 
-import { BLOCK_MODULES, type Definition } from "./types";
+import { BLOCK_MODULES, RELATION_MODULES, type Definition } from "./types";
 
-/** What a definition holds under one component's key. Free-form: the component
- *  says what its own shape is, and nothing else may read it. */
+/** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
 
-/** One published component. `check` answers the same question an action's
- *  does — why this would not work, in words, or null. Words rather than a
- *  boolean, because the door says what it dropped and "invalid" is not
- *  something anybody can act on. */
+/** One published component. `check` answers the same question an action's does — why this would not
+ *  work, in words, or null. */
 export type Component = {
   name: string;
   check: (config: Settings) => string | null;
@@ -30,9 +14,7 @@ export type Component = {
 
 const held = new Map<string, Component>();
 
-/** Publish components, at load and before any log is read. Publishing one name
- *  twice is the later one winning, so a build can replace a component without a
- *  second registry to keep in step. */
+/** Publish components, at load and before any log is read. */
 export function publish(...list: Component[]): void {
   for (const c of list) held.set(c.name, c);
 }
@@ -46,11 +28,7 @@ export function component(name: string): Component | null {
   return held.get(name) ?? null;
 }
 
-/** What a definition says that this build cannot read, key by key.
- *
- *  **An unknown component is left alone** — it may be a newer build's, and
- *  refusing it is how an older build would fail to open a newer package. An
- *  unknown *key* within a claimed one is the component's own to refuse. */
+/** What a definition says that this build cannot read, key by key. */
 export function unreadable(def: Definition): { key: string; why: string }[] {
   const out: { key: string; why: string }[] = [];
   for (const [key, config] of Object.entries(def.components ?? {})) {
@@ -70,105 +48,190 @@ const one_of = (key: string, value: unknown, set: readonly string[]): string | n
   value === undefined || (typeof value === "string" && set.includes(value))
     ? null : `\`${key}\` has to be one of ${set.join(", ")}`;
 
+/** A number inside a range. Finite, because `NaN` and infinity both survive `typeof` and neither is
+ *  a hue. */
+const within = (key: string, value: unknown,
+                range: { min: number; max: number }): string | null =>
+  value === undefined
+  || (typeof value === "number" && Number.isFinite(value)
+      && value >= range.min && value <= range.max)
+    ? null : `\`${key}\` has to be a number from ${range.min} to ${range.max}`;
+
 const words = (key: string, value: unknown): string | null =>
   value === undefined || (Array.isArray(value) && value.every((v) => typeof v === "string"))
     ? null : `\`${key}\` has to be a list of names`;
 
-/** An unknown key is refused rather than ignored. A component owning its key
- *  owns the whole of it, so a misspelt `shp` is a mistake this build can
- *  actually see — unlike an unknown *component*, which is left alone. */
+/** An unknown key is refused rather than ignored. */
 const stray = (name: string, config: Settings, known: readonly string[]): string | null => {
   const odd = Object.keys(config).find((k) => !known.includes(k));
   return odd ? `\`${name}\` knows nothing about \`${odd}\`` : null;
 };
 
-/** How a card is composed, what is drawn inside the box, and where the name
- *  sits. **Closed sets that grow by a code change** — additively, and never
- *  from data. That is the line between an engine and a plugin host. */
-/** **No `shape`.** A definition picking a diamond or a hex drew as one on the
- *  canvas and as a rectangle everywhere else, which is a promise only one
- *  renderer kept. It comes back when every renderer can keep it. */
-export const LAYOUTS = ["name", "type", "fields", "compartments", "icon"] as const;
-export const LABELS = ["inside", "below", "none"] as const;
 
-/** The hue families a definition may pick from, how loudly it takes one, how
- *  heavy its border is, and how loudly its name is set. **A definition picks
- *  within the theme's palette; it never names a colour, a pixel or a font.** */
-export const SLOTS = ["primary", "secondary", "tertiary", "quaternary",
-                     "neutral", "muted"] as const;
-export const EMPHASES = ["quiet", "normal", "strong"] as const;
-/** How heavy a border is. **Three steps, and the first is the ordinary one.**
- *  It used to run hairline / thin / thick at half a pixel, one and two — but a
- *  border cannot be half a device pixel, so the first two rendered identically
- *  and the set offered a choice it could not keep. Renamed as well as respaced:
- *  a step called *hairline* cannot be what a card is normally drawn with. */
-export const WEIGHTS = ["thin", "medium", "thick"] as const;
-export const VOICES = ["quiet", "normal", "loud"] as const;
 
-/** Style sets this build ships. Open: a set is an asset, and a build names the
- *  ones it carries. A definition may not name one nobody ships. */
-const SETS: readonly string[] = [];
 
-/** Which block module interprets a block, and that module's own keys. Every
- *  module owns its slice, so the `block` component names which and delegates
- *  the rest — no module has configuration of its own yet, and each says so. */
-const MODULES = new Map<string, (config: Settings) => string | null>(
-  BLOCK_MODULES.map((m) => [m as string, (config: Settings) => stray(m, config, [])]),
-);
+/** Where the label sits — the subtype where one is named, the base kind otherwise. */
+export const DISPLAYS = ["above", "inside", "below", "none"] as const;
+
+/** Whether a writing is drawn at all. */
+export const SHOWN = ["show", "hide"] as const;
+
+/** Which end of the card its writing reads from. */
+export const ALIGNS = ["left", "center", "right"] as const;
+
+/** The named families a definition may pick from. */
+export const FAMILIES = ["primary", "secondary", "neutral", "muted",
+                         "away", "note"] as const;
+
+/** The hue angle a usage paints itself with, in degrees, when a named family is not what was
+ *  wanted. */
+export const HUE = { min: 0, max: 360 } as const;
+
+/** How much chroma that hue is taken at, as a fraction of the theme's own ceiling. */
+export const INTENSITY = { min: 0, max: 1 } as const;
+
+/** The answers that are ranges rather than sets. */
+export const NUMBERS: readonly string[] = ["hue", "intensity", "opacity"];
+
+/** How heavy a border is. Three steps, and the first is the ordinary one. */
+export const WIDTHS = ["thin", "medium", "thick"] as const;
+
+/** How a border is drawn: styles that read at one pixel. */
+export const BORDERS = ["solid", "dashed", "dotted", "double", "none"] as const;
+
+/** How heavily a writing is set, asked of name and label separately. */
+export const WEIGHTS = ["light", "normal", "bold"] as const;
+
+/** How a writing is faced. One value, not three flags. */
+export const FONTS = ["none", "italic", "underline", "strike"] as const;
+
+/** What draws at one end of a run. */
+export const ARROWS = ["none", "arrow", "open", "hollow", "diamond"] as const;
+
+/** What fills a card behind its writing. */
+export const FILLS = ["solid", "hatch", "wash", "none"] as const;
+
+/** How opaque the fill is, from nothing to solid. */
+export const OPACITY = { min: 0, max: 1 } as const;
+
+/** How far a border or a writing stands out from the card behind it. */
+export const CONTRASTS = ["faint", "soft", "strong", "full"] as const;
+
+/** What a card draws where nobody has said — the app's own answer, as against a definition's or an
+ *  element's. */
+export const DEFAULTS = {
+  "card.label": "none",
+  "card.align": "left",
+  "card.label_align": "left",
+  "card.alias": "hide",
+  "line.name": "show",
+  "line.alias": "hide",
+  "style.family": "neutral",
+  "style.fill": "solid",
+  "style.border_width": "thin",
+  "style.border_style": "solid",
+  "style.name_font": "none",
+  "style.name_weight": "normal",
+  "style.label_font": "none",
+  "style.label_weight": "normal",
+} as const;
+
+/** The drawing keys, as against what a thing is held to. */
+export const DRAWN: readonly string[] = ["card", "style", "line"];
+
+/** What each module honours, and the keys it owns of its own. */
+const CARD: readonly string[] = ["card", "style", "rules"];
+const WALL: readonly string[] = ["style", "rules"];
+const WIRE: readonly string[] = ["line", "style", "rules"];
+
+const MODULES: Record<string, { honours: readonly string[]; keys: readonly string[] }> = {
+  ...Object.fromEntries(BLOCK_MODULES.map((m) => [m, { honours: CARD, keys: [] }])),
+  ...Object.fromEntries(RELATION_MODULES.map((m) => [m, { honours: WIRE, keys: [] }])),
+  /** An interface is eight pixels of wall. */
+  interface: { honours: WALL, keys: [] },
+};
+
+/** One namespace for both groups, so a module name may mean one thing. */
+const shared = BLOCK_MODULES.filter((m) => (RELATION_MODULES as readonly string[]).includes(m));
+if (shared.length) throw new Error(`module names shared by both groups: ${shared.join(", ")}`);
+
+/** Which components this module honours. */
+export function honours(module: string): readonly string[] {
+  return MODULES[module]?.honours ?? CARD;
+}
 
 const block: Component = {
   name: "block",
   check: (config) => {
     if (config["module"] === undefined) return stray("block", config, ["module"]);
-    const named = MODULES.get(String(config["module"]));
+    const named = BLOCK_MODULES.includes(String(config["module"]) as never)
+      ? MODULES[String(config["module"])] : undefined;
     if (!named) return `\`block.module\` has to be one of ${BLOCK_MODULES.join(", ")}`;
     const { module: _named, ...rest } = config;
-    return named(rest);
+    return stray(String(config["module"]), rest, named.keys);
   },
 };
 
-/** What a card is *made of* — a name, a mark, a few of its fields, and the
- *  verb its usages are named by — rather than what it is coloured, which is
- *  `style`, or where it sits, which is the engine's.
- *
- *  **`icon` is a name from the theme's set, not a drawing.** A definition says
- *  which mark its usages wear; a name this build does not know falls back to
- *  the one the role would draw, so a card from a package this build has never
- *  seen still says what sort of thing it is. */
+/** Which relation module a relation definition refines — `block`'s counterpart. */
+const relation: Component = {
+  name: "relation",
+  check: (config) =>
+    one_of("relation.module", config["module"], RELATION_MODULES)
+    ?? stray("relation", config, ["module"]),
+};
+
+/** What a card is made of, as against how it is painted (`style`). */
 const card: Component = {
   name: "card",
   check: (config) =>
-    one_of("card.layout", config["layout"], LAYOUTS)
-    ?? one_of("card.label", config["label"], LABELS)
-    ?? words("card.shows", config["shows"])
-    ?? stray("card", config, ["layout", "label", "shows", "icon"]),
+    one_of("card.label", config["label"], DISPLAYS)
+    ?? one_of("card.align", config["align"], ALIGNS)
+    ?? one_of("card.label_align", config["label_align"], ALIGNS)
+    /** `alias` shows the handle beside a name that was set. */
+    ?? one_of("card.alias", config["alias"], SHOWN)
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias"]),
 };
 
+/** How a card is painted: its border, its fill, and each of its two writings. */
 const style: Component = {
   name: "style",
   check: (config) =>
-    one_of("style.slot", config["slot"], SLOTS)
-    ?? one_of("style.emphasis", config["emphasis"], EMPHASES)
-    ?? one_of("style.weight", config["weight"], WEIGHTS)
-    ?? one_of("style.voice", config["voice"], VOICES)
-    ?? (config["set"] !== undefined && !SETS.includes(String(config["set"]))
-        ? SETS.length
-          ? `\`style.set\` has to be one of ${SETS.join(", ")}`
-          : "`style.set` names a style set, and this build ships none"
-        : null)
-    ?? stray("style", config, ["set", "slot", "emphasis", "weight", "voice"]),
+    one_of("style.family", config["family"], FAMILIES)
+    ?? one_of("style.fill", config["fill"], FILLS)
+    ?? one_of("style.border_width", config["border_width"], WIDTHS)
+    ?? one_of("style.border_style", config["border_style"], BORDERS)
+    ?? one_of("style.border_contrast", config["border_contrast"], CONTRASTS)
+    ?? one_of("style.name_font", config["name_font"], FONTS)
+    ?? one_of("style.name_weight", config["name_weight"], WEIGHTS)
+    ?? one_of("style.name_contrast", config["name_contrast"], CONTRASTS)
+    ?? one_of("style.label_font", config["label_font"], FONTS)
+    ?? one_of("style.label_weight", config["label_weight"], WEIGHTS)
+    ?? one_of("style.label_contrast", config["label_contrast"], CONTRASTS)
+    /** `hue` wins over `family` where both are said, so a preset can be nudged without first being
+     *  cleared. */
+    ?? within("style.hue", config["hue"], HUE)
+    ?? within("style.intensity", config["intensity"], INTENSITY)
+    ?? within("style.opacity", config["opacity"], OPACITY)
+    ?? stray("style", config, ["family", "fill", "hue", "intensity", "opacity",
+                               "border_width", "border_style", "border_contrast",
+                               "name_font", "name_weight", "name_contrast",
+                               "label_font", "label_weight", "label_contrast"]),
 };
 
-/** The one constraint: which of a usage's fields must carry a value. */
-const constraints: Component = {
-  name: "constraints",
+/** What a run draws: a head at each end, and whether it says its own name. */
+const line: Component = {
+  name: "line",
   check: (config) =>
-    words("constraints.required", config["required"])
-    ?? stray("constraints", config, ["required"]),
+    one_of("line.from_arrow", config["from_arrow"], ARROWS)
+    ?? one_of("line.to_arrow", config["to_arrow"], ARROWS)
+    /** The identity line, exactly as a card asks it. */
+    ?? one_of("line.name", config["name"], SHOWN)
+    ?? one_of("line.alias", config["alias"], SHOWN)
+    ?? stray("line", config, ["from_arrow", "to_arrow", "name", "alias"]),
 };
 
-/** The four rules. Each is a lookup, a count or one fixed comparison — the
- *  shapes are checked here, and what survives is what `review` reads. */
+
+/** One constraint and four rules. */
 const rules: Component = {
   name: "rules",
   check: (config) => {
@@ -186,13 +249,12 @@ const rules: Component = {
       const wrong = stray("rules.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return words("rules.holds", config["holds"])
+    return words("rules.required", config["required"])
+      ?? words("rules.holds", config["holds"])
       ?? words("rules.match", config["match"])
-      ?? stray("rules", config, ["ends", "holds", "degree", "match"]);
+      ?? stray("rules", config, ["required", "ends", "holds", "degree", "match"]);
   },
 };
 
-/** What this build publishes. The engine ships its components the same way
- *  anybody else would, so there is no privileged path a later module would
- *  have to be measured against. */
-publish(block, card, style, constraints, rules);
+/** What this build publishes. */
+publish(block, card, line, relation, style, rules);

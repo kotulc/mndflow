@@ -1,18 +1,4 @@
-/**
- * Build `@mnd/kit`, pack it, and record what the tarball is.
- *
- *   node scripts/release-kit.mjs         # build, pack, stamp
- *   node scripts/release-kit.mjs --check # verify release/ matches the manifest
- *
- * A tarball has no registry behind it, so nothing else knows which commit a
- * consumer is holding. `release/kit.json` is that discipline: version, commit,
- * integrity and date, written beside the file and committed with it. A
- * consumer pins the version and can check the rest.
- *
- * Both the tarball and the manifest are committed. That is deliberate while
- * kit is unpublished — a clean checkout of a consumer installs without
- * building this repo, which is the whole reason the file exists.
- */
+/** Build `@mnd/kit`, pack it, and record what the tarball is. */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -29,8 +15,7 @@ const run = (cmd, args) =>
 const manifest = JSON.parse(readFileSync(path.join(root, "packages/kit/package.json"), "utf8"));
 const tarball = `mnd-kit-${manifest.version}.tgz`;
 
-/** sha512, base64, `sha512-` prefixed — the same shape npm writes into a
- *  lockfile, so a consumer compares like with like. */
+/** sha512 integrity, in npm's lockfile shape. */
 function integrity(file) {
   return "sha512-" + createHash("sha512").update(readFileSync(file)).digest("base64");
 }
@@ -61,8 +46,7 @@ if (at.dirty) console.error("warning: the tree is dirty, so the commit below is 
 
 run("npm", ["run", "build", "-w", "@mnd/kit"]);
 mkdirSync(out, { recursive: true });
-/** Absolute: with `-w`, npm resolves a relative destination against the
- *  workspace rather than the root, and the tarball lands somewhere else. */
+/** Absolute, since `-w` resolves a relative destination against the workspace. */
 run("npm", ["pack", "-w", "@mnd/kit", "--pack-destination", JSON.stringify(out)]);
 
 writeFileSync(stamp, JSON.stringify({

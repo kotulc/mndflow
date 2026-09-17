@@ -1,7 +1,4 @@
-/* A quarter of the stage when open, whatever it holds. A tray that grew to its
-   contents moved every time a filter changed the row count, so the row you were
-   reaching for was never where you last saw it — and a quarter leaves the
-   drawing more of the stage, which is what is being described. */
+/* A quarter of the stage when open, whatever it holds. */
 
 .tray {
   position: relative;
@@ -15,17 +12,33 @@
 }
 
 .tray.open { height: 25%; }
+/* Full height, when the body has more to say than a quarter of the window. */
+.tray.open.big { height: 100%; }
 
+/* A step above the body it heads. */
 .tray-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 4px 8px 4px 6px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
   color: var(--accent);
-  cursor: default;
+  cursor: pointer;
 }
 
-.tray-bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The context: its word, its name, and what qualifies it. */
+.tray-context { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.tray-context > .word {
+  flex: none;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tray-context > .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tray-context > .note { flex: none; color: var(--faint); font-size: 11px; font-style: italic; }
 
 .tray-bar .holds {
   color: var(--muted);
@@ -33,44 +46,63 @@
   letter-spacing: 0.06em;
   flex: none;
   margin-left: auto;
+  padding-right: 4px;
 }
 
-.tray-bar .chevron {
+/* Tabs left, controls far right. */
+.tray-tools { display: flex; align-items: center; gap: 2px; flex: none;
+              margin-left: auto; }
+
+/* The chevron leads the context it opens. */
+.tray-chevron {
   flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.tray-bar:hover .tray-chevron { color: var(--accent); }
+
+.tray-tools button {
   width: 22px;
+  height: 20px;
   padding: 0;
   border: none;
   background: none;
   color: var(--muted);
   font: inherit;
-  line-height: 1;
   cursor: pointer;
 }
 
-.tray-bar .chevron:hover { color: var(--accent); }
+.tray-tools button:hover { color: var(--accent); }
+.tray-tools button.on { color: var(--accent); }
 
-/* The table scrolls **down** inside the tray, never sideways: columns are given
-   widths and long text is cut instead. */
-.tray-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; flex: 1; }
+/* The body scrolls down, never sideways. */
+.tray-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  flex: 1;
+  background: var(--bg);
+}
 
+/* The body scrolls, never a table in it. */
 .contents-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
   display: block;
-  overflow-y: auto;
-  overflow-x: hidden;
-  flex: 1;
-  min-height: 0;
+  flex: none;
 }
+
+.tray-body > * { flex: none; }
 
 .contents-table thead,
 .contents-table tbody { display: table; width: 100%; table-layout: fixed; }
 
 .contents-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   padding: 3px 8px;
   border-bottom: 1px solid var(--divider);
   background: var(--surface);
@@ -97,110 +129,214 @@
 /* Hovering a row lights that thing on the stage; clicking selects it. */
 .contents-table tbody tr:hover td { background: var(--hover); color: var(--text); }
 .contents-table tbody tr { cursor: pointer; }
+.contents-table tbody tr.add { cursor: default; }
 
 .contents-table tr.picked td {
   background: var(--hover);
   color: var(--accent);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
+.contents-table tr.picked td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
 
 .contents-table tr.empty td { color: var(--faint); font-style: italic; cursor: default; }
 .contents-table tr.empty:hover td { background: none; }
 
-/* The editor: two panels side by side, because a value and a field are two
-   different things. It sits above the table rather than replacing it — what is
-   being edited has to stay findable in the list it was picked from. */
-.editor {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 8px 8px 10px;
-  border-bottom: 1px solid var(--divider);
-}
-
-.editor .panel { min-width: 0; }
-
-.editor .panel-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-bottom: 4px;
-}
-
-.editor .panel-head b { color: var(--accent); }
-.editor .panel-head .muted { color: var(--faint); font-size: 11px; }
-.editor .panel-head select { margin-left: auto; }
-
-.editor .values { width: 100%; border-collapse: collapse; font-size: 12px; }
-.editor .values td { padding: 2px 4px; border-bottom: 1px solid var(--divider); }
-.editor .values td.key { color: var(--muted); white-space: nowrap; width: 34%; }
-.editor .values td.form { color: var(--faint); white-space: nowrap; }
-.editor .values td.drop { width: 1%; }
-.editor .values tr.empty td { color: var(--faint); font-style: italic; }
-.editor .values input { width: 100%; }
-
-.editor .add { display: flex; gap: 4px; padding-top: 6px; }
-.editor .add input { flex: 1 1 auto; min-width: 0; }
-
-/* The tray is a fixed quarter, so the editor scrolls with the list rather than
-   pushing it out of reach. */
+/* The body scrolls rather than pushing content out of reach. */
 .tray.open .tray-body { overflow: auto; }
 
-/* ── Two tabs ──────────────────────────────────────────────────────────────
-   The bar names the two questions rather than the layer, because which of them
-   you are looking at is the thing that changes. */
+/* ── The tabs ── */
 
-.tray-bar .tabs { display: flex; gap: 2px; }
-
-.tray-bar .tabs button {
-  padding: 1px 8px;
-  color: var(--muted);
-  border-radius: 2px;
+/* Tabs on the body's own ground. */
+.tray-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid var(--divider);
+  background: var(--bg);
 }
 
-.tray-bar .tabs button.on { color: var(--accent); background: var(--hover); }
+.tray-tabs > button {
+  margin-bottom: -1px;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tray-tabs > button:hover { color: var(--text); }
+.tray-tabs > button.on {
+  padding-bottom: 3px;
+  border-color: var(--divider);
+  background: var(--bg);
+  color: var(--accent);
+}
+
+/* One gap under the tabs, whichever tab is open. */
+.tray-tabs + * { margin-top: 2px; }
+
+/* Acts over the whole tab, at the far end of the strip that opened it. */
+.tab-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; padding-bottom: 3px; }
+.tab-tools > .reset {
+  padding: 1px 7px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.tab-tools > .reset:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.tab-tools > .reset:disabled { opacity: 0.35; cursor: default; }
+
+/* ── The body under both columns ─────────────────────────────────────────── */
+.content { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px; }
+.content > textarea {
+  min-height: 6em;
+  resize: vertical;
+  padding: 6px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+.content > textarea:focus { outline: none; border-color: var(--accent); }
+
+/* A value read rather than set. */
+.rows > .row > .line > .read { color: var(--muted); }
+
+/* What acts on a row sits right, in one compact column: its chips, then remove. */
+.contents-table td.drop { padding: 0 4px; }
+.contents-table td .acts { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
+.contents-table td .acts { min-width: 0; }
+/* A chip longer than its column is cut, never allowed to widen it. */
+.contents-table td .acts .chip { white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.contents-table td .acts .chip {
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  background: var(--tint);
+  color: var(--accent);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
 
 .tray-body > .empty { color: var(--muted); padding: 12px; margin: 0; }
 
-/* ── One element, described ────────────────────────────────────────────────
-   Rows of one question each, and what it carries at the foot: a value is the
-   detail, and everything above it is what the thing is. */
+/* ── How one thing draws: two columns ── */
 
-.element { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
-
-.element .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.element .row > label {
-  flex: none;
-  width: 4.5em;
-  color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+.styles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 14px;
+  padding: 8px 10px 10px;
+  align-items: start;
+  --head: 72px;
 }
 
-.element .row.identity input { flex: 1 1 auto; min-width: 0; }
-.element .row .alias { flex: none; color: var(--faint); font-size: 11px; }
-.element .row .chain { color: var(--muted); font-size: 11px; overflow: hidden;
-                       text-overflow: ellipsis; white-space: nowrap; }
+.styles > .col { display: flex; flex-direction: column; min-width: 0; }
 
-.element .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+/* The drawing heads what it is; how it is painted starts at the top. */
+.styles-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--head);
+  gap: 8px;
+  margin: 0 0 8px;
+}
 
-.element .chips button {
+/* The drawing at the column's start, and what kind it is beside it. */
+.styles > .what > .styles-head { justify-content: flex-start; gap: 14px; padding: 0 8px; }
+
+.kind-rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; }
+.kind-rows .holder {
+  margin-right: 8px;
+  color: var(--faint);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.kind-rows .tally { color: var(--faint); font-size: 10px; }
+
+/* ── A rail over a table ── */
+/* The rail heads its table the way the contents table heads its own. */
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 28px;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+}
+
+.rail > h5 {
+  flex: none;
+  width: 6.8em;
+  margin: 0;
+  color: var(--faint);
+  font-size: 9px;
+  font-weight: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rail > .filters {
+  padding: 0;
+  border: none;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A part answered by the element itself is lit. */
+.rail .filters > button.said { color: var(--accent); }
+
+/* A note in a band, or beside an answer: a count, where it came from, a warning. */
+.rail > .from { color: var(--faint); font-size: 10px; }
+.rows > .row > .line > .from { flex: none; color: var(--faint); font-size: 10px; font-style: italic; }
+.rows > .row > .line > .from.warn { color: var(--warn); }
+
+/* The kind, then what refines it. */
+.styles .base {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-radius: 2px;
+  gap: 5px;
   color: var(--muted);
   font-size: 11px;
+  white-space: nowrap;
 }
 
-.element .chips button:hover { color: var(--text); border-color: var(--accent); }
-.element .chips button.on { color: var(--accent); border-color: var(--accent);
-                            background: var(--tint); }
-.element .chips input { width: 9em; }
+/* Three boxes on one line. */
+.rows > .row.marks > .line { gap: 10px; }
 
-.element .fields { border-top: 1px solid var(--divider); padding-top: 6px; margin-top: 2px; }
+/* Every mark this build ships, as a grid. */
+.rows > .row.marks-grid > .line { gap: 2px; }
+
+.rows > .row.marks-grid .opt.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  padding: 2px 0;
+}
+
+.styles .not-yet { color: var(--faint); font-size: 11px; margin: 0; padding: 10px 2px; }
 
 /* ── The contents table's filters and columns ─────────────────────────────── */
 
@@ -213,17 +349,35 @@
   flex-wrap: wrap;
 }
 
-.filters > button {
+/* A chip with an edge and a number. */
+.filters > button,
+.filters > .chips > button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
   padding: 1px 7px;
-  color: var(--muted);
+  border: 1px solid var(--divider);
   border-radius: 2px;
+  color: var(--muted);
   font-size: 11px;
 }
 
-.filters > button.on { color: var(--accent); background: var(--hover); }
+.filters > button:hover,
+.filters > .chips > button:hover { color: var(--text); border-color: var(--border); }
+.filters > button.on,
+.filters > .chips > button.on { color: var(--accent); border-color: var(--accent);
+                       background: var(--tint); }
 
-/* Columns asked for by name, so the one field you are comparing reads down the
-   layer instead of being opened row by row. */
+/* The count sits back from the word. */
+.filters > button > .count,
+.filters > .chips > button > .count { color: var(--faint); font-size: 10px; }
+.filters > button.on > .count,
+.filters > .chips > button.on > .count { color: var(--accent); opacity: 0.8; }
+
+/* Each question's chips hold together; a second question stands apart. */
+.filters > .chips { display: inline-flex; align-items: center; gap: 3px; }
+.filters > .chips.split { margin-left: 6px; padding-left: 8px; border-left: 1px solid var(--divider); }
+
 .filters .columns { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 
 .filters .columns .chip {
@@ -242,40 +396,3 @@
                            border-radius: 2px; padding: 0 2px; }
 
 .contents-table td.value { color: var(--muted); }
-
-/* The cascade, read top to bottom in the order things win. The element is the
-   last row because it has the final say, and it is not a definition. */
-.contents-table.chain tr.picked td { color: var(--accent); }
-
-/* The look row: one picker per trait, each under the word for what it sets.
-
-   **The word is not optional.** Unlabelled, the pickers showed the trait's own
-   name while nothing was chosen -- five boxes reading `slot`, `emphasis`,
-   `weight`, `voice`, `shape`, which name the questions where the answers should
-   be. An unset one now shows what it inherits, which is what it is drawing as,
-   and the word above says which question that answers. */
-.element .row.look { align-items: flex-start; }
-.element .row.look .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-
-.element .trait { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-
-.element .trait-word {
-  color: var(--faint);
-  font-size: 8.5px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  padding-left: 1px;
-}
-
-.element .row.look select {
-  font: inherit;
-  font-size: 11px;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 0 2px;
-  max-width: 8em;
-}
-
-.element .row.look select:hover { color: var(--text); border-color: var(--accent); }

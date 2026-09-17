@@ -32,7 +32,7 @@ npm run typecheck -w @mnd/defs
 | `BASE` | one definition per block module — the three tiers (`structure`, `behavior`, `view`), `folder`, and the five accessories (`reference`, `interface`, `resource`, `group`, `note`) |
 | `BEHAVIOR` | `action` and `state`, extending the base behavior definition, each carrying the verb its usages are named by |
 | `VIEWS` | the six offered views — `block`, `table`, `matrix`, and `activity` · `sequence` · `state`, which name the block module with a reading |
-| `RELATIONS` | `line` and `directed`, so an untyped relationship still resolves to something with a name |
+| `RELATIONS` | `line` and `tie`, so every relationship resolves to a base of its own module |
 
 ## The rules it lives by
 

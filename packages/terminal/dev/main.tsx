@@ -1,8 +1,4 @@
-/** The terminal, on its own, over a static offered list.
- *
- *  The list below is what `offer(ctx)` would hand back for a block on the
- *  stage — membership only, no ordering of its own. Type to filter, arrow to
- *  move the highlight, Enter to confirm it. */
+/** The terminal, on its own, over a static offered list. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";

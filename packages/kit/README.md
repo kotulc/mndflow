@@ -13,7 +13,7 @@
 ```
 anything outside this repo
 └─ kit   ◀ bundles them in
-   └─ core · defs · explorer · layout · views · render · theme
+   └─ core · defs · explorer · views · stage · theme
 ```
 
 ## Building it
@@ -45,7 +45,7 @@ npm i ./vendor/mnd-kit-0.1.0.tgz    # vendored, or fetched from a release
 ## Using it
 
 ```ts
-import { base_graph, validate, review, write, open, block, draw_svg } from "@mnd/kit";
+import { base_graph, validate, review, write, open, project, draw_svg } from "@mnd/kit";
 
 const graph = base_graph();           // a workspace with the floor in it
 const faults = validate(graph);       // what it violates, if anything
@@ -53,7 +53,7 @@ const notes = review(graph);          // what its definitions asked for and did 
 const file = write(graph, "docs");    // what mndflow reads back
 const back = open(file).graph;        // and the same state, in again
 
-const svg = draw_svg(block.project(back, layer, {}));
+const svg = draw_svg(project(back, layer, {}));
 ```
 
 **Two questions, and only one of them mends.** `validate` asks whether a graph can be *read*; `review` asks whether it says what its definitions asked for. A model is legitimately unfinished, so a note is advice — **a translator is where it becomes a refusal.**
@@ -66,7 +66,7 @@ const svg = draw_svg(block.project(back, layer, {}));
 
 > **A signature naming `Log`, `Step` or `Mutation` is internal. Graph to graph, and graph to Scene, is the seam.**
 
-**Sealed, with no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, the inference, and `layout`. A consumer places nothing — projecting is what places, and the Scene it hands back already carries the geometry.
+**Sealed, with no exceptions to look up:** the log, the steps, the mutations, the session, the action registry, and placement. A consumer places nothing — projecting is what places, and the Scene it hands back already carries the geometry.
 
 - **A consumer says what a model *is*, never what changed.** Round-tripping is read a graph and write a graph, and diffing belongs to whoever cares. **That is the price of a mutation union that stays free to grow**, and it is the right one.
 - **The export list is written out**, one name at a time. `export *` from the engine is how the log leaks.
@@ -82,7 +82,7 @@ import "@mnd/kit/react.css";
 
 **Interactive, self-contained, and not editable.** `draw_svg` makes a picture; this makes one you can walk. It holds the graph, projects the layer being looked at, and goes in and out of layers on a double-click. **Nothing in it writes.**
 
-The renderer underneath also offers drag callbacks meaning move, seat, wall and relate. They are not passed and not re-exported, so **an edit is unreachable rather than merely unadvised** — a host that needs them lives in this repo and imports `@mnd/render` directly.
+The renderer underneath also offers drag callbacks meaning move, seat, wall and relate. They are not passed and not re-exported, so **an edit is unreachable rather than merely unadvised** — a host that needs them lives in this repo and imports `@mnd/stage` directly.
 
 **A double-click opens what is under it, and a box that holds nothing opens where it points.** Where it points is a `source` field of form `link`, which is also what `draw_svg` turns into an anchor — one field name, and the drawing is navigation in both renderers. Unset, `onFollow` sends the browser there; passed, a host routes it itself and the page never reloads.
 

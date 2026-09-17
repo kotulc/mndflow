@@ -1,17 +1,9 @@
-/** The stage, driven on its own.
- *
- *  What is pinned: the left button works what is there and the right button
- *  makes something new, every gesture leaves as an action name, and the stage
- *  writes nothing itself.
- *
- *  **Nothing here computes a coordinate.** The canvas is React Flow's, so a
- *  card is found by the block it draws and clicked where it is — which is both
- *  closer to what a person does and immune to how anything is laid out. */
+/** The stage, driven on its own. */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { fold } from "@mnd/core";
-import { gridded, related } from "@mnd/fixtures";
+import { FLOOR, gridded, related } from "@mnd/fixtures";
 import { project } from "@mnd/views";
 import { Stage } from "../src/index";
 
@@ -19,7 +11,7 @@ afterEach(cleanup);
 beforeEach(() => { vi.spyOn(window, "prompt").mockReturnValue("Typed"); });
 
 function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
-  const graph = fold(related());
+  const graph = fold(related(), FLOOR);
   const scene = project(graph, "block_loop");
   const onAct = vi.fn();
   const onPick = vi.fn();
@@ -29,8 +21,7 @@ function mount(over: Partial<Parameters<typeof Stage>[0]> = {}) {
   return { ...view, scene, graph, onAct, onPick };
 }
 
-/** One card on the canvas, by the block it draws. React Flow puts the id on
- *  the node it renders, so nothing here has to know where anything sits. */
+/** One card on the canvas, by the block it draws. */
 const card = (view: { container: HTMLElement }, id: string) =>
   view.container.querySelector(`.react-flow__node[data-id="${id}"]`)!;
 
@@ -46,15 +37,14 @@ const frame_name = (view: { container: HTMLElement }) =>
 const field = (view: { container: HTMLElement }) =>
   view.container.querySelector(".mnd-naming")!;
 
-/** Typing a name in place: the field is the element the name was read from,
- *  and leaving it is what says the name was typed. */
+/** Typing a name in place: the field is the element the name was read from, and leaving it is what
+ *  says the name was typed. */
 function typing(el: Element, text: string) {
   el.textContent = text;
   fireEvent.blur(el);
 }
 
-/** **A card says what it is without being read.** One mark per sort of block,
- *  in the corner, and the same set the tree draws down its left edge. */
+/** A card says what it is without being read. */
 describe("what a card wears", () => {
   const worn = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
@@ -69,8 +59,7 @@ describe("what a card wears", () => {
     expect(view.container.querySelector(".mnd-frame .mnd-role")).toBeTruthy();
   });
 
-  /** **Never the word the mark already says.** A folder wearing the folder mark
-   *  and the word *folder* says it twice. */
+  /** Never the word the mark already says. */
   it("drops the subtype word where the mark says the same thing", () => {
     const view = mount();
     for (const el of Array.from(view.container.querySelectorAll(".mnd-head"))) {
@@ -95,13 +84,7 @@ describe("the left button works what is already there", () => {
     expect(picks).toEqual([[["block_pump"]]]);
   });
 
-  /** **The canvas never reports back what it was told.**
-   *
-   *  Selection is held in two places — the app's log and React Flow's own copy
-   *  — and every jam this canvas has had came from writing each one into the
-   *  other. Clicking what is already picked changes nothing, so it must say
-   *  nothing: a report here is the start of a round trip, and a round trip that
-   *  begins with no news is a loop. */
+  /** The canvas never reports back what it was told. */
   it("says nothing when the click changes nothing", () => {
     const view = mount({ picked: ["block_pump"] });
     view.onPick.mockClear();
@@ -121,22 +104,17 @@ describe("the left button works what is already there", () => {
     expect(view.onAct).toHaveBeenCalledWith("open", { id: "block_pump" });
   });
 
-  /** The one place two clicks mean edit rather than descend, and it is a name
-   *  rather than a card — so renaming a block is done from inside it.
-   *
-   *  **A name is typed where it is read**: two clicks open the name itself, and
-   *  what was typed is said once when it is left. */
+  /** Two clicks on the frame's name rename the layer. */
   it("renames the layer where its name is read", () => {
     const view = mount();
     fireEvent.doubleClick(frame_name(view));
     typing(field(view), "Typed");
     expect(view.onAct.mock.calls.filter((c) => c[0] === "rename"))
-      .toEqual([["rename", { id: "block_loop", label: "Typed" }]]);
+      .toEqual([["rename", { id: "block_loop", name: "Typed" }]]);
     expect(view.onAct).not.toHaveBeenCalledWith("open", expect.anything());
   });
 
-  /** A name left as it was is not a rename: it is a log entry and an undo step
-   *  for a name that already read that way. */
+  /** A name left unchanged writes nothing. */
   it("says nothing when a name is left as it was", () => {
     const view = mount();
     fireEvent.doubleClick(frame_name(view));
@@ -144,10 +122,7 @@ describe("the left button works what is already there", () => {
     expect(view.onAct).not.toHaveBeenCalledWith("rename", expect.anything());
   });
 
-  /** **The band is a place, not an element.** Two clicks land in it or they do
-   *  not, and asking the browser which element the pair had in common answers
-   *  *the ground* for two clicks on different cards — which used to take you up
-   *  a layer when all you did was pick two things quickly. */
+  /** The band is a place, not an element. */
   it("comes back out on a double click in the band", () => {
     const view = mount();
     fireEvent.doubleClick(ground(view), { clientX: 9000, clientY: 9000 });
@@ -163,18 +138,7 @@ describe("the left button works what is already there", () => {
   });
 });
 
-/** **Two things here need a real browser and are driven in one.**
- *
- *  Making a block with the right button, and drawing a relationship between
- *  two cards, both go through React Flow's own pointer machinery — which reads
- *  handle positions off measured DOM. Nothing measures anything under
- *  happy-dom, so the library correctly declines to route an edge or to place a
- *  connection, and a test asserting otherwise would be asserting against the
- *  test environment rather than against the app.
- *
- *  This is the line `packages/README.md` already draws: the stage is **driven,
- *  not asserted**. What is left in this file is everything that holds without
- *  a viewport — which is most of it. */
+/** Two things here need a real browser and are driven in one. */
 
 describe("the keyboard", () => {
   const press = (key: string, extra: Partial<KeyboardEventInit> = {}) =>
@@ -186,9 +150,7 @@ describe("the keyboard", () => {
     expect(view.onPick).toHaveBeenCalledWith([]);
   });
 
-  /** **Descending has three ways in, and this is the one you can find.** A
-   *  double click is the same gesture as picking a card twice quickly, so it
-   *  cannot be the only one. */
+  /** Descending has three ways in, and this is the one you can find. */
   it("descends into the picked block on Enter", () => {
     const view = mount({ picked: ["block_pump"] });
     press("Enter");
@@ -196,7 +158,7 @@ describe("the keyboard", () => {
   });
 
   it("does not descend into a grid on a double click", () => {
-    const graph = fold(gridded());
+    const graph = fold(gridded(), FLOOR);
     const scene = project(graph, "block_board");
     const onAct = vi.fn();
     const view = render(
@@ -213,7 +175,7 @@ describe("the keyboard", () => {
     expect(card(view, "block_pump").querySelector(".mnd-naming")).toBeTruthy();
     typing(field(view), "Typed");
     expect(view.onAct).toHaveBeenCalledWith("rename",
-      { id: "block_pump", label: "Typed" });
+      { id: "block_pump", name: "Typed" });
   });
 
   it("deletes everything picked, blocks and relations alike", () => {
@@ -278,26 +240,22 @@ describe("what the canvas draws", () => {
     expect(view.container.querySelector(".mnd-frame")).not.toBeNull();
   });
 
-  /** The edge elements themselves need measured handles, so what is checked
-   *  here is that every route was handed over — React Flow builds one arrow
-   *  marker per marker kind it was actually given. */
+  /** Every route is handed over and the heads are on the page. */
   it("hands every route to the canvas", () => {
     const view = mount();
     expect(view.scene.edges.length).toBeGreaterThan(0);
     expect(view.container.querySelector(".react-flow__edges")).not.toBeNull();
-    expect(view.container.querySelector(".react-flow__arrowhead")).not.toBeNull();
+    expect(view.container.querySelector("#mnd-head-arrow")).not.toBeNull();
+    expect(view.container.querySelector("#mnd-head-diamond")).not.toBeNull();
   });
 
-  /** The viewport is React Flow's, and its presence is the whole point of it
-   *  being React Flow's — none of this existed on the hand-rolled canvas. */
+  /** The viewport controls come with React Flow. */
   it("offers the viewport controls the library brings", () => {
     const view = mount();
     expect(view.container.querySelector(".react-flow__background")).not.toBeNull();
     expect(view.container.querySelectorAll(".react-flow__controls button").length)
       .toBeGreaterThan(0);
-    /** **No map of the layer.** A layer is one screenful by construction — the
-     *  frame is fitted to the panel — so a second, smaller copy of it in the
-     *  corner shows what is already there and covers the drawing to do it. */
+    /** No minimap: a layer is one screenful. */
     expect(view.container.querySelector(".react-flow__minimap")).toBeNull();
   });
 });

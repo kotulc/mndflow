@@ -1,42 +1,25 @@
-/** An embedded view: interactive, self-contained, and not editable.
- *
- *  A drawing that cannot be walked is a picture, and `draw_svg` already makes
- *  those. This is the other artifact: it holds a graph, projects the layer you
- *  are looking at, and lets you look somewhere else. **Nothing here writes.**
- *
- *  So the left button only ever changes what is being looked at — a layer, or
- *  wherever a box says it came from — and the right
- *  button — which is how the app makes something new — is dropped on the floor.
- *  The editing props `SceneView` offers are not passed and not forwarded, which
- *  is why they are absent from `@mnd/kit/react` too: a consumer cannot reach an
- *  edit through this, rather than being trusted not to. */
+/** An embedded view: interactive, self-contained, and not editable. */
 
 import { useState } from "react";
 import { children, type Graph, type Id } from "@mnd/core";
 import { project, type Config } from "@mnd/views";
 import { FlowView, type Gesture } from "@mnd/stage";
 
-/** Nothing picked. A constant, because a fresh `[]` every render would read as
- *  the host changing its mind on every render. */
+/** Nothing picked, as one constant so it never reads as a change. */
 const NONE: readonly Id[] = [];
 
 export type ViewerProps = {
   graph: Graph;
-  /** Which layer to draw. The root layer unless said otherwise. Driven: the
-   *  viewer walks on its own, and follows this whenever the host changes it. */
+  /** Which layer to draw. The root layer unless said otherwise. */
   layer?: Id | null;
-  /** Which blocks are lit. Driven the same way, so a host with a tree beside
-   *  the drawing can light what the tree selected — **without moving the
-   *  layer**, which is the whole point of the two being separate. */
+  /** Which blocks are lit, without moving the layer. */
   picked?: readonly Id[];
   config?: Config;
   /** Told where the viewer is looking, whenever that changes. */
   onLook?: (layer: Id | null) => void;
   /** Told what is lit, whenever that changes. */
   onPick?: (ids: Id[]) => void;
-  /** Told where a box points, when one that holds nothing is opened. Unset,
-   *  the browser is sent there — the same thing `draw_svg`'s anchor does. A
-   *  host with routing of its own passes this and the page never reloads. */
+  /** Told where a box points, when one that holds nothing is opened. */
   onFollow?: (link: string, id: Id) => void;
 };
 
@@ -58,8 +41,7 @@ export function Viewer({ graph, layer = null, picked = NONE,
     pick([]);
   };
 
-  /** Where a box points, if it points anywhere. The Scene carries it, so this
-   *  reads the drawing rather than the graph — `draw_svg` reads the same. */
+  /** Where a box points, if it points anywhere. */
   const link_of = (id: string) => scene.nodes.find((n) => n.id === id)?.data.link;
 
   const follow = (link: string, id: Id) => {
@@ -67,14 +49,7 @@ export function Viewer({ graph, layer = null, picked = NONE,
     else if (typeof window !== "undefined") window.location.assign(link);
   };
 
-  /** Double-click **opens** what is under it: a box that holds something opens
-   *  as a layer, a box that holds nothing opens where it points, and empty
-   *  space goes back out to the parent. A single click selects, which is a
-   *  highlight and not a change.
-   *
-   *  Holding beats pointing, and deliberately: a linked container is a page
-   *  with sections in it, and walking in is what the viewer is for. Its link
-   *  is still reachable — from the leaf, or from a host reading `Box.link`. */
+  /** Double-click opens a container, follows a link, or goes back out. */
   const gesture = (g: Gesture) => {
     if (g.button !== "left") return;
     if (g.count === 2) {
@@ -91,9 +66,7 @@ export function Viewer({ graph, layer = null, picked = NONE,
   return <FlowView scene={scene} picked={lit} onGesture={gesture} onPick={pick} />;
 }
 
-/** A value the host may drive: the viewer's own until the host changes its
- *  mind, and the host's from then on. An embed that passes nothing still
- *  walks and still highlights, which is what makes it self-contained. */
+/** A value the host may drive: the viewer's own until the host sets it. */
 function driven<T>(sent: T): [T, (next: T) => void] {
   const [held, set_held] = useState(sent);
   const [was, set_was] = useState(sent);

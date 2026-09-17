@@ -1,14 +1,11 @@
-/** The explorer, on its own, over a fixture.
- *
- *  The harness holds the state the component refuses to: it folds a fixture,
- *  hands the result down as props, and logs every action the component emits.
- *  About fifty lines, and the fastest way to see a component misbehave. */
+/** The explorer, on its own, over a fixture. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { session, type Id } from "@mnd/core";
+import { seed } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
-import { Explorer } from "../src/index";
+import { Explorer, type Section } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
@@ -23,9 +20,10 @@ function Harness() {
   const [open, set_open] = useState<Id | null>(null);
   const [picked, set_picked] = useState<Id[]>([]);
   const [folded, set_folded] = useState<Id[]>([]);
+  const [section, set_section] = useState<Section | null>(null);
 
   if (!held.has(name)) {
-    const made = session();
+    const made = session({ defs: seed() });
     for (const step of fixture(name)) made.adjust(step.action, step.mutations);
     held.set(name, made);
   }
@@ -58,6 +56,8 @@ function Harness() {
           onFold={(id, shut) =>
             set_folded((f) => (shut ? [...new Set([...f, id])] : f.filter((x) => x !== id)))}
           onPick={set_picked}
+          section={section}
+          onSection={(at) => { set_section(at); say(`about ${JSON.stringify(at)}`); }}
         />
         <pre className="log">{log.join("\n") || "every action it emits shows here"}</pre>
       </div>

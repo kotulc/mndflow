@@ -1,13 +1,4 @@
-/** Where an interface sits.
- *
- *  An interface is **seated** on its owner's edge rather than laid out beside
- *  it: a side and a fraction along it, so the seat survives the owner moving,
- *  growing or being arranged some other way.
- *
- *  **Routing works out every seat.** Where a line meets a border and where an
- *  interface sits along its wall are both derived from the layout each time
- *  the layer is projected — nothing is pinned and nothing is held back from
- *  reassignment when the layer is projected. */
+/** Where an interface sits. */
 
 import { children, is_interface, type Graph, type Id, type Relation,
          type Side } from "@mnd/core";
@@ -31,11 +22,7 @@ export function seated(graph: Graph, spots: readonly Placed[],
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** The box an interface takes: straddling the edge, centred on its seat.
- *
- *  Any rectangle will do, not only a card's — **a layer's own interfaces are
- *  seated on the frame the same way**, and the frame is a rectangle somebody
- *  else worked out. */
+/** The box an interface takes: straddling the edge, centred on its seat. */
 export function at_seat(on: Rect, seat: Seat): Rect {
   const t = Math.min(1, Math.max(0, seat.at));
   const along = { x: on.x + on.w * t, y: on.y + on.h * t };
@@ -46,9 +33,7 @@ export function at_seat(on: Rect, seat: Seat): Rect {
   return { x: mid.x - PORT.w / 2, y: mid.y - PORT.h / 2, ...PORT };
 }
 
-/** Which seat a point asks for: the nearest edge, and the seat along it the
- *  point falls closest to. Seats are discrete, so a slide lands somewhere it
- *  can be landed on again. */
+/** Which seat a point asks for: the nearest edge, and the seat along it the point falls closest to. */
 export function nearest_seat(on: Rect, at: { x: number; y: number }): Seat {
   const out = { x: (at.x - (on.x + on.w / 2)) / (on.w / 2 || 1),
                 y: (at.y - (on.y + on.h / 2)) / (on.h / 2 || 1) };
@@ -66,24 +51,17 @@ export function nearest_seat(on: Rect, at: { x: number; y: number }): Seat {
   return { side, at: seat_frac(mark, origin, extent) };
 }
 
-/** One end of a relationship, met on a border it has no interface for.
- *
- *  **Derived, and nowhere in the graph.** Where a line reaches a card is worked
- *  out from where the two cards ended up and recomputed with every projection. */
+/** One end of a relationship, met on a border it has no interface for. */
 export type Perch = { edge: Id; end: "from" | "to"; on: Id; side: Side; at: number };
 
-/** The handle a perch offers. **Named here**, so whoever draws one and whoever
- *  points an edge at it cannot disagree about what it is called. */
+/** The handle a perch offers. */
 export function perch_id(edge: Id, end: "from" | "to"): string {
   return `p-${end}-${edge}`;
 }
 
 export type Assigned = { perches: Perch[]; port_at: ReadonlyMap<Id, number> };
 
-/** Where every line end and every interface on a wall sits.
- *
- *  **Worked out wall by wall**, so several lines leaving the same side fan out
- *  from the centre on half-unit lanes and never share a spot. */
+/** Where every line end and every interface on a wall sits. */
 export function assign_seats(graph: Graph, links: readonly Relation[],
                              spots: readonly Placed[], boxes: ReadonlyMap<Id, Rect>,
                              frame?: { id: Id; of: Id }): Assigned {
@@ -214,8 +192,7 @@ function nearest(box: Rect, other: Rect): Side {
     .reduce((a, b) => (gap[b] < gap[a] ? b : a));
 }
 
-/** A stable ordering key for several claims on one wall — not where they land.
- *  Seats fan out from the centre; `want` only sorts claims so lanes never cross. */
+/** A stable ordering key for several claims on one wall — not where they land. */
 function rank_along(box: Rect, other: Rect, side: Side): number {
   const down = side === "left" || side === "right";
   return down ? ((other.y + other.h / 2) - box.y) / (box.h || 1)

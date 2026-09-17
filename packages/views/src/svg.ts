@@ -1,48 +1,24 @@
-/** A Scene as one standalone SVG.
- *
- *  The third renderer, and the one a published page can hold: no React, no DOM
- *  and no runtime — a string a build step writes to a file. It draws the same
- *  class vocabulary the React renderer does, so a page that already carries the
- *  theme styles it, and it ships its own stylesheet so a file opened alone
- *  still reads.
- *
- *  **A box that names a link becomes an anchor.** That is the whole of what
- *  this knows about the outside: where a block came from is a field on the
- *  block, and following one is a renderer's business. */
+/** A Scene as one standalone SVG. */
 
-import { getSmoothStepPath, Position } from "@xyflow/system";
-import type { Side } from "@mnd/core";
-import { box_of, extent, type BoxNode, type LineEdge, type Scene } from "./scene";
-import { at_seat, type Perch } from "./seat";
+import { box_of, extent, heads, type BoxNode, type LineEdge, type Scene } from "./scene";
+import { end_of } from "./ends";
+import { drawn, middle_of, route } from "./route";
 
 /** How the drawing is dressed. Every one of these has a default that works. */
 export type Paper = {
   /** The accessible name. Defaults to what the layer is called. */
   title?: string;
-  /** Replaces the default stylesheet outright. **`""` drops the `<style>`
-   *  block**, which is what a page embedding the drawing in MDX wants: CSS is
-   *  braces, and MDX reads a brace as the start of an expression. Load `SHEET`
-   *  once on such a page instead of once per drawing. */
+  /** Replaces the default stylesheet outright. */
   style?: string;
   /** Room around the drawing. */
   pad?: number;
-  /** What every generated id is prefixed with, so several drawings can sit on
-   *  one page without their markers and clips colliding. */
+  /** Prefix for generated ids, so drawings on one page do not collide. */
   id?: string;
 };
 
 const PAD = 24;
 
-/** The default stylesheet.
- *
- *  Every value is **read from the ramp with a fallback**: inlined in a page
- *  carrying the theme it takes the page's, and standing alone it takes the
- *  whiteprint, which is what a documentation site is. These are the only
- *  colours outside `theme`, and they exist so a file works with nothing loaded
- *  — never as a second palette to pick from.
- *
- *  Exported so a page holding several drawings can carry it once and pass
- *  `style: ""` to each. */
+/** The default stylesheet. */
 export const SHEET = `
 svg.scene {
   --ground: var(--s-neutral-ground, oklch(0.958 0.008 232));
@@ -105,9 +81,7 @@ svg.scene .card.cell.filled text { fill: var(--lead); }
 svg.scene .route path { fill: none; stroke: var(--stroke); stroke-width: 1.5; }
 svg.scene .route .head { fill: var(--stroke); }
 svg.scene .route text { fill: var(--dim); font: 10px var(--face); }
-svg.scene .route.directed path { stroke: var(--lead); }
-svg.scene .route.directed .head { fill: var(--lead); }
-svg.scene .route.reference path { stroke: var(--away-dim); stroke-dasharray: 5 3; opacity: 0.9; }
+svg.scene .head.open { fill: none; stroke: currentColor; stroke-width: 1.4; }
 svg.scene .route.tie path {
   stroke: var(--note-dim); stroke-dasharray: 0 4; stroke-linecap: round;
   stroke-width: 1.5; opacity: 0.75;
@@ -131,9 +105,7 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
     + ` preserveAspectRatio="xMidYMid meet" aria-label="${esc(name)}">`,
     `<title>${esc(name)}</title>`,
     `<style>${paper.style ?? SHEET}</style>`,
-    `<defs><marker id="${key}-arrow" viewBox="0 0 10 10" refX="9" refY="5"`
-    + ` markerWidth="6" markerHeight="6" orient="auto-start-reverse">`
-    + `<path d="M 0 0 L 10 5 L 0 10 z" class="head" /></marker></defs>`,
+    `<defs>${markers(key)}</defs>`,
   ];
 
   if (scene.frame) {
@@ -143,17 +115,14 @@ export function draw_svg(scene: Scene, paper: Paper = {}): string {
       + `<text x="${round(f.x + 12)}" y="${round(f.y)}">${esc(f.label)}</text></g>`);
   }
 
-  const at = new Map(scene.nodes.map((n) => [n.id, box_of(n)]));
-  const met = new Map(scene.perches.map((p) => [`${p.edge}|${p.end}`, p]));
-  for (const e of scene.edges) parts.push(line(e, at, met, key));
+  for (const e of scene.edges) parts.push(line(e, scene, key));
   scene.nodes.forEach((n, i) => parts.push(card(n, `${key}-clip-${i}`)));
 
   parts.push(`</svg>`);
   return parts.join("\n") + "\n";
 }
 
-/** One card. A box that names a link is **wrapped** rather than drawn
- *  differently: where it points is not a look. */
+/** One card; a linked box is wrapped, not restyled. */
 function card(node: BoxNode, clip: string): string {
   const d = node.data;
   const at = box_of(node);
@@ -166,8 +135,7 @@ function card(node: BoxNode, clip: string): string {
   return d.link ? `<a href="${esc(d.link)}">${drawn}</a>` : drawn;
 }
 
-/** A name too long for its card is clipped — the same rule the React renderer
- *  draws by. */
+/** A name too long for its card is clipped. */
 function label(node: BoxNode, clip: string): string {
   const d = node.data;
   if (!d.label) return ``;
@@ -180,83 +148,50 @@ function label(node: BoxNode, clip: string): string {
     + ` text-anchor="middle" clip-path="url(#${clip})">${esc(d.label)}</text>`;
 }
 
-/** One line. **The same path the canvas draws** — `getSmoothStepPath` is React
- *  Flow's own, it is a pure function of six numbers, and calling it here is
- *  what keeps the headless drawing and the browser one from drifting.
- *
- *  **Where it meets each end is the projection's**, and arrives as a perch, so
- *  this and the canvas read one answer rather than each working one out. An end
- *  seated on an interface has no perch: it meets the middle of the wall the
- *  interface is set into, which is the whole of that interface. */
-function line(edge: LineEdge, at: Map<string, At>, met: ReadonlyMap<string, Perch>,
-              key: string): string {
-  const a = at.get(edge.source);
-  const b = at.get(edge.target);
+/** One line, routed the same way the canvas routes it. */
+function line(edge: LineEdge, scene: Scene, key: string): string {
+  const a = end_of(edge, "from", scene.nodes, scene.perches, scene.frame);
+  const b = end_of(edge, "to", scene.nodes, scene.perches, scene.frame);
   if (!a || !b) return ``;
-  const dx = (b.x + b.w / 2) - (a.x + a.w / 2);
-  const dy = (b.y + b.h / 2) - (a.y + a.h / 2);
-  const across = Math.abs(dx) >= Math.abs(dy);
-  const from_perch = met.get(`${edge.id}|from`);
-  const to_perch = met.get(`${edge.id}|to`);
-  const out = from_perch ? FACE[from_perch.side]
-    : across ? (dx >= 0 ? Position.Right : Position.Left)
-             : (dy >= 0 ? Position.Bottom : Position.Top);
-  const into = to_perch ? FACE[to_perch.side]
-    : across ? (dx >= 0 ? Position.Left : Position.Right)
-             : (dy >= 0 ? Position.Top : Position.Bottom);
-  const from = from_perch ? seated(a, from_perch) : wall(a, out);
-  const to = to_perch ? seated(b, to_perch) : wall(b, into);
-  const [d, cx, cy] = getSmoothStepPath({
-    sourceX: from.x, sourceY: from.y, sourcePosition: out,
-    targetX: to.x, targetY: to.y, targetPosition: into,
-  });
+  const run = route(a, a.face, b, b.face, edge.data?.clear ?? []);
+  const mid = middle_of(run);
 
   const data = edge.data;
-  const forward = data?.dir === "forward" || data?.dir === "both"
-               || data?.module === "directed";
-  const back = data?.dir === "back" || data?.dir === "both";
-  return `<g class="route ${data?.module ?? "line"}"><path d="${d}"`
-    + (forward ? ` marker-end="url(#${key}-arrow)"` : ``)
-    + (back ? ` marker-start="url(#${key}-arrow)"` : ``) + ` />`
-    + (edge.label
-        ? `<text x="${round(cx)}" y="${round(cy - 4)}" text-anchor="middle">`
-          + `${esc(String(edge.label))}</text>`
+  const end = heads(data);
+  /** The name, and the handle where the line asked for one. */
+  const middle = [String(edge.label ?? ""), data?.alias ?? ""].filter(Boolean).join(" ");
+  return `<g class="route ${data?.module ?? "line"}"><path d="${drawn(run, 6)}"`
+    + (end.from === "none" ? `` : ` marker-start="url(#${key}-${end.from})"`)
+    + (end.to === "none" ? `` : ` marker-end="url(#${key}-${end.to})"`) + ` />`
+    + (middle
+        ? `<text x="${round(mid.x)}" y="${round(mid.y - 4)}" text-anchor="middle">`
+          + `${esc(middle)}</text>`
         : ``)
     + `</g>`;
 }
 
-/** How a side names itself to the path function. */
-const FACE: Record<Side, Position> = {
-  top: Position.Top, right: Position.Right,
-  bottom: Position.Bottom, left: Position.Left,
+/** The four heads a run may draw, as markers. */
+const HEADS: Record<string, { d: string; open?: boolean }> = {
+  arrow: { d: "M 0 0 L 10 5 L 0 10 z" },
+  open: { d: "M 0 0 L 10 5 L 0 10", open: true },
+  hollow: { d: "M 0 0 L 10 5 L 0 10 z", open: true },
+  diamond: { d: "M 0 5 L 5 0 L 10 5 L 5 10 z", open: true },
 };
 
-/** The middle of the seat a perch sits on. */
-function seated(b: At, perch: Perch): { x: number; y: number } {
-  const r = at_seat(b, perch);
-  return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
+function markers(key: string): string {
+  return Object.entries(HEADS).map(([name, head]) =>
+    `<marker id="${key}-${name}" viewBox="0 0 10 10" refX="9" refY="5"`
+    + ` markerWidth="6" markerHeight="6" orient="auto-start-reverse">`
+    + `<path d="${head.d}" class="${head.open ? "head open" : "head"}" /></marker>`
+  ).join("");
 }
 
-/** The middle of one wall of a box. */
-function wall(b: At, side: Position): { x: number; y: number } {
-  if (side === Position.Left) return { x: b.x, y: b.y + b.h / 2 };
-  if (side === Position.Right) return { x: b.x + b.w, y: b.y + b.h / 2 };
-  if (side === Position.Top) return { x: b.x + b.w / 2, y: b.y };
-  return { x: b.x + b.w / 2, y: b.y + b.h };
-}
-
-type At = { x: number; y: number; w: number; h: number };
-
-/** Placements are fractional, and a file that is diffed is read by a person, so
- *  a coordinate is written to the tenth rather than to the sixteenth. */
+/** Coordinates to the tenth. */
 function round(n: number): string {
   return String(Math.round(n * 10) / 10);
 }
 
-/** **Braces are escaped along with the markup characters.** They mean nothing
- *  in SVG and everything in MDX, where a `{` opens an expression — so a label
- *  carrying one would break the page holding the drawing rather than the
- *  drawing. A reference costs nothing anywhere else, and reads as the brace. */
+/** Braces are escaped along with the markup characters. */
 function esc(text: string): string {
   return text.replace(/[<>&"'{}]/g, (c) =>
     ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;",

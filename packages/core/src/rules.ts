@@ -1,25 +1,12 @@
-/** The rule kinds, asked rather than enforced.
- *
- *  **They advise while modelling and refuse only at translation.** A model is
- *  legitimately unfinished, so nothing here is a fault and nothing here is
- *  repaired: the door owns what makes a graph readable, and this owns what a
- *  vocabulary asked for. A note is a note until a translator decides otherwise.
- *
- *  **One constraint and four rules**, each a lookup, a count or one fixed
- *  comparison. No operators, nothing to parse, and no rule language — what they
- *  cannot say is a module's `validate` hook, which is code.
- *
- *  A rule naming a definition means **it or anything below it**, so `isa` is
- *  the whole of the matching. A malformed rule is ignored rather than thrown
- *  on, the same way a component validates its own key and no other. */
+/** The rule kinds, asked rather than enforced. */
 
-import { children, isa, subtree } from "./fold";
-import type { Definition, Flow, Graph, Id } from "./types";
+import { def_of, isa } from "./defs";
+import { children, is_interface, subtree } from "./tree";
+import type { Components, Flow, Graph, Id } from "./types";
 
 export type NoteKind = "required" | "ends" | "holds" | "degree" | "match";
 
-/** What a usage asked for and did not get. Carries the thing at fault, so a
- *  caller can light it up without searching for it. */
+/** What a usage asked for and did not get. */
 export type Note = {
   kind: NoteKind;
   /** The block or relation the note is about. */
@@ -29,10 +16,9 @@ export type Note = {
 
 export type Range = { min?: number; max?: number };
 
-/** What a definition may declare. Read defensively — a shape this build does
- *  not recognise is left alone rather than refused. */
+/** What a definition may declare. */
 export type Rules = {
-  /** Field names a usage must carry a value for. The one constraint. */
+  /** Field names a usage must carry a value for. */
   required?: string[];
   /** Which definitions may sit at each end, and optionally which flow. */
   ends?: { from?: Id[]; to?: Id[]; fromFlow?: Flow; toFlow?: Flow };
@@ -54,13 +40,10 @@ const range = (v: unknown): Range | undefined => {
   return ok(min) && ok(max) ? { min, max } : undefined;
 };
 
-/** The rules in force on a usage: the chain, nearest first, and the nearest
- *  declaration of each kind wins. Components merge per key, so a subtype
- *  restating one kind leaves the others alone. */
-export function rules_of(graph: Graph, type: Id | undefined): Rules {
+/** The rules in force, nearest first, and the nearest declaration of each kind wins. */
+export function rules_of(graph: Graph, id: Id | undefined): Rules {
   const out: Rules = {};
-  for (const d of isa(graph, type)) {
-    const from = read_rules(d);
+  for (const from of layers_of(graph, id)) {
     for (const key of Object.keys(from) as (keyof Rules)[]) {
       if (out[key] === undefined) (out as Record<string, unknown>)[key] = from[key];
     }
@@ -68,12 +51,21 @@ export function rules_of(graph: Graph, type: Id | undefined): Rules {
   return out;
 }
 
-function read_rules(d: Definition): Rules {
-  const c = d.components?.["constraints"] ?? {};
-  const r = d.components?.["rules"] ?? {};
+/** What states rules over this, nearest first. */
+function layers_of(graph: Graph, id: Id | undefined): Rules[] {
+  if (!id) return [];
+  if (graph.defs[id]) return isa(graph, id).map((d) => read_rules(d.components));
+  const chain = isa(graph, def_of(graph, id)).map((d) => read_rules(d.components));
+  /** Whichever holder the id names. */
+  const own = (graph.blocks[id] ?? graph.edges[id])?.looks;
+  return own?.["rules"] ? [read_rules(own), ...chain] : chain;
+}
+
+function read_rules(components: Components | undefined): Rules {
+  const r = components?.["rules"] ?? {};
   const out: Rules = {};
 
-  const required = strings(c["required"]);
+  const required = strings(r["required"]);
   if (required) out.required = required;
 
   const ends = r["ends"];
@@ -103,20 +95,16 @@ function is_one_of(graph: Graph, type: Id | undefined, allowed: Id[]): boolean {
   return isa(graph, type).some((d) => allowed.includes(d.id));
 }
 
+/** What a block answers for one field name. */
 function value_of(graph: Graph, id: Id, name: string): string | undefined {
-  const held = graph.blocks[id]?.fields ?? graph.edges[id]?.fields;
-  return held?.find((f) => f.name === name)?.value;
+  return graph.blocks[id]?.fields?.find((f) => f.name === name)?.value;
 }
 
 function label(graph: Graph, id: Id): string {
-  return graph.blocks[id]?.label ?? id;
+  return graph.blocks[id]?.name ?? id;
 }
 
-/** What a graph asked for and did not get.
- *
- *  **Scoped, because that is how it is used**: the tray asks about the open
- *  layer and a translator asks about the subtree it is emitting, and neither
- *  wants to hear about the rest of the workspace. Absent, the whole graph. */
+/** What a graph asked for and did not get. */
 export function review(graph: Graph, scope?: Id): Note[] {
   const notes: Note[] = [];
   const within = scope ? new Set(subtree(graph, scope)) : null;
@@ -124,7 +112,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
 
   for (const b of Object.values(graph.blocks)) {
     if (!holds_block(b.id)) continue;
-    const rules = rules_of(graph, b.type);
+    const rules = rules_of(graph, b.id);
 
     for (const name of rules.required ?? []) {
       if (!value_of(graph, b.id, name)) {
@@ -133,8 +121,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
       }
     }
 
-    /** `holds` is the vocabulary's containment rule. The engine owns exactly
-     *  one of its own — a view holds references — and this is the other kind. */
+    /** The vocabulary's containment rule. */
     if (rules.holds) {
       for (const child of children(graph, b.id)) {
         if (!is_one_of(graph, child.type, rules.holds)) {
@@ -144,8 +131,7 @@ export function review(graph: Graph, scope?: Id): Note[] {
       }
     }
 
-    /** Every relationship meeting the usage, wherever it is drawn — degree is
-     *  about the thing, never about the layer somebody is looking at. */
+    /** Degree counts every relation meeting the block, in any layer. */
     if (rules.degree) {
       const met = Object.values(graph.edges);
       count(notes, b.id, label(graph, b.id), "in",
@@ -157,21 +143,15 @@ export function review(graph: Graph, scope?: Id): Note[] {
 
   for (const e of Object.values(graph.edges)) {
     if (!holds_block(e.from) && !holds_block(e.to)) continue;
-    const rules = rules_of(graph, e.type);
+    const rules = rules_of(graph, e.id);
 
-    for (const name of rules.required ?? []) {
-      if (!value_of(graph, e.id, name)) {
-        notes.push({ kind: "required", id: e.id, what: `a relation needs a value for ${name}` });
-      }
-    }
-
+    /** An edge has no `required`: it carries no values. */
     if (rules.ends) {
       end(notes, graph, e.id, "from", e.from, rules.ends.from, rules.ends.fromFlow);
       end(notes, graph, e.id, "to", e.to, rules.ends.to, rules.ends.toFlow);
     }
 
-    /** `match` is one fixed comparison: the same field name, read off both
-     *  ends, agreeing. Absent on either end is a disagreement. */
+    /** `match` is one fixed comparison: the same field name, read off both ends, agreeing. */
     for (const name of rules.match ?? []) {
       if (value_of(graph, e.from, name) !== value_of(graph, e.to, name)) {
         notes.push({ kind: "match", id: e.id,
@@ -195,13 +175,18 @@ function count(notes: Note[], id: Id, name: string, way: "in" | "out",
   }
 }
 
+/** A rule about an end walks through a port. */
 function end(notes: Note[], graph: Graph, id: Id, way: "from" | "to", at: Id,
              allowed: Id[] | undefined, flow: Flow | undefined): void {
-  if (allowed && !is_one_of(graph, graph.blocks[at]?.type, allowed)) {
+  const met = graph.blocks[at];
+  const owner = met && is_interface(met) && met.parent
+    ? graph.blocks[met.parent] : undefined;
+  if (allowed && !is_one_of(graph, met?.type, allowed)
+      && !is_one_of(graph, owner?.type, allowed)) {
     notes.push({ kind: "ends", id,
-                 what: `"${label(graph, at)}" may not sit at the ${way} end` });
+                 what: `"${label(graph, owner?.id ?? at)}" may not sit at the ${way} end` });
   }
-  if (flow && graph.blocks[at]?.flow !== flow) {
+  if (flow && met?.flow !== flow) {
     notes.push({ kind: "ends", id,
                  what: `the ${way} end wants a ${flow} interface` });
   }

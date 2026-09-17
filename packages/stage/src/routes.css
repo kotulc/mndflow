@@ -1,0 +1,182 @@
+/* Runs on the canvas: routes, what a vocabulary paints them, and their ends. */
+
+/* ── Routes ────────────────────────────────────────────────────────────── */
+
+.mnd-flow .react-flow__edge-path {
+  stroke: var(--route);
+  stroke-width: 1.5;
+  opacity: 1;
+}
+.mnd-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--accent); }
+.mnd-flow .react-flow__arrowhead * { fill: var(--route-head); stroke: none; }
+.mnd-flow .react-flow__edge.selected .react-flow__arrowhead * { fill: var(--accent); }
+
+/* A relationship's name, set as real text so it takes the ramp's type. */
+.mnd-wire-name {
+  position: absolute;
+  padding: 0 5px;
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: all;
+  cursor: text;
+}
+.mnd-wire-name:hover { color: var(--text); }
+.react-flow__edge.selected .mnd-wire-name { color: var(--accent); }
+
+/* A plain run; direction draws as a head, never a different stroke. */
+.mnd-flow .react-flow__edge.line .react-flow__edge-path {
+  stroke-width: 1.5;
+  opacity: 1;
+}
+.mnd-flow .react-flow__edge.dashed .react-flow__edge-path { stroke-dasharray: 5 4; }
+.mnd-flow .react-flow__edge.tie .react-flow__edge-path {
+  stroke: var(--note-dim);
+  stroke-width: 1.5;
+  stroke-dasharray: 0 4;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+.mnd-flow .react-flow__edge.tie .react-flow__arrowhead * { fill: var(--note-dim); }
+
+/* ── What a vocabulary says about a run ───────────────────────────────────── */
+
+/* The same table a card is painted from. */
+.mnd-wire[data-family] .react-flow__edge-path { stroke: var(--card-line); }
+.mnd-wire[data-border-width] .react-flow__edge-path {
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+.mnd-wire[data-border-style="dashed"] .react-flow__edge-path { stroke-dasharray: 5 4; }
+.mnd-wire[data-border-style="dotted"] .react-flow__edge-path {
+  stroke-dasharray: 0 3.5;
+  stroke-linecap: round;
+}
+.mnd-wire[data-border-style="none"] .react-flow__edge-path { stroke: transparent; }
+
+/* A double run: a widened stroke with the ground drawn back through its middle. */
+.mnd-wire[data-border-style="double"] .react-flow__edge-path {
+  stroke-width: calc(var(--card-border-width, var(--weight-thin)) * 3);
+}
+.mnd-wire-core {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: var(--card-border-width, var(--weight-thin));
+}
+
+/* Selection still wins. A run somebody picked reads as picked whatever its vocabulary painted it. */
+.mnd-flow .react-flow__edge.selected .mnd-wire .react-flow__edge-path {
+  stroke: var(--accent);
+}
+
+/* Handles show only while a connection is being made. */
+.mnd-flow .react-flow__handle {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.mnd-flow .react-flow__node:hover .react-flow__handle,
+.mnd-flow.react-flow__container--connecting .react-flow__handle { opacity: 1; }
+.mnd-flow .react-flow__connectionline path { stroke: var(--accent); stroke-dasharray: 4 3; }
+
+/* What a sweep has covered so far. */
+.mnd-flow .react-flow__selection {
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+  border: 1px dashed var(--accent);
+}
+
+/* What a sweep leaves behind takes no pointer. */
+.mnd-flow .react-flow__nodesselection,
+.mnd-flow .react-flow__nodesselection-rect {
+  pointer-events: none;
+  /* It draws nothing over what it caught. */
+  background: none;
+  border: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mnd-flow .react-flow__handle { transition: none; }
+}
+
+/* ── Seats, berths and anchors ── */
+
+/* A hidden interface draws nothing. */
+.mnd-seat.berth { border: none; background: none; }
+
+/* Where one is, said quietly, while its line or its card is picked. */
+.mnd-berth {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  pointer-events: none;
+  /* Above every node, since nodes carry their own depth. */
+  z-index: 5;
+}
+
+/* The mark is small; the target is not. */
+.mnd-anchor {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  /* Drawn straight into the viewport, a grip takes the pointer itself. */
+  pointer-events: all;
+  z-index: 5;
+}
+.mnd-anchor::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+}
+.mnd-anchor:hover::after, .mnd-anchor.held::after { background: var(--accent); }
+/* Wide enough to find, and it says so before you are on the dot. */
+.mnd-anchor:hover::after { transform: scale(1.25); }
+.mnd-anchor.held { cursor: grabbing; }
+
+/* Where a line already meets a border. */
+.mnd-flow .react-flow__handle.mnd-perch,
+.mnd-flow .react-flow__node:hover .react-flow__handle.mnd-perch {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Which wall it sits in, which is not always the face it points. */
+.mnd-flow .react-flow__handle.mnd-perch-top {
+  top: 0; bottom: auto; transform: translate(-50%, -50%);
+}
+.mnd-flow .react-flow__handle.mnd-perch-bottom {
+  top: auto; bottom: 0; transform: translate(-50%, 50%);
+}
+.mnd-flow .react-flow__handle.mnd-perch-left {
+  left: 0; right: auto; transform: translate(-50%, -50%);
+}
+.mnd-flow .react-flow__handle.mnd-perch-right {
+  left: auto; right: 0; transform: translate(50%, -50%);
+}
+
+/* ── What the pointer is over ── */
+.mnd-seat:hover { border-color: var(--accent); background: var(--tint); }
+
+/* A line answers the pointer like everything else, and says so. */
+.mnd-flow .react-flow__edge { cursor: pointer; }
+.mnd-flow .react-flow__edge:hover .react-flow__edge-path,
+.mnd-flow .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  opacity: 1;
+}
+.mnd-flow .react-flow__edge:hover .mnd-wire-name { color: var(--accent); }

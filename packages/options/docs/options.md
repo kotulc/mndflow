@@ -9,19 +9,17 @@
 The groups arrive as `slots` on the Scene. The rail draws them in a fixed order whatever order it was handed:
 
 ```
-layer · display · relations · element
+settings · layer · display · relations
 ```
 
 | | Is |
 |---|---|
 | **`layer`** | how the layer places what it holds — `free` or `grid`. A setting, and the one group here that writes to the log |
-| **`display`** | what the drawing shows rather than what it holds: the guides, whether interfaces draw. Nothing here enters the log |
-| **`relations`** | which way a right drag draws a line, and the module a `chain` will use |
-| **`element`** | what the one thing you have hold of can be told |
+| **`display`** | what the drawing shows rather than what it holds: the frame, the guides, whether interfaces draw. Nothing here enters the log |
+| **`relations`** | what a right drag and a `chain` draw: *straight*, *directed*, or a pinned line definition. **No *tie*** — a tie is what its ends make |
+| **`settings`** | which settings the tray holds: the *workspace*, a blank *block* or a blank *relation* definition. Writes nothing |
 
-**`element` is not a slot.** A slot is what the projection can offer about the whole layer; this is about the one thing you have hold of, so it comes and goes with the selection and sits at the foot, below everything that is about what you are looking at. **Several picked is nothing picked here** — the rail says what *one* element is, and the answer for four of them is four answers.
-
-**The element group leads with `define`**, which writes nothing: it opens the tray on the panel that already describes the thing. The rail keeps room for the two answers changed most — whether the name is written on it, and whether its place is fixed — and everything else it can be told is behind the cog.
+**`settings` is not a slot, and it leads.** A slot is what the projection can offer about the whole layer; this points the tray, and a toggle is lit for whichever the tray holds. It replaced the element group.
 
 **`relations` is last of the layer groups on purpose**: it is the only one that grows with the vocabulary, so it is the one to push off the bottom of a column that scrolls.
 

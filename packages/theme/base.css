@@ -1,7 +1,4 @@
-/* The shell's own rules, over the ramp.
- *
- * Every value here is a step on the ramp — nothing names a colour, a hue or a
- * lightness, so the shell cannot drift from the drawing. */
+/* The shell's own rules, over the ramp. */
 
 * { box-sizing: border-box; }
 
@@ -45,11 +42,7 @@ input {
 
 input:focus { outline: none; border-color: var(--accent); }
 
-/* Chrome yields under pressure; the stage does not.
- *
- * Header and terminal span the page; the explorer, the stage and the options
- * rail share the row below, and the tray sits inside the stage's own column so
- * that opening it shrinks the drawing rather than the whole row. */
+/* Chrome yields under pressure; the stage does not. */
 .app {
   display: grid;
   grid-template-rows: auto auto 1fr;
@@ -64,9 +57,7 @@ input:focus { outline: none; border-color: var(--accent); }
   align-items: center;
   gap: 12px;
   padding: 6px 10px;
-  /* **The page's one strong rule.** Everything below it is a column of the
-     work; this is where the app stops and the work starts, so the line that
-     says so is here and the panels under it part on softer ones. */
+  /* The page's one strong rule, between the app and the work. */
   border-bottom: 1px solid var(--border);
   /* The page ground — the same step the explorer body shares. */
   background: var(--bg);
@@ -93,9 +84,7 @@ input:focus { outline: none; border-color: var(--accent); }
 
 .app > header h1::before { content: "▚ "; color: var(--accent); }
 
-/* How much is under the session, said all the time rather than only when it
-   breaks. Quiet while it is true; the same control is the way out when it stops
-   being. It never truncates — a count cut off mid-digit says less than nothing. */
+/* How much is under the session. */
 .app > header .where {
   flex: none;
   white-space: nowrap;
@@ -128,8 +117,7 @@ input:focus { outline: none; border-color: var(--accent); }
   flex: none;
 }
 
-/* One weight across the header — a control that sat on `--text` beside
-   neighbours on `--muted` reads as louder than it is. */
+/* One weight across the header. */
 .app > header .tools button { color: var(--muted); padding: 2px 6px; line-height: 1; }
 .app > header .tools button:hover:not(:disabled) { color: var(--text); }
 .app > header .tools button[aria-pressed="true"] {
@@ -148,8 +136,7 @@ input:focus { outline: none; border-color: var(--accent); }
   padding: 1px 4px;
 }
 
-/* Rare destructive acts, and a narrowing you are standing in, read as words —
-   a mark alone hides how big they are. */
+/* Rare destructive acts read as words. */
 .app > header .tools button.word {
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -160,19 +147,14 @@ input:focus { outline: none; border-color: var(--accent); }
 
 .app > .chat { grid-row: 2; grid-column: 1 / -1; }
 
-/* The body row is named rather than filled in by auto-placement: with the
-   terminal off there is no row 2, and everything would slide up into it and
-   leave the 1fr row standing empty at the foot of the page. */
+/* The body row is named, so an absent terminal row leaves no gap. */
 .app > .explorer, .app > main, .app > .opts {
   grid-row: 3;
-  /* **The work begins here.** Same strong rule the legacy shell drew across the
-     body row — a soft divider on the terminal alone was not enough once the
-     explorer's bar shares its surface. */
+  /* The work begins here. */
   border-top: 1px solid var(--border);
 }
 
-/* Side panels on the body row share one bar height — the explorer and the
-   options rail. */
+/* Side panels on the body row share one bar height — the explorer and the options rail. */
 .explorer .bar,
 .opts .bar {
   display: flex;
@@ -185,8 +167,8 @@ input:focus { outline: none; border-color: var(--accent); }
   flex: none;
 }
 
-/* Every mark in a panel bar sits in the same cell — 16px glyph, 2px vertical
-   padding, whether it is a button or a title. */
+/* Every mark in a panel bar sits in the same cell — 16px glyph, 2px vertical padding, whether it
+   is a button or a title. */
 .explorer .bar .tools button,
 .opts .bar .mark {
   display: inline-flex;
@@ -197,8 +179,8 @@ input:focus { outline: none; border-color: var(--accent); }
   flex: none;
 }
 
-/* The stage never yields, so it takes the free space and the tray takes what
-   it asks for beneath it. */
+/* The stage never yields, so it takes the free space and the tray takes what it asks for beneath
+   it. */
 .app > main {
   position: relative;
   display: flex;
@@ -210,9 +192,7 @@ input:focus { outline: none; border-color: var(--accent); }
 
 .app > main > .stage { flex: 1; min-height: 0; height: auto; }
 
-/* One strip, and everything the app says goes to it. **Where it sits is the
-   canvas's** — it is a React Flow panel, so it stays put through a pan and a
-   zoom and nothing here places it. What is left is what it looks like. */
+/* One strip, and everything the app says goes to it. */
 .strip {
   display: flex;
   align-items: center;
@@ -226,11 +206,7 @@ input:focus { outline: none; border-color: var(--accent); }
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
 }
 
-/* ── A name being typed where it is read ───────────────────────────────────
-   The `Name` component turns whatever element drew a name into the field it is
-   typed in, so nothing about the row or the card moves while it is changed.
-   What the field adds is a caret, the room to overrun the space the name had,
-   and something to say it has the keyboard. */
+/* ── A name being typed where it is read ── */
 .mnd-naming {
   outline: none;
   min-width: 2em;
@@ -241,12 +217,11 @@ input:focus { outline: none; border-color: var(--accent); }
   cursor: text;
   user-select: text;
   -webkit-user-select: text;
-  /* Typed spaces are kept, and a name longer than what drew it scrolls under
-     the caret rather than being clipped where it happens to run out. */
+  /* Typed spaces are kept, and a long name scrolls under the caret. */
   white-space: pre;
   overflow-x: auto;
   text-overflow: clip;
 }
 .mnd-naming::-webkit-scrollbar { display: none; }
-/* The browser's own blue is the one colour on the page that is nobody's. */
+/* The selection takes the accent. */
 .mnd-naming::selection { background: var(--accent); color: var(--bg); }

@@ -1,29 +1,16 @@
-/** The commands the terminal answers to.
- *
- *  **Three, and the strip stays short.** Everything else a person could want is
- *  an action, and **help carries the whole action surface** — so nothing becomes
- *  unreachable by text without the strip growing a fourth thing.
- *
- *  **The verb lists are examples, not an enumeration.** Somebody will type a
- *  word nobody listed, and substring matching cannot answer that: meaning
- *  matching through the `score` port and a learned store of what this person
- *  actually reaches for are both meant to point at these same three. Until one
- *  is bound, the lists below and the help fallback are what there is. */
+/** The commands the terminal answers to. */
 
 import type { Score } from "@mnd/core";
 
 export type Command = "add" | "search" | "help";
 
-/** One thing that can be reached from here. **The sentence is what gets
- *  matched**, because a name is too short to match against. */
+/** One thing that can be reached from here. */
 export type Offer = {
   name: string;
   about: string;
-  /** What it needs said, so **help teaches whatever the app currently is**:
-   *  derived from the action's own arguments, never written down twice. */
+  /** What it needs said, derived from the action's arguments. */
   asks?: string;
-  /** What it would act on. **Help points at the control it is describing**, and
-   *  it points with the one lit-target look every surface uses. */
+  /** What it would act on, for help to light. */
   on?: readonly string[];
 };
 
@@ -31,8 +18,7 @@ export type Wording = {
   command: Command;
   /** What it does, so a completion can say what it matched. */
   about: string;
-  /** What the argument is, filled with an example rather than left blank — a
-   *  prompt that shows its own shape needs no syntax to learn. */
+  /** What the argument is, with an example. */
   asks: string;
   example: string;
 };
@@ -46,7 +32,7 @@ export const COMMANDS: Record<Command, Wording> = {
           asks: "ask about", example: "how do I relate two blocks" },
 };
 
-/** Examples, never a closed list. A sigil may be glued to its argument. */
+/** Examples, never a closed list. */
 const VERBS: Record<Command, string[]> = {
   add: ["+", "b", "block", "new", "add", "insert", "create"],
   search: ["*", "s", "search", "import", "load", "package"],
@@ -63,11 +49,7 @@ export type Match = {
   rest: string;
 };
 
-/** What a line reads as.
- *
- *  **Help is the fallback**, so anything unmatched lands in interactive docs
- *  rather than in a refusal — which is what keeps every action reachable by
- *  text without the strip knowing about any of them. */
+/** What a line reads as. */
 export function reads(draft: string, score?: Score): Match | null {
   const line = draft.trimStart();
   if (!line) return null;
@@ -83,22 +65,13 @@ export function reads(draft: string, score?: Score): Match | null {
     }
   }
 
-  /** **The verb lists are examples, not an enumeration**, and substring cannot
-   *  answer a word nobody listed. This is the gap the port closes: what the
-   *  word *meant*, if it meant one of them. Unbound, help is the fallback,
-   *  which is not a refusal. */
+  /** A word nobody listed is matched by meaning through the score port. */
   const meant = score ? nearest(want, score) : null;
   if (meant) return { command: meant, verb: word, rest: rest.join(" ") };
   return { command: "help", verb: "", rest: line };
 }
 
-/** One sentence per command, and **never the verbs themselves**.
- *
- *  A verb is one short word, and a short word is close to every other short
- *  word — scoring against the lists is what makes nonsense reach a command
- *  rather than help. The verbs are matched literally above; what is left to
- *  answer is what the word *meant*, and that needs a sentence to mean it
- *  against. */
+/** One sentence per command to score against; never the verbs themselves. */
 function phrases(): { said: string; command: Command }[] {
   return (Object.keys(VERBS) as Command[]).map((command) => {
     const w = COMMANDS[command];
@@ -113,21 +86,14 @@ function nearest(word: string, score: Score): Command | null {
   return at === null ? null : said[at]?.command ?? null;
 }
 
-/** What to ask the scorer about before anybody types: the commands, and
- *  whatever a caller is about to offer. */
+/** What to warm the scorer with: the commands and whatever is about to be offered. */
 export function warming(offered: readonly Offer[] = []): string[] {
   return [...phrases().map((p) => p.said), ...offered.map(sentence)];
 }
 
 const sentence = (offer: Offer) => `${offer.name} — ${offer.about}`;
 
-/** The offered list, ordered against what is typed.
- *
- *  **Ranked, never filtered** — a low score is a weak match and dropping one
- *  needs a floor the caller does not own, so meaning reorders and keeps
- *  everything. **Substring is the cold fallback**, and it filters, because a
- *  substring miss is a definite miss and ordering is all it could otherwise do.
- *  A literal match still leads, so binding the port never buries an exact hit. */
+/** The offered list, ordered against what is typed. */
 export function rank(offered: readonly Offer[], draft: string, score?: Score): Offer[] {
   const want = draft.trim().toLowerCase();
   if (!want) return [...offered];
@@ -141,8 +107,7 @@ export function rank(offered: readonly Offer[], draft: string, score?: Score): O
     .map((o) => o.offer);
 }
 
-/** **A name typed with separators reads as spaced words**, so nobody has to
- *  reach for the shift key to name a thing: `heat_exchanger` → `Heat Exchanger`. */
+/** A name typed with separators reads as spaced words: `heat_exchanger` → `Heat Exchanger`. */
 export function spaced(raw: string): string {
   return raw
     .split(/[\s_\-.]+/)

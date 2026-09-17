@@ -1,48 +1,31 @@
-/** Every shared shape: the graph, the mutations, the steps.
- *
- *  Two element kinds and no third — a block and a relation. Definitions group
- *  three ways by what they describe, in one id space. See schema.md. */
+/** Every shared shape: the graph, the mutations, the steps. */
 
 export type Id = string;
 
 export const ROOT = "ws";
 
-/** A place on a layer. The model already carries coordinates — a block has an
- *  `x` and a `y` — so the pair they make is named here, once, rather than
- *  redeclared identically by everything that computes or reads one. */
+/** A place on a layer. */
 export type Point = { x: number; y: number };
 
 /** Which edge of a frame something sits on. */
 export type Side = "top" | "right" | "bottom" | "left";
 
-/** An interface's decorative mark. Constrains nothing. */
+/** An interface's decorative mark. */
 export type Flow = "in" | "out" | "both";
 
-/** How a layer places what it holds. One setting, two values.
- *
- *  **Model data, not a preference.** How a layer lays out is part of what the
- *  layer says, so a diagram reopens the way it was left and travels in a file
- *  with the rest of it.
- *
- *  `free` is hand placement; `grid` is auto-layout, ignoring stored positions
- *  and assigning every loose unit a box on the layer's lattice from its
- *  relationships and sizes. **The four directional values are gone** — they
- *  ranked by relationships through dagre, which read as a picture of the graph
- *  rather than of the model.
- *
- *  **`grid` names the lattice, and so does a group.** They are the same
- *  lattice: a group is a named region of it, which is what lets a block seated
- *  in one line up with a block the layer placed. */
+/** How a layer places what it holds. */
 export type Arrangement = "free" | "grid";
 
 export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 
-/** Closed: two are picked, two are assigned from what sits at the ends. */
-export type RelationModule = "line" | "directed" | "reference" | "tie";
+/** A relation's kind, read from its ends: `tie` where an end is a note, `line` otherwise. */
+export type RelationModule = "line" | "tie";
+
+export const RELATION_MODULES: readonly RelationModule[] = ["line", "tie"];
 
 export type Dir = "none" | "forward" | "back" | "both";
 
-/** Closed, and permanent. */
+/** The value forms a field may take. Closed. */
 export type ValueForm = "text" | "number" | "flag" | "choice" | "link";
 
 export const VALUE_FORMS: readonly ValueForm[] = ["text", "number", "flag", "choice", "link"];
@@ -56,51 +39,36 @@ export type Field = {
 
 export type FieldDef = Field & { unit?: string; choices?: string[]; many?: boolean };
 
-/** An address inside a group's grid. **It rides on the block**, exactly as
- *  `side` and `at` do for an interface — so a cell is derived and never a
- *  block, and an empty cell is an address nobody claimed. */
+/** An address inside a group's grid. */
 export type Cell = { r: number; c: number };
 
-/** A merged region: a cell's extent, stated on the group and never on a cell.
- *  Distinct from a footprint, which says how many cells a block needs. */
+/** A merged region: a cell's extent, stated on the group and never on a cell. */
 export type Span = { r: number; c: number; rows: number; cols: number };
 
-/** Which line a header heads. **Derived from where it sits, never stored** —
- *  see `would_head`. A block in row 0 heads its column, the corner heads both,
- *  and anything else heads its row. */
+/** Which line a header heads. Derived from where it sits, never stored — see `would_head`. */
 export type HeaderRole = "row" | "col" | "both";
 
-/** The one element. What it *is* comes from its definition. */
+/** The one element; what it is comes from its definition. */
 export type Block = {
   id: Id;
   parent: Id | null;
   type?: Id;
-  label?: string;
+  name?: string;
   body?: string;
   /** A reference: the block it stands for. */
   of?: Id;
-  /** The group or grid this block sits in. Membership is flat — a group may
-   *  hold other groups, grids, and cards with no special nesting rules. */
+  /** The group or grid this block sits in. */
   group?: Id;
-  /** Where in that group. Replaces `x`/`y` for a gridded block, exactly as
-   *  `side` and `at` replace them for an interface. */
+  /** Where in that group: replaces `x`/`y` for a gridded block. */
   cell?: Cell;
-  /** **Whether this block heads the line it sits in.** A header fills its cell
-   *  and every other block along that line is *allocated to* it.
-   *
-   *  **A flag, because position says which line** — row 0 heads a column, the
-   *  corner heads both, anything else heads its row. Storing the role as well
-   *  would state the same fact twice and let the two disagree the moment
-   *  somebody dragged the block. */
+  /** Whether this block heads the line it sits in. */
   header?: boolean;
-  /** Only meaningful on a group: its extent, which is what lets an empty grid
-   *  draw. A group with neither is a boundary — a band round its members. */
+  /** Only meaningful on a group: its extent, which is what lets an empty grid draw. */
   rows?: number;
   cols?: number;
   /** Merged regions of this group's grid. */
   merges?: Span[];
-  /** **A grid owns its corner.** A boundary still derives its bounds from its
-   *  members; a grid cannot, or an empty one would be nothing. */
+  /** A grid's corner and size; a boundary derives its bounds from its members. */
   x?: number;
   y?: number;
   w?: number;
@@ -109,40 +77,16 @@ export type Block = {
   arrangement?: Arrangement;
   side?: Side;
   at?: number;
-  num?: number;
-  /** **A serial, minted once and never rewritten.** `num` is a position among
-   *  siblings and is renumbered whenever anything moves, so a name read off it
-   *  changed while you rearranged. This is handed out at creation and is the
-   *  block's for good — which is what lets a block nobody has named be told
-   *  from the one beside it. Drawn as a short mark (`A1`, `B7`), never as the
-   *  number it is stored as.
-   *
-   *  **An alias, not a tag.** A tag is something you put on a block to say what
-   *  it is like, and there can be any number of them; this is one mark the app
-   *  hands out so that a thing with no name still has something to be called. */
+  order?: number;
+  /** A handle serial, minted once and never rewritten. */
   alias?: number;
-  /** Whether the drawing writes this block's name on it. **Absent is yes.**
-   *  Model data rather than a display preference: what a card says about itself
-   *  is part of what the layer says, so it travels and it undoes. */
-  labelled?: boolean;
-  /** Whether this block is fixed where it was put. **Absent is no.**
-   *
-   *  **A lock is not a hand brake.** You may always drag a locked block; on an
-   *  interface it is a mark for now. Seat assignment is routing's to work out. */
-  locked?: boolean;
-  /** What this one block says about how it draws, over whatever its definition
-   *  said. **The last word in the cascade**, keyed the way a definition's
-   *  components are (`card`, `style`) so the two layer without translating.
-   *
-   *  Local until it is pinned: customising a block changes that block, and
-   *  pinning is what turns the result into a definition anything else can name. */
+  /** Handle counters per kind, held on the workspace. */
+  counters?: Record<string, number>;
+  /** Pinned definitions, in order: relations on the rail, blocks in the explorer. */
+  pinned?: Id[];
+  /** What this one block says about how it draws, over whatever its definition said. */
   looks?: Components;
-  /** Words put on this block to say what it is like. **The block's own, never
-   *  its definition's**: two things of the same type are tagged differently all
-   *  the time, and an untyped block can be tagged like anything else.
-   *
-   *  A tag carries nothing — no fields, no style, no inheritance. That is what
-   *  separates it from a definition, and what lets there be any number. */
+  /** Words put on this block to say what it is like. */
   tags?: string[];
   flow?: Flow;
   fields?: Field[];
@@ -152,24 +96,21 @@ export type Relation = {
   id: Id;
   from: Id;
   to: Id;
-  module: RelationModule;
   type?: Id;
   dir?: Dir;
   /** Which wall a relationship end leaves by. */
   fromSide?: Side;
   toSide?: Side;
-  /** Legacy; not read by layout. */
-  fromAt?: number;
-  toAt?: number;
-  fields?: Field[];
+  /** A handle serial, as a block carries. */
+  alias?: number;
+  /** Words describing this line; its own, never inherited. */
+  tags?: string[];
+  /** What this one line says about how it draws, over whatever its definition said. */
+  looks?: Components;
+  /** No fields: what a connection says belongs to the blocks at its ends. */
 };
 
-/** Which block module the engine dispatches on. Open — one more is additive.
- *
- *  **Eight: group and grid are separate.** A group is a dashed rim round
- *  whatever it holds; a grid is a table with cells on the layer. *View* is
- *  reserved rather than retired: it will name a data perspective over the
- *  model, and it comes back defined. */
+/** Which block module the engine dispatches on. */
 export type BlockModule =
   | "block" | "folder" | "resource"
   | "reference" | "interface" | "group" | "grid" | "note";
@@ -179,26 +120,19 @@ export const BLOCK_MODULES: readonly BlockModule[] = [
   "reference", "interface", "group", "grid", "note",
 ];
 
-/** **The kinds a block may be changed between.** A block, a folder and a
- *  resource differ in what they are *for* and in nothing a gesture would have
- *  to invent, so one becomes another by saying so.
- *
- *  Everything else is arrived at by making one: a reference is a second
- *  appearance of something, an interface is seated on a wall, a group has
- *  members and a note is its text — each of them carries something a plain
- *  block has no answer for, so retyping into one would have to make it up.
- *  **Subtyping them is not the same act**: make one, customise it, and pin
- *  that, which never changes anybody's kind. */
-export const OPEN_MODULES: readonly BlockModule[] = ["block", "folder", "resource"];
 
 export type Components = Record<string, Record<string, unknown>>;
 
 export type Definition = {
   id: Id;
-  /** The block it is filed under. Ownership, lock and scope all derive from this. */
-  home: Id;
+  /** The package this came from; absent means the workspace made it. */
+  from?: string;
+  /** The kind this stands in for wherever an element names no definition. */
+  default?: BlockModule | RelationModule;
   group: "block" | "relation";
   name: string;
+  /** What a line naming this draws, exactly as typed — a stereotype such as `<<relates>>`. */
+  label?: string;
   body?: string;
   extends?: Id;
   fields?: FieldDef[];
@@ -215,7 +149,7 @@ export type Graph = {
 };
 
 export function empty_graph(): Graph {
-  return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, label: "workspace", type: "folder" } },
+  return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" } },
            edges: {}, defs: {} };
 }
 
@@ -223,11 +157,16 @@ export function empty_graph(): Graph {
 export type Mutation =
   | { op: "checkpoint"; graph: Graph }
   | { op: "add_block"; block: Block }
-  | { op: "update_block"; id: Id; label?: string; type?: Id }
+  /** `type: null` clears it. */
+  | { op: "update_block"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_block"; id: Id }
   | { op: "move_block"; id: Id; parent: Id | null }
   | { op: "place_block"; id: Id; x: number; y: number }
-  | { op: "order_block"; id: Id; num: number }
+  | { op: "order_block"; id: Id; order: number }
+  | { op: "set_alias"; id: Id; alias: number }
+  | { op: "set_counter"; kind: string; n: number }
+  /** The whole shortlist, in order. */
+  | { op: "set_pinned"; ids: Id[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }
@@ -237,25 +176,26 @@ export type Mutation =
   | { op: "merge_cells"; id: Id; span: Span }
   | { op: "split_cells"; id: Id; r: number; c: number }
   | { op: "link_blocks"; edge: Relation }
-  | { op: "update_edge"; id: Id; type: Id }
+  | { op: "update_edge"; id: Id; type: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "set_dir"; id: Id; dir: Dir }
-  | { op: "set_form"; id: Id; module: RelationModule }
   | { op: "flip_edge"; id: Id }
   | { op: "set_end"; id: Id; end: "from" | "to"; port: Id }
   | { op: "set_port"; id: Id; side: Side; at: number }
-  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null; at?: number }
+  | { op: "set_side"; id: Id; end: "from" | "to"; side: Side | null }
   | { op: "mark_port"; id: Id; flow: Flow | null }
+  /** A value on a block. An edge has none to set — see `Relation`. */
   | { op: "set_field"; id: Id; field: Field }
   | { op: "drop_field"; id: Id; name: string }
+  /** The order a block's values are listed in, by name. */
+  | { op: "order_fields"; id: Id; names: string[] }
   | { op: "set_def"; def: Definition }
   | { op: "drop_def"; id: Id }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
-  | { op: "set_labelled"; id: Id; labelled: boolean }
-  | { op: "set_locked"; id: Id; locked: boolean }
   | { op: "set_tags"; id: Id; tags: string[] }
-  /** One property of one component on one block. `null` gives it back to
-   *  whatever the chain said, which is not the same as setting a default. */
+  /** Everything this block says about how it draws, given back at once. */
+  | { op: "drop_looks"; id: Id }
+  /** One property of one component on one block. */
   | { op: "set_look"; id: Id; key: string; name: string; value: unknown };
 
 export type MutationOp = Mutation["op"];

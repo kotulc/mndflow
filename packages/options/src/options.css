@@ -1,15 +1,9 @@
-/* One column, fixed to the right, holding every control the thing on the stage
-   has. **It scrolls**: twenty-odd controls against the height of a window makes
-   overflow ordinary rather than an edge case, and collapsing a group would be
-   hidden state. */
+/* One column, fixed to the right, holding every control the thing on the stage has. */
 
 .opts {
   display: flex;
   flex-direction: column;
-  /* Narrow, and long words wrap rather than setting the width. Sizing the
-     column to its longest label spends the space on one word and leaves every
-     short one swimming; each control carries a tooltip, so a name over two
-     lines costs nothing. */
+  /* Narrow, and long words wrap rather than setting the width. */
   width: 68px;
   min-height: 0;
   border-left: 1px solid var(--border);
@@ -17,8 +11,7 @@
   overflow: hidden;
 }
 
-/* The rail's own header — centred title mark; shell rules for `.bar` live in
-   `base.css`. */
+/* The rail's own header — centred title mark; shell rules for `.bar` live in `base.css`. */
 .opts .bar {
   justify-content: center;
   color: var(--text);
@@ -27,8 +20,7 @@
 .opts .body {
   display: flex;
   flex-direction: column;
-  /* Far enough apart to read as separate groups. Adjacent icon columns
-     otherwise run together into one long column. */
+  /* Far enough apart to read as separate groups. */
   gap: 20px;
   flex: 1;
   min-height: 0;
@@ -39,8 +31,7 @@
 
 .opts-group { display: flex; flex-direction: column; gap: 4px; }
 
-/* Every group is ruled off from the one above it — never the first, where the
-   rule would divide the column from nothing. */
+/* Every group after the first is ruled off. */
 .opts-group + .opts-group {
   border-top: 1px solid var(--divider);
   padding-top: 12px;
@@ -56,8 +47,7 @@
   opacity: 0.75;
 }
 
-/* A mark over one word. The word only costs width when it sits beside the
-   mark; under it the column stays slim. */
+/* A mark over one word. */
 .opts button {
   display: flex;
   flex-direction: column;
@@ -83,10 +73,7 @@
 
 .opts button:hover { color: var(--text); border-color: var(--accent); }
 
-/* Where the verbs begin inside a group. **A rule, not a second label** — the
-   subject is the same on both sides of it; what changes is that below it a
-   control does something once and is done, and so never lights. Lighter than
-   the rule between two groups, which divides two subjects. */
+/* Where the verbs begin inside a group. */
 .opts button.ruled {
   margin-top: 7px;
   border-top-color: var(--border);

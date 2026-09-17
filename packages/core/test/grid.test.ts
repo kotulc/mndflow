@@ -1,12 +1,7 @@
-/** The grid: seating, headers, allocation, and the actions that reshape one.
- *
- *  **Properties, never coordinates.** Nothing here asserts a pixel, a message or
- *  a count that tuning would change — what is pinned is that an address means
- *  what it says, that a layout gesture never destroys a block, and that the
- *  readers agree with the gestures. */
+/** The grid: seating, headers, allocation, and the actions that reshape one. */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { ROOT, allocated_to, allocations_of, at_cell, fold, head_of, is_grid,
+import { ROOT, allocated_to, allocations_of, at_cell, edge_module, fold, head_of, is_grid,
          members_of, offer, run, step, would_head,
          type Args, type Cell, type Context, type Graph, type Id,
          type Log, type Mutation } from "../src/index";
@@ -14,8 +9,8 @@ import { ROOT, allocated_to, allocations_of, at_cell, fold, head_of, is_grid,
 /** A grid of `rows` × `cols` on a layer, with nothing seated in it yet. */
 function board(rows = 3, cols = 4): Graph {
   return { root: ROOT, edges: {}, defs: {}, blocks: {
-    [ROOT]: { id: ROOT, parent: null, label: "workspace", type: "folder" },
-    layer: { id: "layer", parent: ROOT, type: "block", label: "Board" },
+    [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" },
+    layer: { id: "layer", parent: ROOT, type: "block", name: "Board" },
     grid: { id: "grid", parent: "layer", type: "grid", rows, cols, x: 0, y: 0 },
   } };
 }
@@ -23,8 +18,7 @@ function board(rows = 3, cols = 4): Graph {
 let log: Log;
 let g: Graph;
 
-/** **Through the log, the way the app does it.** Nothing here reaches past the
- *  fold, so what a step writes is what a later step reads. */
+/** Through the log, the way the app does it. */
 function commit(name: string, mutations: Mutation[]): void {
   log.push(step(`s${log.length}`, name, log.length, mutations));
   g = fold(log);
@@ -33,7 +27,7 @@ function commit(name: string, mutations: Mutation[]): void {
 /** Put a block in a cell. Returns its id, so a test reads as what it did. */
 function seat(id: Id, r: number, c: number, header = false): Id {
   commit("seat", [
-    { op: "add_block", block: { id, parent: "layer", type: "block", label: id } },
+    { op: "add_block", block: { id, parent: "layer", type: "block", name: id } },
     { op: "set_group", id, group: "grid" },
     { op: "seat_cell", id, cell: { r, c } },
     ...(header ? [{ op: "set_header", id, header: true } as Mutation] : []),
@@ -177,9 +171,7 @@ describe("insert and remove", () => {
     expect(at("wide")).toBe(at("wide"));
   });
 
-  /** **A line taken away moves what it held rather than dropping it.** Freed
-   *  outright, a block landed at the foot of the layer with its relationships
-   *  still attached, which reads as a line coming adrift. */
+  /** A line taken away moves what it held rather than dropping it. */
   it("re-seats what the line held, and never deletes it", () => {
     seat("moved", 1, 1);
     act("remove", { way: "row", at: 1 });
@@ -193,7 +185,7 @@ describe("insert and remove", () => {
     const before = members_of(g, "grid").length;
     act("remove", { way: "row", at: 0 });
     const held = members_of(g, "grid");
-    /** **Nothing is deleted** — a layout gesture must not cost model content. */
+    /** Nothing is deleted — a layout gesture must not cost model content. */
     expect(held).toHaveLength(before);
     const seated = held.filter((b) => b.cell);
     expect(seated.length).toBeLessThan(before);
@@ -271,7 +263,7 @@ describe("transpose", () => {
 });
 
 describe("chain", () => {
-  /** row 0: -  b  -  c   row 1: h(head) d  -  - */
+  /** row 0: - b - c row 1: h(head) d - - */
   const laid = () => {
     seat("b", 0, 1); seat("c", 0, 3);
     seat("h", 1, 0, true); seat("d", 1, 1);
@@ -292,7 +284,7 @@ describe("chain", () => {
 
   it("draws the module it was given", () => {
     laid(); act("chain", { module: "line" });
-    expect(Object.values(g.edges).every((e) => e.module === "line")).toBe(true);
+    expect(Object.keys(g.edges).every((id) => edge_module(g, id) === "line")).toBe(true);
   });
 
   it("adds nothing the second time", () => {
@@ -352,9 +344,7 @@ describe("a grid is what its module says", () => {
   });
 });
 
-/** **What a right click can reach.** A grid's inside is its cells, so anything
- *  about the whole grid has to be in scope from a cell — offered only from the
- *  rim, it is offered from a few pixels of border and found by nobody. */
+/** Whole-grid actions are reachable from a cell. */
 describe("the grid actions are reachable", () => {
   const named = (ctx: Partial<Context>) =>
     offer({ graph: g, layer: "layer", picked: [], ...ctx } as Context).map((a) => a.name);

@@ -15,8 +15,11 @@ project(graph, layer, config) → Scene
 | | Is |
 |---|---|
 | `size.ts` | **the one measure.** `UNIT` is a square of the guides; `CELL` is a block plus a gap on every side. Everything else is derived from those |
-| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `grid`, cells by address, bands by their members |
-| `seat.ts` | where a line meets a border, and which seat each end takes |
+| `arrange.ts` | where everything in a layer sits — hand placement under `free`, auto-layout under `grid` |
+| `bands.ts` | members packed inside a band, and seated blocks placed by their cell |
+| `pack.ts` | auto-layout: related clusters around their mates, notes and references beside what they name |
+| `seat.ts` · `ends.ts` | where a line meets a border, which seat each end takes, and which way it sets off |
+| `route.ts` | where a run goes between two borders, round the cards it passes |
 | `block.ts` | the projection: graph and layer in, Scene out |
 | `look.ts` · `derive.ts` | what a card wears, and the marks it reads by — both derived every draw |
 | `svg.ts` · `text.ts` | a Scene drawn without a browser |

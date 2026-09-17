@@ -34,19 +34,22 @@ The engine code that interprets each base block type.
 A serial minted at creation and never rewritten, drawn as a short mark (`A1`, `B7`) beside the type a block reads as while nobody has named it. **Not a tag**: it is the one mark the app hands out so that a thing with no name has something to be called, and there is exactly one.
 
 ### Tags
-Words put on a block to say what it is like. **The block's own, never its definition's** — two things of one type are tagged differently all the time. A tag carries nothing: no fields, no style, no chain. That is what separates it from a definition and what lets there be any number.
+Words put on a block or a relationship to say what it is like. **The block's own, never its definition's** — two things of one type are tagged differently all the time. A tag carries nothing: no fields, no style, no chain. That is what separates it from a definition and what lets there be any number.
 
 ### What one element says about itself
-Model data on the block, so each travels in the file and undoes like anything else: whether the drawing writes its name on it (`labelled`), whether its place is fixed (`locked`), and how it draws over what its definition said (`looks`).
+Model data on the element, so it travels in the file and undoes like anything else: how it draws over what its definition said (`looks`) — including the `card` keys `label`, `align`, `label_align`, `icon` and `alias`.
 
 
 ## Relationships
-### Relation Module
-### Relation Types
-- line - The default base relation type, an untyped association
-- directed - A flow or transition between two blocks. `dir` is `none`/`forward`/`back`/`both`. **A layer has no reading direction of its own** — order is stated by a directed relation, or by a cell address along the way a grid reads
-- reference - A reference to a block external to the current layer.
-- tie - A loose association generally reserved for notes or metadata.
+A join between exactly two **blocks**. Its ends are blocks, never another relationship.
+
+### Relation Modules
+**Two, and neither is picked.** A relationship's module is read from its ends (`edge_module`) and never stored.
+
+- **line** - any relationship with no note at an end. `dir` is `none`/`forward`/`back`/`both`; direction is a setting, never a module. **A layer has no reading direction of its own** — order is stated by a directed line, or by a cell address along the way a grid reads
+- **tie** - a relationship with a note at an end. Takes no direction
+
+A relation definition names its module in `relation.module` and stays within it: a line never follows a tie definition.
 
 
 ## The diagram

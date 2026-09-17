@@ -1,16 +1,16 @@
 # Workspace
 
-**The workspace is the root folder.** There is no workspace type and no project type — one graph, one log, and the tree above the tiers is folders.
+**The workspace is the root folder.** There is no workspace type and no project type — one graph, one log, and the tree is folders and blocks.
 
 | | Contains | Holds |
 |---|---|---|
-| **workspace** | folders and tier roots | the log, the metadata, all session state |
-| **folder** | folders and tier roots | nothing of its own |
-| **tier root** | its own tree | a subtree of blocks |
+| **workspace** | folders and top-level blocks | the log, the metadata, handle counters, pinned definitions |
+| **folder** | folders and top-level blocks | nothing of its own |
+| **top-level block** | its own tree | a subtree of blocks |
 
 - **It is a block**, with `parent: null` and a reserved id, and needs no new schema to be one.
-- **A top-level block is informally a *project*** — a word for a tier root, the way *container* is a word for a block with children. Not a type, not a tier, and not in the schema.
-- **`is_tier_root` reads it from position.** Nothing stores it.
+- **A top-level block is informally a *project*** — the way *container* is a word for a block with children. Not a type, and not in the schema.
+- **`is_top_block` reads it from position.** Nothing stores it.
 - **Making one is making a block**, through the same door as anything else.
 - **Every block carries an `id`**, minted once and kept for life, so renaming breaks no reference.
 - **Names are unique among siblings**, which needs no special case for a top-level block.
@@ -19,11 +19,13 @@
 
 **One document, one history**, so nothing routes and no action can write to the wrong place. Undo is workspace-wide, which is what a single document means.
 
-## Definition resolution walks up the tree
+## Definition resolution is by id
 
-**A block finds a definition by climbing its ancestors, nearest first** — rather than by following an import list. There is no order to maintain and nothing to keep in step with what exists, and a definition filed higher is in scope for everything below it without being declared anywhere.
+**A usage names a definition id, and resolution is global** — no import list, and no tree to climb. Two definitions may share a name; nothing shadows.
 
-**A `type` naming no definition is minted into one**, under an id derived from its name, so this settles rather than churning on every fold.
+- **A plain element follows its kind's default.** Naming nothing, or naming a base, resolves through the workspace's default for that kind (`def_of`), and is stored as plain (`stored_type`).
+- **Ids are minted.** A caller that must know a new definition's id before the step lands mints it and passes it in.
+- **A name is looked up with its group** (`def_named`), since a block definition and a relation definition may share one.
 
 ## Session state
 
@@ -39,3 +41,8 @@
 - **A subtree travels with its dependencies** — the definitions anything in it names, and their `extends` chains.
 - **A reference out of the subtree is kept, not tidied away**, and reads *missing* where it lands. Same rule as a deleted target, so importing needs no second answer.
 - **Importing is a checkpoint**, so there is no second format and no second reader.
+- **Grafting brings a file into a layer** as one step, and the workspace wins.
+
+## One gesture, one step
+
+**`session.batch(fn)` merges everything `fn` runs into one step.** Inside it each action sees the one before it, and all of them undo as one. Every canvas adjustment runs in one.

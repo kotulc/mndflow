@@ -1,30 +1,18 @@
-/** The block view: any planar projection.
- *
- *  A layer is what is looked at; this is the looking. It reads the graph and
- *  hands back a Scene — it never writes a mutation and never touches the DOM. */
+/** The block view: any planar projection. */
 
-import { children, covers, edges_in, group_depth, is_grid, is_group, is_header,
-         is_holder, is_interface, members_of, module_of, role_of, shown_name,
+import { alias_of, children, covers, edge_module, edges_in, group_depth, is_grid, is_group,
+         is_header, is_holder, is_interface, is_note, label_of, members_of, role_of, shown_name,
          type Block, type Graph, type Id, type Relation, type Side } from "@mnd/core";
 import { at_seat, cell_box, gridded, laid, perch_id, roomed, seated,
          assign_seats, GAP, UNIT, type Perch } from "@mnd/views";
 import { carried, marks_of, trail_of } from "./derive";
-import { look_of } from "./look";
+import { look_of, wire_of } from "./look";
 import { box_of, cell as node, FRAME, type BoxData, type BoxNode, type Frame,
          type GridCell, type LineEdge, type Port, type Mark, type Scene,
          type Slot } from "./scene";
 
 export type Config = {
-  /** **What to show, when it is not the layer's own contents.**
-   *
-   *  A view block holds one reference per thing it shows, and projecting one
-   *  projects what it holds. A caller with a set of blocks and no block to hold
-   *  them — a filter, a search, a workspace status — hands the same set through
-   *  the same door, so there is **one seam rather than two**.
-   *
-   *  Read by the table, which is where a result belongs. A plane places by the
-   *  layer it is a plane of, the same way `interfaces` is the block module's
-   *  and no other's. */
+  /** What to show, when it is not the layer's own contents. */
   holds?: readonly Id[];
   /** Whether interfaces draw. A display preference the shell hands down. */
   interfaces?: boolean;
@@ -49,28 +37,14 @@ function group_carries(graph: Graph, group: Id): Id[] {
 export function project(graph: Graph, layer: Id | null, config: Config = {}): Scene {
   const here = children(graph, layer);
   const spots = laid(graph, layer);
-  /** Interfaces are seated on the cards they belong to rather than laid out
-   *  with them, so they are placed once the cards are.
-   *
-   *  **Seated whether or not they are drawn.** Turning interfaces off is a
-   *  display preference and says nothing about the relationships tied to them,
-   *  so a hidden one still holds its seat — it becomes a *berth*, which draws
-   *  nothing and keeps every line meeting the border where it always did. */
+  /** Interfaces are seated after the cards; hidden ones still hold their seat. */
   const hidden = config.interfaces === false;
   const linked = edges_in(graph, layer).map((e) => landed(graph, e, layer));
   const boxes_at = new Map(spots.map((p) => [p.id, p]));
   const { perches, port_at } = assign_seats(graph, linked, spots, boxes_at);
   const ports = seated(graph, spots, port_at);
 
-  /** **Which component draws a box is said here and re-derived nowhere.** A
-   *  note is text you resize and a boundary is a band behind its members;
-   *  everything else is a rectangle, whatever it is a rectangle *of*. */
-  /** **A gridded container minifies**: a cell is one block, so a picture of
-   *  what it holds has nowhere to go, and its icon is what tells it apart.
-   *
-   *  **A group is never a card.** It is drawn as a band or grid in the groups
-   *  pass; making one here first and splicing it out later left nested groups
-   *  on the canvas as solid container cards. */
+  /** Which component draws each box; a gridded container minifies. */
   const boxes: BoxNode[] = spots
     .filter((p) => !is_holder(graph, p.id))
     .map((p) => {
@@ -78,17 +52,11 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const nest = group_depth(graph, p.id);
     const drawn = node(p.id, p,
                        gridded(graph, p.id) ? { ...data, cells: [], nest } : { ...data, nest },
-                       module_of(graph, p.id) === "note" ? "note" : "card");
-    /** **A lock is not a hand brake.** It fixes what the app would otherwise
-     *  work out for itself; where you put a block by hand is already said, so a
-     *  locked card drags like any other and the mark in its corner is the whole
-     *  of what it means here. */
+                       is_note(graph, p.id) ? "note" : "card");
     return drawn;
   });
 
-  /** **A grid owns its corner and draws its extent**; a boundary is its
-   *  members' bounds — a fact about what it holds, never a stored size. Either
-   *  way it draws behind whatever it holds. */
+  /** A grid draws its extent; a boundary its members' bounds. */
   const holders: BoxNode[] = [];
   for (const g of here) {
     if (!is_holder(graph, g.id)) continue;
@@ -97,7 +65,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     const said = carried(graph, g.id);
     const grid = is_grid(graph, g.id);
     const mark: Mark = grid ? "grid" : "group";
-    const marks: Mark[] = said.marks.includes("unlabelled") ? [mark, "unlabelled"] : [mark];
+    const marks: Mark[] = [mark];
     holders.push(node(g.id, box,
                       { ...said, marks, cells: [], nest: group_depth(graph, g.id),
                         holds: members_of(graph, g.id).map((b) => b.id),
@@ -105,13 +73,10 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
                                  : { carries: group_carries(graph, g.id) }) },
                       mark));
   }
-  /** **Shallowest first**, so a holder inside another draws over it. Drawing
-   *  every boundary and then every grid only kept them apart by accident. */
+  /** Shallowest first, so a holder inside another draws over it. */
   holders.sort((a, b) => (a.data.nest ?? 0) - (b.data.nest ?? 0));
 
-  /** A seated interface draws over the card it sits on, so it comes last. A
-   *  berth answers no gesture — it is not drawn, and picking what you cannot
-   *  see is not a gesture anybody meant. */
+  /** A seated interface draws over the card it sits on, so it comes last. */
   const seats: BoxNode[] = ports.map((p) => {
     const b = graph.blocks[p.id]!;
     const nest = b.parent ? group_depth(graph, b.parent) : 0;
@@ -121,33 +86,34 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
       return { ...node(p.id, p, { ...data, marks: [...data.marks, "berth"] }, "seat"),
                selectable: false, draggable: false };
     }
-    /** **This is the lock that bites.** An interface has no place of its own —
-     *  it is re-seated on whichever wall it was last slid to — so *locked* is
-     *  the one way to say it belongs on this wall and stays there. */
-    const seat = node(p.id, p, data, "seat");
-    return b.locked ? { ...seat, draggable: false } : seat;
+    return node(p.id, p, data, "seat");
   });
 
   const drawn = [...holders, ...boxes, ...seats];
 
-  /** The room, before anything is seated on it. **A wall is a border like a
-   *  card's**, so an end meeting one takes a seat the same way — which is what
-   *  lets one grip mean the same thing wherever a line ends. */
+  /** The room, before anything is seated on it. */
   const room = frame_of(graph, layer, drawn, hidden);
   const boxes_full = new Map(drawn.map((n) => [n.id, box_of(n)]));
   if (room) {
     boxes_full.set(FRAME, room);
     for (const p of room.ports) boxes_full.set(p.id, at_seat(room, p));
   }
-  const assigned = room && layer
-    ? assign_seats(graph, linked, spots, boxes_full, { id: FRAME, of: layer })
-    : { perches, port_at };
+  const walls = room && layer ? { id: FRAME, of: layer } : undefined;
+  const assigned = walls ? assign_seats(graph, linked, spots, boxes_full, walls)
+                       : { perches, port_at };
+
+  /** Runs route round cards and notes, not holders, the room or interfaces. */
+  const held = new Set(holders.map((n) => n.id));
+  const solid = drawn
+    .filter((n) => !held.has(n.id) && !n.data.on)
+    .map(box_of);
+
   const met = new Map(assigned.perches.map((p) => [`${p.edge}|${p.end}`, p]));
   const offered = new Map<Id, { id: string; side: Side; at: number }[]>();
   for (const p of assigned.perches) {
-    const held = offered.get(p.on) ?? [];
-    held.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
-    offered.set(p.on, held);
+    const kept = offered.get(p.on) ?? [];
+    kept.push({ id: perch_id(p.edge, p.end), side: p.side, at: p.at });
+    offered.set(p.on, kept);
   }
 
   /** The seats each box offers, put onto the box that offers them. */
@@ -156,39 +122,7 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     return own ? { ...n, data: { ...n.data, seats: own } } : n;
   });
 
-  /** **The two ends, and which seat each meets.** Where the run goes between
-   *  them is still the renderer's; which point it leaves from is geometry, and
-   *  geometry is this module's. */
-  /** **Everything a run has to get round**, which is every card on the layer.
-   *
-   *  **A holder is not one, either sort.** A band and a grid are both drawn
-   *  round things that live inside them, so a run reaching one of those has to
-   *  get in — and a grid walled in every run between two of its own cells,
-   *  which left the search with no way through and an elbow drawn across
-   *  whatever it passed. Nor is the room, which is what the whole layer is
-   *  inside. What is left is the cards and the notes — and an interface is part
-   *  of the card it is seated on rather than a box of its own, so it is already
-   *  covered by that card.
-   *
-   *  Worked out once for the layer rather than per line: it is the same list
-   *  every time, and a projection runs once per change. */
-  const held = new Set(holders.map((n) => n.id));
-  const solid = drawn
-    .filter((n) => !held.has(n.id) && !n.data.on)
-    .map(box_of);
-
-  const edges: LineEdge[] = linked.map((e): LineEdge => {
-    return {
-      id: e.id,
-      source: e.from,
-      target: e.to,
-      sourceHandle: handle(met, e.id, "from", "s"),
-      targetHandle: handle(met, e.id, "to", "t"),
-      label: e.type ? graph.defs[e.type]?.name : undefined,
-      data: { module: e.module, dir: e.dir ?? "none",
-              ...(solid.length ? { clear: solid } : {}) },
-    };
-  });
+  const edges = line_edges(graph, linked, assigned.perches, solid, met);
 
   /** The walls' own seats, put on the frame that offers them. */
   const walled = offered.get(FRAME);
@@ -200,18 +134,13 @@ export function project(graph: Graph, layer: Id | null, config: Config = {}): Sc
     nodes: placed,
     edges,
     perches: assigned.perches,
-    /** **A slot says what this projection can offer, never what it is doing.**
-     *  Dropping the interfaces group when interfaces are hidden would take away
-     *  the only control that could bring them back. */
+    /** A slot says what this projection can offer, never what it is doing. */
     slots: SLOTS,
     trail: trail_of(graph, layer),
   };
 }
 
-/** The cells a grid draws, placed inside its own box.
- *
- *  **A merged region is one cell**, drawn once at the span's corner and the
- *  span's size. */
+/** The cells a grid draws, placed inside its own box. */
 function lattice(graph: Graph, g: Block): GridCell[] {
   const headed = new Set<string>();
   for (const b of members_of(graph, g.id)) {
@@ -231,26 +160,18 @@ function lattice(graph: Graph, g: Block): GridCell[] {
   return out;
 }
 
-/** The border a layer is seen from inside.
- *
- *  **The root has none** — a frame is a block seen from outside, and the
- *  workspace has no outside. Everywhere else it is what the layer holds plus a
- *  margin, and never smaller than the room a first block needs. */
+/** The border a layer is seen from inside. */
 function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
                   hidden: boolean): Frame | null {
   if (layer === null || layer === graph.root) return null;
   const label = shown_name(graph, layer);
   const role = role_of(graph, layer);
   const ports = wall_of(graph, layer, hidden);
-  /** An interface opened from the inside straddles its parent's border, and the
-   *  wall it is set into is the one thing about this layer that is a fact about
-   *  the layer above it. */
+  /** An interface opened from inside keeps the wall it is set into. */
   const side = graph.blocks[layer]?.side;
   const set_in = side ? { side } : {};
   const least = { w: UNIT * 14, h: UNIT * 9 };
-  /** **A room is a whole number of cells**, so its walls fall on lines the
-   *  lattice already draws. Said here as well as where the room is grown to
-   *  the panel, because either can be the answer that is drawn. */
+  /** A room is a whole number of cells. */
   if (drawn.length === 0) {
     return { ...roomed({ x: -least.w / 2, y: -least.h / 2, ...least }),
              label, role, ports, ...set_in };
@@ -264,14 +185,7 @@ function frame_of(graph: Graph, layer: Id | null, drawn: readonly BoxNode[],
   return { ...roomed({ x, y, w, h }), label, role, ports, ...set_in };
 }
 
-/** The layer's own interfaces, set into its walls and seen from inside.
- *
- *  **Where they sit is not decided here.** The frame is grown to whatever panel
- *  it is drawn in, so a wall's run is a fact about a window; what this knows is
- *  which wall each one is in and how far along, which is what the model stores.
- *
- *  A block with interfaces is still a block, so these are also drawn on its
- *  card from the layer above — the same interfaces, from the other side. */
+/** The layer's own interfaces, set into its walls and seen from inside. */
 function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
   return children(graph, layer)
     .filter(is_interface)
@@ -286,27 +200,41 @@ function wall_of(graph: Graph, layer: Id, hidden: boolean): Port[] {
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Where a relationship's ends land.
- *
- *  An end seated on an interface leaves by that interface's side unless it was
- *  walled somewhere else by hand — and with interfaces hidden it lands on the
- *  card instead, so turning them off hides the seats and never the lines. */
+/** Where a relationship's ends land. */
 function landed(graph: Graph, e: Relation, layer: Id | null): Relation {
   const side = (id: Id): Side | undefined => {
     const b = graph.blocks[id];
     return b && is_interface(b) ? b.side : undefined;
   };
-  /** The layer itself is the frame around you, and the frame is not a block. */
+  /** The layer itself is the frame. */
   const here = (id: Id): Id => (layer !== null && id === layer ? FRAME : id);
   return { ...e, from: here(e.from), to: here(e.to),
            fromSide: e.fromSide ?? side(e.from), toSide: e.toSide ?? side(e.to) };
 }
 
-/** Which handle an end leaves by.
- *
- *  A perch is a seat of its own and names itself; an end seated on an interface
- *  meets the interface, which offers one place and needs no choosing. **Nothing
- *  here picks a point** — both answers were worked out before this was asked. */
+/** Every line as the canvas draws it: ends, seats and label. */
+function line_edges(graph: Graph, linked: readonly Relation[], perches: readonly Perch[],
+                    solid: readonly { x: number; y: number; w: number; h: number }[],
+                    met = new Map(perches.map((p) => [`${p.edge}|${p.end}`, p]))): LineEdge[] {
+  return linked.map((e): LineEdge => {
+    const wire = wire_of(graph, e.id);
+    const label = wire.name ? label_of(graph, e.id) : "";
+    const alias = wire.alias ? alias_of(graph, e.id, true) : "";
+    return {
+      id: e.id,
+      source: e.from,
+      target: e.to,
+      sourceHandle: handle(met, e.id, "from", "s"),
+      targetHandle: handle(met, e.id, "to", "t"),
+      ...(label ? { label } : {}),
+      data: { module: edge_module(graph, e.id), dir: e.dir ?? "none", wire,
+              ...(alias ? { alias } : {}),
+              ...(solid.length ? { clear: solid } : {}) },
+    };
+  });
+}
+
+/** Which handle an end leaves by. */
 function handle(met: ReadonlyMap<string, Perch>, edge: Id,
                 end: "from" | "to", role: "s" | "t"): string {
   return met.has(`${edge}|${end}`) ? `${role}-${perch_id(edge, end)}` : role;

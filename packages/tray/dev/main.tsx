@@ -1,22 +1,20 @@
-/** The tray, on its own, over a fixture.
- *
- *  It holds the state the component refuses to and logs what it emits. Pick a
- *  fixture and a layer above: the rows are the layer read straight from the
- *  graph, which is the whole of what this surface does. */
+/** The tray, on its own, over a fixture. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { children, fold, shown_name, type Id } from "@mnd/core";
-import { fixture, NAMES } from "@mnd/fixtures";
+import { FLOOR, fixture, NAMES } from "@mnd/fixtures";
 import { Tray } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
+import "@mnd/theme/card.css";
 import "../src/tray.css";
+import "../src/fields.css";
+import "../src/preview.css";
 import "./dev.css";
 
-/** The layer with the most in it, so the harness opens on something worth
- *  looking at rather than on a workspace holding one block. */
+/** The layer with the most in it. */
 function richest(graph: ReturnType<typeof fold>): Id | null {
   const layers = Object.keys(graph.blocks);
   let best: Id | null = null;
@@ -30,12 +28,12 @@ function richest(graph: ReturnType<typeof fold>): Id | null {
 
 function Harness() {
   const [name, set_name] = useState<string>("related");
-  const [layer, set_layer] = useState<Id | null>(() => richest(fold(fixture("related"))));
+  const [layer, set_layer] = useState<Id | null>(() => richest(fold(fixture("related"), FLOOR)));
   const [open, set_open] = useState(true);
   const [picked, set_picked] = useState<Id[]>([]);
   const [log, set_log] = useState<string[]>([]);
 
-  const graph = fold(fixture(name));
+  const graph = fold(fixture(name), FLOOR);
   const layers: (Id | null)[] = [null, ...Object.keys(graph.blocks).filter((id) =>
     children(graph, id).length > 0)];
   const here = layer && graph.blocks[layer] ? layer : null;
@@ -48,7 +46,7 @@ function Harness() {
         <b>tray</b>
         <select value={name} onChange={(e) => {
           set_name(e.target.value);
-          set_layer(richest(fold(fixture(e.target.value))));
+          set_layer(richest(fold(fixture(e.target.value), FLOOR)));
           set_picked([]);
         }}>
           {NAMES.map((n) => <option key={n}>{n}</option>)}
@@ -69,7 +67,6 @@ function Harness() {
         <Tray
           graph={graph}
           layer={here}
-          label={here ? shown_name(graph, here) : "workspace"}
           open={open}
           onOpen={(next) => { say(`open ${next}`); set_open(next); }}
           picked={picked}

@@ -1,31 +1,16 @@
-/** The app's icon vocabulary — one set, one grid, one weight.
- *
- *  Vendored inline SVG rather than a font or a package. A Unicode mark renders
- *  from whatever system font happens to carry it: unhinted at small sizes,
- *  with metrics that differ per platform and a baseline it sits off, which is
- *  why chrome built from glyphs reads blurry and indistinct. These draw at an
- *  exact size with one stroke weight.
- *
- *  **No mark means two things.** A name here is a purpose, never a shape —
- *  `fold_all`, not `minus_box` — so two purposes cannot quietly share one
- *  drawing. One purpose may have many callers, which is why `remove` serves
- *  every *take this away* in the app rather than each surface drawing its own.
- *
- *  The design language, in one place so a new icon inherits it rather than
- *  inventing its own: a 24-unit grid, 1.5 stroke, round caps and joins,
- *  `currentColor`, no fill unless the mark is solid by nature, and a stroke
- *  across a mark reads as *not that* — never as a second mark. */
+/** The app's icon vocabulary — one set, one grid, one weight. */
 
 const GRID = 24;
 const WEIGHT = 1.5;
 
-/** Every icon, keyed by what it means. Paths only — the frame is shared. */
+/** Interfaces on a wall — the block with stubs. */
+const PORTS = "M6 6h12v12H6zM2.5 12H6M18 12h3.5";
+
+/** Every icon, keyed by what it means. */
 const PATHS = {
   // Making and taking away.
   add: "M12 5v14M5 12h14",
-  /** **On the same footprint as `add`**, not the row mark's: a folder drawn to
-   *  its own width sat short beside the marks it shares a bar with, and read as
-   *  a smaller control than the ones either side of it. */
+  /** Drawn on `add`'s footprint so it sits level with the bar's other marks. */
   add_folder: "M5 5.5h5l2 2h7v11H5zM12 10.5v5M9.5 13h5",
   remove: "M6 6l12 12M18 6L6 18",
 
@@ -44,14 +29,21 @@ const PATHS = {
   more: "M6.5 9.5l5.5 5 5.5-5",
   less: "M6.5 14.5l5.5-5 5.5 5",
   up: "M12 19.5V6M6 12l6-6 6 6",
+  // How much room the panel takes, which is a different question from whether
+  // it is open. Arrows to the edges and back, so neither reads as a chevron.
+  expand: "M4 10V4h6M20 14v6h-6M4 4l6 6M20 20l-6-6",
+  collapse: "M10 4v6H4M14 20v-6h6M4 10l6-6M20 14l-6 6",
 
   // What a row is, in the tree. One meaning each.
   role_leaf: "M7 7h10v10H7z",
-  role_interface: "M7.5 7.5h9v9h-9z",
+  role_interface: PORTS,
   // A container holds things, so it is solid. An outline would read as the
   // empty leaf beside it.
   role_container: "M6 6h12v12H6z",
   role_folder: "M3.5 7.5h6l2 2h9v9h-17z",
+  // An external artifact — a page with an outward corner, distinct from
+  // `role_reference` (another block in the model) and `role_note` (text here).
+  role_resource: "M6.5 6h9v12h-9zM15 6h3.5v3.5M15 6l3.5 3.5",
   // Somewhere else, a description, and a set — none of them structure here.
   // A reference is a solid corner pointing up and out of its own card: it
   // stands for something that lives elsewhere, and the mark says which way.
@@ -65,6 +57,15 @@ const PATHS = {
 
   // What a thing is, opened out to be set. A cog: the one mark every app
   // already spends on *the settings of this*.
+  /** A pinned definition. */
+  pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
+  /** The workspace: everything the project holds, as one crate. The only isometric mark in the
+      set, so nothing flat — a folder, a card, a page — can read as it. */
+  workspace: "M12 3.5l7.5 4.25v8.5L12 20.5l-7.5-4.25v-8.5zM4.5 7.75L12 12l7.5-4.25M12 12v8.5",
+  /** The packages: what the workspace draws on, as a word — the mark `vocabulary` wears below. */
+  packages: "M3 16.5V7.5h3.25a2.25 2.25 0 0 1 0 4.5H3M10 7.5v9M14 11.5l-4 3.25M11.6 13.1l2.4 3.4M21 11.5v6.5a2.1 2.1 0 0 1-3.6 1.3M21 13.75a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0",
+  /** The definitions: the words a workspace can say, as three letters. */
+  vocabulary: "M2.5 16.5l2.75-9 2.75 9M3.4 13.5h3.7M10 7.5v9h2.75a2.25 2.25 0 0 0 0-4.5H10h2.25a2.25 2.25 0 0 0 0-4.5zM21.5 9.25a2.75 2.75 0 0 0-5 1.5v2.5a2.75 2.75 0 0 0 5 1.5",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -78,7 +79,7 @@ const PATHS = {
   label_off: "M4.5 6.5h15v11h-15zM7.5 10.5h9M7.5 13.5h5M5.5 18.5l13-13",
 
   // Interfaces drawn on the canvas, or not.
-  ports_on: "M6 6h12v12H6zM2.5 12H6M18 12h3.5",
+  ports_on: PORTS,
   ports_off: "M15 6H6v12h9",
 
   // Sending a file out, and taking one in. A workspace lands on a shelf; a
@@ -97,6 +98,17 @@ const PATHS = {
   // `layout_grid`, where the lines are bounded because they are the thing.
   guides_on: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17",
   guides_off: "M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17M4.5 19.5l15-15",
+
+  // The open layer's border, drawn or not. A room with its name set into the
+  // top wall, and the same room struck through.
+  frame_on: "M8 4.5H4.5v15h15v-15H16M10 4.5h4",
+  frame_off: "M8 4.5H4.5v15h15v-15H16M10 4.5h4M5.5 18.5l13-13",
+
+  // Keeping a draft: a tick, because what it says is *this is done*.
+  save: "M5 12.5l4.5 4.5L19 7.5",
+
+  // Going to where a thing lives: an arrow into a room.
+  enter: "M3.5 12h10M10 8.5l3.5 3.5-3.5 3.5M13 4.5h6.5v15H13",
 
   // The project opened out to be set. **Sliders, not a cog** — `define` is the
   // cog and it answers *what is this thing*; this answers *how does the app
@@ -151,14 +163,12 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
-/** Whether a name is one this set draws — the guard a stored name goes
- *  through, so a mark that was never drawn fails where it is read. */
+/** Whether a name is one this set draws. */
 export function known(name: string): name is IconName {
   return name in PATHS;
 }
 
-/** What one name draws. Exposed so the set can be held to its own rule — two
- *  purposes sharing a path is the mistake it exists to prevent. */
+/** What one name draws. */
 export function paths(name: IconName): string {
   return PATHS[name];
 }
@@ -168,9 +178,7 @@ export function names(): IconName[] {
   return Object.keys(PATHS) as IconName[];
 }
 
-/** One icon. `solid` fills it instead of stroking — for the marks that are
- *  solid by nature, like a container row, where the fill is what says it holds
- *  something and an outline would read as the empty leaf beside it. */
+/** One icon; `solid` fills instead of stroking. */
 export function Icon({ name, size = 16, solid = false, className }: {
   name: IconName;
   size?: number;
@@ -186,4 +194,17 @@ export function Icon({ name, size = 16, solid = false, className }: {
       <path d={PATHS[name]} />
     </svg>
   );
+}
+
+/** Which mark each role wears. */
+export const ROLE_ICON: Record<string, IconName> = {
+  block: "role_leaf", container: "role_container", folder: "role_folder",
+  resource: "role_resource", reference: "role_reference",
+  interface: "role_interface", group: "role_group", grid: "role_table",
+  note: "role_note",
+};
+
+/** The mark for a role, falling back to the plain block's. */
+export function role_icon(role: string | undefined): IconName {
+  return ROLE_ICON[role ?? ""] ?? "role_leaf";
 }

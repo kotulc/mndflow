@@ -1,10 +1,4 @@
-/** The types, bundled the same way the code is.
- *
- *  `tsc` emits one declaration per source file, each still naming `@mnd/core`
- *  and its siblings — specifiers that mean something in this repo and nothing
- *  in a consumer's `node_modules`. This flattens the tree the same way `tsup`
- *  flattens the modules, so what ships is **one file with no workspace left in
- *  it**, which is the whole point of the seam. */
+/** The types, bundled the same way the code is. */
 
 import dts from "rollup-plugin-dts";
 

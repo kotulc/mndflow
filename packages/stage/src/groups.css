@@ -1,0 +1,199 @@
+/* Holders on the canvas: bands, headers and grids. */
+
+/* The library pads its `group` node type; ours must keep the size it was given. */
+.mnd-flow .react-flow__node-group {
+  background: none;
+  border: none;
+  padding: 0;
+  overflow: visible;
+}
+/* A band's node is only a frame; clicks inside pass through to what it holds. */
+.mnd-flow .react-flow__node.mnd-band-node {
+  pointer-events: none;
+}
+.mnd-flow .react-flow__node.mnd-band-node .mnd-brim > span,
+.mnd-flow .react-flow__node.mnd-band-node .mnd-group-title,
+.mnd-flow .react-flow__node.mnd-band-node .mnd-group-name {
+  pointer-events: auto;
+}
+
+/* A boundary: a hairline dashed outline and a faint wash. */
+.mnd-group {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  border: 1px dashed color-mix(in oklch, var(--muted) 48%, transparent);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--muted) 1.5%, transparent);
+  background-clip: padding-box;
+  color: var(--muted);
+}
+/* The inside is for what the band holds. */
+.mnd-group:not(.gridded) {
+  pointer-events: none;
+}
+.mnd-group:not(.gridded) .mnd-brim > span {
+  pointer-events: auto;
+  cursor: grab;
+}
+.mnd-group:not(.gridded):active .mnd-brim > span { cursor: grabbing; }
+.mnd-group:not(.gridded):has(.mnd-brim > span:hover) {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 5%, transparent);
+  background-clip: padding-box;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--accent) 55%, transparent);
+}
+/* A picked band must read at a glance. */
+.mnd-group:not(.gridded).picked {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 7%, transparent);
+  background-clip: padding-box;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.mnd-group-shell:not(.gridded):has(.mnd-group.picked) .mnd-group-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+/* The group name floats above the frame — bands and grids alike — so it is never clipped by cells
+   or buried under header rows. */
+.mnd-group-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.mnd-group-title {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 1ch;
+  margin-bottom: 4px;
+  padding: 0 6px;
+  background: var(--bg);
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  z-index: 2;
+}
+[data-align="center"] > .mnd-group-title { left: 50%; transform: translateX(-50%); }
+[data-align="right"] > .mnd-group-title { left: auto; right: 12px; }
+.mnd-group-name {
+  cursor: text;
+  pointer-events: auto;
+}
+.mnd-group-shell:not(.gridded) .mnd-group-name:empty::before {
+  content: "Group";
+  opacity: 0.45;
+}
+
+/* ---------------------------------------------------------------- the grid */
+
+/* A grid's box is exactly its cells, so the band is set inside it. */
+.mnd-group.gridded {
+  border: none;
+  background: none;
+}
+
+/* The lattice, drawn whole. */
+.mnd-grid-cells {
+  position: absolute;
+  inset: 0;
+}
+
+/* A grid's band — the outer edge of the outer cells. */
+.mnd-group-edge {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in oklch, var(--card-line) 44%, transparent);
+  background: color-mix(in oklch, var(--card-line) 1.5%, transparent);
+  pointer-events: none;
+}
+.mnd-group.gridded:hover > .mnd-group-edge,
+.mnd-group.gridded.picked > .mnd-group-edge { border-color: var(--accent); }
+
+/* A grid inside another group is still a boundary, not a top-level frame. */
+.mnd-group.member.gridded > .mnd-group-edge {
+  border-style: dashed;
+  border-color: color-mix(in oklch, var(--muted) 48%, transparent);
+  background: color-mix(in oklch, var(--muted) 1.5%, transparent);
+}
+.mnd-group.member.gridded:hover > .mnd-group-edge,
+.mnd-group.member.gridded.picked > .mnd-group-edge {
+  border-color: color-mix(in oklch, var(--accent) 42%, transparent);
+  background: color-mix(in oklch, var(--accent) 2.5%, transparent);
+}
+
+/* One cell, behind what sits in it, with a pointer of its own. */
+.mnd-grid-cell {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in oklch, var(--card-line) 28%, transparent);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* A header cell keeps the same faint edge as every other cell. */
+.mnd-grid-cell.header {
+  background: color-mix(in oklch, var(--card-line) 5%, var(--surface));
+}
+.mnd-grid-cell.header:hover {
+  background: color-mix(in oklch, var(--accent) 7%, var(--surface));
+}
+
+/* A merged cell is one cell, and its border says so. */
+.mnd-grid-cell.merged {
+  border-color: color-mix(in oklch, var(--card-line) 42%, transparent);
+}
+
+.mnd-grid-cell:hover {
+  background: color-mix(in oklch, var(--accent) 8%, transparent);
+}
+
+/* A picked cell takes the accent. */
+.mnd-grid-cell.picked {
+  background: color-mix(in oklch, var(--accent) 16%, transparent);
+  border-color: var(--accent);
+}
+
+/* A grid is taken hold of and renamed by its name. */
+.mnd-group-shell.gridded .mnd-group-name {
+  min-width: 3ch;
+  min-height: 1em;
+  cursor: grab;
+}
+.mnd-group-shell.gridded .mnd-group-name:empty::before {
+  content: "Grid";
+  opacity: 0.45;
+}
+
+/* Only the corners resize a grid, so edges stay free for dragging. */
+.mnd-group.gridded ~ .react-flow__resize-control.line,
+.mnd-group.gridded .react-flow__resize-control.line { pointer-events: none; }
+
+/* The bare ring outside the lattice: drawn only; cells are what you pick and drag by. */
+.mnd-group.gridded { cursor: grab; }
+.mnd-group.gridded:active { cursor: grabbing; }
+
+/* The grid a right drag is about to make: its cells, and how many. */
+.mnd-drawn-rule {
+  stroke: color-mix(in oklch, var(--accent) 45%, transparent);
+  stroke-width: 1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.mnd-drawn-count {
+  fill: var(--accent);
+  font-size: 11px;
+  font-family: inherit;
+}
+
+/* The lattice everything lands on, ruled across the whole canvas. */
+.mnd-flow .react-flow__background.mnd-lattice .react-flow__background-pattern {
+  stroke: color-mix(in oklch, var(--card-line) 30%, transparent);
+}

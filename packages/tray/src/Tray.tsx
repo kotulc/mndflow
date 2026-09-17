@@ -1,195 +1,400 @@
-/** The context tray: **two tabs, two questions.**
- *
- *  *This* is the one thing you have hold of, described — what it is called,
- *  what it names, what it is like and what it carries. *Contents* is everything
- *  the layer holds, as a table: the only place a relationship or an interface
- *  is found without hunting for it on the drawing.
- *
- *  **Two sizes, shut and open.** Shut it is a bar and nothing more; open, the
- *  stage shrinks and re-centres rather than being covered. **Nothing closes it
- *  but its own control** — a click on the canvas is how a row gets selected.
- *
- *  A pure function of its props, like every other surface: it holds which tab
- *  and which filter, and every gesture leaves as an action name or a
- *  selection. */
+/** The context tray: one shell, one context, one tab per question. */
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
+import { children, def_named, def_of, is_container, is_interface, new_id,
+         module_of, owner_of, shipped, shown_name,
+         type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
-import { Element } from "./Element";
-import { Chain } from "./Chain";
-import { children, is_container, module_of, type Act, type Graph, type Id } from "@mnd/core";
+import { Styles } from "./Styles";
+import { Fields } from "./Fields";
+import { Packages } from "./Packages";
+import { Definitions, type Only } from "./Definitions";
+import { Entry } from "./Entry";
+import { scope_chips, Table, type Column, type Scope } from "./Table";
+import { Usages } from "./Usages";
+import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
+
+/** What the tray holds that the canvas did not give it. */
+export type Hold =
+  | { of: "id"; id: Id }
+  | { of: "draft"; group: DraftGroup }
+  /** A folder of definitions in the explorer: the whole list, or one narrowing. */
+  | { of: "defs"; only: "all" | "default" | "pinned" }
+  /** The packages section: all of them, or one. */
+  | { of: "packs"; from: string | null };
 
 export type TrayProps = {
   graph: Graph;
   layer: Id | null;
-  label: string;
   open: boolean;
   onOpen: (open: boolean) => void;
   picked: readonly Id[];
   onPick: (ids: Id[]) => void;
   /** Hovering a row lights that thing on the stage. */
   onHover?: (id: Id | null) => void;
-  /** **Values, tags and definitions are edited here**, and every change leaves
-   *  as an action name like every other gesture in the app. Absent, the tray
-   *  lists and edits nothing. */
+  /** Edits leave as action names. */
   onAct?: Act;
-  /** Which tab to show. The rail's cog asks for `this`; left alone the tray
-   *  keeps whichever tab was last open. */
+  /** Which tab to show; left alone, the last one that still applies. */
   tab?: Tab;
   onTab?: (tab: Tab) => void;
+  hold?: Hold | null;
+  onHold?: (hold: Hold | null) => void;
+  /** Go to where a row lives: open its layer and pick it there. */
+  onView?: (layer: Id | null, id: Id) => void;
 };
 
-export type Tab = "this" | "contents";
+export type Tab = "settings" | "fields" | "contents" | "definitions" | "usages" | "packages";
 
-const HEAD: { key: "kind" | "name" | "what" | "type"; label: string; width: string }[] = [
-  { key: "kind", label: "kind", width: "16%" },
-  { key: "name", label: "name", width: "26%" },
-  { key: "what", label: "what", width: "34%" },
-  { key: "type", label: "type", width: "16%" },
+/** What the tray is about. The workspace is a block like any other. */
+type Context = "block" | "definition" | "relation" | "library" | "packages";
+
+/** A slot per context, and the words change with the subject. */
+const SLOTS: Record<Context, readonly Tab[]> = {
+  block: ["settings", "fields", "contents", "usages"],
+  definition: ["definitions", "settings", "fields", "usages"],
+  relation: ["settings", "definitions", "usages"],
+  library: ["definitions"],
+  packages: ["packages"],
+};
+
+const HEAD: readonly Column[] = [
+  { key: "kind", label: "kind" },
+  { key: "name", label: "name" },
+  { key: "what", label: "what" },
+  { key: "type", label: "type" },
 ];
 
-/** What a filter narrows to. `all` is not a sort, so it is named beside them
- *  rather than being one. */
-const FILTERS: { sort: Sort | "all" | "types"; label: string }[] = [
+/** What a filter narrows to. */
+const FILTERS: { sort: Sort | "all"; label: string }[] = [
   { sort: "all", label: "all" },
   { sort: "block", label: "blocks" },
   { sort: "interface", label: "interfaces" },
   { sort: "relationship", label: "relations" },
   { sort: "group", label: "groups" },
   { sort: "note", label: "notes" },
-  { sort: "types", label: "types" },
 ];
 
+/** The layer a thing is drawn in: a block's parent, an interface's owner's, a line's first end's. */
+function home_of(graph: Graph, id: Id): Id | null {
+  const e = graph.edges[id];
+  const b = graph.blocks[e ? owner_of(graph, e.from) : id];
+  if (!b) return null;
+  const home = is_interface(b) ? graph.blocks[b.parent ?? ""]?.parent : b.parent;
+  /** The root layer is `null`, as the open layer names it. */
+  return !home || home === graph.root ? null : home;
+}
+
 export function Tray(props: TrayProps) {
-  const { graph, layer, label, open, onOpen, picked, onPick, onHover, onAct } = props;
+  const { graph, layer, open, onOpen, picked, onPick, onHover, onAct, onView,
+          hold = null, onHold = () => {} } = props;
   const [held_tab, set_held_tab] = useState<Tab>("contents");
-  const tab = props.tab ?? held_tab;
-  const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
-  const [only, set_only] = useState<Sort | "all" | "types">("all");
+  /** What a line's working definition will be saved as, per line. */
+  const [working, set_working] = useState<Record<Id, string>>({});
+  /** Full height, as a control of its own. */
+  const [big, set_big] = useState(false);
+  const [only, set_only] = useState<Sort | "all">("all");
   /** Field columns the reader asked for, in the order they asked. */
   const [columns, set_columns] = useState<string[]>([]);
   const [adding, set_adding] = useState("");
+  /** Where the listings reach, shared by every table that asks, so a tab change keeps it. */
+  const [scope, set_scope] = useState<Scope>("layer");
+  /** The listing a table row was picked from, kept while that row is the pick. */
+  const [browse, set_browse] = useState<{ id: Id; within: Id | null } | null>(null);
+  /** The definition row lit while something on the canvas is picked. */
+  const [lit_def, set_lit_def] = useState<Id | null>(null);
+  /** One draft per group, kept until saved. */
+  const [drafts, set_drafts] = useState<Record<DraftGroup, Definition>>(
+    () => ({ block: blank("block"), relation: blank("relation") }));
 
+  /** What the tray is about: a hold, else the one thing picked, else the open layer. */
+  const drafting = hold?.of === "draft" ? hold.group : null;
+  /** Which library section the explorer pointed at, which is about no one element. */
+  const library = hold?.of === "defs" || hold?.of === "packs" ? hold : null;
+  const view = drafting ? with_draft(graph, drafts[drafting]) : graph;
   const one = picked.length === 1 ? picked[0]! : null;
+  const held_id = hold?.of === "id" && (view.defs[hold.id] || view.blocks[hold.id])
+    ? hold.id : null;
+  const here = layer ?? graph.root;
+  const about: Id = drafting ? DRAFT : held_id ?? one ?? here;
 
-  /** **What the table is about.** A container you have hold of narrows it to
-   *  that container's own contents; anything else, and the open layer is what
-   *  is listed. Nothing picked is the layer either way. */
-  const within = one && graph.blocks[one]
-    && (is_container(graph, one) || module_of(graph, one) === "folder") ? one : layer;
-  const rows = rows_of(graph, within);
-  const shown = only === "all" || only === "types"
-    ? rows : rows.filter((r) => r.sort === only);
+  const of_relation = !!view.edges[about] || view.defs[about]?.group === "relation";
+  const context: Context = library?.of === "packs" ? "packages"
+    : library?.of === "defs" ? "library"
+    : of_relation ? "relation"
+    : view.defs[about] ? "definition" : "block";
 
-  /** Every field name in the listing, so a column can be asked for by name
-   *  rather than typed blind. */
+  const tabs = SLOTS[context];
+  const asked = props.tab ?? held_tab;
+  const tab: Tab = tabs.includes(asked) ? asked : tabs[tabs.length - 1]!;
+  const set_tab = (t: Tab) => { set_held_tab(t); props.onTab?.(t); };
+
+  /** A draft is edited through the registry, and everything else goes out. */
+  const act: Act = (name, args) => {
+    if (name === "@working") {
+      set_working((w) => ({ ...w, [String(args!["id"])]: String(args!["name"] ?? "") }));
+      return;
+    }
+    if (name === "@name") {
+      file_draft(String(args?.["name"] ?? "").trim());
+      return;
+    }
+    if (drafting && aimed(args).includes(DRAFT)) {
+      const next = redraft(view, drafts[drafting], name, args ?? {});
+      if (typeof next !== "string") set_drafts((d) => ({ ...d, [drafting]: next }));
+      return;
+    }
+    onAct?.(name, args);
+  };
+
+  /** Whether an element has looks of its own, which make a working definition. */
+  const drawn_looks = (it: { looks?: Record<string, object> } | undefined) =>
+    ["card", "style", "line"].some((key) => Object.keys(it?.looks?.[key] ?? {}).length > 0);
+  const instance = view.blocks[about] ?? view.edges[about];
+
+  /** A draft is filed as one step the moment it is named, and the tray holds it. */
+  function file_draft(to: string) {
+    const draft = drafting ? drafts[drafting] : null;
+    if (!draft || !to || def_named(graph, to, draft.group)) return;
+    /** Minted here, so the tray can hold what it filed. */
+    const id = new_id(draft.group === "relation" ? "rel" : "def");
+    onAct?.("define", { id, name: to, group: draft.group, extends: draft.extends ?? "",
+                        ...(draft.label ? { label: draft.label } : {}),
+                        components: draft.components, fields: draft.fields });
+    set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
+    onHold({ of: "id", id });
+  }
+
+  /** Saving a working look files a definition under its name. */
+  const line = view.edges[about] ?? null;
+  const working_look = !!instance && drawn_looks(instance);
+  const naming = working_look ? (working[about] ?? "").trim() : "";
+  /** A name is unique within its group, so a line may share a block's. */
+  const taken = !!naming && !!def_named(graph, naming, line ? "relation" : "block");
+  const save = !naming || taken ? null : () => {
+    act("save_def", { id: about, name: naming });
+    set_working((w) => ({ ...w, [about]: "" }));
+  };
+
+  /** What styling writes: a workspace definition the element names, else the element's own look. */
+  const typed = instance?.type ? view.defs[instance.type] : undefined;
+  const styled: Id = instance && typed && !shipped(typed) && !typed.from && !working_look
+    ? typed.id : about;
+
+  /** Whether the context has looks to reset, and whether it is a package's. */
+  const holder = view.defs[styled] ?? view.blocks[styled] ?? view.edges[styled];
+  const bag = holder && ("components" in holder ? holder.components : "looks" in holder ? holder.looks : undefined);
+  const its_own = ["card", "style", "line"].some((key) => Object.keys(bag?.[key] ?? {}).length > 0);
+  const borrowed = !!view.defs[styled]?.from;
+
+  /** What the table lists: a picked container's contents, the open layer, or everything. */
+  const within = browse && one === browse.id ? browse.within
+    : graph.blocks[about] && about !== graph.root
+      && (is_container(graph, about) || module_of(graph, about) === "folder") ? about : layer;
+  const deep = scope === "workspace";
+  const rows = rows_of(graph, deep ? null : within, deep);
+  const shown = only === "all" ? rows : rows.filter((r) => r.sort === only);
+
+  const counted = (sort: Sort | "all") =>
+    sort === "all" ? rows.length : rows.filter((r) => r.sort === sort).length;
+
   const offered = [...new Set(rows.flatMap((r) => Object.keys(r.fields)))]
     .filter((n) => !columns.includes(n)).sort();
 
   const cell = (row: Row, key: string) =>
     key in row.fields ? row.fields[key]! : String(row[key as keyof Row] ?? "");
 
+  const chips = {
+    key: "sort", on: only, onPick: (k: string) => set_only(k as Sort | "all"),
+    of: FILTERS.map((f) => ({ key: f.sort, word: f.label, count: counted(f.sort) })),
+  };
+  /** A column per field, so one value can be read down a layer. */
+  const tools = (
+    <>
+      {columns.map((n) => (
+        <button key={n} className="chip" title={`drop the ${n} column`}
+                onClick={() => set_columns(columns.filter((c) => c !== n))}>
+          {n}<Icon name="remove" size={10} />
+        </button>
+      ))}
+      {offered.length ? (
+        <select value={adding} aria-label="add a column"
+                onChange={(e) => {
+                  if (!e.target.value) return;
+                  set_columns([...columns, e.target.value]);
+                  set_adding("");
+                }}>
+          <option value="">+ column</option>
+          {offered.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+      ) : null}
+    </>
+  );
+
+  /** What the definitions tab opens narrowed to; the key re-seeds it when the folder changes. */
+  const narrowed: Only = library?.of === "defs" ? library.only : "all";
+
+  /** The definition a relation context is about. */
+  const held_def = graph.defs[about] ? about : def_of(graph, about) ?? null;
+
+  /** A row picked here becomes the context and drops any hold. */
+  const pick_row = (id: Id) => {
+    set_browse({ id, within });
+    onPick([id]);
+    onHold(null);
+  };
+
+  /** With canvas picks, a definition row only lights and offers to apply; otherwise it is held. */
+  const targets = picked.filter((id) => (context === "relation" ? !!graph.edges[id]
+                                                                : !!graph.blocks[id]));
+  const pick_def = (id: Id) => {
+    if (targets.length && !hold) { set_lit_def(id); return; }
+    onHold({ of: "id", id });
+  };
+  const target_name = targets.length === 1 ? shown_name(graph, targets[0]!)
+    : `${targets.length} ${context === "relation" ? "lines" : "blocks"}`;
+
+  /** The head names the context. */
+  const word = drafting ? `new ${drafting} definition`
+    : library?.of === "packs" ? "packages"
+    : library?.of === "defs" ? "definitions"
+    : view.defs[about] ? `${view.defs[about]!.group} definition`
+    : context === "relation" ? "relation" : "block";
+  const name = drafting ? drafts[drafting].name
+    : library?.of === "packs" ? library.from ?? ""
+    : library?.of === "defs" ? (library.only === "all" ? "" : library.only)
+    : view.defs[about] ? view.defs[about]!.name : shown_name(graph, about);
+
+  const on_bar = (e: MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    onOpen(!open);
+  };
+
   return (
-    <section className={["tray", open ? "open" : "shut"].join(" ")} aria-label="Contents">
-      <div className="tray-bar">
-        <button className="chevron" title={open ? "shut the tray" : "open the tray"}
-                onClick={() => onOpen(!open)}><Icon name={open ? "less" : "more"} /></button>
-        {open ? (
-          <span className="tabs">
-            <button className={tab === "this" ? "on" : ""} onClick={() => set_tab("this")}>
-              this
+    <section className={["tray", open ? "open" : "shut", open && big ? "big" : ""]
+               .filter(Boolean).join(" ")} aria-label="Context">
+      <div className="tray-bar" onClick={on_bar}
+           title={open ? "shut the tray" : "open the tray"}>
+        <span className="tray-chevron"><Icon name={open ? "less" : "more"} /></span>
+        <span className="tray-context">
+          <span className="word">{word}</span>
+          {name ? <span className="name">{name}</span> : null}
+          {picked.length > 1 && !hold ? <span className="note">{`${picked.length} items`}</span> : null}
+        </span>
+
+        <span className="tray-tools">
+          {open && tab === "contents" ? <span className="holds">{shown.length} {shown.length === 1 ? "element" : "elements"}</span> : null}
+          {open ? (
+            <button className={big ? "on" : ""}
+                    title={big ? "give the stage its room back" : "take the full height"}
+                    onClick={() => set_big(!big)}>
+              <Icon name={big ? "collapse" : "expand"} />
             </button>
-            <button className={tab === "contents" ? "on" : ""}
-                    onClick={() => set_tab("contents")}>contents</button>
-          </span>
-        ) : <span className="name">{label}</span>}
-        <span className="holds">
-          {tab === "contents" ? `${shown.length} held`
-            : one ? "one element" : "nothing picked"}
+          ) : null}
         </span>
       </div>
 
-      {open && tab === "this" ? (
+      {open ? (
         <div className="tray-body">
-          {one && onAct
-            ? <Element graph={graph} id={one} onAct={onAct} />
-            : <p className="empty">pick one thing to describe it</p>}
-        </div>
-      ) : null}
-
-      {open && tab === "contents" ? (
-        <div className="tray-body">
-          <div className="filters">
-            {FILTERS.map((f) => (
-              <button key={f.sort} className={only === f.sort ? "on" : ""}
-                      onClick={() => set_only(f.sort)}>{f.label}</button>
+          <div className="tray-tabs">
+            {tabs.map((t) => (
+              <button key={t} className={tab === t ? "on" : ""} onClick={() => set_tab(t)}>
+                {t}
+              </button>
             ))}
-            {/* A column per field, so one value can be read down a layer. */}
-            <span className="columns">
-              {columns.map((name) => (
-                <button key={name} className="chip" title={`drop the ${name} column`}
-                        onClick={() => set_columns(columns.filter((c) => c !== name))}>
-                  {name}<Icon name="remove" size={10} />
+            {/* Reset and save act on the whole settings tab. */}
+            {onAct && tab === "settings" ? (
+              <span className="tab-tools">
+                <button className="reset" disabled={borrowed || !its_own}
+                        title={its_own ? "give every look back to what it inherits"
+                                          : "it says nothing of its own to give back"}
+                        onClick={() => act("none", { ids: [styled] })}>
+                  reset style
                 </button>
-              ))}
-              {offered.length ? (
-                <select value={adding} aria-label="add a column"
-                        onChange={(e) => {
-                          if (!e.target.value) return;
-                          set_columns([...columns, e.target.value]);
-                          set_adding("");
-                        }}>
-                  <option value="">+ column</option>
-                  {offered.map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-              ) : null}
-            </span>
+                {working_look ? (
+                  <button className="reset save" disabled={!save}
+                          title={save ? "keep this in the table"
+                            : taken ? `${naming} already exists`
+                            : "name it to keep it"}
+                          onClick={() => save?.()}>
+                    save definition
+                  </button>
+                ) : null}
+              </span>
+            ) : null}
           </div>
 
-          {/* **The types filter is not a list of every definition** — it is what
-              the thing you have hold of resolves through, base first and its own
-              customisations last. Which is the only reading of "the types here"
-              that tells you why a card looks the way it does. */}
-          {only === "types" ? (
-            <Chain graph={graph} id={one} />
-          ) : (
-            <table className="contents-table">
-              <colgroup>
-                {HEAD.map((h) => <col key={h.key} style={{ width: h.width }} />)}
-                {columns.map((n) => <col key={n} />)}
-              </colgroup>
-              <thead>
-                <tr>
-                  {HEAD.map((h) => <th key={h.key}>{h.label}</th>)}
-                  {columns.map((n) => <th key={n}>{n}</th>)}
-                </tr>
-              </thead>
-              <tbody onMouseLeave={() => onHover?.(null)}>
-                {shown.map((row) => (
-                  <tr key={row.id}
-                      className={picked.includes(row.id) ? "picked" : ""}
-                      onMouseEnter={() => onHover?.(row.id)}
-                      onClick={() => onPick([row.id])}>
-                    {HEAD.map((h) => (
-                      <td key={h.key} className={h.key} title={row[h.key]}>{row[h.key]}</td>
-                    ))}
-                    {columns.map((n) => (
-                      <td key={n} className="value" title={cell(row, n)}>{cell(row, n)}</td>
-                    ))}
-                  </tr>
-                ))}
-                {shown.length === 0 ? (
-                  <tr className="empty">
-                    <td colSpan={HEAD.length + columns.length}>
-                      {within === layer ? "this layer holds nothing yet"
-                        : `${children(graph, within).length ? "nothing of that sort" : "it holds nothing yet"}`}
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          )}
+          {onAct && tab === "settings" ? (
+            <Styles graph={view} id={about} styled={styled} onAct={act}
+                    working={working[about] ?? ""} />
+          ) : null}
+          {/* A definition declares fields and an instance answers them. */}
+          {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
+          {onAct && tab === "packages" ? (
+            <Packages graph={graph} held={library?.of === "packs" ? library.from : null}
+                      onPick={(from) => onHold({ of: "packs", from })} />
+          ) : null}
+          {onAct && tab === "definitions" ? (
+            <Definitions key={narrowed} seed={narrowed} graph={graph} group={context === "relation" ? "relation" : "block"}
+                         held={targets.length && !hold ? lit_def ?? held_def : held_def}
+                         onAct={act} lines={targets} target={target_name}
+                         onPick={pick_def}
+                         from={held_def ?? (context === "relation" ? "line" : "block")} />
+          ) : null}
+          {onAct && tab === "usages" ? (
+            <Usages graph={graph} group={context === "relation" ? "relation" : "block"}
+                    scope={scope} onScope={set_scope}
+                    layer={layer} about={held_def}
+                    picked={picked} onPick={pick_row} onHover={onHover} onAct={act}
+                    {...(onView ? { onView: (id: Id) => onView(home_of(graph, id), id) } : {})}
+                    home={(id) => home_of(graph, id)} />
+          ) : null}
+
+          {tab === "contents" && view.defs[about] ? (
+            <p className="empty">pick an instance to see its contents</p>
+          ) : tab === "contents" ? (
+            <Table
+              columns={[...HEAD, ...columns.map((n) => ({ key: `@${n}`, label: n }))]}
+              chips={[scope_chips(scope, set_scope), chips]} tools={tools} acts="5rem"
+              picked={picked} onPick={pick_row} onHover={onHover}
+              empty={deep ? "this workspace holds nothing yet"
+                : within === layer ? "this layer holds nothing yet"
+                : children(graph, within).length ? "nothing of that sort"
+                : "it holds nothing yet"}
+              rows={shown.map((row) => {
+                const home = home_of(graph, row.id);
+                const block = graph.blocks[row.id];
+                return {
+                  id: row.id,
+                  titles: Object.fromEntries([...HEAD.map((h) => [h.key, cell(row, h.key)]),
+                                              ...columns.map((n) => [`@${n}`, cell(row, n)])]),
+                  cells: {
+                    kind: row.kind, what: row.what, type: row.type,
+                    /** A block is renamed in its row; a line is named by its type. */
+                    name: onAct && block ? (
+                      <Entry value={block.name ?? ""} label={`rename ${row.name}`}
+                             placeholder={row.name} blank
+                             onCommit={(to) => act("rename", { id: row.id, name: to })} />
+                    ) : row.name,
+                    ...Object.fromEntries(columns.map((n) => [`@${n}`,
+                      onAct && block ? (
+                        <Entry value={cell(row, n)} label={`${n} of ${row.name}`} blank
+                               onCommit={(to) => act("field", { holder: row.id, name: n,
+                                                                value: to })} />
+                      ) : cell(row, n)])),
+                  },
+                  /** A view chip on the picked row, only when it lives elsewhere. */
+                  actions: onView && picked.includes(row.id) && home !== layer ? (
+                    <button className="chip" title="open the layer this is in"
+                            onClick={(e) => { e.stopPropagation(); onView(home, row.id); }}>
+                      view
+                    </button>
+                  ) : null,
+                  ...(onAct ? { onDrop: () => act("delete", { ids: [row.id] }),
+                                drop: `delete ${row.name}` } : {}),
+                };
+              })} />
+          ) : null}
         </div>
       ) : null}
     </section>

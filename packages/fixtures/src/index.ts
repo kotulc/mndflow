@@ -1,45 +1,39 @@
-/** Sample data, as **logs** rather than graphs.
- *
- *  Folding one is what exercises the engine, so the same files feed the CLI,
- *  every suite and every dev harness. One set of sample data, three consumers. */
+/** Sample data, as logs rather than graphs. */
 
-import { seed } from "@mnd/defs";
-import { ROOT, type Log, type Mutation, type Step } from "@mnd/core";
+import { base_graph } from "@mnd/defs";
+import { ROOT, type Dir, type Log, type Mutation, type Step } from "@mnd/core";
 
 let n = 0;
 const step = (action: string, mutations: Mutation[]): Step =>
   ({ id: `step_${String(++n).padStart(4, "0")}`, action, at: n, status: "applied", mutations });
 
-/** `num` is fixed at creation and is what the explorer reads its order from, so
- *  a fixture counts per parent exactly as the create action does. */
+/** Orders counted per parent, as the create action counts them. */
 let counts: Record<string, number> = {};
-const block = (id: string, parent: string | null, label: string, type?: string): Mutation => {
+const block = (id: string, parent: string | null, name: string, type?: string): Mutation => {
   const key = parent ?? "";
   counts[key] = (counts[key] ?? 0) + 1;
-  return { op: "add_block", block: { id, parent, label, type, num: counts[key] } };
+  return { op: "add_block", block: { id, parent, name, type, order: counts[key] } };
 };
 
 const start = () => { n = 0; counts = {}; };
 
-const link = (id: string, from: string, to: string,
-              module: "line" | "directed" = "line"): Mutation =>
-  ({ op: "link_blocks", edge: { id, from, to, module } });
+/** A run points because `dir` says so. */
+const link = (id: string, from: string, to: string, dir?: Dir): Mutation =>
+  ({ op: "link_blocks", edge: { id, from, to, ...(dir ? { dir } : {}) } });
 
-/** The base package, through the same door as everything else. */
-const base = (): Step => step("seed", seed());
+/** The shipped floor, which every fold of a fixture starts from. */
+export const FLOOR = base_graph().defs;
 
-/** The floor and nothing else: a workspace as it opens for the first time.
- *  What the question loop starts from, and what a fresh session folds to. */
+/** Nothing but the floor: a workspace as it opens for the first time. */
 export function blank(): Log {
   start();
-  return [base()];
+  return [];
 }
 
-/** One project, three siblings, nothing else. The simplest thing that draws. */
+/** One project, three siblings, nothing else. */
 export function flat(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_ledger", ROOT, "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
     step("create", [block("block_auth", "block_ledger", "Auth", "block")]),
@@ -47,11 +41,10 @@ export function flat(): Log {
   ];
 }
 
-/** Two projects, one nested two deep, one folder. Exercises the tree. */
+/** Two projects, one nested two deep, one folder. */
 export function nested(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_shelf", ROOT, "Shelf", "folder")]),
     step("create", [block("block_ledger", "block_shelf", "Ledger", "block")]),
     step("create", [block("block_edge", "block_ledger", "Edge", "block")]),
@@ -63,19 +56,18 @@ export function nested(): Log {
   ];
 }
 
-/** A chain and a fan, with a note and a boundary. What routing is tested on. */
+/** A chain and a fan, with a note and a boundary. */
 export function related(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("create", [block("block_tank", "block_loop", "Reservoir", "block")]),
     step("create", [block("block_valve", "block_loop", "Valve", "block")]),
-    step("relate", [link("edge_a", "block_pump", "block_hx", "directed")]),
-    step("relate", [link("edge_b", "block_hx", "block_tank", "directed")]),
-    step("relate", [link("edge_c", "block_tank", "block_pump", "directed")]),
+    step("relate", [link("edge_a", "block_pump", "block_hx", "forward")]),
+    step("relate", [link("edge_b", "block_hx", "block_tank", "forward")]),
+    step("relate", [link("edge_c", "block_tank", "block_pump", "forward")]),
     step("relate", [link("edge_d", "block_valve", "block_hx")]),
     step("note", [
       block("block_note", "block_loop", "", "note"),
@@ -90,34 +82,26 @@ export function related(): Log {
   ];
 }
 
-/** Interfaces, seated and related through. What `seat` and `wall` are proven
- *  on: two ports on walls of their own, and one relationship running port to
- *  port rather than card to card. */
+/** Interfaces, seated and related through. */
 export function interfaced(): Log {
   start();
   return [
-    base(),
     step("create", [block("block_loop", ROOT, "Coolant Loop", "block")]),
     step("create", [block("block_pump", "block_loop", "Pump", "block")]),
     step("create", [block("block_hx", "block_loop", "Heat Exchanger", "block")]),
     step("interface", [
       { op: "add_block", block: { id: "port_out", parent: "block_pump",
-                                  side: "right", at: 0.5, flow: "out", num: 1 } },
+                                  side: "right", at: 0.5, flow: "out", order: 1 } },
       { op: "add_block", block: { id: "port_in", parent: "block_hx",
-                                  side: "left", at: 0.5, flow: "in", num: 1 } },
+                                  side: "left", at: 0.5, flow: "in", order: 1 } },
     ]),
-    step("relate", [link("edge_flow", "port_out", "port_in", "directed")]),
+    step("relate", [link("edge_flow", "port_out", "port_in", "forward")]),
     step("relate", [link("edge_plain", "block_pump", "block_hx")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_loop", arrangement: "grid" }]),
   ];
 }
 
-/** A grid, with a block in each row header and a flow across each lane.
- *
- *  **Swimlanes, and they cost no code of their own.** A group with an extent,
- *  a block in every cell of column 0, and the rest of each row read left to
- *  right — every one of which is an ordinary block placed by an ordinary
- *  address. What makes it a swimlane is where the blocks are. */
+/** A grid, with a block in each row header and a flow across each lane. */
 export function gridded(): Log {
   start();
   const seat = (id: string, r: number, c: number): Mutation =>
@@ -129,7 +113,6 @@ export function gridded(): Log {
     ["block_plan", "Plan"], ["block_build", "Build"],
   ];
   return [
-    base(),
     step("create", [block("block_board", ROOT, "Board", "block")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
     step("group", [
@@ -151,9 +134,9 @@ export function gridded(): Log {
       joins("block_build"), seat("block_build", 2, 2),
     ]),
     step("chain", [
-      link("edge_1", "block_draft", "block_review", "directed"),
-      link("edge_2", "block_review", "block_ship", "directed"),
-      link("edge_3", "block_plan", "block_build", "directed"),
+      link("edge_1", "block_draft", "block_review", "forward"),
+      link("edge_2", "block_review", "block_ship", "forward"),
+      link("edge_3", "block_plan", "block_build", "forward"),
     ]),
   ];
 }
@@ -170,8 +153,8 @@ export function fixture(name: string): Log {
   return make();
 }
 
-/** Sample **files**, for the seam that takes state rather than history. */
+/** Sample files, for the seam that takes state rather than history. */
 export { GRAPHS, GRAPH_NAMES, graph_file, type GraphName } from "./graphs";
 
-/** A graph as a **translator** hands one over, for the seam's contract test. */
+/** A graph as a translator hands one over, for the seam's contract test. */
 export { TIER, translated } from "./translated";

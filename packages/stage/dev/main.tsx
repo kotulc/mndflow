@@ -1,18 +1,19 @@
-/** The stage, on its own, over a fixture.
- *
- *  Same shape as the explorer's harness: it holds the state the component
- *  refuses to, and logs every action name the stage emits. */
+/** The stage, on its own, over a fixture. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { session, type Arrangement, type Id } from "@mnd/core";
+import { seed } from "@mnd/defs";
 import { fixture, NAMES } from "@mnd/fixtures";
 import { project } from "@mnd/views";
 import { Stage } from "../src/index";
 import "@mnd/theme/ramp.css";
 import "@mnd/theme/base.css";
 import "@mnd/theme/icons.css";
-import "@mnd/stage/src/scene.css";
+import "@mnd/theme/card.css";
+import "../src/flow.css";
+import "../src/routes.css";
+import "../src/groups.css";
 import "../src/stage.css";
 import "./dev.css";
 
@@ -28,7 +29,7 @@ function Harness() {
   const [said, set_said] = useState<string | null>(null);
 
   if (!held.has(name)) {
-    const made = session();
+    const made = session({ defs: seed() });
     for (const step of fixture(name)) made.adjust(step.action, step.mutations);
     held.set(name, made);
   }

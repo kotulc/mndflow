@@ -1,21 +1,20 @@
 # @mnd/views
 
-**A layer, projected.** Three view modules, each turning a graph and a layer into a **Scene** — plain data, importing nothing drawable.
+**A layer, projected.** One way to draw: a graph and a layer in, a **Scene** out — plain data, importing nothing drawable.
 
 | | |
 |---|---|
 | **Entry** | `src/index.ts` |
-| **Depends on** | `core`, `layout` |
+| **Depends on** | `core`, and React Flow's types for the node and edge shape |
 | **Proven by** | every Scene it emits is well-formed, over every layer of every fixture, and the invariants catch what they are for |
 
 ## Where it sits
 
 ```
 web · cli
-└─ render                            (the cli reaches views directly)
+└─ stage                             (the cli reaches views directly)
    └─ views   ◀
-      └─ layout
-         └─ core
+      └─ core
 ```
 
 ## Running it
@@ -29,17 +28,16 @@ npm run start -w @mnd/cli -- project related  # a Scene as text, which is the se
 
 | | Is |
 |---|---|
-| `scene.ts` | the seam: `Box`, `Route`, `Hit`, `Frame`, `Scene`, and `faults` — what every well-formed Scene satisfies |
-| `block.ts` | any planar projection: a frame, cards, boundaries, seated interfaces, routed lines |
-| `read.ts` | how a behavior layer is read — lanes, order, controls, and the three readings |
-| `table.ts` | rows and no frame; a column per field the rows carry |
-| `matrix.ts` | two axes, cells filled where a relationship runs |
-| `derive.ts` | what every module derives the same way: a block's marks, and the trail |
-| `adjust.ts` | what a positional drag is asking for — `reseat` and `rewall` |
-| `text.ts` | a Scene as characters. The second renderer, and the one that makes a notation testable with no browser |
+| `scene.ts` | the seam: `BoxNode`, `LineEdge`, `Perch`, `Frame`, `Scene` |
+| `block.ts` | the projection: a frame, cards, holders, seated interfaces, routed lines |
+| `size.ts` | the one measure: `UNIT`, and a `CELL` as a block plus its air |
+| `arrange.ts` · `bands.ts` · `pack.ts` | where everything sits: hand placement or auto-layout, bands and cells, clusters and satellites |
+| `seat.ts` · `ends.ts` · `route.ts` | where a line meets a border, which way it sets off, and where it runs |
+| `look.ts` · `derive.ts` | what a card wears, and its marks and trail |
+| `svg.ts` · `text.ts` | a Scene drawn without a browser |
 
-**`faults` is the contract.** This package proves everything it emits passes it; `render` proves it draws anything that does. Neither imports the other.
+**A producer proves its Scene well-formed; a consumer proves it draws anything that is.** Neither imports the other.
 
 ## The detail
 
-`docs/views.md`, and one per module: `block.md`, `table.md`, `matrix.md`.
+`docs/views.md`, and the projection itself in `docs/block.md`.

@@ -31,7 +31,7 @@ npm run typecheck -w @mnd/tray
 |---|---|
 | `Tray.tsx` | the bar and the table. Two sizes, shut and open |
 | `rows.ts` | `rows_of` — what the layer holds, read straight from the graph. Headless, so the CLI could print it |
-| `tray.css` | the look: a quarter of the stage when open, columns given widths and long text cut |
+| `tray.css` · `fields.css` · `preview.css` | the look: the shell, tabs and tables; the label-and-answer rows; the card and run previews and chips. Loaded in that order |
 
 ## The rules it lives by
 

@@ -7,102 +7,176 @@
       "sysml.part": {
         "id": "sysml.part",
         "home": "ws",
+        "from": "sysml",
         "group": "block",
         "name": "part",
         "body": "A part property: a block owned by another block.",
-        "extends": "structure",
-        "names": { "sysml": "«part»" },
-        "components": { "card": { "layout": "type", "shape": "rect" } }
+        "extends": "block",
+        "names": {
+          "sysml": "«part»"
+        },
+        "components": {
+          "card": {}
+        }
       },
       "sysml.block": {
         "id": "sysml.block",
         "home": "ws",
+        "from": "sysml",
         "group": "block",
         "name": "block",
         "body": "A SysML block: the unit of structure.",
-        "extends": "structure",
-        "names": { "sysml": "«block»" },
-        "components": { "card": { "layout": "type", "shape": "rect" } }
+        "extends": "block",
+        "names": {
+          "sysml": "«block»"
+        },
+        "components": {
+          "card": {}
+        }
       },
       "sysml.port": {
         "id": "sysml.port",
         "home": "ws",
+        "from": "sysml",
         "group": "block",
         "name": "port",
         "body": "A proxy or full port, seated on the edge of a block.",
         "extends": "interface",
-        "names": { "sysml": "«port»" },
-        "components": { "card": { "layout": "name", "label": "none", "shape": "rect" } }
+        "names": {
+          "sysml": "«port»"
+        },
+        "components": {
+          "card": {
+            "name": "none"
+          }
+        }
       },
       "sysml.activity": {
         "id": "sysml.activity",
         "home": "ws",
+        "from": "sysml",
         "group": "block",
         "name": "activity",
         "body": "An activity: what happens over a structure.",
-        "extends": "behavior",
-        "names": { "sysml": "«activity»" },
-        "components": { "card": { "layout": "type", "shape": "round", "word": "do" } }
+        "extends": "block",
+        "names": {
+          "sysml": "«activity»"
+        },
+        "components": {
+          "card": {}
+        }
       },
       "sysml.requirement": {
         "id": "sysml.requirement",
         "home": "ws",
+        "from": "sysml",
         "group": "block",
         "name": "requirement",
         "body": "A requirement: an id and a shall statement.",
-        "extends": "structure",
-        "names": { "sysml": "«requirement»" },
+        "extends": "block",
+        "names": {
+          "sysml": "«requirement»"
+        },
         "fields": [
-          { "name": "id", "form": "text" },
-          { "name": "text", "form": "text" }
+          {
+            "name": "id",
+            "form": "text"
+          },
+          {
+            "name": "text",
+            "form": "text"
+          }
         ],
         "components": {
-          "card": { "layout": "compartments", "shape": "rect", "shows": ["id", "text"] },
-          "constraints": { "required": ["id", "text"] }
+          "card": {
+            "shows": [
+              "id",
+              "text"
+            ]
+          },
+          "rules": {
+            "required": [
+              "id",
+              "text"
+            ]
+          }
         }
       },
       "sysml.satisfy": {
         "id": "sysml.satisfy",
         "home": "ws",
+        "from": "sysml",
         "group": "relation",
         "name": "satisfy",
         "body": "A part satisfies a requirement.",
-        "extends": "directed",
-        "names": { "sysml": "«satisfy»" },
+        "extends": "line",
+        "names": {
+          "sysml": "«satisfy»"
+        },
         "components": {
-          "rules": { "ends": { "to": ["sysml.requirement"] } }
+          "rules": {
+            "ends": {
+              "to": [
+                "sysml.requirement"
+              ]
+            }
+          }
         }
       },
       "sysml.itemflow": {
         "id": "sysml.itemflow",
         "home": "ws",
+        "from": "sysml",
         "group": "relation",
         "name": "item flow",
         "body": "What travels along a connector.",
-        "extends": "directed",
-        "names": { "sysml": "«itemFlow»" },
+        "extends": "line",
+        "names": {
+          "sysml": "«itemFlow»"
+        },
         "components": {
-          "rules": { "ends": { "fromFlow": "out", "toFlow": "in" } }
+          "rules": {
+            "ends": {
+              "fromFlow": "out",
+              "toFlow": "in"
+            }
+          }
         }
       },
       "sysml.ibd": {
         "id": "sysml.ibd",
         "home": "ws",
+        "from": "sysml",
         "group": "view",
         "name": "internal block",
         "body": "An internal block diagram: parts, ports and connectors.",
-        "components": { "view": { "module": "block" } }
+        "components": {
+          "view": {
+            "module": "block"
+          }
+        }
       },
       "sysml.act": {
         "id": "sysml.act",
         "home": "ws",
+        "from": "sysml",
         "group": "view",
         "name": "activity diagram",
-        "components": { "view": { "module": "block", "reading": "activity" } }
+        "components": {
+          "view": {
+            "module": "block",
+            "reading": "activity"
+          }
+        }
       }
     },
     "blocks": {
-      "ws": { "id": "ws", "parent": null, "label": "workspace", "type": "folder" }
+      "ws": {
+        "id": "ws",
+        "parent": null,
+        "type": "folder",
+        "name": "workspace"
+      }
     },
     "edges": {}
   }

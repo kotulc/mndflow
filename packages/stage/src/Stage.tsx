@@ -1,74 +1,56 @@
-/** The working area, and the one thing that never yields.
- *
- *  It hosts one view at a time and turns a gesture into an action name. Like
- *  the explorer it is a pure function of its props: it holds nothing, and every
- *  gesture leaves as a name somebody else runs.
- *
- *  The left button works what is already there; the right button offers what
- *  can be made here. A relationship is the one thing made with the left button,
- *  because it is drawn between two cards that already exist and React Flow will
- *  only start a connection on that button. */
+/** The working area: turns canvas gestures into action names. */
 
 import { useEffect, useState } from "react";
 import type { Act, Args, Graph, Spot } from "@mnd/core";
-import { is_grid, is_header } from "@mnd/core";
+import { is_grid, is_header, is_interface } from "@mnd/core";
 
-/** One named entry a menu draws: an action, optionally with an argument filled
- *  and a word of its own. **Repeated here rather than imported** — the stage
- *  does not know the explorer exists, and this is the shape they agree on. */
+/** One named menu entry; the shape the explorer's menu agrees on. */
 export type Entry = { name: string; label?: string; args?: Args };
-import { FlowView, type Adjust, type Gesture } from "./Flow";
+import { FlowView, type Adjust, type Gesture, type Landing } from "./Flow";
+import { moves_of, type Move } from "./moves";
 import { Icon } from "@mnd/theme";
 import { box_of, clear_of, holds, swept_cells, BLOCK, CELL, type Scene } from "@mnd/views";
 
-export type { Adjust };
+export type { Adjust, Landing, Move };
 
 export type StageProps = {
   scene: Scene;
   graph: Graph;
   picked: readonly string[];
   onAct: Act;
-  onAdjust?: (adjust: Adjust) => void;
+  /** The writes one canvas adjustment comes to, for the host to run as one step. */
+  onAdjust?: (moves: readonly Move[]) => void;
   onPick: (ids: string[]) => void;
-  /** Which cells are picked. **Beside the ids, never among them** — a cell has
-   *  no id, so it is named by the group it is in and where. */
+  /** Which cells are picked, beside the ids. */
   cells?: readonly Spot[];
   onPickCells?: (cells: readonly Spot[]) => void;
-  /** A row dropped from the tree onto the drawing. */
-  onDrop?: (id: string, at: { x: number; y: number }) => void;
-  /** The offered-action list, where the host has one. **Given rather than
-   *  built**: the canvas and the tree offer the same actions, so the same menu
-   *  serves both and neither package owns it.
-   *
-   *  `at` is where on the page to open it and `spot` is where on the drawing it
-   *  was opened — two answers because they are two questions, and an action
-   *  that puts something somewhere needs the second. */
+  /** A row dropped from the tree onto the drawing — a block, or a definition out of the vocabulary. */
+  onDrop?: (id: string, at: { x: number; y: number }, land: Landing) => void;
+  /** The offered-action list, where the host has one. */
   menu?: (at: { x: number; y: number }, on: string | null, shut: () => void,
           spot: { x: number; y: number }, only: readonly (string | Entry)[] | undefined,
-          /** What the gesture already knew, for actions that need more than an
-           *  id. A right-click on a relationship's end knows which end and
-           *  whose border — nothing downstream could work either out. */
+          /** What the gesture already knew, for actions that need more than an id. */
           given?: Record<string, unknown>) => React.ReactNode;
   /** What the app is saying. One strip, over the drawing. */
   said?: string | null;
   onSaid?: () => void;
   /** Whether the backdrop rules the canvas into cells. */
   lattice?: boolean;
-  /** Which way a right drag draws a line. **The rail picked it and the stage
-   *  passes it on** — what a new relationship is is the model's, so it goes
-   *  through the action like everything else. */
+  /** Whether the open layer's frame is drawn. */
+  frame?: boolean;
+  /** What a right drag draws: which module, which way it points, and which pinned definition it
+   *  names. */
   module?: string;
+  dir?: string;
+  type?: string;
+  /** What another surface is pointing at, drawn in the hover look. */
+  lit?: readonly string[];
 };
 
-/** What has no inside to open. A boundary is its members' bounds and a note is
- *  a remark; neither is somewhere to go. */
+/** What has no inside to open. */
 const INERT = ["group", "grid", "note"];
 
-/** What a seated block offers for heading a line.
- *
- *  **Promote and demote, because position says which line.** A block in row 0
- *  heads its column, the corner heads both, anything else heads its row — so
- *  there is nothing here to pick between. */
+/** What a seated block offers for heading a line. */
 function header_offers(id: string, graph: Graph): Entry[] {
   const b = graph.blocks[id];
   if (!b?.cell || !b.group || !is_grid(graph, b.group)) return [];
@@ -79,49 +61,104 @@ function header_offers(id: string, graph: Graph): Entry[] {
 
 /** What a card's menu lists besides the shared box actions. */
 function box_offers(id: string, graph: Graph): readonly (string | Entry)[] {
-  const base: (string | Entry)[] = ["rename", "open", "interface", "relate", "note"];
-  return [...base, ...header_offers(id, graph), "leave", "delete"];
+  const base: (string | Entry)[] = [
+    { name: "rename", label: "rename block" },
+    "open", "interface", "note", { name: "save_def", label: "save definition" }];
+  return [...base, ...header_offers(id, graph),
+          "leave", { name: "delete", label: "delete block" }];
 }
 
-/** What the right button offers for this gesture — not everything the registry
- *  could act on. A card's border is still the card; a group's rim is the band. */
+/** What a run offers about its direction. */
+function route_offers(id: string, graph: Graph): Entry[] {
+  const dir = graph.edges[id]?.dir ?? "none";
+  if (dir === "none") {
+    return [{ name: "direct", label: "add direction", args: { dir: "forward" } }];
+  }
+  return [
+    ...(dir === "both" ? [] : [{ name: "flip", label: "flip direction" }]),
+    { name: "direct", label: "remove direction", args: { dir: "none" } },
+  ];
+}
+
+/** The ends of a run that are not interfaces yet, and so may be promoted. */
+function bare_ends(id: string, graph: Graph): ("from" | "to")[] {
+  const e = graph.edges[id];
+  if (!e) return [];
+  return (["from", "to"] as const).filter((end) => {
+    const b = graph.blocks[e[end]];
+    return !!b && !is_interface(b);
+  });
+}
+
+/** Promoting what is bare: both ends, one, or nothing when both are interfaces already. */
+function promote_offers(id: string, graph: Graph, here?: "from" | "to"): Entry[] {
+  const bare = bare_ends(id, graph);
+  const out: Entry[] = [];
+  if (here && bare.includes(here)) {
+    out.push({ name: "interface", label: "promote this end", args: { edge: id, end: here } });
+  }
+  if (bare.length === 2) {
+    out.push({ name: "interface", label: "promote both ends", args: { edge: id, end: "both" } });
+  } else if (bare.length === 1 && !here) {
+    out.push({ name: "interface", label: "promote end", args: { edge: id, end: bare[0]! } });
+  }
+  return out;
+}
+
+/** A run's menu. */
+function wire_offers(id: string, graph: Graph): readonly (string | Entry)[] {
+  return [{ name: "rename", label: "rename relation" },
+          ...route_offers(id, graph),
+          ...promote_offers(id, graph),
+          { name: "delete", label: "delete relation" }];
+}
+
+/** What the right button offers for this gesture — not everything the registry could act on. */
 function list_for(g: Gesture, scene: Scene, graph: Graph,
                   offers: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>>)
     : readonly (string | Entry)[] | undefined {
   if (g.kind === "brim" && g.on) {
     const n = scene.nodes.find((x) => x.id === g.on);
-    if (holds(n)) return offers.band;
+    /** Fill is a grid's: a boundary has no cells to fill. */
+    if (holds(n)) {
+      return n?.type === "grid" ? offers.band
+        : offers.band?.filter((e) => (typeof e === "string" ? e : e.name) !== "fill");
+    }
     return box_offers(g.on, graph);
   }
   if (g.kind === "box" && g.on) return box_offers(g.on, graph);
+  /** A run and its name are one subject. */
+  if ((g.kind === "route" || g.kind === "name") && g.on && graph.edges[g.on]) {
+    return wire_offers(g.on, graph);
+  }
+  /** A grip knows which end it is. */
+  if (g.kind === "anchor" && g.on && graph.edges[g.on]) {
+    return [...promote_offers(g.on, graph, g.given?.["end"] as "from" | "to"),
+            { name: "rename", label: "rename relation" },
+            { name: "delete", label: "delete relation" }];
+  }
   return offers[g.kind];
 }
 
 export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, onPickCells, onDrop,
-                       menu, said, onSaid, lattice, module }: StageProps) {
-  /** The name being typed on the drawing, as the thing it names. **Held here
-   *  because renaming is an action** — the canvas draws the field and says
-   *  what was typed; what that means is settled in the one place every other
-   *  gesture is. */
+                       menu, said, onSaid, lattice, frame, module, dir, type, lit = [] }: StageProps) {
+  /** What a right drag or a chain draws, as the rail set it. */
+  const drawing = { ...(module ? { module } : {}), dir: dir ?? "none",
+                    ...(type ? { type } : {}) };
+  /** The name being typed on the drawing, as the thing it names. */
   const [naming, set_naming] = useState<string | null>(null);
-  /** Nothing typed survives going somewhere else: the card it was open on is
-   *  not on this layer. */
+  /** Nothing typed survives a layer change. */
   useEffect(() => set_naming(null), [scene.layer]);
   const [at, set_at] = useState<
     { x: number; y: number; on: string | null; spot: { x: number; y: number };
       only?: readonly (string | Entry)[]; given?: Record<string, unknown> } | null>(null);
-  /** The shell owns the global keys; a view module owns the rest.
-   *
-   *  **Shorter than it was.** Selection, the sweep and the multi-select
-   *  modifier are the canvas's now; what is left is the handful that mean
-   *  something to the *log* rather than to the drawing. */
+  /** The global keys; a field being typed in answers for itself. */
   useEffect(() => {
     const on_key = (e: KeyboardEvent) => {
-      /** **A field being typed in answers for itself.** A name is typed in
-       *  place now, which is a span rather than an input — read as the canvas's
-       *  own keys, Delete deleted the card being renamed. */
+      /** A field being typed in answers for itself. */
       const el = e.target as HTMLElement | null;
-      const typing = el?.tagName === "INPUT" || el?.isContentEditable === true;
+      const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(el?.tagName ?? "")
+        || el?.isContentEditable === true;
       if (typing) return;
       const one = picked.length === 1 ? picked[0]! : null;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
@@ -132,28 +169,19 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
         e.preventDefault();
         onAct("redo");
       }
-      /** **Escape closes the nearest thing.** An offered list is open in front
-       *  of the drawing, so it goes first — clearing the selection under it is
-       *  how a menu raised on four cards left one card grouped. */
+      /** Escape closes the nearest thing. */
       else if (e.key === "Escape") {
         if (at) { set_at(null); return; }
         onPick([]);
         onSaid?.();
       }
-      /** **Enter goes in.** Descending had one way in and it was a double
-       *  click, which is the same gesture as picking a card twice quickly —
-       *  so the keyboard says it too, and so does the toolbar on the card. */
-      /** A boundary has no inside, and neither has a note — so there is
-       *  nothing for either to go into. */
+      /** Enter opens the one picked card, unless it has no inside. */
       else if (e.key === "Enter" && one && !scene.edges.some((r) => r.id === one)
                && !INERT.includes(scene.nodes.find((n) => n.id === one)?.type ?? "")) {
         onAct("open", { id: one });
       }
       else if (e.key === "F2" && one) set_naming(one);
-      /** **Everything picked, in one step.** Delete asked about one thing and
-       *  did nothing to a sweep of four, which is the one gesture where doing
-       *  nothing looks exactly like the app having missed the key. A
-       *  relationship is a thing, so it goes the same way. */
+      /** Everything picked, in one step. */
       else if ((e.key === "Delete" || e.key === "Backspace") && picked.length) {
         onAct("delete", { ids: [...picked] });
       }
@@ -163,7 +191,7 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       }
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a") {
         e.preventDefault();
-        onPick(scene.nodes.map((n) => n.id));
+        onPick(scene.nodes.filter((n) => n.selectable !== false).map((n) => n.id));
       }
       else return;
     };
@@ -171,29 +199,20 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
     return () => window.removeEventListener("keydown", on_key);
   }, [scene, picked, at, onAct, onPick, onSaid]);
 
-  /** **What the right button offers, per thing.** Agreed rather than derived:
-   *  the registry says what an action can act on, which is a wider question
-   *  than what belongs on a card's menu. Empty ground has no list — right there
-   *  makes a block, which is one gesture doing one thing. */
+  /** What the right button offers, per thing. */
   const OFFERS: Partial<Record<Gesture["kind"], readonly (string | Entry)[]>> = {
-    name: ["rename", "delete"],
-    /** **A note is a remark, not a block.** There is nothing inside it to open
-     *  and no wall to set an interface into; what is left is what it says and
-     *  whether it stays. */
-    note: ["rename", "relate", "delete"],
-    box: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
-    seat: ["rename", "open", "interface", "relate", "note", "delete"],
-    /** **A group and a grid write their name on the frame** when told to. */
-    band: ["rename", "label", "fill",
-           { name: "chain", args: module ? { module } : {} }, "delete"],
-    /** **A cell is an address, not a thing**, so what it offers is what can be
-     *  done to the lattice at that address and nothing about a block. Insert
-     *  and remove are two entries each rather than one entry and a second
-     *  panel: which way is the whole of what you meant.
-     *
-     *  **The whole grid is offered here too**, named so, because a grid's
-     *  inside *is* its cells — the rim is a few pixels of border, so a list
-     *  reachable only from there is a list nobody finds. */
+    name: [{ name: "rename", label: "rename block" },
+           { name: "delete", label: "delete block" }],
+    /** A note is a remark, not a block. */
+    note: [{ name: "rename", label: "rename note" }, { name: "save_def", label: "save definition" },
+           { name: "delete", label: "delete note" }],
+    box: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
+    seat: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "delete"],
+    /** A group and a grid write their name on the frame when told to. */
+    band: [{ name: "rename", label: "rename group" }, "fill",
+           { name: "chain", args: drawing }, { name: "save_def", label: "save definition" },
+           { name: "delete", label: "delete group" }],
+    /** A cell offers what can be done to the lattice there. */
     cell: [
       "merge",
       { name: "insert", label: "insert row", args: { way: "row" } },
@@ -201,88 +220,46 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
       { name: "remove", label: "remove row", args: { way: "row" } },
       { name: "remove", label: "remove column", args: { way: "col" } },
       { name: "fill", label: "fill grid" },
-      { name: "chain", label: "chain grid", args: module ? { module } : {} },
+      { name: "chain", label: "chain grid", args: drawing },
       { name: "transpose", label: "transpose grid" },
     ],
-    route: ["rename", "note", "delete"],
-    anchor: ["rename", "delete"],
-    /** **The room's wall is a border like a card's**, but an interface is chosen
-     *  from the menu — a right click here is the offered list, not a shortcut. */
-    frame: ["rename", "open", "interface", "relate", "note", "leave", "delete"],
+    /** Replaced per run by `wire_offers`, and per grip by `promote_offers`. */
+    route: ["rename", "delete"],
+    /** The room's wall offers what a card's border does. */
+    frame: ["rename", "open", "interface", "note", { name: "save_def", label: "save definition" }, "leave", "delete"],
   };
 
-  /** **What several things offer is not what one thing offers.** Rename, open
-   *  and relate each name a single thing; asked of four they have no answer, so
-   *  a card's list against a sweep came out empty. What is left is what a
-   *  handful of blocks can be told to do together. */
+  /** What a selection of several offers. */
   const MANY: readonly (string | Entry)[] = ["group", "leave", "delete"];
 
   const gesture = (g: Gesture) => {
-    /** **The lattice picks its own cells** — a cell is not a node, so the
-     *  library has no gesture for one and the sweep is read where it is drawn.
-     *  What is left here is letting them go when something else is picked. */
+    /** Left clicks on cells are the lattice's own. */
     if (g.button === "left" && g.kind === "cell") return;
     if (g.button === "left" && g.count === 1) onPickCells?.([]);
     if (g.button === "left") {
       if (g.count === 2) {
-        /** Two clicks navigate: into a card, or back out of the layer. The one
-         *  name drawn here is the frame's, and a name is renamed where it is
-         *  read — so renaming a block is done from inside it. */
+        /** Two clicks rename a name or a note, open a card, reveal a reference, or leave. */
         if (g.on && g.kind === "title") set_naming(g.on);
-        /** **A name is renamed where it is read**, and the room's name was the
-         *  only one that ever was. Every other name — a card's, a boundary's,
-         *  a chip's inside a container — answers the same two clicks, so there
-         *  is one gesture to learn rather than one per surface. */
         else if (g.on && g.kind === "name") set_naming(g.on);
-        /** **An interface is a block, so it opens like one.** It is seated
-         *  rather than placed, which is a fact about where it is drawn and not
-         *  about what it is — and opened from the inside it is the one layer
-         *  that shows the wall it is set into. */
-        /** **A card's border opens it too.** By the time a container holds
-         *  anything its face is nearly all picture and name, and both of those
-         *  are names now — so the one part of a card that is always just card
-         *  is its border, and two clicks on a border never meant anything
-         *  else. */
-        /** **A reference is opened where it lives, not where it stands.** It
-         *  holds nothing, so descending into one arrived in an empty layer
-         *  named after the block it stands for — or called *missing*, once
-         *  that block was gone. Two clicks on a stand-in mean *show me the
-         *  real one*, which is `reveal`. */
         else if (g.on && (g.kind === "box" || g.kind === "seat" || g.kind === "brim")) {
           const stands = scene.nodes.find((n) => n.id === g.on)
             ?.data.marks.includes("reference");
           onAct(stands ? "reveal" : "open", { id: g.on });
         }
-        /** **A note is its text.** It has no inside to descend into, so the two
-         *  clicks that go into a card edit what this one says instead — the
-         *  same gesture as every other name, on the one card that is nothing
-         *  but a name. */
         else if (g.on && g.kind === "note") set_naming(g.on);
-        /** **The room's edge is the band you leave by.** A rim is drawn as part
-         *  of the frame, so two clicks on one reached a node and stopped there
-         *  — aiming at the edge of the layer to come back out did nothing at
-         *  all, which is the one place you would aim. */
         else if (g.kind === "frame") onAct("open");
         else if (!g.on) onAct("open");
       }
-      /** A single left click is a selection, and the canvas reports that on its
-       *  own — through `onPick`, which is the one place it lands. */
+      /** A single left click is a selection, reported by the canvas. */
       return;
     }
-    /** The right button offers what can be done here. **A menu where the host
-     *  gave one**, and the prompt it replaces where it did not — so the canvas
-     *  works either way and neither answer is built in. */
-    /** **Empty ground makes a block.** There is nothing there to offer actions
-     *  about, and a menu whose only useful entry is *create* is a click in the
-     *  way of the thing you came to do. */
+    /** Right-click on empty ground makes a block; elsewhere it opens the menu. */
     if (!g.on || g.kind === "empty") {
-      const label = prompt("name it");
-      if (label !== null) onAct("create", { label, spot: made_at(scene, g.at) });
+      const name = prompt("name it");
+      if (name !== null) onAct("create", { name, spot: made_at(scene, g.at) });
       return;
     }
-    /** **A right-click inside the picked cells is about them.** It is about
-     *  the one cell only when that cell was not already picked — otherwise
-     *  merging a swept range acted on whichever cell the pointer was over. */
+    /** A right-click inside the picked cells is about them. */
     if (g.kind === "cell" && g.given) {
       const at = g.given as Spot;
       const among = cells?.some((c) => c.group === at.group && c.r === at.r && c.c === at.c);
@@ -300,40 +277,27 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   return (
     <section className="stage">
       <Crumbs trail={scene.trail} onAct={onAct} />
+      {lit.length ? <style>{lit_rules(lit)}</style> : null}
       <FlowView
         scene={scene}
         picked={picked}
         cells={cells}
         onPickCells={onPickCells}
         lattice={lattice}
+        {...(frame === undefined ? {} : { frame })}
         naming={naming}
         onNamed={(label) => {
           const id = naming;
           set_naming(null);
-          if (id && label !== null) onAct("rename", { id, label });
+          if (id && label !== null) onAct("rename", { id, name: label });
         }}
         onGesture={gesture}
         onPick={onPick}
         onDrop={onDrop}
-        onRelate={(from, to, walls) =>
-          onAct("relate", { from, to, ...walls, ...(module ? { module } : {}) })}
-        /** A right drag across empty ground draws a **group**, sized in cells.
-         *
-         *  **Sketch first, impose order after**: whatever loose cards the sweep
-         *  covered are seated into the cell each overlaps, which is the fastest
-         *  path there is from a sketch to a structure. */
+        onRelate={(from, to, walls) => onAct("relate", { from, to, ...walls, ...drawing })}
+        /** A right drag across empty ground draws a grid, seating what it covered. */
         onSweep={(box) => onAct("group", swept(scene, box))}
-        onAdjust={(adjust) => {
-          /** Dropping one card on another is a **move**, which is sayable;
-           *  dropping it anywhere else is a **place**, which is not. Landing in
-           *  a boundary is neither — it is joining one, and the app settles
-           *  that against what the block already belongs to. */
-          if (adjust.kind === "move" && adjust.over && adjust.over !== adjust.on) {
-            onAct("move", { id: adjust.on, parent: adjust.over });
-            return;
-          }
-          onAdjust?.(adjust);
-        }}
+        onAdjust={(adjust) => onAdjust?.(moves_of(graph, scene, adjust))}
         said={said ? (
           <>
             <span>{said}</span>
@@ -346,19 +310,9 @@ export function Stage({ scene, graph, picked, cells, onAct, onAdjust, onPick, on
   );
 }
 
-/** A right drag across empty ground, as the grid it draws.
- *
- *  **Sized in cells** — the sweep says how big a region, and how many rows and
- *  columns that is is a question about cell sizes. **And it captures**: every
- *  loose card the region covers is seated into the cell it overlaps most, and
- *  two landing in one resolve to the nearest free cell, so a sketch becomes a
- *  structure in one gesture. */
+/** A sweep as the grid it draws: covered cards seat into the nearest free cell. */
 function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }) {
-  /** **The cells it covered, not the rectangle it drew.** The lattice is
-   *  already on the canvas and a group is a region of it, so a sweep activates
-   *  whole cells and the group lands exactly on the lines you swept over. */
-  /** **A corner where you drew it, and a whole number of cells to cover it.**
-   *  A grid is exactly its cells, so its corner is its first cell's. */
+  /** A corner where it was drawn, and whole cells to cover it. */
   const { x, y, rows, cols } = swept_cells(box);
   const from = { x, y };
   const taken = new Set<string>();
@@ -381,8 +335,7 @@ function swept(scene: Scene, box: { x: number; y: number; w: number; h: number }
   return { rows, cols, spot: { x, y }, members: caught.map((n) => n.id), seats };
 }
 
-/** The cell nearest the one asked for that nobody has taken. **A cell holds one
- *  block**, so two cards over the same one cannot both have it. */
+/** The cell nearest the one asked for that nobody has taken. */
 function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
                    want: { r: number; c: number }) {
   const held = (r: number, c: number) =>
@@ -399,15 +352,18 @@ function free_cell(taken: ReadonlySet<string>, rows: number, cols: number,
   return best;
 }
 
-/** Where a card made here goes.
- *
- *  **Centred on the pointer and clear of what is already drawn.** A block is
- *  placed by its corner, so one made just clear of a neighbour still landed on
- *  top of it, and two made in the same place stacked exactly. A boundary is not
- *  something to avoid — a new card inside one is a card inside one. */
+/** Where a card made here goes. */
 function made_at(scene: Scene, at: { x: number; y: number }) {
   const taken = scene.nodes.filter((n) => !holds(n) && !n.data.on).map(box_of);
   return clear_of(taken, { x: at.x - BLOCK.w / 2, y: at.y - BLOCK.h / 2 }, BLOCK);
+}
+
+/** The hover look, as a style rule so lighting never rebuilds the arrays. */
+function lit_rules(ids: readonly string[]): string {
+  const at = (kind: string, inner: string) =>
+    ids.map((id) => `.react-flow [data-testid="rf__${kind}-${CSS.escape(id)}"]${inner}`).join(",");
+  return [`${at("node", "")} { outline: 2px solid var(--accent); outline-offset: 2px; }`,
+          `${at("edge", " path")} { stroke: var(--accent) !important; opacity: 1; }`].join("\n");
 }
 
 function Crumbs({ trail, onAct }: { trail: Scene["trail"]; onAct: Act }) {

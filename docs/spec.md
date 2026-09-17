@@ -72,14 +72,13 @@ project(graph: Graph, layer: Id | null, config?: Config): Scene
 
 ```
 Scene {
-  layer:  Id | null
-  frame:  { x, y, w, h, label }      <- absent at the root, which has no outside
-  boxes:  [{ id, x, y, w, h, label, def, on, link, marks }]
-  routes: [{ id, from, to, points, module, dir, label }]
-  slots:  ["layer" | "display" | "relations"]
-  hits:   [{ on, region, kind }]
-  bounds: { w, h }
-  trail:  [{ id, label }]
+  layer:   Id | null
+  frame:   { x, y, w, h, label, role, side, ports, seats }   <- absent at the root, which has no outside
+  nodes:   [{ id, type, position, width, height, data }]     <- card, note, group, grid, seat
+  edges:   [{ id, source, target, handles, label, data: { module, dir, wire } }]
+  perches: [{ edge, end, on, side, at }]                     <- where an end meets a border
+  slots:   ["layer" | "display" | "relations"]
+  trail:   [{ id, label }]
 }
 ```
 
@@ -100,21 +99,23 @@ Scene {
 
 **An action name is the fourth thing, and it travels one way.** Every surface emits one and none runs one — the app does. **A gesture returns a name, the app runs it, it returns mutations, the app appends them.** That loop is the whole product, and if it turns out to be interesting a seam is in the wrong place.
 
+**A canvas adjustment is the one gesture that comes to several writes.** The stage works out what a drag or a drop means — which actions, which positional changes — and hands the list over; the app runs it inside `session.batch`, so **one gesture is one step** and undoes as one.
+
 ## Ports
 
 **Declared in core, bound by an app, implemented nowhere else.** The detail is core's `ports.md`; what crosses is the set and who answers it.
 
 | | Is | `web` | `cli` |
 |---|---|---|---|
-| `storage` | where the log and the session live between runs | session storage | a file |
+| `storage` | where the log lives between runs | IndexedDB, each body stored once by hash; read before the app mounts | a file |
 | `files` | anything leaving or entering — export, import, a rendered drawing | download / picker | `fs` |
-| `net` | fetching something from outside the workspace | `fetch` | `fetch` |
-| `score` | text similarity, for ranking | the scorer, lazily | absent |
+| `net` | fetching something from outside the workspace | `fetch` | `fetch`, or a local path |
+| `score` | text similarity, for ranking | the scorer, lazily, handed to the terminal | absent |
 
 - **Nothing but a port may assume where the workspace lives.**
 - **An unbound port is a capability the app does without**, never a feature reimplemented. With no `score`, ranking falls back to substring and everything else still works.
 - **A new capability is a port or it is a package**, never a direct reach for a browser API from somewhere that is not an app.
-- **Ports stay four.** A fifth is a claim that a host has to answer something new, which is nearly always a package instead. **`storage` and `files` are declared and bound; `net` and `score` are neither.**
+- **Ports stay four.** A fifth is a claim that a host has to answer something new, which is nearly always a package instead. **`storage`, `files` and `net` are bound through the session; `score` reaches the terminal directly**, since ranking is the terminal's alone.
 
 
 ## The surfaces
@@ -131,7 +132,7 @@ Scene {
 ## Naming, and one channel
 
 - **A name is written the way it was typed** and shown the same way everywhere. **Unique among siblings** — where something sits is what makes it unique.
-- **An unnamed block falls back to its role and its number** — `block 1`, `interface 2`. **A note is exempt**: a note *is* its text.
+- **An unnamed element shows its handle** — `B1`, `I2`, `L3` — a serial minted once per kind and never rewritten. **A note is exempt**: a note *is* its text.
 - **A block that says nothing and stands for exactly one thing is named after what it stands for**, with its definition's verb in front, and **drawn dimmed** — a guess that cannot be told from a statement is the mistake worth designing against.
 - **A name is edited where it is drawn.** `Enter` commits, `Esc` abandons.
 - **Everything the app says goes to one strip** — a refusal, a repair report, a storage warning, a rule note. One place to look, dismissable, and silent when there is nothing to say.
@@ -172,6 +173,7 @@ The envelope, the canonical layout and the door are core's `engine.md`.
 | | Is |
 |---|---|
 | `base_graph` | a fresh workspace with the floor already in it |
+| reading | every derived answer about a graph, `edge_module` included — a relation's kind is read from its ends, never stored |
 | `open` | a file in, as a graph — validated at the door and repaired where it can be |
 | `validate` | what a graph violates. **Mending it stays the engine's** |
 | `write` · `write_subtree` | a graph out, in the canonical layout |
@@ -222,7 +224,7 @@ bind ports  ->  hold the log  ->  fold  ->  project  ->  render
 | Package | Proven by | Needs a browser |
 |---|---|---|
 | `core` | fold determinism, door repairs, undo-by-refold, file round-trip, byte-identical re-export | no |
-| `views` | no overlap, on the lattice, stable under reorder, every elbow square, no two ends share a seat; and Scene invariants over text projections of **shape, not coordinates** | no |
+| `views` | no overlap, on the lattice, stable under reorder, no two ends share a seat; and Scene invariants over text projections of **shape, not coordinates** | no |
 | `defs` | every shipped definition passes the door; every module it names exists | no |
 | `fixtures` | every log folds clean, and **every file the seam opens leaves nothing for `validate` to find** | no |
 | `kit` | packed, then a graph, a file and a drawing built from outside the workspace | no |

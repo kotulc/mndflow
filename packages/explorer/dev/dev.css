@@ -1,5 +1,4 @@
-/* The harness, not the component. Kept plain so nothing here is mistaken for
-   the thing being looked at. */
+/* The harness, not the component. */
 
 .harness { display: flex; flex-direction: column; height: 100%; }
 
@@ -26,8 +25,7 @@
 .harness .split { display: flex; flex: 1; min-height: 0; }
 .harness .split > :first-child { flex: 1; min-width: 0; }
 
-/* The explorer bounds itself, so let it — the harness must not make a
-   component draw at a size it would never take in the app. */
+/* The explorer bounds its own width. */
 .harness .split > .explorer { flex: none; }
 
 .harness .log {

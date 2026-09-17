@@ -1,8 +1,8 @@
-/** The loop, the door and the file: undo by refold, repairs reported, and a
- *  round trip that changes nothing. */
+/** The loop, the door and the file: undo by refold, repairs reported, and a round trip that changes
+ *  nothing. */
 
 import { describe, expect, it } from "vitest";
-import { flat, nested, related } from "@mnd/fixtures";
+import { FLOOR, flat, nested, related } from "@mnd/fixtures";
 import { seed } from "@mnd/defs";
 import { CAP, check, children, compact, fold, hash, read, say, session, write,
          write_subtree, ROOT, type Log, type Storage } from "../src/index";
@@ -16,9 +16,9 @@ function memory(): Storage & { held: () => Log | null } {
 describe("undo is a refold", () => {
   it("needs no inverse, and the graph comes back by the same path", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     const after_one = hash(s.graph());
-    s.go("create", { label: "Site" });
+    s.go("create", { name: "Site" });
     expect(hash(s.graph())).not.toBe(after_one);
     expect(s.undo()).toBe(true);
     expect(hash(s.graph())).toBe(after_one);
@@ -26,13 +26,13 @@ describe("undo is a refold", () => {
 
   it("unwinds in the order things were applied", () => {
     const s = session();
-    s.go("create", { label: "A" });
-    s.go("create", { label: "B" });
-    s.go("create", { label: "C" });
+    s.go("create", { name: "A" });
+    s.go("create", { name: "B" });
+    s.go("create", { name: "C" });
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.label)).toEqual(["A", "B"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A", "B"]);
     s.undo();
-    expect(children(s.graph(), ROOT).map((b) => b.label)).toEqual(["A"]);
+    expect(children(s.graph(), ROOT).map((b) => b.name)).toEqual(["A"]);
   });
 
   it("reports itself spent when there is nothing left", () => {
@@ -42,17 +42,17 @@ describe("undo is a refold", () => {
 
   it("redoes what it reverted, and drops the redo once work continues", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     s.undo();
     expect(s.redo()).toBe(true);
     s.undo();
-    s.go("create", { label: "B" });
+    s.go("create", { name: "B" });
     expect(s.redo()).toBe(false);
   });
 
   it("restores the graph, never the context", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     const a = children(s.graph(), ROOT)[0]!.id;
     s.pick([a]);
     s.go("delete", { id: a });
@@ -65,8 +65,8 @@ describe("undo is a refold", () => {
 describe("one step per action", () => {
   it("writes one step however many mutations it took", () => {
     const s = session();
-    s.go("create", { label: "Pump" });
-    const pump = Object.values(s.graph().blocks).find((b) => b.label === "Pump")!.id;
+    s.go("create", { name: "Pump" });
+    const pump = Object.values(s.graph().blocks).find((b) => b.name === "Pump")!.id;
     s.go("note", { about: pump, text: "hello", spot: { x: 24, y: 24 } });
     expect(s.log().filter((x) => x.action === "note")).toHaveLength(1);
     expect(s.log().find((x) => x.action === "note")!.mutations.length).toBeGreaterThan(1);
@@ -75,17 +75,17 @@ describe("one step per action", () => {
   it("writes nothing for a refusal", () => {
     const s = session();
     const before = s.log().length;
-    expect(s.go("create", { label: "" })).toBeNull();
+    expect(s.go("create", { name: "" })).toBeNull();
     /** A sibling may wear the same name, so two of these are two steps. */
-    s.go("create", { label: "A" });
-    expect(s.go("create", { label: "A" })).toBeNull();
+    s.go("create", { name: "A" });
+    expect(s.go("create", { name: "A" })).toBeNull();
     expect(s.go("refer", { target: "block_nowhere" })).toMatch(/not there/);
     expect(s.log().length).toBe(before + 3);
   });
 
   it("writes no step for navigation", () => {
     const s = session();
-    s.go("create", { label: "A" });
+    s.go("create", { name: "A" });
     const before = s.log().length;
     s.go("open", { id: children(s.graph(), ROOT)[0]!.id });
     s.go("up");
@@ -95,13 +95,13 @@ describe("one step per action", () => {
 
 describe("the door", () => {
   it("says nothing about a clean log", () => {
-    expect(say(check(nested()).faults)).toBe("");
+    expect(say(check(nested(), FLOOR).faults)).toBe("");
   });
 
   it("repairs a block whose parent is not there, and says so", () => {
     const log = flat();
     log.push({ id: "s", action: "x", at: 9, status: "applied", mutations: [
-      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", label: "Orphan" } },
+      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", name: "Orphan" } },
     ] });
     const got = check(log);
     expect(say(got.faults)).toMatch(/repaired/);
@@ -121,35 +121,35 @@ describe("the door", () => {
 
 describe("files", () => {
   it("round-trips through the file format", () => {
-    const before = fold(related());
-    const got = read(write(before));
+    const before = fold(related(), FLOOR);
+    const got = read(write(before), FLOOR);
     expect(got.faults).toHaveLength(0);
-    expect(fold(got.log)).toEqual(before);
+    expect(fold(got.log, FLOOR)).toEqual(before);
   });
 
   it("re-exports byte-identically", () => {
-    const graph = fold(related());
+    const graph = fold(related(), FLOOR);
     expect(write(graph)).toBe(write(fold(read(write(graph)).log)));
   });
 
   it("refuses a file written for another major schema", () => {
-    const bad = JSON.parse(write(fold(flat())));
+    const bad = JSON.parse(write(fold(flat(), FLOOR)));
     bad.schema = "9.0";
     expect(read(JSON.stringify(bad)).faults[0]!.kind).toBe("dropped");
   });
 
   it("exports a subtree with the definitions it reaches, and nothing else", () => {
-    const graph = fold(nested());
+    const graph = fold(nested(), FLOOR);
     const out = JSON.parse(write_subtree(graph, "block_ledger"));
     expect(out.graph.blocks["block_rate"]).toBeDefined();
     expect(out.graph.blocks["block_site"]).toBeUndefined();
     expect(out.graph.blocks["block_ledger"].parent).toBeNull();
-    expect(out.graph.defs["block"]).toBeDefined();
+    expect(out.graph.defs["block"]).toBeUndefined();
   });
 
   it("computes the hash rather than storing it", () => {
-    expect(JSON.parse(write(fold(flat())))).not.toHaveProperty("hash");
-    expect(hash(fold(flat()))).toBe(hash(fold(flat())));
+    expect(JSON.parse(write(fold(flat(), FLOOR)))).not.toHaveProperty("hash");
+    expect(hash(fold(flat(), FLOOR))).toBe(hash(fold(flat(), FLOOR)));
   });
 });
 
@@ -157,15 +157,15 @@ describe("storage", () => {
   it("saves as you go and comes back after a reload", () => {
     const store = memory();
     const one = session({ storage: store });
-    one.go("create", { label: "Ledger" });
+    one.go("create", { name: "Ledger" });
     const two = session({ storage: store });
-    expect(children(two.graph(), ROOT).map((b) => b.label)).toEqual(["Ledger"]);
+    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Ledger"]);
   });
 
   it("keeps a repair, so a mended log is not re-read as damaged", () => {
     const store = memory();
     store.write([{ id: "s", action: "hand-edited", at: 0, status: "applied", mutations: [
-      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", label: "Orphan" } },
+      { op: "add_block", block: { id: "block_orphan", parent: "block_nowhere", name: "Orphan" } },
     ] }]);
 
     const one = session({ storage: store });
@@ -176,18 +176,18 @@ describe("storage", () => {
     const two = session({ storage: store });
     expect(two.said()).toBeNull();
     expect(store.held()!.filter((x) => x.action === "repair")).toHaveLength(1);
-    expect(children(two.graph(), ROOT).map((b) => b.label)).toEqual(["Orphan"]);
+    expect(children(two.graph(), ROOT).map((b) => b.name)).toEqual(["Orphan"]);
   });
 
   it("says nothing on opening a clean log", () => {
     const store = memory();
-    session({ storage: store }).go("create", { label: "A" });
+    session({ storage: store }).go("create", { name: "A" });
     expect(session({ storage: store }).said()).toBeNull();
   });
 
   it("survives storage that forgets", () => {
     const s = session();
-    s.go("create", { label: "Ledger" });
+    s.go("create", { name: "Ledger" });
     expect(children(s.graph(), ROOT)).toHaveLength(1);
   });
 });
@@ -197,7 +197,7 @@ describe("compaction", () => {
     let log: Log = [];
     for (let i = 0; i < CAP + 400; i++) {
       log.push({ id: `step_${i}`, action: "create", at: i, status: "applied", mutations: [
-        { op: "add_block", block: { id: `block_${i}`, parent: ROOT, label: `B${i}` } },
+        { op: "add_block", block: { id: `block_${i}`, parent: ROOT, name: `B${i}` } },
       ] });
     }
     const before = fold(log);
@@ -207,14 +207,12 @@ describe("compaction", () => {
   });
 });
 
-/** **Starting over is dropping the log, not editing it.** A fresh workspace is
- *  the seed laid down again — which is also the only way a definition this
- *  build no longer ships leaves a workspace that already carried one. */
+/** Starting over is dropping the log, not editing it. */
 describe("a new workspace", () => {
   it("puts back exactly what a first run opens with", () => {
     const s = session({ defs: seed() });
     const fresh = Object.keys(s.graph().defs).sort();
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     expect(Object.keys(s.graph().blocks)).toHaveLength(2);
 
     s.reset();
@@ -225,7 +223,7 @@ describe("a new workspace", () => {
 
   it("drops a definition this build no longer ships", () => {
     const s = session({ defs: seed() });
-    s.go("define", { name: "activity", group: "view" });
+    s.go("define", { name: "activity", group: "block" });
     expect(Object.values(s.graph().defs).some((d) => d.name === "activity")).toBe(true);
 
     s.reset();
@@ -234,7 +232,7 @@ describe("a new workspace", () => {
 
   it("leaves nothing to undo into", () => {
     const s = session({ defs: seed() });
-    s.go("create", { label: "Loop" });
+    s.go("create", { name: "Loop" });
     s.reset();
     s.undo();
     expect(Object.keys(s.graph().blocks)).toEqual([ROOT]);

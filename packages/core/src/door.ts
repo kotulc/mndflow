@@ -1,22 +1,12 @@
-/** The one door a log comes in through.
- *
- *  Every log is checked before it is folded, from storage or from a file. What
- *  can be repaired is repaired; what cannot is dropped rather than folded into
- *  a broken graph. The user is told once, and a clean log says nothing.
- *
- *  **A repair is a step, not a patched graph.** The graph is derived, so
- *  mending one mends nothing — the next fold would undo it. Repairs come back
- *  as ordinary mutations and are appended like any other work, which also makes
- *  them visible and undoable.
- *
- *  A normalisation that carried nothing is not a repair — a false alarm is what
- *  teaches people to ignore the real ones. */
+/** The one door a log comes in through. */
 
-import { unreadable } from "./components";
-import { covers, fold, can_hold, is_grid, overlaps, subtree } from "./fold";
+import { component, unreadable } from "./components";
+import { module_named, relation_named, shipped } from "./defs";
+import { fold } from "./fold";
+import { can_hold, covers, is_grid, overlaps } from "./holders";
+import { subtree } from "./tree";
 import { new_id } from "./ids";
-import { ROOT, type Block, type Definition, type Graph, type Id, type Log, type Mutation,
-         type Span, type Step } from "./types";
+import { ROOT, type Graph, type Id, type Log, type Mutation, type Span, type Step } from "./types";
 
 export type Fault = {
   kind: "repaired" | "dropped";
@@ -28,34 +18,40 @@ export type Checked = {
   faults: Fault[];
 };
 
+export type Inspection = { faults: Fault[]; repairs: Mutation[] };
+
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
-  "place_block", "order_block", "size_block", "set_body", "set_group", "seat_cell",
-  "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks", "update_edge",
-  "delete_edge", "set_dir", "set_form", "flip_edge", "set_end", "set_port", "set_side",
-  "mark_port", "set_field", "drop_field", "set_def", "drop_def", "set_arrangement",
-  "set_labelled", "set_locked", "set_tags", "set_look",
+  "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "size_block", "set_body",
+  "set_group", "seat_cell", "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks",
+  "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
+  "set_side", "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def",
+  "set_arrangement", "set_tags", "set_look", "drop_looks",
 ]);
 
 /** Read a log in, repairing what it can. */
-export function check(input: unknown): Checked {
+export function check(input: unknown, floor: Graph["defs"] = {}): Checked {
   const faults: Fault[] = [];
   if (!Array.isArray(input)) return { log: [], faults: [{ kind: "dropped", what: "not a log" }] };
 
   const log: Log = [];
+  let taken = 0;
   for (const raw of input) {
     const step = read_step(raw, faults);
-    if (step) log.push(step);
+    if (!step) continue;
+    const kept = step.mutations.filter((m) => {
+      const ours = (m.op === "set_def" && floor[m.def.id]) || (m.op === "drop_def" && floor[m.id]);
+      if (ours) taken++;
+      return !ours;
+    });
+    log.push(kept.length === step.mutations.length ? step : { ...step, mutations: kept });
   }
+  if (taken) faults.push({ kind: "repaired", what: `${plural(taken, "write")} to a shipped definition` });
 
-  const mend = inspect(fold(log));
+  const mend = inspect(fold(log, floor));
   faults.push(...mend.faults);
   if (mend.repairs.length) log.push(repair_step(log.length, mend.repairs));
   return { log, faults };
-}
-
-function repair_step(at: number, mutations: Mutation[]): Step {
-  return { id: new_id("step"), action: "repair", at, status: "applied", mutations };
 }
 
 function read_step(raw: unknown, faults: Fault[]): Step | null {
@@ -82,198 +78,154 @@ function read_step(raw: unknown, faults: Fault[]): Step | null {
   };
 }
 
-export type Inspection = { faults: Fault[]; repairs: Mutation[] };
+function repair_step(at: number, mutations: Mutation[]): Step {
+  return { id: new_id("step"), action: "repair", at, status: "applied", mutations };
+}
 
-/** What the door enforces. Reports what is wrong and how to mend it, and
- *  changes nothing itself. */
+/** What the door enforces: what is wrong and the mutations that mend it. */
 export function inspect(graph: Graph): Inspection {
   const faults: Fault[] = [];
   const repairs: Mutation[] = [];
-  const name = (id: Id) => graph.blocks[id]?.label ?? id;
+  const name = (id: Id) => graph.blocks[id]?.name ?? id;
+  /** A fault and its mend; an empty `what` mends without saying twice. */
+  const say = (kind: Fault["kind"], what: string, ...mend: Mutation[]) => {
+    if (what) faults.push({ kind, what });
+    repairs.push(...mend);
+  };
 
   if (!graph.blocks[graph.root]) {
-    faults.push({ kind: "repaired", what: "a missing root" });
-    repairs.push({ op: "add_block",
-      block: { id: graph.root, parent: null, label: "workspace", type: "folder" } });
+    say("repaired", "a missing root",
+        { op: "add_block", block: { id: graph.root, parent: null, name: "workspace", type: "folder" } });
   }
 
+  /** Every block sits under something that is there, and never under itself. */
   for (const b of Object.values(graph.blocks)) {
     if (b.id === graph.root) continue;
     if (b.parent === null || !graph.blocks[b.parent]) {
-      faults.push({ kind: "repaired", what: `"${name(b.id)}" had no parent` });
-      repairs.push({ op: "move_block", id: b.id, parent: ROOT });
-      continue;
-    }
-    if (subtree(graph, b.id).includes(b.parent)) {
-      faults.push({ kind: "repaired", what: `"${name(b.id)}" contained itself` });
-      repairs.push({ op: "move_block", id: b.id, parent: ROOT });
+      say("repaired", `"${name(b.id)}" had no parent`, { op: "move_block", id: b.id, parent: ROOT });
+    } else if (subtree(graph, b.id).includes(b.parent)) {
+      say("repaired", `"${name(b.id)}" contained itself`, { op: "move_block", id: b.id, parent: ROOT });
     }
   }
 
-  for (const [id, e] of Object.entries(graph.edges)) {
+  /** Every relation has a block at both ends. */
+  for (const e of Object.values(graph.edges)) {
     if (!graph.blocks[e.from] || !graph.blocks[e.to]) {
-      faults.push({ kind: "dropped", what: "a relation with an end that is not there" });
-      repairs.push({ op: "delete_edge", id });
+      say("dropped", "a relation with an end that is not there", { op: "delete_edge", id: e.id });
     }
   }
 
-  /** `groups: Id[]` → `group: Id`. **One group per block**, so a block that was
-   *  in several keeps the first. The record is replaced whole rather than
-   *  patched: a field this build no longer reads would otherwise ride along
-   *  into every file written from here. */
-  const held = new Map<Id, Id | undefined>();
-  for (const b of Object.values(graph.blocks)) {
-    const was = (b as Block & { groups?: Id[] }).groups;
-    held.set(b.id, b.group ?? was?.[0]);
-    if (!was) continue;
-    if (was.length) {
-      faults.push({ kind: "repaired", what: `"${name(b.id)}" belonged to ${was.length} groups` });
-    }
-    const { groups: _gone, ...rest } = b as Block & { groups?: Id[] };
-    repairs.push({ op: "add_block", block: { ...rest, group: held.get(b.id) } });
-  }
+  cells(graph, name, say);
+  looks(graph, name, say);
+  definitions(graph, say);
+  return { faults, repairs };
+}
 
-  /** `structure` → `block`. **The base kind was renamed, not retired**, so a
-   *  file that names the old word still resolves — both on a usage and on a
-   *  subtype that roots there. Repaired rather than dropped: a block whose type
-   *  went missing would silently become a plain one and take its subtype's
-   *  fields with it. */
-  for (const b of Object.values(graph.blocks)) {
-    if (b.type !== "structure") continue;
-    faults.push({ kind: "repaired", what: `"${name(b.id)}" named the old base type` });
-    repairs.push({ op: "update_block", id: b.id, type: "block" });
-  }
-  for (const d of Object.values(graph.defs)) {
-    if (d.extends !== "structure") continue;
-    faults.push({ kind: "repaired", what: `"${d.name}" extended the old base type` });
-    repairs.push({ op: "set_def", def: { ...d, extends: "block" } });
-  }
+type Say = (kind: Fault["kind"], what: string, ...mend: Mutation[]) => void;
 
-  /** **Grids used to share the group module.** Anything carrying an extent is
-   *  a grid, whatever module it names, and is repaired to say so.
-   *
-   *  **The set is kept, because the repairs below have to see it.** A repair is
-   *  a mutation somebody applies afterwards, so the checks that follow still
-   *  read the graph as it came in — which freed every seated block of a legacy
-   *  grid on the same pass that migrated it. */
-  const grids = new Set(Object.keys(graph.blocks).filter((id) => is_grid(graph, id)));
+/** One block per cell, inside its grid, in a group that can hold it; merges inside the grid and
+ *  never overlapping. */
+function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
+  const taken = new Set<string>();
   for (const b of Object.values(graph.blocks)) {
-    if (grids.has(b.id) || b.rows === undefined || b.cols === undefined) continue;
-    faults.push({ kind: "repaired", what: `"${name(b.id)}" was a grid named ${b.type ?? "block"}` });
-    repairs.push({ op: "update_block", id: b.id, type: "grid" });
-    grids.add(b.id);
-  }
-
-  /** The grid: one block per cell, no merge across another, no holder seated
-   *  in a cell, and bands nesting so long as membership does not cycle.
-   *  **Every repair frees the block rather than deleting it** — a layout fault
-   *  must not cost model content, and a block may be referenced from other
-   *  layers. */
-  const taken = new Map<string, Id>();
-  for (const b of Object.values(graph.blocks)) {
-    const group = held.get(b.id);
-    if (!group) {
-      if (b.cell) {
-        faults.push({ kind: "repaired", what: `"${name(b.id)}" had a cell and no group` });
-        repairs.push({ op: "seat_cell", id: b.id, cell: null });
-      }
+    if (!b.group) {
+      if (b.cell) say("repaired", `"${name(b.id)}" had a cell and no group`, { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
-    const grid = graph.blocks[group];
-    if (!grid || !can_hold(graph, group, b.id, held)) {
-      faults.push({ kind: "repaired", what: `"${name(b.id)}" was in a group that cannot hold it` });
-      repairs.push({ op: "set_group", id: b.id, group: null });
+    const grid = graph.blocks[b.group];
+    if (!grid || !can_hold(graph, b.group, b.id)) {
+      say("repaired", `"${name(b.id)}" was in a group that cannot hold it`, { op: "set_group", id: b.id, group: null });
       continue;
     }
     if (!b.cell) continue;
     const { r, c } = b.cell;
-    const outside = !grids.has(group) || r < 0 || c < 0
-                 || r >= grid.rows! || c >= grid.cols!;
-    const at = merge_at_span(grid, r, c);
-    const key = `${group}|${at ? at.r : r}|${at ? at.c : c}`;
+    const outside = !is_grid(graph, b.group) || r < 0 || c < 0 || r >= grid.rows! || c >= grid.cols!;
+    const at = grid.merges?.find((s) => covers(s, r, c));
+    const key = `${b.group}|${at ? at.r : r}|${at ? at.c : c}`;
     if (outside || taken.has(key)) {
-      faults.push({ kind: "repaired",
-                    what: `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} `
-                        + `"${name(group)}"` });
-      repairs.push({ op: "seat_cell", id: b.id, cell: null });
+      say("repaired", `"${name(b.id)}" sat ${outside ? "outside" : "on top of something in"} "${name(b.group)}"`,
+          { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
-    taken.set(key, b.id);
+    taken.add(key);
   }
 
-  /** A merge is a cell's extent, so one reaching past the grid or across
-   *  another leaves *what is this cell* without an answer.
-   *
-   *  **The set is laid down again rather than patched.** `split_cells` takes
-   *  away whichever span covers an address, which is the right answer for a
-   *  gesture and the wrong one here — dropping the overlapping span by its
-   *  corner takes the sound one with it. */
   for (const g of Object.values(graph.blocks)) {
     const kept: Span[] = [];
-    let bad = 0;
     for (const s of g.merges ?? []) {
-      const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0
-                && grids.has(g.id) && s.r + s.rows <= g.rows! && s.c + s.cols <= g.cols!;
+      const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0 && is_grid(graph, g.id)
+                && s.r + s.rows <= g.rows! && s.c + s.cols <= g.cols!;
       if (sane && !kept.some((k) => overlaps(k, s))) kept.push(s);
-      else bad++;
     }
+    const bad = (g.merges ?? []).length - kept.length;
     if (!bad) continue;
-    faults.push({ kind: "dropped",
-                  what: `${bad} merge${bad > 1 ? "s" : ""} "${name(g.id)}" could not hold` });
-    for (const s of g.merges ?? []) repairs.push({ op: "split_cells", id: g.id, r: s.r, c: s.c });
-    for (const s of kept) repairs.push({ op: "merge_cells", id: g.id, span: s });
+    say("dropped", `${plural(bad, "merge")} "${name(g.id)}" could not hold`,
+        ...(g.merges ?? []).map((s): Mutation => ({ op: "split_cells", id: g.id, r: s.r, c: s.c })),
+        ...kept.map((span): Mutation => ({ op: "merge_cells", id: g.id, span })));
   }
+}
 
-  /** One definition, one repair. Filing, extension and every component key it
-   *  claims are three separate faults and one mended record — two `set_def`s
-   *  for the same definition would leave the later one undoing the earlier. */
-  for (const d of Object.values(graph.defs)) {
-    let mended = d;
-    if (!graph.blocks[d.home]) {
-      faults.push({ kind: "repaired", what: `"${d.name}" was filed under nothing` });
-      mended = { ...mended, home: ROOT };
+/** An element's own look property that its component refuses is dropped. */
+function looks(graph: Graph, name: (id: Id) => string, say: Say): void {
+  for (const it of [...Object.values(graph.blocks), ...Object.values(graph.edges)]) {
+    for (const [key, config] of Object.entries(it.looks ?? {})) {
+      const c = component(key);
+      if (!c || !config || typeof config !== "object") continue;
+      for (const [prop, value] of Object.entries(config)) {
+        if (!c.check({ [prop]: value })) continue;
+        say("dropped", `"${name(it.id)}" said ${key}.${prop}, which nothing reads`,
+            { op: "set_look", id: it.id, key, name: prop, value: null });
+      }
     }
-    if (d.extends && !graph.defs[d.extends]) {
-      faults.push({ kind: "repaired", what: `"${d.name}" extended something that is not there` });
+  }
+}
+
+/** One mended record per definition: extends something that is there, only readable components, a
+ *  default only for its own kind, and one per kind. */
+function definitions(graph: Graph, say: Say): void {
+  const claimed = new Set<string>();
+  for (const d of Object.values(graph.defs).sort((a, z) => a.id.localeCompare(z.id))) {
+    let mended = d;
+    if (mended.extends && !graph.defs[mended.extends]) {
+      say("repaired", `"${d.name}" extended something that is not there`);
       mended = { ...mended, extends: undefined };
     }
-    /** **A component validates its own key and no other's**, so what it
-     *  refuses is dropped and only that key. An unknown component is left
-     *  alone — unvalidated rather than wrong, which is how this build opens a
-     *  package a later one wrote. */
-    for (const { key, why } of unreadable(d)) {
-      faults.push({ kind: "dropped", what: `"${d.name}" said ${why}` });
-      mended = { ...mended, components: without(mended.components, key) };
+    for (const { key, why } of unreadable(mended)) {
+      say("dropped", `"${d.name}" said ${why}`);
+      const components = { ...mended.components };
+      delete components[key];
+      mended = { ...mended, components: Object.keys(components).length ? components : undefined };
     }
-    if (mended !== d) repairs.push({ op: "set_def", def: mended });
+    if (mended.default !== undefined) {
+      const kind = mended.group === "relation" ? relation_named(graph, mended.id) : module_named(graph, mended.id);
+      const slot = `${mended.group}:${mended.default}`;
+      const why = mended.from ? "a package's definition cannot be a default"
+        : kind !== mended.default ? `it is not a ${mended.default}`
+        : claimed.has(slot) ? `another definition already is` : null;
+      if (why) {
+        say("dropped", `"${d.name}" claimed the ${mended.default} default — ${why}`);
+        mended = { ...mended, default: undefined };
+      } else claimed.add(slot);
+    }
+    if (!mended.from && !shipped(mended) && !mended.extends) {
+      const base = mended.default
+        ?? (mended.group === "relation" ? relation_named(graph, undefined) : module_named(graph, undefined));
+      if (graph.defs[base] && base !== mended.id) {
+        say("repaired", `"${d.name}" now extends the ${base} base`);
+        mended = { ...mended, extends: base };
+      }
+    }
+    if (mended !== d) say("repaired", "", { op: "set_def", def: mended });
   }
-
-  return { faults, repairs };
 }
 
-/** The span covering an address, read off a group in hand. The fold's reader
- *  asks the graph; the door already has the block. */
-function merge_at_span(g: Block, r: number, c: number): Span | null {
-  return g.merges?.find((s) => covers(s, r, c)) ?? null;
-}
-
-/** A definition's components without one key, and no `components` at all once
- *  the last one goes — nothing still at its default is written. */
-function without(components: Definition["components"], key: string): Definition["components"] {
-  const out = { ...components };
-  delete out[key];
-  return Object.keys(out).length ? out : undefined;
-}
-
-/** What is wrong with a graph. The door's question without its answer: a
- *  caller may ask what a graph violates, and mending it stays the engine's. */
+/** What is wrong with a graph, without mending it. */
 export function validate(graph: Graph): Fault[] {
   return inspect(graph).faults;
 }
 
-/** What to say, once. Empty when the log was clean. */
+/** What to say, once. Empty when nothing was wrong. */
 export function say(faults: Fault[]): string {
-  if (faults.length === 0) return "";
   const repaired = faults.filter((f) => f.kind === "repaired").length;
   const dropped = faults.filter((f) => f.kind === "dropped").length;
   const parts: string[] = [];
@@ -282,9 +234,6 @@ export function say(faults: Fault[]): string {
   return parts.join(", ");
 }
 
-/** **Nothing here compares names.** A name was once unique among siblings, and
- *  every gesture that set one could be refused for it — which is a rule about
- *  typing rather than about the model. Identity is the id; two parts of an
- *  assembly are called the same thing all the time; and an unnamed block never
- *  collided in the first place. The only two lookups by name are conveniences
- *  in the CLI, and both already answer an ambiguous one. */
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}

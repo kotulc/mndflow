@@ -1,0 +1,285 @@
+{
+  "schema": "2.0",
+  "id": "workspace",
+  "graph": {
+    "root": "ws",
+    "defs": {
+      "def_ghost": {
+        "id": "def_ghost",
+        "name": "Draft",
+        "group": "block",
+        "extends": "block",
+        "components": {
+          "style": {
+            "family": "muted",
+            "fill": "hatch",
+            "opacity": 0.25,
+            "name_font": "italic"
+          },
+          "card": {
+            "label": "below",
+            "align": "center"
+          }
+        }
+      },
+      "def_heading": {
+        "id": "def_heading",
+        "name": "Heading",
+        "group": "block",
+        "extends": "block",
+        "components": {
+          "style": {
+            "family": "primary",
+            "name_weight": "bold",
+            "name_font": "underline",
+            "border_contrast": "full"
+          },
+          "card": {
+            "align": "center",
+            "label": "none"
+          }
+        }
+      },
+      "def_pump": {
+        "id": "def_pump",
+        "name": "Pump",
+        "group": "block",
+        "extends": "block",
+        "components": {
+          "style": {
+            "hue": 285,
+            "intensity": 0.8,
+            "border_contrast": "strong",
+            "name_contrast": "full"
+          },
+          "card": {
+            "label": "inside"
+          }
+        }
+      },
+      "def_vessel": {
+        "id": "def_vessel",
+        "name": "Vessel",
+        "group": "block",
+        "extends": "block",
+        "components": {
+          "style": {
+            "family": "secondary",
+            "fill": "wash",
+            "opacity": 0.5
+          },
+          "card": {}
+        }
+      }
+    },
+    "blocks": {
+      "b_hx": {
+        "id": "b_hx",
+        "parent": "b_loop",
+        "name": "Heat Exchanger",
+        "group": "g_wet",
+        "type": "def_vessel",
+        "alias": 1,
+        "order": 2,
+        "x": 168,
+        "y": 0
+      },
+      "b_loop": {
+        "id": "b_loop",
+        "parent": "f_plant",
+        "name": "Primary Loop",
+        "alias": 2,
+        "order": 1,
+        "x": 0,
+        "y": 0
+      },
+      "b_note": {
+        "id": "b_note",
+        "parent": "b_loop",
+        "name": "",
+        "type": "note",
+        "alias": 1,
+        "body": "Hatch and wash are said by the definition now, not by the stylesheet.",
+        "order": 6,
+        "x": 336,
+        "y": 96
+      },
+      "b_pump": {
+        "id": "b_pump",
+        "parent": "b_loop",
+        "name": "Feed Pump",
+        "group": "g_wet",
+        "type": "def_pump",
+        "alias": 3,
+        "fields": [
+          {
+            "name": "rated flow",
+            "form": "number",
+            "value": "50"
+          }
+        ],
+        "order": 1,
+        "x": 0,
+        "y": 0
+      },
+      "b_ref": {
+        "id": "b_ref",
+        "parent": "b_loop",
+        "name": "",
+        "of": "b_hx",
+        "alias": 1,
+        "order": 7,
+        "x": 0,
+        "y": 192
+      },
+      "b_res": {
+        "id": "b_res",
+        "parent": "b_loop",
+        "name": "Coolant",
+        "type": "resource",
+        "alias": 1,
+        "order": 8,
+        "x": 168,
+        "y": 192
+      },
+      "b_spare": {
+        "id": "b_spare",
+        "parent": "b_loop",
+        "name": "Spare Pump",
+        "type": "def_ghost",
+        "alias": 4,
+        "order": 4,
+        "x": 0,
+        "y": 96
+      },
+      "b_tank": {
+        "id": "b_tank",
+        "parent": "b_loop",
+        "name": "Surge Tank",
+        "type": "def_vessel",
+        "alias": 5,
+        "order": 3,
+        "x": 336,
+        "y": 0
+      },
+      "b_title": {
+        "id": "b_title",
+        "parent": "b_loop",
+        "name": "Primary Loop",
+        "type": "def_heading",
+        "alias": 6,
+        "order": 5,
+        "x": 168,
+        "y": 96
+      },
+      "c_a": {
+        "id": "c_a",
+        "parent": "f_plant",
+        "name": "Duty",
+        "group": "gr_matrix",
+        "alias": 7,
+        "cell": {
+          "r": 0,
+          "c": 0
+        },
+        "header": true,
+        "order": 3
+      },
+      "c_b": {
+        "id": "c_b",
+        "parent": "f_plant",
+        "name": "Standby",
+        "group": "gr_matrix",
+        "alias": 8,
+        "cell": {
+          "r": 1,
+          "c": 0
+        },
+        "order": 4
+      },
+      "f_plant": {
+        "id": "f_plant",
+        "parent": "ws",
+        "name": "Coolant Plant",
+        "type": "folder",
+        "alias": 1,
+        "order": 1
+      },
+      "g_wet": {
+        "id": "g_wet",
+        "parent": "b_loop",
+        "name": "Wet side",
+        "type": "group",
+        "alias": 1,
+        "order": 9
+      },
+      "gr_matrix": {
+        "id": "gr_matrix",
+        "parent": "f_plant",
+        "name": "Duty",
+        "type": "grid",
+        "alias": 1,
+        "cols": 2,
+        "order": 2,
+        "rows": 2,
+        "x": 0,
+        "y": 320
+      },
+      "i_in": {
+        "id": "i_in",
+        "parent": "b_pump",
+        "name": "",
+        "side": "left",
+        "alias": 1,
+        "at": 0.5,
+        "flow": "in",
+        "order": 1
+      },
+      "ws": {
+        "id": "ws",
+        "parent": null,
+        "name": "workspace",
+        "type": "folder",
+        "counters": {
+          "block": 8,
+          "note": 1,
+          "reference": 1,
+          "resource": 1,
+          "relation": 3,
+          "folder": 1,
+          "group": 1,
+          "grid": 1,
+          "interface": 1
+        },
+        "pinned": [
+          "def_ghost",
+          "def_heading",
+          "def_pump",
+          "def_vessel"
+        ]
+      }
+    },
+    "edges": {
+      "e_flow": {
+        "id": "e_flow",
+        "from": "b_pump",
+        "dir": "one",
+        "alias": 1,
+        "to": "b_hx"
+      },
+      "e_out": {
+        "id": "e_out",
+        "from": "b_hx",
+        "dir": "one",
+        "alias": 2,
+        "to": "b_tank"
+      },
+      "e_tie": {
+        "id": "e_tie",
+        "from": "b_note",
+        "alias": 3,
+        "to": "b_hx"
+      }
+    }
+  }
+}

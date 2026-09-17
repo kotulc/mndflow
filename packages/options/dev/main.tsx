@@ -1,7 +1,4 @@
-/** The options rail, on its own, over static chrome.
- *
- *  It holds the state the component refuses to and logs every control it
- *  emits. The slots below are what a projection would have declared. */
+/** The options rail, on its own, over static chrome. */
 
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -12,9 +9,7 @@ import "@mnd/theme/icons.css";
 import "../src/options.css";
 import "./dev.css";
 
-/** What a projection offers, as it would arrive from a Scene. **The second is
- *  the same layer with a grid picked**, which is what the context group at the
- *  foot of the rail answers for. */
+/** What a projection offers, as it would arrive from a Scene. */
 const SLOTS: Record<string, string[]> = {
   block: ["layer", "display", "relations"],
   "block, a grid picked": ["layer", "display", "relations"],
@@ -26,7 +21,8 @@ function Harness() {
   const [chrome, set_chrome] = useState<Chrome>({
     slots: SLOTS["block"]!, arrangement: "free", interfaces: true,
     lattice: true, module: "line",
-    element: { id: "block_pump", labelled: true, locked: false, framed: true },
+    relations: [{ id: "flow_line", name: "flow", module: "line" },
+                { id: "note_tie", name: "annotates", module: "tie" }],
   });
 
   const act = (name: string, args?: Record<string, unknown>) => {
@@ -37,10 +33,6 @@ function Harness() {
       set_chrome((c) => ({ ...c, module: args!["module"] as never }));
     }
     if (name === "lattice") set_chrome((c) => ({ ...c, lattice: args!["show"] as boolean }));
-    if (name === "lock") {
-      set_chrome((c) => (c.element
-        ? { ...c, element: { ...c.element, locked: args!["fixed"] === "yes" } } : c));
-    }
   };
 
   const groups = groups_of(chrome, act);

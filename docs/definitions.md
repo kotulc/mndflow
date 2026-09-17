@@ -12,9 +12,9 @@
 | **block** | the one element. Placed, drawn, carries fields, holds other blocks. Held in `graph.blocks` |
 | **part** | a child the block **owns**. The tree is `parent` and nothing else; deleting the whole deletes it |
 | **reference** | a child that **stands for a block living elsewhere** — another layer, another tree. It appears, it is not owned, and it shows the real block's name. A gone target reads **missing** and is kept rather than tidied away. `of` holds the target |
-| **relationship** | a join between **exactly two** blocks. Not a block: placed by its ends, drawn as a line, joins rather than sits. Names a **relation module**. Held in `graph.edges` |
-| **field** | a named, typed value on a block or a relationship. Never structural, and it has no identity — a field is addressed by name on its holder |
-| **definition** | a reusable subtype: a name, the fields its usages carry, how they draw, and what they may hold. Held in `graph.defs`, **one id space with blocks and relationships**, filed under a block by `home`, and grouped by what it describes — **block**, **relation** |
+| **relationship** | a join between **exactly two** blocks — never a block and a relationship. Not a block: placed by its ends, drawn as a line, joins rather than sits. **Its relation module is read from its ends and never stored.** Held in `graph.edges` |
+| **field** | a named, typed value on a block. Never structural, and it has no identity — a field is addressed by name on its holder. **A relationship holds none**: what a connection says belongs to the blocks at its ends |
+| **definition** | a reusable subtype: a name, the fields its usages carry, how they draw, and what they may hold. Held in `graph.defs`, **one id space with blocks and relationships**, and grouped by what it describes — **block**, **relation**. **Its id is minted** (`def_…`, `rel_…`) and never derived from its name; the name is a label |
 | **type** | the definition a block or relationship names. Open, and the user's |
 | **usage** | anything naming a definition in its `type`. The definition declares; the usage holds the values it gives |
 
@@ -40,11 +40,25 @@
 | **resource** | a workspace-relative path or link | a file, a script, a data file, an image |
 | **group** | any block on its layer | a boundary round a set — a swimlane, a region, a package boundary. A dashed rim, sized from what it holds |
 | **grid** | any block, one to a cell | a region of the lattice with an extent — rows, columns, merges. It owns its corner, because an empty one would otherwise be nothing |
-| **note** | text | a resource drawn as a card of text |
+| **note** | text | a remark **about one block**, drawn as a card of its text and tied to that block |
 
 **Eight, in two families.** `block`, `folder` and `resource` are **open**: they differ in what they are for, and a block is retyped among them freely. `reference`, `interface`, `group`, `grid` and `note` are **derived** — each carries something a change of type cannot invent, so one is arrived at by making one. **There is no doing/being split** — an action and a part are both `block`, and what separates them is the definition each names.
 
 **A group and a grid are two modules, not one with a setting.** They differ in what a member's place *is* — a boundary reads its bounds off wherever its members ended up, a grid says where each member goes — which is a difference in code and not in configuration. What they share is that both **hold**: a block sits in one by `group`, membership is flat, and either may hold the other.
+
+## Base, default and workspace definitions
+
+**Three tiers, and every definition is exactly one of them.**
+
+| Term | Means |
+|---|---|
+| **base** | a shipped, locked definition, one per kind: the eight block modules plus `line` and `tie`. A relation base names its module in `relation.module`. Never written, never pinned, never exported |
+| **default** | the workspace's one editable definition per kind, extending that kind's base. **Laid by the fold until its first edit files it.** A plain element — one naming nothing, or naming a base — follows its kind's default. Never renamed, removed or pinned; may be re-typed within its kind. **Read by its marker (`default`), never its id** |
+| **workspace definition** | everything else the workspace holds. It extends its kind's base unless it says otherwise |
+| **package definition** | a definition carrying `from`: brought in, read-only, and never a default |
+| **kind** | the base a definition's chain ends in. **Fixed when an element is made**: a block is retyped only within its kind, and a run's definition stays within its relation module |
+
+**Resolution is global, by id.** A usage names a definition id; nothing climbs a tree and nothing shadows.
 
 **There is no untyped block.** A block naming no definition is a `block`; the field being absent is how a file stays small. `view` is reserved rather than shipped — it comes back defined, not as a module.
 
@@ -55,7 +69,7 @@
 | **container** | a block that holds child blocks. Derived from what it holds, so it is how a block *looks*, never what it is |
 | **interface** | a block seated on an **edge** — its parent's frame, or any other edge set. Also **port**. **The one anchor for every port-like thing**: a proxy port, a full port, a pin and a constraint parameter are all interfaces. Declared, never derived: it carries `side`, `at` and `flow` instead of `x`/`y`, and `flow` is decorative and constrains nothing |
 | **root** | the block that holds every other, under a reserved id. `parent: null` means *in the root layer*. No frame, because a frame is a block seen from inside and the root has no outside |
-| **behaviour** | **ordinary description, never a kind of block.** An action or a state is a definition over the one block module, a participant is a reference, and order is a directed relationship or the arrangement |
+| **behaviour** | **ordinary description, never a kind of block.** An action or a state is a definition over the one block module, a participant is a reference, and order is a directed relationship or a grid's reading direction. **What reads behaviour is a future story** |
 
 **The word `port` carries two meanings and they never meet.** In the model a port is an **interface**. In the host contract a **port** is one of the four capabilities an app binds — `storage`, `files`, `net`, `score`. Where either is ambiguous, say *interface* or *host port*.
 
@@ -70,7 +84,9 @@
 
 **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 
-**Membership is not parenthood.** A block's `parent` says which layer it is in; its `group` says which holder on that layer it sits in. The two are independent and only the first is the tree — which is why a group is dissolved when its last member leaves rather than deleting what it held.
+**Membership is not parenthood.** A block's `parent` says which layer it is in; its `group` says which holder on that layer it sits in. The two are independent and only the first is the tree.
+
+**A group goes with its last member** — by leaving, deletion or a move to another layer — and so does a holder that empties in turn, with any relationship on it. **A group is empty only when it was made empty.**
 
 
 ## Layers and looking
@@ -94,7 +110,7 @@
 | **retained placement** | a block's placement is **kept** by every arrangement, and nothing discards it. A computed arrangement replaces where things *draw*, never what you placed, so returning to `free` returns your layout |
 | **seat** | a place on a border a line may meet |
 | **anchor** | a seat a relationship actually arrives at, with no block behind it. **One per arriving line, never one per side.** Placed by the engine until somebody drags it, and then drawn **solid** to say the position is theirs |
-| **promotion** | turning an anchor into an **interface** where it sits — a separate act from moving one, because an interface is a real element with a name and a type |
+| **promotion** | turning an anchor into an **interface** where it sits — a separate act from moving one, because an interface is a real element with a name and a type. **An end that is already an interface has nothing to promote**, so it is never offered |
 | **explicit order** | sequence stated by a directed relationship. Read first, and it wins |
 | **implied order** | **cut with the directional arrangements.** Neither value carries a reading direction, so nothing infers sequence from position on a layer. **A cell address is the replacement**: inside a grid, where a block sits along the reading direction *is* the order, stated rather than guessed |
 
@@ -112,7 +128,7 @@
 | **merge** | a **cell's** extent, stated on the grid as a `Span` and never on a cell. A merged region is one cell: every address it covers answers with the span's box, and a block in one larger than itself **centres**, because blocks never resize |
 | **footprint** | how many cells a block needs, derived from its size. **Distinct from a merge**, which is how big a cell is — the two do not collide |
 | **header** | a **promoted** block: it heads the line it sits in, fills its cell, and is drawn on a darker ground. One flag, `header`, and **which line is read from where it sits** |
-| **allocation** | **the SysML word.** Every block along the lines a header covers is *allocated to* it — swimlane, lane owner and tag are one construct under one standard name |
+| **allocation** | **the SysML word.** Every block along the lines a header covers is *allocated to* it — swimlane, lane owner and tag are one construct under one standard name. **Derived and correct today; what reads it is a future story** |
 | **row × column** | a pair of allocations. What makes an allocation matrix fall out later: rows one domain, columns another, a filled cell allocated to both |
 
 **Which line a header heads is its position, and the rule is one sentence.**
@@ -145,6 +161,8 @@
 
 **Removing a line moves what it held rather than dropping it**, into the nearest spare cell, and drops the address only once the grid is genuinely full. Freed outright, a block landed at the foot of the layer with its relationships still attached, which reads as a line coming adrift. **Shrinking an extent and merging over an occupied cell do drop the address** — there the block is on its way out of the grid, not being shuffled within it.
 
+**A chain reads in the standard reading direction**: left to right, then down, row by row — under either arrangement, since neither carries a direction of its own.
+
 **A grid never grows by accident.** Its extent is what you drew; a block dropped past the last row lands free on the layer beside it.
 
 
@@ -157,12 +175,12 @@
 | **project** | **a word, not a type.** Informally, a top-level block under the workspace root. Read from position, stored nowhere, and nothing in the schema answers to it |
 | **the log** | **one log, at the workspace.** One document, one history, so **undo is workspace-wide** and nothing routes a write |
 | **session state** | how things were last shown — the open layer, the selection, the explorer fold, the theme, the toggles. **Held outside the log and never in a file**, so opening somebody's workspace does not rearrange your toggles. The test is *is it in the log?* — a block's name is, so it exports and it undoes; whether interfaces show is not, so it does neither. **`arrangement` is the exception that proves the rule**, and it is model data because how a layer reads is part of what it says |
-| **package** | **a top-level block you are using rather than writing.** Locked: writes refuse, and the strip offers unlock or fork. Locked is the workspace's word, not the file's |
-| **resolution** | how a usage finds its definition: **climb the ancestors, nearest first, to the workspace**. **There is no import list** — position does the whole job, so there is no order to maintain. Two ancestors defining the same name are two definitions and both are offered; nothing shadows, because every usage names an id |
-| **`home`** | the block a definition is filed under. **The only stored part of its scope** — who owns it, who may use it, what an export carries and which of two wins all fall out of position |
+| **package** | **a vocabulary you are using rather than writing** — definitions carrying `from`. Writes to one refuse; saving a look over one files a workspace definition instead |
+| **resolution** | how a usage finds its definition: **by id, across the whole workspace**. There is no import list and no scope to climb. Two definitions may share a name; every usage names an id, so nothing shadows |
 | **extends** | the definition another refines, by reference. **Subtyping, never overriding**; fields union, and components **cascade per property** — the chain laid down base first, the nearest link with the last word, and the element itself last of all. One parent, so the order is a list rather than a graph and there is no diamond to resolve. A rule naming a definition reaches everything below it |
-| **export** | a subtree written out as a file — the block, everything under it, every relationship with both ends inside, and every definition any of them names walked up the `extends` chain. **The workspace export is simply the root folder's** |
-| **import** | grafting a file into a layer. **A checkpoint**, so there is no second format and no second reader |
+| **export** | a subtree written out as a file — the block, everything under it, every relationship with both ends inside, and every definition any of them names walked up the `extends` chain. **The workspace export is simply the root folder's**, and carries only **touched** definitions: never the shipped floor, never a default nobody edited |
+| **import** | opening a file as the workspace. **A checkpoint**, so there is no second format and no second reader |
+| **graft** | bringing a file's definitions and elements into a layer, as one step. **The workspace wins**: nothing it holds is replaced, its defaults stand for the file's, and incoming elements take its next handles |
 
 
 ## History
@@ -174,9 +192,9 @@
 | **the log** | the ordered steps. The only thing stored, and the source of truth. **Internal** — no step and no mutation is ever offered outside |
 | **fold** | rebuilding the graph from empty by replaying every applied step. Why undo needs no inverses: undo flips a status and refolds |
 | **checkpoint** | the whole graph as one mutation. Written when the log passes its cap and the oldest steps are dropped, and when a file is imported. Not something anybody did, so it cannot be undone |
-| **the door** | the one way in. Every log is checked before it is folded: what can be repaired is, what cannot is dropped rather than folded into a broken graph |
+| **the door** | the one way in. Every log is checked before it is folded: integrity, component validation, one default per kind, a definition extending nothing pointed at its base. What can be repaired is; what cannot is dropped. **It checks, it never migrates** — a schema change re-saves the samples instead of adding a repair |
 | **fault** | what the door has to say — repaired, or dropped, and why. The user is told once, and a clean log says nothing |
-| **derived** | worked out rather than stored — containment, container-ness, a group's members, **a grid's cells and every allocation in it**, the `reference` and `tie` relation modules, seats, routes, and the content hash |
+| **derived** | worked out rather than stored — containment, container-ness, a group's members, **a grid's cells and every allocation in it**, a relationship's module, seats, routes, and the content hash |
 
 
 ## What a definition configures
@@ -187,9 +205,9 @@
 | **component** | a capability an open module offers, switched on and shaped by a definition. **Per definition, never per usage** |
 | **`components`** | the field on a definition holding one entry per component, keyed by name. **The one place the schema grows** — a new capability adds a key, never a field beside one. A component owns its key, reads no other's, and **validates its own key at the door**, so one absent from the build leaves its configuration *unvalidated* rather than wrong |
 | **`block`** | which block module, and that module's own keys |
-| **`card`** | which card `layout`, where the label sits, and which fields it `shows` |
+| **`card`** | how a card writes itself: `label`, `align`, `label_align`, `icon`, `alias` |
 | **`style`** | which **slot** (one of six hue families) and which **emphasis**, weight and label step. **Never a colour, a pixel count or a font** — the theme owns the palette and a definition picks within it |
-| **`constraints`** / **`rules`** | what a usage needs in itself, and how usages interact |
+| **`rules`** | what a usage needs in itself, and how usages interact. `constraints` folded into it |
 | **card layout** | one of the standard ways a card is composed — `name`, `type`, `fields`, `compartments`, `icon`. **Open.** **No `shape`**: a definition picking a diamond drew as one on the canvas and as a rectangle in every export, which is a promise one renderer kept and the others could not |
 | **`validate` hook** | a module's own check in code, for what the rule kinds cannot say. The escape hatch, and deliberately not a language |
 
@@ -211,9 +229,9 @@ The full enumeration is in actions.md.
 | Term | Means |
 |---|---|
 | **action** | something somebody meant and could say — create, relate, group, describe. Named, ranked, listed. Returns mutations rather than applying them |
-| **adjustment** | something positional and unsayable. Five, gesture-only, never ranked. A module declares which it accepts |
+| **adjustment** | something positional and unsayable — `place`, `size`, `seat`. Gesture-only and never ranked. **A gesture that comes to several writes lands them in one batch**, so it is one step |
 | **navigation** | an action writing no mutations — `open`, `reveal`. No step, nothing to undo |
-| **pin** | filing an element's definition in the workspace's own locked vocabulary folder. **Not a way to save a layer** — the `view` block it used to make is gone. See stories.md |
+| **pin** | offering a definition: a block definition in the explorer's *pinned* folder, a relation definition on the rail. **An explicit act per definition** — saving never pins, and unpinned definitions live in the tray. Bases and defaults are never pinned |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |
 | **host port** | one of the four capabilities an app binds — `storage`, `files`, `net`, `score`. **The entire host contract**, declared in core and implemented nowhere else. An unbound port is a capability the app does without, never a feature reimplemented |
 
@@ -224,7 +242,7 @@ The full enumeration is in actions.md.
 
 | Term | Means |
 |---|---|
-| **Scene** | a layer projected: `boxes`, `routes`, `slots`, `hits`, `bounds`, `frame`, `trail`. **Plain data, importing nothing drawable**, which is what makes a notation a pure function |
+| **Scene** | a layer projected: `nodes`, `edges`, `perches`, `slots`, `frame`, `trail`. **Plain data, importing nothing drawable**, which is what makes a notation a pure function |
 | **renderer** | anything turning a Scene into something you can look at. Three ship: React, text and SVG |
 | **`kit`** | **the one surface mndflow offers anything outside this repo.** The headless stack as one built package, plus one non-editing React `Viewer`. Packed, never published |
 | **file** | the graph in an envelope — `{ schema, id, graph, meta }`. **State, never history**: self-describing, readable without replaying anything, and byte-identical when nothing changed. **The only contract the outside gets** |
@@ -245,13 +263,13 @@ The full enumeration is in actions.md.
 | Closed — never add one | Open — extend by a code change, additively |
 |---|---|
 | the two element kinds: block, relationship | block modules, and the base definitions over them |
-| relation modules — `line`, `directed`, `reference`, `tie` | card layouts, style sets, routing strategies |
+| relation modules — `line`, `tie` | card layouts, style sets, routing strategies |
 | value forms — `text`, `number`, `flag`, `choice`, `link` | components, rule kinds |
 | arrangements — `free`, `grid` | definitions, which are data and cost nothing |
 | mutation ops | the action set and the adjustments, which are small by judgement rather than closed by decree |
 | host ports — `storage`, `files`, `net`, `score` | |
 
-**Two of the four relation modules are derived, not picked.** `line` and `directed` are chosen; `reference` and `tie` are assigned from what sits at the ends.
+**A relation module is derived, not picked.** A relationship with a note at either end is a `tie`; anything else is a `line`. Direction is a setting on a line, never a module.
 
 **A header role is derived, not picked, so it is in neither column.** `row`, `col` and `both` are the three answers a position can give; nobody chooses one and nothing stores one.
 
