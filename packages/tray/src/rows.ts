@@ -94,7 +94,8 @@ export type DefRow = {
   label: string;
   /** What it extends. */
   extends: Id;
-  /** Whether it is its kind's default, which every plain element follows. */
+  /** Whether it is the workspace's word about an outside definition, which stands in front of
+   *  that one everywhere it is reached. Its identity is that package's, so it is never renamed. */
   base: boolean;
   /** The package it came from, where somebody else wrote it. */
   from: string;
@@ -102,7 +103,9 @@ export type DefRow = {
   used: number;
 };
 
-/** Every definition the workspace can name, the defaults first and then by name. */
+/** **Every definition the workspace can name**, a package's and the floor's among them — the
+ *  workspace's own first, then by name. Hiding the floor only made `all` a smaller word for
+ *  `workspace`, and left the kinds every block descends from unreadable. */
 export function def_rows(graph: Graph): DefRow[] {
   const used = new Map<string, number>();
   const usages = [...Object.keys(graph.edges),
@@ -112,14 +115,12 @@ export function def_rows(graph: Graph): DefRow[] {
     if (d) used.set(d, (used.get(d) ?? 0) + 1);
   }
   return Object.values(graph.defs)
-    /** The shipped floor is not listed: nobody chose it, and nothing edits it. */
-    .filter((d) => !shipped(d))
     .map((d): DefRow => ({
-      id: d.id, group: d.group, name: d.default ? `default/${d.default}` : d.name,
+      id: d.id, group: d.group, name: d.name,
       label: d.label ?? "", extends: d.extends ?? "", base: d.default !== undefined,
       from: d.from ?? "", used: used.get(d.id) ?? 0,
     }))
-    .sort((a, z) => Number(z.base) - Number(a.base) || a.name.localeCompare(z.name));
+    .sort((a, z) => Number(!!a.from) - Number(!!z.from) || a.name.localeCompare(z.name));
 }
 
 /** One line, as the usages tab lists it. */

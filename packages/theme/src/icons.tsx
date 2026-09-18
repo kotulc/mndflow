@@ -43,7 +43,6 @@ const PATHS = {
   role_folder: "M3.5 7.5h6l2 2h9v9h-17z",
   // An external artifact — a page with an outward corner, distinct from
   // `role_reference` (another block in the model) and `role_note` (text here).
-  role_resource: "M6.5 6h9v12h-9zM15 6h3.5v3.5M15 6l3.5 3.5",
   // Somewhere else, a description, and a set — none of them structure here.
   // A reference is a solid corner pointing up and out of its own card: it
   // stands for something that lives elsewhere, and the mark says which way.
@@ -203,10 +202,8 @@ export function Icon({ name, size = 16, solid = false, className }: {
 
 /** Which icon each sort of card wears in its top corner. */
 export const ROLE_ICON: Record<string, IconName> = {
-  block: "role_leaf", container: "role_container", folder: "role_folder",
-  resource: "role_resource", reference: "role_reference",
-  interface: "role_interface", group: "role_group", grid: "role_table",
-  note: "role_note",
+  block: "role_leaf", folder: "role_folder", reference: "role_reference",
+  interface: "role_interface", group: "role_group", grid: "role_table", note: "role_note",
 };
 
 /** The icon for a role, falling back to the plain block's. */

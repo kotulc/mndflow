@@ -155,17 +155,18 @@ export type Relation = {
   /** No fields: what a connection says belongs to the blocks at its ends. */
 };
 
-/** Which block module the engine dispatches on. Three, because `folder`, `resource` and `note`
- *  turned out to be the plain block with different configuration, and `group` and `grid` turned
- *  out not to be blocks at all. */
+/** Which block module the engine dispatches on. Three, because `folder` and `note` turned out to
+ *  be the plain block with different configuration, and `group` and `grid` turned out not to be
+ *  blocks at all. */
 export type BlockModule = "block" | "reference" | "interface";
 
 export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "interface"];
 
-/** The shipped block bases. A kind is a definition, not a module: `folder`, `resource` and `note`
- *  differ from `block` by what they configure and nothing else. */
+/** The shipped block bases. A kind is a definition, not a module: `folder` and `note` differ from
+ *  `block` by what they configure and nothing else. **There is no `resource`**: every block may
+ *  point at external content through `source`, so a kind for it said nothing the slot does not. */
 export const BASE_BLOCKS: readonly Id[] = [
-  "block", "folder", "resource", "reference", "interface", "group", "grid", "note",
+  "block", "folder", "reference", "interface", "group", "grid", "note",
 ];
 
 /** The shipped relation bases. `tie` is a definition — a dashed run with no heads — which is what

@@ -59,7 +59,7 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
              alias: string;
              /** Per indent column, whether its guide line carries on past this row. */
              guides: boolean[] };
-type Mark = "leaf" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
+type Mark = "leaf" | "folder" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
   | "locked" | "vocabulary" | "workspace" | "package" | "line" | "tie";
 
 /** A library row before it is laid out: what it says, and what sits under it. */
@@ -78,8 +78,8 @@ const VOCAB = "@defs";
 
 /** Which mark a definition's base kind wears. */
 const KIND_MARK: Record<string, Mark> = {
-  block: "leaf", folder: "folder", resource: "resource", reference: "reference",
-  interface: "interface", group: "group", grid: "grid", note: "note", line: "line", tie: "tie",
+  block: "leaf", folder: "folder", reference: "reference", interface: "interface",
+  group: "group", grid: "grid", note: "note", line: "line", tie: "tie",
 };
 
 const GROUPS: readonly { group: Group; label: string }[] = [
@@ -167,8 +167,7 @@ function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
       const guides = [...held, n < kin.length - 1];
       out.push({ id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
-                 mark: base_of(graph, b.id) === "folder" ? "folder"
-                     : base_of(graph, b.id) === "resource" ? "resource" : "leaf",
+                 mark: base_of(graph, b.id) === "folder" ? "folder" : "leaf",
                  guides });
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });
@@ -209,7 +208,6 @@ function landing(graph: Graph, over: { id: Id; where: "in" | "above" | "below" }
 const MARK: Record<Mark, { icon: IconName; word?: true }> = {
   leaf: { icon: "role_leaf" },
   folder: { icon: "role_folder" },
-  resource: { icon: "role_resource" },
   interface: { icon: "role_interface" },
   reference: { icon: "role_reference" },
   note: { icon: "role_note" },
@@ -223,6 +221,21 @@ const MARK: Record<Mark, { icon: IconName; word?: true }> = {
   line: { icon: "relation_plain" },
   tie: { icon: "relation_tie" },
 };
+
+/** A section's own fold, at its root and set to the right: everything this heading holds, shut or
+ *  opened in one go. The panel has no fold of its own — each section answers for itself. */
+function Fold({ kin, folded, onFold }: {
+  kin: readonly Id[]; folded: readonly Id[]; onFold: (id: Id, shut: boolean) => void;
+}) {
+  if (!kin.length) return null;
+  const open = kin.some((id) => !folded.includes(id));
+  return (
+    <button className="fold" title={open ? "fold this section" : "open this section"}
+            onClick={(e) => { e.stopPropagation(); for (const id of kin) onFold(id, open); }}>
+      <Icon name={open ? "fold_all" : "unfold_all"} size={MARK_SIZE} />
+    </button>
+  );
+}
 
 export function Explorer(props: ExplorerProps) {
   const { graph, open, picked, folded, lit = [], onAct, onFold, onPick,
@@ -243,18 +256,36 @@ export function Explorer(props: ExplorerProps) {
   /** What is in hand off the workspace's shelf: definitions or folders to file. */
   const [shelving, set_shelving] = useState<readonly Id[]>([]);
 
+  /** Each section's own branches — the packages, the definitions, the workspace — so its root
+   *  folds what it heads and nothing else. Read off the tree fully open, so a shut branch's own
+   *  branches still count. */
+  const sections = useMemo(() => {
+    const all = tree_of(graph, [], !!onSection);
+    const out = new Map<Id, Id[]>();
+    for (let i = 0; i < all.length; i++) {
+      if (all[i]!.depth) continue;
+      const kin: Id[] = [];
+      for (let j = i; j < all.length && (j === i || all[j]!.depth > 0); j++) {
+        if (all[j]!.kids > 0) kin.push(all[j]!.id);
+      }
+      out.set(all[i]!.id, kin);
+    }
+    return out;
+  }, [graph, onSection]);
+
   /** A match inside a shut branch opens the way to it. */
   const shut = lit.length
     ? folded.filter((id) => !lit.some((m) => on_path(graph, m, id)))
     : folded;
   const rows = tree_of(graph, shut, !!onSection);
+  /** Whether anything at all stands open, which is what the bar's fold offers. */
+  const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
   /** Only blocks answer a block question. */
   const blocks = rows.filter((r) => r.of === "block");
   const one = picked.length === 1 ? picked[0]! : null;
   /** Where something new goes: what you picked, or where you are. */
   const holder = one && graph.blocks[one] && base_of(graph, one) !== "note" ? one : null;
   const target = holder ?? open ?? graph.root;
-  const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
   /** The layer a drop would join, and every row already in it. */
   const zone = landing(graph, over);
 
@@ -371,15 +402,16 @@ export function Explorer(props: ExplorerProps) {
           <button title={library ? `add a folder to ${where_to}` : `add a folder in ${shown_name(graph, target)}`}
                   disabled={library && !filing}
                   onClick={() => add("folder")}><Icon name="add_folder" /></button>
-          <button title={any_open ? "fold everything" : "open everything"}
-                  onClick={() => {
-                    for (const r of tree_of(graph, [], !!onSection)) {
-                      if (r.kids > 0) onFold(r.id, any_open);
-                    }
-                  }}><Icon name={any_open ? "fold_all" : "unfold_all"} /></button>
           <button title={library ? "remove the picked definition or folder" : "delete what is picked"}
                   disabled={!drop} onClick={() => drop?.()}><Icon name="remove" /></button>
         </span>
+        {/* Every collection at once, set where each collection's own fold sits. */}
+        <button className="fold" title={any_open ? "fold every collection" : "open every collection"}
+                onClick={() => {
+                  for (const r of tree_of(graph, [], !!onSection)) {
+                    if (r.kids > 0) onFold(r.id, any_open);
+                  }
+                }}><Icon name={any_open ? "fold_all" : "unfold_all"} size={MARK_SIZE} /></button>
       </div>
 
         <ul className="tree">
@@ -505,6 +537,9 @@ export function Explorer(props: ExplorerProps) {
                 ? <span className="label">{r.label}</span>
                 : <Name id={r.id} className="label" text={r.label} />}
               {r.alias ? <span className="alias">{r.alias}</span> : null}
+              {r.depth ? null : (
+                <Fold kin={sections.get(r.id) ?? []} folded={folded} onFold={onFold} />
+              )}
             </li>
           ))}
           <li className={`floor${out ? " out" : ""}`}

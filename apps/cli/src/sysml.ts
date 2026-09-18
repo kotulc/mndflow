@@ -7,7 +7,7 @@ import { children, edge_base, edges_in, empty_graph, is_interface, is_reference,
 /** What each block module is called, absent a definition that says otherwise. */
 const KEYWORD: Record<string, string> = {
   folder: "package", structure: "part", reference: "ref",
-  interface: "port", resource: "item", group: "package", note: "comment", view: "view",
+  interface: "port", group: "package", note: "comment", view: "view",
 };
 
 /** A relation module, as a keyword and back. */

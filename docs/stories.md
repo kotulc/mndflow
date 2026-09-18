@@ -14,7 +14,7 @@ not work.
 
 ### ST.4 — One block, and everything else is data
 
-Make a folder, a note, a resource, a group and a grid **without the app ever asking which *sort* of
+Make a folder, a note, a group and a grid **without the app ever asking which *sort* of
 thing you mean** — because there are no sorts, only eight kinds and the definitions over them. Style
 one block until it reads the way you want, save that as a definition, pin it, and make the next one
 from the pinned folder.
@@ -100,7 +100,7 @@ goes when the last consumer of it goes.*
 
 ### ST.5 — The workspace reaches outside itself
 
-Pull a package or a resource from a **public GitHub repo** and have it land as blocks you can use —
+Pull a package or a file from a **public GitHub repo** and have it land as blocks you can use —
 **not as a file you then have to import by hand**.
 
 ### ST.6 — A model becomes something else
@@ -216,7 +216,7 @@ Write a requirement's text, a part's description, a script's code **into the blo
 | | |
 |---|---|
 | **already half-built** | `Block.body` is in the schema, `set_body` folds it, `describe` writes it — and only the note reads it, with no surface offering it |
-| **every block** | a requirement is a block with a description; confining bodies to `resource` forces a wrapper element around everything worth documenting |
+| **every block** | a requirement is a block with a description; confining bodies to one kind forces a wrapper element around everything worth documenting |
 | **a note stays a module** | and for reasons that are not about text: it is the only ordinary card that resizes, and a relationship touching one is derived as a `tie`. What changes is only that it stops being the *sole* holder of a body |
 | **format is the definition's** | `Requirement` says markdown, `Script` says code. Not a new value form — the closed set stays as it is, and `body` is a slot beside `fields` |
 
@@ -246,7 +246,7 @@ Open any block and **find the thing it stands for in its body**: a definition's 
 |---|---|
 | **a definition** | its data — the stored definition, exactly as filed. Read only for now |
 | **an ordinary block** | text: a description, a requirement, the reason it exists |
-| **a script or a resource** | code, or what the resource points at |
+| **a script or an external file** | code, or what the block's `source` points at |
 
 | | |
 |---|---|
@@ -272,8 +272,8 @@ Open any block and **find the thing it stands for in its body**: a definition's 
 ## Out of scope, recorded so nothing is built on it
 
 - **Search results as a thing you look at.** Narrowing the workspace to a word and putting what matched on the stage — as a table, as a listing, anywhere. **Driven, and it was not useful**: the results were a second way of looking at blocks you can already see, and everything that supported them — the `filter` command, `matches`, the narrowing chip, the table view they presented through — cost more than they paid. Recorded rather than deleted because *finding a block by name* is a real want; what is out of scope is answering it with a view of its own. It comes back, if it does, as something the explorer does.
-- **Embedded content in a resource block** — a script, an image or a video carried *inside* the
-  project rather than pointed at. A resource block holds content; whether that content is inline or
+- **Embedded content in a block** — a script, an image or a video carried *inside* the
+  project rather than pointed at. A block holds content; whether that content is inline or
   a path is the open half, and **inline means the log carries bytes**, which is a durability and
   file-size decision nobody has taken.
 - **Local variation, for multi-user work.** Somewhere for a view to hold a change that never reaches
@@ -350,6 +350,6 @@ Kept while the migration runs, so an old document still reads.
 | **`ref`, the value form** | collided with the reference block | **`link`** |
 | **set** | mixedness was never the signal, and *set* collides with *style set* and *closed set* | **folder**, which is a definition |
 | **kind** (`structure` / `behavior` as classifiers) | the engine branched on something the glossary declared absent | the definition's `view` component says which modules apply |
-| **node**, **annotation**, **membership**, **hug**, **figure** | each restated something with a second word | block; a resource or a group; references; layout's business; gone |
+| **node**, **annotation**, **membership**, **hug**, **figure** | each restated something with a second word | block; a note or a group; references; layout's business; gone |
 | **a tie on a line** | a note is about a block; a relationship between a block and a relationship was a second geometry for one remark | a note tied to a block |
 | **`Relation.module` stored** | it could disagree with the ends | read from the ends |

@@ -4,10 +4,10 @@ The workspace explorer files the project: three collections drawn with one row, 
 | collection | mark | holds |
 |---|---|---|
 | **packages** | `Pkg` | what the workspace draws on, one row per package, each holding its *blocks* and its *relations* |
-| **definitions** | `ABC` | every definition the workspace can name, in three folders: *pinned*, *default* and *workspace* |
+| **definitions** | `Def` | the workspace's own definitions: *pinned*, then *blocks* and *relations* in the folders somebody made for them |
 | **the workspace** | a crate | the block tree. **The workspace is the one root** and carries the project's name; every top-level block is a branch under it |
 
-**The bar is tools only** — add, add folder, fold/unfold, delete — since the workspace names itself in the tree and is renamed there like any other row. Delete is never offered for the workspace. **The bar follows what is picked**: a block in the tree, and what it adds is a block; a library row, and what it adds is a definition or a folder for definitions, filed where the library is pointed.
+**The bar is tools only** — add, add folder, delete, then fold — since the workspace names itself in the tree and is renamed there like any other row. **Folding reads at two scales, down one column at the panel's right edge**: the bar's fold takes every collection at once, and each collection also folds itself from the far end of its own root row. Delete is never offered for the workspace. **The bar follows what is picked**: a block in the tree, and what it adds is a block; a library row, and what it adds is a definition or a folder for definitions, filed where the library is pointed.
 
 **The panel is dragged to its width** by the edge on its right, between a narrow margin and a third of the window, and the cap is restated in CSS so a window resized narrower gives the drawing its two thirds back without anybody dragging anything.
 
@@ -30,8 +30,8 @@ The workspace explorer files the project: three collections drawn with one row, 
 |---|---|
 | **packages**, or one package | every definition a package brought, or that one's |
 | **definitions** | every definition |
-| **pinned**, **default**, **workspace** | that folder's |
-| **blocks** or **relations**, under either | that group's, in that folder |
+| **pinned** | the pinned definitions |
+| **blocks** or **relations** | that group's |
 | a folder somebody made | its group's, in the workspace |
 | one definition | that definition, opened on its element tab |
 
@@ -54,8 +54,7 @@ A minimal file tree with each block name after its mark. The open layer is highl
 | folder | mark | lists |
 |---|---|---|
 | **pinned** | pin | the block definitions the workspace **pinned**, in pin order. Unpinning takes one out of the folder and leaves the definition standing |
-| **default** | lock | the workspace's default for every kind, relations included. The system's: never renamed, removed or filed elsewhere |
-| **workspace** | a crate | its own definitions, *blocks* and *relations* apart, in the folders somebody made for them |
+| **blocks**, **relations** | folder | its own definitions of that group, in the folders somebody made for them. **A word about a package's definition is filed here too** — somebody wrote it, so it is theirs |
 
 - **Picking a row holds that definition in the tray**, on its element tab.
 - **The workspace's own are filed by hand.** Add and remove definitions and folders from the bar, drag one into a folder or between two rows to file and order it, and rename either in place on a double click. **A package is frozen** and the system's folders are the system's, so neither takes a drop.

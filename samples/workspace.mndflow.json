@@ -137,8 +137,7 @@
         "id": "b_res",
         "parent": "b_loop",
         "name": "Coolant",
-        "type": "resource",
-        "alias": 1,
+        "alias": 9,
         "order": 8,
         "x": 168,
         "y": 192
@@ -222,10 +221,9 @@
         "name": "workspace",
         "type": "folder",
         "counters": {
-          "block": 8,
+          "block": 9,
           "note": 1,
           "reference": 1,
-          "resource": 1,
           "relation": 3,
           "folder": 1,
           "group": 1,

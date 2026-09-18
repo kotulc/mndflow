@@ -35,7 +35,7 @@
 
 | | Is |
 |---|---|
-| `room.ts` | the room a layer is drawn in, and the camera that flies to it |
+| `room.ts` | the room a layer is drawn in, and the camera that flies to it. **A room that changed size is framed again** — the tray opening or shutting, the explorer dragged — unless there is no room left to fit into |
 | `sync.ts` | React Flow's copy of the arrays, kept in step with the Scene and the selection |
 | `draw.ts` | the right button: a relationship from a card, a grid across the ground |
 | `drag.ts` | what travels with a dragged node, what is lit, and the adjustment a drop makes |

@@ -1,7 +1,7 @@
 /** The definitions and types tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, block_base, pinned_defs, relation_base, shipped,
+import { def_named, def_of, isa, block_base, pinned_defs, relation_base,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { types_for } from "./holder";
@@ -62,7 +62,9 @@ export function Definitions({ graph, about, held, lines, target = "the selection
 
   /** An element lists what it may follow; the workspace lists everything, narrowed by chips. */
   const fitting = about ? new Set(types_for(graph, about).map((d) => d.id)) : null;
-  const all = def_rows(graph).filter((r) => !fitting || fitting.has(r.id));
+  /** Every definition there is, which is what a chain may be extended from. */
+  const every = def_rows(graph);
+  const all = fitting ? every.filter((r) => fitting.has(r.id)) : every;
   const pinned = new Set([...pinned_defs(graph, "block"), ...pinned_defs(graph, "relation")]
     .map((d) => d.id));
   const in_folder = (r: DefRow, k: Only) =>
@@ -95,13 +97,11 @@ export function Definitions({ graph, about, held, lines, target = "the selection
   /** What a definition may extend: never itself or below it, and a default only within its kind. */
   const kind = (id: Id) => (graph.defs[id]?.group === "relation" ? relation_base(graph, id)
                                                                   : block_base(graph, id));
-  const above = (g: "block" | "relation", self: Id | null) => [
-    ...Object.values(graph.defs).filter((d) => d.group === g && shipped(d))
-      .map((d) => ({ id: d.id, name: `base/${d.name}` })),
-    ...all.filter((r) => r.group === g)]
+  const above = (g: "block" | "relation", self: Id | null) => every
+    .filter((r) => r.group === g)
     .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)
       && (graph.defs[self]?.default === undefined || kind(r.id) === graph.defs[self]!.default)))
-    .map((r) => ({ value: r.id, word: r.name }));
+    .map((r) => ({ value: r.id, word: r.from ? `${r.from}/${r.name}` : r.name }));
 
   /** A new definition extends its group's base until another is picked. */
   const base = one === "relation" ? "line" : "block";
@@ -125,6 +125,8 @@ export function Definitions({ graph, about, held, lines, target = "the selection
       empty="nothing of that sort"
       chips={chips}
       rows={rows.map((r) => {
+        /** The workspace's own, so its identity is the workspace's to change. A word about an
+         *  outside definition is the workspace's too, but wears that one's name. */
         const mine = !r.from;
         const def = graph.defs[r.id]!;
         return {
@@ -141,7 +143,7 @@ export function Definitions({ graph, about, held, lines, target = "the selection
               <Entry value={r.label} label={`label of ${r.name}`} placeholder="no label" blank
                      onCommit={(to) => onAct("define", { name: def.name, group: r.group, label: to })} />
             ) : r.label,
-            extends: !mine ? graph.defs[r.extends]?.name ?? "" : (
+            extends: !mine || r.base ? graph.defs[r.extends]?.name ?? "" : (
               <Choice value={r.extends} label={`what ${r.name} extends`} of={above(r.group, r.id)}
                       onPick={(id) => onAct("define", { name: def.name, group: r.group, extends: id })} />
             ),
@@ -159,8 +161,10 @@ export function Definitions({ graph, about, held, lines, target = "the selection
               {`apply to ${target}`}
             </button>
           ) : null,
-          /** Removing keeps how its usages draw; the tray moves to what it extended. */
-          ...(mine && !r.base ? { drop: `remove ${r.name}`, onDrop: () => {
+          /** Removing keeps how its usages draw; the tray moves to what it extended. Dropping a
+           *  word about an outside definition gives that package's own word back. */
+          ...(mine ? { drop: r.base ? `give ${r.name} back to ${graph.defs[def.default!]?.from ?? "its package"}`
+                                    : `remove ${r.name}`, onDrop: () => {
             onAct("remove_def", { id: r.id });
             if (r.extends && r.id === held) onPick(r.extends);
           } } : {}),

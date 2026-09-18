@@ -263,7 +263,7 @@ export function packages(graph: Graph): { from: Id; name: string; defs: Definiti
 }
 
 /** The bases a block moves among freely; every other base is fixed when it is made. */
-const OPEN: readonly Id[] = ["block", "folder", "resource", "note"];
+const OPEN: readonly Id[] = ["block", "folder", "note"];
 
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {

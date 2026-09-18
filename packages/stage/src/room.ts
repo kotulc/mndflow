@@ -92,6 +92,18 @@ export function useCamera(scene: Scene, frame: Frame | null, fit: { padding: num
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  /** The room changed size — the tray opened or shut, the explorer was dragged — so frame the
+   *  drawing again. **A stage with no room left is left alone**: a tray taken to the full height
+   *  leaves nothing to fit into, and fitting into it would only throw the camera away. */
+  const sized = useRef<string>("");
+  useEffect(() => {
+    const now = `${seen.w}x${seen.h}`;
+    const before = sized.current;
+    sized.current = now;
+    if (!before || before === now || seen.w < BAND * 2 || seen.h < BAND * 2) return;
+    settle(still() ? 0 : FLIGHT);
+  }, [seen, settle]);
+
   /** At the root, the camera opens out when the drawing outgrows it. */
   const took = useRef<{ of: Id | null; box: string } | null>(null);
   useEffect(() => {

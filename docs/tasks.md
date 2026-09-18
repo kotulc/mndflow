@@ -9,8 +9,8 @@
 
 | | |
 |---|---|
-| **checks** | `npm run typecheck` clean, `npx vitest run` 361 in 13 files, `npm run lint:css` clean, the web app builds, and the CLI's `check` reads both samples clean |
-| **the model** | **three element kinds** — blocks, relations and holders. **Three block modules** (`block`, `reference`, `interface`), each read from a stored field; a **kind** is a definition, and the `base` package ships eight. One editable **default** per base that every plain element follows |
+| **checks** | `npm run typecheck` clean, `npx vitest run` 363 in 13 files, `npm run lint:css` clean, the web app builds, and the CLI's `check` reads both samples clean |
+| **the model** | **three element kinds** — blocks, relations and holders. **Three block modules** (`block`, `reference`, `interface`), each read from a stored field; a **kind** is a definition, and the `base` package ships seven. **There is no `resource`** — every block carries a `source`, so a kind for external content named a slot rather than a sort of thing |
 | **capabilities** | `rules` split into `allows` — ports, holds, members, degree, ends, refused at the gesture — and `expects` — required, match, advice only |
 | **holders** | boundaries and grids left `Block` for `graph.holders`. Membership stays on the block (`group`, `cell`, `header`); `set_holder` and `drop_holder` replaced the six grid ops |
 | **relations** | `line` and `tie`, both **definitions rather than modules**, derived from the ends and re-derived at the door. Both ends are blocks |
@@ -19,8 +19,10 @@
 | **content** | a first-class `source` slot — uri, anchor, revision — written by the `source` action. Provenance, never a link the app follows |
 | **marks** | the card icon keeps the top corner and fills when a card holds parts; the bottom corner writes `Ref`, `Def`, `Pkg` or `Ext`. The treemap is gone and every card is one height |
 | **the door checks, it does not migrate** | integrity, component validation, one default per base, a definition extending nothing pointed at its base, holders whose layer is gone, and duplicate package names. A schema change re-saves the samples |
-| **the explorer** | packages — `base` included — then definitions with `pinned`, `default`, `blocks` and `relations` directly under it, then the workspace tree |
+| **the explorer** | packages — `base` included — then definitions with `pinned`, `blocks` and `relations` directly under it, then the workspace tree. **Folding reads at two scales, down one column at the right edge**: the bar's fold takes every collection, and each collection also folds itself from the far end of its own root row |
 | **storage** | the log in IndexedDB, each body kept once by SHA-256 hash, loaded before the app mounts. One gesture is one step, through `session.batch` |
+| **the definitions tab** | **lists every definition there is**, a package's and the floor's beside the workspace's own. Hiding the floor had made *all* a smaller word for *workspace* and left the kinds every block descends from unreadable |
+| **the page** | the explorer's bar, the tray's and the options rail's are one height, and the tray drops its top rule at full height, so the three read as one line across. Under the tray's tabs a gutter each side holds its content off both rails; the tab strip spans the tray. Opening or shutting the tray frames the drawing again — taking the full height does not, since no room is left to fit into |
 | **what is proven** | the suites cover the engine, the door, the grid, geometry, the seam and the two card corners. **The refactor's own defects were found by reading, not by the suite** — holder identity, `graft` carrying holders, and the mark rule had no test and each was broken at some point |
 
 

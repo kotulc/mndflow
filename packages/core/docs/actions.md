@@ -42,7 +42,7 @@ Thirty-nine, two of them navigation.
 
 **`create` makes a holder where the type names one.** `group` and `grid` are holder shapes, so `create` writes a `set_holder` rather than an `add_block`; everything else is a block.
 
-**`retype` keeps a kind a kind, and `block`, `folder`, `resource` and `note` are one kind.** Those four are the open family and a block moves among them freely; every other kind carries something a change of type cannot invent, so it is fixed when the block is made. A run is retyped only to relation definitions of its own base, and a block never names a relation definition. A base or a default is stored as plain.
+**`retype` keeps a kind a kind, and `block`, `folder` and `note` are one kind.** Those three are the open family and a block moves among them freely; every other kind carries something a change of type cannot invent, so it is fixed when the block is made. A run is retyped only to relation definitions of its own base, and a block never names a relation definition. A base or a default is stored as plain.
 
 **`rename` on a line files a new definition over the one it follows**, and moves the line onto it — the same gesture a block's *definition* row makes, since a line is named by its definition and never for itself. The new one extends what the line followed and keeps a label of its own, while a label that only repeated the old name follows the new one. **A definition is renamed in place** with `rename_def`, where every usage reads the new name. A name already taken in the group is refused.
 

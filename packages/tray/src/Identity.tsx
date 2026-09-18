@@ -1,7 +1,7 @@
 /** What one thing is: the identity rows of the element tab. */
 
-import { BASE_PACKAGE, def_of, isa, kind_word, block_base, outside, relation_base, shipped,
-         type Act, type Definition, type Graph, type Id } from "@mnd/core";
+import { BASE_PACKAGE, def_of, isa, kind_word, block_base, outside, pinned_defs, relation_base,
+         shipped, type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
 import { taken } from "./Definitions";
@@ -21,6 +21,7 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed, wip } = defined(graph, id, it, runs);
   const drafted = id === DRAFT;
+  const listed = pinned_defs(graph, runs ? "relation" : "block").some((x) => x.id === own?.id);
 
   /** Where a definition sits, pinned ones under their folder. */
   const path = (x: Definition) => where(x, (graph.blocks[graph.root]?.pinned ?? []).includes(x.id));
@@ -144,6 +145,20 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
           <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
             <Tags tags={(b ?? edge)!.tags ?? []}
                   onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
+          </Line>
+        ) : null}
+
+        {/* Options: the boxes, what is true of this thing as against what it is. */}
+        {own && !fixed ? (
+          <Line label="options" className="options">
+            <label className="check"
+                   title={runs ? "Offer this on the rail, so a right drag can draw one"
+                               : "List this in the explorer's pinned folder"}>
+              <input type="checkbox" checked={listed} disabled={own.id === DRAFT || wip}
+                     onChange={(e) => onAct("pin", { id: own.id,
+                                                     on: e.target.checked ? "yes" : "no" })} />
+              pinned
+            </label>
           </Line>
         ) : null}
       </Body>

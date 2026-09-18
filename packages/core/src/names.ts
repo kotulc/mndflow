@@ -7,8 +7,8 @@ import { BASE_BLOCKS, type Block, type Graph, type Id } from "./types";
 
 /** The word each base reads as when nothing is named; a boundary has none. */
 const WORD: Record<string, string> = {
-  block: "Block", folder: "Folder", resource: "Resource",
-  interface: "Interface", reference: "Reference", group: "", grid: "", note: "Note",
+  block: "Block", folder: "Folder", interface: "Interface", reference: "Reference",
+  group: "", grid: "", note: "Note",
 };
 
 export function kind_word(graph: Graph, b: Block): string {
@@ -21,7 +21,7 @@ export function kind_word(graph: Graph, b: Block): string {
 
 /** Which letter each kind's handles run under. */
 export const ALIAS_LETTER: Record<string, string> = {
-  block: "B", folder: "F", resource: "E", interface: "I", reference: "R",
+  block: "B", folder: "F", interface: "I", reference: "R",
   group: "G", grid: "D", note: "N", relation: "L",
 };
 
@@ -99,10 +99,9 @@ export function label_of(graph: Graph, id: Id): string {
 
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
  *  own over it with `card.icon`; this is what it draws when nobody has. */
-export type Role = "block" | "folder" | "resource" | "reference"
-                 | "interface" | "group" | "grid" | "note";
+export type Role = "block" | "folder" | "reference" | "interface" | "group" | "grid" | "note";
 
-const ROLES: readonly string[] = ["block", "folder", "resource", "reference", "interface", "note"];
+const ROLES: readonly string[] = ["block", "folder", "reference", "interface", "note"];
 
 export function role_of(graph: Graph, id: Id): Role {
   const held = graph.holders[id];

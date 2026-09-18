@@ -14,6 +14,9 @@
 .tray.open { height: 25%; }
 /* Full height, when the body has more to say than a quarter of the window. */
 .tray.open.big { height: 100%; }
+/* At full height there is nothing above to be ruled off from, and the rule would only set the
+   bar a pixel below the explorer's and the options rail's. */
+.tray.big { border-top: none; }
 
 /* A step above the body it heads. */
 .tray-bar {
@@ -21,7 +24,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 8px 4px 6px;
+  min-height: var(--bar, 29px);
+  padding: 0 8px 0 6px;
   border-bottom: 1px solid var(--divider);
   background: var(--surface);
   color: var(--accent);
@@ -78,7 +82,9 @@
 .tray-tools button:hover { color: var(--accent); }
 .tray-tools button.on { color: var(--accent); }
 
-/* The body scrolls down, never sideways, and its tabs lay out by its width. */
+/* The body scrolls down, never sideways, and its tabs lay out by its width. A gutter each side
+   holds what is under the tabs off the explorer and the options rail; the tabs themselves span
+   the tray, since the strip they sit on is the tray's own edge to edge. */
 .tray-body {
   container: tray / inline-size;
   display: flex;
@@ -86,6 +92,7 @@
   min-height: 0;
   overflow: hidden;
   flex: 1;
+  padding-inline: 10px;
   background: var(--bg);
 }
 
@@ -155,7 +162,9 @@
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  padding: 4px 6px 0;
+  /* Back out through the body's gutter, so the strip reaches both edges. */
+  margin-inline: -10px;
+  padding: 4px 10px 0;
   border-bottom: 1px solid var(--divider);
   background: var(--bg);
 }
@@ -253,12 +262,20 @@
 .panel > .col { grid-area: rows; display: flex; flex-direction: column; min-width: 0; }
 .panel > .content { grid-area: body; padding: 0; }
 
-/* The drawing over what kind it is. */
-.drawing { display: flex; flex-direction: column; gap: 4px; padding: 0 8px; }
+/* What it is, over the drawing that says it. */
+.drawing { display: flex; flex-direction: column; gap: 4px; padding: 0 8px; min-height: 0; }
 
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-card, .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
+
+/* On the element tab the card takes whatever height the identity column set, so the two columns
+   read as one block rather than a small picture beside a long list. A run keeps its own size and
+   sits in the middle of that space: a line has no height to fill. */
+.panel.element { align-items: stretch; }
+.panel.element > .drawing > .preview { flex: 1; min-height: 48px; display: flex;
+                                       align-items: center; }
+.panel.element > .drawing > .preview > .preview-card { align-self: stretch; }
 
 .kind-rows { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 11px; }
 .kind-rows .holder {

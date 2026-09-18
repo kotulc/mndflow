@@ -4,7 +4,7 @@
 
 | | Ships |
 |---|---|
-| `base` | one definition per block module — `block`, `folder`, `resource` and the derived kinds — and one per relation module, `line` and `tie`. **Shipped and locked, and the engine knows it by id**. Built in code, in `src/base.ts` |
+| `base` | one definition per block kind — `block`, `folder`, `note` and the derived kinds — and one per relation module, `line` and `tie`. **Shipped and locked, and the engine knows it by id**. Built in code, in `src/base.ts` |
 | `requirements` | a worked vocabulary: a shall statement and a verification method |
 | `sysml` | formal `names` and stereotypes over the base definitions |
 

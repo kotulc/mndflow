@@ -13,14 +13,15 @@ The engine code that interprets a block. **Three, and each is read from a stored
 - **interface** — `side` is set
 
 ### Block Kinds
-**A kind is a definition, not a module.** The `base` package ships eight, and everything a user or package defines extends one. What separates most of them is what they *allow*, which is data.
+**A kind is a definition, not a module.** The `base` package ships seven, and everything a user or package defines extends one. What separates most of them is what they *allow*, which is data.
 
 **Open** — the plain block with different configuration, so one becomes another by saying so:
 
 - **Block** - the base kind, and what an ordinary block is
 - **Folder** - an organizational unit: the workspace, a project, a folder
-- **Resource** - a file, script, data file, image or external artifact
 - **Note** - a card of text, its own height, holding nothing
+
+**There is no `resource` kind.** A file, a script or an image is a block whose `source` says where it came from — which every block may carry, so a kind for it named a slot rather than a sort of thing. What marks one out is the `Ext` stamp, not its chain.
 
 **Derived** — each carries a stored field a change of type cannot invent, so one is arrived at by *making* one and never by retyping into it:
 

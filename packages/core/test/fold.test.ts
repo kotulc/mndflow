@@ -119,11 +119,10 @@ describe("references", () => {
 });
 
 /** The cascade, and the one rule it exists to make true. */
-/** The base kinds, as the eight definitions that name them. */
-const BASE: Definition[] = ["block", "folder", "resource", "reference",
+/** The base kinds, as the seven definitions that name them. */
+const BASE: Definition[] = ["block", "folder", "reference",
                             "interface", "group", "grid", "note"].map((name) => ({
   id: name, group: "block" as const, name,
-  ...(name === "note" ? { extends: "resource" } : {}),
   components: { block: { module: name } },
 }));
 
@@ -152,7 +151,6 @@ describe("definitions cascade", () => {
         components: { style: { slot: "muted" } } },
     ]);
     expect(block_base(graph, "d_bin")).toBe("folder");
-    /** A note names its own kind while extending a resource for its look. */
     expect(block_base(graph, "note")).toBe("note");
   });
 });
@@ -168,9 +166,9 @@ describe("what a block may become", () => {
     expect(base_of(s.graph(), id)).toBe("block");
   });
 
-  /** Block, folder, resource and note are one open family: none carries a field a retype
-   *  cannot invent, so each is the plain block with different configuration. */
-  it.each(["folder", "resource", "note"])("makes a block a %s", (type) => {
+  /** Block, folder and note are one open family: none carries a field a retype cannot invent,
+   *  so each is the plain block with different configuration. */
+  it.each(["folder", "note"])("makes a block a %s", (type) => {
     const s = kinds();
     s.go("create", { name: "A" });
     const id = children(s.graph(), ROOT)[0]!.id;

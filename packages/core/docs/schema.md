@@ -129,7 +129,7 @@ Shelved {
 
 **The shelf is one ordered list, and order is the list's.** An entry with a `name` is a folder; one without says where a definition sits. **Only the workspace's own definitions are filed** — a base, a default and a package's are the system's, and where they read is fixed. A definition nobody filed sits at its group's top, by name, so an untouched workspace writes no shelf at all.
 
-**Block modules** — engine code behind one sort of block. **Three, and each is read from a stored field rather than from configuration**: `block` is the base, `reference` is `of` being set, `interface` is `side` being set. A **kind** is a definition, not a module — the `base` package carries eight, and everything a user or package defines **extends** one of them.
+**Block modules** — engine code behind one sort of block. **Three, and each is read from a stored field rather than from configuration**: `block` is the base, `reference` is `of` being set, `interface` is `side` being set. A **kind** is a definition, not a module — the `base` package carries seven, and everything a user or package defines **extends** one of them.
 
 | | Holds | Is |
 |---|---|---|
@@ -137,12 +137,11 @@ Shelved {
 | `block` | parts and references | the base kind, and the one every ordinary block is. What there is, how it is composed, and what it does |
 | `reference` | nothing | a stand-in for a block living elsewhere. `of` is the whole of it |
 | `interface` | anything | a block seated on an edge. The one anchor for every port-like thing — a proxy port, a full port, a pin, a constraint parameter |
-| `resource` | a workspace-relative path or link | a file, a script, a data file, an image |
 | `group` | any block on its layer | a boundary round a set — a swimlane, a region, a package boundary. **A holder, not a block** |
 | `grid` | any block, one to a cell | a region of the lattice with an extent. **A holder, not a block** |
 | `note` | text | a remark about one block, drawn as a card of its text and tied to it |
 
-**Eight kinds, in two families.** `block`, `folder`, `resource` and `note` are **open** — they are the plain block module with different configuration, so `retype` swaps among them and among any of their subtypes. `reference` and `interface` are **derived**: each carries a stored field a change of type cannot invent, so one is made rather than retyped into, and subtyping such a kind means making one and customizing it. `group` and `grid` name **holder shapes**, and ship a look rather than a module.
+**Seven kinds, in two families.** `block`, `folder` and `note` are **open** — they are the plain block module with different configuration, so `retype` swaps among them and among any of their subtypes. `reference` and `interface` are **derived**: each carries a stored field a change of type cannot invent, so one is made rather than retyped into, and subtyping such a kind means making one and customizing it. `group` and `grid` name **holder shapes**, and ship a look rather than a module.
 
 **There is no untyped block.** A block naming no definition *is* a `block` — the field being absent is how a file stays small, never a second sort of thing, and every reader resolves it to the kind's own definition. `view` is reserved rather than shipped.
 
@@ -468,11 +467,11 @@ expects {
 - **A reference points at what it stands for, and nothing points back.** Upward is a derived query, asked of the graph, because a stored back-reference would leave an exported subtree pointing at things that did not travel with it.
 - **Nesting is one rule.** A cell seats one card and a holder is not a card, so a grid inside a swimlane is ordinary and a grid inside a grid is not.
 
-**The eight base kinds read in three groups:**
+**The seven base kinds read in three groups:**
 
 | | Kinds | Role |
 |---|---|---|
-| **the block** | `block`, `folder`, `resource` | owns a tree. What a usage of it *means* is its definition's |
+| **the block** | `block`, `folder` | owns a tree. What a usage of it *means* is its definition's |
 | **holder shapes** | `group`, `grid` | hold blocks on one layer without owning them, as their own element kind |
 | **accessories** | `reference`, `interface`, `note` | own no tree of parts |
 

@@ -265,8 +265,7 @@
         "id": "block_ht3r5k5pz2lg",
         "parent": "block_d7b79oajslu5",
         "name": "resource A",
-        "type": "resource",
-        "alias": 1,
+        "alias": 25,
         "header": true,
         "looks": {
           "style": {
@@ -546,9 +545,8 @@
         "type": "folder",
         "arrangement": "grid",
         "counters": {
-          "block": 24,
+          "block": 25,
           "folder": 3,
-          "resource": 1,
           "group": 5,
           "note": 1,
           "grid": 5,
