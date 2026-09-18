@@ -1,7 +1,7 @@
 /** The definitions and types tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, block_base, packages, pinned_defs, relation_base, shipped,
+import { def_named, def_of, isa, block_base, pinned_defs, relation_base, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { types_for } from "./holder";
@@ -9,7 +9,9 @@ import { Choice, Table, type Chips, type Column } from "./Table";
 import { def_rows, type DefRow } from "./rows";
 
 /** Which of the explorer's library folders a listing is narrowed to. */
-export type Only = "all" | "pinned" | "default" | "workspace" | "packages";
+/** Where the tray was pointed. `packages` is a target the explorer sends, never a chip:
+ *  a package's definitions read in the explorer, and its tab says what is drawn on. */
+export type Only = "all" | "pinned" | "workspace" | "packages";
 
 /** A narrowing of the library: a folder, a group, a package. */
 export type Shelf = { only: Only; group?: "block" | "relation"; from?: string;
@@ -17,8 +19,8 @@ export type Shelf = { only: Only; group?: "block" | "relation"; from?: string;
                       folder?: Id };
 
 const FOLDERS: readonly { key: Only; word: string }[] = [
-  { key: "all", word: "all" }, { key: "pinned", word: "pinned" }, { key: "default", word: "default" },
-  { key: "workspace", word: "workspace" }, { key: "packages", word: "packages" },
+  { key: "all", word: "all" }, { key: "pinned", word: "pinned" },
+  { key: "workspace", word: "workspace" },
 ];
 
 const GROUPS = [
@@ -52,7 +54,8 @@ export function Definitions({ graph, about, held, lines, target = "the selection
                               seed = { only: "all" } }: DefinitionsProps) {
   const [only, set_only] = useState<Only>(seed.only);
   const [group, set_group] = useState<"all" | "block" | "relation">(seed.group ?? "all");
-  const [from, set_from] = useState<string>(seed.from ?? "all");
+  /** Which package, where the explorer pointed at one. No chip picks it. */
+  const from = seed.from ?? "all";
   const [name, set_name] = useState("");
   const [label, set_label] = useState("");
   const [up, set_up] = useState<Id | null>(null);
@@ -65,8 +68,7 @@ export function Definitions({ graph, about, held, lines, target = "the selection
   const in_folder = (r: DefRow, k: Only) =>
     k === "all" ? true
     : k === "pinned" ? pinned.has(r.id)
-    : k === "default" ? r.base
-    : k === "workspace" ? !r.from && !r.base
+    : k === "workspace" ? !r.from
     : !!r.from && (from === "all" || r.from === from);
   const in_group = (r: DefRow, g: string) => g === "all" || r.group === g;
   const rows = fitting ? all : all.filter((r) => in_folder(r, only) && in_group(r, group));
@@ -80,10 +82,6 @@ export function Definitions({ graph, about, held, lines, target = "the selection
       of: GROUPS.map((g) => ({ ...g, count: all.filter((r) => in_folder(r, only) && in_group(r, g.key)).length })) },
     { key: "folder", on: only, onPick: (k) => set_only(k as Only),
       of: FOLDERS.map((f) => ({ ...f, count: all.filter((r) => in_group(r, group) && in_folder(r, f.key)).length })) },
-    /** The packages folder narrows once more, by package. */
-    ...(only === "packages" ? [{ key: "from", on: from, onPick: set_from,
-      of: [{ key: "all", word: "any package" },
-           ...packages(graph).map((p) => ({ key: p.from, word: p.name }))] }] : []),
   ];
 
   const columns: Column[] = [

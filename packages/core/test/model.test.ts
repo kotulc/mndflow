@@ -4,7 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { seed } from "@mnd/defs";
 import { FLOOR } from "@mnd/fixtures";
-import { BASE_BLOCKS, ROOT, check, children, def_of, default_for, edge_base, open, session,
+import { BASE_BLOCKS, ROOT, check, children, config_of, def_named, def_of, default_for,
+         edge_base, open, session,
          write, type Id, type Session } from "../src/index";
 
 /** A seeded session holding blocks of these names on the root layer. */
@@ -18,18 +19,59 @@ function made(...names: string[]): { s: Session; at: (name: string) => Id } {
 /** The relation the last step added. */
 const newest = (s: Session): Id => Object.keys(s.graph().edges).at(-1)!;
 
-describe("defaults", () => {
-  it.each(BASE_BLOCKS)("lays one default for the %s base", (kind) => {
+/** The workspace's own word about a base: minted by the first edit to that base, and nothing
+ *  before it. The base itself is never written. */
+describe("what stands in front of a base", () => {
+  it.each(BASE_BLOCKS)("lays nothing for the %s base until one is asked for", (kind) => {
     const { s } = made();
-    expect(default_for(s.graph(), kind)).toBeDefined();
+    expect(default_for(s.graph(), kind)).toBeUndefined();
   });
 
-  it("resolves a plain block through its kind's default", () => {
+  it("resolves a plain block through the base while nobody has said otherwise", () => {
     const { s, at } = made("Pump");
-    expect(def_of(s.graph(), at("Pump"))).toBe(default_for(s.graph(), "block"));
+    expect(def_of(s.graph(), at("Pump"))).toBe("block");
   });
 
-  it("writes no untouched default into a file", () => {
+  it("mints one on the first edit, and leaves the floor alone", () => {
+    const { s, at } = made("Pump");
+    expect(s.go("look", { ids: ["block"], key: "style", name: "family",
+                          value: "primary" })).toBeNull();
+    const over = default_for(s.graph(), "block");
+    expect(over).toBeDefined();
+    expect(s.graph().defs["block"]!.components?.["style"]?.["family"]).toBe("primary");
+    expect(s.graph().defs[over!]!.components?.["style"]?.["family"]).toBe("primary");
+    /** A plain block now reads through it. */
+    expect(def_of(s.graph(), at("Pump"))).toBe(over);
+  });
+
+  it("reaches a subtype of the base, not only what named nothing", () => {
+    const { s } = made();
+    s.go("define", { name: "Machine", group: "block" });
+    const machine = def_named(s.graph(), "Machine", "block")!.id;
+    s.go("look", { ids: ["block"], key: "style", name: "family", value: "primary" });
+    expect(config_of(s.graph(), machine, "style")["family"]).toBe("primary");
+  });
+
+  /** A package's definition is overridden exactly as the floor's is: a package is a set of
+   *  definitions, and nothing about the floor makes it a different sort of one. */
+  it("overrides a package's definition the same way", () => {
+    const { s } = made();
+    s.go("define", { name: "Part", group: "block" });
+    const part = def_named(s.graph(), "Part", "block")!.id;
+    /** Stand it in for a package's, the way a graft would. */
+    s.go("package", { name: "sysml", defs: "Part" });
+    s.go("define", { name: "Pump", group: "block", extends: "Part" });
+    const pump = def_named(s.graph(), "Pump", "block")!.id;
+
+    expect(s.go("look", { ids: [part], key: "style", name: "family",
+                          value: "away" })).toBeNull();
+    /** Theirs is untouched, and everything below reads the word about it. */
+    expect(s.graph().defs[part]!.components?.["style"]).toBeUndefined();
+    expect(config_of(s.graph(), pump, "style")["family"]).toBe("away");
+    expect(default_for(s.graph(), part)).toBeDefined();
+  });
+
+  it("writes nothing into a file while nothing has been said", () => {
     const { s } = made("Pump");
     const file = JSON.parse(write(s.graph()));
     expect(Object.values(file.graph.defs)).toEqual([]);

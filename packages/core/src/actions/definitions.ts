@@ -1,14 +1,15 @@
 /** Fields, definitions, pinning, and giving looks back. */
 
-import { BASE_PACKAGE, def_named, def_of, isa, base_of, ordered_by, package_named, package_of,
-         plain_type, schema_of, shipped, stored_type } from "../defs";
+import { BASE_PACKAGE, def_named, def_of, isa, base_of, ordered_by, outside, package_named,
+         package_of, plain_type, schema_of, shipped, stored_type } from "../defs";
 import { DRAWN } from "../components";
 import { shelf_of } from "../shelf";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
          type Mutation, type ValueForm } from "../types";
 import { new_id } from "../ids";
 import { register } from "./registry";
-import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text } from "./helpers";
+import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text,
+         writable } from "./helpers";
 
 register(
   {
@@ -27,7 +28,7 @@ register(
            { name: "to", form: "text" }],
     check: (ctx, args) => {
       if (!text(args, "name")) return "a field needs a name";
-      const why = holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder"));
+      const why = holds_values(ctx, args);
       if (why) return why;
       const to = text(args, "to");
       const holder = id_of(args, "holder");
@@ -56,7 +57,9 @@ register(
           ? { choices: list(args["choices"]).length ? list(args["choices"]) : undefined } : {}),
       };
       const next = had ? fields.map((f) => (f.name === name ? field : f)) : [...fields, field];
-      if (d) return { mutations: [{ op: "set_def", def: { ...d, fields: next } }] };
+      /** A package's definition is never written: the edit lands on the word about it. */
+      if (d) return { mutations: [{ op: "set_def",
+                                    def: { ...writable(ctx, holder)!, fields: next } }] };
       if (to === name) return { mutations: [{ op: "set_field", id: holder, field }] };
       return { mutations: [{ op: "drop_field", id: holder, name },
                            { op: "set_field", id: holder, field },
@@ -71,8 +74,8 @@ register(
            { name: "name", form: "text", required: true },
            /** Which it goes in front of. Absent is last. */
            { name: "before", form: "text" }],
-    check: (ctx, args) =>
-      holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    /** What a definition says may be overridden, so nothing outside is refused here. */
+    check: (ctx, args) => holds_values(ctx, args),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
@@ -82,7 +85,11 @@ register(
         .map((f) => f.name).filter((n) => n !== name);
       const at = before ? names.indexOf(before) : -1;
       names.splice(at < 0 ? names.length : at, 0, name);
-      if (d) return { mutations: [{ op: "set_def", def: { ...d, fields: ordered_by(d.fields ?? [], names) } }] };
+      if (d) {
+        const on = writable(ctx, holder)!;
+        return { mutations: [{ op: "set_def",
+          def: { ...on, fields: ordered_by(on.fields ?? d.fields ?? [], names) } }] };
+      }
       return { mutations: [{ op: "order_fields", id: holder, names }] };
     },
   },
@@ -92,15 +99,16 @@ register(
     on: ["layer", "block"],
     args: [{ name: "holder", form: "block", required: true },
            { name: "name", form: "text", required: true }],
-    check: (ctx, args) =>
-      holds_values(ctx, args) ?? borrowed(ctx.graph, id_of(args, "holder")),
+    /** What a definition says may be overridden, so nothing outside is refused here. */
+    check: (ctx, args) => holds_values(ctx, args),
     run: (ctx, args) => {
       const holder = id_of(args, "holder");
       const name = text(args, "name");
       const d = ctx.graph.defs[holder];
       if (!d) return { mutations: [{ op: "drop_field", id: holder, name }] };
+      const on = writable(ctx, holder)!;
       return { mutations: [{ op: "set_def", def: {
-        ...d, fields: (d.fields ?? []).filter((f) => f.name !== name),
+        ...on, fields: (on.fields ?? []).filter((f) => f.name !== name),
       } }] };
     },
   },
@@ -122,6 +130,7 @@ register(
       const group = args["group"];
       if (group !== "block" && group !== "relation") return "say whether it defines a block or a relation";
       const held = def_named(ctx.graph, name, group);
+      if (held && outside(held)) return borrowed(ctx.graph, held.id);
       const why = held ? borrowed(ctx.graph, held.id) : null;
       if (why) return why;
       const said = text(args, "extends");
@@ -173,6 +182,7 @@ register(
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
       if (d.default) return `the ${d.default} default keeps its name`;
+      if (outside(d)) return borrowed(ctx.graph, d.id);
       const other = def_named(ctx.graph, name, d.group);
       if (other && other.id !== d.id) return `"${other.name}" already exists`;
       return borrowed(ctx.graph, d.id);
@@ -277,6 +287,7 @@ register(
     check: (ctx, args) => {
       const id = id_of(args, "id");
       if (!ctx.graph.defs[id]) return `there is nothing called "${id}" to remove`;
+      if (outside(ctx.graph.defs[id])) return borrowed(ctx.graph, id);
       if (ctx.graph.defs[id]!.default) return "a default stays — reset its style instead";
       return borrowed(ctx.graph, id);
     },
@@ -423,5 +434,5 @@ register(
 function named_defs(graph: Graph, args: { [k: string]: unknown }): Definition[] {
   return list(args["defs"])
     .map((n) => graph.defs[n] ?? def_named(graph, n))
-    .filter((d): d is Definition => !!d && !shipped(d) && !d.default);
+    .filter((d): d is Definition => !!d && !outside(d) && !d.default);
 }

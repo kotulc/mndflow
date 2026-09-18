@@ -1,7 +1,8 @@
 /** The workspace explorer: structure, and only structure. */
 
 import { useMemo, useRef, useState } from "react";
-import { alias_of, children, def_named, is_interface, is_named, is_reference, block_base, base_of,
+import { BASE_PACKAGE, alias_of, children, def_named, is_interface, is_named, is_reference,
+         block_base, base_of,
          packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
@@ -29,7 +30,7 @@ export type ExplorerProps = {
 };
 
 /** Which of the library's folders a section is. */
-export type Only = "all" | "pinned" | "default" | "workspace" | "packages";
+export type Only = "all" | "pinned" | "workspace" | "packages";
 
 /** What a library row points the tray at: a narrowing of the definitions, or one of them. */
 export type Section =
@@ -88,7 +89,7 @@ const GROUPS: readonly { group: Group; label: string }[] = [
 /** A definition as a row, wearing its kind's mark. */
 function def_node(graph: Graph, d: Definition, within: Id, filed?: Row["filed"]): Node {
   const kind = d.group === "relation" ? relation_base(graph, d.id) : block_base(graph, d.id);
-  return { id: `${within}:${d.id}`, ref: d.id, label: d.default ?? d.name,
+  return { id: `${within}:${d.id}`, ref: d.id, label: d.name,
            mark: KIND_MARK[kind] ?? "leaf", of: "def", at: { of: "def", id: d.id },
            ...(filed ? { filed } : {}), under: [] };
 }
@@ -99,10 +100,11 @@ function section(id: Id, label: string, mark: Mark, at: Section, under: Node[]):
 }
 
 /** One package, its blocks and its relations apart. Frozen, so nothing in it is filed. */
-function pack_node(graph: Graph, from: string, defs: Definition[]): Node {
+function pack_node(graph: Graph, from: string, defs: Definition[], locked = false): Node {
   const id = `${PACKS}:${from}`;
   const at = { of: "defs", only: "packages", from } as const;
-  return section(id, from, "folder", at, GROUPS
+  /** The floor wears a lock: it is the one package nothing may be written into. */
+  return section(id, from, locked ? "locked" : "folder", at, GROUPS
     .map((g) => section(`${id}:${g.group}`, g.label, "folder", { ...at, group: g.group },
                         defs.filter((d) => d.group === g.group).map((d) => def_node(graph, d, `${id}:${g.group}`))))
     .filter((n) => n.under.length));
@@ -120,20 +122,18 @@ function shelf_nodes(graph: Graph, group: Group, nodes: ShelfNode[], within: Id,
 
 /** The library: the packages, then the definitions — pinned, default, and the workspace's own
  *  filed by group. **There is no workspace collection here**: everything in this section is the
- *  workspace's already, so a row saying so held nothing but one more indent. */
+ *  workspace's already, so a row saying so held nothing but one more indent. **And no `default`
+ *  collection**: the base kinds read under `packages`, and the workspace's own word about one is
+ *  a definition like any other, filed with the rest. */
 function library_of(graph: Graph): Node[] {
   const packs = packages(graph);
   const pinned = pinned_defs(graph, "block").filter((d) => !shipped(d) && !d.from && d.default === undefined);
-  const defaults = Object.values(graph.defs).filter((d) => d.default !== undefined)
-    .sort((a, z) => a.group.localeCompare(z.group) || a.name.localeCompare(z.name));
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
-            packs.map((p) => pack_node(graph, p.name, p.defs))),
+            packs.map((p) => pack_node(graph, p.name, p.defs, p.from === BASE_PACKAGE))),
     section(VOCAB, "definitions", "vocabulary", { of: "defs", only: "all" }, [
       section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
               pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`))),
-      section(`${VOCAB}:default`, "default", "locked", { of: "defs", only: "default" },
-              defaults.map((d) => def_node(graph, d, `${VOCAB}:default`))),
       ...GROUPS.map((g) =>
         ({ ...section(`${VOCAB}:${g.group}`, g.label, "folder",
                       { of: "defs", only: "workspace", group: g.group },

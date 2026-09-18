@@ -236,7 +236,11 @@ Definition {
 }
 ```
 
-**Three tiers.** A **base** is shipped and locked, one per kind. A **default** is the workspace's one editable definition per kind, laid by the fold until its first edit files it. Everything else is a **workspace** definition, or a **package** one where `from` says so.
+**Two tiers, and the second has a special case.** A definition is either the **workspace's own** or a **package's** — `from` says which, and the shipped floor is a package like any other. The special case is a **word about** a package's definition: a workspace definition whose `default` names the one it overrides.
+
+**Nothing from outside the workspace is ever written.** Editing a package's definition — the floor's included — does not change it: the edit lands on the workspace's word about it, minted on the spot if there is not one yet. **That word stands in front of what it speaks for in every chain that reaches it**, so changing what `block` or `«part»` means reaches everything below it, not only what named nothing.
+
+**A package is a set of definitions, and may carry instances too.** Nothing about the floor makes it a different sort of package: it lists with the rest and is overridden the same way. What stays the package's is a definition's **name** and what it **extends** — its identity. What it *says* is yours.
 
 **Resolution is global, by id.** No import list and no tree to climb. Two definitions sharing a *name* are two definitions; nothing shadows, because every usage names an id. **A name is looked up with its group.**
 
@@ -245,6 +249,8 @@ Definition {
 **Components cascade per property.** The chain is laid down base first and merged one property at a time, so a refinement says only what it changes and inherits the rest — setting a shape no longer throws away the layout it was given. One parent, so the order is a list rather than a graph: what comes later wins and there is no diamond to resolve. **The element has the last word**: a block's own `looks` is the final layer over whatever its chain said.
 
 **A definition's kind is the nearest link that names one.** A subtype saying nothing is its parent's kind, which is what makes a chain of refinements safe. What stops a block changing kind is the gesture — `retype` refuses across families — never the chain.
+
+**A chain is walked with the workspace's own word spliced in.** `isa` puts a definition's `default` override in front of the shipped base it overrides, wherever that base turns up — one rule, and it is why editing a base reaches everything below it.
 
 **A rule naming a definition means it or anything below it.**
 

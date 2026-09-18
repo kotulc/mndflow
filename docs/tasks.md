@@ -14,7 +14,8 @@
 | **capabilities** | `rules` split into `allows` — ports, holds, members, degree, ends, refused at the gesture — and `expects` — required, match, advice only |
 | **holders** | boundaries and grids left `Block` for `graph.holders`. Membership stays on the block (`group`, `cell`, `header`); `set_holder` and `drop_holder` replaced the six grid ops |
 | **relations** | `line` and `tie`, both **definitions rather than modules**, derived from the ends and re-derived at the door. Both ends are blocks |
-| **packages** | a `Package` record with a unique name, `from` naming its id, `package`/`remove_package` actions, and a tray tab that lists what the workspace draws on and fetches one more from the catalogue. **`base` lists with the rest** |
+| **packages** | a `Package` record with a unique name, `from` naming its id, `package`/`remove_package` actions, and a tray tab that lists what the workspace draws on and fetches one more from the catalogue. **`base` lists with the rest, wearing a lock** |
+| **nothing from outside is written** | there is no `default` collection. Editing a package's definition — the floor's included — mints the workspace's word about it, filed with the workspace's definitions, and **that word stands in front of it in every chain that reaches it**, so a subtype reads it too. Identity stays the package's: no rename, no drop, no restate |
 | **content** | a first-class `source` slot — uri, anchor, revision — written by the `source` action. Provenance, never a link the app follows |
 | **marks** | the card icon keeps the top corner and fills when a card holds parts; the bottom corner writes `Ref`, `Def`, `Pkg` or `Ext`. The treemap is gone and every card is one height |
 | **the door checks, it does not migrate** | integrity, component validation, one default per base, a definition extending nothing pointed at its base, holders whose layer is gone, and duplicate package names. A schema change re-saves the samples |

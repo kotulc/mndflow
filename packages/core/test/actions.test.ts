@@ -4,7 +4,8 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, related } from "@mnd/fixtures";
 import { seed } from "@mnd/defs";
-import { ROOT, adjustments, all, children, edge_base, fold, holders_in, offer, run, session,
+import { ROOT, adjustments, all, children, def_named, default_for, edge_base, fold,
+         holders_in, offer, run, schema_of, session,
          writes,
          type Context } from "../src/index";
 
@@ -469,12 +470,28 @@ describe("a field on a layer", () => {
   /** A definition holder declares rather than sets. */
   it("adds a field to a definition when the holder is one", () => {
     const s = seeded();
-    expect(s.go("field", { holder: "block", name: "mass", form: "number",
+    s.go("define", { name: "Machine", group: "block" });
+    const id = def_named(s.graph(), "Machine", "block")!.id;
+    expect(s.go("field", { holder: id, name: "mass", form: "number",
                            unit: "kg" })).toBeNull();
-    expect(s.graph().defs["block"]!.fields)
+    expect(s.graph().defs[id]!.fields)
       .toEqual([{ name: "mass", form: "number", unit: "kg", choices: undefined }]);
-    expect(s.go("unfield", { holder: "block", name: "mass" })).toBeNull();
-    expect(s.graph().defs["block"]!.fields).toEqual([]);
+    expect(s.go("unfield", { holder: id, name: "mass" })).toBeNull();
+    expect(s.graph().defs[id]!.fields).toEqual([]);
+  });
+
+  /** The floor is never written: the first edit to a base mints the workspace's own word for
+   *  it, and everything that reaches that base reads it. */
+  it("declares a field on the workspace's own word rather than on the base", () => {
+    const s = seeded();
+    expect(s.go("field", { holder: "block", name: "mass", form: "number" })).toBeNull();
+    expect(s.graph().defs["block"]!.fields).toBeUndefined();
+    const over = default_for(s.graph(), "block")!;
+    expect(s.graph().defs[over]!.fields?.map((f) => f.name)).toEqual(["mass"]);
+    /** A subtype of the base reads it too, not only a block that named nothing. */
+    s.go("define", { name: "Machine", group: "block" });
+    const machine = def_named(s.graph(), "Machine", "block")!.id;
+    expect(schema_of(s.graph(), machine).map((f) => f.name)).toContain("mass");
   });
 });
 

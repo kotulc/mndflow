@@ -1,6 +1,7 @@
 /** Argument readers and makers shared by the actions. */
 
-import { def_named, block_base, relation_base, shipped, stored_type } from "../defs";
+import { def_named, default_for, block_base, outside, relation_base, shipped,
+         stored_type } from "../defs";
 import { next_alias } from "../names";
 import { layer_id, next_order } from "../tree";
 import { new_id } from "../ids";
@@ -160,10 +161,24 @@ export function holds_values(ctx: Context, args: Args): string | null {
     : null;
 }
 
+/** Why a definition's identity is not yours to change. A package's name and its very existence
+ *  are its own; what it *says* you may override — see `writable`. */
 export function borrowed(graph: Graph, id: Id): string | null {
   const d = graph.defs[id];
-  if (!d?.from) return null;
-  return `"${d.name}" comes from ${d.from} — extend it with a subtype instead`;
+  if (!outside(d)) return null;
+  return `"${d!.name}" comes from ${d!.from ?? "the floor"} — extend it with a subtype instead`;
+}
+
+/** The definition an edit actually writes. **Nothing from outside the workspace is ever written**:
+ *  an edit to one goes to the workspace's word about it — the override already there, or a fresh
+ *  one minted here — which stands in front of it in every chain that reaches it. */
+export function writable(ctx: Context, id: Id): Definition | null {
+  const d = ctx.graph.defs[id];
+  if (!d) return null;
+  if (!outside(d)) return d;
+  const held = default_for(ctx.graph, d.id, d.group);
+  if (held) return ctx.graph.defs[held] ?? null;
+  return { id: mint_def(d.group), group: d.group, name: d.name, extends: d.id, default: d.id };
 }
 
 /** Names from one answer, split on commas. */

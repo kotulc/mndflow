@@ -8,9 +8,11 @@ type Group = "block" | "relation";
 /** One row of a group's shelf: a folder or a definition, with what sits in it. */
 export type ShelfNode = { id: Id; folder: boolean; name: string; kids: ShelfNode[] };
 
-/** Whether a definition is the workspace's own to file: not a base, a default or a package's. */
+/** Whether a definition is the workspace's own to file: not a base and not a package's. **A word
+ *  about a base is filed like any other** — it exists because somebody edited that base, so it is
+ *  theirs and it belongs where their definitions are. */
 export function shelvable(d: Definition | undefined): boolean {
-  return !!d && !shipped(d) && d.default === undefined && !d.from;
+  return !!d && !shipped(d) && !d.from;
 }
 
 /** Every entry in order, a definition nobody filed last by name, and nothing that has gone. */

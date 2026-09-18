@@ -1,6 +1,6 @@
 /** What one thing is: the identity rows of the element tab. */
 
-import { BASE_PACKAGE, def_of, isa, kind_word, block_base, relation_base, shipped,
+import { BASE_PACKAGE, def_of, isa, kind_word, block_base, outside, relation_base, shipped,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -15,7 +15,9 @@ export type IdentityProps = { graph: Graph; id: Id; onAct: Act };
 export function Identity({ graph, id, onAct }: IdentityProps) {
   const it = held(graph, id);
   if (!it) return <p className="empty">that is not here any more</p>;
-  const { def: d, block: b, edge, borrowed } = it;
+  const { def: d, block: b, edge } = it;
+  /** What came from outside: its name and what it extends stay theirs, what it says does not. */
+  const borrowed = outside(d ?? undefined);
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed, wip } = defined(graph, id, it, runs);
   const drafted = id === DRAFT;
@@ -148,8 +150,10 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
 
       {borrowed ? (
         <p className="not-yet">
-          This comes from {d!.from}, and a package resists editing. Extend it
-          with a subtype instead — the subtype is yours to change.
+          This comes from {d!.from ?? "the floor"}, and stays as they wrote it. What it
+          says is still yours: styling it or declaring a field writes your own word about
+          it, which stands in front of it for everything below. Its name and what it
+          extends are theirs.
         </p>
       ) : null}
     </div>

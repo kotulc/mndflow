@@ -200,6 +200,29 @@ source? { uri: string; at?: string; rev?: string }
 **Everything except container cards and the marks looks and behaves as it did before.** That is the bar this refactor is held to.
 
 
+## The floor, and what stands in front of it
+
+**`default` was a placeholder pretending to be a definition.** One was laid per base whether or not anybody wanted it, shown as its own collection, and written to a file only once touched. What it *is* — the workspace's one editable definition extending a base — was right; **when it existed and where it showed were not**.
+
+| | |
+|---|---|
+| **minted, not laid** | nothing exists until somebody edits a base. An untouched workspace has none |
+| **filed with the rest** | it appears under `definitions › blocks` or `› relations`, because it is the workspace's own definition like any other. The `default` collection is gone |
+| **the base is where you edit** | select the kind under `packages › base` and change it. The floor is never written; the edit lands on the word about it, minted on the spot |
+| **it stands in front of its base** | `isa` splices it in wherever the base turns up, so **editing what `block` means reaches every subtype of `block`** — not only blocks that named nothing |
+| **the floor wears a lock** | `base` lists with the other packages and says it cannot be written into |
+
+**The widening is the real change.** A default used to reach *plain elements only*; a subtype extended the base directly and never saw it. That was the behaviour nobody would predict — "I changed what a block looks like and my Pump did not move". Splicing at chain resolution fixes it in one place and needs no re-pointing of anything that already exists.
+
+**A package's definition works the same way**, and the floor is a package like any other. There is one rule — *nothing from outside the workspace is written; an edit mints the word about it* — and `base` is not a special case of it. What stays the package's is a definition's **identity**: its name, and what it extends. What it *says* is yours.
+
+**A package is a set of definitions, and the instances it chose to bring.** `graft` already carries blocks, holders and relations out of a package file, so `sysml.json` shipping a block alongside its nine definitions is the shape, not an accident.
+
+**The scope chips went with it.** `default` had no collection left to name, and `packages` was redundant — every definition comes from a package in some sense, and a package's own definitions read in the explorer.
+
+**`outside` is the one predicate.** It answers *did this come from somewhere else* — a package's `from`, or a shipped base id — and `isa`, `writable` and every identity refusal ask it. Splitting it back into "shipped" and "a package's" is what made the two behave differently in the first place.
+
+
 ## What is next
 
 **One tab pattern.** The `fields` tab is the shape every editing tab should read as: banded bodies of labelled lines, and a final `add` line that takes what is being added and commits it. `packages` follows it. The rest do not yet, and `Commit` and the add line still live inside `Fields.tsx` rather than beside the other body primitives. **Pull them out and bring the other tabs into line** — the resemblance should be one thing, not a coincidence.

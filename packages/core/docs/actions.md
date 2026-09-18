@@ -136,6 +136,8 @@ Thirty-nine, two of them navigation.
 
 **One act, and the holder says which.** Setting a value on a usage and declaring a field on a definition are the same thing said about two sorts of holder. A relationship holds no values.
 
+**Editing anything from outside writes the workspace's word about it, never theirs.** `field`, `order_field`, `unfield` and `look` all land on that word, and mint it where there is not one yet — for a package's definition and the floor's alike. **Identity is refused**: nothing from outside is renamed, dropped or restated.
+
 **`define` requires a group**, from every caller, and `extends` must name a definition of that group. **Its id is minted**; a caller that must know it before the step lands mints it and passes `id`. **`into` files a new one in a folder**, which must be a folder of its own group.
 
 **Filing is the workspace's own definitions only.** `shelve` refuses a base, a default and a package's, refuses to mix the groups, and refuses a folder into itself. **Removing a folder keeps what it held**, in the folder the folder was in.

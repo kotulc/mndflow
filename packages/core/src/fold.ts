@@ -1,11 +1,10 @@
 /** Mutation replay: a log folded into a graph over the shipped floor. */
 
 import { DRAWN } from "./components";
-import { default_for, ordered_by } from "./defs";
+import { ordered_by } from "./defs";
 import { is_group, members_of } from "./holders";
-import { default_id } from "./ids";
 import { subtree } from "./tree";
-import { BASE_BLOCKS, BASE_RELATIONS, empty_graph, type Definition, type Graph, type Id, type Log,
+import { empty_graph, type Graph, type Id, type Log,
          type Mutation, type Step } from "./types";
 
 /** A boundary whose last member just left is deleted. It is empty only when it was made empty,
@@ -317,7 +316,6 @@ export function fold(log: Log, floor: Graph["defs"] = {}): Graph {
       if (m.op === "checkpoint") lay(graph, floor);
     }
   }
-  lay_defaults(graph, floor);
   lay_packages(graph);
   return graph;
 }
@@ -334,23 +332,6 @@ function lay_packages(graph: Graph): void {
     if (!d.from || graph.packages[d.from]) continue;
     graph.packages[d.from] = { id: d.from, name: d.from };
   }
-}
-
-/** Lays an unfiled default for every base kind that has none. */
-function lay_defaults(graph: Graph, floor: Graph["defs"]): void {
-  for (const base of Object.values(floor)) {
-    const kind = base_kind(base);
-    if (!kind || default_for(graph, kind, base.group)) continue;
-    const id = default_id(kind, base.group);
-    graph.defs[id] = { id, group: base.group, name: kind, extends: base.id, default: kind };
-  }
-}
-
-/** The base a shipped definition is the root of, or null. A base is known by its id, not by the
- *  module it configures: `folder` and `note` are the plain block module and still each want one. */
-function base_kind(d: Definition): Id | null {
-  const bases = d.group === "relation" ? BASE_RELATIONS : BASE_BLOCKS;
-  return bases.includes(d.id) ? d.id : null;
 }
 
 /** One step, applied. */

@@ -5,7 +5,10 @@ import { BASE_BLOCKS, BASE_RELATIONS, BLOCK_MODULES, type BlockModule, type Defi
          type FieldDef, type Graph, type Id, type Package } from "./types";
 
 
-/** A definition and the chain it extends, nearest first. */
+/** A definition and the chain it extends, nearest first. **The workspace's own word about a
+ *  package's definition stands in front of it**, wherever that definition turns up — so editing
+ *  what `block` or `«part»` means reaches everything below it, not only what named nothing. The
+ *  floor is a package like any other, and is overridden the same way. */
 export function isa(graph: Graph, type: Id | undefined): Definition[] {
   const out: Definition[] = [];
   let at = type;
@@ -14,6 +17,11 @@ export function isa(graph: Graph, type: Id | undefined): Definition[] {
     seen.add(at);
     const d = graph.defs[at];
     if (!d) break;
+    if (outside(d)) {
+      const over = default_for(graph, d.id, d.group);
+      const said = over ? graph.defs[over] : undefined;
+      if (said && !seen.has(said.id)) { seen.add(said.id); out.push(said); }
+    }
     out.push(d);
     at = d.extends;
   }
@@ -144,7 +152,8 @@ export function plain_type(base: Id): Id | null {
 /** Bases an element's own shape says, so a plain one names nothing. */
 const STRUCTURAL: readonly Id[] = ["block", "reference", "interface"];
 
-/** The workspace's default for a base: the one editable definition its plain elements follow. */
+/** The workspace's own word about a package's definition: the one it wrote to override that one.
+ *  Named `default` on the record because a word about a base is what a plain element follows. */
 export function default_for(graph: Graph, base: Id,
                             group: "block" | "relation" = "block"): Id | undefined {
   for (const d of Object.values(graph.defs)) {
@@ -161,6 +170,12 @@ export function shipped(d: Definition): boolean {
   return d.from === BASE_PACKAGE
     || BASE_BLOCKS.includes(d.id)
     || BASE_RELATIONS.includes(d.id);
+}
+
+/** Whether a definition came from outside the workspace — a package's, and the shipped floor's
+ *  with it. **Never written**: an edit to one mints the workspace's word about it instead. */
+export function outside(d: Definition | undefined): boolean {
+  return !!d && (!!d.from || shipped(d));
 }
 
 /** Whether a definition is the workspace's to write out: not shipped, and not an untouched default. */

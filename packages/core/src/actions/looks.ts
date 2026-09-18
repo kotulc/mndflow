@@ -3,7 +3,7 @@
 import { component, NUMBERS } from "../components";
 import type { Graph, Mutation } from "../types";
 import { register, type Args } from "./registry";
-import { borrowed, ids_of, list, text } from "./helpers";
+import { ids_of, list, text, writable } from "./helpers";
 
 register(
   {
@@ -56,20 +56,17 @@ register(
         const why = component(String(args["key"]))?.check({ [text(args, "name")]: said });
         if (why) return why;
       }
-      for (const id of ids) {
-        const why = borrowed(ctx.graph, id);
-        if (why) return why;
-      }
       return null;
     },
     run: (ctx, args) => {
       const key = String(args["key"]);
       const name = text(args, "name");
       const value = value_of(args);
-      return { mutations: ids_of(ctx, args).map((id): Mutation => {
+      return { mutations: ids_of(ctx, args).flatMap((id): Mutation[] => {
         const d = ctx.graph.defs[id];
-        return d ? { op: "set_def", def: stated(d, key, name, value) }
-                 : { op: "set_look", id, key, name, value };
+        if (!d) return [{ op: "set_look", id, key, name, value }];
+        /** Styling a package's definition writes the workspace's word about it, never theirs. */
+        return [{ op: "set_def", def: stated(writable(ctx, id)!, key, name, value) }];
       }) };
     },
   },

@@ -34,6 +34,11 @@ The engine code that interprets a block. **Three, and each is read from a stored
 ### There is no untyped block
 `block` is the base kind, and a block naming no definition **is** one: the field being absent is how a file stays small, never a second sort of thing. Every reader asks `def_of`, which answers with the kind's own definition where the field is empty — so what is absent and what is spelled out resolve identically.
 
+### Changing what a package's definition means
+**Nothing from outside the workspace is written.** Selecting a definition a package brought — the floor's kinds included — and editing it mints **the workspace's own word about it**: a definition extending it, carrying only what was changed. **That word stands in front of it in every chain that reaches it**, so a subtype three links down reads it too. Nothing is minted until somebody says something.
+
+**Its identity stays theirs.** A package's definition is never renamed, dropped, or made to extend something else. What it *says* — how it draws, what it declares, what it allows — is yours.
+
 ### What a block may do
 **`allows` is refused at the gesture; `expects` is only ever advice.** Structure is refused when you try to make it, values are noted when they are missing — see *Capabilities* in schema.md.
 

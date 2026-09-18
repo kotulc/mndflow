@@ -15,7 +15,7 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
 
   const it = held(graph, id);
   if (!it) return <p className="empty">that is not here any more</p>;
-  const { def: d, borrowed } = it;
+  const { def: d } = it;
 
   const own = it.fields as readonly FieldDef[];
   const names = own.map((f) => f.name);
@@ -74,30 +74,30 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
       <Body head={d ? "declares" : "values"} note={extra.length ? `${extra.length}` : ""}>
         {extra.map((f, n) => (
           <Line key={f.name} label={
-                  <Commit value={f.name} label="field name" disabled={borrowed}
+                  <Commit value={f.name} label="field name"
                           onCommit={(to) => to && say({ name: f.name, to })} />
                 } className="value">
-            <select value={f.form} title="what sort of value" disabled={borrowed}
+            <select value={f.form} title="what sort of value"
                     onChange={(e) => say({ name: f.name, form: e.target.value })}>
               {VALUE_FORMS.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
             {d ? (
-              <Commit value={f.unit ?? ""} label="unit" placeholder="unit" disabled={borrowed}
+              <Commit value={f.unit ?? ""} label="unit" placeholder="unit"
                       onCommit={(unit) => say({ name: f.name, unit })} />
             ) : null}
             {d && f.form === "choice" ? (
-              <Commit value={(f.choices ?? []).join(", ")} label="choices" disabled={borrowed}
+              <Commit value={(f.choices ?? []).join(", ")} label="choices"
                       placeholder="choices, by commas"
                       onCommit={(choices) => say({ name: f.name, choices })} />
             ) : null}
-            <Value field={f} fallback={d ? "default" : ""} disabled={borrowed}
+            <Value field={f} fallback={d ? "default" : ""}
                    onSet={(value) => say({ name: f.name, value })} />
-            <button className="drop" title="move up" disabled={borrowed || n === 0}
+            <button className="drop" title="move up" disabled={n === 0}
                     onClick={() => move(f.name, -1)}><Icon name="less" /></button>
             <button className="drop" title="move down"
-                    disabled={borrowed || n === moveable.length - 1}
+                    disabled={n === moveable.length - 1}
                     onClick={() => move(f.name, 1)}><Icon name="more" /></button>
-            <button className="drop" title={`drop ${f.name}`} disabled={borrowed}
+            <button className="drop" title={`drop ${f.name}`}
                     onClick={() => onAct("unfield", { holder: id, name: f.name })}>
               <Icon name="remove" />
             </button>
@@ -108,14 +108,14 @@ export function Fields({ graph, id, onAct }: FieldsProps) {
         ) : null}
         <Line label="add" className="add">
           <input value={adding} placeholder={d ? "declare a field" : "add a field"}
-                 aria-label="add a field" disabled={borrowed}
+                 aria-label="add a field"
                  onChange={(e) => set_adding(e.target.value)}
                  onKeyDown={(e) => { if (e.key === "Enter") add(); }} />
-          <select value={form} title="what sort of value" disabled={borrowed}
+          <select value={form} title="what sort of value"
                   onChange={(e) => set_form(e.target.value)}>
             {VALUE_FORMS.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
-          <button onClick={add} disabled={borrowed || !adding.trim()}>
+          <button onClick={add} disabled={!adding.trim()}>
             <Icon name="add" />
           </button>
         </Line>
