@@ -139,7 +139,17 @@ Definition.from: Id               // was a bare package name
 
 - **`base` is a reserved package id**, since `shipped()` reads `from` as its sentinel.
 - **This re-saves the samples**, which is what a schema change does here.
-- **Adding a package is next**, and is what makes `Pkg` worth drawing.
+- **The floor lists with the rest.** `packages()` used to skip anything shipped, so `base` was invisible and the list lied about where the kinds came from. Every workspace stands on it, and it says so.
+- **A file never carries `base`.** The floor ships with the app; a workspace file carries only what it drew on besides.
+
+### The packages tab
+
+**The explorer's packages section opens a tab, not a listing.** It says what the workspace draws on — each package, what it brought, and whether it is the shipped floor — and takes one more.
+
+- **The catalogue is read, not guessed.** `session.listing()` returns what is out there, so the tab offers names rather than asking somebody to remember one. An unbound `net` leaves it empty and the text box still works.
+- **Bringing one in is `session.search`**, which fetches and grafts through the same door as any other file. The tray asks for it by name through `@package`, the way it already asks for `@name`.
+- **The floor cannot be dropped.** Everything else can, and what it brought goes with it.
+- **It reads as the `fields` tab reads** — banded bodies of labelled lines, ending in an `add` line. That resemblance is the point, and making it one shared pattern rather than two that look alike is the next piece of work.
 
 
 ## External content
@@ -185,5 +195,13 @@ source? { uri: string; at?: string; rev?: string }
 | **4 — marks** | the system mark as a second corner element, the precedence rule, and `Def`/`Pkg`/`Ext` targets. The card icon is left where it was |
 | **5 — uniform cards** | the treemap retires; a container says so by filling its own icon |
 | **6 — holders** | out of `Block`, as their own element kind. The largest single step |
+| **7 — the floor, and a way in** | `base` listed with the other packages, and a `packages` tab that reads the catalogue and brings one in |
 
 **Everything except container cards and the marks looks and behaves as it did before.** That is the bar this refactor is held to.
+
+
+## What is next
+
+**One tab pattern.** The `fields` tab is the shape every editing tab should read as: banded bodies of labelled lines, and a final `add` line that takes what is being added and commits it. `packages` follows it. The rest do not yet, and `Commit` and the add line still live inside `Fields.tsx` rather than beside the other body primitives. **Pull them out and bring the other tabs into line** — the resemblance should be one thing, not a coincidence.
+
+**Then the translator.** Everything above was clearing the ground for it: a block that is content, a capability surface that says what may hold what, holders for the cross-cutting organization a heading tree cannot carry, and a `source` slot to say where a block came from. The test that settles the body question is still the one to run first — a real README in, out, and diffed.

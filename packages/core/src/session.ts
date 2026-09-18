@@ -20,7 +20,7 @@ export type Said = { text: string; at: number; kind: "mirror" | "note" };
 export type Found = { name: string; about: string; faults: Fault[] };
 
 /** One row of the catalogue a `net` binding points at. */
-type Listed = { name: string; about: string; at: string };
+export type Listed = { name: string; about: string; at: string };
 
 export type Session = {
   log: () => Log;
@@ -54,6 +54,8 @@ export type Session = {
   graft: (text: string, into?: Id | null) => Fault[];
   /** A definition package from outside the workspace, in through the door. */
   search: (want: string) => Promise<Found | null>;
+  /** What the catalogue offers, for a surface to list. */
+  listing: () => Promise<Listed[]>;
 
   /** Called after every change. One subscriber is all a host needs. */
   watch: (fn: () => void) => void;
@@ -288,6 +290,14 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       if (faults.length) said = { text: say(faults), at: Date.now(), kind: "note" };
       listener?.();
       return faults;
+    },
+
+    /** What the catalogue offers, so a surface can list it rather than guess a name. Empty where
+     *  there is nowhere to read from — an unbound port is a capability the app does without. */
+    async listing() {
+      const catalogue = ports.catalogue;
+      if (!net || !catalogue) return [];
+      return (await fetch_list(net, catalogue)) ?? [];
     },
 
     async search(want) {

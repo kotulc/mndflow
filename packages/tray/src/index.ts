@@ -15,6 +15,7 @@ export { Drawing, type DrawingProps } from "./Drawing";
 export { Identity, type IdentityProps } from "./Identity";
 export { Looks, type LooksProps } from "./Looks";
 export { Fields, type FieldsProps } from "./Fields";
+export { Packages, type Offered, type PackagesProps } from "./Packages";
 export { Card, type CardProps } from "./Card";
 export { Band, Body, Line, Rail, type BandProps, type BodyProps, type LineProps,
          type RailProps } from "./Body";

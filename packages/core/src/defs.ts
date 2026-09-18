@@ -232,12 +232,13 @@ export function package_named(graph: Graph, name: string): Package | undefined {
   return want ? Object.values(graph.packages).find((p) => p.name === want) : undefined;
 }
 
-/** Every package the workspace draws on, named, with all it brought — of either group. The
- *  shipped floor is nobody's package. */
+/** Every package the workspace draws on, named, with all it brought — of either group. **The
+ *  shipped floor is one of them**: every workspace stands on `base`, and hiding it only made the
+ *  list lie about where the kinds came from. */
 export function packages(graph: Graph): { from: Id; name: string; defs: Definition[] }[] {
   const groups = new Map<Id, Definition[]>();
   for (const d of Object.values(graph.defs)) {
-    if (!d.from || shipped(d)) continue;
+    if (!d.from) continue;
     groups.set(d.from, [...(groups.get(d.from) ?? []), d]);
   }
   return [...groups.entries()]

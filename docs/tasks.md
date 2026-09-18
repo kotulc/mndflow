@@ -5,35 +5,44 @@
 
 ## Where it stands
 
-**The app, as of 2026-09-15** — branch `add-pinned-defs` at `d9d1a22`, level with its remote, with this file replacing `docs/todo.md`.
+**The app, as of 2026-09-18** — branch `revise-workspace-layout`, carrying the block refactor recorded in plan.md.
 
 | | |
 |---|---|
-| **checks** | `npm run typecheck` clean, `npx vitest run` 356 in 13 files, `npm run lint:css` clean, and the CLI's `check` reads both samples clean |
-| **the model** | one base per kind — eight block kinds, `line` and `tie` — and one editable **default** per kind that every plain element follows. Everything else is the workspace's and extends its base. Ids are minted, names are labels, and a name is unique within its group |
-| **relations** | `line` and `tie`, with `tie` derived from the ends and re-derived at the door. Both ends are blocks: a tie on a line came out with the last commit |
-| **the door checks, it does not migrate** | integrity, component validation, one default per kind, and a definition extending nothing pointed at its base. A schema change re-saves the samples |
-| **definitions** | made from an element with `save_def`, dissolved with `remove_def`, offered with `pin` — the rail for a line, the explorer's pinned folder for a block. Styling an element that names a workspace definition edits that definition; anything else keeps a working look |
-| **the explorer** | three collections under one row renderer — packages, definitions, the workspace — each ruled off from the one above. The workspace is the single root and every top-level block is a branch under it; a library row points the tray rather than folding |
-| **the tray** | one context named plainly in the head, four tabs for a block, four for a definition, three for a relation and one for each library section, tables with one shared *layer / workspace* scope, and hover distinct from a pick |
+| **checks** | `npm run typecheck` clean, `npx vitest run` 361 in 13 files, `npm run lint:css` clean, the web app builds, and the CLI's `check` reads both samples clean |
+| **the model** | **three element kinds** — blocks, relations and holders. **Three block modules** (`block`, `reference`, `interface`), each read from a stored field; a **kind** is a definition, and the `base` package ships eight. One editable **default** per base that every plain element follows |
+| **capabilities** | `rules` split into `allows` — ports, holds, members, degree, ends, refused at the gesture — and `expects` — required, match, advice only |
+| **holders** | boundaries and grids left `Block` for `graph.holders`. Membership stays on the block (`group`, `cell`, `header`); `set_holder` and `drop_holder` replaced the six grid ops |
+| **relations** | `line` and `tie`, both **definitions rather than modules**, derived from the ends and re-derived at the door. Both ends are blocks |
+| **packages** | a `Package` record with a unique name, `from` naming its id, `package`/`remove_package` actions, and a tray tab that lists what the workspace draws on and fetches one more from the catalogue. **`base` lists with the rest** |
+| **content** | a first-class `source` slot — uri, anchor, revision — written by the `source` action. Provenance, never a link the app follows |
+| **marks** | the card icon keeps the top corner and fills when a card holds parts; the bottom corner writes `Ref`, `Def`, `Pkg` or `Ext`. The treemap is gone and every card is one height |
+| **the door checks, it does not migrate** | integrity, component validation, one default per base, a definition extending nothing pointed at its base, holders whose layer is gone, and duplicate package names. A schema change re-saves the samples |
+| **the explorer** | packages — `base` included — then definitions with `pinned`, `default`, `blocks` and `relations` directly under it, then the workspace tree |
 | **storage** | the log in IndexedDB, each body kept once by SHA-256 hash, loaded before the app mounts. One gesture is one step, through `session.batch` |
-| **what is proven** | the suites cover the engine, the door, the grid, geometry and the seam. The canvas and the tray are driven by hand — the base model, pinning, tags, `batch`, `graft`, body storage and the group rule have no tests |
+| **what is proven** | the suites cover the engine, the door, the grid, geometry, the seam and the two card corners. **The refactor's own defects were found by reading, not by the suite** — holder identity, `graft` carrying holders, and the mark rule had no test and each was broken at some point |
 
 
 ## Next up
 
 **In order.** Each is a phase's worth on its own.
 
-### 1 — Tests for what has settled
+### 1 — One tab pattern, applied
+
+**The `fields` tab is the pattern every editing tab should read as**: banded bodies of labelled lines, and a final `add` line that takes what is being added and commits it. The `packages` tab follows it already. **Bring the rest into line**, and pull the shared pieces — `Commit`, the add line — out of `Fields.tsx` so the pattern is one thing rather than a resemblance.
+
+### 2 — Tests for what has settled
 
 | | |
 |---|---|
-| **the base and default model** | a default per kind, laid by the fold and filed on first edit; a plain element following it; `retype` keeping a kind |
+| **holders** | identity and handles, `graft` carrying them, a boundary going with its last member, and the grid ops through `set_holder` |
+| **marks** | the precedence rule, the two corners, and what fills |
+| **the base and default model** | a default per base, laid by the fold and filed on first edit; a plain element following it; `retype` keeping a kind |
 | **definitions** | `save_def`, `remove_def` dissolving into usages, `pin` offering, and a rename reaching every usage |
 | **the session** | `batch` as one step and one undo, `graft` keeping the workspace's defaults, and an export carrying only what was touched |
 | **bodies** | a body stored once by hash, read back on load, and a log that never carries the text |
 
-### 2 — The tray, what is left of it
+### 3 — The tray, what is left of it
 
 **What the tray becomes when it fills the stage.** See ST.16 in stories.md.
 
@@ -44,7 +53,7 @@
 | **grids filter as blocks** | the contents chips count a grid under *blocks*, not *groups* |
 | **adding a field from the bar** | the legacy app had it |
 
-### 3 — The explorer
+### 4 — The explorer
 
 **One tree, sections all the way down.** The panel holds three collections drawn with one row — packages, definitions, and the workspace itself — and the only difference that should matter is which one the user writes and which one the app does. A section is a projection the app hands over, never a block — `packs_of` and `vocab_of` already emit two beside the tree.
 
@@ -59,7 +68,7 @@
 
 **Relations stay out of the tree**, and this is settled: a definition has no parent. The relation vocabulary is the tray's, and the shortlist worth a right drag is the rail's.
 
-### 4 — Block content, what is left of it
+### 5 — Block content, what is left of it
 
 **Every block holds a body and the panel edits it.** What remains is what a body *is* beyond text. See ST.18.
 
@@ -71,7 +80,7 @@
 | **format is the definition's business** | `Requirement` says markdown, `Script` says code. Not a new value form — `body` is a slot beside `fields` |
 | **content addressing, only if it bites** | the graph and the file carry text rather than a content id, so blobs can come later without touching a reader |
 
-### 5 — Docs, brought up to the model
+### 6 — Docs, brought up to the model
 
 **Rewritten to match the code once the shape settles.** The last commit refreshed most of the root and core docs; what is listed here is what still trails.
 

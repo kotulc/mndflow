@@ -9,7 +9,7 @@ import { Explorer, Menu, type Section } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
 import { Options, groups_of } from "@mnd/options";
-import { Tray, type Hold, type Tab } from "@mnd/tray";
+import { Tray, type Hold, type Offered, type Tab } from "@mnd/tray";
 import { Terminal, type Match } from "@mnd/terminal";
 import { browser_files, browser_net } from "./ports";
 import { browser_score } from "./score";
@@ -35,6 +35,9 @@ export function App({ storage }: { storage: Storage }) {
   const s = held.current;
   const [, bump] = useState(0);
   const [folded, set_folded] = useState<Id[]>([]);
+  /** What the catalogue offers, read once. An unbound `net` leaves it empty. */
+  const [offered, set_offered] = useState<readonly Offered[]>([]);
+  useEffect(() => { void s.listing().then(set_offered); }, [s]);
   const [theme, set_theme] = useState<string>(
     () => localStorage.getItem("mnd.theme") ?? "retro");
   const look = THEMES.find((t) => t.name === theme) ?? THEMES[0];
@@ -143,6 +146,8 @@ export function App({ storage }: { storage: Storage }) {
                        ...(leaving ? { at: tidy(graph, layer) } : {}) });
       return;
     }
+    /** A package by name, fetched from the catalogue and grafted through the door. */
+    if (name === "@package") { void s.search(String(args!["name"])); return; }
     /** Where the tray is pointed; writes nothing. */
     if (name === "about") {
       const want = String(args!["scope"]);
@@ -239,7 +244,8 @@ export function App({ storage }: { storage: Storage }) {
           set_tray(true);
           if (at.of === "def") { set_hold({ of: "id", id: at.id }); set_tab("element"); return; }
           set_hold(at);
-          set_tab("definitions");
+          /** The packages section opens on what the workspace draws on. */
+          set_tab(at.of === "defs" && at.only === "packages" ? "packages" : "definitions");
         }}
       />
 
@@ -309,6 +315,7 @@ export function App({ storage }: { storage: Storage }) {
           hold={hold}
           onHold={set_hold}
           onView={(home, id) => { s.look(home); s.pick([id]); set_hold(null); }}
+          offered={offered}
           onAct={act}
         />
       </main>

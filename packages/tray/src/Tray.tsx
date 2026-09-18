@@ -13,6 +13,7 @@ import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
 import { scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
+import { Packages, type Offered } from "./Packages";
 import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
 
 /** What the tray holds that the canvas did not give it. */
@@ -40,20 +41,26 @@ export type TrayProps = {
   onHold?: (hold: Hold | null) => void;
   /** Go to where a row lives: open its layer and pick it there. */
   onView?: (layer: Id | null, id: Id) => void;
+  /** What the package catalogue offers, where the app can read one. */
+  offered?: readonly Offered[];
 };
 
-export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions" | "usages";
+export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions"
+                | "packages" | "usages";
 
 /** What the tray is about. The workspace is a block like any other. */
-type Context = "block" | "line" | "definition" | "relation" | "library";
+type Context = "block" | "line" | "definition" | "relation" | "library" | "packages";
 
-/** A slot per context: an element lists its types, a library section every definition. */
+/** A slot per context: an element lists its types, a library section every definition, and the
+ *  packages section what the workspace draws on — a package's definitions read in the explorer,
+ *  so the tray says what is drawn on and nothing else. */
 const SLOTS: Record<Context, readonly Tab[]> = {
   block: ["element", "style", "types", "fields", "contents", "usages"],
   line: ["element", "style", "types", "usages"],
   definition: ["element", "style", "fields", "usages"],
   relation: ["element", "style", "usages"],
   library: ["definitions"],
+  packages: ["packages"],
 };
 
 const HEAD: readonly Column[] = [
@@ -114,7 +121,8 @@ export function Tray(props: TrayProps) {
   const here = layer ?? graph.root;
   const about: Id = drafting ? DRAFT : held_id ?? one ?? here;
 
-  const context: Context = library ? "library"
+  const context: Context = library
+    ? (library.only === "packages" ? "packages" : "library")
     : view.edges[about] ? "line"
     : view.defs[about]?.group === "relation" ? "relation"
     : view.defs[about] ? "definition" : "block";
@@ -311,6 +319,10 @@ export function Tray(props: TrayProps) {
             <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
                          held={null} lines={[]} onAct={act}
                          onPick={(id) => onHold({ of: "id", id })} />
+          ) : null}
+          {/* What the workspace draws on, and how one more gets in. */}
+          {onAct && tab === "packages" ? (
+            <Packages graph={graph} offered={props.offered} onAct={act} />
           ) : null}
           {onAct && tab === "types" ? (
             <Definitions key={about} about={about} graph={graph}
