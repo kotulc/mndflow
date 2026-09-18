@@ -34,6 +34,8 @@ export type Adjust =
 
 /** What a drop came to rest on: a card, a holder, and a cell of a grid. */
 export type Landing = { over: string | null; into: string | null;
+                        /** The line under the pointer, where a drop landed on one. */
+                        line?: string | null;
                         cell?: { r: number; c: number } };
 
 export type FlowViewProps = {

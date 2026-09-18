@@ -212,6 +212,8 @@
   font-size: 12px;
 }
 .content > textarea:focus { outline: none; border-color: var(--accent); }
+/* Data is read, not written: set in the code face, and quieter. */
+.content > textarea.data { min-height: 12em; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
 
 /* A value read rather than set. */
 .rows > .row > .line > .read { color: var(--muted); }

@@ -9,8 +9,7 @@ import { rows_of, type Row, type Sort } from "./rows";
 import { Element } from "./Element";
 import { Style } from "./Style";
 import { Fields } from "./Fields";
-import { Packages } from "./Packages";
-import { Definitions, type Only } from "./Definitions";
+import { Definitions, type Shelf } from "./Definitions";
 import { Entry } from "./Entry";
 import { scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
@@ -20,10 +19,8 @@ import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./dra
 export type Hold =
   | { of: "id"; id: Id }
   | { of: "draft"; group: DraftGroup }
-  /** A folder of definitions in the explorer: the whole list, or one narrowing. */
-  | { of: "defs"; only: "all" | "default" | "pinned" }
-  /** The packages section: all of them, or one. */
-  | { of: "packs"; from: string | null };
+  /** A library section in the explorer: every definition, or one narrowing of them. */
+  | ({ of: "defs" } & Shelf);
 
 export type TrayProps = {
   graph: Graph;
@@ -45,18 +42,18 @@ export type TrayProps = {
   onView?: (layer: Id | null, id: Id) => void;
 };
 
-export type Tab = "element" | "style" | "fields" | "contents" | "definitions" | "usages" | "packages";
+export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions" | "usages";
 
 /** What the tray is about. The workspace is a block like any other. */
-type Context = "block" | "definition" | "relation" | "library" | "packages";
+type Context = "block" | "line" | "definition" | "relation" | "library";
 
-/** A slot per context, and the words change with the subject. */
+/** A slot per context: an element lists its types, a library section every definition. */
 const SLOTS: Record<Context, readonly Tab[]> = {
-  block: ["element", "style", "fields", "contents", "usages"],
-  definition: ["definitions", "element", "style", "fields", "usages"],
-  relation: ["element", "style", "definitions", "usages"],
+  block: ["element", "style", "types", "fields", "contents", "usages"],
+  line: ["element", "style", "types", "usages"],
+  definition: ["element", "style", "fields", "usages"],
+  relation: ["element", "style", "usages"],
   library: ["definitions"],
-  packages: ["packages"],
 };
 
 const HEAD: readonly Column[] = [
@@ -109,7 +106,7 @@ export function Tray(props: TrayProps) {
   /** What the tray is about: a hold, else the one thing picked, else the open layer. */
   const drafting = hold?.of === "draft" ? hold.group : null;
   /** Which library section the explorer pointed at, which is about no one element. */
-  const library = hold?.of === "defs" || hold?.of === "packs" ? hold : null;
+  const library = hold?.of === "defs" ? hold : null;
   const view = drafting ? with_draft(graph, drafts[drafting]) : graph;
   const one = picked.length === 1 ? picked[0]! : null;
   const held_id = hold?.of === "id" && (view.defs[hold.id] || view.blocks[hold.id])
@@ -117,11 +114,12 @@ export function Tray(props: TrayProps) {
   const here = layer ?? graph.root;
   const about: Id = drafting ? DRAFT : held_id ?? one ?? here;
 
-  const of_relation = !!view.edges[about] || view.defs[about]?.group === "relation";
-  const context: Context = library?.of === "packs" ? "packages"
-    : library?.of === "defs" ? "library"
-    : of_relation ? "relation"
+  const context: Context = library ? "library"
+    : view.edges[about] ? "line"
+    : view.defs[about]?.group === "relation" ? "relation"
     : view.defs[about] ? "definition" : "block";
+  /** Whether the context is about lines rather than blocks. */
+  const lined = context === "line" || context === "relation";
 
   const tabs = SLOTS[context];
   const asked = props.tab ?? held_tab;
@@ -217,8 +215,11 @@ export function Tray(props: TrayProps) {
     </>
   );
 
-  /** What the definitions tab opens narrowed to; the key re-seeds it when the folder changes. */
-  const narrowed: Only = library?.of === "defs" ? library.only : "all";
+  /** What the definitions tab opens narrowed to; the key re-seeds it when the section changes. */
+  const narrowed: Shelf = library
+    ? { only: library.only, ...(library.group ? { group: library.group } : {}),
+        ...(library.from ? { from: library.from } : {}) }
+    : { only: "all" };
 
   /** The definition a relation context is about. */
   const held_def = graph.defs[about] ? about : def_of(graph, about) ?? null;
@@ -231,24 +232,22 @@ export function Tray(props: TrayProps) {
   };
 
   /** With canvas picks, a definition row only lights and offers to apply; otherwise it is held. */
-  const targets = picked.filter((id) => (context === "relation" ? !!graph.edges[id]
-                                                                : !!graph.blocks[id]));
+  const targets = picked.filter((id) => (lined ? !!graph.edges[id] : !!graph.blocks[id]));
   const pick_def = (id: Id) => {
     if (targets.length && !hold) { set_lit_def(id); return; }
     onHold({ of: "id", id });
   };
   const target_name = targets.length === 1 ? shown_name(graph, targets[0]!)
-    : `${targets.length} ${context === "relation" ? "lines" : "blocks"}`;
+    : `${targets.length} ${lined ? "lines" : "blocks"}`;
 
   /** The head names the context. */
   const word = drafting ? `new ${drafting} definition`
-    : library?.of === "packs" ? "packages"
-    : library?.of === "defs" ? "definitions"
+    : library ? "definitions"
     : view.defs[about] ? `${view.defs[about]!.group} definition`
-    : context === "relation" ? "relation" : "block";
+    : context === "line" ? "relation" : "block";
   const name = drafting ? drafts[drafting].name
-    : library?.of === "packs" ? library.from ?? ""
-    : library?.of === "defs" ? (library.only === "all" ? "" : library.only)
+    : library ? [library.from ?? (library.only === "all" ? "" : library.only),
+                 library.group ? `${library.group}s` : ""].filter(Boolean).join(" · ")
     : view.defs[about] ? view.defs[about]!.name : shown_name(graph, about);
 
   const on_bar = (e: MouseEvent) => {
@@ -307,19 +306,19 @@ export function Tray(props: TrayProps) {
           ) : null}
           {/* A definition declares fields and an instance answers them. */}
           {onAct && tab === "fields" ? <Fields graph={view} id={about} onAct={act} /> : null}
-          {onAct && tab === "packages" ? (
-            <Packages graph={graph} held={library?.of === "packs" ? library.from : null}
-                      onPick={(from) => onHold({ of: "packs", from })} />
-          ) : null}
+          {/* The workspace's definitions for a library section; what one element may follow. */}
           {onAct && tab === "definitions" ? (
-            <Definitions key={narrowed} seed={narrowed} graph={graph} group={context === "relation" ? "relation" : "block"}
+            <Definitions key={JSON.stringify(narrowed)} seed={narrowed} graph={graph}
+                         held={null} lines={[]} onAct={act}
+                         onPick={(id) => onHold({ of: "id", id })} />
+          ) : null}
+          {onAct && tab === "types" ? (
+            <Definitions key={about} about={about} graph={graph}
                          held={targets.length && !hold ? lit_def ?? held_def : held_def}
-                         onAct={act} lines={targets} target={target_name}
-                         onPick={pick_def}
-                         from={held_def ?? (context === "relation" ? "line" : "block")} />
+                         onAct={act} lines={targets} target={target_name} onPick={pick_def} />
           ) : null}
           {onAct && tab === "usages" ? (
-            <Usages graph={graph} group={context === "relation" ? "relation" : "block"}
+            <Usages graph={graph} group={lined ? "relation" : "block"}
                     scope={scope} onScope={set_scope}
                     layer={layer} about={held_def}
                     picked={picked} onPick={pick_row} onHover={onHover} onAct={act}

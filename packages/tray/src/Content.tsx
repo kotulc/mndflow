@@ -1,4 +1,4 @@
-/** A block's body: the text that makes it more than a box with a name. */
+/** A body: a block's text, or a definition's data — the stored definition, read only. */
 
 import { useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";
@@ -7,6 +7,7 @@ import { Band } from "./Body";
 export type ContentProps = { graph: Graph; id: Id; onAct: Act };
 
 export function Content({ graph, id, onAct }: ContentProps) {
+  const def = graph.defs[id];
   const stored = graph.blocks[id]?.body ?? "";
   const [draft, set_draft] = useState<string | null>(null);
 
@@ -14,6 +15,17 @@ export function Content({ graph, id, onAct }: ContentProps) {
     if (draft !== null && draft !== stored) onAct("describe", { id, body: draft });
     set_draft(null);
   };
+
+  /** A definition's body is what defines it, exactly as stored. */
+  if (def) {
+    return (
+      <div className="content">
+        <Band label="body" />
+        <textarea className="data" value={JSON.stringify(def, null, 2)} aria-label="definition data"
+                  readOnly spellCheck={false} />
+      </div>
+    );
+  }
 
   return (
     <div className="content">

@@ -63,22 +63,21 @@ register(
       if (!ctx.graph.edges[id]) return "that is not here any more";
       const name = text(args, "name");
       const other = name ? def_named(ctx.graph, name, "relation") : undefined;
-      return other && other.id !== own_def(ctx.graph, id)?.id ? `"${other.name}" already exists` : null;
+      return other ? `"${other.name}" already exists` : null;
     },
-    /** A line is named by its definition: renaming one renames the workspace definition it follows,
-     *  or files one over the default or package it follows. */
+    /** A line is named by its definition: naming one files a new definition over what it follows,
+     *  keeping a label of its own, and moves the line onto it. A definition is renamed in place. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const name = text(args, "name");
       if (!ctx.graph.edges[id]) return { mutations: [{ op: "update_block", id, name }] };
       if (!name) return { mutations: [{ op: "update_edge", id, type: null }] };
       const own = own_def(ctx.graph, id);
-      if (own) {
-        const label = own.label === own.name ? name : own.label;
-        return { mutations: [{ op: "set_def", def: { ...own, name, label } }] };
-      }
-      const def: Definition = { id: mint_def("relation"), group: "relation", name, label: name,
-                                components: { line: {} }, extends: def_of(ctx.graph, id) };
+      /** A label that only repeated the old name follows the new one. */
+      const label = !own || own.label === own.name ? name : own.label;
+      const def: Definition = { id: mint_def("relation"), group: "relation", name, label,
+                                components: { line: {} },
+                                extends: def_of(ctx.graph, id) };
       return { mutations: [{ op: "set_def", def }, { op: "update_edge", id, type: def.id }] };
     },
   },
@@ -108,6 +107,9 @@ register(
         }
         if (!ctx.graph.blocks[id]) return "that block is not there";
         if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
+        if (type && ctx.graph.defs[type]!.group === "relation") {
+          return `"${ctx.graph.defs[type]!.name}" defines a relationship, not a block`;
+        }
         if (type && !may_retype(ctx.graph, id, type)) {
           return `a ${module_of(ctx.graph, id)} cannot become a ${module_named(ctx.graph, type)}`;
         }

@@ -109,12 +109,24 @@ Block {
 
   counters?     Record<string, number>   // workspace only: handle counters per kind
   pinned?       Id[]              // workspace only: pinned definitions, in order
+  shelf?        Shelved[]         // workspace only: how the explorer files its own definitions
 
   looks?        Components        // what this block says about how it draws
   tags?         string[]
   fields?       Field[]
 }
 ```
+
+```
+Shelved {
+  id           Id                    // a definition, or a folder somebody made for them
+  group        "block" | "relation"   // blocks and relations are filed apart
+  in?          Id                    // the folder it sits in; absent = its group's top
+  name?        string                // a folder's name. A definition's entry has none
+}
+```
+
+**The shelf is one ordered list, and order is the list's.** An entry with a `name` is a folder; one without says where a definition sits. **Only the workspace's own definitions are filed** — a base, a default and a package's are the system's, and where they read is fixed. A definition nobody filed sits at its group's top, by name, so an untouched workspace writes no shelf at all.
 
 **Block modules** — engine code behind one sort of block, each with its own configuration surface and its own hooks. **Open**: a code change ships one more, additively. The `base` package carries one definition per module, and everything a user or package defines **extends** one of them.
 
@@ -274,6 +286,7 @@ Step {
 | `add_block` · `update_block` · `delete_block` | make, retype or rename, remove |
 | `move_block` · `place_block` · `size_block` · `order_block` | re-parent, position, least size, sibling order |
 | `set_alias` · `set_counter` · `set_pinned` | handles, and the pinned list |
+| `set_shelf` | the whole shelf, in order: the definition folders, and what sits in them |
 | `set_body` | body text |
 | `set_group` | which holder a block sits in, or none |
 | `seat_cell` · `set_header` | a grid address, and whether the block heads its line |

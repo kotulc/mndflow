@@ -168,7 +168,16 @@ describe("what a block may become", () => {
     expect(module_of(s.graph(), id)).toBe("block");
   });
 
-  it.each(["folder", "resource", "group", "grid", "note", "interface", "reference"])(
+  /** Block, folder and resource are one open family. */
+  it.each(["folder", "resource"])("makes a block a %s", (type) => {
+    const s = kinds();
+    s.go("create", { name: "A" });
+    const id = children(s.graph(), ROOT)[0]!.id;
+    expect(s.go("retype", { id, type })).toBeNull();
+    expect(module_of(s.graph(), id)).toBe(type);
+  });
+
+  it.each(["group", "grid", "note", "interface", "reference"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { name: "A" });

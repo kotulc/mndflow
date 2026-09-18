@@ -7,6 +7,7 @@ export * from "./ports";
 export * from "./components";
 export * from "./fold";
 export * from "./defs";
+export * from "./shelf";
 export * from "./tree";
 export * from "./holders";
 export * from "./names";

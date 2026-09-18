@@ -39,9 +39,9 @@ Thirty-nine, two of them navigation.
 
 **Leaving a layer leaves everything about where you were in it.** A place and a group's membership are both facts about the layer that held the block, so a move out of one drops them — and **a group whose last member leaves goes with it**.
 
-**`retype` keeps a kind a kind.** A block is retyped only to definitions of its own kind, and a run only to relation definitions of its own module. A base or a default is stored as plain.
+**`retype` keeps a kind a kind, and `block`, `folder` and `resource` are one kind.** Those three are the open family and a block moves among them freely; every other kind carries something a change of type cannot invent, so it is fixed when the block is made. A run is retyped only to relation definitions of its own module, and a block never names a relation definition. A base or a default is stored as plain.
 
-**`rename` on a line renames the definition it follows.** A line following a workspace definition renames that definition; one following a default or a package files a new definition over it. A name already taken in the group is refused.
+**`rename` on a line files a new definition over the one it follows**, and moves the line onto it — the same gesture a block's *definition* row makes, since a line is named by its definition and never for itself. The new one extends what the line followed and keeps a label of its own, while a label that only repeated the old name follows the new one. **A definition is renamed in place** with `rename_def`, where every usage reads the new name. A name already taken in the group is refused.
 
 **`tag` and `look` are model data, not display preferences.** What an element says about itself travels in the file and undoes like anything else. `look` writes one property at a time and an absent value gives it back to the chain — **customising an element is local to it** until `save_def` makes a definition of it.
 
@@ -119,15 +119,21 @@ Thirty-nine, two of them navigation.
 | `field` | sets a named value on a block, or adds a field to a definition | layer, block | holder, name, value?, form?, unit?, choices?, to? | `set_field` / `set_def` |
 | `order_field` | moves a value or a declared field to before another | layer, block | holder, name, before? | `order_fields` / `set_def` |
 | `unfield` | drops a named value from a block, or a field from a definition | layer, block | holder, name | `drop_field` / `set_def` |
-| `define` | names a new definition, or restates one of that name | layer | name, group, extends?, label?, id? | `set_def` |
+| `define` | names a new definition, or restates one of that name | layer | name, group, extends?, label?, into?, id? | `set_def` (+ `set_shelf`) |
 | `rename_def` | changes what a definition is called, and so what every usage naming it reads | layer | id, name | `set_def` |
 | `save_def` | saves how this looks as a definition anything else can name | block, edge | id, name | `set_def` + `update_block` / `update_edge` + `set_look`… |
 | `pin` | offers a definition on the rail or in the pinned folder, or takes it off | layer | id, on? | `set_pinned` |
 | `remove_def` | dissolves a definition back into everything that named it, and drops it | layer | id | `set_look`… + `set_def`… + `drop_def` |
+| `add_shelf` | adds a folder to file definitions in | layer | name, group, into?, id? | `set_shelf` |
+| `rename_shelf` | renames a definition folder | layer | id, name | `set_shelf` |
+| `drop_shelf` | removes a folder, keeping what it held where it was | layer | id | `set_shelf` |
+| `shelve` | files definitions or folders into a folder, or reorders them | layer | ids, into?, before? | `set_shelf` |
 
 **One act, and the holder says which.** Setting a value on a usage and declaring a field on a definition are the same thing said about two sorts of holder. A relationship holds no values.
 
-**`define` requires a group**, from every caller, and `extends` must name a definition of that group. **Its id is minted**; a caller that must know it before the step lands mints it and passes `id`.
+**`define` requires a group**, from every caller, and `extends` must name a definition of that group. **Its id is minted**; a caller that must know it before the step lands mints it and passes `id`. **`into` files a new one in a folder**, which must be a folder of its own group.
+
+**Filing is the workspace's own definitions only.** `shelve` refuses a base, a default and a package's, refuses to mix the groups, and refuses a folder into itself. **Removing a folder keeps what it held**, in the folder the folder was in.
 
 **Saving never pins.** `define` and `save_def` pin nothing; `pin` is the explicit act, per definition, and bases and defaults are never pinned.
 
@@ -258,4 +264,4 @@ Thirty-nine, two of them navigation.
 | **Behaviour** | *The model defines itself as the user builds* has half an answer in the grid — a cell address is an order, a header is an allocation — and nothing reads either yet |
 | **Allocation** | derived and correct; a matrix or a report over it is what would consume it |
 | **SysML round trip** | a `tie` goes out as `comment` and comes back as a `line` |
-| **A named package is unchecked** | the packages tab reads what is in use; reconciling that against the catalogue is the check |
+| **A named package is unchecked** | the definitions tab reads what is in use; reconciling that against the catalogue is the check |

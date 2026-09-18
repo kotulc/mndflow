@@ -3,6 +3,7 @@
 import { def_named, def_of, isa, module_of, ordered_by, plain_type, schema_of, shipped,
          stored_type } from "../defs";
 import { DRAWN } from "../components";
+import { shelf_of } from "../shelf";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
          type Mutation, type ValueForm } from "../types";
 import { register } from "./registry";
@@ -111,7 +112,9 @@ register(
     args: [{ name: "name", form: "text", required: true },
            { name: "group", form: "choice", required: true, choices: ["block", "relation"] },
            { name: "extends", form: "text" },
-           { name: "label", form: "text" }],
+           { name: "label", form: "text" },
+           /** The folder a new one is filed in; absent is its group's top. */
+           { name: "into", form: "text" }],
     check: (ctx, args) => {
       const name = text(args, "name");
       if (!name) return "a definition needs a name";
@@ -127,7 +130,9 @@ register(
       if (held && up && isa(ctx.graph, up).some((d) => d.id === held.id)) {
         return `"${name}" cannot extend itself or anything below it`;
       }
-      return null;
+      const into = text(args, "into");
+      const folder = shelf_of(ctx.graph).some((s) => s.id === into && s.name !== undefined && s.group === group);
+      return into && !folder ? `that is not a folder of ${group} definitions` : null;
     },
     /** Over what is there: only what was said changes. */
     run: (ctx, args) => {
@@ -140,6 +145,10 @@ register(
       const said = args["extends"] === undefined ? held?.extends
                                                  : rooted(ctx, text(args, "extends"), group);
       const label = args["label"] === undefined ? held?.label : text(args, "label") || undefined;
+      /** A new one said to go in a folder is filed there. */
+      const into = held ? "" : text(args, "into");
+      const filed: Mutation[] = into
+        ? [{ op: "set_shelf", shelf: [...shelf_of(ctx.graph), { id, group, in: into }] }] : [];
       return { mutations: [{ op: "set_def", def: {
         ...held,
         id, name, group, label,
@@ -147,7 +156,7 @@ register(
         ...(group === "relation" && !held?.components?.["line"] ? { components: { ...held?.components, line: {} } } : {}),
         ...(components && Object.keys(components).length ? { components } : {}),
         ...(fields?.length ? { fields } : {}),
-      } }] };
+      } }, ...filed] };
     },
   },
   {

@@ -61,7 +61,7 @@ export function App({ storage }: { storage: Storage }) {
   const [hold, set_hold] = useState<Hold | null>(null);
   /** Which library row the explorer lights: whatever the tray has hold of. */
   const section: Section | null =
-    hold?.of === "defs" || hold?.of === "packs" ? hold
+    hold?.of === "defs" ? hold
     : hold?.of === "id" && hold.id !== s.graph().root ? { of: "def", id: hold.id } : null;
   /** A selection made anywhere but the tray gives the context back to the canvas. */
   const pick = (ids: Id[]) => { s.pick(ids); set_hold(null); };
@@ -240,7 +240,7 @@ export function App({ storage }: { storage: Storage }) {
           set_tray(true);
           if (at.of === "def") { set_hold({ of: "id", id: at.id }); set_tab("element"); return; }
           set_hold(at);
-          set_tab(at.of === "packs" ? "packages" : "definitions");
+          set_tab("definitions");
         }}
       />
 
@@ -256,16 +256,17 @@ export function App({ storage }: { storage: Storage }) {
                   at={at} spot={spot} only={only} given={given}
                   onAct={act} onShut={shut} />
           )}
-          /** A block dropped on the drawing arrives as a reference; a definition makes a block. */
+          /** A block dropped on the drawing arrives as a reference; a definition retypes what it
+           *  lands on, or makes one where nothing is. */
           onDrop={(id, spot, land) => {
             /** Where the pointer was, clear of what is already there. */
             const at = clear_of(
               scene.nodes.filter((n) => n.id !== id && !holds(n) && !n.data.on)
                          .map(box_of),
               { x: spot.x - BLOCK.w / 2, y: spot.y - BLOCK.h / 2 }, BLOCK);
-            /** A definition dragged out makes a block naming it. */
             if (!graph.blocks[id] && graph.defs[id]) {
-              s.go(...dropped(graph, id, land.over, at, layer));
+              const made = dropped(graph, id, land.line ?? land.over, at, layer);
+              if (typeof made === "string") s.say(made, "note"); else s.go(...made);
               return;
             }
             s.go("refer", { target: id, spot: at });
@@ -330,15 +331,24 @@ export function App({ storage }: { storage: Storage }) {
   );
 }
 
-/** What a dragged definition makes, by its kind; a grid arrives two by two. */
+/** A grid dragged out arrives two by two. */
 const GRID = { rows: 2, cols: 2 };
 
+/** What a kind needs that the empty drawing cannot give it, in words. */
+const NEEDS: Record<string, string> = {
+  interface: "an interface sits on a block — add one to a block, then drop this onto it",
+  note: "a note is about a block — add one to a block, then drop this onto it",
+  reference: "a reference stands for a block — drag that block from the tree instead",
+};
+
+/** What a dragged definition does: retypes the element it lands on, or makes one on the empty
+ *  drawing. Refused in words where neither can be. The retype says its own refusal. */
 function dropped(graph: Graph, type: Id, on: Id | null, at: Point,
-                 layer: Id | null): [string, Args] {
+                 layer: Id | null): [string, Args] | string {
+  if (on) return ["retype", { ids: [on], type }];
+  if (graph.defs[type]?.group === "relation") return "lines must connect existing blocks — draw one from a block to another";
   const kind = module_named(graph, type);
-  if (on && kind === "interface") return ["interface", { owner: on, type }];
-  if (on && kind === "group") return ["group", { members: [on], type }];
-  /** A grid is placed beside a block, never on it. */
+  if (NEEDS[kind]) return NEEDS[kind]!;
   if (kind === "grid") return ["group", { ...GRID, type, spot: at }];
   return ["create", { name: "", type, parent: layer ?? graph.root, spot: at }];
 }

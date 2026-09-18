@@ -22,7 +22,7 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
-  "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "size_block", "set_body",
+  "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "set_shelf", "size_block", "set_body",
   "set_group", "seat_cell", "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks",
   "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def",

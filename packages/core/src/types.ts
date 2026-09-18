@@ -48,6 +48,17 @@ export type Span = { r: number; c: number; rows: number; cols: number };
 /** Which line a header heads. Derived from where it sits, never stored — see `would_head`. */
 export type HeaderRole = "row" | "col" | "both";
 
+/** A place on the workspace's shelf: a folder somebody made, or where one of its own definitions
+ *  sits. The list's order is the explorer's. */
+export type Shelved = {
+  id: Id;
+  group: "block" | "relation";
+  /** The folder it sits in; absent is its group's top. */
+  in?: Id;
+  /** A folder's name. A definition's entry has none, since the definition carries it. */
+  name?: string;
+};
+
 /** The one element; what it is comes from its definition. */
 export type Block = {
   id: Id;
@@ -84,6 +95,8 @@ export type Block = {
   counters?: Record<string, number>;
   /** Pinned definitions, in order: relations on the rail, blocks in the explorer. */
   pinned?: Id[];
+  /** The workspace's own definitions as filed in the explorer, in order. */
+  shelf?: Shelved[];
   /** What this one block says about how it draws, over whatever its definition said. */
   looks?: Components;
   /** Words put on this block to say what it is like. */
@@ -167,6 +180,8 @@ export type Mutation =
   | { op: "set_counter"; kind: string; n: number }
   /** The whole shortlist, in order. */
   | { op: "set_pinned"; ids: Id[] }
+  /** The whole shelf, in order. */
+  | { op: "set_shelf"; shelf: Shelved[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
   | { op: "set_group"; id: Id; group: Id | null }

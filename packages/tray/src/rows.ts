@@ -85,9 +85,10 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
 }
 
 
-/** One definition, as the definitions tab lists it. */
+/** One definition, as the definitions and types tabs list it. */
 export type DefRow = {
   id: Id;
+  group: "block" | "relation";
   name: string;
   /** What a line naming it draws; blank for none, and always for a block's. */
   label: string;
@@ -101,21 +102,22 @@ export type DefRow = {
   used: number;
 };
 
-/** Every definition of one group the workspace can name, the defaults first and then by name. */
-export function def_rows(graph: Graph, group: "block" | "relation"): DefRow[] {
+/** Every definition the workspace can name, the defaults first and then by name. */
+export function def_rows(graph: Graph): DefRow[] {
   const used = new Map<string, number>();
-  const usages = group === "relation" ? Object.keys(graph.edges)
-    : Object.keys(graph.blocks).filter((id) => id !== graph.root);
+  const usages = [...Object.keys(graph.edges),
+                  ...Object.keys(graph.blocks).filter((id) => id !== graph.root)];
   for (const id of usages) {
     const d = def_of(graph, id);
     if (d) used.set(d, (used.get(d) ?? 0) + 1);
   }
   return Object.values(graph.defs)
     /** The shipped floor is not listed: nobody chose it, and nothing edits it. */
-    .filter((d) => d.group === group && !shipped(d))
+    .filter((d) => !shipped(d))
     .map((d): DefRow => ({
-      id: d.id, name: d.default ? `default/${d.default}` : d.name, label: d.label ?? "", extends: d.extends ?? "",
-      base: d.default !== undefined, from: d.from ?? "", used: used.get(d.id) ?? 0,
+      id: d.id, group: d.group, name: d.default ? `default/${d.default}` : d.name,
+      label: d.label ?? "", extends: d.extends ?? "", base: d.default !== undefined,
+      from: d.from ?? "", used: used.get(d.id) ?? 0,
     }))
     .sort((a, z) => Number(z.base) - Number(a.base) || a.name.localeCompare(z.name));
 }

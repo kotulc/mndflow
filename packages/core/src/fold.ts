@@ -93,6 +93,12 @@ function apply(graph: Graph, m: Mutation): void {
       if (kept.length) ws.pinned = kept; else delete ws.pinned;
       return;
     }
+    case "set_shelf": {
+      const ws = graph.blocks[graph.root];
+      if (!ws) return;
+      if (m.shelf.length) ws.shelf = m.shelf.map((s) => ({ ...s })); else delete ws.shelf;
+      return;
+    }
     case "place_block": {
       const b = graph.blocks[m.id];
       if (b) { b.x = m.x; b.y = m.y; }

@@ -213,7 +213,14 @@ export function packages(graph: Graph): { from: string; defs: Definition[] }[] {
     .map(([from, defs]) => ({ from, defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
 }
 
+/** The kinds a block moves among freely; every other kind is fixed when it is made. */
+const OPEN: readonly string[] = ["block", "folder", "resource"];
+
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
-  return module_of(graph, id) === module_named(graph, type);
+  /** A block never names a relation definition. */
+  if (type && graph.defs[type]?.group === "relation") return false;
+  const from = module_of(graph, id);
+  const to = module_named(graph, type);
+  return from === to || (OPEN.includes(from) && OPEN.includes(to));
 }

@@ -40,7 +40,7 @@
 | | |
 |---|---|
 | **rules are stated nowhere** | the panel could state three of the five kinds and show the other two, because `look` writes one scalar while `ends` and `degree` are nested records. The model side stands: the `rules` component validates all five at the door, `rules_of` resolves them, and `review` reads what survives. See ST.17 |
-| **a block is renamed per keystroke** | the settings name box sends `rename` on every change; every other box commits when it is left |
+| **a block is renamed per keystroke** | the element tab's name box sends `rename` on every change; every other box commits when it is left |
 | **grids filter as blocks** | the contents chips count a grid under *blocks*, not *groups* |
 | **adding a field from the bar** | the legacy app had it |
 
@@ -114,7 +114,7 @@
 |---|---|
 | **Behaviour has no mechanism** | *the model defines itself as the user builds* has half an answer in the grid; nothing yet reads an order or an allocation |
 | **Definition shape is cut** | it comes back when every renderer can draw one |
-| **A named package is unchecked** | the packages tab reads what is in use off `packages()`; reconciling that against the catalogue is the check |
+| **A named package is unchecked** | the definitions tab reads what is in use off `packages()`; reconciling that against the catalogue is the check |
 | **The SysML round trip loses ties** | `tie` goes out as `comment` and comes back as `line` |
 | **The SVG export paints by kind** | notes, groups and ties are coloured by class in `svg.ts`, where the canvas reads their definitions |
 | **Note detection is spelled three ways** | `module_of`, a literal `type === "note"` in `arrange.ts`, and a `config_of` read in `look.ts` |

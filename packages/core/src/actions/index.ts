@@ -8,6 +8,7 @@ import "./groups";
 import "./grid";
 import "./definitions";
 import "./looks";
+import "./shelf";
 
 export * from "./registry";
 

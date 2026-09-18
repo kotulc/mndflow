@@ -109,7 +109,9 @@ function Canvas(props: FlowViewProps) {
         e.preventDefault();
         const spot = at(e);
         const land = landing_on(id, spot);
-        onDrop?.(id, spot, { over: land.over?.id ?? null, into: land.into?.id ?? null,
+        const line = e.target instanceof Element
+          ? e.target.closest(".react-flow__edge")?.getAttribute("data-id") ?? null : null;
+        onDrop?.(id, spot, { over: land.over?.id ?? null, into: land.into?.id ?? null, line,
                              ...(land.cell ? { cell: land.cell } : {}) });
       }}
       proOptions={{ hideAttribution: true }}

@@ -1,6 +1,6 @@
 # Context Tray
 
-**One context, several tabs.** The tray is about one thing at a time — the context — and its head names it plainly: *block workspace*, *block Tank*, *relation feeds*, *block definition Pump*, *packages sysml*, *new block definition*. The head never says how the context was reached. The chevron leads the head; expand sits far right.
+**One context, several tabs.** The tray is about one thing at a time — the context — and its head names it plainly: *block workspace*, *block Tank*, *relation feeds*, *block definition Pump*, *definitions sysml*, *new block definition*. The head never says how the context was reached. The chevron leads the head; expand sits far right.
 
 ## The context
 
@@ -11,12 +11,11 @@
 | pick one thing on the canvas | that thing |
 | pick a row in contents or usages | that thing — the table keeps its tab and its listing |
 | pick nothing, several things, or click the ground | the open layer — the workspace at the root |
-| a settings toggle on the rail | the workspace, or a blank block or relation definition |
-| a definition row in the explorer | that definition, opened on its settings |
-| a definition folder in the explorer — *definitions*, *default*, *pinned* | the whole list, narrowed to that folder |
-| the explorer's *packages* section, or one package in it | the packages, or that one |
-| a definition row in the definitions tab, with nothing picked | that definition |
-| a definition row in the definitions tab, with something picked | nothing changes — the row lights and offers *apply to …* |
+| an elements toggle on the rail | the workspace, or a blank block or relation definition |
+| a definition row in the explorer | that definition, opened on its element tab |
+| a library folder in the explorer — *pinned*, *default*, *workspace*, a package, a folder somebody made | every definition, narrowed to that folder |
+| a definition row in the definitions tab | that definition |
+| a definition row in the types tab, with something picked | nothing changes — the row lights and offers *apply to …* |
 
 **A hold — a definition, a library section or a draft — is given up by any pick of an element**, on the canvas or in a table. The explorer sets the layer; the canvas and the tables set the context within it.
 
@@ -37,17 +36,19 @@ A hovered row never becomes the context.
 
 | context | tabs |
 |---|---|
-| block | settings · fields · contents · usages |
-| block definition | definitions · settings · fields · usages |
-| relation, or relation definition | settings · definitions · usages |
-| a definition folder | definitions |
-| packages | packages |
+| block | element · style · types · fields · contents · usages |
+| a line | element · style · types · usages |
+| block definition | element · style · fields · usages |
+| relation definition | element · style · usages |
+| a library folder | definitions |
+
+**Element and style are two tabs over one thing.** Element is what it *is*; style is how it is painted. Both draw the same card, so it stays where it was when the tab changes.
+
+**Types is an element's, definitions is the workspace's.** The types tab lists what the one thing in context may follow — its own kind's definitions, and nothing else. The definitions tab is the whole vocabulary, reached by holding a library folder, and says where each came from.
 
 **Contents are an instance's.** With a definition in context, the fields tab declares that definition's schema instead of values.
 
-**The workspace is a block, and nothing more.** It takes the same settings panel and the same tabs as any block, styled for wherever an export is used, with its schema beside the card. **It carries no packages tab** — what the workspace draws on is reached by selecting the explorer's *packages* section, the same way any other collection is reached.
-
-**The definitions tab is a definition's, not an instance's.** A block in context lists no definitions: the list is the explorer's sections, and the tab appears once a definition is what the tray has hold of.
+**The workspace is a block, and nothing more.** It takes the same tabs as any block, styled for wherever an export is used, with its schema beside the card.
 
 ## Definitions
 
@@ -58,35 +59,42 @@ A hovered row never becomes the context.
 | **base** | a shipped kind — `base/block`, `base/line` and the rest. Extends nothing, and is never written, pinned or removed |
 | **default** | the one editable definition per kind that every plain element of that kind follows — shown as `default/<kind>`. Extends its base; never renamed, removed or pinned, and may be re-typed within its kind |
 | **label** | what a line naming a relation definition draws, **exactly as typed** — a stereotype such as `<<relates>>`. Its own and never inherited |
-| **working look** | what a block or a line says about its own drawing while it names no workspace definition — named and kept with *save definition*, dropped by *reset style* |
+| **working look** | what a block or a line says about its own drawing while it names no workspace definition — kept by naming it on the element tab, dropped by *reset style* |
 
 - **Styling edits the definition where there is one.** A block or a line naming a workspace definition styles that definition, so every usage follows. One naming a default, a base or a package's definition — or already carrying a working look — styles itself.
-- **Saving a working look makes a definition and moves the element onto it.** A line keeps the label it was drawing. **Saving never pins.**
-- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail — a line definition only, since the rail offers no *tie*; a pinned block definition is in the explorer's *pinned* folder. Unpinned definitions live here, in the tray.
+- **Naming is what saves.** A working look is kept by naming it on the element tab, which files a definition and moves the element onto it — there is no save button. A line keeps the label it was drawing. **Saving never pins.**
+- **Pinned offers a definition; it never makes or removes one.** A pinned relation definition is on the rail — a line definition only, since the rail offers no *tie*; a pinned block definition is in the explorer's *pinned* folder. **Pinning is a shortlist, not a listing**: the explorer lists every definition either way.
 - **Removing dissolves.** Its looks go down into each usage, anything extending it extends what it extended, and it is unpinned.
 - **A name is unique within its group.** A block definition and a relation definition may share one. A name already taken is said, never looked up.
 - **Renaming keeps the id**, so every usage reads the new name and nothing is retyped.
 - **Filed when first needed.** A default is laid by the fold until its first edit files it, so a workspace nobody customised writes nothing.
 - **Ids are minted**, never a slug of the name, so renaming touches nothing but the name.
 
-## Settings
+## Element
 
-**Two columns.** The left is what the thing *is* and holds every branch on which holder it was given; the right is how it is painted and is uniform over any holder. A block's body runs full width below both.
+**The drawing, then what it is.** The card is a column of its own on the left — its kind, how many usages name this exact definition, and *pinned* under it — and the identity rows sit beside it. A body runs below both.
 
 | holder | identity rows |
 |---|---|
-| workspace | name, id |
-| block | name, tags, definition *(while it has a working look)*, type |
-| block definition | name, type |
+| workspace | name, type, tags |
+| block | name, definition *(while it has a working look)*, type, tags |
+| a line | name, type, label, tags |
+| block definition | name, extends |
 | relation definition | name, label, extends |
-| a line | name, tags, label, extends |
 
-- **The drawing sits at the column's start**, with its kind and how many usages name this exact definition beside it.
+- **An instance is named for itself; a line is named by its definition.** A block's name is its own. A line's name row shows the definition it follows and, typed into, files a new definition over it and moves the line onto it — so a line and a block are named by the same gesture.
+- **Type is a dropdown** of every definition of the element's own kind, its default first. **A block moves among `block`, `folder` and `resource` freely** and no further; every other kind is fixed when it is made.
+- **Extends is a definition's**, and says the same word for both groups. Read-only for a base.
+- **Label is editable wherever it reads** — on the relation definition, and on a line, where it edits the definition the line follows.
 - **Tags are chips**, on a block or a line, with a box to add another. Never inherited.
-- **Type is a dropdown**: the default, then every definition of the block's own kind. A block never changes kind. **Extends is always shown**, read-only for a base.
-- ***Pinned* sits beside the card.** Bases and defaults offer none.
-- **Reset style and save definition** sit at the far end of the tab strip, since they act on the whole tab.
-- **A body is a block's** — the workspace's included, as its description — never a relationship's or a definition's. Committed when the box is left.
+- ***Pinned* sits under the card.** Bases and defaults offer none.
+- **Reset style** sits at the far end of the style tab's strip, since it acts on that whole tab.
+
+**A body is what the block represents.** A block's is its text — the workspace's included, as its description — and a definition's is its data, the stored definition exactly as filed, read only. A line has none. Text is committed when the box is left. See ST.20.
+
+## Two shapes, by width
+
+**The tray lays its tabs out by its own width**, not the window's, since the explorer and the rail take from it. Narrow is the card beside its rows with the body under both; wide puts everything in one row, the body a third column on the element tab and the style groups a column of their own on the style tab.
 
 ### Style groups
 
@@ -103,11 +111,11 @@ A hovered row never becomes the context.
 
 ## Drafts
 
-**A blank definition is filed when it is named.** Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`. *Save definition* is only for a working look.
+**A blank definition is filed when it is named.** Its id is minted up front, it is edited through the same actions as a real one, and it is kept through clicking away. Until something is picked, its extends shows `base/<kind>`.
 
 ## Tables
 
-**One table for contents, definitions, usages and packages.** They differ in rows and columns, which is data.
+**One table for contents, definitions, types and usages.** They differ in rows and columns, which is data.
 
 | part | behaviour |
 |---|---|
@@ -130,18 +138,13 @@ A hovered row never becomes the context.
 - **A block is renamed in its row**; a line is named by its definition.
 - **The picked row, when it is in another layer, offers *view***, which opens that layer and picks it there.
 
-### Definitions
+### Definitions and types
 
-- **Every definition of the context's group the workspace can name**, the defaults first: name, label *(relations)*, extends, used. The shipped floor is left out; chips narrow to *defaults*, *pinned*, *packages* and — for relations — *labelled*. **The chips are the explorer's folders said again**, and a folder selected there opens the tab on its chip.
+- **The definitions tab is every definition the workspace can name**, the defaults first: name, label *(relations)*, extends, source, used. The shipped floor is left out, and **source says the package, or *workspace* for its own**. Chips narrow by group — *blocks*, *relations* — and by folder: *pinned*, *default*, *workspace*, *packages*, and one package at a time under that. **The chips are the explorer's folders said again**, and a folder selected there opens the tab on its chip.
+- **The types tab is the same table, narrowed to one element**: what the thing in context may follow, and nothing else. It offers no chips and adds no row, since a definition is added in the explorer or on the definitions tab.
 - **Name, label and extends are edited in the row**; a package's are not, and a default's name is not.
-- **The last row adds one.**
-- **With something picked, the lit row offers *apply to …***, which points the picked elements at it. Picking alone never changes a drawing.
-
-### Packages
-
-- **What the workspace draws on**, one row each: package, blocks, relations, in use. **The shipped floor is nobody's package** and is never listed.
-- **Blocks and relations are counted apart**, since the definitions tab lists one group at a time.
-- **Picking a row points the tray at that package**, which the explorer's section lights in turn.
+- **The last row adds one**, where one group is in view — a definition needs a group, and a mixed listing has none to give it.
+- **With something picked, the lit row offers *apply to …***, which points the picked elements at it. Picking alone never changes a drawing. **Dragging a definition out of the explorer does the same thing** on the drawing.
 
 ### Usages
 

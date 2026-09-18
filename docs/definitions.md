@@ -56,9 +56,14 @@
 | **default** | the workspace's one editable definition per kind, extending that kind's base. **Laid by the fold until its first edit files it.** A plain element — one naming nothing, or naming a base — follows its kind's default. Never renamed, removed or pinned; may be re-typed within its kind. **Read by its marker (`default`), never its id** |
 | **workspace definition** | everything else the workspace holds. It extends its kind's base unless it says otherwise |
 | **package definition** | a definition carrying `from`: brought in, read-only, and never a default |
-| **kind** | the base a definition's chain ends in. **Fixed when an element is made**: a block is retyped only within its kind, and a run's definition stays within its relation module |
+| **kind** | the base a definition's chain ends in. **Fixed when an element is made**, but for the open family: `block`, `folder` and `resource` are one kind for retyping and a block moves among them freely, while a run's definition stays within its relation module |
 
 **Resolution is global, by id.** A usage names a definition id; nothing climbs a tree and nothing shadows.
+
+| Term | Means |
+|---|---|
+| **shelf** | how the explorer files the workspace's **own** definitions: the folders somebody made, and what sits in each. One ordered list on the root block, so it exports and it undoes. **Blocks and relations are filed apart**, and a base, a default and a package's are never filed — where they read is fixed |
+| **a definition's body** | its data: the stored definition itself, as read on its element tab. A block's body is what the block represents — text, a description, code — and a definition's is what defines it. See ST.20 |
 
 **There is no untyped block.** A block naming no definition is a `block`; the field being absent is how a file stays small. `view` is reserved rather than shipped — it comes back defined, not as a module.
 
@@ -231,7 +236,7 @@ The full enumeration is in actions.md.
 | **action** | something somebody meant and could say — create, relate, group, describe. Named, ranked, listed. Returns mutations rather than applying them |
 | **adjustment** | something positional and unsayable — `place`, `size`, `seat`. Gesture-only and never ranked. **A gesture that comes to several writes lands them in one batch**, so it is one step |
 | **navigation** | an action writing no mutations — `open`, `reveal`. No step, nothing to undo |
-| **pin** | offering a definition: a block definition in the explorer's *pinned* folder, a relation definition on the rail. **An explicit act per definition** — saving never pins, and unpinned definitions live in the tray. Bases and defaults are never pinned |
+| **pin** | offering a definition: a block definition in the explorer's *pinned* folder, a relation definition on the rail. **An explicit act per definition** — saving never pins, and a definition is listed in the explorer whether it is pinned or not. Bases and defaults are never pinned |
 | **action surface** | the actions the engine publishes as data. The seam both the page and the terminal work against |
 | **host port** | one of the four capabilities an app binds — `storage`, `files`, `net`, `score`. **The entire host contract**, declared in core and implemented nowhere else. An unbound port is a capability the app does without, never a feature reimplemented |
 
