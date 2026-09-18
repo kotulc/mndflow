@@ -1,6 +1,6 @@
 /** The module contract: what a module publishes, and what validates it. */
 
-import { BLOCK_MODULES, RELATION_MODULES, type Definition } from "./types";
+import { BASE_RELATIONS, BLOCK_MODULES, type Definition } from "./types";
 
 /** What a definition holds under one component's key. */
 export type Settings = Record<string, unknown>;
@@ -79,6 +79,9 @@ export const SHOWN = ["show", "hide"] as const;
 /** Which end of the card its writing reads from. */
 export const ALIGNS = ["left", "center", "right"] as const;
 
+/** Whether a card is the one card height, or keeps whatever size it was given. */
+export const HEIGHTS = ["uniform", "free"] as const;
+
 /** The named families a definition may pick from. */
 export const FAMILIES = ["primary", "secondary", "neutral", "muted",
                          "away", "note"] as const;
@@ -124,6 +127,7 @@ export const DEFAULTS = {
   "card.align": "left",
   "card.label_align": "left",
   "card.alias": "hide",
+  "card.height": "uniform",
   "line.name": "show",
   "line.alias": "hide",
   "style.family": "neutral",
@@ -140,20 +144,20 @@ export const DEFAULTS = {
 export const DRAWN: readonly string[] = ["card", "style", "line"];
 
 /** What each module honours, and the keys it owns of its own. */
-const CARD: readonly string[] = ["card", "style", "rules"];
-const WALL: readonly string[] = ["style", "rules"];
-const WIRE: readonly string[] = ["line", "style", "rules"];
+const CARD: readonly string[] = ["card", "style", "allows", "expects"];
+const WALL: readonly string[] = ["style", "allows", "expects"];
+const WIRE: readonly string[] = ["line", "style", "allows", "expects"];
 
 const MODULES: Record<string, { honours: readonly string[]; keys: readonly string[] }> = {
   ...Object.fromEntries(BLOCK_MODULES.map((m) => [m, { honours: CARD, keys: [] }])),
-  ...Object.fromEntries(RELATION_MODULES.map((m) => [m, { honours: WIRE, keys: [] }])),
+  ...Object.fromEntries(BASE_RELATIONS.map((m) => [m, { honours: WIRE, keys: [] }])),
   /** An interface is eight pixels of wall. */
   interface: { honours: WALL, keys: [] },
 };
 
-/** One namespace for both groups, so a module name may mean one thing. */
-const shared = BLOCK_MODULES.filter((m) => (RELATION_MODULES as readonly string[]).includes(m));
-if (shared.length) throw new Error(`module names shared by both groups: ${shared.join(", ")}`);
+/** One namespace for both groups, so a name may mean one thing. */
+const shared = BLOCK_MODULES.filter((m) => BASE_RELATIONS.includes(m));
+if (shared.length) throw new Error(`names shared by both groups: ${shared.join(", ")}`);
 
 /** Which components this module honours. */
 export function honours(module: string): readonly string[] {
@@ -172,14 +176,6 @@ const block: Component = {
   },
 };
 
-/** Which relation module a relation definition refines — `block`'s counterpart. */
-const relation: Component = {
-  name: "relation",
-  check: (config) =>
-    one_of("relation.module", config["module"], RELATION_MODULES)
-    ?? stray("relation", config, ["module"]),
-};
-
 /** What a card is made of, as against how it is painted (`style`). */
 const card: Component = {
   name: "card",
@@ -189,7 +185,8 @@ const card: Component = {
     ?? one_of("card.label_align", config["label_align"], ALIGNS)
     /** `alias` shows the handle beside a name that was set. */
     ?? one_of("card.alias", config["alias"], SHOWN)
-    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias"]),
+    ?? one_of("card.height", config["height"], HEIGHTS)
+    ?? stray("card", config, ["label", "align", "label_align", "icon", "alias", "height"]),
 };
 
 /** How a card is painted: its border, its fill, and each of its two writings. */
@@ -231,30 +228,43 @@ const line: Component = {
 };
 
 
-/** One constraint and four rules. */
-const rules: Component = {
-  name: "rules",
+/** What may attach to or be held by a usage. Refused at the gesture, never repaired. */
+const allows: Component = {
+  name: "allows",
   check: (config) => {
+    for (const key of ["ports", "holds", "members"]) {
+      const said = config[key];
+      if (said === undefined || typeof said === "boolean") continue;
+      const wrong = words(`allows.${key}`, said);
+      if (wrong) return wrong;
+    }
     const ends = config["ends"];
     if (ends !== undefined) {
-      if (!ends || typeof ends !== "object") return "`rules.ends` has to be two lists of names";
+      if (!ends || typeof ends !== "object") return "`allows.ends` has to be two lists of names";
       const e = ends as Settings;
-      const wrong = words("rules.ends.from", e["from"]) ?? words("rules.ends.to", e["to"])
-        ?? stray("rules.ends", e, ["from", "to", "fromFlow", "toFlow"]);
+      const wrong = words("allows.ends.from", e["from"]) ?? words("allows.ends.to", e["to"])
+        ?? stray("allows.ends", e, ["from", "to", "fromFlow", "toFlow"]);
       if (wrong) return wrong;
     }
     const degree = config["degree"];
     if (degree !== undefined) {
-      if (!degree || typeof degree !== "object") return "`rules.degree` counts in and out";
-      const wrong = stray("rules.degree", degree as Settings, ["in", "out"]);
+      if (!degree || typeof degree !== "object") return "`allows.degree` counts in and out";
+      const wrong = stray("allows.degree", degree as Settings, ["in", "out"]);
       if (wrong) return wrong;
     }
-    return words("rules.required", config["required"])
-      ?? words("rules.holds", config["holds"])
-      ?? words("rules.match", config["match"])
-      ?? stray("rules", config, ["required", "ends", "holds", "degree", "match"]);
+    return stray("allows", config, ["ports", "holds", "members", "degree", "ends"]);
   },
 };
 
+/** What a usage's values are asked for. Noted while modelling, refused only at translation. */
+const expects: Component = {
+  name: "expects",
+  check: (config) =>
+    words("expects.required", config["required"])
+    ?? words("expects.match", config["match"])
+    ?? stray("expects", config, ["required", "match"]),
+};
+
+
 /** What this build publishes. */
-publish(block, card, line, relation, style, rules);
+publish(allows, block, card, expects, line, style);

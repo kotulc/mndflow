@@ -26,7 +26,7 @@ export function kind_of(scene: Scene, id: string | null,
 }
 
 /** Everywhere a name is drawn on a card. */
-export const NAMES = ".mnd-label, .mnd-group-name, .mnd-tag, .mnd-wire-text";
+export const NAMES = ".mnd-label, .mnd-group-name, .mnd-wire-text";
 
 /** A line end's grip, drawn while the line is picked. */
 export type Grip = { key: string; edge: string; end: "from" | "to"; on: string;

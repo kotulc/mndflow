@@ -1,8 +1,8 @@
 /** How a usage of a definition draws. */
 
 import { ALIGNS, ARROWS, BORDERS, config_of, CONTRASTS, DEFAULTS, def_of, DISPLAYS,
-         FAMILIES, FILLS, FONTS, is_container, is_interface, is_note, kind_word, SHOWN, WEIGHTS,
-         WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
+         default_for, FAMILIES, FILLS, FONTS, HEIGHTS, is_container, is_interface, kind_word, SHOWN,
+         WEIGHTS, WIDTHS, type Graph, type Id, type Settings } from "@mnd/core";
 
 export type Family = (typeof FAMILIES)[number];
 export type Width = (typeof WIDTHS)[number];
@@ -10,6 +10,7 @@ export type Border = (typeof BORDERS)[number];
 export type Weight = (typeof WEIGHTS)[number];
 export type Font = (typeof FONTS)[number];
 export type Display = (typeof DISPLAYS)[number];
+export type Height = (typeof HEIGHTS)[number];
 export type Align = (typeof ALIGNS)[number];
 export type Fill = (typeof FILLS)[number];
 export type Contrast = (typeof CONTRASTS)[number];
@@ -39,6 +40,8 @@ export type Look = {
   align: Align;
   /** Which end of the card its label reads from. */
   label_align: Align;
+  /** Whether this card is the one card height, or keeps whatever size it was given. */
+  height: Height;
   /** Whether the handle is drawn, where somebody said. */
   alias?: boolean;
   /** What sort of thing this is, as a word: the subtype where somebody named one, the base kind
@@ -65,6 +68,7 @@ export const PLAIN: Look = {
   label: DEFAULTS["card.label"],
   align: DEFAULTS["card.align"],
   label_align: DEFAULTS["card.label_align"],
+  height: DEFAULTS["card.height"],
   kind: "block",
 };
 
@@ -72,6 +76,13 @@ export const PLAIN: Look = {
 function settings(graph: Graph, id: Id, key: string): Settings {
   /** A definition is its own last word. */
   if (graph.defs[id]) return config_of(graph, id, key);
+  /** A holder carries no definition: it draws as the shape the base ships for it. */
+  const held = graph.holders[id];
+  if (held) {
+    const base = held.arrangement === "grid" ? "grid" : "group";
+    return { ...config_of(graph, default_for(graph, base) ?? base, key),
+             ...(held.looks?.[key] ?? {}) };
+  }
   const it = graph.blocks[id] ?? graph.edges[id];
   return { ...config_of(graph, def_of(graph, id), key), ...(it?.looks?.[key] ?? {}) };
 }
@@ -84,13 +95,13 @@ function one<T extends string>(value: unknown, set: readonly T[], fallback: T): 
 
 /** How this usage draws. */
 export function look_of(graph: Graph, id: Id): Look {
-  const b = graph.blocks[id];
+  const b = graph.blocks[id] ?? graph.holders[id];
   if (!b) return PLAIN;
 
-  /** The chain, then the block's own last word. */
+  /** The chain, then the element's own last word. */
   const card = settings(graph, id, "card");
   const style = settings(graph, id, "style");
-  const named = b.type ? graph.defs[b.type]?.name : undefined;
+  const named = "type" in b && b.type ? graph.defs[b.type]?.name : undefined;
 
   return {
     family: one(style["family"], FAMILIES, PLAIN.family),
@@ -104,13 +115,16 @@ export function look_of(graph: Graph, id: Id): Look {
     label: one(card["label"], DISPLAYS, PLAIN.label),
     align: one(card["align"], ALIGNS, PLAIN.align),
     label_align: one(card["label_align"], ALIGNS, PLAIN.label_align),
+    height: one(card["height"], HEIGHTS, PLAIN.height),
     ...(SHOWN.includes(card["alias"] as never) ? { alias: card["alias"] === "show" } : {}),
     ...contrast("border_contrast", style["border_contrast"]),
     ...contrast("name_contrast", style["name_contrast"]),
     ...contrast("label_contrast", style["label_contrast"]),
     ...number("opacity", style["opacity"]),
     /** The subtype where there is one, the base kind otherwise. */
-    kind: named ?? kind_word(graph, b).toLowerCase(),
+    kind: named ?? ("type" in b ? kind_word(graph, b).toLowerCase()
+                                : (b as { arrangement: string }).arrangement === "grid"
+                                  ? "grid" : "group"),
     /** A mark of its own, where somebody picked one. */
     ...(typeof card["icon"] === "string" && card["icon"] ? { icon: card["icon"] } : {}),
     /** A number the door already bounded. */
@@ -197,85 +211,7 @@ export function look_key(look?: Look | Wire): string {
 
 /** How heavy a border is when the definition has not said. */
 function width_of(graph: Graph, id: Id): Width {
-  const b = graph.blocks[id]!;
-  if (is_interface(b)) return "thin";
+  const b = graph.blocks[id];
+  if (!b || is_interface(b)) return "thin";
   return is_container(graph, id) ? "medium" : "thin";
-}
-
-/** What a container is holding, for the picture drawn inside its card. */
-export const CELLS = 9;
-
-export type Cell = {
-  id: Id;
-  label: string;
-  /** What this child is, which is what decides its shade. */
-  kind: "block" | "container" | "reference" | "note";
-  /** More than fit, folded into the last cell. */
-  rest?: number;
-  /** Where this cell sits in the band, as fractions of it. */
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  /** One of a few shades, so neighbouring cells read apart. */
-  tint: 0 | 1 | 2 | 3;
-};
-
-/** A small stable number from a name. */
-function tint_of(name: string): 0 | 1 | 2 | 3 {
-  let n = 0;
-  for (let i = 0; i < name.length; i++) n = (n * 31 + name.charCodeAt(i)) % 1024;
-  return (n % 4) as 0 | 1 | 2 | 3;
-}
-
-export type Tile = { x: number; y: number; w: number; h: number };
-
-/** The whole band, which is what a packing is worked out in. */
-const WHOLE: Tile = { x: 0, y: 0, w: 1, h: 1 };
-
-/** One region cut into `n` parts: whole, halved, or large-first with two stacked beside it. */
-function split(n: number, box: Tile, stacked: boolean): Tile[] {
-  const { x, y, w, h } = box;
-  if (n <= 1) return [box];
-  if (n === 2) {
-    return stacked ? [{ x, y, w, h: h / 2 }, { x, y: y + h / 2, w, h: h / 2 }]
-                   : [{ x, y, w: w / 2, h }, { x: x + w / 2, y, w: w / 2, h }];
-  }
-  return [{ x, y, w: w / 2, h },
-          { x: x + w / 2, y, w: w / 2, h: h / 2 },
-          { x: x + w / 2, y: y + h / 2, w: w / 2, h: h / 2 }];
-}
-
-/** Up to {@link CELLS} cells tiled into the band, as fractions of it. */
-export function pack(count: number): Tile[] {
-  const n = Math.min(Math.max(count, 0), CELLS);
-  if (n < 1) return [];
-  const groups = n <= 3 ? 1 : n <= 6 ? 2 : 3;
-  const base = Math.floor(n / groups);
-  const extra = n % groups;
-  return split(groups, WHOLE, false)
-    .flatMap((region, g) => split(base + (g < extra ? 1 : 0), region, true));
-}
-
-export function cells_of(graph: Graph, id: Id, shown: (id: Id) => string): Cell[] {
-  const kids = Object.values(graph.blocks)
-    .filter((b) => b.parent === id && !is_interface(b));
-  if (!kids.length) return [];
-
-  const seats = pack(kids.length);
-  const out = kids.slice(0, seats.length).map((b, at): Cell => {
-    const label = shown(b.id);
-    return {
-      id: b.id,
-      label,
-      kind: b.of ? "reference"
-        : is_note(graph, b.id) ? "note"
-        : is_container(graph, b.id) ? "container" : "block",
-      tint: tint_of(label),
-      ...seats[at]!,
-    };
-  });
-  const rest = kids.length - out.length;
-  if (rest > 0) out[out.length - 1] = { ...out[out.length - 1]!, rest };
-  return out;
 }

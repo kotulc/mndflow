@@ -1,7 +1,9 @@
 /** Relationships and the interfaces they meet. */
 
-import { derived_module, edge_module, module_of, relation_named } from "../defs";
+import { may_seat } from "../capabilities";
+import { derived_base, edge_base, base_of, relation_base } from "../defs";
 import { is_holder } from "../holders";
+import { shown_name } from "../names";
 import { children, is_interface, next_order } from "../tree";
 import { new_id } from "../ids";
 import type { Dir, Flow, Graph, Id, Mutation, Side } from "../types";
@@ -34,7 +36,7 @@ register(
     run: (ctx, args) => {
       const from = id_of(args, "from");
       const to = id_of(args, "to");
-      const module = derived_module(ctx.graph, from, to);
+      const module = derived_base(ctx.graph, from, to);
       const dir = String(args["dir"] ?? "none") as Dir;
       /** A wall the gesture named. */
       const line = handles(ctx, "relation");
@@ -70,8 +72,8 @@ register(
       const to = id_of(args, "to");
       const edge = ctx.graph.edges[id];
       const ends = end === "from" ? [to, edge?.to ?? ""] : [edge?.from ?? "", to];
-      const module = derived_module(ctx.graph, ends[0]!, ends[1]!);
-      const stale = !!edge?.type && relation_named(ctx.graph, edge.type) !== module;
+      const module = derived_base(ctx.graph, ends[0]!, ends[1]!);
+      const stale = !!edge?.type && relation_base(ctx.graph, edge.type) !== module;
       return { mutations: [
         { op: "set_end", id, end, port: to },
         { op: "set_side", id, end, side: null },
@@ -106,7 +108,7 @@ register(
     check: (ctx, args) => {
       const id = id_of(args, "id");
       if (!ctx.graph.edges[id]) return "needs a relationship";
-      return edge_module(ctx.graph, id) === "tie" ? "a relationship to a note is a tie" : null;
+      return edge_base(ctx.graph, id) === "tie" ? "a relationship to a note is a tie" : null;
     },
     run: (_ctx, args) => ({ mutations: [
       { op: "set_dir", id: id_of(args, "id"), dir: String(args["dir"]) as Dir },
@@ -143,6 +145,13 @@ function mid_of(graph: Graph, owner: Id, side: Side): number {
   return 0.5;
 }
 
+/** Why nothing may be seated here. The capability decides; these are its words. */
+function no_wall(graph: Graph, id: Id): string {
+  if (is_holder(graph, id)) return "a boundary cannot have an interface";
+  if (base_of(graph, id) === "note") return "a note has no wall to set one into";
+  return `"${shown_name(graph, id)}" takes no interfaces`;
+}
+
 /** Fractions along a wall, middle first and then outward in pairs. */
 const SHARED: readonly number[] =
   [2, 3, 4, 5, 6].flatMap((d) => Array.from({ length: d - 1 }, (_, n) => (n + 1) / d));
@@ -155,7 +164,7 @@ register(
     when: (ctx) => {
       const one = ctx.picked.length === 1 ? ctx.picked[0] : undefined;
       if (!one || ctx.graph.edges[one]) return true;
-      return !is_holder(ctx.graph, one) && module_of(ctx.graph, one) !== "note";
+      return may_seat(ctx.graph, one);
     },
     /** An owner makes a port; an edge and an end promote that end. */
     args: [{ name: "owner", form: "block" },
@@ -173,12 +182,15 @@ register(
       const on = promoted(ctx, args);
       if (!on.length) return "needs a border to sit on";
       for (const { owner } of on) {
+        /** A holder is a rim, and a rim has no wall to seat anything in. */
+        if (ctx.graph.holders[owner]) return no_wall(ctx.graph, owner);
         const met = ctx.graph.blocks[owner];
         if (!met) return "needs a border to sit on";
         /** An end that is already an interface has nothing to promote. */
         if (edge && is_interface(met)) return "that end is already an interface";
-        if (is_holder(ctx.graph, owner)) return "a boundary cannot have an interface";
-        if (module_of(ctx.graph, owner) === "note") return "a note has no wall to set one into";
+        if (!may_seat(ctx.graph, owner, text(args, "type") || "interface")) {
+          return no_wall(ctx.graph, owner);
+        }
       }
       return null;
     },

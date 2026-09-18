@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { seed } from "@mnd/defs";
 import { FLOOR } from "@mnd/fixtures";
-import { BLOCK_MODULES, ROOT, check, children, def_of, default_for, edge_module, open, session,
+import { BASE_BLOCKS, ROOT, check, children, def_of, default_for, edge_base, open, session,
          write, type Id, type Session } from "../src/index";
 
 /** A seeded session holding blocks of these names on the root layer. */
@@ -19,7 +19,7 @@ function made(...names: string[]): { s: Session; at: (name: string) => Id } {
 const newest = (s: Session): Id => Object.keys(s.graph().edges).at(-1)!;
 
 describe("defaults", () => {
-  it.each(BLOCK_MODULES)("lays one default for the %s kind", (kind) => {
+  it.each(BASE_BLOCKS)("lays one default for the %s base", (kind) => {
     const { s } = made();
     expect(default_for(s.graph(), kind)).toBeDefined();
   });
@@ -49,7 +49,7 @@ describe("a relation's kind", () => {
       return children(s.graph(), ROOT).find((b) => b.type === "note" && b.body === `about ${name}`)!.id;
     };
     s.go("relate", { from: end("A", from_note), to: end("B", to_note) });
-    expect(edge_module(s.graph(), newest(s))).toBe(want);
+    expect(edge_base(s.graph(), newest(s))).toBe(want);
     expect("module" in s.graph().edges[newest(s)]!).toBe(false);
   });
 
@@ -58,7 +58,7 @@ describe("a relation's kind", () => {
     s.go("note", { about: at("A"), text: "why" });
     const tie = newest(s);
     s.go("relink", { id: tie, end: "from", to: at("B") });
-    expect(edge_module(s.graph(), tie)).toBe("line");
+    expect(edge_base(s.graph(), tie)).toBe("line");
   });
 });
 
@@ -164,15 +164,15 @@ describe("a group", () => {
     s.go("group", { members: [at("A"), at("B")] });
     const group = s.graph().blocks[at("A")]!.group!;
     s.go("leave", { ids: [at("A")] });
-    expect(s.graph().blocks[group]).toBeDefined();
+    expect(s.graph().holders[group]).toBeDefined();
     s.go("leave", { ids: [at("B")] });
-    expect(s.graph().blocks[group]).toBeUndefined();
+    expect(s.graph().holders[group]).toBeUndefined();
   });
 
   it("stands when it was made empty", () => {
     const { s } = made();
     s.go("group", { rows: 1, cols: 1 });
-    expect(Object.values(s.graph().blocks).some((b) => b.type === "grid")).toBe(true);
+    expect(Object.values(s.graph().holders).some((h) => h.arrangement === "grid")).toBe(true);
   });
 });
 

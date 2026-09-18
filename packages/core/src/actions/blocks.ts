@@ -1,6 +1,8 @@
 /** Making, naming, typing and moving blocks; navigating layers; arranging one. */
 
-import { def_named, def_of, edge_module, may_retype, module_named, module_of, plain_type, relation_named,
+import { may_hold } from "../capabilities";
+import { shown_name } from "../names";
+import { def_named, def_of, edge_base, may_retype, block_base, base_of, plain_type, relation_base,
          stored_type } from "../defs";
 import { children, is_interface, is_reference, next_order, path, reorder } from "../tree";
 import { new_id } from "../ids";
@@ -20,13 +22,28 @@ register(
     /** Refuses a definition a layer cannot make. */
     check: (ctx, args) => {
       const type = args["type"] ? String(args["type"]) : "";
-      if (!type) return null;
-      if (!ctx.graph.defs[type]) return `there is no definition called "${type}"`;
-      return NEEDS[module_named(ctx.graph, type)] ?? null;
+      const parent = (args["parent"] as Id) ?? here(ctx);
+      if (type && !ctx.graph.defs[type]) return `there is no definition called "${type}"`;
+      if (type && NEEDS[block_base(ctx.graph, type)]) return NEEDS[block_base(ctx.graph, type)]!;
+      return may_hold(ctx.graph, parent, type)
+        ? null : `"${shown_name(ctx.graph, parent)}" holds nothing of that sort`;
     },
     run: (ctx, args) => {
       const parent = (args["parent"] as Id) ?? here(ctx);
       const type = args["type"] ? String(args["type"]) : undefined;
+      /** `group` and `grid` name holder shapes, and a holder is not a block. */
+      const shape = type ? block_base(ctx.graph, type) : "block";
+      if (shape === "group" || shape === "grid") {
+        const rim = handles(ctx, shape);
+        const at = spot(args);
+        return { mutations: [{ op: "set_holder", holder: {
+          id: new_id("holder"), parent, name: text(args, "name") || undefined,
+          arrangement: shape === "grid" ? "grid" : "free", alias: rim.take(),
+          order: next_order(ctx.graph, parent),
+          ...(shape === "grid" ? { rows: 1, cols: 1 } : {}),
+          ...(at ? { x: at.x, y: at.y } : {}),
+        } }, ...rim.bump()] };
+      }
       const made = make_block(ctx, text(args, "name"), parent, type);
       const at = spot(args);
       const block = (made[0] as { block: { id: Id } }).block;
@@ -99,9 +116,9 @@ register(
           const d = ctx.graph.defs[type];
           if (!d) return `there is no definition called "${type}"`;
           if (d.group !== "relation") return `"${d.name}" defines a block, not a relationship`;
-          const module = edge_module(ctx.graph, id);
-          if (relation_named(ctx.graph, type) !== module) {
-            return `a ${module} cannot follow a ${relation_named(ctx.graph, type)} definition`;
+          const module = edge_base(ctx.graph, id);
+          if (relation_base(ctx.graph, type) !== module) {
+            return `a ${module} cannot follow a ${relation_base(ctx.graph, type)} definition`;
           }
           continue;
         }
@@ -111,7 +128,7 @@ register(
           return `"${ctx.graph.defs[type]!.name}" defines a relationship, not a block`;
         }
         if (type && !may_retype(ctx.graph, id, type)) {
-          return `a ${module_of(ctx.graph, id)} cannot become a ${module_named(ctx.graph, type)}`;
+          return `a ${base_of(ctx.graph, id)} cannot become a ${block_base(ctx.graph, type)}`;
         }
       }
       return null;
@@ -121,7 +138,7 @@ register(
       const type = stored_type(ctx.graph, text(args, "type"));
       return { mutations: ids_of(ctx, args).map((id): Mutation => (ctx.graph.edges[id]
         ? { op: "update_edge", id, type: type ?? null }
-        : { op: "update_block", id, type: type ?? plain_type(module_of(ctx.graph, id)) })) };
+        : { op: "update_block", id, type: type ?? plain_type(base_of(ctx.graph, id)) })) };
     },
   },
   {
@@ -154,6 +171,9 @@ register(
         if (parent && path(ctx.graph, parent).some((b) => b.id === id)) {
           return "a block cannot be moved inside itself";
         }
+        if (!may_hold(ctx.graph, parent, ctx.graph.blocks[id]!.type)) {
+          return `"${shown_name(ctx.graph, parent)}" holds nothing of that sort`;
+        }
       }
       return null;
     },
@@ -174,13 +194,16 @@ register(
   },
   {
     name: "refer",
-    about: "places a reference of a block into this layer",
+    about: "places a stand-in for a block, a definition or a package into this layer",
     on: ["layer"],
     args: [{ name: "target", form: "block", required: true },
            { name: "type", form: "text" }, { name: "spot", form: "spot" }],
     check: (ctx, args) => {
       const target = id_of(args, "target");
-      if (!ctx.graph.blocks[target]) return "that block is not there";
+      /** One id space, so a stand-in may point at any of the three. */
+      if (!ctx.graph.blocks[target] && !ctx.graph.defs[target] && !ctx.graph.packages[target]) {
+        return "that is not there to stand in for";
+      }
       const wrong = may_wear(ctx, args, "reference");
       if (wrong) return wrong;
       if (target === ctx.layer) return "a layer cannot hold a stand-in for itself";
@@ -204,6 +227,28 @@ register(
 );
 
 register(
+  {
+    name: "source",
+    about: "says what a block stands in for outside the workspace, or gives it back",
+    on: ["block"],
+    args: [{ name: "id", form: "block", required: true },
+           { name: "uri", form: "text", asks: true },
+           /** Where within the artifact: a heading path, a line range, a symbol name. */
+           { name: "at", form: "text" }, { name: "rev", form: "text" }],
+    check: (ctx, args) => {
+      const id = id_of(args, "id") || ctx.picked[0] || "";
+      return ctx.graph.blocks[id] ? null : "point at a block first";
+    },
+    /** Provenance, never a link the app follows: nothing syncs to it, so it may go stale. */
+    run: (ctx, args) => {
+      const id = id_of(args, "id") || ctx.picked[0]!;
+      const uri = text(args, "uri").trim();
+      return { mutations: [{ op: "set_source", id, source: uri
+        ? { uri, ...(text(args, "at") ? { at: text(args, "at") } : {}),
+            ...(text(args, "rev") ? { rev: text(args, "rev") } : {}) }
+        : null }] };
+    },
+  },
   {
     name: "open",
     about: "opens a block as the layer being drawn, or leaves this one when told no block",

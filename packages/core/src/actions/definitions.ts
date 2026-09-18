@@ -1,11 +1,12 @@
 /** Fields, definitions, pinning, and giving looks back. */
 
-import { def_named, def_of, isa, module_of, ordered_by, plain_type, schema_of, shipped,
-         stored_type } from "../defs";
+import { BASE_PACKAGE, def_named, def_of, isa, base_of, ordered_by, package_named, package_of,
+         plain_type, schema_of, shipped, stored_type } from "../defs";
 import { DRAWN } from "../components";
 import { shelf_of } from "../shelf";
 import { VALUE_FORMS, type Components, type Definition, type FieldDef, type Graph, type Id,
          type Mutation, type ValueForm } from "../types";
+import { new_id } from "../ids";
 import { register } from "./registry";
 import { borrowed, holds_values, id_of, ids_of, list, mint_def, rooted, text } from "./helpers";
 
@@ -305,7 +306,7 @@ register(
         /** The usage names what this extended, stored as plain where that is a base or default. */
         const edge = ctx.graph.edges[it.id];
         const type = stored_type(ctx.graph, d?.extends)
-          ?? (edge ? null : plain_type(module_of(ctx.graph, it.id)));
+          ?? (edge ? null : plain_type(base_of(ctx.graph, it.id)));
         out.push(edge ? { op: "update_edge", id: it.id, type }
                       : { op: "update_block", id: it.id, type });
       }
@@ -371,3 +372,56 @@ register(
     },
   },
 );
+
+register(
+  {
+    name: "package",
+    about: "makes a named package, and files definitions into it",
+    on: ["layer"],
+    args: [{ name: "name", form: "text", required: true, asks: true },
+           /** Definitions to move into it, by id or by name. */
+           { name: "defs", form: "text" }],
+    /** A package is known by its name, so no two share one. */
+    check: (ctx, args) => {
+      const name = text(args, "name").trim();
+      if (!name) return "a package needs a name";
+      if (package_named(ctx.graph, name)) return `there is already a package called "${name}"`;
+      for (const d of named_defs(ctx.graph, args)) {
+        const why = borrowed(ctx.graph, d.id);
+        if (why) return why;
+      }
+      return null;
+    },
+    run: (ctx, args) => {
+      const pkg = { id: new_id("pkg"), name: text(args, "name").trim() };
+      return { mutations: [
+        { op: "set_package", pkg },
+        ...named_defs(ctx.graph, args)
+          .map((d): Mutation => ({ op: "set_def", def: { ...d, from: pkg.id } })),
+      ] };
+    },
+  },
+  {
+    name: "remove_package",
+    about: "drops a package and everything it brought",
+    on: ["layer"],
+    args: [{ name: "id", form: "text", required: true }],
+    check: (ctx, args) => {
+      const pkg = package_of(ctx.graph, text(args, "id"));
+      if (!pkg) return `there is nothing called "${text(args, "id")}" to remove`;
+      return pkg.id === BASE_PACKAGE ? "the shipped floor is not a package to remove" : null;
+    },
+    /** `check` is what refuses an id that names no package; the drop itself is always the one
+     *  gesture, and folding one that is not there changes nothing. */
+    run: (ctx, args) => ({ mutations: [
+      { op: "drop_package", id: package_of(ctx.graph, text(args, "id"))?.id ?? text(args, "id") },
+    ] }),
+  },
+);
+
+/** The definitions an argument names, by id or by name, that a package may take. */
+function named_defs(graph: Graph, args: { [k: string]: unknown }): Definition[] {
+  return list(args["defs"])
+    .map((n) => graph.defs[n] ?? def_named(graph, n))
+    .filter((d): d is Definition => !!d && !shipped(d) && !d.default);
+}

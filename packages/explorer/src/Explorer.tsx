@@ -1,8 +1,8 @@
 /** The workspace explorer: structure, and only structure. */
 
 import { useMemo, useRef, useState } from "react";
-import { alias_of, children, def_named, is_interface, is_named, is_reference, module_named, module_of,
-         packages, pinned_defs, relation_named, shelf_of, shelf_tree, shelvable, shipped, shown_name,
+import { alias_of, children, def_named, is_interface, is_named, is_reference, block_base, base_of,
+         packages, pinned_defs, relation_base, shelf_of, shelf_tree, shelvable, shipped, shown_name,
          type Act, type Definition, type Graph, type Id, type ShelfNode } from "@mnd/core";
 import { Icon, Name, NamingContext, type IconName } from "@mnd/theme";
 import { Menu } from "./Menu";
@@ -58,19 +58,17 @@ type Row = { id: Id; depth: number; label: string; kids: number; mark: Mark;
              alias: string;
              /** Per indent column, whether its guide line carries on past this row. */
              guides: boolean[] };
-type Mark = "leaf" | "container" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
+type Mark = "leaf" | "folder" | "resource" | "interface" | "reference" | "note" | "group" | "grid" | "pin"
   | "locked" | "vocabulary" | "workspace" | "package" | "line" | "tie";
 
 /** A library row before it is laid out: what it says, and what sits under it. */
 type Node = Omit<Row, "depth" | "kids" | "guides" | "named" | "alias"> & { under: Node[] };
 
-/** What the tree draws under a block. */
+/** What the tree draws under a block: what it owns. A second appearance, a seat on its wall and a
+ *  remark about it are none of them new content, and holders are not blocks at all. */
 function under(graph: Graph, parent: Id | null) {
-  return children(graph, parent).filter((b) => {
-    if (is_interface(b) || is_reference(b)) return false;
-    const module = module_of(graph, b.id);
-    return module !== "group" && module !== "grid" && module !== "note";
-  });
+  return children(graph, parent)
+    .filter((b) => !is_interface(b) && !is_reference(b) && base_of(graph, b.id) !== "note");
 }
 
 /** The sections' own ids, which are not anything's. */
@@ -89,7 +87,7 @@ const GROUPS: readonly { group: Group; label: string }[] = [
 
 /** A definition as a row, wearing its kind's mark. */
 function def_node(graph: Graph, d: Definition, within: Id, filed?: Row["filed"]): Node {
-  const kind = d.group === "relation" ? relation_named(graph, d.id) : module_named(graph, d.id);
+  const kind = d.group === "relation" ? relation_base(graph, d.id) : block_base(graph, d.id);
   return { id: `${within}:${d.id}`, ref: d.id, label: d.default ?? d.name,
            mark: KIND_MARK[kind] ?? "leaf", of: "def", at: { of: "def", id: d.id },
            ...(filed ? { filed } : {}), under: [] };
@@ -120,26 +118,28 @@ function shelf_nodes(graph: Graph, group: Group, nodes: ShelfNode[], within: Id,
     : def_node(graph, graph.defs[n.id]!, within, { group, ...(into ? { in: into } : {}) })));
 }
 
-/** The library: the packages, then the definitions — pinned, default and the workspace's own. */
+/** The library: the packages, then the definitions — pinned, default, and the workspace's own
+ *  filed by group. **There is no workspace collection here**: everything in this section is the
+ *  workspace's already, so a row saying so held nothing but one more indent. */
 function library_of(graph: Graph): Node[] {
   const packs = packages(graph);
   const pinned = pinned_defs(graph, "block").filter((d) => !shipped(d) && !d.from && d.default === undefined);
   const defaults = Object.values(graph.defs).filter((d) => d.default !== undefined)
     .sort((a, z) => a.group.localeCompare(z.group) || a.name.localeCompare(z.name));
-  const ws = `${VOCAB}:workspace`;
   return [
     section(PACKS, "packages", "package", { of: "defs", only: "packages" },
-            packs.map((p) => pack_node(graph, p.from, p.defs))),
+            packs.map((p) => pack_node(graph, p.name, p.defs))),
     section(VOCAB, "definitions", "vocabulary", { of: "defs", only: "all" }, [
       section(`${VOCAB}:pinned`, "pinned", "pin", { of: "defs", only: "pinned" },
               pinned.map((d) => def_node(graph, d, `${VOCAB}:pinned`))),
       section(`${VOCAB}:default`, "default", "locked", { of: "defs", only: "default" },
               defaults.map((d) => def_node(graph, d, `${VOCAB}:default`))),
-      section(ws, "workspace", "workspace", { of: "defs", only: "workspace" }, GROUPS.map((g) =>
-        ({ ...section(`${ws}:${g.group}`, g.label, "folder",
+      ...GROUPS.map((g) =>
+        ({ ...section(`${VOCAB}:${g.group}`, g.label, "folder",
                       { of: "defs", only: "workspace", group: g.group },
-                      shelf_nodes(graph, g.group, shelf_tree(graph, g.group), `${ws}:${g.group}`)),
-           filed: { group: g.group } }))),
+                      shelf_nodes(graph, g.group, shelf_tree(graph, g.group),
+                                  `${VOCAB}:${g.group}`)),
+           filed: { group: g.group } })),
     ]),
   ];
 }
@@ -167,9 +167,8 @@ function tree_of(graph: Graph, folded: readonly Id[], library = false): Row[] {
       const guides = [...held, n < kin.length - 1];
       out.push({ id: b.id, ref: b.id, depth, label: shown_name(graph, b.id), kids: kids.length,
                  named: is_named(graph, b.id), alias: alias_of(graph, b.id), of: "block",
-                 mark: module_of(graph, b.id) === "folder" ? "folder"
-                     : module_of(graph, b.id) === "resource" ? "resource"
-                     : kids.length ? "container" : "leaf",
+                 mark: base_of(graph, b.id) === "folder" ? "folder"
+                     : base_of(graph, b.id) === "resource" ? "resource" : "leaf",
                  guides });
       if (!folded.includes(b.id)) walk(b.id, depth + 1, guides);
     });
@@ -205,10 +204,10 @@ function landing(graph: Graph, over: { id: Id; where: "in" | "above" | "below" }
   return over.where === "in" ? over.id : graph.blocks[over.id]?.parent ?? graph.root;
 }
 
-/** What a row reads as, as a mark. */
-const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
+/** What a row reads as, as a mark. A `word` is three letters rather than a drawing, and is never
+ *  filled: a fill closes its counters and leaves a blot. */
+const MARK: Record<Mark, { icon: IconName; word?: true }> = {
   leaf: { icon: "role_leaf" },
-  container: { icon: "role_container", solid: true },
   folder: { icon: "role_folder" },
   resource: { icon: "role_resource" },
   interface: { icon: "role_interface" },
@@ -218,9 +217,9 @@ const MARK: Record<Mark, { icon: IconName; solid?: boolean }> = {
   grid: { icon: "role_table" },
   pin: { icon: "pin" },
   locked: { icon: "locked" },
-  vocabulary: { icon: "vocabulary" },
-  workspace: { icon: "workspace" },
-  package: { icon: "packages" },
+  vocabulary: { icon: "word_def", word: true },
+  workspace: { icon: "word_wks", word: true },
+  package: { icon: "word_pkg", word: true },
   line: { icon: "relation_plain" },
   tie: { icon: "relation_tie" },
 };
@@ -253,8 +252,7 @@ export function Explorer(props: ExplorerProps) {
   const blocks = rows.filter((r) => r.of === "block");
   const one = picked.length === 1 ? picked[0]! : null;
   /** Where something new goes: what you picked, or where you are. */
-  const holder = one && graph.blocks[one]
-    && !["group", "grid", "note"].includes(module_of(graph, one)) ? one : null;
+  const holder = one && graph.blocks[one] && base_of(graph, one) !== "note" ? one : null;
   const target = holder ?? open ?? graph.root;
   const any_open = rows.some((r) => r.kids > 0 && !folded.includes(r.id));
   /** The layer a drop would join, and every row already in it. */
@@ -498,7 +496,10 @@ export function Explorer(props: ExplorerProps) {
                     title={r.kids ? (shut.includes(r.id) ? "open" : "fold") : undefined}
                     onClick={(e) => { e.stopPropagation();
                                       if (r.kids) onFold(r.id, !shut.includes(r.id)); }}>
-                <Icon name={MARK[r.mark].icon} solid={MARK[r.mark].solid} size={MARK_SIZE} />
+                {/* A row that holds parts fills its own icon; that is what containing looks like. */}
+                <Icon name={MARK[r.mark].icon}
+                      solid={!MARK[r.mark].word && r.of === "block" && r.kids > 0}
+                      size={MARK_SIZE} />
               </span>
               {r.of === "pack"
                 ? <span className="label">{r.label}</span>

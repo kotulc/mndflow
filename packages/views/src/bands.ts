@@ -1,22 +1,23 @@
 /** Bands and grids inside a layer: members packed in a band, seated blocks placed by cell. */
 
 import { edges_in, group_depth, is_group, is_grid, is_header, is_holder, is_interface,
-         members_of, type Arrangement, type Block, type Graph, type Id } from "@mnd/core";
+         members_of, type Arrangement, type Block, type Graph, type Id, type Unit }
+  from "@mnd/core";
 import type { Placed } from "./arrange";
 import { is_satellite, pack_units, seat_satellites } from "./pack";
 import { cell_box, centred_in, fills_cell, gridded, size_of, BLOCK, GAP, type Size } from "./size";
 
-export type Sized = { b: Block; s: Size };
+export type Sized = { b: Unit; s: Size };
 
 
 /** Whether a block sits in a dashed band rather than a grid. */
 export function in_band(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
+  const b = graph.blocks[id] ?? graph.holders[id];
   return !!b?.group && is_group(graph, b.group);
 }
 
 /** What a band takes up for spacing: its members packed, plus a margin. */
-export function band_size(graph: Graph, layer: Id | null, band: Block, how: Arrangement): Size {
+export function band_size(graph: Graph, layer: Id | null, band: Unit, how: Arrangement): Size {
   const layout = band_layout(graph, layer, band.id, how);
   /** An empty band keeps room for a card. */
   if (!layout.length) return { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
@@ -77,7 +78,7 @@ function lay_band(graph: Graph, layer: Id | null, band_id: Id, origin: Placed,
 
 /** Every member of a band, placed inside it once the band has a spot. */
 export function band_members(graph: Graph, layer: Id | null, how: Arrangement,
-                      units: readonly Block[], spots: readonly Placed[]): Placed[] {
+                      units: readonly Unit[], spots: readonly Placed[]): Placed[] {
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
   for (const b of units) {
@@ -109,19 +110,20 @@ function packed(all: Sized[]): { layout: Placed[]; w: number; h: number } {
   return { layout, w: right, h: bottom };
 }
 
-/** Where a seated block draws, given where its grid came to rest. */
+/** Where a seated block draws, given where its grid came to rest. A cell seats a card, so only a
+ *  block ever answers here. */
 export function cell_spot(graph: Graph, b: Block, grid: Placed): Placed {
-  const box = cell_box(graph.blocks[b.group!]!, b.cell!.r, b.cell!.c);
+  const box = cell_box(graph.holders[b.group!]!, b.cell!.r, b.cell!.c);
   const in_cell = is_header(b) ? fills_cell(box) : centred_in(box, size_of(graph, b.id));
   return { id: b.id, x: grid.x + in_cell.x, y: grid.y + in_cell.y,
            w: in_cell.w, h: in_cell.h };
 }
 
 /** Every gridded member, placed by its address inside the grid holding it. */
-export function celled(graph: Graph, units: readonly Block[], spots: readonly Placed[]): Placed[] {
+export function celled(graph: Graph, units: readonly Unit[], spots: readonly Placed[]): Placed[] {
   const at = new Map(spots.map((p) => [p.id, p]));
   const out: Placed[] = [];
-  const seated = units.filter((b) => gridded(graph, b.id))
+  const seated = units.filter((b): b is Block => gridded(graph, b.id))
     .sort((a, b) => group_depth(graph, a.id) - group_depth(graph, b.id));
   for (const b of seated) {
     const grid = at.get(b.group!);

@@ -1,7 +1,7 @@
 /** What the open layer holds, as rows. */
 
-import { alias_of, children, def_of, edge_module, edges_in, is_interface, isa, label_of,
-         module_of, path, shipped, shown_name, subtree,
+import { alias_of, children, def_of, edge_base, edges_in, is_interface, isa, label_of,
+         base_of, path, shipped, shown_name, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. */
@@ -33,7 +33,7 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
     .flatMap((b) => (deep && !is_interface(b) ? [b, ...walk(b.id)] : [b]));
 
   for (const b of walk(layer)) {
-    const kind = module_of(graph, b.id);
+    const kind = base_of(graph, b.id);
     const held = children(graph, b.id).filter((k) => !is_interface(k)).length;
     const ports = children(graph, b.id).filter((k) => is_interface(k)).length;
     /** Where it sits, once the listing crosses layers. */
@@ -72,10 +72,10 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
   for (const e of runs) {
     const named = plain(graph, e.type) ? "" : graph.defs[e.type!]?.name ?? e.type!;
     out.push({
-      id: e.id, sort: "relationship", kind: edge_module(graph, e.id),
+      id: e.id, sort: "relationship", kind: edge_base(graph, e.id),
       /** An edge holds no values. */
       fields: {},
-      name: named || edge_module(graph, e.id),
+      name: named || edge_base(graph, e.id),
       what: `${called(e.from)} → ${called(e.to)}`,
       type: named,
     });
@@ -150,7 +150,7 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     name: called(e.id),
     what: `${called(e.from)} → ${called(e.to)}`,
     layer: layer_path(graph, e.from),
-    module: edge_module(graph, e.id),
+    module: edge_base(graph, e.id),
     chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
     def: plain(graph, e.type) ? "" : e.type!,
     label: label_of(graph, e.id),
@@ -167,9 +167,9 @@ export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean):
   return blocks.map((b) => ({
     id: b.id,
     name: called(b.id),
-    what: module_of(graph, b.id),
+    what: base_of(graph, b.id),
     layer: layer_path(graph, b.id),
-    module: module_of(graph, b.id),
+    module: base_of(graph, b.id),
     chain: isa(graph, def_of(graph, b.id)).map((d) => d.id),
     def: plain(graph, b.type) ? "" : b.type!,
     label: "",

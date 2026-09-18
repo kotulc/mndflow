@@ -1,7 +1,8 @@
 /** How big a thing is, before anything is placed. */
 
-import { covers, is_container, is_grid, is_interface, is_reference, module_of,
-         type Block, type Graph, type Id, type Point } from "@mnd/core";
+import { covers, holder_of, is_grid, is_interface,
+         type Graph, type Holder, type Id, type Point } from "@mnd/core";
+import { look_of } from "./look";
 
 /** The one place the drawing's proportions are set, and the unit is the only measure there is. */
 export const UNITS = {
@@ -30,12 +31,6 @@ export const BLOCK: Size = { w: UNITS.block.w * UNIT, h: UNITS.block.h * UNIT };
 /** A group's cell, and the one thing a cell is: a block with a gap of air on every side of it. */
 export const CELL: Size = { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
 
-/** A container: two blocks tall. */
-export const CONTAINER: Size = { w: BLOCK.w, h: BLOCK.h * 2 };
-
-/** The room for a container's picture. */
-export const BAND: Size = { w: CONTAINER.w, h: CONTAINER.h - BLOCK.h };
-
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: SEAT - 1, h: SEAT - 1 };
 
@@ -62,12 +57,12 @@ export function roomed(box: Box): Box {
 }
 
 /** What a grid takes up: its extent in cells, and nothing besides. */
-export function grid_size(g: Block): Size {
+export function grid_size(g: Holder): Size {
   return { w: (g.cols ?? 1) * CELL.w, h: (g.rows ?? 1) * CELL.h };
 }
 
 /** Where one cell sits inside its grid, relative to the grid's own corner. */
-export function cell_box(g: Block, r: number, c: number): Box {
+export function cell_box(g: Holder, r: number, c: number): Box {
   const span = g.merges?.find((s) => covers(s, r, c));
   const at = span ?? { r, c, rows: 1, cols: 1 };
   return { x: at.c * CELL.w, y: at.r * CELL.h,
@@ -104,23 +99,21 @@ export function gridded(graph: Graph, id: Id): boolean {
   return !!b?.cell && !!b.group && is_grid(graph, b.group);
 }
 
-/** What this block needs. A note keeps whatever size it was asked for, and a grid is the extent it
- *  was drawn with. */
+/** What this block needs. Every card is the one card size; only a card whose definition asked for
+ *  its own height keeps what it was given, and a grid is the extent it was drawn with. */
 export function size_of(graph: Graph, id: Id): Size {
+  /** A grid is its extent; a boundary is sized from what it holds, by the caller. */
+  if (is_grid(graph, id)) return grid_size(holder_of(graph, id)!);
   const b = graph.blocks[id];
   if (!b) return BLOCK;
   if (is_interface(b)) return PORT;
-  if (is_grid(graph, id)) return grid_size(b);
-  if (b.w !== undefined && b.h !== undefined) return { w: b.w, h: b.h };
-  if (gridded(graph, id)) return { ...BLOCK };
-  return pictured(graph, id) ? { ...CONTAINER } : { ...BLOCK };
+  if (b.w !== undefined && b.h !== undefined && free_height(graph, id)) return { w: b.w, h: b.h };
+  return { ...BLOCK };
 }
 
-/** Whether a card draws a picture of what it holds. */
-export function pictured(graph: Graph, id: Id): boolean {
-  const b = graph.blocks[id];
-  return !!b && is_container(graph, id) && !is_reference(b)
-    && module_of(graph, id) !== "folder" && !gridded(graph, id);
+/** Whether this card keeps whatever size it was given, rather than the one card height. */
+export function free_height(graph: Graph, id: Id): boolean {
+  return look_of(graph, id).height === "free";
 }
 
 /** How many seats an edge of this length offers. */

@@ -74,7 +74,8 @@ export function related(): Log {
       { op: "set_body", id: "block_note", body: "the loop runs clockwise" },
     ]),
     step("group", [
-      block("block_hot", "block_loop", "Hot side", "group"),
+      { op: "set_holder", holder: { id: "block_hot", parent: "block_loop", name: "Hot side",
+                                    arrangement: "free", order: 7 } },
       { op: "set_group", id: "block_hx", group: "block_hot" },
       { op: "set_group", id: "block_tank", group: "block_hot" },
     ]),
@@ -116,9 +117,9 @@ export function gridded(): Log {
     step("create", [block("block_board", ROOT, "Board", "block")]),
     step("arrange", [{ op: "set_arrangement", layer: "block_board", arrangement: "grid" }]),
     step("group", [
-      block("block_lanes", "block_board", "Lanes", "grid"),
-      { op: "set_grid", id: "block_lanes", rows: 3, cols: 4 },
-      { op: "place_block", id: "block_lanes", x: 0, y: 0 },
+      { op: "set_holder", holder: { id: "block_lanes", parent: "block_board", name: "Lanes",
+                                    arrangement: "grid", rows: 3, cols: 4, x: 0, y: 0,
+                                    order: 1 } },
     ]),
     ...named.map(([id, label]) =>
       step("create", [block(id, "block_board", label, "block")])),

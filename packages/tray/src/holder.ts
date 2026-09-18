@@ -1,7 +1,7 @@
 /** What the tray has hold of, and how to read it. */
 
-import { config_of, def_of, edge_module, honours, may_retype, module_named, module_of,
-         relation_named, shipped,
+import { config_of, def_of, edge_base, honours, may_retype, block_base, base_of,
+         relation_base, shipped,
          type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
 import { DRAFT } from "./draft";
@@ -32,9 +32,9 @@ export function held(graph: Graph, id: Id): Held | null {
 /** The base kind this is or its usages are, and whether it draws as a run. */
 export function kind_of(graph: Graph, id: Id, it: Held): { kind: string; runs: boolean } {
   const { def: d, block: b } = it;
-  const kind = d ? (d.group === "relation" ? relation_named(graph, d.id)
-                                           : module_named(graph, d.id))
-    : b ? module_of(graph, id) : edge_module(graph, id);
+  const kind = d ? (d.group === "relation" ? relation_base(graph, d.id)
+                                           : block_base(graph, d.id))
+    : b ? base_of(graph, id) : edge_base(graph, id);
   return { kind, runs: honours(kind).includes("line") };
 }
 
@@ -58,7 +58,7 @@ export function types_for(graph: Graph, id: Id): Definition[] {
   const edge = graph.edges[id];
   return Object.values(graph.defs)
     .filter((d) => !shipped(d) && (edge
-      ? d.group === "relation" && relation_named(graph, d.id) === edge_module(graph, id)
+      ? d.group === "relation" && relation_base(graph, d.id) === edge_base(graph, id)
       : d.group === "block" && may_retype(graph, id, d.id)))
     .sort((a, z) => Number(z.default !== undefined) - Number(a.default !== undefined)
                     || a.name.localeCompare(z.name));

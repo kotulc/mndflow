@@ -2,7 +2,7 @@
 
 import { run, type Args, type Context, type Effect, type Result, type Spot } from "./actions";
 import { check, inspect, say } from "./door";
-import { module_of, plain_type, touched } from "./defs";
+import { base_of, plain_type, touched } from "./defs";
 import { fold, step } from "./fold";
 import { alias_kind, next_alias } from "./names";
 import { path } from "./tree";
@@ -109,7 +109,7 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
     if (layer && !graph.blocks[layer]) {
       layer = path(was, layer).map((b) => b.id).reverse().find((id) => graph.blocks[id]) ?? null;
       if (layer === graph.root) layer = null;
-      picked = picked.filter((id) => graph.blocks[id] || graph.edges[id]);
+      picked = picked.filter((id) => graph.blocks[id] || graph.holders[id] || graph.edges[id]);
       cells = [];
     }
     storage.write(log);
@@ -263,8 +263,15 @@ export function session(ports: Partial<Ports> & Seed = {}): Session {
       for (const b of by_alias(Object.values(from.blocks))) {
         if (b.id === from.root || graph.blocks[b.id]) continue;
         const parent = b.parent === from.root || !b.parent ? target : b.parent;
-        const type = plain(b.type) ? plain_type(module_of(from, b.id)) ?? undefined : b.type;
+        const type = plain(b.type) ? plain_type(base_of(from, b.id)) ?? undefined : b.type;
         mutations.push({ op: "add_block", block: { ...b, parent, type, alias: serial(b.id) } });
+      }
+      /** The holders drawn over those blocks come too, or their members arrive loose. */
+      for (const h of by_alias(Object.values(from.holders))) {
+        if (graph.holders[h.id]) continue;
+        const parent = h.parent === from.root ? target : h.parent;
+        mutations.push({ op: "set_holder",
+                         holder: { ...h, parent, alias: serial(h.id) } });
       }
       for (const e of by_alias(Object.values(from.edges))) {
         if (graph.edges[e.id]) continue;

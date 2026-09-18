@@ -1,8 +1,8 @@
 /** Definitions: chains, kinds, defaults, and what an element resolves through. */
 
 import type { Settings } from "./components";
-import { BLOCK_MODULES, RELATION_MODULES, type BlockModule, type Definition, type FieldDef,
-         type Graph, type Id, type RelationModule } from "./types";
+import { BASE_BLOCKS, BASE_RELATIONS, BLOCK_MODULES, type BlockModule, type Definition,
+         type FieldDef, type Graph, type Id, type Package } from "./types";
 
 
 /** A definition and the chain it extends, nearest first. */
@@ -47,7 +47,31 @@ export function schema_of(graph: Graph, type: Id | undefined): (FieldDef & { fro
   return out;
 }
 
-/** Which block module interprets this block. */
+/** The shipped base a definition descends from, which is what its kind is. */
+export function base_named(graph: Graph, type: Id | undefined,
+                           group: "block" | "relation" = "block"): Id | undefined {
+  for (const d of isa(graph, type)) if (shipped(d) && d.group === group) return d.id;
+  /** A type naming a base directly, before that package is under it. */
+  const bases = group === "relation" ? BASE_RELATIONS : BASE_BLOCKS;
+  return type && bases.includes(type) ? type : undefined;
+}
+
+/** A block's base: what its own shape says, else what its chain descends from. */
+export function base_of(graph: Graph, id: Id): Id {
+  const b = graph.blocks[id];
+  if (!b) return "block";
+  if (b.of) return "reference";
+  if (b.side !== undefined) return "interface";
+  return base_named(graph, b.type) ?? "block";
+}
+
+/** What a relation descends from, read from its ends: `tie` where an end is a note. */
+export function edge_base(graph: Graph, id: Id): Id {
+  const e = graph.edges[id];
+  return e ? derived_base(graph, e.from, e.to) : "line";
+}
+
+/** Which block module interprets this block. A module is engine code; a kind is a definition. */
 export function module_of(graph: Graph, id: Id): BlockModule {
   const b = graph.blocks[id];
   if (!b) return "block";
@@ -56,7 +80,7 @@ export function module_of(graph: Graph, id: Id): BlockModule {
   return module_named(graph, b.type);
 }
 
-/** The kind a definition belongs to: the nearest link in its chain that says what kind it is. */
+/** The module a definition refines: the nearest link in its chain that names one. */
 export function module_named(graph: Graph, type: Id | undefined): BlockModule {
   const named = config_of(graph, type, "block")["module"];
   if (typeof named === "string" && BLOCK_MODULES.includes(named as BlockModule)) {
@@ -69,24 +93,22 @@ export function module_named(graph: Graph, type: Id | undefined): BlockModule {
 
 /** Whether a block is a note. */
 export function is_note(graph: Graph, id: Id): boolean {
-  return !!graph.blocks[id] && module_of(graph, id) === "note";
+  return !!graph.blocks[id] && base_of(graph, id) === "note";
 }
 
-/** What a relation between these ends is: a tie where an end is a note, a line otherwise. */
-export function derived_module(graph: Graph, from: Id, to: Id): RelationModule {
+/** What a relation between these ends descends from: a tie where an end is a note. */
+export function derived_base(graph: Graph, from: Id, to: Id): Id {
   return is_note(graph, from) || is_note(graph, to) ? "tie" : "line";
 }
 
-/** What a relation is, read from its ends. */
-export function edge_module(graph: Graph, id: Id): RelationModule {
-  const e = graph.edges[id];
-  return e ? derived_module(graph, e.from, e.to) : "line";
+/** What a block definition descends from, defaulting to the plain block. */
+export function block_base(graph: Graph, type: Id | undefined): Id {
+  return base_named(graph, type) ?? "block";
 }
 
-/** The relation module a definition refines, down its chain. */
-export function relation_named(graph: Graph, type: Id | undefined): RelationModule {
-  const named = config_of(graph, type, "relation")["module"];
-  return RELATION_MODULES.includes(named as RelationModule) ? named as RelationModule : "line";
+/** What a relation definition descends from, defaulting to a plain line. */
+export function relation_base(graph: Graph, type: Id | undefined): Id {
+  return base_named(graph, type, "relation") ?? "line";
 }
 
 /** The definition a thing resolves through. */
@@ -96,14 +118,14 @@ export function def_of(graph: Graph, id: Id): Id | undefined {
     type && !(graph.defs[type] && shipped(graph.defs[type]!)) ? type : undefined;
   const b = graph.blocks[id];
   if (b) {
-    const kind = module_of(graph, id);
-    return named(b.type) ?? default_for(graph, kind) ?? (graph.defs[kind] ? kind : undefined);
+    const base = base_of(graph, id);
+    return named(b.type) ?? default_for(graph, base) ?? (graph.defs[base] ? base : undefined);
   }
   const e = graph.edges[id];
   if (!e) return undefined;
-  const kind = edge_module(graph, id);
-  return named(e.type) ?? default_for(graph, kind, "relation")
-    ?? (graph.defs[kind] ? kind : undefined);
+  const base = edge_base(graph, id);
+  return named(e.type) ?? default_for(graph, base, "relation")
+    ?? (graph.defs[base] ? base : undefined);
 }
 
 /** What an element stores to name this definition. */
@@ -111,28 +133,25 @@ export function stored_type(graph: Graph, type: Id | undefined): Id | undefined 
   const d = type ? graph.defs[type] : undefined;
   if (!d || !(shipped(d) || d.default)) return type || undefined;
   if (d.group === "relation") return undefined;
-  return plain_type(module_named(graph, type)) ?? undefined;
+  return plain_type(base_named(graph, type) ?? "block") ?? undefined;
 }
 
-/** What a plain block of this kind stores as its type: nothing, or the kind. */
-export function plain_type(kind: BlockModule): Id | null {
-  return STRUCTURAL.includes(kind) ? null : kind;
+/** What a plain block of this base stores as its type: nothing, or the base's own name. */
+export function plain_type(base: Id): Id | null {
+  return STRUCTURAL.includes(base) ? null : base;
 }
 
-/** Kinds an element's own shape says, so a plain one names nothing. */
-const STRUCTURAL: readonly BlockModule[] = ["block", "reference", "interface"];
+/** Bases an element's own shape says, so a plain one names nothing. */
+const STRUCTURAL: readonly Id[] = ["block", "reference", "interface"];
 
-/** The workspace's default for a base kind: the one editable definition its plain elements follow. */
-export function default_for(graph: Graph, kind: BlockModule | RelationModule,
+/** The workspace's default for a base: the one editable definition its plain elements follow. */
+export function default_for(graph: Graph, base: Id,
                             group: "block" | "relation" = "block"): Id | undefined {
   for (const d of Object.values(graph.defs)) {
-    if (d.default === kind && !d.from && d.group === group) return d.id;
+    if (d.default === base && !d.from && d.group === group) return d.id;
   }
   return undefined;
 }
-
-/** The relation definitions the base ships: one per relation module. */
-export const BASE_RELATIONS: readonly string[] = ["line", "tie"];
 
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
@@ -140,7 +159,7 @@ export const BASE_PACKAGE = "base";
 /** Whether this definition is one the app ships rather than one anybody wrote. */
 export function shipped(d: Definition): boolean {
   return d.from === BASE_PACKAGE
-    || (BLOCK_MODULES as readonly string[]).includes(d.id)
+    || BASE_BLOCKS.includes(d.id)
     || BASE_RELATIONS.includes(d.id);
 }
 
@@ -201,26 +220,40 @@ export function vocabulary(graph: Graph): Vocabulary[] {
                               defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
 }
 
+/** A package by id, or by the name somebody calls it. */
+export function package_of(graph: Graph, id: Id | undefined): Package | undefined {
+  if (!id) return undefined;
+  return graph.packages[id] ?? package_named(graph, id);
+}
+
+/** A package by what it is called. Names are unique within a workspace. */
+export function package_named(graph: Graph, name: string): Package | undefined {
+  const want = name.trim();
+  return want ? Object.values(graph.packages).find((p) => p.name === want) : undefined;
+}
+
 /** Every package the workspace draws on, named, with all it brought — of either group. The
  *  shipped floor is nobody's package. */
-export function packages(graph: Graph): { from: string; defs: Definition[] }[] {
-  const groups = new Map<string, Definition[]>();
+export function packages(graph: Graph): { from: Id; name: string; defs: Definition[] }[] {
+  const groups = new Map<Id, Definition[]>();
   for (const d of Object.values(graph.defs)) {
     if (!d.from || shipped(d)) continue;
     groups.set(d.from, [...(groups.get(d.from) ?? []), d]);
   }
-  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
-    .map(([from, defs]) => ({ from, defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }));
+  return [...groups.entries()]
+    .map(([from, defs]) => ({ from, name: graph.packages[from]?.name ?? from,
+                              defs: defs.sort((a, b) => a.name.localeCompare(b.name)) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** The kinds a block moves among freely; every other kind is fixed when it is made. */
-const OPEN: readonly string[] = ["block", "folder", "resource"];
+/** The bases a block moves among freely; every other base is fixed when it is made. */
+const OPEN: readonly Id[] = ["block", "folder", "resource", "note"];
 
 /** Whether this block may be told to name that definition. */
 export function may_retype(graph: Graph, id: Id, type: Id | undefined): boolean {
   /** A block never names a relation definition. */
   if (type && graph.defs[type]?.group === "relation") return false;
-  const from = module_of(graph, id);
-  const to = module_named(graph, type);
+  const from = base_of(graph, id);
+  const to = block_base(graph, type);
   return from === to || (OPEN.includes(from) && OPEN.includes(to));
 }

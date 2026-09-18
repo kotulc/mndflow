@@ -1,7 +1,6 @@
 /** Groups and grids: membership, cells, merges, headers and allocation. */
 
-import { module_of } from "./defs";
-import type { Block, Cell, Graph, HeaderRole, Id, Span } from "./types";
+import type { Block, Cell, Graph, HeaderRole, Holder, Id, Span } from "./types";
 
 
 /** Whether two spans cover any cell in common. */
@@ -15,26 +14,37 @@ export function covers(s: Span, r: number, c: number): boolean {
   return r >= s.r && r < s.r + s.rows && c >= s.c && c < s.c + s.cols;
 }
 
-/** Whether a block is a grid — a region with an extent and cells to seat in. */
+/** A holder by id, whichever shape it is. Holders are their own element kind: a block id never
+ *  answers here, and this is the one place that knows where they live. */
+export function holder_of(graph: Graph, id: Id | undefined): Holder | null {
+  return (id ? graph.holders[id] : undefined) ?? null;
+}
+
+/** Whether this is a grid — a region with an extent and cells to seat in. */
 export function is_grid(graph: Graph, id: Id): boolean {
-  return module_of(graph, id) === "grid";
+  return graph.holders[id]?.arrangement === "grid";
 }
 
-/** Whether a block is a boundary — a dashed rim round its members. */
+/** Whether this is a boundary — a dashed rim round its members. */
 export function is_group(graph: Graph, id: Id): boolean {
-  return module_of(graph, id) === "group";
+  return graph.holders[id]?.arrangement === "free";
 }
 
-/** Whether a block holds others, either way. */
+/** Whether this holds blocks, either way. */
 export function is_holder(graph: Graph, id: Id): boolean {
-  const m = module_of(graph, id);
-  return m === "grid" || m === "group";
+  return !!graph.holders[id];
 }
 
-/** The group a block sits in, or null. */
-export function grid_of(graph: Graph, id: Id): Block | null {
-  const held = graph.blocks[id]?.group;
-  return (held ? graph.blocks[held] : undefined) ?? null;
+/** Every holder drawn in one layer, in a stable order. */
+export function holders_in(graph: Graph, layer: Id): Holder[] {
+  return Object.values(graph.holders)
+    .filter((h) => h.parent === layer)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+}
+
+/** The holder a block sits in, or null. */
+export function grid_of(graph: Graph, id: Id): Holder | null {
+  return holder_of(graph, graph.blocks[id]?.group);
 }
 
 /** Where a block sits in its group, or null. */
@@ -43,34 +53,43 @@ export function cell_of(graph: Graph, id: Id): Cell | null {
   return b?.group && b.cell ? { ...b.cell } : null;
 }
 
-/** How many groups enclose a block — zero for one sitting on the layer. */
+/** How many holders enclose a block — zero for one sitting on the layer. A holder may sit in
+ *  another, so this walks both blocks and holders. */
 export function group_depth(graph: Graph, id: Id): number {
   let depth = 0;
-  let at = graph.blocks[id]?.group;
+  let at = (graph.blocks[id] ?? graph.holders[id])?.group;
   const seen = new Set<Id>();
   while (at && !seen.has(at)) {
     seen.add(at);
     depth++;
-    at = graph.blocks[at]?.group;
+    at = graph.holders[at]?.group;
   }
   return depth;
 }
 
-/** Everything a group holds, in the layer's stable order. */
-export function members_of(graph: Graph, group: Id): Block[] {
+/** Everything a holder holds, in the layer's stable order. Blocks and nested holders alike. */
+export function members_of(graph: Graph, group: Id): (Block | Holder)[] {
+  return [...Object.values(graph.blocks), ...Object.values(graph.holders)]
+    .filter((b) => b.group === group)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+}
+
+/** The blocks a holder holds. A cell seats a card, so everything about cells asks this. */
+export function block_members(graph: Graph, group: Id): Block[] {
   return Object.values(graph.blocks)
     .filter((b) => b.group === group)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
 }
 
-/** Whether `holder` may contain `id` — not itself and not a cycle. */
+/** Whether `holder` may contain `id` — not itself and not a cycle. A cell seats one card and a
+ *  holder is not a card, which is why a grid holds no holder. */
 export function can_hold(graph: Graph, holder: Id, id: Id,
                         held?: ReadonlyMap<Id, Id | undefined>): boolean {
-  const g = graph.blocks[holder];
-  if (!g || !is_holder(graph, holder)) return false;
+  if (!is_holder(graph, holder)) return false;
   if (holder === id) return false;
   if (is_grid(graph, holder) && is_holder(graph, id)) return false;
-  const map = held ?? new Map(Object.values(graph.blocks).map((b) => [b.id, b.group]));
+  const map = held ?? new Map([...Object.values(graph.blocks),
+                               ...Object.values(graph.holders)].map((b) => [b.id, b.group]));
   let at: Id | undefined = holder;
   const seen = new Set<Id>();
   while (at) {
@@ -84,14 +103,14 @@ export function can_hold(graph: Graph, holder: Id, id: Id,
 
 /** The span covering this address, or null. */
 export function merge_at(graph: Graph, group: Id, r: number, c: number): Span | null {
-  return graph.blocks[group]?.merges?.find((s) => covers(s, r, c)) ?? null;
+  return graph.holders[group]?.merges?.find((s) => covers(s, r, c)) ?? null;
 }
 
 /** What sits at this address; a merge answers at every address it covers. */
 export function at_cell(graph: Graph, group: Id, r: number, c: number): Block | null {
   const span = merge_at(graph, group, r, c);
   const want = span ? { r: span.r, c: span.c } : { r, c };
-  return members_of(graph, group)
+  return block_members(graph, group)
     .find((b) => b.cell?.r === want.r && b.cell?.c === want.c) ?? null;
 }
 
@@ -137,7 +156,7 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
   const group = graph.blocks[id]?.group;
   if (!me || !group) return [];
   const out: Block[] = [];
-  for (const h of members_of(graph, group)) {
+  for (const h of block_members(graph, group)) {
     if (h.id === id || !h.header) continue;
     const at = region_of(graph, h.id);
     if (!at) continue;
@@ -155,6 +174,6 @@ export function allocations_of(graph: Graph, id: Id): Block[] {
 export function allocated_to(graph: Graph, id: Id): Block[] {
   const group = graph.blocks[id]?.group;
   if (!group || !graph.blocks[id]?.header) return [];
-  return members_of(graph, group)
+  return block_members(graph, group)
     .filter((b) => b.id !== id && allocations_of(graph, b.id).some((h) => h.id === id));
 }

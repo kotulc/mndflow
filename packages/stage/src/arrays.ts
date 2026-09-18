@@ -63,8 +63,11 @@ export function nodes_of(scene: Scene, picked: readonly Id[], frame: Frame | nul
     position: { x: frame.x, y: frame.y },
     width: frame.w,
     height: frame.h,
-    data: { label: frame.label, marks: [],
+    data: { label: frame.label,
+            /** The one trait a frame carries: whether it holds anything, which fills its icon. */
+            marks: frame.holds_parts ? ["container" as const] : [],
             ...(frame.role ? { role: frame.role } : {}),
+            ...(frame.mark ? { mark: frame.mark } : {}),
             ...(frame.side ? { side: frame.side } : {}),
             ...(frame.seats ? { seats: frame.seats } : {}) },
     draggable: false,
@@ -142,7 +145,6 @@ export function signature(scene: Scene, frame: Frame | null): string {
         n.id, n.type, `${b.x},${b.y},${b.w},${b.h}`, n.data.label, n.data.alias ?? "",
         n.data.marks.join(""), n.data.side ?? "",
         look_key(n.data.look),
-        n.data.cells?.map((c) => `${c.id}${c.kind}${c.tint}${c.rest ?? ""}`).join(""),
         /** The lattice is what a grid draws. */
         n.data.grid?.map((c) => `${c.r},${c.c},${c.w},${c.h}${c.marks.join("")}`).join(""),
         /** Where a line meets this card is part of what it draws. */

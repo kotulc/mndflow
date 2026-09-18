@@ -1,9 +1,8 @@
 /** The app, assembled. */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { module_named, offer, pinned_defs, relation_named, session,
-         type Args, type Storage, type Dir, type Graph, type Id, type Point,
-         type RelationModule } from "@mnd/core";
+import { block_base, offer, pinned_defs, relation_base, session,
+         type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
 import { seed } from "@mnd/defs";
 import { box_of, clear_of, holds, project, tidy, BLOCK } from "@mnd/views";
 import { Explorer, Menu, type Section } from "@mnd/explorer";
@@ -52,7 +51,7 @@ export function App({ storage }: { storage: Storage }) {
   const [shown, set_shown] = useState({ interfaces: true, lattice: true, frame: true });
   /** What a right drag draws, as the rail left it. */
   const [drawing, set_drawing] =
-    useState<{ module: RelationModule; dir?: Dir; type?: string }>({ module: "line" });
+    useState<{ module: Id; dir?: Dir; type?: string }>({ module: "line" });
   /** What help is pointing at. */
   const [pointed, set_pointed] = useState<readonly Id[]>([]);
   /** The tray row under the pointer, lit on the canvas where it is drawn. */
@@ -94,7 +93,7 @@ export function App({ storage }: { storage: Storage }) {
   /** The shortlist the rail offers, in the order the workspace put them. */
   const offered_lines = useMemo(
     () => pinned_defs(graph, "relation")
-      .filter((d) => relation_named(graph, d.id) === "line")
+      .filter((d) => relation_base(graph, d.id) === "line")
       .map((d) => ({ id: d.id, name: d.name, module: "line" as const })),
     [graph]);
 
@@ -131,7 +130,7 @@ export function App({ storage }: { storage: Storage }) {
     if (name === "relate_with") {
       const type = args!["type"] ? String(args!["type"]) : undefined;
       const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
-      set_drawing({ module: args!["module"] as RelationModule,
+      set_drawing({ module: args!["module"] as Id,
                     ...(dir && dir !== "none" ? { dir } : {}),
                     ...(type ? { type } : {}) });
       return;
@@ -347,7 +346,7 @@ function dropped(graph: Graph, type: Id, on: Id | null, at: Point,
                  layer: Id | null): [string, Args] | string {
   if (on) return ["retype", { ids: [on], type }];
   if (graph.defs[type]?.group === "relation") return "lines must connect existing blocks — draw one from a block to another";
-  const kind = module_named(graph, type);
+  const kind = block_base(graph, type);
   if (NEEDS[kind]) return NEEDS[kind]!;
   if (kind === "grid") return ["group", { ...GRID, type, spot: at }];
   return ["create", { name: "", type, parent: layer ?? graph.root, spot: at }];

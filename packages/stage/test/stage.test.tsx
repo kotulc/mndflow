@@ -46,17 +46,42 @@ function typing(el: Element, text: string) {
 
 /** A card says what it is without being read. */
 describe("what a card wears", () => {
+  /** The closed set of system marks: one to a card, and it says what the card stands in for. */
+  const MARKS = ["reference", "definition", "package", "external"];
   const worn = (view: { container: HTMLElement }) =>
     Array.from(view.container.querySelectorAll(".react-flow__node .mnd-role"),
                (el) => el.getAttribute("data-role"));
+  const stamped = (view: { container: HTMLElement }) =>
+    Array.from(view.container.querySelectorAll(".react-flow__node .mnd-mark"),
+               (el) => el.getAttribute("data-mark"));
 
-  it("marks every card, and the layer it is drawn in", () => {
+  /** The top corner says what a card is; every card has one. */
+  it("gives every card an icon for what it is", () => {
     const view = mount();
     expect(worn(view)).toContain("note");
     expect(worn(view)).toContain("group");
     expect(worn(view)).toContain("block");
     /** The frame is the block you are inside, and it is still one. */
     expect(view.container.querySelector(".mnd-frame .mnd-role")).toBeTruthy();
+  });
+
+  /** The bottom corner is the app's, and it is empty unless the card stands in for something. */
+  it("marks only what a card stands in for", () => {
+    const view = mount();
+    expect(card(view, "block_pump").querySelector(".mnd-mark")).toBeNull();
+    expect(card(view, "block_note").querySelector(".mnd-mark")).toBeNull();
+    /** Holding parts is not a mark — the frame holds everything and wears none. */
+    expect(view.container.querySelector(".mnd-frame .mnd-mark")).toBeNull();
+    expect(stamped(view).every((m) => m !== null && MARKS.includes(m))).toBe(true);
+  });
+
+  /** Holding parts fills the card's own icon instead. */
+  it("fills the icon of the layer you are inside", () => {
+    const view = mount();
+    expect(view.container.querySelector(".mnd-frame .mnd-role svg")?.getAttribute("fill"))
+      .toBe("currentColor");
+    expect(card(view, "block_pump").querySelector(".mnd-role svg")?.getAttribute("fill"))
+      .toBe("none");
   });
 
   /** Never the word the mark already says. */

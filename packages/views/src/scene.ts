@@ -1,8 +1,8 @@
 /** What a view module hands back. */
 
 import type { Edge, Node } from "@xyflow/react";
-import type { Dir, Id, RelationModule, Role, Side } from "@mnd/core";
-import type { Arrow, Cell, Look, Wire } from "./look";
+import type { Dir, Id, Mark, Role, Side } from "@mnd/core";
+import type { Arrow, Look, Wire } from "./look";
 import type { Perch } from "./seat";
 
 /** What one drawn thing carries beyond where it sits and how big it is. */
@@ -16,14 +16,14 @@ export type BoxData = {
   on?: Id;
   /** Where the box points, if it points anywhere. */
   link?: string;
-  /** How it reads, derived: a container, a reference, a note, a boundary. */
-  marks: readonly Mark[];
-  /** What it is, as the one word every surface draws a mark for. */
+  /** Everything true of it at once, drawn as classes. */
+  marks: readonly Trait[];
+  /** The one system mark, derived: what this card stands in for, or that it holds parts. */
+  mark?: Mark;
+  /** What sort of thing it is: the icon it wears unless somebody set their own. */
   role?: Role;
   /** How its definition says it draws. */
   look?: Look;
-  /** What a container holds, for the picture drawn inside its card. */
-  cells?: readonly Cell[];
   /** The lattice a grid draws, as boxes inside its own. */
   grid?: readonly GridCell[];
   /** Whom a boundary is drawn round. */
@@ -40,7 +40,9 @@ export type BoxData = {
   seats?: readonly { id: string; side: Side; at: number }[];
 };
 
-export type Mark = "container" | "reference" | "missing" | "note" | "group" | "grid"
+/** What a card wears as classes: everything true of it at once, as against the one system
+ *  mark it carries. */
+export type Trait = "container" | "reference" | "missing" | "note" | "group" | "grid"
                  | "interface" | "berth" | "in" | "out" | "unnamed"
                  | "cell" | "header" | "merged";
 
@@ -52,12 +54,13 @@ export type GridCell = {
   y: number;
   w: number;
   h: number;
-  marks: readonly Mark[];
+  marks: readonly Trait[];
 };
 
 /** What one line carries; routing is the renderer's. */
 export type LineData = {
-  module: RelationModule;
+  /** The shipped base this run draws as: `line`, or `tie` where a note sits at an end. */
+  module: Id;
   dir: Dir;
   /** How it is painted and what draws at its ends. */
   wire?: Wire;
@@ -98,7 +101,7 @@ export type Port = {
   label: string;
   side: Side;
   at: number;
-  marks: readonly Mark[];
+  marks: readonly Trait[];
   look?: Look;
 };
 
@@ -111,8 +114,12 @@ export type Frame = {
   w: number;
   h: number;
   label: string;
-  /** What the open layer is, as the mark every surface draws for it. */
+  /** What the open layer is, as the icon every surface draws for it. */
   role?: Role;
+  /** The system mark it earns, where it stands in for something. */
+  mark?: Mark;
+  /** Whether it holds anything, which is what fills its icon. */
+  holds_parts?: boolean;
   /** Which wall of its own parent this layer is set into, when the layer is itself an interface. */
   side?: Side;
   /** The interfaces set into this layer's own walls. */

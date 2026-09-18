@@ -59,13 +59,18 @@ const PATHS = {
   // already spends on *the settings of this*.
   /** A pinned definition. */
   pin: "M9 3.5h6M12 3.5v7M12 10.5l4.5 4.5v2h-9v-2zM12 17v3.5",
-  /** The workspace: everything the project holds, as one crate. The only isometric mark in the
-      set, so nothing flat — a folder, a card, a page — can read as it. */
-  workspace: "M12 3.5l7.5 4.25v8.5L12 20.5l-7.5-4.25v-8.5zM4.5 7.75L12 12l7.5-4.25M12 12v8.5",
-  /** The packages: what the workspace draws on, as a word — the mark `vocabulary` wears below. */
-  packages: "M3 16.5V7.5h3.25a2.25 2.25 0 0 1 0 4.5H3M10 7.5v9M14 11.5l-4 3.25M11.6 13.1l2.4 3.4M21 11.5v6.5a2.1 2.1 0 0 1-3.6 1.3M21 13.75a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0",
-  /** The definitions: the words a workspace can say, as three letters. */
-  vocabulary: "M2.5 16.5l2.75-9 2.75 9M3.4 13.5h3.7M10 7.5v9h2.75a2.25 2.25 0 0 0 0-4.5H10h2.25a2.25 2.25 0 0 0 0-4.5zM21.5 9.25a2.75 2.75 0 0 0-5 1.5v2.5a2.75 2.75 0 0 0 5 1.5",
+  // The system's own words, written rather than drawn: three letters on one grid, one weight,
+  // so `Wks`, `Pkg`, `Def`, `Ref` and `Ext` read as one family wherever they are stamped.
+  /** The workspace: everything the project holds. */
+  word_wks: "M2.5 7.5l1.75 9 1.75-5.5 1.75 5.5 1.75-9M11.5 7.5v9M15.5 11.5l-4 3.25M13.1 13.1l2.4 3.4M20.8 12.5a1.7 1.7 0 0 0-3 1c0 1.6 3.2.7 3.2 2.2a1.8 1.8 0 0 1-3.2.9",
+  /** The packages: what the workspace draws on. */
+  word_pkg: "M3 16.5V7.5h3.25a2.25 2.25 0 0 1 0 4.5H3M10 7.5v9M14 11.5l-4 3.25M11.6 13.1l2.4 3.4M21 11.5v6.5a2.1 2.1 0 0 1-3.6 1.3M21 13.75a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0",
+  /** The definitions: the words a workspace can say. */
+  word_def: "M3 16.5V7.5h1.8a3.6 4.5 0 0 1 0 9H3M10 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3M21 8.2a2 2 0 0 0-3 1.8v6.5M16.3 12.2h3.7",
+  /** A stand-in for something that lives elsewhere. */
+  word_ref: "M3 16.5V7.5h2.2a2.6 2.6 0 0 1 0 5.2H3M5.9 12.7l2.6 3.8M10 13.9h4.4a2.2 2.2 0 1 0-4.4 0v.2a2.2 2.2 0 0 0 4 1.3M21 8.2a2 2 0 0 0-3 1.8v6.5M16.3 12.2h3.7",
+  /** A stand-in for something outside the workspace. */
+  word_ext: "M8 7.5H3v9h5M3 12h4.2M10 11.9l4.2 4.6M14.2 11.9L10 16.5M18 8.5v6.2a1.8 1.8 0 0 0 2.6 1.6M16.4 11.9h3.5",
   define: "M12 9.25a2.75 2.75 0 1 0 0 5.5 2.75 2.75 0 0 0 0-5.5M12 3.5l1.2 2.3 2.5-.7.6 2.6 2.4 1-1.3 2.3 1.3 2.3-2.4 1-.6 2.6-2.5-.7L12 20.5l-1.2-2.3-2.5.7-.6-2.6-2.4-1L6.6 13 5.3 10.7l2.4-1 .6-2.6 2.5.7z",
 
   // A thing fixed where it was put. A shackle over a body, closed — and the
@@ -196,7 +201,7 @@ export function Icon({ name, size = 16, solid = false, className }: {
   );
 }
 
-/** Which mark each role wears. */
+/** Which icon each sort of card wears in its top corner. */
 export const ROLE_ICON: Record<string, IconName> = {
   block: "role_leaf", container: "role_container", folder: "role_folder",
   resource: "role_resource", reference: "role_reference",
@@ -204,7 +209,19 @@ export const ROLE_ICON: Record<string, IconName> = {
   note: "role_note",
 };
 
-/** The mark for a role, falling back to the plain block's. */
+/** The icon for a role, falling back to the plain block's. */
 export function role_icon(role: string | undefined): IconName {
   return ROLE_ICON[role ?? ""] ?? "role_leaf";
+}
+
+/** Which word each system mark stamps in a card's bottom corner. Written, not drawn: a mark says
+ *  what a card stands in for, and a picture of it would only repeat the icon above. */
+export const MARK_ICON: Record<string, IconName> = {
+  reference: "word_ref", definition: "word_def",
+  package: "word_pkg", external: "word_ext",
+};
+
+/** The icon for a system mark, or null where a card carries none. */
+export function mark_icon(mark: string | undefined | null): IconName | null {
+  return MARK_ICON[mark ?? ""] ?? null;
 }

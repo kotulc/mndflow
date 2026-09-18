@@ -1,17 +1,21 @@
 /** What every module derives the same way. */
 
 import { alias_of, is_container, is_header, is_interface, is_named, is_reference,
-         module_of, path, role_of, shown_name, stands_for,
+         base_of, mark_of, path, role_of, shown_name, stands_for,
          type Graph, type Id } from "@mnd/core";
-import { cells_of, look_of } from "./look";
-import { pictured } from "./size";
-import type { BoxData, Mark, Scene } from "./scene";
+import { look_of } from "./look";
+import type { BoxData, Trait, Scene } from "./scene";
 
 /** How a block reads, derived from what it holds or where it sits. */
-export function marks_of(graph: Graph, id: Id): Mark[] {
-  const b = graph.blocks[id]!;
-  const out: Mark[] = [];
-  const module = module_of(graph, id);
+export function marks_of(graph: Graph, id: Id): Trait[] {
+  const b = graph.blocks[id];
+  const out: Trait[] = [];
+  /** A holder wears the mark of its shape and nothing else. */
+  if (!b) {
+    const h = graph.holders[id];
+    return h ? [h.arrangement === "grid" ? "grid" : "group"] : out;
+  }
+  const module = base_of(graph, id);
   if (module === "reference") {
     out.push("reference");
     if (!stands_for(graph, id) || stands_for(graph, id)!.id === id) out.push("missing");
@@ -33,10 +37,8 @@ export function marks_of(graph: Graph, id: Id): Mark[] {
 
 /** Everything a drawn block carries beyond where it sits. */
 export function carried(graph: Graph, id: Id): BoxData {
-  const b = graph.blocks[id]!;
+  const b = graph.blocks[id] ?? graph.holders[id]!;
   const look = look_of(graph, id);
-  const cells = pictured(graph, id)
-    ? cells_of(graph, id, (kid) => shown_name(graph, kid)) : [];
   /** The handle, beside the name rather than inside it. */
   const alias = look.alias === undefined ? alias_of(graph, id)
     : look.alias ? alias_of(graph, id, true) : "";
@@ -44,21 +46,22 @@ export function carried(graph: Graph, id: Id): BoxData {
     label: shown_name(graph, id),
     ...(alias ? { alias } : {}),
     role: role_of(graph, id),
-    ...(b.type ? { def: b.type } : {}),
+    ...(mark_of(graph, id) ? { mark: mark_of(graph, id)! } : {}),
+    ...("type" in b && b.type ? { def: b.type } : {}),
     ...(link_of(graph, id) ? { link: link_of(graph, id) } : {}),
     marks: marks_of(graph, id),
     look,
-    ...(cells.length ? { cells } : {}),
   };
 }
 
 /** The field a box's link is read from. */
 export const SOURCE = "source";
 
-/** Where a block points, if it says. */
+/** Where a block points, if it says: the source slot first, then the field that predates it. */
 export function link_of(graph: Graph, id: Id): string | undefined {
-  const said = graph.blocks[id]?.fields
-    ?.find((f) => f.name === SOURCE && f.form === "link");
+  const b = graph.blocks[id];
+  if (b?.source?.uri) return b.source.uri;
+  const said = b?.fields?.find((f) => f.name === SOURCE && f.form === "link");
   return said?.value || undefined;
 }
 

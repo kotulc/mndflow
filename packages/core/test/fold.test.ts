@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { FLOOR, fixture, flat, nested, related } from "@mnd/fixtures";
 import { arrangement_of, children, config_of, edges_in, fold, is_container, is_reference,
-         is_top_block, module_named, module_of, next_order, path, session,
+         is_top_block, block_base, base_of, next_order, path, session,
          shown_name, stands_for, subtree, ROOT, type Definition } from "../src/index";
 
 describe("fold", () => {
@@ -111,7 +111,7 @@ describe("references", () => {
 
     expect(shown_name(s.graph(), ref.id)).toBe("Auth");
     expect(stands_for(s.graph(), ref.id)?.id).toBe(auth);
-    expect(module_of(s.graph(), ref.id)).toBe("reference");
+    expect(base_of(s.graph(), ref.id)).toBe("reference");
 
     s.go("delete", { id: auth });
     expect(shown_name(s.graph(), ref.id)).toBe("missing");
@@ -151,9 +151,9 @@ describe("definitions cascade", () => {
       { id: "d_bin", group: "block", name: "bin", extends: "folder",
         components: { style: { slot: "muted" } } },
     ]);
-    expect(module_named(graph, "d_bin")).toBe("folder");
+    expect(block_base(graph, "d_bin")).toBe("folder");
     /** A note names its own kind while extending a resource for its look. */
-    expect(module_named(graph, "note")).toBe("note");
+    expect(block_base(graph, "note")).toBe("note");
   });
 });
 
@@ -165,25 +165,27 @@ describe("what a block may become", () => {
     s.go("create", { name: "A" });
     const id = children(s.graph(), ROOT)[0]!.id;
     expect(s.go("retype", { id, type: "block" })).toBeNull();
-    expect(module_of(s.graph(), id)).toBe("block");
+    expect(base_of(s.graph(), id)).toBe("block");
   });
 
-  /** Block, folder and resource are one open family. */
-  it.each(["folder", "resource"])("makes a block a %s", (type) => {
+  /** Block, folder, resource and note are one open family: none carries a field a retype
+   *  cannot invent, so each is the plain block with different configuration. */
+  it.each(["folder", "resource", "note"])("makes a block a %s", (type) => {
     const s = kinds();
     s.go("create", { name: "A" });
     const id = children(s.graph(), ROOT)[0]!.id;
     expect(s.go("retype", { id, type })).toBeNull();
-    expect(module_of(s.graph(), id)).toBe(type);
+    expect(base_of(s.graph(), id)).toBe(type);
   });
 
-  it.each(["group", "grid", "note", "interface", "reference"])(
+  /** The derived kinds each carry something a change of type cannot invent. */
+  it.each(["group", "grid", "interface", "reference"])(
     "refuses to make a block a %s", (type) => {
       const s = kinds();
       s.go("create", { name: "A" });
       const id = children(s.graph(), ROOT)[0]!.id;
       expect(s.go("retype", { id, type })).toEqual(expect.any(String));
-      expect(module_of(s.graph(), id)).toBe("block");
+      expect(base_of(s.graph(), id)).toBe("block");
     });
 });
 

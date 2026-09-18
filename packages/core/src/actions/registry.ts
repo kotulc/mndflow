@@ -76,7 +76,9 @@ export function offer(ctx: Context): Action[] {
 }
 
 function in_scope(a: Action, ctx: Context): boolean {
-  const one = ctx.picked.length === 1 ? ctx.graph.blocks[ctx.picked[0]!] : undefined;
+  /** A holder is picked and acted on exactly as a block is. */
+  const one = ctx.picked.length === 1
+    ? ctx.graph.blocks[ctx.picked[0]!] ?? ctx.graph.holders[ctx.picked[0]!] : undefined;
   const edge = ctx.picked.length === 1 ? ctx.graph.edges[ctx.picked[0]!] : undefined;
   return a.on.some((s) =>
     s === "layer" ? true

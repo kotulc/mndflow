@@ -1,7 +1,7 @@
 /** Where everything in a layer sits. */
 
-import { arrangement_of, children, is_group, is_interface, layer_id, type Block, type Graph,
-         type Id } from "@mnd/core";
+import { arrangement_of, is_group, is_interface, layer_id, units_in,
+         type Graph, type Id, type Unit } from "@mnd/core";
 import { band_members, band_size, celled, in_band, loose_unit, type Sized } from "./bands";
 import { is_satellite, pack_units, seat_satellites } from "./pack";
 import { gridded, size_of, snap, GAP, UNIT, type Size } from "./size";
@@ -13,7 +13,7 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 /** Every block drawn in this layer, placed. */
 export function laid(graph: Graph, layer: Id | null): Placed[] {
-  const units = children(graph, layer).filter((b) => !is_interface(b));
+  const units = units_in(graph, layer).filter((b) => !is_interface(b));
   if (units.length === 0) return [];
   const loose = loose_units(graph, layer);
   const how = arrangement_of(graph, layer);
@@ -36,7 +36,7 @@ export function laid(graph: Graph, layer: Id | null): Placed[] {
 
   /** What was put somewhere stands first. */
   const fixed: Placed[] = [];
-  const floating: Block[] = [];
+  const floating: Unit[] = [];
   for (const b of satellites) {
     if (how === "free" && b.x !== undefined && b.y !== undefined) {
       fixed.push({ id: b.id, ...put({ x: b.x, y: b.y }), ...size_of(graph, b.id) });
@@ -88,8 +88,8 @@ export function tidy(graph: Graph, layer: Id | null): { id: Id; x: number; y: nu
   const loose = loose_units(g, layer);
   const loose_ids = new Set(loose.map((b) => b.id));
   for (const b of loose) {
-    delete g.blocks[b.id]!.x;
-    delete g.blocks[b.id]!.y;
+    const it = g.blocks[b.id] ?? g.holders[b.id];
+    if (it) { delete it.x; delete it.y; }
   }
   return laid(g, layer)
     .filter((p) => loose_ids.has(p.id))
@@ -151,7 +151,7 @@ export function boundary(spots: readonly Placed[], members: readonly Id[]): Plac
   return { id: "", x, y, w, h };
 }
 
-function loose_units(graph: Graph, layer: Id | null): Block[] {
-  return children(graph, layer)
+function loose_units(graph: Graph, layer: Id | null): Unit[] {
+  return units_in(graph, layer)
     .filter((b) => !is_interface(b) && !gridded(graph, b.id) && !in_band(graph, b.id));
 }

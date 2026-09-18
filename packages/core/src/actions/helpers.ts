@@ -1,10 +1,10 @@
 /** Argument readers and makers shared by the actions. */
 
-import { def_named, module_named, relation_named, shipped, stored_type } from "../defs";
+import { def_named, block_base, relation_base, shipped, stored_type } from "../defs";
 import { next_alias } from "../names";
 import { layer_id, next_order } from "../tree";
 import { new_id } from "../ids";
-import type { BlockModule, Cell, Definition, Graph, Id, Mutation, RelationModule, Side,
+import type { Cell, Definition, Graph, Id, Mutation, Side,
               Span } from "../types";
 import type { Args, Context } from "./registry";
 
@@ -66,7 +66,7 @@ export const seats = (args: Args): { id: Id; r: number; c: number }[] => {
 export function region(ctx: Context, args: Args): { group: Id; span: Span } | null {
   const picked = ctx.cells ?? [];
   const group = args["group"] ? id_of(args, "group") : picked[0]?.group;
-  if (!group || !ctx.graph.blocks[group]) return null;
+  if (!group || !ctx.graph.holders[group]) return null;
   const from = cell_of_arg(args, "at") ?? cell_of_arg(args, "into");
   const spots = args["at"] || args["into"]
     ? [from, cell_of_arg(args, "into")].filter((c): c is Cell => !!c)
@@ -93,12 +93,12 @@ export function handles(ctx: Context, kind: string) {
 }
 
 /** A refusal where the named definition is not of this kind. */
-export function may_wear(ctx: Context, args: Args, kind: BlockModule): string | null {
+export function may_wear(ctx: Context, args: Args, kind: Id): string | null {
   const type = text(args, "type");
   if (!type) return null;
   const d = ctx.graph.defs[type];
   if (!d) return `there is no definition called "${type}"`;
-  return module_named(ctx.graph, type) === kind
+  return block_base(ctx.graph, type) === kind
     ? null : `"${d.name}" is not a ${kind} definition`;
 }
 
@@ -109,13 +109,13 @@ export const typed = (ctx: Context, args: Args): { type?: Id } => {
 };
 
 /** The relation type a run stores, only when it is of the run's module. */
-export const run_type = (ctx: Context, args: Args, module: RelationModule): { type?: Id } => {
+export const run_type = (ctx: Context, args: Args, base: Id): { type?: Id } => {
   const type = text(args, "type");
-  return type && relation_named(ctx.graph, type) === module ? typed(ctx, args) : {};
+  return type && relation_base(ctx.graph, type) === base ? typed(ctx, args) : {};
 };
 
-/** Kinds a layer cannot make on its own, and why. */
-export const NEEDS: Partial<Record<BlockModule, string>> = {
+/** Bases a layer cannot make on its own, and why. */
+export const NEEDS: Record<string, string> = {
   interface: "interfaces may only be added to existing blocks",
   reference: "a reference is made by dragging the block, not its definition",
   note: "a note is written about something",
@@ -125,7 +125,7 @@ export const NEEDS: Partial<Record<BlockModule, string>> = {
 /** Makes a block, numbered and ordered like every other. */
 export function make_block(ctx: Context, name: string, parent: Id | null, type?: Id): Mutation[] {
   const id = new_id("block");
-  const serial = handles(ctx, module_named(ctx.graph, type));
+  const serial = handles(ctx, block_base(ctx.graph, type));
   return [{ op: "add_block", block: {
     id, parent, name: name || undefined, type: stored_type(ctx.graph, type),
     order: next_order(ctx.graph, parent), alias: serial.take(),

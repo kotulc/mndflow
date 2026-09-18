@@ -1,7 +1,7 @@
 /** The one door a log comes in through. */
 
 import { component, unreadable } from "./components";
-import { module_named, relation_named, shipped } from "./defs";
+import { block_base, relation_base, shipped } from "./defs";
 import { fold } from "./fold";
 import { can_hold, covers, is_grid, overlaps } from "./holders";
 import { subtree } from "./tree";
@@ -23,9 +23,10 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
   "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "set_shelf", "size_block", "set_body",
-  "set_group", "seat_cell", "set_grid", "merge_cells", "split_cells", "set_header", "link_blocks",
+  "set_group", "seat_cell", "set_header", "link_blocks",
   "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def",
+  "set_package", "drop_package", "set_source", "set_holder", "drop_holder",
   "set_arrangement", "set_tags", "set_look", "drop_looks",
 ]);
 
@@ -118,6 +119,7 @@ export function inspect(graph: Graph): Inspection {
   cells(graph, name, say);
   looks(graph, name, say);
   definitions(graph, say);
+  named_packages(graph, say);
   return { faults, repairs };
 }
 
@@ -132,7 +134,7 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
       if (b.cell) say("repaired", `"${name(b.id)}" had a cell and no group`, { op: "seat_cell", id: b.id, cell: null });
       continue;
     }
-    const grid = graph.blocks[b.group];
+    const grid = graph.holders[b.group];
     if (!grid || !can_hold(graph, b.group, b.id)) {
       say("repaired", `"${name(b.id)}" was in a group that cannot hold it`, { op: "set_group", id: b.id, group: null });
       continue;
@@ -150,7 +152,7 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
     taken.add(key);
   }
 
-  for (const g of Object.values(graph.blocks)) {
+  for (const g of Object.values(graph.holders)) {
     const kept: Span[] = [];
     for (const s of g.merges ?? []) {
       const sane = s.rows > 0 && s.cols > 0 && s.r >= 0 && s.c >= 0 && is_grid(graph, g.id)
@@ -159,9 +161,17 @@ function cells(graph: Graph, name: (id: Id) => string, say: Say): void {
     }
     const bad = (g.merges ?? []).length - kept.length;
     if (!bad) continue;
-    say("dropped", `${plural(bad, "merge")} "${name(g.id)}" could not hold`,
-        ...(g.merges ?? []).map((s): Mutation => ({ op: "split_cells", id: g.id, r: s.r, c: s.c })),
-        ...kept.map((span): Mutation => ({ op: "merge_cells", id: g.id, span })));
+    const { merges: _gone, ...bare } = g;
+    say("dropped", `${plural(bad, "merge")} "${g.name ?? g.id}" could not hold`,
+        { op: "set_holder", holder: kept.length ? { ...g, merges: kept } : bare });
+  }
+
+  /** A holder is drawn in a layer, and goes where that layer is not there. */
+  for (const h of Object.values(graph.holders)) {
+    if (!graph.blocks[h.parent]) {
+      say("dropped", `"${h.name ?? h.id}" was drawn in a layer that is not there`,
+          { op: "drop_holder", id: h.id });
+    }
   }
 }
 
@@ -197,7 +207,7 @@ function definitions(graph: Graph, say: Say): void {
       mended = { ...mended, components: Object.keys(components).length ? components : undefined };
     }
     if (mended.default !== undefined) {
-      const kind = mended.group === "relation" ? relation_named(graph, mended.id) : module_named(graph, mended.id);
+      const kind = mended.group === "relation" ? relation_base(graph, mended.id) : block_base(graph, mended.id);
       const slot = `${mended.group}:${mended.default}`;
       const why = mended.from ? "a package's definition cannot be a default"
         : kind !== mended.default ? `it is not a ${mended.default}`
@@ -209,13 +219,27 @@ function definitions(graph: Graph, say: Say): void {
     }
     if (!mended.from && !shipped(mended) && !mended.extends) {
       const base = mended.default
-        ?? (mended.group === "relation" ? relation_named(graph, undefined) : module_named(graph, undefined));
+        ?? (mended.group === "relation" ? relation_base(graph, undefined) : block_base(graph, undefined));
       if (graph.defs[base] && base !== mended.id) {
         say("repaired", `"${d.name}" now extends the ${base} base`);
         mended = { ...mended, extends: base };
       }
     }
     if (mended !== d) say("repaired", "", { op: "set_def", def: mended });
+  }
+}
+
+/** A package is found by its name, so no two may share one. The later one is renamed rather than
+ *  dropped: what it brought is still wanted. */
+function named_packages(graph: Graph, say: Say): void {
+  const taken = new Set<string>();
+  for (const p of Object.values(graph.packages).sort((a, z) => a.id.localeCompare(z.id))) {
+    if (!taken.has(p.name)) { taken.add(p.name); continue; }
+    let name = p.name;
+    for (let n = 2; taken.has(name); n++) name = `${p.name} ${n}`;
+    say("repaired", `two packages were called "${p.name}"`,
+        { op: "set_package", pkg: { ...p, name } });
+    taken.add(name);
   }
 }
 

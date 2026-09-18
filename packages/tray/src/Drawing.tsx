@@ -1,6 +1,6 @@
 /** The card column: the drawing, its kind, how many name it, and whether it is pinned. */
 
-import { alias_of, SCHEMA, def_of, module_of, pinned_defs, role_of, shown_name,
+import { alias_of, SCHEMA, def_of, base_of, pinned_defs, role_of, shown_name,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Icon, role_icon, type IconName } from "@mnd/theme";
 import { Card } from "./Card";
@@ -31,9 +31,9 @@ export function Drawing({ graph, id, onAct }: DrawingProps) {
   const tally = runs
     ? Object.values(graph.edges).filter((x) => def_of(graph, x.id) === follows?.id).length
     : own ? Object.keys(graph.blocks).filter((x) => def_of(graph, x) === own.id).length
-    : Object.values(graph.blocks).filter((x) => module_of(graph, x.id) === kind).length;
+    : Object.values(graph.blocks).filter((x) => base_of(graph, x.id) === kind).length;
   const mark: IconName = runs ? (kind === "tie" ? "relation_tie" : "relation_plain")
-    : role_icon(role ?? kind);
+    : role_icon(role ?? kind) ?? "role_leaf";
   const alias = now("card", "alias", "");
 
   return (

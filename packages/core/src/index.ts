@@ -12,7 +12,7 @@ export * from "./tree";
 export * from "./holders";
 export * from "./names";
 export * from "./door";
-export * from "./rules";
+export * from "./capabilities";
 export * from "./actions";
 export * from "./file";
 export * from "./session";

@@ -2,7 +2,7 @@
 
 import { useState, type MouseEvent } from "react";
 import { children, def_named, def_of, is_container, is_interface, new_id,
-         module_of, owner_of, shipped, shown_name,
+         base_of, owner_of, shipped, shown_name,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { rows_of, type Row, type Sort } from "./rows";
@@ -174,7 +174,7 @@ export function Tray(props: TrayProps) {
   /** What the table lists: a picked container's contents, the open layer, or everything. */
   const within = browse && one === browse.id ? browse.within
     : graph.blocks[about] && about !== graph.root
-      && (is_container(graph, about) || module_of(graph, about) === "folder") ? about : layer;
+      && (is_container(graph, about) || base_of(graph, about) === "folder") ? about : layer;
   const deep = scope === "workspace";
   const rows = rows_of(graph, deep ? null : within, deep);
   const shown = only === "all" ? rows : rows.filter((r) => r.sort === only);

@@ -1,6 +1,6 @@
 /** What one thing is: the identity rows of the element tab. */
 
-import { BASE_PACKAGE, def_of, isa, kind_word, module_named, relation_named, shipped,
+import { BASE_PACKAGE, def_of, isa, kind_word, block_base, relation_base, shipped,
          type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
@@ -22,7 +22,7 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
 
   /** Where a definition sits, pinned ones under their folder. */
   const path = (x: Definition) => where(x, (graph.blocks[graph.root]?.pinned ?? []).includes(x.id));
-  const kind_named = (x: Id) => (runs ? relation_named(graph, x) : module_named(graph, x));
+  const kind_named = (x: Id) => (runs ? relation_base(graph, x) : block_base(graph, x));
   const extendable = (self: Definition) =>
     Object.values(graph.defs).filter((x) => x.group === self.group && x.id !== self.id
       && !isa(graph, x.id).some((up) => up.id === self.id)

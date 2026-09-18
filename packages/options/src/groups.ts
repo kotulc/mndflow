@@ -1,5 +1,4 @@
-import { ARRANGEMENTS, type Act, type Arrangement, type Dir,
-         type RelationModule } from "@mnd/core";
+import { ARRANGEMENTS, type Act, type Arrangement, type Dir } from "@mnd/core";
 import type { IconName } from "@mnd/theme";
 
 /** One control. `on` lights it; a verb leaves it undefined, since there is no state a verb puts
@@ -36,11 +35,11 @@ export type Chrome = {
   /** Which context the tray holds that is not the canvas's, if any. */
   held?: "workspace" | "block" | "relation" | null;
   /** What a right drag draws: which module, which way it points, and which definition it names. */
-  module?: RelationModule;
+  module?: string;
   dir?: Dir;
   type?: string;
   /** The shortlist, not the vocabulary. */
-  relations?: readonly { id: string; name: string; module: RelationModule }[];
+  relations?: readonly { id: string; name: string; module: string }[];
 };
 
 /** How a layer places what it holds. */
@@ -50,7 +49,7 @@ const LAYOUT: Record<Arrangement, { icon: IconName; tip: string }> = {
 };
 
 /** What a right drag may draw: a line, straight or directed. */
-const LINES: { key: string; module: RelationModule; dir?: Dir;
+const LINES: { key: string; module: string; dir?: Dir;
                icon: IconName; word: string; tip: string }[] = [
   { key: "plain", module: "line", icon: "relation_plain", word: "straight",
     tip: "A right drag makes a plain line" },

@@ -21,12 +21,13 @@ register(
 );
 
 /** The component keys a look may set. */
-const LOOKS: readonly string[] = ["card", "style", "line", "rules"];
+const LOOKS: readonly string[] = ["card", "style", "line", "allows", "expects"];
 
 /** Properties whose value is a list, split on commas. */
-const LISTS: readonly string[] = ["rules.required", "rules.holds", "rules.match"];
+const LISTS: readonly string[] = ["allows.ports", "allows.holds", "allows.members",
+                                  "expects.required", "expects.match"];
 
-/** Rule kinds that are nested records, stated only on a definition. */
+/** Capabilities that are nested records, stated only on a definition. */
 const NESTED: readonly string[] = ["ends", "degree"];
 
 register(
@@ -46,7 +47,7 @@ register(
       if (!LOOKS.includes(String(args["key"]))) {
         return `there is nothing called "${args["key"]}" to set`;
       }
-      if (String(args["key"]) === "rules" && NESTED.includes(text(args, "name"))) {
+      if (String(args["key"]) === "allows" && NESTED.includes(text(args, "name"))) {
         return `\`${text(args, "name")}\` is stated on a definition, not set here`;
       }
       /** The component refuses what it cannot read. */
@@ -80,7 +81,12 @@ function value_of(args: Args): unknown {
   const key = String(args["key"]);
   const name = text(args, "name");
   if (said === undefined || said === null || said === "") return null;
-  if (LISTS.includes(`${key}.${name}`)) return list(said);
+  if (LISTS.includes(`${key}.${name}`)) {
+    /** A capability answers with a flag as readily as with a list of definitions. */
+    const word = String(said).trim();
+    if (word === "true" || word === "false") return word === "true";
+    return list(said);
+  }
   return NUMBERS.includes(name) && Number.isFinite(Number(said))
     ? Number(said) : String(said);
 }

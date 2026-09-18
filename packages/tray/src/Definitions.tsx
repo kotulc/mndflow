@@ -1,7 +1,7 @@
 /** The definitions and types tabs: definitions in one table, the workspace's or an element's. */
 
 import { useState } from "react";
-import { def_named, def_of, isa, module_named, packages, pinned_defs, relation_named, shipped,
+import { def_named, def_of, isa, block_base, packages, pinned_defs, relation_base, shipped,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
 import { types_for } from "./holder";
@@ -83,7 +83,7 @@ export function Definitions({ graph, about, held, lines, target = "the selection
     /** The packages folder narrows once more, by package. */
     ...(only === "packages" ? [{ key: "from", on: from, onPick: set_from,
       of: [{ key: "all", word: "any package" },
-           ...packages(graph).map((p) => ({ key: p.from, word: p.from }))] }] : []),
+           ...packages(graph).map((p) => ({ key: p.from, word: p.name }))] }] : []),
   ];
 
   const columns: Column[] = [
@@ -95,8 +95,8 @@ export function Definitions({ graph, about, held, lines, target = "the selection
   ];
 
   /** What a definition may extend: never itself or below it, and a default only within its kind. */
-  const kind = (id: Id) => (graph.defs[id]?.group === "relation" ? relation_named(graph, id)
-                                                                  : module_named(graph, id));
+  const kind = (id: Id) => (graph.defs[id]?.group === "relation" ? relation_base(graph, id)
+                                                                  : block_base(graph, id));
   const above = (g: "block" | "relation", self: Id | null) => [
     ...Object.values(graph.defs).filter((d) => d.group === g && shipped(d))
       .map((d) => ({ id: d.id, name: `base/${d.name}` })),

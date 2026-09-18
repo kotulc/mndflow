@@ -1,6 +1,6 @@
 /** What a canvas adjustment writes: the actions and positional changes it comes to. */
 
-import { adjustments, can_hold, module_of, type Args, type Graph, type Id,
+import { adjustments, can_hold, is_grid, is_group, type Args, type Graph, type Id,
          type Mutation } from "@mnd/core";
 import { box_of, extent_of, nearest_seat, snap, tidy, BLOCK, PORT, type Scene } from "@mnd/views";
 import type { Adjust } from "./gestures";
@@ -43,7 +43,7 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
   /** A corner dragged sizes the card and moves it where a left or top handle moved. */
   if (a.kind === "size") {
     /** A grid is sized in cells, never in pixels. */
-    if (graph.blocks[a.on] && module_of(graph, a.on) === "grid") {
+    if (is_grid(graph, a.on)) {
       return [act("group", { into: a.on, ...extent_of(a.w, a.h),
                              spot: { x: snap(a.to.x), y: snap(a.to.y) } })];
     }
@@ -68,13 +68,13 @@ function written(graph: Graph, scene: Scene, a: Adjust): Move[] {
     return [{ adjust: "seat", mutations: adjustments.seat(a.on, seat.side, seat.at) }];
   }
 
-  const held = graph.blocks[a.on]?.group ?? null;
+  const held = (graph.blocks[a.on] ?? graph.holders[a.on])?.group ?? null;
   const here = a.cell ? a.into : group_at(scene, a.to, drawn ? box_of(drawn) : BLOCK, held);
   const seat = a.cell && here
     ? act("seat", { id: a.on, group: here, at: `${a.cell.r},${a.cell.c}` }) : null;
 
   /** A group is placed by its members, unless it joins or leaves a holder. */
-  if (graph.blocks[a.on] && module_of(graph, a.on) === "group") {
+  if (is_group(graph, a.on)) {
     if (seat) return [seat];
     if (here && here !== a.on && can_hold(graph, here, a.on)) {
       return held !== here ? [act("group", { members: [a.on], into: here })] : [];

@@ -18,11 +18,6 @@ export type Arrangement = "free" | "grid";
 
 export const ARRANGEMENTS: readonly Arrangement[] = ["free", "grid"];
 
-/** A relation's kind, read from its ends: `tie` where an end is a note, `line` otherwise. */
-export type RelationModule = "line" | "tie";
-
-export const RELATION_MODULES: readonly RelationModule[] = ["line", "tie"];
-
 export type Dir = "none" | "forward" | "back" | "both";
 
 /** The value forms a field may take. Closed. */
@@ -59,6 +54,17 @@ export type Shelved = {
   name?: string;
 };
 
+/** Where a block's content came from, or what it stands in for outside the workspace. Provenance
+ *  rather than a link: nothing syncs to it, so it may go stale without anything breaking. */
+export type Source = {
+  uri: string;
+  /** Where within the artifact — a heading path, a line range, a symbol name. Opaque: every
+   *  content type spells this differently and the app never parses it. */
+  at?: string;
+  /** Whatever revision the translator knew. */
+  rev?: string;
+};
+
 /** The one element; what it is comes from its definition. */
 export type Block = {
   id: Id;
@@ -66,20 +72,16 @@ export type Block = {
   type?: Id;
   name?: string;
   body?: string;
-  /** A reference: the block it stands for. */
+  /** A reference: what it stands for — a block, a definition or a package. */
   of?: Id;
+  /** What it stands in for outside the workspace. */
+  source?: Source;
   /** The group or grid this block sits in. */
   group?: Id;
   /** Where in that group: replaces `x`/`y` for a gridded block. */
   cell?: Cell;
   /** Whether this block heads the line it sits in. */
   header?: boolean;
-  /** Only meaningful on a group: its extent, which is what lets an empty grid draw. */
-  rows?: number;
-  cols?: number;
-  /** Merged regions of this group's grid. */
-  merges?: Span[];
-  /** A grid's corner and size; a boundary derives its bounds from its members. */
   x?: number;
   y?: number;
   w?: number;
@@ -105,6 +107,36 @@ export type Block = {
   fields?: Field[];
 };
 
+/** A holder: a boundary or a grid, drawn in one layer and holding blocks there without owning
+ *  them. Not a block — it appears in no tree, nothing points at it, and deleting it loses an
+ *  arrangement rather than any content. Which shape it is, is `arrangement`. */
+export type Holder = {
+  id: Id;
+  /** The layer it is drawn in. */
+  parent: Id;
+  name?: string;
+  /** The block this region stands for, which is what its members are allocated to. */
+  of?: Id;
+  /** The holder this one sits in, where it sits in one: a grid inside a boundary. */
+  group?: Id;
+  /** `free` sizes itself from its members; `grid` owns a corner and an extent. */
+  arrangement: Arrangement;
+  /** Grid only: its extent, which is what lets an empty one draw. */
+  rows?: number;
+  cols?: number;
+  /** Grid only: cells with an extent of their own. */
+  merges?: Span[];
+  /** Grid only: its corner. A boundary derives its bounds from what it holds. */
+  x?: number;
+  y?: number;
+  order?: number;
+  alias?: number;
+  looks?: Components;
+};
+
+/** Anything drawn in a layer and given a place on it: a block, or a holder. */
+export type Unit = Block | Holder;
+
 export type Relation = {
   id: Id;
   from: Id;
@@ -123,25 +155,40 @@ export type Relation = {
   /** No fields: what a connection says belongs to the blocks at its ends. */
 };
 
-/** Which block module the engine dispatches on. */
-export type BlockModule =
-  | "block" | "folder" | "resource"
-  | "reference" | "interface" | "group" | "grid" | "note";
+/** Which block module the engine dispatches on. Three, because `folder`, `resource` and `note`
+ *  turned out to be the plain block with different configuration, and `group` and `grid` turned
+ *  out not to be blocks at all. */
+export type BlockModule = "block" | "reference" | "interface";
 
-export const BLOCK_MODULES: readonly BlockModule[] = [
-  "block", "folder", "resource",
-  "reference", "interface", "group", "grid", "note",
+export const BLOCK_MODULES: readonly BlockModule[] = ["block", "reference", "interface"];
+
+/** The shipped block bases. A kind is a definition, not a module: `folder`, `resource` and `note`
+ *  differ from `block` by what they configure and nothing else. */
+export const BASE_BLOCKS: readonly Id[] = [
+  "block", "folder", "resource", "reference", "interface", "group", "grid", "note",
 ];
 
+/** The shipped relation bases. `tie` is a definition — a dashed run with no heads — which is what
+ *  a relation touching a note resolves to. */
+export const BASE_RELATIONS: readonly Id[] = ["line", "tie"];
+
+
+/** A package: a named set of definitions the workspace draws on. Named so a person can find it,
+ *  and addressed by id so a block may stand in for one. */
+export type Package = {
+  id: Id;
+  /** Unique within the workspace. */
+  name: string;
+};
 
 export type Components = Record<string, Record<string, unknown>>;
 
 export type Definition = {
   id: Id;
-  /** The package this came from; absent means the workspace made it. */
-  from?: string;
-  /** The kind this stands in for wherever an element names no definition. */
-  default?: BlockModule | RelationModule;
+  /** The package this came from, by id; absent means the workspace made it. */
+  from?: Id;
+  /** The shipped base this stands in for wherever an element names no definition. */
+  default?: Id;
   group: "block" | "relation";
   name: string;
   /** What a line naming this draws, exactly as typed — a stereotype such as `<<relates>>`. */
@@ -159,11 +206,13 @@ export type Graph = {
   blocks: Record<Id, Block>;
   edges: Record<Id, Relation>;
   defs: Record<Id, Definition>;
+  packages: Record<Id, Package>;
+  holders: Record<Id, Holder>;
 };
 
 export function empty_graph(): Graph {
   return { root: ROOT, blocks: { [ROOT]: { id: ROOT, parent: null, name: "workspace", type: "folder" } },
-           edges: {}, defs: {} };
+           edges: {}, defs: {}, packages: {}, holders: {} };
 }
 
 /** The closed mutation set. A new sort of thing is a definition, not an op. */
@@ -184,12 +233,14 @@ export type Mutation =
   | { op: "set_shelf"; shelf: Shelved[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
+  /** Where a block came from; null gives it back. */
+  | { op: "set_source"; id: Id; source: Source | null }
   | { op: "set_group"; id: Id; group: Id | null }
   | { op: "seat_cell"; id: Id; cell: Cell | null }
   | { op: "set_header"; id: Id; header: boolean }
-  | { op: "set_grid"; id: Id; rows?: number | null; cols?: number | null }
-  | { op: "merge_cells"; id: Id; span: Span }
-  | { op: "split_cells"; id: Id; r: number; c: number }
+  /** A holder, made or replaced whole: its shape is one thing, so it is written as one. */
+  | { op: "set_holder"; holder: Holder }
+  | { op: "drop_holder"; id: Id }
   | { op: "link_blocks"; edge: Relation }
   | { op: "update_edge"; id: Id; type: Id | null }
   | { op: "delete_edge"; id: Id }
@@ -206,6 +257,9 @@ export type Mutation =
   | { op: "order_fields"; id: Id; names: string[] }
   | { op: "set_def"; def: Definition }
   | { op: "drop_def"; id: Id }
+  | { op: "set_package"; pkg: Package }
+  /** Its definitions go with it. */
+  | { op: "drop_package"; id: Id }
   | { op: "set_arrangement"; layer: Id; arrangement: Arrangement }
   | { op: "set_tags"; id: Id; tags: string[] }
   /** Everything this block says about how it draws, given back at once. */

@@ -1,6 +1,6 @@
 /** Auto-layout: related clusters placed around their mates, and satellites seated beside theirs. */
 
-import { edge_module, edges_in, is_holder, is_note, is_reference, type Arrangement, type Block,
+import { edge_base, edges_in, is_holder, is_note, is_reference, type Arrangement, type Unit,
          type Graph, type Id, type Point, type Relation } from "@mnd/core";
 import type { Placed } from "./arrange";
 import { loose_unit, member_in_holder, type Sized } from "./bands";
@@ -26,9 +26,9 @@ export function pack_units(graph: Graph, layer: Id | null, sized: Sized[],
 }
 
 /** Connected components of the placement graph, largest first, then tree order. */
-function connected(graph: Graph, layer: Id | null, units: Block[],
+function connected(graph: Graph, layer: Id | null, units: Unit[],
                    unit: (id: Id) => Id,
-                   edges = edges_in(graph, layer)): Block[][] {
+                   edges = edges_in(graph, layer)): Unit[][] {
   const by_id = new Map(units.map((b) => [b.id, b]));
   const ids = new Set(units.map((b) => b.id));
   const adj = new Map<Id, Id[]>();
@@ -38,10 +38,10 @@ function connected(graph: Graph, layer: Id | null, units: Block[],
   }
   const sorted = [...units].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
   const seen = new Set<Id>();
-  const out: Block[][] = [];
+  const out: Unit[][] = [];
   for (const start of sorted) {
     if (seen.has(start.id)) continue;
-    const comp: Block[] = [];
+    const comp: Unit[] = [];
     const queue = [start.id];
     while (queue.length) {
       const id = queue.shift()!;
@@ -216,7 +216,7 @@ const REACH = 64;
 function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
   const out: Id[] = [];
   for (const e of edges_in(graph, layer)) {
-    if (edge_module(graph, e.id) !== "tie") continue;
+    if (edge_base(graph, e.id) !== "tie") continue;
     if (e.from === id) out.push(e.to);
     else if (e.to === id) out.push(e.from);
   }
@@ -224,7 +224,7 @@ function tie_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
 }
 
 /** Notes and references seat beside what they name, outside the packing. */
-export function is_satellite(graph: Graph, layer: Id | null, b: Block): boolean {
+export function is_satellite(graph: Graph, layer: Id | null, b: Unit): boolean {
   if (is_reference(b) && b.of) return true;
   return is_note(graph, b.id) && tie_targets(graph, layer, b.id).length > 0;
 }
@@ -239,7 +239,7 @@ function layer_targets(graph: Graph, layer: Id | null, id: Id): Id[] {
 }
 
 /** The card a satellite should sit beside — the block itself, not the grid that holds it. */
-function satellite_anchor(graph: Graph, layer: Id | null, b: Block,
+function satellite_anchor(graph: Graph, layer: Id | null, b: Unit,
                           placed: readonly Placed[]): Placed | null {
   if (is_reference(b)) {
     for (const t of layer_targets(graph, layer, b.id)) {
@@ -267,7 +267,7 @@ function seat_satellite(id: Id, anchor: Placed, size: Size, taken: readonly Plac
 }
 
 /** Seat every satellite, in whatever coordinates `placed` is written in. */
-export function seat_satellites(graph: Graph, layer: Id | null, satellites: readonly Block[],
+export function seat_satellites(graph: Graph, layer: Id | null, satellites: readonly Unit[],
                          placed: readonly Placed[], unit: (id: Id) => Id,
                          edges?: Relation[]): Placed[] {
   const out: Placed[] = [];
@@ -297,9 +297,9 @@ function placement_links(graph: Graph, layer: Id | null, ids: Set<Id>,
   return links;
 }
 
-function placement_order(graph: Graph, layer: Id | null, units: Block[],
+function placement_order(graph: Graph, layer: Id | null, units: Unit[],
                          unit: (id: Id) => Id,
-                         edges = edges_in(graph, layer)): Block[] {
+                         edges = edges_in(graph, layer)): Unit[] {
   const by_id = new Map(units.map((b) => [b.id, b]));
   const ids = new Set(units.map((b) => b.id));
   const adj = new Map<Id, Id[]>();
@@ -312,7 +312,7 @@ function placement_order(graph: Graph, layer: Id | null, units: Block[],
     (adj.get(b.id)?.length ?? 0) - (adj.get(a.id)?.length ?? 0)
     || (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))[0]!.id;
   const seen = new Set<Id>();
-  const out: Block[] = [];
+  const out: Unit[] = [];
   const queue: Id[] = [start];
   while (queue.length) {
     const id = queue.shift()!;

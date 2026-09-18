@@ -1,22 +1,22 @@
 /** What elements are called: names, handles, labels and the role every surface marks. */
 
-import { def_of, edge_module, module_of } from "./defs";
-import { is_container, stands_for } from "./tree";
-import { BLOCK_MODULES, type Block, type BlockModule, type Graph, type Id } from "./types";
+import { base_of, def_of, edge_base } from "./defs";
+import { stands_for } from "./tree";
+import { BASE_BLOCKS, type Block, type Graph, type Id } from "./types";
 
 
-/** The word each kind reads as when nothing is named; a boundary has none. */
-const WORD: Record<BlockModule, string> = {
+/** The word each base reads as when nothing is named; a boundary has none. */
+const WORD: Record<string, string> = {
   block: "Block", folder: "Folder", resource: "Resource",
   interface: "Interface", reference: "Reference", group: "", grid: "", note: "Note",
 };
 
 export function kind_word(graph: Graph, b: Block): string {
   const def = b.type ? graph.defs[b.type] : undefined;
-  if (def && !BLOCK_MODULES.includes(def.name as BlockModule)) {
+  if (def && !BASE_BLOCKS.includes(def.name)) {
     return def.name.charAt(0).toUpperCase() + def.name.slice(1);
   }
-  return WORD[module_of(graph, b.id)];
+  return WORD[base_of(graph, b.id)] ?? "Block";
 }
 
 /** Which letter each kind's handles run under. */
@@ -25,14 +25,18 @@ export const ALIAS_LETTER: Record<string, string> = {
   group: "G", grid: "D", note: "N", relation: "L",
 };
 
-/** Which counter an element draws its handle from. */
+/** Which counter an element draws its handle from: its base, so a folder still runs under F and a
+ *  holder under the shape it draws as. */
 export function alias_kind(graph: Graph, id: Id): string {
-  return graph.edges[id] ? "relation" : module_of(graph, id);
+  if (graph.edges[id]) return "relation";
+  const held = graph.holders[id];
+  if (held) return held.arrangement === "grid" ? "grid" : "group";
+  return base_of(graph, id);
 }
 
 /** An element's handle while it is unnamed, or always when asked. */
 export function alias_of(graph: Graph, id: Id, always = false): string {
-  const held = graph.blocks[id] ?? graph.edges[id];
+  const held = graph.blocks[id] ?? graph.holders[id] ?? graph.edges[id];
   if (!held || held.alias === undefined) return "";
   /** A line counts as named by its type. */
   const named = graph.edges[id] ? !!graph.edges[id]!.type : is_named(graph, id);
@@ -52,8 +56,12 @@ export function next_alias(graph: Graph, kind: string): number {
 
 /** Whether somebody named this block, as against the tag it wears until they do. */
 export function is_named(graph: Graph, id: Id): boolean {
+  const held = graph.holders[id];
+  if (held) return !!held.name?.trim();
   const b = graph.blocks[id];
   if (!b) return false;
+  /** A definition and a package both carry a name of their own. */
+  if (b.of && (graph.defs[b.of] || graph.packages[b.of])) return true;
   const target = b.of ? stands_for(graph, id) : b;
   if (!target) return false;
   /** Only the name counts, never the body. */
@@ -62,9 +70,15 @@ export function is_named(graph: Graph, id: Id): boolean {
 
 /** What a thing is called, and only that. */
 export function shown_name(graph: Graph, id: Id): string {
+  /** A holder draws the name somebody gave it, and nothing where nobody did. */
+  const held = graph.holders[id];
+  if (held) return held.name?.trim() ?? "";
   const b = graph.blocks[id];
-  if (!b) return graph.edges[id] ? label_of(graph, id) || edge_module(graph, id) : "missing";
+  if (!b) return graph.edges[id] ? label_of(graph, id) || edge_base(graph, id) : "missing";
   if (b.of) {
+    /** A stand-in for a definition or a package reads as what it points at. */
+    const said = graph.defs[b.of]?.name ?? graph.packages[b.of]?.name;
+    if (said) return said;
     const target = stands_for(graph, id);
     if (!target || target.id === b.id) return "missing";
     return named(graph, target);
@@ -83,14 +97,33 @@ export function label_of(graph: Graph, id: Id): string {
   return d?.label ?? "";
 }
 
-/** What a block is, as the one word every surface draws a mark for. */
-export type Role = "block" | "container" | "folder" | "resource" | "reference"
+/** What sort of thing a card is, as the icon it wears in its top corner. A person may set their
+ *  own over it with `card.icon`; this is what it draws when nobody has. */
+export type Role = "block" | "folder" | "resource" | "reference"
                  | "interface" | "group" | "grid" | "note";
 
-const MARKED: readonly string[] = ["folder", "resource", "reference", "interface", "group", "grid", "note"];
+const ROLES: readonly string[] = ["block", "folder", "resource", "reference", "interface", "note"];
 
 export function role_of(graph: Graph, id: Id): Role {
-  const module = module_of(graph, id);
-  if (MARKED.includes(module)) return module as Role;
-  return is_container(graph, id) ? "container" : "block";
+  const held = graph.holders[id];
+  if (held) return held.arrangement === "grid" ? "grid" : "group";
+  const base = base_of(graph, id);
+  return ROLES.includes(base) ? base as Role : "block";
+}
+
+/** The one system mark a card wears in its bottom corner, answering one question: what is this
+ *  standing in for? Nobody sets one — that is what the highlight colour says. **Holding parts is
+ *  not one of these**: that is said by filling the card's own icon, not by stamping a second. */
+export type Mark = "reference" | "definition" | "package" | "external";
+
+/** What it points at, then what it came from — so the answers cannot overlap and none needs
+ *  ranking. A card that stands in for nothing wears no mark. */
+export function mark_of(graph: Graph, id: Id): Mark | null {
+  const b = graph.blocks[id];
+  if (!b) return null;
+  if (b.of) {
+    return graph.defs[b.of] ? "definition"
+         : graph.packages[b.of] ? "package" : "reference";
+  }
+  return b.source ? "external" : null;
 }
