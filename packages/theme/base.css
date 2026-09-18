@@ -171,8 +171,8 @@ input:focus { outline: none; border-color: var(--accent); }
   flex: none;
 }
 
-/* Every mark in a panel bar sits in the same cell — 16px glyph, 2px vertical padding, whether it
-   is a button or a title. */
+/* Every mark in a panel bar sits in the same cell — a 16px glyph or a word, 2px vertical padding,
+   whether it is a button or a title. */
 .explorer .bar .tools button,
 .opts .bar .mark {
   display: inline-flex;

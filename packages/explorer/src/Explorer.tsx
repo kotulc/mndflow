@@ -396,6 +396,10 @@ export function Explorer(props: ExplorerProps) {
       <div className="bar">
         {/* The bar is tools only; the workspace names itself in the tree. */}
         <span className="tools">
+          {/* Where the filter will open. Inert until it is built, and it says so. */}
+          <button title="filter the workspace — not built yet" disabled>
+            <Icon name="menu" />
+          </button>
           <button title={library ? `add a definition to ${where_to}` : `add a block in ${shown_name(graph, target)}`}
                   disabled={library && !filing}
                   onClick={() => add()}><Icon name="add" /></button>

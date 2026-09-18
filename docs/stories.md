@@ -256,6 +256,21 @@ Open any block and **find the thing it stands for in its body**: a definition's 
 
 **Open:** whether a definition's data becomes editable in place, and what a body's format is — markdown, code with a language, JSON — and who says so, the definition or the block.
 
+### ST.21 — Finding a thing beats knowing where it is
+
+Type a few words into the explorer and **have what you are looking for come back ranked**, whatever it is and wherever it sits — a block three layers down, a definition a package brought, a note whose text you half remember. The tree is how a workspace is *arranged*; this is how it is *searched*, and a workspace outgrows the first long before the second.
+
+**A filter, not a second tree.** It takes over the explorer's body while a term is in it and gives the tree straight back when it is cleared. Nothing is folded, revealed or selected by searching — finding is not going.
+
+| | |
+|---|---|
+| **where it lives** | first control in the explorer bar, under the hamburger the options rail used to wear. It may end up a layer over the panel rather than part of it |
+| **what it reads** | name, type and label, then body content. **Relevance is one order**, not four lists — a name match outranks a body match, and how far is part of the design |
+| **what a result is** | a card: the element's icon and its name in bold, and under it the properties that matched, so a hit says *why* it is a hit |
+| **what it spans** | blocks, definitions, relations and holders. Whether packages and their definitions are in by default is open |
+
+**Open:** whether relevance is scored or merely ordered; whether a result is picked, revealed or opened in the tray; what happens to a term when the graph changes under it; and whether this is the same machinery as the terminal's `search`, which already exists and fetches packages.
+
 ## Future stories
 
 **Named so nothing is built against them by accident.**

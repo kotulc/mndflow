@@ -21,8 +21,8 @@ export function Options({ groups }: OptionsProps) {
 
   return (
     <aside className="opts" aria-label="Options">
-      <div className="bar" title="Options">
-        <span className="mark" aria-hidden="true"><Icon name="menu" /></span>
+      <div className="bar">
+        <h2 className="mark">options</h2>
       </div>
       <div className="body">
         {shown.map((group) => {
