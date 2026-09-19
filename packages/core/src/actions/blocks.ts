@@ -110,6 +110,8 @@ register(
       if (!ids.length) return "nothing is selected";
       const type = text(args, "type") || undefined;
       for (const id of ids) {
+        /** The root holds the top-level blocks and draws nowhere, so it follows no definition. */
+        if (id === ctx.graph.root) return "the workspace has no type";
         const edge = ctx.graph.edges[id];
         if (edge) {
           if (!type) continue;

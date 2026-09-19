@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { block_base, offer, pinned_defs, relation_base, session,
          type Args, type Storage, type Dir, type Graph, type Id, type Point } from "@mnd/core";
 import { seed } from "@mnd/defs";
-import { box_of, clear_of, holds, project, tidy, BLOCK } from "@mnd/views";
+import { box_of, clear_of, holds, project, set_card as apply_card, tidy,
+         BLOCK, CARD, UNITS } from "@mnd/views";
 import { Explorer, Menu, type Section } from "@mnd/explorer";
 import { Icon } from "@mnd/theme";
 import { Stage, type Move } from "@mnd/stage";
@@ -52,6 +53,8 @@ export function App({ storage }: { storage: Storage }) {
   /** The mirror muted. */
   const [quiet, set_quiet] = useState(false);
   const [shown, set_shown] = useState({ interfaces: true, lattice: true, frame: true });
+  /** The default card, in units. Display, so it is the session's and no file carries it. */
+  const [card, set_card] = useState(() => ({ ...UNITS.block }));
   /** What a right drag draws, as the rail left it. */
   const [drawing, set_drawing] =
     useState<{ module: Id; dir?: Dir; type?: string }>({ module: "line" });
@@ -84,10 +87,14 @@ export function App({ storage }: { storage: Storage }) {
   const said = s.said();
   const arranged = graph.blocks[layer ?? graph.root]?.arrangement ?? "free";
 
-  /** Projected once per graph or layer change. */
+  /** The drawing's proportions are the views module's, so the session's card is applied before
+   *  anything is placed. */
+  apply_card(card.w, card.h);
+
+  /** Projected once per graph, layer or proportion change. */
   const scene = useMemo(
     () => project(graph, layer, { interfaces: shown.interfaces }),
-    [graph, layer, shown.interfaces]);
+    [graph, layer, shown.interfaces, card]);
 
   /** What the open layer draws, by id. */
   const drawn = useMemo(() => new Set([...scene.nodes.map((n) => n.id),
@@ -130,6 +137,11 @@ export function App({ storage }: { storage: Storage }) {
     if (name === "interfaces") { set_shown((c) => ({ ...c, interfaces: !!args!["show"] })); return; }
     if (name === "lattice") { set_shown((c) => ({ ...c, lattice: !!args!["show"] })); return; }
     if (name === "frame") { set_shown((c) => ({ ...c, frame: !!args!["show"] })); return; }
+    /** Applied where the proportions live, and kept as the range there allowed. */
+    if (name === "card") {
+      set_card(apply_card(Number(args!["w"]), Number(args!["h"])));
+      return;
+    }
     if (name === "relate_with") {
       const type = args!["type"] ? String(args!["type"]) : undefined;
       const dir = args!["dir"] ? String(args!["dir"]) as Dir : undefined;
@@ -156,7 +168,7 @@ export function App({ storage }: { storage: Storage }) {
       set_hold(want === "workspace" ? { of: "id", id: graph.root }
                : { of: "draft", group: want === "relation" ? "relation" : "block" });
       set_tray(true);
-      set_tab("element");
+      set_tab(want === "workspace" ? "workspace" : "element");
       return;
     }
     act(name, args);
@@ -316,7 +328,8 @@ export function App({ storage }: { storage: Storage }) {
           onHold={set_hold}
           onView={(home, id) => { s.look(home); s.pick([id]); set_hold(null); }}
           offered={offered}
-          onAct={act}
+          display={{ card, range: CARD }}
+          onAct={chrome}
         />
       </main>
 

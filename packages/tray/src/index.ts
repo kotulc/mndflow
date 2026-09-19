@@ -10,6 +10,7 @@ export { ChipBar, Choice, Table, type Adding, type Chips, type Column, type Line
          type TableProps } from "./Table";
 export { Usages, type UsagesProps } from "./Usages";
 export { Element, type ElementProps } from "./Element";
+export { Workspace, type Display, type WorkspaceProps } from "./Workspace";
 export { Style, type StyleProps } from "./Style";
 export { Drawing, type DrawingProps } from "./Drawing";
 export { Identity, type IdentityProps } from "./Identity";

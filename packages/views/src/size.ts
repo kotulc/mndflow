@@ -34,6 +34,9 @@ export const CELL: Size = { w: BLOCK.w + GAP * 2, h: BLOCK.h + GAP * 2 };
 /** An interface is smaller than a seat is wide, so two never touch. */
 export const PORT: Size = { w: SEAT - 1, h: SEAT - 1 };
 
+/** What the default card may be set to, in units. */
+export const CARD = { min: { w: 4, h: 2 }, max: { w: 12, h: 6 } };
+
 export type Box = { x: number; y: number; w: number; h: number };
 
 /** Onto the lattice: the nearest whole unit, in both axes. */
@@ -91,6 +94,22 @@ export function fills_cell(box: Box): Box {
 /** Onto the lattice: the nearest whole unit. */
 export function snap(n: number): number {
   return Math.round(n / UNIT) * UNIT;
+}
+
+/** Sets the default card, in units, held inside `CARD`, and says what it took. Everything the
+ *  layout measures derives from these two sizes, so they are rewritten in place, not rebound. */
+export function set_card(w: number, h: number): Size {
+  UNITS.block = { w: ranged(w, CARD.min.w, CARD.max.w), h: ranged(h, CARD.min.h, CARD.max.h) };
+  BLOCK.w = UNITS.block.w * UNIT;
+  BLOCK.h = UNITS.block.h * UNIT;
+  CELL.w = BLOCK.w + GAP * 2;
+  CELL.h = BLOCK.h + GAP * 2;
+  return { ...UNITS.block };
+}
+
+/** A whole number, held between two others. */
+function ranged(n: number, low: number, high: number): number {
+  return Math.min(high, Math.max(low, Math.round(n)));
 }
 
 /** Whether a block is seated in a grid rather than placed beside one. */

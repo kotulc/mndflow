@@ -41,6 +41,8 @@
 
 .rows > .row.options > .line { gap: 3px; }
 .rows > .row.sliders > .line { gap: 6px; flex-wrap: nowrap; }
+.rows > .row.card > .line { gap: 6px; flex-wrap: nowrap; }
+.rows > .row.card > .line > input { flex: 0 1 4.5em; min-width: 0; }
 .rows > .row.value > .line > input { flex: 1 1 auto; min-width: 0; }
 .rows > .row.value > .line > .form { color: var(--faint); font-size: 10px; }
 .rows > .row.value > .line > select { flex: 0 0 6em; }

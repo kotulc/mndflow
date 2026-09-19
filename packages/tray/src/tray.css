@@ -286,11 +286,26 @@
                                        align-items: center; }
 .panel.element > .drawing > .preview > .preview-card { height: auto; align-self: stretch; }
 
+/* The workspace draws nowhere, so there is no card column: what it is and what it is made of
+   take a column each, and the description runs under both. */
+.panel.workspace {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "identity holds" "body body";
+}
+
+.panel.workspace > .col.identity { grid-area: identity; }
+.panel.workspace > .col.holds { grid-area: holds; }
+
 /* Wide: one row across — the body takes a third column, the style groups a column of their own. */
 @container tray (min-width: 960px) {
   .panel.element {
     grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: "drawing rows body" "source source source";
+  }
+
+  .panel.workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "identity holds body";
   }
 
   .panel.style > .draws {

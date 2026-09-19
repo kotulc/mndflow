@@ -14,6 +14,7 @@ import { Entry } from "./Entry";
 import { scope_chips, Table, type Column, type Scope } from "./Table";
 import { Usages } from "./Usages";
 import { Packages, type Offered } from "./Packages";
+import { Workspace, type Display } from "./Workspace";
 import { aimed, blank, DRAFT, redraft, with_draft, type DraftGroup } from "./draft";
 
 /** What the tray holds that the canvas did not give it. */
@@ -43,18 +44,22 @@ export type TrayProps = {
   onView?: (layer: Id | null, id: Id) => void;
   /** What the package catalogue offers, where the app can read one. */
   offered?: readonly Offered[];
+  /** How the shell draws, for the workspace tab to set. Absent leaves that band out. */
+  display?: Display;
 };
 
 export type Tab = "element" | "style" | "types" | "fields" | "contents" | "definitions"
-                | "packages" | "usages";
+                | "packages" | "usages" | "workspace";
 
-/** What the tray is about. The workspace is a block like any other. */
-type Context = "block" | "line" | "definition" | "relation" | "library" | "packages";
+/** What the tray is about. The root is not a block anybody draws, so it is its own context. */
+type Context = "root" | "block" | "line" | "definition" | "relation" | "library" | "packages";
 
 /** A slot per context: an element lists its types, a library section every definition, and the
  *  packages section what the workspace draws on — a package's definitions read in the explorer,
  *  so the tray says what is drawn on and nothing else. */
 const SLOTS: Record<Context, readonly Tab[]> = {
+  /** The root draws nowhere, so it is asked about itself and about what it holds, and no more. */
+  root: ["workspace", "contents"],
   block: ["element", "style", "types", "fields", "contents", "usages"],
   line: ["element", "style", "types", "usages"],
   definition: ["element", "style", "fields", "usages"],
@@ -123,6 +128,7 @@ export function Tray(props: TrayProps) {
 
   const context: Context = library
     ? (library.only === "packages" ? "packages" : "library")
+    : about === graph.root ? "root"
     : view.edges[about] ? "line"
     : view.defs[about]?.group === "relation" ? "relation"
     : view.defs[about] ? "definition" : "block";
@@ -252,6 +258,7 @@ export function Tray(props: TrayProps) {
   const word = drafting ? `new ${drafting} definition`
     : library ? "definitions"
     : view.defs[about] ? `${view.defs[about]!.group} definition`
+    : context === "root" ? "root"
     : context === "line" ? "relation" : "block";
   const name = drafting ? drafts[drafting].name
     : library ? [library.from ?? (library.only === "all" ? "" : library.only),
@@ -308,6 +315,10 @@ export function Tray(props: TrayProps) {
             ) : null}
           </div>
 
+          {onAct && tab === "workspace" ? (
+            <Workspace graph={graph} onAct={act}
+                       {...(props.display ? { display: props.display } : {})} />
+          ) : null}
           {onAct && tab === "element" ? <Element graph={view} id={about} onAct={act} /> : null}
           {onAct && tab === "style" ? (
             <Style graph={view} id={about} styled={styled} onAct={act} />
