@@ -1,7 +1,7 @@
 /** The one door a log comes in through. */
 
 import { component, unreadable } from "./components";
-import { block_base, relation_base, shipped } from "./defs";
+import { block_base, isa, outside, relation_base, shipped } from "./defs";
 import { fold } from "./fold";
 import { can_hold, covers, is_grid, overlaps } from "./holders";
 import { subtree } from "./tree";
@@ -22,7 +22,7 @@ export type Inspection = { faults: Fault[]; repairs: Mutation[] };
 
 const OPS = new Set<string>([
   "checkpoint", "add_block", "update_block", "delete_block", "move_block",
-  "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "set_shelf", "size_block", "set_body",
+  "place_block", "order_block", "set_alias", "set_counter", "set_pinned", "set_shelf", "size_block", "set_body", "set_about",
   "set_group", "seat_cell", "set_header", "link_blocks",
   "update_edge", "delete_edge", "set_dir", "flip_edge", "set_end", "set_port",
   "set_side", "mark_port", "set_field", "drop_field", "order_fields", "set_def", "drop_def",
@@ -119,6 +119,7 @@ export function inspect(graph: Graph): Inspection {
   cells(graph, name, say);
   looks(graph, name, say);
   definitions(graph, say);
+  named_defs(graph, say);
   named_packages(graph, say);
   return { faults, repairs };
 }
@@ -206,11 +207,17 @@ function definitions(graph: Graph, say: Say): void {
       delete components[key];
       mended = { ...mended, components: Object.keys(components).length ? components : undefined };
     }
+    /** **What it stands in for is whatever outside definition it extends** — a base, or a
+     *  package's. Reading it as a base alone stripped the marker off every word about a
+     *  package's definition, which then quietly stopped standing in front of it. */
     if (mended.default !== undefined) {
-      const kind = mended.group === "relation" ? relation_base(graph, mended.id) : block_base(graph, mended.id);
+      const stood = graph.defs[mended.default];
       const slot = `${mended.group}:${mended.default}`;
       const why = mended.from ? "a package's definition cannot be a default"
-        : kind !== mended.default ? `it is not a ${mended.default}`
+        : !stood ? "there is nothing of that name to stand in for"
+        : !outside(stood) ? `"${stood.name}" is the workspace's own`
+        : !isa(graph, mended.extends).some((up) => up.id === mended.default)
+          ? `it does not extend "${stood.name}"`
         : claimed.has(slot) ? `another definition already is` : null;
       if (why) {
         say("dropped", `"${d.name}" claimed the ${mended.default} default — ${why}`);
@@ -226,6 +233,26 @@ function definitions(graph: Graph, say: Say): void {
       }
     }
     if (mended !== d) say("repaired", "", { op: "set_def", def: mended });
+  }
+}
+
+/** A definition is found by its name within its own source, so no two there may share one.
+ *  **A workspace definition may wear a base's or a package's name** — that is exactly how a word
+ *  about one is written — but never another of its own, or `def_named` cannot say which was
+ *  meant. A default keeps its name, so it claims its slot first and the other one is renamed. */
+function named_defs(graph: Graph, say: Say): void {
+  const taken = new Set<string>();
+  const order = Object.values(graph.defs)
+    .sort((a, z) => Number(a.default === undefined) - Number(z.default === undefined)
+                    || a.id.localeCompare(z.id));
+  for (const d of order) {
+    const slot = `${d.group}|${d.from ?? ""}|`;
+    if (!taken.has(slot + d.name)) { taken.add(slot + d.name); continue; }
+    let name = d.name;
+    for (let n = 2; taken.has(slot + name); n++) name = `${d.name} ${n}`;
+    say("repaired", `two ${d.group} definitions were called "${d.name}"`,
+        { op: "set_def", def: { ...d, name } });
+    taken.add(slot + name);
   }
 }
 

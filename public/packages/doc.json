@@ -9,7 +9,7 @@
         "from": "doc",
         "group": "block",
         "name": "document set",
-        "body": "A tree of pages: a site, a manual, a repository's docs.",
+        "about": "A tree of pages: a site, a manual, a repository's docs.",
         "extends": "folder",
         "components": {
           "card": {},
@@ -27,7 +27,7 @@
         "from": "doc",
         "group": "block",
         "name": "page",
-        "body": "One markdown file. Its body is the prose before the first heading.",
+        "about": "One markdown file. Its body is the prose before the first heading.",
         "extends": "block",
         "components": {
           "card": {},
@@ -49,7 +49,7 @@
         "from": "doc",
         "group": "block",
         "name": "section",
-        "body": "A heading and what reads under it. `level` is the heading depth.",
+        "about": "A heading and what reads under it. `level` is the heading depth.",
         "extends": "block",
         "fields": [
           {
@@ -81,7 +81,7 @@
         "from": "doc",
         "group": "block",
         "name": "item",
-        "body": "A paragraph, a list entry, a table cell — one run of prose, held in its body.",
+        "about": "A paragraph, a list entry, a table cell \u00e2\u20ac\u201d one run of prose, held in its body.",
         "extends": "block",
         "components": {
           "card": {},
@@ -99,7 +99,7 @@
         "from": "doc",
         "group": "block",
         "name": "code",
-        "body": "A fenced block. Its body is the source; `lang` is the word on the fence.",
+        "about": "A fenced block. Its body is the source; `lang` is the word on the fence.",
         "extends": "block",
         "fields": [
           {
@@ -124,8 +124,7 @@
         "from": "doc",
         "group": "relation",
         "name": "link",
-        "label": "link",
-        "body": "A markdown link, from where it was written to what it names.",
+        "about": "A markdown link, from where it was written to what it names.",
         "extends": "line",
         "components": {
           "line": {

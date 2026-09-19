@@ -2,13 +2,13 @@
 
 import { may_hold } from "../capabilities";
 import { shown_name } from "../names";
-import { def_named, def_of, edge_base, may_retype, block_base, base_of, plain_type, relation_base,
+import { edge_base, may_retype, block_base, base_of, plain_type, relation_base,
          stored_type } from "../defs";
 import { children, is_interface, is_reference, next_order, path, reorder } from "../tree";
 import { new_id } from "../ids";
-import { ARRANGEMENTS, type Arrangement, type Definition, type Id, type Mutation } from "../types";
+import { ARRANGEMENTS, type Arrangement, type Id, type Mutation } from "../types";
 import { register } from "./registry";
-import { handles, here, id_of, ids_of, make_block, may_wear, mint_def, NEEDS, own_def, spot, text,
+import { handles, here, id_of, ids_of, make_block, may_wear, NEEDS, spot, text,
          typed } from "./helpers";
 
 register(
@@ -73,29 +73,18 @@ register(
     on: ["block", "edge"],
     args: [{ name: "id", form: "block", required: true },
            { name: "name", form: "text", asks: true }],
-    /** A block may be unnamed; a line's new name must be free. */
+    /** Either may be unnamed, and two of either may share a name: a name is not an identity. */
     check: (ctx, args) => {
       const id = id_of(args, "id");
-      if (ctx.graph.blocks[id]) return null;
-      if (!ctx.graph.edges[id]) return "that is not here any more";
-      const name = text(args, "name");
-      const other = name ? def_named(ctx.graph, name, "relation") : undefined;
-      return other ? `"${other.name}" already exists` : null;
+      return ctx.graph.blocks[id] || ctx.graph.edges[id] ? null : "that is not here any more";
     },
-    /** A line is named by its definition: naming one files a new definition over what it follows,
-     *  keeping a label of its own, and moves the line onto it. A definition is renamed in place. */
+    /** Its own name, on the element. **A line no longer mints a definition to hold one** — it
+     *  carries a name as a block does, and draws its type's name where it has none. */
     run: (ctx, args) => {
       const id = id_of(args, "id");
       const name = text(args, "name");
-      if (!ctx.graph.edges[id]) return { mutations: [{ op: "update_block", id, name }] };
-      if (!name) return { mutations: [{ op: "update_edge", id, type: null }] };
-      const own = own_def(ctx.graph, id);
-      /** A label that only repeated the old name follows the new one. */
-      const label = !own || own.label === own.name ? name : own.label;
-      const def: Definition = { id: mint_def("relation"), group: "relation", name, label,
-                                components: { line: {} },
-                                extends: def_of(ctx.graph, id) };
-      return { mutations: [{ op: "set_def", def }, { op: "update_edge", id, type: def.id }] };
+      return { mutations: [ctx.graph.edges[id] ? { op: "update_edge", id, name }
+                                               : { op: "update_block", id, name }] };
     },
   },
   {
@@ -145,13 +134,18 @@ register(
   },
   {
     name: "describe",
-    about: "writes the body text of a block",
-    on: ["block"],
+    about: "writes what a block holds, or what a definition is for",
+    on: ["block", "layer"],
     args: [{ name: "id", form: "block", required: true },
            { name: "body", form: "text", required: true }],
-    run: (_ctx, args) => ({ mutations: [
-      { op: "set_body", id: id_of(args, "id"), body: String(args["body"] ?? "") },
-    ] }),
+    /** **Two keys, because they are two things**: a block's body is the content itself, a
+     *  definition's `about` is prose describing the vocabulary. */
+    run: (ctx, args) => {
+      const id = id_of(args, "id");
+      const said = String(args["body"] ?? "");
+      return { mutations: [ctx.graph.defs[id] ? { op: "set_about", id, about: said }
+                                              : { op: "set_body", id, body: said }] };
+    },
   },
   {
     name: "move",

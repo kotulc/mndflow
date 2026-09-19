@@ -1,6 +1,8 @@
-/** The workspace tab: what the root is called, how the drawing defaults, and what it holds. */
+/** The workspace tab: what the root is called, how the drawing defaults, and what its file
+ *  carries. */
 
-import { SCHEMA, shown_name, type Act, type Graph } from "@mnd/core";
+import { file_name, packages, SCHEMA, shown_name,
+         type Act, type Graph } from "@mnd/core";
 import { Band, Body, Line } from "./Body";
 import { Content } from "./Content";
 import { Entry } from "./Entry";
@@ -18,14 +20,6 @@ export type WorkspaceProps = { graph: Graph; display?: Display; onAct: Act };
 export function Workspace({ graph, display, onAct }: WorkspaceProps) {
   const root = graph.blocks[graph.root];
   if (!root) return <p className="empty">that is not here any more</p>;
-
-  /** The root draws nowhere, so what it holds is a count and never a listing. */
-  const held: [string, number][] = [
-    ["blocks", Object.keys(graph.blocks).length - 1],
-    ["relations", Object.keys(graph.edges).length],
-    ["definitions", Object.keys(graph.defs).length],
-    ["packages", Object.keys(graph.packages).length],
-  ];
 
   return (
     <div className="panel workspace">
@@ -45,22 +39,21 @@ export function Workspace({ graph, display, onAct }: WorkspaceProps) {
         {display ? <Sizing display={display} onAct={onAct} /> : null}
       </div>
 
-      <div className="col holds">
+      <div className="col file">
         <Band label="file" />
         <Body>
-          <Line label="id" tip="This workspace, for life. Minted once and never rewritten.">
-            <span className="read">{graph.root}</span>
+          <Line label="name" tip="What an export of this workspace is called. It follows the name above, so renaming the workspace renames the file it writes.">
+            <span className="read">{`${file_name(graph)}.json`}</span>
           </Line>
           <Line label="schema" tip="The contract a file of this workspace is written to.">
             <span className="read">{SCHEMA}</span>
           </Line>
-        </Body>
-
-        <Band label="holds" />
-        <Body>
-          {held.map(([word, n]) => (
-            <Line key={word} label={word}><span className="read">{n}</span></Line>
-          ))}
+          <Line label="packages" tip="How many vocabularies this workspace draws on. The floor counts: every workspace stands on it. Which ones they are is the packages tab's answer.">
+            <span className="read">{packages(graph).length}</span>
+          </Line>
+          <Line label="definitions" tip="Every definition the workspace can name, a package's and the floor's among its own.">
+            <span className="read">{Object.keys(graph.defs).length}</span>
+          </Line>
         </Body>
       </div>
 

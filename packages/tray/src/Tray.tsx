@@ -166,7 +166,6 @@ export function Tray(props: TrayProps) {
     /** Minted here, so the tray can hold what it filed. */
     const id = new_id(draft.group === "relation" ? "rel" : "def");
     onAct?.("define", { id, name: to, group: draft.group, extends: draft.extends ?? "",
-                        ...(draft.label ? { label: draft.label } : {}),
                         components: draft.components, fields: draft.fields });
     set_drafts((d) => ({ ...d, [draft.group]: blank(draft.group) }));
     onHold({ of: "id", id });

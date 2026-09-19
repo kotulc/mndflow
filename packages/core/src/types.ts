@@ -133,6 +133,9 @@ export type Relation = {
   id: Id;
   from: Id;
   to: Id;
+  /** What it is called, exactly as a block carries one. Absent draws its definition's name, the
+   *  way an unnamed card draws its kind word. */
+  name?: string;
   type?: Id;
   dir?: Dir;
   /** Which wall a relationship end leaves by. */
@@ -183,11 +186,18 @@ export type Definition = {
   /** The shipped base this stands in for wherever an element names no definition. */
   default?: Id;
   group: "block" | "relation";
+  /** What a usage of it draws where it carries no name of its own — the kind word on a card, the
+   *  word on a run. **One key for both**: a line used to read a `label` here and a block the
+   *  name, which was two keys for one job. */
   name: string;
-  /** What a line naming this draws, exactly as typed — a stereotype such as `<<relates>>`. */
-  label?: string;
-  body?: string;
+  /** What this definition is for, in a sentence — **a description of it, never content it
+   *  holds**. A block's `body` is the thing itself; this is prose about the vocabulary. Named as
+   *  every other description here is: an action's `about`, a catalogue entry's `about`. */
+  about?: string;
   extends?: Id;
+  /** Words put on it to say what it is like. **Tagging is generic**: it indexes a definition the
+   *  same way it indexes a block, and nothing inherits one. */
+  tags?: string[];
   fields?: FieldDef[];
   size?: { w: number; h: number };
   names?: Record<string, string>;
@@ -226,6 +236,8 @@ export type Mutation =
   | { op: "set_shelf"; shelf: Shelved[] }
   | { op: "size_block"; id: Id; w: number; h: number }
   | { op: "set_body"; id: Id; body: string }
+  /** A definition's description. Its own op, because it is not the same thing as a body. */
+  | { op: "set_about"; id: Id; about: string }
   /** Where a block came from; null gives it back. */
   | { op: "set_source"; id: Id; source: string | null }
   | { op: "set_group"; id: Id; group: Id | null }
@@ -235,7 +247,8 @@ export type Mutation =
   | { op: "set_holder"; holder: Holder }
   | { op: "drop_holder"; id: Id }
   | { op: "link_blocks"; edge: Relation }
-  | { op: "update_edge"; id: Id; type: Id | null }
+  /** As `update_block`: only what is said changes, and `type: null` clears it. */
+  | { op: "update_edge"; id: Id; name?: string; type?: Id | null }
   | { op: "delete_edge"; id: Id }
   | { op: "set_dir"; id: Id; dir: Dir }
   | { op: "flip_edge"; id: Id }

@@ -243,21 +243,21 @@
         "id": "g_wet",
         "parent": "b_loop",
         "name": "Wet side",
+        "alias": 1,
         "arrangement": "free",
-        "order": 9,
-        "alias": 1
+        "order": 9
       },
       "gr_matrix": {
         "id": "gr_matrix",
         "parent": "f_plant",
         "name": "Duty",
+        "alias": 1,
         "arrangement": "grid",
-        "rows": 2,
         "cols": 2,
-        "x": 0,
-        "y": 320,
         "order": 2,
-        "alias": 1
+        "rows": 2,
+        "x": 0,
+        "y": 320
       }
     },
     "edges": {

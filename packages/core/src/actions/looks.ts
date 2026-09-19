@@ -8,8 +8,8 @@ import { ids_of, list, text, writable } from "./helpers";
 register(
   {
     name: "tag",
-    about: "puts words on a block or a relationship to say what it is like",
-    on: ["block", "edge", "selection"],
+    about: "puts words on an element or a definition to say what it is like",
+    on: ["block", "edge", "layer", "selection"],
     /** The whole tag list, replaced in one step. */
     args: [{ name: "ids", form: "block", required: true },
            { name: "tags", form: "text", required: true }],

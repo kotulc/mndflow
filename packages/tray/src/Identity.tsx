@@ -1,14 +1,18 @@
-/** What one thing is: the identity rows of the element tab. */
+/** What one thing is: the identity rows of the element tab.
+ *
+ *  **The same four rows for a block and for a line** — name, type, extends, tags. Both carry a
+ *  name of their own, and what either draws where it has none is its type's name. See types.md
+ *  in the root docs. */
 
-import { BASE_PACKAGE, def_of, isa, kind_word, block_base, outside, pinned_defs, relation_base,
-         shipped, type Act, type Definition, type Graph, type Id } from "@mnd/core";
+import { base_of, def_of, edge_base, isa, block_base, outside, relation_base, shipped,
+         type Act, type Definition, type Graph, type Id } from "@mnd/core";
 import { Icon } from "@mnd/theme";
 import { Band, Body, Line } from "./Body";
 import { taken } from "./Definitions";
 import { Entry } from "./Entry";
 import { Tags } from "./Tags";
 import { DRAFT } from "./draft";
-import { defined, held, kind_of, types_for } from "./holder";
+import { def_path, defined, held, kind_of, types_for } from "./holder";
 
 export type IdentityProps = { graph: Graph; id: Id; onAct: Act };
 
@@ -21,144 +25,135 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
   const { kind, runs } = kind_of(graph, id, it);
   const { own, mine, fixed, wip } = defined(graph, id, it, runs);
   const drafted = id === DRAFT;
-  const listed = pinned_defs(graph, runs ? "relation" : "block").some((x) => x.id === own?.id);
+  const element = !!(b || edge);
+  const group = runs ? "relation" : "block";
 
-  /** Where a definition sits, pinned ones under their folder. */
-  const path = (x: Definition) => where(x, (graph.blocks[graph.root]?.pinned ?? []).includes(x.id));
+  /** Where a definition lives, as the explorer files it. */
+  const path = def_path;
   const kind_named = (x: Id) => (runs ? relation_base(graph, x) : block_base(graph, x));
   const extendable = (self: Definition) =>
     Object.values(graph.defs).filter((x) => x.group === self.group && x.id !== self.id
       && !isa(graph, x.id).some((up) => up.id === self.id)
       /** A default keeps its kind, or it would stop standing in for it. */
       && (self.default === undefined || kind_named(x.id) === self.default))
-      .sort((a, z) => path(a).localeCompare(path(z)));
+      .sort((a, z) => rank(a) - rank(z) || path(a).localeCompare(path(z)));
 
-  /** Naming a working look saves it as a definition, the moment the box is left. */
-  const saving = (label: string) => (
-    <Entry key={`working-${id}`} value="" label={label} placeholder="name it to save it"
-           clash={(to) => taken(graph, to, runs ? "relation" : "block")}
-           onCommit={(to) => onAct("save_def", { id, name: to })} />
-  );
-
-  /** What a label says, in full. */
-  const label_tip = "What a line naming this draws, exactly as typed — a stereotype such as <<relates>>.";
+  /** The definition in force, whose name this element draws where it carries none. */
+  const following = graph.defs[def_of(graph, id) ?? ""];
+  /** Which extends row applies: one it owns and may re-base, or none of its own, or theirs. */
+  const re_base = element && mine && !fixed;
+  const base_only = element && (!own || shipped(own));
 
   return (
     <div className="col identity">
       <Band label="identity" />
       <Body>
-        {/* Name: a draft's is written here, a line's names a new definition, a definition's is
-           renamed in place, and a block's is its own. */}
-        {drafted ? (
-          <Line label="name" tip="What this will be called. Naming it adds it to the definitions.">
-            {/* Leaving the box files the draft under its name. */}
-            <Entry key="draft" value="" label="name" placeholder="name it to add it"
-                   clash={(to) => taken(graph, to, runs ? "relation" : "block", DRAFT)}
-                   onCommit={(to) => onAct("@name", { name: to })} />
-          </Line>
-        ) : edge ? (
-          <Line label="name" tip="The definition this line follows. Naming it files a new definition and moves this line onto it.">
-            <Entry key={`${id}-${own?.id}`} value={own && !fixed ? own.name : ""} label="name"
-                   placeholder={own ? path(own) : kind}
-                   clash={(to) => taken(graph, to, "relation")}
-                   onCommit={(to) => onAct(wip ? "save_def" : "rename", { id, name: to })} />
-          </Line>
-        ) : d ? (
-          <Line label="name" tip="What this definition is called. Renaming it keeps everything naming it.">
-            {/* Renamed in place: the id stays, so nothing naming it is retyped. */}
-            {mine && !fixed ? (
-              <Entry key={d.id} value={d.name} label="name"
-                     clash={(to) => taken(graph, to, d.group, d.id)}
-                     onCommit={(to) => onAct("rename_def", { id: d.id, name: to })} />
-            ) : (
-              <input value={path(d)} readOnly aria-label="name" />
-            )}
-          </Line>
-        ) : b ? (
-          <Line label="name" tip="What this is called, as the drawing writes it.">
-            <input value={b.name ?? ""} aria-label="name" placeholder={kind_word(graph, b)}
+        {/* Name: what this one element is called. **A definition has none** — it is not drawn
+           anywhere, and what its usages draw is its type name, on the row below. */}
+        <Line label="name"
+              tip={element
+                ? "What this is called, as the drawing writes it. Left blank it draws its type's name."
+                : "A definition is not drawn anywhere, so it carries no name of its own. What its usages draw is its type name, below."}>
+          {element ? (
+            <input value={(b ?? edge)!.name ?? ""} aria-label="name"
+                   placeholder={following?.name ?? kind}
                    onChange={(e) => onAct("rename", { id, name: e.target.value })} />
-          </Line>
-        ) : null}
+          ) : (
+            <input value="" readOnly aria-label="name" placeholder={d?.name || kind} />
+          )}
+        </Line>
 
-        {/* Type: which definition an element follows, among those of its own kind. A block
-           styled directly follows none yet, so the same row takes a name for what it draws —
-           one question, asked once, rather than a second row beside it. */}
-        {b || edge ? (
-          <Line label="type" className="subtype"
-                tip={b && wip
-                  ? "This block is styled directly, so it follows no definition yet. Name what it draws to file that as one and move this block onto it, or pick a definition and its own look goes."
-                  : `Which definition this ${runs ? "line" : "block"} follows. Only definitions of its own kind apply.`}>
-            {b && wip ? saving("type") : null}
-            <select value={def_of(graph, id) ?? ""} aria-label="type"
-                    onChange={(e) => onAct("retype", { ids: [id], type: e.target.value })}>
-              {types_for(graph, id).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
-            </select>
-            {b && mine && !fixed ? (
-              <button className="drop" title={`remove ${own!.name}, dissolving it into everything naming it`}
-                      onClick={() => onAct("remove_def", { id: own!.id })}>
-                <Icon name="remove" />
-              </button>
-            ) : null}
-          </Line>
-        ) : null}
+        {/* Type: the definition, by name. **The same question either way** — an element names the
+           one it follows, and a definition names itself, which is what a type name is. */}
+        <Line label="type" className="subtype"
+              tip={drafted
+                ? "What this definition will be called. Naming it adds it to the definitions."
+                : element ? type_tip(runs, wip)
+                : "What this definition is called, and the word every usage draws where it carries no name of its own. Renaming it keeps everything naming it."}>
+          {drafted ? (
+            /** Leaving the box files the draft under its name. */
+            <Entry key="draft" value="" label="type" placeholder="name it to add it"
+                   clash={(to) => taken(graph, to, group, DRAFT)}
+                   onCommit={(to) => onAct("@name", { name: to })} />
+          ) : element ? (
+            <Entry key={`type-${id}-${own?.id ?? ""}`} value={mine && !fixed ? own!.name : ""}
+                   label="type" blank placeholder={following?.name ?? kind}
+                   clash={(to) => (types_for(graph, id).some((x) => x.name === to)
+                     ? null : taken(graph, to, group))}
+                   onCommit={(to) => {
+                     const [act, args] = typing(graph, id, to);
+                     onAct(act, args);
+                   }} />
+          ) : mine && !fixed ? (
+            <Entry key={d!.id} value={d!.name} label="type"
+                   clash={(to) => taken(graph, to, d!.group, d!.id)}
+                   onCommit={(to) => onAct("rename_def", { id: d!.id, name: to })} />
+          ) : (
+            /** The same answer, only not yours to change — where it came from is said below. */
+            <input value={d!.name} readOnly aria-label="type" />
+          )}
+          {element && mine && !fixed ? (
+            <button className="drop"
+                    title={`remove ${own!.name}, dissolving it into everything naming it`}
+                    onClick={() => onAct("remove_def", { id: own!.id })}>
+              <Icon name="remove" />
+            </button>
+          ) : null}
+        </Line>
 
-        {/* Label: what a line naming the definition draws; never inherited. */}
-        {runs && drafted ? (
-          <Line label="label" tip={label_tip}>
-            <input value={d!.label ?? ""} aria-label="label" placeholder="no label"
-                   onChange={(e) => onAct("define", { id, name: d!.name, label: e.target.value,
-                                                     extends: d!.extends ?? "" })} />
-          </Line>
-        ) : runs ? (
-          <Line label="label" tip={label_tip}>
-            {mine && !wip ? (
-              <Entry key={own!.id} value={own!.label ?? ""} label="label" placeholder="no label" blank
-                     onCommit={(to) => onAct("define", { name: own!.name, group: "relation", label: to })} />
-            ) : (
-              <input value={own?.label ?? ""} readOnly aria-label="label" placeholder="no label" />
-            )}
-          </Line>
-        ) : null}
+        {/* Tags index a thing, so a definition wears them as an element does. Never inherited. */}
+        <Line label="tags"
+              tip="Words that say what this is like. Tags carry nothing and are never inherited.">
+          <Tags tags={(b ?? edge ?? d)!.tags ?? []}
+                onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
+        </Line>
 
-        {/* Extends: the definition a definition refines. */}
+        {/* Extends: what the definition in force is built on. An element with none of its own has
+           only a base, so the same row moves that instead. */}
         {d && shipped(d) ? (
           <Line label="extends" tip="A base is shipped and extends nothing.">
-            <span className="read">{graph.defs[d.extends ?? ""] ? path(graph.defs[d.extends!]!) : ""}</span>
+            <span className="read">
+              {graph.defs[d.extends ?? ""] ? path(graph.defs[d.extends!]!) : ""}
+            </span>
           </Line>
         ) : d ? (
           <Line label="extends" className="subtype"
                 tip="The definition this one refines — its kind's base unless another is picked.">
             <select value={d.extends ?? ""} aria-label="extends" disabled={borrowed}
-                    onChange={(e) => onAct("define", { ...(drafted ? { id } : {}),
-                                                       name: d.name, group: d.group, extends: e.target.value })}>
+                    onChange={(e) => onAct("define", { ...(drafted ? { id } : {}), name: d.name,
+                                                       group: d.group, extends: e.target.value })}>
               {d.extends ? null : <option value="">{`base/${kind}`}</option>}
               {extendable(d).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
             </select>
           </Line>
-        ) : null}
-
-        {/* Tags are the element's own, never its definition's. */}
-        {b || edge ? (
-          <Line label="tags" tip="Words that say what this is like. Tags carry nothing and are never inherited.">
-            <Tags tags={(b ?? edge)!.tags ?? []}
-                  onCommit={(to) => onAct("tag", { ids: [id], tags: to })} />
+        ) : re_base ? (
+          <Line label="extends" className="subtype"
+                tip={`What ${own!.name} is built on. Changing it re-bases that definition, so everything following it moves with this one.`}>
+            <select value={own!.extends ?? ""} aria-label="extends"
+                    onChange={(e) => onAct("define", { name: own!.name, group: own!.group,
+                                                       extends: e.target.value })}>
+              {own!.extends ? null : <option value="">{`base/${kind}`}</option>}
+              {extendable(own!).map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
+            </select>
+          </Line>
+        ) : base_only ? (
+          <Line label="extends" className="subtype"
+                tip={`What this ${runs ? "line" : "block"} is built on. It follows no definition of its own, so this is its base.`}>
+            <select value={based(graph, id, runs)} aria-label="extends"
+                    onChange={(e) => onAct("retype", { ids: [id], type: e.target.value })}>
+              {types_for(graph, id).filter(shipped)
+                .map((x) => <option key={x.id} value={x.id}>{path(x)}</option>)}
+            </select>
+          </Line>
+        ) : element ? (
+          <Line label="extends"
+                tip={`${following?.name ?? "What this follows"} came from outside, so what it is built on is theirs.`}>
+            <span className="read">
+              {graph.defs[following?.extends ?? ""] ? path(graph.defs[following!.extends!]!) : ""}
+            </span>
           </Line>
         ) : null}
 
-        {/* Options: the boxes, what is true of this thing as against what it is. */}
-        {own && !fixed ? (
-          <Line label="options" className="options">
-            <label className="check"
-                   title={runs ? "Offer this on the rail, so a right drag can draw one"
-                               : "List this in the explorer's pinned folder"}>
-              <input type="checkbox" checked={listed} disabled={own.id === DRAFT || wip}
-                     onChange={(e) => onAct("pin", { id: own.id,
-                                                     on: e.target.checked ? "yes" : "no" })} />
-              pinned
-            </label>
-          </Line>
-        ) : null}
       </Body>
 
       {borrowed ? (
@@ -173,10 +168,31 @@ export function Identity({ graph, id, onAct }: IdentityProps) {
   );
 }
 
-/** Where a definition sits in the definitions folder, as a path. */
-function where(d: Definition, pinned = false): string {
-  return d.default ? `default/${d.default}`
-    : d.from === BASE_PACKAGE ? `base/${d.name}`
-    : d.from ? `packages/${d.from}/${d.name}`
-    : pinned ? `pinned/${d.name}` : d.name;
+/** What the type row is asking, in full. */
+function type_tip(runs: boolean, wip: boolean): string {
+  return `Which definition this ${runs ? "line" : "block"} follows, by name. A name nothing holds`
+    + ` files a new definition${wip ? ", carrying the look this one is wearing," : ""} and moves`
+    + ` this one onto it. Only definitions of its own kind apply.`;
 }
+
+/** What naming a type does: point the element at the definition of that name, file one where
+ *  nothing holds it, or give the element back to its base where the box is cleared. */
+function typing(graph: Graph, id: Id, to: string): [string, Record<string, unknown>] {
+  const hit = types_for(graph, id).find((x) => x.name === to);
+  if (hit) return ["retype", { ids: [id], type: hit.id }];
+  if (!to) return ["retype", { ids: [id], type: "" }];
+  /** `save_def` files what it followed as the new one's base, and any look it wears travels. */
+  return ["save_def", { id, name: to }];
+}
+
+/** The base an element sits on, which is what its extends row shows where it has no definition. */
+function based(graph: Graph, id: Id, runs: boolean): Id {
+  const base = runs ? edge_base(graph, id) : base_of(graph, id);
+  return graph.defs[base] ? base : "";
+}
+
+/** The shipped bases head a listing, then the defaults, then the rest. */
+function rank(d: Definition): number {
+  return shipped(d) ? 0 : d.default !== undefined ? 1 : 2;
+}
+

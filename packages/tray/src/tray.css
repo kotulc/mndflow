@@ -215,14 +215,28 @@
   padding: 6px 8px;
   border: 1px solid var(--divider);
   border-radius: 2px;
-  background: var(--surface);
+  /* The 3% wash every box that is typed into wears, as against the band its head sits on. */
+  background: var(--band);
   color: var(--text);
   font: inherit;
   font-size: 12px;
 }
 .content > textarea:focus { outline: none; border-color: var(--accent); }
-/* Data is read, not written: set in the code face, and quieter. */
-.content > textarea.data { min-height: 12em; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
+/* The record is read, never written. **It grows with what it holds**, so the tray body's scroll
+   is the only one — and it wraps rather than running off the side. Code face, and quieter. */
+.content > pre.data {
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 2px;
+  background: var(--band);
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 /* A value read rather than set. */
 .rows > .row > .line > .read { color: var(--muted); }
@@ -268,33 +282,41 @@
 .drawing { display: flex; flex-direction: column; min-height: 0; }
 .drawing > .preview { padding-inline: 8px; }
 
+/* The options under the drawing. **Not `.opts`**, which is the options rail: a 68px column that
+   sets `flex-direction: column` and a left border, and stacked these the moment they shared it. */
+.drawing > .toggles {
+  display: flex;
+  /* One line, always: two short words read as a row, never as a stack. */
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+}
+
 /* The drawing fills its column; the run scales with it. */
 .drawing .preview-card, .drawing .preview-wire { width: 100%; }
 .drawing .preview-run { width: 100%; height: auto; }
 
-/* On the element tab the card takes whatever height the identity column set, so the two columns
-   read as one block rather than a small picture beside a long list. A run keeps its own size and
-   sits in the middle of that space: a line has no height to fill. Source runs full width under
-   the content it is the provenance of. */
+/* The card draws at its own height on the element tab and the style tab alike: it is the same
+   drawing of the same thing, so it is the same size. Source runs full width under the content it
+   is the provenance of. */
 .panel.element {
-  align-items: stretch;
   grid-template-areas: "drawing rows" "body body" "source source";
 }
 
-.panel > .source { grid-area: source; }
-.panel.element > .drawing > .preview { flex: 1; min-height: 48px; display: flex;
-                                       align-items: center; }
-.panel.element > .drawing > .preview > .preview-card { height: auto; align-self: stretch; }
+/* A definition has no source and a block no record, so the two never both appear. */
+.panel > .source, .panel > .content.data { grid-area: source; }
 
 /* The workspace draws nowhere, so there is no card column: what it is and what it is made of
    take a column each, and the description runs under both. */
 .panel.workspace {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: "identity holds" "body body";
+  grid-template-areas: "identity file" "body body";
 }
 
 .panel.workspace > .col.identity { grid-area: identity; }
-.panel.workspace > .col.holds { grid-area: holds; }
+.panel.workspace > .col.file { grid-area: file; }
 
 /* Wide: one row across — the body takes a third column, the style groups a column of their own. */
 @container tray (min-width: 960px) {
@@ -305,7 +327,7 @@
 
   .panel.workspace {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "identity holds body";
+    grid-template-areas: "identity file body";
   }
 
   .panel.style > .draws {

@@ -9,7 +9,7 @@
         "from": "requirements",
         "group": "block",
         "name": "requirement",
-        "body": "Something the system shall do, and how that is shown.",
+        "about": "Something the system shall do, and how that is shown.",
         "extends": "block",
         "fields": [
           {

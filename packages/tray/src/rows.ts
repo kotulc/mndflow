@@ -1,7 +1,7 @@
 /** What the open layer holds, as rows. */
 
-import { alias_of, children, def_of, edge_base, edges_in, is_interface, isa, label_of,
-         base_of, path, shipped, shown_name, subtree,
+import { alias_of, children, def_of, edge_base, edges_in, is_interface, isa,
+         base_of, path, shipped, shown_name, stands_in_for, subtree,
          type Block, type Graph, type Id } from "@mnd/core";
 
 /** What a row is, which is also how it is filtered. */
@@ -75,7 +75,8 @@ export function rows_of(graph: Graph, layer: Id | null, deep = false): Row[] {
       id: e.id, sort: "relationship", kind: edge_base(graph, e.id),
       /** An edge holds no values. */
       fields: {},
-      name: named || edge_base(graph, e.id),
+      /** Its own name, else its type's, else its module — as every surface writes it. */
+      name: called(e.id),
       what: `${called(e.from)} → ${called(e.to)}`,
       type: named,
     });
@@ -90,13 +91,14 @@ export type DefRow = {
   id: Id;
   group: "block" | "relation";
   name: string;
-  /** What a line naming it draws; blank for none, and always for a block's. */
-  label: string;
   /** What it extends. */
   extends: Id;
-  /** Whether it is the workspace's word about an outside definition, which stands in front of
-   *  that one everywhere it is reached. Its identity is that package's, so it is never renamed. */
+  /** Whether it is what a plain element of its kind draws. One definition per thing stood in
+   *  for, and it stands in front of that one in every chain reaching it. */
   base: boolean;
+  /** What it would stand in for, were it made the default. Blank where its chain is all its
+   *  own, and so there is nothing to stand in front of. */
+  stands: Id;
   /** The package it came from, where somebody else wrote it. */
   from: string;
   /** Usages of this definition only, never of what extends it. */
@@ -117,7 +119,8 @@ export function def_rows(graph: Graph): DefRow[] {
   return Object.values(graph.defs)
     .map((d): DefRow => ({
       id: d.id, group: d.group, name: d.name,
-      label: d.label ?? "", extends: d.extends ?? "", base: d.default !== undefined,
+      extends: d.extends ?? "", base: d.default !== undefined,
+      stands: stands_in_for(graph, d.id) ?? "",
       from: d.from ?? "", used: used.get(d.id) ?? 0,
     }))
     .sort((a, z) => Number(!!a.from) - Number(!!z.from) || a.name.localeCompare(z.name));
@@ -137,8 +140,6 @@ export type UsageRow = {
   chain: Id[];
   /** The definition it names — blank where it follows its default. */
   def: Id;
-  /** What it draws beside itself. */
-  label: string;
 };
 
 /** The lines in a layer, or every line for the workspace. */
@@ -154,7 +155,6 @@ export function usage_rows(graph: Graph, layer: Id | null, deep: boolean): Usage
     module: edge_base(graph, e.id),
     chain: isa(graph, def_of(graph, e.id)).map((d) => d.id),
     def: plain(graph, e.type) ? "" : e.type!,
-    label: label_of(graph, e.id),
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 
@@ -173,7 +173,6 @@ export function block_usage_rows(graph: Graph, layer: Id | null, deep: boolean):
     module: base_of(graph, b.id),
     chain: isa(graph, def_of(graph, b.id)).map((d) => d.id),
     def: plain(graph, b.type) ? "" : b.type!,
-    label: "",
   })).sort((a, z) => a.layer.localeCompare(z.layer) || a.id.localeCompare(z.id));
 }
 

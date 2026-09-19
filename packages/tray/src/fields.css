@@ -128,18 +128,27 @@
 .rows > .row > .line > .into { flex: none; color: var(--faint); font-size: 11px; }
 .rows > .row > .line > .alias { flex: none; color: var(--faint); font-size: 11px; }
 
-/* A box, because it is a yes and a no. */
-.rows > .row > .line > .check {
+/* A box, because it is a yes and a no. One look, in a row of them or under the drawing. */
+.rows > .row > .line > .check,
+.drawing > .toggles > .check {
   display: inline-flex;
   align-items: center;
+  flex: none;
+  white-space: nowrap;
   gap: 5px;
   color: var(--muted);
   font-size: 11px;
   cursor: pointer;
 }
 
-.rows > .row > .line > .check:hover { color: var(--text); }
-.rows > .row > .line > .check input { margin: 0; accent-color: var(--accent); }
+.rows > .row > .line > .check:hover,
+.drawing > .toggles > .check:hover { color: var(--text); }
+
+.rows > .row > .line > .check input,
+.drawing > .toggles > .check input { margin: 0; accent-color: var(--accent); }
+
+/* Dead rather than refused: the tip says why. */
+.drawing > .toggles > .check[aria-disabled] { opacity: 0.4; cursor: not-allowed; }
 
 /* One chip a tag, and the box to add another takes what the row has left. */
 .rows > .row > .line > .tags {

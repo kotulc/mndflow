@@ -9,7 +9,7 @@
         "from": "sysml",
         "group": "block",
         "name": "part",
-        "body": "A part property: a block owned by another block.",
+        "about": "A part property: a block owned by another block.",
         "extends": "block",
         "names": {
           "sysml": "\u00abpart\u00bb"
@@ -23,7 +23,7 @@
         "from": "sysml",
         "group": "block",
         "name": "block",
-        "body": "A SysML block: the unit of structure.",
+        "about": "A SysML block: the unit of structure.",
         "extends": "block",
         "names": {
           "sysml": "\u00abblock\u00bb"
@@ -37,7 +37,7 @@
         "from": "sysml",
         "group": "block",
         "name": "port",
-        "body": "A proxy or full port, seated on the edge of a block.",
+        "about": "A proxy or full port, seated on the edge of a block.",
         "extends": "interface",
         "names": {
           "sysml": "\u00abport\u00bb"
@@ -51,7 +51,7 @@
         "from": "sysml",
         "group": "block",
         "name": "activity",
-        "body": "An activity: what happens over a structure.",
+        "about": "An activity: what happens over a structure.",
         "extends": "block",
         "names": {
           "sysml": "\u00abactivity\u00bb"
@@ -65,7 +65,7 @@
         "from": "sysml",
         "group": "block",
         "name": "requirement",
-        "body": "A requirement: an id and a shall statement.",
+        "about": "A requirement: an id and a shall statement.",
         "extends": "block",
         "names": {
           "sysml": "\u00abrequirement\u00bb"
@@ -95,7 +95,7 @@
         "from": "sysml",
         "group": "relation",
         "name": "satisfy",
-        "body": "A part satisfies a requirement.",
+        "about": "A part satisfies a requirement.",
         "extends": "line",
         "names": {
           "sysml": "\u00absatisfy\u00bb"
@@ -115,7 +115,7 @@
         "from": "sysml",
         "group": "relation",
         "name": "item flow",
-        "body": "What travels along a connector.",
+        "about": "What travels along a connector.",
         "extends": "line",
         "names": {
           "sysml": "\u00abitemFlow\u00bb"
@@ -134,7 +134,7 @@
         "from": "sysml",
         "group": "view",
         "name": "internal block",
-        "body": "An internal block diagram: parts, ports and connectors.",
+        "about": "An internal block diagram: parts, ports and connectors.",
         "components": {
           "view": {
             "module": "block"

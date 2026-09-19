@@ -1,6 +1,6 @@
 /** Argument readers and makers shared by the actions. */
 
-import { def_named, default_for, block_base, outside, relation_base, shipped,
+import { def_named, default_for, block_base, outside, relation_base,
          stored_type } from "../defs";
 import { next_alias } from "../names";
 import { layer_id, next_order } from "../tree";
@@ -131,14 +131,6 @@ export function make_block(ctx: Context, name: string, parent: Id | null, type?:
     id, parent, name: name || undefined, type: stored_type(ctx.graph, type),
     order: next_order(ctx.graph, parent), alias: serial.take(),
   } }, ...serial.bump()];
-}
-
-/** The workspace's own definition an element names, if it names one: not a base, a default or a
- *  package's. */
-export function own_def(graph: Graph, id: Id): Definition | undefined {
-  const type = (graph.blocks[id] ?? graph.edges[id])?.type;
-  const d = type ? graph.defs[type] : undefined;
-  return d && !shipped(d) && !d.default && !d.from ? d : undefined;
 }
 
 /** The definition `extends` names: an id, or a name within the group. */

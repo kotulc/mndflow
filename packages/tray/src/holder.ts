@@ -1,7 +1,7 @@
 /** What the tray has hold of, and how to read it. */
 
-import { config_of, def_of, default_for, edge_base, honours, may_retype, block_base, base_of,
-         outside, relation_base, shipped,
+import { config_of, def_of, default_for, edge_base, honours, may_retype, block_base,
+         base_of, outside, relation_base, shipped,
          type Block, type Definition, type Field, type FieldDef,
          type Graph, type Id, type Relation } from "@mnd/core";
 import { DRAFT } from "./draft";
@@ -54,15 +54,29 @@ export function defined(graph: Graph, id: Id, it: Held, runs: boolean) {
   return { follows, own, mine, fixed, wip };
 }
 
-/** Every definition an element may follow: its own kind's, defaults first, then by name. */
+/** Where a definition lives, as a path — **the folder the explorer files it under**, never a
+ *  projection over it. A package's reads under that package, the workspace's own under its group.
+ *  `pinned` is an option, not a home, and there is no `default` folder: the workspace's word about
+ *  a base is filed with its own definitions like any other.
+ *
+ *  **Two definitions may wear one name** — a base and the workspace's word about it — so this is
+ *  what tells them apart, and every picker that offers one shows it. */
+export function def_path(d: Definition): string {
+  if (d.from) return `${d.from}/${d.name}`;
+  return `${d.group === "relation" ? "relations" : "blocks"}/${d.name}`;
+}
+
+/** Every definition an element may follow. **The shipped bases head the list**, then the
+ *  defaults, then the rest by name: a block descends from a base whether or not anybody named
+ *  one, so leaving them out left the first link of every chain unpickable. */
 export function types_for(graph: Graph, id: Id): Definition[] {
   const edge = graph.edges[id];
+  const rank = (d: Definition) => (shipped(d) ? 0 : d.default !== undefined ? 1 : 2);
   return Object.values(graph.defs)
-    .filter((d) => !shipped(d) && (edge
+    .filter((d) => (edge
       ? d.group === "relation" && relation_base(graph, d.id) === edge_base(graph, id)
       : d.group === "block" && may_retype(graph, id, d.id)))
-    .sort((a, z) => Number(z.default !== undefined) - Number(a.default !== undefined)
-                    || a.name.localeCompare(z.name));
+    .sort((a, z) => rank(a) - rank(z) || a.name.localeCompare(z.name));
 }
 
 /** The three readings every look control needs, over whichever holder this is. */

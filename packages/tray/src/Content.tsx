@@ -1,4 +1,5 @@
-/** A body: a block's text, or a definition's data — the stored definition, read only. */
+/** The prose of whatever the panel has hold of: a block's body, which is the content itself, or
+ *  a definition's `about`, which describes the vocabulary. The definition's record is `Data`. */
 
 import { useState } from "react";
 import type { Act, Graph, Id } from "@mnd/core";
@@ -8,7 +9,7 @@ export type ContentProps = { graph: Graph; id: Id; onAct: Act };
 
 export function Content({ graph, id, onAct }: ContentProps) {
   const def = graph.defs[id];
-  const stored = graph.blocks[id]?.body ?? "";
+  const stored = (def ? def.about : graph.blocks[id]?.body) ?? "";
   const [draft, set_draft] = useState<string | null>(null);
 
   const commit = () => {
@@ -16,22 +17,13 @@ export function Content({ graph, id, onAct }: ContentProps) {
     set_draft(null);
   };
 
-  /** A definition's body is what defines it, exactly as stored. */
-  if (def) {
-    return (
-      <div className="content">
-        <Band label="content" />
-        <textarea className="data" value={JSON.stringify(def, null, 2)} aria-label="definition data"
-                  readOnly spellCheck={false} />
-      </div>
-    );
-  }
-
   return (
     <div className="content">
-      <Band label="content" />
-      <textarea value={draft ?? stored} aria-label="body" spellCheck
-                placeholder="what this says — a description, a requirement, a script"
+      <Band label={def ? "about" : "content"} />
+      <textarea value={draft ?? stored} aria-label={def ? "about" : "body"} spellCheck
+                placeholder={def
+                  ? "what this definition is for — a sentence anybody reading the vocabulary would want"
+                  : "what this says — a description, a requirement, a script"}
                 onChange={(e) => set_draft(e.target.value)}
                 onBlur={commit} />
     </div>

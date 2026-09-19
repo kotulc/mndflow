@@ -162,6 +162,14 @@ export function default_for(graph: Graph, base: Id,
   return undefined;
 }
 
+/** What a definition would stand in for if it were made the default: the nearest definition from
+ *  outside the workspace at or above what it extends. Nothing, where its chain is all its own. */
+export function stands_in_for(graph: Graph, id: Id): Id | undefined {
+  const d = graph.defs[id];
+  if (!d || outside(d)) return undefined;
+  return isa(graph, d.extends).find(outside)?.id;
+}
+
 /** What the shipped floor calls itself. */
 export const BASE_PACKAGE = "base";
 
@@ -185,8 +193,9 @@ export function touched(d: Definition): boolean {
   return Object.keys(d).some((k) => !LAID.includes(k) && (d as Record<string, unknown>)[k] !== undefined);
 }
 
-/** The keys a default is laid with. */
-const LAID = ["id", "group", "name", "extends", "default"];
+/** The keys a definition is laid with, which alone are not worth writing. **`default` is not one
+ *  of them**: it is a choice somebody made, so it travels even where nothing else was said. */
+const LAID = ["id", "group", "name", "extends"];
 
 /** One package's block definitions, as the vocabulary section lists them. */
 export type Vocabulary = {

@@ -102,6 +102,12 @@
   position: relative;
   box-sizing: border-box;
   width: 188px;
+  /** **The card's height.** A card writes its name inside its box; a run wrote one above itself,
+   *  in flow, so the run's preview stood taller and pushed everything under it down on one tab
+   *  and not the other. */
+  height: 48px;
+  display: flex;
+  align-items: center;
   font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--card-ink, var(--text));
 }
@@ -122,9 +128,12 @@
 .preview-wire[data-border-style="dotted"] .preview-line { stroke-linecap: round; }
 .preview-seat { fill: var(--card-line, var(--route)); }
 
-/* The name over the run's middle. */
+/* The name over the run, as the canvas writes one — out of flow, so it adds no height. */
 .preview-wire-name {
-  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 2px;
   text-align: center;
   overflow: hidden;
   white-space: nowrap;

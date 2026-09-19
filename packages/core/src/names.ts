@@ -2,7 +2,7 @@
 
 import { base_of, def_of, edge_base } from "./defs";
 import { stands_for } from "./tree";
-import { BASE_BLOCKS, type Block, type Graph, type Id } from "./types";
+import { BASE_BLOCKS, BASE_RELATIONS, type Block, type Graph, type Id } from "./types";
 
 
 /** The word each base reads as when nothing is named; a boundary has none. */
@@ -38,8 +38,7 @@ export function alias_kind(graph: Graph, id: Id): string {
 export function alias_of(graph: Graph, id: Id, always = false): string {
   const held = graph.blocks[id] ?? graph.holders[id] ?? graph.edges[id];
   if (!held || held.alias === undefined) return "";
-  /** A line counts as named by its type. */
-  const named = graph.edges[id] ? !!graph.edges[id]!.type : is_named(graph, id);
+  const named = is_named(graph, id);
   if (!always && named) return "";
   return alias_name(alias_kind(graph, id), held.alias);
 }
@@ -54,8 +53,11 @@ export function next_alias(graph: Graph, kind: string): number {
   return (graph.blocks[graph.root]?.counters?.[kind] ?? 0) + 1;
 }
 
-/** Whether somebody named this block, as against the tag it wears until they do. */
+/** Whether somebody named this element, as against the tag it wears until they do. A line counts
+ *  as named by its own name or by the type it follows. */
 export function is_named(graph: Graph, id: Id): boolean {
+  const e = graph.edges[id];
+  if (e) return !!e.name?.trim() || !!e.type;
   const held = graph.holders[id];
   if (held) return !!held.name?.trim();
   const b = graph.blocks[id];
@@ -91,10 +93,19 @@ function named(graph: Graph, b: Block): string {
   return b.name?.trim() || kind_word(graph, b);
 }
 
-/** What a line draws beside itself: the label of the definition it follows, or nothing. */
+/** What a line draws beside itself: its own name, else the name of the definition it follows, and
+ *  nothing where it follows none. **The same rule a card reads** — `kind_word` answers it for a
+ *  block, off the same key. */
 export function label_of(graph: Graph, id: Id): string {
+  const e = graph.edges[id];
+  if (e?.name?.trim()) return e.name.trim();
   const d = graph.defs[id] ?? graph.defs[def_of(graph, id) ?? ""];
-  return d?.label ?? "";
+  return d && !shipped_name(d.name) ? d.name : "";
+}
+
+/** A base relation definition names its module, which is a word no run draws. */
+function shipped_name(name: string): boolean {
+  return BASE_RELATIONS.includes(name);
 }
 
 /** What sort of thing a card is, as the icon it wears in its top corner. A person may set their

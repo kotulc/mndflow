@@ -28,23 +28,6 @@
           "line": {}
         }
       },
-      "def_line": {
-        "id": "def_line",
-        "name": "line",
-        "group": "relation",
-        "extends": "def_default",
-        "components": {
-          "style": {
-            "intensity": 0.4,
-            "hue": 78,
-            "border_width": "medium"
-          },
-          "line": {
-            "alias": "show",
-            "name": "show"
-          }
-        }
-      },
       "def_relates": {
         "id": "def_relates",
         "name": "<<relates>>",
@@ -59,10 +42,9 @@
       },
       "def_relation": {
         "id": "def_relation",
-        "label": "relation",
         "name": "relation",
         "group": "relation",
-        "extends": "def_line",
+        "extends": "def_default",
         "components": {
           "line": {}
         }
@@ -92,7 +74,6 @@
       },
       "def_test": {
         "id": "def_test",
-        "label": "Test",
         "name": "Test",
         "group": "relation",
         "extends": "def_default",
@@ -566,28 +547,28 @@
         "id": "block_026ym9qvc4q2",
         "parent": "block_ew5quzihwe9g",
         "name": "New Group",
+        "alias": 1,
         "arrangement": "free",
-        "x": -72,
-        "y": -72,
         "order": 8,
-        "alias": 1
+        "x": -72,
+        "y": -72
       },
       "block_2nzmkg5bbb6e": {
         "id": "block_2nzmkg5bbb6e",
         "parent": "ws",
+        "alias": 1,
         "arrangement": "grid",
-        "rows": 3,
         "cols": 2,
-        "x": -240,
-        "y": 0,
         "order": 10,
-        "alias": 1
+        "rows": 3,
+        "x": -240,
+        "y": 0
       },
       "block_356h5um4i1v2": {
         "id": "block_356h5um4i1v2",
         "parent": "block_lidqmag9iygj",
+        "alias": 2,
         "arrangement": "grid",
-        "rows": 3,
         "cols": 2,
         "merges": [
           {
@@ -597,88 +578,88 @@
             "cols": 1
           }
         ],
-        "x": -216,
-        "y": 24,
         "order": 2,
-        "alias": 2
+        "rows": 3,
+        "x": -216,
+        "y": 24
       },
       "block_4718pot6xuhs": {
         "id": "block_4718pot6xuhs",
         "parent": "block_xpgood1tsdl8",
         "group": "block_i5g6cnrkmsa1",
+        "alias": 3,
         "arrangement": "grid",
-        "rows": 2,
         "cols": 1,
-        "x": -216,
-        "y": -504,
         "order": 1,
-        "alias": 3
+        "rows": 2,
+        "x": -216,
+        "y": -504
       },
       "block_4dxph88c5cyj": {
         "id": "block_4dxph88c5cyj",
         "parent": "block_rj10qdx5jhn9",
+        "alias": 4,
         "arrangement": "grid",
-        "rows": 2,
         "cols": 2,
-        "x": 0,
-        "y": 312,
         "order": 5,
-        "alias": 4
+        "rows": 2,
+        "x": 0,
+        "y": 312
       },
       "block_i5g6cnrkmsa1": {
         "id": "block_i5g6cnrkmsa1",
         "parent": "block_xpgood1tsdl8",
+        "alias": 2,
         "arrangement": "free",
-        "x": -168,
-        "y": -216,
         "order": 8,
-        "alias": 2
+        "x": -168,
+        "y": -216
       },
       "block_ka9vluxhbn5n": {
         "id": "block_ka9vluxhbn5n",
         "parent": "ws",
         "name": "Outter",
-        "arrangement": "free",
-        "x": -96,
-        "y": -288,
-        "order": 9,
         "alias": 3,
+        "arrangement": "free",
         "looks": {
           "style": {
             "border_width": "thick"
           }
-        }
+        },
+        "order": 9,
+        "x": -96,
+        "y": -288
       },
       "block_lisf1xwo11gs": {
         "id": "block_lisf1xwo11gs",
         "parent": "block_xpgood1tsdl8",
+        "alias": 4,
         "arrangement": "free",
-        "x": 24,
-        "y": 288,
         "order": 10,
-        "alias": 4
+        "x": 24,
+        "y": 288
       },
       "block_phj6wc786dlo": {
         "id": "block_phj6wc786dlo",
         "parent": "ws",
         "name": "Inner",
         "group": "block_ka9vluxhbn5n",
+        "alias": 5,
         "arrangement": "free",
-        "x": 0,
-        "y": -192,
         "order": 11,
-        "alias": 5
+        "x": 0,
+        "y": -192
       },
       "block_x6q9cg79pk62": {
         "id": "block_x6q9cg79pk62",
         "parent": "block_xpgood1tsdl8",
+        "alias": 5,
         "arrangement": "grid",
-        "rows": 1,
         "cols": 1,
-        "x": -48,
-        "y": 288,
         "order": 9,
-        "alias": 5
+        "rows": 1,
+        "x": -48,
+        "y": 288
       }
     },
     "edges": {

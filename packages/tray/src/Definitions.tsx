@@ -4,7 +4,7 @@ import { useState } from "react";
 import { def_named, def_of, isa, block_base, pinned_defs, relation_base,
          type Act, type Graph, type Id } from "@mnd/core";
 import { Entry } from "./Entry";
-import { types_for } from "./holder";
+import { def_path, types_for } from "./holder";
 import { Choice, Table, type Chips, type Column } from "./Table";
 import { def_rows, type DefRow } from "./rows";
 
@@ -57,14 +57,18 @@ export function Definitions({ graph, about, held, lines, target = "the selection
   /** Which package, where the explorer pointed at one. No chip picks it. */
   const from = seed.from ?? "all";
   const [name, set_name] = useState("");
-  const [label, set_label] = useState("");
   const [up, set_up] = useState<Id | null>(null);
 
-  /** An element lists what it may follow; the workspace lists everything, narrowed by chips. */
-  const fitting = about ? new Set(types_for(graph, about).map((d) => d.id)) : null;
+  /** An element lists what it may follow, in that listing's own order — bases first. The
+   *  workspace lists everything, narrowed by chips. */
+  const fits = about ? types_for(graph, about).map((d, at) => [d.id, at] as const) : null;
+  const fitting = fits ? new Map(fits) : null;
   /** Every definition there is, which is what a chain may be extended from. */
   const every = def_rows(graph);
-  const all = fitting ? every.filter((r) => fitting.has(r.id)) : every;
+  const all = fitting
+    ? every.filter((r) => fitting.has(r.id))
+           .sort((a, z) => fitting.get(a.id)! - fitting.get(z.id)!)
+    : every;
   const pinned = new Set([...pinned_defs(graph, "block"), ...pinned_defs(graph, "relation")]
     .map((d) => d.id));
   const in_folder = (r: DefRow, k: Only) =>
@@ -77,7 +81,6 @@ export function Definitions({ graph, about, held, lines, target = "the selection
 
   /** One group in view: the one listed, or the one chosen. */
   const one = fitting ? all[0]?.group ?? null : group === "all" ? null : group;
-  const labelled = one !== "block";
 
   const chips: Chips[] = fitting ? [] : [
     { key: "group", on: group, onPick: (k) => set_group(k as typeof group),
@@ -88,8 +91,8 @@ export function Definitions({ graph, about, held, lines, target = "the selection
 
   const columns: Column[] = [
     { key: "name", label: "name" },
-    ...(labelled ? [{ key: "label", label: "label" }] : []),
     { key: "extends", label: "extends" },
+    { key: "default", label: "default" },
     { key: "source", label: "source" },
     { key: "used", label: "used" },
   ];
@@ -101,7 +104,7 @@ export function Definitions({ graph, about, held, lines, target = "the selection
     .filter((r) => r.group === g)
     .filter((r) => !self || (r.id !== self && !isa(graph, r.id).some((d) => d.id === self)
       && (graph.defs[self]?.default === undefined || kind(r.id) === graph.defs[self]!.default)))
-    .map((r) => ({ value: r.id, word: r.from ? `${r.from}/${r.name}` : r.name }));
+    .map((r) => ({ value: r.id, word: def_path(graph.defs[r.id]!) }));
 
   /** A new definition extends its group's base until another is picked. */
   const base = one === "relation" ? "line" : "block";
@@ -109,10 +112,8 @@ export function Definitions({ graph, about, held, lines, target = "the selection
   const clash = one && name.trim() ? taken(graph, name, one) : null;
   const add = () => {
     if (!one || !name.trim() || clash) return;
-    onAct("define", { name: name.trim(), group: one, extends: extend,
-                      ...(one === "relation" ? { label: label.trim() } : {}) });
+    onAct("define", { name: name.trim(), group: one, extends: extend });
     set_name("");
-    set_label("");
     set_up(null);
   };
 
@@ -131,7 +132,9 @@ export function Definitions({ graph, about, held, lines, target = "the selection
         const def = graph.defs[r.id]!;
         return {
           id: r.id,
-          titles: { name: r.name, label: r.label, source: r.from || "workspace" },
+          titles: { name: r.name, source: r.from || "workspace",
+                    default: r.stands ? `draw every plain ${graph.defs[r.stands]?.name ?? r.stands} as ${r.name}`
+                                      : `${r.name} stands in for nothing` },
           cells: {
             /** Renamed in place; the id stays, so nothing naming it is retyped. */
             name: mine && !r.base ? (
@@ -139,14 +142,18 @@ export function Definitions({ graph, about, held, lines, target = "the selection
                      clash={(to) => taken(graph, to, r.group, r.id)}
                      onCommit={(to) => onAct("rename_def", { id: r.id, name: to })} />
             ) : r.name,
-            label: r.group === "block" ? "" : mine ? (
-              <Entry value={r.label} label={`label of ${r.name}`} placeholder="no label" blank
-                     onCommit={(to) => onAct("define", { name: def.name, group: r.group, label: to })} />
-            ) : r.label,
             extends: !mine || r.base ? graph.defs[r.extends]?.name ?? "" : (
               <Choice value={r.extends} label={`what ${r.name} extends`} of={above(r.group, r.id)}
                       onPick={(id) => onAct("define", { name: def.name, group: r.group, extends: id })} />
             ),
+            /** One per thing stood in for, so ticking one takes it from whoever held it. */
+            default: mine && r.stands ? (
+              <input type="checkbox" checked={r.base}
+                     aria-label={`draw every plain ${graph.defs[r.stands]?.name ?? r.stands} as ${r.name}`}
+                     onClick={(e) => e.stopPropagation()}
+                     onChange={(e) => onAct("default", { id: r.id,
+                                                         on: e.target.checked ? "yes" : "no" })} />
+            ) : "",
             source: r.from || "workspace",
             used: String(r.used),
           },
@@ -185,12 +192,8 @@ export function Definitions({ graph, about, held, lines, target = "the selection
               {clash ? <span className="from warn">{clash}</span> : null}
             </>
           ),
-          label: (
-            <input value={label} aria-label="label" placeholder="no label"
-                   onChange={(e) => set_label(e.target.value)}
-                   onKeyDown={(e) => { if (e.key === "Enter") add(); }} />
-          ),
           extends: <Choice value={extend} label="extends" of={above(one, null)} onPick={set_up} />,
+          default: "",
           source: "workspace",
           used: "",
         },

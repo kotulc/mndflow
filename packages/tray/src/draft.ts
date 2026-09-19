@@ -32,9 +32,7 @@ export function redraft(graph: Graph, draft: Definition, name: string,
                         args: Args): Definition | string {
   if (name === "define") {
     const up = String(args["extends"] ?? "");
-    const label = args["label"] === undefined ? draft.label : String(args["label"]) || undefined;
-    return { ...draft, name: String(args["name"] ?? draft.name), label,
-             extends: up || undefined };
+    return { ...draft, name: String(args["name"] ?? draft.name), extends: up || undefined };
   }
   const out = run(name, { graph: with_draft(graph, draft), layer: null, picked: [], cells: [] },
                   args);

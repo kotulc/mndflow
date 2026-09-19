@@ -20,7 +20,7 @@ function trim<T extends object>(o: T): T {
 }
 
 /** Keys a record writes first; the rest follow alphabetically. */
-const FIRST = ["id", "parent", "label", "name", "from", "group",
+const FIRST = ["id", "parent", "name", "from", "group",
                "type", "extends", "default", "of", "side", "dir"];
 
 const by_key = ([a]: [string, unknown], [b]: [string, unknown]): number => {
@@ -43,6 +43,14 @@ function drawn_on(graph: Graph, defs: Record<Id, Graph["defs"][string]>): Graph[
     if (pkg && pkg.id !== BASE_PACKAGE) out[pkg.id] = pkg;
   }
   return out;
+}
+
+/** What an export of this workspace is called, without its extension: **the name somebody gave
+ *  it**, so renaming the workspace renames the file it writes. Falls back to the word a fresh one
+ *  wears, and drops what a filename may not carry. */
+export function file_name(graph: Graph): string {
+  const said = (graph.blocks[graph.root]?.name ?? "").replace(/[\\/:*?"<>|]/g, " ");
+  return said.replace(/\s+/g, " ").trim() || "workspace";
 }
 
 /** The graph, laid out for reading: packages, then definitions, then blocks, then relations. */

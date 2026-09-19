@@ -64,7 +64,6 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
     { key: "what", label: lines ? "joins" : "kind" },
     ...(deep ? [{ key: "layer", label: "in" }] : []),
     { key: "def", label: "definition" },
-    ...(lines ? [{ key: "label", label: "label" }] : []),
   ];
 
   /** Blank is the default: each usage goes back to its own kind's. */
@@ -97,7 +96,7 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
       ]}
       rows={rows.map((r) => ({
         id: r.id,
-        titles: { name: r.name, what: r.what, layer: r.layer, label: r.label },
+        titles: { name: r.name, what: r.what, layer: r.layer },
         cells: {
           name: r.name,
           what: r.what,
@@ -106,7 +105,6 @@ export function Usages({ graph, group, scope, onScope, layer, about, picked, onP
             <Choice value={r.def} label={`what ${r.name} follows`} of={fits(r.id)}
                     onPick={(id) => onAct("retype", { ids: [r.id], type: blank_to(id) })} />
           ),
-          label: r.label,
         },
         /** A view chip on the picked row, only when it lives elsewhere. */
         actions: onView && picked.includes(r.id) && home(r.id) !== layer ? (

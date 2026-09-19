@@ -127,6 +127,11 @@ function apply(graph: Graph, m: Mutation): void {
       if (b) b.body = m.body;
       return;
     }
+    case "set_about": {
+      const d = graph.defs[m.id];
+      if (d) { if (m.about) d.about = m.about; else delete d.about; }
+      return;
+    }
     case "set_source": {
       const b = graph.blocks[m.id];
       if (!b) return;
@@ -189,9 +194,12 @@ function apply(graph: Graph, m: Mutation): void {
     case "update_edge": {
       const e = graph.edges[m.id];
       if (!e) return;
-      /** Null clears the type. */
+      if (m.name !== undefined) {
+        if (m.name) e.name = m.name; else delete e.name;
+      }
+      /** Null clears the type; absent leaves it alone. */
       if (m.type === null) delete e.type;
-      else e.type = m.type;
+      else if (m.type !== undefined) e.type = m.type;
       return;
     }
     case "delete_edge":
@@ -269,7 +277,7 @@ function apply(graph: Graph, m: Mutation): void {
       for (const d of Object.values(graph.defs)) if (d.from === m.id) delete graph.defs[d.id];
       return;
     case "set_tags": {
-      const b = graph.blocks[m.id] ?? graph.edges[m.id];
+      const b = graph.blocks[m.id] ?? graph.edges[m.id] ?? graph.defs[m.id];
       if (!b) return;
       /** Trimmed, deduplicated and in the order they were given. */
       const kept = [...new Set(m.tags.map((t) => t.trim()).filter(Boolean))];
